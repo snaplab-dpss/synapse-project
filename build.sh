@@ -48,35 +48,17 @@ GCC_VERSION='10'
 DPDK_DIR="$DEPS_DIR/dpdk"
 KLEE_DIR="$DEPS_DIR/klee"
 KLEE_UCLIBC_DIR="$DEPS_DIR/klee-uclibc"
+KLEE_BUILD_RELEASE_PATH="$KLEE_DIR/Release"
+KLEE_BUILD_DEBUG_PATH="$KLEE_DIR/Debug"
 LLVM_DIR="$DEPS_DIR/llvm"
-MAESTRO_DIR="$DEPS_DIR/maestro"
-OCAML_DIR="$DEPS_DIR/ocaml"
 Z3_DIR="$DEPS_DIR/z3"
+OCAML_DIR="$DEPS_DIR/ocaml"
 
-# Checks if a variable is set in a file. If it is not in the file, add it with
-# given value, otherwise change the value to match the current one.
-# $1 : the name of the variable
-# $2 : the value to set
-add_var_to_paths_file() {
-	if grep "^export $1" "$PATHSFILE" >/dev/null;
-	then
-		# Using sed directly to change the value would be dangerous as
-		# we would need to correctly escape the value, which is hard.
-		sed -i "/^export $1/d" "$PATHSFILE"
-	fi
-	echo "export ${1}=${2}" >> "$PATHSFILE"
-}
-
-# Same as line, but without the unicity checks.
-# $1 : the name of the file
-# $2 : the name of the variable
-# $3 : the value to set
-add_var_to_paths_file_multiline() {
-	if ! grep "^export ${1}=${2}" "$PATHSFILE" >/dev/null;
-	then
-		echo "export ${1}=${2}" >> "$PATHSFILE"
-	fi
-}
+DPDK_TARGET=x86_64-native-linuxapp-gcc
+DPDK_BUILD_DIR="$DPDK_DIR/$DPDK_TARGET"
+KLEE_UCLIBC_LIB_DIR="$KLEE_UCLIBC_DIR/lib"
+LLVM_RELEASE_DIR="$LLVM_DIR/Release"
+Z3_BUILD_DIR="$Z3_DIR/build"
 
 # Install arguments using system's package manager.
 # XXX: Make the package manager depend on "$OS".
@@ -97,10 +79,34 @@ package_sync() {
 	sudo apt-get update -qq
 }
 
-source_paths_in_profile() {
-	if ! grep "^source $PATHSFILE" ~/.profile >/dev/null;
-	then
-		echo "source $PATHSFILE" >> ~/.profile
+# Checks if a variable is set in a file. If it is not in the file, add it with
+# given value, otherwise change the value to match the current one.
+# $1 : the name of the variable
+# $2 : the value to set
+add_var_to_paths_file() {
+	if grep "^export $1" "$PATHSFILE" >/dev/null; then
+		# Using sed directly to change the value would be dangerous as
+		# we would need to correctly escape the value, which is hard.
+		sed -i "/^export $1/d" "$PATHSFILE"
+	fi
+	echo "export ${1}=${2}" >> "$PATHSFILE"
+	. "$PATHSFILE"
+}
+
+# Same as line, but without the unicity checks.
+# $1 : the name of the variable
+# $2 : the value to set
+add_multiline_var_to_paths_file() {
+	if ! grep "^export ${1}=${2}" "$PATHSFILE" >/dev/null; then
+		echo "export ${1}=${2}" >> "$PATHSFILE"
+		. "$PATHSFILE"
+	fi
+}
+
+add_expr_to_paths_file() {
+	if ! grep "^${1}" "$PATHSFILE" >/dev/null; then
+		echo "${1}" >> "$PATHSFILE"
+		. "$PATHSFILE"
 	fi
 }
 
@@ -110,9 +116,11 @@ create_paths_file() {
 }
 
 setup_python_venv() {
-	cd $SCRIPT_DIR
-	python3 -m venv env
-	source ./env/bin/activate
+	pushd "$SCRIPT_DIR"
+		python3 -m venv env
+		add_expr_to_paths_file ". $SCRIPT_DIR/env/bin/activate"
+		pip3 install -r requirements.txt
+	popd
 }
 
 set_gcc_version() {
@@ -133,35 +141,12 @@ set_gcc_version() {
 
 installation_setup() {
 	create_paths_file
-	source_paths_in_profile
 	setup_python_venv
 	set_gcc_version
 }
 
-# Checks if a variable is set in a file. If it is not in the file, add it with
-# given value, otherwise change the value to match the current one.
-# $1 : the name of the variable
-# $2 : the value to set
-add_var_to_paths_file()
-{
-	if grep "^export $1" "$PATHSFILE" >/dev/null;
-	then
-		# Using sed directly to change the value would be dangerous as
-		# we would need to correctly escape the value, which is hard.
-		sed -i "/^export $1/d" "$PATHSFILE"
-	fi
-	echo "export ${1}=${2}" >> "$PATHSFILE"
-}
-
-# Same as line, but without the unicity checks.
-# $1 : the name of the variable
-# $2 : the value to set
-add_multiline_var_to_paths_file()
-{
-	if ! grep "^export ${1}=${2}" "$PATHSFILE" >/dev/null;
-	then
-		echo "export ${1}=${2}" >> "$PATHSFILE"
-	fi
+clean_dpdk() {
+	rm -rf "$DPDK_BUILD_DIR"
 }
 
 source_install_dpdk() {
@@ -188,20 +173,14 @@ source_install_dpdk() {
 		meson \
 		pkg-config
 
-	TARGET=x86_64-native-linuxapp-gcc
-	DPDK_BUILD_DIR="$DPDK_DIR/$TARGET"
-
 	# Ensure environment is correct.
-	add_var_to_paths_file 'RTE_TARGET' "$TARGET"
-	add_var_to_paths_file 'RTE_SDK' "$DPDK_DIR"
-	add_multiline_var_to_paths_file 'PKG_CONFIG_PATH' "$DPDK_BUILD_DIR/lib/x86_64-linux-gnu/pkgconfig/"
-
-	# shellcheck source=../paths.sh
-	. "$PATHSFILE"
+	add_var_to_paths_file "RTE_TARGET" "$DPDK_TARGET"
+	add_var_to_paths_file "RTE_SDK" "$DPDK_DIR"
+	add_multiline_var_to_paths_file "PKG_CONFIG_PATH" "$DPDK_BUILD_DIR/lib/x86_64-linux-gnu/pkgconfig/"
 
 	pushd "$DPDK_DIR"
 		# Compile
-		meson setup "$TARGET" --prefix="$DPDK_BUILD_DIR"
+		meson setup "$DPDK_TARGET" --prefix="$DPDK_BUILD_DIR"
 
 		pushd "$DPDK_BUILD_DIR"
 			ninja
@@ -212,19 +191,31 @@ source_install_dpdk() {
 	echo "Done."
 }
 
+clean_z3() {
+	rm -rf "$Z3_BUILD_DIR"
+}
+
 source_install_z3() {
 	echo "Installing Z3..."
 
 	pushd "$Z3_DIR"
-		python3 scripts/mk_make.py -p "$Z3_DIR/build"
-		cd build
-		make -kj$BUILDING_CORES || make
-		make install
+		python3 scripts/mk_make.py -p "$Z3_BUILD_DIR"
 
-		add_var_to_paths_file 'Z3_DIR' "$Z3_DIR"
+		pushd "$Z3_BUILD_DIR"
+			make -kj$BUILDING_CORES || make
+			make install
+			add_var_to_paths_file "Z3_DIR" "$Z3_DIR"
+		popd
 	popd
 
 	echo "Done."
+}
+
+clean_llvm() {
+	rm -rf "$LLVM_RELEASE_DIR"
+	pushd "$LLVM_DIR"
+		make clean || true
+	popd
 }
 
 source_install_llvm() {
@@ -232,17 +223,17 @@ source_install_llvm() {
 	
 	package_install bison flex zlib1g-dev libncurses5-dev libpcap-dev python-is-python3
 
-	add_multiline_var_to_paths_file 'PATH' "$LLVM_DIR/Release/bin:\$PATH"
-	# shellcheck source=../paths.sh
-	. "$PATHSFILE"
+	add_multiline_var_to_paths_file "PATH" "$LLVM_RELEASE_DIR/bin:\$PATH"
 
 	pushd "$LLVM_DIR"
 		CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" \
-				./configure \
+		CC=cc \
+		CXX=c++ \
+			./configure \
 					--enable-optimized \
 					--disable-assertions \
 					--enable-targets=host \
-					--with-python='/usr/bin/python'
+					--with-python=$(which python)
 
 		# Painfully slow, but allowing the compilation to use many cores
 		# consumes a lot of memory, and crashes some systems.
@@ -250,6 +241,10 @@ source_install_llvm() {
 	popd
 
 	echo "Done."
+}
+
+clean_klee_uclibc() {
+	rm -rf "$KLEE_UCLIBC_LIB_DIR"
 }
 
 source_install_klee_uclibc() {
@@ -283,23 +278,29 @@ source_install_klee_uclibc() {
 	echo "Done."
 }
 
+clean_klee() {
+	rm -rf "$KLEE_BUILD_RELEASE_PATH"
+	rm -rf "$KLEE_BUILD_DEBUG_PATH"
+}
+
 source_install_klee() {
 	echo "Installing KLEE..."
 
-	add_var_to_paths_file 'KLEE_DIR' "$KLEE_DIR"
-	add_var_to_paths_file 'KLEE_INCLUDE' "$KLEE_DIR/include"
-	add_var_to_paths_file 'KLEE_BUILD_PATH' "$KLEE_DIR/Release"
+	add_var_to_paths_file "KLEE_DIR" "$KLEE_DIR"
+	add_var_to_paths_file "KLEE_INCLUDE" "$KLEE_DIR/include"
+	add_var_to_paths_file "KLEE_BUILD_PATH" "$KLEE_BUILD_RELEASE_PATH"
 
-	add_multiline_var_to_paths_file 'PATH' "$KLEE_DIR/Release/bin:\$PATH"
-
-	# shellcheck source=../paths.sh
-	. "$PATHSFILE"
+	add_multiline_var_to_paths_file "PATH" "$KLEE_BUILD_RELEASE_PATH/bin:\$PATH"
 
 	pushd $KLEE_DIR
 		./build.sh
 	popd
 
 	echo "Done."
+}
+
+clean_ocaml() {
+	rm -rf $HOME/.opam
 }
 
 bin_install_ocaml() {
@@ -320,11 +321,10 @@ bin_install_ocaml() {
 		fi
 	fi
 
-	add_multiline_var_to_paths_file 'PATH' "$HOME/.opam/system/bin:\$PATH"
+	add_multiline_var_to_paths_file "PATH" "$HOME/.opam/system/bin:\$PATH"
     # `|| :` at the end of the following command ensures that in the event the
     # init.sh script fails, the shell will not exit. opam suggests we do this.
-	echo ". $HOME/.opam/opam-init/init.sh || :" >> "$PATHSFILE"
-	. "$PATHSFILE"
+	add_expr_to_paths_file ". $HOME/.opam/opam-init/init.sh || :"
 
 	# Codegenerator dependencies.
 	opam install goblint-cil core -y
@@ -363,11 +363,15 @@ package_install \
 # Environment after packages are installed
 installation_setup
 
-pip3 install numpy
-pip3 install scapy
-pip3 install wheel
+# Clean dependencies
+clean_dpdk
+clean_z3
+clean_llvm
+clean_klee_uclibc
+clean_klee
+clean_ocaml
 
-# Install things
+# Install dependencies
 source_install_dpdk
 source_install_z3
 source_install_llvm
