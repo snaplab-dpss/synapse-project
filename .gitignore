@@ -1,8 +1,9 @@
 # File containing all the relevant paths
 paths.sh
 
-# Python virtual environment
+# Python stuff
 env
+__pycache__
 
 # Vagrant directory
 .vagrant
@@ -13,5 +14,21 @@ env
 # Mac
 .DS_Store
 
-# Out files
+# Out directories
 synthesized
+out
+build
+log
+
+# Draw.io garbage
+.$*.bkp
+.$*.dtmp
+
+# Latex harbage
+*.aux
+*.log
+*.out
+*.fls
+
+# In case we mess up
+core.*
