@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
-import os
 import random
 import time
 
@@ -17,18 +15,12 @@ import scapy.layers.l2
 import scapy.packet
 import scapy.fields
 
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-
-# Adding the parent directory to the sys.path to find the MathUnit simulator
-sys.path.append(os.path.dirname(CURRENT_DIR))
-
 PROGRAM = 'expirator'
 
 OP_READ  = 0
 OP_WRITE = 1
 
 KEY_SIZE_BITS = 8
-
 EXPIRATION_TIME_SEC = 5
 
 assert test_param_get('arch') in [ 'tofino', 'tofino2' ]
