@@ -1,15 +1,18 @@
 [submodule "deps/dpdk"]
-	path = deps/dpdk
+	path = synapse/deps/dpdk
 	url = https://github.com/snaplab-dpss/maestro-dpdk.git
 [submodule "deps/llvm"]
-	path = deps/llvm
+	path = synapse/deps/llvm
 	url = https://github.com/snaplab-dpss/maestro-llvm.git
 [submodule "deps/klee"]
-	path = deps/klee
+	path = synapse/deps/klee
 	url = git@github.com:fchamicapereira/synapse-klee.git
 [submodule "deps/klee-uclibc"]
-	path = deps/klee-uclibc
+	path = synapse/deps/klee-uclibc
 	url = https://github.com/snaplab-dpss/maestro-klee-uclibc.git
 [submodule "deps/z3"]
-	path = deps/z3
+	path = synapse/deps/z3
 	url = https://github.com/snaplab-dpss/maestro-z3.git
+[submodule "eval/deps/pktgen"]
+	path = eval/deps/pktgen
+	url = https://github.com/fchamicapereira/pktgen.git
