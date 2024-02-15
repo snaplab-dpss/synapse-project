@@ -1,14 +1,14 @@
+#include <algorithm>
 #include <arpa/inet.h>
 #include <iostream>
+#include <pthread.h>
 #include <sstream>
 #include <string>
+#include <time.h>
 #include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <pthread.h>
-#include <time.h>
-#include <algorithm>
 
 #include <bf_rt/bf_rt.hpp>
 
@@ -17,9 +17,9 @@ extern "C" {
 #endif
 #include <bf_rt/bf_rt_common.h>
 #include <bf_switchd/bf_switchd.h>
-#include <bfutils/bf_utils.h>  // required for bfshell
-#include <port_mgr/bf_port_if.h>
+#include <bfutils/bf_utils.h> // required for bfshell
 #include <pkt_mgr/pkt_mgr_intf.h>
+#include <port_mgr/bf_port_if.h>
 #ifdef __cplusplus
 }
 #endif
@@ -31,51 +31,51 @@ extern "C" {
 #define SWITCH_PACKET_MAX_BUFFER_SIZE 10000
 #define MTU 1500
 
-#define SWAP_ENDIAN_16(v) \
+#define SWAP_ENDIAN_16(v)                                                      \
   { (v) = __bswap_16((v)); }
-#define SWAP_ENDIAN_32(v) \
+#define SWAP_ENDIAN_32(v)                                                      \
   { (v) = __bswap_32((v)); }
 
-#define LOG_BF_STATUS(status, fmt, ...)                           \
-  if ((status) != BF_SUCCESS) {                                   \
-    fprintf(stderr, "%d: [WARN] " fmt "\nStatus: %s\n", __LINE__, \
-            ##__VA_ARGS__, bf_err_str(status));                   \
-    fflush(stderr);                                               \
+#define LOG_BF_STATUS(status, fmt, ...)                                        \
+  if ((status) != BF_SUCCESS) {                                                \
+    fprintf(stderr, "%d: [WARN] " fmt "\nStatus: %s\n", __LINE__,              \
+            ##__VA_ARGS__, bf_err_str(status));                                \
+    fflush(stderr);                                                            \
   }
 
-#define ASSERT_BF_STATUS(status, fmt, ...)                         \
-  if ((status) != BF_SUCCESS) {                                    \
-    fprintf(stderr, "%d: [ERROR] " fmt "\nStatus: %s\n", __LINE__, \
-            ##__VA_ARGS__, bf_err_str(status));                    \
-    fflush(stderr);                                                \
-    exit(1);                                                       \
+#define ASSERT_BF_STATUS(status, fmt, ...)                                     \
+  if ((status) != BF_SUCCESS) {                                                \
+    fprintf(stderr, "%d: [ERROR] " fmt "\nStatus: %s\n", __LINE__,             \
+            ##__VA_ARGS__, bf_err_str(status));                                \
+    fflush(stderr);                                                            \
+    exit(1);                                                                   \
   }
 
 #ifndef NDEBUG
-#define LOG_DEBUG(fmt, ...)                         \
-  {                                                 \
-    fprintf(stderr, "[DEBUG] " fmt, ##__VA_ARGS__); \
-    fflush(stderr);                                 \
+#define LOG_DEBUG(fmt, ...)                                                    \
+  {                                                                            \
+    fprintf(stderr, "[DEBUG] " fmt, ##__VA_ARGS__);                            \
+    fflush(stderr);                                                            \
   }
 #else
 #define LOG_DEBUG(fmt, ...)
 #endif
 
-#define LOG(fmt, ...)                    \
-  {                                      \
-    fprintf(stderr, fmt, ##__VA_ARGS__); \
-    fflush(stderr);                      \
+#define LOG(fmt, ...)                                                          \
+  {                                                                            \
+    fprintf(stderr, fmt, ##__VA_ARGS__);                                       \
+    fflush(stderr);                                                            \
   }
 
 #ifndef PROGRAM
 #define PROGRAM "redirector"
 #endif
 
-#define WAIT_FOR_ENTER(msg)                                             \
-  {                                                                     \
-    std::cout << msg;                                                   \
-    fflush(stdout);                                                     \
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); \
+#define WAIT_FOR_ENTER(msg)                                                    \
+  {                                                                            \
+    std::cout << msg;                                                          \
+    fflush(stdout);                                                            \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');        \
   }
 
 #define likely(x) __builtin_expect((x), 1)
@@ -323,7 +323,8 @@ uint16_t update_ipv4_tcpudp_checksums(const ipv4_t *ipv4_hdr,
   uint32_t l3_len, l4_len;
 
   l3_len = __bswap_16(ipv4_hdr->tot_len);
-  if (l3_len < sizeof(ipv4_t)) return 0;
+  if (l3_len < sizeof(ipv4_t))
+    return 0;
 
   l4_len = l3_len - sizeof(ipv4_t);
 
@@ -337,7 +338,8 @@ uint16_t update_ipv4_tcpudp_checksums(const ipv4_t *ipv4_hdr,
    * it is transmitted as all ones
    * (the equivalent in one's complement arithmetic).
    */
-  if (cksum == 0 && ipv4_hdr->protocol == IPPROTO_UDP) cksum = 0xffff;
+  if (cksum == 0 && ipv4_hdr->protocol == IPPROTO_UDP)
+    cksum = 0xffff;
 
   return (uint16_t)cksum;
 }
@@ -477,7 +479,7 @@ void init_bf_switchd(const std::string &program, bool run_in_background) {
   }
 
   char target_conf_file[100];
-  sprintf(target_conf_file, "%s/share/p4/targets/tofino/%s.conf",
+  sprintf(target_conf_file, "%s/share/p4/targets/tofino2/%s.conf",
           get_install_dir(), program.c_str());
 
   memset(switchd_ctx, 0, sizeof(bf_switchd_context_t));
@@ -509,8 +511,7 @@ void setup_bf_session(const std::string &program) {
   session = bfrt::BfRtSession::sessionCreate();
 }
 
-template <int key_size>
-bool key_eq(void *k1, void *k2) {
+template <int key_size> bool key_eq(void *k1, void *k2) {
   auto _k1 = (uint8_t *)k1;
   auto _k2 = (uint8_t *)k2;
 
@@ -523,8 +524,7 @@ bool key_eq(void *k1, void *k2) {
   return true;
 }
 
-template <int key_size>
-unsigned key_hash(void *k) {
+template <int key_size> unsigned key_hash(void *k) {
   auto _k = (uint8_t *)k;
   unsigned hash = 0;
 
@@ -536,7 +536,7 @@ unsigned key_hash(void *k) {
 }
 
 class TofinoTable {
-  protected:
+protected:
   std::string table_name;
   const bfrt::BfRtTable *table;
 
@@ -552,7 +552,7 @@ class TofinoTable {
   std::vector<field_t> key_fields;
   std::vector<field_t> data_fields;
 
-  protected:
+protected:
   TofinoTable(const std::string &_table_name)
       : table_name(_table_name), table(nullptr) {
     assert(info);
@@ -670,8 +670,8 @@ class TofinoTable {
     ASSERT_BF_STATUS(bf_status, "Failed to configure action %s", name.c_str())
   }
 
-  void init_actions(
-      const std::unordered_map<std::string, bf_rt_id_t *> &actions) {
+  void
+  init_actions(const std::unordered_map<std::string, bf_rt_id_t *> &actions) {
     for (const auto &action : actions) {
       init_action(action.first, action.second);
     }
@@ -709,7 +709,7 @@ class TofinoTable {
                      table_name.c_str())
   }
 
-  public:
+public:
   size_t get_size() const {
     size_t size;
     auto bf_status = table->tableSizeGet(*session, dev_tgt, &size);
@@ -741,7 +741,7 @@ class TofinoTable {
 };
 
 class Port_HDL_Info : TofinoTable {
-  private:
+private:
   // Key fields IDs
   bf_rt_id_t CONN_ID;
   bf_rt_id_t CHNL_ID;
@@ -749,7 +749,7 @@ class Port_HDL_Info : TofinoTable {
   // Data field ids
   bf_rt_id_t DEV_PORT;
 
-  public:
+public:
   Port_HDL_Info() : TofinoTable("$PORT_HDL_INFO") {
     auto bf_status = table->keyFieldIdGet("$CONN_ID", &CONN_ID);
     assert(bf_status == BF_SUCCESS);
@@ -778,7 +778,7 @@ class Port_HDL_Info : TofinoTable {
     return (uint16_t)value;
   }
 
-  private:
+private:
   void key_setup(uint16_t front_panel_port, uint16_t lane) {
     table->keyReset(key.get());
 
@@ -792,7 +792,7 @@ class Port_HDL_Info : TofinoTable {
 };
 
 class Port_Stat : TofinoTable {
-  private:
+private:
   struct key_fields_t {
     // Key fields IDs
     bf_rt_id_t dev_port;
@@ -894,7 +894,7 @@ class Port_Stat : TofinoTable {
   key_fields_t key_fields;
   data_fields_t data_fields;
 
-  public:
+public:
   Port_Stat() : TofinoTable("$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
@@ -1061,7 +1061,7 @@ class Port_Stat : TofinoTable {
     return value;
   }
 
-  private:
+private:
   void key_setup(uint16_t dev_port) {
     table->keyReset(key.get());
     assert(key);
@@ -1073,7 +1073,7 @@ class Port_Stat : TofinoTable {
 };
 
 class Ports : TofinoTable {
-  private:
+private:
   // Key fields IDs
   bf_rt_id_t DEV_PORT;
 
@@ -1087,7 +1087,7 @@ class Ports : TofinoTable {
   Port_HDL_Info port_hdl_info;
   Port_Stat port_stat;
 
-  public:
+public:
   Ports() : TofinoTable("$PORT"), port_hdl_info(), port_stat() {
     auto bf_status = table->keyFieldIdGet("$DEV_PORT", &DEV_PORT);
     assert(bf_status == BF_SUCCESS);
@@ -1181,7 +1181,7 @@ class Ports : TofinoTable {
   uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port); }
   uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port); }
 
-  private:
+private:
   void key_setup(uint16_t dev_port) {
     table->keyReset(key.get());
 
@@ -1206,19 +1206,19 @@ class Ports : TofinoTable {
     assert(bf_status == BF_SUCCESS);
   }
 
-  public:
+public:
   static bf_port_speed_t gbps_to_bf_port_speed(uint32_t gbps) {
     switch (gbps) {
-      case 100:
-        return BF_SPEED_100G;
-      case 50:
-        return BF_SPEED_50G;
-      case 40:
-        return BF_SPEED_40G;
-      case 25:
-        return BF_SPEED_25G;
-      default:
-        return BF_SPEED_NONE;
+    case 100:
+      return BF_SPEED_100G;
+    case 50:
+      return BF_SPEED_50G;
+    case 40:
+      return BF_SPEED_40G;
+    case 25:
+      return BF_SPEED_25G;
+    default:
+      return BF_SPEED_NONE;
     }
   }
 };
@@ -1242,7 +1242,8 @@ struct fields_values_t {
   }
 
   ~fields_values_t() {
-    if (values) delete values;
+    if (values)
+      delete values;
     size = 0;
   }
 
@@ -1263,7 +1264,8 @@ inline std::ostream &operator<<(std::ostream &os,
                                 const fields_values_t &fields_values) {
   os << "{";
   for (int i = 0u; i < fields_values.size; i++) {
-    if (i > 0) os << ",";
+    if (i > 0)
+      os << ",";
     os << "0x" << std::hex << fields_values.values[i] << std::dec;
   }
   os << "}";
@@ -1372,7 +1374,8 @@ inline bool operator==(const bytes_t &lhs, const bytes_t &rhs) {
 inline std::ostream &operator<<(std::ostream &os, const bytes_t &bytes) {
   os << "{";
   for (int i = 0u; i < bytes.size; i++) {
-    if (i > 0) os << ",";
+    if (i > 0)
+      os << ",";
     os << "0x" << std::hex << (int)bytes[i] << std::dec;
   }
   os << "}";
@@ -1466,14 +1469,14 @@ struct entries_t {
 };
 
 class Table : public TofinoTable {
-  private:
+private:
   entries_t added_entries;
 
   bf_rt_id_t populate_action_id;
   time_cfg_t timeout;
   cookie_t cookie;
 
-  public:
+public:
   Table(const std::string &_table_name)
       : TofinoTable("Ingress." + _table_name), cookie({this}) {
     init_key();
@@ -1558,7 +1561,7 @@ class Table : public TofinoTable {
     return std::unique_ptr<Table>(new Table(_table_name, _timeout));
   }
 
-  private:
+private:
   void key_setup() {
     auto bf_status = table->keyReset(key.get());
     assert(bf_status == BF_SUCCESS);
@@ -1719,7 +1722,7 @@ class Table : public TofinoTable {
     LOG_DEBUG("*********************************************\n");
   }
 
-  public:
+public:
   table_key_t key_to_fields_values(const bfrt::BfRtTableKey *key) {
     auto fields_values = table_key_t(key_fields.size());
 
@@ -1744,8 +1747,9 @@ class Table : public TofinoTable {
     return fields_values;
   }
 
-  static fields_values_t bytes_to_fields_values(
-      const bytes_t &values, const std::vector<field_t> &fields) {
+  static fields_values_t
+  bytes_to_fields_values(const bytes_t &values,
+                         const std::vector<field_t> &fields) {
     auto fields_values = fields_values_t(fields.size());
     auto starting_byte = 0;
 
@@ -1770,8 +1774,9 @@ class Table : public TofinoTable {
   }
 
   // one to one relation
-  static fields_values_t bytes_to_fields_values(
-      const std::vector<bytes_t> &values, const std::vector<field_t> &fields) {
+  static fields_values_t
+  bytes_to_fields_values(const std::vector<bytes_t> &values,
+                         const std::vector<field_t> &fields) {
     auto fields_values = fields_values_t(values.size());
 
     assert(fields.size() >= values.size());
@@ -1807,14 +1812,13 @@ bf_status_t idletime_callback(const bf_rt_target_t &target,
   return BF_SUCCESS;
 }
 
-template <typename T>
-class Map {
-  private:
+template <typename T> class Map {
+private:
   std::unordered_map<bytes_t, T, bytes_t::hash> data;
   std::vector<std::unique_ptr<Table>> tables;
   std::unique_ptr<Table> timeout_table;
 
-  public:
+public:
   Map() {}
 
   Map(const std::vector<std::string> &tables_names) {
@@ -1853,19 +1857,19 @@ class Map {
     return std::unique_ptr<Map>(new Map());
   }
 
-  static std::unique_ptr<Map> build(
-      const std::vector<std::string> &tables_names) {
+  static std::unique_ptr<Map>
+  build(const std::vector<std::string> &tables_names) {
     return std::unique_ptr<Map>(new Map(tables_names));
   }
 
-  static std::unique_ptr<Map> build(
-      const std::vector<std::string> &tables_names,
-      const std::string &timeout_table_name, time_ms_t timeout) {
+  static std::unique_ptr<Map>
+  build(const std::vector<std::string> &tables_names,
+        const std::string &timeout_table_name, time_ms_t timeout) {
     return std::unique_ptr<Map>(
         new Map(tables_names, timeout_table_name, timeout));
   }
 
-  private:
+private:
   bytes_t to_bytes(int value) {
     bytes_t bytes(4);
 
@@ -1883,7 +1887,7 @@ class Map {
 #define DCHAIN_RESERVED (2)
 
 class Dchain {
-  public:
+public:
   Dchain(int index_range) {
     cells = (struct dchain_cell *)malloc(sizeof(struct dchain_cell) *
                                          (index_range + DCHAIN_RESERVED));
@@ -1940,7 +1944,7 @@ class Dchain {
     return std::unique_ptr<Dchain>(new Dchain(index_range));
   }
 
-  private:
+private:
   struct dchain_cell {
     uint32_t prev;
     uint32_t next;
@@ -2158,8 +2162,7 @@ struct args_t {
   time_ms_t timeout;
 
   args_t(int argc, char **argv)
-      : hardware_mode(false),
-        switchd_background(false),
+      : hardware_mode(false), switchd_background(false),
         wait_to_enable_timeouts(false) {
     if (argc <= 1) {
       help();

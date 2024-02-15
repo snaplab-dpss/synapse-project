@@ -22,19 +22,20 @@ if sys.version_info < (3, 9, 0):
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 MICRO_DIR   = CURRENT_DIR / Path("micro")
+DATA_DIR    = CURRENT_DIR / Path("data")
 
 console = Console()
 
 def send_sources(
-    config: list,
+    config: dict,
     name: str,
     local_switch: Path,
     local_controller: Path,
 ) -> tuple[Path, Path]:
     name = Path(name).stem
 
-    remote_switch     = Path(config["paths"]["dataplane"]) / f"{name}{local_switch.suffix}"
-    remote_controller = Path(config["paths"]["controller"]) / f"{name}{local_controller.suffix}"
+    remote_switch     = Path(config["paths"]["switch"]) / f"{name}{local_switch.suffix}"
+    remote_controller = Path(config["paths"]["switch"]) / f"{name}{local_controller.suffix}"
 
     switch = RemoteHost(config["hosts"]["switch"])
     switch.upload_file(local_switch, remote_switch, overwrite=True)
@@ -44,7 +45,7 @@ def send_sources(
     
     return remote_switch, remote_controller
 
-def get_test_experiment(config: list, data_dir: Path) -> Experiment:
+def get_test_experiment(config: dict, data_dir: Path) -> Experiment:
     pkt_size = 64
     nb_flows = 1024
 
@@ -97,7 +98,14 @@ def get_test_experiment(config: list, data_dir: Path) -> Experiment:
     return throughput
 
 @click.command()
-@click.argument("data_dir")
+@click.option(
+    "--data-dir",
+    "-d",
+    type=click.Path(),
+    default=DATA_DIR,
+    show_default=True,
+    help="Path to output data directory.",
+)
 @click.option(
     "--config-file",
     "-c",
@@ -122,7 +130,6 @@ def main(
     exp_tracker.add_experiment(experiment)
 
     exp_tracker.run_experiments()
-
 
 if __name__ == "__main__":
     main()

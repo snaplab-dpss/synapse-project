@@ -11,25 +11,20 @@
 #    IdentityFile ~/.ssh/id_rsa
 #
 [hosts]
-controller = ""
 switch = ""
 pktgen = ""
 
 
-# Set the paths where to copy the source code on both the controller and the
-# pktgen machines.
+# Set the paths to this repo on the remote machines.
 # Ensure that the user you are using to ssh into the machines has write access
 # to these directories. This user is set in the .ssh/config file (see above).
 [paths]
-controller = ""
-dataplane = ""
-sde_install = ""
-controller_build_script = ""
-dataplane_build_script = ""
+switch = ""
 pktgen = ""
 
 
-[devices.controller]
+[devices.switch]
+tofino_version = 1 # TNA versions 1 or 2
 
 
 [devices.pktgen]
