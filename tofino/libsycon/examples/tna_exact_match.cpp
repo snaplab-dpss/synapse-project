@@ -1,0 +1,121 @@
+#include <sycon/sycon.h>
+
+using namespace sycon;
+
+class IpRoute : public Table {
+ private:
+  struct key_fields_t {
+    // Key fields IDs
+    bf_rt_id_t vrf;
+    bf_rt_id_t dst_addr;
+  };
+
+  struct data_fields_t {
+    // Data field ids
+
+    bf_rt_id_t route_srcMac;
+    bf_rt_id_t route_dstMac;
+    bf_rt_id_t route_dst_port;
+
+    bf_rt_id_t nat_srcAddr;
+    bf_rt_id_t nat_dstAddr;
+    bf_rt_id_t nat_dst_port;
+  };
+
+  struct actions_t {
+    // Actions ids
+    bf_rt_id_t route;
+    bf_rt_id_t nat;
+  };
+
+  key_fields_t key_fields;
+  data_fields_t data_fields;
+  actions_t actions;
+
+ public:
+  IpRoute() : Table("SwitchIngress.ipRoute") {
+    init_key({
+        {"vrf", &key_fields.vrf},
+        {"hdr.ipv4.dst_addr", &key_fields.dst_addr},
+    });
+
+    init_actions({
+        {"SwitchIngress.route", &actions.route},
+    });
+
+    init_actions({
+        {"SwitchIngress.nat", &actions.nat},
+    });
+
+    init_data_with_actions({
+        {"srcMac", {actions.route, &data_fields.route_srcMac}},
+        {"dstMac", {actions.route, &data_fields.route_dstMac}},
+        {"dst_port", {actions.route, &data_fields.route_dst_port}},
+    });
+
+    init_data_with_actions({
+        {"srcAddr", {actions.nat, &data_fields.nat_srcAddr}},
+        {"dstAddr", {actions.nat, &data_fields.nat_dstAddr}},
+        {"dst_port", {actions.nat, &data_fields.nat_dst_port}},
+    });
+  }
+
+ public:
+  void add_entry_nat(uint16_t vrf, uint32_t dst_addr, uint32_t data_src_addr,
+                     uint32_t data_dst_addr, uint16_t data_dst_port) {
+    key_setup(vrf, dst_addr);
+    data_setup_nat(data_src_addr, data_dst_addr, data_dst_port);
+
+    auto bf_status =
+        table->tableEntryAdd(*cfg.session, cfg.dev_tgt, *key, *data);
+    ASSERT_BF_STATUS(bf_status);
+  }
+
+ private:
+  void key_setup(uint16_t vrf, uint32_t dst_addr) {
+    table->keyReset(key.get());
+
+    auto bf_status = key->setValue(key_fields.vrf, static_cast<uint64_t>(vrf));
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status =
+        key->setValue(key_fields.dst_addr, static_cast<uint64_t>(dst_addr));
+    ASSERT_BF_STATUS(bf_status);
+  }
+
+  void data_setup_nat(uint32_t src_addr, uint32_t dst_addr, uint16_t dst_port) {
+    auto bf_status = table->dataReset(actions.nat, data.get());
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = data->setValue(data_fields.nat_srcAddr,
+                               static_cast<uint64_t>(src_addr));
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = data->setValue(data_fields.nat_dstAddr,
+                               static_cast<uint64_t>(dst_addr));
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = data->setValue(data_fields.nat_dst_port,
+                               static_cast<uint64_t>(dst_port));
+    ASSERT_BF_STATUS(bf_status);
+  }
+};
+
+int main(int argc, char **argv) {
+  DEBUG("DEBUG TEST");
+  LOG("NOT DEBUG TEST");
+
+  parse_args(argc, argv);
+  init_switchd();
+  configure_ports();
+
+  if (args.run_ucli) {
+    run_cli();
+  }
+
+  IpRoute ipRoute;
+  ipRoute.add_entry_nat(0, 1, 2, 3, 4);
+  ipRoute.dump();
+
+  return 0;
+}

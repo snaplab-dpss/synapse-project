@@ -1,0 +1,62 @@
+#pragma once
+
+#include <port_mgr/bf_port_if.h>
+
+#include <map>
+
+#include "../../include/sycon/primitives/table.h"
+
+namespace sycon {
+
+class Port_HDL_Info : Table {
+ private:
+  // Key fields IDs
+  bf_rt_id_t CONN_ID;
+  bf_rt_id_t CHNL_ID;
+
+  // Data field ids
+  bf_rt_id_t DEV_PORT;
+
+ public:
+  Port_HDL_Info() : Table("$PORT_HDL_INFO") {
+    auto bf_status = table->keyFieldIdGet("$CONN_ID", &CONN_ID);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->keyFieldIdGet("$CHNL_ID", &CHNL_ID);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldIdGet("$DEV_PORT", &DEV_PORT);
+    ASSERT_BF_STATUS(bf_status)
+  }
+
+  uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane,
+                        bool from_hw = false) {
+    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
+                          : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+
+    key_setup(front_panel_port, lane);
+    auto bf_status = table->tableEntryGet(*cfg.session, cfg.dev_tgt, *key,
+                                          hwflag, data.get());
+    ASSERT_BF_STATUS(bf_status)
+
+    uint64_t value;
+    bf_status = data->getValue(DEV_PORT, &value);
+    ASSERT_BF_STATUS(bf_status)
+
+    return (uint16_t)value;
+  }
+
+ private:
+  void key_setup(uint16_t front_panel_port, uint16_t lane) {
+    table->keyReset(key.get());
+
+    auto bf_status =
+        key->setValue(CONN_ID, static_cast<uint64_t>(front_panel_port));
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = key->setValue(CHNL_ID, static_cast<uint64_t>(lane));
+    ASSERT_BF_STATUS(bf_status)
+  }
+};
+
+};  // namespace sycon

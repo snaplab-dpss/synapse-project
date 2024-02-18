@@ -1,0 +1,153 @@
+#pragma once
+
+#include <port_mgr/bf_port_if.h>
+#include <unistd.h>
+
+#include <map>
+
+#include "port_hdl_info.h"
+#include "port_stat.h"
+
+namespace sycon {
+
+class Ports : Table {
+ private:
+  // Key fields IDs
+  bf_rt_id_t DEV_PORT;
+
+  // Data field ids
+  bf_rt_id_t SPEED;
+  bf_rt_id_t FEC;
+  bf_rt_id_t PORT_ENABLE;
+  bf_rt_id_t LOOPBACK_MODE;
+  bf_rt_id_t PORT_UP;
+
+  Port_HDL_Info port_hdl_info;
+  Port_Stat port_stat;
+
+ public:
+  Ports() : Table("$PORT"), port_hdl_info(), port_stat() {
+    auto bf_status = table->keyFieldIdGet("$DEV_PORT", &DEV_PORT);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldIdGet("$SPEED", &SPEED);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldIdGet("$FEC", &FEC);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldIdGet("$PORT_ENABLE", &PORT_ENABLE);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldIdGet("$LOOPBACK_MODE", &LOOPBACK_MODE);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldIdGet("$PORT_UP", &PORT_UP);
+    ASSERT_BF_STATUS(bf_status)
+  }
+
+  void add_dev_port(uint16_t dev_port, bf_port_speed_t speed,
+                    bf_loopback_mode_e loopback_mode = BF_LPBK_NONE) {
+    std::map<bf_port_speed_t, std::string> speed_opts{
+        {BF_SPEED_NONE, "BF_SPEED_10G"},  {BF_SPEED_25G, "BF_SPEED_25G"},
+        {BF_SPEED_40G, "BF_SPEED_40G"},   {BF_SPEED_50G, "BF_SPEED_50G"},
+        {BF_SPEED_100G, "BF_SPEED_100G"},
+    };
+
+    std::map<bf_fec_type_t, std::string> fec_opts{
+        {BF_FEC_TYP_NONE, "BF_FEC_TYP_NONE"},
+        {BF_FEC_TYP_FIRECODE, "BF_FEC_TYP_FIRECODE"},
+        {BF_FEC_TYP_REED_SOLOMON, "BF_FEC_TYP_REED_SOLOMON"},
+    };
+
+    std::map<bf_port_speed_t, bf_fec_type_t> speed_to_fec{
+        {BF_SPEED_NONE, BF_FEC_TYP_NONE},
+        {BF_SPEED_25G, BF_FEC_TYP_NONE},
+        {BF_SPEED_40G, BF_FEC_TYP_NONE},
+        {BF_SPEED_50G, BF_FEC_TYP_NONE},
+        {BF_SPEED_50G, BF_FEC_TYP_NONE},
+        {BF_SPEED_100G, BF_FEC_TYP_REED_SOLOMON},
+    };
+
+    std::map<bf_loopback_mode_e, std::string> loopback_mode_opts{
+        {BF_LPBK_NONE, "BF_LPBK_NONE"},
+        {BF_LPBK_MAC_NEAR, "BF_LPBK_MAC_NEAR"},
+        {BF_LPBK_MAC_FAR, "BF_LPBK_MAC_FAR"},
+        {BF_LPBK_PCS_NEAR, "BF_LPBK_PCS_NEAR"},
+        {BF_LPBK_SERDES_NEAR, "BF_LPBK_SERDES_NEAR"},
+        {BF_LPBK_SERDES_FAR, "BF_LPBK_SERDES_FAR"},
+        {BF_LPBK_PIPE, "BF_LPBK_PIPE"},
+    };
+
+    auto fec = speed_to_fec[speed];
+
+    key_setup(dev_port);
+    data_setup(speed_opts[speed], fec_opts[fec], true,
+               loopback_mode_opts[loopback_mode]);
+
+    auto bf_status =
+        table->tableEntryAdd(*cfg.session, cfg.dev_tgt, *key, *data);
+    ASSERT_BF_STATUS(bf_status)
+  }
+
+  void add_port(uint16_t front_panel_port, uint16_t lane, bf_port_speed_t speed,
+                bool wait_until_ready) {
+    auto dev_port = port_hdl_info.get_dev_port(front_panel_port, lane, false);
+    add_dev_port(dev_port, speed);
+
+    while (wait_until_ready && !is_port_up(dev_port)) {
+      sleep(1);
+    }
+  }
+
+  bool is_port_up(uint16_t dev_port, bool from_hw = false) {
+    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
+                          : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+
+    key_setup(dev_port);
+
+    auto bf_status = table->tableEntryGet(*cfg.session, cfg.dev_tgt, *key,
+                                          hwflag, data.get());
+    ASSERT_BF_STATUS(bf_status)
+
+    bool value;
+    bf_status = data->getValue(PORT_UP, &value);
+    ASSERT_BF_STATUS(bf_status)
+
+    return value;
+  }
+
+  uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
+    return port_hdl_info.get_dev_port(front_panel_port, lane, false);
+  }
+
+  uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port); }
+  uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port); }
+
+ private:
+  void key_setup(uint16_t dev_port) {
+    table->keyReset(key.get());
+
+    auto bf_status = key->setValue(DEV_PORT, static_cast<uint64_t>(dev_port));
+    ASSERT_BF_STATUS(bf_status)
+  }
+
+  void data_setup(std::string speed, std::string fec, bool port_enable,
+                  std::string loopback_mode) {
+    table->dataReset(data.get());
+
+    auto bf_status = data->setValue(SPEED, speed);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = data->setValue(FEC, fec);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = data->setValue(PORT_ENABLE, port_enable);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = data->setValue(LOOPBACK_MODE, loopback_mode);
+    ASSERT_BF_STATUS(bf_status)
+  }
+};
+
+};  // namespace sycon
