@@ -2,7 +2,192 @@
 
 #include <sstream>
 
+#include "../../include/sycon/log.h"
+#include "config.h"
+
 namespace sycon {
+
+Table::Table(const std::string &_control_name, const std::string &_table_name)
+    : dev_tgt(cfg.dev_tgt),
+      info(cfg.info),
+      session(cfg.session),
+      control_name(_control_name),
+      table_name(_table_name),
+      table(nullptr) {
+  auto full_table_name = append_control_name(table_name);
+  auto bf_status = info->bfrtTableFromNameGet(full_table_name, &table);
+  ASSERT_BF_STATUS(bf_status)
+
+  // Allocate key and data once, and use reset across different uses
+  bf_status = table->keyAllocate(&key);
+  ASSERT_BF_STATUS(bf_status)
+  assert(key);
+
+  bf_status = table->dataAllocate(&data);
+  ASSERT_BF_STATUS(bf_status)
+  assert(data);
+}
+
+std::string Table::append_control_name(const std::string &name) const {
+  if (control_name.size()) {
+    return control_name + "." + name;
+  }
+
+  return name;
+}
+
+void Table::init_key() {
+  std::vector<bf_rt_id_t> key_fields_ids;
+
+  auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  ASSERT_BF_STATUS(bf_status)
+
+  for (auto id : key_fields_ids) {
+    std::string name;
+    bits_t size;
+
+    bf_status = table->keyFieldNameGet(id, &name);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->keyFieldSizeGet(id, &size);
+    ASSERT_BF_STATUS(bf_status)
+
+    key_fields.push_back({name, id, size});
+  }
+
+  DEBUG("Keys:");
+  for (auto k : key_fields) {
+    DEBUG("  %s (%lu bits)", k.name.c_str(), k.size);
+  }
+}
+
+void Table::init_key(const std::string &name, bf_rt_id_t *id) {
+  auto bf_status = table->keyFieldIdGet(name, id);
+  ASSERT_BF_STATUS(bf_status)
+}
+
+void Table::init_key(
+    const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
+  for (const auto &field : fields) {
+    init_key(field.first, field.second);
+  }
+}
+
+void Table::init_data(const std::string &name, bf_rt_id_t *id) {
+  auto bf_status = table->dataFieldIdGet(name, id);
+  ASSERT_BF_STATUS(bf_status)
+}
+
+void Table::init_data(
+    const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
+  for (const auto &field : fields) {
+    init_data(field.first, field.second);
+  }
+}
+
+void Table::init_data_with_action(bf_rt_id_t action_id) {
+  std::vector<bf_rt_id_t> data_fields_ids;
+
+  auto bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
+  ASSERT_BF_STATUS(bf_status)
+
+  for (auto id : data_fields_ids) {
+    std::string name;
+    bits_t size;
+
+    bf_status = table->dataFieldNameGet(id, action_id, &name);
+    ASSERT_BF_STATUS(bf_status)
+
+    bf_status = table->dataFieldSizeGet(id, action_id, &size);
+    ASSERT_BF_STATUS(bf_status)
+
+    data_fields.push_back({name, id, size});
+  }
+
+  DEBUG("Data:");
+  for (auto d : data_fields) {
+    DEBUG("  %s (%lu bits)", d.name.c_str(), d.size);
+  }
+}
+
+void Table::init_data_with_action(const std::string &name, bf_rt_id_t action_id,
+                                  bf_rt_id_t *field_id) {
+  auto bf_status = table->dataFieldIdGet(name, action_id, field_id);
+  ASSERT_BF_STATUS(bf_status)
+}
+
+void Table::init_data_with_actions(
+    const std::unordered_map<std::string, std::pair<bf_rt_id_t, bf_rt_id_t *>>
+        &fields) {
+  for (const auto &field : fields) {
+    init_data_with_action(field.first, field.second.first, field.second.second);
+  }
+}
+
+void Table::init_action(const std::string &action_name, bf_rt_id_t *action_id) {
+  auto full_action_name = append_control_name(action_name);
+  auto bf_status = table->actionIdGet(full_action_name, action_id);
+  ASSERT_BF_STATUS(bf_status)
+}
+
+void Table::init_actions(
+    const std::unordered_map<std::string, bf_rt_id_t *> &actions) {
+  for (const auto &action : actions) {
+    init_action(action.first, action.second);
+  }
+}
+
+void Table::set_notify_mode(time_ms_t timeout_value, void *cookie,
+                            const bfrt::BfRtIdleTmoExpiryCb &callback,
+                            bool enable) {
+  DEBUG("Set timeouts state for table %s: %d", table_name.c_str(), enable);
+
+  std::unique_ptr<bfrt::BfRtTableAttributes> attr;
+
+  auto bf_status = table->attributeAllocate(
+      bfrt::TableAttributesType::IDLE_TABLE_RUNTIME,
+      bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
+
+  ASSERT_BF_STATUS(bf_status)
+
+  uint32_t min_ttl = timeout_value;
+  uint32_t max_ttl = timeout_value;
+  uint32_t ttl_query_interval = timeout_value;
+
+  assert(ttl_query_interval <= min_ttl);
+
+  bf_status = attr->idleTableNotifyModeSet(enable, callback, ttl_query_interval,
+                                           max_ttl, min_ttl, cookie);
+  ASSERT_BF_STATUS(bf_status)
+
+  uint32_t flags = 0;
+  bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
+  ASSERT_BF_STATUS(bf_status)
+}
+
+size_t Table::get_size() const {
+  size_t size;
+  auto bf_status = table->tableSizeGet(*session, dev_tgt, &size);
+  ASSERT_BF_STATUS(bf_status)
+  return size;
+}
+
+size_t Table::get_usage() const {
+  uint32_t usage;
+  auto bf_status = table->tableUsageGet(
+      *session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW,
+      &usage);
+  ASSERT_BF_STATUS(bf_status)
+  return usage;
+}
+
+const std::vector<table_field_t> &Table::get_key_fields() const {
+  return key_fields;
+}
+
+const std::vector<table_field_t> &Table::get_data_fields() const {
+  return data_fields;
+}
 
 void Table::dump_data_fields() {
   std::stringstream ss;
@@ -362,8 +547,8 @@ void Table::dump(std::ostream &os) {
 
   while (processed_entries != total_entries) {
     if (processed_entries == 0) {
-      bf_status = table->tableEntryGetFirst(*cfg.session, cfg.dev_tgt, flag,
-                                            key.get(), data.get());
+      bf_status = table->tableEntryGetFirst(*session, dev_tgt, flag, key.get(),
+                                            data.get());
       ASSERT_BF_STATUS(bf_status);
       processed_entries++;
 
@@ -374,9 +559,8 @@ void Table::dump(std::ostream &os) {
 
       kd_t kd(table, to_request);
 
-      bf_status = table->tableEntryGetNext_n(*cfg.session, cfg.dev_tgt, *key,
-                                             to_request, flag, &kd.pairs,
-                                             &num_returned);
+      bf_status = table->tableEntryGetNext_n(
+          *session, dev_tgt, *key, to_request, flag, &kd.pairs, &num_returned);
       ASSERT_BF_STATUS(bf_status);
 
       assert(num_returned == to_request);
@@ -412,4 +596,4 @@ void Table::dump_table_names(const bfrt::BfRtInfo *bfrtInfo) {
   LOG("%s", ss.str().c_str());
 }
 
-};  // namespace sycon
+}  // namespace sycon

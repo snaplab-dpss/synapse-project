@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "../include/sycon/types.h"
+#include "../include/sycon/time.h"
 
 extern "C" {
 #include <bf_switchd/bf_switchd.h>
@@ -28,5 +28,8 @@ constexpr bool DEFAULT_RUN_WITH_MODEL = false;
 constexpr bool DEFAULT_WAIT_FOR_PORTS = true;
 
 constexpr uint16_t ALL_PIPES = 0xffff;
+constexpr int SWITCH_PACKET_MAX_BUFFER_SIZE = 10000;
+
+constexpr time_ms_t TOFINO_MIN_EXPIRATION_TIME = 10;
 
 }  // namespace sycon

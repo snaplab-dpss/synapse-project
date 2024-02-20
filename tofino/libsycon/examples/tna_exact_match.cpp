@@ -8,11 +8,10 @@ class IpRoute : public Table {
     // Key fields IDs
     bf_rt_id_t vrf;
     bf_rt_id_t dst_addr;
-  };
+  } key_fields;
 
-  struct data_fields_t {
+  struct {
     // Data field ids
-
     bf_rt_id_t route_srcMac;
     bf_rt_id_t route_dstMac;
     bf_rt_id_t route_dst_port;
@@ -20,31 +19,27 @@ class IpRoute : public Table {
     bf_rt_id_t nat_srcAddr;
     bf_rt_id_t nat_dstAddr;
     bf_rt_id_t nat_dst_port;
-  };
+  } data_fields;
 
   struct actions_t {
     // Actions ids
     bf_rt_id_t route;
     bf_rt_id_t nat;
-  };
-
-  key_fields_t key_fields;
-  data_fields_t data_fields;
-  actions_t actions;
+  } actions;
 
  public:
-  IpRoute() : Table("SwitchIngress.ipRoute") {
+  IpRoute() : Table("SwitchIngress", "ipRoute") {
     init_key({
         {"vrf", &key_fields.vrf},
         {"hdr.ipv4.dst_addr", &key_fields.dst_addr},
     });
 
     init_actions({
-        {"SwitchIngress.route", &actions.route},
+        {"route", &actions.route},
     });
 
     init_actions({
-        {"SwitchIngress.nat", &actions.nat},
+        {"nat", &actions.nat},
     });
 
     init_data_with_actions({
@@ -66,8 +61,7 @@ class IpRoute : public Table {
     key_setup(vrf, dst_addr);
     data_setup_nat(data_src_addr, data_dst_addr, data_dst_port);
 
-    auto bf_status =
-        table->tableEntryAdd(*cfg.session, cfg.dev_tgt, *key, *data);
+    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status);
   }
 
@@ -101,21 +95,38 @@ class IpRoute : public Table {
   }
 };
 
-int main(int argc, char **argv) {
-  DEBUG("DEBUG TEST");
-  LOG("NOT DEBUG TEST");
+struct state_t {
+  IpRoute ipRoute;
+};
 
+state_t* state;
+
+void sycon::nf_init() {
+  state = new state_t();
+
+  state->ipRoute.add_entry_nat(0, 1, 2, 3, 4);
+  state->ipRoute.dump();
+}
+
+void sycon::nf_cleanup() {
+  printf("Running cleanup!\n");
+  delete state;
+}
+
+bool sycon::nf_process(time_ns_t now, byte_t* pkt, uint16_t size) {
+  return true;
+}
+
+int main(int argc, char** argv) {
   parse_args(argc, argv);
   init_switchd();
   configure_ports();
+  register_pcie_pkt_ops();
+  nf_setup();
 
   if (args.run_ucli) {
     run_cli();
   }
-
-  IpRoute ipRoute;
-  ipRoute.add_entry_nat(0, 1, 2, 3, 4);
-  ipRoute.dump();
 
   return 0;
 }

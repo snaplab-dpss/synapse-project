@@ -26,7 +26,7 @@ class Ports : Table {
   Port_Stat port_stat;
 
  public:
-  Ports() : Table("$PORT"), port_hdl_info(), port_stat() {
+  Ports() : Table("", "$PORT") {
     auto bf_status = table->keyFieldIdGet("$DEV_PORT", &DEV_PORT);
     ASSERT_BF_STATUS(bf_status)
 
@@ -85,8 +85,7 @@ class Ports : Table {
     data_setup(speed_opts[speed], fec_opts[fec], true,
                loopback_mode_opts[loopback_mode]);
 
-    auto bf_status =
-        table->tableEntryAdd(*cfg.session, cfg.dev_tgt, *key, *data);
+    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status)
   }
 
@@ -106,8 +105,8 @@ class Ports : Table {
 
     key_setup(dev_port);
 
-    auto bf_status = table->tableEntryGet(*cfg.session, cfg.dev_tgt, *key,
-                                          hwflag, data.get());
+    auto bf_status =
+        table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     bool value;

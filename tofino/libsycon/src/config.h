@@ -13,6 +13,7 @@ struct config_t {
   bf_rt_target_t dev_tgt;
   const bfrt::BfRtInfo *info;
   std::shared_ptr<bfrt::BfRtSession> session;
+  pthread_mutex_t transaction_mutex;
 
   ~config_t();
 };

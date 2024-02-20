@@ -4,6 +4,7 @@
 
 #include <map>
 
+#include "../../include/sycon/log.h"
 #include "../../include/sycon/primitives/table.h"
 
 namespace sycon {
@@ -18,7 +19,7 @@ class Port_HDL_Info : Table {
   bf_rt_id_t DEV_PORT;
 
  public:
-  Port_HDL_Info() : Table("$PORT_HDL_INFO") {
+  Port_HDL_Info() : Table("", "$PORT_HDL_INFO") {
     auto bf_status = table->keyFieldIdGet("$CONN_ID", &CONN_ID);
     ASSERT_BF_STATUS(bf_status)
 
@@ -35,8 +36,8 @@ class Port_HDL_Info : Table {
                           : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(front_panel_port, lane);
-    auto bf_status = table->tableEntryGet(*cfg.session, cfg.dev_tgt, *key,
-                                          hwflag, data.get());
+    auto bf_status =
+        table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     uint64_t value;

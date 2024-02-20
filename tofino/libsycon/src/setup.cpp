@@ -1,6 +1,9 @@
+#include <cstdlib>
+
 #include "../include/sycon/sycon.h"
+#include "config.h"
 #include "constants.h"
-#include "tables/ports.h"
+#include "metatables/ports.h"
 
 extern "C" {
 #include <target-utils/clish/thread.h>
@@ -39,6 +42,11 @@ void run_cli() {
       pthread_join(cfg.switchd_ctx->agent_t_id[i], NULL);
     }
   }
+}
+
+void nf_setup() {
+  nf_init();
+  std::atexit(nf_cleanup);
 }
 
 }  // namespace sycon

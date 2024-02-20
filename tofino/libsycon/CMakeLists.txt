@@ -31,7 +31,10 @@ ENDIF()
 # Setting some complation flags
 ###############################################################################
 
-add_compile_options(-Wall -Wextra -Werror -Wfatal-errors)
+add_compile_options(
+    -Wall -Wextra -Werror -Wfatal-errors
+    -Wno-unused-variable -Wno-unused-parameter
+)
 
 ###############################################################################
 # Setting output targets
@@ -61,11 +64,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 # Building the sycon library
 ###############################################################################
 
+# Add the letter "d" to the end of the library name when building in debug mode.
 set(CMAKE_DEBUG_POSTFIX d)
 
 file(GLOB SOURCES
     ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/*.cpp
-    ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/tables/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/metatables/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/modules/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/primitives/*.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
@@ -76,6 +82,12 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     PRIVATE
         ${PROJECT_SOURCE_DIR}/src
+)
+
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES
+        COMPILE_FLAGS "-mcrc32"
+        LINK_FLAGS "-mcrc32"
 )
 
 ###############################################################################

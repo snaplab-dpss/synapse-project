@@ -1,0 +1,112 @@
+#include "../include/sycon/externs.h"
+#include "../include/sycon/log.h"
+#include "../include/sycon/packet.h"
+#include "../include/sycon/sycon.h"
+#include "../include/sycon/transactions.h"
+#include "config.h"
+#include "constants.h"
+#include "packet.h"
+
+extern "C" {
+#include <bf_switchd/bf_switchd.h>
+#include <pkt_mgr/pkt_mgr_intf.h>
+}
+
+namespace sycon {
+
+static void pcie_tx(bf_dev_id_t device, uint8_t *pkt, uint32_t packet_size) {
+  bf_pkt *tx_pkt = nullptr;
+
+  auto bf_status = bf_pkt_alloc(cfg.dev_tgt.dev_id, &tx_pkt, packet_size,
+                                BF_DMA_CPU_PKT_TRANSMIT_0);
+  ASSERT_BF_STATUS(bf_status)
+
+  bf_status = bf_pkt_data_copy(tx_pkt, pkt, packet_size);
+
+  if (bf_status != BF_SUCCESS) {
+    bf_pkt_free(device, tx_pkt);
+    ASSERT_BF_STATUS(bf_status)
+  }
+
+  bf_status = bf_pkt_tx(device, tx_pkt, BF_PKT_TX_RING_0, (void *)tx_pkt);
+
+  if (bf_status != BF_SUCCESS) {
+    bf_pkt_free(device, tx_pkt);
+    ASSERT_BF_STATUS(bf_status)
+  }
+}
+
+static bf_status_t txComplete(bf_dev_id_t device, bf_pkt_tx_ring_t tx_ring,
+                              uint64_t tx_cookie, uint32_t status) {
+  // Now we can free the packet.
+  bf_pkt_free(device, (bf_pkt *)((uintptr_t)tx_cookie));
+  return BF_SUCCESS;
+}
+
+static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
+                           bf_pkt_rx_ring_t rx_ring) {
+  bf_pkt *orig_pkt = nullptr;
+  char in_packet[SWITCH_PACKET_MAX_BUFFER_SIZE];
+  char *pkt_buf = nullptr;
+  char *bufp = nullptr;
+  uint32_t packet_size = 0;
+  uint16_t pkt_len = 0;
+
+  // save a pointer to the packet
+  orig_pkt = pkt;
+
+  // assemble the received packet
+  bufp = &in_packet[0];
+
+  do {
+    pkt_buf = (char *)bf_pkt_get_pkt_data(pkt);
+    pkt_len = bf_pkt_get_pkt_size(pkt);
+
+    if ((packet_size + pkt_len) > SWITCH_PACKET_MAX_BUFFER_SIZE) {
+      DEBUG("Packet too large to transmit - skipping")
+      break;
+    }
+
+    memcpy(bufp, pkt_buf, pkt_len);
+    bufp += pkt_len;
+    packet_size += pkt_len;
+    pkt = bf_pkt_get_nextseg(pkt);
+  } while (pkt);
+
+  time_ns_t now = get_time();
+  byte_t *packet = reinterpret_cast<byte_t *>(&in_packet);
+
+  packet_init(packet, packet_size);
+
+  begin_transaction();
+  auto fwd = nf_process(now, packet, packet_size);
+  end_transaction();
+
+  if (fwd) {
+    pcie_tx(device, packet, packet_size);
+  }
+
+  int success = bf_pkt_free(device, orig_pkt);
+  assert(success);
+
+  return BF_SUCCESS;
+}
+
+void register_pcie_pkt_ops() {
+  // register callback for TX complete
+  for (int tx_ring = BF_PKT_TX_RING_0; tx_ring < BF_PKT_TX_RING_MAX;
+       tx_ring++) {
+    bf_pkt_tx_done_notif_register(cfg.dev_tgt.dev_id, txComplete,
+                                  (bf_pkt_tx_ring_t)tx_ring);
+  }
+
+  // register callback for RX
+  for (int rx_ring = BF_PKT_RX_RING_0; rx_ring < BF_PKT_RX_RING_MAX;
+       rx_ring++) {
+    auto bf_status = bf_pkt_rx_register(cfg.dev_tgt.dev_id, pcie_rx,
+                                        (bf_pkt_rx_ring_t)rx_ring, 0);
+    ASSERT_BF_STATUS(bf_status)
+  }
+}
+
+}  // namespace sycon

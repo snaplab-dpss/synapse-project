@@ -4,6 +4,7 @@
 
 #include <map>
 
+#include "../../include/sycon/log.h"
 #include "../../include/sycon/primitives/table.h"
 
 namespace sycon {
@@ -112,7 +113,7 @@ class Port_Stat : Table {
   data_fields_t data_fields;
 
  public:
-  Port_Stat() : Table("$PORT_STAT") {
+  Port_Stat() : Table("", "$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
     });
@@ -250,8 +251,8 @@ class Port_Stat : Table {
 
     key_setup(dev_port);
 
-    auto bf_status = table->tableEntryGet(*cfg.session, cfg.dev_tgt, *key,
-                                          hwflag, data.get());
+    auto bf_status =
+        table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     uint64_t value;
@@ -267,8 +268,8 @@ class Port_Stat : Table {
 
     key_setup(dev_port);
 
-    auto bf_status = table->tableEntryGet(*cfg.session, cfg.dev_tgt, *key,
-                                          hwflag, data.get());
+    auto bf_status =
+        table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     uint64_t value;
