@@ -120,9 +120,6 @@ class SimpleTable : public Table {
 
   void clear();
 
-  void dump(const table_key_t &key, const table_data_t &data,
-            const std::string &op) const;
-
  public:
   table_key_t key_to_fields_values(const bfrt::BfRtTableKey *key);
 

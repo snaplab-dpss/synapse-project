@@ -108,25 +108,10 @@ void sycon::nf_init() {
   state->ipRoute.dump();
 }
 
-void sycon::nf_cleanup() {
-  printf("Running cleanup!\n");
-  delete state;
-}
+void sycon::nf_cleanup() { delete state; }
 
 bool sycon::nf_process(time_ns_t now, byte_t* pkt, uint16_t size) {
   return true;
 }
 
-int main(int argc, char** argv) {
-  parse_args(argc, argv);
-  init_switchd();
-  configure_ports();
-  register_pcie_pkt_ops();
-  nf_setup();
-
-  if (args.run_ucli) {
-    run_cli();
-  }
-
-  return 0;
-}
+int main(int argc, char** argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

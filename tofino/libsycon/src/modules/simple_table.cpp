@@ -8,6 +8,44 @@
 
 namespace sycon {
 
+static void log_entry_op(const Table *table, const table_key_t &key,
+                         const table_data_t &data, const std::string &op) {
+  assert(table);
+
+  const auto &key_fields = table->get_key_fields();
+  const auto &data_fields = table->get_data_fields();
+  const auto &name = table->get_name();
+
+  DEBUG();
+  DEBUG("*********************************************");
+
+  assert(key.size > 0);
+  assert(key.size == key_fields.size());
+
+  DEBUG("Time: %lu", time(0));
+  DEBUG("[%s] Op: %s", name.c_str(), op.c_str());
+
+  DEBUG("  Key:");
+  for (auto i = 0u; i < key.size; i++) {
+    auto key_field = key_fields[i];
+    auto key_value = key.values[i];
+    DEBUG("     %s : 0x%02lx", key_field.name.c_str(), key_value);
+  }
+
+  if (data.size) {
+    assert(data.size <= data_fields.size());
+
+    DEBUG("  Data:");
+    for (auto i = 0u; i < data.size; i++) {
+      auto data_field = data_fields[i];
+      auto data_value = data.values[i];
+      DEBUG("     %s : 0x%02lx", data_field.name.c_str(), data_value);
+    }
+  }
+
+  DEBUG("*********************************************\n");
+}
+
 fields_values_t::fields_values_t() : size(0), values(nullptr) {}
 
 fields_values_t::fields_values_t(uint32_t _size)
@@ -137,6 +175,7 @@ SimpleTable::SimpleTable(const std::string &_control_name,
   assert(*timeout >= TOFINO_MIN_EXPIRATION_TIME);
 
   set_notify_mode(*timeout, &cookie, *callback, false);
+  enable_expirations();
 }
 
 void SimpleTable::enable_expirations() {
@@ -240,7 +279,7 @@ void SimpleTable::data_setup(const table_data_t &param_field_values) {
 }
 
 table_data_t SimpleTable::get(const table_key_t &key_fields_values) {
-  dump(key_fields_values, table_data_t(), "GET");
+  log_entry_op(this, key_fields_values, table_data_t(), "GET");
 
   key_setup(key_fields_values);
   data_setup();
@@ -258,7 +297,7 @@ table_data_t SimpleTable::get(const table_key_t &key_fields_values) {
 
 void SimpleTable::add(const table_key_t &key_fields_values,
                       const table_data_t &param_fields_values) {
-  dump(key_fields_values, param_fields_values, "ADD");
+  log_entry_op(this, key_fields_values, param_fields_values, "ADD");
 
   key_setup(key_fields_values);
   data_setup(param_fields_values);
@@ -271,7 +310,7 @@ void SimpleTable::add(const table_key_t &key_fields_values,
 }
 
 void SimpleTable::add(const table_key_t &key_fields_values) {
-  dump(key_fields_values, table_data_t(), "ADD");
+  log_entry_op(this, key_fields_values, table_data_t(), "ADD");
 
   key_setup(key_fields_values);
   data_setup();
@@ -285,7 +324,7 @@ void SimpleTable::add(const table_key_t &key_fields_values) {
 
 void SimpleTable::mod(const table_key_t &key_fields_values,
                       const table_data_t &param_fields_values) {
-  dump(key_fields_values, table_data_t(), "MOD");
+  log_entry_op(this, key_fields_values, table_data_t(), "MOD");
 
   key_setup(key_fields_values);
   data_setup(param_fields_values);
@@ -298,7 +337,7 @@ void SimpleTable::mod(const table_key_t &key_fields_values,
 }
 
 void SimpleTable::del(const table_key_t &key_fields_values) {
-  dump(key_fields_values, table_data_t(), "DEL");
+  log_entry_op(this, key_fields_values, table_data_t(), "DEL");
 
   key_setup(key_fields_values);
 
@@ -319,40 +358,8 @@ void SimpleTable::clear() {
   DEBUG();
   DEBUG("*********************************************");
   DEBUG("Time: %lu\n", time(0));
-  DEBUG("[%s] Clear\n", table_name.c_str());
+  DEBUG("[%s] Clear\n", name.c_str());
   DEBUG("*********************************************");
-}
-
-void SimpleTable::dump(const table_key_t &key, const table_data_t &data,
-                       const std::string &op) const {
-  DEBUG();
-  DEBUG("*********************************************");
-
-  assert(key.size > 0);
-  assert(key.size == key_fields.size());
-
-  DEBUG("Time: %lu", time(0));
-  DEBUG("[%s] Op: %s", table_name.c_str(), op.c_str());
-
-  DEBUG("  Key:");
-  for (auto i = 0u; i < key.size; i++) {
-    auto key_field = key_fields[i];
-    auto key_value = key.values[i];
-    DEBUG("     %s : 0x%02lx", key_field.name.c_str(), key_value);
-  }
-
-  if (data.size) {
-    assert(data.size <= data_fields.size());
-
-    DEBUG("  Data:");
-    for (auto i = 0u; i < data.size; i++) {
-      auto data_field = data_fields[i];
-      auto data_value = data.values[i];
-      DEBUG("     %s : 0x%02lx", data_field.name.c_str(), data_value);
-    }
-  }
-
-  DEBUG("*********************************************\n");
 }
 
 table_key_t SimpleTable::key_to_fields_values(const bfrt::BfRtTableKey *key) {

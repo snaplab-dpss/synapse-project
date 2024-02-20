@@ -1,44 +1,39 @@
 #include "../include/sycon/packet.h"
 
+#include <iomanip>
+#include <sstream>
+
 #include "../include/sycon/log.h"
 #include "packet.h"
 
 namespace sycon {
 
-static byte_t *packet_base;
-static byte_t *packet_curr;
+static uint32_t packet_consumed;
 static uint32_t packet_size;
 
-void packet_init(byte_t *pkt, uint16_t size) {
-  assert(pkt);
+void packet_init(uint16_t size) {
   assert(size > 0);
-  packet_base = pkt;
-  packet_curr = pkt;
+  packet_consumed = 0;
   packet_size = size;
 }
 
-byte_t *packet_consume(uint16_t bytes) {
-  assert(packet_curr - packet_base <= packet_size);
-  packet_curr += bytes;
-  return packet_curr;
+byte_t *packet_consume(byte_t *packet_base, uint16_t bytes) {
+  assert(packet_consumed + bytes <= packet_size);
+  byte_t *header = packet_base;
+  packet_consumed += bytes;
+  return header;
 }
 
-byte_t *packet_release(uint16_t bytes) {
-  packet_curr -= bytes;
-  assert(packet_curr >= packet_base);
-  return packet_curr;
-}
-
-void print(const cpu_hdr_t *cpu_hdr) {
+void log(const cpu_hdr_t *cpu_hdr) {
   assert(cpu_hdr);
 
   LOG("###[ CPU ]###");
-  LOG("code path  %u", cpu_hdr->code_path);
-  LOG("in port    %u", cpu_hdr->in_port);
-  LOG("out port   %u", cpu_hdr->out_port);
+  LOG("code path  %u", SWAP_ENDIAN_16(cpu_hdr->code_path));
+  LOG("in port    %u", SWAP_ENDIAN_16(cpu_hdr->in_port));
+  LOG("out port   %u", SWAP_ENDIAN_16(cpu_hdr->out_port));
 }
 
-void print(const eth_hdr_t *eth_hdr) {
+void log(const eth_hdr_t *eth_hdr) {
   assert(eth_hdr);
 
   LOG("###[ Ethernet ]###");
@@ -51,7 +46,7 @@ void print(const eth_hdr_t *eth_hdr) {
   LOG("type 0x%x", eth_hdr->eth_type);
 }
 
-void print(const ipv4_hdr_t *ipv4_hdr) {
+void log(const ipv4_hdr_t *ipv4_hdr) {
   LOG("###[ IP ]###");
   LOG("version %u", (ipv4_hdr->version_ihl & 0xf0) >> 4);
   LOG("ihl     %u", (ipv4_hdr->version_ihl & 0x0f));
@@ -70,7 +65,7 @@ void print(const ipv4_hdr_t *ipv4_hdr) {
       (ipv4_hdr->dst_ip >> 24) & 0xff);
 }
 
-void print(const tcpudp_hdr_t *tcpudp_hdr) {
+void log(const tcpudp_hdr_t *tcpudp_hdr) {
   LOG("###[ TCP/UDP ]###");
   LOG("sport   %u", SWAP_ENDIAN_16(tcpudp_hdr->src_port));
   LOG("dport   %u", SWAP_ENDIAN_16(tcpudp_hdr->dst_port));
@@ -166,6 +161,27 @@ uint16_t update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
   if (cksum == 0 && ipv4_hdr->protocol == IPPROTO_UDP) cksum = 0xffff;
 
   return (uint16_t)cksum;
+}
+
+void packet_hexdump(byte_t *pkt, uint16_t size) {
+  std::stringstream ss;
+
+  ss << "###[ Packet ]###\n";
+
+  for (uint16_t i = 0; i < size; i++) {
+    if (i % 16 == 0) {
+      if (i > 0) {
+        ss << "\n";
+      }
+      ss << std::setfill('0') << std::setw(4) << i << ": ";
+    } else if (i % 2 == 0) {
+      ss << " ";
+    }
+
+    ss << std::hex << std::setfill('0') << std::setw(2) << (int)(pkt[i]);
+  }
+
+  LOG("%s", ss.str().c_str());
 }
 
 }  // namespace sycon

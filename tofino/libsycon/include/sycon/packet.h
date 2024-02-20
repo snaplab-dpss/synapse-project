@@ -41,13 +41,13 @@ struct tcpudp_hdr_t {
   port_t dst_port;
 } __attribute__((packed));
 
-byte_t *packet_consume(uint16_t bytes);
-byte_t *packet_release(uint16_t bytes);
+byte_t *packet_consume(byte_t *packet, uint16_t bytes);
 
-void print(const cpu_hdr_t *cpu_hdr);
-void print(const eth_hdr_t *eth_hdr);
-void print(const ipv4_hdr_t *ipv4_hdr);
-void print(const tcpudp_hdr_t *tcpudp_hdr);
+void packet_hexdump(byte_t *pkt, uint16_t size);
+void log(const cpu_hdr_t *cpu_hdr);
+void log(const eth_hdr_t *eth_hdr);
+void log(const ipv4_hdr_t *ipv4_hdr);
+void log(const tcpudp_hdr_t *tcpudp_hdr);
 
 unsigned ether_addr_hash(mac_addr_t addr);
 uint16_t ipv4_cksum(const ipv4_hdr_t *ipv4_hdr);

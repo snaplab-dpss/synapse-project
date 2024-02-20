@@ -7,15 +7,24 @@
 
 namespace sycon {
 
-Table::Table(const std::string &_control_name, const std::string &_table_name)
+static std::string append_control(const std::string &control,
+                                  const std::string &name) {
+  if (control.size()) {
+    return control + "." + name;
+  }
+
+  return name;
+}
+
+Table::Table(const std::string &_control, const std::string &_name)
     : dev_tgt(cfg.dev_tgt),
       info(cfg.info),
       session(cfg.session),
-      control_name(_control_name),
-      table_name(_table_name),
+      control(_control),
+      name(_name),
       table(nullptr) {
-  auto full_table_name = append_control_name(table_name);
-  auto bf_status = info->bfrtTableFromNameGet(full_table_name, &table);
+  auto full_name = append_control(control, name);
+  auto bf_status = info->bfrtTableFromNameGet(full_name, &table);
   ASSERT_BF_STATUS(bf_status)
 
   // Allocate key and data once, and use reset across different uses
@@ -26,14 +35,6 @@ Table::Table(const std::string &_control_name, const std::string &_table_name)
   bf_status = table->dataAllocate(&data);
   ASSERT_BF_STATUS(bf_status)
   assert(data);
-}
-
-std::string Table::append_control_name(const std::string &name) const {
-  if (control_name.size()) {
-    return control_name + "." + name;
-  }
-
-  return name;
 }
 
 void Table::init_key() {
@@ -125,7 +126,7 @@ void Table::init_data_with_actions(
 }
 
 void Table::init_action(const std::string &action_name, bf_rt_id_t *action_id) {
-  auto full_action_name = append_control_name(action_name);
+  auto full_action_name = append_control(control, action_name);
   auto bf_status = table->actionIdGet(full_action_name, action_id);
   ASSERT_BF_STATUS(bf_status)
 }
@@ -140,7 +141,7 @@ void Table::init_actions(
 void Table::set_notify_mode(time_ms_t timeout_value, void *cookie,
                             const bfrt::BfRtIdleTmoExpiryCb &callback,
                             bool enable) {
-  DEBUG("Set timeouts state for table %s: %d", table_name.c_str(), enable);
+  DEBUG("Set timeouts state for table %s: %d", name.c_str(), enable);
 
   std::unique_ptr<bfrt::BfRtTableAttributes> attr;
 
@@ -164,6 +165,8 @@ void Table::set_notify_mode(time_ms_t timeout_value, void *cookie,
   bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
   ASSERT_BF_STATUS(bf_status)
 }
+
+std::string Table::get_name() const { return name; }
 
 size_t Table::get_size() const {
   size_t size;
@@ -189,13 +192,13 @@ const std::vector<table_field_t> &Table::get_data_fields() const {
   return data_fields;
 }
 
-void Table::dump_data_fields() {
+void Table::dump_data_fields() const {
   std::stringstream ss;
   dump_data_fields(ss);
   LOG("%s", ss.str().c_str());
 }
 
-void Table::dump_data_fields(std::ostream &os) {
+void Table::dump_data_fields(std::ostream &os) const {
   std::vector<bf_rt_id_t> ids;
 
   auto bf_status = table->dataFieldIdListGet(&ids);
@@ -516,13 +519,13 @@ struct kd_t {
   }
 };
 
-void Table::dump() {
+void Table::dump() const {
   std::stringstream ss;
   dump(ss);
   LOG("%s", ss.str().c_str());
 }
 
-void Table::dump(std::ostream &os) {
+void Table::dump(std::ostream &os) const {
   bf_status_t bf_status;
   uint32_t total_entries;
   uint32_t processed_entries;
@@ -530,7 +533,7 @@ void Table::dump(std::ostream &os) {
 
   os << "\n";
   os << "================================================\n";
-  os << "  Table name: " << table_name << "\n";
+  os << "  Table name: " << name << "\n";
 
   total_entries = get_usage();
 
@@ -573,27 +576,6 @@ void Table::dump(std::ostream &os) {
   }
 
   os << "================================================\n";
-}
-
-void Table::dump_table_names(const bfrt::BfRtInfo *bfrtInfo) {
-  std::stringstream ss;
-
-  std::vector<const bfrt::BfRtTable *> tables;
-  auto bf_status = bfrtInfo->bfrtInfoGetTables(&tables);
-  ASSERT_BF_STATUS(bf_status);
-
-  ss << "================================================\n";
-  ss << "All tables:\n";
-
-  for (auto table : tables) {
-    std::string table_name;
-    table->tableNameGet(&table_name);
-    ss << "  " << table_name << "\n";
-  }
-
-  ss << "================================================\n";
-
-  LOG("%s", ss.str().c_str());
 }
 
 }  // namespace sycon

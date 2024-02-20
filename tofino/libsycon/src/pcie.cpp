@@ -76,18 +76,18 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
   time_ns_t now = get_time();
   byte_t *packet = reinterpret_cast<byte_t *>(&in_packet);
 
-  packet_init(packet, packet_size);
+  packet_init(packet_size);
 
   begin_transaction();
-  auto fwd = nf_process(now, packet, packet_size);
+  bool fwd = nf_process(now, packet, packet_size);
   end_transaction();
 
   if (fwd) {
     pcie_tx(device, packet, packet_size);
   }
 
-  int success = bf_pkt_free(device, orig_pkt);
-  assert(success);
+  int fail = bf_pkt_free(device, orig_pkt);
+  assert(fail == 0);
 
   return BF_SUCCESS;
 }

@@ -26,8 +26,8 @@ class Table {
   const bfrt::BfRtInfo *info;
   std::shared_ptr<bfrt::BfRtSession> session;
 
-  std::string control_name;
-  std::string table_name;
+  std::string control;
+  std::string name;
 
   const bfrt::BfRtTable *table;
 
@@ -41,8 +41,6 @@ class Table {
   Table(const std::string &_control_name, const std::string &_table_name);
 
  protected:
-  std::string append_control_name(const std::string &name) const;
-
   void init_key();
   void init_key(const std::string &name, bf_rt_id_t *id);
   void init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
@@ -67,17 +65,19 @@ class Table {
                        const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 
  public:
+  std::string get_name() const;
+
   size_t get_size() const;
   size_t get_usage() const;
 
   const std::vector<table_field_t> &get_key_fields() const;
   const std::vector<table_field_t> &get_data_fields() const;
 
-  void dump_data_fields();
-  void dump_data_fields(std::ostream &);
+  void dump_data_fields() const;
+  void dump_data_fields(std::ostream &) const;
 
-  void dump();
-  void dump(std::ostream &);
+  void dump() const;
+  void dump(std::ostream &) const;
 
   static void dump_table_names(const bfrt::BfRtInfo *bfrtInfo);
 };

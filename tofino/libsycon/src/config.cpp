@@ -80,9 +80,7 @@ void init_switchd() {
   // through command line options.
   cfg.switchd_ctx->running_in_background = true;
 
-  // Always set "skip port add" so that ports are not automatically created when
-  // running on either model or HW.
-  cfg.switchd_ctx->skip_port_add = true;
+  cfg.switchd_ctx->skip_port_add = false;
 
   std::string install_dir = read_env(ENV_SDE_INSTALL);
   std::string conf_file = get_conf_file();
@@ -107,6 +105,7 @@ void init_switchd() {
 config_t::~config_t() {
   if (switchd_ctx) {
     free(switchd_ctx);
+    switchd_ctx = nullptr;
   }
 }
 
