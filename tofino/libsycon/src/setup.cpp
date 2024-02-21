@@ -64,10 +64,12 @@ void configure_ports() {
 
   Ports ports;
 
+  DEBUG("Enabling port %u", args.in_port);
   uint16_t in_dev_port = ports.get_dev_port(args.in_port, DEFAULT_PORT_LANE);
   ports.add_dev_port(in_dev_port, DEFAULT_PORT_SPEED,
                      DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
 
+  DEBUG("Enabling port %u", args.out_port);
   uint16_t out_dev_port = ports.get_dev_port(args.out_port, DEFAULT_PORT_LANE);
   ports.add_dev_port(out_dev_port, DEFAULT_PORT_SPEED,
                      DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);

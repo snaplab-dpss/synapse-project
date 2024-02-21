@@ -17,8 +17,8 @@
 #define RECIRCULATION_PORT 6
 
 // hardware
-// #define IN_PORT 164
-// #define OUT_PORT 172
+// #define IN_PORT 136
+// #define OUT_PORT 144
 
 // model
 #define IN_PORT 8
