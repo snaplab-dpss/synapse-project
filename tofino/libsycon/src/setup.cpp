@@ -42,17 +42,9 @@ void configure_ports() {
                        &pcie_cpu_port_lane_number);
   ASSERT_BF_STATUS(status);
 
-  bf_port_speed_t eth_cpu_port_speed;
-  uint32_t eth_cpu_port_lane_number;
-  status = bf_port_info_get(cfg.dev_tgt.dev_id, eth_cpu_port,
-                            &eth_cpu_port_speed, &eth_cpu_port_lane_number);
-  ASSERT_BF_STATUS(status);
-
-  DEBUG("PCIe CPU port:       %u", pcie_cpu_port);
-  DEBUG("PCIe CPU port speed: %s", bf_port_speed_str(pcie_cpu_port_speed));
-
+  DEBUG("PCIe CPU port:       %u (%s)", pcie_cpu_port,
+        bf_port_speed_str(pcie_cpu_port_speed));
   DEBUG("Eth CPU port:        %u", eth_cpu_port);
-  DEBUG("Eth CPU port speed:  %s", bf_port_speed_str(eth_cpu_port_speed));
 
   nf_config.in_dev_port = args.in_port;
   nf_config.out_dev_port = args.out_port;
