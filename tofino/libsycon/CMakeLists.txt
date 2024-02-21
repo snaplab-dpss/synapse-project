@@ -101,10 +101,6 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_absl.cmake)
 
 find_package(Threads REQUIRED)
 
-# Pay close attention to the "-Wl,--disable-new-dtags" line.
-# It fixes the requirement for LD_LIBRARY_PATH update when running the final binaries.
-# https://stackoverflow.com/questions/58997230/cmake-project-fails-to-find-shared-library
-
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
@@ -115,7 +111,13 @@ target_link_libraries(${PROJECT_NAME}
         absl::synchronization
         ${PCAP_LIBRARIES}
         ${SDE_LIBRARIES}
+
+        # This fixes the requirement for LD_LIBRARY_PATH update when running the final binaries.
+        # https://stackoverflow.com/questions/58997230/cmake-project-fails-to-find-shared-library
         "-Wl,--disable-new-dtags"
+
+        # For some reason some systems need this (it may be specific to g++8).
+        "stdc++fs"
 )
 
 ###############################################################################
