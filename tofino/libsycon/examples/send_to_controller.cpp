@@ -14,10 +14,10 @@ void sycon::nf_cleanup() {
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, uint16_t size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
 
-  // packet_hexdump(pkt, size);
-  // log(cpu_hdr);
+  cpu_hdr->out_port = SWAP_ENDIAN_16(nf_config.out_dev_port);
 
-  cpu_hdr->out_port = SWAP_ENDIAN_16(args.out_port);
+  // packet_hexdump(pkt, size);
+  log(cpu_hdr);
 
   return true;
 }

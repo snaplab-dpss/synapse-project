@@ -47,7 +47,7 @@ class Ports : Table {
   }
 
   void add_dev_port(uint16_t dev_port, bf_port_speed_t speed,
-                    bf_loopback_mode_e loopback_mode = BF_LPBK_NONE) {
+                    bf_loopback_mode_e loopback_mode, bool wait_until_ready) {
     std::map<bf_port_speed_t, std::string> speed_opts{
         {BF_SPEED_NONE, "BF_SPEED_10G"},  {BF_SPEED_25G, "BF_SPEED_25G"},
         {BF_SPEED_40G, "BF_SPEED_40G"},   {BF_SPEED_50G, "BF_SPEED_50G"},
@@ -87,16 +87,16 @@ class Ports : Table {
 
     auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status)
+
+    while (wait_until_ready && !is_port_up(dev_port)) {
+      sleep(1);
+    }
   }
 
   void add_port(uint16_t front_panel_port, uint16_t lane, bf_port_speed_t speed,
                 bool wait_until_ready) {
     auto dev_port = port_hdl_info.get_dev_port(front_panel_port, lane, false);
-    add_dev_port(dev_port, speed);
-
-    while (wait_until_ready && !is_port_up(dev_port)) {
-      sleep(1);
-    }
+    add_dev_port(dev_port, speed, BF_LPBK_NONE, wait_until_ready);
   }
 
   bool is_port_up(uint16_t dev_port, bool from_hw = false) {

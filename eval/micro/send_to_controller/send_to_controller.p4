@@ -7,19 +7,23 @@
 #endif
 
 #if __TARGET_TOFINO__ == 2
+#define CPU_PCIE_PORT 0
+
+#define ETH_CPU_PORT_0 2
+#define ETH_CPU_PORT_1 3
+#define ETH_CPU_PORT_2 4
+#define ETH_CPU_PORT_3 5
+
+#define RECIRCULATION_PORT 6
 
 // hardware
-// #define CPU_PCIE_PORT 192
 // #define IN_PORT 164
 // #define OUT_PORT 172
 
 // model
-#define CPU_PCIE_PORT 320
 #define IN_PORT 8
 #define OUT_PORT 9
-
 #else
-
 // hardware
 // #define CPU_PCIE_PORT 192
 // #define IN_PORT 164
@@ -29,7 +33,6 @@
 #define CPU_PCIE_PORT 320
 #define IN_PORT 0
 #define OUT_PORT 1
-
 #endif
 
 typedef bit<9> port_t;

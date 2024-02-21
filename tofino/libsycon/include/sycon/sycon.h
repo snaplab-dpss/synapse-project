@@ -4,6 +4,7 @@
 #include "externs.h"
 #include "log.h"
 #include "modules/modules.h"
+#include "nf_config.h"
 #include "packet.h"
 #include "primitives/primitives.h"
 #include "time.h"

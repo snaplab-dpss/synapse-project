@@ -14,6 +14,8 @@ extern "C" {
 
 namespace sycon {
 
+nf_config_t nf_config;
+
 void interrupt_handler(int s) {
   // This will trigger an nf_cleanup call to cleanup NF state.
   exit(0);
@@ -31,7 +33,29 @@ void catch_interrupt() {
 
 void configure_ports() {
   bf_dev_port_t pcie_cpu_port = bf_pcie_cpu_port_get(cfg.dev_tgt.dev_id);
-  DEBUG("PCIe CPU port: %u", pcie_cpu_port);
+  bf_dev_port_t eth_cpu_port = bf_eth_cpu_port_get(cfg.dev_tgt.dev_id);
+
+  bf_port_speed_t pcie_cpu_port_speed;
+  uint32_t pcie_cpu_port_lane_number;
+  bf_status_t status =
+      bf_port_info_get(cfg.dev_tgt.dev_id, pcie_cpu_port, &pcie_cpu_port_speed,
+                       &pcie_cpu_port_lane_number);
+  ASSERT_BF_STATUS(status);
+
+  bf_port_speed_t eth_cpu_port_speed;
+  uint32_t eth_cpu_port_lane_number;
+  status = bf_port_info_get(cfg.dev_tgt.dev_id, eth_cpu_port,
+                            &eth_cpu_port_speed, &eth_cpu_port_lane_number);
+  ASSERT_BF_STATUS(status);
+
+  DEBUG("PCIe CPU port:       %u", pcie_cpu_port);
+  DEBUG("PCIe CPU port speed: %s", bf_port_speed_str(pcie_cpu_port_speed));
+
+  DEBUG("Eth CPU port:        %u", eth_cpu_port);
+  DEBUG("Eth CPU port speed:  %s", bf_port_speed_str(eth_cpu_port_speed));
+
+  nf_config.in_dev_port = args.in_port;
+  nf_config.out_dev_port = args.out_port;
 
   // No need to configure the ports when running with tofino model.
   if (args.model) {
@@ -47,10 +71,17 @@ void configure_ports() {
   DEBUG("**********************************************************");
 
   Ports ports;
-  ports.add_port(args.in_port, DEFAULT_PORT_LANE, DEFAULT_PORT_SPEED,
-                 args.wait_for_ports);
-  ports.add_port(args.out_port, DEFAULT_PORT_LANE, DEFAULT_PORT_SPEED,
-                 args.wait_for_ports);
+
+  uint16_t in_dev_port = ports.get_dev_port(args.in_port, DEFAULT_PORT_LANE);
+  ports.add_dev_port(in_dev_port, DEFAULT_PORT_SPEED,
+                     DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
+
+  uint16_t out_dev_port = ports.get_dev_port(args.out_port, DEFAULT_PORT_LANE);
+  ports.add_dev_port(out_dev_port, DEFAULT_PORT_SPEED,
+                     DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
+
+  nf_config.in_dev_port = in_dev_port;
+  nf_config.out_dev_port = out_dev_port;
 }
 
 void run_cli() {

@@ -8,6 +8,8 @@ extern "C" {
 #include <bf_switchd/bf_switchd.h>
 }
 
+#include <port_mgr/bf_port_if.h>
+
 namespace sycon {
 
 constexpr char ENV_SDE_INSTALL[] = "SDE_INSTALL";
@@ -23,6 +25,7 @@ constexpr time_ms_t DEFAULT_EXPIRATION_TIME = NEVER_EXPIRE;
 constexpr int DEFAULT_IN_PORT = 0;
 constexpr int DEFAULT_OUT_PORT = 1;
 constexpr bf_port_speed_t DEFAULT_PORT_SPEED = BF_SPEED_100G;
+constexpr bf_loopback_mode_e DEFAULT_PORT_LOOPBACK_MODE = BF_LPBK_NONE;
 constexpr uint16_t DEFAULT_PORT_LANE = 0;
 constexpr bool DEFAULT_RUN_WITH_MODEL = false;
 constexpr bool DEFAULT_WAIT_FOR_PORTS = true;
