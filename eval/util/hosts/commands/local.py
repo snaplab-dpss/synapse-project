@@ -18,7 +18,7 @@ class LocalCommand(Command):
         command: str,
         dir: Optional[str] = None,
         source_bashrc: bool = False,
-        log_file: Union[bool, str, TextIO] = False,
+        log_file: Optional[TextIO] = None,
     ) -> None:
         super().__init__(command, dir, source_bashrc, log_file)
 
@@ -30,9 +30,14 @@ class LocalCommand(Command):
             shell=True,
         )
 
+        assert self.proc_.stdin
+        assert self.proc_.stdout
+        assert self.proc_.stderr
+
         self.stdin = self.proc_.stdin
         self.stdout = self.proc_.stdout
         self.stderr = self.proc_.stderr
+
 
     def send(self, data: Union[str, bytes]) -> None:
         if isinstance(data, str):

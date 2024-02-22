@@ -10,12 +10,13 @@ from pathlib import Path
 from rich.console import Console
 
 from util.hosts.remote import RemoteHost
+
 from util.hosts.pktgen import Pktgen
 from util.hosts.switch import Switch
 from util.hosts.controller import Controller
+
 from util.experiment import Experiment, ExperimentTracker
 from util.throughput import Throughput
-from util.churn import Churn
 
 if sys.version_info < (3, 9, 0):
     raise RuntimeError("Python 3.9 or a more recent version is required.")
@@ -57,45 +58,47 @@ def get_test_experiment(config: dict, data_dir: Path) -> Experiment:
 
     switch_src, controller_src = send_sources(config, exp_name, switch_src, controller_src)
 
-    pktgen = Pktgen(
-        hostname=config["hosts"]["pktgen"],
-        rx_pcie_dev=config["devices"]["pktgen"]["rx_dev"],
-        tx_pcie_dev=config["devices"]["pktgen"]["tx_dev"],
-        nb_tx_cores=config["devices"]["pktgen"]["nb_tx_cores"],
-        nb_flows=nb_flows,
-        pkt_size=pkt_size,
-        crc_unique_flows=False,
-        pktgen_exe=Path(config["paths"]["pktgen"]),
-        log_file=config["logs"]["pktgen"],
-    )
+    # pktgen = Pktgen(
+    #     hostname=config["hosts"]["pktgen"],
+    #     rx_pcie_dev=config["devices"]["pktgen"]["rx_dev"],
+    #     tx_pcie_dev=config["devices"]["pktgen"]["tx_dev"],
+    #     nb_tx_cores=config["devices"]["pktgen"]["nb_tx_cores"],
+    #     nb_flows=nb_flows,
+    #     pkt_size=pkt_size,
+    #     crc_unique_flows=False,
+    #     pktgen_exe=Path(config["paths"]["pktgen"]),
+    #     log_file=config["logs"]["pktgen"],
+    # )
 
-    switch = Switch(
-        hostname=config["hosts"]["switch"],
-        src=switch_src,
-        compiler=config["paths"]["dataplane_build_script"],
-        log_file=config["logs"]["controller"],
-    )
+    # switch = Switch(
+    #     hostname=config["hosts"]["switch"],
+    #     src=switch_src,
+    #     compiler=config["paths"]["dataplane_build_script"],
+    #     log_file=config["logs"]["controller"],
+    # )
 
     controller = Controller(
-        hostname=config["hosts"]["controller"],
+        hostname=config["hosts"]["switch"],
         src=controller_src,
-        builder=config["paths"]["controller_build_script"],
-        sde_install=config["paths"]["sde_install"],
+        repo=config["repo"]["switch"],
+        tofino_version=config["devices"]["switch"]["tofino_version"],
+        switch_pktgen_in_port=config["devices"]["switch"]["pktgen_inbound_port"],
+        switch_pktgen_out_port=config["devices"]["switch"]["pktgen_outbound_port"],
         log_file=config["logs"]["controller"],
     )
 
-    throughput = Throughput(
-        name=exp_name,
-        iterations=1,
-        save_name=data_dir / Path(data_fname),
-        switch=switch,
-        controller=controller,
-        pktgen=pktgen,
-        churn=0,
-        console=console,
-    )
+    # throughput = Throughput(
+    #     name=exp_name,
+    #     iterations=1,
+    #     save_name=data_dir / Path(data_fname),
+    #     switch=switch,
+    #     controller=controller,
+    #     pktgen=pktgen,
+    #     churn=0,
+    #     console=console,
+    # )
 
-    return throughput
+    # return throughput
 
 @click.command()
 @click.option(

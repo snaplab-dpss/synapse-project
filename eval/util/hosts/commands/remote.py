@@ -6,6 +6,7 @@ import time
 import tty
 import socket
 import paramiko
+import os
 
 from typing import TextIO, Union, Optional, Callable
 
@@ -18,7 +19,7 @@ class RemoteCommand(Command):
         command: str,
         dir: Optional[str] = None,
         source_bashrc: bool = False,
-        log_file: Union[bool, str, TextIO] = False,
+        log_file: Optional[TextIO] = None,
         pty: bool = False,
     ) -> None:
         super().__init__(command, dir, source_bashrc, log_file)
@@ -40,6 +41,8 @@ class RemoteCommand(Command):
         self.cmd_ = session
 
     def send(self, data: Union[str, bytes]) -> None:
+        if isinstance(data, str):
+            data = data.encode("utf-8")
         self.cmd_.send(data)
 
     def recv(self, size: int) -> str:
@@ -153,34 +156,56 @@ class RemoteCommand(Command):
 
     def posix_shell(self) -> None:
         oldtty = termios.tcgetattr(sys.stdin)
+        stdin_blocking = os.get_blocking(sys.stdin.fileno())
         try:
-            tty.setraw(sys.stdin.fileno())
             tty.setcbreak(sys.stdin.fileno())
+            os.set_blocking(sys.stdin.fileno(), False)
 
-            self.pktgen.send("\n")
+            self.send("\n")
+            print("\n")
 
             while True:
-                r, _, _ = select.select([self.pktgen, sys.stdin], [], [])
-                if self.pktgen in r:
+                r, _, _ = select.select(
+                    [sys.stdout, sys.stderr, sys.stdin], [], []
+                )
+                if sys.stdout in r:
                     try:
-                        data = self.pktgen.recv(512)
+                        data = self.recv(512)
                         if len(data) == 0:
                             break
+
                         sys.stdout.write(data)
                         sys.stdout.flush()
+
                     except socket.timeout:
                         pass
+
+                if sys.stderr in r:
+                    try:
+                        data = self.recv_stderr(512)
+                        sys.stderr.write(data)
+                        sys.stderr.flush()
+
+                    except socket.timeout:
+                        pass
+
                 if sys.stdin in r:
-                    x = sys.stdin.read(1)
+                    x = sys.stdin.read(512)
                     if len(x) == 0:
                         break
-                    # Make sure we read arrow keys.
-                    if x == "\x1b":
-                        x += sys.stdin.read(2)
-                    self.pktgen.send(x)
+
+                    if x.isprintable() or x in ["\r", "\n", "\t", "\x7f"]:
+                        # If backspace, delete the last character
+                        if x == "\x7f":
+                            sys.stdout.write("\b \b")
+                        else:
+                            sys.stdout.write(x)
+                        sys.stdout.flush()
+                        self.send(x)
 
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
+            os.set_blocking(sys.stdin.fileno(), stdin_blocking)
 
     def __del__(self):
         self.cmd_.close()

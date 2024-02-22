@@ -45,7 +45,7 @@ void Table::init_key() {
 
   for (auto id : key_fields_ids) {
     std::string name;
-    bits_t size;
+    bit_len_t size;
 
     bf_status = table->keyFieldNameGet(id, &name);
     ASSERT_BF_STATUS(bf_status)
@@ -94,7 +94,7 @@ void Table::init_data_with_action(bf_rt_id_t action_id) {
 
   for (auto id : data_fields_ids) {
     std::string name;
-    bits_t size;
+    bit_len_t size;
 
     bf_status = table->dataFieldNameGet(id, action_id, &name);
     ASSERT_BF_STATUS(bf_status)

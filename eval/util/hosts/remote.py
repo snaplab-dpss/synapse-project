@@ -3,17 +3,24 @@ import os
 import time
 
 from pathlib import Path
-from typing import TextIO, Union
+from typing import Optional
 
 from .host import Host
 
 from .commands.command import Command
 from .commands.remote import RemoteCommand
+from .commands.local import LocalCommand
 
 class RemoteHost(Host):
     def __init__(
-        self, host: str, nb_retries: int = 0, retry_interval: int = 1
+        self,
+        host: str,
+        nb_retries: int = 0,
+        retry_interval: int = 1,
+        log_file: Optional[str] = None,
     ) -> None:
+        super().__init__(log_file)
+
         self.host = host
         self.nb_retries = nb_retries
         self.retry_interval = retry_interval
@@ -21,16 +28,16 @@ class RemoteHost(Host):
         self._ssh_client = None
     
     def run_command(self, *args, **kwargs) -> Command:
-        return RemoteCommand(self.ssh_client, *args, **kwargs)
+        return RemoteCommand(self.ssh_client, *args, **kwargs, log_file=self.log_file)
     
-    def remote_file_exists(
-        self,
-        remote_path: Path,
-    ) -> bool:
-        return super().remote_file_exists(
-            self.host,
-            remote_path,
-        )
+    def run_command_locally(self, *args, **kwargs) -> Command:
+        return LocalCommand(*args, **kwargs, log_file=self.log_file)
+    
+    def remote_file_exists(self, remote_path: Path) -> bool:
+        return super().remote_file_exists(self.host, remote_path)
+    
+    def remote_dir_exists(self, remote_path: Path) -> bool:
+        return super().remote_dir_exists(self.host, remote_path)
 
     def upload_file(
         self,
@@ -45,6 +52,45 @@ class RemoteHost(Host):
             overwrite,
         )
     
+    def get_ssh_host_addr(self) -> str:
+        cmd = f"grep {self.host} ~/.ssh/config"
+        cmd = self.run_command_locally(cmd)
+        code = cmd.recv_exit_status()
+
+        if code != 0:
+            self.crash(f'Host {self.host} not found in local ssh config.')
+
+        cmd = f'ssh -tt -G {self.host} | grep "^hostname"'
+        cmd = self.run_command_locally(cmd)
+        info = cmd.watch()
+
+        info = info.split("\n")
+        assert len(info) > 0
+        info = info[0]
+
+        info = info.split(" ")
+        assert len(info) == 2
+        addr = info[1]
+
+        return addr
+
+    def test_connection(self):
+        # Test reachability
+        host_addr = self.get_ssh_host_addr()
+        cmd = f"ping {host_addr} -c 1"
+        cmd = self.run_command_locally(cmd)
+        code = cmd.recv_exit_status()
+
+        if code != 0:
+            self.crash(f"Host {self.host} is unreachable")
+        
+        # Test SSH reachability
+        cmd = self.run_command(f"echo Host {self.host} is reachable!")
+        code = cmd.recv_exit_status()
+
+        if code != 0:
+            self.crash(f"Host {self.host} is unreachable")
+    
     @property
     def ssh_client(self):
         if self._ssh_client is not None:
@@ -52,7 +98,6 @@ class RemoteHost(Host):
 
         # adapted from https://gist.github.com/acdha/6064215
         client = paramiko.SSHClient()
-        client._policy = paramiko.WarningPolicy()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         ssh_config = paramiko.SSHConfig()
@@ -61,7 +106,11 @@ class RemoteHost(Host):
             with open(user_config_file) as f:
                 ssh_config.parse(f)
 
-        cfg = {"hostname": self.host}
+        cfg = {
+            "hostname": self.host,
+            "sock": None,
+            "pkey": None,
+        }
 
         user_config = ssh_config.lookup(self.host)
 

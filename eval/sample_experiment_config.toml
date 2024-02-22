@@ -18,25 +18,29 @@ pktgen = ""
 # Set the paths to this repo on the remote machines.
 # Ensure that the user you are using to ssh into the machines has write access
 # to these directories. This user is set in the .ssh/config file (see above).
-[paths]
+[repo]
 switch = ""
 pktgen = ""
 
 
 [devices.switch]
-tofino_version = 1 # TNA versions 1 or 2
+tofino_version = 1       # TNA versions 1 or 2
+pktgen_inbound_port = 0  # Pktgen sends traffic to this port.
+pktgen_outbound_port = 0 # Port that connects to the RX pktgen device.
 
 
 [devices.pktgen]
-rx_dev = ""
 tx_dev = ""
+rx_dev = ""
 tx_line_rate = -1 # in Gbps.
 nb_tx_cores = -1
+
 
 [logs]
 # Log files. They will be saved in the orchestrator machine in the same
 # directory where you run the experiment.py script.
 controller = ""
+switch = ""
 pktgen = ""
 
 

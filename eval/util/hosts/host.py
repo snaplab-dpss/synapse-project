@@ -3,18 +3,38 @@ import re
 import subprocess
 
 from abc import ABC, abstractmethod
-from typing import TextIO, Union
+from typing import Optional
 from pathlib import Path
 
 from .commands.command import Command
 
 class Host(ABC):
-    def __init__(self):
+    def __init__(
+        self,
+        log_file: Optional[str] = None,
+    ):
         super().__init__()
+
+        if log_file:
+            out_file_path = Path(log_file)
+
+            if out_file_path.exists():
+                assert out_file_path.is_file()
+                self.log_file = open(log_file, "w")
+            else:
+                out_file_path.parents[0].mkdir(parents=True, exist_ok=True)
+                self.log_file = open(log_file, "a")
+        else:
+            log_file = None
 
     @abstractmethod
     def run_command(self, *args, **kwargs) -> Command:
         pass
+
+    def crash(self, msg):
+        print(f'ERROR: {msg}', file=self.log_file)
+        print(f'ERROR: {msg}', file=sys.stderr)
+        exit(1)
 
     def remote_file_exists(
         self,
@@ -28,6 +48,19 @@ class Host(ABC):
         )
 
         return cp.returncode == 0
+    
+    def remote_dir_exists(
+        self,
+        host: str,
+        remote_path: Path,
+    ) -> bool: 
+        cp = subprocess.run(
+            [ "ssh", host, "test", "-d", str(remote_path) ],
+            stdout=sys.stdout,
+            stderr=sys.stdout,
+        )
+
+        return cp.returncode == 0
 
     def upload_file(
         self,
@@ -36,7 +69,7 @@ class Host(ABC):
         remote_path: Path,
         overwrite: bool = True,
     ) -> None:
-        if not overwrite and self.remote_file_exists(remote_path):
+        if not overwrite and self.remote_file_exists(host, remote_path):
             return
 
         cp = subprocess.run(
@@ -47,14 +80,10 @@ class Host(ABC):
 
         cp.check_returncode()
 
-    def validate_pcie_dev(
-        self,
-        pcie_dev: str,
-        log_file: Union[bool, TextIO] = False,
-    ) -> None:
+    def validate_pcie_dev(self, pcie_dev: str) -> None:
         cmd = "lspci -mm"
 
-        cmd = self.run_command(cmd, log_file=log_file)
+        cmd = self.run_command(cmd, log_file=self.log_file)
         info = cmd.watch()
 
         info = info.split("\n")
@@ -65,20 +94,12 @@ class Host(ABC):
 
             if device in pcie_dev:
                 return
+        
+        self.crash(f'Invalid PCIe device "{pcie_dev}"')
 
-        if log_file is True:
-            log_file = sys.stderr
-            
-        print(f'Invalid PCIe device "{pcie_dev}"', file=log_file)
-        exit(1)
-
-    def get_device_numa_node(
-        self,
-        pcie_dev: str,
-        log_file: Union[bool, TextIO] = False,
-    ) -> int:
+    def get_device_numa_node(self, pcie_dev: str) -> int:
         cmd = f"lspci -s {pcie_dev} -vv"
-        cmd = self.run_command(cmd, log_file=log_file)
+        cmd = self.run_command(cmd, log_file=self.log_file)
         info = cmd.watch()
 
         result = re.search(r"NUMA node: (\d+)", info)
@@ -89,12 +110,9 @@ class Host(ABC):
         assert result
         return int(result.group(1))
 
-    def get_all_cpus(
-        self,
-        log_file: Union[bool, TextIO] = False
-    ) -> list[int]:
+    def get_all_cpus(self) -> list[int]:
         cmd = "lscpu"
-        cmd = self.run_command(cmd, log_file=log_file)
+        cmd = self.run_command(cmd, log_file=self.log_file)
         info = cmd.watch()
 
         result = re.search(r"CPU\(s\):\D+(\d+)", info)
@@ -104,13 +122,9 @@ class Host(ABC):
 
         return [ x for x in range(total_cpus) ]
 
-    def get_numa_node_cpus(
-        self,
-        node: int,
-        log_file: Union[bool, TextIO] = False,
-    ):
+    def get_numa_node_cpus(self, node: int):
         cmd = "lscpu"
-        cmd = self.run_command(cmd, log_file=log_file)
+        cmd = self.run_command(cmd, log_file=self.log_file)
         info = cmd.watch()
         info = [ line for line in info.split("\n") if "NUMA" in line ]
 
@@ -121,14 +135,10 @@ class Host(ABC):
         total_nodes = int(total_nodes_match.group(1))
 
         if node > total_nodes:
-            print(
-                f"Requested NUMA node ({node}) >= available nodes ({total_nodes})",
-                file=sys.stderr,
-            )
-            exit(1)
+            self.crash(f"Requested NUMA node ({node}) >= available nodes ({total_nodes})")
 
         if total_nodes == 1:
-            return self.get_all_cpus(log_file=log_file)
+            return self.get_all_cpus()
 
         assert len(info) == total_nodes + 1
         node_info = info[node + 1]
@@ -144,19 +154,13 @@ class Host(ABC):
 
         cpus_match = re.search(r"\D+([\d,]+)$", node_info)
         assert cpus_match
-        return [int(i) for i in cpus_match.groups(0)[0].split(",")]
+        return [int(i) for i in str(cpus_match.groups(0)[0]).split(",")]
 
-    def get_pcie_dev_cpus(
-        self,
-        pcie_dev: str,
-        log_file: Union[bool, TextIO] = False,
-    ) -> list[int]:
-        numa = self.get_device_numa_node(pcie_dev, log_file=log_file)
-        cpus = self.get_numa_node_cpus(numa, log_file=log_file)
-        if log_file is True:
-            log_file = sys.stdout
+    def get_pcie_dev_cpus(self, pcie_dev: str) -> list[int]:
+        numa = self.get_device_numa_node(pcie_dev)
+        cpus = self.get_numa_node_cpus(numa)
 
-        if log_file:
-            log_file.write(f"PCIe={pcie_dev} NUMA={numa} CPUs={cpus}\n")
+        if self.log_file:
+            self.log_file.write(f"PCIe={pcie_dev} NUMA={numa} CPUs={cpus}\n")
 
         return cpus

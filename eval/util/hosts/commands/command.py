@@ -9,7 +9,7 @@ class Command(ABC):
         command: str,
         dir: Optional[str] = None,
         source_bashrc: bool = False,
-        log_file: Union[bool, str, TextIO] = False,
+        log_file: Optional[TextIO] = None,
     ) -> None:
         super().__init__()
 
@@ -21,12 +21,7 @@ class Command(ABC):
         if source_bashrc:
             self.command = f"source $HOME/.bashrc; {self.command}"
         
-        if isinstance(log_file, bool):
-            self.log_file = sys.stdout if log_file else None
-        elif isinstance(log_file, str):
-            self.log_file = open(log_file, "a")
-        else:
-            self.log_file = log_file
+        self.log_file = log_file
 
         if self.log_file:
             self.log_file.write(f"command: {command}\n")

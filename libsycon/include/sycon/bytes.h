@@ -7,18 +7,20 @@
 
 namespace sycon {
 
-typedef size_t bits_t;
+typedef size_t bit_len_t;
+typedef size_t byte_len_t;
+
 typedef uint8_t byte_t;
 
 struct bytes_t {
   byte_t *values;
-  uint32_t size;
+  byte_len_t size;
 
   bytes_t() : values(nullptr), size(0) {}
 
-  bytes_t(uint32_t _size) : values(new byte_t[_size]), size(_size) {}
+  bytes_t(byte_len_t _size) : values(new byte_t[_size]), size(_size) {}
 
-  bytes_t(uint32_t _size, uint64_t value) : bytes_t(_size) {
+  bytes_t(byte_len_t _size, uint64_t value) : bytes_t(_size) {
     for (auto i = 0u; i < _size; i++) {
       values[i] = (value >> (8 * (_size - i - 1))) & 0xff;
     }
@@ -30,7 +32,7 @@ struct bytes_t {
   }
 
   bytes_t(const bytes_t &key) : bytes_t(key.size) {
-    for (uint32_t i = 0; i < size; i++) {
+    for (byte_len_t i = 0; i < size; i++) {
       values[i] = key.values[i];
     }
   }
@@ -43,12 +45,12 @@ struct bytes_t {
     }
   }
 
-  byte_t &operator[](uint32_t i) {
+  byte_t &operator[](byte_len_t i) {
     assert(i < size);
     return values[i];
   }
 
-  const byte_t &operator[](uint32_t i) const {
+  const byte_t &operator[](byte_len_t i) const {
     assert(i < size);
     return values[i];
   }

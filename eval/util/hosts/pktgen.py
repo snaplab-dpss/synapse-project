@@ -13,39 +13,49 @@ class Pktgen():
     def __init__(
         self,
         hostname: str,
+        repo: str,
         rx_pcie_dev: str,
         tx_pcie_dev: str,
         nb_tx_cores: int,
-        nb_flows: int,
-        pkt_size: int = 64,
-        exp_time_us: int = 0,
-        crc_unique_flows: bool = False,
-        crc_bits: int = 16,
-        pktgen_exe: Union[str, Path] = "pktgen",
         log_file: Optional[str] = None,
     ) -> None:
-        self.host = RemoteHost(hostname)
+        self.host = RemoteHost(hostname, log_file=log_file)
+        self.pktgen_dir = Path(repo) / "eval" / "deps" / "pktgen"
+        self.pktgen_exe = self.pktgen_dir / "Release" / "bin"/ "pktgen"
+        self.setup_env_script = self.pktgen_dir / "paths.sh"
         self.rx_pcie_dev = rx_pcie_dev
         self.tx_pcie_dev = tx_pcie_dev
         self.nb_tx_cores = nb_tx_cores
-        self.nb_flows = nb_flows
-        self.pkt_size = pkt_size
-        self.exp_time_us = exp_time_us
-        self.crc_unique_flows = crc_unique_flows
-        self.crc_bits = crc_bits
-        self.pktgen_exe = Path(pktgen_exe)
-        self.log_file = open(log_file, "a") if log_file else False
 
         self.pktgen_active = False
 
         if self.nb_tx_cores < MIN_NUM_TX_CORES:
             raise Exception(f"Number of TX cores must be >= {MIN_NUM_TX_CORES} (is {self.nb_tx_cores})")
+        
+        self.host.test_connection()
+
+        if not self.host.remote_dir_exists(Path(repo)):
+            self.host.crash(f"Repo not found on remote host {self.host}")
+
+        self.__build()
+
+    def __build(self):
+        build_script = self.pktgen_dir / "build.sh"
+
+        cmd = self.host.run_command(f"source {self.setup_env_script} && {build_script}")
+        cmd.watch()
+        code = cmd.recv_exit_status()
+        
+        if code != 0:
+            self.host.crash(f"Failed to build pktgen.")
+        
+        assert self.host.remote_file_exists(self.pktgen_exe)
 
     def __run_commands(
-            self,
-            cmds: Union[str, list[str]],
-            timeout: float = 0.5,
-            wait: bool = True
+        self,
+        cmds: Union[str, list[str]],
+        timeout: float = 0.5,
+        wait: bool = True
     ) -> str:
         assert self.pktgen_active
         console_pattern = "\r\nPktgen:/> " if wait else None
@@ -55,7 +65,14 @@ class Pktgen():
             console_pattern=console_pattern,
         )
 
-    def launch(self) -> None:
+    def launch(
+        self,
+        nb_flows: int,
+        pkt_size: int = 64,
+        exp_time_us: int = 0,
+        crc_unique_flows: bool = False,
+        crc_bits: int = 16,
+    ) -> None:
         assert not self.pktgen_active
 
         # This is kind of lazy, and not sure if even correct, but let's
@@ -64,22 +81,23 @@ class Pktgen():
         rx_port = int(self.rx_pcie_dev.split('.')[-1])
 
         pktgen_options_list = [
-            f"--total-flows {self.nb_flows}",
-            f"--pkt-size {self.pkt_size}",
+            f"--total-flows {nb_flows}",
+            f"--pkt-size {pkt_size}",
             f"--tx {tx_port}",
             f"--rx {rx_port}",
             f"--tx-cores {self.nb_tx_cores}",
-            f"--exp-time {self.exp_time_us}"
+            f"--exp-time {exp_time_us}"
         ]
 
-        if self.crc_unique_flows:
+        if crc_unique_flows:
             pktgen_options_list.append(f"--crc-unique-flows")
-            pktgen_options_list.append(f"--crc-bits {self.crc_bits}")
+            pktgen_options_list.append(f"--crc-bits {crc_bits}")
         
         pktgen_options = ' '.join(pktgen_options_list)
 
-        remote_cmd = f"sudo {str(self.pktgen_exe)} {self.dpdk_config} -- {pktgen_options}"
-        self.pktgen = self.host.run_command(remote_cmd, pty=True, log_file=self.log_file)
+        remote_cmd = f"sudo -E source {self.setup_env_script} && {str(self.pktgen_exe)} {self.dpdk_config} -- {pktgen_options}"
+
+        self.pktgen = self.host.run_command(remote_cmd, pty=True)
         self.pktgen_active = True
         self.ready = False
 
@@ -201,13 +219,13 @@ class Pktgen():
         if hasattr(self, '_dpdk_config'):
             return self._dpdk_config
 
-        self.host.validate_pcie_dev(self.rx_pcie_dev, log_file=self.log_file)
-        self.host.validate_pcie_dev(self.tx_pcie_dev, log_file=self.log_file)
+        self.host.validate_pcie_dev(self.rx_pcie_dev)
+        self.host.validate_pcie_dev(self.tx_pcie_dev)
 
-        all_cores = self.host.get_all_cpus(log_file=self.log_file)
+        all_cores = self.host.get_all_cpus()
 
         all_cores = set(
-            self.host.get_pcie_dev_cpus(self.tx_pcie_dev, log_file=self.log_file)
+            self.host.get_pcie_dev_cpus(self.tx_pcie_dev)
         )
 
         # Needs an extra core for the main thread.

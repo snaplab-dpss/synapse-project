@@ -1,67 +1,50 @@
 #include <core.p4>
+
 #if __TARGET_TOFINO__ == 2
 #include <t2na.p4>
 #else
 #include <tna.p4>
 #endif
 
-typedef bit<9>  port_t;
+#if __TARGET_TOFINO__ == 2
+#define CPU_PCIE_PORT 0
+
+#define ETH_CPU_PORT_0 2
+#define ETH_CPU_PORT_1 3
+#define ETH_CPU_PORT_2 4
+#define ETH_CPU_PORT_3 5
+
+#define RECIRCULATION_PORT 6
 
 // hardware
-const port_t CPU_PCIE_PORT = 192;
+// #define IN_PORT 136
+// #define OUT_PORT 144
 
 // model
-// const port_t CPU_PCIE_PORT = 320;
+#define IN_PORT 8
+#define OUT_PORT 9
+#else
+// hardware
+// #define CPU_PCIE_PORT 192
+// #define IN_PORT 164
+// #define OUT_PORT 172
 
-const port_t IN_PORT = 0;
-const port_t OUT_PORT = 1;
+// model
+#define CPU_PCIE_PORT 320
+#define IN_PORT 0
+#define OUT_PORT 1
+#endif
 
-const port_t IN_DEV_PORT = 164;
-const port_t OUT_DEV_PORT = 172;
-
-header hdr0_h {
-  bit<8> b0;
-  bit<8> b1;
-  bit<8> b2;
-  bit<8> b3;
-  bit<8> b4;
-  bit<8> b5;
-  bit<8> b6;
-  bit<8> b7;
-  bit<8> b8;
-  bit<8> b9;
-  bit<8> b10;
-  bit<8> b11;
-  bit<8> b12;
-  bit<8> b13;
-}
-
-header hdr1_h {
-  bit<8> b0;
-  bit<8> b1;
-  bit<8> b2;
-  bit<8> b3;
-  bit<8> b4;
-  bit<8> b5;
-  bit<8> b6;
-  bit<8> b7;
-  bit<8> b8;
-  bit<8> b9;
-  bit<8> b10;
-  bit<8> b11;
-  bit<32> b12_b15;
-  bit<32> b16_b19;
-}
-
-header hdr2_h {
-	bit<32> b0;
-}
+typedef bit<9> port_t;
+typedef bit<7> port_pad_t;
 
 header cpu_h {
 	bit<16> code_path;
-	bit<7> pad0;
+    
+	@padding port_pad_t pad0;
 	port_t in_port;
-	bit<7> pad1;
+
+	@padding port_pad_t pad1;
 	port_t out_port;
 }
 
@@ -72,14 +55,12 @@ struct my_ingress_metadata_t {}
 
 struct my_ingress_headers_t {
 	cpu_h cpu;
-	hdr0_h hdr0;
-	hdr1_h hdr1;
-	hdr2_h hdr2;
 }
 
 parser TofinoIngressParser(
-		packet_in pkt,
-		out ingress_intrinsic_metadata_t ig_intr_md) {
+	packet_in pkt,
+	out ingress_intrinsic_metadata_t ig_intr_md
+) {
 	state start {
 		pkt.extract(ig_intr_md);
 		transition select(ig_intr_md.resubmit_flag) {
@@ -142,12 +123,37 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
 {
+	action drop() {
+		ig_dprsr_md.drop_ctl = 1;
+	}
+
 	action fwd(port_t port) {
 		ig_tm_md.ucast_egress_port = port;
 	}
 
+	action send_to_controller(bit<16> code_path) {
+		hdr.cpu.setValid();
+		hdr.cpu.code_path = code_path;
+		hdr.cpu.in_port = ig_intr_md.ingress_port;
+		fwd(CPU_PCIE_PORT);
+	}
+
+	table forwarder {
+		key = {
+			ig_intr_md.ingress_port: exact;
+		}
+
+		actions = {
+			fwd;
+			drop;
+		}
+
+		default_action = drop;
+		size = 32;
+	}
+
 	apply {
-		fwd(OUT_DEV_PORT);
+		forwarder.apply();
 		ig_tm_md.bypass_egress = 1;
 	}
 }

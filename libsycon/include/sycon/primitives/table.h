@@ -17,7 +17,7 @@ namespace sycon {
 struct table_field_t {
   std::string name;
   bf_rt_id_t id;
-  bits_t size;
+  bit_len_t size;
 };
 
 class Table {

@@ -19,6 +19,7 @@ synthesized
 out
 build
 log
+logs
 
 # Draw.io garbage
 .$*.bkp

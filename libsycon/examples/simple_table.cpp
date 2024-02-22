@@ -27,7 +27,6 @@ void sycon::nf_init() {
   state->table_with_timeout =
       SimpleTable::build("Ingress", "table_with_timeout", args.expiration_time,
                          table_with_timeout_expiration_callback);
-  state->table_with_timeout->enable_expirations();
 }
 
 void sycon::nf_cleanup() {
