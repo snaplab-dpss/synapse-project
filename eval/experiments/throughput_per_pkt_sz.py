@@ -88,7 +88,7 @@ class ThroughputPerPacketSize(Experiment):
         step_progress: Progress,
         current_iter: int,
     ) -> None:
-        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=1)
+        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(PACKET_SIZES_BYTES))
 
         # Check if we already have everything before running all the programs.
         completed = True
@@ -104,10 +104,15 @@ class ThroughputPerPacketSize(Experiment):
 
         for pkt_size in PACKET_SIZES_BYTES:
             exp_key = (current_iter,pkt_size,)
+            
+            description=f"{self.name} (it={current_iter} pkt={pkt_size}B)"
+
             if exp_key in self.experiment_tracker:
                 self.console.log(f"[orange1]Skipping: iteration {current_iter} pkt size {pkt_size}B")
-                step_progress.update(task_id, advance=1)
+                step_progress.update(task_id, description=description, advance=1)
                 continue
+
+            step_progress.update(task_id, description=description)
 
             self.controller.launch(
                 self.controller_src_in_repo,
@@ -125,8 +130,6 @@ class ThroughputPerPacketSize(Experiment):
             self.pktgen.wait_launch()
             self.controller.wait_ready()
 
-            step_progress.update(task_id, description=f"{self.name} (it={current_iter} pkt={pkt_size}B)")
-
             throughput_bps, throughput_pps = self.find_stable_throughput(
                 self.pktgen,
                 self.churn,
@@ -136,8 +139,7 @@ class ThroughputPerPacketSize(Experiment):
             with open(self.save_name, "a") as f:
                 f.write(f"{current_iter},{pkt_size},{throughput_bps},{throughput_pps}\n")
 
-            step_progress.update(task_id, advance=1)
-            step_progress.update(task_id, visible=False)
+            step_progress.update(task_id, description=description, advance=1)
 
             self.pktgen.close()
             self.controller.stop()

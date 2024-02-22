@@ -26,14 +26,19 @@ class Host(ABC):
             # Always overwrite. The logs become a mess otherwise.
             self.log_file = open(log_file, "w")
         else:
-            log_file = None
+            self.log_file = None
 
     @abstractmethod
     def run_command(self, *args, **kwargs) -> Command:
         pass
 
+    def log(self, msg):
+        if self.log_file:
+            print(msg, file=self.log_file)
+        
     def crash(self, msg):
-        print(f'ERROR: {msg}', file=self.log_file)
+        if self.log_file:
+            print(f'ERROR: {msg}', file=self.log_file)
         print(f'\nERROR: {msg}\n', file=sys.stderr)
         exit(1)
 

@@ -7,7 +7,7 @@ class Command(ABC):
         self,
         command: str,
         dir: Optional[Union[str,Path]] = None,
-        source_bashrc: bool = False,
+        source_bashrc: bool = True,
         log_file: Optional[TextIO] = None,
     ) -> None:
         super().__init__()
@@ -23,7 +23,7 @@ class Command(ABC):
         self.log_file = log_file
 
         if self.log_file:
-            self.log_file.write(f"command: {command}\n")
+            self.log_file.write(f"command: {self.command}\n")
 
     @abstractmethod
     def send(self, data: Union[str, bytes]) -> None:

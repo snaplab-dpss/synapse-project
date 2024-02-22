@@ -24,7 +24,7 @@ def main():
     Switch(
         hostname=config["hosts"]["switch"],
         repo=config["repo"]["switch"],
-        sde_install=config["devices"]["switch"]["sde_install"],
+        sde=config["devices"]["switch"]["sde"],
         tofino_version=config["devices"]["switch"]["tofino_version"],
         log_file=config["logs"]["switch"],
     )
@@ -33,7 +33,7 @@ def main():
     Controller(
         hostname=config["hosts"]["switch"],
         repo=config["repo"]["switch"],
-        sde_install=config["devices"]["switch"]["sde_install"],
+        sde=config["devices"]["switch"]["sde"],
         switch_pktgen_in_port=config["devices"]["switch"]["pktgen_inbound_port"],
         switch_pktgen_out_port=config["devices"]["switch"]["pktgen_outbound_port"],
         tofino_version=config["devices"]["switch"]["tofino_version"],

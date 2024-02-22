@@ -18,7 +18,7 @@ class LocalCommand(Command):
         self,
         command: str,
         dir: Optional[Union[str,Path]] = None,
-        source_bashrc: bool = False,
+        source_bashrc: bool = True,
         log_file: Optional[TextIO] = None,
     ) -> None:
         super().__init__(command, dir, source_bashrc, log_file)
@@ -29,6 +29,7 @@ class LocalCommand(Command):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=True,
+            executable="/bin/bash" # For sourcing if needed
         )
 
         assert self.proc_.stdin

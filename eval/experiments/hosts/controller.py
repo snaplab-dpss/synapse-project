@@ -15,7 +15,7 @@ class Controller:
         self,
         hostname: str,
         repo: str,
-        sde_install: str,
+        sde: str,
         tofino_version: int,
         switch_pktgen_in_port: int,
         switch_pktgen_out_port: int,
@@ -23,7 +23,7 @@ class Controller:
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.repo = Path(repo)
-        self.sde_install = Path(sde_install)
+        self.sde = Path(sde)
         self.tofino_version = tofino_version
         self.switch_pktgen_in_port = switch_pktgen_in_port
         self.switch_pktgen_out_port = switch_pktgen_out_port
@@ -35,8 +35,8 @@ class Controller:
         if not self.host.remote_dir_exists(self.repo):
             self.host.crash(f"Repo not found on remote host {self.host}")
         
-        if not self.host.remote_dir_exists(self.sde_install):
-            self.host.crash(f"SDE_INSTALL directory not found on remote host {self.sde_install}")
+        if not self.host.remote_dir_exists(self.sde):
+            self.host.crash(f"SDE directory not found on remote host {self.sde}")
         
     def _compile(self, src: Path) -> None:
         if not self.host.remote_file_exists(src):
@@ -45,15 +45,14 @@ class Controller:
         program_name = src.stem
         makefile = self.repo / "tools" / "Makefile"
 
-        env_vars = f"SDE_INSTALL={self.sde_install} APP={program_name}"
+        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install APP={program_name}"
         compilation_cmd = f"{env_vars} make -f {makefile} -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
+        cmd.watch()
         code = cmd.recv_exit_status()
 
         if code != 0:
             self.host.crash(f"Controller compilation failed (app={program_name}).")
-
-        self.controller_cmd = None
 
     def launch(
         self,
@@ -95,11 +94,12 @@ class Controller:
             return
 
         # Kill all instances
-        cmd = f"killall {self.exe}"
+        cmd = f"sudo killall {self.exe}"
 
         self.host.run_command(cmd)
-
         self.controller_cmd.watch()
+
+        self.host.log("Controller exited successfuly.")
 
         self.controller_cmd = None
         self.exe = None

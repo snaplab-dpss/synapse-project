@@ -19,7 +19,7 @@ class RemoteCommand(Command):
         ssh_client: paramiko.SSHClient,
         command: str,
         dir: Optional[Union[str,Path]] = None,
-        source_bashrc: bool = False,
+        source_bashrc: bool = True,
         log_file: Optional[TextIO] = None,
         pty: bool = False,
     ) -> None:

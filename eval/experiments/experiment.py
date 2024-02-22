@@ -83,7 +83,7 @@ class Experiment:
 
                 nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
 
-                if nb_tx_pkts == 0:
+                if nb_tx_pkts == 0 and log_file:
                     log_file.write(f"No packets flowing, repeating run\n")
 
             nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8

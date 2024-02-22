@@ -56,14 +56,12 @@ class Pktgen():
     def _run_commands(
         self,
         cmds: Union[str, list[str]],
-        timeout: float = 0.5,
-        wait: bool = True
+        wait_from_prompt: bool = True
     ) -> str:
         assert self.pktgen_active
-        console_pattern = "\r\nPktgen:/> " if wait else None
+        console_pattern = "\r\nPktgen:/> " if wait_from_prompt else None
         return self.pktgen.run_console_commands(
             cmds,
-            timeout=timeout,
             console_pattern=console_pattern,
         )
 
@@ -186,8 +184,9 @@ class Pktgen():
 
     def close(self) -> None:
         assert self.pktgen_active
-        self._run_commands("quit", wait=False)
+        self._run_commands("quit", wait_from_prompt=False)
         self.pktgen_active = False
+        self.host.log("Pktgen exited successfuly.")
 
     def get_stats(self) -> tuple[int, int]:
         assert self.pktgen_active

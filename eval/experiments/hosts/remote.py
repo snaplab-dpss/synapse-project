@@ -91,7 +91,7 @@ class RemoteHost(Host):
         code = cmd.recv_exit_status()
 
         if code != 0:
-            self.crash(f"Host {self.host} is unreachable")
+            self.crash(f"Unable to ssh into {self.host}")
     
     @property
     def ssh_client(self):
