@@ -1,6 +1,8 @@
 import re
 import itertools
 
+from paramiko import ssh_exception
+
 from pathlib import Path
 from typing import Optional, Union
 
@@ -37,9 +39,9 @@ class Pktgen():
         if not self.host.remote_dir_exists(Path(repo)):
             self.host.crash(f"Repo not found on remote host {self.host}")
 
-        self.__build()
+        self._build()
 
-    def __build(self):
+    def _build(self):
         build_script = self.pktgen_dir / "build.sh"
 
         cmd = self.host.run_command(f"source {self.setup_env_script} && {build_script}")
@@ -51,7 +53,7 @@ class Pktgen():
         
         assert self.host.remote_file_exists(self.pktgen_exe)
 
-    def __run_commands(
+    def _run_commands(
         self,
         cmds: Union[str, list[str]],
         timeout: float = 0.5,
@@ -95,7 +97,7 @@ class Pktgen():
         
         pktgen_options = ' '.join(pktgen_options_list)
 
-        remote_cmd = f"sudo -E source {self.setup_env_script} && {str(self.pktgen_exe)} {self.dpdk_config} -- {pktgen_options}"
+        remote_cmd = f"source {self.setup_env_script}; sudo {str(self.pktgen_exe)} {self.dpdk_config} -- {pktgen_options}"
 
         self.pktgen = self.host.run_command(remote_cmd, pty=True)
         self.pktgen_active = True
@@ -113,7 +115,9 @@ class Pktgen():
         lines = output.split("\r\n")
         
         while lines:
-            if lines[0] == "----- Config -----":
+            # Look for the header:
+            # ----- Config -----
+            if "Config" in lines[0]:
                 break
             lines = lines[1:]
         
@@ -146,7 +150,7 @@ class Pktgen():
         if not self.ready:
             self.wait_launch()
 
-        self.__run_commands("start")
+        self._run_commands("start")
     
     def set_warmup_duration(self, duration_sec: int) -> None:
         assert self.pktgen_active
@@ -154,7 +158,7 @@ class Pktgen():
         if not self.ready:
             self.wait_launch()
         
-        self.__run_commands(f"warmup {duration_sec}")
+        self._run_commands(f"warmup {duration_sec}")
     
     def run(self, duration_sec: int) -> None:
         assert self.pktgen_active
@@ -162,32 +166,33 @@ class Pktgen():
         if not self.ready:
             self.wait_launch()
 
-        self.__run_commands(f"run {duration_sec}")
+        self._run_commands(f"run {duration_sec}")
     
     def set_rate(self, rate_mbps: int) -> None:
         assert rate_mbps > 0
-        self.__run_commands(f"rate {rate_mbps}")
+        self._run_commands(f"rate {rate_mbps}")
     
     def set_churn(self, churn_fpm: int) -> None:
         assert churn_fpm >= 0
-        self.__run_commands(f"churn {churn_fpm}")
+        self._run_commands(f"churn {churn_fpm}")
 
     def stop(self) -> None:
         assert self.pktgen_active
-        self.__run_commands("stop")
+        self._run_commands("stop")
 
     def reset_stats(self) -> None:
         assert self.pktgen_active
-        self.__run_commands("reset")
+        self._run_commands("reset")
 
     def close(self) -> None:
         assert self.pktgen_active
-        self.__run_commands("quit", wait=False)
+        self._run_commands("quit", wait=False)
         self.pktgen_active = False
 
     def get_stats(self) -> tuple[int, int]:
         assert self.pktgen_active
-        output = self.__run_commands("stats")
+        output = self._run_commands("stats")
+
         lines = output.split("\r\n")
         
         while lines:
@@ -246,5 +251,12 @@ class Pktgen():
         return self._dpdk_config
     
     def __del__(self) -> None:
-        if self.pktgen_active:
-            self.close()
+        try:
+            if self.pktgen_active:
+                self.close()
+        except OSError:
+            # Not important if we crash here.
+            pass
+        except ssh_exception.SSHException:
+            # Not important if we crash here.
+            pass

@@ -8,6 +8,7 @@ import time
 import tty
 import socket
 
+from pathlib import Path
 from typing import TextIO, Union, Optional, Callable
 
 from .command import Command
@@ -16,7 +17,7 @@ class LocalCommand(Command):
     def __init__(
         self,
         command: str,
-        dir: Optional[str] = None,
+        dir: Optional[Union[str,Path]] = None,
         source_bashrc: bool = False,
         log_file: Optional[TextIO] = None,
     ) -> None:

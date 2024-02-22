@@ -46,7 +46,7 @@ class DpdkConfig:
     def __init__(
         self,
         cores: Iterable[int],
-        mem_channels: int = None,
+        mem_channels: Optional[int] = None,
         drivers: Optional[Iterable[str]] = None,
         mem_alloc: Optional[int] = None,
         mem_ranks: Optional[int] = None,

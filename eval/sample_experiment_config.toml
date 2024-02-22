@@ -24,6 +24,7 @@ pktgen = ""
 
 
 [devices.switch]
+sde_install = ""         # Path to SDE install dir
 tofino_version = 1       # TNA versions 1 or 2
 pktgen_inbound_port = 0  # Pktgen sends traffic to this port.
 pktgen_outbound_port = 0 # Port that connects to the RX pktgen device.

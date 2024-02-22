@@ -1,13 +1,12 @@
-import sys
-
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import TextIO, Union, Optional, Callable
 
 class Command(ABC):
     def __init__(
         self,
         command: str,
-        dir: Optional[str] = None,
+        dir: Optional[Union[str,Path]] = None,
         source_bashrc: bool = False,
         log_file: Optional[TextIO] = None,
     ) -> None:
@@ -16,7 +15,7 @@ class Command(ABC):
         self.command = command
         
         if dir is not None:
-            self.command = f"cd {dir}; {self.command}"
+            self.command = f"cd {str(dir)}; {self.command}"
 
         if source_bashrc:
             self.command = f"source $HOME/.bashrc; {self.command}"

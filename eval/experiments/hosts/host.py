@@ -20,10 +20,11 @@ class Host(ABC):
 
             if out_file_path.exists():
                 assert out_file_path.is_file()
-                self.log_file = open(log_file, "w")
             else:
                 out_file_path.parents[0].mkdir(parents=True, exist_ok=True)
-                self.log_file = open(log_file, "a")
+
+            # Always overwrite. The logs become a mess otherwise.
+            self.log_file = open(log_file, "w")
         else:
             log_file = None
 
@@ -33,7 +34,7 @@ class Host(ABC):
 
     def crash(self, msg):
         print(f'ERROR: {msg}', file=self.log_file)
-        print(f'ERROR: {msg}', file=sys.stderr)
+        print(f'\nERROR: {msg}\n', file=sys.stderr)
         exit(1)
 
     def remote_file_exists(
@@ -83,7 +84,7 @@ class Host(ABC):
     def validate_pcie_dev(self, pcie_dev: str) -> None:
         cmd = "lspci -mm"
 
-        cmd = self.run_command(cmd, log_file=self.log_file)
+        cmd = self.run_command(cmd)
         info = cmd.watch()
 
         info = info.split("\n")
@@ -99,7 +100,7 @@ class Host(ABC):
 
     def get_device_numa_node(self, pcie_dev: str) -> int:
         cmd = f"lspci -s {pcie_dev} -vv"
-        cmd = self.run_command(cmd, log_file=self.log_file)
+        cmd = self.run_command(cmd)
         info = cmd.watch()
 
         result = re.search(r"NUMA node: (\d+)", info)
@@ -112,7 +113,7 @@ class Host(ABC):
 
     def get_all_cpus(self) -> list[int]:
         cmd = "lscpu"
-        cmd = self.run_command(cmd, log_file=self.log_file)
+        cmd = self.run_command(cmd)
         info = cmd.watch()
 
         result = re.search(r"CPU\(s\):\D+(\d+)", info)
@@ -124,7 +125,7 @@ class Host(ABC):
 
     def get_numa_node_cpus(self, node: int):
         cmd = "lscpu"
-        cmd = self.run_command(cmd, log_file=self.log_file)
+        cmd = self.run_command(cmd)
         info = cmd.watch()
         info = [ line for line in info.split("\n") if "NUMA" in line ]
 

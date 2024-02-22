@@ -1,65 +1,47 @@
 #!/usr/bin/env python3
 
-import sys
-import click
+import argparse
 import tomli
 import os
 
 from pathlib import Path
 
-from rich.console import Console
+from experiments.hosts.pktgen import Pktgen
+from experiments.hosts.switch import Switch
+from experiments.hosts.controller import Controller
 
-from util.hosts.remote import RemoteHost
+def main():
+    parser = argparse.ArgumentParser()
 
-from util.hosts.pktgen import Pktgen
-from util.hosts.switch import Switch
-from util.hosts.controller import Controller
-
-from util.experiment import Experiment, ExperimentTracker
-from util.throughput import Throughput
-
-if sys.version_info < (3, 9, 0):
-    raise RuntimeError("Python 3.9 or a more recent version is required.")
-
-CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
-MICRO_DIR   = CURRENT_DIR / Path("micro")
-DATA_DIR    = CURRENT_DIR / Path("data")
-
-console = Console()
-
-@click.command()
-@click.option(
-    "--config-file",
-    "-c",
-    type=click.Path(exists=True),
-    default="experiment_config.toml",
-    show_default=True,
-    help="Path to config file.",
-)
-def main(
-    config_file,
-):
-    with open(config_file, "rb") as f:
+    parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
+    
+    args = parser.parse_args()
+    
+    with open(args.config_file, "rb") as f:
         config = tomli.load(f)
     
-    print("Launching controller...")
-    controller = Controller(
-        hostname=config["hosts"]["switch"],
-        repo=config["repo"]["switch"],
-        tofino_version=config["devices"]["switch"]["tofino_version"],
-        log_file=config["logs"]["controller"],
-    )
-
     print("Launching switch...")
-    switch = Switch(
+    Switch(
         hostname=config["hosts"]["switch"],
         repo=config["repo"]["switch"],
+        sde_install=config["devices"]["switch"]["sde_install"],
         tofino_version=config["devices"]["switch"]["tofino_version"],
         log_file=config["logs"]["switch"],
     )
 
+    print("Launching controller...")
+    Controller(
+        hostname=config["hosts"]["switch"],
+        repo=config["repo"]["switch"],
+        sde_install=config["devices"]["switch"]["sde_install"],
+        switch_pktgen_in_port=config["devices"]["switch"]["pktgen_inbound_port"],
+        switch_pktgen_out_port=config["devices"]["switch"]["pktgen_outbound_port"],
+        tofino_version=config["devices"]["switch"]["tofino_version"],
+        log_file=config["logs"]["controller"],
+    )
+
     print("Launching pktgen...")
-    pktgen = Pktgen(
+    Pktgen(
         hostname=config["hosts"]["pktgen"],
         repo=config["repo"]["pktgen"],
         rx_pcie_dev=config["devices"]["pktgen"]["rx_dev"],

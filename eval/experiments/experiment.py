@@ -1,0 +1,189 @@
+import time
+
+from rich.console import Group
+from rich.live import Live
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+
+from experiments.hosts.pktgen import Pktgen
+
+MAX_THROUGHPUT          = 100_000 # 100 Gbps
+ITERATION_DURATION_SEC  = 5       # Seconds
+THROUGHPUT_SEARCH_STEPS = 10
+MAX_ACCEPTABLE_LOSS     = 0.001   # 0.1%
+WARMUP_TIME_SEC         = 5       # 5 seconds
+WARMUP_RATE             = 1       # 1 Mbps
+REST_TIME_SEC           = 2       # 2 seconds
+EXPERIMENT_ITERATIONS   = 5
+
+class Experiment:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def run(self, step_progress: Progress, current_iter: int) -> None:
+        raise NotImplementedError
+
+    def run_many(self, progress: Progress, step_progress: Progress) -> None:
+        task_id = progress.add_task("", total=EXPERIMENT_ITERATIONS, name=self.name)
+        for iter in range(EXPERIMENT_ITERATIONS):
+            self.run(step_progress, iter)
+            progress.update(task_id, advance=1)
+
+        progress.update(task_id, description="[bold green] done!")
+    
+    def find_stable_throughput(
+        self,
+        pktgen: Pktgen,
+        churn: int,
+        pkt_size: int,
+    ) -> tuple[int,int]:
+        log_file = pktgen.host.log_file
+        
+        if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
+            raise ValueError("max_loss must be in [0, 1).")
+
+        rate_lower = 0
+        rate_upper = MAX_THROUGHPUT
+
+        real_throughput_bps_winner = 0
+        real_throughput_pps_winner = 0
+
+        current_rate = rate_upper
+
+        # Setting the churn value
+        pktgen.set_churn(churn)
+
+        # Setting warmup duration
+        pktgen.set_warmup_duration(WARMUP_TIME_SEC)
+
+        # We iteratively refine the bounds until the difference between them is
+        # less than the specified precision.
+        for i in range(THROUGHPUT_SEARCH_STEPS):
+            if log_file:
+                log_file.write(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps\n")
+
+            nb_tx_pkts = 0
+            nb_rx_pkts = 0
+
+            while nb_tx_pkts == 0:
+                pktgen.reset_stats()
+                pktgen.set_rate(current_rate)
+                
+                # Run pktgen with warmup
+                pktgen.run(ITERATION_DURATION_SEC)
+                pktgen.wait_ready()
+                
+                # Let the flows expire.
+                time.sleep(REST_TIME_SEC)
+
+                nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
+
+                if nb_tx_pkts == 0:
+                    log_file.write(f"No packets flowing, repeating run\n")
+
+            nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
+            nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8
+
+            real_throughput_tx_bps = int(nb_tx_bits / ITERATION_DURATION_SEC)
+            real_throughput_tx_pps = int(nb_tx_pkts / ITERATION_DURATION_SEC)
+
+            real_throughput_rx_bps = int(nb_rx_bits / ITERATION_DURATION_SEC)
+            real_throughput_rx_pps = int(nb_rx_pkts / ITERATION_DURATION_SEC)
+
+            loss = 1 - nb_rx_pkts / nb_tx_pkts
+
+            if log_file:
+                tx_Gbps = real_throughput_tx_bps / 1e9
+                tx_Mpps = real_throughput_tx_pps / 1e6
+
+                rx_Gbps = real_throughput_rx_bps / 1e9
+                rx_Mpps = real_throughput_rx_pps / 1e6
+
+                log_file.write("\n")
+                log_file.write(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps\n")
+                log_file.write(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps\n")
+                log_file.write(f"Lost {loss*100:.2f}% of packets\n")
+                log_file.flush()
+
+            if loss > MAX_ACCEPTABLE_LOSS:
+                rate_upper = current_rate
+            else:
+                if current_rate == rate_upper:
+                    return real_throughput_tx_bps, real_throughput_tx_pps
+
+                rate_lower = current_rate
+
+                real_throughput_bps_winner = real_throughput_tx_bps
+                real_throughput_pps_winner = real_throughput_tx_pps
+
+            current_rate = int((rate_upper + rate_lower) / 2)
+
+        # Found a rate.
+        return real_throughput_bps_winner, real_throughput_pps_winner
+
+class ExperimentTracker:
+    def __init__(self) -> None:
+        self.overall_progress = Progress(
+            TimeElapsedColumn(),
+            BarColumn(),
+            TimeRemainingColumn(),
+            TextColumn("{task.description}"),
+        )
+
+        self.experiment_iters_progress = Progress(
+            TextColumn("  "),
+            TextColumn(
+                "[bold blue]{task.fields[name]}: " "{task.percentage:.0f}%"
+            ),
+            BarColumn(),
+            TimeRemainingColumn(),
+            TextColumn("{task.description}"),
+        )
+
+        self.step_progress = Progress(
+            TextColumn("  "),
+            TimeElapsedColumn(),
+            TextColumn("[bold purple]"),
+            BarColumn(),
+            TimeRemainingColumn(),
+            TextColumn("{task.description}"),
+        )
+
+        self.progress_group = Group(
+            Group(self.step_progress, self.experiment_iters_progress),
+            self.overall_progress,
+        )
+
+        self.experiments: list[Experiment] = []
+
+    def add_experiment(self, experiment: Experiment) -> None:
+        self.experiments.append(experiment)
+    
+    def add_experiments(self, experiments: list[Experiment]) -> None:
+        self.experiments += experiments
+
+    def run_experiments(self):
+        with Live(self.progress_group):
+            nb_exps = len(self.experiments)
+            overall_task_id = self.overall_progress.add_task("", total=nb_exps)
+
+            for i, exp in enumerate(self.experiments):
+                description = (
+                    f"[bold #AAAAAA]({i} out of {nb_exps} experiments)"
+                )
+                self.overall_progress.update(
+                    overall_task_id, description=description
+                )
+                exp.run_many(
+                    self.experiment_iters_progress, self.step_progress
+                )
+                self.overall_progress.update(overall_task_id, advance=1)
+
+            self.overall_progress.update(
+                overall_task_id, description="[bold green] All done!"
+            )

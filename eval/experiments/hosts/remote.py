@@ -77,7 +77,9 @@ class RemoteHost(Host):
     def test_connection(self):
         # Test reachability
         host_addr = self.get_ssh_host_addr()
-        cmd = f"ping {host_addr} -c 1"
+        num_of_icmp_req = 1
+        timeout_sec = 5
+        cmd = f"ping {host_addr} -c {num_of_icmp_req} -W {timeout_sec}"
         cmd = self.run_command_locally(cmd)
         code = cmd.recv_exit_status()
 

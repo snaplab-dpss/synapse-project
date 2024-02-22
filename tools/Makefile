@@ -5,7 +5,11 @@
 #########################################################
 
 ifndef APP
-$(error "APP is not set. Set APP to the name of the program you want to compile (without extensions)")
+$(error "APP is not set. Set APP to the name of the program you want to compile (without extensions).")
+endif
+
+ifndef SDE_INSTALL
+$(error "SDE_INSTALL is not set.")
 endif
 
 CURRENT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -28,10 +32,10 @@ CONTROLLER_BUILD_DEBUG_FLAGS := -std=c++17 -O0 -g
 all: $(CONTROLLER_BIN) $(CONTROLLER_BIN_DEBUG)
 
 install-tofino1:
-	$(P4_BUILD) $(APP).p4
+	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) $(APP).p4
 
 install-tofino2:
-	$(P4_BUILD) --with-tofino2 $(APP).p4
+	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) --with-tofino2 $(APP).p4
 
 $(CONTROLLER_BIN): $(CONTROLLER)
 	mkdir -p $(RELEASE_DIR)

@@ -8,6 +8,7 @@ import socket
 import paramiko
 import os
 
+from pathlib import Path
 from typing import TextIO, Union, Optional, Callable
 
 from .command import Command
@@ -17,7 +18,7 @@ class RemoteCommand(Command):
         self,
         ssh_client: paramiko.SSHClient,
         command: str,
-        dir: Optional[str] = None,
+        dir: Optional[Union[str,Path]] = None,
         source_bashrc: bool = False,
         log_file: Optional[TextIO] = None,
         pty: bool = False,
@@ -37,7 +38,6 @@ class RemoteCommand(Command):
             session.get_pty()
 
         session.exec_command(self.command)
-
         self.cmd_ = session
 
     def send(self, data: Union[str, bytes]) -> None:
@@ -208,4 +208,5 @@ class RemoteCommand(Command):
             os.set_blocking(sys.stdin.fileno(), stdin_blocking)
 
     def __del__(self):
-        self.cmd_.close()
+        if hasattr(self, "cmd_"):
+            self.cmd_.close()
