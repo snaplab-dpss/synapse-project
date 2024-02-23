@@ -41,17 +41,15 @@ create_paths_file() {
 
 setup_env() {
   pushd "$SCRIPT_DIR"
-    if [ ! -d $PYTHON_ENV_DIR ]; then
-      python3 -m venv $PYTHON_ENV_DIR
-    fi
-
+    rm -rf $PYTHON_ENV_DIR
+    python3 -m venv $PYTHON_ENV_DIR
     add_expr_to_paths_file ". $PYTHON_ENV_DIR/bin/activate"
     . $PATHSFILE
     pip3 install -r requirements.txt
   popd
 
   echo
-    printf "Source ${GREEN}$PYTHON_ENV_DIR${NC} to enter the python virtual env."
+  printf "Source ${GREEN}$PYTHON_ENV_DIR${NC} to enter the python virtual env."
 }
 
 init_config() {

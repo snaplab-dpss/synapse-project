@@ -32,14 +32,19 @@ class Host(ABC):
     def run_command(self, *args, **kwargs) -> Command:
         pass
 
-    def log(self, msg):
+    def log(self, msg, host: Optional[str] = None):
         if self.log_file:
+            if host:
+                msg = f"[{host}] {msg}"
             print(msg, file=self.log_file)
         
-    def crash(self, msg):
+    def crash(self, msg, host: Optional[str] = None):
+        msg = f"ERROR: {msg}"
+        if host:
+            msg = f"[{host}] {msg}\n"
         if self.log_file:
-            print(f'ERROR: {msg}', file=self.log_file)
-        print(f'\nERROR: {msg}\n', file=sys.stderr)
+            print(msg, file=self.log_file)
+        print(msg, file=sys.stderr)
         exit(1)
 
     def remote_file_exists(

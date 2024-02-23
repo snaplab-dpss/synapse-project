@@ -39,6 +39,12 @@ class RemoteHost(Host):
     def remote_dir_exists(self, remote_path: Path) -> bool:
         return super().remote_dir_exists(self.host, remote_path)
 
+    def log(self, msg):
+        super().log(msg, self.host)
+        
+    def crash(self, msg):
+        super().crash(msg, self.host)
+
     def upload_file(
         self,
         local_path: Path,

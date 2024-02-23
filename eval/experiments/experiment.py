@@ -19,7 +19,9 @@ MAX_ACCEPTABLE_LOSS     = 0.001   # 0.1%
 WARMUP_TIME_SEC         = 5       # 5 seconds
 WARMUP_RATE             = 1       # 1 Mbps
 REST_TIME_SEC           = 2       # 2 seconds
-EXPERIMENT_ITERATIONS   = 5
+
+# FIXME: Change this
+EXPERIMENT_ITERATIONS   = 2
 
 class Experiment:
     def __init__(self, name: str) -> None:

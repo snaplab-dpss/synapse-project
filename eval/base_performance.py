@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+import sys
+
+if sys.version_info < (3, 9, 0):
+    raise RuntimeError("Python 3.9 or a more recent version is required.")
+
 import argparse
 import tomli
 import os
@@ -19,11 +24,12 @@ from experiments.experiment import Experiment, ExperimentTracker
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 
 DATA_DIR = CURRENT_DIR / "data"
-MICRO_DIR_REPO_RELATIVE = "eval/micro"
+APPS_DIR_REPO_RELATIVE = "eval/apps"
 
-# We should find these apps inside MICRO_DIR
+# We should find these apps inside APPS_DIR
 TARGET_APPS = [
     "forwarder",
+    "send_to_controller",
 ]
 
 console = Console()
@@ -39,12 +45,12 @@ def get_throughput_per_pkt_size_experiments(
     for app in TARGET_APPS:
         exp = ThroughputPerPacketSize(
             name=app,
-            save_name=data_dir / f"micro-thpt-per-pkt-sz-{app}.csv",
+            save_name=data_dir / f"thpt-per-pkt-sz-{app}.csv",
             switch=switch,
             controller=controller,
             pktgen=pktgen,
-            p4_src_in_repo=f"{MICRO_DIR_REPO_RELATIVE}/{app}/{app}.p4",
-            controller_src_in_repo=f"{MICRO_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
+            p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
+            controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
             timeout_ms=0,
             nb_flows=10_000,
             churn=0,

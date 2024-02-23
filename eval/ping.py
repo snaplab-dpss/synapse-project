@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
+import sys
+
+if sys.version_info < (3, 9, 0):
+    raise RuntimeError("Python 3.9 or a more recent version is required.")
+
 import argparse
 import tomli
-import os
 
 from pathlib import Path
 
 from experiments.hosts.pktgen import Pktgen
 from experiments.hosts.switch import Switch
 from experiments.hosts.controller import Controller
+
 
 def main():
     parser = argparse.ArgumentParser()
