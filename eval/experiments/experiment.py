@@ -66,6 +66,10 @@ class Experiment:
         # We iteratively refine the bounds until the difference between them is
         # less than the specified precision.
         for i in range(THROUGHPUT_SEARCH_STEPS):
+            # There's no point in continuing this search.
+            if rate_upper == 0:
+                break
+
             if log_file:
                 log_file.write(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps\n")
 
@@ -114,6 +118,11 @@ class Experiment:
 
             if loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
+
+                # Initial phase, let's quickly find the correct order of magnitude
+                if rate_lower == 0:
+                    current_rate = int(current_rate / 10)
+                    continue
             else:
                 if current_rate == rate_upper:
                     return real_throughput_tx_bps, real_throughput_tx_pps
