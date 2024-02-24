@@ -39,6 +39,7 @@ class ThroughputPerPacketSize(Experiment):
         crc_unique_flows: bool,
         crc_bits: int,
 
+        # Extra
         console: Console = Console()
     ) -> None:
         super().__init__(name)
@@ -143,3 +144,5 @@ class ThroughputPerPacketSize(Experiment):
 
             self.pktgen.close()
             self.controller.stop()
+        
+        step_progress.update(task_id, visible=False)

@@ -29,6 +29,7 @@ void catch_interrupt() {
   sigIntHandler.sa_flags = 0;
 
   sigaction(SIGINT, &sigIntHandler, NULL);
+  sigaction(SIGQUIT, &sigIntHandler, NULL);
 }
 
 void configure_ports() {

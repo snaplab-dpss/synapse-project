@@ -37,15 +37,16 @@ class Table {
   std::vector<table_field_t> key_fields;
   std::vector<table_field_t> data_fields;
 
+  bool time_aware;
+
  public:
   Table(const std::string &_control_name, const std::string &_table_name);
 
  protected:
   void init_key();
-  void init_key(const std::string &name, bf_rt_id_t *id);
-  void init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
+  void init_data();
 
-  void init_data(const std::string &name, bf_rt_id_t *id);
+  void init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
   void init_data(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
 
   void init_data_with_action(bf_rt_id_t action_id);

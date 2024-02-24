@@ -19,12 +19,12 @@ void packet_init(uint16_t size) {
 
 byte_t *packet_consume(byte_t *packet_base, uint16_t bytes) {
   assert(packet_consumed + bytes <= packet_size);
-  byte_t *header = packet_base;
+  byte_t *header = packet_base + packet_consumed;
   packet_consumed += bytes;
   return header;
 }
 
-void log(const cpu_hdr_t *cpu_hdr) {
+void packet_log(const cpu_hdr_t *cpu_hdr) {
   assert(cpu_hdr);
 
   LOG("###[ CPU ]###");
@@ -33,7 +33,7 @@ void log(const cpu_hdr_t *cpu_hdr) {
   LOG("out port   %u", SWAP_ENDIAN_16(cpu_hdr->out_port));
 }
 
-void log(const eth_hdr_t *eth_hdr) {
+void packet_log(const eth_hdr_t *eth_hdr) {
   assert(eth_hdr);
 
   LOG("###[ Ethernet ]###");
@@ -46,7 +46,7 @@ void log(const eth_hdr_t *eth_hdr) {
   LOG("type 0x%x", eth_hdr->eth_type);
 }
 
-void log(const ipv4_hdr_t *ipv4_hdr) {
+void packet_log(const ipv4_hdr_t *ipv4_hdr) {
   LOG("###[ IP ]###");
   LOG("version %u", (ipv4_hdr->version_ihl & 0xf0) >> 4);
   LOG("ihl     %u", (ipv4_hdr->version_ihl & 0x0f));
@@ -65,7 +65,7 @@ void log(const ipv4_hdr_t *ipv4_hdr) {
       (ipv4_hdr->dst_ip >> 24) & 0xff);
 }
 
-void log(const tcpudp_hdr_t *tcpudp_hdr) {
+void packet_log(const tcpudp_hdr_t *tcpudp_hdr) {
   LOG("###[ TCP/UDP ]###");
   LOG("sport   %u", SWAP_ENDIAN_16(tcpudp_hdr->src_port));
   LOG("dport   %u", SWAP_ENDIAN_16(tcpudp_hdr->dst_port));

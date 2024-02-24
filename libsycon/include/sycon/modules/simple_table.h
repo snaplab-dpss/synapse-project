@@ -9,11 +9,6 @@
 
 namespace sycon {
 
-class SimpleTable;
-struct cookie_t {
-  SimpleTable *table;
-};
-
 typedef uint64_t field_value_t;
 
 struct fields_values_t {
@@ -75,7 +70,6 @@ class SimpleTable : public Table {
 
   bf_rt_id_t populate_action_id;
 
-  cookie_t cookie;
   std::optional<time_ms_t> timeout;
   std::optional<bfrt::BfRtIdleTmoExpiryCb> callback;
 
@@ -92,12 +86,6 @@ class SimpleTable : public Table {
 
   void del(const bytes_t &key_bytes);
   void del(const bfrt::BfRtTableKey *_key);
-
-  static std::unique_ptr<SimpleTable> build(const std::string &_control_name,
-                                            const std::string &_table_name);
-  static std::unique_ptr<SimpleTable> build(
-      const std::string &_control_name, const std::string &_table_name,
-      time_ms_t _timeout, const bfrt::BfRtIdleTmoExpiryCb &_callback);
 
  private:
   void key_setup();
@@ -120,18 +108,8 @@ class SimpleTable : public Table {
 
   void clear();
 
- public:
   table_key_t key_to_fields_values(const bfrt::BfRtTableKey *key);
-
   table_data_t data_to_fields_values(const bfrt::BfRtTableData *data);
-
-  static fields_values_t bytes_to_fields_values(
-      const bytes_t &values, const std::vector<table_field_t> &fields);
-
-  // one to one relation
-  static fields_values_t bytes_to_fields_values(
-      const std::vector<bytes_t> &values,
-      const std::vector<table_field_t> &fields);
 };
 
 }  // namespace sycon

@@ -8,6 +8,56 @@
 
 namespace sycon {
 
+static fields_values_t bytes_to_fields_values(
+    const bytes_t &values, const std::vector<table_field_t> &fields) {
+  auto fields_values = fields_values_t(fields.size());
+  auto starting_byte = 0;
+
+  for (auto kf_i = 0u; kf_i < fields.size(); kf_i++) {
+    auto kf = fields[kf_i];
+    auto bytes = kf.size / 8;
+
+    assert(values.size >= starting_byte + bytes);
+
+    fields_values.values[kf_i] = 0;
+
+    for (auto i = 0u; i < bytes; i++) {
+      auto byte = values[starting_byte + i];
+
+      fields_values.values[kf_i] = (fields_values.values[kf_i] << 8) | byte;
+    }
+
+    starting_byte += bytes;
+  }
+
+  return fields_values;
+}
+
+// one to one relation
+static fields_values_t bytes_to_fields_values(
+    const std::vector<bytes_t> &values,
+    const std::vector<table_field_t> &fields) {
+  auto fields_values = fields_values_t(values.size());
+
+  assert(fields.size() >= values.size());
+
+  for (auto i = 0u; i < values.size(); i++) {
+    auto value = values[i];
+    auto field = fields[i];
+    auto bytes = field.size / 8;
+
+    assert(value.size == bytes);
+
+    fields_values.values[i] = 0;
+
+    for (auto j = 0u; j < bytes; j++) {
+      fields_values.values[i] = (fields_values.values[i] << 8) | value[j];
+    }
+  }
+
+  return fields_values;
+}
+
 static void log_entry_op(const Table *table, const table_key_t &key,
                          const table_data_t &data, const std::string &op) {
   assert(table);
@@ -168,24 +218,19 @@ SimpleTable::SimpleTable(const std::string &_control_name,
                          const std::string &_table_name, time_ms_t _timeout,
                          const bfrt::BfRtIdleTmoExpiryCb &_callback)
     : SimpleTable(_control_name, _table_name) {
-  cookie.table = this;
   timeout = _timeout;
   callback = _callback;
-
-  assert(*timeout >= TOFINO_MIN_EXPIRATION_TIME);
-
-  set_notify_mode(*timeout, &cookie, *callback, false);
   enable_expirations();
 }
 
 void SimpleTable::enable_expirations() {
   assert(timeout && callback);
-  set_notify_mode(*timeout, &cookie, *callback, true);
+  set_notify_mode(*timeout, (void *)this, *callback, true);
 }
 
 void SimpleTable::disable_expirations() {
   assert(timeout && callback);
-  set_notify_mode(*timeout, &cookie, *callback, false);
+  set_notify_mode(*timeout, (void *)this, *callback, false);
 }
 
 void SimpleTable::set(const bytes_t &key_bytes,
@@ -229,19 +274,6 @@ void SimpleTable::del(const bfrt::BfRtTableKey *_key) {
     del(key);
     added_entries.erase(key);
   }
-}
-
-std::unique_ptr<SimpleTable> SimpleTable::build(
-    const std::string &_control_name, const std::string &_table_name) {
-  return std::unique_ptr<SimpleTable>(
-      new SimpleTable(_control_name, _table_name));
-}
-
-std::unique_ptr<SimpleTable> SimpleTable::build(
-    const std::string &_control_name, const std::string &_table_name,
-    time_ms_t _timeout, const bfrt::BfRtIdleTmoExpiryCb &_callback) {
-  return std::unique_ptr<SimpleTable>(
-      new SimpleTable(_control_name, _table_name, _timeout, _callback));
 }
 
 void SimpleTable::key_setup() {
@@ -382,56 +414,6 @@ table_data_t SimpleTable::data_to_fields_values(
     auto field = data_fields[i];
     auto bf_status = data->getValue(field.id, &fields_values.values[i]);
     ASSERT_BF_STATUS(bf_status)
-  }
-
-  return fields_values;
-}
-
-fields_values_t SimpleTable::bytes_to_fields_values(
-    const bytes_t &values, const std::vector<table_field_t> &fields) {
-  auto fields_values = fields_values_t(fields.size());
-  auto starting_byte = 0;
-
-  for (auto kf_i = 0u; kf_i < fields.size(); kf_i++) {
-    auto kf = fields[kf_i];
-    auto bytes = kf.size / 8;
-
-    assert(values.size >= starting_byte + bytes);
-
-    fields_values.values[kf_i] = 0;
-
-    for (auto i = 0u; i < bytes; i++) {
-      auto byte = values[starting_byte + i];
-
-      fields_values.values[kf_i] = (fields_values.values[kf_i] << 8) | byte;
-    }
-
-    starting_byte += bytes;
-  }
-
-  return fields_values;
-}
-
-// one to one relation
-fields_values_t SimpleTable::bytes_to_fields_values(
-    const std::vector<bytes_t> &values,
-    const std::vector<table_field_t> &fields) {
-  auto fields_values = fields_values_t(values.size());
-
-  assert(fields.size() >= values.size());
-
-  for (auto i = 0u; i < values.size(); i++) {
-    auto value = values[i];
-    auto field = fields[i];
-    auto bytes = field.size / 8;
-
-    assert(value.size == bytes);
-
-    fields_values.values[i] = 0;
-
-    for (auto j = 0u; j < bytes; j++) {
-      fields_values.values[i] = (fields_values.values[i] << 8) | value[j];
-    }
   }
 
   return fields_values;

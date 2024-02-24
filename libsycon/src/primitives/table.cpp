@@ -3,7 +3,8 @@
 #include <sstream>
 
 #include "../../include/sycon/log.h"
-#include "config.h"
+#include "../config.h"
+#include "../constants.h"
 
 namespace sycon {
 
@@ -22,7 +23,8 @@ Table::Table(const std::string &_control, const std::string &_name)
       session(cfg.session),
       control(_control),
       name(_name),
-      table(nullptr) {
+      table(nullptr),
+      time_aware(false) {
   auto full_name = append_control(control, name);
   auto bf_status = info->bfrtTableFromNameGet(full_name, &table);
   ASSERT_BF_STATUS(bf_status)
@@ -62,27 +64,19 @@ void Table::init_key() {
   }
 }
 
-void Table::init_key(const std::string &name, bf_rt_id_t *id) {
-  auto bf_status = table->keyFieldIdGet(name, id);
-  ASSERT_BF_STATUS(bf_status)
-}
-
 void Table::init_key(
     const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
   for (const auto &field : fields) {
-    init_key(field.first, field.second);
+    auto bf_status = table->keyFieldIdGet(field.first, field.second);
+    ASSERT_BF_STATUS(bf_status)
   }
-}
-
-void Table::init_data(const std::string &name, bf_rt_id_t *id) {
-  auto bf_status = table->dataFieldIdGet(name, id);
-  ASSERT_BF_STATUS(bf_status)
 }
 
 void Table::init_data(
     const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
   for (const auto &field : fields) {
-    init_data(field.first, field.second);
+    auto bf_status = table->dataFieldIdGet(field.first, field.second);
+    ASSERT_BF_STATUS(bf_status)
   }
 }
 
@@ -138,22 +132,23 @@ void Table::init_actions(
   }
 }
 
-void Table::set_notify_mode(time_ms_t timeout_value, void *cookie,
+void Table::set_notify_mode(time_ms_t timeout, void *cookie,
                             const bfrt::BfRtIdleTmoExpiryCb &callback,
                             bool enable) {
   DEBUG("Set timeouts state for table %s: %d", name.c_str(), enable);
+
+  assert(timeout >= TOFINO_MIN_EXPIRATION_TIME);
 
   std::unique_ptr<bfrt::BfRtTableAttributes> attr;
 
   auto bf_status = table->attributeAllocate(
       bfrt::TableAttributesType::IDLE_TABLE_RUNTIME,
       bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
-
   ASSERT_BF_STATUS(bf_status)
 
-  uint32_t min_ttl = timeout_value;
-  uint32_t max_ttl = timeout_value;
-  uint32_t ttl_query_interval = timeout_value;
+  uint32_t min_ttl = timeout;
+  uint32_t max_ttl = timeout;
+  uint32_t ttl_query_interval = timeout;
 
   assert(ttl_query_interval <= min_ttl);
 
@@ -164,6 +159,9 @@ void Table::set_notify_mode(time_ms_t timeout_value, void *cookie,
   uint32_t flags = 0;
   bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
   ASSERT_BF_STATUS(bf_status)
+
+  // Even if they are inactive, the table is still time aware.
+  time_aware = true;
 }
 
 std::string Table::get_name() const { return name; }
@@ -211,8 +209,8 @@ void Table::dump_data_fields(std::ostream &os) const {
   }
 }
 
-void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
-                bfrt::BfRtTableKey *key, bfrt::BfRtTableData *data) {
+static void dump_key(std::ostream &os, const bfrt::BfRtTable *table,
+                     bfrt::BfRtTableKey *key) {
   std::vector<bf_rt_id_t> key_fields_ids;
 
   auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
@@ -351,14 +349,59 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
     }
     os << "\n";
   }
+}
 
+static void dump_value(std::ostream &os, const std::vector<uint64_t> &value) {
+  os << "[";
+  for (auto entry : value) {
+    os << " " << entry;
+  }
+  os << " ]";
+}
+
+static void dump_value(std::ostream &os, const std::vector<uint8_t> &value) {
+  for (auto v : value) {
+    os << " 0x";
+    os << std::setw(2) << std::setfill('0') << std::hex << (int)v;
+  }
+
+  uint64_t v = 0;
+  for (auto byte : value) {
+    v = (v << 8) | byte;
+  }
+  os << " (" << v << ")";
+}
+
+static void dump_value(std::ostream &os, const std::vector<bool> &value) {
+  os << "[";
+  for (auto entry : value) {
+    if (entry) {
+      os << " true";
+    } else {
+      os << " false";
+    }
+  }
+  os << " ]";
+}
+
+static void dump_value(std::ostream &os,
+                       const std::vector<std::string> &value) {
+  os << "[";
+  for (auto entry : value) {
+    os << " " << entry;
+  }
+  os << " ]";
+}
+
+static void dump_data(std::ostream &os, const bfrt::BfRtTable *table,
+                      bfrt::BfRtTableData *data, bool time_aware) {
   bf_rt_id_t action_id;
-  bool has_action;
   std::vector<bf_rt_id_t> data_fields_ids;
+  bf_status_t bf_status;
+  bool has_action = table->actionIdApplicable();
 
-  if (table->actionIdApplicable()) {
+  if (has_action) {
     data->actionIdGet(&action_id);
-    has_action = true;
 
     std::string action_name;
     bf_status = table->actionNameGet(action_id, &action_name);
@@ -369,8 +412,6 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
     bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
     ASSERT_BF_STATUS(bf_status);
   } else {
-    has_action = false;
-
     bf_status = table->dataFieldIdListGet(&data_fields_ids);
     ASSERT_BF_STATUS(bf_status);
   }
@@ -388,6 +429,14 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
 
     ASSERT_BF_STATUS(bf_status);
 
+    // Apparently, the ENTRY HIT STATE data is only available for tables
+    // configured with POLL MODE, not NOTIFY MODE.
+    if (data_field_name == DATA_FIELD_NAME_ENTRY_HIT_STATE && time_aware) {
+      continue;
+    }
+
+    os << "  (data)   " << data_field_name << " ";
+
     if (has_action) {
       bf_status = table->dataFieldDataTypeGet(data_field_id, action_id,
                                               &data_field_data_type);
@@ -397,8 +446,6 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
     }
 
     ASSERT_BF_STATUS(bf_status);
-
-    os << "  (data)   " << data_field_name << " = ";
 
     switch (data_field_data_type) {
       case bfrt::DataType::BOOL: {
@@ -429,25 +476,13 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
         std::vector<uint64_t> data_field_value;
         bf_status = data->getValue(data_field_id, &data_field_value);
         ASSERT_BF_STATUS(bf_status);
-        os << "[";
-        for (auto entry : data_field_value) {
-          os << " " << entry;
-        }
-        os << " ]";
+        dump_value(os, data_field_value);
       } break;
       case bfrt::DataType::BOOL_ARR: {
         std::vector<bool> data_field_value;
         bf_status = data->getValue(data_field_id, &data_field_value);
         ASSERT_BF_STATUS(bf_status);
-        os << "[";
-        for (auto entry : data_field_value) {
-          if (entry) {
-            os << " true";
-          } else {
-            os << " false";
-          }
-        }
-        os << " ]";
+        dump_value(os, data_field_value);
       } break;
       case bfrt::DataType::BYTE_STREAM: {
         size_t size;
@@ -461,21 +496,12 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
           ASSERT_BF_STATUS(bf_status);
         }
 
-        if (size % 8 == 0) {
-          size /= 8;
-        } else {
-          size = (size / 8) + 1;
-        }
-
+        size = (size % 8 == 0) ? (size / 8) : ((size / 8) + 1);
         value.resize(size);
 
         bf_status = data->getValue(data_field_id, size, value.data());
         ASSERT_BF_STATUS(bf_status);
-
-        for (auto v : value) {
-          os << " 0x";
-          os << std::setw(2) << std::setfill('0') << std::hex << (int)v;
-        }
+        dump_value(os, value);
       } break;
       case bfrt::DataType::CONTAINER: {
         ERROR("Container type handling not implemented for data types");
@@ -484,11 +510,7 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
         std::vector<std::string> data_field_value;
         bf_status = data->getValue(data_field_id, &data_field_value);
         ASSERT_BF_STATUS(bf_status);
-        os << "[";
-        for (auto entry : data_field_value) {
-          os << " " << entry;
-        }
-        os << " ]";
+        dump_value(os, data_field_value);
       } break;
       default: {
         ERROR("Not implemented");
@@ -496,7 +518,18 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
     }
     os << "\n";
   }
+}
 
+static void dump_entry(std::ostream &os, const bfrt::BfRtTable *table,
+                       bfrt::BfRtTableKey *key, bfrt::BfRtTableData *data,
+                       bool time_aware) {
+  std::vector<bf_rt_id_t> key_fields_ids;
+
+  auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  ASSERT_BF_STATUS(bf_status);
+
+  dump_key(os, table, key);
+  dump_data(os, table, data, time_aware);
   os << "\n";
 }
 
@@ -555,7 +588,7 @@ void Table::dump(std::ostream &os) const {
       ASSERT_BF_STATUS(bf_status);
       processed_entries++;
 
-      dump_entry(os, table, key.get(), data.get());
+      dump_entry(os, table, key.get(), data.get(), time_aware);
     } else {
       uint32_t to_request = total_entries - processed_entries;
       uint32_t num_returned;
@@ -570,7 +603,7 @@ void Table::dump(std::ostream &os) const {
       processed_entries += num_returned;
 
       for (auto i = 0u; i < num_returned; i++) {
-        dump_entry(os, table, kd.keys[i].get(), kd.datas[i].get());
+        dump_entry(os, table, kd.keys[i].get(), kd.datas[i].get(), time_aware);
       }
     }
   }

@@ -4,10 +4,8 @@
 using namespace sycon;
 
 bf_status_t table_with_timeout_expiration_callback(
-    const bf_rt_target_t &target, const bfrt::BfRtTableKey *key,
-    const void *cookie) {
-  const cookie_t *c = static_cast<const cookie_t *>(cookie);
-  auto table = c->table;
+    const bf_rt_target_t &target, const bfrt::BfRtTableKey *key, void *cookie) {
+  SimpleTable *table = static_cast<SimpleTable *>(cookie);
 
   begin_transaction();
   table->del(key);
@@ -24,9 +22,9 @@ state_t *state;
 
 void sycon::nf_init() {
   state = new state_t();
-  state->table_with_timeout =
-      SimpleTable::build("Ingress", "table_with_timeout", args.expiration_time,
-                         table_with_timeout_expiration_callback);
+  state->table_with_timeout = std::make_unique<SimpleTable>(
+      "Ingress", "table_with_timeout", args.expiration_time,
+      table_with_timeout_expiration_callback);
 }
 
 void sycon::nf_cleanup() {

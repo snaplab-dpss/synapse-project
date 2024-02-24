@@ -1,23 +1,52 @@
 #include <core.p4>
+
 #if __TARGET_TOFINO__ == 2
 #include <t2na.p4>
 #else
 #include <tna.p4>
 #endif
 
-typedef bit<9>  port_t;
+#if __TARGET_TOFINO__ == 2
+#define CPU_PCIE_PORT 0
+
+#define ETH_CPU_PORT_0 2
+#define ETH_CPU_PORT_1 3
+#define ETH_CPU_PORT_2 4
+#define ETH_CPU_PORT_3 5
+
+#define RECIRCULATION_PORT 6
 
 // hardware
-const port_t CPU_PCIE_PORT = 192;
+// #define IN_PORT 136
+// #define OUT_PORT 144
 
 // model
-// const port_t CPU_PCIE_PORT = 320;
+#define IN_PORT 8
+#define OUT_PORT 9
+#else
+// hardware
+// #define CPU_PCIE_PORT 192
+// #define IN_PORT 164
+// #define OUT_PORT 172
 
-const port_t IN_PORT = 0;
-const port_t OUT_PORT = 1;
+// model
+#define CPU_PCIE_PORT 320
+#define IN_PORT 0
+#define OUT_PORT 1
+#endif
 
-const port_t IN_DEV_PORT = 164;
-const port_t OUT_DEV_PORT = 172;
+typedef bit<9> port_t;
+typedef bit<7> port_pad_t;
+
+header cpu_h {
+	bit<16> code_path;
+    
+	@padding port_pad_t pad0;
+	port_t in_port;
+
+	@padding port_pad_t pad1;
+	port_t out_port;
+}
 
 header hdr0_h {
   bit<8> b0;
@@ -55,14 +84,6 @@ header hdr1_h {
 
 header hdr2_h {
 	bit<32> b0;
-}
-
-header cpu_h {
-	bit<16> code_path;
-	bit<7> pad0;
-	port_t in_port;
-	bit<7> pad1;
-	port_t out_port;
 }
 
 struct empty_header_t {}
@@ -161,8 +182,12 @@ parser IngressParser(
 	}
 }
 
-#define ONE_SECOND 15258 // 1 second in units of 2**16 nanoseconds
-#define EXPIRATION_TIME (5 * ONE_SECOND)
+#define MILLISEC 15 // 1 millisecond in units of 2**16 nanoseconds
+                    // Actually this is an approximation, as 1e6/2**16 ~ 15.2587890625
+
+// Pass the value of CACHE_TTL_MS during compilation. E.g.:
+// $ p4_build.sh cache.p4 -DCACHE_TTL_MS=1000
+#define CACHE_TTL (CACHE_TTL_MS * MILLISEC)
 
 // Pass the value of REGISTER_INDEX_WIDTH during compilation. E.g.:
 // $ p4_build.sh cache.p4 -DREGISTER_INDEX_WIDTH=12
@@ -189,6 +214,98 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
 {
+	pair32_t cache_key_0;
+	bit<32> cache_key_1;
+
+	bit<32> cache_value;
+	bit<32> now;
+
+	Hash<bit<REGISTER_INDEX_WIDTH>>(HashAlgorithm_t.CRC32) hash;
+
+	Register<cache_control_t, _>(REGISTER_CAPACITY, {0, 0}) controls;
+	Register<pair32_t, _>(REGISTER_CAPACITY) cache_keys_0;
+	Register<bit<32>, _>(REGISTER_CAPACITY) cache_keys_1;
+	Register<bit<32>, _>(REGISTER_CAPACITY) cache_values;
+
+	// ============================ CACHE CONTROL ================================
+
+	RegisterAction<cache_control_t, _, bool>(controls) cache_control_check_update = {
+		void apply(inout cache_control_t value, out bool reserved) {
+			reserved = false;
+
+			if (now < value.last_time || now > value.last_time + CACHE_TTL) {
+				value.last_time = now;
+				value.valid = 1;
+				reserved = true;
+			}
+		}
+	};
+
+	RegisterAction<cache_control_t, _, bool>(controls) cache_control_check = {
+		void apply(inout cache_control_t value, out bool valid) {
+			valid = false;
+
+			if (value.valid == 1) {
+				if (now > value.last_time + CACHE_TTL) {
+					value.valid = 0;
+				} else {
+					valid = true;
+				}
+			}
+		}
+	};
+
+	// ============================ CACHE KEY ================================
+
+	RegisterAction<pair32_t, _, bool>(cache_keys_0) cache_key_0_check = {
+		void apply(inout pair32_t value, out bool match) {
+			match = false;
+
+			if (value.first == cache_key_0.first && value.second == cache_key_0.second) {
+				match = true;
+			}
+		}
+	};
+
+	RegisterAction<bit<32>, _, bool>(cache_keys_1) cache_key_1_check = {
+		void apply(inout bit<32> value, out bool match) {
+			match = false;
+
+			if (value == cache_key_1) {
+				match = true;
+			}
+		}
+	};
+
+	RegisterAction<pair32_t, _, bool>(cache_keys_0) cache_key_0_update = {
+		void apply(inout pair32_t value) {
+			value.first = cache_key_0.first;
+			value.second = cache_key_0.second;
+		}
+	};
+
+	RegisterAction<bit<32>, _, bool>(cache_keys_1) cache_key_1_update = {
+		void apply(inout bit<32> value) {
+			value = cache_key_1;
+		}
+	};
+
+	// ============================ CACHE VALUE ================================
+
+	RegisterAction<bit<32>, _, bit<32>>(cache_values) cache_value_get = {
+		void apply(inout bit<32> value, out bit<32> out_value) {
+			out_value = value;
+		}
+	};
+
+	RegisterAction<bit<32>, _, bool>(cache_values) cache_value_update = {
+		void apply(inout bit<32> value) {
+			value = cache_value;
+		}
+	};
+
+	// ============================ END CACHE ================================
+
 	// ============================ TABLE ================================
 
 	action populate() {}
@@ -232,8 +349,39 @@ control Ingress(
 		} else {
 			if (table_with_timeout.apply().hit) {
 				fwd(OUT_DEV_PORT);
-			} else {
-				send_to_cpu(0);
+			} else {			
+				bit<REGISTER_INDEX_WIDTH> key_hash = hash.get({
+					hdr.hdr1.b12_b15,
+					hdr.hdr1.b16_b19,
+					hdr.hdr2.b0
+				});
+
+				cache_key_0 = { hdr.hdr1.b12_b15, hdr.hdr1.b16_b19 };
+				cache_key_1 = hdr.hdr2.b0;
+
+				now = ig_intr_md.ingress_mac_tstamp[47:16];
+
+				bool reserved = cache_control_check_update.execute(key_hash);
+
+				if (reserved) {
+					cache_key_0_update.execute(key_hash);
+					cache_key_1_update.execute(key_hash);
+
+					cache_value = now;
+					cache_value_update.execute(key_hash);
+
+					fwd(OUT_DEV_PORT);
+				} else {
+					bool key0_match = cache_key_0_check.execute(key_hash);
+					bool key1_match = cache_key_1_check.execute(key_hash);
+
+					if (key0_match && key1_match) {
+						bit<32> value = cache_value_get.execute(key_hash);
+						fwd(OUT_DEV_PORT);
+					} else {
+						send_to_cpu(0);
+					}
+				}
 			}
 		}
 		
