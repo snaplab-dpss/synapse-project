@@ -615,7 +615,7 @@ void Table::dump(std::ostream &os) const {
     }
   }
 
-  os << "  Entries: " << total_entries << "\n";
+  os << "  Entries: " << std::dec << total_entries << "\n";
 
   os << "================================================\n";
 }
