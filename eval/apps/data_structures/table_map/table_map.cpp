@@ -29,10 +29,7 @@ state_t *state;
 
 void sycon::nf_init() { state = new state_t(); }
 
-void sycon::nf_cleanup() {
-  state->table_with_timeout.dump();
-  delete state;
-}
+void sycon::nf_cleanup() { delete state; }
 
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
