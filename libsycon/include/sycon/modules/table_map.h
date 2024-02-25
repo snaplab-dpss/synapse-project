@@ -89,6 +89,7 @@ class TableMap : public Table {
 
   // Gets the cached version only.
   bool get(const key_t<K> &k, value_t<V> &v) const {
+    // FIXME: the cache may not be up to date, we should query the switch.
     if (entries.find(k) == entries.end()) {
       return false;
     }
@@ -103,18 +104,30 @@ class TableMap : public Table {
       return;
     }
 
-    driver_add(k, v);
-    entries[k] = v;
-  }
+    bool found = driver_contains(k);
 
-  void del(const key_t<K> &k) {
-    if (entries.find(k) == entries.end()) {
-      // Already deleted, avoid duplicate deletions.
+    if (found) {
+      // This entry is definitely on the switch, let's cache it.
+      entries[k] = v;
       return;
     }
 
-    driver_del(k);
-    entries.erase(k);
+    driver_add(k, v);
+  }
+
+  void del(const key_t<K> &k) {
+    if (entries.find(k) != entries.end()) {
+      // Avoid duplicate removals.
+      entries.erase(k);
+    }
+
+    bool found = driver_contains(k);
+
+    if (found) {
+      // The entry is still on the switch, the deletion request must have been
+      // lost.
+      driver_del(k);
+    }
   }
 
   // This is useful for the expiration callback.
@@ -150,6 +163,56 @@ class TableMap : public Table {
       bf_status = data->setValue(entry_ttl_data_id, static_cast<u64>(*timeout));
       ASSERT_BF_STATUS(bf_status)
     }
+  }
+
+  bool driver_contains(const key_t<K> &k) {
+    key_setup(k);
+
+    u64 flags = 0;
+    BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
+
+    bf_rt_handle_t entry_handle;
+    bf_status_t bf_status = table->tableEntryHandleGet(*session, dev_tgt, flags,
+                                                       *key, &entry_handle);
+
+    if (bf_status == BF_OBJECT_NOT_FOUND) {
+      return false;
+    }
+
+    ASSERT_BF_STATUS(bf_status)
+    return true;
+  }
+
+  bool driver_get(const key_t<K> &k, value_t<V> &v) {
+    key_setup(k);
+
+    u64 flags = 0;
+    BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
+
+    bf_rt_handle_t entry_handle;
+    bf_status_t bf_status = table->tableEntryHandleGet(*session, dev_tgt, flags,
+                                                       *key, &entry_handle);
+
+    if (bf_status == BF_OBJECT_NOT_FOUND) {
+      return false;
+    }
+
+    ASSERT_BF_STATUS(bf_status)
+
+    bfrt::BfRtTableKey key;
+    bfrt::BfRtTableData value;
+
+    bf_status = table->tableEntryGet(*session, dev_tgt, flags, entry_handle,
+                                     &key, &value);
+
+    if (bf_status == BF_OBJECT_NOT_FOUND) {
+      return false;
+    }
+
+    ASSERT_BF_STATUS(bf_status)
+
+    v = build_value(value);
+    return true;
   }
 
   void driver_add(const key_t<K> &k, const value_t<V> &v) {
@@ -220,6 +283,20 @@ class TableMap : public Table {
     }
 
     return k;
+  }
+
+  value_t<V> build_value(const bfrt::BfRtTableData *value) const {
+    value_t<V> v;
+
+    assert(V == data_fields.size());
+
+    for (size_t i = 0; i < data_fields.size(); i++) {
+      auto field = data_fields[i];
+      auto bf_status = value->getValue(field.id, &v.values[i]);
+      ASSERT_BF_STATUS(bf_status)
+    }
+
+    return v;
   }
 
   void log_entry_op(const std::string &op, const key_t<K> &k,
