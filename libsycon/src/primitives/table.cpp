@@ -578,7 +578,6 @@ void Table::dump(std::ostream &os) const {
 
   total_entries = get_usage();
 
-  os << "  Entries: " << total_entries << "\n";
   os << "\n";
 
   processed_entries = 0;
@@ -615,6 +614,8 @@ void Table::dump(std::ostream &os) const {
       }
     }
   }
+
+  os << "  Entries: " << total_entries << "\n";
 
   os << "================================================\n";
 }
