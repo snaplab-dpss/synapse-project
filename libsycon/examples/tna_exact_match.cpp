@@ -56,8 +56,8 @@ class IpRoute : public Table {
   }
 
  public:
-  void add_entry_nat(uint16_t vrf, uint32_t dst_addr, uint32_t data_src_addr,
-                     uint32_t data_dst_addr, uint16_t data_dst_port) {
+  void add_entry_nat(u16 vrf, u32 dst_addr, u32 data_src_addr,
+                     u32 data_dst_addr, u16 data_dst_port) {
     key_setup(vrf, dst_addr);
     data_setup_nat(data_src_addr, data_dst_addr, data_dst_port);
 
@@ -66,31 +66,30 @@ class IpRoute : public Table {
   }
 
  private:
-  void key_setup(uint16_t vrf, uint32_t dst_addr) {
+  void key_setup(u16 vrf, u32 dst_addr) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(key_fields.vrf, static_cast<uint64_t>(vrf));
+    auto bf_status = key->setValue(key_fields.vrf, static_cast<u64>(vrf));
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status =
-        key->setValue(key_fields.dst_addr, static_cast<uint64_t>(dst_addr));
+    bf_status = key->setValue(key_fields.dst_addr, static_cast<u64>(dst_addr));
     ASSERT_BF_STATUS(bf_status);
   }
 
-  void data_setup_nat(uint32_t src_addr, uint32_t dst_addr, uint16_t dst_port) {
+  void data_setup_nat(u32 src_addr, u32 dst_addr, u16 dst_port) {
     auto bf_status = table->dataReset(actions.nat, data.get());
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status = data->setValue(data_fields.nat_srcAddr,
-                               static_cast<uint64_t>(src_addr));
+    bf_status =
+        data->setValue(data_fields.nat_srcAddr, static_cast<u64>(src_addr));
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status = data->setValue(data_fields.nat_dstAddr,
-                               static_cast<uint64_t>(dst_addr));
+    bf_status =
+        data->setValue(data_fields.nat_dstAddr, static_cast<u64>(dst_addr));
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status = data->setValue(data_fields.nat_dst_port,
-                               static_cast<uint64_t>(dst_port));
+    bf_status =
+        data->setValue(data_fields.nat_dst_port, static_cast<u64>(dst_port));
     ASSERT_BF_STATUS(bf_status);
   }
 };
@@ -110,8 +109,6 @@ void sycon::nf_init() {
 
 void sycon::nf_cleanup() { delete state; }
 
-bool sycon::nf_process(time_ns_t now, byte_t* pkt, uint16_t size) {
-  return true;
-}
+bool sycon::nf_process(time_ns_t now, byte_t* pkt, u16 size) { return true; }
 
 int main(int argc, char** argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

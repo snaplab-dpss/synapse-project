@@ -30,8 +30,7 @@ class Port_HDL_Info : Table {
     ASSERT_BF_STATUS(bf_status)
   }
 
-  uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane,
-                        bool from_hw = false) {
+  u16 get_dev_port(u16 front_panel_port, u16 lane, bool from_hw = false) {
     auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
                           : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
@@ -40,22 +39,21 @@ class Port_HDL_Info : Table {
         table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
-    uint64_t value;
+    u64 value;
     bf_status = data->getValue(DEV_PORT, &value);
     ASSERT_BF_STATUS(bf_status)
 
-    return (uint16_t)value;
+    return (u16)value;
   }
 
  private:
-  void key_setup(uint16_t front_panel_port, uint16_t lane) {
+  void key_setup(u16 front_panel_port, u16 lane) {
     table->keyReset(key.get());
 
-    auto bf_status =
-        key->setValue(CONN_ID, static_cast<uint64_t>(front_panel_port));
+    auto bf_status = key->setValue(CONN_ID, static_cast<u64>(front_panel_port));
     ASSERT_BF_STATUS(bf_status)
 
-    bf_status = key->setValue(CHNL_ID, static_cast<uint64_t>(lane));
+    bf_status = key->setValue(CHNL_ID, static_cast<u64>(lane));
     ASSERT_BF_STATUS(bf_status)
   }
 };

@@ -3,9 +3,9 @@
 
 #include <cstdlib>
 
+#include "../include/sycon/constants.h"
 #include "../include/sycon/sycon.h"
 #include "config.h"
-#include "constants.h"
 #include "metatables/ports.h"
 
 extern "C" {
@@ -37,7 +37,7 @@ void configure_ports() {
   bf_dev_port_t eth_cpu_port = bf_eth_cpu_port_get(cfg.dev_tgt.dev_id);
 
   bf_port_speed_t pcie_cpu_port_speed;
-  uint32_t pcie_cpu_port_lane_number;
+  u32 pcie_cpu_port_lane_number;
   bf_status_t status =
       bf_port_info_get(cfg.dev_tgt.dev_id, pcie_cpu_port, &pcie_cpu_port_speed,
                        &pcie_cpu_port_lane_number);
@@ -66,12 +66,12 @@ void configure_ports() {
   Ports ports;
 
   DEBUG("Enabling port %u", args.in_port);
-  uint16_t in_dev_port = ports.get_dev_port(args.in_port, DEFAULT_PORT_LANE);
+  u16 in_dev_port = ports.get_dev_port(args.in_port, DEFAULT_PORT_LANE);
   ports.add_dev_port(in_dev_port, DEFAULT_PORT_SPEED,
                      DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
 
   DEBUG("Enabling port %u", args.out_port);
-  uint16_t out_dev_port = ports.get_dev_port(args.out_port, DEFAULT_PORT_LANE);
+  u16 out_dev_port = ports.get_dev_port(args.out_port, DEFAULT_PORT_LANE);
   ports.add_dev_port(out_dev_port, DEFAULT_PORT_SPEED,
                      DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
 

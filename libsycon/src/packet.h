@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../include/sycon/bytes.h"
-
 namespace sycon {
 
-void packet_init(uint16_t size);
+void packet_init(u16 size);
 
 }  // namespace sycon

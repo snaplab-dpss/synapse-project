@@ -21,6 +21,6 @@ void nf_init();
 void nf_cleanup();
 
 // Function triggered by the arrival of each packet
-bool nf_process(time_ns_t now, byte_t* pkt, uint16_t size);
+bool nf_process(time_ns_t now, byte_t* pkt, u16 size);
 
 }  // namespace sycon

@@ -12,12 +12,12 @@ class Register : public Table {
  protected:
   Register(const std::string &control_name, const std::string &register_name);
 
-  void set(uint32_t i, uint32_t value);
-  void overwrite_all_entries(uint32_t value);
+  void set(u32 i, u32 value);
+  void overwrite_all_entries(u32 value);
 
  private:
-  void key_setup(uint32_t i);
-  void data_setup(uint32_t value);
+  void key_setup(u32 i);
+  void data_setup(u32 value);
 };
 
 };  // namespace sycon

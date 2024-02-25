@@ -2,9 +2,10 @@
 
 #include <sstream>
 
+#include "../../include/sycon/constants.h"
 #include "../../include/sycon/log.h"
+#include "../../include/sycon/util.h"
 #include "../config.h"
-#include "../constants.h"
 
 namespace sycon {
 
@@ -78,6 +79,8 @@ void Table::init_data(
     auto bf_status = table->dataFieldIdGet(field.first, field.second);
     ASSERT_BF_STATUS(bf_status)
   }
+
+  table->dataFieldIdGet(DATA_FIELD_NAME_ENTRY_TTL, &entry_ttl_data_id);
 }
 
 void Table::init_data_with_action(bf_rt_id_t action_id) {
@@ -85,6 +88,8 @@ void Table::init_data_with_action(bf_rt_id_t action_id) {
 
   auto bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
   ASSERT_BF_STATUS(bf_status)
+
+  DEBUG("Data:");
 
   for (auto id : data_fields_ids) {
     std::string name;
@@ -96,12 +101,15 @@ void Table::init_data_with_action(bf_rt_id_t action_id) {
     bf_status = table->dataFieldSizeGet(id, action_id, &size);
     ASSERT_BF_STATUS(bf_status)
 
-    data_fields.push_back({name, id, size});
-  }
+    // Meta entries start with $ (e.g. $ENTRY_TTL).
+    // We don't store those entries on data_fields.
+    if (name[0] != '$') {
+      data_fields.push_back({name, id, size});
+    } else if (name == DATA_FIELD_NAME_ENTRY_TTL) {
+      entry_ttl_data_id = id;
+    }
 
-  DEBUG("Data:");
-  for (auto d : data_fields) {
-    DEBUG("  %s (%lu bits)", d.name.c_str(), d.size);
+    DEBUG("  %s (%lu bits)", name.c_str(), size);
   }
 }
 
@@ -146,9 +154,9 @@ void Table::set_notify_mode(time_ms_t timeout, void *cookie,
       bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
   ASSERT_BF_STATUS(bf_status)
 
-  uint32_t min_ttl = timeout;
-  uint32_t max_ttl = timeout;
-  uint32_t ttl_query_interval = timeout;
+  u32 min_ttl = timeout;
+  u32 max_ttl = timeout;
+  u32 ttl_query_interval = timeout;
 
   assert(ttl_query_interval <= min_ttl);
 
@@ -156,7 +164,7 @@ void Table::set_notify_mode(time_ms_t timeout, void *cookie,
                                            max_ttl, min_ttl, cookie);
   ASSERT_BF_STATUS(bf_status)
 
-  uint32_t flags = 0;
+  u32 flags = 0;
   bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
   ASSERT_BF_STATUS(bf_status)
 
@@ -174,7 +182,7 @@ size_t Table::get_size() const {
 }
 
 size_t Table::get_usage() const {
-  uint32_t usage;
+  u32 usage;
   auto bf_status = table->tableUsageGet(
       *session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW,
       &usage);
@@ -237,7 +245,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table,
         ERROR("Bool type handling not implemented for key field data types")
       } break;
       case bfrt::DataType::UINT64: {
-        uint64_t key_field_value;
+        u64 key_field_value;
 
         switch (key_field_type) {
           case bfrt::KeyFieldType::EXACT: {
@@ -246,7 +254,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table,
             os << key_field_value;
           } break;
           case bfrt::KeyFieldType::TERNARY: {
-            uint64_t key_field_mask;
+            u64 key_field_mask;
             bf_status = key->getValueandMask(key_field_id, &key_field_value,
                                              &key_field_mask);
             ASSERT_BF_STATUS(bf_status);
@@ -290,7 +298,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table,
       } break;
       case bfrt::DataType::BYTE_STREAM: {
         size_t size;
-        std::vector<uint8_t> value;
+        std::vector<u8> value;
 
         bf_status = table->keyFieldSizeGet(key_field_id, &size);
         ASSERT_BF_STATUS(bf_status);
@@ -313,7 +321,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table,
             }
           } break;
           case bfrt::KeyFieldType::TERNARY: {
-            std::vector<uint8_t> mask(size);
+            std::vector<u8> mask(size);
             bf_status = key->getValueandMask(key_field_id, size, value.data(),
                                              mask.data());
             ASSERT_BF_STATUS(bf_status)
@@ -351,7 +359,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table,
   }
 }
 
-static void dump_value(std::ostream &os, const std::vector<uint64_t> &value) {
+static void dump_value(std::ostream &os, const std::vector<u64> &value) {
   os << "[";
   for (auto entry : value) {
     os << " " << entry;
@@ -359,13 +367,13 @@ static void dump_value(std::ostream &os, const std::vector<uint64_t> &value) {
   os << " ]";
 }
 
-static void dump_value(std::ostream &os, const std::vector<uint8_t> &value) {
+static void dump_value(std::ostream &os, const std::vector<u8> &value) {
   for (auto v : value) {
     os << " 0x";
     os << std::setw(2) << std::setfill('0') << std::hex << (int)v;
   }
 
-  uint64_t v = 0;
+  u64 v = 0;
   for (auto byte : value) {
     v = (v << 8) | byte;
   }
@@ -455,7 +463,7 @@ static void dump_data(std::ostream &os, const bfrt::BfRtTable *table,
         os << data_field_value;
       } break;
       case bfrt::DataType::UINT64: {
-        uint64_t data_field_value;
+        u64 data_field_value;
         bf_status = data->getValue(data_field_id, &data_field_value);
         ASSERT_BF_STATUS(bf_status);
         os << data_field_value;
@@ -473,7 +481,7 @@ static void dump_data(std::ostream &os, const bfrt::BfRtTable *table,
         os << data_field_value;
       } break;
       case bfrt::DataType::INT_ARR: {
-        std::vector<uint64_t> data_field_value;
+        std::vector<u64> data_field_value;
         bf_status = data->getValue(data_field_id, &data_field_value);
         ASSERT_BF_STATUS(bf_status);
         dump_value(os, data_field_value);
@@ -486,7 +494,7 @@ static void dump_data(std::ostream &os, const bfrt::BfRtTable *table,
       } break;
       case bfrt::DataType::BYTE_STREAM: {
         size_t size;
-        std::vector<uint8_t> value;
+        std::vector<u8> value;
 
         if (has_action) {
           bf_status = table->dataFieldSizeGet(data_field_id, action_id, &size);
@@ -538,7 +546,7 @@ struct kd_t {
   std::vector<std::unique_ptr<bfrt::BfRtTableData>> datas;
   bfrt::BfRtTable::keyDataPairs pairs;
 
-  kd_t(const bfrt::BfRtTable *table, uint32_t n) : keys(n), datas(n), pairs(n) {
+  kd_t(const bfrt::BfRtTable *table, u32 n) : keys(n), datas(n), pairs(n) {
     for (auto i = 0u; i < n; i++) {
       auto bf_status = table->keyAllocate(&keys[i]);
       ASSERT_BF_STATUS(bf_status);
@@ -560,8 +568,8 @@ void Table::dump() const {
 
 void Table::dump(std::ostream &os) const {
   bf_status_t bf_status;
-  uint32_t total_entries;
-  uint32_t processed_entries;
+  u32 total_entries;
+  u32 processed_entries;
   auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
 
   os << "\n";
@@ -590,8 +598,8 @@ void Table::dump(std::ostream &os) const {
 
       dump_entry(os, table, key.get(), data.get(), time_aware);
     } else {
-      uint32_t to_request = total_entries - processed_entries;
-      uint32_t num_returned;
+      u32 to_request = total_entries - processed_entries;
+      u32 num_returned;
 
       kd_t kd(table, to_request);
 

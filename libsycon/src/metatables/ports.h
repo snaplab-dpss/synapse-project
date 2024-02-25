@@ -46,7 +46,7 @@ class Ports : Table {
     ASSERT_BF_STATUS(bf_status)
   }
 
-  void add_dev_port(uint16_t dev_port, bf_port_speed_t speed,
+  void add_dev_port(u16 dev_port, bf_port_speed_t speed,
                     bf_loopback_mode_e loopback_mode, bool wait_until_ready) {
     std::map<bf_port_speed_t, std::string> speed_opts{
         {BF_SPEED_NONE, "BF_SPEED_10G"},  {BF_SPEED_25G, "BF_SPEED_25G"},
@@ -93,13 +93,13 @@ class Ports : Table {
     }
   }
 
-  void add_port(uint16_t front_panel_port, uint16_t lane, bf_port_speed_t speed,
+  void add_port(u16 front_panel_port, u16 lane, bf_port_speed_t speed,
                 bool wait_until_ready) {
     auto dev_port = port_hdl_info.get_dev_port(front_panel_port, lane, false);
     add_dev_port(dev_port, speed, BF_LPBK_NONE, wait_until_ready);
   }
 
-  bool is_port_up(uint16_t dev_port, bool from_hw = false) {
+  bool is_port_up(u16 dev_port, bool from_hw = false) {
     auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
                           : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
@@ -116,18 +116,18 @@ class Ports : Table {
     return value;
   }
 
-  uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
+  u16 get_dev_port(u16 front_panel_port, u16 lane) {
     return port_hdl_info.get_dev_port(front_panel_port, lane, false);
   }
 
-  uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port); }
-  uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port); }
+  u64 get_port_rx(u16 port) { return port_stat.get_port_rx(port); }
+  u64 get_port_tx(u16 port) { return port_stat.get_port_tx(port); }
 
  private:
-  void key_setup(uint16_t dev_port) {
+  void key_setup(u16 dev_port) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(DEV_PORT, static_cast<uint64_t>(dev_port));
+    auto bf_status = key->setValue(DEV_PORT, static_cast<u64>(dev_port));
     ASSERT_BF_STATUS(bf_status)
   }
 

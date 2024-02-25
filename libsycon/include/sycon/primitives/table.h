@@ -9,7 +9,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "../bytes.h"
 #include "../time.h"
 
 namespace sycon {
@@ -37,6 +36,7 @@ class Table {
   std::vector<table_field_t> key_fields;
   std::vector<table_field_t> data_fields;
 
+  bf_rt_id_t entry_ttl_data_id;
   bool time_aware;
 
  public:

@@ -6,10 +6,9 @@
 #include <string>
 
 #include "../include/sycon/args.h"
+#include "../include/sycon/constants.h"
 #include "../include/sycon/log.h"
 #include "../include/sycon/util.h"
-#include "config.h"
-#include "constants.h"
 
 namespace sycon {
 

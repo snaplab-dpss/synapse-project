@@ -11,7 +11,7 @@ Register::Register(const std::string &control_name,
   init_data({{control_name + ".f1", &content}});
 }
 
-void Register::set(uint32_t i, uint32_t value) {
+void Register::set(u32 i, u32 value) {
   session->beginBatch();
 
   key_setup(i);
@@ -24,7 +24,7 @@ void Register::set(uint32_t i, uint32_t value) {
   session->endBatch(block);
 }
 
-void Register::overwrite_all_entries(uint32_t value) {
+void Register::overwrite_all_entries(u32 value) {
   auto size = get_size();
   session->beginBatch();
 
@@ -41,17 +41,17 @@ void Register::overwrite_all_entries(uint32_t value) {
   session->endBatch(block);
 }
 
-void Register::key_setup(uint32_t i) {
+void Register::key_setup(u32 i) {
   table->keyReset(key.get());
 
-  auto bf_status = key->setValue(index, static_cast<uint64_t>(i));
+  auto bf_status = key->setValue(index, static_cast<u64>(i));
   ASSERT_BF_STATUS(bf_status)
 }
 
-void Register::data_setup(uint32_t value) {
+void Register::data_setup(u32 value) {
   table->dataReset(data.get());
 
-  auto bf_status = data->setValue(content, static_cast<uint64_t>(value));
+  auto bf_status = data->setValue(content, static_cast<u64>(value));
   ASSERT_BF_STATUS(bf_status)
 }
 

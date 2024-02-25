@@ -245,7 +245,7 @@ class Port_Stat : Table {
     });
   }
 
-  uint64_t get_port_rx(uint16_t dev_port, bool from_hw = false) {
+  u64 get_port_rx(u16 dev_port, bool from_hw = false) {
     auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
                           : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
@@ -255,14 +255,14 @@ class Port_Stat : Table {
         table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
-    uint64_t value;
+    u64 value;
     bf_status = data->getValue(data_fields.FramesReceivedOK, &value);
     ASSERT_BF_STATUS(bf_status)
 
     return value;
   }
 
-  uint64_t get_port_tx(uint16_t dev_port, bool from_hw = false) {
+  u64 get_port_tx(u16 dev_port, bool from_hw = false) {
     auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
                           : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
@@ -272,7 +272,7 @@ class Port_Stat : Table {
         table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
-    uint64_t value;
+    u64 value;
     bf_status = data->getValue(data_fields.FramesTransmittedOK, &value);
     ASSERT_BF_STATUS(bf_status)
 
@@ -280,12 +280,12 @@ class Port_Stat : Table {
   }
 
  private:
-  void key_setup(uint16_t dev_port) {
+  void key_setup(u16 dev_port) {
     table->keyReset(key.get());
     assert(key);
 
     auto bf_status =
-        key->setValue(key_fields.dev_port, static_cast<uint64_t>(dev_port));
+        key->setValue(key_fields.dev_port, static_cast<u64>(dev_port));
     ASSERT_BF_STATUS(bf_status)
   }
 };

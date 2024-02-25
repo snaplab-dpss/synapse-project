@@ -3,6 +3,7 @@
 #include <string>
 
 #include "time.h"
+#include "util.h"
 
 namespace sycon {
 
@@ -11,8 +12,8 @@ struct args_t {
   bool run_ucli;
   int tna_version;
   time_ms_t expiration_time;
-  uint16_t in_port;
-  uint16_t out_port;
+  u16 in_port;
+  u16 out_port;
   bool model;
 
   // Wait until the input and output ports are ready.

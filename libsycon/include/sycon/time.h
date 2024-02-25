@@ -3,10 +3,12 @@
 #include <stdint.h>
 #include <time.h>
 
+#include "util.h"
+
 namespace sycon {
 
-typedef uint64_t time_ns_t;
-typedef uint64_t time_ms_t;
+typedef u64 time_ns_t;
+typedef u64 time_ms_t;
 
 time_ns_t get_time();
 

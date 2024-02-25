@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <string>
 
-#include "constants.h"
+#include "../include/sycon/constants.h"
 
 namespace sycon {
 

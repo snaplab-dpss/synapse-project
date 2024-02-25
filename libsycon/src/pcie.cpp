@@ -1,10 +1,10 @@
+#include "../include/sycon/constants.h"
 #include "../include/sycon/externs.h"
 #include "../include/sycon/log.h"
 #include "../include/sycon/packet.h"
 #include "../include/sycon/sycon.h"
 #include "../include/sycon/transactions.h"
 #include "config.h"
-#include "constants.h"
 #include "packet.h"
 
 extern "C" {
@@ -14,7 +14,7 @@ extern "C" {
 
 namespace sycon {
 
-static void pcie_tx(bf_dev_id_t device, uint8_t *pkt, uint32_t packet_size) {
+static void pcie_tx(bf_dev_id_t device, u8 *pkt, u32 packet_size) {
   bf_pkt *tx_pkt = nullptr;
 
   auto bf_status = bf_pkt_alloc(cfg.dev_tgt.dev_id, &tx_pkt, packet_size,
@@ -37,7 +37,7 @@ static void pcie_tx(bf_dev_id_t device, uint8_t *pkt, uint32_t packet_size) {
 }
 
 static bf_status_t txComplete(bf_dev_id_t device, bf_pkt_tx_ring_t tx_ring,
-                              uint64_t tx_cookie, uint32_t status) {
+                              u64 tx_cookie, u32 status) {
   // Now we can free the packet.
   bf_pkt_free(device, (bf_pkt *)((uintptr_t)tx_cookie));
   return BF_SUCCESS;
@@ -49,8 +49,8 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
   char in_packet[SWITCH_PACKET_MAX_BUFFER_SIZE];
   char *pkt_buf = nullptr;
   char *bufp = nullptr;
-  uint32_t packet_size = 0;
-  uint16_t pkt_len = 0;
+  u32 packet_size = 0;
+  u16 pkt_len = 0;
 
   // save a pointer to the packet
   orig_pkt = pkt;

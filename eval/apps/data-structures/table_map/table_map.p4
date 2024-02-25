@@ -183,7 +183,7 @@ control Ingress(
 		hdr.cpu.setValid();
 		hdr.cpu.code_path = 1234;
 		hdr.cpu.in_port = ig_intr_md.ingress_port;
-		fwd(CPU_PCIE_PORT);
+		forward(CPU_PCIE_PORT);
 	}
 
 	action populate(port_t port) {
@@ -199,18 +199,16 @@ control Ingress(
 		}
 
 		actions = {
-			fwd;
-			send_to_controller;
+			populate;
 		}
 
 		size = 65536;
 		idle_timeout = true;
-		default_action = send_to_controller;
 	}
 
 	apply {
 		if (hdr.cpu.isValid()) {
-			fwd(OUT_PORT);
+			forward(OUT_PORT);
 			hdr.cpu.setInvalid();
 		} else {
 			if (table_with_timeout.apply().hit) {

@@ -8,16 +8,16 @@
 
 namespace sycon {
 
-static uint32_t packet_consumed;
-static uint32_t packet_size;
+static u32 packet_consumed;
+static u32 packet_size;
 
-void packet_init(uint16_t size) {
+void packet_init(u16 size) {
   assert(size > 0);
   packet_consumed = 0;
   packet_size = size;
 }
 
-byte_t *packet_consume(byte_t *packet_base, uint16_t bytes) {
+byte_t *packet_consume(byte_t *packet_base, u16 bytes) {
   assert(packet_consumed + bytes <= packet_size);
   byte_t *header = packet_base + packet_consumed;
   packet_consumed += bytes;
@@ -72,12 +72,12 @@ void packet_log(const tcpudp_hdr_t *tcpudp_hdr) {
 }
 
 unsigned ether_addr_hash(mac_addr_t addr) {
-  uint8_t addr_bytes_0 = addr[0];
-  uint8_t addr_bytes_1 = addr[1];
-  uint8_t addr_bytes_2 = addr[2];
-  uint8_t addr_bytes_3 = addr[3];
-  uint8_t addr_bytes_4 = addr[4];
-  uint8_t addr_bytes_5 = addr[5];
+  u8 addr_bytes_0 = addr[0];
+  u8 addr_bytes_1 = addr[1];
+  u8 addr_bytes_2 = addr[2];
+  u8 addr_bytes_3 = addr[3];
+  u8 addr_bytes_4 = addr[4];
+  u8 addr_bytes_5 = addr[5];
 
   unsigned hash = 0;
   hash = __builtin_ia32_crc32si(hash, addr_bytes_0);
@@ -89,10 +89,10 @@ unsigned ether_addr_hash(mac_addr_t addr) {
   return hash;
 }
 
-uint32_t __raw_cksum(const void *buf, size_t len, uint32_t sum) {
+u32 __raw_cksum(const void *buf, size_t len, u32 sum) {
   /* workaround gcc strict-aliasing warning */
   uintptr_t ptr = (uintptr_t)buf;
-  typedef uint16_t __attribute__((__may_alias__)) u16_p;
+  typedef u16 __attribute__((__may_alias__)) u16_p;
   const u16_p *u16_buf = (const u16_p *)ptr;
 
   while (len >= (sizeof(*u16_buf) * 4)) {
@@ -111,37 +111,37 @@ uint32_t __raw_cksum(const void *buf, size_t len, uint32_t sum) {
 
   /* if length is in odd bytes */
   if (len == 1) {
-    uint16_t left = 0;
-    *(uint8_t *)&left = *(const uint8_t *)u16_buf;
+    u16 left = 0;
+    *(u8 *)&left = *(const u8 *)u16_buf;
     sum += left;
   }
 
   return sum;
 }
 
-uint16_t __raw_cksum_reduce(uint32_t sum) {
+u16 __raw_cksum_reduce(u32 sum) {
   sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
   sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
-  return (uint16_t)sum;
+  return (u16)sum;
 }
 
-uint16_t raw_cksum(const void *buf, size_t len) {
-  uint32_t sum;
+u16 raw_cksum(const void *buf, size_t len) {
+  u32 sum;
 
   sum = __raw_cksum(buf, len, 0);
   return __raw_cksum_reduce(sum);
 }
 
-uint16_t ipv4_cksum(const ipv4_hdr_t *ipv4_hdr) {
-  uint16_t cksum;
+u16 ipv4_cksum(const ipv4_hdr_t *ipv4_hdr) {
+  u16 cksum;
   cksum = raw_cksum(ipv4_hdr, sizeof(ipv4_hdr_t));
-  return (uint16_t)~cksum;
+  return (u16)~cksum;
 }
 
-uint16_t update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
-                                      const void *l4_hdr) {
-  uint32_t cksum;
-  uint32_t l3_len, l4_len;
+u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
+                                 const void *l4_hdr) {
+  u32 cksum;
+  u32 l3_len, l4_len;
 
   l3_len = __bswap_16(ipv4_hdr->tot_len);
   if (l3_len < sizeof(ipv4_hdr_t)) return 0;
@@ -160,15 +160,15 @@ uint16_t update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
    */
   if (cksum == 0 && ipv4_hdr->protocol == IPPROTO_UDP) cksum = 0xffff;
 
-  return (uint16_t)cksum;
+  return (u16)cksum;
 }
 
-void packet_hexdump(byte_t *pkt, uint16_t size) {
+void packet_hexdump(byte_t *pkt, u16 size) {
   std::stringstream ss;
 
   ss << "###[ Packet ]###\n";
 
-  for (uint16_t i = 0; i < size; i++) {
+  for (u16 i = 0; i < size; i++) {
     if (i % 16 == 0) {
       if (i > 0) {
         ss << "\n";
