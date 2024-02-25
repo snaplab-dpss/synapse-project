@@ -33,7 +33,7 @@ constexpr bool DEFAULT_WAIT_FOR_PORTS = true;
 constexpr u16 ALL_PIPES = 0xffff;
 constexpr int SWITCH_PACKET_MAX_BUFFER_SIZE = 10000;
 
-constexpr time_ms_t TOFINO_MIN_EXPIRATION_TIME = 10;
+constexpr time_ms_t TOFINO_MIN_EXPIRATION_TIME = 100;
 
 constexpr char DATA_FIELD_NAME_ENTRY_HIT_STATE[] = "$ENTRY_HIT_STATE";
 constexpr char DATA_FIELD_NAME_ENTRY_TTL[] = "$ENTRY_TTL";

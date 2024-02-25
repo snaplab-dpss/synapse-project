@@ -208,7 +208,7 @@ control Ingress(
 
 	apply {
 		if (hdr.cpu.isValid()) {
-			forward(OUT_PORT);
+			forward(hdr.cpu.out_port);
 			hdr.cpu.setInvalid();
 		} else {
 			if (table_with_timeout.apply().hit) {
