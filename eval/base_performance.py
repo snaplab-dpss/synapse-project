@@ -45,7 +45,7 @@ def get_experiments(
     for app in TARGET_APPS:
         exp = ThroughputPerPacketSize(
             name=app,
-            save_name=data_dir / f"thpt-per-pkt-sz-{app}.csv",
+            save_name=data_dir / f"thpt_per_pkt_sz_{app}.csv",
             switch=switch,
             controller=controller,
             pktgen=pktgen,

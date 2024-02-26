@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
+import argparse
 import math
 import sys
 import re
 import itertools
 import statistics
+import os
+import glob
 
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
@@ -12,13 +15,17 @@ from typing import Any, Callable, Optional, Union
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-import click
 import numpy as np
 
 from pubplot import Document
 
 if sys.version_info < (3, 9, 0):
     raise RuntimeError("Python 3.9 or a more recent version is required.")
+
+CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
+
+DATA_DIR = CURRENT_DIR / "data"
+PLOTS_DIR = CURRENT_DIR / "plots"
 
 SYSTEM_NAME = "SyNAPSE"
 
@@ -145,63 +152,61 @@ style = {
     """,
 }
 
-
 # Apply style globally.
 for k, v in style.items():
     mpl.rcParams[k] = v
 
-def get_data(data_dir: Path, pattern: str, keys: list[tuple[str, type]]) -> list[dict]:
-    data = []
+def get_unit_multiplier(value) -> tuple[float,str]:
+    order = math.log(value, 10)
 
-    for file in data_dir.iterdir():
-        match = re.search(pattern, file.stem)
+    if order <= -6:
+        return 1e-9, "n"
+    
+    if order <= -3:
+        return 1e-6, "u"
+    
+    if order <= 0:
+        return 1e-3, "m"
 
-        # Ignore files that do not match the pattern
-        if not match: continue
+    if order <= 3:
+        return 1, ""
+    
+    if order <= 6:
+        return 1e3, "K"
+    
+    if order <= 9:
+        return 1e6, "M"
+    
+    return 1e9, "G"
 
-        assert len(match.groups()) == len(keys) 
+def csv_parser(file: Path) -> tuple[list[str], list[list[Union[int, float]]]]:
+    assert file.exists()
 
-        file_data = {
-            "config": {},
-            "labels": [],
-            "values": [],
-        }
-
-        for i, key in enumerate(keys):
-            name, type = key
-            file_data["config"][name] = type(match.group(i+1))
+    with open(str(file), 'r') as f:
+        lines = f.readlines()
+        lines = [ l.rstrip().split(',') for l in lines ]
         
-        with open(str(file), 'r') as f:
-            lines = f.readlines()
-            lines = [ l.rstrip().split(',') for l in lines ]
-            
-            header = lines[0]
-            rows   = lines[1:]
+        header = lines[0]
+        rows   = lines[1:]
 
-            values = []
+        values = []
 
-            for row in rows:
-                cols = [ int(c) if '.' not in c else float(c) for c in row ]
-                values.append(cols)
-            
-            # Sort data by iteration (1st column)
-            values = sorted(values, key=lambda x: x[0])
-
-            file_data["labels"] = header
-            file_data["values"] = values
+        for row in rows:
+            cols = [ int(c) if '.' not in c else float(c) for c in row ]
+            values.append(cols)
         
-        data.append(file_data)
+        # Sort data by iteration (1st column)
+        values = sorted(values, key=lambda x: x[0])
 
-    return data
+        return header, values
 
 def aggregate_values(values: list[list[Union[int, float]]],
                      x_elem: int,
-                     y_elem: int) -> list[list[Union[int, float]]]:
+                     y_elem: int) -> list[tuple[float,float,float]]:
     new_values = []
 
-    # Let's calculate the errors.
-    # Group data by the first column (the iteration number)    
-    values_grouped = [ list(v[1]) for v in itertools.groupby(values, key=lambda x: x[0]) ]
+    values = sorted(values,  key=lambda x: x[x_elem])
+    values_grouped = [ list(v[1]) for v in itertools.groupby(values, key=lambda x: x[x_elem]) ]
 
     for vv in values_grouped:
         x_values = [ v[x_elem] for v in vv ]
@@ -218,7 +223,7 @@ def aggregate_values(values: list[list[Union[int, float]]],
             y = statistics.mean(y_values)
             yerr = statistics.stdev(y_values)
         
-        new_values.append([x, y, yerr])
+        new_values.append((x, y, yerr))
 
     return new_values
 
@@ -256,8 +261,15 @@ def bar_subplot(ax,
         }
         options.update(kwargs)
 
-        ax.bar(x + offset, d["values"], bar_width, yerr=d["errors"],
-               label=d["label"], **options)
+        ax.bar(
+            x + offset,
+            d["values"],
+            bar_width,
+            yerr=d["errors"],
+            label=d["label"] if "label" in d else None,
+            **options
+        )
+
         offset += bar_width
 
     if xlabel is not None:
@@ -310,7 +322,7 @@ def plot_subplot(ax,
             d["x"],
             d["y"],
             yerr=None if lines_only else d["yerr"],
-            label=d["label"],
+            label=d["label"] if "label" in d else None,
             **options
         )
 
@@ -322,114 +334,238 @@ def plot_subplot(ax,
     ax.tick_params(axis='both', length=0)
     ax.grid(visible=False, axis='x')
 
-def plot_micro_cached_tables_churn(data_dir: Path,
-                                   dest_dir: Path,
-                                   opts: dict[str, Any]) -> None:
+def plot_throughput_under_churn_pps(
+    data: list[list[Union[int, float]]],
+    out_name: str,
+    generate_png: bool,
+):
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
 
-    y_bps_elem = 2 # Throughput bps column
-    y_Gbps_label = "Throughput (Gbps)"
-    y_Gbps_scaler = 1e9
-    y_Gbps_fname_label = "gbps"
-    y_Gbps_max_value = 100
+    y_elem = 3 # Throughput pps column
+    y_units = "pps"
 
-    y_pps_elem = 3 # Throughput pps column
-    y_Mpps_label = "Throughput (Mpps)"
-    y_Mpps_scaler = 1e6
-    y_Mpps_fname_label = "mpps"
-    y_Mpps_max_value = 150
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
 
-    y_cfgs = [
-        (y_bps_elem, y_Gbps_scaler, y_Gbps_label, y_Gbps_fname_label, y_Gbps_max_value),
-        (y_pps_elem, y_Mpps_scaler, y_Mpps_label, y_Mpps_fname_label, y_Mpps_max_value),
-    ]
+    agg_values = aggregate_values(data, x_elem, y_elem)
 
-    data_fname_keys = [ ("cached", float), ("ttl_ms", int) ]
+    y_max = max([ v[1] for v in agg_values ])
+    y_scaler, prefix = get_unit_multiplier(y_max)
 
-    # Positive float pattern in regex: \d+\.\d+
-    data_fname_pattern = r"micro-cached-tables-(\d+\.?\d*)-cached-(\d+)ms-ttl-churn"
+    y_label = f"Throughput ({prefix}{y_units})"
 
-    files_data = get_data(data_dir, data_fname_pattern, data_fname_keys)
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] / y_scaler for v in agg_values ]
+    yerr = [ v[2] / y_scaler for v in agg_values ]
 
-    all_ttl_ms = set([ file_data["config"]["ttl_ms"] for file_data in files_data ])
-    grouped_by_ttl_ms = { ttl_ms: [ d for d in files_data if d["config"]["ttl_ms"] == ttl_ms ] for ttl_ms in all_ttl_ms }
+    d = [{
+        "x": x,
+        "y": y,
+        "yerr": yerr,
+    }]
 
-    for ttl_ms, files_data in grouped_by_ttl_ms.items():
-        files_data = sorted(files_data, key=lambda x: x["config"]["cached"])
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
 
-        for y_elem, y_scaler, y_label, y_fname_label, y_max_value in y_cfgs:
-            fig_name = f"cached_tables_{ttl_ms}ms_ttl_{y_fname_label}"
-            data = []
+    plot_subplot(ax, x_label, y_label, d, lines_only=False)
 
-            print(fig_name)
+    ax.set_xscale("symlog")
 
-            for file_data in files_data:
-                config = file_data["config"]
-                values = file_data["values"]
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
 
-                agg_values = aggregate_values(values, x_elem, y_elem)
+    plt.savefig(str(fig_file_pdf))
 
-                assert "cached" in config.keys()
-                cached = config["cached"]
+    if generate_png:
+        plt.savefig(str(fig_file_png))
 
-                x    = [ v[0] for v in agg_values ]
-                y    = [ v[1] / y_scaler for v in agg_values ]
-                yerr = [ v[2] / y_scaler for v in agg_values ]
+def plot_throughput_under_churn_bps(
+    data: list[list[Union[int, float]]],
+    out_name: str,
+    generate_png: bool,
+):
+    x_elem = 1 # churn column
+    x_label = "Churn (fpm)"
 
-                data.append({
-                    "label": f"{int(cached*100)}\%",
-                    "x": x,
-                    "y": y,
-                    "yerr": yerr,
-                })
+    y_elem = 2 # Throughput bps column
+    y_units = "bps"
 
-            set_figsize = (width / 2, height / 2)
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
 
-            fig, ax = plt.subplots()
+    agg_values = aggregate_values(data, x_elem, y_elem)
 
-            plot_subplot(ax, x_label, y_label, data, lines_only=False)
+    y_max = max([ v[1] for v in agg_values ])
+    y_scaler, prefix = get_unit_multiplier(y_max)
 
-            ax.legend(loc='lower left')
+    y_label = f"Throughput ({prefix}{y_units})"
 
-            ax.set_xscale("symlog")
-            ax.set_ylim(0, y_max_value)
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] / y_scaler for v in agg_values ]
+    yerr = [ v[2] / y_scaler for v in agg_values ]
 
-            fig.set_size_inches(*set_figsize)
-            fig.tight_layout(pad=0.1)
+    d = [{
+        "x": x,
+        "y": y,
+        "yerr": yerr,
+    }]
 
-            plt.savefig(dest_dir / f"{fig_name}.pdf")
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
 
-            if opts.get("save_png", False):
-                plt.savefig(dest_dir / f"{fig_name}.png")
+    plot_subplot(ax, x_label, y_label, d, lines_only=False)
 
-@click.command()
-@click.argument("data_dir")
-@click.argument("plot_dir")
-@click.option("--pick", help="Plot only the specified plot")
-@click.option("--png", is_flag=True, help="Also save plots as PNG")
-def main(data_dir, plot_dir, pick, png):
-    data_dir = Path(data_dir)
-    plot_dir = Path(plot_dir)
+    ax.set_xscale("symlog")
 
-    plot_dir.mkdir(parents=True, exist_ok=True)
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
 
-    opts = {"save_png": png}
+    plt.savefig(str(fig_file_pdf))
 
-    plots: list[Callable[[Path, Path, dict], None]] = []
-    if pick is None:
-        plots = [
-            plot_micro_cached_tables_churn,
-        ]
-    else:
-        function_name = f"plot_{pick}"
-        if function_name not in globals():
-            raise RuntimeError(f'Can\'t plot "{pick}"')
-        plots = [globals()[function_name]]
+    if generate_png:
+        plt.savefig(str(fig_file_png))
 
-    for plot in plots:
-        plot(data_dir, plot_dir, opts)
+def plot_thpt_per_pkt_sz_bps(
+    data: list[list[Union[int, float]]],
+    out_name: str,
+    generate_png: bool,
+):
+    x_elem = 1 # packet size column
+    x_label = "Packet size (bytes)"
 
+    y_elem = 2 # Throughput bps column
+    y_units = "bps"
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    y_max = max([ v[1] for v in agg_values ])
+    y_scaler, prefix = get_unit_multiplier(y_max)
+
+    y_label = f"Throughput ({prefix}{y_units})"
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] / y_scaler for v in agg_values ]
+    yerr = [ v[2] / y_scaler for v in agg_values ]
+
+    d = [{
+        "values": y,
+        "errors": yerr,
+    }]
+
+    xtick_labels = [ str(pkt_sz) for pkt_sz in x ]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+    bar_subplot(ax, x_label, y_label, d, xtick_labels=xtick_labels)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    plt.savefig(str(fig_file_pdf))
+
+    if generate_png:
+        plt.savefig(str(fig_file_png))
+
+def plot_thpt_per_pkt_sz_pps(
+    data: list[list[Union[int, float]]],
+    out_name: str,
+    generate_png: bool,
+):
+    x_elem = 1 # packet size column
+    x_label = "Packet size (bytes)"
+
+    y_elem = 3 # Throughput pps column
+    y_units = "pps"
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    y_max = max([ v[1] for v in agg_values ])
+    y_scaler, prefix = get_unit_multiplier(y_max)
+
+    y_label = f"Throughput ({prefix}{y_units})"
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] / y_scaler for v in agg_values ]
+    yerr = [ v[2] / y_scaler for v in agg_values ]
+
+    d = [{
+        "values": y,
+        "errors": yerr,
+    }]
+
+    xtick_labels = [ str(pkt_sz) for pkt_sz in x ]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+    bar_subplot(ax, x_label, y_label, d, xtick_labels=xtick_labels)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    plt.savefig(str(fig_file_pdf))
+
+    if generate_png:
+        plt.savefig(str(fig_file_png))
+
+csv_to_plotter = {
+    "thpt_per_pkt_sz_forwarder": [
+        ("switch_perf_bps", plot_thpt_per_pkt_sz_bps),
+        ("switch_perf_pps", plot_thpt_per_pkt_sz_pps),
+    ],
+    "thpt_per_pkt_sz_send_to_controller": [
+        ("switch_cpu_perf_bps", plot_thpt_per_pkt_sz_bps),
+        ("switch_cpu_perf_pps", plot_thpt_per_pkt_sz_pps),
+    ],
+    "churn_table_map": [
+        ("churn_table_map_bps", plot_throughput_under_churn_bps),
+        ("churn_table_map_pps", plot_throughput_under_churn_pps),
+    ],
+}
+
+def should_skip(name: str, png: bool):
+    fig_file_pdf = Path(PLOTS_DIR / f"{name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{name}.png")
+
+    should_plot = not fig_file_pdf.exists()
+    should_plot = should_plot or (png and not fig_file_png.exists())
+
+    return not should_plot
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-f", "--force", action="store_true", default=False,
+                        help="Regenerate data/plots, even if they already exist")
+    parser.add_argument("--png", action="store_true", default=False,
+                        help="Also save plots as PNGs")
+    
+    args = parser.parse_args()
+
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    csv_files = [ Path(f) for f in glob.glob(f"{DATA_DIR}/*.csv") ]
+    for csv_file in csv_files:
+        csv_name = csv_file.stem
+
+        if csv_name not in csv_to_plotter:
+            print(f"WARNING: {csv_name} has no plotter assigned. Skipping.")
+            continue
+        
+        for out_name, plotter in csv_to_plotter[csv_name]:
+            if not args.force and should_skip(out_name, args.png):
+                print(f"{csv_name} -> {out_name} (skipped)")
+                continue
+
+            print(f"{csv_name} -> {out_name}")
+            _, data = csv_parser(csv_file)
+            plotter(data, out_name, args.png)
 
 if __name__ == "__main__":
     main()

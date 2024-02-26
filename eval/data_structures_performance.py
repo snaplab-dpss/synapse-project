@@ -44,7 +44,7 @@ def get_experiments(
     for app in TARGET_APPS:
         exp = Churn(
             name=app,
-            save_name=data_dir / f"churn-{app}.csv",
+            save_name=data_dir / f"churn_{app}.csv",
             switch=switch,
             controller=controller,
             pktgen=pktgen,
