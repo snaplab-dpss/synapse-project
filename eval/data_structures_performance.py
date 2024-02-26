@@ -17,19 +17,18 @@ from experiments.hosts.pktgen import Pktgen
 from experiments.hosts.switch import Switch
 from experiments.hosts.controller import Controller
 
-from experiments.throughput_per_pkt_sz import ThroughputPerPacketSize
+from experiments.churn import Churn
 
 from experiments.experiment import Experiment, ExperimentTracker
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 
 DATA_DIR = CURRENT_DIR / "data"
-APPS_DIR_REPO_RELATIVE = "eval/apps"
+APPS_DIR_REPO_RELATIVE = "eval/apps/data_structures"
 
 # We should find these apps inside APPS_DIR
 TARGET_APPS = [
-    "forwarder",
-    "send_to_controller",
+    "table_map",
 ]
 
 console = Console()
@@ -43,17 +42,17 @@ def get_experiments(
     experiments = []
 
     for app in TARGET_APPS:
-        exp = ThroughputPerPacketSize(
+        exp = Churn(
             name=app,
-            save_name=data_dir / f"thpt-per-pkt-sz-{app}.csv",
+            save_name=data_dir / f"churn-{app}.csv",
             switch=switch,
             controller=controller,
             pktgen=pktgen,
             p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
             controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
-            timeout_ms=0,
+            timeout_ms=100,
             nb_flows=10_000,
-            churn=0,
+            pkt_size=64,
             crc_unique_flows=False,
             crc_bits=0,
             console=console,

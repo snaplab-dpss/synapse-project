@@ -4,19 +4,19 @@ from experiments.hosts.controller import Controller
 from experiments.hosts.switch import Switch
 from experiments.hosts.pktgen import Pktgen
 
-from experiments.experiment import Experiment
+from experiments.experiment import Experiment, EXPERIMENT_ITERATIONS
 
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import Progress
+from rich.progress import Progress, TaskID
 
 import math
 
-MID_PERF_CHURN  = 50_000 # 50 Gbps
-LOW_PERF_CHURN  = 1_000  # 1 Gbps
-NUM_CHURN_STEPS = 10
-STARTING_CHURN  = 1_000  # 1000 fpm
+MID_PERF_CHURN_MBPS  = 50_000 # 50 Gbps
+LOW_PERF_CHURN_MBPS  = 1_000  # 1 Gbps
+NUM_CHURN_STEPS      = 10
+STARTING_CHURN_FPM   = 100
 
 class Churn(Experiment):
     def __init__(
@@ -66,13 +66,16 @@ class Churn(Experiment):
         self.crc_bits = crc_bits
 
         self.console = console
-
+        
+        self.churns = []
         assert timeout_ms > 0
+
+        self._sync()
 
     def _sync(self):
         header = f"#iteration, churn (fpm), throughput (bps), throughput (pps)\n"
 
-        self.experiment_tracker = set()
+        self.experiment_tracker = { i: 0 for i in range(EXPERIMENT_ITERATIONS) }
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
 
         # If file exists, continue where we left off.
@@ -83,102 +86,101 @@ class Churn(Experiment):
                 for row in f.readlines():
                     cols = row.split(",")
                     i = int(cols[0])
-                    churn_fpm = int(cols[1])
-                    self.experiment_tracker.add((i,churn_fpm,))
+                    if i in self.experiment_tracker:
+                        self.experiment_tracker[i] += 1
+                    else:
+                        self.experiment_tracker[i] = 1
         else:
             with open(self.save_name, "w") as f:
                 f.write(header)
     
-    # Finds the churn at which performance drops to half, and the one
+    # Finds the churn at which performance starts dropping, and the one
     # that completely plummets it.
-    def _find_churn_anchors(self, max_churn: int):
-        churn = STARTING_CHURN
-        rate  = MID_PERF_CHURN
+    def _find_churn_anchors(self, max_churn: int, step_progress: Progress, task_id: TaskID):
+        lo_churn = STARTING_CHURN_FPM
+        hi_churn = max_churn
 
-        mid_churn  = None
-        high_churn = None
-
-        while True:
-            self.pktgen.host.log(f"Trying to find half perf churn: {churn:,} fpm")
+        churn = STARTING_CHURN_FPM
+        while churn != max_churn:
+            self.pktgen.host.log(f"Finding churn anchors: {churn:,} fpm")
 
             throughput_bps, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
+            throughput_mbps = throughput_bps / 1e6
 
-            # Throughput equals 0 if it wasn't stable.
-            if throughput_bps == 0:
-                if mid_churn is None:
-                    mid_churn = churn
-                    rate      = LOW_PERF_CHURN
-                else:
-                    high_churn = churn
-                    break
+            step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {throughput_mbps:.2f}Mbps")
 
-            churn = min(churn * 2, max_churn)
+            if throughput_mbps < MID_PERF_CHURN_MBPS and lo_churn == STARTING_CHURN_FPM:
+                lo_churn = churn
 
-            if churn == max_churn:
-                mid_churn  = churn
-                high_churn = churn
+            if throughput_mbps < LOW_PERF_CHURN_MBPS:
+                hi_churn = churn
                 break
-        
-        self.pktgen.host.log(f"Churn anchors: mid={mid_churn:,} fpm high={high_churn:,} fpm")
 
-        return mid_churn, high_churn
+            churn = min(churn * 10, max_churn)
+
+        self.pktgen.host.log(f"Churn anchors: lo={lo_churn:,} fpm hi={hi_churn:,} fpm")
+
+        return lo_churn, hi_churn
+    
+    def _get_churns(self, max_churn: int, step_progress: Progress, task_id: TaskID):
+        if len(self.churns) == NUM_CHURN_STEPS:
+            return self.churns
+        
+        step_progress.update(task_id, description=f"Finding churn anchors...")
+
+        mid_churn, high_churn = self._find_churn_anchors(max_churn, step_progress, task_id)
+        mid_steps = math.floor(NUM_CHURN_STEPS * 3/4)
+        high_steps = NUM_CHURN_STEPS - mid_steps
+        mid_churns_steps = int(mid_churn / mid_steps)
+        high_churns_steps = int((high_churn - mid_churn) / high_steps)
+        mid_churns = [ int(i * mid_churns_steps) for i in range(mid_steps) ]
+        high_churns = [ int(mid_churn + i * high_churns_steps) for i in range(1, high_steps + 1) ]
+
+        self.churns = mid_churns + high_churns
+
+        self.pktgen.host.log(f"Churns: {self.churns} fpm")
+
+        return self.churns
 
     def run(self, step_progress: Progress, current_iter: int) -> None:
         task_id = step_progress.add_task(self.name, total=NUM_CHURN_STEPS)
 
         # Check if we already have everything before running all the programs.
-        completed = True
-        for i in range(NUM_CHURN_STEPS):
-            exp_key = (current_iter,pkt_size,)
-            if exp_key not in self.experiment_tracker:
-                completed = False
-                break
-        if completed:
+        if self.experiment_tracker[current_iter] >= NUM_CHURN_STEPS:
             return
 
         self.switch.install(self.p4_src_in_repo)
-        
-        self.controller.launch(
-            self.controller_src_in_repo,
-            self.timeout_ms
-        )
-
-        self.pktgen.launch(
-            self.nb_flows,
-            self.pkt_size,
-            self.timeout_ms * 1000,
-            self.crc_unique_flows,
-            self.crc_bits
-        )
-
-        max_churn = self.pktgen.wait_launch()
-        self.controller.wait_ready()
 
         for i in range(NUM_CHURN_STEPS):
-            if self.experiment_tracker[i] > current_iter:
+            if self.experiment_tracker[current_iter] > i:
                 self.console.log(f"[orange1]Skipping: iteration {i+1}")
                 step_progress.update(task_id, advance=1)
                 continue
 
-            if len(self.churns) != NUM_CHURN_STEPS:
-                step_progress.update(task_id, description=f"Finding churn anchors...")
+            self.controller.launch(
+                self.controller_src_in_repo,
+                self.timeout_ms
+            )
 
-                mid_churn, high_churn = self._find_churn_anchors(max_churn)
-                mid_steps             = math.floor(NUM_CHURN_STEPS * 3/4)
-                high_steps            = NUM_CHURN_STEPS - mid_steps
-                mid_churns_steps      = int(mid_churn / mid_steps)
-                high_churns_steps     = int((high_churn - mid_churn) / high_steps)
-                mid_churns            = [ int(i * mid_churns_steps) for i in range(mid_steps) ]
-                high_churns           = [ int(mid_churn + i * high_churns_steps) for i in range(1, high_steps + 1) ]
-                self.churns           = mid_churns + high_churns
+            self.pktgen.launch(
+                self.nb_flows,
+                self.pkt_size,
+                self.timeout_ms * 1000,
+                self.crc_unique_flows,
+                self.crc_bits
+            )
 
-            churn = self.churns[i]
+            max_churn = self.pktgen.wait_launch()
+            self.controller.wait_ready()
+
+            churns = self._get_churns(max_churn, step_progress, task_id)
+            churn = churns[i]
 
             self.pktgen.host.log(f"Trying churn {churn:,}\n")
 
             step_progress.update(
                 task_id,
-                description=f"[{i+1:2d}/{len(self.churns):2d}] {churn:,} fpm"
+                description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm"
             )
 
             throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
@@ -188,7 +190,8 @@ class Churn(Experiment):
 
             step_progress.update(task_id, advance=1)
 
+            self.pktgen.close()
+            self.controller.stop()
+
         step_progress.update(task_id, visible=False)
 
-        self.pktgen.close()
-        self.controller.stop()
