@@ -94,7 +94,7 @@ palette = [
                 # we also use patterns, it should be fine.
 ]
 
-hatch_list = ['////////', '-----', '+++++++', '|||||||']
+hatch_list = ['////////', '\\\\\\\\\\\\\\\\', 'xxxxxx', '-----', '|||||||']
 
 markers_list = ['.', 'x', 'o', 'v', 's', '*']
 
@@ -380,6 +380,7 @@ def plot_throughput_under_churn_pps(
         d,
         lines_only=False,
         set_palette=[palette[color_group]],
+        set_markers_list=[markers_list[color_group]],
     )
 
     ax.set_xscale("symlog")
@@ -434,6 +435,7 @@ def plot_throughput_under_churn_bps(
         d,
         lines_only=False,
         set_palette=[palette[color_group]],
+        set_markers_list=[markers_list[color_group]],
     )
 
     ax.set_xscale("symlog")
@@ -489,6 +491,7 @@ def plot_thpt_per_pkt_sz_bps(
         d,
         xtick_labels=xtick_labels,
         set_palette=[palette[color_group]],
+        set_hatch_list=[hatch_list[color_group]],
     )
 
     fig.set_size_inches(*set_figsize)
@@ -542,6 +545,7 @@ def plot_thpt_per_pkt_sz_pps(
         d,
         xtick_labels=xtick_labels,
         set_palette=[palette[color_group]],
+        set_hatch_list=[hatch_list[color_group]],
     )
 
     fig.set_size_inches(*set_figsize)
