@@ -45,6 +45,10 @@ HEURISTICS = {
     "min_cpu": "Min. CPU",
 }
 
+COLOR_GROUP_SWITCH_ASIC = 0
+COLOR_GROUP_SWITCH_CPU = 1
+COLOR_GROUP_CPU = 2
+
 acm_acmsmall = {
     'documentclass': 'acmart',
     'document_options': 'acmsmall'
@@ -77,9 +81,6 @@ capthick = 0.5
 # Check others here: https://r-charts.com/color-palettes/#discrete
 palette = [
     '#19B2FF',
-    '#2ca02c',  # "#32FF00",  # I hate this green, so I changed it... It may
-                # not be as color-blind friendly as it was originally but since
-                # we also use patterns, it should be fine.
     '#FF7F00',
     '#654CFF',
     '#E51932',
@@ -87,7 +88,10 @@ palette = [
     '#FFFF99',
     '#B2FF8C',
     '#A5EDFF',
-    '#CCBFFF'
+    '#CCBFFF',
+    '#2ca02c',  # "#32FF00",  # I hate this green, so I changed it... It may
+                # not be as color-blind friendly as it was originally but since
+                # we also use patterns, it should be fine.
 ]
 
 hatch_list = ['////////', '-----', '+++++++', '|||||||']
@@ -338,6 +342,7 @@ def plot_throughput_under_churn_pps(
     data: list[list[Union[int, float]]],
     out_name: str,
     generate_png: bool,
+    color_group: int,
 ):
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
@@ -368,7 +373,14 @@ def plot_throughput_under_churn_pps(
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
 
-    plot_subplot(ax, x_label, y_label, d, lines_only=False)
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines_only=False,
+        set_palette=[palette[color_group]],
+    )
 
     ax.set_xscale("symlog")
 
@@ -384,6 +396,7 @@ def plot_throughput_under_churn_bps(
     data: list[list[Union[int, float]]],
     out_name: str,
     generate_png: bool,
+    color_group: int,
 ):
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
@@ -414,7 +427,14 @@ def plot_throughput_under_churn_bps(
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
 
-    plot_subplot(ax, x_label, y_label, d, lines_only=False)
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines_only=False,
+        set_palette=[palette[color_group]],
+    )
 
     ax.set_xscale("symlog")
 
@@ -430,6 +450,7 @@ def plot_thpt_per_pkt_sz_bps(
     data: list[list[Union[int, float]]],
     out_name: str,
     generate_png: bool,
+    color_group: int,
 ):
     x_elem = 1 # packet size column
     x_label = "Packet size (bytes)"
@@ -460,7 +481,15 @@ def plot_thpt_per_pkt_sz_bps(
 
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
-    bar_subplot(ax, x_label, y_label, d, xtick_labels=xtick_labels)
+
+    bar_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        xtick_labels=xtick_labels,
+        set_palette=[palette[color_group]],
+    )
 
     fig.set_size_inches(*set_figsize)
     fig.tight_layout(pad=0.1)
@@ -474,6 +503,7 @@ def plot_thpt_per_pkt_sz_pps(
     data: list[list[Union[int, float]]],
     out_name: str,
     generate_png: bool,
+    color_group: int,
 ):
     x_elem = 1 # packet size column
     x_label = "Packet size (bytes)"
@@ -504,7 +534,15 @@ def plot_thpt_per_pkt_sz_pps(
 
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
-    bar_subplot(ax, x_label, y_label, d, xtick_labels=xtick_labels)
+    
+    bar_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        xtick_labels=xtick_labels,
+        set_palette=[palette[color_group]],
+    )
 
     fig.set_size_inches(*set_figsize)
     fig.tight_layout(pad=0.1)
@@ -516,16 +554,16 @@ def plot_thpt_per_pkt_sz_pps(
 
 csv_to_plotter = {
     "thpt_per_pkt_sz_forwarder": [
-        ("switch_perf_bps", plot_thpt_per_pkt_sz_bps),
-        ("switch_perf_pps", plot_thpt_per_pkt_sz_pps),
+        (plot_thpt_per_pkt_sz_bps, "switch_perf_bps", COLOR_GROUP_SWITCH_ASIC),
+        (plot_thpt_per_pkt_sz_pps, "switch_perf_pps", COLOR_GROUP_SWITCH_ASIC),
     ],
     "thpt_per_pkt_sz_send_to_controller": [
-        ("switch_cpu_perf_bps", plot_thpt_per_pkt_sz_bps),
-        ("switch_cpu_perf_pps", plot_thpt_per_pkt_sz_pps),
+        (plot_thpt_per_pkt_sz_bps, "switch_cpu_perf_bps", COLOR_GROUP_SWITCH_CPU),
+        (plot_thpt_per_pkt_sz_pps, "switch_cpu_perf_pps", COLOR_GROUP_SWITCH_CPU),
     ],
     "churn_table_map": [
-        ("churn_table_map_bps", plot_throughput_under_churn_bps),
-        ("churn_table_map_pps", plot_throughput_under_churn_pps),
+        (plot_throughput_under_churn_bps, "churn_table_map_bps", COLOR_GROUP_SWITCH_ASIC),
+        (plot_throughput_under_churn_pps, "churn_table_map_pps", COLOR_GROUP_SWITCH_ASIC),
     ],
 }
 
@@ -558,14 +596,14 @@ def main():
             print(f"WARNING: {csv_name} has no plotter assigned. Skipping.")
             continue
         
-        for out_name, plotter in csv_to_plotter[csv_name]:
+        for plotter, out_name, color_group in csv_to_plotter[csv_name]:
             if not args.force and should_skip(out_name, args.png):
                 print(f"{csv_name} -> {out_name} (skipped)")
                 continue
 
             print(f"{csv_name} -> {out_name}")
             _, data = csv_parser(csv_file)
-            plotter(data, out_name, args.png)
+            plotter(data, out_name, args.png, color_group)
 
 if __name__ == "__main__":
     main()
