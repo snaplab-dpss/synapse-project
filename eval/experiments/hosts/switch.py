@@ -27,7 +27,11 @@ class Switch:
         if not self.host.remote_dir_exists(self.sde):
             self.host.crash(f"SDE directory not found on remote host {self.sde}")
 
-    def install(self, src_in_repo: str) -> None:
+    def install(
+        self,
+        src_in_repo: str,
+        compile_time_vars: list[tuple[str,str]] = [],
+    ) -> None:
         src_path = self.repo / src_in_repo
         
         if not self.host.remote_file_exists(src_path):
@@ -36,6 +40,8 @@ class Switch:
         program_name = src_path.stem
         makefile = self.repo / "tools" / "Makefile"
 
+        compilation_vars = " ".join([ f"-D{key}={value}" for key, value in compile_time_vars ])
+        
         if self.tofino_version == 1:
             make_target = "install-tofino1"
         elif self.tofino_version == 2:
@@ -43,7 +49,13 @@ class Switch:
         else:
             self.host.crash(f"We are only compatible with Tofino 1 and 2.")
 
-        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install APP={program_name}"
+        env_vars = " ".join([
+            f"SDE={self.sde}",
+            f"SDE_INSTALL={self.sde}/install",
+            f"APP={program_name}",
+            f"P4_COMPILATION_VARS=\"{compilation_vars}\"",
+        ])
+
         compilation_cmd = f"{env_vars} make -f {makefile} {make_target}"
         cmd = self.host.run_command(compilation_cmd, dir=src_path.parent)
         cmd.watch()

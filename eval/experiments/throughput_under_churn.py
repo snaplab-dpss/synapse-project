@@ -18,7 +18,7 @@ LOW_PERF_CHURN_MBPS  = 1_000  # 1 Gbps
 NUM_CHURN_STEPS      = 10
 STARTING_CHURN_FPM   = 100
 
-class Churn(Experiment):
+class ThroughputUnderChurn(Experiment):
     def __init__(
         self,
         
@@ -45,6 +45,7 @@ class Churn(Experiment):
         crc_bits: int,
         
         # Extra
+        p4_compile_time_vars: list[tuple[str,str]] = [],
         console: Console = Console()
     ) -> None:
         super().__init__(name)
@@ -65,6 +66,7 @@ class Churn(Experiment):
         self.crc_unique_flows = crc_unique_flows
         self.crc_bits = crc_bits
 
+        self.p4_compile_time_vars = p4_compile_time_vars
         self.console = console
         
         self.churns = []
@@ -149,11 +151,14 @@ class Churn(Experiment):
         if self.experiment_tracker[current_iter] >= NUM_CHURN_STEPS:
             return
 
-        self.switch.install(self.p4_src_in_repo)
+        self.switch.install(
+            self.p4_src_in_repo,
+            self.p4_compile_time_vars,
+        )
 
         for i in range(NUM_CHURN_STEPS):
             if self.experiment_tracker[current_iter] > i:
-                self.console.log(f"[orange1]Skipping: iteration {i+1}")
+                self.console.log(f"[orange1]Skipping: iteration {i}")
                 step_progress.update(task_id, advance=1)
                 continue
 
@@ -186,7 +191,7 @@ class Churn(Experiment):
             throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
 
             with open(self.save_name, "a") as f:
-                f.write(f"{i},{churn},{throughput_bps},{throughput_pps}\n")
+                f.write(f"{current_iter},{churn},{throughput_bps},{throughput_pps}\n")
 
             step_progress.update(task_id, advance=1)
 

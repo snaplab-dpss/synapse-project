@@ -6,8 +6,9 @@ using namespace sycon;
 using Forwarder = KeylessTableMap<1>;
 using Map = TableMap<4, 1>;
 
-bf_status_t table_with_timeout_expiration_callback(
-    const bf_rt_target_t &target, const bfrt::BfRtTableKey *key, void *cookie) {
+bf_status_t map_expiration_callback(const bf_rt_target_t &target,
+                                    const bfrt::BfRtTableKey *key,
+                                    void *cookie) {
   Map *map = static_cast<Map *>(cookie);
 
   begin_transaction();
@@ -23,7 +24,7 @@ struct state_t {
 
   state_t()
       : forwarder("Ingress", "forwarder", value_t<1>({nf_config.out_dev_port})),
-        map("Ingress", "map") {}
+        map("Ingress", "map", args.expiration_time, map_expiration_callback) {}
 };
 
 state_t *state;

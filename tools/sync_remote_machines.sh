@@ -12,7 +12,7 @@ sync() {
     echo "*********************************************"
     echo "Synchronizing host $host"
     echo "*********************************************"
-    ssh $host "cd $path_to_repo; git reset HEAD --hard; git pull origin main"
+    ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main"
 }
 
 sync_cfg() {
@@ -31,6 +31,18 @@ sync_cfg() {
     scp $CFG_FILE $host:$path_to_repo/eval/
 }
 
+install_libsycon() {
+    host=$1
+    path_to_repo=$2
+
+    echo "*********************************************"
+    echo "Installing libsycon (target: $host)"
+    echo "*********************************************"
+
+    ssh $host "cd $path_to_repo/libsycon && ./install.sh"
+}
+
 sync tofino2-b2 /home/user/synapse
 sync graveler /home/fcp/synapse
 sync_cfg graveler /home/fcp/synapse
+install_libsycon tofino2-b2 /home/user/synapse
