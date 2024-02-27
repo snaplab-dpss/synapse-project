@@ -14,12 +14,14 @@ from typing import Optional
 CPU_IFACE = "veth250"
 
 port_to_iface = {}
-port_sending_packet: Optional[str] = None
+port_sending_packet: Optional[int] = None
+
+packets = {}
 
 def build_ifaces():
     for port in range(32):
         iface = f"veth{port*2}"
-        port_to_iface[str(port)] = iface
+        port_to_iface[port] = iface
     port_to_iface["CPU"] = CPU_IFACE
 
 def show_available_ports():
@@ -82,7 +84,10 @@ def listen():
         sniffers.append(sniffer)
     return sniffers
 
-def build_random_pkt():
+def get_pkt(flow_index):
+    if flow_index in packets:
+        return packets[flow_index]
+    
     smac = random_mac()
     dmac = random_mac()
 
@@ -95,9 +100,41 @@ def build_random_pkt():
     pkt = pkt / IP(src=src_ip, dst=dst_ip)
     pkt = pkt / UDP(sport=src_port, dport=dst_port)
 
+    packets[flow_index] = pkt
+
     return pkt
 
-def send(port, pkt) -> bool:
+def cmd_help():
+    print(f"Usage: port index [*]")
+    print(f"  port:  port number (int)")
+    print(f"  index: flow index (int)")
+    print(f"  *:     send CRC32 collision (int)")
+
+def parse_cmd(cmd) -> Optional[tuple[int, int, bool]]:
+    cmd = cmd.split(" ")
+
+    try:
+        port = int(cmd[0])
+        index = int(cmd[1])
+
+        if len(cmd) == 2:
+            return (port, index, False)
+        
+        if cmd[2] != "*":
+            cmd_help()
+            return None
+        
+        return (port, index, True)
+        
+    except ValueError:
+        cmd_help()
+        return None
+    
+    except IndexError:
+        cmd_help()
+        return None
+
+def send(port: int, pkt) -> bool:
     global port_sending_packet
 
     if port not in port_to_iface:
@@ -116,11 +153,17 @@ def main():
     show_available_ports()
 
     sniffers = listen()
-    pkt = build_random_pkt()
 
     while True:
-        port = input("Port to send packet: ")
+        cmd = input("Port to send packet: ")
+        parsed_cmd = parse_cmd(cmd)
+
+        if not parsed_cmd:
+            continue
         
+        port, flow_index, collision = parsed_cmd
+        pkt = get_pkt(flow_index)
+
         if not send(port, pkt):
             print(f"Invalid port {port}")
 

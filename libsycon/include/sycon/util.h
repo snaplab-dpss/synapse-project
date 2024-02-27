@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -41,6 +42,49 @@ typedef size_t bit_len_t;
 typedef size_t byte_len_t;
 
 typedef u8 byte_t;
+
+typedef u64 field_t;
+
+template <size_t N>
+struct fields_t {
+  std::array<u64, N> values;
+
+  fields_t() {}
+  fields_t(const std::array<u64, N> &_values) : values(_values) {}
+  fields_t(fields_t<N> &&other) : values(std::move(other.values)) {}
+  fields_t(const fields_t<N> &other) : values(other.values) {}
+
+  void operator=(const fields_t &other) { values = other.values; }
+};
+
+template <size_t N>
+bool operator==(const fields_t<N> &lhs, const fields_t<N> &rhs) {
+  for (size_t i = 0; i < N; i++) {
+    if (lhs.values[i] != rhs.values[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <size_t N>
+struct fields_hash_t {
+  std::size_t operator()(const fields_t<N> &k) const {
+    std::size_t hash = 0;
+
+    for (size_t i = 0; i < N; i++) {
+      hash ^= std::hash<u64>{}(k.values[i]);
+    }
+
+    return hash;
+  }
+};
+
+template <size_t N>
+using key_t = fields_t<N>;
+
+template <size_t N>
+using value_t = fields_t<N>;
 
 std::string read_env(const char *env_var);
 

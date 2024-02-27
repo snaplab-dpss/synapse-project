@@ -12,6 +12,10 @@ ifndef SDE_INSTALL
 $(error "SDE_INSTALL is not set.")
 endif
 
+ifndef P4_COMPILATION_VARS
+P4_COMPILATION_VARS := ""
+endif
+
 CURRENT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 BUILD_DIR := build
@@ -32,10 +36,10 @@ CONTROLLER_BUILD_DEBUG_FLAGS := -std=c++17 -O0 -g
 all: $(CONTROLLER_BIN) $(CONTROLLER_BIN_DEBUG)
 
 install-tofino1:
-	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) $(APP).p4
+	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) $(APP).p4 $(P4_COMPILATION_VARS)
 
 install-tofino2:
-	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) --with-tofino2 $(APP).p4
+	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) --with-tofino2 $(APP).p4 $(P4_COMPILATION_VARS)
 
 $(CONTROLLER_BIN): $(CONTROLLER)
 	mkdir -p $(RELEASE_DIR)
