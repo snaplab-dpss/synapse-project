@@ -10,7 +10,7 @@ import os
 import glob
 
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Optional, Union, NewType
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -183,7 +183,10 @@ def get_unit_multiplier(value) -> tuple[float,str]:
     
     return 1e9, "G"
 
-def csv_parser(file: Path) -> tuple[list[str], list[list[Union[int, float]]]]:
+Header = NewType("Header", list[str])
+Data = NewType("Data", list[list[Union[list,float]]])
+
+def csv_parser(file: Path) -> tuple[Header, Data]:
     assert file.exists()
 
     with open(str(file), 'r') as f:
@@ -204,7 +207,7 @@ def csv_parser(file: Path) -> tuple[list[str], list[list[Union[int, float]]]]:
 
         return header, values
 
-def aggregate_values(values: list[list[Union[int, float]]],
+def aggregate_values(values: Data,
                      x_elem: int,
                      y_elem: int) -> list[tuple[float,float,float]]:
     new_values = []
@@ -339,7 +342,8 @@ def plot_subplot(ax,
     ax.grid(visible=False, axis='x')
 
 def plot_throughput_under_churn_pps(
-    data: list[list[Union[int, float]]],
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
     out_name: str,
     generate_png: bool,
     color_group: int,
@@ -353,22 +357,26 @@ def plot_throughput_under_churn_pps(
     fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
     fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
 
-    agg_values = aggregate_values(data, x_elem, y_elem)
+    d: list[dict] = []
 
-    y_max = max([ v[1] for v in agg_values ])
-    y_scaler, prefix = get_unit_multiplier(y_max)
+    for label, data in zip(labels, multiple_data):
+        agg_values = aggregate_values(data, x_elem, y_elem)
 
-    y_label = f"Throughput ({prefix}{y_units})"
+        y_max = max([ v[1] for v in agg_values ])
+        y_scaler, prefix = get_unit_multiplier(y_max)
 
-    x    = [ v[0] for v in agg_values ]
-    y    = [ v[1] / y_scaler for v in agg_values ]
-    yerr = [ v[2] / y_scaler for v in agg_values ]
+        y_label = f"Throughput ({prefix}{y_units})"
 
-    d = [{
-        "x": x,
-        "y": y,
-        "yerr": yerr,
-    }]
+        x    = [ v[0] for v in agg_values ]
+        y    = [ v[1] / y_scaler for v in agg_values ]
+        yerr = [ v[2] / y_scaler for v in agg_values ]
+
+        d.append({
+            "x": x,
+            "y": y,
+            "yerr": yerr,
+            "label": label,
+        })
 
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
@@ -385,6 +393,9 @@ def plot_throughput_under_churn_pps(
 
     ax.set_xscale("symlog")
 
+    if all(label is not None for label in labels):
+        ax.legend(loc="lower left")
+
     fig.set_size_inches(*set_figsize)
     fig.tight_layout(pad=0.1)
 
@@ -394,7 +405,8 @@ def plot_throughput_under_churn_pps(
         plt.savefig(str(fig_file_png))
 
 def plot_throughput_under_churn_bps(
-    data: list[list[Union[int, float]]],
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
     out_name: str,
     generate_png: bool,
     color_group: int,
@@ -408,22 +420,26 @@ def plot_throughput_under_churn_bps(
     fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
     fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
 
-    agg_values = aggregate_values(data, x_elem, y_elem)
+    d: list[dict] = []
 
-    y_max = max([ v[1] for v in agg_values ])
-    y_scaler, prefix = get_unit_multiplier(y_max)
+    for label, data in zip(labels, multiple_data):
+        agg_values = aggregate_values(data, x_elem, y_elem)
 
-    y_label = f"Throughput ({prefix}{y_units})"
+        y_max = max([ v[1] for v in agg_values ])
+        y_scaler, prefix = get_unit_multiplier(y_max)
 
-    x    = [ v[0] for v in agg_values ]
-    y    = [ v[1] / y_scaler for v in agg_values ]
-    yerr = [ v[2] / y_scaler for v in agg_values ]
+        y_label = f"Throughput ({prefix}{y_units})"
 
-    d = [{
-        "x": x,
-        "y": y,
-        "yerr": yerr,
-    }]
+        x    = [ v[0] for v in agg_values ]
+        y    = [ v[1] / y_scaler for v in agg_values ]
+        yerr = [ v[2] / y_scaler for v in agg_values ]
+
+        d.append({
+            "x": x,
+            "y": y,
+            "yerr": yerr,
+            "label": label,
+        })
 
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
@@ -439,6 +455,9 @@ def plot_throughput_under_churn_bps(
     )
 
     ax.set_xscale("symlog")
+    
+    if all(label is not None for label in labels):
+        ax.legend(loc="lower left")
 
     fig.set_size_inches(*set_figsize)
     fig.tight_layout(pad=0.1)
@@ -449,11 +468,15 @@ def plot_throughput_under_churn_bps(
         plt.savefig(str(fig_file_png))
 
 def plot_thpt_per_pkt_sz_bps(
-    data: list[list[Union[int, float]]],
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
     out_name: str,
     generate_png: bool,
     color_group: int,
 ):
+    assert len(multiple_data) == 1
+    data = multiple_data[0]
+
     x_elem = 1 # packet size column
     x_label = "Packet size (bytes)"
 
@@ -503,11 +526,15 @@ def plot_thpt_per_pkt_sz_bps(
         plt.savefig(str(fig_file_png))
 
 def plot_thpt_per_pkt_sz_pps(
-    data: list[list[Union[int, float]]],
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
     out_name: str,
     generate_png: bool,
     color_group: int,
 ):
+    assert len(multiple_data) == 1
+    data = multiple_data[0]
+
     x_elem = 1 # packet size column
     x_label = "Packet size (bytes)"
 
@@ -556,18 +583,34 @@ def plot_thpt_per_pkt_sz_pps(
     if generate_png:
         plt.savefig(str(fig_file_png))
 
-csv_to_plotter = {
-    "thpt_per_pkt_sz_forwarder": [
-        (plot_thpt_per_pkt_sz_bps, "switch_perf_bps", COLOR_GROUP_SWITCH_ASIC),
-        (plot_thpt_per_pkt_sz_pps, "switch_perf_pps", COLOR_GROUP_SWITCH_ASIC),
+def cache_capacity_label_builder(name) -> Optional[str]:
+    pattern = r".*_(\d+)_flows_(\d+)_cache.*"
+    
+    match = re.match(pattern, name)
+    assert match
+
+    flows = int(match.group(1))
+    cache = int(match.group(2))
+
+    label = f"{100 * cache / flows:.0f}\\% cache capacity"    
+    return label
+
+csv_pattern_to_plotter = {
+    "thpt_per_pkt_sz_forwarder.csv": [
+        (plot_thpt_per_pkt_sz_bps, "switch_perf_bps", None, COLOR_GROUP_SWITCH_ASIC),
+        (plot_thpt_per_pkt_sz_pps, "switch_perf_pps", None, COLOR_GROUP_SWITCH_ASIC),
     ],
-    "thpt_per_pkt_sz_send_to_controller": [
-        (plot_thpt_per_pkt_sz_bps, "switch_cpu_perf_bps", COLOR_GROUP_SWITCH_CPU),
-        (plot_thpt_per_pkt_sz_pps, "switch_cpu_perf_pps", COLOR_GROUP_SWITCH_CPU),
+    "thpt_per_pkt_sz_send_to_controller.csv": [
+        (plot_thpt_per_pkt_sz_bps, "switch_cpu_perf_bps", None, COLOR_GROUP_SWITCH_CPU),
+        (plot_thpt_per_pkt_sz_pps, "switch_cpu_perf_pps", None, COLOR_GROUP_SWITCH_CPU),
     ],
-    "churn_table_map": [
-        (plot_throughput_under_churn_bps, "churn_table_map_bps", COLOR_GROUP_SWITCH_ASIC),
-        (plot_throughput_under_churn_pps, "churn_table_map_pps", COLOR_GROUP_SWITCH_ASIC),
+    "churn_table_map.csv": [
+        (plot_throughput_under_churn_bps, "churn_table_map_bps", None, COLOR_GROUP_SWITCH_ASIC),
+        (plot_throughput_under_churn_pps, "churn_table_map_pps", None, COLOR_GROUP_SWITCH_ASIC),
+    ],
+    "churn_cached_table_map_*.csv": [
+        (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", cache_capacity_label_builder, COLOR_GROUP_SWITCH_ASIC),
+        (plot_throughput_under_churn_pps, "churn_cached_table_map_pps", cache_capacity_label_builder, COLOR_GROUP_SWITCH_ASIC),
     ],
 }
 
@@ -592,22 +635,25 @@ def main():
 
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    csv_files = [ Path(f) for f in glob.glob(f"{DATA_DIR}/*.csv") ]
-    for csv_file in csv_files:
-        csv_name = csv_file.stem
-
-        if csv_name not in csv_to_plotter:
-            print(f"WARNING: {csv_name} has no plotter assigned. Skipping.")
-            continue
+    for csv_pattern in csv_pattern_to_plotter.keys():
+        csvs = [ Path(csv) for csv in glob.glob(f"{DATA_DIR}/{csv_pattern}") ]
+        csv_filenames = [ csv.stem for csv in csvs ]
         
-        for plotter, out_name, color_group in csv_to_plotter[csv_name]:
+        for plotter, out_name, label_builder, color_group in csv_pattern_to_plotter[csv_pattern]:
             if not args.force and should_skip(out_name, args.png):
-                print(f"{csv_name} -> {out_name} (skipped)")
+                print(f"{out_name} (skipped)")
                 continue
 
-            print(f"{csv_name} -> {out_name}")
-            _, data = csv_parser(csv_file)
-            plotter(data, out_name, args.png, color_group)
+            print(f"{out_name}")
+
+            data = [ csv_parser(csv)[1] for csv in csvs ]
+
+            if label_builder:
+                labels = [ label_builder(csv) for csv in csv_filenames if label_builder ]
+            else:
+                labels = [ None for _ in range(len(data)) ]
+
+            plotter(labels, data, out_name, args.png, color_group)
 
 if __name__ == "__main__":
     main()

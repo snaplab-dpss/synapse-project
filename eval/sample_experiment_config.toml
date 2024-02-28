@@ -43,6 +43,7 @@ nb_tx_cores = -1
 controller = ""
 switch = ""
 pktgen = ""
+experiment = ""
 
 
 [extra]

@@ -11,6 +11,8 @@ from pathlib import Path
 from rich.console import Console
 from rich.progress import Progress
 
+from typing import Optional
+
 PACKET_SIZES_BYTES = [ 64, 128, 256, 512, 1024, 1500 ]
 
 class ThroughputPerPacketSize(Experiment):
@@ -40,9 +42,10 @@ class ThroughputPerPacketSize(Experiment):
         crc_bits: int,
 
         # Extra
+        experiment_log_file: Optional[str] = None,
         console: Console = Console()
     ) -> None:
-        super().__init__(name)
+        super().__init__(name, experiment_log_file)
         
         self.save_name = save_name
 

@@ -1,5 +1,8 @@
 import time
 
+from typing import Optional
+from pathlib import Path
+
 from rich.console import Group
 from rich.live import Live
 from rich.progress import (
@@ -21,11 +24,32 @@ WARMUP_RATE             = 1       # 1 Mbps
 REST_TIME_SEC           = 2       # 2 seconds
 
 # FIXME: Change this
-EXPERIMENT_ITERATIONS   = 2
+EXPERIMENT_ITERATIONS   = 1
 
 class Experiment:
-    def __init__(self, name: str) -> None:
+    def __init__(
+        self,
+        name: str,
+        log_file: Optional[str] = None,
+    ) -> None:
         self.name = name
+
+        if log_file:
+            out_file_path = Path(log_file)
+
+            if out_file_path.exists():
+                assert out_file_path.is_file()
+            else:
+                out_file_path.parents[0].mkdir(parents=True, exist_ok=True)
+
+            # Always overwrite. The logs become a mess otherwise.
+            self.log_file = open(log_file, "w")
+        else:
+            self.log_file = None
+        
+    def log(self, msg):
+        if self.log_file:
+            print(f"[{self.name}] {msg}", file=self.log_file, flush=True)
 
     def run(self, step_progress: Progress, current_iter: int) -> None:
         raise NotImplementedError

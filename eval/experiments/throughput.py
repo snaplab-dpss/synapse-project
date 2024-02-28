@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import time
-
 from experiments.experiment import Experiment
 
 from experiments.hosts.controller import Controller
@@ -12,6 +10,8 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.progress import Progress
+
+from typing import Optional
 
 class Throughput(Experiment):
     def __init__(
@@ -42,9 +42,10 @@ class Throughput(Experiment):
         crc_unique_flows: bool,
         crc_bits: int,
 
+        experiment_log_file: Optional[str] = None,
         console: Console = Console()
     ) -> None:
-        super().__init__(name)
+        super().__init__(name, experiment_log_file)
         
         self.save_name = save_name
 

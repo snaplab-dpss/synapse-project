@@ -39,6 +39,7 @@ def get_experiments(
     switch: Switch,
     controller: Controller,
     pktgen: Pktgen,
+    experiment_log_file: str,
 ) -> list[Experiment]:
     experiments = []
 
@@ -56,6 +57,7 @@ def get_experiments(
             churn=0,
             crc_unique_flows=False,
             crc_bits=0,
+            experiment_log_file=experiment_log_file,
             console=console,
         )
 
@@ -103,7 +105,7 @@ def main():
         log_file=config["logs"]["pktgen"],
     )
 
-    experiments = get_experiments(args.out, switch, controller, pktgen)
+    experiments = get_experiments(args.out, switch, controller, pktgen, config["logs"]["experiment"])
 
     exp_tracker = ExperimentTracker()
     exp_tracker.add_experiments(experiments)

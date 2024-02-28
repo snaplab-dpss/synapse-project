@@ -35,7 +35,9 @@ TARGET_CACHE_PERF_UNDER_CHURN_APPS = [
     "cached_table_map",
 ]
 
-CACHE_RELATIVE_SIZES = [ 0.25, 0.5, 0.75, 1 ]
+TOTAL_FLOWS = 8192
+# CACHE_SIZES = [ 8192, 4096, 2048, 1024, 512, 256 ]
+CACHE_SIZES = [ 8192, 4096, ]
 
 console = Console()
 
@@ -44,34 +46,36 @@ def get_cache_perf_under_churn_experiments(
     switch: Switch,
     controller: Controller,
     pktgen: Pktgen,
+    experiment_log_file: str,
 ) -> list[Experiment]:
     experiments = []
 
     expiration_time_sec = 1
-    total_flows = 8192
-    cache_sizes = [ 8192, 4096, 2048, 1024, 512, 256 ]
+    max_crc_bits = math.ceil(math.log(TOTAL_FLOWS, 2))
 
     for app in TARGET_CACHE_PERF_UNDER_CHURN_APPS:
-        for cache_size in cache_sizes:
+        for cache_size in CACHE_SIZES:
             cache_size_exp_base_2 = int(math.log(cache_size, 2))
+            exp_name = f"churn_{app}_{TOTAL_FLOWS}_flows_{cache_size}_cache"
 
             exp = ThroughputUnderChurn(
-                name=app,
-                save_name=data_dir / f"churn_{app}_{total_flows}_flows_{cache_size}_cache.csv",
+                name=exp_name,
+                save_name=data_dir / f"{exp_name}.csv",
                 switch=switch,
                 controller=controller,
                 pktgen=pktgen,
                 p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
                 controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
                 timeout_ms=expiration_time_sec * 1000,
-                nb_flows=total_flows,
+                nb_flows=TOTAL_FLOWS,
                 pkt_size=64,
                 crc_unique_flows=True,
-                crc_bits=cache_size_exp_base_2,
+                crc_bits=max_crc_bits,
                 p4_compile_time_vars=[
                     ("CACHE_CAPACITY_EXPONENT_BASE_2", str(cache_size_exp_base_2)),
                     ("EXPIRATION_TIME_SEC", str(expiration_time_sec)),
                 ],
+                experiment_log_file=experiment_log_file,
                 console=console,
             )
 
@@ -84,13 +88,15 @@ def get_table_perf_under_churn_experiments(
     switch: Switch,
     controller: Controller,
     pktgen: Pktgen,
+    experiment_log_file: str,
 ) -> list[Experiment]:
     experiments = []
 
     for app in TARGET_TABLE_PERF_UNDER_CHURN_APPS:
+        exp_name = f"churn_{app}"
         exp = ThroughputUnderChurn(
-            name=app,
-            save_name=data_dir / f"churn_{app}.csv",
+            name=exp_name,
+            save_name=data_dir / f"{exp_name}.csv",
             switch=switch,
             controller=controller,
             pktgen=pktgen,
@@ -101,6 +107,7 @@ def get_table_perf_under_churn_experiments(
             pkt_size=64,
             crc_unique_flows=False,
             crc_bits=0,
+            experiment_log_file=experiment_log_file,
             console=console,
         )
 
@@ -148,8 +155,8 @@ def main():
         log_file=config["logs"]["pktgen"],
     )
 
-    experiments = get_table_perf_under_churn_experiments(args.out, switch, controller, pktgen)
-    experiments += get_cache_perf_under_churn_experiments(args.out, switch, controller, pktgen)
+    experiments = get_table_perf_under_churn_experiments(args.out, switch, controller, pktgen, config["logs"]["experiment"])
+    experiments += get_cache_perf_under_churn_experiments(args.out, switch, controller, pktgen, config["logs"]["experiment"])
 
     exp_tracker = ExperimentTracker()
     exp_tracker.add_experiments(experiments)
