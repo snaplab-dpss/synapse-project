@@ -184,7 +184,7 @@ control Expirator(
 
 	RegisterAction<time_t, hash_t, bool>(reg) write_action = {
 		void apply(inout time_t alarm, out bool alive) {
-			if (alarm == 0 || now < alarm) {
+			if (now < alarm) {
 				alive = true;
 			} else {
 				alive = false;
@@ -359,7 +359,7 @@ control Cache(
 			write_value();
 		}
 
-		if (valid || key_fields_match == 4) {
+		if (!valid || key_fields_match == 4) {
 			hit = true;
 		}
 	}
