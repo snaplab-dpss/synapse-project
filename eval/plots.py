@@ -19,6 +19,8 @@ import numpy as np
 
 from pubplot import Document
 
+from natsort import natsorted
+
 if sys.version_info < (3, 9, 0):
     raise RuntimeError("Python 3.9 or a more recent version is required.")
 
@@ -346,10 +348,11 @@ def plot_throughput_under_churn_pps(
     multiple_data: list[Data],
     out_name: str,
     generate_png: bool,
-    color_group: int,
+    color_group: Optional[int],
 ):
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
+    x_lim = 1e6 # 1M fpm
 
     y_elem = 3 # Throughput pps column
     y_units = "pps"
@@ -387,11 +390,13 @@ def plot_throughput_under_churn_pps(
         y_label,
         d,
         lines_only=False,
-        set_palette=[palette[color_group]],
-        set_markers_list=[markers_list[color_group]],
+        set_palette=[palette[color_group]] if color_group else None,
+        set_markers_list=[markers_list[color_group]] if color_group else None,
     )
 
     ax.set_xscale("symlog")
+    ax.set_xlim(0, x_lim)
+    ax.set_ylim(ymin=0)
 
     if all(label is not None for label in labels):
         ax.legend(loc="lower left")
@@ -409,10 +414,11 @@ def plot_throughput_under_churn_bps(
     multiple_data: list[Data],
     out_name: str,
     generate_png: bool,
-    color_group: int,
+    color_group: Optional[int],
 ):
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
+    x_lim = 1e6 # 1M fpm
 
     y_elem = 2 # Throughput bps column
     y_units = "bps"
@@ -450,11 +456,13 @@ def plot_throughput_under_churn_bps(
         y_label,
         d,
         lines_only=False,
-        set_palette=[palette[color_group]],
-        set_markers_list=[markers_list[color_group]],
+        set_palette=[palette[color_group]] if color_group else None,
+        set_markers_list=[markers_list[color_group]] if color_group else None,
     )
 
     ax.set_xscale("symlog")
+    ax.set_xlim(0, x_lim)
+    ax.set_ylim(ymin=0)
     
     if all(label is not None for label in labels):
         ax.legend(loc="lower left")
@@ -609,8 +617,8 @@ csv_pattern_to_plotter = {
         (plot_throughput_under_churn_pps, "churn_table_map_pps", None, COLOR_GROUP_SWITCH_ASIC),
     ],
     "churn_cached_table_map_*.csv": [
-        (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", cache_capacity_label_builder, COLOR_GROUP_SWITCH_ASIC),
-        (plot_throughput_under_churn_pps, "churn_cached_table_map_pps", cache_capacity_label_builder, COLOR_GROUP_SWITCH_ASIC),
+        (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", cache_capacity_label_builder, None),
+        (plot_throughput_under_churn_pps, "churn_cached_table_map_pps", cache_capacity_label_builder, None),
     ],
 }
 
@@ -652,6 +660,11 @@ def main():
                 labels = [ label_builder(csv) for csv in csv_filenames if label_builder ]
             else:
                 labels = [ None for _ in range(len(data)) ]
+
+            labels_data = [ (l, d) for l, d in natsorted(zip(labels, data)) ]
+
+            labels = [ x[0] for x in labels_data ]
+            data = [ x[1] for x in labels_data ]
 
             plotter(labels, data, out_name, args.png, color_group)
 

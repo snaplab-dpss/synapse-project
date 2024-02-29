@@ -24,7 +24,7 @@ WARMUP_RATE             = 1       # 1 Mbps
 REST_TIME_SEC           = 2       # 2 seconds
 
 # FIXME: Change this
-EXPERIMENT_ITERATIONS   = 1
+EXPERIMENT_ITERATIONS   = 3
 
 class Experiment:
     def __init__(

@@ -13,8 +13,6 @@ from rich.progress import Progress, TaskID
 
 from typing import Optional
 
-import math
-
 LO_PERF_CHURN_MBPS  = 1_000  #  1 Gbps
 NUM_CHURN_STEPS     = 10
 STARTING_CHURN_FPM  = 100
@@ -148,10 +146,10 @@ class ThroughputUnderChurn(Experiment):
 
         lo_churn, mid_churn, high_churn = self._find_churn_anchors(max_churn, step_progress, task_id)
 
-        lo2mid_num_steps = int(NUM_CHURN_STEPS / 2)
-        mid2hi_num_steps = int(NUM_CHURN_STEPS / 2)
+        lo2mid_num_steps = int((NUM_CHURN_STEPS - 1) / 2)
+        mid2hi_num_steps = max(0, NUM_CHURN_STEPS - lo2mid_num_steps - 1)
 
-        lo2mid_churns_steps = int((mid_churn - lo_churn) / (lo2mid_num_steps - 1))
+        lo2mid_churns_steps = int((mid_churn - lo_churn) / lo2mid_num_steps)
         mid2hi_churns_steps = int((high_churn - mid_churn) / (mid2hi_num_steps - 1))
 
         self.churns = [ 0 ]
