@@ -1,16 +1,19 @@
+#include "../include/sycon/config.h"
 #include "../include/sycon/constants.h"
 #include "../include/sycon/externs.h"
 #include "../include/sycon/log.h"
 #include "../include/sycon/packet.h"
 #include "../include/sycon/sycon.h"
-#include "../include/sycon/transactions.h"
-#include "config.h"
 #include "packet.h"
 
 extern "C" {
 #include <bf_switchd/bf_switchd.h>
 #include <pkt_mgr/pkt_mgr_intf.h>
 }
+
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace sycon {
 
@@ -76,11 +79,13 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
   time_ns_t now = get_time();
   byte_t *packet = reinterpret_cast<byte_t *>(&in_packet);
 
+  DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
+
   packet_init(packet_size);
 
-  begin_transaction();
+  cfg.begin_transaction();
   bool fwd = nf_process(now, packet, packet_size);
-  end_transaction();
+  cfg.end_transaction();
 
   if (fwd) {
     pcie_tx(device, packet, packet_size);

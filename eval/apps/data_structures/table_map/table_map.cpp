@@ -9,9 +9,9 @@ bf_status_t table_with_timeout_expiration_callback(
     const bf_rt_target_t &target, const bfrt::BfRtTableKey *key, void *cookie) {
   TableWithTimeout *table = static_cast<TableWithTimeout *>(cookie);
 
-  begin_transaction();
+  cfg.begin_transaction();
   table->del(key);
-  end_transaction();
+  cfg.end_transaction();
 
   return BF_SUCCESS;
 }

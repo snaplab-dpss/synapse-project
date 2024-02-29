@@ -2,10 +2,10 @@
 
 #include <sstream>
 
+#include "../../include/sycon/config.h"
 #include "../../include/sycon/constants.h"
 #include "../../include/sycon/log.h"
 #include "../../include/sycon/util.h"
-#include "../config.h"
 
 namespace sycon {
 

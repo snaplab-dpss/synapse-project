@@ -1,4 +1,4 @@
-#include "config.h"
+#include "../include/sycon/config.h"
 
 #include <unistd.h>
 
@@ -30,11 +30,6 @@ static void setup_bf_session() {
 
   // Create a session object
   cfg.session = bfrt::BfRtSession::sessionCreate();
-
-  // Setup transactions
-  if (pthread_mutex_init(&cfg.transaction_mutex, NULL) != 0) {
-    ERROR("pthread_mutex_init failed")
-  }
 }
 
 static std::string get_conf_file() {

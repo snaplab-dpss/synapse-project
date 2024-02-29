@@ -3,9 +3,9 @@
 
 #include <cstdlib>
 
+#include "../include/sycon/config.h"
 #include "../include/sycon/constants.h"
 #include "../include/sycon/sycon.h"
-#include "config.h"
 #include "metatables/ports.h"
 
 extern "C" {

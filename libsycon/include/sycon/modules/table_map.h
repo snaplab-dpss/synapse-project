@@ -17,7 +17,8 @@ class TableMap : public Table {
   static_assert(V > 0);
 
  private:
-  std::unordered_map<key_t<K>, value_t<V>, fields_hash_t<K>> entries;
+  std::unordered_map<key_t<K>, value_t<V>, fields_hash_t<K>> cache;
+
   bf_rt_id_t populate_action_id;
   std::optional<time_ms_t> timeout;
   std::optional<bfrt::BfRtIdleTmoExpiryCb> callback;
@@ -50,44 +51,32 @@ class TableMap : public Table {
 
   // Gets the cached version only.
   bool get(const key_t<K> &k, value_t<V> &v) const {
-    // FIXME: the cache may not be up to date, we should query the switch.
-    if (entries.find(k) == entries.end()) {
+    if (cache.find(k) == cache.end()) {
       return false;
     }
 
-    v = entries[k];
+    v = cache[k];
     return true;
   }
 
   void put(const key_t<K> &k, const value_t<V> &v) {
-    if (entries.find(k) != entries.end()) {
-      // Already put, avoid duplicate insertions.
-      return;
-    }
-    bool found = driver_contains(k);
-
-    if (found) {
-      // This entry is definitely on the switch, let's cache it.
-      entries[k] = v;
+    // This entry is already on the switch.
+    if (cache.find(k) != cache.end()) {
       return;
     }
 
     driver_add(k, v);
+    cache[k] = v;
   }
 
   void del(const key_t<K> &k) {
-    if (entries.find(k) != entries.end()) {
+    if (cache.find(k) == cache.end()) {
       // Avoid duplicate removals.
-      entries.erase(k);
+      return;
     }
 
-    bool found = driver_contains(k);
-
-    if (found) {
-      // The entry is still on the switch, the deletion request must have been
-      // lost.
-      driver_del(k);
-    }
+    driver_del(k);
+    cache.erase(k);
   }
 
   // This is useful for the expiration callback.

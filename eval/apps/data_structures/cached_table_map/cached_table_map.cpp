@@ -11,9 +11,9 @@ bf_status_t map_expiration_callback(const bf_rt_target_t &target,
                                     void *cookie) {
   Map *map = static_cast<Map *>(cookie);
 
-  begin_transaction();
+  cfg.begin_transaction();
   map->del(key);
-  end_transaction();
+  cfg.end_transaction();
 
   return BF_SUCCESS;
 }

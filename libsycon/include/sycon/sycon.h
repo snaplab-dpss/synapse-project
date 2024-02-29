@@ -1,6 +1,7 @@
 #pragma once
 
 #include "args.h"
+#include "config.h"
 #include "externs.h"
 #include "log.h"
 #include "modules/modules.h"
@@ -8,7 +9,6 @@
 #include "packet.h"
 #include "primitives/primitives.h"
 #include "time.h"
-#include "transactions.h"
 #include "util.h"
 
 namespace sycon {
