@@ -106,6 +106,11 @@ class ThroughputPerPacketSize(Experiment):
 
         self.switch.install(self.p4_src_in_repo)
 
+        self.controller.launch(
+            self.controller_src_in_repo,
+            self.timeout_ms
+        )
+
         for pkt_size in PACKET_SIZES_BYTES:
             exp_key = (current_iter,pkt_size,)
             
@@ -117,11 +122,6 @@ class ThroughputPerPacketSize(Experiment):
                 continue
 
             step_progress.update(task_id, description=description)
-
-            self.controller.launch(
-                self.controller_src_in_repo,
-                self.timeout_ms
-            )
 
             self.pktgen.launch(
                 self.nb_flows,
@@ -146,6 +146,7 @@ class ThroughputPerPacketSize(Experiment):
             step_progress.update(task_id, description=description, advance=1)
 
             self.pktgen.close()
-            self.controller.stop()
+        
+        self.controller.stop()
         
         step_progress.update(task_id, visible=False)

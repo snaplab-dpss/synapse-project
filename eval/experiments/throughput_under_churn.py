@@ -172,27 +172,27 @@ class ThroughputUnderChurn(Experiment):
             self.p4_compile_time_vars,
         )
 
+        self.controller.launch(
+            self.controller_src_in_repo,
+            self.timeout_ms
+        )
+
+        self.pktgen.launch(
+            self.nb_flows,
+            self.pkt_size,
+            self.timeout_ms * 1000,
+            self.crc_unique_flows,
+            self.crc_bits
+        )
+
+        max_churn = self.pktgen.wait_launch()
+        self.controller.wait_ready()
+
         for i in range(NUM_CHURN_STEPS):
             if self.experiment_tracker[current_iter] > i:
                 self.console.log(f"[orange1]Skipping: iteration {i}")
                 step_progress.update(task_id, advance=1)
                 continue
-
-            self.controller.launch(
-                self.controller_src_in_repo,
-                self.timeout_ms
-            )
-
-            self.pktgen.launch(
-                self.nb_flows,
-                self.pkt_size,
-                self.timeout_ms * 1000,
-                self.crc_unique_flows,
-                self.crc_bits
-            )
-
-            max_churn = self.pktgen.wait_launch()
-            self.controller.wait_ready()
 
             churns = self._get_churns(max_churn, step_progress, task_id)
             churn = churns[i]
@@ -210,8 +210,8 @@ class ThroughputUnderChurn(Experiment):
 
             step_progress.update(task_id, advance=1)
 
-            self.pktgen.close()
-            self.controller.stop()
+        self.pktgen.close()
+        self.controller.stop()
 
         step_progress.update(task_id, visible=False)
 

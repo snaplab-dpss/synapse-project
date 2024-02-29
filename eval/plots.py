@@ -186,7 +186,7 @@ def get_unit_multiplier(value) -> tuple[float,str]:
     return 1e9, "G"
 
 Header = NewType("Header", list[str])
-Data = NewType("Data", list[list[Union[list,float]]])
+Data = NewType("Data", list[list[Union[int,float]]])
 
 def csv_parser(file: Path) -> tuple[Header, Data]:
     assert file.exists()
@@ -198,12 +198,8 @@ def csv_parser(file: Path) -> tuple[Header, Data]:
         header = lines[0]
         rows   = lines[1:]
 
-        values = []
+        values = [ [ int(c) if '.' not in c else float(c) for c in row ] for row in rows ]
 
-        for row in rows:
-            cols = [ int(c) if '.' not in c else float(c) for c in row ]
-            values.append(cols)
-        
         # Sort data by iteration (1st column)
         values = sorted(values, key=lambda x: x[0])
 
@@ -646,6 +642,9 @@ def main():
     for csv_pattern in csv_pattern_to_plotter.keys():
         csvs = [ Path(csv) for csv in glob.glob(f"{DATA_DIR}/{csv_pattern}") ]
         csv_filenames = [ csv.stem for csv in csvs ]
+
+        if len(csvs) == 0:
+            continue
         
         for plotter, out_name, label_builder, color_group in csv_pattern_to_plotter[csv_pattern]:
             if not args.force and should_skip(out_name, args.png):

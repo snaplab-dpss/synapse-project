@@ -38,6 +38,8 @@ class Controller:
         if not self.host.remote_dir_exists(self.sde):
             self.host.crash(f"SDE directory not found on remote host {self.sde}")
         
+        self.ready = False
+        
     def _compile(self, src: Path) -> None:
         if not self.host.remote_file_exists(src):
             self.host.crash(f"Unable to find file {src}")
@@ -77,10 +79,15 @@ class Controller:
         cmd += f" --expiration-time {timeout_ms}"
 
         self.controller_cmd = self.host.run_command(cmd, dir=src_path.parent)
+        self.ready = False
 
     def wait_ready(self) -> None:
         # Wait for the controller to be ready.
         # It prints the message "Press enter to terminate." when it's ready.
+
+        if self.ready:
+            # We already checked that it's ready
+            return
 
         if self.controller_cmd is None:
             raise RuntimeError("Controller not started")
@@ -88,6 +95,8 @@ class Controller:
         self.controller_cmd.watch(
             stop_pattern="Press enter to terminate.",
         )
+
+        self.ready = True
 
     def stop(self) -> None:
         if self.controller_cmd is None:
@@ -103,6 +112,7 @@ class Controller:
 
         self.controller_cmd = None
         self.exe = None
+        self.ready = False
     
     def __del__(self):
         try:
