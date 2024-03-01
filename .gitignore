@@ -20,6 +20,8 @@ out
 build
 log
 logs
+data
+plots
 
 # Draw.io garbage
 .$*.bkp
