@@ -56,6 +56,11 @@ def get_cache_perf_experiments(
     for app in TARGET_CACHE_PERF_UNDER_CHURN_APPS:
         for cache_occupancy in CACHE_OCCUPANCY:
             total_flows = int(CACHE_SIZE / cache_occupancy)
+
+            # Total number of flows must be even
+            if total_flows % 2 != 0:
+                total_flows += 1
+
             cache_size_exp_base_2 = int(math.log(CACHE_SIZE, 2))
             exp_name = f"churn_{app}_{total_flows}_flows_{CACHE_SIZE}_cache"
 

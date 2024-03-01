@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import math
+
 from experiments.hosts.controller import Controller
 from experiments.hosts.switch import Switch
 from experiments.hosts.pktgen import Pktgen
@@ -100,7 +102,7 @@ class ThroughputUnderChurn(Experiment):
     # that completely plummets it.
     def _find_churn_anchors(self, max_churn: int, step_progress: Progress, task_id: TaskID):
         lo_churn = STARTING_CHURN_FPM
-        mid_churn = lo_churn
+        mid_churn = STARTING_CHURN_FPM
         hi_churn = max_churn
         multiplier = 10
         churn = lo_churn
@@ -115,16 +117,16 @@ class ThroughputUnderChurn(Experiment):
             throughput_bps, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
             throughput_mbps = throughput_bps / 1e6
 
-            step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {throughput_mbps:.2f}Mbps")
+            step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {int(throughput_mbps):,}Mbps")
 
-            self.log(f"{churn:,} fpm => {throughput_mbps:,} Mbps")
+            self.log(f"{churn:,} fpm => {int(throughput_mbps):,} Mbps")
 
             if lo_churn_perf is None:
                 lo_churn_perf = throughput_mbps
 
             if throughput_mbps >= lo_churn_perf * 0.9:
                 lo_churn = churn
-            else:
+            elif mid_churn == STARTING_CHURN_FPM:
                 mid_churn = churn
 
             if throughput_mbps < LO_PERF_CHURN_MBPS:
@@ -132,6 +134,9 @@ class ThroughputUnderChurn(Experiment):
                 break
 
             churn = min(churn * multiplier, max_churn)
+        
+        if mid_churn == hi_churn:
+            mid_churn = int((hi_churn + lo_churn) / 2)
 
         self.log(f"Churn anchors: lo={lo_churn:,} fpm mid={mid_churn:,} fpm hi={hi_churn:,} fpm")
         self.log(f"*********************************************")
@@ -146,7 +151,7 @@ class ThroughputUnderChurn(Experiment):
 
         lo_churn, mid_churn, high_churn = self._find_churn_anchors(max_churn, step_progress, task_id)
 
-        lo2mid_num_steps = int((NUM_CHURN_STEPS - 1) / 2)
+        lo2mid_num_steps = math.ceil((NUM_CHURN_STEPS - 1) * (3/4))
         mid2hi_num_steps = max(0, NUM_CHURN_STEPS - lo2mid_num_steps - 1)
 
         lo2mid_churns_steps = int((mid_churn - lo_churn) / lo2mid_num_steps)
@@ -203,7 +208,7 @@ class ThroughputUnderChurn(Experiment):
             )
 
             throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
-            self.log(f"Churn {churn:,} => {throughput_bps/1e6:.2f} Mbps {throughput_pps/1e6:.2f} Mpps")
+            self.log(f"Churn {churn:,} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
 
             with open(self.save_name, "a") as f:
                 f.write(f"{current_iter},{churn},{throughput_bps},{throughput_pps}\n")

@@ -349,9 +349,12 @@ def plot_throughput_under_churn_pps(
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
     x_lim = 1e6 # 1M fpm
+    x_ticks = [ 0 ] + [ 10**i for i in range(7)]
+    x_ticks_labels = [ "0", "1", "10", "100", "1K", "10K", "100K", "1M", ]
 
     y_elem = 3 # Throughput pps column
     y_units = "pps"
+    y_lim = 150
 
     fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
     fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
@@ -392,7 +395,10 @@ def plot_throughput_under_churn_pps(
 
     ax.set_xscale("symlog")
     ax.set_xlim(0, x_lim)
-    ax.set_ylim(ymin=0)
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_ticks_labels)
+
+    ax.set_ylim(ymin=0, ymax=y_lim)
 
     if all(label is not None for label in labels):
         ax.legend(loc="lower left")
@@ -415,9 +421,12 @@ def plot_throughput_under_churn_bps(
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
     x_lim = 1e6 # 1M fpm
+    x_ticks = [ 0 ] + [ 10**i for i in range(7)]
+    x_ticks_labels = [ "0", "1", "10", "100", "1K", "10K", "100K", "1M", ]
 
     y_elem = 2 # Throughput bps column
     y_units = "bps"
+    y_lim = 100
 
     fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
     fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
@@ -457,8 +466,11 @@ def plot_throughput_under_churn_bps(
     )
 
     ax.set_xscale("symlog")
+    ax.set_xticks(x_ticks)
     ax.set_xlim(0, x_lim)
-    ax.set_ylim(ymin=0)
+    ax.set_xticklabels(x_ticks_labels)
+
+    ax.set_ylim(ymin=0, ymax=y_lim)
     
     if all(label is not None for label in labels):
         ax.legend(loc="lower left")
