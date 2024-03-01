@@ -9,7 +9,7 @@
 
 namespace sycon {
 
-static std::string append_control(const std::string &control,
+std::string Table::append_control(const std::string &control,
                                   const std::string &name) {
   if (control.size()) {
     return control + "." + name;

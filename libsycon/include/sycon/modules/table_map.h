@@ -16,12 +16,17 @@ class TableMap : public Table {
   static_assert(K > 0);
   static_assert(V > 0);
 
+ protected:
+  typedef std::function<bf_status_t(const table_key_t<K> &key,
+                                    TableMap<K, V> *tm)>
+      expiration_callback_fn;
+
  private:
-  std::unordered_map<key_t<K>, value_t<V>, fields_hash_t<K>> cache;
+  std::unordered_map<table_key_t<K>, table_value_t<V>, fields_hash_t<K>> cache;
 
   bf_rt_id_t populate_action_id;
   std::optional<time_ms_t> timeout;
-  std::optional<bfrt::BfRtIdleTmoExpiryCb> callback;
+  std::optional<expiration_callback_fn> expiration_callback;
 
  public:
   TableMap(const std::string &_control_name, const std::string &_table_name)
@@ -32,25 +37,27 @@ class TableMap : public Table {
   }
 
   TableMap(const std::string &_control_name, const std::string &_table_name,
-           time_ms_t _timeout, const bfrt::BfRtIdleTmoExpiryCb &_callback)
+           time_ms_t _timeout,
+           const expiration_callback_fn &_expiration_callback)
       : TableMap(_control_name, _table_name) {
     timeout = _timeout;
-    callback = _callback;
+    expiration_callback = _expiration_callback;
     enable_expirations();
   }
 
   void enable_expirations() {
-    assert(timeout && callback);
-    set_notify_mode(*timeout, (void *)this, *callback, true);
+    assert(timeout && expiration_callback);
+    set_notify_mode(*timeout, (void *)this, internal_expiration_callback, true);
   }
 
   void disable_expirations() {
-    assert(timeout && callback);
-    set_notify_mode(*timeout, (void *)this, *callback, false);
+    assert(timeout && expiration_callback);
+    set_notify_mode(*timeout, (void *)this, internal_expiration_callback,
+                    false);
   }
 
   // Gets the cached version only.
-  bool get(const key_t<K> &k, value_t<V> &v) const {
+  bool get(const table_key_t<K> &k, table_value_t<V> &v) const {
     if (cache.find(k) == cache.end()) {
       return false;
     }
@@ -59,7 +66,7 @@ class TableMap : public Table {
     return true;
   }
 
-  void put(const key_t<K> &k, const value_t<V> &v) {
+  void put(const table_key_t<K> &k, const table_value_t<V> &v) {
     // This entry is already on the switch.
     if (cache.find(k) != cache.end()) {
       return;
@@ -69,7 +76,7 @@ class TableMap : public Table {
     cache[k] = v;
   }
 
-  void del(const key_t<K> &k) {
+  void del(const table_key_t<K> &k) {
     if (cache.find(k) == cache.end()) {
       // Avoid duplicate removals.
       return;
@@ -79,11 +86,8 @@ class TableMap : public Table {
     cache.erase(k);
   }
 
-  // This is useful for the expiration callback.
-  void del(const bfrt::BfRtTableKey *k) { del(build_key(k)); }
-
  private:
-  void key_setup(const key_t<K> &k) {
+  void key_setup(const table_key_t<K> &k) {
     auto bf_status = table->keyReset(key.get());
     ASSERT_BF_STATUS(bf_status)
 
@@ -95,7 +99,7 @@ class TableMap : public Table {
     }
   }
 
-  void data_setup(const value_t<V> &v) {
+  void data_setup(const table_value_t<V> &v) {
     auto bf_status = table->dataReset(populate_action_id, data.get());
     ASSERT_BF_STATUS(bf_status)
 
@@ -114,7 +118,7 @@ class TableMap : public Table {
     }
   }
 
-  bool driver_contains(const key_t<K> &k) {
+  bool driver_contains(const table_key_t<K> &k) {
     key_setup(k);
 
     u64 flags = 0;
@@ -132,7 +136,7 @@ class TableMap : public Table {
     return true;
   }
 
-  bool driver_get(const key_t<K> &k, value_t<V> &v) {
+  bool driver_get(const table_key_t<K> &k, table_value_t<V> &v) {
     key_setup(k);
 
     u64 flags = 0;
@@ -164,7 +168,7 @@ class TableMap : public Table {
     return true;
   }
 
-  void driver_add(const key_t<K> &k, const value_t<V> &v) {
+  void driver_add(const table_key_t<K> &k, const table_value_t<V> &v) {
     log_entry_op("ADD", k, &v);
 
     key_setup(k);
@@ -179,7 +183,7 @@ class TableMap : public Table {
     ASSERT_BF_STATUS(bf_status)
   }
 
-  void driver_mod(const key_t<K> &k, const value_t<V> &v) {
+  void driver_mod(const table_key_t<K> &k, const table_value_t<V> &v) {
     log_entry_op("MOD", k, &v);
 
     key_setup(k);
@@ -194,7 +198,7 @@ class TableMap : public Table {
     ASSERT_BF_STATUS(bf_status)
   }
 
-  void driver_del(const key_t<K> &k) {
+  void driver_del(const table_key_t<K> &k) {
     log_entry_op("DEL", k);
 
     key_setup(k);
@@ -220,8 +224,8 @@ class TableMap : public Table {
     DEBUG("*********************************************");
   }
 
-  key_t<K> build_key(const bfrt::BfRtTableKey *key) const {
-    key_t<K> k;
+  table_key_t<K> build_key(const bfrt::BfRtTableKey *key) const {
+    table_key_t<K> k;
 
     assert(K == key_fields.size());
 
@@ -234,8 +238,8 @@ class TableMap : public Table {
     return k;
   }
 
-  value_t<V> build_value(const bfrt::BfRtTableData *value) const {
-    value_t<V> v;
+  table_value_t<V> build_value(const bfrt::BfRtTableData *value) const {
+    table_value_t<V> v;
 
     assert(V == data_fields.size());
 
@@ -248,8 +252,8 @@ class TableMap : public Table {
     return v;
   }
 
-  void log_entry_op(const std::string &op, const key_t<K> &k,
-                    const value_t<V> *v = nullptr) const {
+  void log_entry_op(const std::string &op, const table_key_t<K> &k,
+                    const table_value_t<V> *v = nullptr) const {
     DEBUG();
     DEBUG("*********************************************");
 
@@ -277,6 +281,20 @@ class TableMap : public Table {
 
       DEBUG("*********************************************\n");
     }
+  }
+
+  static bf_status_t internal_expiration_callback(const bf_rt_target_t &target,
+                                                  const bfrt::BfRtTableKey *key,
+                                                  void *cookie) {
+    TableMap *tm = static_cast<TableMap *>(cookie);
+    table_key_t<K> k = tm->build_key(key);
+
+    cfg.begin_transaction();
+    bf_status_t bf_status = (*tm->expiration_callback)(k, tm);
+    ASSERT_BF_STATUS(bf_status)
+    cfg.end_transaction();
+
+    return bf_status;
   }
 };
 

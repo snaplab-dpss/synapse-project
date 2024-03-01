@@ -81,6 +81,8 @@ class Table {
   void dump(std::ostream &) const;
 
   static void dump_table_names(const bfrt::BfRtInfo *bfrtInfo);
+  static std::string append_control(const std::string &control,
+                                    const std::string &name);
 };
 
 }  // namespace sycon

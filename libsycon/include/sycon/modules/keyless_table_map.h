@@ -16,14 +16,15 @@ class KeylessTableMap : public Table {
   static_assert(V > 0);
 
  private:
-  value_t<V> entry;
+  table_value_t<V> entry;
   bf_rt_id_t populate_action_id;
   std::optional<time_ms_t> timeout;
   std::optional<bfrt::BfRtIdleTmoExpiryCb> callback;
 
  public:
   KeylessTableMap(const std::string &_control_name,
-                  const std::string &_table_name, const value_t<V> &_entry)
+                  const std::string &_table_name,
+                  const table_value_t<V> &_entry)
       : Table(_control_name, _table_name) {
     init_key();
     init_action(SYNAPSE_TABLE_MAP_ACTION, &populate_action_id);
@@ -34,7 +35,7 @@ class KeylessTableMap : public Table {
   }
 
  private:
-  void data_setup(const value_t<V> &v) {
+  void data_setup(const table_value_t<V> &v) {
     auto bf_status = table->dataReset(populate_action_id, data.get());
     ASSERT_BF_STATUS(bf_status)
 

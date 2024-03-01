@@ -81,10 +81,10 @@ struct fields_hash_t {
 };
 
 template <size_t N>
-using key_t = fields_t<N>;
+using table_key_t = fields_t<N>;
 
 template <size_t N>
-using value_t = fields_t<N>;
+using table_value_t = fields_t<N>;
 
 std::string read_env(const char *env_var);
 

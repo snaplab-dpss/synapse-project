@@ -3,20 +3,25 @@
 
 using namespace sycon;
 
+using TCTM = TransientCachedTableMap<4, 1>;
 using TM = TableMap<4, 1>;
-using TM_key_t = table_key_t<4>;
 
-bf_status_t tm_expiration_callback(const TM_key_t &key, TM *tm) {
-  tm->del(key);
+using map_key_t = table_key_t<4>;
+using map_value_t = table_value_t<1>;
+
+bf_status_t map_expiration_callback(const map_key_t &key, TM *map) {
+  map->del(key);
   return BF_SUCCESS;
 }
 
 struct state_t {
-  TM table_with_timeout;
+  TCTM map;
 
   state_t()
-      : table_with_timeout("Ingress", "table_with_timeout",
-                           args.expiration_time, tm_expiration_callback) {}
+      : map("Ingress", "map",
+            {"reg_key_0", "reg_key_1", "reg_key_2", "reg_key_3"},
+            {"reg_value_0"}, args.expiration_time, map_expiration_callback,
+            "IngressDeparser", "digest") {}
 };
 
 state_t *state;
@@ -24,7 +29,7 @@ state_t *state;
 void sycon::nf_init() { state = new state_t(); }
 
 void sycon::nf_cleanup() {
-  state->table_with_timeout.dump();
+  state->map.dump();
   delete state;
 }
 
@@ -42,7 +47,7 @@ bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
 
   table_value_t<1> out_port({nf_config.out_dev_port});
 
-  state->table_with_timeout.put(flow, out_port);
+  state->map.put(flow, out_port);
   cpu_hdr->out_port = SWAP_ENDIAN_16(nf_config.out_dev_port);
 
   return true;
