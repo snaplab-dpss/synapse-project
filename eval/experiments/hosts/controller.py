@@ -47,7 +47,7 @@ class Controller:
         program_name = src.stem
         makefile = self.repo / "tools" / "Makefile"
 
-        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install APP={program_name}"
+        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install"
         compilation_cmd = f"{env_vars} make -f {makefile} -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()

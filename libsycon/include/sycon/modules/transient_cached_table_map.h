@@ -11,10 +11,6 @@
 
 namespace sycon {
 
-// TODO: Missing the registers.
-// The transient cache moves data from the registers to the tables.
-// This work is done inside the callback.
-
 template <size_t K, size_t V>
 class TransientCachedTableMap : public TableMap<K, V> {
   static_assert(K > 0);
@@ -27,8 +23,7 @@ class TransientCachedTableMap : public TableMap<K, V> {
   };
 
  private:
-  std::vector<Register> reg_keys;
-  std::vector<Register> reg_values;
+  Register cache_timer;
 
   std::string digest_control_name;
   std::string digest_name;
@@ -38,51 +33,19 @@ class TransientCachedTableMap : public TableMap<K, V> {
 
  public:
   TransientCachedTableMap(const std::string &_control_name,
-                          const std::string &_table_name,
-                          const std::vector<std::string> &_reg_keys_names,
-                          const std::vector<std::string> &_reg_values_names,
-                          time_ms_t _timeout,
-                          const typename TableMap<K, V>::expiration_callback_fn
-                              &_expiration_callback,
+                          const std::string &_table_name, time_ms_t _timeout,
+                          const std::string &_cache_timer_name,
                           const std::string &_digest_control_name,
                           const std::string &_digest_name)
-      : TableMap<K, V>(_control_name, _table_name, _timeout,
-                       _expiration_callback),
+      : TableMap<K, V>(_control_name, _table_name, _timeout),
+        cache_timer(_control_name, _cache_timer_name),
         digest_control_name(_digest_control_name),
-        digest_name(_digest_name),
-        learn_obj(nullptr) {
-    init_registers(_control_name, _reg_keys_names, _reg_values_names);
+        digest_name(_digest_name) {
     init_digest();
     register_digest_callback();
   }
 
  private:
-  void init_registers(const std::string &control_name,
-                      const std::vector<std::string> &reg_keys_names,
-                      const std::vector<std::string> &reg_values_names) {
-    if (reg_keys_names.size() != K) {
-      ERROR(
-          "Insufficient register keys names provided (provided %lu, but we "
-          "expected %lu)",
-          reg_keys_names.size(), K);
-    }
-
-    if (reg_values_names.size() != V) {
-      ERROR(
-          "Insufficient register values names provided (provided %lu, but we "
-          "expected %lu)",
-          reg_values_names.size(), V);
-    }
-
-    for (size_t i = 0; i < K; i++) {
-      reg_keys.emplace_back(control_name, reg_keys_names[i]);
-    }
-
-    for (size_t i = 0; i < V; i++) {
-      reg_values.emplace_back(control_name, reg_values_names[i]);
-    }
-  }
-
   void init_digest() {
     bf_status_t bf_status = cfg.info->bfrtLearnFromNameGet(
         Table::append_control(digest_control_name, digest_name), &learn_obj);
@@ -131,7 +94,17 @@ class TransientCachedTableMap : public TableMap<K, V> {
   }
 
   void migrate_entry(const digest_t &digest) {
-    // TODO:
+    // Note: there's no worry here about atomicity. This is all done inside a
+    // transaction, so the register and table updates are actually seen at the
+    // same time.
+
+    // Expire the cache entry (allows other flows to use it). There's no need to
+    // change the key and value registers, just expiring their entries is
+    // enough, they can have stale data as long as it's expired.
+    cache_timer.set(digest.cache_index, 0);
+
+    // Add entry to the table.
+    TableMap<K, V>::put(digest.key, digest.value);
   }
 
   static bf_status_t internal_digest_callback(

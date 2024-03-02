@@ -16,17 +16,11 @@ class TableMap : public Table {
   static_assert(K > 0);
   static_assert(V > 0);
 
- protected:
-  typedef std::function<bf_status_t(const table_key_t<K> &key,
-                                    TableMap<K, V> *tm)>
-      expiration_callback_fn;
-
  private:
   std::unordered_map<table_key_t<K>, table_value_t<V>, fields_hash_t<K>> cache;
 
   bf_rt_id_t populate_action_id;
   std::optional<time_ms_t> timeout;
-  std::optional<expiration_callback_fn> expiration_callback;
 
  public:
   TableMap(const std::string &_control_name, const std::string &_table_name)
@@ -37,21 +31,19 @@ class TableMap : public Table {
   }
 
   TableMap(const std::string &_control_name, const std::string &_table_name,
-           time_ms_t _timeout,
-           const expiration_callback_fn &_expiration_callback)
+           time_ms_t _timeout)
       : TableMap(_control_name, _table_name) {
     timeout = _timeout;
-    expiration_callback = _expiration_callback;
     enable_expirations();
   }
 
   void enable_expirations() {
-    assert(timeout && expiration_callback);
+    assert(timeout);
     set_notify_mode(*timeout, (void *)this, internal_expiration_callback, true);
   }
 
   void disable_expirations() {
-    assert(timeout && expiration_callback);
+    assert(timeout);
     set_notify_mode(*timeout, (void *)this, internal_expiration_callback,
                     false);
   }
@@ -290,11 +282,10 @@ class TableMap : public Table {
     table_key_t<K> k = tm->build_key(key);
 
     cfg.begin_transaction();
-    bf_status_t bf_status = (*tm->expiration_callback)(k, tm);
-    ASSERT_BF_STATUS(bf_status)
+    tm->del(k);
     cfg.end_transaction();
 
-    return bf_status;
+    return BF_SUCCESS;
   }
 };
 

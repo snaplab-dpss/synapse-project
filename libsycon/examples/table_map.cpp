@@ -3,20 +3,12 @@
 
 using namespace sycon;
 
-using TM = TableMap<4, 1>;
-using TM_key_t = table_key_t<4>;
-
-bf_status_t tm_expiration_callback(const TM_key_t &key, TM *tm) {
-  tm->del(key);
-  return BF_SUCCESS;
-}
-
 struct state_t {
-  TM table_with_timeout;
+  TableMap<4, 1> table_with_timeout;
 
   state_t()
       : table_with_timeout("Ingress", "table_with_timeout",
-                           args.expiration_time, tm_expiration_callback) {}
+                           args.expiration_time) {}
 };
 
 state_t *state;

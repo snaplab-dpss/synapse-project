@@ -15,11 +15,8 @@ class CachedTableMap : public TableMap<K, V> {
 
  public:
   CachedTableMap(const std::string &_control_name,
-                 const std::string &_table_name, time_ms_t _timeout,
-                 const typename TableMap<K, V>::expiration_callback_fn
-                     &_expiration_callback)
-      : TableMap<K, V>(_control_name, _table_name, _timeout,
-                       _expiration_callback) {}
+                 const std::string &_table_name, time_ms_t _timeout)
+      : TableMap<K, V>(_control_name, _table_name, _timeout) {}
 };
 
 }  // namespace sycon

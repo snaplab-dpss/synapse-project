@@ -4,17 +4,15 @@
 # Usage: APP=prog_name make -f PATH_TO_THIS_MAKEFILE
 #########################################################
 
-ifndef APP
-$(error "APP is not set. Set APP to the name of the program you want to compile (without extensions).")
-endif
-
 ifndef SDE_INSTALL
 $(error "SDE_INSTALL is not set.")
 endif
 
-ifndef P4_COMPILATION_VARS
-P4_COMPILATION_VARS := ""
-endif
+SOURCES = $(wildcard *cpp)
+APP = $(basename $(SOURCES))
+
+# Optional compilation variables
+P4_COMPILATION_VARS ?=
 
 CURRENT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -30,10 +28,28 @@ CONTROLLER_BIN_DEBUG := $(DEBUG_DIR)/$(APP)
 
 P4_BUILD := $(CURRENT_DIR)/p4_build.sh
 
+P4C=$(SDE_INSTALL)/bin/bf-p4c
+P4_DEBUG_FLAGS=-g --verbose 2 --create-graphs
+
 CONTROLLER_BUILD_FLAGS := -std=c++17 -DNDEBUG=1 -O3
 CONTROLLER_BUILD_DEBUG_FLAGS := -std=c++17 -O0 -g
 
 all: $(CONTROLLER_BIN) $(CONTROLLER_BIN_DEBUG)
+
+debug-tofino1:
+	SDE_INSTALL=$(SDE_INSTALL) \
+		$(P4C) \
+		$(P4_DEBUG_FLAGS) \
+		-o $(BUILD_DIR) \
+		$(APP).p4 $(P4_COMPILATION_VARS)
+
+debug-tofino2:
+	SDE_INSTALL=$(SDE_INSTALL) \
+		$(P4C) \
+		$(P4_DEBUG_FLAGS) \
+		--target tofino2 --arch t2na \
+		-o $(BUILD_DIR) \
+		$(APP).p4 $(P4_COMPILATION_VARS)
 
 install-tofino1:
 	SDE_INSTALL=$(SDE_INSTALL) $(P4_BUILD) $(APP).p4 $(P4_COMPILATION_VARS)

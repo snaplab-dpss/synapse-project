@@ -4,11 +4,9 @@
 using namespace sycon;
 
 struct state_t {
-  TransientCachedTableMap<4, 1> map;
+  CachedTableMap<4, 1> map;
 
-  state_t()
-      : map("Ingress", "map", args.expiration_time, "map_cache_timer",
-            "IngressDeparser", "digest") {}
+  state_t() : map("Ingress", "map", args.expiration_time) {}
 };
 
 state_t *state;

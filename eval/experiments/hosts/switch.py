@@ -52,7 +52,6 @@ class Switch:
         env_vars = " ".join([
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
-            f"APP={program_name}",
             f"P4_COMPILATION_VARS=\"{compilation_vars}\"",
         ])
 
