@@ -39,11 +39,10 @@ class Experiment:
 
             if out_file_path.exists():
                 assert out_file_path.is_file()
+                self.log_file = open(log_file, "a")
             else:
                 out_file_path.parents[0].mkdir(parents=True, exist_ok=True)
-
-            # Always overwrite. The logs become a mess otherwise.
-            self.log_file = open(log_file, "w")
+                self.log_file = open(log_file, "w")
         else:
             self.log_file = None
         
