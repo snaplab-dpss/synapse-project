@@ -84,7 +84,8 @@ class TransientCachedTableMap : public TableMap<K, V> {
       if (i - 1 < K) {
         bf_status = data->getValue(id, &digest.key.values[i - 1]);
       } else {
-        bf_status = data->getValue(id, &digest.value.values[K - i - 1]);
+        assert(i - K - 1 < V);
+        bf_status = data->getValue(id, &digest.value.values[i - K - 1]);
       }
 
       ASSERT_BF_STATUS(bf_status)

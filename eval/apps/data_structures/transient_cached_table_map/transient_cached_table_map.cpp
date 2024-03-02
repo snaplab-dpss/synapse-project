@@ -16,8 +16,8 @@ struct state_t {
   state_t()
       : forwarder("Ingress", "forwarder",
                   map_value_t({nf_config.out_dev_port})),
-        map("Ingress", "map", args.expiration_time, "cache.expirator",
-            "IngressDeparser", "map_digest") {}
+        map("Ingress", "map", args.expiration_time, "cache.expirator.reg",
+            "IngressDeparser", "digest_map") {}
 };
 
 state_t *state;

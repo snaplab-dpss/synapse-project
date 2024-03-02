@@ -8,7 +8,7 @@ Register::Register(const std::string &control_name,
                    const std::string &register_name)
     : Table(control_name, register_name) {
   init_key({{"$REGISTER_INDEX", &index}});
-  init_data({{control_name + ".f1", &content}});
+  init_data({{append_control(control_name, register_name) + ".f1", &content}});
 }
 
 u32 Register::get(u32 i) {

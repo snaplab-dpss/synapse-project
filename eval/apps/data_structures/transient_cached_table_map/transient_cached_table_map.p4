@@ -92,16 +92,21 @@ header tcpudp_t {
 }
 
 struct digest_map_t {
+	hash_t hash;
 	bit<32> src_addr;
 	bit<32> dst_addr;
 	bit<16> src_port;
 	bit<16> dst_port;
+	bit<16> value;
 }
 
 struct empty_header_t {}
 struct empty_metadata_t {}
 
-struct my_ingress_metadata_t {}
+struct my_ingress_metadata_t {
+	hash_t hash;
+	bit<16> value;
+}
 
 struct my_ingress_headers_t {
 	cpu_h cpu;
@@ -412,8 +417,6 @@ control Ingress(
 	Hashing() hashing;
 	Cache() cache;
 
-	bit<16> port;
-	hash_t hash;
 	bool hit;
 
 	action forward(port_t port) {
@@ -427,8 +430,8 @@ control Ingress(
 		forward(CPU_PCIE_PORT);
 	}
 
-	action populate(bit<16> out_port) {
-		port = out_port;
+	action populate(bit<16> port) {
+		meta.value = port;
 	}
 
 	table map {
@@ -467,13 +470,13 @@ control Ingress(
 				hdr.ipv4.dst_addr,
 				hdr.tcpudp.src_port,
 				hdr.tcpudp.dst_port,
-				hash
+				meta.hash
 			);
 
 			forwarder.apply();
 
 			if (map.apply().hit) {
-				forward(port[8:0]);
+				forward(meta.value[8:0]);
 			} else {
 				cache.apply(
 					ig_intr_md.ingress_mac_tstamp[47:16],
@@ -481,8 +484,8 @@ control Ingress(
 					hdr.ipv4.dst_addr,
 					hdr.tcpudp.src_port,
 					hdr.tcpudp.dst_port,
-					hash,
-					port,
+					meta.hash,
+					meta.value,
 					ig_dprsr_md.digest_type,
 					hit
 				);
@@ -490,7 +493,7 @@ control Ingress(
 				if (!hit) {
 					send_to_controller();
 				} else {
-					forward(port[8:0]);
+					forward(meta.value[8:0]);
 				}
 			}
 		}
@@ -514,10 +517,12 @@ control IngressDeparser(
 	apply {
 		if (ig_dprsr_md.digest_type == 1) {
 			digest_map.pack({
+				meta.hash,
 				hdr.ipv4.src_addr,
 				hdr.ipv4.dst_addr,
 				hdr.tcpudp.src_port,
-				hdr.tcpudp.dst_port
+				hdr.tcpudp.dst_port,
+				meta.value
 			});
 		}
 
