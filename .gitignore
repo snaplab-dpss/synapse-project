@@ -27,12 +27,13 @@ plots
 .$*.bkp
 .$*.dtmp
 
-# Latex harbage
-*.aux
-*.log
-*.out
-*.fls
-nv43c1m9*
+# Latex garbage
+eval/*.aux
+eval/*.log
+eval/*.out
+eval/*.fls
+eval/*.fdb_latexmk
+eval/*.pdf
 
 # In case we mess up
 core.*

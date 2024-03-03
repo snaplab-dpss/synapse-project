@@ -628,6 +628,10 @@ csv_pattern_to_plotter = {
         (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", cache_capacity_label_builder, None),
         (plot_throughput_under_churn_pps, "churn_cached_table_map_pps", cache_capacity_label_builder, None),
     ],
+    "churn_transient_cached_table_map_*.csv": [
+        (plot_throughput_under_churn_bps, "churn_transient_cached_table_map_bps", cache_capacity_label_builder, None),
+        (plot_throughput_under_churn_pps, "churn_transient_cached_table_map_pps", cache_capacity_label_builder, None),
+    ],
 }
 
 def should_skip(name: str, png: bool):
