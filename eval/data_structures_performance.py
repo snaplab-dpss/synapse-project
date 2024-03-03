@@ -33,6 +33,7 @@ TARGET_TABLE_PERF_UNDER_CHURN_APPS = [
 
 TARGET_CACHE_PERF_UNDER_CHURN_APPS = [
     "cached_table_map",
+    "transient_cached_table_map",
 ]
 
 CACHE_SIZE = 8192
