@@ -185,8 +185,6 @@ class ThroughputUnderChurn(Experiment):
             self.crc_bits
         )
 
-        max_churn = self.pktgen.wait_launch()
-
         for i in range(NUM_CHURN_STEPS):
             if self.experiment_tracker[current_iter] > i:
                 self.console.log(f"[orange1]Skipping: iteration {i}")
@@ -199,6 +197,7 @@ class ThroughputUnderChurn(Experiment):
             )
 
             self.controller.wait_ready()
+            max_churn = self.pktgen.wait_launch()
 
             churns = self._get_churns(max_churn, step_progress, task_id)
             churn = churns[i]

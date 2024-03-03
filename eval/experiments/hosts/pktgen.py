@@ -31,6 +31,9 @@ class Pktgen():
 
         self.pktgen_active = False
 
+        self.max_churn = 0
+        self.ready = False
+
         if self.nb_tx_cores < MIN_NUM_TX_CORES:
             raise Exception(f"Number of TX cores must be >= {MIN_NUM_TX_CORES} (is {self.nb_tx_cores})")
         
@@ -107,6 +110,9 @@ class Pktgen():
     def wait_launch(self) -> int:
         assert self.pktgen_active
 
+        if self.ready:
+            return self.max_churn
+
         output = self.wait_ready()
 
         self.ready = True
@@ -125,8 +131,8 @@ class Pktgen():
             if not match:
                 continue
 
-            max_churn = int(match.group(1))
-            return max_churn
+            self.max_churn = int(match.group(1))
+            return self.max_churn
 
         raise Exception("Unable to retrieve max churn data from output")
     
