@@ -446,7 +446,7 @@ control Ingress(
 			populate;
 		}
 
-		size = 65536;
+		size = 131072;
 		idle_timeout = true;
 	}
 
