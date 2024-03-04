@@ -27,23 +27,17 @@ class Ports : Table {
 
  public:
   Ports() : Table("", "$PORT") {
-    auto bf_status = table->keyFieldIdGet("$DEV_PORT", &DEV_PORT);
-    ASSERT_BF_STATUS(bf_status)
+    init_key({
+        {"$DEV_PORT", &DEV_PORT},
+    });
 
-    bf_status = table->dataFieldIdGet("$SPEED", &SPEED);
-    ASSERT_BF_STATUS(bf_status)
-
-    bf_status = table->dataFieldIdGet("$FEC", &FEC);
-    ASSERT_BF_STATUS(bf_status)
-
-    bf_status = table->dataFieldIdGet("$PORT_ENABLE", &PORT_ENABLE);
-    ASSERT_BF_STATUS(bf_status)
-
-    bf_status = table->dataFieldIdGet("$LOOPBACK_MODE", &LOOPBACK_MODE);
-    ASSERT_BF_STATUS(bf_status)
-
-    bf_status = table->dataFieldIdGet("$PORT_UP", &PORT_UP);
-    ASSERT_BF_STATUS(bf_status)
+    init_data({
+        {"$SPEED", &SPEED},
+        {"$FEC", &FEC},
+        {"$PORT_ENABLE", &PORT_ENABLE},
+        {"$LOOPBACK_MODE", &LOOPBACK_MODE},
+        {"$PORT_UP", &PORT_UP},
+    });
   }
 
   void add_dev_port(u16 dev_port, bf_port_speed_t speed,

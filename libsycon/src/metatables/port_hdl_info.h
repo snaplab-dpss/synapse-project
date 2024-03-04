@@ -20,14 +20,11 @@ class Port_HDL_Info : Table {
 
  public:
   Port_HDL_Info() : Table("", "$PORT_HDL_INFO") {
-    auto bf_status = table->keyFieldIdGet("$CONN_ID", &CONN_ID);
-    ASSERT_BF_STATUS(bf_status)
-
-    bf_status = table->keyFieldIdGet("$CHNL_ID", &CHNL_ID);
-    ASSERT_BF_STATUS(bf_status)
-
-    bf_status = table->dataFieldIdGet("$DEV_PORT", &DEV_PORT);
-    ASSERT_BF_STATUS(bf_status)
+    init_key({
+        {"$CONN_ID", &CONN_ID},
+        {"$CHNL_ID", &CHNL_ID},
+        {"$DEV_PORT", &DEV_PORT},
+    });
   }
 
   u16 get_dev_port(u16 front_panel_port, u16 lane, bool from_hw = false) {
