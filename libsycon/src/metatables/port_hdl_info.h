@@ -23,6 +23,9 @@ class Port_HDL_Info : Table {
     init_key({
         {"$CONN_ID", &CONN_ID},
         {"$CHNL_ID", &CHNL_ID},
+    });
+
+    init_data({
         {"$DEV_PORT", &DEV_PORT},
     });
   }
