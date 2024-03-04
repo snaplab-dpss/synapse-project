@@ -29,18 +29,16 @@ Table::Table(const std::string &_control, const std::string &_name)
   auto full_name = append_control(control, name);
   auto bf_status = info->bfrtTableFromNameGet(full_name, &table);
   ASSERT_BF_STATUS(bf_status)
-
-  // Allocate key and data once, and use reset across different uses
-  bf_status = table->keyAllocate(&key);
-  ASSERT_BF_STATUS(bf_status)
-  assert(key);
-
-  bf_status = table->dataAllocate(&data);
-  ASSERT_BF_STATUS(bf_status)
-  assert(data);
 }
 
 void Table::init_key() {
+  if (!key) {
+    // Allocate key and data once, and use reset across different uses
+    auto bf_status = table->keyAllocate(&key);
+    ASSERT_BF_STATUS(bf_status)
+    assert(key);
+  }
+
   std::vector<bf_rt_id_t> key_fields_ids;
 
   auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
@@ -67,6 +65,13 @@ void Table::init_key() {
 
 void Table::init_key(
     const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
+  if (!key) {
+    // Allocate key and data once, and use reset across different uses
+    auto bf_status = table->keyAllocate(&key);
+    ASSERT_BF_STATUS(bf_status)
+    assert(key);
+  }
+
   for (const auto &field : fields) {
     auto bf_status = table->keyFieldIdGet(field.first, field.second);
     ASSERT_BF_STATUS(bf_status)
@@ -75,6 +80,12 @@ void Table::init_key(
 
 void Table::init_data(
     const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
+  if (!data) {
+    auto bf_status = table->dataAllocate(&data);
+    ASSERT_BF_STATUS(bf_status)
+    assert(data);
+  }
+
   for (const auto &field : fields) {
     auto bf_status = table->dataFieldIdGet(field.first, field.second);
     ASSERT_BF_STATUS(bf_status)
@@ -84,6 +95,12 @@ void Table::init_data(
 }
 
 void Table::init_data_with_action(bf_rt_id_t action_id) {
+  if (!data) {
+    auto bf_status = table->dataAllocate(&data);
+    ASSERT_BF_STATUS(bf_status)
+    assert(data);
+  }
+
   std::vector<bf_rt_id_t> data_fields_ids;
 
   auto bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
@@ -115,6 +132,12 @@ void Table::init_data_with_action(bf_rt_id_t action_id) {
 
 void Table::init_data_with_action(const std::string &name, bf_rt_id_t action_id,
                                   bf_rt_id_t *field_id) {
+  if (!data) {
+    auto bf_status = table->dataAllocate(&data);
+    ASSERT_BF_STATUS(bf_status)
+    assert(data);
+  }
+
   auto bf_status = table->dataFieldIdGet(name, action_id, field_id);
   ASSERT_BF_STATUS(bf_status)
 }

@@ -19,7 +19,7 @@
 #define SYNAPSE_CONTROLLER_MAIN(argc, argv)                             \
   parse_args(argc, argv);                                               \
   init_switchd();                                                       \
-  configure_ports();                                                    \
+  configure_dev();                                                      \
   register_pcie_pkt_ops();                                              \
   nf_setup();                                                           \
   if (args.run_ucli) {                                                  \

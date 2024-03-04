@@ -6,6 +6,7 @@
 #include "../include/sycon/config.h"
 #include "../include/sycon/constants.h"
 #include "../include/sycon/sycon.h"
+#include "metatables/device_configuration.h"
 #include "metatables/ports.h"
 
 extern "C" {
@@ -32,7 +33,7 @@ void catch_interrupt() {
   sigaction(SIGQUIT, &sigIntHandler, NULL);
 }
 
-void configure_ports() {
+static void configure_ports() {
   bf_dev_port_t pcie_cpu_port = bf_pcie_cpu_port_get(cfg.dev_tgt.dev_id);
   bf_dev_port_t eth_cpu_port = bf_eth_cpu_port_get(cfg.dev_tgt.dev_id);
 
@@ -55,14 +56,6 @@ void configure_ports() {
     return;
   }
 
-  DEBUG("");
-  DEBUG("**********************************************************");
-  DEBUG("*                                                        *");
-  DEBUG("*                        WARNING                         *");
-  DEBUG("* Running in hardware mode but compiled with debug flags *");
-  DEBUG("*                                                        *");
-  DEBUG("**********************************************************");
-
   Ports ports;
 
   DEBUG("Enabling port %u", args.in_port);
@@ -77,6 +70,26 @@ void configure_ports() {
 
   nf_config.in_dev_port = in_dev_port;
   nf_config.out_dev_port = out_dev_port;
+}
+
+static void update_dev_configuration() {
+  Device_Configuration dev_cfg;
+  dev_cfg.set_digest_timout(TOFINO_DIGEST_TIMEOUT);
+}
+
+void configure_dev() {
+  configure_ports();
+  update_dev_configuration();
+
+  if (!args.model) {
+    DEBUG("");
+    DEBUG("**********************************************************");
+    DEBUG("*                                                        *");
+    DEBUG("*                        WARNING                         *");
+    DEBUG("* Running in hardware mode but compiled with debug flags *");
+    DEBUG("*                                                        *");
+    DEBUG("**********************************************************");
+  }
 }
 
 void run_cli() {
