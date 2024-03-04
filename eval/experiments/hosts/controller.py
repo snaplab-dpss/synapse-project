@@ -39,8 +39,26 @@ class Controller:
             self.host.crash(f"SDE directory not found on remote host {self.sde}")
         
         self.ready = False
+    
+    def _clean(self, src: Path) -> None:
+        if not self.host.remote_file_exists(src):
+            self.host.crash(f"Unable to find file {src}")
+
+        makefile = self.repo / "tools" / "Makefile"
+
+        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install"
+        compilation_cmd = f"{env_vars} make -f {makefile} clean"
+        cmd = self.host.run_command(compilation_cmd, dir=src.parent)
+        cmd.watch()
+        code = cmd.recv_exit_status()
+
+        if code != 0:
+            self.host.crash(f"Controller cleanup failed.")
         
     def _compile(self, src: Path) -> None:
+        # Cleanup first, always recompile from scratch.
+        self._clean(src)
+
         if not self.host.remote_file_exists(src):
             self.host.crash(f"Unable to find file {src}")
 
