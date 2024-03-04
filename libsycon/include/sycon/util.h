@@ -31,6 +31,8 @@
 #define likely(x) __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
+#define TOFINO_ARCH(version) (std::string((version) == 1 ? "tf1" : "tf2"))
+
 namespace sycon {
 
 typedef uint8_t u8;
