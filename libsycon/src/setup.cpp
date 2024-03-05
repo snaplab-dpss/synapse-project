@@ -31,6 +31,7 @@ void catch_interrupt() {
 
   sigaction(SIGINT, &sigIntHandler, NULL);
   sigaction(SIGQUIT, &sigIntHandler, NULL);
+  sigaction(SIGTERM, &sigIntHandler, NULL);
 }
 
 static void configure_ports() {

@@ -39,7 +39,8 @@ install_libsycon() {
     echo "Installing libsycon (target: $host)"
     echo "*********************************************"
 
-    ssh $host "cd $path_to_repo/libsycon && ./install.sh"
+    # Touching CMakeLists allows cmake to detect new files (because of glob)
+    ssh $host "cd $path_to_repo/libsycon && touch CMakeLists.txt && ./install.sh"
 }
 
 sync tofino2-b2 /home/user/synapse
