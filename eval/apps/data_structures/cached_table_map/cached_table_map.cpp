@@ -12,18 +12,25 @@ using map_value_t = table_value_t<1>;
 struct state_t {
   Forwarder forwarder;
   Map map;
+  Counter cpu_counter;
 
   state_t()
       : forwarder("Ingress", "forwarder",
                   map_value_t({nf_config.out_dev_port})),
-        map("Ingress", "map", args.expiration_time) {}
+        map("Ingress", "map", args.expiration_time),
+        cpu_counter("Ingress", "cpu_counter", true, true) {}
 };
 
 state_t *state;
 
 void sycon::nf_init() { state = new state_t(); }
 
-void sycon::nf_cleanup() { delete state; }
+void sycon::nf_cleanup() {
+  auto counter_data = state->cpu_counter.get(0);
+  LOG("Packets: %lu", counter_data.packets)
+  LOG("Bytes: %lu", counter_data.bytes)
+  delete state;
+}
 
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));

@@ -414,6 +414,8 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
 {
+	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) cpu_counter;
+
 	Hashing() hashing;
 	Cache() cache;
 
@@ -428,6 +430,7 @@ control Ingress(
 		hdr.cpu.code_path = 1234;
 		hdr.cpu.in_port = ig_intr_md.ingress_port;
 		forward(CPU_PCIE_PORT);
+		cpu_counter.count(0);
 	}
 
 	action populate(bit<16> port) {
