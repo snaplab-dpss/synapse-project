@@ -11,6 +11,15 @@ from scapy.packet import Packet
 
 from typing import Optional
 
+# This modifies the input() function, allowing the user to
+# use arrow-up to scroll through the input history.
+try:
+    import readline
+except:
+    pass #readline not available
+
+IP_PROTOCOLS_WARMUP = 0x92
+
 CPU_IFACE = "veth250"
 
 port_to_iface = {}
@@ -46,19 +55,29 @@ def random_mac():
     mac_bytes = [ f"{(mac >> offset) & 0xff:02x}" for offset in range(0, bits, 8) ]
     return ":".join(mac_bytes)
 
-def flow_to_str(src_ip, dst_ip, src_port, dst_port):
-    return f"{src_ip}:{src_port} -> {dst_ip}:{dst_port}"
+def flow_to_str(src_ip, dst_ip, src_port, dst_port, is_warmup_pkt):
+    pkt_str = f"{src_ip}:{src_port} -> {dst_ip}:{dst_port}"
+    if is_warmup_pkt:
+        pkt_str += f" [WARMUP]"
+    return pkt_str
 
 def get_packet_flow(pkt: Packet):
     assert IP in pkt
-    assert UDP in pkt
+
+    # We should assert that this is in fact true, but when
+    # I added the warmup protocol ID scapy stopped recognizing UDP as well... UDP
+    # (and correctly, as the packet is not identified as UDP by the network layer).
+    # I'm too lazy to fix this :(
+    # assert UDP in pkt
     
     src_ip = str(pkt["IP"].src)
     dst_ip = str(pkt["IP"].dst)
     src_port = str(pkt["UDP"].sport)
     dst_port = str(pkt["UDP"].dport)
 
-    return flow_to_str(src_ip, dst_ip, src_port, dst_port)
+    is_warmup_pkt = pkt["IP"].proto == IP_PROTOCOLS_WARMUP
+
+    return flow_to_str(src_ip, dst_ip, src_port, dst_port, is_warmup_pkt)
 
 def callback_generator(port):
     def callback(pkt):
@@ -105,10 +124,10 @@ def get_pkt(flow_index):
     return pkt
 
 def cmd_help():
-    print(f"Usage: port index [*]")
+    print(f"Usage: port index warmup")
     print(f"  port:  port number (int)")
     print(f"  index: flow index (int)")
-    print(f"  *:     send CRC32 collision (int)")
+    print(f"  warmup: warmup packet (bool: 0 or 1)")
 
 def parse_cmd(cmd) -> Optional[tuple[int, int, bool]]:
     cmd = cmd.split(" ")
@@ -116,15 +135,8 @@ def parse_cmd(cmd) -> Optional[tuple[int, int, bool]]:
     try:
         port = int(cmd[0])
         index = int(cmd[1])
-
-        if len(cmd) == 2:
-            return (port, index, False)
-        
-        if cmd[2] != "*":
-            cmd_help()
-            return None
-        
-        return (port, index, True)
+        warmup = int(cmd[2])
+        return port, index, warmup != 0
         
     except ValueError:
         cmd_help()
@@ -134,7 +146,7 @@ def parse_cmd(cmd) -> Optional[tuple[int, int, bool]]:
         cmd_help()
         return None
 
-def send(port: int, pkt) -> bool:
+def send(port: int, pkt: Packet) -> bool:
     global port_sending_packet
 
     if port not in port_to_iface:
@@ -161,8 +173,11 @@ def main():
         if not parsed_cmd:
             continue
         
-        port, flow_index, collision = parsed_cmd
+        port, flow_index, is_warmup_pkt = parsed_cmd
         pkt = get_pkt(flow_index)
+
+        if is_warmup_pkt:
+            pkt["IP"].proto = IP_PROTOCOLS_WARMUP
 
         if not send(port, pkt):
             print(f"Invalid port {port}")

@@ -38,9 +38,11 @@
 typedef bit<9> port_t;
 typedef bit<7> port_pad_t;
 
-const bit<16> TYPE_IPV4        = 0x800;
-const bit<8>  IP_PROTOCOLS_TCP = 6;
-const bit<8>  IP_PROTOCOLS_UDP = 17;
+const bit<16> TYPE_IPV4 = 0x800;
+
+const bit<8> IP_PROTOCOLS_TCP = 6;
+const bit<8> IP_PROTOCOLS_UDP = 17;
+const bit<8> IP_PROTOCOLS_WARMUP = 0x92;
 
 header cpu_h {
 	bit<16> code_path;
@@ -81,7 +83,9 @@ header tcpudp_t {
 struct empty_header_t {}
 struct empty_metadata_t {}
 
-struct my_ingress_metadata_t {}
+struct my_ingress_metadata_t {
+	bool is_warmup_pkt;
+}
 
 struct my_ingress_headers_t {
 	cpu_h cpu;
@@ -128,6 +132,8 @@ parser IngressParser(
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
 
+		meta.is_warmup_pkt = false;
+
 		transition select(ig_intr_md.ingress_port) {
 			CPU_PCIE_PORT: parse_cpu;
 			default: parse_ethernet;
@@ -152,8 +158,14 @@ parser IngressParser(
 		transition select(hdr.ipv4.protocol) {
 			IP_PROTOCOLS_TCP: parse_tcpudp;
 			IP_PROTOCOLS_UDP: parse_tcpudp;
+			IP_PROTOCOLS_WARMUP: parse_warmup;
 			default: accept;
 		}
+	}
+
+	state parse_warmup {
+		meta.is_warmup_pkt = true;
+		transition parse_tcpudp;
 	}
 
 	state parse_tcpudp {
@@ -186,7 +198,6 @@ control Ingress(
 		hdr.cpu.code_path = 1234;
 		hdr.cpu.in_port = ig_intr_md.ingress_port;
 		forward(CPU_PCIE_PORT);
-		cpu_counter.count(0);
 	}
 
 	action populate(port_t port) {
@@ -218,6 +229,10 @@ control Ingress(
 				forward(out_port);
 			} else {
 				send_to_controller();
+
+				if (!meta.is_warmup_pkt) {
+					cpu_counter.count(0);
+				}
 			}
 		}
 		
