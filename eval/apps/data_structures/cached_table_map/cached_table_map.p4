@@ -38,9 +38,11 @@
 typedef bit<9> port_t;
 typedef bit<7> port_pad_t;
 
-const bit<16> TYPE_IPV4        = 0x800;
-const bit<8>  IP_PROTOCOLS_TCP = 6;
-const bit<8>  IP_PROTOCOLS_UDP = 17;
+const bit<16> TYPE_IPV4 = 0x800;
+
+const bit<8> IP_PROTOCOLS_TCP = 6;
+const bit<8> IP_PROTOCOLS_UDP = 17;
+const bit<8> IP_PROTOCOLS_WARMUP = 146;
 
 // Pass the value of CACHE_CAPACITY_EXPONENT_BASE_2 during compilation. E.g.:
 // $ p4_build.sh cached_table_map.p4 -DCACHE_CAPACITY_EXPONENT_BASE_2=12
@@ -94,7 +96,9 @@ header tcpudp_t {
 struct empty_header_t {}
 struct empty_metadata_t {}
 
-struct my_ingress_metadata_t {}
+struct my_ingress_metadata_t {
+	bool is_warmup_pkt;
+}
 
 struct my_ingress_headers_t {
 	cpu_h cpu;
@@ -141,6 +145,8 @@ parser IngressParser(
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
 
+		meta.is_warmup_pkt = false;
+
 		transition select(ig_intr_md.ingress_port) {
 			CPU_PCIE_PORT: parse_cpu;
 			default: parse_ethernet;
@@ -165,8 +171,14 @@ parser IngressParser(
 		transition select(hdr.ipv4.protocol) {
 			IP_PROTOCOLS_TCP: parse_tcpudp;
 			IP_PROTOCOLS_UDP: parse_tcpudp;
+			IP_PROTOCOLS_WARMUP: parse_warmup;
 			default: accept;
 		}
+	}
+
+	state parse_warmup {
+		meta.is_warmup_pkt = true;
+		transition parse_tcpudp;
 	}
 
 	state parse_tcpudp {
@@ -399,6 +411,7 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
 {
+	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) pkt_counter;
 	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) cpu_counter;
 
 	Hashing() hashing;
@@ -417,7 +430,6 @@ control Ingress(
 		hdr.cpu.code_path = 1234;
 		hdr.cpu.in_port = ig_intr_md.ingress_port;
 		forward(CPU_PCIE_PORT);
-		cpu_counter.count(0);
 	}
 
 	action populate(bit<16> out_port) {
@@ -455,6 +467,10 @@ control Ingress(
 			forward(hdr.cpu.out_port);
 			hdr.cpu.setInvalid();
 		} else {
+			if (!meta.is_warmup_pkt) {
+				pkt_counter.count(0);
+			}
+
 			hashing.apply(
 				hdr.ipv4.src_addr,
 				hdr.ipv4.dst_addr,
@@ -481,6 +497,10 @@ control Ingress(
 
 				if (!hit) {
 					send_to_controller();
+
+					if (!meta.is_warmup_pkt) {
+						cpu_counter.count(0);
+					}					
 				} else {
 					forward(port[8:0]);
 				}

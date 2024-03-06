@@ -107,7 +107,9 @@ void sycon::nf_init() {
   state->ipRoute.dump();
 }
 
-void sycon::nf_cleanup() { delete state; }
+void sycon::nf_exit() { delete state; }
+
+void sycon::nf_user_signal_handler() {}
 
 bool sycon::nf_process(time_ns_t now, byte_t* pkt, u16 size) { return true; }
 

@@ -16,18 +16,6 @@
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); \
   }
 
-#define SYNAPSE_CONTROLLER_MAIN(argc, argv)                             \
-  parse_args(argc, argv);                                               \
-  init_switchd();                                                       \
-  configure_dev();                                                      \
-  register_pcie_pkt_ops();                                              \
-  nf_setup();                                                           \
-  if (args.run_ucli) {                                                  \
-    run_cli();                                                          \
-  } else {                                                              \
-    WAIT_FOR_ENTER("Controller is running. Press enter to terminate."); \
-  }
-
 #define likely(x) __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 

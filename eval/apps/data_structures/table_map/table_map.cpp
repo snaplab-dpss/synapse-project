@@ -9,22 +9,37 @@ using map_value_t = table_value_t<1>;
 
 struct state_t {
   Map map;
+  Counter pkt_counter;
   Counter cpu_counter;
 
   state_t()
       : map("Ingress", "table_with_timeout", args.expiration_time),
+        pkt_counter("Ingress", "pkt_counter", true, true),
         cpu_counter("Ingress", "cpu_counter", true, true) {}
 };
 
-state_t *state;
+std::unique_ptr<state_t> state;
 
-void sycon::nf_init() { state = new state_t(); }
+void sycon::nf_init() { state = std::make_unique<state_t>(); }
 
-void sycon::nf_cleanup() {
-  auto counter_data = state->cpu_counter.get(0);
-  LOG("Packets: %lu", counter_data.packets)
-  LOG("Bytes: %lu", counter_data.bytes)
-  delete state;
+void sycon::nf_exit() {}
+
+void sycon::nf_user_signal_handler() {
+  counter_data_t pkt_counter_data = state->pkt_counter.get(0);
+  counter_data_t cpu_counter_data = state->cpu_counter.get(0);
+
+  u64 in_packets = pkt_counter_data.packets;
+  u64 cpu_packets = cpu_counter_data.packets;
+
+  // Total packets (including warmup traffic)
+  u64 total_packets = get_asic_port_rx(nf_config.in_dev_port);
+
+  float ratio = in_packets > 0 ? (float)cpu_packets / in_packets : 0;
+
+  LOG("Packet counters:");
+  LOG("In: %lu", in_packets)
+  LOG("CPU: %lu", cpu_packets)
+  LOG("Total: %lu", total_packets)
 }
 
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {

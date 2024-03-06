@@ -42,7 +42,7 @@ const bit<16> TYPE_IPV4 = 0x800;
 
 const bit<8> IP_PROTOCOLS_TCP = 6;
 const bit<8> IP_PROTOCOLS_UDP = 17;
-const bit<8> IP_PROTOCOLS_WARMUP = 0x92;
+const bit<8> IP_PROTOCOLS_WARMUP = 146;
 
 header cpu_h {
 	bit<16> code_path;
@@ -185,6 +185,7 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
 {
+	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) pkt_counter;
 	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) cpu_counter;
 
 	port_t out_port;
@@ -225,6 +226,10 @@ control Ingress(
 			forward(hdr.cpu.out_port);
 			hdr.cpu.setInvalid();
 		} else {
+			if (!meta.is_warmup_pkt) {
+				pkt_counter.count(0);
+			}
+			
 			if (table_with_timeout.apply().hit) {
 				forward(out_port);
 			} else {

@@ -13,10 +13,12 @@ state_t *state;
 
 void sycon::nf_init() { state = new state_t(); }
 
-void sycon::nf_cleanup() {
+void sycon::nf_exit() {
   state->map.dump();
   delete state;
 }
+
+void sycon::nf_user_signal_handler() {}
 
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));

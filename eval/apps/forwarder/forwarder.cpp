@@ -78,7 +78,7 @@ void sycon::nf_init() {
   state->forwarder.add_fwd_entry(nf_config.in_dev_port, nf_config.out_dev_port);
 }
 
-void sycon::nf_cleanup() {
+void sycon::nf_exit() {
   state->forwarder.dump();
   delete state;
 }

@@ -7,7 +7,7 @@ void sycon::nf_init() {
   // No state
 }
 
-void sycon::nf_cleanup() {
+void sycon::nf_exit() {
   // No state
 }
 

@@ -7,7 +7,7 @@ import struct
 from scapy.sendrecv import AsyncSniffer, sendp
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, UDP
-from scapy.packet import Packet
+from scapy.packet import Packet, bind_layers
 
 from typing import Optional
 
@@ -18,14 +18,18 @@ try:
 except:
     pass #readline not available
 
-IP_PROTOCOLS_WARMUP = 0x92
+IP_PROTOCOLS_UDP = 17
+IP_PROTOCOLS_WARMUP = 146
 
 CPU_IFACE = "veth250"
 
 port_to_iface = {}
 port_sending_packet: Optional[int] = None
 
-packets = {}
+packets: dict[dict, Packet] = {}
+
+# All transport protocols are UDP
+bind_layers(IP, UDP)
 
 def build_ifaces():
     for port in range(32):
@@ -63,12 +67,7 @@ def flow_to_str(src_ip, dst_ip, src_port, dst_port, is_warmup_pkt):
 
 def get_packet_flow(pkt: Packet):
     assert IP in pkt
-
-    # We should assert that this is in fact true, but when
-    # I added the warmup protocol ID scapy stopped recognizing UDP as well... UDP
-    # (and correctly, as the packet is not identified as UDP by the network layer).
-    # I'm too lazy to fix this :(
-    # assert UDP in pkt
+    assert UDP in pkt
     
     src_ip = str(pkt["IP"].src)
     dst_ip = str(pkt["IP"].dst)
@@ -104,24 +103,23 @@ def listen():
     return sniffers
 
 def get_pkt(flow_index):
-    if flow_index in packets:
-        return packets[flow_index]
-    
-    smac = random_mac()
-    dmac = random_mac()
+    if flow_index not in packets:
+        smac = random_mac()
+        dmac = random_mac()
 
-    src_ip = random_ip()
-    dst_ip = random_ip()
-    src_port = random_port()
-    dst_port = random_port()
-    
-    pkt = Ether(dst=dmac, src=smac)
-    pkt = pkt / IP(src=src_ip, dst=dst_ip)
-    pkt = pkt / UDP(sport=src_port, dport=dst_port)
+        src_ip = random_ip()
+        dst_ip = random_ip()
+        src_port = random_port()
+        dst_port = random_port()
+        
+        pkt = Ether(dst=dmac, src=smac)
+        pkt = pkt / IP(src=src_ip, dst=dst_ip)
+        pkt = pkt / UDP(sport=src_port, dport=dst_port)
 
-    packets[flow_index] = pkt
+        packets[flow_index] = pkt
 
-    return pkt
+    # Return a copy, so that future changes are not propagated.
+    return packets[flow_index].copy()
 
 def cmd_help():
     print(f"Usage: port index warmup")
@@ -156,6 +154,7 @@ def send(port: int, pkt: Packet) -> bool:
     port_sending_packet = port
 
     print(f"[SENT {port:>3}] {get_packet_flow(pkt)}")
+    print(pkt)
     sendp(pkt, iface=iface, verbose=0)
 
     return True
@@ -176,8 +175,12 @@ def main():
         port, flow_index, is_warmup_pkt = parsed_cmd
         pkt = get_pkt(flow_index)
 
+        print(is_warmup_pkt, get_packet_flow(pkt))
+
         if is_warmup_pkt:
             pkt["IP"].proto = IP_PROTOCOLS_WARMUP
+        else:
+            pkt["IP"].proto = IP_PROTOCOLS_UDP
 
         if not send(port, pkt):
             print(f"Invalid port {port}")

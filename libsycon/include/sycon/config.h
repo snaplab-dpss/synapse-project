@@ -64,9 +64,20 @@ struct config_t {
     unlock();
   }
 
-  ~config_t();
+  ~config_t() {
+    if (switchd_ctx) {
+      free(switchd_ctx);
+      switchd_ctx = nullptr;
+    }
+  }
 };
 
+struct nf_config_t {
+  u16 in_dev_port;
+  u16 out_dev_port;
+};
+
+extern nf_config_t nf_config;
 extern config_t cfg;
 
 }  // namespace sycon
