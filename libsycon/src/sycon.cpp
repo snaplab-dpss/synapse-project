@@ -50,8 +50,9 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
         bf_switchd_exit_sighandler(signum);
         exit(0);
       case SIGUSR1:
-        DEBUG("~~~ Received a USR signal ~~~")
+        LOG("~~~ Received a USR1 signal ~~~")
         nf_user_signal_handler();
+        LOG("~~~ USR1 signal processing done ~~~")
         break;
       default:
         DEBUG("~~~ Received unknown signal %d (%s) ~~~", signum,
