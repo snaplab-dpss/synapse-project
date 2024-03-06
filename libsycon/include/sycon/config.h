@@ -31,13 +31,16 @@ static inline int atomic16_cmpset(volatile uint16_t *dst, uint16_t exp,
   return res;
 }
 
-struct config_t {
+extern struct config_t {
   bf_switchd_context_t *switchd_ctx;
   bf_rt_target_t dev_tgt;
   const bfrt::BfRtInfo *info;
   std::shared_ptr<bfrt::BfRtSession> session;
 
   volatile int16_t atom;
+
+  u16 in_dev_port;
+  u16 out_dev_port;
 
   config_t() : atom(0) {}
 
@@ -70,14 +73,6 @@ struct config_t {
       switchd_ctx = nullptr;
     }
   }
-};
-
-struct nf_config_t {
-  u16 in_dev_port;
-  u16 out_dev_port;
-};
-
-extern nf_config_t nf_config;
-extern config_t cfg;
+} cfg;
 
 }  // namespace sycon

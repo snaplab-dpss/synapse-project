@@ -126,8 +126,8 @@ static void configure_ports() {
         bf_port_speed_str(pcie_cpu_port_speed));
   DEBUG("Eth CPU port:        %u", eth_cpu_port);
 
-  nf_config.in_dev_port = args.in_port;
-  nf_config.out_dev_port = args.out_port;
+  cfg.in_dev_port = args.in_port;
+  cfg.out_dev_port = args.out_port;
 
   // No need to configure the ports when running with tofino model.
   if (args.model) {
@@ -144,8 +144,8 @@ static void configure_ports() {
   ports->add_dev_port(out_dev_port, DEFAULT_PORT_SPEED,
                       DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
 
-  nf_config.in_dev_port = in_dev_port;
-  nf_config.out_dev_port = out_dev_port;
+  cfg.in_dev_port = in_dev_port;
+  cfg.out_dev_port = out_dev_port;
 }
 
 static void update_dev_configuration() {

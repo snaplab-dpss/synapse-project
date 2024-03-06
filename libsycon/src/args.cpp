@@ -1,10 +1,10 @@
 #include "../include/sycon/args.h"
 
-#include <CLI/CLI.hpp>
 #include <filesystem>
 #include <string>
 
 #include "../include/sycon/constants.h"
+#include "../include/sycon/externs.h"
 
 namespace sycon {
 
@@ -46,6 +46,8 @@ void parse_args(int argc, char *argv[]) {
 
   app.add_option("--out", args.out_port, "Output frontend port")
       ->default_val(DEFAULT_OUT_PORT);
+
+  nf_args(app);
 
   try {
     app.parse(argc, argv);

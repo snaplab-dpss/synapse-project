@@ -16,8 +16,7 @@ struct state_t {
   Counter cpu_counter;
 
   state_t()
-      : forwarder("Ingress", "forwarder",
-                  map_value_t({nf_config.out_dev_port})),
+      : forwarder("Ingress", "forwarder", map_value_t({cfg.out_dev_port})),
         map("Ingress", "map", args.expiration_time),
         pkt_counter("Ingress", "pkt_counter", true, true),
         cpu_counter("Ingress", "cpu_counter", true, true) {}
@@ -37,7 +36,7 @@ void sycon::nf_user_signal_handler() {
   u64 cpu_packets = cpu_counter_data.packets;
 
   // Total packets (including warmup traffic)
-  u64 total_packets = get_asic_port_rx(nf_config.in_dev_port);
+  u64 total_packets = get_asic_port_rx(cfg.in_dev_port);
 
   float ratio = in_packets > 0 ? (float)cpu_packets / in_packets : 0;
 
@@ -59,10 +58,10 @@ bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
                   SWAP_ENDIAN_16(tcpudp_hdr->src_port),
                   SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
 
-  map_value_t out_port({nf_config.out_dev_port});
+  map_value_t out_port({cfg.out_dev_port});
 
   state->map.put(flow, out_port);
-  cpu_hdr->out_port = SWAP_ENDIAN_16(nf_config.out_dev_port);
+  cpu_hdr->out_port = SWAP_ENDIAN_16(cfg.out_dev_port);
 
   return true;
 }

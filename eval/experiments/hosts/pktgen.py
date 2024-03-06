@@ -76,6 +76,7 @@ class Pktgen():
         crc_unique_flows: bool = False,
         crc_bits: int = 16,
         seed: int = 0,
+        mark_warmup_packets: bool = False,
     ) -> None:
         assert not self.pktgen_active
 
@@ -97,6 +98,9 @@ class Pktgen():
         if crc_unique_flows:
             pktgen_options_list.append(f"--crc-unique-flows")
             pktgen_options_list.append(f"--crc-bits {crc_bits}")
+        
+        if mark_warmup_packets:
+            pktgen_options_list.append(f"--mark-warmup-packets")
         
         pktgen_options = ' '.join(pktgen_options_list)
 

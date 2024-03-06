@@ -111,6 +111,8 @@ void sycon::nf_exit() { delete state; }
 
 void sycon::nf_user_signal_handler() {}
 
+void sycon::nf_args(CLI::App& app) {}
+
 bool sycon::nf_process(time_ns_t now, byte_t* pkt, u16 size) { return true; }
 
 int main(int argc, char** argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

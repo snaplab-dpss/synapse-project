@@ -5,6 +5,8 @@ from paramiko import ssh_exception
 from pathlib import Path
 from typing import Optional
 
+import re
+
 from .remote import RemoteHost
 
 
@@ -115,17 +117,49 @@ class Controller:
         )
 
         self.ready = True
+    
+    def send_usr1_signal(self) -> Optional[str]:
+        if self.controller_cmd is None:
+            return None
+        
+        cmd = f"sudo killall -SIGUSR1 {self.exe}"
 
-    def stop(self) -> None:
+        self.host.run_command(cmd)
+        output = self.controller_cmd.watch(
+            stop_pattern="~~~ USR1 signal processing done ~~~",
+        )
+
+        return output
+    
+    def get_cpu_counters(self) -> Optional[tuple[int,int,int]]:
+        output = self.send_usr1_signal()
+
+        if not output:
+            return None
+        
+        result = re.search(r".*In:\s+(\d+)\nCPU:\s+(\d+)\nTotal:\s+(\d+).*", output)
+
+        if not result:
+            self.host.crash("Asked for CPU counters but information not found on controller output")
+
+        assert result
+        
+        in_pkts = int(result.group(1))
+        cpu_pkts = int(result.group(2))
+        total_pkts = int(result.group(3))
+
+        return in_pkts, cpu_pkts, total_pkts
+
+    # When asked for CPU counters, returns both the packets and bytes counter values.
+    def stop(self):
         if self.controller_cmd is None:
             return
 
         # Kill all instances
         cmd = f"sudo killall {self.exe}"
-
         self.host.run_command(cmd)
         self.controller_cmd.watch()
-
+        
         self.host.log("Controller exited successfuly.")
 
         self.controller_cmd = None

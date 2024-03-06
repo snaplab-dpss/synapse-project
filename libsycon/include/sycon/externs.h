@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CLI/CLI.hpp>
+
 #include "packet.h"
 #include "time.h"
 
@@ -24,5 +26,7 @@ bool nf_process(time_ns_t now, byte_t* pkt, u16 size);
 
 // Runs on USR1 signal (typically used for reporting or reseting state).
 void nf_user_signal_handler();
+
+void nf_args(CLI::App& app);
 
 }  // namespace sycon

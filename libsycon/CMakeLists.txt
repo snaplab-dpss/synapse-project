@@ -104,8 +104,9 @@ SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 target_link_libraries(${PROJECT_NAME}
-    PRIVATE
+    PUBLIC
         CLI11::CLI11
+    PRIVATE
         Threads::Threads
         absl::synchronization
         ${PCAP_LIBRARIES}
@@ -132,6 +133,12 @@ install(
 
 install(
     DIRECTORY       ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION     include
+    FILES_MATCHING  PATTERN "*.h*"
+)
+
+install(
+    DIRECTORY       ${cli11_SOURCE_DIR}/include/
     DESTINATION     include
     FILES_MATCHING  PATTERN "*.h*"
 )

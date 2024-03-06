@@ -1,5 +1,6 @@
 import time
 
+from datetime import datetime
 from typing import Optional
 from pathlib import Path
 
@@ -48,7 +49,9 @@ class Experiment:
         
     def log(self, msg):
         if self.log_file:
-            print(f"[{self.name}] {msg}", file=self.log_file, flush=True)
+            now = datetime.now()
+            ts = now.strftime('%Y-%m-%d %H:%M:%S')
+            print(f"[{ts}][{self.name}] {msg}", file=self.log_file, flush=True)
 
     def run(self, step_progress: Progress, current_iter: int) -> None:
         raise NotImplementedError
@@ -60,6 +63,72 @@ class Experiment:
             progress.update(task_id, advance=1)
 
         progress.update(task_id, description="[bold green] done!")
+    
+    def test_throughput(
+        self,
+        rate_mbps: int,
+        pktgen: Pktgen,
+        churn: int,
+        pkt_size: int,
+    ) -> tuple[int, int, float]:
+        log_file = pktgen.host.log_file
+        
+        if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
+            raise ValueError("max_loss must be in [0, 1).")
+
+        # Setting the churn value
+        pktgen.set_churn(churn)
+
+        # Setting warmup duration
+        pktgen.set_warmup_duration(WARMUP_TIME_SEC)
+
+        if log_file:
+            log_file.write(f"Rate {rate_mbps:,} Mbps\n")
+
+        nb_tx_pkts = 0
+        nb_rx_pkts = 0
+
+        while nb_tx_pkts == 0:
+            pktgen.reset_stats()
+            pktgen.set_rate(rate_mbps)
+            
+            # Run pktgen with warmup
+            pktgen.run(ITERATION_DURATION_SEC)
+            pktgen.wait_ready()
+            
+            # Let the flows expire.
+            time.sleep(REST_TIME_SEC)
+
+            nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
+
+            if nb_tx_pkts == 0 and log_file:
+                log_file.write(f"No packets flowing, repeating run\n")
+
+        nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
+        nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8
+
+        real_throughput_tx_bps = int(nb_tx_bits / ITERATION_DURATION_SEC)
+        real_throughput_tx_pps = int(nb_tx_pkts / ITERATION_DURATION_SEC)
+
+        real_throughput_rx_bps = int(nb_rx_bits / ITERATION_DURATION_SEC)
+        real_throughput_rx_pps = int(nb_rx_pkts / ITERATION_DURATION_SEC)
+
+        loss = 1 - nb_rx_pkts / nb_tx_pkts
+
+        if log_file:
+            tx_Gbps = real_throughput_tx_bps / 1e9
+            tx_Mpps = real_throughput_tx_pps / 1e6
+
+            rx_Gbps = real_throughput_rx_bps / 1e9
+            rx_Mpps = real_throughput_rx_pps / 1e6
+
+            log_file.write("\n")
+            log_file.write(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps\n")
+            log_file.write(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps\n")
+            log_file.write(f"Lost {loss*100:.2f}% of packets\n")
+            log_file.flush()
+
+        return real_throughput_tx_bps, real_throughput_tx_pps, loss
     
     def find_stable_throughput(
         self,

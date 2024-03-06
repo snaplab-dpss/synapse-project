@@ -3,26 +3,48 @@
 
 using namespace sycon;
 
-using Map = TableMap<4, 1>;
-using map_key_t = table_key_t<4>;
-using map_value_t = table_value_t<1>;
+using Forwarder = KeylessTableMap<1>;
+using forwarder_value_t = table_value_t<1>;
+
+using AlarmTable = KeylessTableMap<1>;
+using alarm_t = table_value_t<1>;
+
+struct nf_config_t {
+  double cpu_pkts_ratio;
+} nf_config;
 
 struct state_t {
-  Map map;
+  Forwarder forwarder;
+  AlarmTable alarm_table;
   Counter pkt_counter;
   Counter cpu_counter;
 
-  state_t()
-      : map("Ingress", "table_with_timeout", args.expiration_time),
+  state_t(u32 alarm)
+      : forwarder("Ingress", "forwarder",
+                  forwarder_value_t({cfg.out_dev_port})),
+        alarm_table("Ingress", "alarm_table", alarm_t({alarm})),
         pkt_counter("Ingress", "pkt_counter", true, true),
         cpu_counter("Ingress", "cpu_counter", true, true) {}
 };
 
 std::unique_ptr<state_t> state;
 
-void sycon::nf_init() { state = std::make_unique<state_t>(); }
+void sycon::nf_init() {
+  u32 alarm = static_cast<u32>(1 / nf_config.cpu_pkts_ratio);
+
+  DEBUG("Ratio %lf", nf_config.cpu_pkts_ratio);
+  DEBUG("Alarm %u", alarm);
+
+  state = std::make_unique<state_t>(alarm);
+}
 
 void sycon::nf_exit() {}
+
+void sycon::nf_args(CLI::App &app) {
+  app.add_option("--ratio", nf_config.cpu_pkts_ratio,
+                 "Ratio of CPU packets to total input packets")
+      ->required();
+}
 
 void sycon::nf_user_signal_handler() {
   counter_data_t pkt_counter_data = state->pkt_counter.get(0);
@@ -44,21 +66,7 @@ void sycon::nf_user_signal_handler() {
 
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
-  eth_hdr_t *eth_hdr = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
-  ipv4_hdr_t *ipv4_hdr = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
-  tcpudp_hdr_t *tcpudp_hdr =
-      (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
-
-  map_key_t flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip),
-                  SWAP_ENDIAN_32(ipv4_hdr->dst_ip),
-                  SWAP_ENDIAN_16(tcpudp_hdr->src_port),
-                  SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
-
-  map_value_t out_port({cfg.out_dev_port});
-
-  state->map.put(flow, out_port);
   cpu_hdr->out_port = SWAP_ENDIAN_16(cfg.out_dev_port);
-
   return true;
 }
 

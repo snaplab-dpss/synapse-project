@@ -58,6 +58,7 @@ class Table {
       const std::unordered_map<std::string, std::pair<bf_rt_id_t, bf_rt_id_t *>>
           &fields);
   void init_action(const std::string &name, bf_rt_id_t *action_id);
+  void init_action(bf_rt_id_t *action_id);
 
   void init_actions(
       const std::unordered_map<std::string, bf_rt_id_t *> &actions);

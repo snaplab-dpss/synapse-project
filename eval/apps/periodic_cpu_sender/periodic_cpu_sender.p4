@@ -46,7 +46,7 @@ const bit<8> IP_PROTOCOLS_WARMUP = 146;
 
 header cpu_h {
 	bit<16> code_path;
-	
+    
 	@padding port_pad_t pad0;
 	port_t in_port;
 
@@ -95,8 +95,9 @@ struct my_ingress_headers_t {
 }
 
 parser TofinoIngressParser(
-		packet_in pkt,
-		out ingress_intrinsic_metadata_t ig_intr_md) {
+	packet_in pkt,
+	out ingress_intrinsic_metadata_t ig_intr_md
+) {
 	state start {
 		pkt.extract(ig_intr_md);
 		transition select(ig_intr_md.resubmit_flag) {
@@ -185,10 +186,58 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md
 ) {
+	bit<16> out_port;
+	bit<32> alarm;
+	bool send_to_cpu;
+
 	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) pkt_counter;
 	Counter<bit<32>, port_t>(1, CounterType_t.PACKETS_AND_BYTES) cpu_counter;
 
-	port_t out_port;
+	action set_alarm(bit<32> _alarm) {
+		alarm = _alarm;
+	}
+
+	table alarm_table {
+		key = {}
+
+		actions = {
+			set_alarm;
+		}
+
+		size = 1;
+	}
+
+	Register<bit<32>, _>(1, 1) timer;
+
+	RegisterAction<bit<32>, bit<32>, bool>(timer) update_timer_action = {
+		void apply(inout bit<32> curr_time, out bool should_send_to_cpu) {
+			if (curr_time == alarm) {
+				curr_time = 1;
+				should_send_to_cpu = true;
+			} else {
+				curr_time = curr_time + 1;
+				should_send_to_cpu = false;
+			}
+		}
+	};
+
+	action update_timer() {
+		send_to_cpu = update_timer_action.execute(0);
+	}
+
+	action populate(bit<16> _out_port) {
+		out_port = _out_port;
+	}
+
+	table forwarder {
+		key = {}
+
+		actions = {
+			populate;
+		}
+
+		size = 1;
+	}
 
 	action forward(port_t port) {
 		ig_tm_md.ucast_egress_port = port;
@@ -196,51 +245,36 @@ control Ingress(
 
 	action send_to_controller() {
 		hdr.cpu.setValid();
-		hdr.cpu.code_path = 1234;
+		hdr.cpu.code_path = 0;
 		hdr.cpu.in_port = ig_intr_md.ingress_port;
 		forward(CPU_PCIE_PORT);
 	}
 
-	action populate(port_t port) {
-		out_port = port;
-	}
-
-	table table_with_timeout {
-		key = {
-			hdr.ipv4.src_addr: exact;
-			hdr.ipv4.dst_addr: exact;
-			hdr.tcpudp.src_port: exact;
-			hdr.tcpudp.dst_port: exact;
-		}
-
-		actions = {
-			populate;
-		}
-
-		size = 131072;
-		idle_timeout = true;
-	}
-
 	apply {
-		if (hdr.cpu.isValid()) {
-			forward(hdr.cpu.out_port);
+		if (ig_intr_md.ingress_port == CPU_PCIE_PORT) {
 			hdr.cpu.setInvalid();
+			forward(hdr.cpu.out_port[8:0]);
 		} else {
 			if (!meta.is_warmup_pkt) {
 				pkt_counter.count(0);
 			}
-			
-			if (table_with_timeout.apply().hit) {
-				forward(out_port);
-			} else {
+
+			forwarder.apply();
+
+			alarm_table.apply();
+			update_timer();
+
+			if (send_to_cpu) {
 				send_to_controller();
 
 				if (!meta.is_warmup_pkt) {
 					cpu_counter.count(0);
 				}
+			} else {
+				forward(out_port[8:0]);
 			}
 		}
-		
+
 		ig_tm_md.bypass_egress = 1;
 	}
 }
@@ -261,50 +295,50 @@ control IngressDeparser(
 }
 
 parser TofinoEgressParser(
-	packet_in pkt,
-	out egress_intrinsic_metadata_t eg_intr_md
+    packet_in pkt,
+    out egress_intrinsic_metadata_t eg_intr_md
 ) {
-	state start {
-		pkt.extract(eg_intr_md);
-		transition accept;
-	}
+  state start {
+    pkt.extract(eg_intr_md);
+    transition accept;
+  }
 }
 
 parser EgressParser(
-	packet_in pkt,
-	out empty_header_t hdr,
-	out empty_metadata_t eg_md,
-	out egress_intrinsic_metadata_t eg_intr_md
+    packet_in pkt,
+    out empty_header_t hdr,
+    out empty_metadata_t eg_md,
+    out egress_intrinsic_metadata_t eg_intr_md
 ) {
-	TofinoEgressParser() tofino_parser;
+  TofinoEgressParser() tofino_parser;
 
-	/* This is a mandatory state, required by Tofino Architecture */
+  /* This is a mandatory state, required by Tofino Architecture */
 	state start {
 		tofino_parser.apply(pkt, eg_intr_md);
-		transition accept;
+    	transition accept;
 	}
 }
 
 control Egress(
-	inout empty_header_t hdr,
-	inout empty_metadata_t eg_md,
-	in egress_intrinsic_metadata_t eg_intr_md,
-	in egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
-	inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
-	inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
+    inout empty_header_t hdr,
+    inout empty_metadata_t eg_md,
+    in egress_intrinsic_metadata_t eg_intr_md,
+    in egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
+    inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
+    inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
-	apply {}
+  apply {}
 }
 
 control EgressDeparser(
-	packet_out pkt,
-	inout empty_header_t hdr,
-	in empty_metadata_t eg_md,
-	in egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
+    packet_out pkt,
+    inout empty_header_t hdr,
+    in empty_metadata_t eg_md,
+    in egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
 ) {
-	apply {
-		pkt.emit(hdr);
-	}
+  apply {
+    pkt.emit(hdr);
+  }
 }
 Pipeline(
 	IngressParser(),

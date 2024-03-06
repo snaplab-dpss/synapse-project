@@ -22,6 +22,8 @@ void sycon::nf_exit() {
 
 void sycon::nf_user_signal_handler() {}
 
+void sycon::nf_args(CLI::App &app) {}
+
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
   eth_hdr_t *eth_hdr = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
@@ -34,10 +36,10 @@ bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
                        SWAP_ENDIAN_16(tcpudp_hdr->src_port),
                        SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
 
-  table_value_t<1> out_port({nf_config.out_dev_port});
+  table_value_t<1> out_port({cfg.out_dev_port});
 
   state->map.put(flow, out_port);
-  cpu_hdr->out_port = SWAP_ENDIAN_16(nf_config.out_dev_port);
+  cpu_hdr->out_port = SWAP_ENDIAN_16(cfg.out_dev_port);
 
   return true;
 }

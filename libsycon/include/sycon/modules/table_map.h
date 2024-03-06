@@ -19,15 +19,15 @@ class TableMap : public Table {
  private:
   std::unordered_map<table_key_t<K>, table_value_t<V>, fields_hash_t<K>> cache;
 
-  bf_rt_id_t populate_action_id;
+  bf_rt_id_t action_id;
   std::optional<time_ms_t> timeout;
 
  public:
   TableMap(const std::string &_control_name, const std::string &_table_name)
       : Table(_control_name, _table_name) {
     init_key();
-    init_action(SYNAPSE_TABLE_MAP_ACTION, &populate_action_id);
-    init_data_with_action(populate_action_id);
+    init_action(&action_id);
+    init_data_with_action(action_id);
   }
 
   TableMap(const std::string &_control_name, const std::string &_table_name,
@@ -92,7 +92,7 @@ class TableMap : public Table {
   }
 
   void data_setup(const table_value_t<V> &v) {
-    auto bf_status = table->dataReset(populate_action_id, data.get());
+    auto bf_status = table->dataReset(action_id, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     assert(V == data_fields.size());

@@ -19,7 +19,7 @@ LO_PERF_CHURN_MBPS  = 10_000  # 10 Gbps
 NUM_CHURN_STEPS     = 10
 STARTING_CHURN_FPM  = 100
 
-class ThroughputUnderChurn(Experiment):
+class ThroughputWithCPUCountersUnderChurn(Experiment):
     def __init__(
         self,
         
@@ -77,7 +77,7 @@ class ThroughputUnderChurn(Experiment):
         self._sync()
 
     def _sync(self):
-        header = f"#iteration, churn (fpm), throughput (bps), throughput (pps)\n"
+        header = f"#iteration, churn (fpm), #asic pkts, #cpu pkts, throughput (bps), throughput (pps)\n"
 
         self.experiment_tracker = { i: 0 for i in range(EXPERIMENT_ITERATIONS) }
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
@@ -164,6 +164,42 @@ class ThroughputUnderChurn(Experiment):
         self.log(f"Churns: {self.churns} fpm")
 
         return self.churns
+    
+    def _read_cpu_counters(
+        self,
+        churn: int,
+        stable_rate_mbps: int,
+    ) -> tuple[int, int]:
+        self.log(f"Reading CPU counters (churn={churn:,} fpm rate={stable_rate_mbps:,} Mbps)")
+
+        prev_counters = self.controller.get_cpu_counters()
+        assert prev_counters
+
+        self.log(f"Prev counters: in={prev_counters[0]:,} cpu={prev_counters[1]:,}")
+
+        xput_bps, xput_pps, loss = self.test_throughput(
+            stable_rate_mbps,
+            self.pktgen,
+            churn,
+            self.pkt_size
+        )
+
+        self.log(f"Real throughput {int(xput_bps/1e6):,} Mbps {int(xput_pps/1e6):,} Mpps {100*loss:5.2f}% loss")
+
+        post_counters = self.controller.get_cpu_counters()
+        assert post_counters
+        
+
+        in_pkts = post_counters[0] - prev_counters[0]
+        cpu_pkts = post_counters[1] - prev_counters[1]
+
+        assert in_pkts > 0
+        assert cpu_pkts >= 0
+        
+        self.log(f"Post counters: in={post_counters[0]:,} cpu={post_counters[1]:,}")
+        self.log(f"Counters: in={in_pkts:,} cpu={cpu_pkts:,} (ratio={cpu_pkts/in_pkts})")
+
+        return in_pkts, cpu_pkts
 
     def run(self, step_progress: Progress, current_iter: int) -> None:
         task_id = step_progress.add_task(self.name, total=NUM_CHURN_STEPS)
@@ -182,7 +218,8 @@ class ThroughputUnderChurn(Experiment):
             self.pkt_size,
             self.timeout_ms * 1000,
             self.crc_unique_flows,
-            self.crc_bits
+            self.crc_bits,
+            mark_warmup_packets=True,
         )
 
         for i in range(NUM_CHURN_STEPS):
@@ -193,7 +230,7 @@ class ThroughputUnderChurn(Experiment):
 
             self.controller.launch(
                 self.controller_src_in_repo,
-                self.timeout_ms
+                self.timeout_ms,
             )
 
             self.controller.wait_ready()
@@ -208,16 +245,21 @@ class ThroughputUnderChurn(Experiment):
             )
 
             throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
+
             self.log(f"Churn {churn:,} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
 
+            step_progress.update(
+                task_id,
+                description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm [reading CPU counters]"
+            )
+
+            in_pkts, cpu_pkts = self._read_cpu_counters(churn, int(throughput_bps / 1e6))
+
             with open(self.save_name, "a") as f:
-                f.write(f"{current_iter},{churn},{throughput_bps},{throughput_pps}\n")
+                f.write(f"{current_iter},{churn},{in_pkts},{cpu_pkts},{throughput_bps},{throughput_pps}\n")
 
             step_progress.update(task_id, advance=1)
-
             self.controller.stop()
 
         self.pktgen.close()
-
         step_progress.update(task_id, visible=False)
-

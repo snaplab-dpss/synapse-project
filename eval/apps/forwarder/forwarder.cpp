@@ -75,7 +75,7 @@ state_t *state;
 
 void sycon::nf_init() {
   state = new state_t();
-  state->forwarder.add_fwd_entry(nf_config.in_dev_port, nf_config.out_dev_port);
+  state->forwarder.add_fwd_entry(cfg.in_dev_port, cfg.out_dev_port);
 }
 
 void sycon::nf_exit() {

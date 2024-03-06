@@ -156,6 +156,23 @@ void Table::init_action(const std::string &action_name, bf_rt_id_t *action_id) {
   ASSERT_BF_STATUS(bf_status)
 }
 
+void Table::init_action(bf_rt_id_t *action_id) {
+  std::vector<bf_rt_id_t> action_ids;
+  auto bf_status = table->actionIdListGet(&action_ids);
+  ASSERT_BF_STATUS(bf_status)
+
+  // Even tables with only a single explicit action, the NoAction action will
+  // still be there by default.
+  assert(action_ids.size() == 2);
+
+  std::string action_name;
+  bf_status = table->actionNameGet(action_ids[0], &action_name);
+  ASSERT_BF_STATUS(bf_status)
+
+  *action_id =
+      (action_name != TOFINO_NO_ACTION_NAME) ? action_ids[0] : action_ids[1];
+}
+
 void Table::init_actions(
     const std::unordered_map<std::string, bf_rt_id_t *> &actions) {
   for (const auto &action : actions) {

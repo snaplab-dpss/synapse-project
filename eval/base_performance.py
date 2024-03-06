@@ -17,7 +17,7 @@ from experiments.hosts.pktgen import Pktgen
 from experiments.hosts.switch import Switch
 from experiments.hosts.controller import Controller
 
-from experiments.throughput_per_pkt_sz import ThroughputPerPacketSize
+from experiments.xput_per_pkt_sz import ThroughputPerPacketSize
 
 from experiments.experiment import Experiment, ExperimentTracker
 

@@ -9,7 +9,6 @@ extern "C" {
 namespace sycon {
 
 config_t cfg;
-nf_config_t nf_config;
 
 static void bf_switchd_init_sig_set(sigset_t *set) {
   sigemptyset(set);
