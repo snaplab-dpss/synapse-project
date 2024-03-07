@@ -29,6 +29,8 @@ void sycon::nf_init() { state = std::make_unique<state_t>(); }
 
 void sycon::nf_exit() {}
 
+void sycon::nf_args(CLI::App &app) {}
+
 void sycon::nf_user_signal_handler() {
   counter_data_t pkt_counter_data = state->pkt_counter.get(0);
   counter_data_t cpu_counter_data = state->cpu_counter.get(0);

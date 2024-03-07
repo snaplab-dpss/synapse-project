@@ -253,7 +253,8 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
                 description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm [reading CPU counters]"
             )
 
-            in_pkts, cpu_pkts = self._read_cpu_counters(churn, int(throughput_bps / 1e6))
+            throughput_mbps = int(throughput_bps / 1e6)
+            in_pkts, cpu_pkts = self._read_cpu_counters(churn, throughput_mbps)
 
             with open(self.save_name, "a") as f:
                 f.write(f"{current_iter},{churn},{in_pkts},{cpu_pkts},{throughput_bps},{throughput_pps}\n")
