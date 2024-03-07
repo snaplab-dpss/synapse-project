@@ -124,7 +124,6 @@ class ThroughputPerCPURatio(Experiment):
         post_counters = self.controller.get_cpu_counters()
         assert post_counters
         
-
         in_pkts = post_counters[0] - prev_counters[0]
         cpu_pkts = post_counters[1] - prev_counters[1]
 

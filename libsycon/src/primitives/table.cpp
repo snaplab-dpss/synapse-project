@@ -31,6 +31,10 @@ Table::Table(const std::string &_control, const std::string &_name)
   ASSERT_BF_STATUS(bf_status)
 }
 
+void Table::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) {
+  session = _session;
+}
+
 void Table::init_key() {
   if (!key) {
     // Allocate key and data once, and use reset across different uses

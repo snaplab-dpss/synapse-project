@@ -20,7 +20,10 @@ struct state_t {
         map("Ingress", "map", args.expiration_time, "cache.expirator.reg",
             "IngressDeparser", "digest_map"),
         pkt_counter("Ingress", "pkt_counter", true, true),
-        cpu_counter("Ingress", "cpu_counter", true, true) {}
+        cpu_counter("Ingress", "cpu_counter", true, true) {
+    pkt_counter.set_session(cfg.usr_signal_session);
+    cpu_counter.set_session(cfg.usr_signal_session);
+  }
 };
 
 std::unique_ptr<state_t> state;

@@ -63,8 +63,9 @@ static void setup_bf_session() {
       devMgr.bfRtInfoGet(cfg.dev_tgt.dev_id, args.p4_prog_name, &cfg.info);
   ASSERT_BF_STATUS(bf_status)
 
-  // Create a session object
+  // Create the sessions objects
   cfg.session = bfrt::BfRtSession::sessionCreate();
+  cfg.usr_signal_session = bfrt::BfRtSession::sessionCreate();
 }
 
 void init_switchd() {

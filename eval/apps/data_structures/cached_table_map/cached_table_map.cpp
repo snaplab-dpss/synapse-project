@@ -19,7 +19,10 @@ struct state_t {
       : forwarder("Ingress", "forwarder", map_value_t({cfg.out_dev_port})),
         map("Ingress", "map", args.expiration_time),
         pkt_counter("Ingress", "pkt_counter", true, true),
-        cpu_counter("Ingress", "cpu_counter", true, true) {}
+        cpu_counter("Ingress", "cpu_counter", true, true) {
+    pkt_counter.set_session(cfg.usr_signal_session);
+    cpu_counter.set_session(cfg.usr_signal_session);
+  }
 };
 
 std::unique_ptr<state_t> state;

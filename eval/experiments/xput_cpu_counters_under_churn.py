@@ -189,7 +189,6 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         post_counters = self.controller.get_cpu_counters()
         assert post_counters
         
-
         in_pkts = post_counters[0] - prev_counters[0]
         cpu_pkts = post_counters[1] - prev_counters[1]
 
@@ -246,14 +245,16 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
 
             throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
 
-            self.log(f"Churn {churn:,} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
+            throughput_mbps = int(throughput_bps / 1e6)
+            throughput_mpps = int(throughput_pps / 1e6)
+
+            self.log(f"Churn {churn:,} => {throughput_mbps:,} Mbps {throughput_mpps:,} Mpps")
 
             step_progress.update(
                 task_id,
                 description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm [reading CPU counters]"
             )
 
-            throughput_mbps = int(throughput_bps / 1e6)
             in_pkts, cpu_pkts = self._read_cpu_counters(churn, throughput_mbps)
 
             with open(self.save_name, "a") as f:

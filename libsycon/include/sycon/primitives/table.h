@@ -67,6 +67,8 @@ class Table {
                        const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 
  public:
+  void set_session(const std::shared_ptr<bfrt::BfRtSession> &_session);
+
   std::string get_name() const;
 
   size_t get_size() const;
