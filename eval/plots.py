@@ -186,7 +186,20 @@ def get_unit_multiplier(value) -> tuple[float,str]:
     return 1e9, "G"
 
 Header = NewType("Header", list[str])
-Data = NewType("Data", list[list[Union[int,float]]])
+Data = NewType("Data", list[list[int | float]])
+
+def parse_csv_elem(elem: str) -> Union[int, float]:
+    if re.match(r"^[-\+]?\d+$", elem):
+        return int(elem)
+    
+    try:
+        return float(elem)
+    except ValueError:
+        # So, not an integer
+        pass
+    
+    print(f"Unable to parse csv element {elem}")
+    exit(1)
 
 def csv_parser(file: Path) -> tuple[Header, Data]:
     assert file.exists()
@@ -195,13 +208,13 @@ def csv_parser(file: Path) -> tuple[Header, Data]:
         lines = f.readlines()
         lines = [ l.rstrip().split(',') for l in lines ]
         
-        header = lines[0]
+        header = Header(lines[0])
         rows   = lines[1:]
 
-        values = [ [ int(c) if '.' not in c else float(c) for c in row ] for row in rows ]
+        values = [ [ parse_csv_elem(elem) for elem in row ] for row in rows ]
 
         # Sort data by iteration (1st column)
-        values = sorted(values, key=lambda x: x[0])
+        values = Data(sorted(values, key=lambda x: x[0]))
 
         return header, values
 
@@ -210,7 +223,7 @@ def aggregate_values(values: Data,
                      y_elem: int) -> list[tuple[float,float,float]]:
     new_values = []
 
-    values = sorted(values,  key=lambda x: x[x_elem])
+    values = Data(sorted(values,  key=lambda x: x[x_elem]))
     values_grouped = [ list(v[1]) for v in itertools.groupby(values, key=lambda x: x[x_elem]) ]
 
     for vv in values_grouped:
@@ -483,6 +496,164 @@ def plot_throughput_under_churn_bps(
     if generate_png:
         plt.savefig(str(fig_file_png))
 
+def plot_thpt_pps_per_cpu_ratio(
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
+    out_name: str,
+    generate_png: bool,
+    color_group: Optional[int],
+):
+    assert len(multiple_data) == 1
+    data = Data([])
+
+    for d in multiple_data[0]:
+        i, target_cpu_ratio, _, _, _, xput_pps = d
+        data.append([ i, target_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    x_label = "Fraction of packets sent to switch CPU"
+
+    y_elem = 2 # Throughput pps column
+    y_units = "pps"
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
+    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+
+    y_label = f"Throughput ({y_units})"
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    d = [{
+        "x": x,
+        "y": y,
+        "yerr": yerr,
+    }]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines_only=False,
+        set_palette=[palette[color_group]] if color_group else None,
+        set_markers_list=[markers_list[color_group]] if color_group else None,
+    )
+
+    ax.set_yscale("symlog")
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(y_tick_labels)
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(ymin=y_ticks[0], ymax=y_ticks[-1]*2)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    plt.savefig(str(fig_file_pdf))
+
+    if generate_png:
+        plt.savefig(str(fig_file_png))
+
+def plot_thpt_pps_per_cpu_ratio_log_x(
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
+    out_name: str,
+    generate_png: bool,
+    color_group: Optional[int],
+):
+    assert len(multiple_data) == 1
+    data = Data([])
+
+    for d in multiple_data[0]:
+        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(target_cpu_ratio - real_cpu_ratio) / target_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    x_label = "Fraction of packets sent to switch CPU"
+
+    y_elem = 2 # Throughput pps column
+    y_units = "pps"
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    y_label = f"Throughput ({y_units})"
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    d = [{
+        "x": x,
+        "y": y,
+        "yerr": yerr,
+    }]
+
+    # Instead of zero, for the log scale. We still show it as zero though, using labels.
+    x[0] = x[1] / 10
+
+    x_ticks = [ x[0], 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
+    x_tick_labels = [ "0", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
+    
+    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
+    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines_only=False,
+        set_palette=[palette[color_group]] if color_group else None,
+        set_markers_list=[markers_list[color_group]] if color_group else None,
+    )
+
+    ax.set_xscale("log")
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_tick_labels)
+
+    ax.set_yscale("symlog")
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(y_tick_labels)
+
+    ax.set_xlim(xmin=x_ticks[0], xmax=x_ticks[-1])
+    ax.set_ylim(ymin=y_ticks[0], ymax=y_ticks[-1]*2)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    plt.savefig(str(fig_file_pdf))
+
+    if generate_png:
+        plt.savefig(str(fig_file_png))
+
 def plot_thpt_per_pkt_sz_bps(
     labels: list[Optional[str]],
     multiple_data: list[Data],
@@ -631,6 +802,10 @@ csv_pattern_to_plotter = {
     "churn_transient_cached_table_map_*.csv": [
         (plot_throughput_under_churn_bps, "churn_transient_cached_table_map_bps", cache_capacity_label_builder, None),
         (plot_throughput_under_churn_pps, "churn_transient_cached_table_map_pps", cache_capacity_label_builder, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender.csv": [
+        (plot_thpt_pps_per_cpu_ratio, "xput_cpu_counters_periodic_cpu_sender", None, None),
+        (plot_thpt_pps_per_cpu_ratio_log_x, "xput_cpu_counters_periodic_cpu_sender_log_x", None, None),
     ],
 }
 
