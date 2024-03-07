@@ -62,7 +62,7 @@ class Pktgen():
         wait_from_prompt: bool = True
     ) -> str:
         assert self.pktgen_active
-        console_pattern = "\r\nPktgen:/> " if wait_from_prompt else None
+        console_pattern = "Pktgen:/> " if wait_from_prompt else None
         return self.pktgen.run_console_commands(
             cmds,
             console_pattern=console_pattern,

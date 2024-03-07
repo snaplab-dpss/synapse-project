@@ -9,7 +9,6 @@ import re
 
 from .remote import RemoteHost
 
-
 MIN_TIMEOUT = 10 # miliseconds
 
 class Controller:
@@ -80,6 +79,7 @@ class Controller:
         self,
         src_in_repo: str,
         timeout_ms: int = MIN_TIMEOUT,
+        extra_args: list[tuple[str, str]] = []
     ) -> None:
         if timeout_ms != 0 and timeout_ms < MIN_TIMEOUT:
             raise Exception(f"Timeout value must be 0 or >= {MIN_TIMEOUT}ms (is {timeout_ms}ms)")
@@ -97,6 +97,9 @@ class Controller:
         cmd += f" --in {self.switch_pktgen_in_port}"
         cmd += f" --out {self.switch_pktgen_out_port}"
         cmd += f" --expiration-time {timeout_ms}"
+
+        for extra_arg in extra_args:
+            cmd += f" {extra_arg[0]} {extra_arg[1]}"
 
         self.controller_cmd = self.host.run_command(cmd, dir=src_path.parent)
         self.ready = False

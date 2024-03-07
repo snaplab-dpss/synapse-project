@@ -47,7 +47,7 @@ class Experiment:
         else:
             self.log_file = None
         
-    def log(self, msg):
+    def log(self, msg=""):
         if self.log_file:
             now = datetime.now()
             ts = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -71,8 +71,6 @@ class Experiment:
         churn: int,
         pkt_size: int,
     ) -> tuple[int, int, float]:
-        log_file = pktgen.host.log_file
-        
         if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
             raise ValueError("max_loss must be in [0, 1).")
 
@@ -82,8 +80,8 @@ class Experiment:
         # Setting warmup duration
         pktgen.set_warmup_duration(WARMUP_TIME_SEC)
 
-        if log_file:
-            log_file.write(f"Rate {rate_mbps:,} Mbps\n")
+        self.log()
+        self.log(f"Rate {rate_mbps:,} Mbps")
 
         nb_tx_pkts = 0
         nb_rx_pkts = 0
@@ -101,8 +99,8 @@ class Experiment:
 
             nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
 
-            if nb_tx_pkts == 0 and log_file:
-                log_file.write(f"No packets flowing, repeating run\n")
+            if nb_tx_pkts == 0:
+                self.log(f"No packets flowing, repeating run")
 
         nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
         nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8
@@ -115,18 +113,15 @@ class Experiment:
 
         loss = 1 - nb_rx_pkts / nb_tx_pkts
 
-        if log_file:
-            tx_Gbps = real_throughput_tx_bps / 1e9
-            tx_Mpps = real_throughput_tx_pps / 1e6
+        tx_Gbps = real_throughput_tx_bps / 1e9
+        tx_Mpps = real_throughput_tx_pps / 1e6
 
-            rx_Gbps = real_throughput_rx_bps / 1e9
-            rx_Mpps = real_throughput_rx_pps / 1e6
+        rx_Gbps = real_throughput_rx_bps / 1e9
+        rx_Mpps = real_throughput_rx_pps / 1e6
 
-            log_file.write("\n")
-            log_file.write(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps\n")
-            log_file.write(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps\n")
-            log_file.write(f"Lost {loss*100:.2f}% of packets\n")
-            log_file.flush()
+        self.log(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps")
+        self.log(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps")
+        self.log(f"Lost {loss*100:.2f}% of packets")
 
         return real_throughput_tx_bps, real_throughput_tx_pps, loss
     
@@ -135,9 +130,7 @@ class Experiment:
         pktgen: Pktgen,
         churn: int,
         pkt_size: int,
-    ) -> tuple[int,int]:
-        log_file = pktgen.host.log_file
-        
+    ) -> tuple[int,int]:        
         if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
             raise ValueError("max_loss must be in [0, 1).")
 
@@ -155,6 +148,8 @@ class Experiment:
         # Setting warmup duration
         pktgen.set_warmup_duration(WARMUP_TIME_SEC)
 
+        self.log()
+
         # We iteratively refine the bounds until the difference between them is
         # less than the specified precision.
         for i in range(THROUGHPUT_SEARCH_STEPS):
@@ -162,8 +157,7 @@ class Experiment:
             if rate_upper == 0:
                 break
 
-            if log_file:
-                log_file.write(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps\n")
+            self.log(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps")
 
             nb_tx_pkts = 0
             nb_rx_pkts = 0
@@ -181,8 +175,8 @@ class Experiment:
 
                 nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
 
-                if nb_tx_pkts == 0 and log_file:
-                    log_file.write(f"No packets flowing, repeating run\n")
+                if nb_tx_pkts == 0:
+                    self.log(f"No packets flowing, repeating run")
 
             nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
             nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8
@@ -195,18 +189,15 @@ class Experiment:
 
             loss = 1 - nb_rx_pkts / nb_tx_pkts
 
-            if log_file:
-                tx_Gbps = real_throughput_tx_bps / 1e9
-                tx_Mpps = real_throughput_tx_pps / 1e6
+            tx_Gbps = real_throughput_tx_bps / 1e9
+            tx_Mpps = real_throughput_tx_pps / 1e6
 
-                rx_Gbps = real_throughput_rx_bps / 1e9
-                rx_Mpps = real_throughput_rx_pps / 1e6
+            rx_Gbps = real_throughput_rx_bps / 1e9
+            rx_Mpps = real_throughput_rx_pps / 1e6
 
-                log_file.write("\n")
-                log_file.write(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps\n")
-                log_file.write(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps\n")
-                log_file.write(f"Lost {loss*100:.2f}% of packets\n")
-                log_file.flush()
+            self.log(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps")
+            self.log(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps")
+            self.log(f"Lost {loss*100:.2f}% of packets")
 
             if loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
