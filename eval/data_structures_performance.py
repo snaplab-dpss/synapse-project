@@ -36,12 +36,12 @@ TARGET_CACHE_PERF_UNDER_CHURN_APPS = [
     "transient_cached_table_map",
 ]
 
-CACHE_SIZE = 16384
-CACHE_OCCUPANCY = [ 0.25, 0.5, 0.75, 1, 2 ]
+CACHE_SIZE = 32768
+CACHE_OCCUPANCY = [ 0.25, 0.5, 0.75, 1, 2, 4 ]
 
 MAX_TOTAL_FLOWS = 131072
 PACKET_SIZE_BYTES = 64
-EXPIRATION_TIME_SEC = 1
+EXPIRATION_TIME_MILISEC = 100
 
 console = Console()
 
@@ -70,19 +70,22 @@ def get_cache_perf_experiments(
             exp = ThroughputWithCPUCountersUnderChurn(
                 name=exp_name,
                 save_name=data_dir / f"{exp_name}.csv",
+                lo_churn_fpm=10_000,
+                mid_churn_fpm=50_000,
+                hi_churn_fpm=100_000,
                 switch=switch,
                 controller=controller,
                 pktgen=pktgen,
                 p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
                 controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
-                timeout_ms=EXPIRATION_TIME_SEC * 1000,
+                timeout_ms=EXPIRATION_TIME_MILISEC,
                 nb_flows=total_flows,
                 pkt_size=PACKET_SIZE_BYTES,
                 crc_unique_flows=False,
                 crc_bits=0,
                 p4_compile_time_vars=[
                     ("CACHE_CAPACITY_EXPONENT_BASE_2", str(cache_size_exp_base_2)),
-                    ("EXPIRATION_TIME_SEC", str(EXPIRATION_TIME_SEC)),
+                    ("EXPIRATION_TIME_DECISEC", str(int(EXPIRATION_TIME_MILISEC / 100))),
                 ],
                 experiment_log_file=experiment_log_file,
                 console=console,
@@ -106,12 +109,15 @@ def get_table_perf_experiments(
         exp = ThroughputWithCPUCountersUnderChurn(
             name=exp_name,
             save_name=data_dir / f"{exp_name}.csv",
+            lo_churn_fpm=10_000,
+            mid_churn_fpm=50_000,
+            hi_churn_fpm=100_000,
             switch=switch,
             controller=controller,
             pktgen=pktgen,
             p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
             controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
-            timeout_ms=EXPIRATION_TIME_SEC * 1000,
+            timeout_ms=EXPIRATION_TIME_MILISEC,
             nb_flows=65536,
             pkt_size=PACKET_SIZE_BYTES,
             crc_unique_flows=False,

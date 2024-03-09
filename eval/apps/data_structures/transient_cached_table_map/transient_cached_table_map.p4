@@ -48,14 +48,20 @@ const bit<8> IP_PROTOCOLS_WARMUP = 146;
 // $ p4_build.sh cached_table_map.p4 -DCACHE_CAPACITY_EXPONENT_BASE_2=12
 #define CACHE_CAPACITY (1 << CACHE_CAPACITY_EXPONENT_BASE_2)
 #define ONE_SECOND 15258 // 1 second in units of 2**16 nanoseconds
+#define ONE_DECISECOND 1526 // 0.1 seconds in units of 2**16 nanoseconds
 
 typedef bit<CACHE_CAPACITY_EXPONENT_BASE_2> hash_t;
 typedef bit<32> time_t;
 typedef bit<8> match_counter_t;
 
-// Pass the value of EXPIRATION_TIME_SEC during compilation. E.g.:
+// Pass the value of EXPIRATION_TIME_SEC (or EXPIRATION_TIME_DECISEC) during compilation.
+// E.g.:
 // $ p4_build.sh cached_table_map.p4 -DEXPIRATION_TIME_SEC=1
+#ifdef EXPIRATION_TIME_SEC
 const time_t EXPIRATION_TIME = EXPIRATION_TIME_SEC * ONE_SECOND;
+#else
+const time_t EXPIRATION_TIME = EXPIRATION_TIME_DECISEC * ONE_DECISECOND;
+#endif
 
 header cpu_h {
 	bit<16> code_path;
@@ -460,7 +466,7 @@ control Ingress(
 			populate;
 		}
 
-		size = 131072;
+		size = 262144;
 		idle_timeout = true;
 	}
 

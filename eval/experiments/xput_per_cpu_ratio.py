@@ -6,12 +6,12 @@ from experiments.hosts.controller import Controller
 from experiments.hosts.switch import Switch
 from experiments.hosts.pktgen import Pktgen
 
-from experiments.experiment import Experiment, EXPERIMENT_ITERATIONS
+from experiments.experiment import Experiment
 
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import Progress, TaskID
+from rich.progress import Progress
 
 from typing import Optional
 

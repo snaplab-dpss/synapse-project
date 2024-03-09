@@ -42,6 +42,13 @@ class Command(ABC):
         pass
 
     @abstractmethod
+    def flush(
+        self,
+        keyboard_int: Optional[Callable[[], None]] = None,
+    ):
+        pass
+
+    @abstractmethod
     def watch(
         self,
         stop_condition: Optional[Callable[[], bool]] = None,

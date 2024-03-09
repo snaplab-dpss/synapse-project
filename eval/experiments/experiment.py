@@ -17,12 +17,12 @@ from rich.progress import (
 from experiments.hosts.pktgen import Pktgen
 
 MAX_THROUGHPUT          = 100_000 # 100 Gbps
-ITERATION_DURATION_SEC  = 5       # Seconds
+ITERATION_DURATION_SEC  = 10      # seconds
 THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS     = 0.001   # 0.1%
-WARMUP_TIME_SEC         = 5       # 5 seconds
+WARMUP_TIME_SEC         = 3       # seconds
 WARMUP_RATE             = 1       # 1 Mbps
-REST_TIME_SEC           = 2       # 2 seconds
+REST_TIME_SEC           = 2       # seconds
 
 # FIXME: Change this
 EXPERIMENT_ITERATIONS   = 3
@@ -92,7 +92,6 @@ class Experiment:
             
             # Run pktgen with warmup
             pktgen.run(ITERATION_DURATION_SEC)
-            pktgen.wait_ready()
             
             # Let the flows expire.
             time.sleep(REST_TIME_SEC)
@@ -168,7 +167,6 @@ class Experiment:
                 
                 # Run pktgen with warmup
                 pktgen.run(ITERATION_DURATION_SEC)
-                pktgen.wait_ready()
                 
                 # Let the flows expire.
                 time.sleep(REST_TIME_SEC)

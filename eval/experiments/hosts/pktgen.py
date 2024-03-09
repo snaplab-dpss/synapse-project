@@ -10,6 +10,7 @@ from .remote import RemoteHost
 from .dpdk_config import DpdkConfig
 
 MIN_NUM_TX_CORES = 2
+PKTGEN_PROMPT = "Pktgen> "
 
 class Pktgen():
     def __init__(
@@ -62,10 +63,9 @@ class Pktgen():
         wait_from_prompt: bool = True
     ) -> str:
         assert self.pktgen_active
-        console_pattern = "Pktgen:/> " if wait_from_prompt else None
         return self.pktgen.run_console_commands(
             cmds,
-            console_pattern=console_pattern,
+            console_pattern=PKTGEN_PROMPT if wait_from_prompt else None,
         )
 
     def launch(
@@ -152,7 +152,7 @@ class Pktgen():
             self.pktgen_active = False
             raise Exception("Cannot run pktgen")
         
-        return self.pktgen.watch(stop_pattern="Pktgen>")
+        return self.pktgen.watch(stop_pattern=PKTGEN_PROMPT)
 
     def start(self) -> None:
         assert self.pktgen_active

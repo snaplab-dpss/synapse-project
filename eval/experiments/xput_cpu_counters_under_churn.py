@@ -6,7 +6,7 @@ from experiments.hosts.controller import Controller
 from experiments.hosts.switch import Switch
 from experiments.hosts.pktgen import Pktgen
 
-from experiments.experiment import Experiment, EXPERIMENT_ITERATIONS
+from experiments.experiment import Experiment
 
 from pathlib import Path
 
@@ -26,6 +26,9 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         # Experiment parameters
         name: str,
         save_name: Path,
+        lo_churn_fpm: int,
+        mid_churn_fpm: int,
+        hi_churn_fpm: int,
 
         # Hosts
         switch: Switch,
@@ -54,6 +57,8 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
 
         self.save_name = save_name
 
+        self.churns = self._get_churns(lo_churn_fpm, mid_churn_fpm, hi_churn_fpm)
+
         self.switch = switch
         self.controller = controller
         self.pktgen = pktgen
@@ -71,7 +76,6 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         self.p4_compile_time_vars = p4_compile_time_vars
         self.console = console
         
-        self.churns = []
         assert timeout_ms > 0
 
         self._sync()
@@ -79,7 +83,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
     def _sync(self):
         header = f"#iteration, churn (fpm), #asic pkts, #cpu pkts, throughput (bps), throughput (pps)\n"
 
-        self.experiment_tracker = { i: 0 for i in range(EXPERIMENT_ITERATIONS) }
+        self.experiment_tracker = set()
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
 
         # If file exists, continue where we left off.
@@ -90,10 +94,8 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
                 for row in f.readlines():
                     cols = row.split(",")
                     i = int(cols[0])
-                    if i in self.experiment_tracker:
-                        self.experiment_tracker[i] += 1
-                    else:
-                        self.experiment_tracker[i] = 1
+                    churn = float(cols[1])
+                    self.experiment_tracker.add((i,churn,))
         else:
             with open(self.save_name, "w") as f:
                 f.write(header)
@@ -109,6 +111,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
 
         lo_churn_perf = None
         
+        step_progress.update(task_id, description=f"Finding churn anchors...")
         self.log(f"************ CHURN ANCHOR SEARCH ************")
 
         while churn != max_churn:
@@ -117,7 +120,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
             throughput_bps, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
             throughput_mbps = throughput_bps / 1e6
 
-            step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {int(throughput_mbps):,}Mbps")
+            step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {int(throughput_mbps):,} Mbps")
 
             self.log(f"{churn:,} fpm => {int(throughput_mbps):,} Mbps")
 
@@ -135,7 +138,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
 
             churn = min(churn * multiplier, max_churn)
         
-        if mid_churn == hi_churn:
+        if mid_churn == STARTING_CHURN_FPM:
             mid_churn = int((hi_churn + lo_churn) / 2)
 
         self.log(f"Churn anchors: lo={lo_churn:,} fpm mid={mid_churn:,} fpm hi={hi_churn:,} fpm")
@@ -143,26 +146,18 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
 
         return lo_churn, mid_churn, hi_churn
     
-    def _get_churns(self, max_churn: int, step_progress: Progress, task_id: TaskID):
-        if len(self.churns) == NUM_CHURN_STEPS:
-            return self.churns
-        
-        step_progress.update(task_id, description=f"Finding churn anchors...")
-
-        lo_churn, mid_churn, high_churn = self._find_churn_anchors(max_churn, step_progress, task_id)
-
+    def _get_churns(self, lo_churn_fpm: int, mid_churn_fpm: int, hi_churn_fpm: int) -> list[int]:
         lo2mid_num_steps = math.ceil((NUM_CHURN_STEPS - 1) * (3/4))
         mid2hi_num_steps = max(0, NUM_CHURN_STEPS - lo2mid_num_steps - 1)
 
-        lo2mid_churns_steps = int((mid_churn - lo_churn) / lo2mid_num_steps)
-        mid2hi_churns_steps = int((high_churn - mid_churn) / (mid2hi_num_steps - 1))
+        lo2mid_churns_steps = int((mid_churn_fpm - lo_churn_fpm) / lo2mid_num_steps)
+        mid2hi_churns_steps = int((hi_churn_fpm - mid_churn_fpm) / (mid2hi_num_steps - 1))
 
         self.churns = [ 0 ]
-        self.churns += [ int(lo_churn + i * lo2mid_churns_steps) for i in range(lo2mid_num_steps) ]
-        self.churns += [ int(mid_churn + i * mid2hi_churns_steps) for i in range(mid2hi_num_steps) ]
+        self.churns = self.churns + [ int(lo_churn_fpm + i * lo2mid_churns_steps) for i in range(lo2mid_num_steps) ]
+        self.churns = self.churns + [ int(mid_churn_fpm + i * mid2hi_churns_steps) for i in range(mid2hi_num_steps) ]
 
         self.log(f"Churns: {self.churns} fpm")
-
         return self.churns
     
     def _read_cpu_counters(
@@ -204,7 +199,13 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         task_id = step_progress.add_task(self.name, total=NUM_CHURN_STEPS)
 
         # Check if we already have everything before running all the programs.
-        if self.experiment_tracker[current_iter] >= NUM_CHURN_STEPS:
+        completed = True
+        for churn in self.churns:
+            exp_key = (current_iter,churn,)
+            if exp_key not in self.experiment_tracker:
+                completed = False
+                break
+        if completed:
             return
 
         self.switch.install(
@@ -221,10 +222,15 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
             mark_warmup_packets=True,
         )
 
-        for i in range(NUM_CHURN_STEPS):
-            if self.experiment_tracker[current_iter] > i:
-                self.console.log(f"[orange1]Skipping: iteration {i}")
-                step_progress.update(task_id, advance=1)
+        for i, churn in enumerate(self.churns):
+            exp_key = (current_iter,churn,)
+
+            description=f"it={current_iter} churn={churn:,} ({i+1}/{NUM_CHURN_STEPS})"
+            step_progress.update(task_id, description=description)
+
+            if exp_key in self.experiment_tracker:
+                self.console.log(f"[orange1]Skipping: {description}")
+                step_progress.update(task_id, description=description, advance=1)
                 continue
 
             self.controller.launch(
@@ -235,13 +241,9 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
             self.controller.wait_ready()
             max_churn = self.pktgen.wait_launch()
 
-            churns = self._get_churns(max_churn, step_progress, task_id)
-            churn = churns[i]
-
-            step_progress.update(
-                task_id,
-                description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm"
-            )
+            if churn > max_churn:
+                print(f"Error: requested churn is not allowed ({churn:,} > max churn {max_churn:,})")
+                exit(1)
 
             throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
 
@@ -249,11 +251,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
             throughput_mpps = int(throughput_pps / 1e6)
 
             self.log(f"Churn {churn:,} => {throughput_mbps:,} Mbps {throughput_mpps:,} Mpps")
-
-            step_progress.update(
-                task_id,
-                description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm [reading CPU counters]"
-            )
+            step_progress.update(task_id, description=f"{description} [reading CPU counters]")
 
             in_pkts, cpu_pkts = self._read_cpu_counters(churn, throughput_mbps)
 

@@ -74,6 +74,12 @@ class LocalCommand(Command):
 
     def exit_status_ready(self) -> bool:
         return self.proc_.poll() is not None
+    
+    def flush(
+        self,
+        keyboard_int: Optional[Callable[[], None]] = None,
+    ):
+        raise NotImplementedError()
 
     def watch(
         self,

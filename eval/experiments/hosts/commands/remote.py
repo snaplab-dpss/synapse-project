@@ -55,6 +55,41 @@ class RemoteCommand(Command):
 
     def exit_status_ready(self) -> bool:
         return self.cmd_.exit_status_ready()
+    
+    def flush(
+        self,
+        keyboard_int: Optional[Callable[[], None]] = None,
+    ):
+        output = ""
+
+        keep_going = True
+        try:
+            while keep_going:
+                time.sleep(0.1)
+
+                # Consume everything that comes out.
+                keep_going = len(output) > 0
+
+                while self.cmd_.recv_ready():
+                    data = self.cmd_.recv(512)
+                    decoded_data = data.decode("utf-8")
+                    output += decoded_data
+                    if self.log_file:
+                        self.log_file.write(decoded_data)
+                        self.log_file.flush()
+
+                while self.cmd_.recv_stderr_ready():
+                    data = self.cmd_.recv_stderr(512)
+                    decoded_data = data.decode("utf-8")
+                    output += decoded_data
+                    if self.log_file:
+                        self.log_file.write(decoded_data)
+                        self.log_file.flush()
+
+        except KeyboardInterrupt:
+            if keyboard_int is not None:
+                keyboard_int()
+            raise
 
     def watch(
         self,
@@ -131,7 +166,7 @@ class RemoteCommand(Command):
     def run_console_commands(
         self,
         commands: Union[str, list[str]],
-        timeout: float = 1.0,
+        timeout: Optional[float] = None,
         console_pattern: Optional[str] = None,
     ) -> str:
         if not isinstance(commands, list):

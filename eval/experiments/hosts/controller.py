@@ -127,10 +127,16 @@ class Controller:
         
         cmd = f"sudo killall -SIGUSR1 {self.exe}"
 
-        self.host.run_command(cmd)
-        output = self.controller_cmd.watch(
-            stop_pattern="~~~ USR1 signal processing done ~~~",
-        )
+        # Flush stdout and stderr before running the new command
+        self.controller_cmd.flush()
+
+        output = ""
+        while len(output) == 0:
+            self.host.run_command(cmd)
+            output = self.controller_cmd.watch(
+                stop_pattern="~~~ USR1 signal processing done ~~~",
+                timeout=5,
+            )
 
         return output
     

@@ -217,7 +217,7 @@ control Ingress(
 			populate;
 		}
 
-		size = 131072;
+		size = 262144;
 		idle_timeout = true;
 	}
 
