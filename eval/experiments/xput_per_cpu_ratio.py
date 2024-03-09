@@ -181,7 +181,7 @@ class ThroughputPerCPURatio(Experiment):
             self.controller.wait_ready()
             self.pktgen.wait_launch()
 
-            throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, 0, self.pkt_size)
+            throughput_bps, throughput_pps, _ = self.find_stable_throughput(self.pktgen, 0, self.pkt_size)
 
             step_progress.update(
                 task_id,

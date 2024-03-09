@@ -57,33 +57,54 @@ def get_estimator_data():
     return x, y, yerr
 
 def xput_estimator_pps(r: float) -> float:
-    c = MAX_STABLE_CPU_RATIO
+    C = MAX_STABLE_CPU_RATIO
     tA = MAX_XPUT_PPS_SWITCH_ASIC
     tC = MAX_XPUT_PPS_SWITCH_CPU
+
+    if r <= C:
+        return tA
     
-    # if r <= c: return tA
-    # return tA * (1 - (r - c) / (1 - c)) + tC * (r - c) / (1 - c)
+    ########################
+    # Model: a*(1-r) + b*r
+    ########################
+    # return tA * (1 - (r - C) / (1 - C)) + tC * (r - C) / (1 - C)
 
-    # if r <= c: return tA
-    # return tA * (1 - ((r - c) / (1 - c))**-2) + tC * ((r - c) / (1 - c))**-2
-
+    ########################
+    # Model: a*log(b*r+c) + d
+    ########################
     # if r == 1: return tC
-    # return tA * math.exp(-1*(r-c)/(1-r)) + tC * (1 - math.exp(-1*(r-c)/(1-r)))
+    # a = tC-tA
+    # b = (1-1/math.e)/(1-C)
+    # c = ((1/math.e)-C)/(1-C)
+    # d = tC
+    # return a*math.log(b*r+c) + d
 
-    # if r == 1: return tC
-    # return (MAX_XPUT_PPS_SWITCH_CPU - MAX_XPUT_PPS_SWITCH_ASIC) * math.log(r * (1-1/math.e)/(1-c) + ((1/math.e)-c)/(1-c)) + tC
+    ########################
+    # Model: a/r + b
+    ########################
+    # a = (tA-tC)*(C/(1-C))
+    # b = tC-a
+    # return (a/r)+b
 
-    # b = ((tA/tC)*c-1)/(1-(tA/tC))
-    # a = tA * (c + b)
+    # ---------------------------------------------------------
+    #            |                              |
+    #            | SUCCESSFUL MODELS START HERE |
+    #            V                              V
+    # ---------------------------------------------------------
 
-    # if r <= c: return tA
-    # return a / (r + b)
+    ########################
+    # Model: 1 / (a*r + b)
+    ########################
+    # b = (1/(1-C))*((tC-C*tA)/(tA*tC))
+    # a = 1/tC - b
+    # return 1 / (a*r + b)
 
-    b = (1/(1-c))*((tC-c*tA)/(tA*tC))
-    a = 1/tC - b
-
-    if r <= c: return tA
-    return 1 / (a*r + b)
+    ########################
+    # Model: a / (r + b)
+    ########################
+    b = (C-(tC/tA))/((tC/tA)-1)
+    a = tA * (C + b)
+    return a / (r + b)
 
 def estimate_xput_pps(cpu_ratios: list[float]) -> list[float]:
     estimates = []

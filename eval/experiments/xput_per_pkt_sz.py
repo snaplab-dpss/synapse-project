@@ -134,7 +134,7 @@ class ThroughputPerPacketSize(Experiment):
             self.pktgen.wait_launch()
             self.controller.wait_ready()
 
-            throughput_bps, throughput_pps = self.find_stable_throughput(
+            throughput_bps, throughput_pps, _ = self.find_stable_throughput(
                 self.pktgen,
                 self.churn,
                 pkt_size

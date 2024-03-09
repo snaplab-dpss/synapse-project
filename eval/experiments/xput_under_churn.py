@@ -114,7 +114,7 @@ class ThroughputUnderChurn(Experiment):
         while churn != max_churn:
             self.log(f"Finding churn anchors: {churn:,} fpm")
 
-            throughput_bps, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
+            throughput_bps, _, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
             throughput_mbps = throughput_bps / 1e6
 
             step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {int(throughput_mbps):,}Mbps")
@@ -207,7 +207,7 @@ class ThroughputUnderChurn(Experiment):
                 description=f"[{i+1:2d}/{len(churns):2d}] {churn:,} fpm"
             )
 
-            throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
+            throughput_bps, throughput_pps, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
             self.log(f"Churn {churn:,} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
 
             with open(self.save_name, "a") as f:

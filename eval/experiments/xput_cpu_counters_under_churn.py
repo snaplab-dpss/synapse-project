@@ -16,7 +16,7 @@ from rich.progress import Progress, TaskID
 from typing import Optional
 
 LO_PERF_CHURN_MBPS  = 10_000  # 10 Gbps
-NUM_CHURN_STEPS     = 10
+NUM_CHURN_STEPS     = 15
 STARTING_CHURN_FPM  = 100
 
 class ThroughputWithCPUCountersUnderChurn(Experiment):
@@ -117,7 +117,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         while churn != max_churn:
             self.log(f"Finding churn anchors: {churn:,} fpm")
 
-            throughput_bps, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
+            throughput_bps, _, _ = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
             throughput_mbps = throughput_bps / 1e6
 
             step_progress.update(task_id, description=f"Finding churn anchors: {churn:,} fpm {int(throughput_mbps):,} Mbps")
@@ -245,7 +245,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
                 print(f"Error: requested churn is not allowed ({churn:,} > max churn {max_churn:,})")
                 exit(1)
 
-            throughput_bps, throughput_pps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
+            throughput_bps, throughput_pps, requested_rate_mbps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)
 
             throughput_mbps = int(throughput_bps / 1e6)
             throughput_mpps = int(throughput_pps / 1e6)
@@ -253,7 +253,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
             self.log(f"Churn {churn:,} => {throughput_mbps:,} Mbps {throughput_mpps:,} Mpps")
             step_progress.update(task_id, description=f"{description} [reading CPU counters]")
 
-            in_pkts, cpu_pkts = self._read_cpu_counters(churn, throughput_mbps)
+            in_pkts, cpu_pkts = self._read_cpu_counters(churn, requested_rate_mbps)
 
             with open(self.save_name, "a") as f:
                 f.write(f"{current_iter},{churn},{in_pkts},{cpu_pkts},{throughput_bps},{throughput_pps}\n")

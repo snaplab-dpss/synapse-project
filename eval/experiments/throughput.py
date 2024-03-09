@@ -127,7 +127,7 @@ class Throughput(Experiment):
 
         step_progress.update(task_id, description=f"({current_iter})")
 
-        throughput_bps, throughput_pps = self.find_stable_throughput(
+        throughput_bps, throughput_pps, _ = self.find_stable_throughput(
             self.pktgen,
             self.churn,
             self.pkt_size

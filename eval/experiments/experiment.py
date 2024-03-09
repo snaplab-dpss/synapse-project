@@ -17,7 +17,7 @@ from rich.progress import (
 from experiments.hosts.pktgen import Pktgen
 
 MAX_THROUGHPUT          = 100_000 # 100 Gbps
-ITERATION_DURATION_SEC  = 10      # seconds
+ITERATION_DURATION_SEC  = 5       # seconds
 THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS     = 0.001   # 0.1%
 WARMUP_TIME_SEC         = 3       # seconds
@@ -129,7 +129,7 @@ class Experiment:
         pktgen: Pktgen,
         churn: int,
         pkt_size: int,
-    ) -> tuple[int,int]:        
+    ) -> tuple[int,int,int]:        
         if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
             raise ValueError("max_loss must be in [0, 1).")
 
@@ -138,6 +138,7 @@ class Experiment:
 
         real_throughput_bps_winner = 0
         real_throughput_pps_winner = 0
+        requested_rate_mbps_winner = 0
 
         current_rate = rate_upper
 
@@ -206,17 +207,18 @@ class Experiment:
                     continue
             else:
                 if current_rate == rate_upper:
-                    return real_throughput_tx_bps, real_throughput_tx_pps
+                    return real_throughput_tx_bps, real_throughput_tx_pps, current_rate
 
                 rate_lower = current_rate
 
                 real_throughput_bps_winner = real_throughput_tx_bps
                 real_throughput_pps_winner = real_throughput_tx_pps
+                requested_rate_mbps_winner = current_rate
 
             current_rate = int((rate_upper + rate_lower) / 2)
 
         # Found a rate.
-        return real_throughput_bps_winner, real_throughput_pps_winner
+        return real_throughput_bps_winner, real_throughput_pps_winner, requested_rate_mbps_winner
 
 class ExperimentTracker:
     def __init__(self) -> None:
