@@ -20,7 +20,7 @@ MAX_THROUGHPUT          = 100_000 # 100 Gbps
 ITERATION_DURATION_SEC  = 5       # seconds
 THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS     = 0.001   # 0.1%
-WARMUP_TIME_SEC         = 3       # seconds
+WARMUP_TIME_SEC         = 5       # seconds
 WARMUP_RATE             = 1       # 1 Mbps
 REST_TIME_SEC           = 2       # seconds
 
