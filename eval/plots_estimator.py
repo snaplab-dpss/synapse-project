@@ -86,6 +86,11 @@ def xput_estimator_pps(r: float) -> float:
     # b = tC-a
     # return (a/r)+b
 
+    ########################
+    # Model: a/r (assuming C ~ tC/tA)
+    ########################
+    # return tC / r
+
     # ---------------------------------------------------------
     #            |                              |
     #            | SUCCESSFUL MODELS START HERE |
@@ -163,13 +168,15 @@ def plot_cpu_ratio_estimator(raw_data: Data, out_fname: str):
         x_label,
         y_label,
         d,
-        lines_only=False,
+        lines=False,
         zorder=1,
     )
     
-    estimate_y = estimate_xput_pps(x)
+    steps = 1000
+    estimate_x = [ (1/steps)*i for i in range(steps+1) ]
+    estimate_y = estimate_xput_pps(estimate_x)
     ax.plot(
-        x,
+        estimate_x,
         estimate_y,
         label="Prediction",
         color="red",
@@ -252,15 +259,23 @@ def plot_cpu_ratio_estimator_log_x(raw_data: Data, out_fname: str):
         x_label,
         y_label,
         d,
-        lines_only=False,
+        lines=False,
         zorder=1,
     )
     
-    estimate_y = estimate_xput_pps(x)
-    # Instead of zero, for the log scale. We still show it as zero though, using labels.
-    estimate_y[0] = xput_estimator_pps(0)
+    steps_per_power = 100
+    base_power = math.floor(math.log(x[0], 10))
+    estimate_x: list[float] = [0]
+    for power in range(base_power, 0, 1):
+        floor = 10**power
+        ceil = 10**(power+1)
+        step = (ceil - floor) / steps_per_power
+        estimate_x += [ floor + step*i for i in range(steps_per_power) ]
+    estimate_x.append(1)
+    estimate_y = estimate_xput_pps(estimate_x)
+
     ax.plot(
-        x,
+        estimate_x,
         estimate_y,
         label="Prediction",
         color="red",
@@ -335,4 +350,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # find_estimator_parameters()

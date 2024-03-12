@@ -19,6 +19,9 @@ LO_PERF_CHURN_MBPS  = 10_000  # 10 Gbps
 NUM_CHURN_STEPS     = 15
 STARTING_CHURN_FPM  = 100
 
+# Give some margins for flows to expire
+TG_EXPIRATION_MULTIPLIER = 5
+
 class ThroughputWithCPUCountersUnderChurn(Experiment):
     def __init__(
         self,
@@ -153,12 +156,12 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         lo2mid_churns_steps = int((mid_churn_fpm - lo_churn_fpm) / lo2mid_num_steps)
         mid2hi_churns_steps = int((hi_churn_fpm - mid_churn_fpm) / (mid2hi_num_steps - 1))
 
-        self.churns = [ 0 ]
-        self.churns = self.churns + [ int(lo_churn_fpm + i * lo2mid_churns_steps) for i in range(lo2mid_num_steps) ]
-        self.churns = self.churns + [ int(mid_churn_fpm + i * mid2hi_churns_steps) for i in range(mid2hi_num_steps) ]
+        churns = [ 0 ]
+        churns = churns + [ int(lo_churn_fpm + i * lo2mid_churns_steps) for i in range(lo2mid_num_steps) ]
+        churns = churns + [ int(mid_churn_fpm + i * mid2hi_churns_steps) for i in range(mid2hi_num_steps) ]
 
-        self.log(f"Churns: {self.churns} fpm")
-        return self.churns
+        self.log(f"Churns: {churns} fpm")
+        return churns
     
     def _read_cpu_counters(
         self,
@@ -216,7 +219,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         self.pktgen.launch(
             self.nb_flows,
             self.pkt_size,
-            self.timeout_ms * 1000,
+            TG_EXPIRATION_MULTIPLIER * self.timeout_ms * 1000,
             self.crc_unique_flows,
             self.crc_bits,
             mark_warmup_packets=True,
@@ -242,7 +245,7 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
             max_churn = self.pktgen.wait_launch()
 
             if churn > max_churn:
-                print(f"Error: requested churn is not allowed ({churn:,} > max churn {max_churn:,})")
+                print(f"WARNING: requested churn is higher than allowed ({churn:,} > max churn {max_churn:,})")
                 exit(1)
 
             throughput_bps, throughput_pps, requested_rate_mbps = self.find_stable_throughput(self.pktgen, churn, self.pkt_size)

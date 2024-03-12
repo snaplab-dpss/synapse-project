@@ -48,10 +48,10 @@ figsize_third = (width_third, height_third)
 
 tight_layout_pad = 0.21
 linewidth = 1
-elinewidth = 0.5
-capsize = 1
+elinewidth = 1
+capsize = 2
 markersize = 2.5
-markeredgewidth = 0.5
+markeredgewidth = 1
 capthick = 0.5
 
 # This is "colorBlindness::PairedColor12Steps" from R.
@@ -285,7 +285,8 @@ def plot_subplot(ax,
                  data: list[dict],
                  set_palette: Optional[list[str]] = None,
                  set_markers_list: Optional[list[str]] = None,
-                 lines_only: bool = False,
+                 markers: bool = True,
+                 lines: bool = True,
                  **kwargs) -> None:
     if set_palette is None:
         set_palette = palette
@@ -296,17 +297,30 @@ def plot_subplot(ax,
     for d, color, marker in zip(data, itertools.cycle(set_palette), itertools.cycle(markers_list)):
         # Default options.
         options = {
-            "linewidth": linewidth,
             "capsize": capsize,
             "capthick": capthick,
+            "elinewidth": elinewidth,
         }
 
-        if not lines_only:
+        if markers:
             options.update({
                 "marker": marker,
                 "markersize": markersize,
                 "markeredgewidth": markeredgewidth,
                 "markerfacecolor": color,
+            })
+        else:
+            options.update({
+                "marker": None,
+            })
+        
+        if lines:
+            options.update({
+                "linewidth": linewidth,
+            })
+        else:
+            options.update({
+                "linestyle": 'None',
             })
 
         options.update(kwargs)
@@ -314,7 +328,7 @@ def plot_subplot(ax,
         ax.errorbar(
             d["x"],
             d["y"],
-            yerr=None if lines_only else d["yerr"],
+            yerr=d["yerr"],
             label=d["label"] if "label" in d else None,
             **options
         )

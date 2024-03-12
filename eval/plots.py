@@ -70,7 +70,6 @@ def plot_throughput_under_churn_pps(
         x_label,
         y_label,
         d,
-        lines_only=False,
         set_palette=[palette[color_group]] if color_group else None,
         set_markers_list=[markers_list[color_group]] if color_group else None,
     )
@@ -142,7 +141,6 @@ def plot_throughput_under_churn_bps(
         x_label,
         y_label,
         d,
-        lines_only=False,
         set_palette=[palette[color_group]] if color_group else None,
         set_markers_list=[markers_list[color_group]] if color_group else None,
     )
@@ -225,7 +223,6 @@ def plot_thpt_pps_per_cpu_ratio(
         x_label,
         y_label,
         d,
-        lines_only=False,
         set_palette=[palette[color_group]] if color_group else None,
         set_markers_list=[markers_list[color_group]] if color_group else None,
     )
@@ -311,7 +308,6 @@ def plot_thpt_pps_per_cpu_ratio_log_x(
         x_label,
         y_label,
         d,
-        lines_only=False,
         set_palette=[palette[color_group]] if color_group else None,
         set_markers_list=[markers_list[color_group]] if color_group else None,
     )
