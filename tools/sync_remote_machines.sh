@@ -40,7 +40,7 @@ install_libsycon() {
     echo "*********************************************"
 
     # Touching CMakeLists allows cmake to detect new files (because of glob)
-    ssh $host "cd $path_to_repo/libsycon && touch CMakeLists.txt && ./install.sh"
+    ssh $host "cd $path_to_repo/libsycon && touch CMakeLists.txt && rm -rf Release Debug && ./install.sh"
 }
 
 build_pktgen() {
