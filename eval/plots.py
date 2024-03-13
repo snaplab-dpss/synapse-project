@@ -7,7 +7,9 @@ import os
 import glob
 
 from pathlib import Path
-from typing import Optional, Union, NewType
+from typing import Optional
+
+import matplotlib.pyplot as plt
 
 from utils.plot_config import *
 
@@ -25,7 +27,6 @@ def plot_throughput_under_churn_pps(
     labels: list[Optional[str]],
     multiple_data: list[Data],
     out_name: str,
-    generate_png: bool,
     color_group: Optional[int],
 ):
     x_elem = 1 # churn column
@@ -88,15 +89,12 @@ def plot_throughput_under_churn_pps(
     fig.tight_layout(pad=0.1)
 
     plt.savefig(str(fig_file_pdf))
-
-    if generate_png:
-        plt.savefig(str(fig_file_png))
+    plt.savefig(str(fig_file_png))
 
 def plot_throughput_under_churn_bps(
     labels: list[Optional[str]],
     multiple_data: list[Data],
     out_name: str,
-    generate_png: bool,
     color_group: Optional[int],
 ):
     x_elem = 1 # churn column
@@ -159,15 +157,154 @@ def plot_throughput_under_churn_bps(
     fig.tight_layout(pad=0.1)
 
     plt.savefig(str(fig_file_pdf))
+    plt.savefig(str(fig_file_png))
 
-    if generate_png:
-        plt.savefig(str(fig_file_png))
+def plot_churn_thpt_pps_per_cpu_ratio(
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
+    out_name: str,
+    color_group: Optional[int],
+):
+    assert len(multiple_data) == 1
+    data = Data([])
+
+    for d in multiple_data[0]:
+        i, _, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    x_label = "Fraction of packets sent to switch CPU"
+
+    y_elem = 2 # Throughput pps column
+    y_units = "pps"
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
+    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+
+    y_label = f"Throughput ({y_units})"
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    d = [{
+        "x": x,
+        "y": y,
+        "yerr": yerr,
+    }]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines=False,
+        set_palette=[palette[color_group]] if color_group else None,
+        set_markers_list=[markers_list[color_group]] if color_group else None,
+    )
+
+    ax.set_yscale("symlog")
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(y_tick_labels)
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(ymin=y_ticks[0], ymax=y_ticks[-1]*2)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    plt.savefig(str(fig_file_pdf))
+    plt.savefig(str(fig_file_png))
+
+def plot_churn_thpt_pps_per_cpu_ratio_log_x(
+    labels: list[Optional[str]],
+    multiple_data: list[Data],
+    out_name: str,
+    color_group: Optional[int],
+):
+    assert len(multiple_data) == 1
+    data = Data([])
+
+    for d in multiple_data[0]:
+        i, _, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    x_label = "Fraction of packets sent to switch CPU"
+
+    y_elem = 2 # Throughput pps column
+    y_units = "pps"
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    y_label = f"Throughput ({y_units})"
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    d = [{
+        "x": x,
+        "y": y,
+        "yerr": yerr,
+    }]
+
+    # Instead of zero, for the log scale. We still show it as zero though, using labels.
+    x[0] = 1e-8
+
+    x_ticks = [ x[0], 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
+    x_tick_labels = [ "0", "$10^{-7}$", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
+    
+    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
+    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines=False,
+        set_palette=[palette[color_group]] if color_group else None,
+        set_markers_list=[markers_list[color_group]] if color_group else None,
+    )
+
+    ax.set_xscale("log")
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_tick_labels)
+
+    ax.set_yscale("symlog")
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(y_tick_labels)
+
+    ax.set_xlim(xmin=x_ticks[0], xmax=x_ticks[-1])
+    ax.set_ylim(ymin=y_ticks[0], ymax=y_ticks[-1]*2)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    plt.savefig(str(fig_file_pdf))
+    plt.savefig(str(fig_file_png))
 
 def plot_thpt_pps_per_cpu_ratio(
     labels: list[Optional[str]],
     multiple_data: list[Data],
     out_name: str,
-    generate_png: bool,
     color_group: Optional[int],
 ):
     assert len(multiple_data) == 1
@@ -223,6 +360,7 @@ def plot_thpt_pps_per_cpu_ratio(
         x_label,
         y_label,
         d,
+        lines=False,
         set_palette=[palette[color_group]] if color_group else None,
         set_markers_list=[markers_list[color_group]] if color_group else None,
     )
@@ -238,15 +376,12 @@ def plot_thpt_pps_per_cpu_ratio(
     fig.tight_layout(pad=0.1)
 
     plt.savefig(str(fig_file_pdf))
-
-    if generate_png:
-        plt.savefig(str(fig_file_png))
+    plt.savefig(str(fig_file_png))
 
 def plot_thpt_pps_per_cpu_ratio_log_x(
     labels: list[Optional[str]],
     multiple_data: list[Data],
     out_name: str,
-    generate_png: bool,
     color_group: Optional[int],
 ):
     assert len(multiple_data) == 1
@@ -292,10 +427,10 @@ def plot_thpt_pps_per_cpu_ratio_log_x(
     }]
 
     # Instead of zero, for the log scale. We still show it as zero though, using labels.
-    x[0] = x[1] / 10
+    x[0] = 1e-8
 
-    x_ticks = [ x[0], 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
-    x_tick_labels = [ "0", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
+    x_ticks = [ x[0], 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
+    x_tick_labels = [ "0", "$10^{-7}$", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
     
     y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
     y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
@@ -308,6 +443,7 @@ def plot_thpt_pps_per_cpu_ratio_log_x(
         x_label,
         y_label,
         d,
+        lines=False,
         set_palette=[palette[color_group]] if color_group else None,
         set_markers_list=[markers_list[color_group]] if color_group else None,
     )
@@ -327,15 +463,12 @@ def plot_thpt_pps_per_cpu_ratio_log_x(
     fig.tight_layout(pad=0.1)
 
     plt.savefig(str(fig_file_pdf))
-
-    if generate_png:
-        plt.savefig(str(fig_file_png))
+    plt.savefig(str(fig_file_png))
 
 def plot_thpt_per_pkt_sz_bps(
     labels: list[Optional[str]],
     multiple_data: list[Data],
     out_name: str,
-    generate_png: bool,
     color_group: int,
 ):
     assert len(multiple_data) == 1
@@ -385,15 +518,12 @@ def plot_thpt_per_pkt_sz_bps(
     fig.tight_layout(pad=0.1)
 
     plt.savefig(str(fig_file_pdf))
-
-    if generate_png:
-        plt.savefig(str(fig_file_png))
+    plt.savefig(str(fig_file_png))
 
 def plot_thpt_per_pkt_sz_pps(
     labels: list[Optional[str]],
     multiple_data: list[Data],
     out_name: str,
-    generate_png: bool,
     color_group: int,
 ):
     assert len(multiple_data) == 1
@@ -443,9 +573,7 @@ def plot_thpt_per_pkt_sz_pps(
     fig.tight_layout(pad=0.1)
 
     plt.savefig(str(fig_file_pdf))
-
-    if generate_png:
-        plt.savefig(str(fig_file_png))
+    plt.savefig(str(fig_file_png))
 
 def cache_capacity_label_builder(name) -> Optional[str]:
     pattern = r".*_(\d+)_flows_(\d+)_cache.*"
@@ -471,6 +599,8 @@ csv_pattern_to_plotter = {
     "churn_table_map.csv": [
         (plot_throughput_under_churn_bps, "churn_table_map_bps", None, COLOR_GROUP_SWITCH_ASIC),
         (plot_throughput_under_churn_pps, "churn_table_map_pps", None, COLOR_GROUP_SWITCH_ASIC),
+        (plot_churn_thpt_pps_per_cpu_ratio, "xput_cpu_counters_table_map_pps", None, None),
+        (plot_churn_thpt_pps_per_cpu_ratio_log_x, "xput_cpu_counters_table_map_pps_log_x", None, None),
     ],
     "churn_cached_table_map_*.csv": [
         (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", cache_capacity_label_builder, None),
@@ -486,13 +616,10 @@ csv_pattern_to_plotter = {
     ],
 }
 
-def should_skip(name: str, png: bool):
+def should_skip(name: str):
     fig_file_pdf = Path(PLOTS_DIR / f"{name}.pdf")
     fig_file_png = Path(PLOTS_DIR / f"{name}.png")
-
-    should_plot = not fig_file_pdf.exists()
-    should_plot = should_plot or (png and not fig_file_png.exists())
-
+    should_plot = not fig_file_pdf.exists() or not fig_file_png.exists()
     return not should_plot
 
 def main():
@@ -500,8 +627,6 @@ def main():
 
     parser.add_argument("-f", "--force", action="store_true", default=False,
                         help="Regenerate data/plots, even if they already exist")
-    parser.add_argument("--png", action="store_true", default=False,
-                        help="Also save plots as PNGs")
     
     args = parser.parse_args()
 
@@ -515,7 +640,7 @@ def main():
             continue
         
         for plotter, out_name, label_builder, color_group in csv_pattern_to_plotter[csv_pattern]:
-            if not args.force and should_skip(out_name, args.png):
+            if not args.force and should_skip(out_name):
                 print(f"{out_name} (skipped)")
                 continue
 
@@ -533,7 +658,7 @@ def main():
             labels = [ x[0] for x in labels_data ]
             data = [ x[1] for x in labels_data ]
 
-            plotter(labels, data, out_name, args.png, color_group)
+            plotter(labels, data, out_name, color_group)
 
 if __name__ == "__main__":
     main()

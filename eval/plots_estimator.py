@@ -5,8 +5,7 @@ import sys
 import os
 import math
 
-import numpy as np
-from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 from pathlib import Path
 from utils.plot_config import *
@@ -118,40 +117,19 @@ def estimate_xput_pps(cpu_ratios: list[float]) -> list[float]:
         estimates.append(xput_estimator_pps(cpu_ratio))
     return estimates
 
-def plot_cpu_ratio_estimator(raw_data: Data, out_fname: str):
-    data = Data([])
-    for d in raw_data:
-        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
-        real_cpu_ratio = cpu_pkts / asic_pkts
-
-        # Experiment limitations.
-        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
-        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
-            target_cpu_ratio = 1
-        else:
-            acceptable_error = 0.25 # 25%
-            if target_cpu_ratio != 0:
-                error = abs(target_cpu_ratio - real_cpu_ratio) / target_cpu_ratio
-                assert error <= acceptable_error
-
-        data.append([ i, real_cpu_ratio, xput_pps ])
-    
-    x_elem = 1 # cpu ratio
+def plot_thpt_per_cpu_ratio(
+    x: list[float],
+    y: list[float],
+    yerr: list[float],
+    out_fname: str
+):
     x_label = "Fraction of packets sent to switch CPU"
-
-    y_elem = 2 # Throughput pps column
     y_units = "pps"
-
-    agg_values = aggregate_values(data, x_elem, y_elem)
 
     y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
     y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
 
     y_label = f"Throughput ({y_units})"
-
-    x    = [ v[0] for v in agg_values ]
-    y    = [ v[1] for v in agg_values ]
-    yerr = [ v[2] for v in agg_values ]
 
     d = [{
         "x": x,
@@ -185,7 +163,7 @@ def plot_cpu_ratio_estimator(raw_data: Data, out_fname: str):
         zorder=2,
     )
 
-    ax.legend(loc="lower left")
+    ax.legend(loc="upper right")
 
     ax.set_yscale("symlog")
     ax.set_yticks(y_ticks)
@@ -203,41 +181,20 @@ def plot_cpu_ratio_estimator(raw_data: Data, out_fname: str):
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
 
-def plot_cpu_ratio_estimator_log_x(raw_data: Data, out_fname: str):
-    data = Data([])
-    for d in raw_data:
-        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
-        real_cpu_ratio = cpu_pkts / asic_pkts
-
-        # Experiment limitations.
-        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
-        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
-            target_cpu_ratio = 1
-        else:
-            acceptable_error = 0.25 # 25%
-            if target_cpu_ratio != 0:
-                error = abs(target_cpu_ratio - real_cpu_ratio) / target_cpu_ratio
-                assert error <= acceptable_error
-
-        data.append([ i, real_cpu_ratio, xput_pps ])
-    
-    x_elem = 1 # cpu ratio
+def plot_thpt_per_cpu_ratio_log_x(
+    x: list[float],
+    y: list[float],
+    yerr: list[float],
+    out_fname: str
+):
     x_label = "Fraction of packets sent to switch CPU"
-
-    y_elem = 2 # Throughput pps column
     y_units = "pps"
 
-    agg_values = aggregate_values(data, x_elem, y_elem)
-
-    x    = [ v[0] for v in agg_values ]
-    y    = [ v[1] for v in agg_values ]
-    yerr = [ v[2] for v in agg_values ]
-
     # Instead of zero, for the log scale. We still show it as zero though, using labels.
-    x[0] = x[1] / 10
-    
-    x_ticks = [ x[0], 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
-    x_tick_labels = [ "0", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
+    x[0] = 1e-8
+
+    x_ticks = [ x[0], 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
+    x_tick_labels = [ "0", "$10^{-7}$", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
     
     y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
     y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
@@ -306,6 +263,108 @@ def plot_cpu_ratio_estimator_log_x(raw_data: Data, out_fname: str):
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
 
+def plot_periodic_sender(raw_data: Data, out_fname: str):
+    data = Data([])
+    for d in raw_data:
+        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(target_cpu_ratio - real_cpu_ratio) / target_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    plot_thpt_per_cpu_ratio(x, y, yerr, out_fname)
+
+def plot_periodic_sender_log_x(raw_data: Data, out_fname: str):
+    data = Data([])
+    for d in raw_data:
+        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(target_cpu_ratio - real_cpu_ratio) / target_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    # Instead of zero, for the log scale. We still show it as zero though, using labels.
+    x[0] = x[1] / 10
+
+    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_fname)
+
+def plot_table_map(raw_data: Data, out_fname: str):
+    data = Data([])
+    for d in raw_data:
+        i, _, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    plot_thpt_per_cpu_ratio(x, y, yerr, out_fname)
+
+def plot_table_map_log_x(raw_data: Data, out_fname: str):
+    data = Data([])
+    for d in raw_data:
+        i, _, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    # Instead of zero, for the log scale. We still show it as zero though, using labels.
+    x[0] = x[1] / 10
+
+    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_fname)
+
 def should_skip(name: str):
     fig_file_pdf = Path(PLOTS_DIR / f"{name}.pdf")
     fig_file_png = Path(PLOTS_DIR / f"{name}.png")
@@ -317,8 +376,12 @@ def should_skip(name: str):
 
 csv_pattern_to_plotter = {
     "xput_cpu_counters_periodic_cpu_sender.csv": [
-        (plot_cpu_ratio_estimator, "cpu_ratio_estimator"),
-        (plot_cpu_ratio_estimator_log_x, "cpu_ratio_estimator_log_x"),
+        (plot_periodic_sender, "estimator_cpu_ratio"),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_log_x"),
+    ],
+    "churn_table_map.csv": [
+        (plot_table_map, "estimator_cpu_ratio_table_map"),
+        (plot_table_map_log_x, "estimator_cpu_ratio_table_map_log_x"),
     ],
 }
 

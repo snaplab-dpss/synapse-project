@@ -88,6 +88,7 @@ def analyze_pcap(pcap: Path, hash_size: int):
         # print(f"Hash: 0x{hash:x}")
         # input()
     
+    print(f"Hash size:      {hash_size}")
     print(f"Total packets:  {total_pkts:,}")
     print(f"Hash capacity:  {(1<<hash_size)-1:,}")
     print(f"Collisions:     {collisions:,} ({100.0*collisions/total_pkts:5.2f}%)")

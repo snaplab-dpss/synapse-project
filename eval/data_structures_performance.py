@@ -111,7 +111,7 @@ def get_table_perf_experiments(
             save_name=data_dir / f"{exp_name}.csv",
             lo_churn_fpm=5_000,
             mid_churn_fpm=10_000,
-            hi_churn_fpm=50_000,
+            hi_churn_fpm=100_000,
             switch=switch,
             controller=controller,
             pktgen=pktgen,

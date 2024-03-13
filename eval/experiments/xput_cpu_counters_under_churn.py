@@ -157,6 +157,12 @@ class ThroughputWithCPUCountersUnderChurn(Experiment):
         mid2hi_churns_steps = int((hi_churn_fpm - mid_churn_fpm) / (mid2hi_num_steps - 1))
 
         churns = [ 0 ]
+        
+        i = 1
+        while 10**i < lo_churn_fpm:
+            churns.append(10**i)
+            i += 1
+
         churns = churns + [ int(lo_churn_fpm + i * lo2mid_churns_steps) for i in range(lo2mid_num_steps) ]
         churns = churns + [ int(mid_churn_fpm + i * mid2hi_churns_steps) for i in range(mid2hi_num_steps) ]
 

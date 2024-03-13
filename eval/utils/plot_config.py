@@ -5,13 +5,11 @@ import sys
 import re
 import itertools
 import statistics
-import os
 
 from pathlib import Path
 from typing import Optional, Union, NewType
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 
 import numpy as np
 
@@ -225,6 +223,7 @@ def bar_subplot(ax,
                 ylabel: str,
                 data: list[dict],
                 xtick_labels: Optional[list] = None,
+                y_values_hats: bool = False,
                 width_scale: float = 0.7,
                 set_palette: Optional[list[str]] = None,
                 set_hatch_list: Optional[list[str]] = None,
@@ -254,14 +253,17 @@ def bar_subplot(ax,
         }
         options.update(kwargs)
 
-        ax.bar(
+        bars = ax.bar(
             x + offset,
             d["values"],
             bar_width,
-            yerr=d["errors"],
+            yerr=d["errors"] if "errors" in d else None,
             label=d["label"] if "label" in d else None,
             **options
         )
+
+        if y_values_hats:
+            ax.bar_label(bars, labels=[f"{v:.2f}" for v in d["values"]], fontsize=doc.footnotesize/2)
 
         offset += bar_width
 
