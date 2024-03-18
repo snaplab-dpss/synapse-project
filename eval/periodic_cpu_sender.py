@@ -34,6 +34,14 @@ EXPIRATION_TIME_SEC = 1
 
 TOTAL_FLOWS = 65536
 
+# ACTIVE_WAIT_ITERATIONS = [
+#     0, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8,
+# ]
+
+ACTIVE_WAIT_ITERATIONS = [
+    0, 1e6,
+]
+
 console = Console()
 
 def get_periodic_cpu_sender_experiment(
@@ -45,24 +53,31 @@ def get_periodic_cpu_sender_experiment(
 ) -> list[Experiment]:
     app = PERIODIC_CPU_SENDER_APP
 
-    exp_name = f"xput_cpu_counters_{app}"
+    experiments = []
+    for it in ACTIVE_WAIT_ITERATIONS:
+        exp_name = f"xput_cpu_counters_{app}_{int(it)}_loops"
 
-    return [ ThroughputPerCPURatio(
-        name=exp_name,
-        save_name=data_dir / f"{exp_name}.csv",
-        switch=switch,
-        controller=controller,
-        pktgen=pktgen,
-        p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
-        controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
-        timeout_ms=EXPIRATION_TIME_SEC * 1000,
-        nb_flows=TOTAL_FLOWS,
-        pkt_size=PACKET_SIZE_BYTES,
-        crc_unique_flows=False,
-        crc_bits=0,
-        experiment_log_file=experiment_log_file,
-        console=console,
-    ) ]
+        experiment = ThroughputPerCPURatio(
+            name=exp_name,
+            save_name=data_dir / f"{exp_name}.csv",
+            switch=switch,
+            controller=controller,
+            pktgen=pktgen,
+            p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
+            controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
+            timeout_ms=EXPIRATION_TIME_SEC * 1000,
+            active_wait_iterations=it,
+            nb_flows=TOTAL_FLOWS,
+            pkt_size=PACKET_SIZE_BYTES,
+            crc_unique_flows=False,
+            crc_bits=0,
+            experiment_log_file=experiment_log_file,
+            console=console,
+        )
+
+        experiments.append(experiment)
+    
+    return experiments
 
 def main():
     parser = argparse.ArgumentParser()

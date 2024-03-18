@@ -15,7 +15,7 @@ from rich.progress import Progress
 
 from typing import Optional
 
-CPU_RATIOS = [
+CPU_RATIOS: list[float] = [
     0,
     0.000001,
     0.00001,
@@ -45,6 +45,7 @@ class ThroughputPerCPURatio(Experiment):
         # Controller
         controller_src_in_repo: str,
         timeout_ms: int,
+        active_wait_iterations: int,
 
         # Pktgen
         nb_flows: int,
@@ -68,6 +69,7 @@ class ThroughputPerCPURatio(Experiment):
         
         self.controller_src_in_repo = controller_src_in_repo
         self.timeout_ms = timeout_ms
+        self.active_wait_iterations = active_wait_iterations
 
         self.nb_flows = nb_flows
         self.pkt_size = pkt_size
@@ -175,6 +177,7 @@ class ThroughputPerCPURatio(Experiment):
                 self.timeout_ms,
                 extra_args=[
                     ("--ratio", cpu_ratio),
+                    ("--iterations", int(self.active_wait_iterations)),
                 ]
             )
 

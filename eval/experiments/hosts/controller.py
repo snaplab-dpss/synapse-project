@@ -3,7 +3,7 @@
 from paramiko import ssh_exception
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import re
 
@@ -79,7 +79,7 @@ class Controller:
         self,
         src_in_repo: str,
         timeout_ms: int = MIN_TIMEOUT,
-        extra_args: list[tuple[str, str]] = []
+        extra_args: list[tuple[str, Union[str,int,float]]] = []
     ) -> None:
         if timeout_ms != 0 and timeout_ms < MIN_TIMEOUT:
             raise Exception(f"Timeout value must be 0 or >= {MIN_TIMEOUT}ms (is {timeout_ms}ms)")

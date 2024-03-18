@@ -25,7 +25,7 @@ WARMUP_RATE             = 1       # 1 Mbps
 REST_TIME_SEC           = 2       # seconds
 
 # FIXME: Change this
-EXPERIMENT_ITERATIONS   = 3
+EXPERIMENT_ITERATIONS   = 1
 
 class Experiment:
     def __init__(
@@ -194,9 +194,9 @@ class Experiment:
             rx_Gbps = real_throughput_rx_bps / 1e9
             rx_Mpps = real_throughput_rx_pps / 1e6
 
-            self.log(f"TX {tx_Mpps:.2f} Mpps {tx_Gbps:.2f} Gbps")
-            self.log(f"RX {rx_Mpps:.2f} Mpps {rx_Gbps:.2f} Gbps")
-            self.log(f"Lost {loss*100:.2f}% of packets")
+            self.log(f"TX {tx_Mpps:.5f} Mpps {tx_Gbps:.5f} Gbps")
+            self.log(f"RX {rx_Mpps:.5f} Mpps {rx_Gbps:.5f} Gbps")
+            self.log(f"Lost {loss*100}% of packets")
 
             if loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
