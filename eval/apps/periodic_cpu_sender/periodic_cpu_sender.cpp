@@ -11,6 +11,7 @@ using alarm_t = table_value_t<1>;
 
 struct nf_config_t {
   double cpu_pkts_ratio;
+  uint64_t iterations;
 } nf_config;
 
 struct state_t {
@@ -44,6 +45,9 @@ void sycon::nf_args(CLI::App &app) {
   app.add_option("--ratio", nf_config.cpu_pkts_ratio,
                  "Ratio of CPU packets to total input packets")
       ->required();
+  app.add_option("--iterations", nf_config.iterations,
+                 "Number of active waiting loop iterations")
+      ->required();
 }
 
 void sycon::nf_user_signal_handler() {
@@ -67,6 +71,13 @@ void sycon::nf_user_signal_handler() {
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
   cpu_hdr->out_port = SWAP_ENDIAN_16(cfg.out_dev_port);
+
+  // An active waiting loop to simulate CPU processing (with some assembly
+  // to prevent the compiler from optimizing it away)
+  for (uint64_t i = 0; i < nf_config.iterations; i++) {
+    asm volatile("");
+  }
+
   return true;
 }
 
