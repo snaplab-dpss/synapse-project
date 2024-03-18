@@ -184,7 +184,7 @@ class ThroughputPerCPURatio(Experiment):
             self.controller.wait_ready()
             self.pktgen.wait_launch()
 
-            throughput_bps, throughput_pps, _ = self.find_stable_throughput(self.pktgen, 0, self.pkt_size)
+            throughput_bps, throughput_pps, stable_thpt_mbps = self.find_stable_throughput(self.pktgen, 0, self.pkt_size)
 
             step_progress.update(
                 task_id,
@@ -192,7 +192,7 @@ class ThroughputPerCPURatio(Experiment):
             )
 
             self.log(f"Ratio {cpu_ratio:,} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
-            in_pkts, cpu_pkts = self._read_cpu_counters(cpu_ratio, int(throughput_bps / 1e6))
+            in_pkts, cpu_pkts = self._read_cpu_counters(cpu_ratio, stable_thpt_mbps)
 
             with open(self.save_name, "a") as f:
                 f.write(f"{current_iter},{cpu_ratio},{in_pkts},{cpu_pkts},{throughput_bps},{throughput_pps}\n")
