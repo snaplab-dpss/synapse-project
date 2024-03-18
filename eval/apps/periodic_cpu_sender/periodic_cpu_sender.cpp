@@ -51,6 +51,9 @@ void sycon::nf_args(CLI::App &app) {
 }
 
 void sycon::nf_user_signal_handler() {
+  // Make sure this doesn't happen during a transaction
+  cfg.lock();
+
   counter_data_t pkt_counter_data = state->pkt_counter.get(0);
   counter_data_t cpu_counter_data = state->cpu_counter.get(0);
 
@@ -59,6 +62,8 @@ void sycon::nf_user_signal_handler() {
 
   // Total packets (including warmup traffic)
   u64 total_packets = get_asic_port_rx(cfg.in_dev_port);
+
+  cfg.unlock();
 
   float ratio = in_packets > 0 ? (float)cpu_packets / in_packets : 0;
 
