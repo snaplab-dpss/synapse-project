@@ -154,7 +154,7 @@ class Experiment:
         # less than the specified precision.
         for i in range(THROUGHPUT_SEARCH_STEPS):
             # There's no point in continuing this search.
-            if rate_upper == 0:
+            if rate_upper == 0 or current_rate == 0:
                 break
 
             self.log(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps")
