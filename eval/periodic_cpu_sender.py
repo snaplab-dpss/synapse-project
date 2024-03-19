@@ -35,7 +35,7 @@ EXPIRATION_TIME_SEC = 1
 TOTAL_FLOWS = 65536
 
 ACTIVE_WAIT_ITERATIONS = [
-    0, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8,
+    0, 1e2, 1e3, 1e4, 1e5, 1e6,
 ]
 
 console = Console()
