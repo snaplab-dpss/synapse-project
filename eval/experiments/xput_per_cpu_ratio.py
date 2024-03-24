@@ -180,6 +180,12 @@ class ThroughputPerCPURatio(Experiment):
 
             throughput_bps, throughput_pps, stable_thpt_mbps = self.find_stable_throughput(self.pktgen, 0, self.pkt_size)
 
+            if stable_thpt_mbps == 0:
+                self.log(f"Stable throughput is 0, skipping")
+                self.controller.stop()
+                step_progress.update(task_id, advance=1)
+                continue
+
             step_progress.update(
                 task_id,
                 description=description + " [reading CPU counters]"
