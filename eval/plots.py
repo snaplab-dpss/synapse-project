@@ -802,7 +802,15 @@ def plot_periodic_sender_log_x(
 
     plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name)
 
-def plot_table_map(raw_data: Data, out_fname: str):
+def plot_table_map(
+    raw_datas: list[Data],
+    out_name: str,
+    labels: Optional[list[str]] = None,
+    color_group: Optional[int] = None,
+):
+    assert len(raw_datas) == 1
+    raw_data = raw_datas[0]
+
     data = Data([])
     for d in raw_data:
         i, _, asic_pkts, cpu_pkts, _, xput_pps = d
@@ -819,9 +827,17 @@ def plot_table_map(raw_data: Data, out_fname: str):
     y    = [ v[1] for v in agg_values ]
     yerr = [ v[2] for v in agg_values ]
 
-    plot_thpt_per_cpu_ratio(x, y, yerr, out_fname)
+    plot_thpt_per_cpu_ratio(x, y, yerr, out_name)
 
-def plot_table_map_log_x(raw_data: Data, out_fname: str):
+def plot_table_map_log_x(
+    raw_datas: list[Data],
+    out_name: str,
+    labels: Optional[list[str]] = None,
+    color_group: Optional[int] = None,
+):
+    assert len(raw_datas) == 1
+    raw_data = raw_datas[0]
+
     data = Data([])
     for d in raw_data:
         i, _, asic_pkts, cpu_pkts, _, xput_pps = d
@@ -841,7 +857,175 @@ def plot_table_map_log_x(raw_data: Data, out_fname: str):
     # Instead of zero, for the log scale. We still show it as zero though, using labels.
     x[0] = x[1] / 10
 
-    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_fname)
+    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name)
+
+def plot_estimator_ep0(
+    raw_datas: list[Data],
+    out_name: str,
+    labels: Optional[list[str]] = None,
+    color_group: Optional[int] = None,
+):
+    assert len(raw_datas) == 1
+    raw_data = raw_datas[0]
+
+    data = Data([])
+    for d in raw_data:
+        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+        expected_cpu_ratio = 1/int(1/target_cpu_ratio) if target_cpu_ratio != 0 else 0
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(expected_cpu_ratio - real_cpu_ratio) / expected_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    plot_thpt_per_cpu_ratio(x, y, yerr, out_name)
+
+def plot_estimator_ep0_log_x(
+    raw_datas: list[Data],
+    out_name: str,
+    labels: Optional[list[str]] = None,
+    color_group: Optional[int] = None,
+):
+    assert len(raw_datas) == 1
+    raw_data = raw_datas[0]
+
+    data = Data([])
+    for d in raw_data:
+        i, target_cpu_ratio, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+        expected_cpu_ratio = 1/int(1/target_cpu_ratio) if target_cpu_ratio != 0 else 0
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(expected_cpu_ratio - real_cpu_ratio) / expected_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    # Instead of zero, for the log scale. We still show it as zero though, using labels.
+    x[0] = x[1] / 10
+
+    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name)
+
+def plot_estimator_ep1(
+    raw_datas: list[Data],
+    out_name: str,
+    labels: Optional[list[str]] = None,
+    color_group: Optional[int] = None,
+):
+    assert len(raw_datas) == 1
+    raw_data = raw_datas[0]
+
+    data = Data([])
+    for d in raw_data:
+        i, r0, r1, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+        target_cpu_ratio = r0 * r1
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            if r0 == 0 or r1 == 0:
+                expected_cpu_ratio = 0
+            else:
+                expected_cpu_ratio = 1/int(1/r0) * 1/int(1/r1)
+
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(expected_cpu_ratio - real_cpu_ratio) / expected_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    plot_thpt_per_cpu_ratio(x, y, yerr, out_name)
+
+def plot_estimator_ep1_log_x(
+    raw_datas: list[Data],
+    out_name: str,
+    labels: Optional[list[str]] = None,
+    color_group: Optional[int] = None,
+):
+    assert len(raw_datas) == 1
+    raw_data = raw_datas[0]
+
+    data = Data([])
+    for d in raw_data:
+        i, r0, r1, asic_pkts, cpu_pkts, _, xput_pps = d
+        real_cpu_ratio = cpu_pkts / asic_pkts
+        target_cpu_ratio = r0 * r1
+
+        # Experiment limitations.
+        # E.g. the target CPU ratio might be 0.6, but 1/0.6 = 1.(6) ~ 1 = 1/1
+        if target_cpu_ratio != 1 and real_cpu_ratio == 1:
+            target_cpu_ratio = 1
+        else:
+            if r0 == 0 or r1 == 0:
+                expected_cpu_ratio = 0
+            else:
+                expected_cpu_ratio = 1/int(1/r0) * 1/int(1/r1)
+
+            acceptable_error = 0.25 # 25%
+            if target_cpu_ratio != 0:
+                error = abs(expected_cpu_ratio - real_cpu_ratio) / expected_cpu_ratio
+                assert error <= acceptable_error
+
+        data.append([ i, real_cpu_ratio, xput_pps ])
+    
+    x_elem = 1 # cpu ratio
+    y_elem = 2 # Throughput pps column
+
+    agg_values = aggregate_values(data, x_elem, y_elem)
+
+    x    = [ v[0] for v in agg_values ]
+    y    = [ v[1] for v in agg_values ]
+    yerr = [ v[2] for v in agg_values ]
+
+    # Instead of zero, for the log scale. We still show it as zero though, using labels.
+    x[0] = x[1] / 10
+
+    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name)
 
 def cache_capacity_label_builder(name) -> Optional[str]:
     pattern = r".*_(\d+)_flows_(\d+)_cache.*"
@@ -896,6 +1080,19 @@ csv_pattern_to_plotter = {
         (plot_table_map, "estimator_cpu_ratio_table_map", None, None),
         (plot_table_map_log_x, "estimator_cpu_ratio_table_map_log_x", None, None),
     ],
+
+    ########################################
+    #      Execution Plan Estimators
+    ########################################
+
+    "xput_ep_estimators_ep0.csv": [
+        (plot_estimator_ep0, "ep_estimator_ep0", None, None),
+        (plot_estimator_ep0_log_x, "ep_estimator_ep0_log_x", None, None),
+    ],
+    "xput_ep_estimators_ep1.csv": [
+        (plot_estimator_ep1, "ep_estimator_ep1", None, None),
+        (plot_estimator_ep1_log_x, "ep_estimator_ep1_log_x", None, None),
+    ],
 }
 
 def should_skip(name: str):
@@ -914,14 +1111,21 @@ def main():
 
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
+    match = 0
+    total = 0
+
     for csv_pattern in csv_pattern_to_plotter.keys():
         csvs = [ Path(csv) for csv in glob.glob(f"{DATA_DIR}/{csv_pattern}") ]
         csv_filenames = [ csv.stem for csv in csvs ]
+
+        total += len(csv_pattern_to_plotter[csv_pattern])
 
         if len(csvs) == 0:
             continue
         
         for plotter, out_name, label_builder, color_group in csv_pattern_to_plotter[csv_pattern]:
+            match += 1
+
             if not args.force and should_skip(out_name):
                 print(f"{out_name} (skipped)")
                 continue
@@ -939,6 +1143,9 @@ def main():
             data = [ x[1] for x in labels_data ]
 
             plotter(data, out_name, labels, color_group)
+    
+    print()
+    print(f"Matched {match}/{total} plots")
 
 if __name__ == "__main__":
     main()
