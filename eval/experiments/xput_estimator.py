@@ -13,16 +13,7 @@ from rich.progress import Progress
 
 from typing import NewType, Optional, Union
 
-CPU_RATIOS: list[float] = [
-    0,
-    0.000001,
-    0.00001,
-    0.0001,
-    0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
-    0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09,
-    0.1, 0.2, 0.3, 0.4, 0.5,
-    1
-]
+import itertools
 
 # Controller argument name, flag, and value range
 # E.g. ("r0", "--r0", [0, 0.5, 1])
@@ -93,7 +84,7 @@ class ThroughputEstimator(Experiment):
                 assert header == read_header
                 for row in f.readlines():
                     cols = row.split(",")
-                    variables = cols[:-4]
+                    variables = [ float(c) for c in cols[:-4] ]
                     self.experiment_tracker.add((*variables,))
         else:
             with open(self.save_name, "w") as f:
@@ -101,10 +92,13 @@ class ThroughputEstimator(Experiment):
     
     def _read_cpu_counters(
         self,
-        cpu_ratio: float,
+        ratios: tuple[float, ...],
         stable_rate_mbps: int,
     ) -> tuple[int, int]:
-        self.log(f"Reading CPU counters (ratio={cpu_ratio} rate={stable_rate_mbps:,} Mbps)")
+        rlabels = [ r[0] for r in self.ratios ]
+        rdescriptions = " ".join(f"{rlabels[i]}={ratios[i]}" for i in range(len(ratios)))
+        
+        self.log(f"Reading CPU counters ({rdescriptions} rate={stable_rate_mbps:,} Mbps)")
 
         prev_counters = self.controller.get_cpu_counters()
         assert prev_counters
@@ -135,12 +129,15 @@ class ThroughputEstimator(Experiment):
         return in_pkts, cpu_pkts
 
     def run(self, step_progress: Progress, current_iter: int) -> None:
-        task_id = step_progress.add_task(self.name, total=len(CPU_RATIOS))
+        rvalues_range = [ r[2] for r in self.ratios ]
+        all_rvalues = list(itertools.product(*rvalues_range))
+
+        task_id = step_progress.add_task(self.name, total=len(all_rvalues))
 
         # Check if we already have everything before running all the programs.
         completed = True
-        for cpu_ratio in CPU_RATIOS:
-            exp_key = (current_iter,cpu_ratio,)
+        for rvalues in all_rvalues:
+            exp_key = (current_iter,*rvalues,)
             if exp_key not in self.experiment_tracker:
                 completed = False
                 break
@@ -154,13 +151,17 @@ class ThroughputEstimator(Experiment):
             pkt_size=self.pkt_size,
         )
 
-        for cpu_ratio in CPU_RATIOS:
-            exp_key = (current_iter,cpu_ratio,)
+        for rvalues in all_rvalues:
+            exp_key = (current_iter,*rvalues,)
 
-            description=f"{self.name} (it={current_iter} ratio={cpu_ratio})"
+            rlabels = [ r[0] for r in self.ratios ]
+            rflags = [ r[1] for r in self.ratios ]
+            rdescriptions = " ".join(f"{rlabels[i]}={rvalues[i]}" for i in range(len(rvalues)))
+
+            description=f"{self.name} (it={current_iter} {rdescriptions})"
 
             if exp_key in self.experiment_tracker:
-                self.console.log(f"[orange1]Skipping: iteration {current_iter} cpu ratio {cpu_ratio}")
+                self.console.log(f"[orange1]Skipping: iteration {current_iter} ratios {rdescriptions}")
                 step_progress.update(task_id, description=description, advance=1)
                 continue
 
@@ -168,7 +169,9 @@ class ThroughputEstimator(Experiment):
 
             self.controller.launch(
                 self.controller_src_in_repo,
-                extra_args=self.controller_extra_args,
+                extra_args=self.controller_extra_args + [
+                    (flag, value) for flag, value in zip(rflags, rvalues)
+                ],
             )
 
             self.controller.wait_ready()
@@ -181,11 +184,12 @@ class ThroughputEstimator(Experiment):
                 description=description + " [reading CPU counters]"
             )
 
-            self.log(f"Ratio {cpu_ratio:,} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
-            in_pkts, cpu_pkts = self._read_cpu_counters(cpu_ratio, stable_thpt_mbps)
+            self.log(f"Ratios {rdescriptions} => {int(throughput_bps/1e6):,} Mbps {int(throughput_pps/1e6):,} Mpps")
+            in_pkts, cpu_pkts = self._read_cpu_counters(rvalues, stable_thpt_mbps)
 
             with open(self.save_name, "a") as f:
-                f.write(f"{current_iter},{cpu_ratio},{in_pkts},{cpu_pkts},{throughput_bps},{throughput_pps}\n")
+                rstrs = [ str(r) for r in rvalues ]
+                f.write(f"{current_iter},{','.join(rstrs)},{in_pkts},{cpu_pkts},{throughput_bps},{throughput_pps}\n")
 
             step_progress.update(task_id, advance=1)
             self.controller.stop()

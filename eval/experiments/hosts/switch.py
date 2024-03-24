@@ -53,6 +53,7 @@ class Switch:
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
             f"P4_COMPILATION_VARS=\"{compilation_vars}\"",
+            f"CONTROLLER_ARGS=\"\"", # hack to ignore controller args
         ])
 
         compilation_cmd = f"{env_vars} make -f {makefile} {make_target}"

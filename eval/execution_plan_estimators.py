@@ -44,7 +44,7 @@ RATIOS_MANY = [
     1
 ]
 
-RATIOS_FEW = [ 0, 0.25, 0.5, 0.75, 1 ]
+RATIOS_FEW = [ 0.1, 0.5 ]
 
 console = Console()
 
@@ -81,8 +81,8 @@ def get_ep_estimator_experiments(
             switch=switch,
             controller=controller,
             pktgen=pktgen,
-            p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}.p4",
-            controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}.cpp",
+            p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
+            controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
             ratios=ratios,
             nb_flows=TOTAL_FLOWS,
             pkt_size=PACKET_SIZE_BYTES,

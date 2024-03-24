@@ -47,7 +47,13 @@ class Controller:
 
         makefile = self.repo / "tools" / "Makefile"
 
-        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install"
+        env_vars = " ".join([
+            f"SDE={self.sde}",
+            f"SDE_INSTALL={self.sde}/install",
+            f"P4_COMPILATION_VARS=\"\"",  # hack to ignore p4 compilation vars
+            f"CONTROLLER_ARGS=\"\"", # hack to ignore controller args
+        ])
+
         compilation_cmd = f"{env_vars} make -f {makefile} clean"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
@@ -66,7 +72,13 @@ class Controller:
         program_name = src.stem
         makefile = self.repo / "tools" / "Makefile"
 
-        env_vars = f"SDE={self.sde} SDE_INSTALL={self.sde}/install"
+        env_vars = " ".join([
+            f"SDE={self.sde}",
+            f"SDE_INSTALL={self.sde}/install",
+            f"P4_COMPILATION_VARS=\"\"",  # hack to ignore p4 compilation vars
+            f"CONTROLLER_ARGS=\"\"", # hack to ignore controller args
+        ])
+        
         compilation_cmd = f"{env_vars} make -f {makefile} -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
