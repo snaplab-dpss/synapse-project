@@ -43,8 +43,6 @@ void sycon::nf_user_signal_handler() {
   // Total packets (including warmup traffic)
   u64 total_packets = get_asic_port_rx(cfg.in_dev_port);
 
-  float ratio = in_packets > 0 ? (float)cpu_packets / in_packets : 0;
-
   LOG("Packet counters:");
   LOG("In: %lu", in_packets)
   LOG("CPU: %lu", cpu_packets)
@@ -57,6 +55,8 @@ bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   ipv4_hdr_t *ipv4_hdr = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
   tcpudp_hdr_t *tcpudp_hdr =
       (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
+
+  (void)eth_hdr;
 
   map_key_t flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip),
                   SWAP_ENDIAN_32(ipv4_hdr->dst_ip),

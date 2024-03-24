@@ -8,6 +8,7 @@ import math
 import matplotlib.pyplot as plt
 
 from pathlib import Path
+from utils.parser import Data, aggregate_values, csv_parser
 from utils.plot_config import *
 
 if sys.version_info < (3, 9, 0):

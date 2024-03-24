@@ -23,7 +23,7 @@ struct state_t {
   state_t(u32 alarm)
       : forwarder("Ingress", "forwarder",
                   forwarder_value_t({cfg.out_dev_port})),
-        alarm_table("Ingress", "alarm_table", alarm_t({alarm})),
+        alarm_table("Ingress.clock", "alarm_timer_table", alarm_t({alarm})),
         pkt_counter("Ingress", "pkt_counter", true, true),
         cpu_counter("Ingress", "cpu_counter", true, true) {}
 };

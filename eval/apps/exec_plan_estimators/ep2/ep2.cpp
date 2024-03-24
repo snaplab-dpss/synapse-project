@@ -10,20 +10,29 @@ using AlarmTable = KeylessTableMap<1>;
 using alarm_t = table_value_t<1>;
 
 struct nf_config_t {
-  double cpu_pkts_ratio;
+  double r0;
+  double r1;
+  double r2;
   uint64_t iterations;
 } nf_config;
 
 struct state_t {
   Forwarder forwarder;
-  AlarmTable alarm_table;
+  AlarmTable alarm_timer_table_0;
+  AlarmTable alarm_timer_table_1;
+  AlarmTable alarm_timer_table_2;
   Counter pkt_counter;
   Counter cpu_counter;
 
-  state_t(u32 alarm)
+  state_t(u32 alarm0, u32 alarm1, u32 alarm2)
       : forwarder("Ingress", "forwarder",
                   forwarder_value_t({cfg.out_dev_port})),
-        alarm_table("Ingress", "alarm_table", alarm_t({alarm})),
+        alarm_timer_table_0("Ingress.clock0", "alarm_timer_table",
+                            alarm_t({alarm0})),
+        alarm_timer_table_1("Ingress.clock1", "alarm_timer_table",
+                            alarm_t({alarm1})),
+        alarm_timer_table_2("Ingress.clock2", "alarm_timer_table",
+                            alarm_t({alarm2})),
         pkt_counter("Ingress", "pkt_counter", true, true),
         cpu_counter("Ingress", "cpu_counter", true, true) {}
 };
@@ -31,19 +40,32 @@ struct state_t {
 std::unique_ptr<state_t> state;
 
 void sycon::nf_init() {
-  u32 alarm = static_cast<u32>(1 / nf_config.cpu_pkts_ratio);
+  u32 alarm0 = static_cast<u32>(1 / nf_config.r0);
+  u32 alarm1 = static_cast<u32>(1 / nf_config.r1);
+  u32 alarm2 = static_cast<u32>(1 / nf_config.r2);
 
-  DEBUG("Ratio %lf", nf_config.cpu_pkts_ratio);
-  DEBUG("Alarm %u", alarm);
+  DEBUG("Ratio 0 %lf", nf_config.r0);
+  DEBUG("Ratio 1 %lf", nf_config.r1);
+  DEBUG("Ratio 2 %lf", nf_config.r2);
 
-  state = std::make_unique<state_t>(alarm);
+  DEBUG("Alarm 0 %u", alarm0);
+  DEBUG("Alarm 1 %u", alarm1);
+  DEBUG("Alarm 2 %u", alarm2);
+
+  state = std::make_unique<state_t>(alarm0, alarm1, alarm2);
 }
 
 void sycon::nf_exit() {}
 
 void sycon::nf_args(CLI::App &app) {
-  app.add_option("--ratio", nf_config.cpu_pkts_ratio,
-                 "Ratio of CPU packets to total input packets")
+  app.add_option("--r0", nf_config.r0,
+                 "Ratio of packets going lhs on the first branch condition")
+      ->required();
+  app.add_option("--r1", nf_config.r1,
+                 "Ratio of packets going lhs on the second branch condition")
+      ->required();
+  app.add_option("--r2", nf_config.r2,
+                 "Ratio of packets going lhs on the third branch condition")
       ->required();
   app.add_option("--iterations", nf_config.iterations,
                  "Number of active waiting loop iterations")
@@ -74,6 +96,8 @@ void sycon::nf_user_signal_handler() {
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
   cpu_hdr->out_port = SWAP_ENDIAN_16(cfg.out_dev_port);
+
+  DEBUG("Packet code path: %u", SWAP_ENDIAN_16(cpu_hdr->code_path));
 
   // An active waiting loop to simulate CPU processing (with some assembly
   // to prevent the compiler from optimizing it away)

@@ -83,6 +83,10 @@ void sycon::nf_exit() {
   delete state;
 }
 
+void sycon::nf_args(CLI::App &app) {}
+
+void sycon::nf_user_signal_handler() {}
+
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, uint16_t size) {
   return true;
 }

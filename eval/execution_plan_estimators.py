@@ -5,7 +5,6 @@ import sys
 if sys.version_info < (3, 9, 0):
     raise RuntimeError("Python 3.9 or a more recent version is required.")
 
-import math
 import argparse
 import tomli
 import os
@@ -18,60 +17,84 @@ from experiments.hosts.pktgen import Pktgen
 from experiments.hosts.switch import Switch
 from experiments.hosts.controller import Controller
 
-from experiments.xput_per_cpu_ratio import ThroughputPerCPURatio
+from experiments.xput_estimator import Ratio, ThroughputEstimator
 
 from experiments.experiment import Experiment, ExperimentTracker
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 
 DATA_DIR = CURRENT_DIR / "data"
-APPS_DIR_REPO_RELATIVE = "eval/apps"
+APPS_DIR_REPO_RELATIVE = "eval/apps/exec_plan_estimators"
 
-PERIODIC_CPU_SENDER_APP = "periodic_cpu_sender"
+EP0 = "ep0"
+EP1 = "ep1"
+EP2 = "ep2"
 
 PACKET_SIZE_BYTES = 64
-EXPIRATION_TIME_SEC = 1
-
 TOTAL_FLOWS = 65536
 
-ACTIVE_WAIT_ITERATIONS = [
-    0, 1e2, 1e3, 1e4, 1e5, 1e6,
+RATIOS_MANY = [
+    0,
+    0.000001,
+    0.00001,
+    0.0001,
+    0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+    0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09,
+    0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+    1
 ]
+
+RATIOS_FEW = [ 0, 0.25, 0.5, 0.75, 1 ]
 
 console = Console()
 
-def get_periodic_cpu_sender_experiment(
+def get_ep_estimator_experiments(
     data_dir: Path,
     switch: Switch,
     controller: Controller,
     pktgen: Pktgen,
     experiment_log_file: str,
 ) -> list[Experiment]:
-    app = PERIODIC_CPU_SENDER_APP
+    configs = [
+        (EP0, [
+            Ratio(("r0", "--r0", RATIOS_MANY)),
+        ]),
+        (EP1, [
+            Ratio(("r0", "--r0", RATIOS_FEW)),
+            Ratio(("r1", "--r1", RATIOS_MANY)),
+        ]),
+        (EP2, [
+            Ratio(("r0", "--r0", RATIOS_FEW)),
+            Ratio(("r1", "--r1", RATIOS_MANY)),
+            Ratio(("r2", "--r2", RATIOS_FEW)),
+        ]),
+    ]
 
     experiments = []
-    for active_wait_iterations in ACTIVE_WAIT_ITERATIONS:
-        exp_name = f"xput_cpu_counters_{app}_{int(active_wait_iterations)}_loops"
 
-        experiment = ThroughputPerCPURatio(
+    for app, ratios in configs:
+        exp_name = f"xput_ep_estimators_{app}"
+
+        experiment = ThroughputEstimator(
             name=exp_name,
             save_name=data_dir / f"{exp_name}.csv",
             switch=switch,
             controller=controller,
             pktgen=pktgen,
-            p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.p4",
-            controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}/{app}.cpp",
-            active_wait_iterations=active_wait_iterations,
+            p4_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}.p4",
+            controller_src_in_repo=f"{APPS_DIR_REPO_RELATIVE}/{app}.cpp",
+            ratios=ratios,
             nb_flows=TOTAL_FLOWS,
             pkt_size=PACKET_SIZE_BYTES,
-            crc_unique_flows=False,
-            crc_bits=0,
             experiment_log_file=experiment_log_file,
             console=console,
+            controller_extra_args=[
+                ("--iterations", 0),
+            ],
         )
 
         experiments.append(experiment)
-    
+
     return experiments
 
 def main():
@@ -114,8 +137,7 @@ def main():
         log_file=config["logs"]["pktgen"],
     )
 
-    experiments = []
-    experiments += get_periodic_cpu_sender_experiment(args.out, switch, controller, pktgen, config["logs"]["experiment"])
+    experiments = get_ep_estimator_experiments(args.out, switch, controller, pktgen, config["logs"]["experiment"])
     
     exp_tracker = ExperimentTracker()
     exp_tracker.add_experiments(experiments)

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import math
-
 from experiments.hosts.controller import Controller
 from experiments.hosts.switch import Switch
 from experiments.hosts.pktgen import Pktgen
@@ -13,7 +11,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.progress import Progress
 
-from typing import Optional
+from typing import NewType, Optional, Union
 
 CPU_RATIOS: list[float] = [
     0,
@@ -26,7 +24,12 @@ CPU_RATIOS: list[float] = [
     1
 ]
 
-class ThroughputPerCPURatio(Experiment):
+# Controller argument name, flag, and value range
+# E.g. ("r0", "--r0", [0, 0.5, 1])
+# The argument name will show up on the csv file, while the flag will be used to pass the value to the controller.
+Ratio = NewType("Ratio", tuple[str, str, list[float]])
+
+class ThroughputEstimator(Experiment):
     def __init__(
         self,
         
@@ -44,17 +47,16 @@ class ThroughputPerCPURatio(Experiment):
 
         # Controller
         controller_src_in_repo: str,
-        active_wait_iterations: int,
+        ratios: list[Ratio],
 
         # Pktgen
         nb_flows: int,
         pkt_size: int,
-        crc_unique_flows: bool,
-        crc_bits: int,
         
         # Extra
         experiment_log_file: Optional[str] = None,
-        console: Console = Console()
+        console: Console = Console(),
+        controller_extra_args: list[tuple[str, Union[str,int,float]]] = [],
     ) -> None:
         super().__init__(name, experiment_log_file)
 
@@ -67,19 +69,19 @@ class ThroughputPerCPURatio(Experiment):
         self.p4_src_in_repo = p4_src_in_repo
         
         self.controller_src_in_repo = controller_src_in_repo
-        self.active_wait_iterations = active_wait_iterations
+        self.ratios = ratios
+        self.controller_extra_args = controller_extra_args
 
         self.nb_flows = nb_flows
         self.pkt_size = pkt_size
-        self.crc_unique_flows = crc_unique_flows
-        self.crc_bits = crc_bits
 
         self.console = console
-        
+
         self._sync()
 
     def _sync(self):
-        header = f"#iteration, cpu ratio, #asic pkts, #cpu pkts, throughput (bps), throughput (pps)\n"
+        rnames = [ r[0] for r in self.ratios ]
+        header = f"#iteration, {', '.join(rnames)}, #asic pkts, #cpu pkts, throughput (bps), throughput (pps)\n"
 
         self.experiment_tracker = set()
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
@@ -91,9 +93,8 @@ class ThroughputPerCPURatio(Experiment):
                 assert header == read_header
                 for row in f.readlines():
                     cols = row.split(",")
-                    i = int(cols[0])
-                    cpu_ratio = float(cols[1])
-                    self.experiment_tracker.add((i,cpu_ratio,))
+                    variables = cols[:-4]
+                    self.experiment_tracker.add((*variables,))
         else:
             with open(self.save_name, "w") as f:
                 f.write(header)
@@ -151,8 +152,6 @@ class ThroughputPerCPURatio(Experiment):
         self.pktgen.launch(
             self.nb_flows,
             pkt_size=self.pkt_size,
-            crc_unique_flows=self.crc_unique_flows,
-            crc_bits=self.crc_bits
         )
 
         for cpu_ratio in CPU_RATIOS:
@@ -169,10 +168,7 @@ class ThroughputPerCPURatio(Experiment):
 
             self.controller.launch(
                 self.controller_src_in_repo,
-                extra_args=[
-                    ("--ratio", cpu_ratio),
-                    ("--iterations", int(self.active_wait_iterations)),
-                ]
+                extra_args=self.controller_extra_args,
             )
 
             self.controller.wait_ready()
