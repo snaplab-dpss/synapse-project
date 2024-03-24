@@ -10,7 +10,7 @@ using AlarmTable = KeylessTableMap<1>;
 using alarm_t = table_value_t<1>;
 
 struct nf_config_t {
-  double cpu_pkts_ratio;
+  double r0;
   uint64_t iterations;
 } nf_config;
 
@@ -31,9 +31,9 @@ struct state_t {
 std::unique_ptr<state_t> state;
 
 void sycon::nf_init() {
-  u32 alarm = static_cast<u32>(1 / nf_config.cpu_pkts_ratio);
+  u32 alarm = static_cast<u32>(1 / nf_config.r0);
 
-  DEBUG("Ratio %lf", nf_config.cpu_pkts_ratio);
+  DEBUG("Ratio %lf", nf_config.r0);
   DEBUG("Alarm %u", alarm);
 
   state = std::make_unique<state_t>(alarm);
@@ -42,7 +42,7 @@ void sycon::nf_init() {
 void sycon::nf_exit() {}
 
 void sycon::nf_args(CLI::App &app) {
-  app.add_option("--ratio", nf_config.cpu_pkts_ratio,
+  app.add_option("--r0", nf_config.r0,
                  "Ratio of CPU packets to total input packets")
       ->required();
   app.add_option("--iterations", nf_config.iterations,
