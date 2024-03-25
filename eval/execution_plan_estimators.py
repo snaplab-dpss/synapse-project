@@ -44,6 +44,8 @@ RATIOS_MANY = [
     1
 ]
 
+RATIOS_SOME = [ 0.001, 0.01, 0.1, 0.5 ]
+
 RATIOS_FEW = [ 0.1, 0.5 ]
 
 console = Console()
@@ -66,7 +68,7 @@ def get_ep_estimator_experiments(
         (EP2, [
             Ratio(("r0", "--r0", RATIOS_FEW)),
             Ratio(("r1", "--r1", RATIOS_MANY)),
-            Ratio(("r2", "--r2", RATIOS_FEW)),
+            Ratio(("r2", "--r2", RATIOS_SOME)),
         ]),
     ]
 

@@ -97,5 +97,6 @@ def estimate_xput_pps(cpu_ratios: list[float]) -> list[float]:
     estimates = []
     for cpu_ratio in cpu_ratios:
         assert cpu_ratio >= 0 and cpu_ratio <= 1
-        estimates.append(xput_estimator_pps(cpu_ratio))
+        estimation = xput_estimator_pps(cpu_ratio)
+        estimates.append(estimation)
     return estimates
