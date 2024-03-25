@@ -25,12 +25,29 @@ CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 DATA_DIR = CURRENT_DIR / "data"
 PLOTS_DIR = CURRENT_DIR / "plots"
 
+def sort_data_with_labels(
+    multiple_data: list[Data],
+    labels: list[str]
+) -> tuple[list[Data], list[str]]:
+    labels_data = [ (l, d) for l, d in natsorted(zip(labels, multiple_data)) ]
+    labels = [ x[0] for x in labels_data ]
+    multiple_data = [ x[1] for x in labels_data ]
+    return multiple_data, labels
+
 def plot_throughput_under_churn_pps(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
+    labels = []
+    for data_properties in multiple_data_properties:
+        assert "relative_cache_capacity" in data_properties
+        relative_cache_capacity = data_properties["relative_cache_capacity"]
+        labels.append(f"{100 * relative_cache_capacity:.0f}\\% cache capacity")
+
+    multiple_data, labels = sort_data_with_labels(multiple_data, labels)
+
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
     x_lim = 1e6 # 1M fpm
@@ -93,13 +110,22 @@ def plot_throughput_under_churn_pps(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_throughput_under_churn_bps(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
+    labels = []
+    for data_properties in multiple_data_properties:
+        assert "relative_cache_capacity" in data_properties
+        relative_cache_capacity = data_properties["relative_cache_capacity"]
+        labels.append(f"{100 * relative_cache_capacity:.0f}\\% cache capacity")
+
+    multiple_data, labels = sort_data_with_labels(multiple_data, labels)
+
     x_elem = 1 # churn column
     x_label = "Churn (fpm)"
     x_lim = 1e6 # 1M fpm
@@ -162,11 +188,12 @@ def plot_throughput_under_churn_bps(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_churn_thpt_pps_per_cpu_ratio(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(multiple_data) == 1
@@ -188,8 +215,8 @@ def plot_churn_thpt_pps_per_cpu_ratio(
 
     agg_values = aggregate_values(data, x_elem, y_elem)
 
-    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
-    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
 
     y_label = f"Throughput ({y_units})"
 
@@ -228,11 +255,12 @@ def plot_churn_thpt_pps_per_cpu_ratio(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_churn_thpt_pps_per_cpu_ratio_log_x(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(multiple_data) == 1
@@ -272,8 +300,8 @@ def plot_churn_thpt_pps_per_cpu_ratio_log_x(
     x_ticks = [ x[0], 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
     x_tick_labels = [ "0", "$10^{-7}$", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
     
-    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
-    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
 
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
@@ -304,11 +332,12 @@ def plot_churn_thpt_pps_per_cpu_ratio_log_x(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_thpt_pps_per_cpu_ratio(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(multiple_data) == 1
@@ -341,8 +370,8 @@ def plot_thpt_pps_per_cpu_ratio(
 
     agg_values = aggregate_values(data, x_elem, y_elem)
 
-    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
-    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
 
     y_label = f"Throughput ({y_units})"
 
@@ -381,11 +410,12 @@ def plot_thpt_pps_per_cpu_ratio(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_thpt_pps_per_cpu_ratio_log_x(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(multiple_data) == 1
@@ -436,8 +466,8 @@ def plot_thpt_pps_per_cpu_ratio_log_x(
     x_ticks = [ x[0], 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
     x_tick_labels = [ "0", "$10^{-7}$", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
     
-    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
-    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
 
     set_figsize = (width / 2, height / 2)
     fig, ax = plt.subplots()
@@ -468,11 +498,12 @@ def plot_thpt_pps_per_cpu_ratio_log_x(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_thpt_per_pkt_sz_bps(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(multiple_data) == 1
@@ -523,11 +554,12 @@ def plot_thpt_per_pkt_sz_bps(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_thpt_per_pkt_sz_pps(
     multiple_data: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(multiple_data) == 1
@@ -578,18 +610,81 @@ def plot_thpt_per_pkt_sz_pps(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
+
+def plot_cpu_thpt_per_aggregate_thpt(
+    cpu_ratio: list[float],
+    aggregate_thpt: list[float],
+    yerr: list[float],
+    out_fname: str,
+):
+    cpu_thpt = [ c * t for c, t in zip(cpu_ratio, aggregate_thpt) ]
+
+    thpt_units = "pps"
+    x_label = f"Aggregate throughput ({thpt_units})"
+
+    x_ticks = PPS_TICKS
+    x_tick_labels = PPS_TICKS_LABELS
+
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
+
+    y_label = f"Switch CPU\nthroughput ({thpt_units})"
+
+    d = [{
+        "x": aggregate_thpt,
+        "y": cpu_thpt,
+        "yerr": yerr,
+    }]
+
+    set_figsize = (width / 2, height / 2)
+    fig, ax = plt.subplots()
+
+    # print(aggregate_thpt)
+    # print(cpu_thpt)
+    # exit(0)
+
+    plot_subplot(
+        ax,
+        x_label,
+        y_label,
+        d,
+        lines=False,
+        zorder=1,
+    )
+    
+    ax.set_xscale("symlog")
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_tick_labels)
+    ax.set_xlim(xmin=y_ticks[0], xmax=y_ticks[-1]*2)
+
+    ax.set_yscale("symlog")
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(y_tick_labels)
+    ax.set_ylim(ymin=y_ticks[0], ymax=y_ticks[-1]*2)
+
+    fig.set_size_inches(*set_figsize)
+    fig.tight_layout(pad=0.1)
+
+    fig_file_pdf = Path(PLOTS_DIR / f"{out_fname}.pdf")
+    fig_file_png = Path(PLOTS_DIR / f"{out_fname}.png")
+
+    plt.savefig(str(fig_file_pdf))
+    plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_thpt_per_cpu_ratio(
     x: list[float],
     y: list[float],
     yerr: list[float],
-    out_fname: str
+    out_fname: str,
+    loops: int = 0,
 ):
     x_label = "Fraction of packets sent to switch CPU"
     y_units = "pps"
 
-    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
-    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
 
     y_label = f"Throughput ({y_units})"
 
@@ -614,7 +709,7 @@ def plot_thpt_per_cpu_ratio(
     
     steps = 1000
     estimate_x = [ (1/steps)*i for i in range(steps+1) ]
-    estimate_y = estimate_xput_pps(estimate_x)
+    estimate_y = estimate_xput_pps(estimate_x, loops)
     ax.plot(
         estimate_x,
         estimate_y,
@@ -642,12 +737,14 @@ def plot_thpt_per_cpu_ratio(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_thpt_per_cpu_ratio_log_x(
     x: list[float],
     y: list[float],
     yerr: list[float],
-    out_fname: str
+    out_fname: str,
+    loops: int = 0,
 ):
     x_label = "Fraction of packets sent to switch CPU"
     y_units = "pps"
@@ -660,8 +757,8 @@ def plot_thpt_per_cpu_ratio_log_x(
     x_ticks = [ 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1 ]
     x_tick_labels = [ "0", "$10^{-7}$", "$10^{-6}$", "$10^{-5}$", "$10^{-4}$", "$10^{-3}$", "$10^{-2}$", "$10^{-1}$", 1 ]
     
-    y_ticks = [ 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
-    y_tick_labels = [ "10K", "100K", "1M", "10M", "100M" ]
+    y_ticks = PPS_TICKS
+    y_tick_labels = PPS_TICKS_LABELS
 
     y_label = f"Throughput ({y_units})"
 
@@ -694,7 +791,7 @@ def plot_thpt_per_cpu_ratio_log_x(
         step = (ceil - floor) / steps_per_power
         estimate_x += [ floor + step*i for i in range(steps_per_power) ]
     estimate_x.append(1)
-    estimate_y = estimate_xput_pps(estimate_x)
+    estimate_y = estimate_xput_pps(estimate_x, loops)
 
     ax.plot(
         estimate_x,
@@ -727,15 +824,22 @@ def plot_thpt_per_cpu_ratio_log_x(
 
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
+    plt.close()
 
 def plot_periodic_sender(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
     raw_data = raw_datas[0]
+
+    loops = 0
+    if len(multiple_data_properties) == 1:
+        data_properties = multiple_data_properties[0]
+        assert "loops" in data_properties
+        loops = data_properties["loops"]
 
     data = Data([])
     for d in raw_data:
@@ -763,16 +867,23 @@ def plot_periodic_sender(
     y    = [ v[1] for v in agg_values ]
     yerr = [ v[2] for v in agg_values ]
 
-    plot_thpt_per_cpu_ratio(x, y, yerr, out_name)
+    plot_thpt_per_cpu_ratio(x, y, yerr, out_name, loops)
+    plot_cpu_thpt_per_aggregate_thpt(x, y, yerr, f"{out_name}_thpt_per_load")
 
 def plot_periodic_sender_log_x(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
     raw_data = raw_datas[0]
+
+    loops = 0
+    if len(multiple_data_properties) == 1:
+        data_properties = multiple_data_properties[0]
+        assert "loops" in data_properties
+        loops = data_properties["loops"]
 
     data = Data([])
     for d in raw_data:
@@ -803,12 +914,12 @@ def plot_periodic_sender_log_x(
     # Instead of zero, for the log scale. We still show it as zero though, using labels.
     x[0] = x[1] / 10
 
-    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name)
+    plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name, loops)
 
 def plot_table_map(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -835,7 +946,7 @@ def plot_table_map(
 def plot_table_map_log_x(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -865,7 +976,7 @@ def plot_table_map_log_x(
 def plot_estimator_ep0(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -903,7 +1014,7 @@ def plot_estimator_ep0(
 def plot_estimator_ep0_log_x(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -944,7 +1055,7 @@ def plot_estimator_ep0_log_x(
 def plot_estimator_ep1(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -987,7 +1098,7 @@ def plot_estimator_ep1(
 def plot_estimator_ep1_log_x(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -1033,7 +1144,7 @@ def plot_estimator_ep1_log_x(
 def plot_estimator_ep2(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -1054,15 +1165,13 @@ def plot_estimator_ep2(
             rhs = 1/int(1/r0) * 1/int(1/r2) if r0 > 0 and r2 > 0 else 0
             expected_cpu_ratio = lhs + rhs
 
-            print(f"[r0={r0} r1={r1} r2={r2}] Target {target_cpu_ratio} Expected {expected_cpu_ratio} Real {real_cpu_ratio}")
+            # print(f"[r0={r0} r1={r1} r2={r2}] Target {target_cpu_ratio} Expected {expected_cpu_ratio} Real {real_cpu_ratio}")
 
             acceptable_error = 0.25 # 25%
             if target_cpu_ratio != 0:
                 error = abs(expected_cpu_ratio - real_cpu_ratio) / expected_cpu_ratio
                 # FIXME: uncomment this
                 # assert error <= acceptable_error
-                if error > acceptable_error:
-                    print("***** WARNING *****")
 
         data.append([ i, real_cpu_ratio, xput_pps ])
     
@@ -1080,7 +1189,7 @@ def plot_estimator_ep2(
 def plot_estimator_ep2_log_x(
     raw_datas: list[Data],
     out_name: str,
-    labels: Optional[list[str]] = None,
+    multiple_data_properties: list[dict] = [],
     color_group: Optional[int] = None,
 ):
     assert len(raw_datas) == 1
@@ -1123,7 +1232,7 @@ def plot_estimator_ep2_log_x(
 
     plot_thpt_per_cpu_ratio_log_x(x, y, yerr, out_name)
 
-def cache_capacity_label_builder(name) -> Optional[str]:
+def property_cache_capacity_extractor(name) -> dict:
     pattern = r".*_(\d+)_flows_(\d+)_cache.*"
     
     match = re.match(pattern, name)
@@ -1132,45 +1241,83 @@ def cache_capacity_label_builder(name) -> Optional[str]:
     flows = int(match.group(1))
     cache = int(match.group(2))
 
-    label = f"{100 * cache / flows:.0f}\\% cache capacity"    
-    return label
+    relative_cache_capacity = cache / flows
+
+    return {
+        "relative_cache_capacity": relative_cache_capacity,
+    }
+
+def property_loops_extractor(name) -> dict:
+    pattern = r".*_(\d+)_loops.*"
+    
+    match = re.match(pattern, name)
+    assert match
+
+    loops = int(match.group(1))
+
+    return {
+        "loops": loops,
+    }
 
 # file pattern => plotter, out_name, label_builder, color_group
 csv_pattern_to_plotter = {
-    "thpt_per_pkt_sz_forwarder.csv": [
-        (plot_thpt_per_pkt_sz_bps, "switch_perf_bps", None, COLOR_GROUP_SWITCH_ASIC),
-        (plot_thpt_per_pkt_sz_pps, "switch_perf_pps", None, COLOR_GROUP_SWITCH_ASIC),
-    ],
-    "thpt_per_pkt_sz_send_to_controller.csv": [
-        (plot_thpt_per_pkt_sz_bps, "switch_cpu_perf_bps", None, COLOR_GROUP_SWITCH_CPU),
-        (plot_thpt_per_pkt_sz_pps, "switch_cpu_perf_pps", None, COLOR_GROUP_SWITCH_CPU),
-    ],
-    "churn_table_map.csv": [
-        (plot_throughput_under_churn_bps, "churn_table_map_bps", None, COLOR_GROUP_SWITCH_ASIC),
-        (plot_throughput_under_churn_pps, "churn_table_map_pps", None, COLOR_GROUP_SWITCH_ASIC),
-        (plot_churn_thpt_pps_per_cpu_ratio, "xput_cpu_counters_table_map_pps", None, None),
-        (plot_churn_thpt_pps_per_cpu_ratio_log_x, "xput_cpu_counters_table_map_pps_log_x", None, None),
-    ],
-    "churn_cached_table_map_*.csv": [
-        (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", cache_capacity_label_builder, None),
-        (plot_throughput_under_churn_pps, "churn_cached_table_map_pps", cache_capacity_label_builder, None),
-    ],
-    "churn_transient_cached_table_map_*.csv": [
-        (plot_throughput_under_churn_bps, "churn_transient_cached_table_map_bps", cache_capacity_label_builder, None),
-        (plot_throughput_under_churn_pps, "churn_transient_cached_table_map_pps", cache_capacity_label_builder, None),
-    ],
-    "xput_cpu_counters_periodic_cpu_sender.csv": [
-        (plot_thpt_pps_per_cpu_ratio, "xput_cpu_counters_periodic_cpu_sender", None, None),
-        (plot_thpt_pps_per_cpu_ratio_log_x, "xput_cpu_counters_periodic_cpu_sender_log_x", None, None),
-    ],
+    # "thpt_per_pkt_sz_forwarder.csv": [
+    #     (plot_thpt_per_pkt_sz_bps, "switch_perf_bps", None, COLOR_GROUP_SWITCH_ASIC),
+    #     (plot_thpt_per_pkt_sz_pps, "switch_perf_pps", None, COLOR_GROUP_SWITCH_ASIC),
+    # ],
+    # "thpt_per_pkt_sz_send_to_controller.csv": [
+    #     (plot_thpt_per_pkt_sz_bps, "switch_cpu_perf_bps", None, COLOR_GROUP_SWITCH_CPU),
+    #     (plot_thpt_per_pkt_sz_pps, "switch_cpu_perf_pps", None, COLOR_GROUP_SWITCH_CPU),
+    # ],
+    # "churn_table_map.csv": [
+    #     (plot_throughput_under_churn_bps, "churn_table_map_bps", None, COLOR_GROUP_SWITCH_ASIC),
+    #     (plot_throughput_under_churn_pps, "churn_table_map_pps", None, COLOR_GROUP_SWITCH_ASIC),
+    #     (plot_churn_thpt_pps_per_cpu_ratio, "xput_cpu_counters_table_map_pps", None, None),
+    #     (plot_churn_thpt_pps_per_cpu_ratio_log_x, "xput_cpu_counters_table_map_pps_log_x", None, None),
+    # ],
+    # "churn_cached_table_map_*.csv": [
+    #     (plot_throughput_under_churn_bps, "churn_cached_table_map_bps", property_cache_capacity_extractor, None),
+    #     (plot_throughput_under_churn_pps, "churn_cached_table_map_pps", property_cache_capacity_extractor, None),
+    # ],
+    # "churn_transient_cached_table_map_*.csv": [
+    #     (plot_throughput_under_churn_bps, "churn_transient_cached_table_map_bps", property_cache_capacity_extractor, None),
+    #     (plot_throughput_under_churn_pps, "churn_transient_cached_table_map_pps", property_cache_capacity_extractor, None),
+    # ],
+    # "xput_cpu_counters_periodic_cpu_sender.csv": [
+    #     (plot_thpt_pps_per_cpu_ratio, "xput_cpu_counters_periodic_cpu_sender", None, None),
+    #     (plot_thpt_pps_per_cpu_ratio_log_x, "xput_cpu_counters_periodic_cpu_sender_log_x", None, None),
+    # ],
 
     ########################
     #      Estimators
     ########################
-
     "xput_cpu_counters_periodic_cpu_sender_0_loops.csv": [
-        (plot_periodic_sender, "estimator_cpu_ratio", None, None),
-        (plot_periodic_sender_log_x, "estimator_cpu_ratio_log_x", None, None),
+        (plot_periodic_sender, "estimator_cpu_ratio_0_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_0_loops_log_x", property_loops_extractor, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender_100_loops.csv": [
+        (plot_periodic_sender, "estimator_cpu_ratio_100_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_100_loops_log_x", property_loops_extractor, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender_1000_loops.csv": [
+        (plot_periodic_sender, "estimator_cpu_ratio_1000_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_1000_loops_log_x", property_loops_extractor, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender_10000_loops.csv": [
+        (plot_periodic_sender, "estimator_cpu_ratio_10000_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_10000_loops_log_x", property_loops_extractor, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender_100000_loops.csv": [
+        (plot_periodic_sender, "estimator_cpu_ratio_100000_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_100000_loops_log_x", property_loops_extractor, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender_1000000_loops.csv": [
+        (plot_periodic_sender, "estimator_cpu_ratio_1000000_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_1000000_loops_log_x", property_loops_extractor, None),
+    ],
+    "xput_cpu_counters_periodic_cpu_sender_10000000_loops.csv": [
+        (plot_periodic_sender, "estimator_cpu_ratio_10000000_loops", property_loops_extractor, None),
+        (plot_periodic_sender_log_x, "estimator_cpu_ratio_10000000_loops_log_x", property_loops_extractor, None),
     ],
     "churn_table_map.csv": [
         (plot_table_map, "estimator_cpu_ratio_table_map", None, None),
@@ -1181,18 +1328,18 @@ csv_pattern_to_plotter = {
     #      Execution Plan Estimators
     ########################################
 
-    "xput_ep_estimators_ep0.csv": [
-        (plot_estimator_ep0, "ep_estimator_ep0", None, None),
-        (plot_estimator_ep0_log_x, "ep_estimator_ep0_log_x", None, None),
-    ],
-    "xput_ep_estimators_ep1.csv": [
-        (plot_estimator_ep1, "ep_estimator_ep1", None, None),
-        (plot_estimator_ep1_log_x, "ep_estimator_ep1_log_x", None, None),
-    ],
-    "xput_ep_estimators_ep2.csv": [
-        (plot_estimator_ep2, "ep_estimator_ep2", None, None),
-        (plot_estimator_ep2_log_x, "ep_estimator_ep2_log_x", None, None),
-    ],
+    # "xput_ep_estimators_ep0.csv": [
+    #     (plot_estimator_ep0, "ep_estimator_ep0", None, None),
+    #     (plot_estimator_ep0_log_x, "ep_estimator_ep0_log_x", None, None),
+    # ],
+    # "xput_ep_estimators_ep1.csv": [
+    #     (plot_estimator_ep1, "ep_estimator_ep1", None, None),
+    #     (plot_estimator_ep1_log_x, "ep_estimator_ep1_log_x", None, None),
+    # ],
+    # "xput_ep_estimators_ep2.csv": [
+    #     (plot_estimator_ep2, "ep_estimator_ep2", None, None),
+    #     (plot_estimator_ep2_log_x, "ep_estimator_ep2_log_x", None, None),
+    # ],
 }
 
 def should_skip(name: str):
@@ -1223,7 +1370,7 @@ def main():
         if len(csvs) == 0:
             continue
         
-        for plotter, out_name, label_builder, color_group in csv_pattern_to_plotter[csv_pattern]:
+        for plotter, out_name, data_properties_extractor, color_group in csv_pattern_to_plotter[csv_pattern]:
             match += 1
 
             if not args.force and should_skip(out_name):
@@ -1233,16 +1380,12 @@ def main():
             print(out_name)
             data = [ csv_parser(csv)[1] for csv in csvs ]
 
-            if label_builder:
-                labels = [ label_builder(csv) for csv in csv_filenames if label_builder ]
+            if data_properties_extractor:
+                data_properties = [ data_properties_extractor(csv) for csv in csv_filenames ]
             else:
-                labels = [ None for _ in range(len(data)) ]
+                data_properties_extractor = []
 
-            labels_data = [ (l, d) for l, d in natsorted(zip(labels, data)) ]
-            labels = [ x[0] for x in labels_data ]
-            data = [ x[1] for x in labels_data ]
-
-            plotter(data, out_name, labels, color_group)
+            plotter(data, out_name, data_properties, color_group)
     
     print()
     print(f"Matched {match}/{total} plots")

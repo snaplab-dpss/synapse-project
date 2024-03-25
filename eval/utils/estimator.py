@@ -38,7 +38,13 @@ def get_estimator_data(csv: Path) -> tuple[list[float], list[float], list[float]
 
     return x, y, yerr
 
-def xput_estimator_pps(r: float) -> float:
+def xput_estimator_pps(
+    r: float,
+    processing_latency: float = 0,
+) -> float:
+    d = 0.0001
+    e = 5
+    # C = MAX_STABLE_CPU_RATIO * (10**(-processing_latency * d))
     C = MAX_STABLE_CPU_RATIO
     tA = MAX_XPUT_PPS_SWITCH_ASIC
     tC = MAX_XPUT_PPS_SWITCH_CPU
@@ -93,10 +99,13 @@ def xput_estimator_pps(r: float) -> float:
     a = tA * (C + b)
     return a / (r + b)
 
-def estimate_xput_pps(cpu_ratios: list[float]) -> list[float]:
+def estimate_xput_pps(
+    cpu_ratios: list[float],
+    processing_latency: float = 0,
+) -> list[float]:
     estimates = []
     for cpu_ratio in cpu_ratios:
         assert cpu_ratio >= 0 and cpu_ratio <= 1
-        estimation = xput_estimator_pps(cpu_ratio)
+        estimation = xput_estimator_pps(cpu_ratio, processing_latency)
         estimates.append(estimation)
     return estimates

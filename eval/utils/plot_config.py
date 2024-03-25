@@ -153,8 +153,8 @@ def get_unit_multiplier(value) -> tuple[float,str]:
     
     return 1e9, "G"
 
-
-
+PPS_TICKS = [ 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 ]
+PPS_TICKS_LABELS = [ "1K", "10K", "100K", "1M", "10M", "100M" ]
 
 def bar_subplot(ax,
                 xlabel: str,
