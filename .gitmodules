@@ -13,6 +13,6 @@
 [submodule "deps/z3"]
 	path = deps/z3
 	url = https://github.com/snaplab-dpss/maestro-z3.git
-[submodule "eval/deps/pktgen"]
+[submodule "deps/pktgen"]
 	path = deps/pktgen
 	url = https://github.com/fchamicapereira/pktgen.git
