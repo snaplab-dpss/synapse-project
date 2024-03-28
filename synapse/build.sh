@@ -139,6 +139,14 @@ set_gcc_version() {
 	sudo update-alternatives --set c++ /usr/bin/g++
 }
 
+sync_submodules() {
+	# Sync submodules only if the DPDK directory exists but is empty.
+	if [ ! "$(ls -A $DPDK_DIR)" ]; then
+		git submodule update --init --recursive
+	fi
+
+}
+
 installation_setup() {
 	create_paths_file
 	setup_python_venv
@@ -359,6 +367,9 @@ package_install \
 	patch \
 	cloc \
 	time
+
+# Pull every submodule if needed
+sync_submodules
 
 # Environment after packages are installed
 installation_setup
