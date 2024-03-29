@@ -41,7 +41,7 @@ struct custom_chunk_t *parse_custom_chunk(uint8_t **buffer) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   // Mark now as unused, we don't care about time
   (void)now;
 

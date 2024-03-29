@@ -112,13 +112,13 @@ void sketch_set_entry_condition(struct Sketch *sketch,
 
 void sketch_reset(struct Sketch *sketch) {}
 
-int sketch_allocate(map_key_hash *khash, uint32_t capacity, uint16_t threshold,
+int sketch_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
                     struct Sketch **sketch_out) {
   klee_trace_ret();
 
-  klee_trace_param_fptr(khash, "khash");
   klee_trace_param_u32(capacity, "capacity");
   klee_trace_param_u16(threshold, "threshold");
+  klee_trace_param_u16(key_size, "key_size");
   klee_trace_param_ptr(sketch_out, sizeof(struct Sketch *), "sketch_out");
 
   klee_assert(SKETCH_HASHES <= SKETCH_SALTS_BANK_SIZE);
@@ -141,7 +141,7 @@ void sketch_compute_hashes(struct Sketch *sketch, void *k) {
                               TD_BOTH);
 }
 
-void sketch_refresh(struct Sketch *sketch, vigor_time_t now) {
+void sketch_refresh(struct Sketch *sketch, time_ns_t now) {
   klee_trace_param_i32((uint32_t)sketch, "sketch");
   klee_trace_param_u64(now, "time");
 }
@@ -152,14 +152,14 @@ int sketch_fetch(struct Sketch *sketch) {
   return klee_int("overflow");
 }
 
-int sketch_touch_buckets(struct Sketch *sketch, vigor_time_t now) {
+int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
   klee_trace_ret();
   klee_trace_param_i32((uint32_t)sketch, "sketch");
   klee_trace_param_u64(now, "time");
   return klee_int("success");
 }
 
-void sketch_expire(struct Sketch *sketch, vigor_time_t time) {
+void sketch_expire(struct Sketch *sketch, time_ns_t time) {
   klee_trace_param_u64((uint64_t)sketch, "sketch");
   klee_trace_param_i64(time, "time");
 

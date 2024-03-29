@@ -23,15 +23,13 @@ struct State* alloc_state(int max_flows, uint32_t fw_device) {
   struct State* ret = malloc(sizeof(struct State));
   if (ret == NULL) return NULL;
   ret->fm = NULL;
-  if (map_allocate(FlowId_eq, FlowId_hash, max_flows, &(ret->fm)) == 0)
+  if (map_allocate(max_flows, sizeof(struct FlowId), &(ret->fm)) == 0)
     return NULL;
   ret->fv = NULL;
-  if (vector_allocate(sizeof(struct FlowId), max_flows, FlowId_allocate,
-                      &(ret->fv)) == 0)
+  if (vector_allocate(sizeof(struct FlowId), max_flows, &(ret->fv)) == 0)
     return NULL;
   ret->int_devices = NULL;
-  if (vector_allocate(sizeof(uint32_t), max_flows, null_init,
-                      &(ret->int_devices)) == 0)
+  if (vector_allocate(sizeof(uint32_t), max_flows, &(ret->int_devices)) == 0)
     return NULL;
   ret->heap = NULL;
   if (dchain_allocate(max_flows, &(ret->heap)) == 0) return NULL;
@@ -52,7 +50,7 @@ struct State* alloc_state(int max_flows, uint32_t fw_device) {
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(&allocated_nf_state->fm, &allocated_nf_state->fv,
                         &allocated_nf_state->int_devices,
                         &allocated_nf_state->heap,

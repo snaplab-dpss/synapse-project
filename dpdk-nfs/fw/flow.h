@@ -1,5 +1,5 @@
-#ifndef _FlowId_INCLUDED_
-#define _FlowId_INCLUDED_
+#ifndef _FLOW_INCLUDED_
+#define _FLOW_INCLUDED_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -16,10 +16,6 @@ struct FlowId {
 };
 
 #define DEFAULT_FLOWID FlowIdc(0, 0, 0, 0, 0)
-
-unsigned FlowId_hash(void* obj);
-bool FlowId_eq(void* a, void* b);
-void FlowId_allocate(void* obj);
 
 #define LOG_FLOWID(obj, p)            \
   ;                                   \
@@ -39,4 +35,4 @@ extern struct str_field_descr FlowId_descrs[5];
 extern struct nested_field_descr FlowId_nests[0];
 #endif  // KLEE_VERIFICATION
 
-#endif  //_FlowId_INCLUDED_
+#endif  //_FLOW_INCLUDED_

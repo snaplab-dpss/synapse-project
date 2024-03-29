@@ -4,12 +4,12 @@
 #include <stdint.h>
 #include "lib/verified/vigor-time.h"
 
-vigor_time_t start_time(void);
+time_ns_t start_time(void);
 //@ requires true;
 //@ ensures result >= 0 &*& last_time(result);
 
-vigor_time_t restart_time(void);
+time_ns_t restart_time(void);
 
-vigor_time_t get_start_time(void);
+time_ns_t get_start_time(void);
 
 #endif  //_MY_TIME_STUB_CONTROL_H_INCLUDED_

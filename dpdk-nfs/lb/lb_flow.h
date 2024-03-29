@@ -18,8 +18,6 @@ struct LoadBalancedFlow {
 };
 
 unsigned LoadBalancedFlow_hash(void* obj);
-bool LoadBalancedFlow_eq(void* a, void* b);
-void LoadBalancedFlow_allocate(void* obj);
 
 #define LOG_LOADBALANCEDFLOW(obj, p)  \
   ;                                   \

@@ -15,10 +15,6 @@ struct Flow {
   uint8_t proto;
 };
 
-unsigned flow_hash(void* obj);
-bool flow_eq(void* a, void* b);
-void flow_allocate(void* obj);
-
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>
 #include "lib/models/str-descr.h"

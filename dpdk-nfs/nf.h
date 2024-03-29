@@ -12,7 +12,7 @@ struct rte_mbuf;
 
 bool nf_init(void);
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf);
+               time_ns_t now, struct rte_mbuf *mbuf);
 
 extern struct nf_config config;
 void nf_config_init(int argc, char **argv);
@@ -20,5 +20,5 @@ void nf_config_usage(void);
 void nf_config_print(void);
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time);
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time);
 #endif

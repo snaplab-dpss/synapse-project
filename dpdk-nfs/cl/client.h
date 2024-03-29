@@ -17,8 +17,6 @@ struct client {
   uint32_t dst_ip;
 };
 
-unsigned client_hash(void *obj);
-
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>
 #include "lib/models/str-descr.h"

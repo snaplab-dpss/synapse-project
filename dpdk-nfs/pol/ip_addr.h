@@ -13,10 +13,6 @@ struct ip_addr {
   uint32_t addr;
 };
 
-unsigned ip_addr_hash(void* obj);
-bool ip_addr_eq(void* a, void* b);
-void ip_addr_allocate(void* obj);
-
 #define LOG_IP_ADDR(obj, p)   \
   ;                           \
   p("{");                     \

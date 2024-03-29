@@ -12,10 +12,6 @@ struct counter {
   uint32_t value;
 };
 
-unsigned counter_hash(void *obj);
-bool counter_eq(void *a, void *b);
-void counter_allocate(void *obj);
-
 #define LOG_counter(obj, p)   \
   ;                           \
   p("{");                     \

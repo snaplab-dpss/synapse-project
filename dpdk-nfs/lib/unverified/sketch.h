@@ -11,12 +11,12 @@
 
 struct Sketch;
 
-int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
+int sketch_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
                     struct Sketch **sketch_out);
 void sketch_compute_hashes(struct Sketch *sketch, void *k);
-void sketch_refresh(struct Sketch *sketch, vigor_time_t now);
+void sketch_refresh(struct Sketch *sketch, time_ns_t now);
 int sketch_fetch(struct Sketch *sketch);
-int sketch_touch_buckets(struct Sketch *sketch, vigor_time_t now);
-void sketch_expire(struct Sketch *sketch, vigor_time_t time);
+int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now);
+void sketch_expire(struct Sketch *sketch, time_ns_t time);
 
 #endif

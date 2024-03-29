@@ -19,19 +19,18 @@ struct nf_config config;
 
 struct State *dynamic_ft;
 
-int policer_expire_entries(vigor_time_t time) {
+int policer_expire_entries(time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  vigor_time_t exp_time =
-      VIGOR_TIME_SECONDS_MULTIPLIER * (config.burst / config.rate);
+  time_ns_t exp_time = NS_TO_S_MULTIPLIER * (config.burst / config.rate);
   uint64_t time_u = (uint64_t)time;
   // OK because time >= config.burst / config.rate >= 0
-  vigor_time_t min_time = time_u - exp_time;
+  time_ns_t min_time = time_u - exp_time;
 
   return expire_items_single_map(dynamic_ft->dyn_heap, dynamic_ft->dyn_keys,
                                  dynamic_ft->dyn_map, min_time);
 }
 
-bool policer_check_tb(uint32_t dst, uint16_t size, vigor_time_t time) {
+bool policer_check_tb(uint32_t dst, uint16_t size, time_ns_t time) {
   int index = -1;
   int present = map_get(dynamic_ft->dyn_map, &dst, &index);
   if (present) {
@@ -42,17 +41,15 @@ bool policer_check_tb(uint32_t dst, uint16_t size, vigor_time_t time) {
 
     assert(0 <= time);
     uint64_t time_u = (uint64_t)time;
-    assert(sizeof(vigor_time_t) == sizeof(int64_t));
+    assert(sizeof(time_ns_t) == sizeof(int64_t));
     assert(value->bucket_time >= 0);
     assert(value->bucket_time <= time_u);
     uint64_t time_diff = time_u - value->bucket_time;
-    if (time_diff <
-        config.burst * VIGOR_TIME_SECONDS_MULTIPLIER / config.rate) {
-      uint64_t added_tokens =
-          time_diff * config.rate / VIGOR_TIME_SECONDS_MULTIPLIER;
+    if (time_diff < config.burst * NS_TO_S_MULTIPLIER / config.rate) {
+      uint64_t added_tokens = time_diff * config.rate / NS_TO_S_MULTIPLIER;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtautological-compare"
-      vigor_note(0 <= time_diff * config.rate / VIGOR_TIME_SECONDS_MULTIPLIER);
+      vigor_note(0 <= time_diff * config.rate / NS_TO_S_MULTIPLIER);
 #pragma GCC diagnostic pop
       assert(value->bucket_size <= config.burst);
       value->bucket_size += added_tokens;
@@ -109,7 +106,7 @@ bool nf_init(void) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   NF_DEBUG("Received packet");
   struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
 

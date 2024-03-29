@@ -30,24 +30,24 @@ struct State* alloc_state(uint32_t capacity, uint32_t stat_capacity,
   struct State* ret = malloc(sizeof(struct State));
   if (ret == NULL) return NULL;
   ret->dyn_map = NULL;
-  if (map_allocate(rte_ether_addr_eq, rte_ether_addr_hash, capacity,
-                   &(ret->dyn_map)) == 0)
+  if (map_allocate(capacity, sizeof(struct rte_ether_addr), &(ret->dyn_map)) ==
+      0)
     return NULL;
   ret->dyn_keys = NULL;
   if (vector_allocate(sizeof(struct rte_ether_addr), capacity,
-                      rte_ether_addr_allocate, &(ret->dyn_keys)) == 0)
+                      &(ret->dyn_keys)) == 0)
     return NULL;
   ret->dyn_vals = NULL;
   if (vector_allocate(sizeof(struct DynamicValue), capacity,
-                      DynamicValue_allocate, &(ret->dyn_vals)) == 0)
+                      &(ret->dyn_vals)) == 0)
     return NULL;
   ret->st_map = NULL;
-  if (map_allocate(StaticKey_eq, StaticKey_hash, stat_capacity,
-                   &(ret->st_map)) == 0)
+  if (map_allocate(stat_capacity, sizeof(struct StaticKey), &(ret->st_map)) ==
+      0)
     return NULL;
   ret->st_vec = NULL;
   if (vector_allocate(sizeof(struct StaticKey), stat_capacity,
-                      StaticKey_allocate, &(ret->st_vec)) == 0)
+                      &(ret->st_vec)) == 0)
     return NULL;
   ret->dyn_heap = NULL;
   if (dchain_allocate(capacity, &(ret->dyn_heap)) == 0) return NULL;
@@ -89,7 +89,7 @@ struct State* alloc_state(uint32_t capacity, uint32_t stat_capacity,
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->dyn_map, &allocated_nf_state->dyn_keys,
       &allocated_nf_state->dyn_vals, &allocated_nf_state->st_map,

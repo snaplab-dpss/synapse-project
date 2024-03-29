@@ -27,22 +27,22 @@ bool nf_init(void) {
   return state != NULL;
 }
 
-void expire_entries(vigor_time_t time) {
+void expire_entries(time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
   uint64_t flow_expiration_time_ns =
       ((uint64_t)config.flow_expiration_time) * 1000;  // us to ns
   uint64_t client_expiration_time_ns =
       ((uint64_t)config.client_expiration_time) * 1000;  // us to ns
-  vigor_time_t flow_last_time = time_u - flow_expiration_time_ns;
-  vigor_time_t client_last_time = time_u - client_expiration_time_ns;
+  time_ns_t flow_last_time = time_u - flow_expiration_time_ns;
+  time_ns_t client_last_time = time_u - client_expiration_time_ns;
   expire_items_single_map(state->flow_allocator, state->flows_keys,
                           state->flows, flow_last_time);
   sketch_expire(state->sketch, client_last_time);
 }
 
-int allocate_flow(struct flow *flow, vigor_time_t time) {
+int allocate_flow(struct flow *flow, time_ns_t time) {
   int flow_index = -1;
 
   int allocated =
@@ -71,7 +71,7 @@ int allocate_flow(struct flow *flow, vigor_time_t time) {
 }
 
 // Return false if packet should be dropped
-int limit_clients(struct flow *flow, vigor_time_t now) {
+int limit_clients(struct flow *flow, time_ns_t now) {
   int flow_index = -1;
   int present = map_get(state->flows, flow, &flow_index);
 
@@ -105,7 +105,7 @@ int limit_clients(struct flow *flow, vigor_time_t now) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =

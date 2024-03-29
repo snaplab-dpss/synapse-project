@@ -27,12 +27,12 @@ struct nf_config config;
 
 struct State *mac_tables;
 
-int bridge_expire_entries(vigor_time_t time) {
+int bridge_expire_entries(time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
-  vigor_time_t vigor_time_expiration = (vigor_time_t)config.expiration_time;
-  vigor_time_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
+  time_ns_t vigor_time_expiration = (time_ns_t)config.expiration_time;
+  time_ns_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
   return expire_items_single_map(mac_tables->dyn_heap, mac_tables->dyn_keys,
                                  mac_tables->dyn_map, last_time);
 }
@@ -56,7 +56,7 @@ int bridge_get_device(struct rte_ether_addr *dst, uint16_t src_device) {
 }
 
 void bridge_put_update_entry(struct rte_ether_addr *src, uint16_t src_device,
-                             vigor_time_t time) {
+                             time_ns_t time) {
   int index = -1;
   int present = map_get(mac_tables->dyn_map, src, &index);
   if (present) {
@@ -94,7 +94,7 @@ bool nf_init(void) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
 
   bridge_expire_entries(now);

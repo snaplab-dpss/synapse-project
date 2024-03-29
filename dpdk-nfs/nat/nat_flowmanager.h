@@ -18,12 +18,12 @@ struct FlowManager *flow_manager_allocate(
     uint32_t expiration_time, uint64_t max_flows);
 
 bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id,
-                                uint16_t internal_device, vigor_time_t time,
+                                uint16_t internal_device, time_ns_t time,
                                 uint16_t *external_port);
-void flow_manager_expire(struct FlowManager *manager, vigor_time_t time);
+void flow_manager_expire(struct FlowManager *manager, time_ns_t time);
 bool flow_manager_get_internal(struct FlowManager *manager, struct FlowId *id,
-                               vigor_time_t time, uint16_t *external_port);
+                               time_ns_t time, uint16_t *external_port);
 bool flow_manager_get_external(struct FlowManager *manager,
-                               uint16_t external_port, vigor_time_t time,
+                               uint16_t external_port, time_ns_t time,
                                struct FlowId *out_flow);
 #endif  //_FLOWMANAGER_H_INCLUDED_

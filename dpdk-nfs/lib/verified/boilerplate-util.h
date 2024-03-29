@@ -5,14 +5,9 @@
 #include <limits.h>
 
 // verifast doesn't know about these
-//@ fixpoint int crc32_hash(int acc, int x);
 unsigned __builtin_ia32_crc32si(unsigned acc, unsigned int x);
-/*@ requires true; @*/
-/*@ ensures result == crc32_hash(acc, x); @*/
 unsigned long long __builtin_ia32_crc32di(unsigned long long acc,
                                           unsigned long long x);
-/*@ requires true; @*/
-/*@ ensures result == crc32_hash(acc, x); @*/
 
 // KLEE doesn't tolerate && in a klee_assume (see klee/klee#809),
 // so we replace them with & during symbex but interpret them as && in the
@@ -25,12 +20,7 @@ unsigned long long __builtin_ia32_crc32di(unsigned long long acc,
 
 #define DEFAULT_UINT32_T 0
 
-static void null_init(void *obj)
-/*@ requires chars(obj, sizeof(uint32_t), _); @*/
-/*@ ensures u_integer(obj, DEFAULT_UINT32_T); @*/
-{
-  *(uint32_t *)obj = 0;
-}
+static void null_init(void *obj) { *(uint32_t *)obj = 0; }
 
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>

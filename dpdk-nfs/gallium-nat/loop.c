@@ -9,7 +9,7 @@
 
 void loop_reset(struct Map **table, struct Vector **flows,
                 struct Vector **port_counter, int max_flows, uint32_t ext_ip,
-                unsigned int lcore_id, vigor_time_t *time) {
+                unsigned int lcore_id, time_ns_t *time) {
   map_reset(*table);
   vector_reset(*flows);
   vector_reset(*port_counter);
@@ -19,7 +19,7 @@ void loop_reset(struct Map **table, struct Vector **flows,
 void loop_invariant_consume(struct Map **table, struct Vector **flows,
                             struct Vector **port_counter, int max_flows,
                             uint32_t ext_ip, unsigned int lcore_id,
-                            vigor_time_t time) {
+                            time_ns_t time) {
   klee_trace_ret();
   klee_trace_param_ptr(table, sizeof(struct Map *), "table");
   klee_trace_param_ptr(flows, sizeof(struct Vector *), "flows");
@@ -33,7 +33,7 @@ void loop_invariant_consume(struct Map **table, struct Vector **flows,
 void loop_invariant_produce(struct Map **table, struct Vector **flows,
                             struct Vector **port_counter, int max_flows,
                             uint32_t ext_ip, unsigned int *lcore_id,
-                            vigor_time_t *time) {
+                            time_ns_t *time) {
   klee_trace_ret();
   klee_trace_param_ptr(table, sizeof(struct Map *), "table");
   klee_trace_param_ptr(flows, sizeof(struct Vector *), "flows");
@@ -41,13 +41,13 @@ void loop_invariant_produce(struct Map **table, struct Vector **flows,
   klee_trace_param_i32(max_flows, "max_flows");
   klee_trace_param_u32(ext_ip, "ext_ip");
   klee_trace_param_ptr(lcore_id, sizeof(unsigned int), "lcore_id");
-  klee_trace_param_ptr(time, sizeof(vigor_time_t), "time");
+  klee_trace_param_ptr(time, sizeof(time_ns_t), "time");
 }
 
 void loop_iteration_border(struct Map **table, struct Vector **flows,
                            struct Vector **port_counter, int max_flows,
                            uint32_t ext_ip, unsigned int lcore_id,
-                           vigor_time_t time) {
+                           time_ns_t time) {
   loop_invariant_consume(table, flows, port_counter, max_flows, ext_ip,
                          lcore_id, time);
   loop_reset(table, flows, port_counter, max_flows, ext_ip, lcore_id, &time);

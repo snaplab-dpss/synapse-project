@@ -32,13 +32,13 @@ bool nf_init(void) {
   return state != NULL;
 }
 
-int64_t expire_entries(vigor_time_t time) {
+int64_t expire_entries(time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  vigor_time_t exp_time =
-      VIGOR_TIME_SECONDS_MULTIPLIER * config.burst / state->threshold_rate;
+  time_ns_t exp_time =
+      NS_TO_S_MULTIPLIER * config.burst / state->threshold_rate;
   uint64_t time_u = (uint64_t)time;
   // OK because time >= config.burst / threshold_rate >= 0
-  vigor_time_t min_time = time_u - exp_time;
+  time_ns_t min_time = time_u - exp_time;
   int64_t freed = 0;
   for (int i = 0; i < state->n_subnets; i++) {
     freed += expire_items_single_map(state->allocators[i], state->subnets[i],
@@ -48,7 +48,7 @@ int64_t expire_entries(vigor_time_t time) {
 }
 
 bool allocate(uint32_t masked_src, int i_subnet, uint16_t size,
-              vigor_time_t time) {
+              time_ns_t time) {
   int index = -1;
 
   int allocated =
@@ -80,7 +80,7 @@ bool allocate(uint32_t masked_src, int i_subnet, uint16_t size,
   return true;
 }
 
-void update_buckets(uint32_t src, uint16_t size, vigor_time_t time) {
+void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
   int index = -1;
   uint32_t mask = 0;
 
@@ -134,19 +134,18 @@ void update_buckets(uint32_t src, uint16_t size, vigor_time_t time) {
 
     assert(0 <= time);
     uint64_t time_u = (uint64_t)time;
-    assert(sizeof(vigor_time_t) == sizeof(int64_t));
+    assert(sizeof(time_ns_t) == sizeof(int64_t));
     assert(value->bucket_time >= 0);
     assert(value->bucket_time <= time_u);
     uint64_t time_diff = time_u - value->bucket_time;
 
-    if (time_diff < (config.burst * VIGOR_TIME_SECONDS_MULTIPLIER) /
-                        state->threshold_rate) {
+    if (time_diff <
+        (config.burst * NS_TO_S_MULTIPLIER) / state->threshold_rate) {
       uint64_t added_tokens =
-          (time_diff * state->threshold_rate) / VIGOR_TIME_SECONDS_MULTIPLIER;
+          (time_diff * state->threshold_rate) / NS_TO_S_MULTIPLIER;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtautological-compare"
-      vigor_note(0 <= time_diff * state->threshold_rate /
-                          VIGOR_TIME_SECONDS_MULTIPLIER);
+      vigor_note(0 <= time_diff * state->threshold_rate / NS_TO_S_MULTIPLIER);
 #pragma GCC diagnostic pop
       assert(value->bucket_size <= config.burst);
       value->bucket_size += added_tokens;
@@ -179,7 +178,7 @@ void update_buckets(uint32_t src, uint16_t size, vigor_time_t time) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =

@@ -23,7 +23,7 @@ bool nf_init() {
 }
 
 bool backend_from_flow(struct Flow *flow, uint32_t *new_dst_addr,
-                       vigor_time_t now) {
+                       time_ns_t now) {
   if (!match_backend(state, flow, new_dst_addr, now)) {
     NF_DEBUG("Allocating new flow...");
     if (!allocate_flow(state, flow, new_dst_addr, now)) {
@@ -36,7 +36,7 @@ bool backend_from_flow(struct Flow *flow, uint32_t *new_dst_addr,
 }
 
 bool process_udp(struct rte_ipv4_hdr *ipv4_header,
-                 struct rte_udp_hdr *udp_header, vigor_time_t now,
+                 struct rte_udp_hdr *udp_header, time_ns_t now,
                  uint32_t *new_dst_addr) {
   struct Flow flow = {.src_addr = ipv4_header->src_addr,
                       .dst_addr = ipv4_header->dst_addr,
@@ -62,7 +62,7 @@ bool process_udp(struct rte_ipv4_hdr *ipv4_header,
 }
 
 bool process_tcp(struct rte_ipv4_hdr *ipv4_header,
-                 struct rte_tcp_hdr *tcp_header, vigor_time_t now,
+                 struct rte_tcp_hdr *tcp_header, time_ns_t now,
                  uint32_t *new_dst_addr) {
   struct Flow flow = {.src_addr = ipv4_header->src_addr,
                       .dst_addr = ipv4_header->dst_addr,
@@ -98,7 +98,7 @@ bool process_tcp(struct rte_ipv4_hdr *ipv4_header,
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   expire_flows(state, now);
 
   if (device == config.lan_device) {

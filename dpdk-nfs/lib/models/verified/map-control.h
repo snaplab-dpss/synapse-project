@@ -31,7 +31,6 @@ struct Map {
   struct str_field_descr key_fields[PREALLOC_SIZE];
   struct nested_field_descr key_nests[PREALLOC_SIZE];
   char *key_type;
-  map_keys_equality *keq;
 
   int Num_bucket_traversals;
   int Num_hash_collisions;

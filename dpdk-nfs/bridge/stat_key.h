@@ -16,10 +16,6 @@ struct StaticKey {
 
 #define DEFAULT_STATICKEY StaticKeyc(rte_ether_addrc(0, 0, 0, 0, 0, 0), 0)
 
-unsigned StaticKey_hash(void* obj);
-bool StaticKey_eq(void* a, void* b);
-void StaticKey_allocate(void* obj);
-
 #define LOG_STATICKEY(obj, p)       \
   ;                                 \
   p("{");                           \

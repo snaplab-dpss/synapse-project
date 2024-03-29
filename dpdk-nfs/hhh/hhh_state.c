@@ -58,7 +58,7 @@ struct State *alloc_state(uint64_t link_capacity, uint8_t threshold,
 
   for (uint8_t i = 0; i < n_subnets; i++) {
     ret->subnet_indexers[i] = NULL;
-    if (map_allocate(ip_addr_eq, ip_addr_hash, capacity,
+    if (map_allocate(capacity, sizeof(struct ip_addr),
                      &(ret->subnet_indexers[i])) == 0) {
       return NULL;
     }
@@ -70,14 +70,13 @@ struct State *alloc_state(uint64_t link_capacity, uint8_t threshold,
 
     ret->subnet_buckets[i] = NULL;
     if (vector_allocate(sizeof(struct DynamicValue), capacity,
-                        DynamicValue_allocate,
                         &(ret->subnet_buckets[i])) == 0) {
       return NULL;
     }
 
     ret->subnets[i] = NULL;
-    if (vector_allocate(sizeof(struct ip_addr), capacity, ip_addr_allocate,
-                        &(ret->subnets[i])) == 0) {
+    if (vector_allocate(sizeof(struct ip_addr), capacity, &(ret->subnets[i])) ==
+        0) {
       return NULL;
     }
 
@@ -108,7 +107,7 @@ struct State *alloc_state(uint64_t link_capacity, uint8_t threshold,
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->subnet_indexers, &allocated_nf_state->allocators,
       &allocated_nf_state->subnet_buckets, &allocated_nf_state->subnets,

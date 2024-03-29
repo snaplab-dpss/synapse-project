@@ -10,7 +10,7 @@
 
 void loop_reset(struct Map **table, struct Vector **entries,
                 struct Vector **values, unsigned int lcore_id,
-                vigor_time_t *time) {
+                time_ns_t *time) {
   map_reset(*table);
   vector_reset(*entries);
   vector_reset(*values);
@@ -19,7 +19,7 @@ void loop_reset(struct Map **table, struct Vector **entries,
 
 void loop_invariant_consume(struct Map **table, struct Vector **entries,
                             struct Vector **values, unsigned int lcore_id,
-                            vigor_time_t time) {
+                            time_ns_t time) {
   klee_trace_ret();
   klee_trace_param_ptr(table, sizeof(struct Map *), "table");
   klee_trace_param_ptr(entries, sizeof(struct Vector *), "entries");
@@ -30,18 +30,18 @@ void loop_invariant_consume(struct Map **table, struct Vector **entries,
 
 void loop_invariant_produce(struct Map **table, struct Vector **entries,
                             struct Vector **values, unsigned int *lcore_id,
-                            vigor_time_t *time) {
+                            time_ns_t *time) {
   klee_trace_ret();
   klee_trace_param_ptr(table, sizeof(struct Map *), "table");
   klee_trace_param_ptr(entries, sizeof(struct Vector *), "entries");
   klee_trace_param_ptr(values, sizeof(struct Vector *), "values");
   klee_trace_param_ptr(lcore_id, sizeof(unsigned int), "lcore_id");
-  klee_trace_param_ptr(time, sizeof(vigor_time_t), "time");
+  klee_trace_param_ptr(time, sizeof(time_ns_t), "time");
 }
 
 void loop_iteration_border(struct Map **table, struct Vector **entries,
                            struct Vector **values, unsigned int lcore_id,
-                           vigor_time_t time) {
+                           time_ns_t time) {
   loop_invariant_consume(table, entries, values, lcore_id, time);
   loop_reset(table, entries, values, lcore_id, &time);
   loop_invariant_produce(table, entries, values, &lcore_id, &time);

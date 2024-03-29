@@ -12,7 +12,7 @@
 void loop_reset(struct Map **table, struct Vector **flows,
                 struct DoubleChain **allocator, struct Vector **flows_backends,
                 struct Vector **backends, uint32_t max_flows,
-                unsigned int lcore_id, vigor_time_t *time) {
+                unsigned int lcore_id, time_ns_t *time) {
   map_reset(*table);
   vector_reset(*flows);
   dchain_reset(*allocator, max_flows);
@@ -25,7 +25,7 @@ void loop_invariant_consume(struct Map **table, struct Vector **flows,
                             struct DoubleChain **allocator,
                             struct Vector **flows_backends,
                             struct Vector **backends, uint32_t max_flows,
-                            unsigned int lcore_id, vigor_time_t time) {
+                            unsigned int lcore_id, time_ns_t time) {
   klee_trace_ret();
   klee_trace_param_ptr(table, sizeof(struct Map *), "table");
   klee_trace_param_ptr(flows, sizeof(struct Vector *), "flows");
@@ -42,7 +42,7 @@ void loop_invariant_produce(struct Map **table, struct Vector **flows,
                             struct DoubleChain **allocator,
                             struct Vector **flows_backends,
                             struct Vector **backends, uint32_t max_flows,
-                            unsigned int *lcore_id, vigor_time_t *time) {
+                            unsigned int *lcore_id, time_ns_t *time) {
   klee_trace_ret();
   klee_trace_param_ptr(table, sizeof(struct Map *), "table");
   klee_trace_param_ptr(flows, sizeof(struct Vector *), "flows");
@@ -52,14 +52,14 @@ void loop_invariant_produce(struct Map **table, struct Vector **flows,
   klee_trace_param_ptr(backends, sizeof(struct Vector *), "backends");
   klee_trace_param_i32(max_flows, "max_flows");
   klee_trace_param_ptr(lcore_id, sizeof(unsigned int), "lcore_id");
-  klee_trace_param_ptr(time, sizeof(vigor_time_t), "time");
+  klee_trace_param_ptr(time, sizeof(time_ns_t), "time");
 }
 
 void loop_iteration_border(struct Map **table, struct Vector **flows,
                            struct DoubleChain **allocator,
                            struct Vector **flows_backends,
                            struct Vector **backends, uint32_t max_flows,
-                           unsigned int lcore_id, vigor_time_t time) {
+                           unsigned int lcore_id, time_ns_t time) {
   loop_invariant_consume(table, flows, allocator, flows_backends, backends,
                          max_flows, lcore_id, time);
   loop_reset(table, flows, allocator, flows_backends, backends, max_flows,

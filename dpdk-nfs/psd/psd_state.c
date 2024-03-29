@@ -31,18 +31,18 @@ struct State *alloc_state(uint32_t capacity, uint64_t max_ports,
   ret->capacity = capacity;
 
   ret->srcs = NULL;
-  if (map_allocate(ip_addr_eq, ip_addr_hash, capacity, &(ret->srcs)) == 0) {
+  if (map_allocate(capacity, sizeof(struct ip_addr), &(ret->srcs)) == 0) {
     return NULL;
   }
 
   ret->srcs_key = NULL;
-  if (vector_allocate(sizeof(struct ip_addr), capacity, ip_addr_allocate,
-                      &(ret->srcs_key)) == 0) {
+  if (vector_allocate(sizeof(struct ip_addr), capacity, &(ret->srcs_key)) ==
+      0) {
     return NULL;
   }
 
   ret->touched_ports_counter = NULL;
-  if (vector_allocate(sizeof(struct counter), capacity, counter_allocate,
+  if (vector_allocate(sizeof(struct counter), capacity,
                       &(ret->touched_ports_counter)) == 0) {
     return NULL;
   }
@@ -52,13 +52,13 @@ struct State *alloc_state(uint32_t capacity, uint64_t max_ports,
     return NULL;
   }
 
-  if (map_allocate(touched_port_eq, touched_port_hash, capacity * max_ports,
+  if (map_allocate(capacity * max_ports, sizeof(struct TouchedPort),
                    &(ret->ports)) == 0) {
     return NULL;
   }
 
   if (vector_allocate(sizeof(struct TouchedPort), capacity * max_ports,
-                      touched_port_allocate, &(ret->ports_key)) == 0) {
+                      &(ret->ports_key)) == 0) {
     return NULL;
   }
 
@@ -99,7 +99,7 @@ struct State *alloc_state(uint32_t capacity, uint64_t max_ports,
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->srcs, &allocated_nf_state->srcs_key,
       &allocated_nf_state->touched_ports_counter,

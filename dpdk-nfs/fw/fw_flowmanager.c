@@ -14,11 +14,11 @@
 
 struct FlowManager {
   struct State *state;
-  vigor_time_t expiration_time; /*seconds*/
+  time_ns_t expiration_time; /*seconds*/
 };
 
 struct FlowManager *flow_manager_allocate(uint16_t fw_device,
-                                          vigor_time_t expiration_time,
+                                          time_ns_t expiration_time,
                                           uint64_t max_flows) {
   struct FlowManager *manager =
       (struct FlowManager *)malloc(sizeof(struct FlowManager));
@@ -38,7 +38,7 @@ struct FlowManager *flow_manager_allocate(uint16_t fw_device,
 void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager,
                                            struct FlowId *id,
                                            uint32_t internal_device,
-                                           vigor_time_t time) {
+                                           time_ns_t time) {
   int index;
   if (map_get(manager->state->fm, id, &index)) {
     dchain_rejuvenate_index(manager->state->heap, index, time);
@@ -61,18 +61,17 @@ void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager,
   vector_return(manager->state->int_devices, index, int_dev);
 }
 
-void flow_manager_expire(struct FlowManager *manager, vigor_time_t time) {
+void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
-  vigor_time_t last_time =
-      time_u - manager->expiration_time * 1000;  // us to ns
+  time_ns_t last_time = time_u - manager->expiration_time * 1000;  // us to ns
   expire_items_single_map(manager->state->heap, manager->state->fv,
                           manager->state->fm, last_time);
 }
 
 bool flow_manager_get_refresh_flow(struct FlowManager *manager,
-                                   struct FlowId *id, vigor_time_t time,
+                                   struct FlowId *id, time_ns_t time,
                                    uint32_t *internal_device) {
   int index;
   if (map_get(manager->state->fm, id, &index) == 0) {

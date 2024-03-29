@@ -13,10 +13,6 @@ struct DynamicValue {
   uint16_t device;
 };
 
-unsigned DynamicValue_hash(void* obj);
-bool DynamicValue_eq(void* a, void* b);
-void DynamicValue_allocate(void* obj);
-
 #define LOG_DYNAMICVALUE(obj, p)  \
   ;                               \
   p("{");                         \

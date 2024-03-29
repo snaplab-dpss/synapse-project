@@ -1,17 +1,5 @@
 #include "backend.h"
 
-bool backend_eq(void *a, void *b) {
-  struct Backend *id1 = (struct Backend *)a;
-  struct Backend *id2 = (struct Backend *)b;
-
-  return id1->ip == id2->ip;
-}
-
-void backend_allocate(void *obj) {
-  struct Backend *id = (struct Backend *)obj;
-  id->ip = 0;
-}
-
 #ifdef KLEE_VERIFICATION
 struct str_field_descr backend_descrs[] = {
     {offsetof(struct Backend, ip), sizeof(uint32_t), 0, "ip"},
@@ -35,16 +23,6 @@ unsigned backend_hash(void *obj) {
         TD_BOTH);
   }
   return klee_int("Backend_hash");
-}
-
-#else  // KLEE_VERIFICATION
-
-unsigned backend_hash(void *obj) {
-  struct Backend *id = (struct Backend *)obj;
-
-  unsigned hash = 0;
-  hash = __builtin_ia32_crc32si(hash, id->ip);
-  return hash;
 }
 
 #endif  // KLEE_VERIFICATION

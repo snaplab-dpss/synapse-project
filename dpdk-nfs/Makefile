@@ -15,8 +15,8 @@
 
 SELF_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 NF_DIR := $(shell if [ '$(notdir $(shell pwd))' = 'build' ]; \
-            then echo '..';                                  \
-            else echo '.'; fi)
+			then echo '..';                                  \
+			else echo '.'; fi)
 
 # Check that the NF doesn't use clock_gettime directly,
 # which would violate Vigor's expectations
@@ -24,11 +24,11 @@ NF_DIR := $(shell if [ '$(notdir $(shell pwd))' = 'build' ]; \
 # outside of any nf directory, which is perfectly valid.
 # otherwise grep with empty argument list will wait on stdin
 ifeq (true,$(shell if grep -q clock_gettime                     \
-                           $(SELF_DIR)/nf.c                     \
-                           $(addprefix $(NF_DIR)/,$(NF_FILES))  \
-													 2> /dev/null; 												\
-                   then echo 'true';                            \
-                   fi))
+						   $(SELF_DIR)/nf.c                     \
+						   $(addprefix $(NF_DIR)/,$(NF_FILES))  \
+													 2> /dev/null; \
+				   then echo 'true';                            \
+				   fi))
 $(error Please use the vigor_time header instead of clock_gettime)
 endif
 
@@ -51,8 +51,8 @@ OUT_DIR=build
 
 # DPDK stuff
 ifneq ($(shell pkg-config --exists libdpdk && echo 0),0)
-    @echo "Error: pkg-config could not find dpdk."
-    exit 1
+	@echo "Error: pkg-config could not find dpdk."
+	exit 1
 endif
 
 PKGCONF ?= pkg-config
@@ -126,14 +126,14 @@ COMPILE_COMMAND := clang
 # also purge the pointless GNU linker warnings
 # so KLEE doesn't warn about module asm
 LINK_COMMAND := llvm-ar x $(KLEE_BUILD_PATH)/Release+Debug+Asserts/lib/klee-uclibc.bca && \
-                rm -f sleep.os vfprintf.os socket.os fflush_unlocked.os fflush.os && \
-                llvm-link -o nf_raw.bc  *.os *.bc && \
-                llvm-dis -o nf_raw.ll nf_raw.bc && \
-                sed -i -e 's/module asm ".section .gnu.warning.*"//g' \
-                       -e 's/module asm "\\09.previous"//g' \
-                       -e 's/module asm ""//g' \
-                       nf_raw.ll && \
-                llvm-as -o nf_raw.bc nf_raw.ll
+				rm -f sleep.os vfprintf.os socket.os fflush_unlocked.os fflush.os && \
+				llvm-link -o nf_raw.bc  *.os *.bc && \
+				llvm-dis -o nf_raw.ll nf_raw.bc && \
+				sed -i -e 's/module asm ".section .gnu.warning.*"//g' \
+					   -e 's/module asm "\\09.previous"//g' \
+					   -e 's/module asm ""//g' \
+					   nf_raw.ll && \
+				llvm-as -o nf_raw.bc nf_raw.ll
 # Optimization; analyze and remove as much provably dead code as possible
 # (exceptions are models;
 #  also, mem* functions, not sure why it DCEs them since they are used...
@@ -144,26 +144,26 @@ LINK_COMMAND := llvm-ar x $(KLEE_BUILD_PATH)/Release+Debug+Asserts/lib/klee-ucli
 # this works but the traced prefixes seem messed up :(
 OPT_EXCEPTIONS := sscanf,memset,memcpy,memmove,stub_abort,stub_free,stub_hardware_read,stub_hardware_write,stub_prefetch,stub_rdtsc,stub_socket,stub_strerror,stub_delay
 OPT_COMMAND := opt -basicaa -basiccg -internalize \
-                   -internalize-public-api-list=main,$(OPT_EXCEPTIONS) \
-                   -globaldce nf_raw.bc \
-                   > nf.bc
+				   -internalize-public-api-list=main,$(OPT_EXCEPTIONS) \
+				   -globaldce nf_raw.bc \
+				   > nf.bc
 # KLEE verification;
 # if something takes longer than expected,
 # try --max-solver-time=3 --debug-report-symbdex (to avoid symbolic indices)
 VERIF_COMMAND := /usr/bin/time -v \
-                 klee -no-externals \
-                      -allocate-determ \
-                      -allocate-determ-start-address=0x00040000000 \
-                      -allocate-determ-size=1000 \
-                      -dump-call-traces \
-                      -dump-call-trace-prefixes \
-                      -solver-backend=z3 \
-                      -exit-on-error \
-                      -max-memory=750000 \
-                      -search=dfs \
-                      -condone-undeclared-havocs \
-                      --debug-report-symbdex \
-                      nf.bc
+				 klee -no-externals \
+					  -allocate-determ \
+					  -allocate-determ-start-address=0x00040000000 \
+					  -allocate-determ-size=1000 \
+					  -dump-call-traces \
+					  -dump-call-trace-prefixes \
+					  -solver-backend=z3 \
+					  -exit-on-error \
+					  -max-memory=750000 \
+					  -search=dfs \
+					  -condone-undeclared-havocs \
+					  --debug-report-symbdex \
+					  nf.bc
 
 # =======================
 # Symbex with DPDK models
@@ -191,15 +191,15 @@ VERIF_FILES := $(SELF_DIR)/nf*.c
 VERIF_FILES += $(NF_FILES) *loop.c
 # Models
 VERIF_FILES += $(SELF_DIR)/lib/models/verified/*.c \
-               $(SELF_DIR)/lib/models/unverified/*.c \
-               $(SELF_DIR)/lib/models/externals/*.c
+			   $(SELF_DIR)/lib/models/unverified/*.c \
+			   $(SELF_DIR)/lib/models/externals/*.c
 
 # The only thing we don't put in variables is the DPDK model headers,
 # since we don't want to use those for the other symbex targets
 symbex: clean
 	@$(COMPILE_COMMAND) $(VERIF_DEFS) $(VERIF_INCLUDES) \
-	                    -I $(SELF_DIR)/lib/models/dpdk \
-	                    $(VERIF_FILES) $(VERIF_FLAGS)
+						-I $(SELF_DIR)/lib/models/dpdk \
+						$(VERIF_FILES) $(VERIF_FLAGS)
 	@$(LINK_COMMAND)
 	@$(OPT_COMMAND)
 	@$(VERIF_COMMAND) $(NF_ARGS)

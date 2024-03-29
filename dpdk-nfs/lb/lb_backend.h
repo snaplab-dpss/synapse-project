@@ -18,10 +18,6 @@ struct LoadBalancedBackend {
 #define DEFAULT_LOADBALANCEDBACKEND \
   LoadBalancedBackendc(0, rte_ether_addrc(0, 0, 0, 0, 0, 0), 0)
 
-unsigned LoadBalancedBackend_hash(void* obj);
-bool LoadBalancedBackend_eq(void* a, void* b);
-void LoadBalancedBackend_allocate(void* obj);
-
 #define LOG_LOADBALANCEDBACKEND(obj, p) \
   ;                                     \
   p("{");                               \

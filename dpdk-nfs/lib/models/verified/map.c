@@ -6,14 +6,15 @@
 
 #define PREALLOC_SIZE (256)
 
-__attribute__((noinline)) int map_allocate(map_keys_equality *keq,
-                                           map_key_hash *khash,
-                                           unsigned capacity,
+int keq(void *key1, void *key2, unsigned keys_size) {
+  return memcmp(key1, key2, keys_size) == 0;
+}
+
+__attribute__((noinline)) int map_allocate(unsigned capacity, unsigned key_size,
                                            struct Map **map_out) {
   klee_trace_ret();
-  klee_trace_param_fptr(keq, "keq");
-  klee_trace_param_fptr(khash, "khash");
   klee_trace_param_u32(capacity, "capacity");
+  klee_trace_param_u32(key_size, "key_size");
   klee_trace_param_ptr(map_out, sizeof(struct Map *), "map_out");
   int allocation_succeeded = klee_int("map_allocation_succeeded");
   if (allocation_succeeded) {
@@ -27,7 +28,6 @@ __attribute__((noinline)) int map_allocate(map_keys_equality *keq,
     }
     (*map_out)->unallocated_start = 0;
     (*map_out)->next_unclaimed_entry = 0;
-    (*map_out)->keq = keq;
     (*map_out)->capacity = capacity;
     (*map_out)->has_layout = 0;
     (*map_out)->ent_cond = NULL;
@@ -121,7 +121,7 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key,
   klee_trace_param_ptr(value_out, sizeof(int), "value_out");
   TRACE_KEY_FIELDS(key, map);
   for (int n = 0; n < map->next_unclaimed_entry; ++n) {
-    if (map->keq(key, map->key_copyp[n])) {
+    if (keq(key, map->key_copyp[n], map->key_size)) {
       if (map->key_deleted[n]) {
         return 0;
       } else {
@@ -170,7 +170,7 @@ __attribute__((noinline)) void map_put(struct Map *map, void *key, int value) {
   }
   map->occupancy += 1;
   for (int n = 0; n < map->next_unclaimed_entry; ++n) {
-    if (map->keq(key, map->key_copyp[n])) {
+    if (keq(key, map->key_copyp[n], map->key_size)) {
       klee_assert(map->key_deleted[n] && "Duplicate key, otherwise");
       map->key_deleted[n] = 0;
       map->allocated_index[n] = value;
@@ -206,7 +206,7 @@ __attribute__((noinline)) void map_erase(struct Map *map, void *key,
 
   map->occupancy -= 1;
   for (int n = 0; n < map->next_unclaimed_entry; ++n) {
-    if (map->keq(key, map->key_copyp[n])) {
+    if (keq(key, map->key_copyp[n], map->key_size)) {
       // It is important to differentiate the case
       // when that the key was deleted from the map,
       // as opposed to never existed on the first place.

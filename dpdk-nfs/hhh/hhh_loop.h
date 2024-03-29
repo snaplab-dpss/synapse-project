@@ -6,7 +6,6 @@
 #include "lib/verified/vector.h"
 #include "lib/verified/cht.h"
 #include "lib/verified/lpm-dir-24-8.h"
-#include "lib/proof/coherence.h"
 #include "lib/verified/vigor-time.h"
 
 #include "ip_addr.h"
@@ -17,20 +16,20 @@ void loop_invariant_consume(struct Map ***subnet_indexers,
                             struct Vector ***subnet_buckets,
                             struct Vector ***subnets, int n_subnets,
                             uint32_t capacity, uint32_t dev_count,
-                            unsigned int lcore_id, vigor_time_t time);
+                            unsigned int lcore_id, time_ns_t time);
 
 void loop_invariant_produce(struct Map ***subnet_indexers,
                             struct DoubleChain ***allocators,
                             struct Vector ***subnet_buckets,
                             struct Vector ***subnets, int n_subnets,
                             uint32_t capacity, uint32_t dev_count,
-                            unsigned int *lcore_id, vigor_time_t *time);
+                            unsigned int *lcore_id, time_ns_t *time);
 
 void loop_iteration_border(struct Map ***subnet_indexers,
                            struct DoubleChain ***allocators,
                            struct Vector ***subnet_buckets,
                            struct Vector ***subnets, int n_subnets,
                            uint32_t capacity, uint32_t dev_count,
-                           unsigned int lcore_id, vigor_time_t time);
+                           unsigned int lcore_id, time_ns_t time);
 
 #endif  //_HHH_LOOP_H_INCLUDED_

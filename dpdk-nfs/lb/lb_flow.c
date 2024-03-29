@@ -2,24 +2,6 @@
 
 #include <stdint.h>
 
-bool LoadBalancedFlow_eq(void* a, void* b) {
-  struct LoadBalancedFlow* id1 = (struct LoadBalancedFlow*)a;
-  struct LoadBalancedFlow* id2 = (struct LoadBalancedFlow*)b;
-
-  return (id1->src_ip == id2->src_ip) AND(id1->dst_ip == id2->dst_ip)
-      AND(id1->src_port == id2->src_port) AND(id1->dst_port == id2->dst_port)
-          AND(id1->protocol == id2->protocol);
-}
-
-void LoadBalancedFlow_allocate(void* obj) {
-  struct LoadBalancedFlow* id = (struct LoadBalancedFlow*)obj;
-  id->src_ip = 0;
-  id->dst_ip = 0;
-  id->src_port = 0;
-  id->dst_port = 0;
-  id->protocol = 0;
-}
-
 #ifdef KLEE_VERIFICATION
 struct str_field_descr LoadBalancedFlow_descrs[] = {
     {offsetof(struct LoadBalancedFlow, src_ip), sizeof(uint32_t), 0, "src_ip"},
@@ -31,9 +13,7 @@ struct str_field_descr LoadBalancedFlow_descrs[] = {
     {offsetof(struct LoadBalancedFlow, protocol), sizeof(uint8_t), 0,
      "protocol"},
 };
-struct nested_field_descr LoadBalancedFlow_nests[] = {
-
-};
+struct nested_field_descr LoadBalancedFlow_nests[] = {};
 unsigned LoadBalancedFlow_hash(void* obj) {
   klee_trace_ret();
   klee_trace_param_tagged_ptr(obj, sizeof(struct LoadBalancedFlow), "obj",

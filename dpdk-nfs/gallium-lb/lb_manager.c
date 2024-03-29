@@ -7,7 +7,7 @@
 #include <string.h>
 
 bool allocate_flow(struct State *state, struct Flow *flow,
-                   uint32_t *new_dst_addr, vigor_time_t now) {
+                   uint32_t *new_dst_addr, time_ns_t now) {
   int index;
   if (dchain_allocate_new_index(state->allocator, &index, now) == 0) {
     return false;
@@ -36,12 +36,12 @@ bool allocate_flow(struct State *state, struct Flow *flow,
   return true;
 }
 
-void expire_flows(struct State *state, vigor_time_t now) {
+void expire_flows(struct State *state, time_ns_t now) {
   assert(now >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)now;  // OK because of the two asserts
-  vigor_time_t vigor_time_expiration = (vigor_time_t)state->expiration_time;
-  vigor_time_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
+  time_ns_t vigor_time_expiration = (time_ns_t)state->expiration_time;
+  time_ns_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
   expire_items_single_map(state->allocator, state->flows, state->table,
                           last_time);
 }
@@ -71,7 +71,7 @@ bool match_backend_and_expire_flow(struct State *state, struct Flow *flow,
 }
 
 bool match_backend(struct State *state, struct Flow *flow,
-                   uint32_t *new_dst_addr, vigor_time_t now) {
+                   uint32_t *new_dst_addr, time_ns_t now) {
   int index;
   int present = map_get(state->table, flow, &index);
 

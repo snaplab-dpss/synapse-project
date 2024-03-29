@@ -12,17 +12,17 @@
 #include <stdbool.h>
 
 struct LoadBalancer {
-  vigor_time_t flow_expiration_time;
+  time_ns_t flow_expiration_time;
 
-  vigor_time_t backend_expiration_time;
+  time_ns_t backend_expiration_time;
   struct State *state;
 };
 
 struct LoadBalancer *lb_allocate_balancer(uint32_t flow_capacity,
                                           uint32_t backend_capacity,
                                           uint32_t cht_height,
-                                          vigor_time_t backend_expiration_time,
-                                          vigor_time_t flow_expiration_time) {
+                                          time_ns_t backend_expiration_time,
+                                          time_ns_t flow_expiration_time) {
   struct LoadBalancer *balancer = calloc(1, sizeof(struct LoadBalancer));
   balancer->flow_expiration_time = flow_expiration_time;
   balancer->backend_expiration_time = backend_expiration_time;
@@ -37,8 +37,7 @@ struct LoadBalancer *lb_allocate_balancer(uint32_t flow_capacity,
 
 struct LoadBalancedBackend lb_get_backend(struct LoadBalancer *balancer,
                                           struct LoadBalancedFlow *flow,
-                                          vigor_time_t now,
-                                          uint16_t wan_device) {
+                                          time_ns_t now, uint16_t wan_device) {
   int flow_index;
   struct LoadBalancedBackend backend;
   if (map_get(balancer->state->flow_to_flow_id, flow, &flow_index) == 0) {
@@ -115,7 +114,7 @@ struct LoadBalancedBackend lb_get_backend(struct LoadBalancer *balancer,
 void lb_process_heartbit(struct LoadBalancer *balancer,
                          struct LoadBalancedFlow *flow,
                          struct rte_ether_addr mac_addr, int nic,
-                         vigor_time_t now) {
+                         time_ns_t now) {
   int backend_index;
   if (map_get(balancer->state->ip_to_backend_id, &flow->src_ip,
               &backend_index) == 0) {
@@ -146,25 +145,24 @@ void lb_process_heartbit(struct LoadBalancer *balancer,
   }
 }
 
-void lb_expire_flows(struct LoadBalancer *balancer, vigor_time_t time) {
+void lb_expire_flows(struct LoadBalancer *balancer, time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
-  vigor_time_t vigor_time_expiration =
-      (vigor_time_t)balancer->flow_expiration_time;
-  vigor_time_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
+  time_ns_t vigor_time_expiration = (time_ns_t)balancer->flow_expiration_time;
+  time_ns_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
   expire_items_single_map(balancer->state->flow_chain,
                           balancer->state->flow_heap,
                           balancer->state->flow_to_flow_id, last_time);
 }
 
-void lb_expire_backends(struct LoadBalancer *balancer, vigor_time_t time) {
+void lb_expire_backends(struct LoadBalancer *balancer, time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
-  vigor_time_t vigor_time_expiration =
-      (vigor_time_t)balancer->backend_expiration_time;
-  vigor_time_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
+  time_ns_t vigor_time_expiration =
+      (time_ns_t)balancer->backend_expiration_time;
+  time_ns_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
   expire_items_single_map(balancer->state->active_backends,
                           balancer->state->backend_ips,
                           balancer->state->ip_to_backend_id, last_time);

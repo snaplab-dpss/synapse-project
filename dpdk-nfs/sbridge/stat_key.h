@@ -16,10 +16,6 @@ struct StaticKey {
   uint16_t device;
 };
 
-unsigned StaticKey_hash(void* obj);
-bool StaticKey_eq(void* a, void* b);
-void StaticKey_allocate(void* obj);
-
 #define LOG_STATICKEY(obj, p)       \
   ;                                 \
   p("{");                           \

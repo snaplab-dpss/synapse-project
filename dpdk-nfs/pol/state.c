@@ -25,17 +25,16 @@ struct State* alloc_state(uint32_t capacity, uint32_t dev_count) {
   struct State* ret = malloc(sizeof(struct State));
   if (ret == NULL) return NULL;
   ret->dyn_map = NULL;
-  if (map_allocate(ip_addr_eq, ip_addr_hash, capacity, &(ret->dyn_map)) == 0)
+  if (map_allocate(capacity, sizeof(struct ip_addr), &(ret->dyn_map)) == 0)
     return NULL;
   ret->dyn_keys = NULL;
-  if (vector_allocate(sizeof(struct ip_addr), capacity, ip_addr_allocate,
-                      &(ret->dyn_keys)) == 0)
+  if (vector_allocate(sizeof(struct ip_addr), capacity, &(ret->dyn_keys)) == 0)
     return NULL;
   ret->dyn_heap = NULL;
   if (dchain_allocate(capacity, &(ret->dyn_heap)) == 0) return NULL;
   ret->dyn_vals = NULL;
   if (vector_allocate(sizeof(struct DynamicValue), capacity,
-                      DynamicValue_allocate, &(ret->dyn_vals)) == 0)
+                      &(ret->dyn_vals)) == 0)
     return NULL;
   ret->capacity = capacity;
   ret->dev_count = dev_count;
@@ -61,7 +60,7 @@ struct State* alloc_state(uint32_t capacity, uint32_t dev_count) {
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->dyn_map, &allocated_nf_state->dyn_keys,
       &allocated_nf_state->dyn_heap, &allocated_nf_state->dyn_vals,

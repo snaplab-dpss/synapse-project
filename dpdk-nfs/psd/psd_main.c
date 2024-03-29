@@ -26,18 +26,18 @@ bool nf_init(void) {
   return state != NULL;
 }
 
-void expire_entries(vigor_time_t time) {
+void expire_entries(time_ns_t time) {
   assert(time >= 0);  // we don't support the past
-  assert(sizeof(vigor_time_t) <= sizeof(uint64_t));
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
   uint64_t expiration_time_ns =
       ((uint64_t)config.expiration_time) * 1000;  // us to ns
-  vigor_time_t last_time = time_u - expiration_time_ns;
+  time_ns_t last_time = time_u - expiration_time_ns;
   expire_items_single_map(state->allocator, state->srcs_key, state->srcs,
                           last_time);
 }
 
-int allocate(uint32_t src, uint16_t target_port, vigor_time_t time) {
+int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
   int index = -1;
   int port_index = -1;
 
@@ -85,8 +85,7 @@ int allocate(uint32_t src, uint16_t target_port, vigor_time_t time) {
 }
 
 // Return true if a port scanning is detected.
-int detect_port_scanning(uint32_t src, uint16_t target_port,
-                         vigor_time_t time) {
+int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
   int index = -1;
   int port_index = -1;
   int present = map_get(state->srcs, &src, &index);
@@ -144,7 +143,7 @@ int detect_port_scanning(uint32_t src, uint16_t target_port,
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =

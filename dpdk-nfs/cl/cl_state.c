@@ -27,13 +27,13 @@ struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
   ret->dev_count = dev_count;
 
   ret->flows = NULL;
-  if (map_allocate(flow_eq, flow_hash, max_flows, &(ret->flows)) == 0) {
+  if (map_allocate(max_flows, sizeof(struct flow), &(ret->flows)) == 0) {
     return NULL;
   }
 
   ret->flows_keys = NULL;
-  if (vector_allocate(sizeof(struct flow), max_flows, flow_allocate,
-                      &(ret->flows_keys)) == 0) {
+  if (vector_allocate(sizeof(struct flow), max_flows, &(ret->flows_keys)) ==
+      0) {
     return NULL;
   }
 
@@ -43,7 +43,7 @@ struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
   }
 
   ret->sketch = NULL;
-  if (sketch_allocate(client_hash, sketch_capacity, max_clients,
+  if (sketch_allocate(sketch_capacity, max_clients, sizeof(struct client),
                       &(ret->sketch)) == 0) {
     return NULL;
   }
@@ -66,7 +66,7 @@ struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->flows, &allocated_nf_state->flows_keys,
       &allocated_nf_state->flow_allocator, &allocated_nf_state->sketch,

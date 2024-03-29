@@ -16,7 +16,7 @@ bool nf_init(void) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               vigor_time_t now, struct rte_mbuf *mbuf) {
+               time_ns_t now, struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *ether_header = nf_then_get_rte_ether_header(buffer);
   struct rte_ipv4_hdr *ipv4_header =
       nf_then_get_rte_ipv4_header(ether_header, buffer);

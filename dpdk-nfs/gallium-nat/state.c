@@ -23,19 +23,17 @@ struct State *alloc_state(int max_flows, uint32_t ext_ip) {
   }
 
   ret->table = NULL;
-  if (map_allocate(flow_eq, flow_hash, max_flows, &(ret->table)) == 0) {
+  if (map_allocate(max_flows, sizeof(struct Flow), &(ret->table)) == 0) {
     return NULL;
   }
 
   ret->flows = NULL;
-  if (vector_allocate(sizeof(struct Flow), max_flows, flow_allocate,
-                      &(ret->flows)) == 0) {
+  if (vector_allocate(sizeof(struct Flow), max_flows, &(ret->flows)) == 0) {
     return NULL;
   }
 
   ret->port_counter = NULL;
-  if (vector_allocate(sizeof(struct Counter), 1, counter_allocate,
-                      &(ret->port_counter)) == 0) {
+  if (vector_allocate(sizeof(struct Counter), 1, &(ret->port_counter)) == 0) {
     return NULL;
   }
 
@@ -61,7 +59,7 @@ struct State *alloc_state(int max_flows, uint32_t ext_ip) {
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(&allocated_nf_state->table, &allocated_nf_state->flows,
                         &allocated_nf_state->port_counter,
                         allocated_nf_state->max_flows,

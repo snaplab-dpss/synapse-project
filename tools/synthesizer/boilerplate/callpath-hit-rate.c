@@ -12,7 +12,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <getopt.h>
+#include <unistd.h>
+#include <net/ethernet.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <pcap.h>
 
+#include <rte_build_config.h>
 #include <rte_byteorder.h>
 #include <rte_common.h>
 #include <rte_eal.h>
@@ -22,16 +29,27 @@
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 
-/**********************************************
- *
- *                   LIBVIG
- *
- **********************************************/
+#define NF_INFO(text, ...)          \
+  printf(text "\n", ##__VA_ARGS__); \
+  fflush(stdout);
+
+#ifdef ENABLE_LOG
+#define NF_DEBUG(text, ...)                            \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__); \
+  fflush(stderr);
+#else  // ENABLE_LOG
+#define NF_DEBUG(...)
+#endif  // ENABLE_LOG
+
+struct tcpudp_hdr {
+  uint16_t src_port;
+  uint16_t dst_port;
+} __attribute__((__packed__));
 
 #define AND &&
-#define vigor_time_t int64_t
+#define time_ns_t int64_t
 
-vigor_time_t current_time(void) {
+time_ns_t current_time(void) {
   struct timespec tp;
   clock_gettime(CLOCK_MONOTONIC, &tp);
   return tp.tv_sec * 1000000000ul + tp.tv_nsec;
@@ -113,13 +131,12 @@ static unsigned find_empty(int *busybits, int *chns, unsigned start,
   unsigned i = 0;
   for (; i < capacity; ++i) {
     unsigned index = loop(start + i, capacity);
-
     int bb = busybits[index];
     if (0 == bb) {
       return index;
     }
-    int chn = chns[index];
 
+    int chn = chns[index];
     chns[index] = chn + 1;
   }
 
@@ -145,13 +162,11 @@ int map_impl_get(int *busybits, void **keyps, unsigned *k_hashes, int *chns,
                  int *value, unsigned capacity) {
   int index =
       find_key(busybits, keyps, k_hashes, chns, keyp, eq, hash, capacity);
-
   if (-1 == index) {
     return 0;
   }
 
   *value = values[index];
-
   return 1;
 }
 
@@ -182,7 +197,6 @@ unsigned map_impl_size(int *busybits, unsigned capacity) {
       ++s;
     }
   }
-
   return s;
 }
 
@@ -282,7 +296,7 @@ unsigned map_size(struct Map *map) { return map->size; }
 // 32 bit address space.
 #define IRANG_LIMIT (1048576)
 
-// kinda hacky, but makes the proof independent of vigor_time_t... sort of
+// kinda hacky, but makes the proof independent of time_ns_t... sort of
 #define malloc_block_time malloc_block_llongs
 #define time_integer llong_integer
 #define times llongs
@@ -296,7 +310,7 @@ struct dchain_cell {
 
 struct DoubleChain {
   struct dchain_cell *cells;
-  vigor_time_t *timestamps;
+  time_ns_t *timestamps;
 };
 
 enum DCHAIN_ENUM {
@@ -466,8 +480,8 @@ int dchain_allocate(int index_range, struct DoubleChain **chain_out) {
   }
   (*chain_out)->cells = cells_alloc;
 
-  vigor_time_t *timestamps_alloc = (vigor_time_t *)rte_malloc(
-      NULL, sizeof(vigor_time_t) * (index_range), 64);
+  time_ns_t *timestamps_alloc =
+      (time_ns_t *)rte_malloc(NULL, sizeof(time_ns_t) * (index_range), 64);
   if (timestamps_alloc == NULL) {
     rte_free((void *)cells_alloc);
     rte_free(chain_alloc);
@@ -482,7 +496,7 @@ int dchain_allocate(int index_range, struct DoubleChain **chain_out) {
 }
 
 int dchain_allocate_new_index(struct DoubleChain *chain, int *index_out,
-                              vigor_time_t time) {
+                              time_ns_t time) {
   int ret = dchain_impl_allocate_new_index(chain->cells, index_out);
 
   if (ret) {
@@ -493,7 +507,7 @@ int dchain_allocate_new_index(struct DoubleChain *chain, int *index_out,
 }
 
 int dchain_rejuvenate_index(struct DoubleChain *chain, int index,
-                            vigor_time_t time) {
+                            time_ns_t time) {
   int ret = dchain_impl_rejuvenate_index(chain->cells, index);
 
   if (ret) {
@@ -504,7 +518,7 @@ int dchain_rejuvenate_index(struct DoubleChain *chain, int index,
 }
 
 int dchain_expire_one_index(struct DoubleChain *chain, int *index_out,
-                            vigor_time_t time) {
+                            time_ns_t time) {
   int has_ind = dchain_impl_get_oldest_index(chain->cells, index_out);
 
   if (has_ind) {
@@ -536,7 +550,7 @@ struct Vector {
 };
 
 int vector_allocate(int elem_size, unsigned capacity,
-                    vector_init_elem *init_elem, struct Vector **vector_out) {
+                    struct Vector **vector_out) {
   struct Vector *old_vector_val = *vector_out;
   struct Vector *vector_alloc =
       (struct Vector *)rte_malloc(NULL, sizeof(struct Vector), 64);
@@ -555,7 +569,7 @@ int vector_allocate(int elem_size, unsigned capacity,
   (*vector_out)->capacity = capacity;
 
   for (unsigned i = 0; i < capacity; ++i) {
-    init_elem((*vector_out)->data + elem_size * (int)i);
+    rte_memcpy((*vector_out)->data + elem_size * i, 0, elem_size);
   }
 
   return 1;
@@ -568,7 +582,7 @@ void vector_borrow(struct Vector *vector, int index, void **val_out) {
 void vector_return(struct Vector *vector, int index, void *value) {}
 
 int expire_items_single_map(struct DoubleChain *chain, struct Vector *vector,
-                            struct Map *map, vigor_time_t time) {
+                            struct Map *map, time_ns_t time) {
   int count = 0;
   int index = -1;
 
@@ -678,8 +692,6 @@ unsigned hash_hash(void *obj) {
   return hash;
 }
 
-void bucket_allocate(void *obj) { (uintptr_t) obj; }
-
 int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
                     struct Sketch **sketch_out) {
   assert(SKETCH_HASHES <= SKETCH_SALTS_BANK_SIZE);
@@ -705,14 +717,14 @@ int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
   }
 
   (*sketch_out)->keys = NULL;
-  if (vector_allocate(sizeof(struct hash), total_sketch_capacity, hash_allocate,
+  if (vector_allocate(sizeof(struct hash), total_sketch_capacity,
                       &((*sketch_out)->keys)) == 0) {
     return 0;
   }
 
   (*sketch_out)->buckets = NULL;
   if (vector_allocate(sizeof(struct bucket), total_sketch_capacity,
-                      bucket_allocate, &((*sketch_out)->buckets)) == 0) {
+                      &((*sketch_out)->buckets)) == 0) {
     return 0;
   }
 
@@ -740,7 +752,7 @@ void sketch_compute_hashes(struct Sketch *sketch, void *key) {
   }
 }
 
-void sketch_refresh(struct Sketch *sketch, vigor_time_t now) {
+void sketch_refresh(struct Sketch *sketch, time_ns_t now) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
     map_get(sketch->clients, &sketch->internal.hashes[i],
             &sketch->internal.buckets_indexes[i]);
@@ -777,7 +789,7 @@ int sketch_fetch(struct Sketch *sketch) {
   return bucket_min_set && bucket_min > sketch->threshold;
 }
 
-int sketch_touch_buckets(struct Sketch *sketch, vigor_time_t now) {
+int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
     int bucket_index = -1;
     int present =
@@ -819,7 +831,7 @@ int sketch_touch_buckets(struct Sketch *sketch, vigor_time_t now) {
   return true;
 }
 
-void sketch_expire(struct Sketch *sketch, vigor_time_t time) {
+void sketch_expire(struct Sketch *sketch, time_ns_t time) {
   int offset = 0;
   int index = -1;
 
@@ -837,7 +849,7 @@ void sketch_expire(struct Sketch *sketch, vigor_time_t time) {
 
 /**********************************************
  *
- *                  RTE-IP
+ *                  RTE_IP
  *
  **********************************************/
 
@@ -915,98 +927,6 @@ uint16_t ipv4_udptcp_cksum(const struct rte_ipv4_hdr *ipv4_hdr,
   return (uint16_t)cksum;
 }
 
-#define MAX_CHT_HEIGHT 40000
-
-static uint64_t cht_loop(uint64_t k, uint64_t capacity) {
-  uint64_t g = k % capacity;
-  return g;
-}
-
-int cht_fill_cht(struct Vector *cht, uint32_t cht_height,
-                 uint32_t backend_capacity) {
-  // Generate the permutations of 0..(cht_height - 1) for each backend
-  int *permutations =
-      (int *)malloc(sizeof(int) * (int)(cht_height * backend_capacity));
-  if (permutations == 0) {
-    return 0;
-  }
-
-  for (uint32_t i = 0; i < backend_capacity; ++i) {
-    uint32_t offset_absolut = i * 31;
-    uint64_t offset = cht_loop(offset_absolut, cht_height);
-    uint64_t base_shift = cht_loop(i, cht_height - 1);
-    uint64_t shift = base_shift + 1;
-
-    for (uint32_t j = 0; j < cht_height; ++j) {
-      uint64_t permut = cht_loop(offset + shift * j, cht_height);
-      permutations[i * cht_height + j] = (int)permut;
-    }
-  }
-
-  int *next = (int *)malloc(sizeof(int) * (int)(cht_height));
-  if (next == 0) {
-    free(permutations);
-    return 0;
-  }
-
-  for (uint32_t i = 0; i < cht_height; ++i) {
-    next[i] = 0;
-  }
-
-  for (uint32_t i = 0; i < cht_height; ++i) {
-    for (uint32_t j = 0; j < backend_capacity; ++j) {
-      uint32_t *value;
-
-      uint32_t index = j * cht_height + i;
-      int bucket_id = permutations[index];
-      int priority = next[bucket_id];
-
-      next[bucket_id] += 1;
-
-      vector_borrow(cht,
-                    (int)(backend_capacity * ((uint32_t)bucket_id) +
-                          ((uint32_t)priority)),
-                    (void **)&value);
-      *value = j;
-      vector_return(cht,
-                    (int)(backend_capacity * ((uint32_t)bucket_id) +
-                          ((uint32_t)priority)),
-                    (void *)value);
-    }
-  }
-
-  // Free memory
-  free(next);
-  free(permutations);
-  return 1;
-}
-
-int cht_find_preferred_available_backend(uint64_t hash, struct Vector *cht,
-                                         struct DoubleChain *active_backends,
-                                         uint32_t cht_height,
-                                         uint32_t backend_capacity,
-                                         int *chosen_backend) {
-  uint64_t start = cht_loop(hash, cht_height);
-  for (uint32_t i = 0; i < backend_capacity; ++i) {
-    uint64_t candidate_idx =
-        start * backend_capacity +
-        i;  // There was a bug, right here, untill I tried to prove this.
-
-    uint32_t *candidate;
-    vector_borrow(cht, (int)candidate_idx, (void **)&candidate);
-
-    if (dchain_is_index_allocated(active_backends, (int)*candidate)) {
-      *chosen_backend = (int)*candidate;
-      vector_return(cht, (int)candidate_idx, candidate);
-      return 1;
-    }
-
-    vector_return(cht, (int)candidate_idx, candidate);
-  }
-
-  return 0;
-}
-
 /**********************************************
  *
  *                  ETHER
@@ -1058,18 +978,60 @@ unsigned rte_ether_addr_hash(void *obj) {
 
 /**********************************************
  *
+ *                  NF-RSS
+ *
+ **********************************************/
+
+#define MBUF_CACHE_SIZE 256
+#define RSS_HASH_KEY_LENGTH 52
+#define MAX_NUM_DEVICES 32  // this is quite arbitrary...
+
+struct rte_eth_rss_conf rss_conf[MAX_NUM_DEVICES];
+
+struct lcore_conf {
+  struct rte_mempool *mbuf_pool;
+  uint16_t queue_id;
+};
+
+struct lcore_conf lcores_conf[RTE_MAX_LCORE];
+
+/**********************************************
+ *
+ *                  NF-UTIL
+ *
+ **********************************************/
+
+// rte_ether
+struct rte_ether_addr;
+struct rte_ether_hdr;
+
+#define IP_MIN_SIZE_WORDS 5
+#define WORD_SIZE 4
+
+uintmax_t nf_util_parse_int(const char *str, const char *name, int base,
+                            char next) {
+  char *temp;
+  intmax_t result = strtoimax(str, &temp, base);
+
+  // There's also a weird failure case with overflows, but let's not care
+  if (temp == str || *temp != next) {
+    rte_exit(EXIT_FAILURE, "Error while parsing '%s': %s\n", name, str);
+  }
+
+  return result;
+}
+
+/**********************************************
+ *
  *                  NF
  *
  **********************************************/
 
 bool nf_init(void);
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
-               vigor_time_t now);
+               time_ns_t now);
 
 #define FLOOD_FRAME ((uint16_t)-1)
-
-// Unverified support for batching, useful for performance comparisons
-#define VIGOR_BATCH_SIZE 32
 
 // Do the opposite: we want batching!
 static const uint16_t RX_QUEUE_SIZE = 1024;
@@ -1079,13 +1041,13 @@ static const uint16_t TX_QUEUE_SIZE = 1024;
 static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
 
 // Send the given packet to all devices except the packet's own
-void flood(struct rte_mbuf *packet, uint16_t nb_devices) {
+void flood(struct rte_mbuf *packet, uint16_t nb_devices, uint16_t queue_id) {
   rte_mbuf_refcnt_set(packet, nb_devices - 1);
   int total_sent = 0;
   uint16_t skip_device = packet->port;
   for (uint16_t device = 0; device < nb_devices; device++) {
     if (device != skip_device) {
-      total_sent += rte_eth_tx_burst(device, 0, &packet, 1);
+      total_sent += rte_eth_tx_burst(device, queue_id, &packet, 1);
     }
   }
   // should not happen, but in case we couldn't transmit, ensure the packet is
@@ -1097,31 +1059,43 @@ void flood(struct rte_mbuf *packet, uint16_t nb_devices) {
 }
 
 // Initializes the given device using the given memory pool
-static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
+static int nf_init_device(uint16_t device, struct rte_mempool **mbuf_pools) {
   int retval;
+  const uint16_t num_queues = rte_lcore_count();
 
   // device_conf passed to rte_eth_dev_configure cannot be NULL
   struct rte_eth_conf device_conf = {0};
   // device_conf.rxmode.hw_strip_crc = 1;
+  device_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
+  device_conf.rx_adv_conf.rss_conf = rss_conf[device];
 
-  // Configure the device (1, 1 == number of RX/TX queues)
-  retval = rte_eth_dev_configure(device, 1, 1, &device_conf);
+  retval = rte_eth_dev_configure(device, num_queues, num_queues, &device_conf);
   if (retval != 0) {
     return retval;
   }
 
-  // Allocate and set up a TX queue (NULL == default config)
-  retval = rte_eth_tx_queue_setup(device, 0, TX_QUEUE_SIZE,
-                                  rte_eth_dev_socket_id(device), NULL);
-  if (retval != 0) {
-    return retval;
+  // Allocate and set up TX queues
+  for (int txq = 0; txq < num_queues; txq++) {
+    retval = rte_eth_tx_queue_setup(device, txq, TX_QUEUE_SIZE,
+                                    rte_eth_dev_socket_id(device), NULL);
+    if (retval != 0) {
+      return retval;
+    }
   }
 
-  // Allocate and set up RX queues (NULL == default config)
-  retval = rte_eth_rx_queue_setup(
-      device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL, mbuf_pool);
-  if (retval != 0) {
-    return retval;
+  unsigned lcore_id;
+  int rxq = 0;
+  RTE_LCORE_FOREACH(lcore_id) {
+    // Allocate and set up RX queues
+    lcores_conf[lcore_id].queue_id = rxq;
+    retval = rte_eth_rx_queue_setup(device, rxq, RX_QUEUE_SIZE,
+                                    rte_eth_dev_socket_id(device), NULL,
+                                    mbuf_pools[rxq]);
+    if (retval != 0) {
+      return retval;
+    }
+
+    rxq++;
   }
 
   // Start the device
@@ -1139,60 +1113,246 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
   return 0;
 }
 
+struct pkt {
+  uint64_t ts;
+  uint32_t pktlen;
+  uint8_t *pkt;
+  unsigned device;
+};
+
+int packet_timestamp_comparator(const void *a, const void *b) {
+  struct pkt *p1 = (struct pkt *)a;
+  struct pkt *p2 = (struct pkt *)b;
+
+  if (p1->ts > p2->ts) {
+    return 1;
+  }
+
+  if (p1->ts < p2->ts) {
+    return -1;
+  }
+
+  return 0;
+}
+
+struct pkts {
+  struct pkt *pkts;
+  unsigned n_pkts;
+  unsigned reserved;
+};
+
+struct pkts pkts;
+
+uint64_t *call_path_hit_counter_ptr;
+unsigned call_path_hit_counter_sz;
+
+void packetHandler(uint8_t *userData, const struct pcap_pkthdr *pkthdr,
+                   const uint8_t *packet) {
+  if (pkts.reserved <= pkts.n_pkts) {
+    pkts.reserved = pkts.n_pkts + 1000;
+    pkts.pkts =
+        (struct pkt *)realloc(pkts.pkts, sizeof(struct pkt) * pkts.reserved);
+  }
+
+  unsigned device = *((unsigned *)userData);
+
+  pkts.pkts[pkts.n_pkts].ts =
+      ((uint64_t)pkthdr->ts.tv_sec) * 1e9 + (uint64_t)pkthdr->ts.tv_usec * 1e3;
+  pkts.pkts[pkts.n_pkts].pktlen = pkthdr->len;
+  pkts.pkts[pkts.n_pkts].pkt = (uint8_t *)malloc(sizeof(uint8_t) * pkthdr->len);
+  memcpy(pkts.pkts[pkts.n_pkts].pkt, packet, pkthdr->len);
+  pkts.pkts[pkts.n_pkts].device = device;
+  pkts.n_pkts++;
+}
+
+void load_pkts(const char *pcap, unsigned device) {
+  pcap_t *descr;
+  char errbuf[PCAP_ERRBUF_SIZE];
+
+  printf("Loading packets (device=%u, pcap=%s)\n", device, pcap);
+
+  descr = pcap_open_offline(pcap, errbuf);
+  if (descr == NULL) {
+    printf("pcap %s\n", pcap);
+    rte_exit(EXIT_FAILURE, "pcap_open_offline() failed: %s\n", errbuf);
+  }
+
+  if (pcap_loop(descr, -1, packetHandler, (uint8_t *)&device) < 0) {
+    rte_exit(EXIT_FAILURE, "pcap_loop() failed\n");
+  }
+
+  if (pkts.reserved > pkts.n_pkts) {
+    pkts.pkts =
+        (struct pkt *)realloc(pkts.pkts, sizeof(struct pkt) * pkts.n_pkts);
+  }
+
+  pcap_close(descr);
+}
+
+struct device_conf_t {
+  uint16_t device_id;
+  const char *pcap;
+};
+
+struct config_t {
+  struct device_conf_t *devices_conf;
+  uint16_t devices;
+  uint32_t loops;
+};
+
+struct config_t config;
+
 // Main worker method (for now used on a single thread...)
-static void worker_main(void) {
+static void worker_main() {
   if (!nf_init()) {
     rte_exit(EXIT_FAILURE, "Error initializing NF");
   }
 
-  printf("Core %u forwarding packets.\n", rte_lcore_id());
+  time_ns_t last_ts = 0;
+  time_ns_t base_ts = 0;
+  for (unsigned loop_it = 0; loop_it < config.loops; loop_it++) {
+    for (unsigned pkti = 0; pkti < pkts.n_pkts; pkti++) {
+      struct pkt pkt = pkts.pkts[pkti];
+      time_ns_t current_time = pkt.ts + base_ts;
 
-  if (rte_eth_dev_count_avail() != 2) {
-    printf(
-        "We assume there will be exactly 2 devices for our simple batching "
-        "implementation.\n");
-    exit(1);
-  }
-  printf("Running with batches, this code is unverified!\n");
+      printf("\rProcessing packets (%02d %% | loop %d/%d) ...",
+             (int)(100 * (pkti + 1) / (double)pkts.n_pkts), loop_it + 1,
+             config.loops);
+      fflush(stdout);
 
-  while (1) {
-    unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();
-    for (uint16_t VIGOR_DEVICE = 0; VIGOR_DEVICE < VIGOR_DEVICES_COUNT;
-         VIGOR_DEVICE++) {
-      struct rte_mbuf *mbufs[VIGOR_BATCH_SIZE];
-      uint16_t rx_count =
-          rte_eth_rx_burst(VIGOR_DEVICE, 0, mbufs, VIGOR_BATCH_SIZE);
+      // Ignore destination device, we don't forward anywhere
+      nf_process(pkt.device, pkt.pkt, pkt.pktlen, current_time);
 
-      struct rte_mbuf *mbufs_to_send[VIGOR_BATCH_SIZE];
-      uint16_t tx_count = 0;
-      for (uint16_t n = 0; n < rx_count; n++) {
-        uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
-        vigor_time_t VIGOR_NOW = current_time();
-        uint16_t dst_device =
-            nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, VIGOR_NOW);
-
-        if (dst_device == VIGOR_DEVICE) {
-          rte_pktmbuf_free(mbufs[n]);
-        } else {  // includes flood when 2 devices, which is equivalent to just
-                  // a
-                  // send
-          mbufs_to_send[tx_count] = mbufs[n];
-          tx_count++;
-        }
-      }
-
-      uint16_t sent_count =
-          rte_eth_tx_burst(1 - VIGOR_DEVICE, 0, mbufs_to_send, tx_count);
-      for (uint16_t n = sent_count; n < tx_count; n++) {
-        rte_pktmbuf_free(mbufs[n]);  // should not happen, but we're in the
-                                     // unverified case anyway
-      }
+      last_ts = current_time;
     }
+
+    base_ts = last_ts;
+  }
+
+  printf("\n");
+  free(pkts.pkts);
+
+  printf("Generating report...\n");
+
+  FILE *report = fopen("nf-cph.tsv", "w");
+  fprintf(report, "#cp\thits\n");
+  for (unsigned i = 0; i < call_path_hit_counter_sz; i++) {
+    fprintf(report, "%u\t%lu\n", i, call_path_hit_counter_ptr[i]);
+  }
+  fclose(report);
+
+  exit(0);
+}
+
+void nf_config_usage(void) {
+  NF_INFO(
+      "Usage:\n"
+      "[DPDK EAL options] -- [<device:pcap> ...] --loops <loops>\n"
+      "\n"
+      "\t device: networking device to feed the pcap\n"
+      "\t pcap: traffic trace to analyze\n"
+      "\t loops: number of times to loop the pcap\n");
+}
+
+void nf_config_print(void) {
+  NF_INFO("\n--- Config ---\n");
+
+  for (uint16_t device = 0; device < config.devices; device++) {
+    NF_INFO("device: %" PRIu16 " PCAP:%s", device,
+            config.devices_conf[device].pcap);
+  }
+  NF_INFO("loops: %" PRIu32, config.loops);
+
+  NF_INFO("\n--- --- ------ ---\n");
+}
+
+#define PARSE_ERROR(format, ...)          \
+  nf_config_usage();                      \
+  fprintf(stderr, format, ##__VA_ARGS__); \
+  exit(EXIT_FAILURE);
+
+void nf_config_init_device(uint16_t device_id) {
+  for (int i = 0; i < config.devices; i++) {
+    if (config.devices_conf[i].device_id == device_id) {
+      PARSE_ERROR("Duplicated device: %" PRIu16 ".", device_id);
+    }
+  }
+
+  config.devices++;
+  config.devices_conf = (struct device_conf_t *)realloc(
+      config.devices_conf, sizeof(struct device_conf_t) * config.devices);
+
+  config.devices_conf[config.devices - 1].pcap = NULL;
+  config.devices_conf[config.devices - 1].device_id = device_id;
+}
+
+void nf_config_init(int argc, char **argv) {
+  config.devices = 0;
+  config.loops = 1;
+
+  struct option long_options[] = {{"loops", required_argument, NULL, 'l'},
+                                  {NULL, 0, NULL, 0}};
+
+  int opt;
+  opterr = 0;
+  while ((opt = getopt_long(argc, argv, "l:", long_options, NULL)) != EOF) {
+    switch (opt) {
+      case 'l': {
+        config.loops = nf_util_parse_int(optarg, "loops", 10, '\0');
+        break;
+      }
+
+      default:
+        PARSE_ERROR("Unknown option.\n");
+    }
+  }
+
+  for (int iarg = optind; iarg < argc; iarg++) {
+    const char *delim = ":";
+    char *token;
+
+    token = strtok(argv[iarg], delim);
+    if (token == NULL) {
+      PARSE_ERROR("Missing \"device\" argument.\n");
+    }
+
+    uint16_t device_id = nf_util_parse_int(token, "device", 10, '\0');
+    nf_config_init_device(device_id);
+
+    token = strtok(NULL, delim);
+    if (token == NULL) {
+      PARSE_ERROR("Missing \"pcap\" argument.\n");
+    }
+
+    if (access(token, F_OK) != 0) {
+      PARSE_ERROR("No such file \"%s\".\n", token);
+    }
+
+    config.devices_conf[config.devices - 1].pcap = token;
+  }
+
+  pkts.pkts = NULL;
+  pkts.n_pkts = 0;
+  pkts.reserved = 0;
+
+  for (int i = 0; i < config.devices; i++) {
+    load_pkts(config.devices_conf[i].pcap, config.devices_conf[i].device_id);
+  }
+
+  printf("Sorting %u packets...\n", pkts.n_pkts);
+  qsort(pkts.pkts, pkts.n_pkts, sizeof(struct pkt),
+        packet_timestamp_comparator);
+
+  uint64_t last_ts = 0;
+  for (unsigned i = 0; i < pkts.n_pkts; i++) {
+    struct pkt pkt = pkts.pkts[i];
+    assert(pkt.ts >= last_ts);
+    last_ts = pkt.ts;
   }
 }
 
 // Entry point
-int main(int argc, char **argv) {
+int MAIN(int argc, char **argv) {
   // Initialize the DPDK Environment Abstraction Layer (EAL)
   int ret = rte_eal_init(argc, argv);
   if (ret < 0) {
@@ -1201,29 +1361,8 @@ int main(int argc, char **argv) {
   argc -= ret;
   argv += ret;
 
-  // Create a memory pool
-  unsigned nb_devices = rte_eth_dev_count_avail();
-  struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create(
-      "MEMPOOL",                          // name
-      MEMPOOL_BUFFER_COUNT * nb_devices,  // #elements
-      0,  // cache size (per-core, not useful in a single-threaded app)
-      0,  // application private area size
-      RTE_MBUF_DEFAULT_BUF_SIZE,  // data buffer size
-      rte_socket_id()             // socket ID
-  );
-  if (mbuf_pool == NULL) {
-    rte_exit(EXIT_FAILURE, "Cannot create pool: %s\n", rte_strerror(rte_errno));
-  }
-
-  // Initialize all devices
-  for (uint16_t device = 0; device < nb_devices; device++) {
-    ret = nf_init_device(device, mbuf_pool);
-    if (ret == 0) {
-      printf("Initialized device %" PRIu16 ".\n", device);
-    } else {
-      rte_exit(EXIT_FAILURE, "Cannot init device %" PRIu16 ": %d", device, ret);
-    }
-  }
+  nf_config_init(argc, argv);
+  nf_config_print();
 
   // Run!
   worker_main();

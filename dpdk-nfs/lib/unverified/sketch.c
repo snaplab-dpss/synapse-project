@@ -25,8 +25,8 @@ struct Sketch {
 
   uint32_t capacity;
   uint16_t threshold;
+  uint32_t key_size;
 
-  map_key_hash *kh;
   struct internal_data internal;
 };
 
@@ -37,6 +37,23 @@ struct hash {
 struct bucket {
   uint32_t value;
 };
+
+static unsigned khash(void *key, unsigned key_size) {
+  unsigned hash = 0;
+  while (key_size > 0) {
+    if (key_size >= sizeof(unsigned int)) {
+      hash = __builtin_ia32_crc32si(hash, *(unsigned int *)key);
+      key = (unsigned int *)key + 1;
+      key_size -= sizeof(unsigned int);
+    } else {
+      unsigned int c = *(unsigned char *)key;
+      hash = __builtin_ia32_crc32si(hash, c);
+      key = (unsigned char *)key + 1;
+      key_size -= 1;
+    }
+  }
+  return hash;
+}
 
 struct sketch_data {
   unsigned hashes[SKETCH_HASHES];
@@ -75,9 +92,7 @@ unsigned hash_hash(void *obj) {
   return hash;
 }
 
-void bucket_allocate(void *obj) { (uintptr_t) obj; }
-
-int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
+int sketch_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
                     struct Sketch **sketch_out) {
   assert(SKETCH_HASHES <= SKETCH_SALTS_BANK_SIZE);
 
@@ -90,26 +105,26 @@ int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
 
   (*sketch_out)->capacity = capacity;
   (*sketch_out)->threshold = threshold;
-  (*sketch_out)->kh = kh;
+  (*sketch_out)->key_size = key_size;
 
   unsigned total_sketch_capacity =
       find_next_power_of_2_bigger_than(capacity * SKETCH_HASHES);
 
   (*sketch_out)->clients = NULL;
-  if (map_allocate(hash_eq, hash_hash, total_sketch_capacity,
+  if (map_allocate(total_sketch_capacity, sizeof(struct hash),
                    &((*sketch_out)->clients)) == 0) {
     return 0;
   }
 
   (*sketch_out)->keys = NULL;
-  if (vector_allocate(sizeof(struct hash), total_sketch_capacity, hash_allocate,
+  if (vector_allocate(sizeof(struct hash), total_sketch_capacity,
                       &((*sketch_out)->keys)) == 0) {
     return 0;
   }
 
   (*sketch_out)->buckets = NULL;
   if (vector_allocate(sizeof(struct bucket), total_sketch_capacity,
-                      bucket_allocate, &((*sketch_out)->buckets)) == 0) {
+                      &((*sketch_out)->buckets)) == 0) {
     return 0;
   }
 
@@ -131,13 +146,13 @@ void sketch_compute_hashes(struct Sketch *sketch, void *key) {
 
     sketch->internal.hashes[i] =
         __builtin_ia32_crc32si(sketch->internal.hashes[i], SKETCH_SALTS[i]);
-    sketch->internal.hashes[i] =
-        __builtin_ia32_crc32si(sketch->internal.hashes[i], sketch->kh(key));
+    sketch->internal.hashes[i] = __builtin_ia32_crc32si(
+        sketch->internal.hashes[i], khash(key, sketch->key_size));
     sketch->internal.hashes[i] %= sketch->capacity;
   }
 }
 
-void sketch_refresh(struct Sketch *sketch, vigor_time_t now) {
+void sketch_refresh(struct Sketch *sketch, time_ns_t now) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
     map_get(sketch->clients, &sketch->internal.hashes[i],
             &sketch->internal.buckets_indexes[i]);
@@ -174,7 +189,7 @@ int sketch_fetch(struct Sketch *sketch) {
   return bucket_min_set && bucket_min > sketch->threshold;
 }
 
-int sketch_touch_buckets(struct Sketch *sketch, vigor_time_t now) {
+int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
     int bucket_index = -1;
     int present =
@@ -216,7 +231,7 @@ int sketch_touch_buckets(struct Sketch *sketch, vigor_time_t now) {
   return true;
 }
 
-void sketch_expire(struct Sketch *sketch, vigor_time_t time) {
+void sketch_expire(struct Sketch *sketch, time_ns_t time) {
   int offset = 0;
   int index = -1;
 

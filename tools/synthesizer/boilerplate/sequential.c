@@ -1,41 +1,32 @@
-#include <arpa/inet.h>
-#include <unistd.h>
+#define _GNU_SOURCE
 
-#include <bf_rt/bf_rt.hpp>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
+#include <linux/limits.h>
+#include <sys/types.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include <bf_rt/bf_rt_common.h>
-#include <bf_switchd/bf_switchd.h>
-#include <bfutils/bf_utils.h>  // required for bfshell
-#include <pkt_mgr/pkt_mgr_intf.h>
-#ifdef __cplusplus
-}
-#endif
+#include <assert.h>
+#include <inttypes.h>
+#include <netinet/in.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-#define ALL_PIPES 0xffff
-
-#define ENV_VAR_SDE_INSTALL "SDE_INSTALL"
-#define PROGRAM_NAME "tofino"
-
-#define SWITCH_PACKET_MAX_BUFFER_SIZE 10000
-#define MTU 1500
+#include <rte_byteorder.h>
+#include <rte_common.h>
+#include <rte_eal.h>
+#include <rte_errno.h>
+#include <rte_ethdev.h>
+#include <rte_lcore.h>
+#include <rte_malloc.h>
+#include <rte_mbuf.h>
 
 /**********************************************
  *
  *                   LIBVIG
  *
  **********************************************/
-
-struct tcpudp_hdr {
-  uint16_t src_port;
-  uint16_t dst_port;
-} __attribute__((__packed__));
 
 #define AND &&
 #define time_ns_t int64_t
@@ -198,51 +189,54 @@ unsigned map_impl_size(int *busybits, unsigned capacity) {
 int map_allocate(map_keys_equality *keq, map_key_hash *khash, unsigned capacity,
                  struct Map **map_out) {
   struct Map *old_map_val = *map_out;
-  struct Map *map_alloc = (struct Map *)malloc(sizeof(struct Map));
+  struct Map *map_alloc =
+      (struct Map *)rte_malloc(NULL, sizeof(struct Map), 64);
   if (map_alloc == NULL) return 0;
   *map_out = (struct Map *)map_alloc;
-  int *bbs_alloc = (int *)malloc(sizeof(int) * (int)capacity);
+  int *bbs_alloc = (int *)rte_malloc(NULL, sizeof(int) * (int)capacity, 64);
   if (bbs_alloc == NULL) {
-    free(map_alloc);
+    rte_free(map_alloc);
     *map_out = old_map_val;
     return 0;
   }
   (*map_out)->busybits = bbs_alloc;
-  void **keyps_alloc = (void **)malloc(sizeof(void *) * (int)capacity);
+  void **keyps_alloc =
+      (void **)rte_malloc(NULL, sizeof(void *) * (int)capacity, 64);
   if (keyps_alloc == NULL) {
-    free(bbs_alloc);
-    free(map_alloc);
+    rte_free(bbs_alloc);
+    rte_free(map_alloc);
     *map_out = old_map_val;
     return 0;
   }
   (*map_out)->keyps = keyps_alloc;
-  unsigned *khs_alloc = (unsigned *)malloc(sizeof(unsigned) * (int)capacity);
+  unsigned *khs_alloc =
+      (unsigned *)rte_malloc(NULL, sizeof(unsigned) * (int)capacity, 64);
   if (khs_alloc == NULL) {
-    free(keyps_alloc);
-    free(bbs_alloc);
-    free(map_alloc);
+    rte_free(keyps_alloc);
+    rte_free(bbs_alloc);
+    rte_free(map_alloc);
     *map_out = old_map_val;
     return 0;
   }
   (*map_out)->khs = khs_alloc;
-  int *chns_alloc = (int *)malloc(sizeof(int) * (int)capacity);
+  int *chns_alloc = (int *)rte_malloc(NULL, sizeof(int) * (int)capacity, 64);
   if (chns_alloc == NULL) {
-    free(khs_alloc);
-    free(keyps_alloc);
-    free(bbs_alloc);
-    free(map_alloc);
+    rte_free(khs_alloc);
+    rte_free(keyps_alloc);
+    rte_free(bbs_alloc);
+    rte_free(map_alloc);
     *map_out = old_map_val;
     return 0;
   }
   (*map_out)->chns = chns_alloc;
-  int *vals_alloc = (int *)malloc(sizeof(int) * (int)capacity);
+  int *vals_alloc = (int *)rte_malloc(NULL, sizeof(int) * (int)capacity, 64);
 
   if (vals_alloc == NULL) {
-    free(chns_alloc);
-    free(khs_alloc);
-    free(keyps_alloc);
-    free(bbs_alloc);
-    free(map_alloc);
+    rte_free(chns_alloc);
+    rte_free(khs_alloc);
+    rte_free(keyps_alloc);
+    rte_free(bbs_alloc);
+    rte_free(map_alloc);
     *map_out = old_map_val;
     return 0;
   }
@@ -459,24 +453,24 @@ int dchain_impl_is_index_allocated(struct dchain_cell *cells, int index) {
 int dchain_allocate(int index_range, struct DoubleChain **chain_out) {
   struct DoubleChain *old_chain_out = *chain_out;
   struct DoubleChain *chain_alloc =
-      (struct DoubleChain *)malloc(sizeof(struct DoubleChain));
+      (struct DoubleChain *)rte_malloc(NULL, sizeof(struct DoubleChain), 64);
   if (chain_alloc == NULL) return 0;
   *chain_out = (struct DoubleChain *)chain_alloc;
 
-  struct dchain_cell *cells_alloc = (struct dchain_cell *)malloc(
-      sizeof(struct dchain_cell) * (index_range + DCHAIN_RESERVED));
+  struct dchain_cell *cells_alloc = (struct dchain_cell *)rte_malloc(
+      NULL, sizeof(struct dchain_cell) * (index_range + DCHAIN_RESERVED), 64);
   if (cells_alloc == NULL) {
-    free(chain_alloc);
+    rte_free(chain_alloc);
     *chain_out = old_chain_out;
     return 0;
   }
   (*chain_out)->cells = cells_alloc;
 
   time_ns_t *timestamps_alloc =
-      (time_ns_t *)malloc(sizeof(time_ns_t) * (index_range));
+      (time_ns_t *)rte_malloc(NULL, sizeof(time_ns_t) * (index_range), 64);
   if (timestamps_alloc == NULL) {
-    free((void *)cells_alloc);
-    free(chain_alloc);
+    rte_free((void *)cells_alloc);
+    rte_free(chain_alloc);
     *chain_out = old_chain_out;
     return 0;
   }
@@ -544,13 +538,15 @@ struct Vector {
 int vector_allocate(int elem_size, unsigned capacity,
                     vector_init_elem *init_elem, struct Vector **vector_out) {
   struct Vector *old_vector_val = *vector_out;
-  struct Vector *vector_alloc = (struct Vector *)malloc(sizeof(struct Vector));
+  struct Vector *vector_alloc =
+      (struct Vector *)rte_malloc(NULL, sizeof(struct Vector), 64);
   if (vector_alloc == 0) return 0;
   *vector_out = (struct Vector *)vector_alloc;
 
-  char *data_alloc = (char *)malloc((uint32_t)elem_size * capacity);
+  char *data_alloc =
+      (char *)rte_malloc(NULL, (uint32_t)elem_size * capacity, 64);
   if (data_alloc == 0) {
-    free(vector_alloc);
+    rte_free(vector_alloc);
     *vector_out = old_vector_val;
     return 0;
   }
@@ -588,8 +584,8 @@ int expire_items_single_map(struct DoubleChain *chain, struct Vector *vector,
   return count;
 }
 
-void expire_items_single_map_iteratively(struct Vector *vector, struct Map *map,
-                                         int start, int n_elems) {
+int expire_items_single_map_iteratively(struct Vector *vector, struct Map *map,
+                                        int start, int n_elems) {
   assert(start >= 0);
   assert(n_elems >= 0);
   void *key;
@@ -601,7 +597,7 @@ void expire_items_single_map_iteratively(struct Vector *vector, struct Map *map,
 }
 
 // Careful: SKETCH_HASHES needs to be <= SKETCH_SALTS_BANK_SIZE
-#define SKETCH_HASHES 5
+#define SKETCH_HASHES 4
 #define SKETCH_SALTS_BANK_SIZE 64
 
 struct internal_data {
@@ -793,7 +789,7 @@ int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
 
       if (!allocated_client) {
         // Sketch size limit reached.
-        return 0;
+        return false;
       }
 
       int offseted = bucket_index + sketch->capacity * i;
@@ -810,8 +806,6 @@ int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
 
       vector_return(sketch->keys, offseted, saved_hash);
       vector_return(sketch->buckets, offseted, saved_bucket);
-
-      return 1;
     } else {
       dchain_rejuvenate_index(sketch->allocators[i], bucket_index, now);
       uint32_t *bucket;
@@ -819,11 +813,10 @@ int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
       vector_borrow(sketch->buckets, offseted, (void **)&bucket);
       (*bucket)++;
       vector_return(sketch->buckets, offseted, bucket);
-      return 1;
     }
   }
 
-  return 1;
+  return true;
 }
 
 void sketch_expire(struct Sketch *sketch, time_ns_t time) {
@@ -844,410 +837,396 @@ void sketch_expire(struct Sketch *sketch, time_ns_t time) {
 
 /**********************************************
  *
- *             CONTROLLER LOGIC
+ *                  RTE-IP
  *
  **********************************************/
 
-bf_pkt *tx_pkt = nullptr;
-bf_pkt_tx_ring_t tx_ring = BF_PKT_TX_RING_0;
+uint32_t __raw_cksum(const void *buf, size_t len, uint32_t sum) {
+  /* workaround gcc strict-aliasing warning */
+  uintptr_t ptr = (uintptr_t)buf;
+  typedef uint16_t __attribute__((__may_alias__)) u16_p;
+  const u16_p *u16_buf = (const u16_p *)ptr;
 
-bf_rt_target_t dev_tgt;
-const bfrt::BfRtInfo *info;
-std::shared_ptr<bfrt::BfRtSession> session;
+  while (len >= (sizeof(*u16_buf) * 4)) {
+    sum += u16_buf[0];
+    sum += u16_buf[1];
+    sum += u16_buf[2];
+    sum += u16_buf[3];
+    len -= sizeof(*u16_buf) * 4;
+    u16_buf += 4;
+  }
+  while (len >= sizeof(*u16_buf)) {
+    sum += *u16_buf;
+    len -= sizeof(*u16_buf);
+    u16_buf += 1;
+  }
 
-struct eth_hdr_t {
-  uint8_t dst_mac[6];
-  uint8_t src_mac[6];
-  uint16_t eth_type;
-} __attribute__((packed));
+  /* if length is in odd bytes */
+  if (len == 1) {
+    uint16_t left = 0;
+    *(uint8_t *)&left = *(const uint8_t *)u16_buf;
+    sum += left;
+  }
 
-struct ipv4_hdr_t {
-  uint8_t ihl : 4;
-  uint8_t version : 4;
-  uint8_t ecn : 2;
-  uint8_t dscp : 6;
-  uint16_t tot_len;
-  uint16_t id;
-  uint16_t frag_off;
-  uint8_t ttl;
-  uint8_t protocol;
-  uint16_t check;
-  uint32_t src_ip;
-  uint32_t dst_ip;
-} __attribute__((packed));
-
-struct tcp_hdr_t {
-  uint16_t src_port;
-  uint16_t dst_port;
-  uint32_t seq;
-  uint32_t ack_seq;
-  uint16_t res1;
-  uint16_t window;
-  uint16_t check;
-  uint16_t urg_ptr;
-} __attribute__((packed));
-
-struct pkt_hdr_t {
-  struct eth_hdr_t eth_hdr;
-  struct ipv4_hdr_t ip_hdr;
-  struct tcp_hdr_t tcp_hdr;
-} __attribute__((packed));
-
-void pretty_print_pkt(struct pkt_hdr_t *pkt_hdr) {
-  printf("###[ Ethernet ]###\n");
-  printf("  dst  %02x:%02x:%02x:%02x:%02x:%02x\n", pkt_hdr->eth_hdr.dst_mac[0],
-         pkt_hdr->eth_hdr.dst_mac[1], pkt_hdr->eth_hdr.dst_mac[2],
-         pkt_hdr->eth_hdr.dst_mac[3], pkt_hdr->eth_hdr.dst_mac[4],
-         pkt_hdr->eth_hdr.dst_mac[5]);
-  printf("  src  %02x:%02x:%02x:%02x:%02x:%02x\n", pkt_hdr->eth_hdr.src_mac[0],
-         pkt_hdr->eth_hdr.src_mac[1], pkt_hdr->eth_hdr.src_mac[2],
-         pkt_hdr->eth_hdr.src_mac[3], pkt_hdr->eth_hdr.src_mac[4],
-         pkt_hdr->eth_hdr.src_mac[5]);
-  printf("  type 0x%x\n", ntohs(pkt_hdr->eth_hdr.eth_type));
-
-  printf("###[ IP ]###\n");
-  printf("  ihl     %u\n", (pkt_hdr->ip_hdr.ihl & 0x0f));
-  printf("  version %u\n", (pkt_hdr->ip_hdr.ihl & 0xf0) >> 4);
-  printf("  tos     %u\n", pkt_hdr->ip_hdr.version);
-  printf("  len     %u\n", ntohs(pkt_hdr->ip_hdr.tot_len));
-  printf("  id      %u\n", ntohs(pkt_hdr->ip_hdr.id));
-  printf("  off     %u\n", ntohs(pkt_hdr->ip_hdr.frag_off));
-  printf("  ttl     %u\n", pkt_hdr->ip_hdr.ttl);
-  printf("  proto   %u\n", pkt_hdr->ip_hdr.protocol);
-  printf("  chksum  0x%x\n", ntohs(pkt_hdr->ip_hdr.check));
-  printf("  src     %u.%u.%u.%u\n", (pkt_hdr->ip_hdr.src_ip >> 0) & 0xff,
-         (pkt_hdr->ip_hdr.src_ip >> 8) & 0xff,
-         (pkt_hdr->ip_hdr.src_ip >> 16) & 0xff,
-         (pkt_hdr->ip_hdr.src_ip >> 24) & 0xff);
-  printf("  dst     %u.%u.%u.%u\n", (pkt_hdr->ip_hdr.dst_ip >> 0) & 0xff,
-         (pkt_hdr->ip_hdr.dst_ip >> 8) & 0xff,
-         (pkt_hdr->ip_hdr.dst_ip >> 16) & 0xff,
-         (pkt_hdr->ip_hdr.dst_ip >> 24) & 0xff);
-
-  printf("###[ UDP ]###\n");
-  printf("  sport   %u\n", ntohs(pkt_hdr->tcp_hdr.src_port));
-  printf("  dport   %u\n", ntohs(pkt_hdr->tcp_hdr.dst_port));
+  return sum;
 }
 
-typedef int switch_int32_t;
-
-char *get_env_var_value(const char *env_var) {
-  auto env_var_value = getenv(env_var);
-
-  if (!env_var_value) {
-    std::cerr << env_var << " env var not found.\n";
-    exit(1);
-  }
-
-  return env_var_value;
+uint16_t __raw_cksum_reduce(uint32_t sum) {
+  sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
+  sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
+  return (uint16_t)sum;
 }
 
-char *get_install_dir() { return get_env_var_value(ENV_VAR_SDE_INSTALL); }
+uint16_t raw_cksum(const void *buf, size_t len) {
+  uint32_t sum;
 
-bool nf_process(uint8_t *pkt, uint32_t packet_size);
-
-void pcie_tx(bf_dev_id_t device, uint8_t *pkt, uint32_t packet_size) {
-  if (bf_pkt_data_copy(tx_pkt, pkt, packet_size) != 0) {
-    fprintf(stderr, "bf_pkt_data_copy failed: pkt_size=%d\n", packet_size);
-    bf_pkt_free(device, tx_pkt);
-    return;
-  }
-
-  if (bf_pkt_tx(device, tx_pkt, tx_ring, (void *)tx_pkt) != BF_SUCCESS) {
-    fprintf(stderr, "bf_pkt_tx failed\n");
-    bf_pkt_free(device, tx_pkt);
-  }
+  sum = __raw_cksum(buf, len, 0);
+  return __raw_cksum_reduce(sum);
 }
 
-bf_status_t txComplete(bf_dev_id_t device, bf_pkt_tx_ring_t tx_ring,
-                       uint64_t tx_cookie, uint32_t status) {
-  return BF_SUCCESS;
+uint16_t ipv4_cksum(const struct rte_ipv4_hdr *ipv4_hdr) {
+  uint16_t cksum;
+  cksum = raw_cksum(ipv4_hdr, sizeof(struct rte_ipv4_hdr));
+  return (uint16_t)~cksum;
 }
 
-bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
-                    bf_pkt_rx_ring_t rx_ring) {
-  bf_pkt *orig_pkt = nullptr;
-  char in_packet[SWITCH_PACKET_MAX_BUFFER_SIZE];
-  char *pkt_buf = nullptr;
-  char *bufp = nullptr;
-  uint32_t packet_size = 0;
-  switch_int32_t pkt_len = 0;
+uint16_t ipv4_udptcp_cksum(const struct rte_ipv4_hdr *ipv4_hdr,
+                           const void *l4_hdr) {
+  uint32_t cksum;
+  uint32_t l3_len, l4_len;
 
-  // save a pointer to the packet
-  orig_pkt = pkt;
+  l3_len = rte_be_to_cpu_16(ipv4_hdr->total_length);
+  if (l3_len < sizeof(struct rte_ipv4_hdr)) return 0;
 
-  // assemble the received packet
-  bufp = &in_packet[0];
+  l4_len = l3_len - sizeof(struct rte_ipv4_hdr);
 
-  do {
-    pkt_buf = (char *)bf_pkt_get_pkt_data(pkt);
-    pkt_len = bf_pkt_get_pkt_size(pkt);
+  cksum = raw_cksum(l4_hdr, l4_len);
+  cksum += ipv4_cksum(ipv4_hdr);
 
-    if ((packet_size + pkt_len) > SWITCH_PACKET_MAX_BUFFER_SIZE) {
-      fprintf(stderr, "Packet too large to Transmit - SKipping\n");
-      break;
-    }
+  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
+  cksum = (~cksum) & 0xffff;
+  /*
+   * Per RFC 768:If the computed checksum is zero for UDP,
+   * it is transmitted as all ones
+   * (the equivalent in one's complement arithmetic).
+   */
+  if (cksum == 0 && ipv4_hdr->next_proto_id == IPPROTO_UDP) cksum = 0xffff;
 
-    memcpy(bufp, pkt_buf, pkt_len);
-    bufp += pkt_len;
-    packet_size += pkt_len;
-    pkt = bf_pkt_get_nextseg(pkt);
-  } while (pkt);
-
-  auto atomic = true;
-  auto hw_sync = true;
-
-  session->beginTransaction(atomic);
-  auto fwd = nf_process((uint8_t *)in_packet, packet_size);
-  session->commitTransaction(hw_sync);
-
-  if (fwd) {
-    pcie_tx(device, (uint8_t *)in_packet, packet_size);
-  }
-
-  bf_pkt_free(device, orig_pkt);
-
-  return BF_SUCCESS;
+  return (uint16_t)cksum;
 }
 
-void register_pcie_pkt_ops() {
-  if (bf_pkt_alloc(dev_tgt.dev_id, &tx_pkt, MTU, BF_DMA_CPU_PKT_TRANSMIT_0) !=
-      0) {
-    fprintf(stderr, "Failed to allocate packet buffer\n");
-    exit(1);
-  }
+#define MAX_CHT_HEIGHT 40000
 
-  // register callback for TX complete
-  for (int tx_ring = BF_PKT_TX_RING_0; tx_ring < BF_PKT_TX_RING_MAX;
-       tx_ring++) {
-    bf_pkt_tx_done_notif_register(dev_tgt.dev_id, txComplete,
-                                  (bf_pkt_tx_ring_t)tx_ring);
-  }
-
-  // register callback for RX
-  for (int rx_ring = BF_PKT_RX_RING_0; rx_ring < BF_PKT_RX_RING_MAX;
-       rx_ring++) {
-    auto status = bf_pkt_rx_register(dev_tgt.dev_id, pcie_rx,
-                                     (bf_pkt_rx_ring_t)rx_ring, 0);
-    if (status != BF_SUCCESS) {
-      fprintf(stderr, "Failed to register pcie callback\n");
-      exit(1);
-    }
-  }
+static uint64_t cht_loop(uint64_t k, uint64_t capacity) {
+  uint64_t g = k % capacity;
+  return g;
 }
 
-void init_bf_switchd() {
-  auto switchd_main_ctx =
-      (bf_switchd_context_t *)calloc(1, sizeof(bf_switchd_context_t));
-
-  /* Allocate memory to hold switchd configuration and state */
-  if (switchd_main_ctx == NULL) {
-    std::cerr << "ERROR: Failed to allocate memory for switchd context\n";
-    exit(1);
+int cht_fill_cht(struct Vector *cht, uint32_t cht_height,
+                 uint32_t backend_capacity) {
+  // Generate the permutations of 0..(cht_height - 1) for each backend
+  int *permutations =
+      (int *)malloc(sizeof(int) * (int)(cht_height * backend_capacity));
+  if (permutations == 0) {
+    return 0;
   }
 
-  char target_conf_file[100];
-  sprintf(target_conf_file, "%s/share/p4/targets/tofino/%s.conf",
-          get_install_dir(), PROGRAM_NAME);
+  for (uint32_t i = 0; i < backend_capacity; ++i) {
+    uint32_t offset_absolut = i * 31;
+    uint64_t offset = cht_loop(offset_absolut, cht_height);
+    uint64_t base_shift = cht_loop(i, cht_height - 1);
+    uint64_t shift = base_shift + 1;
 
-  memset(switchd_main_ctx, 0, sizeof(bf_switchd_context_t));
-
-  switchd_main_ctx->install_dir = get_install_dir();
-  switchd_main_ctx->conf_file = const_cast<char *>(target_conf_file);
-  switchd_main_ctx->skip_p4 = false;
-  switchd_main_ctx->skip_port_add = false;
-  switchd_main_ctx->running_in_background = false;
-  switchd_main_ctx->dev_sts_thread = false;
-
-  auto bf_status = bf_switchd_lib_init(switchd_main_ctx);
-
-  if (bf_status != BF_SUCCESS) {
-    exit(1);
-  }
-}
-
-void setup_bf_session() {
-  dev_tgt.dev_id = 0;
-  dev_tgt.pipe_id = ALL_PIPES;
-
-  // Get devMgr singleton instance
-  auto &devMgr = bfrt::BfRtDevMgr::getInstance();
-
-  // Get info object from dev_id and p4 program name
-  auto bf_status = devMgr.bfRtInfoGet(dev_tgt.dev_id, PROGRAM_NAME, &info);
-  assert(bf_status == BF_SUCCESS);
-
-  // Create a session object
-  session = bfrt::BfRtSession::sessionCreate();
-}
-
-template <int key_size>
-bool key_eq(void *k1, void *k2) {
-  auto _k1 = (uint8_t *)k1;
-  auto _k2 = (uint8_t *)k2;
-
-  for (auto i = 0; i < key_size; i++) {
-    if (_k1[i] != _k2[i]) {
-      return false;
+    for (uint32_t j = 0; j < cht_height; ++j) {
+      uint64_t permut = cht_loop(offset + shift * j, cht_height);
+      permutations[i * cht_height + j] = (int)permut;
     }
   }
 
-  return true;
+  int *next = (int *)malloc(sizeof(int) * (int)(cht_height));
+  if (next == 0) {
+    free(permutations);
+    return 0;
+  }
+
+  for (uint32_t i = 0; i < cht_height; ++i) {
+    next[i] = 0;
+  }
+
+  for (uint32_t i = 0; i < cht_height; ++i) {
+    for (uint32_t j = 0; j < backend_capacity; ++j) {
+      uint32_t *value;
+
+      uint32_t index = j * cht_height + i;
+      int bucket_id = permutations[index];
+      int priority = next[bucket_id];
+
+      next[bucket_id] += 1;
+
+      vector_borrow(cht,
+                    (int)(backend_capacity * ((uint32_t)bucket_id) +
+                          ((uint32_t)priority)),
+                    (void **)&value);
+      *value = j;
+      vector_return(cht,
+                    (int)(backend_capacity * ((uint32_t)bucket_id) +
+                          ((uint32_t)priority)),
+                    (void *)value);
+    }
+  }
+
+  // Free memory
+  free(next);
+  free(permutations);
+  return 1;
 }
 
-template <int key_size>
-unsigned key_hash(void *k) {
-  auto _k = (uint8_t *)k;
+int cht_find_preferred_available_backend(uint64_t hash, struct Vector *cht,
+                                         struct DoubleChain *active_backends,
+                                         uint32_t cht_height,
+                                         uint32_t backend_capacity,
+                                         int *chosen_backend) {
+  uint64_t start = cht_loop(hash, cht_height);
+  for (uint32_t i = 0; i < backend_capacity; ++i) {
+    uint64_t candidate_idx =
+        start * backend_capacity +
+        i;  // There was a bug, right here, untill I tried to prove this.
+
+    uint32_t *candidate;
+    vector_borrow(cht, (int)candidate_idx, (void **)&candidate);
+
+    if (dchain_is_index_allocated(active_backends, (int)*candidate)) {
+      *chosen_backend = (int)*candidate;
+      vector_return(cht, (int)candidate_idx, candidate);
+      return 1;
+    }
+
+    vector_return(cht, (int)candidate_idx, candidate);
+  }
+
+  return 0;
+}
+
+/**********************************************
+ *
+ *                  ETHER
+ *
+ **********************************************/
+
+bool rte_ether_addr_eq(void *a, void *b) {
+  struct rte_ether_addr *id1 = (struct rte_ether_addr *)a;
+  struct rte_ether_addr *id2 = (struct rte_ether_addr *)b;
+
+  return (id1->addr_bytes[0] == id2->addr_bytes[0])
+      AND(id1->addr_bytes[1] == id2->addr_bytes[1])
+          AND(id1->addr_bytes[2] == id2->addr_bytes[2])
+              AND(id1->addr_bytes[3] == id2->addr_bytes[3])
+                  AND(id1->addr_bytes[4] == id2->addr_bytes[4])
+                      AND(id1->addr_bytes[5] == id2->addr_bytes[5]);
+}
+
+void rte_ether_addr_allocate(void *obj) {
+  struct rte_ether_addr *id = (struct rte_ether_addr *)obj;
+
+  id->addr_bytes[0] = 0;
+  id->addr_bytes[1] = 0;
+  id->addr_bytes[2] = 0;
+  id->addr_bytes[3] = 0;
+  id->addr_bytes[4] = 0;
+  id->addr_bytes[5] = 0;
+}
+
+unsigned rte_ether_addr_hash(void *obj) {
+  struct rte_ether_addr *id = (struct rte_ether_addr *)obj;
+
+  uint8_t addr_bytes_0 = id->addr_bytes[0];
+  uint8_t addr_bytes_1 = id->addr_bytes[1];
+  uint8_t addr_bytes_2 = id->addr_bytes[2];
+  uint8_t addr_bytes_3 = id->addr_bytes[3];
+  uint8_t addr_bytes_4 = id->addr_bytes[4];
+  uint8_t addr_bytes_5 = id->addr_bytes[5];
+
   unsigned hash = 0;
-
-  for (auto i = 0; i < key_size; i++) {
-    hash = __builtin_ia32_crc32si(hash, _k[i]);
-  }
-
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_0);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_1);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_2);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_3);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_4);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_5);
   return hash;
 }
 
-class Table {
-  private:
-  std::string table_name;
-  const bfrt::BfRtTable *table;
+/**********************************************
+ *
+ *                  NF
+ *
+ **********************************************/
 
-  std::unique_ptr<bfrt::BfRtTableKey> key;
-  std::unique_ptr<bfrt::BfRtTableData> data;
+bool nf_init(void);
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
+               time_ns_t now);
 
-  std::vector<bf_rt_id_t> key_bytes_ids;
-  bf_rt_id_t populate_action;
-  bf_rt_id_t populate_action_value;
+#define FLOOD_FRAME ((uint16_t)-1)
 
-  public:
-  Table(const std::string &_table_name, int n_key_bytes)
-      : table_name(_table_name), key_bytes_ids(n_key_bytes) {
-    assert(info);
-    assert(session);
+// Unverified support for batching, useful for performance comparisons
+#define VIGOR_BATCH_SIZE 32
 
-    init_table();
-    init_key();
-    init_action();
-    init_data();
-  }
+// Do the opposite: we want batching!
+static const uint16_t RX_QUEUE_SIZE = 1024;
+static const uint16_t TX_QUEUE_SIZE = 1024;
 
-  void add(uint8_t *k, uint32_t value) {
-    bf_status_t bf_status;
+// Buffer count for mempools
+static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
 
-    bf_status = table->keyReset(key.get());
-    assert(bf_status == BF_SUCCESS);
-    bf_status = table->dataReset(populate_action, data.get());
-    assert(bf_status == BF_SUCCESS);
-
-    // Set value into the key object. Key type is "EXACT"
-    for (auto byte = 0; byte < key_bytes_ids.size(); byte++) {
-      printf("k[%d] = 0x%x\n", byte, k[byte]);
-      auto key_byte = static_cast<uint64_t>(k[byte]);
-      bf_status = key->setValue(key_bytes_ids[byte], key_byte);
-      assert(bf_status == BF_SUCCESS);
+// Send the given packet to all devices except the packet's own
+void flood(struct rte_mbuf *packet, uint16_t nb_devices) {
+  rte_mbuf_refcnt_set(packet, nb_devices - 1);
+  int total_sent = 0;
+  uint16_t skip_device = packet->port;
+  for (uint16_t device = 0; device < nb_devices; device++) {
+    if (device != skip_device) {
+      total_sent += rte_eth_tx_burst(device, 0, &packet, 1);
     }
-
-    // Set value into the data object
-    printf("value = 0x%x\n", value);
-    bf_status =
-        data->setValue(populate_action_value, static_cast<uint64_t>(value));
-    assert(bf_status == BF_SUCCESS);
-
-    bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
-    assert(bf_status == BF_SUCCESS);
   }
-
-  static std::unique_ptr<Table> build(const std::string &_table_name,
-                                      int n_key_bytes) {
-    return std::unique_ptr<Table>(new Table(_table_name, n_key_bytes));
+  // should not happen, but in case we couldn't transmit, ensure the packet is
+  // freed
+  if (total_sent != nb_devices - 1) {
+    rte_mbuf_refcnt_set(packet, 1);
+    rte_pktmbuf_free(packet);
   }
-
-  private:
-  void init_table() {
-    auto full_table_name = "Ingress." + table_name;
-    auto bf_status = info->bfrtTableFromNameGet(full_table_name, &table);
-    assert(bf_status == BF_SUCCESS);
-  }
-
-  void init_key() {
-    for (auto byte = 0; byte < key_bytes_ids.size(); byte++) {
-      std::stringstream key_label_builder;
-      key_label_builder << "key_byte_" << byte;
-
-      auto label = key_label_builder.str();
-      auto &id = key_bytes_ids[byte];
-
-      auto bf_status = table->keyFieldIdGet(label, &id);
-      assert(bf_status == BF_SUCCESS);
-    }
-
-    auto bf_status = table->keyAllocate(&key);
-    assert(bf_status == BF_SUCCESS);
-    assert(key);
-  }
-
-  void init_action() {
-    auto bf_status =
-        table->actionIdGet("Ingress.map_populate", &populate_action);
-    assert(bf_status == BF_SUCCESS);
-  }
-
-  void init_data() {
-    auto bf_status =
-        table->dataFieldIdGet("value", populate_action, &populate_action_value);
-    assert(bf_status == BF_SUCCESS);
-
-    bf_status = table->dataAllocate(&data);
-    assert(bf_status == BF_SUCCESS);
-    assert(data);
-  }
-};
-
-#define KEY_SIZE 2
-
-struct state_t {
-  std::unique_ptr<Table> dp_map;
-  Map *map;
-
-  state_t() {
-    dp_map = Table::build("map", KEY_SIZE);
-    map_allocate(&key_eq<KEY_SIZE>, &key_hash<KEY_SIZE>, 1000, &map);
-  }
-};
-
-std::unique_ptr<state_t> state;
-
-void nf_init() { state = std::unique_ptr<state_t>(new state_t()); }
-
-bool nf_process(uint8_t *pkt, uint32_t size) {
-  struct pkt_hdr_t *pkt_hdr = (struct pkt_hdr_t *)pkt;
-  pretty_print_pkt(pkt_hdr);
-
-  uint8_t key[KEY_SIZE];
-
-  key[0] = (pkt_hdr->ip_hdr.src_ip >> 24) & 0xff;
-  key[1] = (pkt_hdr->ip_hdr.src_ip >> 16) & 0xff;
-  state->dp_map->add(key, 42);
-
-  // key[0] = 0x01;
-  // key[1] = 0x02;
-  // state->dp_map->add(key, 42);
-
-  return false;
 }
 
-int main(int argc, char **argv) {
-  init_bf_switchd();
-  setup_bf_session();
-  nf_init();
-  register_pcie_pkt_ops();
+// Initializes the given device using the given memory pool
+static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
+  int retval;
 
-  std::cerr << "\nController is ready.\n";
+  // device_conf passed to rte_eth_dev_configure cannot be NULL
+  struct rte_eth_conf device_conf = {0};
+  // device_conf.rxmode.hw_strip_crc = 1;
 
-  // main thread sleeps
-  while (1) {
-    sleep(60);
+  // Configure the device (1, 1 == number of RX/TX queues)
+  retval = rte_eth_dev_configure(device, 1, 1, &device_conf);
+  if (retval != 0) {
+    return retval;
   }
+
+  // Allocate and set up a TX queue (NULL == default config)
+  retval = rte_eth_tx_queue_setup(device, 0, TX_QUEUE_SIZE,
+                                  rte_eth_dev_socket_id(device), NULL);
+  if (retval != 0) {
+    return retval;
+  }
+
+  // Allocate and set up RX queues (NULL == default config)
+  retval = rte_eth_rx_queue_setup(
+      device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL, mbuf_pool);
+  if (retval != 0) {
+    return retval;
+  }
+
+  // Start the device
+  retval = rte_eth_dev_start(device);
+  if (retval != 0) {
+    return retval;
+  }
+
+  // Enable RX in promiscuous mode, just in case
+  rte_eth_promiscuous_enable(device);
+  if (rte_eth_promiscuous_get(device) != 1) {
+    return retval;
+  }
+
+  return 0;
+}
+
+// Main worker method (for now used on a single thread...)
+static void worker_main(void) {
+  if (!nf_init()) {
+    rte_exit(EXIT_FAILURE, "Error initializing NF");
+  }
+
+  printf("Core %u forwarding packets.\n", rte_lcore_id());
+
+  if (rte_eth_dev_count_avail() != 2) {
+    printf(
+        "We assume there will be exactly 2 devices for our simple batching "
+        "implementation.\n");
+    exit(1);
+  }
+  printf("Running with batches, this code is unverified!\n");
+
+  while (1) {
+    unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();
+    for (uint16_t VIGOR_DEVICE = 0; VIGOR_DEVICE < VIGOR_DEVICES_COUNT;
+         VIGOR_DEVICE++) {
+      struct rte_mbuf *mbufs[VIGOR_BATCH_SIZE];
+      uint16_t rx_count =
+          rte_eth_rx_burst(VIGOR_DEVICE, 0, mbufs, VIGOR_BATCH_SIZE);
+
+      struct rte_mbuf *mbufs_to_send[VIGOR_BATCH_SIZE];
+      uint16_t tx_count = 0;
+      for (uint16_t n = 0; n < rx_count; n++) {
+        uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
+        time_ns_t VIGOR_NOW = current_time();
+        uint16_t dst_device =
+            nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, VIGOR_NOW);
+
+        if (dst_device == VIGOR_DEVICE) {
+          rte_pktmbuf_free(mbufs[n]);
+        } else {  // includes flood when 2 devices, which is equivalent to just
+                  // a
+                  // send
+          mbufs_to_send[tx_count] = mbufs[n];
+          tx_count++;
+        }
+      }
+
+      uint16_t sent_count =
+          rte_eth_tx_burst(1 - VIGOR_DEVICE, 0, mbufs_to_send, tx_count);
+      for (uint16_t n = sent_count; n < tx_count; n++) {
+        rte_pktmbuf_free(mbufs[n]);  // should not happen, but we're in the
+                                     // unverified case anyway
+      }
+    }
+  }
+}
+
+// Entry point
+int main(int argc, char **argv) {
+  // Initialize the DPDK Environment Abstraction Layer (EAL)
+  int ret = rte_eal_init(argc, argv);
+  if (ret < 0) {
+    rte_exit(EXIT_FAILURE, "Error with EAL initialization, ret=%d\n", ret);
+  }
+  argc -= ret;
+  argv += ret;
+
+  // Create a memory pool
+  unsigned nb_devices = rte_eth_dev_count_avail();
+  struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create(
+      "MEMPOOL",                          // name
+      MEMPOOL_BUFFER_COUNT * nb_devices,  // #elements
+      0,  // cache size (per-core, not useful in a single-threaded app)
+      0,  // application private area size
+      RTE_MBUF_DEFAULT_BUF_SIZE,  // data buffer size
+      rte_socket_id()             // socket ID
+  );
+  if (mbuf_pool == NULL) {
+    rte_exit(EXIT_FAILURE, "Cannot create pool: %s\n", rte_strerror(rte_errno));
+  }
+
+  // Initialize all devices
+  for (uint16_t device = 0; device < nb_devices; device++) {
+    ret = nf_init_device(device, mbuf_pool);
+    if (ret == 0) {
+      printf("Initialized device %" PRIu16 ".\n", device);
+    } else {
+      rte_exit(EXIT_FAILURE, "Cannot init device %" PRIu16 ": %d", device, ret);
+    }
+  }
+
+  // Run!
+  worker_main();
 
   return 0;
 }

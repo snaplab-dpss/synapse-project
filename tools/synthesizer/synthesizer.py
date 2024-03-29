@@ -42,20 +42,23 @@ def warning(msg: str = ""):
 	__print(msg, Fore.MAGENTA)
 
 def run(args, abort_on_fail: bool = True, **pargs):
-	process = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **pargs)
+	process = subprocess.run(
+		args,
+		stdout=subprocess.PIPE,
+		stderr=sys.stderr,
+		**pargs,
+	)
+
 	stdout = process.stdout.decode("utf-8")
-	stderr = process.stderr.decode("utf-8")
 
 	if abort_on_fail and process.returncode != 0:
 		error(f"Command FAILED: {args}")
 		error(f"Return code: {process.returncode}")
 		error("stdout:")
 		error(stdout)
-		error("stderr:")
-		error(stderr)
 		exit(1)
 
-	return process.returncode, stdout, stderr
+	return process.returncode, stdout
 
 def symbex(nf: Path, rerun=False, vars: dict[str,str] = {}) -> list[Path]:
 	call_paths_dir = Path(f"{nf}/klee-last")
@@ -67,7 +70,7 @@ def symbex(nf: Path, rerun=False, vars: dict[str,str] = {}) -> list[Path]:
 		env = os.environ.copy()
 		env.update(vars)
 
-		code, _, _ = run([ "make", "symbex" ], cwd=str(nf.absolute()), env=env)
+		code, _ = run([ "make", "symbex" ], cwd=str(nf.absolute()), env=env)
 
 	assert os.path.exists(call_paths_dir)
 	call_paths = glob.glob(f"{call_paths_dir}/*.call_path")
@@ -91,7 +94,7 @@ def synthesize_nf(target: str, out: Path, bdd: Optional[Path] = None, call_paths
 	elif call_paths:
 		bdd_to_c_args += [ str(cp) for cp in call_paths ]
 
-	_, stdout, _ = run([ KLEE_BDD_TO_C ] + bdd_to_c_args)
+	_, stdout = run([ KLEE_BDD_TO_C ] + bdd_to_c_args)
 	boilerplate = read_boilerplate(CHOICE_TO_BOILERPLATE[target])
 	
 	with open(out, "w") as f:

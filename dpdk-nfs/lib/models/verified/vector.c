@@ -20,18 +20,15 @@ struct Vector {
   int nested_field_count;
   char *cell_type;
 
-  vector_init_elem *init_elem;
-
   vector_entry_condition *ent_cond;
   void *ent_cond_state;
 };
 
 int vector_allocate(int elem_size, unsigned capacity,
-                    vector_init_elem *init_elem, struct Vector **vector_out) {
+                    struct Vector **vector_out) {
   klee_trace_ret();
   klee_trace_param_i32(elem_size, "elem_size");
   klee_trace_param_i32(capacity, "capacity");
-  klee_trace_param_fptr(init_elem, "init_elem");
   klee_trace_param_ptr(vector_out, sizeof(struct Vector *), "vector_out");
 
   int allocation_succeeded = klee_int("vector_alloc_success");
@@ -47,7 +44,6 @@ int vector_allocate(int elem_size, unsigned capacity,
   //}
   (*vector_out)->elem_size = elem_size;
   (*vector_out)->capacity = capacity;
-  (*vector_out)->init_elem = init_elem;
   (*vector_out)->elems_claimed = 0;
   (*vector_out)->field_count = 0;
   (*vector_out)->nested_field_count = 0;

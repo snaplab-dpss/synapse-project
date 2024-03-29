@@ -13,10 +13,6 @@ struct TouchedPort {
   uint16_t port;
 };
 
-bool touched_port_eq(void *a, void *b);
-void touched_port_allocate(void *obj);
-unsigned touched_port_hash(void *obj);
-
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>
 #include "lib/models/str-descr.h"

@@ -21,10 +21,6 @@ struct FlowId {
 
 #define DEFAULT_FLOWID FlowIdc(0, 0, 0, 0, 0, 0)
 
-unsigned FlowId_hash(void* obj);
-bool FlowId_eq(void* a, void* b);
-void FlowId_allocate(void* obj);
-
 #define LOG_FLOWID(obj, p)                          \
   ;                                                 \
   p("{");                                           \

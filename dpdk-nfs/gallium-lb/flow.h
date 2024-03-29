@@ -13,10 +13,6 @@ struct Flow {
   uint8_t protocol;
 };
 
-unsigned flow_hash(void *obj);
-bool flow_eq(void *a, void *b);
-void flow_allocate(void *obj);
-
 #define LOG_FLOW(obj, p)              \
   p("{");                             \
   p("src_addr: %d", (obj)->src_addr); \

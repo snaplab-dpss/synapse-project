@@ -1,11 +1,6 @@
 #include "counter.h"
 #include "state.h"
 
-void counter_allocate(void *obj) {
-  struct Counter *id = (struct Counter *)obj;
-  id->value = 0;
-}
-
 #ifdef KLEE_VERIFICATION
 struct str_field_descr counter_descrs[] = {
     {offsetof(struct Counter, value), sizeof(uint32_t), 0, "value"},

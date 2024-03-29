@@ -36,37 +36,37 @@ struct State* alloc_state(uint32_t backend_capacity, uint32_t flow_capacity,
   struct State* ret = malloc(sizeof(struct State));
   if (ret == NULL) return NULL;
   ret->flow_to_flow_id = NULL;
-  if (map_allocate(LoadBalancedFlow_eq, LoadBalancedFlow_hash, flow_capacity,
+  if (map_allocate(flow_capacity, sizeof(struct LoadBalancedFlow),
                    &(ret->flow_to_flow_id)) == 0)
     return NULL;
   ret->flow_heap = NULL;
   if (vector_allocate(sizeof(struct LoadBalancedFlow), flow_capacity,
-                      LoadBalancedFlow_allocate, &(ret->flow_heap)) == 0)
+                      &(ret->flow_heap)) == 0)
     return NULL;
   ret->flow_chain = NULL;
   if (dchain_allocate(flow_capacity, &(ret->flow_chain)) == 0) return NULL;
   ret->flow_id_to_backend_id = NULL;
-  if (vector_allocate(sizeof(uint32_t), flow_capacity, null_init,
+  if (vector_allocate(sizeof(uint32_t), flow_capacity,
                       &(ret->flow_id_to_backend_id)) == 0)
     return NULL;
   ret->ip_to_backend_id = NULL;
-  if (map_allocate(ip_addr_eq, ip_addr_hash, backend_capacity,
+  if (map_allocate(backend_capacity, sizeof(struct ip_addr),
                    &(ret->ip_to_backend_id)) == 0)
     return NULL;
   ret->backend_ips = NULL;
   if (vector_allocate(sizeof(struct ip_addr), backend_capacity,
-                      ip_addr_allocate, &(ret->backend_ips)) == 0)
+                      &(ret->backend_ips)) == 0)
     return NULL;
   ret->backends = NULL;
   if (vector_allocate(sizeof(struct LoadBalancedBackend), backend_capacity,
-                      LoadBalancedBackend_allocate, &(ret->backends)) == 0)
+                      &(ret->backends)) == 0)
     return NULL;
   ret->active_backends = NULL;
   if (dchain_allocate(backend_capacity, &(ret->active_backends)) == 0)
     return NULL;
   ret->cht = NULL;
   if (vector_allocate(sizeof(uint32_t), backend_capacity * cht_height,
-                      null_init, &(ret->cht)) == 0)
+                      &(ret->cht)) == 0)
     return NULL;
   if (cht_fill_cht(ret->cht, cht_height, backend_capacity) == 0) return NULL;
   ret->backend_capacity = backend_capacity;
@@ -113,7 +113,7 @@ struct State* alloc_state(uint32_t backend_capacity, uint32_t flow_capacity,
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->flow_to_flow_id, &allocated_nf_state->flow_heap,
       &allocated_nf_state->flow_chain,

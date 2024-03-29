@@ -15,7 +15,7 @@ void loop_reset(struct Map** flow_to_flow_id, struct Vector** flow_heap,
                 struct Vector** backends, struct DoubleChain** active_backends,
                 struct Vector** cht, uint32_t backend_capacity,
                 uint32_t flow_capacity, uint32_t cht_height,
-                unsigned int lcore_id, vigor_time_t* time) {
+                unsigned int lcore_id, time_ns_t* time) {
   map_reset(*flow_to_flow_id);
   vector_reset(*flow_heap);
   dchain_reset(*flow_chain, flow_capacity);
@@ -33,7 +33,7 @@ void loop_invariant_consume(
     struct Map** ip_to_backend_id, struct Vector** backend_ips,
     struct Vector** backends, struct DoubleChain** active_backends,
     struct Vector** cht, uint32_t backend_capacity, uint32_t flow_capacity,
-    uint32_t cht_height, unsigned int lcore_id, vigor_time_t time) {
+    uint32_t cht_height, unsigned int lcore_id, time_ns_t time) {
   klee_trace_ret();
   klee_trace_param_ptr(flow_to_flow_id, sizeof(struct Map*), "flow_to_flow_id");
   klee_trace_param_ptr(flow_heap, sizeof(struct Vector*), "flow_heap");
@@ -59,7 +59,7 @@ void loop_invariant_produce(
     struct Map** ip_to_backend_id, struct Vector** backend_ips,
     struct Vector** backends, struct DoubleChain** active_backends,
     struct Vector** cht, uint32_t backend_capacity, uint32_t flow_capacity,
-    uint32_t cht_height, unsigned int* lcore_id, vigor_time_t* time) {
+    uint32_t cht_height, unsigned int* lcore_id, time_ns_t* time) {
   klee_trace_ret();
   klee_trace_param_ptr(flow_to_flow_id, sizeof(struct Map*), "flow_to_flow_id");
   klee_trace_param_ptr(flow_heap, sizeof(struct Vector*), "flow_heap");
@@ -77,7 +77,7 @@ void loop_invariant_produce(
   klee_trace_param_u32(flow_capacity, "flow_capacity");
   klee_trace_param_u32(cht_height, "cht_height");
   klee_trace_param_ptr(lcore_id, sizeof(unsigned int), "lcore_id");
-  klee_trace_param_ptr(time, sizeof(vigor_time_t), "time");
+  klee_trace_param_ptr(time, sizeof(time_ns_t), "time");
 }
 void loop_iteration_border(
     struct Map** flow_to_flow_id, struct Vector** flow_heap,
@@ -85,7 +85,7 @@ void loop_iteration_border(
     struct Map** ip_to_backend_id, struct Vector** backend_ips,
     struct Vector** backends, struct DoubleChain** active_backends,
     struct Vector** cht, uint32_t backend_capacity, uint32_t flow_capacity,
-    uint32_t cht_height, unsigned int lcore_id, vigor_time_t time) {
+    uint32_t cht_height, unsigned int lcore_id, time_ns_t time) {
   loop_invariant_consume(flow_to_flow_id, flow_heap, flow_chain,
                          flow_id_to_backend_id, ip_to_backend_id, backend_ips,
                          backends, active_backends, cht, backend_capacity,

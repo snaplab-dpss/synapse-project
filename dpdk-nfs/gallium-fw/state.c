@@ -23,13 +23,12 @@ struct State *alloc_state(uint32_t capacity) {
   }
 
   ret->table = NULL;
-  if (map_allocate(flow_eq, flow_hash, capacity, &(ret->table)) == 0) {
+  if (map_allocate(capacity, sizeof(struct Flow), &(ret->table)) == 0) {
     return NULL;
   }
 
   ret->entries = NULL;
-  if (vector_allocate(sizeof(struct Flow), capacity, flow_allocate,
-                      &(ret->entries)) == 0) {
+  if (vector_allocate(sizeof(struct Flow), capacity, &(ret->entries)) == 0) {
     return NULL;
   }
 
@@ -47,7 +46,7 @@ struct State *alloc_state(uint32_t capacity) {
 }
 
 #ifdef KLEE_VERIFICATION
-void nf_loop_iteration_border(unsigned lcore_id, vigor_time_t time) {
+void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(&allocated_nf_state->table,
                         &allocated_nf_state->entries, lcore_id, time);
 }

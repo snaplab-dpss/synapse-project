@@ -31,12 +31,12 @@
 #ifdef KLEE_VERIFICATION
 #define VIGOR_LOOP_BEGIN                                             \
   unsigned _vigor_lcore_id = 0; /* no multicore support for now */   \
-  vigor_time_t _vigor_start_time = start_time();                     \
+  time_ns_t _vigor_start_time = start_time();                        \
   int _vigor_loop_termination = klee_int("loop_termination");        \
   unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();          \
   while (klee_induce_invariants() & _vigor_loop_termination) {       \
     nf_loop_iteration_border(_vigor_lcore_id, _vigor_start_time);    \
-    vigor_time_t VIGOR_NOW = current_time();                         \
+    time_ns_t VIGOR_NOW = current_time();                            \
     /* concretize the device to avoid leaking symbols into DPDK */   \
     uint16_t VIGOR_DEVICE =                                          \
         klee_range(0, VIGOR_DEVICES_COUNT, "VIGOR_DEVICE");          \
@@ -50,7 +50,7 @@
 #else  // KLEE_VERIFICATION
 #define VIGOR_LOOP_BEGIN                                                \
   while (1) {                                                           \
-    vigor_time_t VIGOR_NOW = current_time();                            \
+    time_ns_t VIGOR_NOW = current_time();                               \
     unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();           \
     for (uint16_t VIGOR_DEVICE = 0; VIGOR_DEVICE < VIGOR_DEVICES_COUNT; \
          VIGOR_DEVICE++) {                                              \
@@ -200,7 +200,7 @@ static void worker_main(void) {
       for (uint16_t n = 0; n < rx_count; n++) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
-        vigor_time_t VIGOR_NOW = current_time();
+        time_ns_t VIGOR_NOW = current_time();
         uint16_t dst_device = nf_process(
             mbufs[n]->port, &data, mbufs[n]->pkt_len, VIGOR_NOW, mbufs[n]);
         nf_return_all_chunks(data);

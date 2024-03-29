@@ -5,9 +5,9 @@
 #include <stdint.h>
 
 bool allocate_flow(struct State *state, struct Flow *flow,
-                   uint32_t *new_dst_addr, vigor_time_t now);
-void expire_flows(struct State *state, vigor_time_t now);
+                   uint32_t *new_dst_addr, time_ns_t now);
+void expire_flows(struct State *state, time_ns_t now);
 bool match_backend_and_expire_flow(struct State *state, struct Flow *flow,
                                    uint32_t *new_dst_addr);
 bool match_backend(struct State *state, struct Flow *flow,
-                   uint32_t *new_dst_addr, vigor_time_t now);
+                   uint32_t *new_dst_addr, time_ns_t now);

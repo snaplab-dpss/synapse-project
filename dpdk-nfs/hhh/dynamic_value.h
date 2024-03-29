@@ -9,12 +9,8 @@
 
 struct DynamicValue {
   uint64_t bucket_size;
-  vigor_time_t bucket_time;
+  time_ns_t bucket_time;
 };
-
-unsigned DynamicValue_hash(void *obj);
-bool DynamicValue_eq(void *a, void *b);
-void DynamicValue_allocate(void *obj);
 
 #define LOG_DYNAMICVALUE(obj, p)          \
   ;                                       \
