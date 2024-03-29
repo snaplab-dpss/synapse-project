@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "vigor-time.h"
 
 #include <time.h>

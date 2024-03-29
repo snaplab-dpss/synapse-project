@@ -1,13 +1,12 @@
-# get current dir, see https://stackoverflow.com/a/8080530
 SELF_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 ifndef SOURCE
 $(error "SOURCE is not set.")
 endif
 
-# Output directory
-OUT_DIR=build
+APP:=$(basename $(notdir $(SOURCE)))
 
+OUT_DIR=build
 
 PKGCONF ?= pkg-config
 PC_FILE := $(shell $(PKGCONF) --path libdpdk 2>/dev/null)
@@ -15,19 +14,13 @@ CFLAGS  += $(shell $(PKGCONF) --cflags libdpdk)
 LDFLAGS  = $(shell $(PKGCONF) --static --libs libdpdk)
 LDFLAGS += -L$(RTE_SDK)/$(RTE_TARGET)
 
-# Same name for everyone, makes it easier to run them all with the same script
-APP := nf
-# allow the use of advanced globs in paths
 SHELL := /bin/bash -O extglob -O globstar -c
-# NF base source;
-# somehow because of DPDK makefile magic wildcards mess up everything here,
-# so we ask echo to expand those
 SRCS-y = $(SOURCE)
-# Compiler flags
-CFLAGS += -std=gnu11
+
 CFLAGS += -DCAPACITY_POW2
+CFLAGS += -g
 CFLAGS += -O3
-# CFLAGS += -O0 -g -rdynamic -DENABLE_LOG -Wfatal-errors
+# CFLAGS += -O0 -rdynamic -DENABLE_LOG -Wfatal-errors
 
 NF_LIB_DIR := $(SELF_DIR)/../dpdk-nfs/lib
 
@@ -38,5 +31,7 @@ SRCS-y += $(shell find $(NF_LIB_DIR)/unverified -name "*.c" ! -name "*tm*" ! -na
 
 $(OUT_DIR)/$(APP): $(SRCS-y) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)
-	@$(CC) $(CFLAGS) $(SRCS-y) -o $@ $(LDFLAGS) \
-		-I$(NF_LIB_DIR)/../
+	@$(CXX) $(CFLAGS) $(SRCS-y) -o $@ $(LDFLAGS) -I$(NF_LIB_DIR)/../
+
+clean:
+	rm -rf $(OUT_DIR)

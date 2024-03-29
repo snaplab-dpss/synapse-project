@@ -11,4 +11,5 @@ int expire_items_single_map_iteratively(struct Vector *vector, struct Map *map,
     map_erase(map, key, (void **)&key);
     vector_return(vector, i, key);
   }
+  return n_elems;
 }

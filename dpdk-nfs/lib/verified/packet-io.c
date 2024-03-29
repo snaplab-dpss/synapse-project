@@ -30,7 +30,7 @@ void packet_shrink_chunk(void **p, size_t length, void **chunks,
 
   void *last_chunk = chunks[num_chunks - 1];
   size_t last_chunk_length = packet_get_chunk_length(data, last_chunk);
-  uint8_t *last_chunk_limit = last_chunk + last_chunk_length;
+  uint8_t *last_chunk_limit = (uint8_t *)last_chunk + last_chunk_length;
 
   assert(length <= last_chunk_length);
   size_t offset = last_chunk_length - length;
@@ -53,7 +53,7 @@ void packet_shrink_chunk(void **p, size_t length, void **chunks,
   global_total_length -= offset;
 
   for (int i = 0; i < num_chunks; i++) {
-    chunks[i] += offset;
+    ((uint8_t **)chunks)[i] += offset;
   }
 
   (*p) = data;
@@ -75,7 +75,7 @@ void packet_insert_new_chunk(void **p, size_t length, void **chunks,
   }
 
   for (int i = 0; i < (*num_chunks); i++) {
-    chunks[i] -= length;
+    ((uint8_t **)chunks)[i] -= length;
   }
 
   assert(chunks[0] == data);
