@@ -16,3 +16,6 @@
 [submodule "deps/pktgen"]
 	path = deps/pktgen
 	url = https://github.com/fchamicapereira/pktgen.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json.git
