@@ -13,7 +13,7 @@ struct Flow {
   uint16_t dst_port;
   uint16_t device;
   uint8_t proto;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>

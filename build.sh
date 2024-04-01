@@ -34,6 +34,7 @@ detect_os() {
 }
 
 # Constants
+DPDK_NFS_DIR="$SCRIPT_DIR/dpdk-nfs"
 DEPS_DIR="$SCRIPT_DIR/deps"
 PATHSFILE="$SCRIPT_DIR/paths.sh"
 KERNEL_VER=$(uname -r | sed 's/-Microsoft//')
@@ -48,17 +49,18 @@ GCC_VERSION='10'
 DPDK_DIR="$DEPS_DIR/dpdk"
 KLEE_DIR="$DEPS_DIR/klee"
 KLEE_UCLIBC_DIR="$DEPS_DIR/klee-uclibc"
-KLEE_BUILD_RELEASE_PATH="$KLEE_DIR/Release"
-KLEE_BUILD_DEBUG_PATH="$KLEE_DIR/Debug"
+KLEE_BUILD_PATH="$KLEE_DIR/build"
 LLVM_DIR="$DEPS_DIR/llvm"
 Z3_DIR="$DEPS_DIR/z3"
 OCAML_DIR="$DEPS_DIR/ocaml"
+JSON_DIR="$DEPS_DIR/json"
 
 DPDK_TARGET=x86_64-native-linuxapp-gcc
 DPDK_BUILD_DIR="$DPDK_DIR/$DPDK_TARGET"
 KLEE_UCLIBC_LIB_DIR="$KLEE_UCLIBC_DIR/lib"
 LLVM_RELEASE_DIR="$LLVM_DIR/Release"
 Z3_BUILD_DIR="$Z3_DIR/build"
+JSON_BUILD_DIR="$JSON_DIR/build"
 
 # Install arguments using system's package manager.
 # XXX: Make the package manager depend on "$OS".
@@ -287,8 +289,7 @@ source_install_klee_uclibc() {
 }
 
 clean_klee() {
-	rm -rf "$KLEE_BUILD_RELEASE_PATH"
-	rm -rf "$KLEE_BUILD_DEBUG_PATH"
+	rm -rf "$KLEE_BUILD_PATH"
 }
 
 source_install_klee() {
@@ -296,13 +297,33 @@ source_install_klee() {
 
 	add_var_to_paths_file "KLEE_DIR" "$KLEE_DIR"
 	add_var_to_paths_file "KLEE_INCLUDE" "$KLEE_DIR/include"
-	add_var_to_paths_file "KLEE_BUILD_PATH" "$KLEE_BUILD_RELEASE_PATH"
+	add_var_to_paths_file "KLEE_BUILD_PATH" "$KLEE_BUILD_PATH"
 
-	add_multiline_var_to_paths_file "PATH" "$KLEE_BUILD_RELEASE_PATH/bin:\$PATH"
+	add_multiline_var_to_paths_file "PATH" "$KLEE_BUILD_PATH/bin:\$PATH"
 
 	pushd $KLEE_DIR
 		./build.sh
 	popd
+
+	echo "Done."
+}
+
+clean_json() {
+	rm -rf "$JSON_BUILD_DIR"
+}
+
+source_install_json() {
+	echo "Installing nlohmann JSON..."
+
+	add_var_to_paths_file "JSON_BUILD_PATH" "$JSON_BUILD_DIR"
+
+	mkdir -p $JSON_BUILD_DIR
+	pushd $JSON_BUILD_DIR
+		cmake $JSON_DIR -DCMAKE_INSTALL_PREFIX=$JSON_BUILD_DIR
+		make -j$BUILDING_CORES
+	popd
+
+	add_multiline_var_to_paths_file "PKG_CONFIG_PATH" "$JSON_BUILD_DIR:\$PKG_CONFIG_PATH"
 
 	echo "Done."
 }
@@ -340,6 +361,15 @@ bin_install_ocaml() {
 	opam install ocamlfind sexplib menhir -y
 
 	echo "Done."
+}
+
+build_libnf() {
+	pushd "$DPDK_NFS_DIR"
+		make lib
+	popd
+
+	add_multiline_var_to_paths_file "LD_LIBRARY_PATH" "$DPDK_NFS_DIR/build:\$LD_LIBRARY_PATH"
+	sudo ldconfig
 }
 
 # Environment
@@ -381,6 +411,7 @@ clean_llvm
 clean_klee_uclibc
 clean_klee
 clean_ocaml
+clean_json
 
 # Install dependencies
 source_install_dpdk
@@ -388,4 +419,6 @@ source_install_z3
 source_install_llvm
 source_install_klee_uclibc
 source_install_klee
+source_install_json
 bin_install_ocaml
+build_libnf

@@ -15,7 +15,7 @@
 struct client {
   uint32_t src_ip;
   uint32_t dst_ip;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>

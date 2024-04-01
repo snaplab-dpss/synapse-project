@@ -18,6 +18,12 @@ unsigned long long __builtin_ia32_crc32di(unsigned long long acc,
 #define AND &&
 #endif  // KLEE_VERIFICATION
 
+#ifdef KLEE_VERIFICATION
+#define PACKED_FOR_KLEE_VERIFICATION __attribute__((packed))
+#else
+#define PACKED_FOR_KLEE_VERIFICATION
+#endif
+
 #define DEFAULT_UINT32_T 0
 
 static void null_init(void *obj) { *(uint32_t *)obj = 0; }

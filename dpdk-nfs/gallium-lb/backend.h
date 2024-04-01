@@ -7,7 +7,7 @@
 
 struct Backend {
   uint32_t ip;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #ifdef KLEE_VERIFICATION
 #include "lib/models/str-descr.h"

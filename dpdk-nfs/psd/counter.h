@@ -10,7 +10,7 @@
 
 struct counter {
   uint32_t value;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define LOG_counter(obj, p)   \
   ;                           \

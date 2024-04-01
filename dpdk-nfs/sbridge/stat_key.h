@@ -14,7 +14,7 @@
 struct StaticKey {
   struct rte_ether_addr addr;
   uint16_t device;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define LOG_STATICKEY(obj, p)       \
   ;                                 \

@@ -15,7 +15,7 @@ struct LoadBalancedFlow {
   uint16_t src_port;
   uint16_t dst_port;
   uint8_t protocol;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 unsigned LoadBalancedFlow_hash(void* obj);
 

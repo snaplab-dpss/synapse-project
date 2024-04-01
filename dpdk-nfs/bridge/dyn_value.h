@@ -11,7 +11,7 @@
 
 struct DynamicValue {
   uint16_t device;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define LOG_DYNAMICVALUE(obj, p)  \
   ;                               \

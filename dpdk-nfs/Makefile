@@ -71,8 +71,9 @@ SHELL := /bin/bash -O extglob -O globstar -c
 ifneq (true,$(NF_NO_BASE))
 SRCS-y := $(shell echo $(SELF_DIR)/nf*.c)
 endif
-SRCS-y += $(shell echo $(SELF_DIR)/lib/verified/*.c)
-SRCS-y += $(shell find $(SELF_DIR)/lib/unverified -name "*.c" ! -name "*tm*" ! -name "*locks*" -printf "%p ")
+LIB_SRCS := $(shell echo $(SELF_DIR)/lib/verified/*.c)
+LIB_SRCS += $(shell echo $(SELF_DIR)/lib/unverified/*.c)
+SRCS-y += $(LIB_SRCS)
 SRCS-y += $(NF_FILES)
 # Compiler flags
 CFLAGS += -I $(SELF_DIR)
@@ -227,3 +228,9 @@ bdd: symbex
 	gcc -E $(filter-out -O3 -c,$(CFLAGS)) $^ -o $(OUT_DIR)/$@
 
 pre-processor: all $(NF_FILES:.c=.i)
+
+# Build a library
+lib: $(OUT_DIR)/lib$(APP).so
+$(OUT_DIR)/lib$(APP).so: $(LIB_SRCS)
+	@mkdir -p $(OUT_DIR)
+	@$(CC) $(CFLAGS) -shared -fPIC $(LIB_SRCS) -o $(OUT_DIR)/lib$(APP).so

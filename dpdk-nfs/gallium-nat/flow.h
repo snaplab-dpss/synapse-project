@@ -12,7 +12,7 @@ struct Flow {
   uint16_t src_port;
   uint16_t dst_port;
   uint8_t protocol;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define LOG_FLOW(obj, p)              \
   p("{");                             \

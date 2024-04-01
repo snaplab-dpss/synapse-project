@@ -8,7 +8,7 @@
 
 struct Counter {
   uint32_t value;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #ifdef KLEE_VERIFICATION
 #include "lib/models/str-descr.h"

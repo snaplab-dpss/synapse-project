@@ -11,6 +11,7 @@
 #include "lib/verified/expirator.h"
 
 #include "state.h"
+#include "../nf-log.h"
 
 struct FlowManager {
   struct State *state;
@@ -41,6 +42,7 @@ void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager,
                                            time_ns_t time) {
   int index;
   if (map_get(manager->state->fm, id, &index)) {
+    NF_DEBUG("Rejuvenated flow");
     dchain_rejuvenate_index(manager->state->heap, index, time);
     return;
   }
@@ -49,6 +51,8 @@ void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager,
     // outgoing traffic out.
     return;
   }
+
+  NF_DEBUG("Allocating new flow");
 
   struct FlowId *key = 0;
   vector_borrow(manager->state->fv, index, (void **)&key);

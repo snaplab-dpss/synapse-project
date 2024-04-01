@@ -11,7 +11,7 @@
 struct TouchedPort {
   uint32_t src;
   uint16_t port;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>

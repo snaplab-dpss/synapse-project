@@ -12,7 +12,7 @@
 
 struct ip_addr {
   uint32_t addr;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define LOG_IP_ADDR(obj, p) \
   ;                         \

@@ -11,7 +11,7 @@
 struct DynamicValue {
   uint64_t bucket_size;
   time_ns_t bucket_time;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define DEFAULT_DYNAMICVALUE DynamicValuec(0, 0)
 

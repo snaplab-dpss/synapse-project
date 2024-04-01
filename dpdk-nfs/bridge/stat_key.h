@@ -12,7 +12,7 @@
 struct StaticKey {
   struct rte_ether_addr addr;
   uint16_t device;
-};
+} PACKED_FOR_KLEE_VERIFICATION;
 
 #define DEFAULT_STATICKEY StaticKeyc(rte_ether_addrc(0, 0, 0, 0, 0, 0), 0)
 
