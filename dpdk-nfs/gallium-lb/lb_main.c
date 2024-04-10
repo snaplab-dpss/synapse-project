@@ -113,7 +113,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
     return device;
   }
 
-  struct tcpudp_hdr *tcpudp_hdr;
   uint32_t new_dst_addr;
 
   struct rte_tcp_hdr *tcp_header = nf_then_get_tcp_header(ipv4_header, buffer);

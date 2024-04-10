@@ -21,8 +21,8 @@ bool allocate_flow(struct State *state, struct Flow *flow,
   struct Backend *backend = 0;
 
   vector_borrow(state->flows, index, (void **)&key);
-  vector_borrow(state->flows_backends, index, (void **)&chosen);
   vector_borrow(state->backends, backend_index, (void **)&backend);
+  vector_borrow(state->flows_backends, index, (void **)&chosen);
 
   memcpy((void *)key, (void *)flow, sizeof(struct Flow));
   memcpy((void *)chosen, (void *)backend, sizeof(struct Backend));
@@ -30,8 +30,8 @@ bool allocate_flow(struct State *state, struct Flow *flow,
   *new_dst_addr = backend->ip;
 
   vector_return(state->flows, index, key);
-  vector_return(state->flows_backends, index, chosen);
   vector_return(state->backends, backend_index, backend);
+  vector_return(state->flows_backends, index, chosen);
 
   return true;
 }
