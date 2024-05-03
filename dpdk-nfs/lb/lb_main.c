@@ -22,19 +22,19 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   lb_expire_flows(balancer, now);
   lb_expire_backends(balancer, now);
 
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_rte_ipv4_header(rte_ether_header, buffer);
+      nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     NF_DEBUG("Malformed IPv4, dropping");
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
     NF_DEBUG("Not TCP/UDP, dropping");
-    return device;
+    return DROP;
   }
 
   struct LoadBalancedFlow flow = {.src_ip = rte_ipv4_header->src_addr,
@@ -46,7 +46,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   if (device != config.wan_device) {
     NF_DEBUG("Processing heartbeat, device is %" PRIu16, device);
     lb_process_heartbit(balancer, &flow, rte_ether_header->s_addr, device, now);
-    return device;
+    return DROP;
   }
 
   struct LoadBalancedBackend backend =

@@ -23,44 +23,46 @@
 #endif  // KLEE_VERIFICATION
 
 // Unverified support for batching, useful for performance comparisons
-#ifndef VIGOR_BATCH_SIZE
-#define VIGOR_BATCH_SIZE 1
-#endif
+#ifndef BATCH_SIZE
+#ifdef KLEE_VERIFICATION
+#define BATCH_SIZE 1
+#else
+#define BATCH_SIZE 32
+#endif  // KLEE_VERIFICATION
+#endif  // BATCH_SIZE
 
 // More elaborate loop shape with annotations for verification
 #ifdef KLEE_VERIFICATION
-#define VIGOR_LOOP_BEGIN                                             \
-  unsigned _vigor_lcore_id = 0; /* no multicore support for now */   \
-  time_ns_t _vigor_start_time = start_time();                        \
-  int _vigor_loop_termination = klee_int("loop_termination");        \
-  unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();          \
-  while (klee_induce_invariants() & _vigor_loop_termination) {       \
-    nf_loop_iteration_border(_vigor_lcore_id, _vigor_start_time);    \
-    time_ns_t VIGOR_NOW = current_time();                            \
-    /* concretize the device to avoid leaking symbols into DPDK */   \
-    uint16_t VIGOR_DEVICE =                                          \
-        klee_range(0, VIGOR_DEVICES_COUNT, "VIGOR_DEVICE");          \
-    uint16_t CONCRETE_VIGOR_DEVICE = VIGOR_DEVICE;                   \
-    concretize_devices(&CONCRETE_VIGOR_DEVICE, VIGOR_DEVICES_COUNT); \
-    stub_hardware_receive_packet(VIGOR_DEVICE);
-#define VIGOR_LOOP_END                                  \
-  stub_hardware_reset_receive(VIGOR_DEVICE);            \
-  nf_loop_iteration_border(_vigor_lcore_id, VIGOR_NOW); \
+#define LOOP_BEGIN                                                 \
+  unsigned _vigor_lcore_id = 0; /* no multicore support for now */ \
+  time_ns_t _vigor_start_time = start_time();                      \
+  int _vigor_loop_termination = klee_int("loop_termination");      \
+  unsigned DEVICES_COUNT = rte_eth_dev_count_avail();              \
+  while (klee_induce_invariants() & _vigor_loop_termination) {     \
+    nf_loop_iteration_border(_vigor_lcore_id, _vigor_start_time);  \
+    time_ns_t NOW = current_time();                                \
+    /* concretize the device to avoid leaking symbols into DPDK */ \
+    uint16_t DEVICE = klee_range(0, DEVICES_COUNT, "DEVICE");      \
+    uint16_t CONCRETE_DEVICE = DEVICE;                             \
+    concretize_devices(&CONCRETE_DEVICE, DEVICES_COUNT);           \
+    stub_hardware_receive_packet(DEVICE);
+#define LOOP_END                                  \
+  stub_hardware_reset_receive(DEVICE);            \
+  nf_loop_iteration_border(_vigor_lcore_id, NOW); \
   }
 #else  // KLEE_VERIFICATION
-#define VIGOR_LOOP_BEGIN                                                \
-  while (1) {                                                           \
-    time_ns_t VIGOR_NOW = current_time();                               \
-    unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();           \
-    for (uint16_t VIGOR_DEVICE = 0; VIGOR_DEVICE < VIGOR_DEVICES_COUNT; \
-         VIGOR_DEVICE++) {                                              \
-      unsigned CONCRETE_VIGOR_DEVICE = VIGOR_DEVICE;
-#define VIGOR_LOOP_END \
-  }                    \
+#define LOOP_BEGIN                                                \
+  while (1) {                                                     \
+    time_ns_t NOW = current_time();                               \
+    unsigned DEVICES_COUNT = rte_eth_dev_count_avail();           \
+    for (uint16_t DEVICE = 0; DEVICE < DEVICES_COUNT; DEVICE++) { \
+      unsigned CONCRETE_DEVICE = DEVICE;
+#define LOOP_END \
+  }              \
   }
 #endif  // KLEE_VERIFICATION
 
-#if VIGOR_BATCH_SIZE == 1
+#if BATCH_SIZE == 1
 // Queue sizes for receiving/transmitting packets
 // NOT powers of 2 so that ixgbe doesn't use vector stuff
 // but they have to be multiples of 8, and at least 32,
@@ -145,26 +147,25 @@ static void worker_main(void) {
 
   NF_INFO("Core %u forwarding packets.", rte_lcore_id());
 
-#if VIGOR_BATCH_SIZE == 1
-  VIGOR_LOOP_BEGIN
+#if BATCH_SIZE == 1
+  LOOP_BEGIN
   struct rte_mbuf *mbuf;
-  if (rte_eth_rx_burst(CONCRETE_VIGOR_DEVICE, 0, &mbuf, 1) != 0) {
+  if (rte_eth_rx_burst(CONCRETE_DEVICE, 0, &mbuf, 1) != 0) {
     uint8_t *data = rte_pktmbuf_mtod(mbuf, uint8_t *);
     packet_state_total_length(data, &(mbuf->pkt_len));
 
-    uint16_t dst_device =
-        nf_process(VIGOR_DEVICE, &data, mbuf->pkt_len, VIGOR_NOW, mbuf);
+    uint16_t dst_device = nf_process(DEVICE, &data, mbuf->pkt_len, NOW, mbuf);
     nf_return_all_chunks(data);
 
-    if (dst_device == VIGOR_DEVICE) {
+    if (dst_device == DROP) {
       rte_pktmbuf_free(mbuf);
-    } else if (dst_device == FLOOD_FRAME) {
-      flood(mbuf, VIGOR_DEVICES_COUNT);
+    } else if (dst_device == FLOOD) {
+      flood(mbuf, DEVICES_COUNT);
     } else {
       // ensure we don't leak symbols into DPDK
       concretize_devices(&dst_device, rte_eth_dev_count_avail());
       if (rte_eth_tx_burst(dst_device, 0, &mbuf, 1) != 1) {
-#ifdef VIGOR_ALLOW_DROPS
+#ifdef ALLOW_DROPS
         rte_pktmbuf_free(mbuf);  // OK, we're debugging
 #else
         printf(
@@ -175,9 +176,9 @@ static void worker_main(void) {
       }
     }
   }
-  VIGOR_LOOP_END
+  LOOP_END
 
-#else  // if VIGOR_BATCH_SIZE != 1
+#else  // if BATCH_SIZE != 1
 
   if (rte_eth_dev_count_avail() != 2) {
     printf(
@@ -188,24 +189,22 @@ static void worker_main(void) {
   NF_INFO("Running with batches, this code is unverified!");
 
   while (1) {
-    unsigned VIGOR_DEVICES_COUNT = rte_eth_dev_count_avail();
-    for (uint16_t VIGOR_DEVICE = 0; VIGOR_DEVICE < VIGOR_DEVICES_COUNT;
-         VIGOR_DEVICE++) {
-      struct rte_mbuf *mbufs[VIGOR_BATCH_SIZE];
-      uint16_t rx_count =
-          rte_eth_rx_burst(VIGOR_DEVICE, 0, mbufs, VIGOR_BATCH_SIZE);
+    unsigned DEVICES_COUNT = rte_eth_dev_count_avail();
+    for (uint16_t DEVICE = 0; DEVICE < DEVICES_COUNT; DEVICE++) {
+      struct rte_mbuf *mbufs[BATCH_SIZE];
+      uint16_t rx_count = rte_eth_rx_burst(DEVICE, 0, mbufs, BATCH_SIZE);
 
-      struct rte_mbuf *mbufs_to_send[VIGOR_BATCH_SIZE];
+      struct rte_mbuf *mbufs_to_send[BATCH_SIZE];
       uint16_t tx_count = 0;
       for (uint16_t n = 0; n < rx_count; n++) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
-        time_ns_t VIGOR_NOW = current_time();
-        uint16_t dst_device = nf_process(
-            mbufs[n]->port, &data, mbufs[n]->pkt_len, VIGOR_NOW, mbufs[n]);
+        time_ns_t now = current_time();
+        uint16_t dst_device =
+            nf_process(mbufs[n]->port, &data, mbufs[n]->pkt_len, now, mbufs[n]);
         nf_return_all_chunks(data);
 
-        if (dst_device == VIGOR_DEVICE) {
+        if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);
         } else {  // includes flood when 2 devices, which is equivalent
                   // to just
@@ -217,7 +216,7 @@ static void worker_main(void) {
       }
 
       uint16_t sent_count =
-          rte_eth_tx_burst(1 - VIGOR_DEVICE, 0, mbufs_to_send, tx_count);
+          rte_eth_tx_burst(1 - DEVICE, 0, mbufs_to_send, tx_count);
       for (uint16_t n = sent_count; n < tx_count; n++) {
         rte_pktmbuf_free(mbufs[n]);  // should not happen, but we're in
                                      // the unverified case anyway

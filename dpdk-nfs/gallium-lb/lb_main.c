@@ -105,12 +105,12 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
     return config.wan_device;
   }
 
-  struct rte_ether_hdr *ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *ipv4_header =
-      nf_then_get_rte_ipv4_header(ether_header, buffer);
+      nf_then_get_ipv4_header(ether_header, buffer);
 
   if (ipv4_header == NULL) {
-    return device;
+    return DROP;
   }
 
   uint32_t new_dst_addr;
@@ -122,11 +122,11 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
         nf_then_get_udp_header(ipv4_header, buffer);
 
     if (udp_header == NULL) {
-      return device;
+      return DROP;
     }
 
     if (!process_udp(ipv4_header, udp_header, now, &new_dst_addr)) {
-      return device;
+      return DROP;
     }
 
     ipv4_header->dst_addr = new_dst_addr;
@@ -134,7 +134,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                                     (struct tcpudp_hdr *)udp_header, buffer);
   } else {
     if (!process_tcp(ipv4_header, tcp_header, now, &new_dst_addr)) {
-      return device;
+      return DROP;
     }
 
     ipv4_header->dst_addr = new_dst_addr;

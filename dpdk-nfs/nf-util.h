@@ -88,7 +88,7 @@ void nf_log_pkt(struct rte_ether_hdr *rte_ether_header,
                 struct rte_ipv4_hdr *rte_ipv4_header,
                 struct tcpudp_hdr *tcpudp_header);
 
-bool nf_has_rte_ipv4_header(struct rte_ether_hdr *header);
+bool nf_has_ipv4_header(struct rte_ether_hdr *header);
 bool nf_has_tcpudp_header(struct rte_ipv4_hdr *header);
 bool nf_has_tcp_header(struct rte_ipv4_hdr *header);
 bool nf_has_udp_header(struct rte_ipv4_hdr *header);
@@ -175,19 +175,19 @@ static inline void nf_return_chunk(uint8_t **p) {
   }
 }
 
-static inline struct rte_ether_hdr *nf_then_get_rte_ether_header(uint8_t **p) {
+static inline struct rte_ether_hdr *nf_then_get_ether_header(uint8_t **p) {
   CHUNK_LAYOUT_N(*p, rte_ether_hdr, rte_ether_fields, rte_ether_nested_fields);
   void *hdr = nf_borrow_next_chunk(p, sizeof(struct rte_ether_hdr));
   return (struct rte_ether_hdr *)hdr;
 }
 
-static inline struct rte_ipv4_hdr *nf_then_get_rte_ipv4_header(
+static inline struct rte_ipv4_hdr *nf_then_get_ipv4_header(
     void *rte_ether_header_, uint8_t **p) {
   struct rte_ether_hdr *rte_ether_header =
       (struct rte_ether_hdr *)rte_ether_header_;
 
   uint16_t unread_len = packet_get_unread_length(p);
-  if ((!nf_has_rte_ipv4_header(rte_ether_header)) |
+  if ((!nf_has_ipv4_header(rte_ether_header)) |
       (unread_len < sizeof(struct rte_ipv4_hdr))) {
     return NULL;
   }
@@ -199,14 +199,14 @@ static inline struct rte_ipv4_hdr *nf_then_get_rte_ipv4_header(
   return hdr;
 }
 
-static inline struct rte_ipv4_hdr *nf_then_get_rte_ipv4_header_with_options(
+static inline struct rte_ipv4_hdr *nf_then_get_ipv4_header_with_options(
     void *rte_ether_header_, uint8_t **p, uint8_t **ip_options) {
   struct rte_ether_hdr *rte_ether_header =
       (struct rte_ether_hdr *)rte_ether_header_;
   *ip_options = NULL;
 
   uint16_t unread_len = packet_get_unread_length(p);
-  if ((!nf_has_rte_ipv4_header(rte_ether_header)) |
+  if ((!nf_has_ipv4_header(rte_ether_header)) |
       (unread_len < sizeof(struct rte_ipv4_hdr))) {
     return NULL;
   }

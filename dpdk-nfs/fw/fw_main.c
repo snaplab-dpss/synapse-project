@@ -23,19 +23,19 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
 
   flow_manager_expire(flow_manager, now);
 
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_rte_ipv4_header(rte_ether_header, buffer);
+      nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     NF_DEBUG("Not IPv4, dropping");
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
     NF_DEBUG("Not TCP/UDP, dropping");
-    return device;
+    return DROP;
   }
 
   NF_DEBUG("Forwarding an IPv4 packet on device %" PRIu16, device);
@@ -55,7 +55,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
     if (!flow_manager_get_refresh_flow(flow_manager, &id, now,
                                        &dst_device_long)) {
       NF_DEBUG("Unknown external flow, dropping");
-      return device;
+      return DROP;
     }
     dst_device = dst_device_long;
   } else {

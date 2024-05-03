@@ -9,19 +9,18 @@ bool nf_init(void) { return true; }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   uint8_t *ip_options;
-  struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_rte_ipv4_header_with_options(rte_ether_header, buffer,
-                                               &ip_options);
+  struct rte_ipv4_hdr *rte_ipv4_header = nf_then_get_ipv4_header_with_options(
+      rte_ether_header, buffer, &ip_options);
   if (rte_ipv4_header == NULL) {
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
-    return device;
+    return DROP;
   }
 
   NF_INFO("Received a packet!");
@@ -36,7 +35,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   // =========================================================
   // Example 1: shorten IP options
   // if (!ip_options) {
-  //   return device;
+  //   return DROP;
   // }
 
   // nf_return_chunk(buffer); // return TCP/UDP

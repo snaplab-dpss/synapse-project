@@ -3,6 +3,7 @@
 
 #include "lib/verified/map.h"
 #include "lib/verified/expirator.h"
+#include "lib/unverified/hash.h"
 
 #include <rte_ethdev.h>
 
@@ -43,9 +44,10 @@ struct LoadBalancedBackend lb_get_backend(struct LoadBalancer *balancer,
   if (map_get(balancer->state->flow_to_flow_id, flow, &flow_index) == 0) {
     int backend_index = 0;
     int found = cht_find_preferred_available_backend(
-        (uint64_t)LoadBalancedFlow_hash(flow), balancer->state->cht,
-        balancer->state->active_backends, balancer->state->cht_height,
-        balancer->state->backend_capacity, &backend_index);
+        (uint64_t)hash_obj(flow, sizeof(struct LoadBalancedFlow)),
+        balancer->state->cht, balancer->state->active_backends,
+        balancer->state->cht_height, balancer->state->backend_capacity,
+        &backend_index);
     if (found) {
       if (dchain_allocate_new_index(balancer->state->flow_chain, &flow_index,
                                     now) != 0) {

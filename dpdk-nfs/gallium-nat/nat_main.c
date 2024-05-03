@@ -17,19 +17,19 @@ bool nf_init(void) {
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *ipv4_header =
-      nf_then_get_rte_ipv4_header(ether_header, buffer);
+      nf_then_get_ipv4_header(ether_header, buffer);
 
   if (ipv4_header == NULL) {
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(ipv4_header, buffer);
 
   if (tcpudp_header == NULL) {
-    return device;
+    return DROP;
   }
 
   NF_DEBUG("Forwarding an IPv4 packet on device %" PRIu16, device);
@@ -46,7 +46,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
           internal_flow.dst_port != tcpudp_header->src_port ||
           internal_flow.protocol != ipv4_header->next_proto_id) {
         NF_DEBUG("Spoofing attempt, dropping.");
-        return device;
+        return DROP;
       }
 
       ipv4_header->dst_addr = internal_flow.src_addr;
@@ -54,7 +54,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
       dst_device = config.lan_device;
     } else {
       NF_DEBUG("Unknown flow, dropping");
-      return device;
+      return DROP;
     }
   } else {
     NF_DEBUG("LAN packet");
@@ -72,7 +72,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
 
       if (!allocate_flow(state, &flow, &external_port)) {
         NF_DEBUG("No space for the flow, dropping");
-        return device;
+        return DROP;
       }
     }
 

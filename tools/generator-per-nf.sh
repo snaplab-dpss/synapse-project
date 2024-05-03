@@ -20,28 +20,24 @@ run() {
 	mkdir -p $BDDS_DIR
 	mkdir -p $SYNTHESIZED_DIR
 	
-	if [ ! -f $BDDS_DIR/$nf.bdd ]; then
-		pushd $NFS_DIR/$nf/ >/dev/null
-			echo "[$nf] Running symbex"
-			make symbex
-		popd >/dev/null
-		$CALL_PATHS_TO_BDD -out $BDDS_DIR/$nf.bdd $NFS_DIR/$nf/klee-last/*.call_path
-	fi
+	pushd $NFS_DIR/$nf
+		echo "[$nf] Running symbex"
+		make symbex
+	popd
+	
+	$CALL_PATHS_TO_BDD -out $BDDS_DIR/$nf.bdd $NFS_DIR/$nf/klee-last/*.call_path
 
-	if [ ! -f $BDDS_DIR/$nf.gv ]; then
-		echo "[$nf] Generating BDD"
-		$BDD_VISUALIZER -in $BDDS_DIR/$nf.bdd -out $BDDS_DIR/$nf.gv
-	fi
+	echo "[$nf] Generating BDD"
+	$BDD_VISUALIZER -in $BDDS_DIR/$nf.bdd -out $BDDS_DIR/$nf.gv
 
-	if [ ! -f $SYNTHESIZED_DIR/$nf-bdd-analysis.cpp ]; then
-		echo "[$nf] Generating BDD analysis code"
-		$BDD_TO_C -target bdd-analyzer -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf-bdd-analysis.cpp
-	fi
+	echo "[$nf] Generating BDD analysis code"
+	$BDD_TO_C -target bdd-analyzer -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf-bdd-analysis.cpp
+	$BDD_TO_C -target seq -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf.cpp
 
 	echo "[$nf] done"
 }
 
 export -f run
 parallel run ::: \
-	"fwd" "nop" "sbridge" "bridge" "pol" "fw" "nat" "cl" "psd" "lb" "hhh" \
-	"gallium-fw" "gallium-lb" "gallium-nat" "gallium-proxy"
+	"fwd" "nop" "sbridge" "bridge" "pol" "fw" "nat" "cl" "psd" "lb"  \
+	"gallium-fw" "gallium-lb" "gallium-nat" "gallium-proxy" "kvstore"

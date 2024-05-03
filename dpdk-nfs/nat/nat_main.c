@@ -26,18 +26,18 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   flow_manager_expire(flow_manager, now);
   NF_DEBUG("Flows have been expired");
 
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_rte_ipv4_header(rte_ether_header, buffer);
+      nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     NF_DEBUG("Not IPv4, dropping");
-    return device;
+    return DROP;
   }
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
     NF_DEBUG("Not TCP/UDP, dropping");
-    return device;
+    return DROP;
   }
 
   NF_DEBUG("Forwarding an IPv4 packet on device %" PRIu16, device);
@@ -56,7 +56,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
           internal_flow.dst_port != tcpudp_header->src_port |
           internal_flow.protocol != rte_ipv4_header->next_proto_id) {
         NF_DEBUG("Spoofing attempt, dropping.");
-        return device;
+        return DROP;
       }
 
       rte_ipv4_header->dst_addr = internal_flow.src_ip;
@@ -64,7 +64,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
       dst_device = internal_flow.internal_device;
     } else {
       NF_DEBUG("Unknown flow, dropping");
-      return device;
+      return DROP;
     }
   } else {
     struct FlowId id = {.src_port = tcpudp_header->src_port,
@@ -87,7 +87,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
       if (!flow_manager_allocate_flow(flow_manager, &id, device, now,
                                       &external_port)) {
         NF_DEBUG("No space for the flow, dropping");
-        return device;
+        return DROP;
       }
     }
 

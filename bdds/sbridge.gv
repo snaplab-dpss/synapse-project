@@ -2,16 +2,16 @@ digraph mygraph {
 	node [shape=box style=rounded border=0];
 	subgraph clusterprocess {
 		node [style="rounded,filled",color=black];
-		90 [label="90:drop()", fillcolor="brown1"];
+		90 [label="90:fwd(1)", fillcolor="chartreuse2"];
 		91 [label="91:fwd(0)", fillcolor="chartreuse2"];
-		40 [shape=Mdiamond, label="40:(allocated_index__34 == VIGOR_DEVICE)", fillcolor="yellow"];
+		40 [shape=Mdiamond, label="40:allocated_index__34", fillcolor="yellow"];
 		40 -> 90 [label="True"];
 		40 -> 91 [label="False"];
 		92 [label="92:fwd(0)", fillcolor="chartreuse2"];
 		38 [shape=Mdiamond, label="38:map_has_this_key__34", fillcolor="yellow"];
 		38 -> 40 [label="True"];
 		38 -> 92 [label="False"];
-		93 [label="93:drop()", fillcolor="brown1"];
+		93 [label="93:fwd(0)", fillcolor="chartreuse2"];
 		94 [label="94:fwd(1)", fillcolor="chartreuse2"];
 		59 [shape=Mdiamond, label="59:!allocated_index__34", fillcolor="yellow"];
 		59 -> 93 [label="True"];
@@ -20,14 +20,14 @@ digraph mygraph {
 		57 [shape=Mdiamond, label="57:map_has_this_key__34", fillcolor="yellow"];
 		57 -> 59 [label="True"];
 		57 -> 95 [label="False"];
-		36 [shape=Mdiamond, label="36:(0 != VIGOR_DEVICE)", fillcolor="yellow"];
+		36 [shape=Mdiamond, label="36:(0 != DEVICE)", fillcolor="yellow"];
 		36 -> 38 [label="True"];
 		36 -> 57 [label="False"];
-		35 [label="35:packet_return_chunk(\l  p:1074055928,\l  the_chunk:1073760128[packet_chunks])", fillcolor="cornflowerblue"];
+		35 [label="35:packet_return_chunk(\l  p:1074058408,\l  the_chunk:1073761792[packet_chunks])", fillcolor="cornflowerblue"];
 		35 -> 36;
-		34 [label="34:map_get(\l  key:1074068210[(VIGOR_DEVICE[1])++((VIGOR_DEVICE[0])++(packet_chunks))],\l  map:1073941896,\l  value_out:1074068196[4294967295 -> allocated_index__34]) -> 1\l=>{map_has_this_key__34[1]}\l=>{allocated_index__34[allocated_index__34]}", fillcolor="cornflowerblue"];
+		34 [label="34:map_get(\l  key:1074070690[DEVICE[0:2]++packet_chunks[0:6]],\l  map:1073944088,\l  value_out:1074070676[4294967295 -> allocated_index__34]) -> 1\l=>{map_has_this_key__34[1]}\l=>{allocated_index__34[allocated_index__34]}", fillcolor="cornflowerblue"];
 		34 -> 35;
-		33 [label="33:packet_borrow_next_chunk(\l  chunk:1074067888[ -> 1073760128],\l  length:14,\l  p:1074055928)\l=>{packet_chunks[packet_chunks]}", fillcolor="cornflowerblue"];
+		33 [label="33:packet_borrow_next_chunk(\l  chunk:1074070368[ -> 1073761792],\l  length:14,\l  p:1074058408)\l=>{packet_chunks[packet_chunks]}", fillcolor="cornflowerblue"];
 		33 -> 34;
 		24 [label="24:current_time() -> next_time__24\l=>{next_time__24[next_time__24]}", fillcolor="cornflowerblue"];
 		24 -> 33;

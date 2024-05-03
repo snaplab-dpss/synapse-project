@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_CHUNK_SIZE 41
+// #define MAX_CHUNK_SIZE 41
+#define MAX_CHUNK_SIZE 147
 #define PREALLOC_CHUNKS 5
 
 // struct Packet {

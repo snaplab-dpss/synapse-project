@@ -4,7 +4,7 @@ digraph mygraph {
 		node [style="rounded,filled",color=black];
 		29 [label="29:fwd(0)", fillcolor="chartreuse2"];
 		30 [label="30:fwd(1)", fillcolor="chartreuse2"];
-		15 [shape=Mdiamond, label="15:(0 != VIGOR_DEVICE)", fillcolor="yellow"];
+		15 [shape=Mdiamond, label="15:(0 != DEVICE)", fillcolor="yellow"];
 		15 -> 29 [label="True"];
 		15 -> 30 [label="False"];
 		6 [label="6:current_time() -> next_time__6\l=>{next_time__6[next_time__6]}", fillcolor="cornflowerblue"];

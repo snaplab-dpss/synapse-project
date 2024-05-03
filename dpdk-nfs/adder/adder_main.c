@@ -45,7 +45,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   // Mark now as unused, we don't care about time
   (void)now;
 
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   struct custom_chunk_t *our_custom_chunk = parse_custom_chunk(buffer);
 
   if (our_custom_chunk != NULL &&

@@ -63,7 +63,7 @@ void nf_log_pkt(struct rte_ether_hdr *rte_ether_header,
   NF_INFO("  dport   %u", rte_bswap16(tcpudp_header->dst_port));
 }
 
-bool nf_has_rte_ipv4_header(struct rte_ether_hdr *header) {
+bool nf_has_ipv4_header(struct rte_ether_hdr *header) {
   return header->ether_type == rte_be_to_cpu_16(RTE_ETHER_TYPE_IPV4);
 }
 

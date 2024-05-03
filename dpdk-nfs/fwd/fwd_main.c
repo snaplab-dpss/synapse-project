@@ -19,7 +19,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   }
 
   // L2 forwarding
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   rte_ether_header->s_addr = config.device_macs[dst_device];
   rte_ether_header->d_addr = config.endpoint_macs[dst_device];
 

@@ -20,7 +20,6 @@ typedef void entry_pack_key(void* entry, void* key);
 //               that are synchronized with the allocator.
 // @param time - Current number of seconds since the Epoch.
 // @returns the number of expired items.
-int expire_items_single_map /*@ <kt> @*/ (struct DoubleChain* chain,
-                                          struct Vector* vector,
-                                          struct Map* map, time_ns_t time);
+int expire_items_single_map(struct DoubleChain* chain, struct Vector* vector,
+                            struct Map* map, time_ns_t time);
 #endif  //_EXPIRATOR_H_INCLUDED_

@@ -1,6 +1,6 @@
 #include "lb_manager.h"
 
-#include "lib/unverified/util.h"
+#include "lib/unverified/hash.h"
 #include "lib/verified/expirator.h"
 
 #include <assert.h>

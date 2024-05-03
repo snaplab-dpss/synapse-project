@@ -106,18 +106,18 @@ int limit_clients(struct flow *flow, time_ns_t now) {
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_rte_ipv4_header(rte_ether_header, buffer);
+      nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
-    return device;
+    return DROP;
   }
 
   expire_entries(now);
@@ -148,12 +148,10 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
              flow.src_port, (flow.dst_ip >> 0) & 0xff,
              (flow.dst_ip >> 8) & 0xff, (flow.dst_ip >> 16) & 0xff,
              (flow.dst_ip >> 24) & 0xff, flow.dst_port);
-    return device;
-  } else {
-    // Drop any other packets.
-    NF_DEBUG("Unknown port. Dropping.");
-    return device;
+    return DROP;
   }
 
-  return device;
+  // Drop any other packets.
+  NF_DEBUG("Unknown port. Dropping.");
+  return DROP;
 }

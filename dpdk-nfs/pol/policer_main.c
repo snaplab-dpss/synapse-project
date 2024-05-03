@@ -108,13 +108,13 @@ bool nf_init(void) {
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
   NF_DEBUG("Received packet");
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_rte_ipv4_header(rte_ether_header, buffer);
+      nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     NF_DEBUG("Not IPv4, dropping");
-    return device;
+    return DROP;
   }
 
   policer_expire_entries(now);
@@ -137,6 +137,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   } else {
     // Drop any other packets.
     NF_DEBUG("Unknown port. Dropping.");
-    return device;
+    return DROP;
   }
 }

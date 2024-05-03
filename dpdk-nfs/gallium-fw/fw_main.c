@@ -27,19 +27,19 @@ bool is_flow_allowed(struct Flow *flow) {
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *ipv4_header =
-      nf_then_get_rte_ipv4_header(ether_header, buffer);
+      nf_then_get_ipv4_header(ether_header, buffer);
 
   if (ipv4_header == NULL) {
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
       nf_then_get_tcpudp_header(ipv4_header, buffer);
 
   if (tcpudp_header == NULL) {
-    return device;
+    return DROP;
   }
 
   struct Flow flow = {
@@ -55,7 +55,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
 
   if (!allowed) {
     NF_DEBUG("Flow not allowed, dropped.");
-    return device;
+    return DROP;
   }
 
   NF_DEBUG("Allow flow: [device=%u] %u.%u.%u.%u:%u => %u.%u.%u.%u:%u proto=%u",

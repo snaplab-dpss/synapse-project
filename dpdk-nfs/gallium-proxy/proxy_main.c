@@ -43,13 +43,13 @@ int match_backend(uint16_t dst_port, uint32_t *new_dst_ip,
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *ether_header = nf_then_get_rte_ether_header(buffer);
+  struct rte_ether_hdr *ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *ipv4_header =
-      nf_then_get_rte_ipv4_header(ether_header, buffer);
+      nf_then_get_ipv4_header(ether_header, buffer);
 
   if (ipv4_header == NULL) {
     NF_DEBUG("Not IPv4, dropping");
-    return device;
+    return DROP;
   }
 
   struct tcpudp_hdr *tcpudp_header =
@@ -57,7 +57,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
 
   if (tcpudp_header == NULL) {
     NF_DEBUG("Not TCP/UDP, dropping");
-    return device;
+    return DROP;
   }
 
   if (device == config.lan_device) {
@@ -73,7 +73,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   if (!found) {
     NF_DEBUG("Backend not found for this destination port (%d). Dropping.",
              rte_be_to_cpu_16(dst_port));
-    return device;
+    return DROP;
   }
 
   ipv4_header->dst_addr = new_dst_addr;

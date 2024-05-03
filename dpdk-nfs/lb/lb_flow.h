@@ -17,8 +17,6 @@ struct LoadBalancedFlow {
   uint8_t protocol;
 } PACKED_FOR_KLEE_VERIFICATION;
 
-unsigned LoadBalancedFlow_hash(void* obj);
-
 #define LOG_LOADBALANCEDFLOW(obj, p)  \
   ;                                   \
   p("{");                             \

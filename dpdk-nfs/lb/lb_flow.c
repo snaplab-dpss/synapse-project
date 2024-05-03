@@ -14,42 +14,6 @@ struct str_field_descr LoadBalancedFlow_descrs[] = {
      "protocol"},
 };
 struct nested_field_descr LoadBalancedFlow_nests[] = {};
-unsigned LoadBalancedFlow_hash(void* obj) {
-  klee_trace_ret();
-  klee_trace_param_tagged_ptr(obj, sizeof(struct LoadBalancedFlow), "obj",
-                              "LoadBalancedFlow", TD_BOTH);
-  for (int i = 0;
-       i < sizeof(LoadBalancedFlow_descrs) / sizeof(LoadBalancedFlow_descrs[0]);
-       ++i) {
-    klee_trace_param_ptr_field_arr_directed(
-        obj, LoadBalancedFlow_descrs[i].offset,
-        LoadBalancedFlow_descrs[i].width, LoadBalancedFlow_descrs[i].count,
-        LoadBalancedFlow_descrs[i].name, TD_BOTH);
-  }
-  for (int i = 0;
-       i < sizeof(LoadBalancedFlow_nests) / sizeof(LoadBalancedFlow_nests[0]);
-       ++i) {
-    klee_trace_param_ptr_nested_field_arr_directed(
-        obj, LoadBalancedFlow_nests[i].base_offset,
-        LoadBalancedFlow_nests[i].offset, LoadBalancedFlow_nests[i].width,
-        LoadBalancedFlow_nests[i].count, LoadBalancedFlow_nests[i].name,
-        TD_BOTH);
-  }
-  return klee_int("LoadBalancedFlow_hash");
-}
-
 #else  // KLEE_VERIFICATION
-
-unsigned LoadBalancedFlow_hash(void* obj) {
-  struct LoadBalancedFlow* id = (struct LoadBalancedFlow*)obj;
-
-  unsigned hash = 0;
-  hash = __builtin_ia32_crc32si(hash, id->src_ip);
-  hash = __builtin_ia32_crc32si(hash, id->dst_ip);
-  hash = __builtin_ia32_crc32si(hash, id->src_port);
-  hash = __builtin_ia32_crc32si(hash, id->dst_port);
-  hash = __builtin_ia32_crc32si(hash, id->protocol);
-  return hash;
-}
 
 #endif  // KLEE_VERIFICATION

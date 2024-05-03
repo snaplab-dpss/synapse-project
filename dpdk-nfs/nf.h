@@ -5,7 +5,8 @@
 
 #include "lib/verified/vigor-time.h"
 
-#define FLOOD_FRAME ((uint16_t)-1)
+#define DROP ((uint16_t)-1)
+#define FLOOD ((uint16_t)-2)
 
 struct nf_config;
 struct rte_mbuf;
