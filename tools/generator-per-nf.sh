@@ -39,5 +39,5 @@ run() {
 
 export -f run
 parallel run ::: \
-	"fwd" "nop" "sbridge" "bridge" "pol" "fw" "nat" "cl" "psd" "lb"  \
+	"fwd" "nop" "sbridge" "bridge" "pol" "fw" "nat" "cl" "psd" "lb" "hhh" \
 	"gallium-fw" "gallium-lb" "gallium-nat" "gallium-proxy" "kvstore"
