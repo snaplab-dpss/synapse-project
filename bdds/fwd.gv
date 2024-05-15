@@ -1,19 +1,15 @@
 digraph mygraph {
 	node [shape=box style=rounded border=0];
-	subgraph clusterprocess {
-		node [style="rounded,filled",color=black];
-		32 [label="32:fwd(0)", fillcolor="chartreuse2"];
-		18 [label="18:packet_return_chunk(\l  p:1074004488,\l  the_chunk:1073756720[packet_chunks[12:14]++(w96 590143103745)])", fillcolor="cornflowerblue"];
-		18 -> 32;
-		33 [label="33:fwd(1)", fillcolor="chartreuse2"];
-		24 [label="24:packet_return_chunk(\l  p:1074016752,\l  the_chunk:1073756720[packet_chunks[12:14]++(w96 1689654731521)])\l{(DEVICE[2:4]++0 < 2)}", fillcolor="cornflowerblue"];
-		24 -> 33;
-		16 [shape=Mdiamond, label="16:(0 != DEVICE)", fillcolor="yellow"];
-		16 -> 18 [label="True"];
-		16 -> 24 [label="False"];
-		15 [label="15:packet_borrow_next_chunk(\l  chunk:1074014960[ -> 1073756720],\l  length:14,\l  p:1074004488)\l=>{packet_chunks[packet_chunks]}", fillcolor="cornflowerblue"];
-		15 -> 16;
-		6 [label="6:current_time() -> next_time__6\l=>{next_time__6[next_time__6]}", fillcolor="cornflowerblue"];
-		6 -> 15;
-	}
+	node [style="rounded,filled",color=black];
+	3 [label="3:fwd(0)", fillcolor="chartreuse2"];
+	2 [label="2:packet_return_chunk(\l  p:1074004400,\l  the_chunk:1073758192[packet_chunks[12:14]++(w96 590143103745)])", fillcolor="cornflowerblue"];
+	2 -> 3;
+	5 [label="5:fwd(1)", fillcolor="chartreuse2"];
+	4 [label="4:packet_return_chunk(\l  p:1074016192,\l  the_chunk:1073758192[packet_chunks[12:14]++(w96 1689654731521)])", fillcolor="cornflowerblue"];
+	4 -> 5;
+	1 [shape=Mdiamond, label="1:(0 != DEVICE)", fillcolor="yellow"];
+	1 -> 2 [label="True"];
+	1 -> 4 [label="False"];
+	0 [label="0:packet_borrow_next_chunk(\l  p:1074004400,\l  length:14,\l  chunk:1074014632[ -> 1073758192])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
+	0 -> 1;
 }

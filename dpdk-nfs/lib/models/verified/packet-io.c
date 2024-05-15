@@ -10,7 +10,7 @@
 #define PREALLOC_CHUNKS 5
 
 // struct Packet {
-int global_sent;
+int global_sent[STUB_DEVICES_COUNT];
 /* int nic; */
 /* int is_ipv4; */
 int global_n_borrowed_chunks;
@@ -62,7 +62,9 @@ void packet_borrow_next_chunk(void *p, size_t length, void **chunk) {
   klee_trace_param_u64((uint64_t)p, "p");
   klee_trace_param_u32(length, "length");
   klee_assert(receive_succeded);
-  klee_assert(!global_sent);
+  for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+    klee_assert(!global_sent[dev]);
+  }
   klee_assert(global_n_borrowed_chunks < PREALLOC_CHUNKS);
   klee_assert(global_n_borrowed_chunks <= global_total_n_borrowed_chunks);
   klee_assert(length < MAX_CHUNK_SIZE);
@@ -124,7 +126,9 @@ void packet_return_chunk(void *p, void *chunk) {
           layout->nests[i].width, layout->nests[i].name, TD_IN);
     }
   }
-  klee_assert(!global_sent);
+  for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+    klee_assert(!global_sent[dev]);
+  }
   global_n_borrowed_chunks--;
   klee_assert(global_chunks + MAX_CHUNK_SIZE * global_n_borrowed_chunks ==
               chunk);
@@ -153,7 +157,9 @@ bool packet_receive(uint16_t src_device, void **p, uint32_t *len) {
     global_n_borrowed_chunks = 0;
     global_total_n_borrowed_chunks = 0;
     global_tot_len_borrowed = 0;
-    global_sent = false;
+    for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+      global_sent[dev] = false;
+    }
     global_packet_len = *len;  // klee_int("packet_len");
     for (uint32_t i = 0; i < PREALLOC_CHUNKS; ++i) {
       global_chunk_layouts[i].set = false;
@@ -162,24 +168,41 @@ bool packet_receive(uint16_t src_device, void **p, uint32_t *len) {
   }
 }
 
+void packet_broadcast(void *p, uint16_t src_device) {
+  klee_trace_ret();
+  klee_trace_param_u64((uint64_t)p, "p");
+  klee_assert(src_device < STUB_DEVICES_COUNT);
+  for (unsigned dst_device = 0; dst_device < STUB_DEVICES_COUNT; dst_device++) {
+    if (dst_device != src_device) {
+      klee_assert(!global_sent[dst_device]);
+      global_sent[dst_device] = true;
+    }
+  }
+}
+
 void packet_send(void *p, uint16_t dst_device) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)p, "p");
   klee_trace_param_u16(dst_device, "dst_device");
-  klee_assert(!global_sent);
-  global_sent = true;
+  klee_assert(dst_device < STUB_DEVICES_COUNT);
+  klee_assert(!global_sent[dst_device]);
+  global_sent[dst_device] = true;
 }
 
 void packet_free(void *p) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)p, "p");
-  // klee_assert(!global_sent);
+  for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+    klee_assert(!global_sent[dev]);
+  }
 }
 
 uint32_t packet_get_unread_length(void *p) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)p, "p");
-  klee_assert(!global_sent);
+  for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+    klee_assert(!global_sent[dev]);
+  }
   klee_assert(receive_succeded);
   klee_assert(global_tot_len_borrowed <= global_packet_len);
   return (uint32_t)(global_packet_len - global_tot_len_borrowed);
@@ -207,7 +230,9 @@ void packet_shrink_chunk(void **p, size_t length, void **chunks,
   klee_trace_ret();
 
   klee_assert(receive_succeded);
-  klee_assert(!global_sent);
+  for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+    klee_assert(!global_sent[dev]);
+  }
   klee_assert(global_n_borrowed_chunks > 0);
 
   klee_trace_param_ptr_directed(p, sizeof(void *), "p", TD_OUT);
@@ -228,7 +253,9 @@ void packet_insert_new_chunk(void **p, size_t length, void **chunks,
   klee_trace_ret();
 
   klee_assert(receive_succeded);
-  klee_assert(!global_sent);
+  for (unsigned dev = 0; dev < STUB_DEVICES_COUNT; dev++) {
+    klee_assert(!global_sent[dev]);
+  }
   klee_assert(global_n_borrowed_chunks < PREALLOC_CHUNKS);
   klee_assert(global_total_n_borrowed_chunks >= global_n_borrowed_chunks);
   klee_assert(global_n_borrowed_chunks > 0);

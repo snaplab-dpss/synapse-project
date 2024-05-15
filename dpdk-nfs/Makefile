@@ -218,10 +218,8 @@ run: all
 # ====================================
 
 bdd: symbex
-	$(KLEE_BUILD_PATH)/bin/call-paths-to-bdd \
-		-out nf.bdd \
-		-gv nf.gv \
-		klee-last/*.call_path
+	$(KLEE_BUILD_PATH)/bin/call-paths-to-bdd klee-last/*.call_path -out nf.bdd
+	$(KLEE_BUILD_PATH)/bin/bdd-visualizer -in nf.bdd -out nf.gv
 
 %.i: %.c
 	@mkdir -p $(OUT_DIR)/

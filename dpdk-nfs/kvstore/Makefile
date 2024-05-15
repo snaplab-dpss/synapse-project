@@ -4,4 +4,6 @@ NF_ARGS := --max-entries $(or $(CAPACITY),65536)
 
 NF_LAYER := 5
 
+NF_DEVICES := 1
+
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile

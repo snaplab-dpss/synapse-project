@@ -12,7 +12,6 @@
 #include "nf-log.h"
 
 const uint32_t DEFAULT_EXP_TIME = 300000000;  // microseconds
-const uint32_t DEFAULT_CAPACITY = 128;        // MAC addresses
 
 #define PARSE_ERROR(format, ...)          \
   nf_config_usage();                      \
@@ -22,18 +21,16 @@ const uint32_t DEFAULT_CAPACITY = 128;        // MAC addresses
 void nf_config_init(int argc, char **argv) {
   // Set the default values
   config.expiration_time = DEFAULT_EXP_TIME;  // seconds
-  config.dyn_capacity = DEFAULT_CAPACITY;     // MAC addresses
   config.static_config_fname[0] = '\0';  // no static filtering configuration
 
   unsigned nb_devices = rte_eth_dev_count_avail();
 
   struct option long_options[] = {{"expire", required_argument, NULL, 't'},
-                                  {"capacity", required_argument, NULL, 'c'},
                                   {"config", required_argument, NULL, 'f'},
                                   {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "t:c:f:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "t:f:", long_options, NULL)) != EOF) {
     unsigned device;
     switch (opt) {
       case 't':
@@ -41,13 +38,6 @@ void nf_config_init(int argc, char **argv) {
             nf_util_parse_int(optarg, "exp-time", 10, '\0');
         if (config.expiration_time <= 0) {
           PARSE_ERROR("Expiration time must be strictly positive.\n");
-        }
-        break;
-
-      case 'c':
-        config.dyn_capacity = nf_util_parse_int(optarg, "capacity", 10, '\0');
-        if (config.dyn_capacity <= 0) {
-          PARSE_ERROR("Flow table size must be strictly positive.\n");
         }
         break;
 
@@ -71,18 +61,14 @@ void nf_config_usage(void) {
       "[DPDK EAL options] --\n"
       "\t--expire <time>: flow expiration time (us), default: %" PRIu32
       ".\n"
-      "\t--capacity <n>: dynamic mac learning table capacity,"
-      " default: %" PRIu32
-      ".\n"
       "\t--config <fname>: static filtering table configuration file.\n",
-      DEFAULT_EXP_TIME, DEFAULT_CAPACITY);
+      DEFAULT_EXP_TIME);
 }
 
 void nf_config_print(void) {
   NF_INFO("\n--- Bridge Config ---\n");
 
   NF_INFO("Expiration time: %" PRIu32 "us", config.expiration_time);
-  NF_INFO("Capacity: %" PRIu16, config.dyn_capacity);
   NF_INFO("Static configuration file: %s", config.static_config_fname);
 
   NF_INFO("\n--- ------ ------ ---\n");

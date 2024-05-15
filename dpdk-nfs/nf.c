@@ -37,26 +37,25 @@
   unsigned _vigor_lcore_id = 0; /* no multicore support for now */ \
   time_ns_t _vigor_start_time = start_time();                      \
   int _vigor_loop_termination = klee_int("loop_termination");      \
-  unsigned DEVICES_COUNT = rte_eth_dev_count_avail();              \
+  unsigned devices_count = rte_eth_dev_count_avail();              \
   while (klee_induce_invariants() & _vigor_loop_termination) {     \
     nf_loop_iteration_border(_vigor_lcore_id, _vigor_start_time);  \
     time_ns_t NOW = current_time();                                \
     /* concretize the device to avoid leaking symbols into DPDK */ \
-    uint16_t DEVICE = klee_range(0, DEVICES_COUNT, "DEVICE");      \
-    uint16_t CONCRETE_DEVICE = DEVICE;                             \
-    concretize_devices(&CONCRETE_DEVICE, DEVICES_COUNT);           \
+    uint16_t DEVICE = klee_range(0, devices_count, "DEVICE");      \
+    uint16_t concretized_device = DEVICE;                          \
+    concretize_devices(&concretized_device, devices_count);        \
     stub_hardware_receive_packet(DEVICE);
-#define LOOP_END                                  \
-  stub_hardware_reset_receive(DEVICE);            \
-  nf_loop_iteration_border(_vigor_lcore_id, NOW); \
+#define LOOP_END                       \
+  stub_hardware_reset_receive(DEVICE); \
   }
 #else  // KLEE_VERIFICATION
 #define LOOP_BEGIN                                                \
   while (1) {                                                     \
     time_ns_t NOW = current_time();                               \
-    unsigned DEVICES_COUNT = rte_eth_dev_count_avail();           \
-    for (uint16_t DEVICE = 0; DEVICE < DEVICES_COUNT; DEVICE++) { \
-      unsigned CONCRETE_DEVICE = DEVICE;
+    unsigned devices_count = rte_eth_dev_count_avail();           \
+    for (uint16_t DEVICE = 0; DEVICE < devices_count; DEVICE++) { \
+      unsigned concretized_device = DEVICE;
 #define LOOP_END \
   }              \
   }
@@ -139,60 +138,52 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
   return 0;
 }
 
-// Main worker method (for now used on a single thread...)
-static void worker_main(void) {
-  if (!nf_init()) {
-    rte_exit(EXIT_FAILURE, "Error initializing NF");
-  }
+#ifdef KLEE_VERIFICATION
+static void worker_loop() {
+  unsigned lcore_id = 0; /* no multicore support for now */
+  time_ns_t start = start_time();
+  int loop_termination = klee_int("loop_termination");
+  unsigned devices_count = rte_eth_dev_count_avail();
+  while (klee_induce_invariants() & loop_termination) {
+    nf_loop_iteration_border(lcore_id, start);
+    time_ns_t now = current_time();
+    /* concretize the device to avoid leaking symbols into DPDK */
+    uint16_t device = klee_range(0, devices_count, "DEVICE");
+    concretize_devices(&device, devices_count);
+    stub_hardware_receive_packet(device);
 
-  NF_INFO("Core %u forwarding packets.", rte_lcore_id());
+    struct rte_mbuf *mbuf;
+    if (rte_eth_rx_burst(device, 0, &mbuf, 1) != 0) {
+      uint8_t *data = rte_pktmbuf_mtod(mbuf, uint8_t *);
+      packet_state_total_length(data, &(mbuf->pkt_len));
 
-#if BATCH_SIZE == 1
-  LOOP_BEGIN
-  struct rte_mbuf *mbuf;
-  if (rte_eth_rx_burst(CONCRETE_DEVICE, 0, &mbuf, 1) != 0) {
-    uint8_t *data = rte_pktmbuf_mtod(mbuf, uint8_t *);
-    packet_state_total_length(data, &(mbuf->pkt_len));
+      uint16_t dst_device = nf_process(device, &data, mbuf->pkt_len, now, mbuf);
+      nf_return_all_chunks(data);
 
-    uint16_t dst_device = nf_process(DEVICE, &data, mbuf->pkt_len, NOW, mbuf);
-    nf_return_all_chunks(data);
-
-    if (dst_device == DROP) {
-      rte_pktmbuf_free(mbuf);
-    } else if (dst_device == FLOOD) {
-      flood(mbuf, DEVICES_COUNT);
-    } else {
-      // ensure we don't leak symbols into DPDK
-      concretize_devices(&dst_device, rte_eth_dev_count_avail());
-      if (rte_eth_tx_burst(dst_device, 0, &mbuf, 1) != 1) {
-#ifdef ALLOW_DROPS
-        rte_pktmbuf_free(mbuf);  // OK, we're debugging
-#else
-        printf(
-            "We assume the hardware will allways accept a packet to "
-            "transmit.\n");
-        abort();
-#endif
+      if (dst_device == DROP) {
+        rte_pktmbuf_free(mbuf);
+      } else if (dst_device == FLOOD) {
+        packet_broadcast(&data, device);
+      } else {
+        // ensure we don't leak symbols into DPDK
+        concretize_devices(&dst_device, devices_count);
+        int i = rte_eth_tx_burst(dst_device, 0, &mbuf, 1);
+        klee_assert(i == 1);
       }
     }
-  }
-  LOOP_END
 
-#else  // if BATCH_SIZE != 1
-
-  if (rte_eth_dev_count_avail() != 2) {
-    printf(
-        "We assume there will be exactly 2 devices for our simple batching "
-        "implementation.");
-    exit(1);
+    stub_hardware_reset_receive(device);
   }
-  NF_INFO("Running with batches, this code is unverified!");
+}
+#else
+static void worker_loop() {
+  NF_INFO("Core %u forwarding packets.", rte_lcore_id());
 
   while (1) {
-    unsigned DEVICES_COUNT = rte_eth_dev_count_avail();
-    for (uint16_t DEVICE = 0; DEVICE < DEVICES_COUNT; DEVICE++) {
+    unsigned devices_count = rte_eth_dev_count_avail();
+    for (uint16_t device = 0; device < devices_count; device++) {
       struct rte_mbuf *mbufs[BATCH_SIZE];
-      uint16_t rx_count = rte_eth_rx_burst(DEVICE, 0, mbufs, BATCH_SIZE);
+      uint16_t rx_count = rte_eth_rx_burst(device, 0, mbufs, BATCH_SIZE);
 
       struct rte_mbuf *mbufs_to_send[BATCH_SIZE];
       uint16_t tx_count = 0;
@@ -216,14 +207,23 @@ static void worker_main(void) {
       }
 
       uint16_t sent_count =
-          rte_eth_tx_burst(1 - DEVICE, 0, mbufs_to_send, tx_count);
+          rte_eth_tx_burst(1 - device, 0, mbufs_to_send, tx_count);
       for (uint16_t n = sent_count; n < tx_count; n++) {
         rte_pktmbuf_free(mbufs[n]);  // should not happen, but we're in
                                      // the unverified case anyway
       }
     }
   }
+}
 #endif
+
+// Main worker method
+static void worker_main(void) {
+  if (!nf_init()) {
+    rte_exit(EXIT_FAILURE, "Error initializing NF");
+  }
+
+  worker_loop();
 }
 
 // Entry point

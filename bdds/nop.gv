@@ -1,13 +1,9 @@
 digraph mygraph {
 	node [shape=box style=rounded border=0];
-	subgraph clusterprocess {
-		node [style="rounded,filled",color=black];
-		29 [label="29:fwd(0)", fillcolor="chartreuse2"];
-		30 [label="30:fwd(1)", fillcolor="chartreuse2"];
-		15 [shape=Mdiamond, label="15:(0 != DEVICE)", fillcolor="yellow"];
-		15 -> 29 [label="True"];
-		15 -> 30 [label="False"];
-		6 [label="6:current_time() -> next_time__6\l=>{next_time__6[next_time__6]}", fillcolor="cornflowerblue"];
-		6 -> 15;
-	}
+	node [style="rounded,filled",color=black];
+	1 [label="1:fwd(0)", fillcolor="chartreuse2"];
+	2 [label="2:fwd(1)", fillcolor="chartreuse2"];
+	0 [shape=Mdiamond, label="0:(0 != DEVICE)", fillcolor="yellow"];
+	0 -> 1 [label="True"];
+	0 -> 2 [label="False"];
 }

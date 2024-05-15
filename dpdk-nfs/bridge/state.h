@@ -9,7 +9,6 @@ struct State {
   struct Vector* dyn_vals;
   struct DoubleChain* dyn_heap;
   uint32_t capacity;
-  uint32_t stat_capacity;
   uint32_t dev_count;
 };
 

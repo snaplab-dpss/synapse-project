@@ -33,7 +33,6 @@ static void null_init(void *obj) { *(uint32_t *)obj = 0; }
 static inline void concretize_devices(uint16_t *device, uint16_t count) {
   klee_assert(*device >= 0);
   klee_assert(*device < count);
-
   for (unsigned d = 0; d < count; d++)
     if (*device == d) {
       *device = d;

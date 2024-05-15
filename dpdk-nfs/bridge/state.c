@@ -42,7 +42,6 @@ struct State* alloc_state(uint32_t capacity, uint32_t stat_capacity,
   ret->dyn_heap = NULL;
   if (dchain_allocate(capacity, &(ret->dyn_heap)) == 0) return NULL;
   ret->capacity = capacity;
-  ret->stat_capacity = stat_capacity;
   ret->dev_count = dev_count;
 #ifdef KLEE_VERIFICATION
   map_set_layout(
@@ -74,8 +73,8 @@ void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(
       &allocated_nf_state->dyn_map, &allocated_nf_state->dyn_keys,
       &allocated_nf_state->dyn_vals, &allocated_nf_state->dyn_heap,
-      allocated_nf_state->capacity, allocated_nf_state->stat_capacity,
-      allocated_nf_state->dev_count, lcore_id, time);
+      allocated_nf_state->capacity, allocated_nf_state->dev_count, lcore_id,
+      time);
 }
 
 #endif  // KLEE_VERIFICATION

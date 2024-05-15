@@ -132,7 +132,10 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key,
   }
   klee_assert(map->next_unclaimed_entry < NUM_ELEMS &&
               "No space left in the map stub");
-  if (klee_int("map_has_this_key")) {
+  int map_has_this_key = klee_int("map_has_this_key");
+  int allocated_index = klee_int("allocated_index");
+  int ret;
+  if (map_has_this_key) {
     int n = map->next_unclaimed_entry;
     ++map->next_unclaimed_entry;
     map->key_deleted[n] = 0;
@@ -140,18 +143,19 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key,
     map->key_copyp[n] = map->key_copies + map->unallocated_start;
     map->unallocated_start += map->key_size;
     memcpy(map->key_copyp[n], key, map->key_size);
-    map->allocated_index[n] = klee_int("allocated_index");
+    map->allocated_index[n] = allocated_index;
     if (map->ent_cond) {
       klee_assume(map->ent_cond(map->keyp[n], map->allocated_index[n],
                                 map->ent_cond_state));
       klee_assume(map->ent_cond(map->key_copyp[n], map->allocated_index[n],
                                 map->ent_cond_state));
     }
-    *value_out = map->allocated_index[n];
-    return 1;
+    ret = 1;
   } else {
-    return 0;
+    ret = 0;
   }
+  *value_out = allocated_index;
+  return ret;
 }
 
 __attribute__((noinline)) void map_put(struct Map *map, void *key, int value) {

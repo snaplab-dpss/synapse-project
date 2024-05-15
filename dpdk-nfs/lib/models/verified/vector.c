@@ -55,7 +55,8 @@ int vector_allocate(int elem_size, unsigned capacity,
 }
 
 void vector_reset(struct Vector *vector) {
-  // Do not trace. This function is an internal knob of the model.
+  klee_trace_ret();
+  klee_trace_param_u64((uint64_t)vector, "vector");
   // TODO: reallocate vector->data to avoid having the same pointer?
   klee_allow_access(vector->data, vector->elem_size * NUM_ELEMS);
   klee_make_symbolic(vector->data, NUM_ELEMS * vector->elem_size,
