@@ -1,6 +1,5 @@
 digraph mygraph {
-	node [shape=box style=rounded border=0];
-	node [style="rounded,filled",color=black];
+	node [shape=box, style="rounded,filled", border=0];
 	1 [label="1:fwd(0)", fillcolor="chartreuse2"];
 	2 [label="2:fwd(1)", fillcolor="chartreuse2"];
 	0 [shape=Mdiamond, label="0:(0 != DEVICE)", fillcolor="yellow"];

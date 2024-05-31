@@ -3,80 +3,16 @@
 array DEVICE[4] : w32 -> w8 = symbolic
 array pkt_len[4] : w32 -> w8 = symbolic
 array next_time[8] : w32 -> w8 = symbolic
-array starting_time[8] : w32 -> w8 = symbolic
-array loop_termination[4] : w32 -> w8 = symbolic
-array restarting_time[8] : w32 -> w8 = symbolic
-array data_len[4] : w32 -> w8 = symbolic
-array received_a_packet[4] : w32 -> w8 = symbolic
 (query [] false [
        (ReadLSB w32 (w32 0) DEVICE)
        (ReadLSB w32 (w32 0) pkt_len)
        (ReadLSB w64 (w32 0) next_time)
-       (Sle (w64 0)
-      (ReadLSB w64 (w32 0) starting_time))
-       (Eq false
-     (Eq (w32 0)
-         (ReadLSB w32 (w32 0) loop_termination)))
-       (Sle (w64 0)
-      (ReadLSB w64 (w32 0) restarting_time))
-       (Sle (ReadLSB w64 (w32 0) restarting_time)
-      (ReadLSB w64 (w32 0) next_time))
-       (Ult (ReadLSB w32 (w32 0) DEVICE)
-      (w32 2))
-       (Sle (ZExt w32 (ReadLSB w16 (w32 0) data_len))
-      (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))
-       (Ule (w64 14)
-      (ZExt w64 (ReadLSB w16 (w32 0) data_len)))
-       (Extract 0 (ZExt w8 (Extract 0 (ZExt w8 (Eq false
-                                             (Eq (w32 0)
-                                                 (ReadLSB w32 (w32 0) received_a_packet)))))))
        (Ne (w16 0)
      (ReadLSB w16 (w32 0) DEVICE))
-       (Sle (w64 0)
-      (ReadLSB w64 (w32 0) starting_time))
-       (Eq false
-     (Eq (w32 0)
-         (ReadLSB w32 (w32 0) loop_termination)))
-       (Sle (w64 0)
-      (ReadLSB w64 (w32 0) restarting_time))
-       (Sle (ReadLSB w64 (w32 0) restarting_time)
-      (ReadLSB w64 (w32 0) next_time))
-       (Ult (ReadLSB w32 (w32 0) DEVICE)
-      (w32 2))
-       (Sle (ZExt w32 (ReadLSB w16 (w32 0) data_len))
-      (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))
-       (Ule (w64 14)
-      (ZExt w64 (ReadLSB w16 (w32 0) data_len)))
-       (Extract 0 (ZExt w8 (Extract 0 (ZExt w8 (Eq false
-                                             (Eq (w32 0)
-                                                 (ReadLSB w32 (w32 0) received_a_packet)))))))
-       (Eq false
-     (Eq (w16 0)
-         (ReadLSB w16 (w32 0) DEVICE)))
-       (Sle (w64 0)
-      (ReadLSB w64 (w32 0) starting_time))
-       (Eq false
-     (Eq (w32 0)
-         (ReadLSB w32 (w32 0) loop_termination)))
-       (Sle (w64 0)
-      (ReadLSB w64 (w32 0) restarting_time))
-       (Sle (ReadLSB w64 (w32 0) restarting_time)
-      (ReadLSB w64 (w32 0) next_time))
-       (Ult (Concat w32 (Read w8 (w32 3) DEVICE)
-                  (Concat w24 (Read w8 (w32 2) DEVICE) (w16 0)))
-      (w32 2))
-       (Sle (ZExt w32 (ReadLSB w16 (w32 0) data_len))
-      (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))
-       (Ule (w64 14)
-      (ZExt w64 (ReadLSB w16 (w32 0) data_len)))
-       (Extract 0 (ZExt w8 (Extract 0 (ZExt w8 (Eq false
-                                             (Eq (w32 0)
-                                                 (ReadLSB w32 (w32 0) received_a_packet)))))))
-       (Ult (Concat w32 (Read w8 (w32 3) DEVICE)
-                  (Concat w24 (Read w8 (w32 2) DEVICE) (w16 0)))
-      (w32 2))
-       (Eq (w16 0)
+       (Ne (w16 0)
      (ReadLSB w16 (w32 0) DEVICE))
+       (Not (Ne (w16 0)
+          (ReadLSB w16 (w32 0) DEVICE)))
    ])
 ;;-- Symbols --
 (ReadLSB w32 (w32 0) DEVICE)
@@ -84,10 +20,10 @@ array received_a_packet[4] : w32 -> w8 = symbolic
 (ReadLSB w64 (w32 0) next_time)
 ;;-- Init --
 ;; -- Nodes --
-0:(8 BRANCH (Ne (w16 0)
+0:(0 BRANCH (Ne (w16 0)
      (ReadLSB w16 (w32 0) DEVICE)))
-1:(9 ROUTE FWD 0)
-2:(10 ROUTE FWD 1)
+1:(1 ROUTE FWD 0)
+2:(1 ROUTE FWD 1)
 ;; -- Edges --
 (0->1->2)
 ;; -- Root --

@@ -119,7 +119,7 @@ clean:
 
 # Cleanup
 CLEAN_BUILD_ARTIFACTS_COMMAND := rm -rf *.bc *.os *.ll
-CLEAN_ALL_COMMAND := $(CLEAN_BUILD_ARTIFACTS_COMMAND) && rm -rf *.bdd *.gv $(OUT_DIR)
+CLEAN_ALL_COMMAND := $(CLEAN_BUILD_ARTIFACTS_COMMAND) && rm -rf *.bdd *.dot $(OUT_DIR)
 # Compilation
 COMPILE_COMMAND := clang
 # Linking with klee-uclibc, but without some methods we are modeling
@@ -219,7 +219,7 @@ run: all
 
 bdd: symbex
 	$(KLEE_BUILD_PATH)/bin/call-paths-to-bdd klee-last/*.call_path -out nf.bdd
-	$(KLEE_BUILD_PATH)/bin/bdd-visualizer -in nf.bdd -out nf.gv
+	$(KLEE_BUILD_PATH)/bin/bdd-visualizer -in nf.bdd -out nf.dot
 
 %.i: %.c
 	@mkdir -p $(OUT_DIR)/

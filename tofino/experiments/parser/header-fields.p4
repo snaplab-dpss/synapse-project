@@ -5,6 +5,7 @@
 #else
 #include <tna.p4>
 #endif
+
 typedef bit<9>  port_t;
 typedef bit<48> mac_addr_t;
 typedef bit<32> ipv4_addr_t;
@@ -43,21 +44,29 @@ header cpu_h {
 }
 
 header ethernet_h {
-	bit<112> data;
+    mac_addr_t dst_addr;
+    mac_addr_t src_addr;
+    bit<16> ether_type;
 }
 
 header ipv4_h {
-	bit<160> data;
+    bit<4> version;
+    bit<4> ihl;
+    bit<8> diffserv;
+    bit<16> total_len;
+    bit<16> identification;
+    bit<3> flags;
+    bit<13> frag_offset;
+    bit<8> ttl;
+    bit<8> protocol;
+    bit<16> hdr_checksum;
+    ipv4_addr_t src_addr;
+    ipv4_addr_t dst_addr;
 }
-
-header ipv4_options_h {
-	bit<32> data;
-}
-
-typedef ipv4_options_h[10] ipv4_options_t;
 
 header tcpudp_h {
-	bit<32> data;
+    bit<16> src_port;
+    bit<16> dst_port;
 }
 
 struct empty_header_t {}
@@ -69,7 +78,6 @@ struct my_ingress_headers_t {
 	cpu_h          cpu;
 	ethernet_h     ethernet;
 	ipv4_h         ipv4;
-	ipv4_options_t ipv4_options;
 	tcpudp_h       tcpudp;
 }
 
@@ -125,8 +133,7 @@ parser IngressParser(
 	state parse_ethernet {
 		pkt.extract(hdr.ethernet);
 
-		// hdr.ethernet.data[111:96] := ethertype
-		transition select(hdr.ethernet.data[111:96]) {
+		transition select(hdr.ethernet.ether_type) {
 			ETHERTYPE_IPV4: parse_ipv4;
 			default: reject;
 		}
@@ -134,14 +141,10 @@ parser IngressParser(
 
 	state parse_ipv4 {
 		pkt.extract(hdr.ipv4);
-		transition parse_ipv4_no_options; 
-	}
-
-	state parse_ipv4_no_options {
-		// hdr.ipv4.data[79:72] := protocol
-		transition select (hdr.ipv4.data[79:72]) {
+		
+		transition select (hdr.ipv4.protocol) {
 			IP_PROTOCOLS_TCP: parse_tcpudp;
-			// IP_PROTOCOLS_UDP: parse_tcpudp;
+			IP_PROTOCOLS_UDP: parse_tcpudp;
 			default: accept;
 		}
 	}
@@ -178,16 +181,11 @@ control Ingress(
 	}
 
 	table map {
-		// hdr.ipv4.data[127:96] := src_addr
-		// hdr.ipv4.data[159:128] := dst_addr
-		// hdr.tcpudp.data[15:0] := src_port
-		// hdr.tcpudp.data[31:16] := dst_port
-
 		key = {
-			hdr.ipv4.data[127:96]: exact;
-			hdr.ipv4.data[159:128]: exact;
-			hdr.tcpudp.data[15:0]: exact;
-			hdr.tcpudp.data[31:16]: exact;
+			hdr.ipv4.src_addr: exact;
+			hdr.ipv4.dst_addr: exact;
+			hdr.tcpudp.src_port: exact;
+			hdr.tcpudp.dst_port: exact;
 		}
 
 		actions = {
@@ -199,6 +197,7 @@ control Ingress(
 	}
 
 	apply {
+		map.apply();
 		fwd(1);
 	}
 }

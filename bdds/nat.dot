@@ -1,6 +1,5 @@
 digraph mygraph {
-	node [shape=box style=rounded border=0];
-	node [style="rounded,filled",color=black];
+	node [shape=box, style="rounded,filled", border=0];
 	16 [label="16:fwd(0)", fillcolor="chartreuse2"];
 	15 [label="15:packet_return_chunk(\l  p:1074088168,\l  the_chunk:1073764288[packet_chunks[12:14]++(w96 590143103745)])", fillcolor="cornflowerblue"];
 	15 -> 16;

@@ -44,15 +44,29 @@ header cpu_h {
 }
 
 header ethernet_h {
-	bit<112> data;
+    mac_addr_t dst_addr;
+    mac_addr_t src_addr;
+    bit<16> ether_type;
 }
 
 header ipv4_h {
-	bit<160> data;
+    bit<4> version;
+    bit<4> ihl;
+    bit<8> diffserv;
+    bit<16> total_len;
+    bit<16> identification;
+    bit<3> flags;
+    bit<13> frag_offset;
+    bit<8> ttl;
+    bit<8> protocol;
+    bit<16> hdr_checksum;
+    ipv4_addr_t src_addr;
+    ipv4_addr_t dst_addr;
 }
 
 header tcpudp_h {
-	bit<32> data;
+    bit<16> src_port;
+    bit<16> dst_port;
 }
 
 struct empty_header_t {}
@@ -119,8 +133,7 @@ parser IngressParser(
 	state parse_ethernet {
 		pkt.extract(hdr.ethernet);
 
-		// hdr.ethernet.data[111:96] := ethertype
-		transition select(hdr.ethernet.data[111:96]) {
+		transition select(hdr.ethernet.ether_type) {
 			ETHERTYPE_IPV4: parse_ipv4;
 			default: reject;
 		}
@@ -129,10 +142,9 @@ parser IngressParser(
 	state parse_ipv4 {
 		pkt.extract(hdr.ipv4);
 		
-		// hdr.ipv4.data[79:72] := protocol
-		transition select (hdr.ipv4.data[79:72]) {
-			IP_PROTOCOLS_TCP: parse_tcpudp;
-			IP_PROTOCOLS_UDP: parse_tcpudp;
+		bool is_tcpudp = (hdr.ipv4.protocol == IP_PROTOCOLS_TCP);
+		transition select (is_tcpudp) {
+			true: parse_tcpudp;
 			default: accept;
 		}
 	}
@@ -169,16 +181,11 @@ control Ingress(
 	}
 
 	table map {
-		// hdr.ipv4.data[127:96] := src_addr
-		// hdr.ipv4.data[159:128] := dst_addr
-		// hdr.tcpudp.data[15:0] := src_port
-		// hdr.tcpudp.data[31:16] := dst_port
-
 		key = {
-			hdr.ipv4.data[127:96]: exact;
-			hdr.ipv4.data[159:128]: exact;
-			hdr.tcpudp.data[15:0]: exact;
-			hdr.tcpudp.data[31:16]: exact;
+			hdr.ipv4.src_addr: exact;
+			hdr.ipv4.dst_addr: exact;
+			hdr.tcpudp.src_port: exact;
+			hdr.tcpudp.dst_port: exact;
 		}
 
 		actions = {

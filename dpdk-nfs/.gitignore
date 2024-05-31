@@ -40,7 +40,7 @@ __pycache__
 Makefile.nf
 *.pcap
 *.tsv
-*.gv
+*.dot
 *.bdd
 build
 *.vscode
