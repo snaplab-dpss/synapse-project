@@ -177,46 +177,29 @@ parser IngressParser(
 
 control Expirator(
 	in time_t now,
-	in bool write,
 	in hash_t hash,
 	out bool valid
 ) {
 	Register<time_t, _>(CACHE_CAPACITY, 0) reg;
 
-	RegisterAction<time_t, hash_t, bool>(reg) read_action = {
-		void apply(inout time_t alarm, out bool alive) {
-			alive = false;
-			if (now < alarm) {
-				alarm = now + EXPIRATION_TIME;
-				alive = true;
-			}
-		}
-	};
-
 	RegisterAction<time_t, hash_t, bool>(reg) write_action = {
 		void apply(inout time_t alarm, out bool alive) {
-			alive = false;
 			if (now < alarm) {
 				alive = true;
+			} else {
+				alive = false;
 			}
+			
 			alarm = now + EXPIRATION_TIME;
 		}
 	};
-
-	action check_alarm() {
-		valid = read_action.execute(hash);
-	}
 
 	action update_alarm() {
 		valid = write_action.execute(hash);
 	}
 
 	apply {
-		if (write) {
-			update_alarm();
-		} else {
-			check_alarm();
-		}
+		update_alarm();
 	}
 }
 
@@ -361,7 +344,7 @@ control Cache(
 
 	apply {
 		hit = false;
-		expirator.apply(now, write, hash, valid);
+		expirator.apply(now, hash, valid);
 
 		if (!valid && write) {
 			write_key_src_addr();
@@ -375,9 +358,9 @@ control Cache(
 			read_key_dst_addr();
 			read_key_src_port();
 			read_key_dst_port();
+			read_value();
 
 			if (key_fields_match == 4) {
-				read_value();
 				hit = true;
 			}
 		}
@@ -407,58 +390,6 @@ control Hashing(
 	}
 }
 
-control CachedTable(
-	in time_t now,
-	in bool write,
-	in bit<32> src_addr,
-	in bit<32> dst_addr,
-	in bit<16> src_port,
-	in bit<16> dst_port,
-	in hash_t hash,
-    inout bit<16> port,
-	out bool hit
-) {
-	Cache() cache;
-
-	action populate(bit<16> out_port) {
-		port = out_port;
-	}
-
-	table map {
-		key = {
-			src_addr: exact;
-			dst_addr: exact;
-			src_port: exact;
-			dst_port: exact;
-		}
-
-		actions = {
-			populate;
-		}
-
-		size = 65536;
-		idle_timeout = true;
-	}
-
-	apply {
-		if (map.apply().hit) {
-			hit = true;
-		} else {
-			cache.apply(
-				now,
-				write,
-				src_addr,
-				dst_addr,
-				src_port,
-				dst_port,
-				hash,
-				port,
-				hit
-			);
-		}
-	}
-}
-
 control Ingress(
 	/* User */
 	inout my_ingress_headers_t  hdr,
@@ -471,7 +402,6 @@ control Ingress(
 	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
 {
 	Hashing() hashing;
-    CachedTable() cached_table;
 	Cache() cache;
 
 	bit<16> port;

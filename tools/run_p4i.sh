@@ -15,7 +15,7 @@ cleanup() {
 
 trap cleanup EXIT
 
-if [ -f $SDE/bf-sde-9.13.1.manifest ]; then
+if [ -f $SDE/bf-sde-9.13.1.manifest ] || [ -f $SDE/bf-sde-9.13.2.manifest  ]; then
     # No license needed, let's use the provided p4i
     $SDE/install/bin/p4i --no-browser -w . --loglevel info
 else

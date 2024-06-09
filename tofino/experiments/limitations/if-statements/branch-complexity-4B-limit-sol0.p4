@@ -5,64 +5,37 @@
 #else
 #include <tna.p4>
 #endif
+
 typedef bit<9>  port_t;
 typedef bit<48> mac_addr_t;
 typedef bit<32> ipv4_addr_t;
 typedef bit<16> ether_type_t;
 typedef bit<8>  ip_protocol_t;
 
-const port_t RECIRCULATING_PORT = 68;
+const ether_type_t ETHERTYPE_IPV4 = 16w0x0800;
 
-// BFN-T10-032D
-// BFN-T10-032D-024
-// BFN-T10-032D-020
-// BFN-T10-032D-018
-// const port_t CPU_PCIE_PORT = 192;
-
-// BFN-T10-064Q
-// BFN-T10-032Q
-// PCIe port when using the tofino model
-const port_t CPU_PCIE_PORT = 320;
-
-const port_t LAN = 0;
-const port_t WAN = 1;
-
-const ether_type_t  ETHERTYPE_IPV4     = 16w0x0800;
-const ether_type_t  ETHERTYPE_ARP      = 16w0x0806;
-const ether_type_t  ETHERTYPE_IPV6     = 16w0x86dd;
-const ether_type_t  ETHERTYPE_VLAN     = 16w0x8100;
-
-const ip_protocol_t IP_PROTOCOLS_ICMP = 1;
 const ip_protocol_t IP_PROTOCOLS_TCP = 6;
 const ip_protocol_t IP_PROTOCOLS_UDP = 17;
 
-header cpu_h {
-	bit<16> code_path;
-	bit<7> pad0;
-	port_t in_port;
-	bit<7> pad1;
-	port_t out_port;
-}
-
 header ethernet_h {
-	mac_addr_t   dst_addr;
-	mac_addr_t   src_addr;
-	ether_type_t ether_type;
+	mac_addr_t dst_addr;
+	mac_addr_t src_addr;
+	bit<16> ether_type;
 }
 
 header ipv4_h {
-	bit<4>        version;
-	bit<4>        ihl;
-	bit<8>        dscp;
-	bit<16>       total_len;
-	bit<16>       identification;
-	bit<3>        flags;
-	bit<13>       frag_offset;
-	bit<8>        ttl;
-	ip_protocol_t protocol;
-	bit<16>       hdr_checksum;
-	ipv4_addr_t   src_addr;
-	ipv4_addr_t   dst_addr;
+	bit<4> version;
+	bit<4> ihl;
+	bit<8> diffserv;
+	bit<16> total_len;
+	bit<16> identification;
+	bit<3> flags;
+	bit<13> frag_offset;
+	bit<8> ttl;
+	bit<8> protocol;
+	bit<16> hdr_checksum;
+	ipv4_addr_t src_addr;
+	ipv4_addr_t dst_addr;
 }
 
 header tcpudp_h {
@@ -76,10 +49,9 @@ struct empty_metadata_t {}
 struct my_ingress_metadata_t {}
 
 struct my_ingress_headers_t {
-	cpu_h      cpu;
 	ethernet_h ethernet;
-	ipv4_h     ipv4;
-	tcpudp_h   tcpudp;
+	ipv4_h ipv4;
+	tcpudp_h tcpudp;
 }
 
 parser TofinoIngressParser(
@@ -107,12 +79,12 @@ parser TofinoIngressParser(
 parser IngressParser(
 	packet_in pkt,
 
-	/* User */    
+	/* User */
 	out my_ingress_headers_t  hdr,
 	out my_ingress_metadata_t meta,
 
 	/* Intrinsic */
-	out ingress_intrinsic_metadata_t  ig_intr_md)
+	out ingress_intrinsic_metadata_t ig_intr_md)
 {
 	TofinoIngressParser() tofino_parser;
 	
@@ -121,14 +93,8 @@ parser IngressParser(
 		tofino_parser.apply(pkt, ig_intr_md);
 
 		transition select(ig_intr_md.ingress_port) {
-			CPU_PCIE_PORT: parse_cpu;
 			default: parse_ethernet;
 		}
-	}
-
-	state parse_cpu {
-		pkt.extract(hdr.cpu);
-		transition parse_ethernet;
 	}
 
 	state parse_ethernet {
@@ -142,12 +108,11 @@ parser IngressParser(
 
 	state parse_ipv4 {
 		pkt.extract(hdr.ipv4);
-
-		// We only care about TCP packets
+		
 		transition select (hdr.ipv4.protocol) {
 			IP_PROTOCOLS_TCP: parse_tcpudp;
 			IP_PROTOCOLS_UDP: parse_tcpudp;
-			default: reject;
+			default: accept;
 		}
 	}
 
@@ -163,11 +128,18 @@ control Ingress(
 	inout my_ingress_metadata_t meta,
 
 	/* Intrinsic */
-	in    ingress_intrinsic_metadata_t               ig_intr_md,
-	in    ingress_intrinsic_metadata_from_parser_t   ig_prsr_md,
-	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
-	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
+	in    ingress_intrinsic_metadata_t              ig_intr_md,
+	in    ingress_intrinsic_metadata_from_parser_t  ig_prsr_md,
+	inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
+	inout ingress_intrinsic_metadata_for_tm_t       ig_tm_md)
 {
+	bit<32> param0;
+	bit<32> param1;
+	bit<32> param2;
+
+	bit<32> diff0 = 0;
+	bit<16> diff1 = 0;
+
 	action fwd(port_t port){
 		ig_tm_md.ucast_egress_port = port;
 	}
@@ -176,19 +148,41 @@ control Ingress(
 		ig_dprsr_md.drop_ctl = 1;
 	}
 
-	action send_to_cpu(bit<16> code_path){
-		hdr.cpu.setValid();
-		hdr.cpu.code_path = code_path;
-		hdr.cpu.in_port = ig_intr_md.ingress_port;
-		fwd(CPU_PCIE_PORT);
+	action match(bit<32> _param0, bit<32> _param1, bit<32> _param2) {
+		param0 = _param0;
+		param1 = _param1;
+		param2 = _param2;
+	}
+
+	table map {
+		key = {
+			hdr.ipv4.dst_addr: exact;
+			hdr.tcpudp.dst_port: exact;
+		}
+
+		actions = {
+			match;
+		}
+
+		size = 65536;
 	}
 
 	apply {
-		if (hdr.cpu.isValid()) {
-			fwd(hdr.cpu.out_port);
-			hdr.cpu.setInvalid();
+		map.apply();
+
+		bool cond = false;
+		if (hdr.ipv4.src_addr != param0) {
+			if (hdr.tcpudp.src_port != param1[15:0]) {
+				if (hdr.ipv4.dst_addr != param2) {
+					cond = true;
+				}
+			}
+		}
+
+		if (cond) {
+			fwd(1);
 		} else {
-			send_to_cpu(0x40);
+			drop();
 		}
 	}
 }
@@ -250,10 +244,11 @@ control EgressDeparser(
 	in empty_metadata_t eg_md,
 	in egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md)
 {
-  apply {
-	pkt.emit(hdr);
-  }
+	apply {
+		pkt.emit(hdr);
+	}
 }
+
 Pipeline(
 	IngressParser(),
 	Ingress(),

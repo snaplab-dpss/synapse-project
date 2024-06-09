@@ -87,10 +87,8 @@ bool kvstore_delete(struct State *state, kv_key_t key) {
     return false;
   }
 
-  void *k;
-  vector_borrow(state->keys, index, &k);
-  map_erase(state->kvstore, k, &k);
-  vector_return(state->keys, index, k);
+  void *trash;
+  map_erase(state->kvstore, key, &trash);
 
   return true;
 }
