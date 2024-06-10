@@ -28,8 +28,8 @@ run() {
 	
 	$CALL_PATHS_TO_BDD -out $BDDS_DIR/$nf.bdd $NFS_DIR/$nf/klee-last/*.call_path 2>/dev/null
 	$BDD_VISUALIZER -in $BDDS_DIR/$nf.bdd -out $BDDS_DIR/$nf.dot 2>/dev/null
-	# $BDD_TO_C -target bdd-analyzer -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf-bdd-analysis.cpp > /dev/null
-	# $BDD_TO_C -target seq -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf.cpp > /dev/null
+	$BDD_TO_C -target seq -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf.cpp > /dev/null
+	$BDD_TO_C -target bdd-profiler -in $BDDS_DIR/$nf.bdd -out $SYNTHESIZED_DIR/$nf-path-profiler.cpp > /dev/null
 }
 
 run "fwd"
