@@ -1,0 +1,22 @@
+{
+  "config": {
+    "churn_fpm": 0,
+    "device": 0,
+    "packet_sizes": 64,
+    "rate_pps": 150000000,
+    "total_flows": 65536,
+    "total_packets": 1000000,
+    "traffic_uniform": true,
+    "traffic_zipf": false,
+    "traffic_zipf_param": 1.2599999904632568
+  },
+  "counters": {
+    "0": 1000000,
+    "1": 1000000,
+    "2": 0,
+    "3": 0,
+    "4": 1000000,
+    "5": 1000000
+  },
+  "elapsed": 5999994
+}
