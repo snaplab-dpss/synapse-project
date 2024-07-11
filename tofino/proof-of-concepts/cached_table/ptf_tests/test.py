@@ -20,8 +20,11 @@ import scapy.fields
 
 PROGRAM = 'cached_table'
 
-OP_READ  = 0
-OP_WRITE = 1
+OP_READ  = 1
+OP_WRITE = 2
+OP_COND_WRITE = 3
+OP_DELETE = 4
+KEY_FROM_VALUE = 5
 
 KEY_SIZE_BITS = 32
 VALUE_SIZE_BITS = 32
@@ -163,12 +166,12 @@ class Register(Table):
 
 class Map(Table):
     def __init__(self, bfrt_info, target):
-        super().__init__(bfrt_info, target, "SwitchIngress.cached_table", "map")
+        super().__init__(bfrt_info, target, "SwitchIngress.cached_table", "kv_map")
 
     def add_entry(self, key, value):
-        action = f"{self.control_name}.get_value"
+        action = f"{self.control_name}.kv_map_get_value"
 
-        print(f"map[{key}] <- {value}")
+        print(f"kv_map[{key}] <- {value}")
 
         self.table.entry_add(
             self.target,
@@ -181,15 +184,15 @@ class Map(Table):
 
 class Expirator(Register):
     def __init__(self, bfrt_info, target):
-        super().__init__(bfrt_info, target, "SwitchIngress.cached_table.cache.expirator", "reg")
+        super().__init__(bfrt_info, target, "SwitchIngress.cached_table", "expirator")
 
 class Keys(Register):
     def __init__(self, bfrt_info, target):
-        super().__init__(bfrt_info, target, "SwitchIngress.cached_table.cache", "keys")
+        super().__init__(bfrt_info, target, "SwitchIngress.cached_table", "keys")
 
 class Values(Register):
     def __init__(self, bfrt_info, target):
-        super().__init__(bfrt_info, target, "SwitchIngress.cached_table.cache", "values")
+        super().__init__(bfrt_info, target, "SwitchIngress.cached_table", "values")
 
 # ====================================================================================
 #

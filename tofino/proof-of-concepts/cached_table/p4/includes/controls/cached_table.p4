@@ -4,25 +4,40 @@
 #include "../headers.p4"
 #include "../constants.p4"
 
-control Expirator(
-    in time_t now,
-    in op_t op,
-    in hash_t h,
-    out bool valid
-) {
-    Register<time_t, _>(CACHE_CAPACITY, 0) reg;
+enum bit<8> ct_op_t {
+    READ = 1,
+    WRITE = 2,
+    COND_WRITE = 3,
+    DELETE = 4,
+    KEY_FROM_VALUE = 5
+}
 
-    RegisterAction<time_t, hash_t, bool>(reg) read_action = {
+control CachedTable(
+    in time_t now,
+    in ct_op_t op,
+    in hash_t h,
+    in key_t k,
+    inout value_t v,
+    out bool success
+) {
+    bool key_match;
+    bool expirator_valid;
+
+    // ============================== Expirator ==============================
+
+    Register<time_t, _>(CACHE_CAPACITY, 0) expirator;
+
+    RegisterAction<time_t, hash_t, bool>(expirator) expirator_read_action = {
         void apply(inout time_t alarm, out bool alive) {
             alive = false;
             if (now < alarm) {
-                alarm = now + EXPIRATION_TIME;
                 alive = true;
+                alarm = now + EXPIRATION_TIME;
             }
         }
     };
 
-    RegisterAction<time_t, hash_t, bool>(reg) write_action = {
+    RegisterAction<time_t, hash_t, bool>(expirator) expirator_write_action = {
         void apply(inout time_t alarm, out bool alive) {
             alive = false;
             if (now < alarm) {
@@ -32,45 +47,36 @@ control Expirator(
         }
     };
 
-    action read() {
-        valid = read_action.execute(h);
-    }
-
-    action write() {
-        valid = write_action.execute(h);
-    }
-
-    apply {
-        if (op == READ) {
-            read();
-        } else {
-            write();
+    RegisterAction<time_t, hash_t, bool>(expirator) expirator_delete_action = {
+        void apply(inout time_t alarm, out bool alive) {
+            alive = false;
+            alarm = 0;
         }
+    };
+
+    action expirator_read() {
+        expirator_valid = expirator_read_action.execute(h);
     }
-}
 
-control Cache(
-    in time_t now,
-    in op_t op,
-    in hash_t h,
-    in key_t k,
-    inout value_t v,
-    out bool hit
-) {
-    bool match;
-    bool valid;
+    action expirator_write() {
+        expirator_valid = expirator_write_action.execute(h);
+    }
 
-    Expirator() expirator;
+    action expirator_delete() {
+        expirator_valid = expirator_delete_action.execute(h);
+    }
+
+    // ============================== Cache ==============================
 
     Register<key_t, _>(CACHE_CAPACITY, 0) keys;
     Register<value_t, _>(CACHE_CAPACITY, 0) values;
 
     RegisterAction<key_t, hash_t, bool>(keys) read_key_action = {
-        void apply(inout key_t curr_key, out bool key_match) {
+        void apply(inout key_t curr_key, out bool match) {
             if (curr_key == k) {
-                key_match = true;
+                match = true;
             } else {
-                key_match = false;
+                match = false;
             }
         }
     };
@@ -82,7 +88,7 @@ control Cache(
     };
 
     action read_key() {
-        match = read_key_action.execute(h);
+        key_match = read_key_action.execute(h);
     }
 
     action read_value() {
@@ -109,56 +115,78 @@ control Cache(
         write_value_action.execute(h);
     }
 
-    apply {
-        hit = false;
-        expirator.apply(now, op, h, valid);
+    // ============================== Table ==============================
 
-        if (valid) {
-            read_key();
-
-            if (match) {
-                read_value();
-                hit = true;
-            }
-        } else if (op != READ) {
-            write_key();
-            write_value();
-            hit = true;
-        }
-    }
-}
-
-control CachedTable(
-    in time_t now,
-    in op_t op,
-    in hash_t h,
-    in key_t k,
-    inout value_t v,
-    out bool hit
-) {
-    Cache() cache;
-
-    action get_value(value_t value) {
+    action kv_map_get_value(value_t value) {
         v = value;
     }
 
-    table map {
+    table kv_map {
 		key = {
 			k: exact;
 		}
 
 		actions = {
-			get_value;
+			kv_map_get_value;
 		}
 
 		size = 65536;
 	}
 
     apply {
-        if (map.apply().hit) {
-            hit = true;
-        } else {
-            cache.apply(now, op, h, k, v, hit);
+        success = false;
+
+        bool kv_map_hit = kv_map.apply().hit;
+
+        if (op == ct_op_t.READ) {
+            if (kv_map_hit) {
+                success = true;
+            } else {
+                expirator_read();
+
+                if (expirator_valid) {
+                    read_key();
+                    read_value();
+
+                    if (key_match) {
+                        success = true;
+                    }
+                }
+            }
+        } else if (op == ct_op_t.WRITE) {
+            if (!kv_map_hit) {
+                expirator_write();
+
+                if (!expirator_valid) {
+                    write_key();
+                    write_value();
+                    success = true;
+                }
+            }
+        } else if (op == ct_op_t.COND_WRITE) {
+            if (kv_map_hit) {
+                 success = true;
+            } else {
+                expirator_write();
+
+                if (!expirator_valid) {
+                    write_key();
+                    write_value();
+                    success = true;
+                } else {
+                    read_key();
+                    read_value();
+
+                    if (key_match) {
+                        success = true;
+                    }
+                }
+            }
+        } else if (op == ct_op_t.DELETE) {
+            if (!kv_map_hit) {
+                expirator_delete();
+                success = true;
+            }
         }
     }
 }

@@ -470,16 +470,16 @@ control Ingress(
 			forward(hdr.cpu.out_port);
 			hdr.cpu.setInvalid();
 		} else {
-			hashing.apply(
-				hdr.ipv4.src_addr,
-				hdr.ipv4.dst_addr,
-				hdr.tcpudp.src_port,
-				hdr.tcpudp.dst_port,
-				hash
-			);
-
 			if (ig_intr_md.ingress_port == 0) {
 				forwarder.apply();
+
+				hashing.apply(
+					hdr.ipv4.src_addr,
+					hdr.ipv4.dst_addr,
+					hdr.tcpudp.src_port,
+					hdr.tcpudp.dst_port,
+					hash
+				);
 
 				if (map_in2out.apply().hit) {
 					forward(port[8:0]);
@@ -503,6 +503,14 @@ control Ingress(
 					}
 				}
 			} else {
+				hashing.apply(
+					hdr.ipv4.src_addr,
+					hdr.ipv4.dst_addr,
+					hdr.tcpudp.src_port,
+					hdr.tcpudp.dst_port,
+					hash
+				);
+				
 				if (map_out2in.apply().hit) {
 					forward(port[8:0]);
 				} else {
