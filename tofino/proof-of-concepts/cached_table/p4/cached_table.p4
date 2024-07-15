@@ -80,11 +80,6 @@ control SwitchIngress(
             hdr.app.hit = 1;
         } else {
             hdr.app.hit = 0;
-
-            // We should send the packet to the cpu, but this is just a PoC.
-            // if (hdr.app.op == WRITE) {
-            //     send_to_cpu();
-            // }
         }
 
 #if __TARGET_TOFINO__ == 2

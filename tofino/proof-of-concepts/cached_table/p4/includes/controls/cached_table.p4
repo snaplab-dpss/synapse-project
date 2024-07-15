@@ -4,6 +4,10 @@
 #include "../headers.p4"
 #include "../constants.p4"
 
+#define HASH_SIZE_BITS 16
+#define CACHE_CAPACITY (1 << HASH_SIZE_BITS)
+#define ONE_SECOND 15258 // 1 second in units of 2**16 nanoseconds
+
 enum bit<8> ct_op_t {
     READ = 1,
     WRITE = 2,
@@ -11,6 +15,14 @@ enum bit<8> ct_op_t {
     DELETE = 4,
     KEY_FROM_VALUE = 5
 }
+
+typedef bit<32> key_t;
+typedef bit<32> value_t;
+typedef bit<HASH_SIZE_BITS> hash_t;
+typedef bit<32> time_t;
+typedef bit<8> match_counter_t;
+
+const time_t EXPIRATION_TIME = 5 * ONE_SECOND;
 
 control CachedTable(
     in time_t now,
@@ -20,7 +32,7 @@ control CachedTable(
     inout value_t v,
     out bool success
 ) {
-    bool key_match;
+    match_counter_t key_match = 0;
     bool expirator_valid;
 
     // ============================== Expirator ==============================
@@ -71,12 +83,12 @@ control CachedTable(
     Register<key_t, _>(CACHE_CAPACITY, 0) keys;
     Register<value_t, _>(CACHE_CAPACITY, 0) values;
 
-    RegisterAction<key_t, hash_t, bool>(keys) read_key_action = {
-        void apply(inout key_t curr_key, out bool match) {
+    RegisterAction<key_t, hash_t, match_counter_t>(keys) read_key_action = {
+        void apply(inout key_t curr_key, out match_counter_t match) {
             if (curr_key == k) {
-                match = true;
+                match = 1;
             } else {
-                match = false;
+                match = 0;
             }
         }
     };
@@ -88,7 +100,7 @@ control CachedTable(
     };
 
     action read_key() {
-        key_match = read_key_action.execute(h);
+        key_match = key_match + read_key_action.execute(h);
     }
 
     action read_value() {
@@ -148,7 +160,7 @@ control CachedTable(
                     read_key();
                     read_value();
 
-                    if (key_match) {
+                    if (key_match == 1) {
                         success = true;
                     }
                 }
@@ -177,7 +189,7 @@ control CachedTable(
                     read_key();
                     read_value();
 
-                    if (key_match) {
+                    if (key_match == 1) {
                         success = true;
                     }
                 }
