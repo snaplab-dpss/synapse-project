@@ -131,9 +131,9 @@ void dchain_make_space(struct DoubleChain *chain, int nfreed) {
 void dchain_reset(struct DoubleChain *chain, int index_range) {
   // Do not trace. This function is an internal knob of the model.
   ALLOW(chain);
-  chain->new_index = klee_int("new_index");
-  klee_assume(0 <= chain->new_index);
-  klee_assume(chain->new_index < index_range);
+  // chain->new_index = klee_int("new_index");
+  // klee_assume(0 <= chain->new_index);
+  // klee_assume(chain->new_index < index_range);
   chain->is_index_allocated = 0;
   chain->out_of_space = klee_int("out_of_space") != 0;
   DENY(chain);
