@@ -8,9 +8,9 @@
 #include "nf-log.h"
 #include "nf-parse.h"
 
-#define PARSE_ERROR(format, ...)          \
-  nf_config_usage();                      \
-  fprintf(stderr, format, ##__VA_ARGS__); \
+#define PARSE_ERROR(format, ...)                                               \
+  nf_config_usage();                                                           \
+  fprintf(stderr, format, ##__VA_ARGS__);                                      \
   exit(EXIT_FAILURE);
 
 void nf_config_init(int argc, char **argv) {
@@ -35,44 +35,43 @@ void nf_config_init(int argc, char **argv) {
          EOF) {
     unsigned device;
     switch (opt) {
-      case 'm':
-        device = nf_util_parse_int(optarg, "eth-dest device", 10, ',');
-        if (device >= nb_devices) {
-          PARSE_ERROR("eth-dest: device %d >= nb_devices (%d)\n", device,
-                      nb_devices);
-        }
+    case 'm':
+      device = nf_util_parse_int(optarg, "eth-dest device", 10, ',');
+      if (device >= nb_devices) {
+        PARSE_ERROR("eth-dest: device %d >= nb_devices (%d)\n", device,
+                    nb_devices);
+      }
 
-        optarg += 2;
-        if (!nf_parse_etheraddr(optarg, &(config.endpoint_macs[device]))) {
-          PARSE_ERROR("Invalid MAC address: %s\n", optarg);
-        }
-        break;
+      optarg += 2;
+      if (!nf_parse_etheraddr(optarg, &(config.endpoint_macs[device]))) {
+        PARSE_ERROR("Invalid MAC address: %s\n", optarg);
+      }
+      break;
 
-      case 't':
-        config.expiration_time =
-            nf_util_parse_int(optarg, "exp-time", 10, '\0');
-        if (config.expiration_time == 0) {
-          PARSE_ERROR("Expiration time must be strictly positive.\n");
-        }
-        break;
+    case 't':
+      config.expiration_time = nf_util_parse_int(optarg, "exp-time", 10, '\0');
+      if (config.expiration_time == 0) {
+        PARSE_ERROR("Expiration time must be strictly positive.\n");
+      }
+      break;
 
-      case 'f':
-        config.max_flows = nf_util_parse_int(optarg, "max-flows", 10, '\0');
-        if (config.max_flows <= 0) {
-          PARSE_ERROR("Flow table size must be strictly positive.\n");
-        }
-        break;
+    case 'f':
+      config.max_flows = nf_util_parse_int(optarg, "max-flows", 10, '\0');
+      if (config.max_flows <= 0) {
+        PARSE_ERROR("Flow table size must be strictly positive.\n");
+      }
+      break;
 
-      case 'w':
-        config.wan_device = nf_util_parse_int(optarg, "wan-dev", 10, '\0');
-        if (config.wan_device >= nb_devices) {
-          PARSE_ERROR("WAN device does not exist.\n");
-        }
-        break;
+    case 'w':
+      config.wan_device = nf_util_parse_int(optarg, "wan-dev", 10, '\0');
+      if (config.wan_device >= nb_devices) {
+        PARSE_ERROR("WAN device does not exist.\n");
+      }
+      break;
 
-      default:
-        PARSE_ERROR("Unknown option.\n");
-        break;
+    default:
+      PARSE_ERROR("Unknown option.\n");
+      break;
     }
   }
 
@@ -81,14 +80,13 @@ void nf_config_init(int argc, char **argv) {
 }
 
 void nf_config_usage(void) {
-  NF_INFO(
-      "Usage:\n"
-      "[DPDK EAL options] --\n"
-      "\t--eth-dest <device>,<mac>: MAC address of the endpoint linked to "
-      "a device.\n"
-      "\t--expire <time>: flow expiration time (us).\n"
-      "\t--max-flows <n>: flow table capacity.\n"
-      "\t--wan <device>: set device to be the external one.\n");
+  NF_INFO("Usage:\n"
+          "[DPDK EAL options] --\n"
+          "\t--eth-dest <device>,<mac>: MAC address of the endpoint linked to "
+          "a device.\n"
+          "\t--expire <time>: flow expiration time (us).\n"
+          "\t--max-flows <n>: flow table capacity.\n"
+          "\t--wan <device>: set device to be the external one.\n");
 }
 
 void nf_config_print(void) {

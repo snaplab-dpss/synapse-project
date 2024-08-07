@@ -18,7 +18,7 @@ LDFLAGS += -L$(RTE_SDK)/$(RTE_TARGET)
 SHELL := /bin/bash -O extglob -O globstar -c
 
 CFLAGS += -DCAPACITY_POW2
-CFLAGS += -g
+CFLAGS += -g -std=c++20
 
 CFLAGS_RELEASE := -O3
 CFLAGS_DEBUG := -O0 -rdynamic -DENABLE_LOG -Wfatal-errors
