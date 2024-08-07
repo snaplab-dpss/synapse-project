@@ -17,45 +17,96 @@ build() {
     NF=$nf make -f $TOOLS_DIR/Makefile.dpdk
 }
 
-kvstore() {
-    bdd=$1
-    seed=$2
-    packets=$3
-    keys=$4
-    churn=$5
-    distribution=$6
-    zipf_param=$7
+log_and_run() {
+    echo
+    echo "[*] Running cmd: $@"
+    echo
+    eval $@
+}
 
-    pcap="kvstore-seed-$seed-packets-$packets-keys-$keys-churn-$churn-$distribution"
+kvstore() {
+    keys=$1
+    churn=$2
+    distribution=$3
+    zipf_param=$4
+
+    pcap="kvstore-k$keys-c$churn-$distribution"
     if [ "$distribution" == "zipf" ]; then
-        pcap="$pcap-$zipf_param"
+        pcap="$pcap$zipf_param"
     fi
+
+    warmup_pcap=$pcap-warmup
+    pcap_dev_0=$pcap
     
-    $SYNTHESIZED_DIR/build/kvstore-profiler \
-        --warmup 0:$PCAPS_DIR/$pcap-warmup.pcap \
-        0:$PCAPS_DIR/$pcap.pcap
+    log_and_run $SYNTHESIZED_DIR/build/kvstore-profiler \
+        --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
+        0:$PCAPS_DIR/$pcap_dev_0.pcap
     
     report="kvstore-profiler"
-    report="$report-dev-0-pcap-$pcap-warmup-warmup"
-    report="$report-dev-0-pcap-$pcap"
+    report="$report-dev-0-pcap-$warmup_pcap-warmup"
+    report="$report-dev-0-pcap-$pcap_dev_0"
     
-    bdd-visualizer -in $BDDS_DIR/$bdd -report "$report.json" -out "$report.dot"
+    log_and_run bdd-visualizer -in $BDDS_DIR/kvstore.bdd -report $report.json -out $report.dot
+}
 
+fw() {
+    flows=$1
+    churn=$2
+    distribution=$3
+    zipf_param=$4
+
+    pcap="fw-f$flows-c$churn-$distribution"
+    if [ "$distribution" == "zipf" ]; then
+        pcap="$pcap$zipf_param"
+    fi
+
+    warmup_pcap=$pcap-dev0-warmup
+    pcap_dev_0=$pcap-dev0
+    pcap_dev_1=$pcap-dev1
+
+    log_and_run $SYNTHESIZED_DIR/build/fw-profiler \
+        --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
+        0:$PCAPS_DIR/$pcap_dev_0.pcap \
+        1:$PCAPS_DIR/$pcap_dev_1.pcap \
+    
+    report="fw-profiler"
+    report="$report-dev-0-pcap-$warmup_pcap-warmup"
+    report="$report-dev-0-pcap-$pcap_dev_0"
+    report="$report-dev-1-pcap-$pcap_dev_1"
+    
+    log_and_run bdd-visualizer -in $BDDS_DIR/fw.bdd -report $report.json -out $report.dot
 }
 
 build kvstore-profiler.cpp
 
-kvstore kvstore.bdd 0 1000000 10000 0 uniform 0
-kvstore kvstore.bdd 0 1000000 10000 0 zipf 0.9
-kvstore kvstore.bdd 0 1000000 10000 0 zipf 0.99
-kvstore kvstore.bdd 0 1000000 10000 0 zipf 1.26
+kvstore 10000 0 unif 0
+kvstore 10000 0 zipf 0.9
+kvstore 10000 0 zipf 0.99
+kvstore 10000 0 zipf 1.26
 
-kvstore kvstore.bdd 0 1000000 10000 1000000 uniform 0
-kvstore kvstore.bdd 0 1000000 10000 1000000 zipf 0.9
-kvstore kvstore.bdd 0 1000000 10000 1000000 zipf 0.99
-kvstore kvstore.bdd 0 1000000 10000 1000000 zipf 1.26
+kvstore 10000 1000000 unif 0
+kvstore 10000 1000000 zipf 0.9
+kvstore 10000 1000000 zipf 0.99
+kvstore 10000 1000000 zipf 1.26
 
-kvstore kvstore.bdd 0 1000000 10000 100000000 uniform 0
-kvstore kvstore.bdd 0 1000000 10000 100000000 zipf 0.9
-kvstore kvstore.bdd 0 1000000 10000 100000000 zipf 0.99
-kvstore kvstore.bdd 0 1000000 10000 100000000 zipf 1.26
+kvstore 10000 100000000 unif 0
+kvstore 10000 100000000 zipf 0.9
+kvstore 10000 100000000 zipf 0.99
+kvstore 10000 100000000 zipf 1.26
+
+# build fw-profiler.cpp
+
+# fw 10000 0 unif 0
+# fw 10000 0 zipf 0.9
+# fw 10000 0 zipf 0.99
+# fw 10000 0 zipf 1.26
+
+# fw 10000 1000000 unif 0
+# fw 10000 1000000 zipf 0.9
+# fw 10000 1000000 zipf 0.99
+# fw 10000 1000000 zipf 1.26
+
+# fw 10000 100000000 unif 0
+# fw 10000 100000000 zipf 0.9
+# fw 10000 100000000 zipf 0.99
+# fw 10000 100000000 zipf 1.26

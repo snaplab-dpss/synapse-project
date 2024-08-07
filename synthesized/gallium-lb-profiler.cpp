@@ -103,6 +103,7 @@ struct pkt_t {
 struct dev_pcap_t {
   uint16_t device;
   std::filesystem::path pcap;
+  bool warmup;
 };
 
 struct config_t {
@@ -309,21 +310,22 @@ void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet,
 }
 
 void nf_config_usage(char **argv) {
-  NF_INFO("Usage: %s [dev0:pcap0] [dev1:pcap1] ...\n", argv[0]);
+  NF_INFO("Usage: %s [[--warmup] dev0:pcap0] [[--warmup] dev1:pcap1] ...\n",
+          argv[0]);
 }
 
 void nf_config_print(void) {
   NF_INFO("----- Config -----");
   for (const auto &dev_pcap : config.pcaps) {
-    NF_INFO("device: %u, pcap: %s", dev_pcap.device,
-            dev_pcap.pcap.filename().c_str());
+    NF_INFO("device: %u, pcap: %s warmup: %d", dev_pcap.device,
+            dev_pcap.pcap.filename().c_str(), dev_pcap.warmup);
   }
   NF_INFO("--- ---------- ---");
 }
 
 std::string nf_name_from_executable(const char *argv0) {
   std::filesystem::path nf_name = std::string(argv0);
-  return nf_name.filename().stem();
+  return nf_name.filename().stem().string();
 }
 
 void nf_config_init(int argc, char **argv) {
@@ -332,10 +334,17 @@ void nf_config_init(int argc, char **argv) {
   }
 
   config.nf_name = nf_name_from_executable(argv[0]);
+  bool incoming_warmup = false;
 
   // split the arguments into device and pcap pairs joined by a :
   for (int i = 1; i < argc; i++) {
     char *arg = argv[i];
+
+    if (strcmp(arg, "--warmup") == 0) {
+      incoming_warmup = true;
+      continue;
+    }
+
     char *device_str = strtok(arg, ":");
     char *pcap_str = strtok(NULL, ":");
 
@@ -347,8 +356,11 @@ void nf_config_init(int argc, char **argv) {
     dev_pcap_t dev_pcap;
     dev_pcap.device = nf_util_parse_int(device_str, "device", 10, '\0');
     dev_pcap.pcap = pcap_str;
+    dev_pcap.warmup = incoming_warmup;
 
     config.pcaps.push_back(dev_pcap);
+
+    incoming_warmup = false;
   }
 
   nf_config_print();
@@ -400,11 +412,21 @@ struct MapStats {
   }
 };
 
+PcapReader warmup_reader;
 PcapReader reader;
 MapStats map_stats;
 uint64_t *path_profiler_counter_ptr;
 uint64_t path_profiler_counter_sz;
 time_ns_t elapsed_time;
+bool warmup;
+
+void inc_path_counter(int i) {
+  if (warmup) {
+    return;
+  }
+
+  path_profiler_counter_ptr[i]++;
+}
 
 void generate_report() {
   json report;
@@ -415,6 +437,7 @@ void generate_report() {
     json dev_pcap_elem;
     dev_pcap_elem["device"] = dev_pcap.device;
     dev_pcap_elem["pcap"] = dev_pcap.pcap.filename().stem().string();
+    dev_pcap_elem["warmup"] = dev_pcap.warmup;
     report["config"]["pcaps"].push_back(dev_pcap_elem);
   }
 
@@ -454,6 +477,7 @@ void generate_report() {
   for (const auto &dev_pcap : config.pcaps) {
     report_fname_ss << "-dev-" << dev_pcap.device;
     report_fname_ss << "-pcap-" << dev_pcap.pcap.filename().stem().string();
+    report_fname_ss << (dev_pcap.warmup ? "-warmup" : "");
   }
   report_fname_ss << ".json";
 
@@ -469,10 +493,29 @@ static void worker_main() {
     rte_exit(EXIT_FAILURE, "Error initializing NF");
   }
 
-  reader.setup(config.pcaps);
+  std::vector<dev_pcap_t> warmup_pcaps;
+  std::vector<dev_pcap_t> pcaps;
+
+  for (const auto &dev_pcap : config.pcaps) {
+    if (dev_pcap.warmup) {
+      warmup_pcaps.push_back(dev_pcap);
+    } else {
+      pcaps.push_back(dev_pcap);
+    }
+  }
+
+  warmup_reader.setup(warmup_pcaps);
+  reader.setup(pcaps);
 
   uint16_t dev;
   pkt_t pkt;
+
+  // First process warmup packets
+  warmup = true;
+  while (warmup_reader.get_next_packet(dev, pkt)) {
+    nf_process(dev, pkt.data, pkt.len, pkt.ts);
+  }
+  warmup = false;
 
   // Generate the first packet manually to record the starting time
   bool success = reader.get_next_packet(dev, pkt);
@@ -629,13 +672,13 @@ bool nf_init() {
 
 int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t now) {
   uint16_t dst_device;
-  path_profiler_counter[0] = (path_profiler_counter[0]) + 1;
+  inc_path_counter(0);
   int number_of_freed_flows = expire_items_single_map(dchain, vector, map, now - 300000000000ul);
-  path_profiler_counter[1] = (path_profiler_counter[1]) + 1;
+  inc_path_counter(1);
 
   // 2
   if (0u != device) {
-    path_profiler_counter[2] = (path_profiler_counter[2]) + 1;
+    inc_path_counter(2);
     dst_device = 0;
     return dst_device;
   }
@@ -651,9 +694,9 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
   // 87
   // 89
   else {
-    path_profiler_counter[3] = (path_profiler_counter[3]) + 1;
+    inc_path_counter(3);
     struct rte_ether_hdr* ether_header_0 = (struct rte_ether_hdr*)(packet);
-    path_profiler_counter[4] = (path_profiler_counter[4]) + 1;
+    inc_path_counter(4);
 
     // 25
     // 29
@@ -665,9 +708,9 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
     // 84
     // 87
     if ((8u == (ether_header_0->ether_type)) & (20ul <= (4294967282u + packet_length))) {
-      path_profiler_counter[5] = (path_profiler_counter[5]) + 1;
+      inc_path_counter(5);
       struct rte_ipv4_hdr* ipv4_header_0 = (struct rte_ipv4_hdr*)(packet + 14u);
-      path_profiler_counter[6] = (path_profiler_counter[6]) + 1;
+      inc_path_counter(6);
 
       // 25
       // 29
@@ -675,9 +718,9 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
       // 42
       // 53
       if ((6u == (ipv4_header_0->next_proto_id)) & ((4294967262u + packet_length) >= 20ul)) {
-        path_profiler_counter[7] = (path_profiler_counter[7]) + 1;
+        inc_path_counter(7);
         struct rte_tcp_hdr* tcp_header_0 = (struct rte_tcp_hdr*)(packet + (14u + 20u));
-        path_profiler_counter[8] = (path_profiler_counter[8]) + 1;
+        inc_path_counter(8);
         uint8_t map_key[13];
         map_key[0u] = ipv4_header_0->src_addr & 0xff;
         map_key[1u] = (ipv4_header_0->src_addr >> 8) & 0xff;
@@ -695,67 +738,67 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
         int map_value_out;
         map_stats.update(8, map_key, 13);
         int map_has_this_key = map_get(map, map_key, &map_value_out);
-        path_profiler_counter[9] = (path_profiler_counter[9]) + 1;
+        inc_path_counter(9);
 
         // 25
         // 29
         // 37
         if (0u == ((tcp_header_0->tcp_flags) & 5u)) {
-          path_profiler_counter[10] = (path_profiler_counter[10]) + 1;
+          inc_path_counter(10);
 
           // 25
           // 29
           if (0u == map_has_this_key) {
-            path_profiler_counter[11] = (path_profiler_counter[11]) + 1;
+            inc_path_counter(11);
             int32_t new_index;
             int out_of_space_1 = !dchain_allocate_new_index(dchain, &new_index, now);
-            path_profiler_counter[12] = (path_profiler_counter[12]) + 1;
+            inc_path_counter(12);
 
             // 25
             if (false == ((out_of_space_1) & (0u == number_of_freed_flows))) {
-              path_profiler_counter[13] = (path_profiler_counter[13]) + 1;
+              inc_path_counter(13);
               int hash = hash_obj(map_key, 13u);
-              path_profiler_counter[14] = (path_profiler_counter[14]) + 1;
+              inc_path_counter(14);
               uint8_t* vector_value_out = 0u;
               vector_borrow(vector, new_index, (void**)(&vector_value_out));
               memcpy(vector_value_out + 0ul, (void*)(&ipv4_header_0->src_addr), 8ul);
               memcpy(vector_value_out + 8ul, (void*)(&tcp_header_0->src_port), 4ul);
               memcpy(vector_value_out + 12ul, (void*)(&ipv4_header_0->next_proto_id), 1ul);
-              path_profiler_counter[15] = (path_profiler_counter[15]) + 1;
+              inc_path_counter(15);
               uint8_t* vector_value_out_1 = 0u;
               vector_borrow(vector_2, hash % 64u, (void**)(&vector_value_out_1));
-              path_profiler_counter[16] = (path_profiler_counter[16]) + 1;
+              inc_path_counter(16);
               uint8_t* vector_value_out_2 = 0u;
               vector_borrow(vector_1, new_index, (void**)(&vector_value_out_2));
               memcpy(vector_value_out_2 + 0ul, vector_value_out_1, 4ul);
-              path_profiler_counter[17] = (path_profiler_counter[17]) + 1;
+              inc_path_counter(17);
               map_stats.update(17, vector_value_out, 13);
               map_put(map, vector_value_out, new_index);
-              path_profiler_counter[18] = (path_profiler_counter[18]) + 1;
+              inc_path_counter(18);
               vector_return(vector, new_index, vector_value_out);
-              path_profiler_counter[19] = (path_profiler_counter[19]) + 1;
+              inc_path_counter(19);
               vector_return(vector_2, hash % 64u, vector_value_out_1);
-              path_profiler_counter[20] = (path_profiler_counter[20]) + 1;
+              inc_path_counter(20);
               vector_return(vector_1, new_index, vector_value_out_2);
-              path_profiler_counter[21] = (path_profiler_counter[21]) + 1;
+              inc_path_counter(21);
               int checksum = rte_ipv4_udptcp_cksum(ipv4_header_0, tcp_header_0);
-              path_profiler_counter[22] = (path_profiler_counter[22]) + 1;
-              path_profiler_counter[23] = (path_profiler_counter[23]) + 1;
+              inc_path_counter(22);
+              inc_path_counter(23);
               memcpy(((uint8_t*)(ipv4_header_0)) + 0ul, (void*)(&checksum), 2ul);
               memcpy(((uint8_t*)(ipv4_header_0)) + 2ul, (void*)(&ipv4_header_0->src_addr), 4ul);
               memcpy(((uint8_t*)(ipv4_header_0)) + 6ul, vector_value_out_1, 4ul);
-              path_profiler_counter[24] = (path_profiler_counter[24]) + 1;
-              path_profiler_counter[25] = (path_profiler_counter[25]) + 1;
+              inc_path_counter(24);
+              inc_path_counter(25);
               dst_device = 1;
               return dst_device;
             }
 
             // 29
             else {
-              path_profiler_counter[26] = (path_profiler_counter[26]) + 1;
-              path_profiler_counter[27] = (path_profiler_counter[27]) + 1;
-              path_profiler_counter[28] = (path_profiler_counter[28]) + 1;
-              path_profiler_counter[29] = (path_profiler_counter[29]) + 1;
+              inc_path_counter(26);
+              inc_path_counter(27);
+              inc_path_counter(28);
+              inc_path_counter(29);
               dst_device = DROP;
               return dst_device;
             } // !(false == ((out_of_space_1) & (0u == number_of_freed_flows)))
@@ -764,22 +807,22 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
 
           // 37
           else {
-            path_profiler_counter[30] = (path_profiler_counter[30]) + 1;
+            inc_path_counter(30);
             dchain_rejuvenate_index(dchain, map_value_out, now);
-            path_profiler_counter[31] = (path_profiler_counter[31]) + 1;
+            inc_path_counter(31);
             uint8_t* vector_value_out = 0u;
             vector_borrow(vector_1, map_value_out, (void**)(&vector_value_out));
-            path_profiler_counter[32] = (path_profiler_counter[32]) + 1;
+            inc_path_counter(32);
             vector_return(vector_1, map_value_out, vector_value_out);
-            path_profiler_counter[33] = (path_profiler_counter[33]) + 1;
+            inc_path_counter(33);
             int checksum = rte_ipv4_udptcp_cksum(ipv4_header_0, tcp_header_0);
-            path_profiler_counter[34] = (path_profiler_counter[34]) + 1;
-            path_profiler_counter[35] = (path_profiler_counter[35]) + 1;
+            inc_path_counter(34);
+            inc_path_counter(35);
             memcpy(((uint8_t*)(ipv4_header_0)) + 0ul, (void*)(&checksum), 2ul);
             memcpy(((uint8_t*)(ipv4_header_0)) + 2ul, (void*)(&ipv4_header_0->src_addr), 4ul);
             memcpy(((uint8_t*)(ipv4_header_0)) + 6ul, vector_value_out, 4ul);
-            path_profiler_counter[36] = (path_profiler_counter[36]) + 1;
-            path_profiler_counter[37] = (path_profiler_counter[37]) + 1;
+            inc_path_counter(36);
+            inc_path_counter(37);
             dst_device = 1;
             return dst_device;
           } // !(0u == map_has_this_key)
@@ -789,31 +832,31 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
         // 42
         // 53
         else {
-          path_profiler_counter[38] = (path_profiler_counter[38]) + 1;
+          inc_path_counter(38);
 
           // 42
           if (0u == map_has_this_key) {
-            path_profiler_counter[39] = (path_profiler_counter[39]) + 1;
-            path_profiler_counter[40] = (path_profiler_counter[40]) + 1;
-            path_profiler_counter[41] = (path_profiler_counter[41]) + 1;
-            path_profiler_counter[42] = (path_profiler_counter[42]) + 1;
+            inc_path_counter(39);
+            inc_path_counter(40);
+            inc_path_counter(41);
+            inc_path_counter(42);
             dst_device = DROP;
             return dst_device;
           }
 
           // 53
           else {
-            path_profiler_counter[43] = (path_profiler_counter[43]) + 1;
+            inc_path_counter(43);
             uint8_t* vector_value_out = 0u;
             vector_borrow(vector_1, map_value_out, (void**)(&vector_value_out));
-            path_profiler_counter[44] = (path_profiler_counter[44]) + 1;
+            inc_path_counter(44);
             vector_return(vector_1, map_value_out, vector_value_out);
-            path_profiler_counter[45] = (path_profiler_counter[45]) + 1;
+            inc_path_counter(45);
             dchain_free_index(dchain, map_value_out);
-            path_profiler_counter[46] = (path_profiler_counter[46]) + 1;
+            inc_path_counter(46);
             uint8_t* vector_value_out_1 = 0u;
             vector_borrow(vector, map_value_out, (void**)(&vector_value_out_1));
-            path_profiler_counter[47] = (path_profiler_counter[47]) + 1;
+            inc_path_counter(47);
             uint8_t map_key_1[13];
             map_key_1[0u] = vector_value_out_1[0ul];
             map_key_1[1u] = vector_value_out_1[1ul];
@@ -831,17 +874,17 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
             uint8_t trash[13];
             map_stats.update(47, map_key_1, 13);
             map_erase(map, &map_key_1, (void**)(&trash));
-            path_profiler_counter[48] = (path_profiler_counter[48]) + 1;
+            inc_path_counter(48);
             vector_return(vector, map_value_out, vector_value_out_1);
-            path_profiler_counter[49] = (path_profiler_counter[49]) + 1;
+            inc_path_counter(49);
             int checksum = rte_ipv4_udptcp_cksum(ipv4_header_0, tcp_header_0);
-            path_profiler_counter[50] = (path_profiler_counter[50]) + 1;
-            path_profiler_counter[51] = (path_profiler_counter[51]) + 1;
+            inc_path_counter(50);
+            inc_path_counter(51);
             memcpy(((uint8_t*)(ipv4_header_0)) + 0ul, (void*)(&checksum), 2ul);
             memcpy(((uint8_t*)(ipv4_header_0)) + 2ul, (void*)(&ipv4_header_0->src_addr), 4ul);
             memcpy(((uint8_t*)(ipv4_header_0)) + 6ul, vector_value_out, 4ul);
-            path_profiler_counter[52] = (path_profiler_counter[52]) + 1;
-            path_profiler_counter[53] = (path_profiler_counter[53]) + 1;
+            inc_path_counter(52);
+            inc_path_counter(53);
             dst_device = 1;
             return dst_device;
           } // !(0u == map_has_this_key)
@@ -855,15 +898,15 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
       // 84
       // 87
       else {
-        path_profiler_counter[54] = (path_profiler_counter[54]) + 1;
+        inc_path_counter(54);
 
         // 72
         // 76
         // 84
         if ((17u == (ipv4_header_0->next_proto_id)) & ((4294967262u + packet_length) >= 8ul)) {
-          path_profiler_counter[55] = (path_profiler_counter[55]) + 1;
+          inc_path_counter(55);
           struct rte_udp_hdr* udp_header_0 = (struct rte_udp_hdr*)(packet + (14u + 20u));
-          path_profiler_counter[56] = (path_profiler_counter[56]) + 1;
+          inc_path_counter(56);
           uint8_t map_key[13];
           map_key[0u] = ipv4_header_0->src_addr & 0xff;
           map_key[1u] = (ipv4_header_0->src_addr >> 8) & 0xff;
@@ -881,61 +924,61 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
           int map_value_out;
           map_stats.update(56, map_key, 13);
           int map_has_this_key = map_get(map, map_key, &map_value_out);
-          path_profiler_counter[57] = (path_profiler_counter[57]) + 1;
+          inc_path_counter(57);
 
           // 72
           // 76
           if (0u == map_has_this_key) {
-            path_profiler_counter[58] = (path_profiler_counter[58]) + 1;
+            inc_path_counter(58);
             int32_t new_index;
             int out_of_space_1 = !dchain_allocate_new_index(dchain, &new_index, now);
-            path_profiler_counter[59] = (path_profiler_counter[59]) + 1;
+            inc_path_counter(59);
 
             // 72
             if (false == ((out_of_space_1) & (0u == number_of_freed_flows))) {
-              path_profiler_counter[60] = (path_profiler_counter[60]) + 1;
+              inc_path_counter(60);
               int hash = hash_obj(map_key, 13u);
-              path_profiler_counter[61] = (path_profiler_counter[61]) + 1;
+              inc_path_counter(61);
               uint8_t* vector_value_out = 0u;
               vector_borrow(vector, new_index, (void**)(&vector_value_out));
               memcpy(vector_value_out + 0ul, (void*)(&ipv4_header_0->src_addr), 8ul);
               memcpy(vector_value_out + 8ul, (void*)(&udp_header_0->src_port), 4ul);
               memcpy(vector_value_out + 12ul, (void*)(&ipv4_header_0->next_proto_id), 1ul);
-              path_profiler_counter[62] = (path_profiler_counter[62]) + 1;
+              inc_path_counter(62);
               uint8_t* vector_value_out_1 = 0u;
               vector_borrow(vector_2, hash % 64u, (void**)(&vector_value_out_1));
-              path_profiler_counter[63] = (path_profiler_counter[63]) + 1;
+              inc_path_counter(63);
               uint8_t* vector_value_out_2 = 0u;
               vector_borrow(vector_1, new_index, (void**)(&vector_value_out_2));
               memcpy(vector_value_out_2 + 0ul, vector_value_out_1, 4ul);
-              path_profiler_counter[64] = (path_profiler_counter[64]) + 1;
+              inc_path_counter(64);
               map_stats.update(64, vector_value_out, 13);
               map_put(map, vector_value_out, new_index);
-              path_profiler_counter[65] = (path_profiler_counter[65]) + 1;
+              inc_path_counter(65);
               vector_return(vector, new_index, vector_value_out);
-              path_profiler_counter[66] = (path_profiler_counter[66]) + 1;
+              inc_path_counter(66);
               vector_return(vector_2, hash % 64u, vector_value_out_1);
-              path_profiler_counter[67] = (path_profiler_counter[67]) + 1;
+              inc_path_counter(67);
               vector_return(vector_1, new_index, vector_value_out_2);
-              path_profiler_counter[68] = (path_profiler_counter[68]) + 1;
+              inc_path_counter(68);
               int checksum = rte_ipv4_udptcp_cksum(ipv4_header_0, udp_header_0);
-              path_profiler_counter[69] = (path_profiler_counter[69]) + 1;
-              path_profiler_counter[70] = (path_profiler_counter[70]) + 1;
+              inc_path_counter(69);
+              inc_path_counter(70);
               memcpy(((uint8_t*)(ipv4_header_0)) + 0ul, (void*)(&checksum), 2ul);
               memcpy(((uint8_t*)(ipv4_header_0)) + 2ul, (void*)(&ipv4_header_0->src_addr), 4ul);
               memcpy(((uint8_t*)(ipv4_header_0)) + 6ul, vector_value_out_1, 4ul);
-              path_profiler_counter[71] = (path_profiler_counter[71]) + 1;
-              path_profiler_counter[72] = (path_profiler_counter[72]) + 1;
+              inc_path_counter(71);
+              inc_path_counter(72);
               dst_device = 1;
               return dst_device;
             }
 
             // 76
             else {
-              path_profiler_counter[73] = (path_profiler_counter[73]) + 1;
-              path_profiler_counter[74] = (path_profiler_counter[74]) + 1;
-              path_profiler_counter[75] = (path_profiler_counter[75]) + 1;
-              path_profiler_counter[76] = (path_profiler_counter[76]) + 1;
+              inc_path_counter(73);
+              inc_path_counter(74);
+              inc_path_counter(75);
+              inc_path_counter(76);
               dst_device = DROP;
               return dst_device;
             } // !(false == ((out_of_space_1) & (0u == number_of_freed_flows)))
@@ -944,22 +987,22 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
 
           // 84
           else {
-            path_profiler_counter[77] = (path_profiler_counter[77]) + 1;
+            inc_path_counter(77);
             dchain_rejuvenate_index(dchain, map_value_out, now);
-            path_profiler_counter[78] = (path_profiler_counter[78]) + 1;
+            inc_path_counter(78);
             uint8_t* vector_value_out = 0u;
             vector_borrow(vector_1, map_value_out, (void**)(&vector_value_out));
-            path_profiler_counter[79] = (path_profiler_counter[79]) + 1;
+            inc_path_counter(79);
             vector_return(vector_1, map_value_out, vector_value_out);
-            path_profiler_counter[80] = (path_profiler_counter[80]) + 1;
+            inc_path_counter(80);
             int checksum = rte_ipv4_udptcp_cksum(ipv4_header_0, udp_header_0);
-            path_profiler_counter[81] = (path_profiler_counter[81]) + 1;
-            path_profiler_counter[82] = (path_profiler_counter[82]) + 1;
+            inc_path_counter(81);
+            inc_path_counter(82);
             memcpy(((uint8_t*)(ipv4_header_0)) + 0ul, (void*)(&checksum), 2ul);
             memcpy(((uint8_t*)(ipv4_header_0)) + 2ul, (void*)(&ipv4_header_0->src_addr), 4ul);
             memcpy(((uint8_t*)(ipv4_header_0)) + 6ul, vector_value_out, 4ul);
-            path_profiler_counter[83] = (path_profiler_counter[83]) + 1;
-            path_profiler_counter[84] = (path_profiler_counter[84]) + 1;
+            inc_path_counter(83);
+            inc_path_counter(84);
             dst_device = 1;
             return dst_device;
           } // !(0u == map_has_this_key)
@@ -968,9 +1011,9 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
 
         // 87
         else {
-          path_profiler_counter[85] = (path_profiler_counter[85]) + 1;
-          path_profiler_counter[86] = (path_profiler_counter[86]) + 1;
-          path_profiler_counter[87] = (path_profiler_counter[87]) + 1;
+          inc_path_counter(85);
+          inc_path_counter(86);
+          inc_path_counter(87);
           dst_device = DROP;
           return dst_device;
         } // !((17u == (ipv4_header_0->next_proto_id)) & ((4294967262u + packet_length) >= 8ul))
@@ -981,8 +1024,8 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
 
     // 89
     else {
-      path_profiler_counter[88] = (path_profiler_counter[88]) + 1;
-      path_profiler_counter[89] = (path_profiler_counter[89]) + 1;
+      inc_path_counter(88);
+      inc_path_counter(89);
       dst_device = DROP;
       return dst_device;
     } // !((8u == (ether_header_0->ether_type)) & (20ul <= (4294967282u + packet_length)))

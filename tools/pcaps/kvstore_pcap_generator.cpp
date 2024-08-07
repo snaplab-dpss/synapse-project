@@ -36,7 +36,6 @@
 #define DEFAULT_TOTAL_PACKETS 1'000'000lu
 #define DEFAULT_TOTAL_KEYS 65'536lu
 #define DEFAULT_TOTAL_CHURN_FPM 0lu
-#define DEFAULT_PACKET_SIZES MIN_PKT_SIZE
 #define DEFAULT_TRAFFIC_UNIFORM true
 #define DEFAULT_TRAFFIC_ZIPF false
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
@@ -88,7 +87,9 @@ struct pkt_hdr_t {
   kvstore_hdr_t kvstore_hdr;
 } __attribute__((packed));
 
-void build_pkt_template(pkt_hdr_t &pkt) {
+pkt_hdr_t build_pkt_template() {
+  pkt_hdr_t pkt;
+
   pkt.eth_hdr.ether_type = htons(ETHERTYPE_IP);
   parse_etheraddr(DMAC, (ether_addr *)&pkt.eth_hdr.ether_dhost);
   parse_etheraddr(SMAC, (ether_addr *)&pkt.eth_hdr.ether_shost);
@@ -112,6 +113,8 @@ void build_pkt_template(pkt_hdr_t &pkt) {
   pkt.udp_hdr.check = 0;
 
   memset(&pkt.kvstore_hdr, 0xff, sizeof(kvstore_hdr_t));
+
+  return pkt;
 }
 
 void randomize_key(kv_key_t &key) {
@@ -244,32 +247,32 @@ config_t parse_args(int argc, char **argv) {
   return config;
 }
 
-std::string get_output_pcap_fname(const config_t &config) {
+std::string get_base_pcap_fname(const config_t &config) {
   std::stringstream ss;
 
   ss << "kvstore";
-  ss << "-seed-" << config.random_seed;
-  ss << "-packets-" << config.total_packets;
-  ss << "-keys-" << config.total_keys;
-  ss << "-churn-" << config.churn_fpm;
+  ss << "-k" << config.total_keys;
+  ss << "-c" << config.churn_fpm;
   if (config.traffic_uniform) {
-    ss << "-uniform";
+    ss << "-unif";
   } else if (config.traffic_zipf) {
-    ss << "-zipf-" << config.traffic_zipf_param;
+    ss << "-zipf" << config.traffic_zipf_param;
   }
-  ss << ".pcap";
 
   return ss.str();
 }
 
-std::string get_warmup_pcap_fname(const std::string &pcap_fname) {
-  std::filesystem::path path(pcap_fname);
-  std::string stem = path.stem().string();
-  std::string extension = path.extension().string();
-
+std::string get_warmup_pcap_fname(const config_t &config) {
   std::stringstream ss;
-  ss << stem << "-warmup" << extension;
+  ss << get_base_pcap_fname(config);
+  ss << "-warmup.pcap";
+  return ss.str();
+}
 
+std::string get_pcap_fname(const config_t &config) {
+  std::stringstream ss;
+  ss << get_base_pcap_fname(config);
+  ss << ".pcap";
   return ss.str();
 }
 
@@ -295,12 +298,14 @@ private:
   PcapWriter writer;
 
   RandomEngine uniform_rand;
-  RandomRealEngine zipf_rand;
+  RandomZipfEngine zipf_rand;
 
   pcap_t *pd;
   pcap_dumper_t *pdumper;
 
   pkt_hdr_t packet_template;
+
+  std::unordered_set<kv_key_t, kv_key_hash_t> allocated_keys;
   std::unordered_map<kv_key_t, uint64_t, kv_key_hash_t> counters;
   uint64_t keys_swapped;
 
@@ -310,17 +315,16 @@ private:
 
 public:
   TrafficGenerator(const config_t &_config,
-                   const std::vector<kv_key_t> &_base_keys,
-                   const std::string &_warmup_pcap_fname,
-                   const std::string &_output_pcap_fname)
-      : config(_config), keys(_base_keys), warmup_writer(_warmup_pcap_fname),
-        writer(_output_pcap_fname),
+                   const std::vector<kv_key_t> &_base_keys)
+      : config(_config), keys(_base_keys),
+        warmup_writer(get_warmup_pcap_fname(_config)),
+        writer(get_pcap_fname(_config)),
         uniform_rand(_config.random_seed, 0, _config.total_keys - 1),
-        zipf_rand(_config.random_seed, 0, 1), pd(NULL), pdumper(NULL),
+        zipf_rand(_config.random_seed, _config.traffic_zipf_param,
+                  _config.total_keys),
+        pd(NULL), pdumper(NULL), packet_template(build_pkt_template()),
         counters(0), keys_swapped(0), current_time(0), alarm_tick(0),
         next_alarm(-1) {
-    build_pkt_template(packet_template);
-
     for (const kv_key_t &key : keys) {
       counters[key] = 0;
     }
@@ -348,8 +352,6 @@ public:
       kv_value_t value;
       randomize_value(value);
       memcpy(pkt.kvstore_hdr.value, value.data(), VALUE_SIZE_BYTES);
-
-      counters[key]++;
 
       warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
                           current_time);
@@ -385,9 +387,9 @@ public:
 
       uint64_t key_idx = 0;
       if (config.traffic_uniform) {
-        key_idx = get_next_key_uniform();
+        key_idx = uniform_rand.generate();
       } else {
-        key_idx = get_next_key_zipf();
+        key_idx = zipf_rand.generate();
       }
 
       assert(key_idx < keys.size());
@@ -395,12 +397,16 @@ public:
       const kv_key_t &key = keys[key_idx];
       memcpy(pkt.kvstore_hdr.key, key.data(), KEY_SIZE_BYTES);
 
-      if (counters[key] == 0) {
+      bool new_key = allocated_keys.find(key) == allocated_keys.end();
+
+      if (new_key) {
         pkt.kvstore_hdr.op = KVSTORE_OP_PUT;
 
         kv_value_t value;
         randomize_value(value);
         memcpy(pkt.kvstore_hdr.value, value.data(), VALUE_SIZE_BYTES);
+
+        allocated_keys.insert(key);
       } else {
         pkt.kvstore_hdr.op = KVSTORE_OP_GET;
       }
@@ -489,55 +495,13 @@ private:
 
     current_time += (bytes * 8) / rate_gbps;
   }
-
-  uint64_t get_next_key_uniform() { return uniform_rand.generate(); }
-
-  // From Castan [SIGCOMM'18]
-  // Source:
-  // https://github.com/nal-epfl/castan/blob/master/scripts/pcap_tools/create_zipfian_distribution_pcap.py
-  uint64_t get_next_key_zipf() {
-    double probability = zipf_rand.generate();
-    assert(probability >= 0 && probability <= 1);
-
-    double p = probability;
-    uint64_t N = config.total_keys + 1;
-    double s = config.traffic_zipf_param;
-    double tolerance = 0.01;
-    double x = (double)N / 2.0;
-
-    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 -
-                    6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
-
-    while (true) {
-      double m = pow(x, -2 - s);
-      double mx = m * x;
-      double mxx = mx * x;
-      double mxxx = mxx * x;
-
-      double a = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) +
-                 (s - (mx * s)) - D;
-      double b = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
-      double newx = std::max(1.0, x - a / b);
-
-      if (std::abs(newx - x) <= tolerance) {
-        int i = newx - 1;
-        assert(i >= 0 && i < config.total_keys);
-        return i;
-      }
-
-      x = newx;
-    }
-  }
 };
 
 int main(int argc, char *argv[]) {
   config_t config = parse_args(argc, argv);
 
-  std::string output_fname = get_output_pcap_fname(config);
-  std::string warmup_fname = get_warmup_pcap_fname(output_fname);
-
   std::vector<kv_key_t> base_keys = get_base_keys(config);
-  TrafficGenerator generator(config, base_keys, warmup_fname, output_fname);
+  TrafficGenerator generator(config, base_keys);
 
   generator.dump_warmup();
   generator.dump();

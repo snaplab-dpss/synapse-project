@@ -103,6 +103,7 @@ struct pkt_t {
 struct dev_pcap_t {
   uint16_t device;
   std::filesystem::path pcap;
+  bool warmup;
 };
 
 struct config_t {
@@ -309,21 +310,22 @@ void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet,
 }
 
 void nf_config_usage(char **argv) {
-  NF_INFO("Usage: %s [dev0:pcap0] [dev1:pcap1] ...\n", argv[0]);
+  NF_INFO("Usage: %s [[--warmup] dev0:pcap0] [[--warmup] dev1:pcap1] ...\n",
+          argv[0]);
 }
 
 void nf_config_print(void) {
   NF_INFO("----- Config -----");
   for (const auto &dev_pcap : config.pcaps) {
-    NF_INFO("device: %u, pcap: %s", dev_pcap.device,
-            dev_pcap.pcap.filename().c_str());
+    NF_INFO("device: %u, pcap: %s warmup: %d", dev_pcap.device,
+            dev_pcap.pcap.filename().c_str(), dev_pcap.warmup);
   }
   NF_INFO("--- ---------- ---");
 }
 
 std::string nf_name_from_executable(const char *argv0) {
   std::filesystem::path nf_name = std::string(argv0);
-  return nf_name.filename().stem();
+  return nf_name.filename().stem().string();
 }
 
 void nf_config_init(int argc, char **argv) {
@@ -332,10 +334,17 @@ void nf_config_init(int argc, char **argv) {
   }
 
   config.nf_name = nf_name_from_executable(argv[0]);
+  bool incoming_warmup = false;
 
   // split the arguments into device and pcap pairs joined by a :
   for (int i = 1; i < argc; i++) {
     char *arg = argv[i];
+
+    if (strcmp(arg, "--warmup") == 0) {
+      incoming_warmup = true;
+      continue;
+    }
+
     char *device_str = strtok(arg, ":");
     char *pcap_str = strtok(NULL, ":");
 
@@ -347,8 +356,11 @@ void nf_config_init(int argc, char **argv) {
     dev_pcap_t dev_pcap;
     dev_pcap.device = nf_util_parse_int(device_str, "device", 10, '\0');
     dev_pcap.pcap = pcap_str;
+    dev_pcap.warmup = incoming_warmup;
 
     config.pcaps.push_back(dev_pcap);
+
+    incoming_warmup = false;
   }
 
   nf_config_print();
@@ -400,11 +412,21 @@ struct MapStats {
   }
 };
 
+PcapReader warmup_reader;
 PcapReader reader;
 MapStats map_stats;
 uint64_t *path_profiler_counter_ptr;
 uint64_t path_profiler_counter_sz;
 time_ns_t elapsed_time;
+bool warmup;
+
+void inc_path_counter(int i) {
+  if (warmup) {
+    return;
+  }
+
+  path_profiler_counter_ptr[i]++;
+}
 
 void generate_report() {
   json report;
@@ -415,6 +437,7 @@ void generate_report() {
     json dev_pcap_elem;
     dev_pcap_elem["device"] = dev_pcap.device;
     dev_pcap_elem["pcap"] = dev_pcap.pcap.filename().stem().string();
+    dev_pcap_elem["warmup"] = dev_pcap.warmup;
     report["config"]["pcaps"].push_back(dev_pcap_elem);
   }
 
@@ -454,6 +477,7 @@ void generate_report() {
   for (const auto &dev_pcap : config.pcaps) {
     report_fname_ss << "-dev-" << dev_pcap.device;
     report_fname_ss << "-pcap-" << dev_pcap.pcap.filename().stem().string();
+    report_fname_ss << (dev_pcap.warmup ? "-warmup" : "");
   }
   report_fname_ss << ".json";
 
@@ -469,10 +493,29 @@ static void worker_main() {
     rte_exit(EXIT_FAILURE, "Error initializing NF");
   }
 
-  reader.setup(config.pcaps);
+  std::vector<dev_pcap_t> warmup_pcaps;
+  std::vector<dev_pcap_t> pcaps;
+
+  for (const auto &dev_pcap : config.pcaps) {
+    if (dev_pcap.warmup) {
+      warmup_pcaps.push_back(dev_pcap);
+    } else {
+      pcaps.push_back(dev_pcap);
+    }
+  }
+
+  warmup_reader.setup(warmup_pcaps);
+  reader.setup(pcaps);
 
   uint16_t dev;
   pkt_t pkt;
+
+  // First process warmup packets
+  warmup = true;
+  while (warmup_reader.get_next_packet(dev, pkt)) {
+    nf_process(dev, pkt.data, pkt.len, pkt.ts);
+  }
+  warmup = false;
 
   // Generate the first packet manually to record the starting time
   bool success = reader.get_next_packet(dev, pkt);
@@ -515,13 +558,13 @@ bool nf_init() {
 
 int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t now) {
   uint16_t dst_device;
-  path_profiler_counter[0] = (path_profiler_counter[0]) + 1;
+  inc_path_counter(0);
   struct rte_ether_hdr* ether_header_0 = (struct rte_ether_hdr*)(packet);
-  path_profiler_counter[1] = (path_profiler_counter[1]) + 1;
+  inc_path_counter(1);
 
   // 3
   if (0u != device) {
-    path_profiler_counter[2] = (path_profiler_counter[2]) + 1;
+    inc_path_counter(2);
     *(uint8_t*)(ether_header_0) = 1u;
     ((uint8_t*)ether_header_0)[1u] = 35u;
     ((uint8_t*)ether_header_0)[2u] = 69u;
@@ -534,14 +577,14 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
     ((uint8_t*)ether_header_0)[9u] = 0u;
     ((uint8_t*)ether_header_0)[10u] = 0u;
     ((uint8_t*)ether_header_0)[11u] = 0u;
-    path_profiler_counter[3] = (path_profiler_counter[3]) + 1;
+    inc_path_counter(3);
     dst_device = 0;
     return dst_device;
   }
 
   // 5
   else {
-    path_profiler_counter[4] = (path_profiler_counter[4]) + 1;
+    inc_path_counter(4);
     *(uint8_t*)(ether_header_0) = 1u;
     ((uint8_t*)ether_header_0)[1u] = 35u;
     ((uint8_t*)ether_header_0)[2u] = 69u;
@@ -554,7 +597,7 @@ int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t
     ((uint8_t*)ether_header_0)[9u] = 0u;
     ((uint8_t*)ether_header_0)[10u] = 0u;
     ((uint8_t*)ether_header_0)[11u] = 0u;
-    path_profiler_counter[5] = (path_profiler_counter[5]) + 1;
+    inc_path_counter(5);
     dst_device = 1;
     return dst_device;
   } // !(0u != device)

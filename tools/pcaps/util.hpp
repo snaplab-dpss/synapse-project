@@ -300,3 +300,62 @@ public:
       pcap_dump_close(pdumper);
   }
 };
+
+class RandomZipfEngine {
+private:
+  RandomRealEngine rand;
+  double zipf_param;
+  uint64_t range;
+
+public:
+  RandomZipfEngine(unsigned _random_seed, double _zipf_param, uint64_t _range)
+      : rand(_random_seed, 0, 1), zipf_param(_zipf_param), range(_range) {}
+
+  // From Castan [SIGCOMM'18]
+  // Source:
+  // https://github.com/nal-epfl/castan/blob/master/scripts/pcap_tools/create_zipfian_distribution_pcap.py
+  uint64_t generate() {
+    double probability = rand.generate();
+    assert(probability >= 0 && probability <= 1);
+
+    double p = probability;
+    uint64_t N = range + 1;
+    double s = zipf_param;
+    double tolerance = 0.01;
+    double x = (double)N / 2.0;
+
+    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 -
+                    6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
+
+    while (true) {
+      double m = pow(x, -2 - s);
+      double mx = m * x;
+      double mxx = mx * x;
+      double mxxx = mxx * x;
+
+      double a = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) +
+                 (s - (mx * s)) - D;
+      double b = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
+      double newx = std::max(1.0, x - a / b);
+
+      if (std::abs(newx - x) <= tolerance) {
+        int i = newx - 1;
+        assert(i >= 0 && i < range);
+        return i;
+      }
+
+      x = newx;
+    }
+  }
+};
+
+in_addr_t random_addr() {
+  std::stringstream ss;
+  ss << "10.";
+  ss << rand() % 256 << ".";
+  ss << rand() % 256 << ".";
+  ss << rand() % 256;
+  return inet_addr(ss.str().c_str());
+}
+
+in_port_t random_port() { return rand() % 65536; }
