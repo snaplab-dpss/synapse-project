@@ -94,19 +94,19 @@ kvstore 10000 100000000 zipf 0.9
 kvstore 10000 100000000 zipf 0.99
 kvstore 10000 100000000 zipf 1.26
 
-# build fw-profiler.cpp
+build fw-profiler.cpp
 
-# fw 10000 0 unif 0
-# fw 10000 0 zipf 0.9
-# fw 10000 0 zipf 0.99
-# fw 10000 0 zipf 1.26
+fw 10000 0 unif 0
+fw 10000 0 zipf 0.9
+fw 10000 0 zipf 0.99
+fw 10000 0 zipf 1.26
 
-# fw 10000 1000000 unif 0
-# fw 10000 1000000 zipf 0.9
-# fw 10000 1000000 zipf 0.99
-# fw 10000 1000000 zipf 1.26
+fw 10000 1000000 unif 0
+fw 10000 1000000 zipf 0.9
+fw 10000 1000000 zipf 0.99
+fw 10000 1000000 zipf 1.26
 
-# fw 10000 100000000 unif 0
-# fw 10000 100000000 zipf 0.9
-# fw 10000 100000000 zipf 0.99
-# fw 10000 100000000 zipf 1.26
+fw 10000 100000000 unif 0
+fw 10000 100000000 zipf 0.9
+fw 10000 100000000 zipf 0.99
+fw 10000 100000000 zipf 1.26
