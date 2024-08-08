@@ -38,14 +38,12 @@ kvstore() {
 
     warmup_pcap=$pcap-warmup
     pcap_dev_0=$pcap
+    report=$pcap
     
     log_and_run $SYNTHESIZED_DIR/build/kvstore-profiler \
+        $report.json \
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap
-    
-    report="kvstore-profiler"
-    report="$report-dev-0-pcap-$warmup_pcap-warmup"
-    report="$report-dev-0-pcap-$pcap_dev_0"
     
     log_and_run bdd-visualizer -in $BDDS_DIR/kvstore.bdd -report $report.json -out $report.dot
 }
@@ -64,16 +62,13 @@ fw() {
     warmup_pcap=$pcap-dev0-warmup
     pcap_dev_0=$pcap-dev0
     pcap_dev_1=$pcap-dev1
+    report=$pcap
 
     log_and_run $SYNTHESIZED_DIR/build/fw-profiler \
+        $report.json \
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
-    
-    report="fw-profiler"
-    report="$report-dev-0-pcap-$warmup_pcap-warmup"
-    report="$report-dev-0-pcap-$pcap_dev_0"
-    report="$report-dev-1-pcap-$pcap_dev_1"
     
     log_and_run bdd-visualizer -in $BDDS_DIR/fw.bdd -report $report.json -out $report.dot
 }
