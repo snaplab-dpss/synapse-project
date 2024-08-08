@@ -12,16 +12,17 @@ BDDS_DIR=$SCRIPT_DIR/../bdds
 # Everything will be done inside the synthesized directory
 cd $SYNTHESIZED_DIR
 
-build() {
-    nf=$1
-    NF=$nf make -f $TOOLS_DIR/Makefile.dpdk
-}
-
 log_and_run() {
     echo
     echo "[*] Running cmd: $@"
     echo
     eval $@
+}
+
+gen_and_build_profiler() {
+    nf=$1
+    log_and_run bdd-to-c -target bdd-profiler -in $BDDS_DIR/$nf.bdd -out $nf-profiler.cpp
+    log_and_run NF=$nf-profiler.cpp make -f $TOOLS_DIR/Makefile.dpdk
 }
 
 kvstore() {
@@ -77,7 +78,7 @@ fw() {
     log_and_run bdd-visualizer -in $BDDS_DIR/fw.bdd -report $report.json -out $report.dot
 }
 
-build kvstore-profiler.cpp
+gen_and_build_profiler kvstore
 
 kvstore 10000 0 unif 0
 kvstore 10000 0 zipf 0.9
@@ -94,7 +95,7 @@ kvstore 10000 100000000 zipf 0.9
 kvstore 10000 100000000 zipf 0.99
 kvstore 10000 100000000 zipf 1.26
 
-build fw-profiler.cpp
+gen_and_build_profiler fw
 
 fw 10000 0 unif 0
 fw 10000 0 zipf 0.9

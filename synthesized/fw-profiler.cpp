@@ -461,9 +461,17 @@ void generate_report() {
     map_op_stats_json["total_flows"] = stats.stats.size();
 
     uint64_t total_packets = 0;
+    std::vector<uint64_t> packets_per_flow;
     for (const auto &map_key_stats : stats.stats) {
-      map_op_stats_json["packets_per_flow"].push_back(map_key_stats.second);
+      packets_per_flow.push_back(map_key_stats.second);
       total_packets += map_key_stats.second;
+    }
+
+    std::sort(packets_per_flow.begin(), packets_per_flow.end(),
+              std::greater<>());
+
+    for (uint64_t packets : packets_per_flow) {
+      map_op_stats_json["packets_per_flow"].push_back(packets);
     }
 
     map_op_stats_json["total_packets"] = total_packets;
@@ -547,10 +555,10 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-struct Map *map;
-struct Vector *vector;
-struct Vector *vector_1;
-struct DoubleChain *dchain;
+struct Map* map;
+struct Vector* vector;
+struct Vector* vector_1;
+struct DoubleChain* dchain;
 uint64_t path_profiler_counter[47];
 
 bool nf_init() {
@@ -559,13 +567,16 @@ bool nf_init() {
     return 0;
   }
 
+
   if (vector_allocate(13u, 65536u, &vector) == 0) {
     return 0;
   }
 
+
   if (vector_allocate(4u, 65536u, &vector_1) == 0) {
     return 0;
   }
+
 
   if (dchain_allocate(65536u, &dchain) == 0) {
     return 0;
@@ -623,14 +634,12 @@ bool nf_init() {
   return 1;
 }
 
-int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
-               int64_t now) {
+int nf_process(uint16_t device, uint8_t* packet, uint16_t packet_length, int64_t now) {
   uint16_t dst_device;
   inc_path_counter(0);
-  int number_of_freed_flows =
-      expire_items_single_map(dchain, vector, map, now - 1000000000ul);
+  int number_of_freed_flows = expire_items_single_map(dchain, vector, map, now - 1000000000ul);
   inc_path_counter(1);
-  struct rte_ether_hdr *ether_header_0 = (struct rte_ether_hdr *)(packet);
+  struct rte_ether_hdr* ether_header_0 = (struct rte_ether_hdr*)(packet);
   inc_path_counter(2);
 
   // 12
@@ -639,10 +648,9 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
   // 36
   // 41
   // 44
-  if ((8u == (ether_header_0->ether_type)) &
-      (20ul <= (4294967282u + packet_length))) {
+  if ((8u == (ether_header_0->ether_type)) & (20ul <= (4294967282u + packet_length))) {
     inc_path_counter(3);
-    struct rte_ipv4_hdr *ipv4_header_0 = (struct rte_ipv4_hdr *)(packet + 14u);
+    struct rte_ipv4_hdr* ipv4_header_0 = (struct rte_ipv4_hdr*)(packet + 14u);
     inc_path_counter(4);
 
     // 12
@@ -650,12 +658,9 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
     // 32
     // 36
     // 41
-    if (((6u == (ipv4_header_0->next_proto_id)) |
-         (17u == (ipv4_header_0->next_proto_id))) &
-        ((4294967262u + packet_length) >= 4ul)) {
+    if (((6u == (ipv4_header_0->next_proto_id)) | (17u == (ipv4_header_0->next_proto_id))) & ((4294967262u + packet_length) >= 4ul)) {
       inc_path_counter(5);
-      struct tcpudp_hdr *tcpudp_header_0 =
-          (struct tcpudp_hdr *)(packet + (14u + 20u));
+      struct tcpudp_hdr* tcpudp_header_0 = (struct tcpudp_hdr*)(packet + (14u + 20u));
       inc_path_counter(6);
 
       // 12
@@ -694,8 +699,8 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
         // 19
         else {
           inc_path_counter(13);
-          uint8_t *vector_value_out = 0u;
-          vector_borrow(vector_1, map_value_out, (void **)(&vector_value_out));
+          uint8_t* vector_value_out = 0u;
+          vector_borrow(vector_1, map_value_out, (void**)(&vector_value_out));
           inc_path_counter(14);
           vector_return(vector_1, map_value_out, vector_value_out);
           inc_path_counter(15);
@@ -703,18 +708,18 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
           inc_path_counter(16);
           inc_path_counter(17);
           inc_path_counter(18);
-          *(uint8_t *)(ether_header_0) = 1u;
-          ((uint8_t *)ether_header_0)[1u] = 35u;
-          ((uint8_t *)ether_header_0)[2u] = 69u;
-          ((uint8_t *)ether_header_0)[3u] = 103u;
-          ((uint8_t *)ether_header_0)[4u] = 137u;
-          ((uint8_t *)ether_header_0)[5u] = 0u;
-          ((uint8_t *)ether_header_0)[6u] = 0u;
-          ((uint8_t *)ether_header_0)[7u] = 0u;
-          ((uint8_t *)ether_header_0)[8u] = 0u;
-          ((uint8_t *)ether_header_0)[9u] = 0u;
-          ((uint8_t *)ether_header_0)[10u] = 0u;
-          ((uint8_t *)ether_header_0)[11u] = 0u;
+          *(uint8_t*)(ether_header_0) = 1u;
+          ((uint8_t*)ether_header_0)[1u] = 35u;
+          ((uint8_t*)ether_header_0)[2u] = 69u;
+          ((uint8_t*)ether_header_0)[3u] = 103u;
+          ((uint8_t*)ether_header_0)[4u] = 137u;
+          ((uint8_t*)ether_header_0)[5u] = 0u;
+          ((uint8_t*)ether_header_0)[6u] = 0u;
+          ((uint8_t*)ether_header_0)[7u] = 0u;
+          ((uint8_t*)ether_header_0)[8u] = 0u;
+          ((uint8_t*)ether_header_0)[9u] = 0u;
+          ((uint8_t*)ether_header_0)[10u] = 0u;
+          ((uint8_t*)ether_header_0)[11u] = 0u;
           inc_path_counter(19);
           dst_device = 0;
           return dst_device;
@@ -751,28 +756,25 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
         if (0u == map_has_this_key) {
           inc_path_counter(22);
           int32_t new_index;
-          int out_of_space_1 =
-              !dchain_allocate_new_index(dchain, &new_index, now);
+          int out_of_space_1 = !dchain_allocate_new_index(dchain, &new_index, now);
           inc_path_counter(23);
 
           // 32
           if (false == ((out_of_space_1) & (0u == number_of_freed_flows))) {
             inc_path_counter(24);
-            uint8_t *vector_value_out = 0u;
-            vector_borrow(vector, new_index, (void **)(&vector_value_out));
+            uint8_t* vector_value_out = 0u;
+            vector_borrow(vector, new_index, (void**)(&vector_value_out));
             memcpy(vector_value_out + 0ul, tcpudp_header_0, 4ul);
-            memcpy(vector_value_out + 4ul, (void *)(&ipv4_header_0->src_addr),
-                   8ul);
-            memcpy(vector_value_out + 12ul,
-                   (void *)(&ipv4_header_0->next_proto_id), 1ul);
+            memcpy(vector_value_out + 4ul, (void*)(&ipv4_header_0->src_addr), 8ul);
+            memcpy(vector_value_out + 12ul, (void*)(&ipv4_header_0->next_proto_id), 1ul);
             inc_path_counter(25);
             map_stats.update(25, vector_value_out, 13);
             map_put(map, vector_value_out, new_index);
             inc_path_counter(26);
             vector_return(vector, new_index, vector_value_out);
             inc_path_counter(27);
-            uint8_t *vector_value_out_1 = 0u;
-            vector_borrow(vector_1, new_index, (void **)(&vector_value_out_1));
+            uint8_t* vector_value_out_1 = 0u;
+            vector_borrow(vector_1, new_index, (void**)(&vector_value_out_1));
             vector_value_out_1[0u] = 0u;
             vector_value_out_1[1u] = 0u;
             vector_value_out_1[2u] = 0u;
@@ -782,18 +784,18 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
             inc_path_counter(29);
             inc_path_counter(30);
             inc_path_counter(31);
-            *(uint8_t *)(ether_header_0) = 1u;
-            ((uint8_t *)ether_header_0)[1u] = 35u;
-            ((uint8_t *)ether_header_0)[2u] = 69u;
-            ((uint8_t *)ether_header_0)[3u] = 103u;
-            ((uint8_t *)ether_header_0)[4u] = 137u;
-            ((uint8_t *)ether_header_0)[5u] = 1u;
-            ((uint8_t *)ether_header_0)[6u] = 0u;
-            ((uint8_t *)ether_header_0)[7u] = 0u;
-            ((uint8_t *)ether_header_0)[8u] = 0u;
-            ((uint8_t *)ether_header_0)[9u] = 0u;
-            ((uint8_t *)ether_header_0)[10u] = 0u;
-            ((uint8_t *)ether_header_0)[11u] = 0u;
+            *(uint8_t*)(ether_header_0) = 1u;
+            ((uint8_t*)ether_header_0)[1u] = 35u;
+            ((uint8_t*)ether_header_0)[2u] = 69u;
+            ((uint8_t*)ether_header_0)[3u] = 103u;
+            ((uint8_t*)ether_header_0)[4u] = 137u;
+            ((uint8_t*)ether_header_0)[5u] = 1u;
+            ((uint8_t*)ether_header_0)[6u] = 0u;
+            ((uint8_t*)ether_header_0)[7u] = 0u;
+            ((uint8_t*)ether_header_0)[8u] = 0u;
+            ((uint8_t*)ether_header_0)[9u] = 0u;
+            ((uint8_t*)ether_header_0)[10u] = 0u;
+            ((uint8_t*)ether_header_0)[11u] = 0u;
             inc_path_counter(32);
             dst_device = 1;
             return dst_device;
@@ -804,18 +806,18 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
             inc_path_counter(33);
             inc_path_counter(34);
             inc_path_counter(35);
-            *(uint8_t *)(ether_header_0) = 1u;
-            ((uint8_t *)ether_header_0)[1u] = 35u;
-            ((uint8_t *)ether_header_0)[2u] = 69u;
-            ((uint8_t *)ether_header_0)[3u] = 103u;
-            ((uint8_t *)ether_header_0)[4u] = 137u;
-            ((uint8_t *)ether_header_0)[5u] = 1u;
-            ((uint8_t *)ether_header_0)[6u] = 0u;
-            ((uint8_t *)ether_header_0)[7u] = 0u;
-            ((uint8_t *)ether_header_0)[8u] = 0u;
-            ((uint8_t *)ether_header_0)[9u] = 0u;
-            ((uint8_t *)ether_header_0)[10u] = 0u;
-            ((uint8_t *)ether_header_0)[11u] = 0u;
+            *(uint8_t*)(ether_header_0) = 1u;
+            ((uint8_t*)ether_header_0)[1u] = 35u;
+            ((uint8_t*)ether_header_0)[2u] = 69u;
+            ((uint8_t*)ether_header_0)[3u] = 103u;
+            ((uint8_t*)ether_header_0)[4u] = 137u;
+            ((uint8_t*)ether_header_0)[5u] = 1u;
+            ((uint8_t*)ether_header_0)[6u] = 0u;
+            ((uint8_t*)ether_header_0)[7u] = 0u;
+            ((uint8_t*)ether_header_0)[8u] = 0u;
+            ((uint8_t*)ether_header_0)[9u] = 0u;
+            ((uint8_t*)ether_header_0)[10u] = 0u;
+            ((uint8_t*)ether_header_0)[11u] = 0u;
             inc_path_counter(36);
             dst_device = 1;
             return dst_device;
@@ -830,18 +832,18 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
           inc_path_counter(38);
           inc_path_counter(39);
           inc_path_counter(40);
-          *(uint8_t *)(ether_header_0) = 1u;
-          ((uint8_t *)ether_header_0)[1u] = 35u;
-          ((uint8_t *)ether_header_0)[2u] = 69u;
-          ((uint8_t *)ether_header_0)[3u] = 103u;
-          ((uint8_t *)ether_header_0)[4u] = 137u;
-          ((uint8_t *)ether_header_0)[5u] = 1u;
-          ((uint8_t *)ether_header_0)[6u] = 0u;
-          ((uint8_t *)ether_header_0)[7u] = 0u;
-          ((uint8_t *)ether_header_0)[8u] = 0u;
-          ((uint8_t *)ether_header_0)[9u] = 0u;
-          ((uint8_t *)ether_header_0)[10u] = 0u;
-          ((uint8_t *)ether_header_0)[11u] = 0u;
+          *(uint8_t*)(ether_header_0) = 1u;
+          ((uint8_t*)ether_header_0)[1u] = 35u;
+          ((uint8_t*)ether_header_0)[2u] = 69u;
+          ((uint8_t*)ether_header_0)[3u] = 103u;
+          ((uint8_t*)ether_header_0)[4u] = 137u;
+          ((uint8_t*)ether_header_0)[5u] = 1u;
+          ((uint8_t*)ether_header_0)[6u] = 0u;
+          ((uint8_t*)ether_header_0)[7u] = 0u;
+          ((uint8_t*)ether_header_0)[8u] = 0u;
+          ((uint8_t*)ether_header_0)[9u] = 0u;
+          ((uint8_t*)ether_header_0)[10u] = 0u;
+          ((uint8_t*)ether_header_0)[11u] = 0u;
           inc_path_counter(41);
           dst_device = 1;
           return dst_device;
@@ -858,9 +860,7 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
       inc_path_counter(44);
       dst_device = DROP;
       return dst_device;
-    } // !(((6u == (ipv4_header_0->next_proto_id)) | (17u ==
-      // (ipv4_header_0->next_proto_id))) & ((4294967262u + packet_length) >=
-      // 4ul))
+    } // !(((6u == (ipv4_header_0->next_proto_id)) | (17u == (ipv4_header_0->next_proto_id))) & ((4294967262u + packet_length) >= 4ul))
 
   }
 
@@ -870,6 +870,6 @@ int nf_process(uint16_t device, uint8_t *packet, uint16_t packet_length,
     inc_path_counter(46);
     dst_device = DROP;
     return dst_device;
-  } // !((8u == (ether_header_0->ether_type)) & (20ul <= (4294967282u +
-    // packet_length)))
+  } // !((8u == (ether_header_0->ether_type)) & (20ul <= (4294967282u + packet_length)))
+
 }
