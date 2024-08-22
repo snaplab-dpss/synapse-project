@@ -67,13 +67,13 @@ struct kv_key_hash_t {
   }
 };
 
-enum kvstore_op {
-  KVSTORE_OP_GET = 0,
-  KVSTORE_OP_PUT = 1,
-  KVSTORE_OP_DEL = 2,
+enum kvs_op {
+  KVS_OP_GET = 0,
+  KVS_OP_PUT = 1,
+  KVS_OP_DEL = 2,
 };
 
-struct kvstore_hdr_t {
+struct kvs_hdr_t {
   uint8_t op;
   uint8_t key[KEY_SIZE_BYTES];
   uint8_t value[VALUE_SIZE_BYTES];
@@ -84,7 +84,7 @@ struct pkt_hdr_t {
   ether_header eth_hdr;
   iphdr ip_hdr;
   udphdr udp_hdr;
-  kvstore_hdr_t kvstore_hdr;
+  kvs_hdr_t kvs_hdr;
 } __attribute__((packed));
 
 pkt_hdr_t build_pkt_template() {
@@ -105,14 +105,14 @@ pkt_hdr_t build_pkt_template() {
   pkt.ip_hdr.saddr = inet_addr(SRC_IP);
   pkt.ip_hdr.daddr = inet_addr(DST_IP);
   pkt.ip_hdr.tot_len =
-      htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvstore_hdr));
+      htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
 
   pkt.udp_hdr.source = htons(SRC_PORT);
   pkt.udp_hdr.dest = htons(DST_PORT);
-  pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.kvstore_hdr));
+  pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
   pkt.udp_hdr.check = 0;
 
-  memset(&pkt.kvstore_hdr, 0xff, sizeof(kvstore_hdr_t));
+  memset(&pkt.kvs_hdr, 0xff, sizeof(kvs_hdr_t));
 
   return pkt;
 }
@@ -250,7 +250,7 @@ config_t parse_args(int argc, char **argv) {
 std::string get_base_pcap_fname(const config_t &config) {
   std::stringstream ss;
 
-  ss << "kvstore";
+  ss << "kvs";
   ss << "-k" << config.total_keys;
   ss << "-c" << config.churn_fpm;
   if (config.traffic_uniform) {
@@ -345,16 +345,16 @@ public:
     for (const kv_key_t &key : keys) {
       pkt_hdr_t pkt = packet_template;
 
-      pkt.kvstore_hdr.op = KVSTORE_OP_PUT;
+      pkt.kvs_hdr.op = KVS_OP_PUT;
 
-      memcpy(pkt.kvstore_hdr.key, key.data(), KEY_SIZE_BYTES);
+      memcpy(pkt.kvs_hdr.key, key.data(), KEY_SIZE_BYTES);
 
       kv_value_t value;
       randomize_value(value);
-      memcpy(pkt.kvstore_hdr.value, value.data(), VALUE_SIZE_BYTES);
+      memcpy(pkt.kvs_hdr.value, value.data(), VALUE_SIZE_BYTES);
 
       warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                          current_time);
+                          sizeof(pkt_hdr_t), current_time);
 
       counter++;
       int current_progress = (counter * 100) / goal;
@@ -395,24 +395,25 @@ public:
       assert(key_idx < keys.size());
 
       const kv_key_t &key = keys[key_idx];
-      memcpy(pkt.kvstore_hdr.key, key.data(), KEY_SIZE_BYTES);
+      memcpy(pkt.kvs_hdr.key, key.data(), KEY_SIZE_BYTES);
 
       bool new_key = allocated_keys.find(key) == allocated_keys.end();
 
       if (new_key) {
-        pkt.kvstore_hdr.op = KVSTORE_OP_PUT;
+        pkt.kvs_hdr.op = KVS_OP_PUT;
 
         kv_value_t value;
         randomize_value(value);
-        memcpy(pkt.kvstore_hdr.value, value.data(), VALUE_SIZE_BYTES);
+        memcpy(pkt.kvs_hdr.value, value.data(), VALUE_SIZE_BYTES);
 
         allocated_keys.insert(key);
       } else {
-        pkt.kvstore_hdr.op = KVSTORE_OP_GET;
+        pkt.kvs_hdr.op = KVS_OP_GET;
       }
 
       counters[key]++;
-      writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), current_time);
+      writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t),
+                   current_time);
 
       tick();
 

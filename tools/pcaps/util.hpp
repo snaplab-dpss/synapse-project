@@ -7,6 +7,7 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <netinet/tcp.h>
+#include <pcap/vlan.h>
 #include <pcap.h>
 #include <getopt.h>
 
@@ -17,6 +18,11 @@
 #include <random>
 #include <chrono>
 #include <ctime>
+#include <iostream>
+
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 #define MIN_THROUGHPUT_GIGABIT_PER_SEC 1   // Gbps
 #define MAX_THROUGHPUT_GIGABIT_PER_SEC 100 // Gbps
@@ -443,8 +449,8 @@ public:
   time_ns_t get_start() const { return start; }
   time_ns_t get_end() const { return end; }
 
-  bool read(const u_char *&pkt, uint16_t &sz, time_ns_t &ts,
-            std::optional<flow_t> &flow) {
+  bool read(const u_char *&pkt, uint16_t &hdrs_len, uint16_t &total_len,
+            time_ns_t &ts, std::optional<flow_t> &flow) {
     const u_char *data;
     struct pcap_pkthdr *header;
 
@@ -453,23 +459,44 @@ public:
     }
 
     pkt = data;
-    sz = header->len + 4; // Add 4 bytes for FCS
+    hdrs_len = 0;
+    total_len = header->len + 4; // Add 4 bytes for FCS
     ts = header->ts.tv_sec * 1'000'000'000 + header->ts.tv_usec * 1'000;
 
-    if (!assume_ip) {
+    if (assume_ip) {
+      total_len += sizeof(ether_header);
+    } else {
       const ether_header *ether_hdr =
           reinterpret_cast<const ether_header *>(data);
       data += sizeof(ether_header);
+      hdrs_len += sizeof(ether_header);
 
       uint16_t ether_type = ntohs(ether_hdr->ether_type);
 
+      if (ether_type == ETHERTYPE_VLAN) {
+        // The VLAN header starts at the Ethernet ethertype field,
+        // so we need to rollback.
+        data = reinterpret_cast<const u_char *>(&ether_hdr->ether_type);
+
+        // Parse the VLAN header and advance the data pointer.
+        const vlan_tag *vlan_hdr = reinterpret_cast<const vlan_tag *>(data);
+        data += sizeof(vlan_tag);
+
+        // Grab the encapsulated ethertype and offset the data pointer.
+        ether_type = ntohs(reinterpret_cast<const uint16_t *>(data)[0]);
+        data += sizeof(uint16_t);
+        hdrs_len += sizeof(vlan_tag) + sizeof(uint16_t);
+      }
+
       if (ether_type != ETHERTYPE_IP) {
+        hdrs_len = total_len;
         return true;
       }
     }
 
     const ip *ip_hdr = reinterpret_cast<const ip *>(data);
     data += sizeof(ip);
+    hdrs_len += sizeof(ip);
 
     if (ip_hdr->ip_v != 4) {
       return true;
@@ -487,12 +514,14 @@ public:
     switch (ip_hdr->ip_p) {
     case IPPROTO_TCP: {
       const tcphdr *tcp_hdr = reinterpret_cast<const tcphdr *>(data);
+      hdrs_len += sizeof(tcphdr);
       sport = ntohs(tcp_hdr->th_sport);
       dport = ntohs(tcp_hdr->th_dport);
     } break;
 
     case IPPROTO_UDP: {
       const udphdr *udp_hdr = reinterpret_cast<const udphdr *>(data);
+      hdrs_len += sizeof(udphdr);
       sport = ntohs(udp_hdr->uh_sport);
       dport = ntohs(udp_hdr->uh_dport);
     } break;
@@ -518,12 +547,13 @@ private:
     total_pkts = 0;
 
     const u_char *pkt;
+    uint16_t hdrs_len;
     uint16_t sz;
     time_ns_t ts;
     std::optional<flow_t> flow;
     bool set_start = false;
 
-    while (read(pkt, sz, ts, flow)) {
+    while (read(pkt, hdrs_len, sz, ts, flow)) {
       total_pkts++;
 
       if (!set_start) {
@@ -543,12 +573,13 @@ private:
   std::string output_fname;
   pcap_t *pd;
   pcap_dumper_t *pdumper;
+  bool compact;
   bool assume_ip;
 
 public:
-  PcapWriter(const std::string &_output_fname, bool _assume_ip)
+  PcapWriter(const std::string &_output_fname, bool _assume_ip, bool _compact)
       : output_fname(_output_fname), pd(NULL), pdumper(NULL),
-        assume_ip(_assume_ip) {
+        assume_ip(_assume_ip), compact(_compact) {
     if (assume_ip) {
       pd = pcap_open_dead(DLT_RAW, 65535 /* snaplen */);
     } else {
@@ -563,15 +594,16 @@ public:
     }
   }
 
+  PcapWriter(const std::string &_output_fname)
+      : PcapWriter(_output_fname, false, true) {}
+
   const std::string &get_output_fname() const { return output_fname; }
 
-  PcapWriter(const std::string &_output_fname)
-      : PcapWriter(_output_fname, false) {}
-
-  void write(const u_char *pkt, uint16_t len, time_ns_t ts) {
+  void write(const u_char *pkt, uint16_t hdrs_len, uint16_t total_len,
+             time_ns_t ts) {
     time_s_t sec = ts / 1'000'000'000;
     time_us_t usec = (ts % 1'000'000'000) / 1'000;
-    pcap_pkthdr pcap_hdr{{sec, usec}, len, len};
+    pcap_pkthdr pcap_hdr{{sec, usec}, hdrs_len, total_len};
     pcap_dump((u_char *)pdumper, &pcap_hdr, pkt);
   }
 

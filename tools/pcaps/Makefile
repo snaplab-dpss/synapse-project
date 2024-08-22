@@ -1,5 +1,6 @@
 SOURCES = $(wildcard *.cpp)
-EXECS = $(addprefix build/,$(basename $(SOURCES)))
+BUILD_DIR = build
+EXECS = $(addprefix $(BUILD_DIR)/,$(basename $(SOURCES)))
 
 CC = g++
 
@@ -19,4 +20,4 @@ build/%: %.cpp util.hpp
 	$(CC) $(CFLAGS) $< -o $@ $(LIBS)
 
 clean:
-	rm -rf $(EXECS)
+	rm -rf $(BUILD_DIR)

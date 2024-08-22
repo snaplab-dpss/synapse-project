@@ -8,32 +8,32 @@ cd $SCRIPT_DIR
 
 make -j
 
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 0 --uniform
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.9
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.99
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 1.26
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 0 --uniform
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.9
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.99
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 1.26
 
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --uniform
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.9
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.99
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 1.26
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --uniform
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.9
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.99
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 1.26
 
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --uniform
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.9
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.99
-./build/kvstore_pcap_generator --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 1.26
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --uniform
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.9
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.99
+./build/pcap_generator_kvs --seed 0 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 1.26
 
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --uniform
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.9
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.99
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 1.26
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --uniform
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.9
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 0.99
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 0 --zipf --zipf-param 1.26
 
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --uniform
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.9
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.99
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 1.26
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --uniform
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.9
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 0.99
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 1000000 --zipf --zipf-param 1.26
 
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --uniform
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.9
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.99
-./build/fw_pcap_generator --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 1.26
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --uniform
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.9
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 0.99
+./build/pcap_generator_fw --seed 0 --lan-devs 1 --packets 1000000 --flows 10000 --churn 100000000 --zipf --zipf-param 1.26

@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
   lan_pcap_file += "-lan.pcap";
   wan_pcap_file += "-wan.pcap";
 
-  PcapWriter lan_writer(lan_pcap_file.c_str(), pcap_reader.assumes_ip());
-  PcapWriter wan_writer(wan_pcap_file.c_str(), pcap_reader.assumes_ip());
+  PcapWriter lan_writer(lan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
+  PcapWriter wan_writer(wan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
 
   std::unordered_set<flow_t, flow_t::flow_hash_t> lan_flows;
   std::unordered_set<flow_t, flow_t::flow_hash_t> wan_flows;
@@ -36,11 +36,12 @@ int main(int argc, char *argv[]) {
   int progress = -1;
 
   const u_char *pkt;
+  uint16_t hdrs_len;
   uint16_t sz;
   time_ns_t ts;
   std::optional<flow_t> flow;
 
-  while (pcap_reader.read(pkt, sz, ts, flow)) {
+  while (pcap_reader.read(pkt, hdrs_len, sz, ts, flow)) {
     pkt_count++;
 
     int current_progress = 100.0 * pkt_count / total_pkts;
@@ -56,7 +57,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (wan_flows.find(flow.value()) != wan_flows.end()) {
-      wan_writer.write(pkt, sz, ts);
+      wan_writer.write(pkt, hdrs_len, sz, ts);
       continue;
     }
 
@@ -66,7 +67,7 @@ int main(int argc, char *argv[]) {
       wan_flows.emplace(res);
     }
 
-    lan_writer.write(pkt, sz, ts);
+    lan_writer.write(pkt, hdrs_len, sz, ts);
   }
 
   printf("\n");

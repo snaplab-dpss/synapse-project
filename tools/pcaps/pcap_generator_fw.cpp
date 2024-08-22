@@ -349,7 +349,7 @@ public:
       allocated_flows.insert(flow);
 
       warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                          current_time);
+                          sizeof(pkt_hdr_t), current_time);
 
       counter++;
       int current_progress = (counter * 100) / goal;
@@ -414,7 +414,8 @@ public:
 
         flows_dev_turn[flow] = DevTurn::LAN;
 
-        wan_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), current_time);
+        wan_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
+                         sizeof(pkt_hdr_t), current_time);
       } else {
         flow_t inverted_flow = invert_flow(flow);
 
@@ -427,7 +428,7 @@ public:
 
         uint16_t lan_dev = flows_to_lan_dev.at(inverted_flow);
         lan_writers[lan_dev - 1].write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                                       current_time);
+                                       sizeof(pkt_hdr_t), current_time);
       }
 
       counters[flow]++;
