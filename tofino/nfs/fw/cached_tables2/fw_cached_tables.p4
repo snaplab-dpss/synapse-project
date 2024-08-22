@@ -190,7 +190,7 @@ control Ingress(
         expirator_valid = expirator_delete_action.execute(hash);
     }
 
-    // ============================== Cache ==============================
+    // ============================== FCFS Cache ==============================
 
     Register<bit<32>, _>(CACHE_CAPACITY, 0) keys_src_addr;
 	Register<bit<32>, _>(CACHE_CAPACITY, 0) keys_dst_addr;

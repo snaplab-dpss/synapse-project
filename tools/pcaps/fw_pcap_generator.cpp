@@ -83,29 +83,6 @@ pkt_hdr_t build_pkt_template() {
   return pkt;
 }
 
-struct flow_t {
-  in_addr_t src_ip;
-  in_addr_t dst_ip;
-  in_port_t src_port;
-  in_port_t dst_port;
-};
-
-bool operator==(const flow_t &lhs, const flow_t &rhs) {
-  return lhs.src_ip == rhs.src_ip && lhs.dst_ip == rhs.dst_ip &&
-         lhs.src_port == rhs.src_port && lhs.dst_port == rhs.dst_port;
-}
-
-struct flow_hash_t {
-  std::size_t operator()(const flow_t &flow) const {
-    std::size_t res = 0;
-    res ^= std::hash<in_addr_t>{}(flow.src_ip);
-    res ^= std::hash<in_addr_t>{}(flow.dst_ip);
-    res ^= std::hash<in_port_t>{}(flow.src_port);
-    res ^= std::hash<in_port_t>{}(flow.dst_port);
-    return res;
-  }
-};
-
 flow_t random_flow() {
   flow_t flow;
   flow.src_ip = random_addr();
@@ -315,10 +292,10 @@ private:
   pkt_hdr_t packet_template;
 
   uint16_t current_lan_dev;
-  std::unordered_map<flow_t, DevTurn, flow_hash_t> flows_dev_turn;
-  std::unordered_map<flow_t, uint16_t, flow_hash_t> flows_to_lan_dev;
-  std::unordered_set<flow_t, flow_hash_t> allocated_flows;
-  std::unordered_map<flow_t, uint64_t, flow_hash_t> counters;
+  std::unordered_map<flow_t, DevTurn, flow_t::flow_hash_t> flows_dev_turn;
+  std::unordered_map<flow_t, uint16_t, flow_t::flow_hash_t> flows_to_lan_dev;
+  std::unordered_set<flow_t, flow_t::flow_hash_t> allocated_flows;
+  std::unordered_map<flow_t, uint64_t, flow_t::flow_hash_t> counters;
   uint64_t flows_swapped;
 
   time_ns_t current_time;

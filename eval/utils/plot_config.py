@@ -54,17 +54,17 @@ palette = [
     '#FF7F00',
     '#654CFF',
     '#E51932',
-    '#FFBF7F',
+    '#A5EDFF',
     '#FFFF99',
     '#B2FF8C',
-    '#A5EDFF',
+    '#293132',
     '#CCBFFF',
     '#2ca02c',  # "#32FF00",  # I hate this green, so I changed it... It may
                 # not be as color-blind friendly as it was originally but since
                 # we also use patterns, it should be fine.
 ]
 
-hatch_list = ['////////', '\\\\\\\\\\\\\\\\', 'xxxxxx', '-----', '|||||||']
+hatch_list = ['//////', '\\\\\\\\\\\\', 'xxxxx', '........', '|||||||', '++++' ]
 
 markers_list = ['.', 'x', 'o', 'v', 's', '*']
 
@@ -89,7 +89,7 @@ style = {
 
     # Grid.
     'grid.linewidth': 0.2,
-    'grid.alpha': 0.4,
+    'grid.alpha': 0.99, # to render the grid lines correctly on PDFs
     'axes.grid': True,
     'axes.axisbelow': True,
 
@@ -114,6 +114,7 @@ style = {
     'ytick.labelsize': doc.footnotesize,
 
     'patch.linewidth': 0.2,
+    'hatch.linewidth': 0.1,
 
     'figure.dpi': 1000,
 

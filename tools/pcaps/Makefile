@@ -14,9 +14,9 @@ debug: all
 
 all: $(EXECS)
 
-build/%: %.cpp
+build/%: %.cpp util.hpp
 	@mkdir -p build
-	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) $< -o $@ $(LIBS)
 
 clean:
 	rm -rf $(EXECS)

@@ -153,6 +153,9 @@ def plot_thpt_per_pkt_sz_pps(
     fig.set_size_inches(*set_figsize)
     fig.tight_layout(pad=0.1)
 
+    print("-> ", fig_file_pdf)
+    print("-> ", fig_file_png)
+
     plt.savefig(str(fig_file_pdf))
     plt.savefig(str(fig_file_png))
 

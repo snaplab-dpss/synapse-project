@@ -15,11 +15,13 @@
 #include <string>
 #include <functional>
 #include <random>
+#include <chrono>
+#include <ctime>
 
 #define MIN_THROUGHPUT_GIGABIT_PER_SEC 1   // Gbps
 #define MAX_THROUGHPUT_GIGABIT_PER_SEC 100 // Gbps
 
-#define MIN_PACKET_SIZE_BYTES 8
+#define MIN_PACKET_SIZE_BYTES 64
 #define MAX_PACKET_SIZE_BYTES 1500
 
 #define TRILLION 1000000000000LLU
@@ -63,9 +65,82 @@ typedef int64_t time_ps_t;
   if (!(cond))                                                                 \
     exit(EXIT_FAILURE, fmt, ##__VA_ARGS__);
 
+struct flow_t {
+  in_addr_t src_ip;
+  in_addr_t dst_ip;
+  in_port_t src_port;
+  in_port_t dst_port;
+
+  flow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
+
+  flow_t(const flow_t &flow)
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
+        dst_port(flow.dst_port) {}
+
+  flow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port,
+         in_port_t _dst_port)
+      : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port),
+        dst_port(_dst_port) {}
+
+  flow_t invert() const { return flow_t(dst_ip, src_ip, dst_port, src_port); }
+
+  bool operator==(const flow_t &other) const {
+    return src_ip == other.src_ip && dst_ip == other.dst_ip &&
+           src_port == other.src_port && dst_port == other.dst_port;
+  }
+
+  struct flow_hash_t {
+    std::size_t operator()(const flow_t &flow) const {
+      return std::hash<in_addr_t>()(flow.src_ip) ^
+             std::hash<in_addr_t>()(flow.dst_ip) ^
+             std::hash<in_port_t>()(flow.src_port) ^
+             std::hash<in_port_t>()(flow.dst_port);
+    }
+  };
+};
+
+// Symmetric
+struct sflow_t {
+  in_addr_t src_ip;
+  in_addr_t dst_ip;
+  in_port_t src_port;
+  in_port_t dst_port;
+
+  sflow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
+
+  sflow_t(const flow_t &flow)
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
+        dst_port(flow.dst_port) {}
+
+  sflow_t(const sflow_t &flow)
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
+        dst_port(flow.dst_port) {}
+
+  sflow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port,
+          in_port_t _dst_port)
+      : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port),
+        dst_port(_dst_port) {}
+
+  bool operator==(const sflow_t &other) const {
+    return (src_ip == other.src_ip && dst_ip == other.dst_ip &&
+            src_port == other.src_port && dst_port == other.dst_port) ||
+           (src_ip == other.dst_ip && dst_ip == other.src_ip &&
+            src_port == other.dst_port && dst_port == other.src_port);
+  }
+
+  struct flow_hash_t {
+    std::size_t operator()(const sflow_t &flow) const {
+      return std::hash<in_addr_t>()(flow.src_ip) ^
+             std::hash<in_addr_t>()(flow.dst_ip) ^
+             std::hash<in_port_t>()(flow.src_port) ^
+             std::hash<in_port_t>()(flow.dst_port);
+    }
+  };
+};
+
 inline std::string fmt(uint64_t n) {
-  auto ss = std::stringstream();
-  auto rem = n % 1000;
+  std::stringstream ss;
+  int rem = n % 1000;
   n /= 1000;
 
   if (n > 0) {
@@ -74,6 +149,70 @@ inline std::string fmt(uint64_t n) {
   } else {
     ss << rem;
   }
+
+  return ss.str();
+}
+
+inline std::string fmt_time_hh(time_ns_t ns) {
+  std::stringstream ss;
+
+  time_s_t seconds = ns / BILLION;
+  time_us_t microseconds = (ns % BILLION) / THOUSAND;
+
+  std::chrono::seconds sec(seconds);
+  std::chrono::microseconds microsec(microseconds);
+
+  std::chrono::system_clock::time_point time_point =
+      std::chrono::system_clock::time_point(sec) + microsec;
+
+  std::time_t time = std::chrono::system_clock::to_time_t(time_point);
+  std::tm utc_tm = *std::gmtime(&time);
+
+  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6)
+     << std::setfill('0') << microseconds << " UTC";
+
+  return ss.str();
+}
+
+inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
+  std::stringstream ss;
+
+  time_s_t start_seconds = start / BILLION;
+  time_us_t start_microseconds = (start % BILLION) / THOUSAND;
+
+  time_s_t end_seconds = end / BILLION;
+  time_us_t end_microseconds = (end % BILLION) / THOUSAND;
+
+  std::chrono::system_clock::time_point start_time =
+      std::chrono::system_clock::time_point(
+          std::chrono::seconds(start_seconds)) +
+      std::chrono::microseconds(start_microseconds);
+
+  std::chrono::system_clock::time_point end_time =
+      std::chrono::system_clock::time_point(std::chrono::seconds(end_seconds)) +
+      std::chrono::microseconds(end_microseconds);
+
+  auto duration = end_time - start_time;
+
+  // Break down the duration into hours, minutes, seconds, and microseconds
+  auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+  duration -= hours;
+  auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration);
+  duration -= minutes;
+  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+  duration -= seconds;
+  auto microseconds =
+      std::chrono::duration_cast<std::chrono::microseconds>(duration);
+
+  if (hours.count() > 0) {
+    ss << hours.count() << " hours ";
+  }
+
+  if (minutes.count() > 0) {
+    ss << minutes.count() << " min ";
+  }
+
+  ss << seconds.count() + ((float)microseconds.count() / MILLION) << " sec ";
 
   return ss.str();
 }
@@ -254,6 +393,149 @@ public:
 
   double generate() { return generator(); }
   unsigned get_seed() const { return rand_seed; }
+};
+
+class PcapReader {
+private:
+  pcap_t *pd;
+  bool assume_ip;
+  long pcap_start;
+  uint64_t total_pkts;
+  time_ns_t start;
+  time_ns_t end;
+
+public:
+  PcapReader(const std::string &input_fname) : assume_ip(false), total_pkts(0) {
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pd = pcap_open_offline(input_fname.c_str(), errbuf);
+
+    if (pd == nullptr) {
+      fprintf(stderr, "Unable to open file %s: %s\n", input_fname.c_str(),
+              errbuf);
+      exit(1);
+    }
+
+    int link_hdr_type = pcap_datalink(pd);
+
+    switch (link_hdr_type) {
+    case DLT_EN10MB:
+      // Normal ethernet, as expected. Nothing to do here.
+      break;
+    case DLT_RAW:
+      // Contains raw IP packets.
+      assume_ip = true;
+      break;
+    default: {
+      fprintf(stderr, "Unknown header type (%d)", link_hdr_type);
+      exit(1);
+    }
+    }
+
+    FILE *pcap_fptr = pcap_file(pd);
+    assert(pcap_fptr && "Invalid pcap file pointer");
+    pcap_start = ftell(pcap_fptr);
+
+    run_preamble();
+  }
+
+  bool assumes_ip() const { return assume_ip; }
+  uint64_t get_total_pkts() const { return total_pkts; }
+  time_ns_t get_start() const { return start; }
+  time_ns_t get_end() const { return end; }
+
+  bool read(const u_char *&pkt, uint16_t &sz, time_ns_t &ts,
+            std::optional<flow_t> &flow) {
+    const u_char *data;
+    struct pcap_pkthdr *header;
+
+    if (pcap_next_ex(pd, &header, &data) != 1) {
+      return false;
+    }
+
+    pkt = data;
+    sz = header->len + 4; // Add 4 bytes for FCS
+    ts = header->ts.tv_sec * 1'000'000'000 + header->ts.tv_usec * 1'000;
+
+    if (!assume_ip) {
+      const ether_header *ether_hdr =
+          reinterpret_cast<const ether_header *>(data);
+      data += sizeof(ether_header);
+
+      uint16_t ether_type = ntohs(ether_hdr->ether_type);
+
+      if (ether_type != ETHERTYPE_IP) {
+        return true;
+      }
+    }
+
+    const ip *ip_hdr = reinterpret_cast<const ip *>(data);
+    data += sizeof(ip);
+
+    if (ip_hdr->ip_v != 4) {
+      return true;
+    }
+
+    uint16_t size_hint = ntohs(ip_hdr->ip_len) + sizeof(ether_header);
+
+    uint32_t src = ntohl(ip_hdr->ip_src.s_addr);
+    uint32_t dst = ntohl(ip_hdr->ip_dst.s_addr);
+
+    uint16_t sport;
+    uint16_t dport;
+
+    // We only support TCP/UDP
+    switch (ip_hdr->ip_p) {
+    case IPPROTO_TCP: {
+      const tcphdr *tcp_hdr = reinterpret_cast<const tcphdr *>(data);
+      sport = ntohs(tcp_hdr->th_sport);
+      dport = ntohs(tcp_hdr->th_dport);
+    } break;
+
+    case IPPROTO_UDP: {
+      const udphdr *udp_hdr = reinterpret_cast<const udphdr *>(data);
+      sport = ntohs(udp_hdr->uh_sport);
+      dport = ntohs(udp_hdr->uh_dport);
+    } break;
+    default: {
+      return true;
+    }
+    }
+
+    flow = flow_t(src, dst, sport, dport);
+
+    return true;
+  }
+
+  // WARNING: this does not work on windows!
+  // https://winpcap-users.winpcap.narkive.com/scCKD3x2/packet-random-access-using-file-seek
+  void rewind() {
+    FILE *pcap_fptr = pcap_file(pd);
+    fseek(pcap_fptr, pcap_start, SEEK_SET);
+  }
+
+private:
+  void run_preamble() {
+    total_pkts = 0;
+
+    const u_char *pkt;
+    uint16_t sz;
+    time_ns_t ts;
+    std::optional<flow_t> flow;
+    bool set_start = false;
+
+    while (read(pkt, sz, ts, flow)) {
+      total_pkts++;
+
+      if (!set_start) {
+        start = ts;
+        set_start = true;
+      }
+
+      end = ts;
+    }
+
+    rewind();
+  }
 };
 
 class PcapWriter {
