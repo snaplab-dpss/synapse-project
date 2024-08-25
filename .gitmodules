@@ -6,7 +6,7 @@
 	url = https://github.com/snaplab-dpss/maestro-llvm.git
 [submodule "deps/klee"]
 	path = deps/klee
-	url = git@github.com:fchamicapereira/synapse-klee.git
+	url = git@github.com:snaplab-dpss/maestro-klee.git
 [submodule "deps/klee-uclibc"]
 	path = deps/klee-uclibc
 	url = https://github.com/snaplab-dpss/maestro-klee-uclibc.git
