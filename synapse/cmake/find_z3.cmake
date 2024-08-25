@@ -28,4 +28,7 @@ else()
   message(STATUS "Z3_get_error_msg does not require context")
 endif()
 
+message(STATUS "Z3_LIBRARIES: ${Z3_LIBRARIES}")
+message(STATUS "Z3_INCLUDE_DIRS: ${Z3_INCLUDE_DIRS}")
+
 include_directories(${Z3_INCLUDE_DIRS})
