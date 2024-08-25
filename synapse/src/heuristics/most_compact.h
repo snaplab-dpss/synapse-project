@@ -1,0 +1,17 @@
+#pragma once
+
+#include "heuristic.h"
+#include "score.h"
+
+struct MostCompactComparator : public HeuristicCfg {
+  MostCompactComparator() : HeuristicCfg("MostCompact") {}
+
+  Score get_score(const EP *ep) const override {
+    Score score(ep, {
+                        {ScoreCategory::Nodes, ScoreObjective::MIN},
+                    });
+    return score;
+  }
+};
+
+using MostCompact = Heuristic<MostCompactComparator>;

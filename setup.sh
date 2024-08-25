@@ -48,6 +48,7 @@ GCC_VERSION='10'
 # Dependencies
 DPDK_DIR="$DEPS_DIR/dpdk"
 KLEE_DIR="$DEPS_DIR/klee"
+LLVM_DIR="$DEPS_DIR/llvm"
 KLEE_UCLIBC_DIR="$DEPS_DIR/klee-uclibc"
 KLEE_BUILD_PATH="$KLEE_DIR/build"
 LLVM_DIR="$DEPS_DIR/llvm"
@@ -250,6 +251,8 @@ source_install_llvm() {
 		REQUIRES_RTTI=1 make -j$BUILDING_CORES
 	popd
 
+	add_var_to_paths_file "LLVM_DIR" "$LLVM_DIR"
+
 	echo "Done."
 }
 
@@ -396,7 +399,8 @@ package_install \
 	software-properties-common \
 	patch \
 	cloc \
-	time
+	time \
+	xdot
 
 # Pull every submodule if needed
 sync_submodules

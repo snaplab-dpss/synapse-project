@@ -1,0 +1,380 @@
+#include "transpiler.h"
+#include "synthesizer.h"
+#include "../../../exprs/exprs.h"
+#include "../../../exprs/solver.h"
+
+namespace tofino {
+
+Transpiler::Transpiler(const EPSynthesizer *_synthesizer)
+    : synthesizer(_synthesizer) {}
+
+code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
+  Log::dbg() << "Transpile: " << expr_to_string(expr, false) << "\n";
+
+  coders.emplace();
+  coder_t &coder = coders.top();
+
+  bool is_const = is_constant(expr);
+
+  if (is_const) {
+    coder << solver_toolbox.value_from_expr(expr);
+  } else {
+    visit(expr);
+
+    // HACK: clear the visited map so we force the transpiler to revisit all
+    // expressions.
+    visited.clear();
+  }
+
+  code_t code = coder.dump();
+  coders.pop();
+
+  assert(code.size() > 0);
+  return code;
+}
+
+klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
+  klee::ref<klee::Expr> expr = const_cast<klee::ReadExpr *>(&e);
+
+  coder_t &coder = coders.top();
+
+  EPSynthesizer::var_t var;
+  if (synthesizer->get_var(expr, var)) {
+    coder << var.name;
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  Log::dbg() << expr_to_string(expr) << "\n";
+  synthesizer->dbg_vars();
+
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action
+Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
+  klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
+
+  coder_t &coder = coders.top();
+
+  EPSynthesizer::var_t var;
+  if (synthesizer->get_var(expr, var)) {
+    coder << var.name;
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  Log::dbg() << expr_to_string(expr) << "\n";
+  synthesizer->dbg_vars();
+
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitZExt(const klee::ZExtExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSExt(const klee::SExtExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitAdd(const klee::AddExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " + ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSub(const klee::SubExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " - ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitMul(const klee::MulExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitUDiv(const klee::UDivExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSDiv(const klee::SDivExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitURem(const klee::URemExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSRem(const klee::SRemExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitNot(const klee::NotExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitAnd(const klee::AndExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " & ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitOr(const klee::OrExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " | ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitXor(const klee::XorExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitShl(const klee::ShlExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitLShr(const klee::LShrExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitAShr(const klee::AShrExpr &e) {
+  assert(false && "TODO");
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  // Kind of a hack, but we need to handle the case where we have a comparison
+  // with booleans.
+  EPSynthesizer::var_t var;
+
+  klee::ref<klee::Expr> var_expr;
+  klee::ref<klee::Expr> const_expr;
+
+  if (is_constant(lhs)) {
+    const_expr = lhs;
+    var_expr = rhs;
+  } else {
+    const_expr = rhs;
+    var_expr = lhs;
+  }
+
+  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) &&
+      var.is_bool) {
+    u64 value = solver_toolbox.value_from_expr(const_expr);
+    if (value == 0) {
+      coder << "!";
+    }
+    coder << var.name;
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  coder << transpile(lhs);
+  coder << " == ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitNe(const klee::NeExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  // Kind of a hack, but we need to handle the case where we have a comparison
+  // with booleans.
+  EPSynthesizer::var_t var;
+
+  klee::ref<klee::Expr> var_expr;
+  klee::ref<klee::Expr> const_expr;
+
+  if (is_constant(lhs)) {
+    const_expr = lhs;
+    var_expr = rhs;
+  } else {
+    const_expr = rhs;
+    var_expr = lhs;
+  }
+
+  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) &&
+      var.is_bool) {
+    u64 value = solver_toolbox.value_from_expr(const_expr);
+    if (value != 0) {
+      coder << "!";
+    }
+    coder << var.name;
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  coder << transpile(lhs);
+  coder << " != ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitUlt(const klee::UltExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " < ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitUle(const klee::UleExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " <= ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitUgt(const klee::UgtExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " > ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitUge(const klee::UgeExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " >= ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSlt(const klee::SltExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " < ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSle(const klee::SleExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " <= ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSgt(const klee::SgtExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " > ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action Transpiler::visitSge(const klee::SgeExpr &e) {
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << transpile(lhs);
+  coder << " >= ";
+  coder << transpile(rhs);
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+} // namespace tofino
