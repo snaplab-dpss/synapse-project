@@ -136,25 +136,25 @@ int sketch_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
 }
 
 void sketch_compute_hashes(struct Sketch *sketch, void *k) {
-  klee_trace_param_i32((uint32_t)sketch, "sketch");
+  klee_trace_param_u64((uint64_t)sketch, "sketch");
   klee_trace_param_tagged_ptr(k, sketch->key_size, "key", sketch->key_type,
                               TD_BOTH);
 }
 
 void sketch_refresh(struct Sketch *sketch, time_ns_t now) {
-  klee_trace_param_i32((uint32_t)sketch, "sketch");
+  klee_trace_param_u64((uint64_t)sketch, "sketch");
   klee_trace_param_u64(now, "time");
 }
 
 int sketch_fetch(struct Sketch *sketch) {
   klee_trace_ret();
-  klee_trace_param_i32((uint32_t)sketch, "sketch");
+  klee_trace_param_u64((uint64_t)sketch, "sketch");
   return klee_int("overflow");
 }
 
 int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
   klee_trace_ret();
-  klee_trace_param_i32((uint32_t)sketch, "sketch");
+  klee_trace_param_u64((uint64_t)sketch, "sketch");
   klee_trace_param_u64(now, "time");
   return klee_int("success");
 }

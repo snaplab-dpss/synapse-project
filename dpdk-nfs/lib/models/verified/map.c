@@ -93,19 +93,19 @@ void map_set_entry_condition(struct Map *map, map_entry_condition *cond,
   map->ent_cond_state = cond_state;
 }
 
-#define TRACE_KEY_FIELDS(key, map)                                      \
-  {                                                                     \
-    for (int i = 0; i < map->key_field_count; ++i) {                    \
-      klee_trace_param_ptr_field_arr_directed(                          \
-          key, map->key_fields[i].offset, map->key_fields[i].width,     \
-          map->key_fields[i].count, map->key_fields[i].name, TD_BOTH);  \
-    }                                                                   \
-    for (int i = 0; i < map->nested_key_field_count; ++i) {             \
-      klee_trace_param_ptr_nested_field_arr_directed(                   \
-          key, map->key_nests[i].base_offset, map->key_nests[i].offset, \
-          map->key_nests[i].width, map->key_nests[i].count,             \
-          map->key_nests[i].name, TD_BOTH);                             \
-    }                                                                   \
+#define TRACE_KEY_FIELDS(key, map)                                             \
+  {                                                                            \
+    for (int i = 0; i < map->key_field_count; ++i) {                           \
+      klee_trace_param_ptr_field_arr_directed(                                 \
+          key, map->key_fields[i].offset, map->key_fields[i].width,            \
+          map->key_fields[i].count, map->key_fields[i].name, TD_BOTH);         \
+    }                                                                          \
+    for (int i = 0; i < map->nested_key_field_count; ++i) {                    \
+      klee_trace_param_ptr_nested_field_arr_directed(                          \
+          key, map->key_nests[i].base_offset, map->key_nests[i].offset,        \
+          map->key_nests[i].width, map->key_nests[i].count,                    \
+          map->key_nests[i].name, TD_BOTH);                                    \
+    }                                                                          \
   }
 
 __attribute__((noinline)) int map_get(struct Map *map, void *key,
@@ -114,7 +114,7 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key,
   klee_assert(map->has_layout);
   // To avoid symbolic-pointer-dereference,
   // consciously trace "map" as a simple value.
-  klee_trace_param_i32((uint32_t)map, "map");
+  klee_trace_param_u64((uint64_t)map, "map");
 
   klee_trace_param_tagged_ptr(key, map->key_size, "key", map->key_type,
                               TD_BOTH);
@@ -163,7 +163,7 @@ __attribute__((noinline)) void map_put(struct Map *map, void *key, int value) {
   klee_assert(map->has_layout);
   // To avoid symbolic-pointer-dereference,
   // consciously trace "map" as a simple value.
-  klee_trace_param_i32((uint32_t)map, "map");
+  klee_trace_param_u64((uint64_t)map, "map");
 
   klee_trace_param_tagged_ptr(key, map->key_size, "key", map->key_type,
                               TD_BOTH);
@@ -178,8 +178,8 @@ __attribute__((noinline)) void map_put(struct Map *map, void *key, int value) {
       klee_assert(map->key_deleted[n] && "Duplicate key, otherwise");
       map->key_deleted[n] = 0;
       map->allocated_index[n] = value;
-      return;  // Undeleted a key -> like inserted one, no need for
-               // another one.
+      return; // Undeleted a key -> like inserted one, no need for
+              // another one.
     }
   }
   klee_assert(map->next_unclaimed_entry < NUM_ELEMS &&
@@ -200,7 +200,7 @@ __attribute__((noinline)) void map_erase(struct Map *map, void *key,
   klee_assert(map->has_layout);
   // To avoid symbolic-pointer-dereference,
   // consciously trace "map" as a simple value.
-  klee_trace_param_i32((uint32_t)map, "map");
+  klee_trace_param_u64((uint64_t)map, "map");
 
   klee_trace_param_tagged_ptr(key, map->key_size, "key", map->key_type,
                               TD_BOTH);
@@ -215,7 +215,7 @@ __attribute__((noinline)) void map_erase(struct Map *map, void *key,
       // when that the key was deleted from the map,
       // as opposed to never existed on the first place.
       map->key_deleted[n] = 1;
-      return;  // The key is deleted, job's done
+      return; // The key is deleted, job's done
     }
   }
   assert(map->next_unclaimed_entry < NUM_ELEMS &&
