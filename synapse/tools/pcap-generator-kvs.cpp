@@ -26,35 +26,12 @@
 #define KEY_SIZE_BYTES 16
 #define VALUE_SIZE_BYTES 128
 
-#define ARG_HELP "help"
-#define ARG_TOTAL_PACKETS "packets"
-#define ARG_TOTAL_KEYS "flows"
-#define ARG_TOTAL_CHURN_FPM "churn"
-#define ARG_TRAFFIC_UNIFORM "uniform"
-#define ARG_TRAFFIC_ZIPF "zipf"
-#define ARG_TRAFFIC_ZIPF_PARAM "zipf-param"
-#define ARG_RANDOM_SEED "seed"
-
 #define DEFAULT_TOTAL_PACKETS 1'000'000lu
 #define DEFAULT_TOTAL_KEYS 65'536lu
 #define DEFAULT_TOTAL_CHURN_FPM 0lu
 #define DEFAULT_TRAFFIC_UNIFORM true
 #define DEFAULT_TRAFFIC_ZIPF false
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
-
-enum {
-  /* long options mapped to short options: first long only option value must
-   * be >= 256, so that it does not conflict with short options.
-   */
-  ARG_HELP_NUM = 256,
-  ARG_TOTAL_PACKETS_NUM,
-  ARG_TOTAL_KEYS_NUM,
-  ARG_TOTAL_CHURN_FPM_NUM,
-  ARG_TRAFFIC_UNIFORM_NUM,
-  ARG_TRAFFIC_ZIPF_NUM,
-  ARG_TRAFFIC_ZIPF_PARAM_NUM,
-  ARG_RANDOM_SEED_NUM,
-};
 
 typedef std::array<uint8_t, KEY_SIZE_BYTES> kv_key_t;
 typedef std::array<uint8_t, VALUE_SIZE_BYTES> kv_value_t;
@@ -140,30 +117,6 @@ struct config_t {
   bool traffic_zipf;
   double traffic_zipf_param;
 };
-
-void config_usage(char **argv) {
-  printf("Usage: %s\n"
-         "\t [--" ARG_TOTAL_PACKETS " <#packets> (default=%lu)]\n"
-         "\t [--" ARG_TOTAL_KEYS " <#flows> (default=%lu)]\n"
-         "\t [--" ARG_TOTAL_CHURN_FPM " <fpm> (default=%lu)]\n"
-         "\t [--" ARG_TRAFFIC_UNIFORM " (default=%s)]\n"
-         "\t [--" ARG_TRAFFIC_ZIPF " (default=%s)]\n"
-         "\t [--" ARG_TRAFFIC_ZIPF_PARAM " <param> (default=%f)]\n"
-         "\t [--" ARG_RANDOM_SEED " <seed>]\n"
-         "\t [--" ARG_HELP "]\n"
-         "\n"
-         "Argument descriptions:\n"
-         "\t " ARG_TOTAL_PACKETS ": total number of packets to generate\n"
-         "\t " ARG_TOTAL_KEYS ": total number of flows to generate\n"
-         "\t " ARG_TOTAL_CHURN_FPM ": flow churn (fpm)\n"
-         "\t " ARG_RANDOM_SEED ": random seed\n"
-         "\t " ARG_HELP ": show this menu\n"
-         "\n",
-         argv[0], DEFAULT_TOTAL_PACKETS, DEFAULT_TOTAL_KEYS,
-         DEFAULT_TOTAL_CHURN_FPM, DEFAULT_TRAFFIC_UNIFORM ? "true" : "false",
-         DEFAULT_TRAFFIC_ZIPF ? "true" : "false",
-         DEFAULT_TRAFFIC_ZIPF_PARAMETER);
-}
 
 void config_print(const config_t &config) {
   printf("----- Config -----\n");
@@ -436,9 +389,9 @@ int main(int argc, char *argv[]) {
 
   config_t config;
 
-  app.add_option("--total-packets", config.total_packets, "Total packets.")
+  app.add_option("--packets", config.total_packets, "Total packets.")
       ->default_val(DEFAULT_TOTAL_PACKETS);
-  app.add_option("--total-keys", config.total_keys, "Total keys.")
+  app.add_option("--flows", config.total_keys, "Total keys.")
       ->default_val(DEFAULT_TOTAL_KEYS);
   app.add_option("--churn", config.churn_fpm, "Total churn (fpm).")
       ->default_val(DEFAULT_TOTAL_CHURN_FPM);

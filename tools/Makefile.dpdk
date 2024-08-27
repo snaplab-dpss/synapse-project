@@ -37,11 +37,11 @@ all: $(APP_RELEASE) $(APP_DEBUG)
 
 $(APP_RELEASE): $(NF) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)
-	$(CXX) $(CFLAGS) $(CFLAGS_RELEASE) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
+	@$(CXX) $(CFLAGS) $(CFLAGS_RELEASE) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
 
 $(APP_DEBUG): $(NF) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)
-	$(CXX) $(CFLAGS) $(CFLAGS_DEBUG) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
+	@$(CXX) $(CFLAGS) $(CFLAGS_DEBUG) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
 
 clean:
 	rm -rf $(OUT_DIR)

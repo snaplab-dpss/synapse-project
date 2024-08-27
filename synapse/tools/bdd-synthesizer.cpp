@@ -36,7 +36,9 @@ int main(int argc, char **argv) {
     BDDSynthesizer synthesizer(target, os);
     synthesizer.synthesize(bdd);
   } else {
-    std::filesystem::create_directories(output_file.parent_path());
+    if (output_file.has_parent_path()) {
+      std::filesystem::create_directories(output_file.parent_path());
+    }
     std::ofstream os(output_file);
     BDDSynthesizer synthesizer(target, os);
     synthesizer.synthesize(bdd);
