@@ -26,31 +26,10 @@ public:
   BDD(const call_paths_t &call_paths);
   BDD(const std::string &file_path);
 
-  BDD(BDD &&other)
-      : id(other.id), device(std::move(other.device)),
-        packet_len(std::move(other.packet_len)), time(std::move(other.time)),
-        init(std::move(other.init)), root(other.root),
-        manager(std::move(other.manager)) {
-    other.root = nullptr;
-  }
+  BDD(const BDD &other);
+  BDD(BDD &&other);
 
-  BDD(const BDD &other)
-      : id(other.id), device(other.device), packet_len(other.packet_len),
-        time(other.time), init(other.init) {
-    root = other.root->clone(manager, true);
-  }
-
-  BDD &operator=(const BDD &other) {
-    if (this == &other)
-      return *this;
-    id = other.id;
-    device = other.device;
-    packet_len = other.packet_len;
-    time = other.time;
-    init = other.init;
-    root = other.root->clone(manager, true);
-    return *this;
-  }
+  BDD &operator=(const BDD &other);
 
   node_id_t get_id() const { return id; }
   node_id_t &get_mutable_id() { return id; }
@@ -58,6 +37,7 @@ public:
   symbol_t get_device() const { return device; }
   symbol_t get_packet_len() const { return packet_len; }
   symbol_t get_time() const { return time; }
+
   const std::vector<call_t> &get_init() const { return init; }
   const Node *get_root() const { return root; }
 

@@ -83,7 +83,7 @@ protected:
     }
 
     klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    klee::ref<klee::Expr> key = call.args.at("key").expr;
+    klee::ref<klee::Expr> key = call.args.at("key").in;
 
     addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
 

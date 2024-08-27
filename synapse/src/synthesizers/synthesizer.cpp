@@ -5,7 +5,7 @@
 #include "../log.h"
 
 #define INDENTATION_UNIT ' '
-#define INDENTATION_MULTIPLIER 4
+#define INDENTATION_MULTIPLIER 2
 
 #define MARKER_AFFIX "/*@{"
 #define MARKER_SUFFIX "}@*/"

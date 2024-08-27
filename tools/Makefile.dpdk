@@ -1,5 +1,6 @@
 SELF_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-DPDK_NFS_DIR := $(SELF_DIR)/../dpdk-nfs
+DPDK_NFS_DIR := $(realpath $(SELF_DIR)/../dpdk-nfs)
+DEPS_DIR := $(realpath $(SELF_DIR)/../deps)
 
 ifndef NF
 $(error "NF is not set.")
@@ -24,8 +25,7 @@ CFLAGS_RELEASE := -O3
 CFLAGS_DEBUG := -O0 -rdynamic -DENABLE_LOG -Wfatal-errors
 
 # Some NFs might require the JSON library to generate reports
-CFLAGS += $(shell $(PKGCONF) --cflags nlohmann_json)
-LDFLAGS += $(shell $(PKGCONF) --libs nlohmann_json)
+CFLAGS += -I$(DEPS_DIR)/json/include
 
 NF_LIB_BUILD_DIR := $(DPDK_NFS_DIR)/build/
 NF_LIB_INCLUDE_DIR := $(DPDK_NFS_DIR)
@@ -37,11 +37,11 @@ all: $(APP_RELEASE) $(APP_DEBUG)
 
 $(APP_RELEASE): $(NF) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)
-	@$(CXX) $(CFLAGS) $(CFLAGS_RELEASE) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
+	$(CXX) $(CFLAGS) $(CFLAGS_RELEASE) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
 
 $(APP_DEBUG): $(NF) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)
-	@$(CXX) $(CFLAGS) $(CFLAGS_DEBUG) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
+	$(CXX) $(CFLAGS) $(CFLAGS_DEBUG) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
 
 clean:
 	rm -rf $(OUT_DIR)

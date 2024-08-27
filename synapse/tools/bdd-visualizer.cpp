@@ -10,12 +10,13 @@ int main(int argc, char **argv) {
   std::filesystem::path input_bdd_file;
   std::filesystem::path output_dot_file;
   std::filesystem::path bdd_profile_file;
-  bool show;
+  bool show{false};
 
-  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.");
+  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
+      ->required();
   app.add_option("--out", output_dot_file, "Output dot file.");
   app.add_option("--report", bdd_profile_file, "BDD profile file.");
-  app.add_flag("--show", show, "Render dot file.")->default_val(false);
+  app.add_flag("--show", show, "Render dot file.");
 
   CLI11_PARSE(app, argc, argv);
 

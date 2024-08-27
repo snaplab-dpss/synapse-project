@@ -70,7 +70,7 @@ using json = nlohmann::json;
   if (!(cond))                                                                 \
     rte_exit(EXIT_FAILURE, fmt, ##__VA_ARGS__);
 
-bool nf_init();
+bool nf_init(void);
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
                time_ns_t now);
 
@@ -334,7 +334,7 @@ void nf_config_init(int argc, char **argv) {
 
   bool incoming_warmup = false;
 
-  // Split the arguments into device and pcap pairs joined by a :
+  // split the arguments into device and pcap pairs joined by a :
   for (int i = 2; i < argc; i++) {
     char *arg = argv[i];
 
@@ -486,6 +486,7 @@ void generate_report() {
   NF_INFO("Generated report %s", config.report_fname.c_str());
 }
 
+// Main worker method (for now used on a single thread...)
 static void worker_main() {
   if (!nf_init()) {
     rte_exit(EXIT_FAILURE, "Error initializing NF");

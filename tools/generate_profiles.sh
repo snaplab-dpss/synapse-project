@@ -73,36 +73,36 @@ fw() {
     log_and_run bdd-visualizer -in $BDDS_DIR/fw.bdd -report $report.json -out $report.dot
 }
 
-gen_and_build_profiler kvs
-
-kvs 10000 0 unif 0
-kvs 10000 0 zipf 0.9
-kvs 10000 0 zipf 0.99
-kvs 10000 0 zipf 1.26
-
-kvs 10000 1000000 unif 0
-kvs 10000 1000000 zipf 0.9
-kvs 10000 1000000 zipf 0.99
-kvs 10000 1000000 zipf 1.26
-
-kvs 10000 100000000 unif 0
-kvs 10000 100000000 zipf 0.9
-kvs 10000 100000000 zipf 0.99
-kvs 10000 100000000 zipf 1.26
-
 gen_and_build_profiler fw
 
 fw 10000 0 unif 0
-fw 10000 0 zipf 0.9
-fw 10000 0 zipf 0.99
-fw 10000 0 zipf 1.26
+# fw 10000 0 zipf 0.9
+# fw 10000 0 zipf 0.99
+# fw 10000 0 zipf 1.26
 
 fw 10000 1000000 unif 0
-fw 10000 1000000 zipf 0.9
-fw 10000 1000000 zipf 0.99
-fw 10000 1000000 zipf 1.26
+# fw 10000 1000000 zipf 0.9
+# fw 10000 1000000 zipf 0.99
+# fw 10000 1000000 zipf 1.26
 
 fw 10000 100000000 unif 0
-fw 10000 100000000 zipf 0.9
-fw 10000 100000000 zipf 0.99
-fw 10000 100000000 zipf 1.26
+# fw 10000 100000000 zipf 0.9
+# fw 10000 100000000 zipf 0.99
+# fw 10000 100000000 zipf 1.26
+
+# gen_and_build_profiler kvs
+
+# kvs 10000 0 unif 0
+# kvs 10000 0 zipf 0.9
+# kvs 10000 0 zipf 0.99
+# kvs 10000 0 zipf 1.26
+
+# kvs 10000 1000000 unif 0
+# kvs 10000 1000000 zipf 0.9
+# kvs 10000 1000000 zipf 0.99
+# kvs 10000 1000000 zipf 1.26
+
+# kvs 10000 100000000 unif 0
+# kvs 10000 100000000 zipf 0.9
+# kvs 10000 100000000 zipf 0.99
+# kvs 10000 100000000 zipf 1.26

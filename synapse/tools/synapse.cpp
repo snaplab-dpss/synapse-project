@@ -88,13 +88,13 @@ int main(int argc, char **argv) {
   HeuristicOption heuristic_opt;
   std::vector<ep_id_t> peek;
   std::filesystem::path bdd_profile;
-  u32 seed;
-  bool no_reorder;
-  bool show_ep;
-  bool show_ss;
-  bool show_bdd;
-  bool pause_on_backtrack;
-  bool verbose;
+  u32 seed{0};
+  bool no_reorder{false};
+  bool show_ep{false};
+  bool show_ss{false};
+  bool show_bdd{false};
+  bool pause_on_backtrack{false};
+  bool verbose{false};
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
@@ -107,14 +107,10 @@ int main(int argc, char **argv) {
   app.add_option("--profile", bdd_profile, "BDD profile JSON.");
   app.add_option("--seed", seed, "Random seed.")
       ->default_val(std::random_device()());
-  app.add_flag("--no-reorder", no_reorder, "Deactivate BDD reordering.")
-      ->default_val(false);
-  app.add_flag("--show-ep", show_ep, "Show winner Execution Plan.")
-      ->default_val(false);
-  app.add_flag("--show-ss", show_ss, "Show the entire search space.")
-      ->default_val(false);
-  app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.")
-      ->default_val(false);
+  app.add_flag("--no-reorder", no_reorder, "Deactivate BDD reordering.");
+  app.add_flag("--show-ep", show_ep, "Show winner Execution Plan.");
+  app.add_flag("--show-ss", show_ss, "Show the entire search space.");
+  app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.");
   app.add_flag("--backtrack", pause_on_backtrack, "Pause on backtrack.");
   app.add_flag("-v", verbose, "Verbose mode.");
 

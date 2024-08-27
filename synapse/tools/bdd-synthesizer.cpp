@@ -34,11 +34,12 @@ int main(int argc, char **argv) {
   if (output_file.empty()) {
     std::ostream os(std::cout.rdbuf());
     BDDSynthesizer synthesizer(target, os);
-    synthesizer.visit(bdd);
+    synthesizer.synthesize(bdd);
   } else {
+    std::filesystem::create_directories(output_file.parent_path());
     std::ofstream os(output_file);
     BDDSynthesizer synthesizer(target, os);
-    synthesizer.visit(bdd);
+    synthesizer.synthesize(bdd);
     std::cerr << "Output written to " << output_file << ".\n";
   }
 

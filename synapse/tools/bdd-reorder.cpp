@@ -133,9 +133,9 @@ int main(int argc, char **argv) {
   CLI::App app{"BDD reorder"};
 
   std::filesystem::path input_bdd_file;
-  bool show;
 
-  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.");
+  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
+      ->required();
 
   CLI11_PARSE(app, argc, argv);
 

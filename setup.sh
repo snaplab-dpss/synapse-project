@@ -50,7 +50,6 @@ DPDK_DIR="$DEPS_DIR/dpdk"
 KLEE_DIR="$DEPS_DIR/klee"
 LLVM_DIR="$DEPS_DIR/llvm"
 KLEE_UCLIBC_DIR="$DEPS_DIR/klee-uclibc"
-KLEE_BUILD_PATH="$KLEE_DIR/build"
 LLVM_DIR="$DEPS_DIR/llvm"
 Z3_DIR="$DEPS_DIR/z3"
 OCAML_DIR="$DEPS_DIR/ocaml"
@@ -58,10 +57,14 @@ JSON_DIR="$DEPS_DIR/json"
 
 DPDK_TARGET=x86_64-native-linuxapp-gcc
 DPDK_BUILD_DIR="$DPDK_DIR/$DPDK_TARGET"
+KLEE_BUILD_PATH="$KLEE_DIR/build"
 KLEE_UCLIBC_LIB_DIR="$KLEE_UCLIBC_DIR/lib"
 LLVM_RELEASE_DIR="$LLVM_DIR/Release"
 Z3_BUILD_DIR="$Z3_DIR/build"
 JSON_BUILD_DIR="$JSON_DIR/build"
+
+SYNAPSE_DIR="$SCRIPT_DIR/synapse"
+SYNAPSE_BUILD_DIR="$SYNAPSE_DIR/build"
 
 # Install arguments using system's package manager.
 # XXX: Make the package manager depend on "$OS".
@@ -375,6 +378,17 @@ build_libnf() {
 	sudo ldconfig
 }
 
+build_synapse() {
+	echo "Building Synapse..."
+
+	pushd "$SYNAPSE_DIR"
+		./build.sh
+	popd
+
+	add_multiline_var_to_paths_file "PATH" "$SYNAPSE_BUILD_DIR/bin:\$PATH"
+	echo "Done."
+}
+
 # Environment
 package_sync
 
@@ -426,3 +440,4 @@ source_install_klee
 source_install_json
 bin_install_ocaml
 build_libnf
+build_synapse
