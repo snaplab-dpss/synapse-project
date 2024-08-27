@@ -374,7 +374,7 @@ build_libnf() {
 		make lib
 	popd
 
-	add_multiline_var_to_paths_file "LD_LIBRARY_PATH" "$DPDK_NFS_DIR/build:\$LD_LIBRARY_PATH"
+	add_multiline_var_to_paths_file "LD_LIBRARY_PATH" "$DPDK_NFS_DIR/build:\${LD_LIBRARY_PATH:-}"
 	sudo ldconfig
 }
 
