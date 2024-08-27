@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
   std::filesystem::path pcap_file;
   std::filesystem::path output_report;
 
-  app.add_option("pcap", pcap_file, "Pcap file.");
+  app.add_option("pcap", pcap_file, "Pcap file.")->required();
   app.add_option("--out", output_report, "Output report JSON file.");
 
   CLI11_PARSE(app, argc, argv);

@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
   std::filesystem::path pcap_file;
 
-  app.add_option("pcap", pcap_file, "Pcap file.");
+  app.add_option("pcap", pcap_file, "Pcap file.")->required();
 
   CLI11_PARSE(app, argc, argv);
 
