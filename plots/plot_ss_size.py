@@ -20,7 +20,7 @@ COMPONENT_BDD_REORDERING = "BDD reordering"
 
 OUTPUT_FNAME = "ss_size"
 
-nfs = [ "FW", "NAT", "KVstore", "LB" ]
+nfs = [ "FW", "NAT", "KVS", "LB" ]
 
 data = {
     COMPONENT_BASE: [ 1e4, 0, 0, 0 ],
