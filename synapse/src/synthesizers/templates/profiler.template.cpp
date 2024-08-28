@@ -322,8 +322,8 @@ void nf_config_print(void) {
   NF_INFO("----- Config -----");
   NF_INFO("report: %s", config.report_fname.c_str());
   for (const auto &dev_pcap : config.pcaps) {
-    NF_INFO("device: %u, pcap: %s warmup: %d", dev_pcap.device,
-            dev_pcap.pcap.filename().c_str(), dev_pcap.warmup);
+    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device,
+            dev_pcap.pcap.filename().c_str(), dev_pcap.warmup ? "yes" : "no");
   }
   NF_INFO("--- ---------- ---");
 }
