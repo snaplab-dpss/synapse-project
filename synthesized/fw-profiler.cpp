@@ -611,6 +611,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
+        map_stats.update(7, key, 13);
         // Node 8
         inc_path_counter(8);
         if ((0) == (map_hit)) {
@@ -680,6 +681,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key2[12] = *(hdr2+9);
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
+        map_stats.update(20, key2, 13);
         // Node 21
         inc_path_counter(21);
         if ((0) == (map_hit2)) {
@@ -698,6 +700,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(25);
             memcpy((void*)vector_value_out2, (void*)key2, 13);
             map_put(map, vector_value_out2, index);
+            map_stats.update(25, vector_value_out2, 13);
             // Node 26
             inc_path_counter(26);
             memcpy((void*)vector_value_out2, (void*)key2, 13);
