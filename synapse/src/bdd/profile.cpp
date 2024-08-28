@@ -21,12 +21,25 @@ void from_json(const json &j, bdd_profile_t::meta_t &meta) {
   j.at("avg_pkt_size").get_to(meta.avg_pkt_size);
 }
 
+void from_json(const json &j,
+               std::unordered_map<u32, u32> &crc32_hashes_per_mask) {
+  for (const auto &kv : j.items()) {
+    u32 mask = std::stoul(kv.key());
+    u32 count = kv.value();
+    crc32_hashes_per_mask[mask] = count;
+  }
+}
+
 void from_json(const json &j, bdd_profile_t::map_stats_t &map_stats) {
   j.at("node").get_to(map_stats.node);
   j.at("packets").get_to(map_stats.packets);
   j.at("flows").get_to(map_stats.flows);
   j.at("avg_pkts_per_flow").get_to(map_stats.avg_pkts_per_flow);
   j.at("packets_per_flow").get_to(map_stats.packets_per_flow);
+
+  // Use our parser instead of the default one provided by the library. Their
+  // one is not working for some reason.
+  from_json(j["crc32_hashes_per_mask"], map_stats.crc32_hashes_per_mask);
 }
 
 void from_json(const json &j, std::unordered_map<node_id_t, u64> &counters) {

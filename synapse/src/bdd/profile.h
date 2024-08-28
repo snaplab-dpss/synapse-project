@@ -32,10 +32,10 @@ struct bdd_profile_t {
     u64 flows;
     u64 avg_pkts_per_flow;
     std::vector<u64> packets_per_flow;
+    std::unordered_map<u32, u32> crc32_hashes_per_mask;
   };
 
   std::vector<map_stats_t> map_stats;
-
   std::unordered_map<node_id_t, u64> counters;
 };
 
