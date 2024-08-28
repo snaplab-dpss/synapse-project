@@ -15,9 +15,11 @@ private:
   BDDSynthesizerTarget target;
   BDDTranspiler transpiler;
 
-  using call_synthesizer_fn =
-      std::function<void(coder_t &, const call_t &, symbols_t)>;
-  std::unordered_map<std::string, call_synthesizer_fn> call_synthesizers;
+  using init_synthesizer_fn = std::function<void(coder_t &, const call_t &)>;
+  std::unordered_map<std::string, init_synthesizer_fn> init_synthesizers;
+
+  using process_synthesizer_fn = std::function<void(coder_t &, const Call *)>;
+  std::unordered_map<std::string, process_synthesizer_fn> process_synthesizers;
 
   struct var_t {
     std::string name;
@@ -46,32 +48,34 @@ private:
   var_t build_key(klee::ref<klee::Expr> key_addr, klee::ref<klee::Expr> key,
                   coder_t &coder, bool &key_in_stack);
 
-  void synthesize(coder_t &, const call_t &, symbols_t);
-  void packet_borrow_next_chunk(coder_t &, const call_t &, symbols_t);
-  void packet_return_chunk(coder_t &, const call_t &, symbols_t);
-  void nf_set_rte_ipv4_udptcp_checksum(coder_t &, const call_t &, symbols_t);
-  void expire_items_single_map(coder_t &, const call_t &, symbols_t);
-  void expire_items_single_map_iteratively(coder_t &, const call_t &,
-                                           symbols_t);
-  void map_allocate(coder_t &, const call_t &, symbols_t);
-  void map_get(coder_t &, const call_t &, symbols_t);
-  void map_put(coder_t &, const call_t &, symbols_t);
-  void map_erase(coder_t &, const call_t &, symbols_t);
-  void vector_allocate(coder_t &, const call_t &, symbols_t);
-  void vector_borrow(coder_t &, const call_t &, symbols_t);
-  void vector_return(coder_t &, const call_t &, symbols_t);
-  void dchain_allocate(coder_t &, const call_t &, symbols_t);
-  void dchain_allocate_new_index(coder_t &, const call_t &, symbols_t);
-  void dchain_rejuvenate_index(coder_t &, const call_t &, symbols_t);
-  void dchain_expire_one(coder_t &, const call_t &, symbols_t);
-  void dchain_is_index_allocated(coder_t &, const call_t &, symbols_t);
-  void dchain_free_index(coder_t &, const call_t &, symbols_t);
-  void sketch_allocate(coder_t &, const call_t &, symbols_t);
-  void sketch_compute_hashes(coder_t &, const call_t &, symbols_t);
-  void sketch_refresh(coder_t &, const call_t &, symbols_t);
-  void sketch_fetch(coder_t &, const call_t &, symbols_t);
-  void sketch_touch_buckets(coder_t &, const call_t &, symbols_t);
-  void sketch_expire(coder_t &, const call_t &, symbols_t);
+  void synthesize_init(coder_t &, const call_t &);
+  void synthesize_process(coder_t &, const Call *);
+
+  void map_allocate(coder_t &, const call_t &);
+  void vector_allocate(coder_t &, const call_t &);
+  void dchain_allocate(coder_t &, const call_t &);
+  void sketch_allocate(coder_t &, const call_t &);
+
+  void packet_borrow_next_chunk(coder_t &, const Call *);
+  void packet_return_chunk(coder_t &, const Call *);
+  void nf_set_rte_ipv4_udptcp_checksum(coder_t &, const Call *);
+  void expire_items_single_map(coder_t &, const Call *);
+  void expire_items_single_map_iteratively(coder_t &, const Call *);
+  void map_get(coder_t &, const Call *);
+  void map_put(coder_t &, const Call *);
+  void map_erase(coder_t &, const Call *);
+  void vector_borrow(coder_t &, const Call *);
+  void vector_return(coder_t &, const Call *);
+  void dchain_allocate_new_index(coder_t &, const Call *);
+  void dchain_rejuvenate_index(coder_t &, const Call *);
+  void dchain_expire_one(coder_t &, const Call *);
+  void dchain_is_index_allocated(coder_t &, const Call *);
+  void dchain_free_index(coder_t &, const Call *);
+  void sketch_compute_hashes(coder_t &, const Call *);
+  void sketch_refresh(coder_t &, const Call *);
+  void sketch_fetch(coder_t &, const Call *);
+  void sketch_touch_buckets(coder_t &, const Call *);
+  void sketch_expire(coder_t &, const Call *);
 
   void stack_dbg() const;
   void stack_push();
