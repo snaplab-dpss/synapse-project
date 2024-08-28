@@ -21,15 +21,15 @@ struct bdd_profile_t {
   } config;
 
   struct meta_t {
-    u64 total_packets;
-    u64 total_bytes;
+    u64 packets;
+    u64 bytes;
     int avg_pkt_size;
   } meta;
 
   struct map_stats_t {
     node_id_t node;
-    u64 total_packets;
-    u64 total_flows;
+    u64 packets;
+    u64 flows;
     u64 avg_pkts_per_flow;
     std::vector<u64> packets_per_flow;
   };

@@ -68,7 +68,7 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
   }
   for (const FlowStats &flow_stats : node.flows_stats) {
     os << ", ";
-    os << "#flows=" << flow_stats.total_flows;
+    os << "#flows=" << flow_stats.flows;
   }
   os << ">";
 
@@ -182,13 +182,13 @@ static ProfilerNode *build_profiler_tree(const Node *node,
 static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile_t bdd_profile;
 
-  bdd_profile.meta.total_packets = 100'000;
-  bdd_profile.meta.total_bytes = std::max(64, RandomEngine::generate() % 1500);
+  bdd_profile.meta.packets = 100'000;
+  bdd_profile.meta.bytes = std::max(64, RandomEngine::generate() % 1500);
   bdd_profile.meta.avg_pkt_size =
-      bdd_profile.meta.total_packets / bdd_profile.meta.total_bytes;
+      bdd_profile.meta.packets / bdd_profile.meta.bytes;
 
   const Node *root = bdd->get_root();
-  bdd_profile.counters[root->get_id()] = bdd_profile.meta.total_packets;
+  bdd_profile.counters[root->get_id()] = bdd_profile.meta.packets;
 
   root->visit_nodes([&bdd_profile](const Node *node) {
     assert(bdd_profile.counters.find(node->get_id()) !=
@@ -219,10 +219,10 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
           call.function_name == "map_erase") {
         bdd_profile_t::map_stats_t map_stats;
         map_stats.node = node->get_id();
-        map_stats.total_packets = current_counter;
-        map_stats.total_flows = RandomEngine::generate() % current_counter;
-        map_stats.avg_pkts_per_flow = current_counter / map_stats.total_flows;
-        for (u64 i = 0; i < map_stats.total_flows; i++) {
+        map_stats.packets = current_counter;
+        map_stats.flows = RandomEngine::generate() % current_counter;
+        map_stats.avg_pkts_per_flow = current_counter / map_stats.flows;
+        for (u64 i = 0; i < map_stats.flows; i++) {
           map_stats.packets_per_flow.push_back(map_stats.avg_pkts_per_flow);
         }
         bdd_profile.map_stats.push_back(map_stats);
@@ -277,8 +277,8 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
 
     FlowStats flow_stats = {
         .flow_id = flow_id,
-        .total_packets = map_stats.total_packets,
-        .total_flows = map_stats.total_flows,
+        .packets = map_stats.packets,
+        .flows = map_stats.flows,
         .avg_pkts_per_flow = map_stats.avg_pkts_per_flow,
         .packets_per_flow = map_stats.packets_per_flow,
     };

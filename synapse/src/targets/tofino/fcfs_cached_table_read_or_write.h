@@ -331,11 +331,10 @@ private:
     hit_rate_t relative_write_fraction = rw_fractions.write / *fraction;
     hit_rate_t relative_read_fraction = rw_fractions.read / *fraction;
 
-    u64 cached_packets =
-        std::min(flow_stats->total_packets,
-                 flow_stats->avg_pkts_per_flow * cache_capacity);
+    u64 cached_packets = std::min(
+        flow_stats->packets, flow_stats->avg_pkts_per_flow * cache_capacity);
     hit_rate_t expected_cached_fraction =
-        cached_packets / static_cast<hit_rate_t>(flow_stats->total_packets);
+        cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
 
     hit_rate_t relative_cache_success_fraction =
         relative_read_fraction +
@@ -345,8 +344,8 @@ private:
     // std::cerr << "Writes: " << relative_write_fraction << std::endl;
     // std::cerr << "Avg pkts per flow: " << flow_stats->avg_pkts_per_flow
     //           << std::endl;
-    // std::cerr << "Total flows: " << flow_stats->total_flows << std::endl;
-    // std::cerr << "Total packets: " << flow_stats->total_packets << std::endl;
+    // std::cerr << "Total flows: " << flow_stats->flows << std::endl;
+    // std::cerr << "Total packets: " << flow_stats->packets << std::endl;
     // std::cerr << "Cached packets: " << cached_packets << std::endl;
     // std::cerr << "Expected cached fraction: " << expected_cached_fraction
     //           << std::endl;

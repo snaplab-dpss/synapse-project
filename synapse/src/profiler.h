@@ -9,8 +9,8 @@ typedef std::vector<klee::ref<klee::Expr>> constraints_t;
 
 struct FlowStats {
   klee::ref<klee::Expr> flow_id;
-  u64 total_packets;
-  u64 total_flows;
+  u64 packets;
+  u64 flows;
   u64 avg_pkts_per_flow;
   std::vector<u64> packets_per_flow;
 };

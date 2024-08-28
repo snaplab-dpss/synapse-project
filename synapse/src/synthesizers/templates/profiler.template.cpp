@@ -28,6 +28,7 @@ extern "C" {
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 #include <rte_random.h>
+#include <rte_hash_crc.h>
 
 #include <pcap.h>
 #include <stdbool.h>
@@ -37,6 +38,8 @@ extern "C" {
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 using json = nlohmann::json;
 
@@ -393,12 +396,27 @@ struct Stats {
   };
 
   std::unordered_map<key_t, uint64_t, KeyHasher> stats;
+  std::unordered_map<uint32_t, std::unordered_set<uint32_t>> mask_to_crc32;
 
-  Stats() : stats() {}
+  Stats() : stats() {
+    uint32_t mask = 0;
+    while (1) {
+      mask = (mask << 1) | 1;
+      mask_to_crc32[mask] = {};
+      if (mask == 0xffffffff) {
+        break;
+      }
+    }
+  }
 
   void update(const void *key, uint32_t len) {
     key_t k((uint8_t *)key, len);
     stats[k]++;
+
+    uint32_t crc32 = rte_hash_crc(k.data, k.len, 0xffffffff);
+    for (auto &[mask, hashes] : mask_to_crc32) {
+      hashes.insert(crc32 & mask);
+    }
   }
 };
 
@@ -446,8 +464,8 @@ void generate_report() {
 
   report["meta"] = json();
   report["meta"]["elapsed"] = elapsed_time;
-  report["meta"]["total_packets"] = reader.get_total_packets();
-  report["meta"]["total_bytes"] = reader.get_total_bytes();
+  report["meta"]["packets"] = reader.get_total_packets();
+  report["meta"]["bytes"] = reader.get_total_bytes();
   report["meta"]["avg_pkt_size"] =
       reader.get_total_bytes() / reader.get_total_packets();
 
@@ -456,7 +474,13 @@ void generate_report() {
     json map_op_stats_json;
     map_op_stats_json["node"] = map_op;
     map_op_stats_json["packets_per_flow"] = json::array();
-    map_op_stats_json["total_flows"] = stats.stats.size();
+    map_op_stats_json["flows"] = stats.stats.size();
+
+    map_op_stats_json["crc32_hashes_per_mask"] = json();
+    for (const auto &[mask, crc32_hashes] : stats.mask_to_crc32) {
+      map_op_stats_json["crc32_hashes_per_mask"][std::to_string(mask)] =
+          crc32_hashes.size();
+    }
 
     uint64_t total_packets = 0;
     std::vector<uint64_t> packets_per_flow;
@@ -472,7 +496,7 @@ void generate_report() {
       map_op_stats_json["packets_per_flow"].push_back(packets);
     }
 
-    map_op_stats_json["total_packets"] = total_packets;
+    map_op_stats_json["packets"] = total_packets;
     map_op_stats_json["avg_pkts_per_flow"] = total_packets / stats.stats.size();
 
     report["map_stats"].push_back(map_op_stats_json);

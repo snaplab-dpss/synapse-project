@@ -317,11 +317,10 @@ private:
         profiler->get_flow_stats(full_write_constraints, key);
     assert(flow_stats.has_value());
 
-    u64 cached_packets =
-        std::min(flow_stats->total_packets,
-                 flow_stats->avg_pkts_per_flow * cache_capacity);
+    u64 cached_packets = std::min(
+        flow_stats->packets, flow_stats->avg_pkts_per_flow * cache_capacity);
     hit_rate_t expected_cached_fraction =
-        cached_packets / static_cast<hit_rate_t>(flow_stats->total_packets);
+        cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
 
     return fraction.value() * expected_cached_fraction;
   }
