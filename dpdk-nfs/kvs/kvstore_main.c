@@ -54,38 +54,45 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   struct kvstore_hdr *kvstore_hdr = nf_then_get_kvstore_header(udp_hdr, buffer);
 
   if (kvstore_hdr == NULL) {
-    NF_DEBUG("Not KVSTORE, dropping");
+    NF_DEBUG("Not KVS, dropping");
     return DROP;
+  }
+
+  if (device == config.internal_device) {
+    return config.external_device;
   }
 
   enum kvstore_op op = (enum kvstore_op)kvstore_hdr->op;
 
   bool status = true;
+  uint16_t dst_device = device;
 
   switch (kvstore_hdr->op) {
-    case KVSTORE_OP_GET: {
-      status = kvstore_get(kvstore_state, kvstore_hdr->key, kvstore_hdr->value);
-      if (!status) {
-        NF_DEBUG("Failed to get key");
-      }
-    } break;
-    case KVSTORE_OP_PUT: {
-      status =
-          kvstore_put(kvstore_state, kvstore_hdr->key, kvstore_hdr->value, now);
-      if (!status) {
-        NF_DEBUG("Failed to put key");
-      }
-    } break;
-    case KVSTORE_OP_DEL: {
-      status = kvstore_delete(kvstore_state, kvstore_hdr->key);
-      if (!status) {
-        NF_DEBUG("Failed to delete key");
-      }
-    } break;
-    default: {
-      NF_DEBUG("Unknown operation");
-      status = false;
+  case KVSTORE_OP_GET: {
+    status = kvstore_get(kvstore_state, kvstore_hdr->key, kvstore_hdr->value);
+    if (!status) {
+      NF_DEBUG("Failed to get key");
     }
+  } break;
+  case KVSTORE_OP_PUT: {
+    status =
+        kvstore_put(kvstore_state, kvstore_hdr->key, kvstore_hdr->value, now);
+    if (!status) {
+      NF_DEBUG("Failed to put key");
+    }
+    dst_device = config.internal_device;
+  } break;
+  case KVSTORE_OP_DEL: {
+    status = kvstore_delete(kvstore_state, kvstore_hdr->key);
+    if (!status) {
+      NF_DEBUG("Failed to delete key");
+    }
+    dst_device = config.internal_device;
+  } break;
+  default: {
+    NF_DEBUG("Unknown operation");
+    status = false;
+  }
   }
 
   if (status) {
@@ -96,5 +103,5 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
 
   invert_flow(ether_hdr, ipv4_hdr, udp_hdr);
 
-  return device;
+  return dst_device;
 }
