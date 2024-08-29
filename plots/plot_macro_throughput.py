@@ -14,9 +14,9 @@ PLOTS_DIR = CURRENT_DIR / "plots"
 
 OUTPUT_FNAME = "macro_throughput"
 
-nfs = [ "FW", "NAT", "KVS", "LB" ]
-solutions = [ "Synapse (CAIDA)", "Synapse (UNIV1)", "Synapse (MAWI)", "Gallium" ]
-workloads = [ "CAIDA", "UNIV1", "MAWI" ]
+nfs = [ "KVS", "FW", "NAT", "LB", "CL", "PSD" ]
+solutions = [ "Synapse (UNIV1)", "Synapse (UNIV2)", "Synapse (CAIDA)", "Synapse (MAWI)", "Gallium" ]
+workloads = [ "UNIV1", "UNIV2", "CAIDA", "MAWI" ]
 
 def random_data():
     data = {}
@@ -41,9 +41,13 @@ def plot(data: dict):
 
         ax.set_ylim(ymin=0, ymax=100e9)
         ax.set_ylabel("Throughput (Gbps)")
-        ax.set_yticks(np.arange(0, 101e9, 10e9), labels=np.arange(0, 101, 10))
 
-        colors = [ '#2400D8', '#3D87FF', '#99EAFF', '#FF3D3D', ]
+        ax.set_yticks(np.arange(0, 101e9, 20e9), labels=np.arange(0, 101, 20))
+        ax.set_yticks(np.arange(10e9, 101e9, 20e9), minor=True)
+
+        # LightBlue2DarkBlue10Steps
+        colors = [ '#003FFF', '#1965FF', '#3288FF', '#4CA5FF', '#FF3D3D', ]
+
         pos = ind
         for (sol, throughput_per_workload), hatch, color in zip(data[nf].items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
             y = throughput_per_workload['y']
@@ -55,9 +59,15 @@ def plot(data: dict):
 
         ax.set_xticks(ind + (3.0/2)*bar_width, workloads)
 
-        ax.legend(bbox_to_anchor=(0.5, 1.3), loc='upper center', ncols=2)
-        # ax.legend(loc='best')
-        fig.set_size_inches(width / 2, height * 0.75)
+        # ax.legend(bbox_to_anchor=(0.5, 1.3), loc='upper center', ncols=2)
+        # fig.set_size_inches(width * 0.5, height * 0.75)
+
+        # ax.legend(bbox_to_anchor=(0.5, 1.5), loc='upper center', ncols=2, columnspacing=0.5, prop={'size': 6})
+        # fig.set_size_inches(width * 0.4, height * 0.5)
+
+        ax.legend(bbox_to_anchor=(0.45, 1.4), loc='upper center', ncols=3, columnspacing=0.5, prop={'size': 5})
+        fig.set_size_inches(width * 0.4, height * 0.5)
+
         fig.tight_layout(pad=0.1)
 
         print("-> ", fig_file_pdf)
