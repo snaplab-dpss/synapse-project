@@ -573,16 +573,16 @@ uint64_t path_profiler_counter[84];
 
 
 bool nf_init() {
-  if (!map_allocate(8192, 16, &map)) {
+  if (!map_allocate(16384, 16, &map)) {
     return false;
   }
-  if (!vector_allocate(16, 8192, &vector)) {
+  if (!vector_allocate(16, 16384, &vector)) {
     return false;
   }
-  if (!vector_allocate(128, 8192, &vector2)) {
+  if (!vector_allocate(128, 16384, &vector2)) {
     return false;
   }
-  if (!dchain_allocate(8192, &dchain)) {
+  if (!dchain_allocate(16384, &dchain)) {
     return false;
   }
   memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
@@ -623,26 +623,42 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         if ((0) != (device & 65535)) {
           // Node 8
           inc_path_counter(8);
+          packet_return_chunk(buffer, hdr4);
+          // Node 9
+          inc_path_counter(9);
+          packet_return_chunk(buffer, hdr3);
+          // Node 10
+          inc_path_counter(10);
+          packet_return_chunk(buffer, hdr2);
+          // Node 11
+          inc_path_counter(11);
+          packet_return_chunk(buffer, hdr);
+          // Node 12
+          inc_path_counter(12);
+          return 0;
+        } else {
+          // Node 13
+          inc_path_counter(13);
           if ((1) != (*(hdr4+0))) {
-            // Node 9
-            inc_path_counter(9);
+            // Node 14
+            inc_path_counter(14);
             if ((0) != (*(hdr4+0))) {
-              // Node 10
-              inc_path_counter(10);
+              // Node 15
+              inc_path_counter(15);
               if ((2) != (*(hdr4+0))) {
-                // Node 11
-                inc_path_counter(11);
+                // Node 16
+                inc_path_counter(16);
                 hdr4[145] = 1;
                 packet_return_chunk(buffer, hdr4);
-                // Node 12
-                inc_path_counter(12);
+                // Node 17
+                inc_path_counter(17);
                 hdr3[0] = *(hdr3+2);
                 hdr3[1] = *(hdr3+3);
                 hdr3[2] = *(hdr3+0);
                 hdr3[3] = *(hdr3+1);
                 packet_return_chunk(buffer, hdr3);
-                // Node 13
-                inc_path_counter(13);
+                // Node 18
+                inc_path_counter(18);
                 hdr2[12] = *(hdr2+16);
                 hdr2[13] = *(hdr2+17);
                 hdr2[14] = *(hdr2+18);
@@ -652,8 +668,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr2[18] = *(hdr2+14);
                 hdr2[19] = *(hdr2+15);
                 packet_return_chunk(buffer, hdr2);
-                // Node 14
-                inc_path_counter(14);
+                // Node 19
+                inc_path_counter(19);
                 hdr[0] = *(hdr+6);
                 hdr[1] = *(hdr+7);
                 hdr[2] = *(hdr+8);
@@ -667,33 +683,33 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr[10] = *(hdr+4);
                 hdr[11] = *(hdr+5);
                 packet_return_chunk(buffer, hdr);
-                // Node 15
-                inc_path_counter(15);
-                return 1;
+                // Node 20
+                inc_path_counter(20);
+                return 0;
               } else {
-                // Node 16
-                inc_path_counter(16);
+                // Node 21
+                inc_path_counter(21);
                 uint8_t key[16];
                 memcpy((void*)key, (void*)(hdr4+1), 16);
                 int value;
                 int map_hit = map_get(map, key, &value);
-                map_stats.update(16, key, 16);
-                // Node 17
-                inc_path_counter(17);
+                map_stats.update(21, key, 16);
+                // Node 22
+                inc_path_counter(22);
                 if ((0) == (map_hit)) {
-                  // Node 18
-                  inc_path_counter(18);
+                  // Node 23
+                  inc_path_counter(23);
                   hdr4[145] = 1;
                   packet_return_chunk(buffer, hdr4);
-                  // Node 19
-                  inc_path_counter(19);
+                  // Node 24
+                  inc_path_counter(24);
                   hdr3[0] = *(hdr3+2);
                   hdr3[1] = *(hdr3+3);
                   hdr3[2] = *(hdr3+0);
                   hdr3[3] = *(hdr3+1);
                   packet_return_chunk(buffer, hdr3);
-                  // Node 20
-                  inc_path_counter(20);
+                  // Node 25
+                  inc_path_counter(25);
                   hdr2[12] = *(hdr2+16);
                   hdr2[13] = *(hdr2+17);
                   hdr2[14] = *(hdr2+18);
@@ -703,8 +719,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   hdr2[18] = *(hdr2+14);
                   hdr2[19] = *(hdr2+15);
                   packet_return_chunk(buffer, hdr2);
-                  // Node 21
-                  inc_path_counter(21);
+                  // Node 26
+                  inc_path_counter(26);
                   hdr[0] = *(hdr+6);
                   hdr[1] = *(hdr+7);
                   hdr[2] = *(hdr+8);
@@ -718,31 +734,31 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   hdr[10] = *(hdr+4);
                   hdr[11] = *(hdr+5);
                   packet_return_chunk(buffer, hdr);
-                  // Node 22
-                  inc_path_counter(22);
-                  return 0;
+                  // Node 27
+                  inc_path_counter(27);
+                  return 1;
                 } else {
-                  // Node 23
-                  inc_path_counter(23);
+                  // Node 28
+                  inc_path_counter(28);
                   dchain_free_index(dchain, value);
-                  // Node 24
-                  inc_path_counter(24);
+                  // Node 29
+                  inc_path_counter(29);
                   memcpy((void*)key, (void*)(hdr4+1), 16);
                   void* trash;
                   map_erase(map, key, &trash);
-                  // Node 25
-                  inc_path_counter(25);
+                  // Node 30
+                  inc_path_counter(30);
                   hdr4[145] = 0;
                   packet_return_chunk(buffer, hdr4);
-                  // Node 26
-                  inc_path_counter(26);
+                  // Node 31
+                  inc_path_counter(31);
                   hdr3[0] = *(hdr3+2);
                   hdr3[1] = *(hdr3+3);
                   hdr3[2] = *(hdr3+0);
                   hdr3[3] = *(hdr3+1);
                   packet_return_chunk(buffer, hdr3);
-                  // Node 27
-                  inc_path_counter(27);
+                  // Node 32
+                  inc_path_counter(32);
                   hdr2[12] = *(hdr2+16);
                   hdr2[13] = *(hdr2+17);
                   hdr2[14] = *(hdr2+18);
@@ -752,8 +768,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   hdr2[18] = *(hdr2+14);
                   hdr2[19] = *(hdr2+15);
                   packet_return_chunk(buffer, hdr2);
-                  // Node 28
-                  inc_path_counter(28);
+                  // Node 33
+                  inc_path_counter(33);
                   hdr[0] = *(hdr+6);
                   hdr[1] = *(hdr+7);
                   hdr[2] = *(hdr+8);
@@ -767,35 +783,35 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   hdr[10] = *(hdr+4);
                   hdr[11] = *(hdr+5);
                   packet_return_chunk(buffer, hdr);
-                  // Node 29
-                  inc_path_counter(29);
-                  return 0;
+                  // Node 34
+                  inc_path_counter(34);
+                  return 1;
                 } // (0) == (map_hit)
               } // (2) != (*(hdr4+0))
             } else {
-              // Node 30
-              inc_path_counter(30);
+              // Node 35
+              inc_path_counter(35);
               uint8_t key2[16];
               memcpy((void*)key2, (void*)(hdr4+1), 16);
               int value2;
               int map_hit2 = map_get(map, key2, &value2);
-              map_stats.update(30, key2, 16);
-              // Node 31
-              inc_path_counter(31);
+              map_stats.update(35, key2, 16);
+              // Node 36
+              inc_path_counter(36);
               if ((0) == (map_hit2)) {
-                // Node 32
-                inc_path_counter(32);
+                // Node 37
+                inc_path_counter(37);
                 hdr4[145] = 1;
                 packet_return_chunk(buffer, hdr4);
-                // Node 33
-                inc_path_counter(33);
+                // Node 38
+                inc_path_counter(38);
                 hdr3[0] = *(hdr3+2);
                 hdr3[1] = *(hdr3+3);
                 hdr3[2] = *(hdr3+0);
                 hdr3[3] = *(hdr3+1);
                 packet_return_chunk(buffer, hdr3);
-                // Node 34
-                inc_path_counter(34);
+                // Node 39
+                inc_path_counter(39);
                 hdr2[12] = *(hdr2+16);
                 hdr2[13] = *(hdr2+17);
                 hdr2[14] = *(hdr2+18);
@@ -805,8 +821,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr2[18] = *(hdr2+14);
                 hdr2[19] = *(hdr2+15);
                 packet_return_chunk(buffer, hdr2);
-                // Node 35
-                inc_path_counter(35);
+                // Node 40
+                inc_path_counter(40);
                 hdr[0] = *(hdr+6);
                 hdr[1] = *(hdr+7);
                 hdr[2] = *(hdr+8);
@@ -820,18 +836,18 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr[10] = *(hdr+4);
                 hdr[11] = *(hdr+5);
                 packet_return_chunk(buffer, hdr);
-                // Node 36
-                inc_path_counter(36);
-                return 1;
+                // Node 41
+                inc_path_counter(41);
+                return 0;
               } else {
-                // Node 37
-                inc_path_counter(37);
+                // Node 42
+                inc_path_counter(42);
                 uint8_t vector_value_out[128];
                 vector_borrow(vector2, value2, (void**)&vector_value_out);
-                // Node 38
-                inc_path_counter(38);
-                // Node 39
-                inc_path_counter(39);
+                // Node 43
+                inc_path_counter(43);
+                // Node 44
+                inc_path_counter(44);
                 hdr4[17] = *(vector_value_out+0);
                 hdr4[18] = *(vector_value_out+1);
                 hdr4[19] = *(vector_value_out+2);
@@ -962,15 +978,15 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr4[144] = *(vector_value_out+127);
                 hdr4[145] = 0;
                 packet_return_chunk(buffer, hdr4);
-                // Node 40
-                inc_path_counter(40);
+                // Node 45
+                inc_path_counter(45);
                 hdr3[0] = *(hdr3+2);
                 hdr3[1] = *(hdr3+3);
                 hdr3[2] = *(hdr3+0);
                 hdr3[3] = *(hdr3+1);
                 packet_return_chunk(buffer, hdr3);
-                // Node 41
-                inc_path_counter(41);
+                // Node 46
+                inc_path_counter(46);
                 hdr2[12] = *(hdr2+16);
                 hdr2[13] = *(hdr2+17);
                 hdr2[14] = *(hdr2+18);
@@ -980,8 +996,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr2[18] = *(hdr2+14);
                 hdr2[19] = *(hdr2+15);
                 packet_return_chunk(buffer, hdr2);
-                // Node 42
-                inc_path_counter(42);
+                // Node 47
+                inc_path_counter(47);
                 hdr[0] = *(hdr+6);
                 hdr[1] = *(hdr+7);
                 hdr[2] = *(hdr+8);
@@ -995,92 +1011,51 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 hdr[10] = *(hdr+4);
                 hdr[11] = *(hdr+5);
                 packet_return_chunk(buffer, hdr);
-                // Node 43
-                inc_path_counter(43);
-                return 1;
+                // Node 48
+                inc_path_counter(48);
+                return 0;
               } // (0) == (map_hit2)
             } // (0) != (*(hdr4+0))
           } else {
-            // Node 44
-            inc_path_counter(44);
+            // Node 49
+            inc_path_counter(49);
             uint8_t key3[16];
             memcpy((void*)key3, (void*)(hdr4+1), 16);
             int value3;
             int map_hit3 = map_get(map, key3, &value3);
-            map_stats.update(44, key3, 16);
-            // Node 45
-            inc_path_counter(45);
+            map_stats.update(49, key3, 16);
+            // Node 50
+            inc_path_counter(50);
             if ((0) == (map_hit3)) {
-              // Node 46
-              inc_path_counter(46);
+              // Node 51
+              inc_path_counter(51);
               int index;
               int out_of_space = !dchain_allocate_new_index(dchain, &index, now);
-              // Node 47
-              inc_path_counter(47);
+              // Node 52
+              inc_path_counter(52);
               if ((0) == ((uint8_t)((bool)((0) != (out_of_space))))) {
-                // Node 48
-                inc_path_counter(48);
-                uint8_t vector_value_out2[16];
-                vector_borrow(vector, index, (void**)&vector_value_out2);
-                // Node 49
-                inc_path_counter(49);
-                memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
-                map_put(map, vector_value_out2, index);
-                map_stats.update(49, vector_value_out2, 16);
-                // Node 50
-                inc_path_counter(50);
-                memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
-                // Node 51
-                inc_path_counter(51);
-                uint8_t vector_value_out3[128];
-                vector_borrow(vector2, index, (void**)&vector_value_out3);
-                // Node 52
-                inc_path_counter(52);
-                memcpy((void*)vector_value_out3, (void*)(key3+17), 128);
                 // Node 53
                 inc_path_counter(53);
-                hdr4[145] = 0;
-                packet_return_chunk(buffer, hdr4);
+                uint8_t vector_value_out2[16];
+                vector_borrow(vector, index, (void**)&vector_value_out2);
                 // Node 54
                 inc_path_counter(54);
-                hdr3[0] = *(hdr3+2);
-                hdr3[1] = *(hdr3+3);
-                hdr3[2] = *(hdr3+0);
-                hdr3[3] = *(hdr3+1);
-                packet_return_chunk(buffer, hdr3);
+                memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
+                map_put(map, vector_value_out2, index);
+                map_stats.update(54, vector_value_out2, 16);
                 // Node 55
                 inc_path_counter(55);
-                hdr2[12] = *(hdr2+16);
-                hdr2[13] = *(hdr2+17);
-                hdr2[14] = *(hdr2+18);
-                hdr2[15] = *(hdr2+19);
-                hdr2[16] = *(hdr2+12);
-                hdr2[17] = *(hdr2+13);
-                hdr2[18] = *(hdr2+14);
-                hdr2[19] = *(hdr2+15);
-                packet_return_chunk(buffer, hdr2);
+                memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
                 // Node 56
                 inc_path_counter(56);
-                hdr[0] = *(hdr+6);
-                hdr[1] = *(hdr+7);
-                hdr[2] = *(hdr+8);
-                hdr[3] = *(hdr+9);
-                hdr[4] = *(hdr+10);
-                hdr[5] = *(hdr+11);
-                hdr[6] = *(hdr+0);
-                hdr[7] = *(hdr+1);
-                hdr[8] = *(hdr+2);
-                hdr[9] = *(hdr+3);
-                hdr[10] = *(hdr+4);
-                hdr[11] = *(hdr+5);
-                packet_return_chunk(buffer, hdr);
+                uint8_t vector_value_out3[128];
+                vector_borrow(vector2, index, (void**)&vector_value_out3);
                 // Node 57
                 inc_path_counter(57);
-                return 0;
-              } else {
+                memcpy((void*)vector_value_out3, (void*)(key3+17), 128);
                 // Node 58
                 inc_path_counter(58);
-                hdr4[145] = 1;
+                hdr4[145] = 0;
                 packet_return_chunk(buffer, hdr4);
                 // Node 59
                 inc_path_counter(59);
@@ -1117,29 +1092,70 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 packet_return_chunk(buffer, hdr);
                 // Node 62
                 inc_path_counter(62);
-                return 0;
+                return 1;
+              } else {
+                // Node 63
+                inc_path_counter(63);
+                hdr4[145] = 1;
+                packet_return_chunk(buffer, hdr4);
+                // Node 64
+                inc_path_counter(64);
+                hdr3[0] = *(hdr3+2);
+                hdr3[1] = *(hdr3+3);
+                hdr3[2] = *(hdr3+0);
+                hdr3[3] = *(hdr3+1);
+                packet_return_chunk(buffer, hdr3);
+                // Node 65
+                inc_path_counter(65);
+                hdr2[12] = *(hdr2+16);
+                hdr2[13] = *(hdr2+17);
+                hdr2[14] = *(hdr2+18);
+                hdr2[15] = *(hdr2+19);
+                hdr2[16] = *(hdr2+12);
+                hdr2[17] = *(hdr2+13);
+                hdr2[18] = *(hdr2+14);
+                hdr2[19] = *(hdr2+15);
+                packet_return_chunk(buffer, hdr2);
+                // Node 66
+                inc_path_counter(66);
+                hdr[0] = *(hdr+6);
+                hdr[1] = *(hdr+7);
+                hdr[2] = *(hdr+8);
+                hdr[3] = *(hdr+9);
+                hdr[4] = *(hdr+10);
+                hdr[5] = *(hdr+11);
+                hdr[6] = *(hdr+0);
+                hdr[7] = *(hdr+1);
+                hdr[8] = *(hdr+2);
+                hdr[9] = *(hdr+3);
+                hdr[10] = *(hdr+4);
+                hdr[11] = *(hdr+5);
+                packet_return_chunk(buffer, hdr);
+                // Node 67
+                inc_path_counter(67);
+                return 1;
               } // (0) == ((uint8_t)((bool)((0) != (out_of_space))))
             } else {
-              // Node 63
-              inc_path_counter(63);
+              // Node 68
+              inc_path_counter(68);
               uint8_t vector_value_out4[128];
               vector_borrow(vector2, value3, (void**)&vector_value_out4);
-              // Node 64
-              inc_path_counter(64);
+              // Node 69
+              inc_path_counter(69);
               memcpy((void*)vector_value_out4, (void*)(key3+17), 128);
-              // Node 65
-              inc_path_counter(65);
+              // Node 70
+              inc_path_counter(70);
               hdr4[145] = 0;
               packet_return_chunk(buffer, hdr4);
-              // Node 66
-              inc_path_counter(66);
+              // Node 71
+              inc_path_counter(71);
               hdr3[0] = *(hdr3+2);
               hdr3[1] = *(hdr3+3);
               hdr3[2] = *(hdr3+0);
               hdr3[3] = *(hdr3+1);
               packet_return_chunk(buffer, hdr3);
-              // Node 67
-              inc_path_counter(67);
+              // Node 72
+              inc_path_counter(72);
               hdr2[12] = *(hdr2+16);
               hdr2[13] = *(hdr2+17);
               hdr2[14] = *(hdr2+18);
@@ -1149,8 +1165,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               hdr2[18] = *(hdr2+14);
               hdr2[19] = *(hdr2+15);
               packet_return_chunk(buffer, hdr2);
-              // Node 68
-              inc_path_counter(68);
+              // Node 73
+              inc_path_counter(73);
               hdr[0] = *(hdr+6);
               hdr[1] = *(hdr+7);
               hdr[2] = *(hdr+8);
@@ -1164,27 +1180,11 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               hdr[10] = *(hdr+4);
               hdr[11] = *(hdr+5);
               packet_return_chunk(buffer, hdr);
-              // Node 69
-              inc_path_counter(69);
-              return 0;
+              // Node 74
+              inc_path_counter(74);
+              return 1;
             } // (0) == (map_hit3)
           } // (1) != (*(hdr4+0))
-        } else {
-          // Node 70
-          inc_path_counter(70);
-          packet_return_chunk(buffer, hdr4);
-          // Node 71
-          inc_path_counter(71);
-          packet_return_chunk(buffer, hdr3);
-          // Node 72
-          inc_path_counter(72);
-          packet_return_chunk(buffer, hdr2);
-          // Node 73
-          inc_path_counter(73);
-          packet_return_chunk(buffer, hdr);
-          // Node 74
-          inc_path_counter(74);
-          return 1;
         } // (0) != (device & 65535)
       } else {
         // Node 75
