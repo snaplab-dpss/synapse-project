@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 ubuntu:focal
+FROM ubuntu:focal
 
 # https://stackoverflow.com/questions/51023312/docker-having-issues-installing-apt-utils
 ARG DEBIAN_FRONTEND=noninteractive
@@ -22,7 +22,7 @@ RUN mkdir /home/docker/.ssh
 RUN chown -R docker:docker /home/docker/.ssh
 
 # Install some nice to have applications
-RUN sudo apt-get -y install \
+RUN sudo apt-get update && sudo apt-get -y install \
     man \
     build-essential \
     wget \
@@ -65,11 +65,10 @@ RUN echo "source ~/.profile" >> /home/docker/.zshrc
 #  Building dependencies  #
 ###########################
 
-COPY --chown=docker:docker . synapse
+COPY --chown=docker:docker . synapse-project
+WORKDIR synapse-project
 
-RUN cd synapse && \
-    git submodule update --init --recursive && \
-    ./build.sh
+RUN ./setup.sh
 
 ###########################
 #     Additional tools    #

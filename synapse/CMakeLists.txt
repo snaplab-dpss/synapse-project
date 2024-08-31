@@ -71,6 +71,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_z3.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_llvm.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_klee.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_curses.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
 
 ###############################################################################
 # Build executables (synapse and tools)
@@ -97,6 +98,8 @@ foreach(TOOL ${TOOLS})
     target_link_libraries(${TOOL_NAME} PUBLIC CLI11::CLI11)
     target_link_libraries(${TOOL_NAME} PUBLIC nlohmann_json::nlohmann_json)
     target_link_libraries(${TOOL_NAME} PUBLIC ${PCAP_LIBRARY})
+    target_link_libraries(${TOOL_NAME} PUBLIC Threads::Threads)
+    target_link_libraries(${TOOL_NAME} PUBLIC dl)
 endforeach(TOOL ${TOOLS})
 
 

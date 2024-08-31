@@ -16,24 +16,15 @@ OUTPUT_FNAME = "motivation_throughput"
 
 nf = "KVS"
 solutions = [ "NetCache", "Switcharoo", "Synapse" ]
-workloads = [ "Low churn", "Medium churn", "High churn" ]
-
-# def random_data():
-#     data = {}
-#     for sol in solutions:
-#         data[sol] = {
-#             'y': [ np.random.rand() * 100e9 for _ in range(len(workloads)) ],
-#             'yerr': [ np.random.rand() * 10e9 for _ in range(len(workloads)) ],
-#         }
-#     return data
+workloads = [ "High churn\nHigh skew", "Medium churn\nMedium skew", "High churn\nLow skew" ]
 
 data = {
     "NetCache": {
-        "y": [100e9, 50e9, 10e9],
+        "y": [10e9, 70e9, 10e9],
         "yerr": [0, 0, 0],
     },
     "Switcharoo": {
-        "y": [50e9, 80e9, 90e9],
+        "y": [100e9, 10e9, 10e9],
         "yerr": [0, 0, 0],
     },
     "Synapse": {
@@ -52,8 +43,10 @@ def plot(data: dict):
     fig, ax = plt.subplots()
 
     ax.set_ylim(ymin=0, ymax=100e9)
-    ax.set_ylabel("Throughput (Gbps)")
-    ax.set_yticks(np.arange(0, 101e9, 10e9), labels=np.arange(0, 101, 10))
+    ax.set_ylabel("Tput (Gbps)")
+
+    ax.set_yticks(np.arange(0, 101e9, 20e9), labels=np.arange(0, 101, 20))
+    ax.set_yticks(np.arange(10e9, 101e9, 20e9), minor=True)
 
     colors = [ '#2400D8', '#3D87FF', '#99EAFF', '#FF3D3D', ]
     pos = ind
@@ -67,9 +60,9 @@ def plot(data: dict):
 
     ax.set_xticks(ind + (3.0/2)*bar_width, workloads)
 
-    ax.legend(bbox_to_anchor=(0.5, 1.3), loc='upper center', ncols=3)
+    ax.legend(bbox_to_anchor=(0.5, 1.4), loc='upper center', ncols=3)
     # ax.legend(loc='best')
-    fig.set_size_inches(width / 2, height * 0.6)
+    fig.set_size_inches(width / 2, height * 0.5)
     fig.tight_layout(pad=0.1)
 
     print("-> ", fig_file_pdf)

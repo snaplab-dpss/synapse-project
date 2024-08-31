@@ -39,7 +39,7 @@ DEPS_DIR="$SCRIPT_DIR/deps"
 PATHSFILE="$SCRIPT_DIR/paths.sh"
 KERNEL_VER=$(uname -r | sed 's/-Microsoft//')
 OS="$(detect_os)"
-BUILDING_CORES=4
+BUILDING_CORES=8
 
 # Versions
 OCAML_RELEASE='4.06.0'
@@ -50,7 +50,6 @@ DPDK_DIR="$DEPS_DIR/dpdk"
 KLEE_DIR="$DEPS_DIR/klee"
 LLVM_DIR="$DEPS_DIR/llvm"
 KLEE_UCLIBC_DIR="$DEPS_DIR/klee-uclibc"
-LLVM_DIR="$DEPS_DIR/llvm"
 Z3_DIR="$DEPS_DIR/z3"
 OCAML_DIR="$DEPS_DIR/ocaml"
 JSON_DIR="$DEPS_DIR/json"
@@ -123,6 +122,8 @@ create_paths_file() {
 
 setup_python_venv() {
 	pushd "$SCRIPT_DIR"
+		rm -rf env
+		package_install python3-venv
 		python3 -m venv env
 		add_expr_to_paths_file ". $SCRIPT_DIR/env/bin/activate"
 		pip3 install -r requirements.txt
@@ -228,6 +229,7 @@ source_install_z3() {
 clean_llvm() {
 	rm -rf "$LLVM_RELEASE_DIR"
 	pushd "$LLVM_DIR"
+		rm -rf Makefile.config
 		make clean || true
 	popd
 }
@@ -247,7 +249,9 @@ source_install_llvm() {
 					--enable-optimized \
 					--disable-assertions \
 					--enable-targets=host \
-					--with-python=$(which python)
+					--with-python=$(which python3)
+		
+		make clean || true
 
 		# Painfully slow, but allowing the compilation to use many cores
 		# consumes a lot of memory, and crashes some systems.
@@ -288,6 +292,7 @@ source_install_klee_uclibc() {
 
 		cp "$SCRIPT_DIR/setup/klee-uclibc.config" '.config'
 		
+		make clean
 		make -kj$BUILDING_CORES
 	popd
 
@@ -382,6 +387,7 @@ build_synapse() {
 	echo "Building Synapse..."
 
 	pushd "$SYNAPSE_DIR"
+		rm -rf build
 		./build.sh
 	popd
 

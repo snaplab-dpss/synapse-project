@@ -40,7 +40,7 @@ def plot(data: dict):
         fig, ax = plt.subplots()
 
         ax.set_ylim(ymin=0, ymax=100e9)
-        ax.set_ylabel("Throughput (Gbps)")
+        ax.set_ylabel("Tput (Gbps)")
 
         ax.set_yticks(np.arange(0, 101e9, 20e9), labels=np.arange(0, 101, 20))
         ax.set_yticks(np.arange(10e9, 101e9, 20e9), minor=True)
