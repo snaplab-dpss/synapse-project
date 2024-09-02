@@ -154,13 +154,21 @@ def plot_top_k_flows_cdf(name: str, top_k_flows_cdf: CDF):
     probabilities = top_k_flows_cdf.probabilities
 
     xlabel = "Top-k flows (\\%)"
-    xscale = "linear"
     xscale_base = 10
 
-    xmin = 0
     xmax = 100
 
-    xticks = [ 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 ]
+    if min(values) < 1:
+        xscale = "log"
+        xmin = min(values)
+        xticks = [ xscale_base ** math.floor(math.log(xmin, xscale_base)) ]
+        while xticks[-1] < xmax:
+            xticks.append(xticks[-1] * xscale_base)
+
+    else:
+        xscale = "linear"
+        xmin = 0
+        xticks = [ 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 ]
     
     plot_cdf(pdf,
              values, probabilities,
@@ -175,13 +183,21 @@ def plot_top_k_flows_bytes_cdf(name: str, top_k_flows_bytes_cdf: CDF):
     probabilities = top_k_flows_bytes_cdf.probabilities
 
     xlabel = "Top-k flows (bytes) (\\%)"
-    xscale = "linear"
     xscale_base = 10
 
-    xmin = 0
     xmax = 100
 
-    xticks = [ 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 ]
+    if min(values) < 1:
+        xscale = "log"
+        xmin = min(values)
+        xticks = [ xscale_base ** math.floor(math.log(xmin, xscale_base)) ]
+        while xticks[-1] < xmax:
+            xticks.append(xticks[-1] * xscale_base)
+
+    else:
+        xscale = "linear"
+        xmin = 0
+        xticks = [ 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 ]
     
     plot_cdf(pdf,
              values, probabilities,
