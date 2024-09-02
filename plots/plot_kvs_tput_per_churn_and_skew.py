@@ -64,7 +64,6 @@ def plot(data_per_nf: dict):
         data = data_per_nf[nf]
 
         fig_file_pdf = Path(PLOTS_DIR / f"{OUTPUT_FNAME}_{nf}.pdf")
-        fig_file_png = Path(PLOTS_DIR / f"{OUTPUT_FNAME}_{nf}.png")
 
         # Nice colormaps:
         # https://matplotlib.org/stable/tutorials/colors/colormaps.html
@@ -73,7 +72,7 @@ def plot(data_per_nf: dict):
 
         fig, ax = plt.subplots()
         im = ax.imshow(data, vmin=0, vmax=100, cmap="plasma",
-                       interpolation="spline36" if INTERPOLATE else None)
+                       interpolation="spline36" if INTERPOLATE else "")
         
         # Create colorbar
         assert ax.figure
@@ -103,10 +102,7 @@ def plot(data_per_nf: dict):
         fig.tight_layout()
 
         print("-> ", fig_file_pdf)
-        print("-> ", fig_file_png)
-
         plt.savefig(str(fig_file_pdf))
-        plt.savefig(str(fig_file_png))
 
 def main():
     plot(data_per_nf)

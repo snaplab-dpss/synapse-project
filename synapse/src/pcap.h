@@ -112,6 +112,18 @@ inline std::string fmt(u64 n) {
   return ss.str();
 }
 
+inline std::string fmt(double d) {
+  std::stringstream ss;
+
+  u64 n = static_cast<u64>(d);
+
+  ss << fmt(n);
+  ss << ".";
+  ss << std::setfill('0') << std::setw(2) << static_cast<u64>((d - n) * 100);
+
+  return ss.str();
+}
+
 inline std::string fmt_time_hh(time_ns_t ns) {
   std::stringstream ss;
 

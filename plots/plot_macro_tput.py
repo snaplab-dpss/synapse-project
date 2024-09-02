@@ -35,7 +35,6 @@ def plot(data: dict):
 
     for nf in data.keys():
         fig_file_pdf = Path(PLOTS_DIR / f"{OUTPUT_FNAME}_{nf}.pdf")
-        fig_file_png = Path(PLOTS_DIR / f"{OUTPUT_FNAME}_{nf}.png")
 
         fig, ax = plt.subplots()
 
@@ -71,10 +70,8 @@ def plot(data: dict):
         fig.tight_layout(pad=0.1)
 
         print("-> ", fig_file_pdf)
-        print("-> ", fig_file_png)
 
         plt.savefig(str(fig_file_pdf))
-        plt.savefig(str(fig_file_png))
 
 def main():
     data = random_data()

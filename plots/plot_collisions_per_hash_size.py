@@ -124,7 +124,6 @@ def plot_thpt_per_pkt_sz_pps(
     out_name: str,
 ):
     fig_file_pdf = Path(PLOTS_DIR / f"{out_name}.pdf")
-    fig_file_png = Path(PLOTS_DIR / f"{out_name}.png")
 
     x = data.hash_sizes
     y = data.rel_collisions
@@ -154,10 +153,7 @@ def plot_thpt_per_pkt_sz_pps(
     fig.tight_layout(pad=0.1)
 
     print("-> ", fig_file_pdf)
-    print("-> ", fig_file_png)
-
     plt.savefig(str(fig_file_pdf))
-    plt.savefig(str(fig_file_png))
 
 def main():
     data = get_collisions_per_hash_size()

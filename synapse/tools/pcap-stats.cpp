@@ -11,29 +11,55 @@
 
 #include "../src/pcap.h"
 
+#define EPOCH_DURATION_NS 1'000'000'000 // 1 second
+
 using json = nlohmann::json;
+
+class Clock {
+private:
+  bool on;
+  time_ns_t alarm;
+  time_ns_t interval;
+
+public:
+  Clock(time_ns_t _interval) : on(false), alarm(0), interval(_interval) {}
+
+  bool tick(time_ns_t now) {
+    bool sound_alarm = false;
+
+    if (!on) {
+      on = true;
+      alarm = now + interval;
+    } else if (now >= alarm) {
+      alarm = now + interval;
+      sound_alarm = true;
+    }
+
+    return sound_alarm;
+  }
+};
 
 class CDF {
 private:
-  std::map<uint64_t, uint64_t> values;
-  uint64_t total;
+  std::map<u64, u64> values;
+  u64 total;
 
 public:
   CDF() : total(0) {}
 
-  void add(uint64_t value) {
+  void add(u64 value) {
     values[value]++;
     total++;
   }
 
-  void add(uint64_t value, uint64_t count) {
+  void add(u64 value, u64 count) {
     values[value] += count;
     total += count;
   }
 
-  std::map<uint64_t, float> get_cdf() const {
-    std::map<uint64_t, float> cdf;
-    uint64_t accounted = 0;
+  std::map<u64, float> get_cdf() const {
+    std::map<u64, float> cdf;
+    u64 accounted = 0;
 
     float next_p = 0;
     float step = 0.05;
@@ -87,11 +113,12 @@ struct flow_ts {
 struct report_t {
   time_ns_t start;
   time_ns_t end;
-  uint64_t total_pkts;
-  uint64_t tcpudp_pkts;
+  u64 total_pkts;
+  u64 tcpudp_pkts;
   CDF pkt_sizes_cdf;
-  uint64_t total_flows;
-  uint64_t total_symm_flows;
+  u64 total_flows;
+  u64 total_symm_flows;
+  CDF concurrent_flows_per_epoch;
   CDF pkts_per_flow_cdf;
   CDF top_k_flows_cdf;
   CDF top_k_flows_bytes_cdf;
@@ -187,6 +214,9 @@ void print_report(const report_t &report) {
   printf("Total flows:              %s\n", fmt(report.total_flows).c_str());
   printf("Total symmetric flows:    %s\n",
          fmt(report.total_symm_flows).c_str());
+  printf("Concurrent flows/epoch:   %s ± %s\n",
+         fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
+         fmt(report.concurrent_flows_per_epoch.get_stdev()).c_str());
   printf("Pkts/flow:                %.2f ± %.2f\n",
          report.pkts_per_flow_cdf.get_avg(),
          report.pkts_per_flow_cdf.get_stdev());
@@ -238,24 +268,28 @@ int main(int argc, char *argv[]) {
 
   PcapReader pcap_reader(argv[1]);
 
+  Clock clock(EPOCH_DURATION_NS);
   std::unordered_set<flow_t, flow_t::flow_hash_t> flows;
   std::unordered_set<sflow_t, sflow_t::flow_hash_t> symm_flows;
+  std::vector<std::unordered_set<flow_t, flow_t::flow_hash_t>>
+      concurrent_flows_per_epoch;
 
-  std::unordered_map<flow_t, uint64_t, sflow_t::flow_hash_t> pkts_per_flow;
-  std::unordered_map<flow_t, uint64_t, sflow_t::flow_hash_t> bytes_per_flow;
+  std::unordered_map<flow_t, u64, sflow_t::flow_hash_t> pkts_per_flow;
+  std::unordered_map<flow_t, u64, sflow_t::flow_hash_t> bytes_per_flow;
   std::unordered_map<flow_t, flow_ts, sflow_t::flow_hash_t> flow_times;
 
   report_t report;
 
   report.total_pkts = pcap_reader.get_total_pkts();
   report.tcpudp_pkts = 0;
+  concurrent_flows_per_epoch.emplace_back();
 
-  uint64_t pkt_count = 0;
+  u64 pkt_count = 0;
   int progress = -1;
 
   const u_char *pkt;
-  uint16_t hdrs_len;
-  uint16_t sz;
+  u16 hdrs_len;
+  u16 sz;
   time_ns_t ts;
   std::optional<flow_t> flow;
 
@@ -276,9 +310,14 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
+    if (clock.tick(ts)) {
+      concurrent_flows_per_epoch.emplace_back();
+    }
+
     report.tcpudp_pkts++;
     flows.insert(flow.value());
     symm_flows.insert(flow.value());
+    concurrent_flows_per_epoch.back().insert(flow.value());
     pkts_per_flow[flow.value()]++;
     bytes_per_flow[flow.value()] += sz;
 
@@ -303,8 +342,12 @@ int main(int argc, char *argv[]) {
   report.total_flows = flows.size();
   report.total_symm_flows = symm_flows.size();
 
-  std::vector<uint64_t> pkts_per_flow_values;
-  std::vector<uint64_t> bytes_per_flow_values;
+  for (const auto &flows : concurrent_flows_per_epoch) {
+    report.concurrent_flows_per_epoch.add(flows.size());
+  }
+
+  std::vector<u64> pkts_per_flow_values;
+  std::vector<u64> bytes_per_flow_values;
 
   for (const auto &[flow, pkts] : pkts_per_flow) {
     report.pkts_per_flow_cdf.add(pkts);
@@ -318,9 +361,9 @@ int main(int argc, char *argv[]) {
   assert(pkts_per_flow_values.size() == bytes_per_flow_values.size());
 
   std::sort(pkts_per_flow_values.begin(), pkts_per_flow_values.end(),
-            std::greater<uint64_t>());
+            std::greater<u64>());
   std::sort(bytes_per_flow_values.begin(), bytes_per_flow_values.end(),
-            std::greater<uint64_t>());
+            std::greater<u64>());
 
   for (size_t i = 0; i < pkts_per_flow_values.size(); i++) {
     report.top_k_flows_cdf.add(i + 1, pkts_per_flow_values[i]);

@@ -32,7 +32,6 @@ data = {
 
 def plot_ss_size():
     fig_file_pdf = Path(PLOTS_DIR / f"{OUTPUT_FNAME}.pdf")
-    fig_file_png = Path(PLOTS_DIR / f"{OUTPUT_FNAME}.png")
 
     fig, ax = plt.subplots()
     bottom = np.zeros(len(nfs))
@@ -51,10 +50,7 @@ def plot_ss_size():
     fig.tight_layout(pad=0.1)
 
     print("-> ", fig_file_pdf)
-    print("-> ", fig_file_png)
-
     plt.savefig(str(fig_file_pdf))
-    plt.savefig(str(fig_file_png))
 
 def main():
     plot_ss_size()
