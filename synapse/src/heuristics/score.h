@@ -6,7 +6,6 @@
 
 #include "../execution_plan/execution_plan.h"
 #include "../execution_plan/node.h"
-#include "../targets/targets.h"
 #include "../random_engine.h"
 #include "../log.h"
 

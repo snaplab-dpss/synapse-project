@@ -8,6 +8,7 @@
 #include "heuristics/heuristic.h"
 #include "heuristics/score.h"
 #include "execution_plan/execution_plan.h"
+#include "targets/module_generator.h"
 
 typedef int ss_node_id_t;
 

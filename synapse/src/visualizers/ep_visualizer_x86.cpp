@@ -8,7 +8,7 @@
 
 #include "../log.h"
 #include "../execution_plan/execution_plan.h"
-#include "../targets/targets.h"
+#include "../targets/x86/x86.h"
 
 #define SHOW_MODULE_NAME(M)                                                    \
   void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \

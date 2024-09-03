@@ -220,7 +220,8 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
         bdd_profile_t::map_stats_t map_stats;
         map_stats.node = node->get_id();
         map_stats.packets = current_counter;
-        map_stats.flows = RandomEngine::generate() % current_counter;
+        map_stats.flows =
+            std::max(1ul, RandomEngine::generate() % current_counter);
         map_stats.avg_pkts_per_flow = current_counter / map_stats.flows;
         for (u64 i = 0; i < map_stats.flows; i++) {
           map_stats.packets_per_flow.push_back(map_stats.avg_pkts_per_flow);

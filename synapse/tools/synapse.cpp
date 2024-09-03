@@ -10,6 +10,7 @@
 #include "../src/heuristics/heuristics.h"
 #include "../src/search.h"
 #include "../src/synthesizers/ep/synthesizers.h"
+#include "../src/targets/targets.h"
 
 enum class HeuristicOption {
   BFS,

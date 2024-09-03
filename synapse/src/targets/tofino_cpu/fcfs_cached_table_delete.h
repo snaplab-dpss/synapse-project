@@ -6,45 +6,40 @@ namespace tofino_cpu {
 
 using namespace tofino;
 
-class FCFSCachedTableRead : public TofinoCPUModule {
+class FCFSCachedTableDelete : public TofinoCPUModule {
 private:
   DS_ID id;
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> value;
-  std::optional<symbol_t> found;
 
 public:
-  FCFSCachedTableRead(const Node *node, DS_ID _id, addr_t _obj,
-                      const std::vector<klee::ref<klee::Expr>> &_keys,
-                      klee::ref<klee::Expr> _value,
-                      const std::optional<symbol_t> &_found)
-      : TofinoCPUModule(ModuleType::TofinoCPU_FCFSCachedTableRead,
-                        "FCFSCachedTableRead", node),
-        id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
+  FCFSCachedTableDelete(const Node *node, DS_ID _id, addr_t _obj,
+                        const std::vector<klee::ref<klee::Expr>> &_keys)
+      : TofinoCPUModule(ModuleType::TofinoCPU_FCFSCachedTableDelete,
+                        "FCFSCachedTableDelete", node),
+        id(_id), obj(_obj), keys(_keys) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
     visitor.visit(ep, ep_node, this);
   }
 
-  virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableRead(node, id, obj, keys, value, found);
+  virtual Module *clone() const {
+    FCFSCachedTableDelete *cloned =
+        new FCFSCachedTableDelete(node, id, obj, keys);
     return cloned;
   }
 
   DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
-  klee::ref<klee::Expr> get_value() const { return value; }
-  const std::optional<symbol_t> &get_found() const { return found; }
 };
 
-class FCFSCachedTableReadGenerator : public TofinoCPUModuleGenerator {
+class FCFSCachedTableDeleteGenerator : public TofinoCPUModuleGenerator {
 public:
-  FCFSCachedTableReadGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_FCFSCachedTableRead,
-                                 "FCFSCachedTableRead") {}
+  FCFSCachedTableDeleteGenerator()
+      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_FCFSCachedTableDelete,
+                                 "FCFSCachedTableDelete") {}
 
 protected:
   virtual std::optional<speculation_t>
@@ -56,7 +51,7 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "map_get") {
+    if (call.function_name != "map_erase") {
       return std::nullopt;
     }
 
@@ -79,7 +74,7 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "map_get") {
+    if (call.function_name != "map_erase") {
       return products;
     }
 
@@ -90,13 +85,11 @@ protected:
 
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
-    klee::ref<klee::Expr> value;
-    std::optional<symbol_t> found;
-    get_data(call_node, obj, keys, value, found);
+    get_map_erase_data(call_node, obj, keys);
 
     DS_ID id = get_cached_table_id(ep, obj);
 
-    Module *module = new FCFSCachedTableRead(node, id, obj, keys, value, found);
+    Module *module = new FCFSCachedTableDelete(node, id, obj, keys);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -113,33 +106,24 @@ private:
     const Context &ctx = ep->get_ctx();
     const tofino::TofinoContext *tofino_ctx =
         ctx.get_target_ctx<tofino::TofinoContext>();
-    const std::vector<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
+    const std::unordered_set<tofino::DS *> &data_structures =
+        tofino_ctx->get_ds(obj);
     assert(data_structures.size() == 1);
-    assert(data_structures[0]->type == tofino::DSType::FCFS_CACHED_TABLE);
-    return data_structures[0]->id;
+    tofino::DS *ds = *data_structures.begin();
+    assert(ds->type == tofino::DSType::FCFS_CACHED_TABLE);
+    return ds->id;
   }
 
-  void get_data(const Call *call_node, addr_t &obj,
-                std::vector<klee::ref<klee::Expr>> &keys,
-                klee::ref<klee::Expr> &value,
-                std::optional<symbol_t> &hit) const {
+  void get_map_erase_data(const Call *call_node, addr_t &obj,
+                          std::vector<klee::ref<klee::Expr>> &keys) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "map_get");
+    assert(call.function_name == "map_erase");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
-    klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
-
-    symbols_t symbols = call_node->get_locally_generated_symbols();
-
-    symbol_t map_has_this_key;
-    bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
 
     obj = expr_addr_to_obj_addr(map_addr_expr);
     keys = Table::build_keys(key);
-    value = value_out;
-    hit = map_has_this_key;
   }
 };
 

@@ -15,10 +15,10 @@ TofinoContext::TofinoContext(TNAVersion _version, const Profiler *profiler)
 
 TofinoContext::TofinoContext(const TofinoContext &other) : tna(other.tna) {
   for (const auto &kv : other.obj_to_ds) {
-    std::vector<DS *> new_ds;
+    std::unordered_set<DS *> new_ds;
     for (const auto &ds : kv.second) {
       DS *clone = ds->clone();
-      new_ds.push_back(clone);
+      new_ds.insert(clone);
       id_to_ds[clone->id] = clone;
     }
     obj_to_ds[kv.first] = new_ds;
@@ -26,9 +26,14 @@ TofinoContext::TofinoContext(const TofinoContext &other) : tna(other.tna) {
 }
 
 TofinoContext::~TofinoContext() {
+  std::unordered_set<const DS *> freed;
   for (auto &kv : obj_to_ds) {
     for (auto &ds : kv.second) {
+      if (freed.find(ds) != freed.end()) {
+        continue;
+      }
       delete ds;
+      freed.insert(ds);
     }
     kv.second.clear();
   }
@@ -40,16 +45,25 @@ bool TofinoContext::has_ds(addr_t addr) const {
   return obj_to_ds.find(addr) != obj_to_ds.end();
 }
 
-const std::vector<DS *> &TofinoContext::get_ds(addr_t addr) const {
+const std::unordered_set<DS *> &TofinoContext::get_ds(addr_t addr) const {
   auto found_it = obj_to_ds.find(addr);
   assert(found_it != obj_to_ds.end() && "Data structure not found");
   return found_it->second;
 }
 
 void TofinoContext::save_ds(addr_t addr, DS *ds) {
-  assert(id_to_ds.find(ds->id) == id_to_ds.end() &&
-         "Duplicate data structure ID");
-  obj_to_ds[addr].push_back(ds);
+  auto found_it = id_to_ds.find(ds->id);
+
+  if (found_it != id_to_ds.end()) {
+    assert(found_it->second == ds && "Duplicate data structure ID");
+    auto obj_to_addr_it = obj_to_ds.find(addr);
+    if (obj_to_addr_it != obj_to_ds.end()) {
+      auto &ds_set = obj_to_addr_it->second;
+      assert(ds_set.find(ds) != ds_set.end() && "Duplicate object address");
+    }
+  }
+
+  obj_to_ds[addr].insert(ds);
   id_to_ds[ds->id] = ds;
 }
 
@@ -320,6 +334,18 @@ void TofinoContext::add_recirculated_traffic(
 u64 TofinoContext::estimate_throughput_pps() const {
   const PerfOracle &oracle = tna.get_perf_oracle();
   return oracle.estimate_throughput_pps();
+}
+
+void TofinoContext::debug_placements() const {
+  Log::dbg() << "\n";
+  Log::dbg() << "****** Placements ******\n";
+  for (const auto &[addr, ds_set] : obj_to_ds) {
+    Log::dbg() << "Object " << addr << ":\n";
+    for (const DS *ds : ds_set) {
+      Log::dbg() << "  * " << ds->id << "\n";
+    }
+  }
+  Log::dbg() << "************************\n";
 }
 
 } // namespace tofino

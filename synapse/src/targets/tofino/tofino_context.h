@@ -12,7 +12,7 @@ namespace tofino {
 class TofinoContext : public TargetContext {
 private:
   TNA tna;
-  std::unordered_map<addr_t, std::vector<DS *>> obj_to_ds;
+  std::unordered_map<addr_t, std::unordered_set<DS *>> obj_to_ds;
   std::unordered_map<DS_ID, DS *> id_to_ds;
 
 public:
@@ -31,7 +31,7 @@ public:
   TNA &get_mutable_tna() { return tna; }
 
   bool has_ds(addr_t addr) const;
-  const std::vector<DS *> &get_ds(addr_t addr) const;
+  const std::unordered_set<DS *> &get_ds(addr_t addr) const;
   const DS *get_ds_from_id(DS_ID id) const;
   void save_ds(addr_t addr, DS *ds);
 
@@ -62,6 +62,8 @@ public:
   bool check_many_placements(const EP *ep,
                              const std::vector<std::unordered_set<DS *>> &ds,
                              const std::unordered_set<DS_ID> &deps) const;
+
+  void debug_placements() const;
 };
 
 } // namespace tofino

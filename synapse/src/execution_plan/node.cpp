@@ -1,6 +1,5 @@
 #include "node.h"
 #include "visitor.h"
-#include "../targets/targets.h"
 #include "../targets/module.h"
 #include "../log.h"
 

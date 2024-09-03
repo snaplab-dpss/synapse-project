@@ -38,7 +38,8 @@ public:
     const Context &ctx = ep->get_ctx();
     const tofino::TofinoContext *tofino_ctx =
         ctx.get_target_ctx<tofino::TofinoContext>();
-    const std::vector<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
+    const std::unordered_set<tofino::DS *> &data_structures =
+        tofino_ctx->get_ds(obj);
 
     std::vector<const tofino::Table *> tables;
     for (const tofino::DS *data_structure : data_structures) {

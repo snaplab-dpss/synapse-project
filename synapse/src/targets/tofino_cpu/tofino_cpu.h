@@ -33,9 +33,9 @@
 #include "sketch_touch_buckets.h"
 #include "vector_register_lookup.h"
 #include "vector_register_update.h"
-#include "cached_table_read.h"
-#include "cached_table_write.h"
-#include "cached_table_delete.h"
+#include "fcfs_cached_table_read.h"
+#include "fcfs_cached_table_write.h"
+#include "fcfs_cached_table_delete.h"
 
 #include "tofino_cpu_context.h"
 

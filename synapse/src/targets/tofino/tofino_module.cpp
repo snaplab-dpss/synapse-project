@@ -48,12 +48,11 @@ std::unordered_set<DS *> TofinoModuleGenerator::get_vector_registers(
     return regs;
   }
 
-  const std::vector<DS *> &ds = tofino_ctx->get_ds(data.obj);
-  assert(ds.size());
+  regs = tofino_ctx->get_ds(data.obj);
+  assert(regs.size());
 
-  for (DS *reg : ds) {
+  for (DS *reg : regs) {
     assert(reg->type == DSType::REGISTER);
-    regs.insert(reg);
     rids.insert(reg->id);
   }
 
@@ -168,12 +167,12 @@ static FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node,
     return nullptr;
   }
 
-  const std::vector<DS *> &ds = tofino_ctx->get_ds(obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
   assert(ds.size() == 1);
-  assert(ds[0]->type == DSType::FCFS_CACHED_TABLE);
+  assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE);
 
-  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(ds[0]);
+  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
   cached_table->add_table();
 
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
@@ -217,12 +216,12 @@ TofinoModuleGenerator::get_fcfs_cached_table(const EP *ep, const Node *node,
     return nullptr;
   }
 
-  const std::vector<DS *> &ds = tofino_ctx->get_ds(obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
   assert(ds.size() == 1);
-  assert(ds[0]->type == DSType::FCFS_CACHED_TABLE);
+  assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE);
 
-  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(ds[0]);
+  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
 
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
   if (!tofino_ctx->check_placement(ep, cached_table, deps)) {

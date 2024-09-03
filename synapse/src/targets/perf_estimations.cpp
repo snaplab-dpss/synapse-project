@@ -1,6 +1,8 @@
 #include "context.h"
 #include "target.h"
-#include "targets.h"
+#include "tofino/tofino_context.h"
+#include "tofino_cpu/tofino_cpu_context.h"
+#include "x86/x86_context.h"
 #include "module_generator.h"
 
 struct Context::node_speculation_t {

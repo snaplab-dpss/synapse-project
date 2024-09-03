@@ -1,7 +1,9 @@
 #include "execution_plan.h"
 #include "node.h"
 #include "visitor.h"
-#include "../targets/targets.h"
+#include "../targets/target.h"
+#include "../targets/module.h"
+#include "../exprs/solver.h"
 #include "../profiler.h"
 #include "../log.h"
 

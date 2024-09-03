@@ -75,6 +75,11 @@ private:
     }
 
     const Context &ctx = ep->get_ctx();
+
+    if (is_fcfs_cached_table_op(ctx, call)) {
+      return true;
+    }
+
     if (call.function_name == "dchain_rejuvenate_index") {
       return can_ignore_dchain_op(ctx, call);
     }
@@ -104,6 +109,36 @@ private:
 
     if (!ctx.check_placement(map_objs->map,
                              PlacementDecision::Tofino_SimpleTable)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool is_fcfs_cached_table_op(const Context &ctx, const call_t &call) const {
+    addr_t obj;
+
+    if (call.function_name == "dchain_rejuvenate_index" ||
+        call.function_name == "dchain_allocate_new_index") {
+      klee::ref<klee::Expr> chain = call.args.at("chain").expr;
+      obj = expr_addr_to_obj_addr(chain);
+    } else if (call.function_name == "vector_borrow" ||
+               call.function_name == "vector_return") {
+      klee::ref<klee::Expr> vector = call.args.at("vector").expr;
+      obj = expr_addr_to_obj_addr(vector);
+    } else {
+      return false;
+    }
+
+    std::optional<map_coalescing_objs_t> map_objs =
+        ctx.get_map_coalescing_objs(obj);
+
+    if (!map_objs.has_value()) {
+      return false;
+    }
+
+    if (!ctx.check_placement(map_objs->map,
+                             PlacementDecision::Tofino_FCFSCachedTable)) {
       return false;
     }
 

@@ -76,7 +76,7 @@ private:
     }
 
     const Context &ctx = ep->get_ctx();
-    if (call.function_name == "dchain_rejuvenate_index") {
+    if (call.function_name == "dchain_allocate_new_index") {
       return can_ignore_dchain_op(ctx, call);
     }
 
@@ -91,7 +91,7 @@ private:
   // linking a map with vectors. It doesn't even matter if the data structures
   // are coalesced or not, we can freely ignore it regardless.
   bool can_ignore_dchain_op(const Context &ctx, const call_t &call) const {
-    assert(call.function_name == "dchain_rejuvenate_index");
+    assert(call.function_name == "dchain_allocate_new_index");
 
     klee::ref<klee::Expr> chain = call.args.at("chain").expr;
     addr_t chain_addr = expr_addr_to_obj_addr(chain);

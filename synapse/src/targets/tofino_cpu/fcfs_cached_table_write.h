@@ -110,10 +110,12 @@ private:
     const Context &ctx = ep->get_ctx();
     const tofino::TofinoContext *tofino_ctx =
         ctx.get_target_ctx<tofino::TofinoContext>();
-    const std::vector<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
+    const std::unordered_set<tofino::DS *> &data_structures =
+        tofino_ctx->get_ds(obj);
     assert(data_structures.size() == 1);
-    assert(data_structures[0]->type == tofino::DSType::FCFS_CACHED_TABLE);
-    return data_structures[0]->id;
+    tofino::DS *ds = *data_structures.begin();
+    assert(ds->type == tofino::DSType::FCFS_CACHED_TABLE);
+    return ds->id;
   }
 
   void get_data(const Call *call_node, addr_t &obj,

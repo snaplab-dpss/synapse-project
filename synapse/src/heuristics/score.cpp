@@ -1,4 +1,5 @@
 #include "score.h"
+#include "../targets/module.h"
 #include "../log.h"
 
 std::ostream &operator<<(std::ostream &os, const Score &score) {
