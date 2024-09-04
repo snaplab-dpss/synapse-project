@@ -16,19 +16,19 @@ OUTPUT_FNAME = "motivation_throughput"
 
 nf = "KVS"
 solutions = [ "NetCache", "Switcharoo", "Synapse" ]
-workloads = [ "High churn\nHigh skew", "Medium churn\nMedium skew", "High churn\nLow skew" ]
+workloads = [ "High skew\nLow churn", "Low skew\nHigh churn", "Medium skew\nMedium churn",]
 
 data = {
     "NetCache": {
-        "y": [10e9, 70e9, 10e9],
-        "yerr": [0, 0, 0],
-    },
-    "Switcharoo": {
         "y": [100e9, 10e9, 10e9],
         "yerr": [0, 0, 0],
     },
+    "Switcharoo": {
+        "y": [10e9, 100e9, 10e9],
+        "yerr": [0, 0, 0],
+    },
     "Synapse": {
-        "y": [100e9, 80e9, 85e9],
+        "y": [100e9, 100e9, 70e9],
         "yerr": [0, 0, 0],
     },
 }

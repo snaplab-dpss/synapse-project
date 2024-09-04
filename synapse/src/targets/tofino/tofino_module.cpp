@@ -136,8 +136,7 @@ static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
   const TNA &tna = tofino_ctx->get_tna();
   const TNAProperties &properties = tna.get_properties();
 
-  DS_ID id = "cached_table_" + std::to_string(node->get_id()) + "_" +
-             std::to_string(cache_capacity);
+  DS_ID id = "fcfs_cached_table_" + std::to_string(cache_capacity);
 
   std::vector<klee::ref<klee::Expr>> keys =
       Register::partition_value(properties, key);
@@ -147,7 +146,7 @@ static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
   }
 
   FCFSCachedTable *cached_table = new FCFSCachedTable(
-      properties, id, cache_capacity, num_entries, keys_sizes);
+      properties, id, node->get_id(), cache_capacity, num_entries, keys_sizes);
 
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
   if (!tofino_ctx->check_placement(ep, cached_table, deps)) {
@@ -159,7 +158,8 @@ static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
 }
 
 static FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node,
-                                                addr_t obj) {
+                                                addr_t obj,
+                                                int cache_capacity) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
@@ -173,10 +173,21 @@ static FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node,
   assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE);
 
   FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
-  cached_table->add_table();
+
+  if (cached_table->cache_capacity != cache_capacity) {
+    return nullptr;
+  }
+
+  if (!cached_table->has_table(node->get_id())) {
+    FCFSCachedTable *clone =
+        static_cast<FCFSCachedTable *>(cached_table->clone());
+    clone->add_table(node->get_id());
+    cached_table = clone;
+  }
 
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
   if (!tofino_ctx->check_placement(ep, cached_table, deps)) {
+    delete cached_table;
     cached_table = nullptr;
   }
 
@@ -193,11 +204,7 @@ FCFSCachedTable *TofinoModuleGenerator::build_or_reuse_fcfs_cached_table(
       ctx.check_placement(obj, PlacementDecision::Tofino_FCFSCachedTable);
 
   if (already_placed) {
-    cached_table = reuse_fcfs_cached_table(ep, node, obj);
-
-    if (!cached_table || cached_table->cache_capacity != cache_capacity) {
-      return nullptr;
-    }
+    cached_table = reuse_fcfs_cached_table(ep, node, obj, cache_capacity);
   } else {
     cached_table =
         build_fcfs_cached_table(ep, node, key, num_entries, cache_capacity);
@@ -270,7 +277,6 @@ symbols_t TofinoModuleGenerator::get_dataplane_state(const EP *ep,
 bool TofinoModuleGenerator::can_place_fcfs_cached_table(
     const EP *ep, const map_coalescing_objs_t &map_objs) const {
   const Context &ctx = ep->get_ctx();
-
   return ctx.can_place(map_objs.map,
                        PlacementDecision::Tofino_FCFSCachedTable) &&
          ctx.can_place(map_objs.dchain,
@@ -292,8 +298,6 @@ void TofinoModuleGenerator::place_fcfs_cached_table(
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
   tofino_ctx->place(ep, map_objs.map, cached_table, deps);
-  tofino_ctx->place(ep, map_objs.dchain, cached_table, deps);
-  tofino_ctx->place(ep, map_objs.vector_key, cached_table, deps);
 
   Log::dbg() << "-> ~~~ NEW PLACEMENT ~~~ <-\n";
   ds->log_debug();

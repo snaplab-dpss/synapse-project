@@ -12,17 +12,20 @@ static bits_t index_size_from_cache_capacity(int cache_capacity) {
   return bits_t(log2(cache_capacity));
 }
 
+static std::string build_table_name(DS_ID id, int table_num) {
+  return id + "_table_" + std::to_string(table_num);
+}
+
 static Table build_table(DS_ID id, int table_num, int num_entries,
                          const std::vector<bits_t> &keys) {
-  return Table(id + "_table_" + std::to_string(table_num), num_entries, keys,
-               {});
+  return Table(build_table_name(id, table_num), num_entries, keys, {});
 }
 
 static Register build_cache_expirator(const TNAProperties &properties, DS_ID id,
                                       int cache_capacity) {
   bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
   bits_t timestamp_size = 32;
-  return Register(properties, id + "_expirator", cache_capacity, hash_size,
+  return Register(properties, id + "_reg_expirator", cache_capacity, hash_size,
                   timestamp_size, {RegisterAction::WRITE});
 }
 
@@ -35,7 +38,7 @@ build_cache_keys(const TNAProperties &properties, DS_ID id,
 
   int i = 0;
   for (bits_t key_size : keys_sizes) {
-    Register cache_key(properties, id + "_key_" + std::to_string(i),
+    Register cache_key(properties, id + "_reg_key_" + std::to_string(i),
                        cache_capacity, hash_size, key_size,
                        {RegisterAction::READ, RegisterAction::SWAP});
     i++;
@@ -46,13 +49,13 @@ build_cache_keys(const TNAProperties &properties, DS_ID id,
 }
 
 FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
-                                 int _cache_capacity, int _num_entries,
+                                 int _op, int _cache_capacity, int _num_entries,
                                  const std::vector<bits_t> &_keys_sizes)
-    : DS(DSType::FCFS_CACHED_TABLE, _id + "_FCFSCachedTable"),
-      cache_capacity(_cache_capacity), num_entries(_num_entries),
-      keys_sizes(_keys_sizes), tables({
-                                   build_table(id, 0, num_entries, keys_sizes),
-                               }),
+    : DS(DSType::FCFS_CACHED_TABLE, _id), cache_capacity(_cache_capacity),
+      num_entries(_num_entries), keys_sizes(_keys_sizes),
+      tables({
+          build_table(id, _op, num_entries, keys_sizes),
+      }),
       cache_expirator(build_cache_expirator(properties, _id, cache_capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
 }
@@ -65,8 +68,17 @@ FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
-DS_ID FCFSCachedTable::add_table() {
-  Table new_table = build_table(id, tables.size(), num_entries, keys_sizes);
+bool FCFSCachedTable::has_table(int op) const {
+  std::string table_id = build_table_name(id, op);
+  for (const Table &table : tables) {
+    if (table.id == table_id)
+      return true;
+  }
+  return false;
+}
+
+DS_ID FCFSCachedTable::add_table(int op) {
+  Table new_table = build_table(id, op, num_entries, keys_sizes);
   tables.push_back(new_table);
   return new_table.id;
 }

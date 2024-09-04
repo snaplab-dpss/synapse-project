@@ -11,8 +11,7 @@
 
 #include "graphviz.h"
 
-rgb_t::rgb_t(u8 _r, u8 _g, u8 _b, u8 _o)
-    : r(_r), g(_g), b(_b), o(_o) {}
+rgb_t::rgb_t(u8 _r, u8 _g, u8 _b, u8 _o) : r(_r), g(_g), b(_b), o(_o) {}
 
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b) : rgb_t(_r, _g, _b, 0xff) {}
 
@@ -70,8 +69,8 @@ void Graphviz::show(bool interrupt) const {
 
   std::stringstream cmd_builder;
   cmd_builder << "xdot ";
-  cmd_builder << fpath;
-  cmd_builder << "&> /dev/null 2>&1 &";
+  cmd_builder << fpath << " ";
+  cmd_builder << "2>/dev/null &";
 
   int status = system(cmd_builder.str().c_str());
   if (status < 0) {

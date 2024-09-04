@@ -55,12 +55,11 @@ void TofinoContext::save_ds(addr_t addr, DS *ds) {
   auto found_it = id_to_ds.find(ds->id);
 
   if (found_it != id_to_ds.end()) {
-    assert(found_it->second == ds && "Duplicate data structure ID");
-    auto obj_to_addr_it = obj_to_ds.find(addr);
-    if (obj_to_addr_it != obj_to_ds.end()) {
-      auto &ds_set = obj_to_addr_it->second;
-      assert(ds_set.find(ds) != ds_set.end() && "Duplicate object address");
-    }
+    assert(found_it->second->id == ds->id);
+    DS *old = found_it->second;
+    id_to_ds.erase(ds->id);
+    obj_to_ds[addr].erase(old);
+    delete old;
   }
 
   obj_to_ds[addr].insert(ds);

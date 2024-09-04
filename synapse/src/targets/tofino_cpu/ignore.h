@@ -119,7 +119,8 @@ private:
     addr_t obj;
 
     if (call.function_name == "dchain_rejuvenate_index" ||
-        call.function_name == "dchain_allocate_new_index") {
+        call.function_name == "dchain_allocate_new_index" ||
+        call.function_name == "dchain_free_index") {
       klee::ref<klee::Expr> chain = call.args.at("chain").expr;
       obj = expr_addr_to_obj_addr(chain);
     } else if (call.function_name == "vector_borrow" ||

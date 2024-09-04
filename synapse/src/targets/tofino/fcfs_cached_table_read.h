@@ -176,6 +176,9 @@ private:
     BDD *bdd = delete_future_vector_key_ops(new_ep, node, cached_table_data,
                                             map_objs, new_next);
 
+    std::cerr << "Placing cached table\n";
+    cached_table->log_debug();
+    std::cerr << "Done!\n";
     place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
 
     EPLeaf leaf(ep_node, new_next);
