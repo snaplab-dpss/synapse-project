@@ -106,7 +106,7 @@ static void log_search_iteration(const search_step_report_t &report,
              << int2hr(search_meta.total_ss_size_estimation) << "\n";
   Log::dbg() << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
   Log::dbg() << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
-  Log::dbg() << "Solutions:        " << int2hr(search_meta.solutions) << "\n";
+  Log::dbg() << "Candidates:       " << int2hr(search_meta.solutions) << "\n";
 
   if (report.targets.size() == 0) {
     Log::dbg() << "\n";
@@ -149,14 +149,13 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
 
   std::unordered_map<node_id_t, int> node_depth;
 
-  bdd->get_root()->visit_nodes(
-      [this, &meta, &node_depth](const Node *node) {
-        node_id_t id = node->get_id();
-        meta.avg_children_per_node[id] = 0;
-        meta.visits_per_node[id] = 0;
-        node_depth[id] = this->bdd->get_node_depth(id);
-        return NodeVisitAction::VISIT_CHILDREN;
-      });
+  bdd->get_root()->visit_nodes([this, &meta, &node_depth](const Node *node) {
+    node_id_t id = node->get_id();
+    meta.avg_children_per_node[id] = 0;
+    meta.visits_per_node[id] = 0;
+    node_depth[id] = this->bdd->get_node_depth(id);
+    return NodeVisitAction::VISIT_CHILDREN;
+  });
 
   while (!h->finished()) {
     meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(

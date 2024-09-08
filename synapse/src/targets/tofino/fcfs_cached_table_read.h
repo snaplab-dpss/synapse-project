@@ -38,7 +38,7 @@ public:
     return cloned;
   }
 
-  DS_ID get_id() const { return cached_table_id; }
+  DS_ID get_cached_table_id() const { return cached_table_id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_value() const { return value; }
@@ -176,9 +176,6 @@ private:
     BDD *bdd = delete_future_vector_key_ops(new_ep, node, cached_table_data,
                                             map_objs, new_next);
 
-    std::cerr << "Placing cached table\n";
-    cached_table->log_debug();
-    std::cerr << "Done!\n";
     place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
 
     EPLeaf leaf(ep_node, new_next);

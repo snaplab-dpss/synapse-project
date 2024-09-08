@@ -48,7 +48,7 @@ public:
     return cloned;
   }
 
-  DS_ID get_id() const { return cached_table_id; }
+  DS_ID get_cached_table_id() const { return cached_table_id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_read_value() const { return read_value; }
@@ -98,25 +98,23 @@ protected:
     std::unordered_set<int> allowed_cache_capacities =
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
-    hit_rate_t chosen_success_estimation = 0;
-    int chosen_cache_capacity = 0;
+    hit_rate_t chosen_success_probability = 0;
     bool successfully_placed = false;
 
     // We can use a different method for picking the right estimation depending
     // on the time it takes to find a solution.
     for (int cache_capacity : allowed_cache_capacities) {
-      hit_rate_t success_estimation = get_cache_success_estimation_rel(
+      hit_rate_t success_probability = get_cache_op_success_probability(
           ep, node, cached_table_data.key, cache_capacity);
 
       if (!can_get_or_build_fcfs_cached_table(
               ep, node, cached_table_data.obj, cached_table_data.key,
-              cached_table_data.num_entries, chosen_cache_capacity)) {
+              cached_table_data.num_entries, cache_capacity)) {
         continue;
       }
 
-      if (success_estimation > chosen_success_estimation) {
-        chosen_success_estimation = success_estimation;
-        chosen_cache_capacity = cache_capacity;
+      if (success_probability > chosen_success_probability) {
+        chosen_success_probability = success_probability;
       }
 
       successfully_placed = true;
@@ -133,12 +131,12 @@ protected:
     std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
     assert(fraction.has_value());
 
-    hit_rate_t on_fail_fraction = *fraction * (1 - chosen_success_estimation);
+    hit_rate_t on_fail_fraction = *fraction * (1 - chosen_success_probability);
 
     new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
                                      on_fail_fraction);
 
-    new_ctx.scale_profiler(constraints, chosen_success_estimation);
+    new_ctx.scale_profiler(constraints, chosen_success_probability);
 
     std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
         ep, map_get, map_objs, cached_table_data.key);
@@ -269,15 +267,14 @@ private:
     else_node->set_children({send_to_controller_node});
     send_to_controller_node->set_prev(else_node);
 
-    hit_rate_t cache_write_success_estimation_rel =
-        get_cache_success_estimation_rel(ep, node, fcfs_cached_table_data.key,
-                                         cache_capacity);
+    hit_rate_t cache_success_probability = get_cache_op_success_probability(
+        ep, node, fcfs_cached_table_data.key, cache_capacity);
 
     new_ep->update_node_constraints(then_node, else_node,
                                     cache_write_success_condition);
 
     new_ep->add_hit_rate_estimation(cache_write_success_condition,
-                                    cache_write_success_estimation_rel);
+                                    cache_success_probability);
 
     if (deleted_branch_constraints.has_value()) {
       new_ep->remove_hit_rate_node(deleted_branch_constraints.value());
@@ -306,12 +303,12 @@ private:
 
     std::stringstream descr;
     descr << "capacity=" << cache_capacity;
-    descr << " hit-rate=" << cache_write_success_estimation_rel;
+    descr << " hit-rate=" << cache_success_probability;
 
     return __generator_product_t(new_ep, descr.str());
   }
 
-  hit_rate_t get_cache_success_estimation_rel(const EP *ep, const Node *node,
+  hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
                                               klee::ref<klee::Expr> key,
                                               int cache_capacity) const {
     const Context &ctx = ep->get_ctx();
@@ -321,38 +318,19 @@ private:
     std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
     assert(fraction.has_value());
 
-    std::optional<FlowStats> flow_stats =
-        profiler->get_flow_stats(constraints, key);
-    assert(flow_stats.has_value());
+    hit_rate_t cache_hit_rate =
+        get_fcfs_cache_hit_rate(ep, node, key, cache_capacity);
 
     rw_fractions_t rw_fractions =
         get_cond_map_put_rw_profile_fractions(ep, node);
 
-    hit_rate_t relative_write_fraction = rw_fractions.write / *fraction;
-    hit_rate_t relative_read_fraction = rw_fractions.read / *fraction;
+    hit_rate_t write_probability = rw_fractions.write / *fraction;
+    hit_rate_t read_probability = rw_fractions.read / *fraction;
 
-    u64 cached_packets = std::min(
-        flow_stats->packets, flow_stats->avg_pkts_per_flow * cache_capacity);
-    hit_rate_t expected_cached_fraction =
-        cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
+    hit_rate_t probability =
+        read_probability + write_probability * cache_hit_rate;
 
-    hit_rate_t relative_cache_success_fraction =
-        relative_read_fraction +
-        relative_write_fraction * expected_cached_fraction;
-
-    // std::cerr << "Reads: " << relative_read_fraction << std::endl;
-    // std::cerr << "Writes: " << relative_write_fraction << std::endl;
-    // std::cerr << "Avg pkts per flow: " << flow_stats->avg_pkts_per_flow
-    //           << std::endl;
-    // std::cerr << "Total flows: " << flow_stats->flows << std::endl;
-    // std::cerr << "Total packets: " << flow_stats->packets << std::endl;
-    // std::cerr << "Cached packets: " << cached_packets << std::endl;
-    // std::cerr << "Expected cached fraction: " << expected_cached_fraction
-    //           << std::endl;
-    // std::cerr << "Relative cache success fraction: "
-    //           << relative_cache_success_fraction << std::endl;
-
-    return relative_cache_success_fraction;
+    return probability;
   }
 
   std::unordered_set<DS_ID>

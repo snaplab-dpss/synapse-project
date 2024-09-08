@@ -6,7 +6,6 @@
 void EPMeta::process_node(const Node *node, TargetType target) {
   if (processed_nodes.find(node->get_id()) == processed_nodes.end()) {
     processed_nodes.insert(node->get_id());
-    bdd_nodes_per_target[target]++;
   }
 }
 
@@ -22,12 +21,21 @@ void EPMeta::update(const EPLeaf *leaf, const EPNode *new_node,
   const Module *module = new_node->get_module();
   TargetType target = module->get_target();
 
+  if (leaf->node) {
+    ep_node_id_t leaf_id = leaf->node->get_id();
+    if (processed_leaves.find(leaf_id) == processed_leaves.end()) {
+      processed_leaves.insert(leaf_id);
+      steps_per_target[target]++;
+    }
+  } else {
+    steps_per_target[target]++;
+  }
+
   if (should_process_node) {
     process_node(leaf->next, target);
   }
 
   nodes++;
-  nodes_per_target[target]++;
 }
 
 float EPMeta::get_bdd_progress() const {

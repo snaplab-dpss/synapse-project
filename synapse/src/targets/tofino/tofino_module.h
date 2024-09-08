@@ -93,6 +93,10 @@ protected:
                                FCFSCachedTable *ds) const;
   std::unordered_set<int>
   enumerate_fcfs_cache_table_capacities(int num_entries) const;
+
+  hit_rate_t get_fcfs_cache_hit_rate(const EP *ep, const Node *node,
+                                     klee::ref<klee::Expr> key,
+                                     int cache_capacity) const;
 };
 
 } // namespace tofino

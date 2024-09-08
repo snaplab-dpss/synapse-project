@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 
   // list_candidates(bdd, {20, true});
   apply_reordering_ops(bdd, {
-                                {{6, false}, 43},
+                                {{22, false}, 29},
                             });
   // test_reorder(bdd, 3);
   // estimate(bdd);

@@ -9,8 +9,8 @@ void EPSynthesizer::transpile_table(
   code_t action_name = table->id + "_get_value";
 
   std::vector<code_t> action_params;
-  size_t total_values = values.size();
-  for (size_t i = 0; i < total_values; i++) {
+
+  for (size_t i = 0; i < values.size(); i++) {
     klee::ref<klee::Expr> value = values[i];
     code_t param = table->id + "_value_" + std::to_string(i);
     action_params.push_back(param);
@@ -27,7 +27,7 @@ void EPSynthesizer::transpile_table(
     coder.indent();
     coder << "action " << action_name << "(";
 
-    for (size_t i = 0; i < total_values; i++) {
+    for (size_t i = 0; i < values.size(); i++) {
       klee::ref<klee::Expr> value = values[i];
 
       if (i != 0) {
@@ -101,9 +101,53 @@ void EPSynthesizer::transpile_table(
   coder << "\n";
 }
 
+void EPSynthesizer::transpile_register(coder_t &coder, const Register *reg,
+                                       klee::ref<klee::Expr> index,
+                                       klee::ref<klee::Expr> value) {
+  coder.indent();
+  coder << "Register<";
+  coder << type_from_size(reg->index);
+  coder << ",_>";
+  coder << "(" << reg->num_entries << ",0) ";
+  coder << reg->id;
+  coder << ";\n";
+
+  for (RegisterAction action : reg->actions) {
+    coder.indent();
+    coder << "RegisterAction ";
+    coder << reg->id;
+    coder << "_";
+
+    switch (action) {
+    case RegisterAction::READ:
+      coder << "read";
+      break;
+    case RegisterAction::WRITE:
+      coder << "write";
+      break;
+    case RegisterAction::SWAP:
+      coder << "update";
+      break;
+    }
+
+    coder << type_from_size(reg->index);
+    coder << " _index, ";
+    coder << type_from_expr(value);
+    coder << " _value) {\n";
+
+    coder.inc();
+
+    coder.indent();
+    coder << "}\n";
+  }
+  coder.indent();
+}
+
 void EPSynthesizer::transpile_fcfs_cached_table(
-    coder_t &coder, const FCFSCachedTable *table,
-    const std::vector<klee::ref<klee::Expr>> &keys,
-    const std::vector<klee::ref<klee::Expr>> &values) {}
+    coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
+    klee::ref<klee::Expr> key, klee::ref<klee::Expr> value) {
+  for (const Table &table : fcfs_cached_table->tables) {
+  }
+}
 
 } // namespace tofino

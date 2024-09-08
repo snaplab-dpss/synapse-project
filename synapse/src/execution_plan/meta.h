@@ -18,8 +18,8 @@ struct EPMeta {
   size_t nodes;
   size_t reordered_nodes;
 
-  std::unordered_map<TargetType, size_t> nodes_per_target;
-  std::unordered_map<TargetType, size_t> bdd_nodes_per_target;
+  std::unordered_map<TargetType, size_t> steps_per_target;
+  std::unordered_set<ep_node_id_t> processed_leaves;
   std::unordered_set<ep_node_id_t> visited_ep_nodes;
   nodes_t processed_nodes;
 
@@ -31,24 +31,25 @@ struct EPMeta {
       : total_bdd_nodes(bdd->size()), depth(0), nodes(0), reordered_nodes(0),
         random_number(RandomEngine::generate()) {
     for (TargetType target : targets) {
-      nodes_per_target[target] = 0;
-      bdd_nodes_per_target[target] = 0;
+      steps_per_target[target] = 0;
     }
   }
 
   EPMeta(const EPMeta &other)
       : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth),
         nodes(other.nodes), reordered_nodes(other.reordered_nodes),
-        nodes_per_target(other.nodes_per_target),
-        bdd_nodes_per_target(other.bdd_nodes_per_target),
+        steps_per_target(other.steps_per_target),
+        processed_leaves(other.processed_leaves),
+        visited_ep_nodes(other.visited_ep_nodes),
         processed_nodes(other.processed_nodes),
         random_number(RandomEngine::generate()) {}
 
   EPMeta(EPMeta &&other)
       : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth),
         nodes(other.nodes), reordered_nodes(other.reordered_nodes),
-        nodes_per_target(std::move(other.nodes_per_target)),
-        bdd_nodes_per_target(std::move(other.bdd_nodes_per_target)),
+        steps_per_target(std::move(other.steps_per_target)),
+        processed_leaves(std::move(other.processed_leaves)),
+        visited_ep_nodes(std::move(other.visited_ep_nodes)),
         processed_nodes(std::move(other.processed_nodes)),
         random_number(RandomEngine::generate()) {}
 
@@ -60,8 +61,9 @@ struct EPMeta {
     depth = other.depth;
     nodes = other.nodes;
     reordered_nodes = other.reordered_nodes;
-    nodes_per_target = other.nodes_per_target;
-    bdd_nodes_per_target = other.bdd_nodes_per_target;
+    steps_per_target = other.steps_per_target;
+    processed_leaves = other.processed_leaves;
+    visited_ep_nodes = other.visited_ep_nodes;
     processed_nodes = other.processed_nodes;
     random_number = RandomEngine::generate();
 

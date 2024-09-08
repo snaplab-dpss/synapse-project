@@ -30,7 +30,7 @@ struct FCFSCachedTable : public DS {
   void log_debug() const override;
 
   bool has_table(int op) const;
-  DS_ID add_table(int op);
+  std::optional<DS_ID> add_table(int op);
   std::vector<std::unordered_set<const DS *>> get_internal_ds() const;
 };
 

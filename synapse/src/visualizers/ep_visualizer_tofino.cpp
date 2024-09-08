@@ -169,7 +169,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
   TargetType target = node->get_target();
   addr_t obj = node->get_obj();
 
-  tofino::DS_ID id = node->get_id();
+  tofino::DS_ID id = node->get_cached_table_id();
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
@@ -197,7 +197,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
   TargetType target = node->get_target();
   addr_t obj = node->get_obj();
 
-  tofino::DS_ID id = node->get_id();
+  tofino::DS_ID id = node->get_cached_table_id();
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
@@ -225,7 +225,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
   TargetType target = node->get_target();
   addr_t obj = node->get_obj();
 
-  tofino::DS_ID id = node->get_id();
+  tofino::DS_ID id = node->get_cached_table_id();
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
@@ -253,7 +253,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
   TargetType target = node->get_target();
   addr_t obj = node->get_obj();
 
-  tofino::DS_ID id = node->get_id();
+  tofino::DS_ID id = node->get_cached_table_id();
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);

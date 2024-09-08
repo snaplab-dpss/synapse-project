@@ -9,7 +9,7 @@ struct GalliumComparator : public HeuristicCfg {
   Score get_score(const EP *ep) const override {
     Score score(
         ep, {
-                {ScoreCategory::SwitchNodes, ScoreObjective::MAX},
+                {ScoreCategory::SwitchProgressionNodes, ScoreObjective::MAX},
 
                 // Why processed BDD instead of a processed BDD percentage?
                 // Because some modules (e.g. SendToController) increase the

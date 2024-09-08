@@ -7,7 +7,9 @@ namespace tofino {
 Table::Table(DS_ID _id, int _num_entries, const std::vector<bits_t> &_keys,
              const std::vector<bits_t> &_params)
     : DS(DSType::TABLE, _id), num_entries(_num_entries), keys(_keys),
-      params(_params) {}
+      params(_params) {
+  assert(_num_entries > 0);
+}
 
 Table::Table(const Table &other)
     : DS(DSType::TABLE, other.id), num_entries(other.num_entries),

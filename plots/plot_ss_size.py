@@ -23,11 +23,11 @@ OUTPUT_FNAME = "ss_size"
 nfs = [ "FW", "NAT", "KVS", "LB" ]
 
 data = {
-    COMPONENT_BASE: [ 1e4, 0, 0, 0 ],
-    COMPONENT_FCFS_CACHED_TABLE: [ 1e5, 0, 0, 0 ],
+    COMPONENT_BASE: [ 1e4, 0, 1e7, 0 ],
+    COMPONENT_FCFS_CACHED_TABLE: [ 1e5, 0, 1e8, 0 ],
     # COMPONENT_HH_CACHED_TABLE: [ 0, 0, 0, 0 ],
-    COMPONENT_RECIRCULATIONS: [ 1e8, 0, 0, 0 ],
-    COMPONENT_BDD_REORDERING: [ 1e14, 0, 0, 0 ],
+    COMPONENT_RECIRCULATIONS: [ 1e8, 0, 1e11, 0 ],
+    COMPONENT_BDD_REORDERING: [ 1e14, 0, 1e17, 0 ],
 }
 
 def plot_ss_size():
@@ -36,7 +36,7 @@ def plot_ss_size():
     fig, ax = plt.subplots()
     bottom = np.zeros(len(nfs))
 
-    ax.set_ylim(ymin=1e0, ymax=1e15)
+    ax.set_ylim(ymin=1e0, ymax=1e16)
     ax.set_yscale("log")
     ax.set_ylabel("Search space size")
 
@@ -44,7 +44,7 @@ def plot_ss_size():
         ax.bar(nfs, ss_size, 0.6, label=component, bottom=bottom, alpha=.99, hatch=hatch)
         bottom = ss_size
 
-    ax.legend(bbox_to_anchor=(0.4, 1.3), loc='upper center', ncols=2)
+    ax.legend(bbox_to_anchor=(0.4, 1.2), loc='upper center', ncols=2)
 
     fig.set_size_inches(width / 2, height)
     fig.tight_layout(pad=0.1)

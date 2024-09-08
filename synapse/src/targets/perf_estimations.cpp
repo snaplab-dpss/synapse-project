@@ -310,7 +310,7 @@ void Context::update_throughput_speculation(const EP *ep) {
     });
   }
 
-  // if (ep->get_id() == 45) {
+  // if (ep->get_id() == 408 || ep->get_id() == 414) {
   //   print_speculations(ep, nodes_speculations, speculation);
   //   // BDDVisualizer::visualize(ep->get_bdd(), true);
   //   DEBUG_PAUSE

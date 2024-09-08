@@ -76,6 +76,11 @@ private:
     }
 
     const Context &ctx = ep->get_ctx();
+
+    if (can_ignore_fcfs_cached_table_op(ctx, call)) {
+      return true;
+    }
+
     if (call.function_name == "dchain_allocate_new_index" ||
         call.function_name == "dchain_rejuvenate_index") {
       return can_ignore_dchain_op(ctx, call);
@@ -86,6 +91,30 @@ private:
     }
 
     return false;
+  }
+
+  bool can_ignore_fcfs_cached_table_op(const Context &ctx,
+                                       const call_t &call) const {
+    if (call.function_name != "dchain_free_index") {
+      return false;
+    }
+
+    klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
+    addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
+
+    std::optional<map_coalescing_objs_t> map_objs =
+        ctx.get_map_coalescing_objs(dchain_addr);
+
+    if (!map_objs.has_value()) {
+      return false;
+    }
+
+    if (!ctx.check_placement(map_objs->map,
+                             PlacementDecision::Tofino_FCFSCachedTable)) {
+      return false;
+    }
+
+    return true;
   }
 
   // We can ignore dchain_rejuvenate_index if the dchain is only used for

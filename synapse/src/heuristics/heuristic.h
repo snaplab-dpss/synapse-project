@@ -26,10 +26,11 @@ protected:
   HCfg configuration;
   std::multiset<const EP *, HCfg> execution_plans;
   typename std::set<const EP *, HCfg>::iterator best_it;
-  bool terminate_on_first_solution;
+  bool stop_on_first_solution;
 
 public:
-  Heuristic() : terminate_on_first_solution(true) {}
+  Heuristic(bool _stop_on_first_solution)
+      : stop_on_first_solution(_stop_on_first_solution) {}
 
   ~Heuristic() {
     for (const EP *ep : execution_plans) {
@@ -129,7 +130,7 @@ private:
     auto it = best_it;
     assert(it != execution_plans.end());
 
-    if (terminate_on_first_solution && !(*it)->get_next_node()) {
+    if (stop_on_first_solution && !(*it)->get_next_node()) {
       return execution_plans.end();
     }
 

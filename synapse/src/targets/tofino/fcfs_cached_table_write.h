@@ -43,7 +43,7 @@ public:
     return cloned;
   }
 
-  DS_ID get_id() const { return cached_table_id; }
+  DS_ID get_cached_table_id() const { return cached_table_id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_write_value() const { return write_value; }
@@ -95,7 +95,6 @@ protected:
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
     hit_rate_t chosen_success_estimation = 0;
-    int chosen_cache_capacity = 0;
     bool successfully_placed = false;
 
     // We can use a different method for picking the right estimation depending
@@ -106,13 +105,12 @@ protected:
 
       if (!can_get_or_build_fcfs_cached_table(
               ep, node, cached_table_data.obj, cached_table_data.key,
-              cached_table_data.num_entries, chosen_cache_capacity)) {
+              cached_table_data.num_entries, cache_capacity)) {
         continue;
       }
 
       if (success_estimation > chosen_success_estimation) {
         chosen_success_estimation = success_estimation;
-        chosen_cache_capacity = cache_capacity;
       }
 
       successfully_placed = true;

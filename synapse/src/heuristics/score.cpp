@@ -44,9 +44,6 @@ std::ostream &operator<<(std::ostream &os, ScoreCategory score_category) {
   case ScoreCategory::ReorderedNodes:
     os << "#Reordered";
     break;
-  case ScoreCategory::SwitchNodes:
-    os << "#SwitchNodes";
-    break;
   case ScoreCategory::SwitchProgressionNodes:
     os << "#SNodes";
     break;
@@ -95,8 +92,8 @@ int64_t Score::get_nr_nodes(const EP *ep) const {
 }
 
 std::vector<const EPNode *>
-Score::get_nodes_with_type(const EP *ep,
-                           const std::vector<ModuleType> &types) const {
+Score::get_nodes_by_type(const EP *ep,
+                         const std::vector<ModuleType> &types) const {
   std::vector<const EPNode *> found;
 
   const EPNode *root = ep->get_root();
@@ -119,48 +116,56 @@ Score::get_nodes_with_type(const EP *ep,
   return found;
 }
 
+std::vector<const EPNode *>
+Score::get_nodes_by_target(const EP *ep, TargetType target) const {
+  std::vector<const EPNode *> found;
+
+  const EPNode *root = ep->get_root();
+
+  if (!root) {
+    return found;
+  }
+
+  root->visit_nodes([&found, target](const EPNode *node) {
+    const Module *module = node->get_module();
+
+    if (module->get_target() == target) {
+      found.push_back(node);
+    }
+
+    return EPNodeVisitAction::VISIT_CHILDREN;
+  });
+
+  return found;
+}
+
 int64_t Score::get_depth(const EP *ep) const {
   const EPMeta &meta = ep->get_meta();
   return meta.depth;
 }
 
-int64_t Score::get_nr_switch_nodes(const EP *ep) const {
-  int64_t switch_nodes = 0;
+int64_t Score::get_nr_switch_progression_nodes(const EP *ep) const {
+  int64_t tofino_decisions = 0;
 
   const EPMeta &meta = ep->get_meta();
-  auto tofino_nodes_it = meta.bdd_nodes_per_target.find(TargetType::Tofino);
+  auto tofino_nodes_it = meta.steps_per_target.find(TargetType::Tofino);
 
-  if (tofino_nodes_it != meta.bdd_nodes_per_target.end()) {
-    switch_nodes += tofino_nodes_it->second;
+  if (tofino_nodes_it != meta.steps_per_target.end()) {
+    tofino_decisions += tofino_nodes_it->second;
   }
 
-  return switch_nodes;
-}
-
-int64_t Score::get_nr_switch_progression_nodes(const EP *ep) const {
-  int64_t switch_nodes = get_nr_switch_nodes(ep);
-  int64_t recirc_nodes = get_nr_recirculations(ep);
-  int64_t send_to_controller_nodes = get_nr_send_to_controller(ep);
-  return switch_nodes - recirc_nodes - send_to_controller_nodes;
+  return tofino_decisions;
 }
 
 int64_t Score::get_nr_controller_nodes(const EP *ep) const {
-  int64_t controller_nodes = 0;
-
-  const EPMeta &meta = ep->get_meta();
-  auto tofino_controller_nodes_it =
-      meta.nodes_per_target.find(TargetType::TofinoCPU);
-
-  if (tofino_controller_nodes_it != meta.nodes_per_target.end()) {
-    controller_nodes += tofino_controller_nodes_it->second;
-  }
-
-  return controller_nodes;
+  std::vector<const EPNode *> nodes =
+      get_nodes_by_target(ep, TargetType::TofinoCPU);
+  return nodes.size();
 }
 
 int64_t Score::get_nr_send_to_controller(const EP *ep) const {
   std::vector<const EPNode *> send_to_controller =
-      get_nodes_with_type(ep, {ModuleType::Tofino_SendToController});
+      get_nodes_by_type(ep, {ModuleType::Tofino_SendToController});
   return send_to_controller.size();
 }
 
@@ -302,7 +307,7 @@ int64_t Score::get_nr_switch_data_structures(const EP *ep) const {
 
 int64_t Score::get_nr_recirculations(const EP *ep) const {
   std::vector<const EPNode *> recirculate =
-      get_nodes_with_type(ep, {ModuleType::Tofino_Recirculate});
+      get_nodes_by_type(ep, {ModuleType::Tofino_Recirculate});
   return recirculate.size();
 }
 

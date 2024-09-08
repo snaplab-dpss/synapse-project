@@ -4,7 +4,6 @@
 #include "dfs.h"
 #include "random.h"
 #include "least_reordered.h"
-#include "max_switch_nodes.h"
 #include "most_compact.h"
 #include "gallium.h"
 #include "max_throughput.h"
@@ -14,7 +13,6 @@
   template class C<DFSComparator>;                                             \
   template class C<GalliumComparator>;                                         \
   template class C<LeastReorderedComparator>;                                  \
-  template class C<MaxSwitchNodesComparator>;                                  \
   template class C<MostCompactComparator>;                                     \
   template class C<MaxThroughputComparator>;                                   \
   template class C<RandomComparator>;

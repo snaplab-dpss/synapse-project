@@ -322,4 +322,30 @@ TofinoModuleGenerator::enumerate_fcfs_cache_table_capacities(
   return capacities;
 }
 
+hit_rate_t
+TofinoModuleGenerator::get_fcfs_cache_hit_rate(const EP *ep, const Node *node,
+                                               klee::ref<klee::Expr> key,
+                                               int cache_capacity) const {
+  const Context &ctx = ep->get_ctx();
+  const Profiler *profiler = ctx.get_profiler();
+  constraints_t constraints = node->get_ordered_branch_constraints();
+
+  std::optional<FlowStats> flow_stats =
+      profiler->get_flow_stats(constraints, key);
+  assert(flow_stats.has_value());
+
+  u64 cached_packets = std::min(flow_stats->packets,
+                                flow_stats->avg_pkts_per_flow * cache_capacity);
+  hit_rate_t hit_rate =
+      cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
+
+  // std::cerr << "Pkts/flow: " << flow_stats->avg_pkts_per_flow << "\n";
+  // std::cerr << "Flows: " << flow_stats->flows << "\n";
+  // std::cerr << "Packets: " << flow_stats->packets << "\n";
+  // std::cerr << "Cached packets: " << cached_packets << "\n";
+  // std::cerr << "Cache hit rate: " << hit_rate << "\n";
+
+  return hit_rate;
+}
+
 } // namespace tofino

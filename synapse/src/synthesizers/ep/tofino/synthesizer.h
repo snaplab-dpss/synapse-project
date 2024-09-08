@@ -70,6 +70,7 @@ public:
 
 private:
   code_t slice_var(const var_t &var, unsigned offset, bits_t size) const;
+  code_t type_from_size(bits_t size) const;
   code_t type_from_expr(klee::ref<klee::Expr> expr) const;
   code_t type_from_var(const var_t &var) const;
 
@@ -81,10 +82,13 @@ private:
   void transpile_table(coder_t &coder, const Table *table,
                        const std::vector<klee::ref<klee::Expr>> &keys,
                        const std::vector<klee::ref<klee::Expr>> &values);
-  void
-  transpile_fcfs_cached_table(coder_t &coder, const FCFSCachedTable *table,
-                              const std::vector<klee::ref<klee::Expr>> &keys,
-                              const std::vector<klee::ref<klee::Expr>> &values);
+  void transpile_register(coder_t &coder, const Register *reg,
+                          klee::ref<klee::Expr> index,
+                          klee::ref<klee::Expr> value);
+  void transpile_fcfs_cached_table(coder_t &coder,
+                                   const FCFSCachedTable *fcfs_cached_table,
+                                   klee::ref<klee::Expr> key,
+                                   klee::ref<klee::Expr> value);
 
   void dbg_vars() const;
 

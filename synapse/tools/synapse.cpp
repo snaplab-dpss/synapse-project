@@ -31,7 +31,9 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
 search_report_t search(const BDD *bdd, Profiler *profiler,
                        const targets_t &targets, HeuristicOption heuristic_opt,
                        const std::vector<ep_id_t> &peek, bool no_reorder,
-                       bool pause_on_backtrack) {
+                       bool pause_on_backtrack, bool not_greedy) {
+  bool stop_on_first_solution = !not_greedy;
+
   std::unordered_set<ep_id_t> peek_set;
   for (ep_id_t ep_id : peek) {
     peek_set.insert(ep_id);
@@ -40,31 +42,31 @@ search_report_t search(const BDD *bdd, Profiler *profiler,
   // A bit disgusting, but oh well...
   switch (heuristic_opt) {
   case HeuristicOption::BFS: {
-    BFS heuristic;
+    BFS heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::DFS: {
-    DFS heuristic;
+    DFS heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::RANDOM: {
-    Random heuristic;
+    Random heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::GALLIUM: {
-    Gallium heuristic;
+    Gallium heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::MAX_THROUGHPUT: {
-    MaxThroughput heuristic;
+    MaxThroughput heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
@@ -95,12 +97,13 @@ int main(int argc, char **argv) {
   bool show_ss{false};
   bool show_bdd{false};
   bool pause_on_backtrack{false};
+  bool not_greedy{false};
   bool verbose{false};
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
-  app.add_option("--out", out_dir,
-                 "Output directory for every generated file.");
+  app.add_option("--out", out_dir, "Output directory for every generated file.")
+      ->required();
   app.add_option("--heuristic", heuristic_opt, "Chosen heuristic.")
       ->default_val(HeuristicOption::MAX_THROUGHPUT)
       ->transform(
@@ -108,11 +111,13 @@ int main(int argc, char **argv) {
   app.add_option("--profile", bdd_profile, "BDD profile JSON.");
   app.add_option("--seed", seed, "Random seed.")
       ->default_val(std::random_device()());
+  app.add_option("--peek", peek, "Peek execution plans.");
   app.add_flag("--no-reorder", no_reorder, "Deactivate BDD reordering.");
   app.add_flag("--show-ep", show_ep, "Show winner Execution Plan.");
   app.add_flag("--show-ss", show_ss, "Show the entire search space.");
   app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.");
   app.add_flag("--backtrack", pause_on_backtrack, "Pause on backtrack.");
+  app.add_flag("--not-greedy", not_greedy, "Don't stop on first solution.");
   app.add_flag("-v", verbose, "Verbose mode.");
 
   CLI11_PARSE(app, argc, argv);
@@ -141,7 +146,7 @@ int main(int argc, char **argv) {
 
   // std::string nf_name = nf_name_from_bdd(InputBDDFile);
   search_report_t report = search(bdd, profiler, targets, heuristic_opt, peek,
-                                  no_reorder, pause_on_backtrack);
+                                  no_reorder, pause_on_backtrack, not_greedy);
 
   Log::log() << "\n";
   Log::log() << "Params:\n";
@@ -178,7 +183,10 @@ int main(int argc, char **argv) {
     BDDVisualizer::visualize(report.solution.ep->get_bdd(), false);
   }
 
-  // synthesize(report.solution.ep, std::string(Out));
+  const Context &ctx = report.solution.ep->get_ctx();
+  ctx.get_target_ctx<tofino::TofinoContext>()->get_tna().log_debug_placement();
+
+  // synthesize(report.solution.ep, out_dir);
 
   if (report.solution.ep) {
     delete report.solution.ep;

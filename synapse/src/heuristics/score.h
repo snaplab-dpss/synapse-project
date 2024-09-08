@@ -13,7 +13,6 @@ enum class ScoreCategory {
   SendToControllerNodes,
   Recirculations,
   ReorderedNodes,
-  SwitchNodes,
   SwitchProgressionNodes,
   SwitchLeaves,
   Nodes,
@@ -69,10 +68,6 @@ public:
             {
                 ScoreCategory::Nodes,
                 &Score::get_nr_nodes,
-            },
-            {
-                ScoreCategory::SwitchNodes,
-                &Score::get_nr_switch_nodes,
             },
             {
                 ScoreCategory::SwitchProgressionNodes,
@@ -210,11 +205,12 @@ private:
   }
 
   std::vector<const EPNode *>
-  get_nodes_with_type(const EP *ep, const std::vector<ModuleType> &types) const;
+  get_nodes_by_type(const EP *ep, const std::vector<ModuleType> &types) const;
+  std::vector<const EPNode *> get_nodes_by_target(const EP *ep,
+                                                  TargetType target) const;
 
   int64_t get_nr_nodes(const EP *ep) const;
   int64_t get_depth(const EP *ep) const;
-  int64_t get_nr_switch_nodes(const EP *ep) const;
   int64_t get_nr_switch_progression_nodes(const EP *ep) const;
   int64_t get_nr_controller_nodes(const EP *ep) const;
   int64_t get_nr_reordered_nodes(const EP *ep) const;

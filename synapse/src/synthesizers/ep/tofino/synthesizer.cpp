@@ -232,12 +232,16 @@ code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset,
   return coder.dump();
 }
 
+code_t EPSynthesizer::type_from_size(bits_t size) const {
+  coder_t coder;
+  coder << "bit<" << size << ">";
+  return coder.dump();
+}
+
 code_t EPSynthesizer::type_from_expr(klee::ref<klee::Expr> expr) const {
   klee::Expr::Width width = expr->getWidth();
   assert(width != klee::Expr::InvalidWidth);
-  coder_t coder;
-  coder << "bit<" << width << ">";
-  return coder.dump();
+  return type_from_size(width);
 }
 
 code_t EPSynthesizer::type_from_var(const var_t &var) const {
@@ -569,7 +573,21 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
 void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                           const tofino::VectorRegisterLookup *node) {
-  // TODO:
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const std::unordered_set<DS_ID> &rids = node->get_rids();
+  klee::ref<klee::Expr> index = node->get_index();
+  klee::ref<klee::Expr> value = node->get_value();
+
+  for (DS_ID rid : rids) {
+    const DS *ds = get_tofino_ds(ep, rid);
+    const Register *reg = static_cast<const Register *>(ds);
+    transpile_register(ingress, reg, index, value);
+  }
+
+  dbg();
+  DEBUG_PAUSE
   assert(false && "TODO");
 }
 
@@ -581,7 +599,21 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
 void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                           const tofino::FCFSCachedTableRead *node) {
-  // TODO:
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  DS_ID cached_table_id = node->get_cached_table_id();
+  klee::ref<klee::Expr> key = node->get_key();
+  klee::ref<klee::Expr> value = node->get_value();
+  const symbol_t &map_has_this_key = node->get_map_has_this_key();
+
+  const DS *ds = get_tofino_ds(ep, cached_table_id);
+  const FCFSCachedTable *fcfs_cached_table =
+      static_cast<const FCFSCachedTable *>(ds);
+
+  transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
+  dbg();
+
   assert(false && "TODO");
 }
 

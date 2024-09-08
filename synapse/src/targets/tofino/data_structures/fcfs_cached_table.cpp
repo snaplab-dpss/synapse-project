@@ -53,11 +53,15 @@ FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
                                  const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::FCFS_CACHED_TABLE, _id), cache_capacity(_cache_capacity),
       num_entries(_num_entries), keys_sizes(_keys_sizes),
-      tables({
-          build_table(id, _op, num_entries, keys_sizes),
-      }),
       cache_expirator(build_cache_expirator(properties, _id, cache_capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
+  assert(_cache_capacity > 0);
+  assert(_num_entries > 0);
+
+  if (cache_capacity < num_entries) {
+    tables.push_back(
+        build_table(id, _op, num_entries - cache_capacity, keys_sizes));
+  }
 }
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
@@ -77,7 +81,13 @@ bool FCFSCachedTable::has_table(int op) const {
   return false;
 }
 
-DS_ID FCFSCachedTable::add_table(int op) {
+std::optional<DS_ID> FCFSCachedTable::add_table(int op) {
+  if (tables.empty()) {
+    // There is no need to add a table if there are no tables (we will never hit
+    // the problem of having multiple next-chains after the table).
+    return std::nullopt;
+  }
+
   Table new_table = build_table(id, op, num_entries, keys_sizes);
   tables.push_back(new_table);
   return new_table.id;
