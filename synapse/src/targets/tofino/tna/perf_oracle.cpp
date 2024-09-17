@@ -109,16 +109,17 @@ void PerfOracle::steer_recirculation_traffic(int source_port,
   clamp_fraction(source_usage.steering_fraction);
 }
 
-static u64 single_recirc_estimate(u64 Tin, u64 Cp) {
-  u64 Tout = std::min(Tin, Cp);
+static pps_t single_recirc_estimate(pps_t Tin, pps_t Cp) {
+  pps_t Tout = std::min(Tin, Cp);
   return Tout;
 }
 
-static u64 hit_rate_t_recirc_estimate(u64 Tin, u64 Cr, u64 Cp, hit_rate_t s) {
-  u64 Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2;
-  u64 Tout_in = (Tin / (hit_rate_t)(Tin + Ts)) * Cr * (1.0 - s);
-  u64 Tout_s = (Ts / (hit_rate_t)(Tin + Ts)) * Cr;
-  u64 Tout = Tout_in + Tout_s;
+static pps_t hit_rate_recirc_estimate(pps_t Tin, pps_t Cr, pps_t Cp,
+                                      hit_rate_t s) {
+  pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2;
+  pps_t Tout_in = (Tin / (hit_rate_t)(Tin + Ts)) * Cr * (1.0 - s);
+  pps_t Tout_s = (Ts / (hit_rate_t)(Tin + Ts)) * Cr;
+  pps_t Tout = Tout_in + Tout_s;
   return std::min(std::min(Tin, Cp), Tout);
 }
 
@@ -154,8 +155,8 @@ static hit_rate_t newton_root_finder(hit_rate_t *coefficients,
   return x;
 }
 
-static u64 triple_recirc_estimate(u64 Tin, u64 Cr, u64 Cp, hit_rate_t s0,
-                                  hit_rate_t s1) {
+static pps_t triple_recirc_estimate(pps_t Tin, pps_t Cr, pps_t Cp,
+                                    hit_rate_t s0, hit_rate_t s1) {
   hit_rate_t a = (s1 / s0) * (1.0 / Tin);
   hit_rate_t b = 1;
   hit_rate_t c = Tin;
@@ -169,14 +170,14 @@ static u64 triple_recirc_estimate(u64 Tin, u64 Cr, u64 Cp, hit_rate_t s0,
   hit_rate_t Tout_s0 = (Ts0 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
   hit_rate_t Tout_s1 = (Ts1 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr;
 
-  u64 Tout = Tout_in + Tout_s0 + Tout_s1;
+  pps_t Tout = Tout_in + Tout_s0 + Tout_s1;
 
   return std::min(std::min(Tin, Cp), Tout);
 }
 
 void PerfOracle::update_estimate_throughput_pps() {
-  u64 Tswitch_bps = port_capacity_bps * total_ports;
-  u64 throughput_bps = 0;
+  bps_t Tswitch_bps = port_capacity_bps * total_ports;
+  bps_t throughput_bps = 0;
 
   for (const RecircPortUsage &usage : recirc_ports_usage) {
     size_t recirc_depth = usage.fractions.size();
@@ -185,9 +186,9 @@ void PerfOracle::update_estimate_throughput_pps() {
       continue;
     }
 
-    u64 Tin_bps = Tswitch_bps * usage.fractions[0];
-    u64 Tsteering_bps = Tswitch_bps * usage.steering_fraction;
-    u64 Tout_bps = 0;
+    bps_t Tin_bps = Tswitch_bps * usage.fractions[0];
+    bps_t Tsteering_bps = Tswitch_bps * usage.steering_fraction;
+    bps_t Tout_bps = 0;
 
     switch (recirc_depth) {
     case 1: {
@@ -208,8 +209,8 @@ void PerfOracle::update_estimate_throughput_pps() {
 
       hit_rate_t s = usage.fractions[1] / usage.fractions[0];
 
-      Tout_bps = hit_rate_t_recirc_estimate(Tin_bps, recirc_port_capacity_bps,
-                                            port_capacity_bps, s);
+      Tout_bps = hit_rate_recirc_estimate(Tin_bps, recirc_port_capacity_bps,
+                                          port_capacity_bps, s);
     } break;
     case 3: {
       // s1 is relative to s0
@@ -241,15 +242,15 @@ void PerfOracle::update_estimate_throughput_pps() {
 
   throughput_bps += non_recirc_traffic * Tswitch_bps;
 
-  u64 old_estimate_pps = throughput_pps;
-  u64 new_estimate_pps = throughput_bps / (avg_pkt_bytes * 8);
+  pps_t old_estimate_pps = throughput_pps;
+  pps_t new_estimate_pps = throughput_bps / (avg_pkt_bytes * 8);
 
   assert(new_estimate_pps <= old_estimate_pps);
 
   throughput_pps = new_estimate_pps;
 }
 
-u64 PerfOracle::estimate_throughput_pps() const { return throughput_pps; }
+pps_t PerfOracle::estimate_throughput_pps() const { return throughput_pps; }
 
 void PerfOracle::log_debug() const {
   Log::dbg() << "====== PerfOracle ======\n";
@@ -263,7 +264,7 @@ void PerfOracle::log_debug() const {
     Log::dbg() << " (steering=" << usage.steering_fraction << ")";
     Log::dbg() << "\n";
   }
-  Log::dbg() << "Estimate: " << estimate_throughput_pps() << " pps\n";
+  Log::dbg() << "Estimate: " << estimate_throughput_pps() << " pps_t\n";
   Log::dbg() << "========================\n";
 }
 

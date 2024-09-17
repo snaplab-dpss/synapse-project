@@ -9,6 +9,8 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+#define CACHE_SIZE_PARAM "cache_size"
+
 namespace tofino {
 
 struct FCFSCachedTable : public DS {

@@ -10,25 +10,57 @@
 
 class Context;
 
-struct speculation_t {
+struct decision_t {
+  const EP *ep;
+  node_id_t node;
+  ModuleType module;
+  std::unordered_map<std::string, i32> params;
+
+  decision_t() : ep(nullptr), node(0), module(ModuleType::INVALID_MODULE) {}
+
+  decision_t(const EP *_ep, node_id_t _node, ModuleType _module)
+      : ep(_ep), node(_node), module(_module) {}
+
+  decision_t(const EP *_ep, node_id_t _node, ModuleType _module,
+             const std::unordered_map<std::string, i32> &_params)
+      : ep(_ep), node(_node), module(_module), params(_params) {}
+
+  decision_t(const decision_t &other)
+      : ep(other.ep), node(other.node), module(other.module),
+        params(other.params) {}
+
+  decision_t &operator=(const decision_t &other) {
+    ep = other.ep;
+    node = other.node;
+    module = other.module;
+    params = other.params;
+    return *this;
+  }
+};
+
+struct spec_impl_t {
+  decision_t decision;
   Context ctx;
   std::optional<TargetType> next_target;
   nodes_t skip;
 
-  speculation_t(const Context &_ctx) : ctx(_ctx) {}
+  spec_impl_t(const decision_t &_decision, const Context &_ctx)
+      : decision(_decision), ctx(_ctx) {}
 };
 
-struct generator_product_t {
-  const EP *ep;
-  const std::string description;
-  const bool bdd_reordered;
+struct impl_t {
+  decision_t decision;
+  EP *result;
+  bool bdd_reordered;
 
-  generator_product_t(const EP *_ep, const std::string &_description)
-      : ep(_ep), description(_description), bdd_reordered(false) {}
+  impl_t(EP *_result) : result(_result) {}
 
-  generator_product_t(const EP *_ep, const std::string &_description,
-                      bool _bdd_reordered)
-      : ep(_ep), description(_description), bdd_reordered(_bdd_reordered) {}
+  impl_t(const decision_t &_decision, EP *_result, bool _bdd_reordered)
+      : decision(_decision), result(_result), bdd_reordered(_bdd_reordered) {}
+
+  impl_t(const impl_t &other)
+      : decision(other.decision), result(other.result),
+        bdd_reordered(other.bdd_reordered) {}
 };
 
 class ModuleGenerator {
@@ -44,35 +76,25 @@ public:
 
   virtual ~ModuleGenerator() {}
 
-  std::vector<generator_product_t> generate(const EP *ep, const Node *node,
-                                            bool reorder_bdd) const;
+  std::vector<impl_t> generate(const EP *ep, const Node *node,
+                               bool reorder_bdd) const;
 
-  virtual std::optional<speculation_t> speculate(const EP *ep, const Node *node,
-                                                 const Context &ctx) const = 0;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const = 0;
 
   ModuleType get_type() const { return type; }
   TargetType get_target() const { return target; }
   const std::string &get_name() const { return name; }
 
 protected:
-  struct __generator_product_t {
-    EP *ep;
-    const std::string description;
+  decision_t decide(const EP *ep, const Node *node,
+                    std::unordered_map<std::string, i32> params = {}) const;
 
-    __generator_product_t(EP *_ep) : ep(_ep), description("") {}
+  impl_t implement(const EP *ep, const Node *node, EP *result,
+                   std::unordered_map<std::string, i32> params = {}) const;
 
-    __generator_product_t(EP *_ep, const std::string &_description)
-        : ep(_ep), description(_description) {}
-
-    __generator_product_t(const __generator_product_t &other)
-        : ep(other.ep), description(other.description) {}
-
-    __generator_product_t(__generator_product_t &&other)
-        : ep(std::move(other.ep)), description(std::move(other.description)) {}
-  };
-
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const = 0;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const = 0;
 
   bool can_place(const EP *ep, const Call *call_node,
                  const std::string &obj_arg, PlacementDecision decision) const;

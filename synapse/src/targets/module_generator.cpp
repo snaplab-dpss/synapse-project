@@ -99,38 +99,54 @@ static std::vector<EP *> get_reordered(const EP *ep) {
   return reordered;
 }
 
-std::vector<generator_product_t>
-ModuleGenerator::generate(const EP *ep, const Node *node,
-                          bool reorder_bdd) const {
+decision_t
+ModuleGenerator::decide(const EP *ep, const Node *node,
+                        std::unordered_map<std::string, i32> params) const {
+  return decision_t(ep, node->get_id(), type, params);
+}
+
+impl_t
+ModuleGenerator::implement(const EP *ep, const Node *node, EP *result,
+                           std::unordered_map<std::string, i32> params) const {
+  return impl_t(decide(ep, node, params), result, false);
+}
+
+std::vector<impl_t> ModuleGenerator::generate(const EP *ep, const Node *node,
+                                              bool reorder_bdd) const {
+  std::vector<impl_t> implementations;
+
   if (!can_process_platform(ep, target)) {
-    return {};
+    return implementations;
   }
 
-  std::vector<__generator_product_t> node_products = process_node(ep, node);
-  std::vector<generator_product_t> products;
+  std::vector<impl_t> internal_decisions = process_node(ep, node);
 
-  for (const __generator_product_t &node_product : node_products) {
-    EP *ep = node_product.ep;
+  for (const impl_t &id : internal_decisions) {
+    EP *ep = id.result;
     Context &ctx = ep->get_mutable_ctx();
     ctx.update_throughput_estimates(ep);
-    products.emplace_back(ep, node_product.description);
+    implementations.push_back(id);
   }
 
   if (!reorder_bdd) {
-    return products;
+    return implementations;
   }
 
-  for (const __generator_product_t &product : node_products) {
-    std::vector<EP *> reordered = get_reordered(product.ep);
+  for (const impl_t &id : internal_decisions) {
+    std::vector<EP *> reordered = get_reordered(id.result);
 
     for (EP *reordered_ep : reordered) {
       Context &ctx = reordered_ep->get_mutable_ctx();
       ctx.update_throughput_estimates(reordered_ep);
-      products.emplace_back(reordered_ep, product.description, true);
+
+      impl_t new_implementation = id;
+      new_implementation.result = reordered_ep;
+      new_implementation.bdd_reordered = true;
+      implementations.push_back(new_implementation);
     }
   }
 
-  return products;
+  return implementations;
 }
 
 bool ModuleGenerator::can_place(const EP *ep, const Call *call_node,

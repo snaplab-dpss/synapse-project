@@ -1,30 +1,32 @@
 #pragma once
 
 #include "heuristic.h"
-#include "score.h"
 
-struct GalliumComparator : public HeuristicCfg {
-  GalliumComparator() : HeuristicCfg("Gallium") {}
+class GalliumCfg : public HeuristicCfg {
+public:
+  GalliumCfg()
+      : HeuristicCfg(
+            "Gallium",
+            {
+                BUILD_METRIC(GalliumCfg, get_switch_progression_nodes, MAX),
 
-  Score get_score(const EP *ep) const override {
-    Score score(
-        ep, {
-                {ScoreCategory::SwitchProgressionNodes, ScoreObjective::MAX},
+                // Some modules (e.g. SendToController) increase the
+                // number of nodes in the BDD. This means that the
+                // percentage of processed BDD nodes can decrease even
+                // though the number of processed BDD nodes is
+                // increasing, favoring other modules like Recirculate.
+                BUILD_METRIC(GalliumCfg, get_bdd_progress, MAX),
+            }) {}
 
-                // Why processed BDD instead of a processed BDD percentage?
-                // Because some modules (e.g. SendToController) increase the
-                // number of nodes in the BDD. This means that the percentage of
-                // processed BDD nodes can decrease even though the number of
-                // processed BDD nodes is increasing, favoring other modules
-                // like Recirculate.
-                {ScoreCategory::ProcessedBDD, ScoreObjective::MAX},
-
-                // {ScoreCategory::SwitchDataStructures, ScoreObjective::MAX},
-                // {ScoreCategory::Recirculations, ScoreObjective::MIN},
-            });
-
-    return score;
+  GalliumCfg &operator=(const GalliumCfg &other) {
+    assert(other.name == name);
+    assert(other.metrics.size() == metrics.size());
+    return *this;
   }
+
+private:
+  i64 get_switch_progression_nodes(const EP *ep) const;
+  i64 get_bdd_progress(const EP *ep) const;
 };
 
-using Gallium = Heuristic<GalliumComparator>;
+using Gallium = Heuristic<GalliumCfg>;

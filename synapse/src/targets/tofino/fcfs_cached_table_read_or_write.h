@@ -68,7 +68,7 @@ public:
                               "FCFSCachedTableReadOrWrite") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -99,6 +99,7 @@ protected:
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
     hit_rate_t chosen_success_probability = 0;
+    int chosen_cache_capacity = 0;
     bool successfully_placed = false;
 
     // We can use a different method for picking the right estimation depending
@@ -115,6 +116,7 @@ protected:
 
       if (success_probability > chosen_success_probability) {
         chosen_success_probability = success_probability;
+        chosen_cache_capacity = cache_capacity;
       }
 
       successfully_placed = true;
@@ -141,20 +143,21 @@ protected:
     std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
         ep, map_get, map_objs, cached_table_data.key);
 
-    speculation_t speculation(new_ctx);
+    spec_impl_t spec_impl(
+        decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
     for (const Node *op : ignore_nodes) {
-      speculation.skip.insert(op->get_id());
+      spec_impl.skip.insert(op->get_id());
     }
 
-    return speculation;
+    return spec_impl;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *map_get = static_cast<const Call *>(node);
@@ -163,16 +166,16 @@ protected:
     if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get,
                                                  future_map_puts)) {
       // The cached table read should deal with these cases.
-      return products;
+      return impls;
     }
 
     map_coalescing_objs_t map_objs;
     if (!get_map_coalescing_objs_from_map_op(ep, map_get, map_objs)) {
-      return products;
+      return impls;
     }
 
     if (!can_place_fcfs_cached_table(ep, map_objs)) {
-      return products;
+      return impls;
     }
 
     symbol_t cache_write_failed = create_symbol("cache_write_failed", 32);
@@ -184,17 +187,16 @@ protected:
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
     for (int cache_capacity : allowed_cache_capacities) {
-      std::optional<__generator_product_t> product =
-          concretize_cached_table_cond_write(
-              ep, node, map_objs, cached_table_data, cache_write_failed,
-              cache_capacity);
+      std::optional<impl_t> impl = concretize_cached_table_cond_write(
+          ep, node, map_objs, cached_table_data, cache_write_failed,
+          cache_capacity);
 
-      if (product.has_value()) {
-        products.push_back(*product);
+      if (impl.has_value()) {
+        impls.push_back(*impl);
       }
     }
 
-    return products;
+    return impls;
   }
 
 private:
@@ -207,7 +209,7 @@ private:
     int num_entries;
   };
 
-  std::optional<__generator_product_t> concretize_cached_table_cond_write(
+  std::optional<impl_t> concretize_cached_table_cond_write(
       const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
       const fcfs_cached_table_data_t &fcfs_cached_table_data,
       const symbol_t &cache_write_failed, int cache_capacity) const {
@@ -301,11 +303,7 @@ private:
     new_ep->replace_bdd(new_bdd);
     // new_ep->inspect();
 
-    std::stringstream descr;
-    descr << "capacity=" << cache_capacity;
-    descr << " hit-rate=" << cache_success_probability;
-
-    return __generator_product_t(new_ep, descr.str());
+    return implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
   }
 
   hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,

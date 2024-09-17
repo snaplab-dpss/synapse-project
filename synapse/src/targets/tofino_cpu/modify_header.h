@@ -38,7 +38,7 @@ public:
                                  "ModifyHeader") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -51,22 +51,22 @@ protected:
       return std::nullopt;
     }
 
-    return ctx;
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *packet_return_chunk = static_cast<const Call *>(node);
     const call_t &call = packet_return_chunk->get_call();
 
     if (call.function_name != "packet_return_chunk") {
-      return products;
+      return impls;
     }
 
     const Call *packet_borrow_chunk =
@@ -81,11 +81,11 @@ protected:
         build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     if (changes.size() == 0) {
       new_ep->process_leaf(node->get_next());
-      return products;
+      return impls;
     }
 
     Module *module = new ModifyHeader(node, hdr_addr, changes);
@@ -94,7 +94,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    return products;
+    return impls;
   }
 };
 

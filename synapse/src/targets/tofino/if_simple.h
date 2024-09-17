@@ -35,34 +35,34 @@ public:
       : TofinoModuleGenerator(ModuleType::Tofino_IfSimple, "IfSimple") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::BRANCH) {
       return std::nullopt;
     }
 
-    return ctx;
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::BRANCH) {
-      return products;
+      return impls;
     }
 
     const Branch *branch_node = static_cast<const Branch *>(node);
 
     if (is_parser_condition(branch_node)) {
-      return products;
+      return impls;
     }
 
     klee::ref<klee::Expr> condition = branch_node->get_condition();
     std::vector<klee::ref<klee::Expr>> conditions = split_condition(condition);
 
     if (conditions.size() > 1) {
-      return products;
+      return impls;
     }
 
     assert(branch_node->get_on_true());
@@ -84,12 +84,12 @@ protected:
     EPLeaf else_leaf(else_node, branch_node->get_on_false());
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     new_ep->update_node_constraints(then_node, else_node, condition);
     new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
-    return products;
+    return impls;
   }
 
 private:

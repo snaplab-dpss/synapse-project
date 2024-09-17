@@ -38,18 +38,18 @@ struct search_step_report_t {
         current(_current) {}
 
   void save(const ModuleGenerator *modgen,
-            const std::vector<generator_product_t> &products) {
-    if (products.empty()) {
+            const std::vector<impl_t> &implementations) {
+    if (implementations.empty()) {
       return;
     }
 
     targets.push_back(modgen->get_target());
     name.push_back(modgen->get_name());
     gen_ep_ids.emplace_back();
-    available_execution_plans += products.size();
+    available_execution_plans += implementations.size();
 
-    for (const generator_product_t &product : products) {
-      ep_id_t next_ep_id = product.ep->get_id();
+    for (const impl_t &impl : implementations) {
+      ep_id_t next_ep_id = impl.result->get_id();
       gen_ep_ids.back().push_back(next_ep_id);
     }
   }
@@ -118,14 +118,14 @@ static void log_search_iteration(const search_step_report_t &report,
   Log::dbg() << "==========================================================\n";
 }
 
-static void peek_search_space(const std::vector<const EP *> &eps,
+static void peek_search_space(const std::vector<impl_t> &new_implementations,
                               const std::unordered_set<ep_id_t> &peek,
                               SearchSpace *search_space) {
-  for (const EP *ep : eps) {
-    if (peek.find(ep->get_id()) != peek.end()) {
-      BDDVisualizer::visualize(ep->get_bdd(), false);
-      EPVisualizer::visualize(ep, false);
-      SSVisualizer::visualize(search_space, ep, true);
+  for (const impl_t &impl : new_implementations) {
+    if (peek.find(impl.result->get_id()) != peek.end()) {
+      BDDVisualizer::visualize(impl.result->get_bdd(), false);
+      EPVisualizer::visualize(impl.result, false);
+      SSVisualizer::visualize(search_space, impl.result, true);
     }
   }
 }
@@ -145,7 +145,7 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
   auto start_search = std::chrono::steady_clock::now();
   SearchSpace *search_space = new SearchSpace(h->get_cfg());
 
-  h->add({new EP(bdd, targets, profiler)});
+  h->add(new EP(bdd, targets, profiler));
 
   std::unordered_map<node_id_t, int> node_depth;
 
@@ -181,22 +181,22 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     float &avg_node_children = meta.avg_children_per_node[node->get_id()];
     int &node_visits = meta.visits_per_node[node->get_id()];
 
-    std::vector<const EP *> new_eps;
+    std::vector<impl_t> new_implementations;
 
     u64 children = 0;
     for (const Target *target : targets) {
       for (const ModuleGenerator *modgen : target->module_generators) {
-        std::vector<generator_product_t> modgen_products =
+        const std::vector<impl_t> implementations =
             modgen->generate(ep, node, allow_bdd_reordering);
-        search_space->add_to_active_leaf(ep, node, modgen, modgen_products);
-        report.save(modgen, modgen_products);
+        search_space->add_to_active_leaf(ep, node, modgen, implementations);
+        report.save(modgen, implementations);
 
-        for (const generator_product_t &product : modgen_products) {
-          new_eps.push_back(product.ep);
+        for (const impl_t &impl : implementations) {
+          new_implementations.push_back(impl);
         }
 
         if (target->type == TargetType::Tofino) {
-          children += modgen_products.size();
+          children += implementations.size();
         }
       }
     }
@@ -221,12 +221,11 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     meta.ss_size = search_space->get_size();
     meta.solutions = h->size();
 
-    h->add(new_eps);
+    h->add(new_implementations);
+    h->cleanup();
 
     log_search_iteration(report, meta);
-    peek_search_space(new_eps, peek, search_space);
-
-    delete ep;
+    peek_search_space(new_implementations, peek, search_space);
   }
 
   meta.ss_size = search_space->get_size();

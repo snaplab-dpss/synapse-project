@@ -25,29 +25,29 @@ public:
   IgnoreGenerator() : x86ModuleGenerator(ModuleType::x86_Ignore, "Ignore") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     return std::nullopt;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (!should_ignore(ep, node)) {
-      return products;
+      return impls;
     }
 
     Module *module = new Ignore(node);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    return products;
+    return impls;
   }
 
 private:

@@ -11,9 +11,9 @@ namespace tofino {
 enum class TNAVersion { TNA1, TNA2 };
 
 struct TNAProperties {
-  u64 port_capacity_bps;
+  bps_t port_capacity_bps;
   int total_ports;
-  u64 recirc_port_capacity_bps;
+  bps_t recirc_port_capacity_bps;
   int total_recirc_ports;
   int max_packet_bytes_in_condition;
   int pipes;

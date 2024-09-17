@@ -94,9 +94,8 @@ struct solver_toolbox_t {
   u64 value_from_expr(klee::ref<klee::Expr> expr) const;
   u64 value_from_expr(klee::ref<klee::Expr> expr,
                       const klee::ConstraintManager &constraints) const;
-  int64_t
-  signed_value_from_expr(klee::ref<klee::Expr> expr,
-                         const klee::ConstraintManager &constraints) const;
+  i64 signed_value_from_expr(klee::ref<klee::Expr> expr,
+                             const klee::ConstraintManager &constraints) const;
 
   bool are_calls_equal(call_t c1, call_t c2) const;
 };

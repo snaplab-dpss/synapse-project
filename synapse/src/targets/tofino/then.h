@@ -25,13 +25,13 @@ public:
   ThenGenerator() : TofinoModuleGenerator(ModuleType::Tofino_Then, "Then") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     return std::nullopt;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
     // Never explicitly generate this module from the BDD.
     return {};
   }

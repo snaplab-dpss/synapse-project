@@ -32,7 +32,7 @@ public:
       : TofinoModuleGenerator(ModuleType::Tofino_Forward, "Forward") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::ROUTE) {
       return std::nullopt;
@@ -45,28 +45,28 @@ protected:
       return std::nullopt;
     }
 
-    return ctx;
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::ROUTE) {
-      return products;
+      return impls;
     }
 
     const Route *route_node = static_cast<const Route *>(node);
     RouteOperation op = route_node->get_operation();
 
     if (op != RouteOperation::FWD) {
-      return products;
+      return impls;
     }
 
     int dst_device = route_node->get_dst_device();
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     Module *module = new Forward(node, dst_device);
     EPNode *ep_node = new EPNode(module);
@@ -77,7 +77,7 @@ protected:
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->parser_accept(ep, node);
 
-    return products;
+    return impls;
   }
 };
 

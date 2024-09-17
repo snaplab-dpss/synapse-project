@@ -27,7 +27,7 @@ Target::~Target() {
 std::ostream &operator<<(std::ostream &os, TargetType target) {
   switch (target) {
   case TargetType::TofinoCPU:
-    os << "Tofino CPU";
+    os << "Ctrl";
     break;
   case TargetType::Tofino:
     os << "Tofino";

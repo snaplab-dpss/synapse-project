@@ -15,6 +15,7 @@ class EPNode;
 enum class TargetType;
 
 enum class ModuleType {
+  INVALID_MODULE,
   Tofino_SendToController,
   Tofino_Ignore,
   Tofino_IfSimple,
@@ -99,6 +100,265 @@ enum class ModuleType {
   x86_ChtFindBackend,
   x86_HashObj,
 };
+
+inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
+  switch (type) {
+  case ModuleType::INVALID_MODULE:
+    os << "INVALID_MODULE";
+    break;
+  case ModuleType::Tofino_SendToController:
+    os << "Tofino_SendToController";
+    break;
+  case ModuleType::Tofino_Ignore:
+    os << "Tofino_Ignore";
+    break;
+  case ModuleType::Tofino_IfSimple:
+    os << "Tofino_IfSimple";
+    break;
+  case ModuleType::Tofino_If:
+    os << "Tofino_If";
+    break;
+  case ModuleType::Tofino_ParserExtraction:
+    os << "Tofino_ParserExtraction";
+    break;
+  case ModuleType::Tofino_ParserCondition:
+    os << "Tofino_ParserCondition";
+    break;
+  case ModuleType::Tofino_ParserReject:
+    os << "Tofino_ParserReject";
+    break;
+  case ModuleType::Tofino_Then:
+    os << "Tofino_Then";
+    break;
+  case ModuleType::Tofino_Else:
+    os << "Tofino_Else";
+    break;
+  case ModuleType::Tofino_Forward:
+    os << "Tofino_Forward";
+    break;
+  case ModuleType::Tofino_Drop:
+    os << "Tofino_Drop";
+    break;
+  case ModuleType::Tofino_Broadcast:
+    os << "Tofino_Broadcast";
+    break;
+  case ModuleType::Tofino_ModifyHeader:
+    os << "Tofino_ModifyHeader";
+    break;
+  case ModuleType::Tofino_SimpleTableLookup:
+    os << "Tofino_SimpleTableLookup";
+    break;
+  case ModuleType::Tofino_VectorRegisterLookup:
+    os << "Tofino_VectorRegisterLookup";
+    break;
+  case ModuleType::Tofino_VectorRegisterUpdate:
+    os << "Tofino_VectorRegisterUpdate";
+    break;
+  case ModuleType::Tofino_FCFSCachedTableRead:
+    os << "Tofino_FCFSCachedTableRead";
+    break;
+  case ModuleType::Tofino_FCFSCachedTableReadOrWrite:
+    os << "Tofino_FCFSCachedTableReadOrWrite";
+    break;
+  case ModuleType::Tofino_FCFSCachedTableWrite:
+    os << "Tofino_FCFSCachedTableWrite";
+    break;
+  case ModuleType::Tofino_FCFSCachedTableDelete:
+    os << "Tofino_FCFSCachedTableDelete";
+    break;
+  case ModuleType::Tofino_Recirculate:
+    os << "Tofino_Recirculate";
+    break;
+  case ModuleType::TofinoCPU_Ignore:
+    os << "TofinoCPU_Ignore";
+    break;
+  case ModuleType::TofinoCPU_ParseHeader:
+    os << "TofinoCPU_ParseHeader";
+    break;
+  case ModuleType::TofinoCPU_ModifyHeader:
+    os << "TofinoCPU_ModifyHeader";
+    break;
+  case ModuleType::TofinoCPU_ChecksumUpdate:
+    os << "TofinoCPU_ChecksumUpdate";
+    break;
+  case ModuleType::TofinoCPU_If:
+    os << "TofinoCPU_If";
+    break;
+  case ModuleType::TofinoCPU_Then:
+    os << "TofinoCPU_Then";
+    break;
+  case ModuleType::TofinoCPU_Else:
+    os << "TofinoCPU_Else";
+    break;
+  case ModuleType::TofinoCPU_Forward:
+    os << "TofinoCPU_Forward";
+    break;
+  case ModuleType::TofinoCPU_Broadcast:
+    os << "TofinoCPU_Broadcast";
+    break;
+  case ModuleType::TofinoCPU_Drop:
+    os << "TofinoCPU_Drop";
+    break;
+  case ModuleType::TofinoCPU_SimpleTableLookup:
+    os << "TofinoCPU_SimpleTableLookup";
+    break;
+  case ModuleType::TofinoCPU_SimpleTableUpdate:
+    os << "TofinoCPU_SimpleTableUpdate";
+    break;
+  case ModuleType::TofinoCPU_SimpleTableDelete:
+    os << "TofinoCPU_SimpleTableDelete";
+    break;
+  case ModuleType::TofinoCPU_FCFSCachedTableRead:
+    os << "TofinoCPU_FCFSCachedTableRead";
+    break;
+  case ModuleType::TofinoCPU_FCFSCachedTableWrite:
+    os << "TofinoCPU_FCFSCachedTableWrite";
+    break;
+  case ModuleType::TofinoCPU_FCFSCachedTableDelete:
+    os << "TofinoCPU_FCFSCachedTableDelete";
+    break;
+  case ModuleType::TofinoCPU_DchainAllocateNewIndex:
+    os << "TofinoCPU_DchainAllocateNewIndex";
+    break;
+  case ModuleType::TofinoCPU_DchainRejuvenateIndex:
+    os << "TofinoCPU_DchainRejuvenateIndex";
+    break;
+  case ModuleType::TofinoCPU_DchainIsIndexAllocated:
+    os << "TofinoCPU_DchainIsIndexAllocated";
+    break;
+  case ModuleType::TofinoCPU_DchainFreeIndex:
+    os << "TofinoCPU_DchainFreeIndex";
+    break;
+  case ModuleType::TofinoCPU_VectorRead:
+    os << "TofinoCPU_VectorRead";
+    break;
+  case ModuleType::TofinoCPU_VectorWrite:
+    os << "TofinoCPU_VectorWrite";
+    break;
+  case ModuleType::TofinoCPU_MapGet:
+    os << "TofinoCPU_MapGet";
+    break;
+  case ModuleType::TofinoCPU_MapPut:
+    os << "TofinoCPU_MapPut";
+    break;
+  case ModuleType::TofinoCPU_MapErase:
+    os << "TofinoCPU_MapErase";
+    break;
+  case ModuleType::TofinoCPU_ChtFindBackend:
+    os << "TofinoCPU_ChtFindBackend";
+    break;
+  case ModuleType::TofinoCPU_HashObj:
+    os << "TofinoCPU_HashObj";
+    break;
+  case ModuleType::TofinoCPU_SketchExpire:
+    os << "TofinoCPU_SketchExpire";
+    break;
+  case ModuleType::TofinoCPU_SketchComputeHashes:
+    os << "TofinoCPU_SketchComputeHashes";
+    break;
+  case ModuleType::TofinoCPU_SketchRefresh:
+    os << "TofinoCPU_SketchRefresh";
+    break;
+  case ModuleType::TofinoCPU_SketchFetch:
+    os << "TofinoCPU_SketchFetch";
+    break;
+  case ModuleType::TofinoCPU_SketchTouchBuckets:
+    os << "TofinoCPU_SketchTouchBuckets";
+    break;
+  case ModuleType::TofinoCPU_VectorRegisterLookup:
+    os << "TofinoCPU_VectorRegisterLookup";
+    break;
+  case ModuleType::TofinoCPU_VectorRegisterUpdate:
+    os << "TofinoCPU_VectorRegisterUpdate";
+    break;
+  case ModuleType::x86_Ignore:
+    os << "x86_Ignore";
+    break;
+  case ModuleType::x86_If:
+    os << "x86_If";
+    break;
+  case ModuleType::x86_Then:
+    os << "x86_Then";
+    break;
+  case ModuleType::x86_Else:
+    os << "x86_Else";
+    break;
+  case ModuleType::x86_Forward:
+    os << "x86_Forward";
+    break;
+  case ModuleType::x86_ParseHeader:
+    os << "x86_ParseHeader";
+    break;
+  case ModuleType::x86_ModifyHeader:
+    os << "x86_ModifyHeader";
+    break;
+  case ModuleType::x86_MapGet:
+    os << "x86_MapGet";
+    break;
+  case ModuleType::x86_MapPut:
+    os << "x86_MapPut";
+    break;
+  case ModuleType::x86_MapErase:
+    os << "x86_MapErase";
+    break;
+  case ModuleType::x86_VectorRead:
+    os << "x86_VectorRead";
+    break;
+  case ModuleType::x86_VectorWrite:
+    os << "x86_VectorWrite";
+    break;
+  case ModuleType::x86_DchainAllocateNewIndex:
+    os << "x86_DchainAllocateNewIndex";
+    break;
+  case ModuleType::x86_DchainRejuvenateIndex:
+    os << "x86_DchainRejuvenateIndex";
+    break;
+  case ModuleType::x86_DchainIsIndexAllocated:
+    os << "x86_DchainIsIndexAllocated";
+    break;
+  case ModuleType::x86_DchainFreeIndex:
+    os << "x86_DchainFreeIndex";
+    break;
+  case ModuleType::x86_SketchExpire:
+    os << "x86_SketchExpire";
+    break;
+  case ModuleType::x86_SketchComputeHashes:
+    os << "x86_SketchComputeHashes";
+    break;
+  case ModuleType::x86_SketchRefresh:
+    os << "x86_SketchRefresh";
+    break;
+  case ModuleType::x86_SketchFetch:
+    os << "x86_SketchFetch";
+    break;
+  case ModuleType::x86_SketchTouchBuckets:
+    os << "x86_SketchTouchBuckets";
+    break;
+  case ModuleType::x86_Drop:
+    os << "x86_Drop";
+    break;
+  case ModuleType::x86_Broadcast:
+    os << "x86_Broadcast";
+    break;
+  case ModuleType::x86_ExpireItemsSingleMap:
+    os << "x86_ExpireItemsSingleMap";
+    break;
+  case ModuleType::x86_ExpireItemsSingleMapIteratively:
+    os << "x86_ExpireItemsSingleMapIteratively";
+    break;
+  case ModuleType::x86_ChecksumUpdate:
+    os << "x86_ChecksumUpdate";
+    break;
+  case ModuleType::x86_ChtFindBackend:
+    os << "x86_ChtFindBackend";
+    break;
+  case ModuleType::x86_HashObj:
+    os << "x86_HashObj";
+    break;
+  }
+
+  return os;
+}
 
 class Module {
 protected:

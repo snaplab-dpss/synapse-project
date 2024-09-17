@@ -34,7 +34,7 @@ public:
                               "SendToController") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     Context new_ctx = ctx;
 
@@ -47,19 +47,19 @@ protected:
     new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
                                      *fraction);
 
-    speculation_t speculation(new_ctx);
-    speculation.next_target = TargetType::TofinoCPU;
+    spec_impl_t spec_impl(decide(ep, node), new_ctx);
+    spec_impl.next_target = TargetType::TofinoCPU;
 
-    return speculation;
+    return spec_impl;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     // We can always send to the controller, at any point in time.
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     symbols_t symbols = get_dataplane_state(ep, node);
 
@@ -84,7 +84,7 @@ protected:
 
     // FIXME: missing custom packet parsing for the SyNAPSE header.
 
-    return products;
+    return impls;
   }
 
 private:

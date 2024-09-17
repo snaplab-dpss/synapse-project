@@ -24,7 +24,7 @@ struct EPMeta {
   nodes_t processed_nodes;
 
   // Useful for uniquely identifying/classifying this EP.
-  int64_t random_number;
+  i64 random_number;
 
   EPMeta(const BDD *bdd, const std::unordered_set<TargetType> &targets,
          const TargetType initial_target)

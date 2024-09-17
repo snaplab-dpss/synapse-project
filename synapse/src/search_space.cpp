@@ -9,7 +9,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
 
   if (!root) {
     ss_node_id_t id = node_id_counter++;
-    Score score = hcfg->get_score(ep);
+    Score score = hcfg->score(ep);
     TargetType target = ep->get_current_platform();
     root = new SSNode(id, ep_id, score, target);
     active_leaf = root;
@@ -86,8 +86,8 @@ std::string SearchSpace::build_meta_throughput_estimate(const EP *ep) {
   const Profiler *profiler = ctx.get_profiler();
   int avg_pkt_size = profiler->get_avg_pkt_bytes();
 
-  u64 estimate_pps = ep->estimate_throughput_pps();
-  u64 estimate_bps = estimate_pps * avg_pkt_size * 8;
+  pps_t estimate_pps = ep->estimate_throughput_pps();
+  pps_t estimate_bps = estimate_pps * avg_pkt_size * 8;
 
   std::stringstream ss;
   ss << throughput2str(estimate_bps, "bps", true);
@@ -104,8 +104,8 @@ std::string SearchSpace::build_meta_throughput_speculation(const EP *ep) {
   const Profiler *profiler = ctx.get_profiler();
   int avg_pkt_size = profiler->get_avg_pkt_bytes();
 
-  u64 speculation_pps = ep->speculate_throughput_pps();
-  u64 speculation_bps = speculation_pps * avg_pkt_size * 8;
+  pps_t speculation_pps = ep->speculate_throughput_pps();
+  bps_t speculation_bps = speculation_pps * avg_pkt_size * 8;
 
   std::stringstream ss;
   ss << throughput2str(speculation_bps, "bps", true);
@@ -119,21 +119,26 @@ std::string SearchSpace::build_meta_throughput_speculation(const EP *ep) {
 
 void SearchSpace::add_to_active_leaf(
     const EP *ep, const Node *node, const ModuleGenerator *modgen,
-    const std::vector<generator_product_t> &products) {
+    const std::vector<impl_t> &implementations) {
   assert(active_leaf && "Active leaf not set");
 
-  for (const generator_product_t &product : products) {
+  for (const impl_t &impl : implementations) {
     ss_node_id_t id = node_id_counter++;
-    ep_id_t ep_id = product.ep->get_id();
-    Score score = hcfg->get_score(product.ep);
+    ep_id_t ep_id = impl.result->get_id();
+    Score score = hcfg->score(impl.result);
     TargetType target = modgen->get_target();
-    const Node *next = product.ep->get_next_node();
+    const Node *next = impl.result->get_next_node();
+
+    std::stringstream description_ss;
+    for (const auto &[key, value] : impl.decision.params) {
+      description_ss << key << "=" << value << " ";
+    }
 
     module_data_t module_data = {
         .type = modgen->get_type(),
         .name = modgen->get_name(),
-        .description = product.description,
-        .bdd_reordered = product.bdd_reordered,
+        .description = description_ss.str(),
+        .bdd_reordered = impl.bdd_reordered,
         .hit_rate = ep->get_active_leaf_hit_rate(),
     };
 
@@ -151,8 +156,8 @@ void SearchSpace::add_to_active_leaf(
     }
 
     std::map<std::string, std::string> metadata = {
-        {"Throughput", build_meta_throughput_estimate(product.ep)},
-        {"Speculation", build_meta_throughput_speculation(product.ep)},
+        {"Tput", build_meta_throughput_estimate(impl.result)},
+        {"Spec", build_meta_throughput_speculation(impl.result)},
     };
 
     SSNode *new_node = new SSNode(id, ep_id, score, target, module_data,

@@ -6,7 +6,7 @@ namespace tofino_cpu {
 
 class TofinoCPUContext : public TargetContext {
 private:
-  u64 capacity_pps;
+  pps_t capacity_pps;
 
 public:
   TofinoCPUContext() : capacity_pps(100'000) {}
@@ -15,7 +15,7 @@ public:
     return new TofinoCPUContext(*this);
   }
 
-  virtual u64 estimate_throughput_pps() const override {
+  virtual pps_t estimate_throughput_pps() const override {
     return capacity_pps;
   }
 };

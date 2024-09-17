@@ -1,17 +1,22 @@
 #pragma once
 
 #include "heuristic.h"
-#include "score.h"
 
-struct RandomComparator : public HeuristicCfg {
-  RandomComparator() : HeuristicCfg("Random") {}
+class RandomCfg : public HeuristicCfg {
+public:
+  RandomCfg()
+      : HeuristicCfg("Random", {
+                                   BUILD_METRIC(RandomCfg, get_random, MAX),
+                               }) {}
 
-  Score get_score(const EP *ep) const override {
-    Score score(ep, {
-                        {ScoreCategory::Random, ScoreObjective::MAX},
-                    });
-    return score;
+  RandomCfg &operator=(const RandomCfg &other) {
+    assert(other.name == name);
+    assert(other.metrics.size() == metrics.size());
+    return *this;
   }
+
+private:
+  i64 get_random(const EP *ep) const;
 };
 
-using Random = Heuristic<RandomComparator>;
+using Random = Heuristic<RandomCfg>;

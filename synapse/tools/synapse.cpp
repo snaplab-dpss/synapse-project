@@ -39,7 +39,6 @@ search_report_t search(const BDD *bdd, Profiler *profiler,
     peek_set.insert(ep_id);
   }
 
-  // A bit disgusting, but oh well...
   switch (heuristic_opt) {
   case HeuristicOption::BFS: {
     BFS heuristic(stop_on_first_solution);
@@ -66,7 +65,7 @@ search_report_t search(const BDD *bdd, Profiler *profiler,
     return engine.search();
   } break;
   case HeuristicOption::MAX_THROUGHPUT: {
-    MaxThroughput heuristic(stop_on_first_solution);
+    MaxTput heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
@@ -105,9 +104,9 @@ int main(int argc, char **argv) {
   app.add_option("--out", out_dir, "Output directory for every generated file.")
       ->required();
   app.add_option("--heuristic", heuristic_opt, "Chosen heuristic.")
-      ->default_val(HeuristicOption::MAX_THROUGHPUT)
       ->transform(
-          CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case));
+          CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case))
+      ->required();
   app.add_option("--profile", bdd_profile, "BDD profile JSON.");
   app.add_option("--seed", seed, "Random seed.")
       ->default_val(std::random_device()());

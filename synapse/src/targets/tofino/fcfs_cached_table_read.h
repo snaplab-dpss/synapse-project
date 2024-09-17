@@ -7,7 +7,7 @@ namespace tofino {
 class FCFSCachedTableRead : public TofinoModule {
 private:
   DS_ID cached_table_id;
-  std::unordered_set<DS_ID> cached_table_byproducts;
+  std::unordered_set<DS_ID> cached_table_bydecisions;
 
   addr_t obj;
   klee::ref<klee::Expr> key;
@@ -15,16 +15,16 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  FCFSCachedTableRead(const Node *node, DS_ID _cached_table_id,
-                      const std::unordered_set<DS_ID> &_cached_table_byproducts,
-                      addr_t _obj, klee::ref<klee::Expr> _key,
-                      klee::ref<klee::Expr> _value,
-                      const symbol_t &_map_has_this_key)
+  FCFSCachedTableRead(
+      const Node *node, DS_ID _cached_table_id,
+      const std::unordered_set<DS_ID> &_cached_table_bydecisions, addr_t _obj,
+      klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+      const symbol_t &_map_has_this_key)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableRead,
                      "FCFSCachedTableRead", node),
         cached_table_id(_cached_table_id),
-        cached_table_byproducts(_cached_table_byproducts), obj(_obj), key(_key),
-        value(_value), map_has_this_key(_map_has_this_key) {}
+        cached_table_bydecisions(_cached_table_bydecisions), obj(_obj),
+        key(_key), value(_value), map_has_this_key(_map_has_this_key) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -33,7 +33,7 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned =
-        new FCFSCachedTableRead(node, cached_table_id, cached_table_byproducts,
+        new FCFSCachedTableRead(node, cached_table_id, cached_table_bydecisions,
                                 obj, key, value, map_has_this_key);
     return cloned;
   }
@@ -45,7 +45,7 @@ public:
   const symbol_t &get_map_has_this_key() const { return map_has_this_key; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return cached_table_byproducts;
+    return cached_table_bydecisions;
   }
 };
 
@@ -56,7 +56,7 @@ public:
                               "FCFSCachedTableRead") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -81,7 +81,9 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, map_get);
 
-    if (!get_fcfs_cached_table(ep, node, cached_table_data.obj)) {
+    FCFSCachedTable *fcfs_cached_table =
+        get_fcfs_cached_table(ep, node, cached_table_data.obj);
+    if (!fcfs_cached_table) {
       return std::nullopt;
     }
 
@@ -89,36 +91,39 @@ protected:
         get_future_vector_key_ops(ep, node, cached_table_data, map_objs);
 
     Context new_ctx = ctx;
-    speculation_t speculation(new_ctx);
+    spec_impl_t spec_impl(
+        decide(ep, node,
+               {{CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}),
+        new_ctx);
     for (const Call *vector_op : vector_ops) {
-      speculation.skip.insert(vector_op->get_id());
+      spec_impl.skip.insert(vector_op->get_id());
     }
 
-    return ctx;
+    return spec_impl;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *map_get = static_cast<const Call *>(node);
     const call_t &call = map_get->get_call();
 
     if (call.function_name != "map_get") {
-      return products;
+      return impls;
     }
 
     map_coalescing_objs_t map_objs;
     if (!get_map_coalescing_objs_from_map_op(ep, map_get, map_objs)) {
-      return products;
+      return impls;
     }
 
     if (!can_place_fcfs_cached_table(ep, map_objs)) {
-      return products;
+      return impls;
     }
 
     fcfs_cached_table_data_t cached_table_data =
@@ -128,16 +133,15 @@ protected:
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
     for (int cache_capacity : allowed_cache_capacities) {
-      std::optional<__generator_product_t> product =
-          concretize_cached_table_read(ep, node, map_objs, cached_table_data,
-                                       cache_capacity);
+      std::optional<impl_t> impl = concretize_cached_table_read(
+          ep, node, map_objs, cached_table_data, cache_capacity);
 
-      if (product.has_value()) {
-        products.push_back(*product);
+      if (impl.has_value()) {
+        impls.push_back(*impl);
       }
     }
 
-    return products;
+    return impls;
   }
 
 private:
@@ -149,7 +153,7 @@ private:
     int num_entries;
   };
 
-  std::optional<__generator_product_t> concretize_cached_table_read(
+  std::optional<impl_t> concretize_cached_table_read(
       const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
       const fcfs_cached_table_data_t &cached_table_data,
       int cache_capacity) const {
@@ -161,11 +165,11 @@ private:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> byproducts =
-        get_cached_table_byproducts(cached_table);
+    std::unordered_set<DS_ID> bydecisions =
+        get_cached_table_bydecisions(cached_table);
 
     Module *module = new FCFSCachedTableRead(
-        node, cached_table->id, byproducts, cached_table_data.obj,
+        node, cached_table->id, bydecisions, cached_table_data.obj,
         cached_table_data.key, cached_table_data.read_value,
         cached_table_data.map_has_this_key);
     EPNode *ep_node = new EPNode(module);
@@ -183,25 +187,22 @@ private:
     new_ep->replace_bdd(bdd);
     // new_ep->inspect();
 
-    std::stringstream descr;
-    descr << "capacity=" << cached_table->cache_capacity;
-
-    return __generator_product_t(new_ep, descr.str());
+    return implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
   }
 
   std::unordered_set<DS_ID>
-  get_cached_table_byproducts(FCFSCachedTable *cached_table) const {
-    std::unordered_set<DS_ID> byproducts;
+  get_cached_table_bydecisions(FCFSCachedTable *cached_table) const {
+    std::unordered_set<DS_ID> bydecisions;
 
     std::vector<std::unordered_set<const DS *>> internal_ds =
         cached_table->get_internal_ds();
     for (const std::unordered_set<const DS *> &ds_set : internal_ds) {
       for (const DS *ds : ds_set) {
-        byproducts.insert(ds->id);
+        bydecisions.insert(ds->id);
       }
     }
 
-    return byproducts;
+    return bydecisions;
   }
 
   fcfs_cached_table_data_t get_cached_table_data(const EP *ep,

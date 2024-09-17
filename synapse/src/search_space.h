@@ -87,7 +87,7 @@ public:
   void activate_leaf(const EP *ep);
   void add_to_active_leaf(const EP *ep, const Node *node,
                           const ModuleGenerator *mogden,
-                          const std::vector<generator_product_t> &products);
+                          const std::vector<impl_t> &implementations);
 
   SSNode *get_root() const;
   size_t get_size() const;

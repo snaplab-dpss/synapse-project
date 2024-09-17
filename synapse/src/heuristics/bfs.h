@@ -1,17 +1,22 @@
 #pragma once
 
 #include "heuristic.h"
-#include "score.h"
 
-struct BFSComparator : public HeuristicCfg {
-  BFSComparator() : HeuristicCfg("BFS") {}
+class BFSCfg : public HeuristicCfg {
+public:
+  BFSCfg()
+      : HeuristicCfg("BFS", {
+                                BUILD_METRIC(BFSCfg, get_depth, MIN),
+                            }) {}
 
-  virtual Score get_score(const EP *ep) const override {
-    Score score(ep, {
-                        {ScoreCategory::Depth, ScoreObjective::MIN},
-                    });
-    return score;
+  BFSCfg &operator=(const BFSCfg &other) {
+    assert(other.name == name);
+    assert(other.metrics.size() == metrics.size());
+    return *this;
   }
+
+private:
+  i64 get_depth(const EP *ep) const;
 };
 
-using BFS = Heuristic<BFSComparator>;
+using BFS = Heuristic<BFSCfg>;

@@ -34,7 +34,7 @@ struct expiration_data_t {
   symbol_t number_of_freed_flows;
 };
 
-struct speculation_t;
+struct spec_impl_t;
 
 class TargetContext {
 public:
@@ -43,7 +43,7 @@ public:
   virtual ~TargetContext() {}
 
   virtual TargetContext *clone() const = 0;
-  virtual u64 estimate_throughput_pps() const = 0;
+  virtual pps_t estimate_throughput_pps() const = 0;
 };
 
 class Context {
@@ -62,8 +62,8 @@ private:
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
   std::unordered_map<TargetType, hit_rate_t> traffic_fraction_per_target;
   std::unordered_map<ep_node_id_t, constraints_t> constraints_per_node;
-  u64 throughput_estimate_pps;
-  u64 throughput_speculation_pps;
+  pps_t throughput_estimate_pps;
+  pps_t throughput_speculation_pps;
 
 public:
   Context(const BDD *bdd, const targets_t &targets,
@@ -105,8 +105,8 @@ public:
                                 hit_rate_t fraction);
 
   void update_throughput_estimates(const EP *ep);
-  u64 get_throughput_estimate_pps() const;
-  u64 get_throughput_speculation_pps() const;
+  pps_t get_throughput_estimate_pps() const;
+  pps_t get_throughput_speculation_pps() const;
 
   void add_hit_rate_estimation(const constraints_t &constraints,
                                klee::ref<klee::Expr> new_constraint,
@@ -121,27 +121,21 @@ private:
   void update_throughput_estimate();
   void allow_profiler_mutation();
 
-  struct node_speculation_t;
+  void print_speculations(const EP *ep,
+                          const std::vector<spec_impl_t> &speculations) const;
 
-  void
-  print_speculations(const EP *ep,
-                     const std::vector<node_speculation_t> &node_speculations,
-                     const speculation_t &speculation) const;
+  spec_impl_t get_best_speculation(const EP *ep, const Node *node,
+                                   TargetType current_target,
+                                   Context current_ctx,
+                                   const nodes_t &skip) const;
 
-  node_speculation_t
-  get_best_speculation(const EP *ep, const Node *node, const targets_t &targets,
-                       TargetType current_target,
-                       const speculation_t &current_speculation) const;
+  spec_impl_t peek_speculation_for_future_nodes(
+      const spec_impl_t &base_speculation, const EP *ep, const Node *anchor,
+      nodes_t future_nodes, TargetType target) const;
 
-  speculation_t peek_speculation_for_future_nodes(
-      const speculation_t &base_speculation, const EP *ep, const Node *anchor,
-      nodes_t future_nodes, const targets_t &targets,
-      TargetType current_target) const;
-
-  bool is_better_speculation(const speculation_t &old_speculation,
-                             const speculation_t &new_speculation, const EP *ep,
-                             const Node *node, const targets_t &targets,
-                             TargetType current_target) const;
+  bool is_better_speculation(const spec_impl_t &old_speculation,
+                             const spec_impl_t &new_speculation, const EP *ep,
+                             const Node *node, TargetType target) const;
 };
 
 #define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NS, TCTX)                        \

@@ -20,7 +20,7 @@ bool is_bool(klee::ref<klee::Expr> expr);
 bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
 
-int64_t get_constant_signed(klee::ref<klee::Expr> expr);
+i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints,
                       klee::ref<klee::Expr> expr);
 klee::ConstraintManager join_managers(const klee::ConstraintManager &m1,

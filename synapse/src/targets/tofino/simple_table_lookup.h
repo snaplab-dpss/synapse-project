@@ -53,7 +53,7 @@ public:
                               "SimpleTableLookup") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -87,21 +87,21 @@ protected:
 
     delete table;
 
-    return ctx;
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *call_node = static_cast<const Call *>(node);
 
     if (!can_place_in_simple_table(ep, call_node)) {
-      return products;
+      return impls;
     }
 
     addr_t obj;
@@ -113,7 +113,7 @@ protected:
 
     if (!get_table_data(ep, call_node, obj, num_entries, keys, values, hit,
                         id)) {
-      return products;
+      return impls;
     }
 
     std::unordered_set<DS_ID> deps;
@@ -121,21 +121,21 @@ protected:
         build_table(ep, node, id, num_entries, keys, values, hit, deps);
 
     if (!table) {
-      return products;
+      return impls;
     }
 
     Module *module = new SimpleTableLookup(node, id, obj, keys, values, hit);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     place_simple_table(new_ep, obj, table, deps);
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    return products;
+    return impls;
   }
 
 private:

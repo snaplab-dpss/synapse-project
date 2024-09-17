@@ -104,8 +104,8 @@ public:
 
   void remove_hit_rate_node(const constraints_t &constraints);
 
-  u64 estimate_throughput_pps() const;
-  u64 speculate_throughput_pps() const;
+  pps_t estimate_throughput_pps() const;
+  pps_t speculate_throughput_pps() const;
 
   void visit(EPVisitor &visitor) const;
 

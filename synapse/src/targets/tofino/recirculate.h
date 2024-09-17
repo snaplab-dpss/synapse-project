@@ -2,6 +2,8 @@
 
 #include "tofino_module.h"
 
+#define RECIRCULATION_PORT_PARAM "recirc_port"
+
 namespace tofino {
 
 class Recirculate : public TofinoModule {
@@ -34,15 +36,15 @@ public:
       : TofinoModuleGenerator(ModuleType::Tofino_Recirculate, "Recirculate") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     // No reason to speculatively predict recirculations.
     return std::nullopt;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
     std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
@@ -50,7 +52,7 @@ protected:
     // We can only recirculate if a stateful operation was implemented since the
     // last recirculation.
     if (deps.empty()) {
-      return products;
+      return impls;
     }
 
     int total_recirc_ports = get_total_recirc_ports(ep);
@@ -60,28 +62,25 @@ protected:
 
     symbols_t symbols = get_dataplane_state(ep, node);
 
-    products = concretize_single_port_recirc(ep, node, past_recirc,
-                                             total_recirc_ports, symbols);
+    impls = concretize_single_port_recirc(ep, node, past_recirc,
+                                          total_recirc_ports, symbols);
 
-    return products;
+    return impls;
   }
 
 private:
-  std::vector<__generator_product_t> concretize_single_port_recirc(
+  std::vector<impl_t> concretize_single_port_recirc(
       const EP *ep, const Node *node, const std::vector<int> &past_recirc,
       int total_recirc_ports, const symbols_t &symbols) const {
-    std::vector<__generator_product_t> products;
+    std::vector<impl_t> impls;
 
     for (int recirc_port = 0; recirc_port < total_recirc_ports; recirc_port++) {
       EP *new_ep = generate_new_ep(ep, node, symbols, recirc_port, past_recirc);
-
-      std::stringstream descr;
-      descr << "port=" << recirc_port;
-
-      products.emplace_back(new_ep, descr.str());
+      impls.push_back(implement(ep, node, new_ep,
+                                {{RECIRCULATION_PORT_PARAM, recirc_port}}));
     }
 
-    return products;
+    return impls;
   }
 
   int get_total_recirc_ports(const EP *ep) const {

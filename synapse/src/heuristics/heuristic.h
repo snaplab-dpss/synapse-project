@@ -1,99 +1,137 @@
 #pragma once
 
-#include <set>
-
-#include "score.h"
+#include "config.h"
 #include "../execution_plan/execution_plan.h"
 #include "../random_engine.h"
 
-struct HeuristicCfg {
-  std::string name;
-
-  HeuristicCfg(const std::string &_name) : name(_name) {}
-
-  virtual Score get_score(const EP *e) const = 0;
-
-  virtual bool operator()(const EP *e1, const EP *e2) const {
-    return get_score(e1) > get_score(e2);
-  }
-};
-
 template <class HCfg> class Heuristic {
-  static_assert(std::is_base_of<HeuristicCfg, HCfg>::value,
-                "HCfg must inherit from HeuristicCfg");
-
 protected:
   HCfg configuration;
-  std::multiset<const EP *, HCfg> execution_plans;
-  typename std::set<const EP *, HCfg>::iterator best_it;
+  std::multiset<impl_t, HCfg> execution_plans;
+  typename std::set<impl_t, HCfg>::iterator best_it;
   bool stop_on_first_solution;
+  std::unordered_map<const EP *, i64> ep_refs;
 
 public:
   Heuristic(bool _stop_on_first_solution)
       : stop_on_first_solution(_stop_on_first_solution) {}
 
   ~Heuristic() {
-    for (const EP *ep : execution_plans) {
-      if (ep) {
-        delete ep;
-      }
+    for (auto &[ep, count] : ep_refs) {
+      delete ep;
     }
+
+    ep_refs.clear();
+    execution_plans.clear();
   }
 
   bool finished() { return get_next_it() == execution_plans.end(); }
 
   const EP *get() {
-    get_best_it();
-    return *best_it;
-  }
-
-  const EP *get(ep_id_t id) const {
-    for (const EP *ep : execution_plans) {
-      if (ep->get_id() == id) {
-        return ep;
-      }
-    }
-
-    return nullptr;
-  }
-
-  std::vector<const EP *> get_all() const {
-    std::vector<const EP *> eps;
-    eps.assign(execution_plans.begin(), execution_plans.end());
-    return eps;
+    update_best_it();
+    return best_it->result;
   }
 
   const EP *pop() {
     auto it = get_next_it();
     assert(it != execution_plans.end());
 
-    const EP *ep = *it;
-    execution_plans.erase(it);
+    impl_t best = *it;
 
+    if (configuration.mutates(best)) {
+      std::cerr << "MUTATION!\n";
+      std::cerr << "Result EP: " << best.result->get_id() << "\n";
+      std::cerr << "Target EP: " << best.decision.ep->get_id() << "\n";
+      std::cerr << "Target node: " << best.decision.node << "\n";
+      std::cerr << "Old: " << best.decision.ep->speculate_throughput_pps()
+                << "\n";
+      std::cerr << "New: " << best.result->speculate_throughput_pps() << "\n";
+
+      std::vector<impl_t> eps(execution_plans.begin(), execution_plans.end());
+
+      // Trigger a re-sort with the new mutated heuristic.
+      execution_plans = std::multiset<impl_t, HCfg>(configuration);
+      execution_plans.insert(eps.begin(), eps.end());
+
+      DEBUG_PAUSE
+    }
+
+    execution_plans.erase(it);
     reset_best_it();
 
-    return ep;
+    if (best.decision.ep)
+      ep_refs[best.decision.ep]--;
+    ep_refs[best.result]--;
+
+    // std::cerr << "\n====================\n";
+    // for (const auto &[ep, count] : ep_refs) {
+    //   std::cerr << "EP: " << ep->get_id() << " Refs: " << count << "\n";
+    // }
+    // std::cerr << "====================\n\n";
+
+    return best.result;
   }
 
-  void add(const std::vector<const EP *> &next_eps) {
-    for (const EP *ep : next_eps) {
-      execution_plans.insert(ep);
+  void cleanup() {
+    std::unordered_set<const EP *> deleted;
+
+    for (const auto &[ep, count] : ep_refs) {
+      if (count == 0) {
+        std::cerr << "Free EP: " << ep->get_id() << "\n";
+        DEBUG_PAUSE
+        deleted.insert(ep);
+        delete ep;
+      }
+    }
+
+    for (const EP *ep : deleted) {
+      ep_refs.erase(ep);
+    }
+  }
+
+  void add(const std::vector<impl_t> &new_implementations) {
+    for (const impl_t &impl : new_implementations) {
+      execution_plans.insert(impl);
+
+      assert(impl.decision.ep);
+      ep_refs[impl.decision.ep]++;
+
+      assert(impl.result);
+      ep_refs[impl.result]++;
     }
 
     reset_best_it();
+
+    // std::cerr << "\n====================\n";
+    // for (const auto &[ep, count] : ep_refs) {
+    //   std::cerr << "EP: " << ep->get_id() << " Refs: " << count << "\n";
+    // }
+    // std::cerr << "====================\n\n";
+    // DEBUG_PAUSE
+  }
+
+  void add(EP *ep) {
+    assert(execution_plans.empty());
+    execution_plans.emplace(ep);
+    reset_best_it();
+
+    assert(ep);
+    ep_refs[ep]++;
+
+    // std::cerr << "\n====================\n";
+    // for (const auto &[ep, count] : ep_refs) {
+    //   std::cerr << "EP: " << ep->get_id() << " Refs: " << count << "\n";
+    // }
+    // std::cerr << "====================\n\n";
+    // DEBUG_PAUSE
   }
 
   size_t size() const { return execution_plans.size(); }
-
   const HCfg *get_cfg() const { return &configuration; }
-
-  Score get_score(const EP *e) const {
-    auto conf = static_cast<const HeuristicCfg *>(&configuration);
-    return conf->get_score(e);
-  }
+  Score get_score(const EP *e) const { return configuration.score(e); }
 
 private:
-  void get_best_it() {
+  void update_best_it() {
     assert(execution_plans.size());
 
     if (best_it != execution_plans.end()) {
@@ -101,11 +139,11 @@ private:
     }
 
     best_it = execution_plans.begin();
-    Score best_score = get_score(*best_it);
+    Score best_score = get_score(best_it->result);
 
     while (1) {
       if (best_it == execution_plans.end() ||
-          get_score(*best_it) != best_score) {
+          get_score(best_it->result) != best_score) {
         best_it = execution_plans.begin();
       }
 
@@ -119,22 +157,22 @@ private:
 
   void reset_best_it() { best_it = execution_plans.end(); }
 
-  typename std::set<const EP *, HCfg>::iterator get_next_it() {
+  typename std::set<impl_t, HCfg>::iterator get_next_it() {
     if (execution_plans.size() == 0) {
       Log::err() << "No more execution plans to pick!\n";
       exit(1);
     }
 
-    get_best_it();
+    update_best_it();
 
     auto it = best_it;
     assert(it != execution_plans.end());
 
-    if (stop_on_first_solution && !(*it)->get_next_node()) {
+    if (stop_on_first_solution && !it->result->get_next_node()) {
       return execution_plans.end();
     }
 
-    while (it != execution_plans.end() && !(*it)->get_next_node()) {
+    while (it != execution_plans.end() && !it->result->get_next_node()) {
       it++;
     }
 

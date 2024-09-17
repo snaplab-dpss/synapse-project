@@ -13,7 +13,7 @@ inline targets_t build_targets(const Profiler *profiler) {
   return {
       new tofino::TofinoTarget(tofino::TNAVersion::TNA2, profiler),
       new tofino_cpu::TofinoCPUTarget(),
-      new x86::x86Target(),
+      // new x86::x86Target(),
   };
 }
 

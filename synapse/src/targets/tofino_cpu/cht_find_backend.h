@@ -52,7 +52,7 @@ public:
                                  "ChtFindBackend") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -69,26 +69,26 @@ protected:
       return std::nullopt;
     }
 
-    return ctx;
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "cht_find_preferred_available_backend") {
-      return products;
+      return impls;
     }
 
     if (!can_place(ep, call_node, "cht", PlacementDecision::TofinoCPU_Cht)) {
-      return products;
+      return impls;
     }
 
     klee::ref<klee::Expr> cht = call.args.at("cht").expr;
@@ -112,14 +112,14 @@ protected:
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
     place(new_ep, cht_addr, PlacementDecision::TofinoCPU_Cht);
 
-    return products;
+    return impls;
   }
 };
 

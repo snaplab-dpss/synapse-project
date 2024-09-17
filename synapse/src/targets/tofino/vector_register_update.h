@@ -53,7 +53,7 @@ public:
                               "VectorRegisterUpdate") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -97,39 +97,39 @@ protected:
     }
 
     Context new_ctx = ctx;
-    speculation_t speculation(new_ctx);
-    speculation.skip.insert(vector_return->get_id());
+    spec_impl_t spec_impl(decide(ep, node), new_ctx);
+    spec_impl.skip.insert(vector_return->get_id());
 
-    return speculation;
+    return spec_impl;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *vector_borrow = static_cast<const Call *>(node);
     const call_t &call = vector_borrow->get_call();
 
     if (call.function_name != "vector_borrow") {
-      return products;
+      return impls;
     }
 
     if (is_vector_read(vector_borrow)) {
-      return products;
+      return impls;
     }
 
     const Call *vector_return;
     if (is_conditional_write(vector_borrow, vector_return)) {
-      return products;
+      return impls;
     }
 
     if (!can_place(ep, vector_borrow, "vector",
                    PlacementDecision::Tofino_VectorRegister)) {
-      return products;
+      return impls;
     }
 
     std::vector<modification_t> changes;
@@ -138,7 +138,7 @@ protected:
 
     // Check the Ignore module.
     if (changes.empty()) {
-      return products;
+      return impls;
     }
 
     std::unordered_set<DS_ID> rids;
@@ -149,7 +149,7 @@ protected:
         ep, vector_borrow, vector_register_data, already_placed, rids, deps);
 
     if (regs.empty()) {
-      return products;
+      return impls;
     }
 
     Module *module = new VectorRegisterUpdate(
@@ -158,7 +158,7 @@ protected:
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     const Node *new_next;
     BDD *bdd =
@@ -173,7 +173,7 @@ protected:
     new_ep->replace_bdd(bdd);
     // new_ep->inspect();
 
-    return products;
+    return impls;
   }
 
 private:

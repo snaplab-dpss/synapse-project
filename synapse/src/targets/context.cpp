@@ -516,9 +516,10 @@ void Context::log_debug() const {
   }
   Log::dbg() << "]\n";
 
-  Log::dbg() << "Throughput estimate: " << throughput_estimate_pps << " pps\n";
+  Log::dbg() << "Throughput estimate: " << throughput_estimate_pps
+             << " pps_t\n";
   Log::dbg() << "Throughput speculation: " << throughput_speculation_pps
-             << " pps\n";
+             << " pps_t\n";
 
   if (target_ctxs.find(TargetType::Tofino) != target_ctxs.end()) {
     const tofino::TofinoContext *tofino_ctx =

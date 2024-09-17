@@ -7,7 +7,7 @@ namespace tofino {
 class FCFSCachedTableDelete : public TofinoModule {
 private:
   DS_ID cached_table_id;
-  std::unordered_set<DS_ID> cached_table_byproducts;
+  std::unordered_set<DS_ID> cached_table_bydecisions;
 
   addr_t obj;
   klee::ref<klee::Expr> key;
@@ -16,13 +16,13 @@ private:
 public:
   FCFSCachedTableDelete(
       const Node *node, DS_ID _cached_table_id,
-      const std::unordered_set<DS_ID> &_cached_table_byproducts, addr_t _obj,
+      const std::unordered_set<DS_ID> &_cached_table_bydecisions, addr_t _obj,
       klee::ref<klee::Expr> _key, const symbol_t &_cached_delete_failed)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableDelete,
                      "FCFSCachedTableDelete", node),
         cached_table_id(_cached_table_id),
-        cached_table_byproducts(_cached_table_byproducts), obj(_obj), key(_key),
-        cached_delete_failed(_cached_delete_failed) {}
+        cached_table_bydecisions(_cached_table_bydecisions), obj(_obj),
+        key(_key), cached_delete_failed(_cached_delete_failed) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -31,7 +31,7 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new FCFSCachedTableDelete(node, cached_table_id,
-                                               cached_table_byproducts, obj,
+                                               cached_table_bydecisions, obj,
                                                key, cached_delete_failed);
     return cloned;
   }
@@ -44,7 +44,7 @@ public:
   }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return cached_table_byproducts;
+    return cached_table_bydecisions;
   }
 };
 
@@ -55,7 +55,7 @@ public:
                               "FCFSCachedTableDelete") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::CALL) {
       return std::nullopt;
@@ -84,6 +84,7 @@ protected:
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
     hit_rate_t chosen_cache_success_probability = 0;
+    int chosen_cache_capacity = 0;
     bool successfully_placed = false;
 
     // We can use a different method for picking the right estimation depending
@@ -100,6 +101,7 @@ protected:
 
       if (cache_success_probability > chosen_cache_success_probability) {
         chosen_cache_success_probability = cache_success_probability;
+        chosen_cache_capacity = cache_capacity;
       }
 
       successfully_placed = true;
@@ -127,36 +129,37 @@ protected:
     std::vector<const Node *> ignore_nodes =
         get_future_related_nodes(ep, node, map_objs);
 
-    speculation_t speculation(new_ctx);
+    spec_impl_t spec_impl(
+        decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
     for (const Node *op : ignore_nodes) {
-      speculation.skip.insert(op->get_id());
+      spec_impl.skip.insert(op->get_id());
     }
 
-    return speculation;
+    return spec_impl;
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::CALL) {
-      return products;
+      return impls;
     }
 
     const Call *map_erase = static_cast<const Call *>(node);
     const call_t &call = map_erase->get_call();
 
     if (call.function_name != "map_erase") {
-      return products;
+      return impls;
     }
 
     map_coalescing_objs_t map_objs;
     if (!get_map_coalescing_objs_from_map_op(ep, map_erase, map_objs)) {
-      return products;
+      return impls;
     }
 
     if (!can_place_fcfs_cached_table(ep, map_objs)) {
-      return products;
+      return impls;
     }
 
     fcfs_cached_table_data_t cached_table_data =
@@ -168,17 +171,16 @@ protected:
         enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
 
     for (int cache_capacity : allowed_cache_capacities) {
-      std::optional<__generator_product_t> product =
-          concretize_cached_table_delete(ep, map_erase, map_objs,
-                                         cached_table_data, cache_delete_failed,
-                                         cache_capacity);
+      std::optional<impl_t> impl = concretize_cached_table_delete(
+          ep, map_erase, map_objs, cached_table_data, cache_delete_failed,
+          cache_capacity);
 
-      if (product.has_value()) {
-        products.push_back(*product);
+      if (impl.has_value()) {
+        impls.push_back(*impl);
       }
     }
 
-    return products;
+    return impls;
   }
 
 private:
@@ -188,7 +190,7 @@ private:
     int num_entries;
   };
 
-  std::optional<__generator_product_t> concretize_cached_table_delete(
+  std::optional<impl_t> concretize_cached_table_delete(
       const EP *ep, const Call *map_erase,
       const map_coalescing_objs_t &map_objs,
       const fcfs_cached_table_data_t &cached_table_data,
@@ -201,14 +203,14 @@ private:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> byproducts =
-        get_cached_table_byproducts(cached_table);
+    std::unordered_set<DS_ID> bydecisions =
+        get_cached_table_bydecisions(cached_table);
 
     klee::ref<klee::Expr> cache_delete_success_condition =
         build_cache_delete_success_condition(cache_delete_failed);
 
     Module *module = new FCFSCachedTableDelete(
-        map_erase, cached_table->id, byproducts, cached_table_data.obj,
+        map_erase, cached_table->id, bydecisions, cached_table_data.obj,
         cached_table_data.key, cache_delete_failed);
     EPNode *cached_table_delete_node = new EPNode(module);
 
@@ -272,10 +274,8 @@ private:
     new_ep->replace_bdd(new_bdd);
     // new_ep->inspect();
 
-    std::stringstream descr;
-    descr << "capacity=" << cached_table->cache_capacity;
-
-    return __generator_product_t(new_ep, descr.str());
+    return implement(ep, map_erase, new_ep,
+                     {{CACHE_SIZE_PARAM, cache_capacity}});
   }
 
   klee::ref<klee::Expr> build_cache_delete_success_condition(
@@ -302,18 +302,18 @@ private:
   }
 
   std::unordered_set<DS_ID>
-  get_cached_table_byproducts(FCFSCachedTable *cached_table) const {
-    std::unordered_set<DS_ID> byproducts;
+  get_cached_table_bydecisions(FCFSCachedTable *cached_table) const {
+    std::unordered_set<DS_ID> bydecisions;
 
     std::vector<std::unordered_set<const DS *>> internal_ds =
         cached_table->get_internal_ds();
     for (const std::unordered_set<const DS *> &ds_set : internal_ds) {
       for (const DS *ds : ds_set) {
-        byproducts.insert(ds->id);
+        bydecisions.insert(ds->id);
       }
     }
 
-    return byproducts;
+    return bydecisions;
   }
 
   fcfs_cached_table_data_t get_cached_table_data(const EP *ep,

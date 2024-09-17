@@ -48,27 +48,27 @@ public:
                               "ParserCondition") {}
 
 protected:
-  virtual std::optional<speculation_t>
+  virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     if (node->get_type() != NodeType::BRANCH) {
       return std::nullopt;
     }
 
-    return ctx;
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
-  virtual std::vector<__generator_product_t>
-  process_node(const EP *ep, const Node *node) const override {
-    std::vector<__generator_product_t> products;
+  virtual std::vector<impl_t> process_node(const EP *ep,
+                                           const Node *node) const override {
+    std::vector<impl_t> impls;
 
     if (node->get_type() != NodeType::BRANCH) {
-      return products;
+      return impls;
     }
 
     const Branch *branch_node = static_cast<const Branch *>(node);
 
     if (!is_parser_condition(branch_node)) {
-      return products;
+      return impls;
     }
 
     klee::ref<klee::Expr> original_condition = branch_node->get_condition();
@@ -121,7 +121,7 @@ protected:
     assert(branch_node->get_on_false());
 
     EP *new_ep = new EP(*ep);
-    products.emplace_back(new_ep);
+    impls.push_back(implement(ep, node, new_ep));
 
     Module *if_module = new ParserCondition(node, original_condition,
                                             conditional_hdr, field, values);
@@ -146,7 +146,7 @@ protected:
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->parser_select(ep, node, field, values);
 
-    return products;
+    return impls;
   }
 
 private:

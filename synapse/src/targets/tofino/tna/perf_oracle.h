@@ -29,15 +29,15 @@ struct RecircPortUsage {
 class PerfOracle {
 private:
   int total_ports;
-  u64 port_capacity_bps;
+  bps_t port_capacity_bps;
   int total_recirc_ports;
-  u64 recirc_port_capacity_bps;
+  bps_t recirc_port_capacity_bps;
   int avg_pkt_bytes;
 
   std::vector<RecircPortUsage> recirc_ports_usage;
   hit_rate_t non_recirc_traffic;
 
-  u64 throughput_pps;
+  pps_t throughput_pps;
 
 public:
   PerfOracle(const TNAProperties *properties, int avg_pkt_bytes);
@@ -46,7 +46,7 @@ public:
   void add_recirculated_traffic(int port, int port_recirculations,
                                 hit_rate_t fraction,
                                 std::optional<int> prev_recirc_port);
-  u64 estimate_throughput_pps() const;
+  pps_t estimate_throughput_pps() const;
   void log_debug() const;
 
 private:
