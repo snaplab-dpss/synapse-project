@@ -63,12 +63,6 @@ public:
       ep_refs[best.decision.ep]--;
     ep_refs[best.result]--;
 
-    // std::cerr << "\n====================\n";
-    // for (const auto &[ep, count] : ep_refs) {
-    //   std::cerr << "EP: " << ep->get_id() << " Refs: " << count << "\n";
-    // }
-    // std::cerr << "====================\n\n";
-
     return best.result;
   }
 
@@ -77,8 +71,6 @@ public:
 
     for (const auto &[ep, count] : ep_refs) {
       if (count == 0) {
-        std::cerr << "Free EP: " << ep->get_id() << "\n";
-        DEBUG_PAUSE
         deleted.insert(ep);
         delete ep;
       }
@@ -101,13 +93,6 @@ public:
     }
 
     reset_best_it();
-
-    // std::cerr << "\n====================\n";
-    // for (const auto &[ep, count] : ep_refs) {
-    //   std::cerr << "EP: " << ep->get_id() << " Refs: " << count << "\n";
-    // }
-    // std::cerr << "====================\n\n";
-    // DEBUG_PAUSE
   }
 
   void add(EP *ep) {
@@ -117,13 +102,6 @@ public:
 
     assert(ep);
     ep_refs[ep]++;
-
-    // std::cerr << "\n====================\n";
-    // for (const auto &[ep, count] : ep_refs) {
-    //   std::cerr << "EP: " << ep->get_id() << " Refs: " << count << "\n";
-    // }
-    // std::cerr << "====================\n\n";
-    // DEBUG_PAUSE
   }
 
   size_t size() const { return execution_plans.size(); }
