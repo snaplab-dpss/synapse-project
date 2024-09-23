@@ -55,8 +55,8 @@ using json = nlohmann::json;
 #define NF_DEBUG(...)
 #endif // ENABLE_LOG
 
-#define DROP ((uint16_t)-1)
-#define FLOOD ((uint16_t)-2)
+#define DROP ((uint16_t) - 1)
+#define FLOOD ((uint16_t) - 2)
 
 #define MIN_PKT_SIZE 64   // With CRC
 #define MAX_PKT_SIZE 1518 // With CRC
@@ -217,6 +217,7 @@ private:
     struct pcap_pkthdr *hdr;
 
     if (pcap_next_ex(pd, &hdr, &data) != 1) {
+      rewind(dev);
       return false;
     }
 
@@ -270,8 +271,6 @@ private:
 
       total_bytes += len;
     }
-
-    rewind(dev);
   }
 
   void update_and_show_progress() {
@@ -842,7 +841,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               } else {
                 // Node 42
                 inc_path_counter(42);
-                uint8_t vector_value_out[128];
+                uint8_t* vector_value_out = 0;
                 vector_borrow(vector2, value2, (void**)&vector_value_out);
                 // Node 43
                 inc_path_counter(43);
@@ -1036,7 +1035,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               if ((0) == ((uint8_t)((bool)((0) != (out_of_space))))) {
                 // Node 53
                 inc_path_counter(53);
-                uint8_t vector_value_out2[16];
+                uint8_t* vector_value_out2 = 0;
                 vector_borrow(vector, index, (void**)&vector_value_out2);
                 // Node 54
                 inc_path_counter(54);
@@ -1048,7 +1047,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
                 // Node 56
                 inc_path_counter(56);
-                uint8_t vector_value_out3[128];
+                uint8_t* vector_value_out3 = 0;
                 vector_borrow(vector2, index, (void**)&vector_value_out3);
                 // Node 57
                 inc_path_counter(57);
@@ -1138,7 +1137,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             } else {
               // Node 68
               inc_path_counter(68);
-              uint8_t vector_value_out4[128];
+              uint8_t* vector_value_out4 = 0;
               vector_borrow(vector2, value3, (void**)&vector_value_out4);
               // Node 69
               inc_path_counter(69);

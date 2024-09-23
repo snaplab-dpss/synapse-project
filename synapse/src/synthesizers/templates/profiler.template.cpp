@@ -55,8 +55,8 @@ using json = nlohmann::json;
 #define NF_DEBUG(...)
 #endif // ENABLE_LOG
 
-#define DROP ((uint16_t)-1)
-#define FLOOD ((uint16_t)-2)
+#define DROP ((uint16_t) - 1)
+#define FLOOD ((uint16_t) - 2)
 
 #define MIN_PKT_SIZE 64   // With CRC
 #define MAX_PKT_SIZE 1518 // With CRC
@@ -217,6 +217,7 @@ private:
     struct pcap_pkthdr *hdr;
 
     if (pcap_next_ex(pd, &hdr, &data) != 1) {
+      rewind(dev);
       return false;
     }
 
@@ -270,8 +271,6 @@ private:
 
       total_bytes += len;
     }
-
-    rewind(dev);
   }
 
   void update_and_show_progress() {

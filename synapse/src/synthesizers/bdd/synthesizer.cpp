@@ -12,7 +12,7 @@
 
 #define POPULATE_SYNTHESIZER(FNAME)                                            \
   {                                                                            \
-#FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1,     \
+    #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1,     \
                       std::placeholders::_2)                                   \
   }
 
@@ -611,7 +611,7 @@ void BDDSynthesizer::vector_borrow(coder_t &coder, const Call *call_node) {
   bytes_t value_size = value->getWidth() / 8;
 
   coder.indent();
-  coder << "uint8_t " << v.name << "[" << value_size << "];\n";
+  coder << "uint8_t* " << v.name << " = 0;\n";
 
   coder.indent();
   coder << "vector_borrow(";
