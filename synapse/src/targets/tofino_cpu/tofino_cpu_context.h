@@ -15,9 +15,7 @@ public:
     return new TofinoCPUContext(*this);
   }
 
-  virtual pps_t estimate_throughput_pps() const override {
-    return capacity_pps;
-  }
+  virtual pps_t estimate_tput_pps() const override { return capacity_pps; }
 };
 
 } // namespace tofino_cpu

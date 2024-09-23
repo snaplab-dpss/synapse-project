@@ -174,5 +174,5 @@ const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
                                                const symbol_t &out_of_space);
 
 std::string int2hr(u64 value);
-std::string throughput2str(u64 thpt, const std::string &units,
-                           bool human_readable = false);
+std::string tput2str(u64 thpt, const std::string &units,
+                     bool human_readable = false);

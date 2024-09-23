@@ -98,8 +98,8 @@ Context::Context(const BDD *bdd, const targets_t &targets,
                  const TargetType initial_target,
                  std::shared_ptr<Profiler> _profiler)
     : profiler(_profiler), profiler_mutations_allowed(false),
-      expiration_data(build_expiration_data(bdd)), throughput_estimate_pps(0),
-      throughput_speculation_pps(0) {
+      expiration_data(build_expiration_data(bdd)), tput_estimate_pps(0),
+      tput_speculation_pps(0) {
   for (const Target *target : targets) {
     target_ctxs[target->type] = target->ctx->clone();
     traffic_fraction_per_target[target->type] = 0.0;
@@ -172,8 +172,8 @@ Context::Context(const Context &other)
       placement_decisions(other.placement_decisions),
       traffic_fraction_per_target(other.traffic_fraction_per_target),
       constraints_per_node(other.constraints_per_node),
-      throughput_estimate_pps(other.throughput_estimate_pps),
-      throughput_speculation_pps(other.throughput_speculation_pps) {
+      tput_estimate_pps(other.tput_estimate_pps),
+      tput_speculation_pps(other.tput_speculation_pps) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
@@ -193,8 +193,8 @@ Context::Context(Context &&other)
       target_ctxs(std::move(other.target_ctxs)),
       traffic_fraction_per_target(std::move(other.traffic_fraction_per_target)),
       constraints_per_node(std::move(other.constraints_per_node)),
-      throughput_estimate_pps(std::move(other.throughput_estimate_pps)),
-      throughput_speculation_pps(std::move(other.throughput_speculation_pps)) {}
+      tput_estimate_pps(std::move(other.tput_estimate_pps)),
+      tput_speculation_pps(std::move(other.tput_speculation_pps)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -233,8 +233,8 @@ Context &Context::operator=(const Context &other) {
 
   traffic_fraction_per_target = other.traffic_fraction_per_target;
   constraints_per_node = other.constraints_per_node;
-  throughput_estimate_pps = other.throughput_estimate_pps;
-  throughput_speculation_pps = other.throughput_speculation_pps;
+  tput_estimate_pps = other.tput_estimate_pps;
+  tput_speculation_pps = other.tput_speculation_pps;
 
   return *this;
 }
@@ -516,9 +516,8 @@ void Context::log_debug() const {
   }
   Log::dbg() << "]\n";
 
-  Log::dbg() << "Throughput estimate: " << throughput_estimate_pps
-             << " pps_t\n";
-  Log::dbg() << "Throughput speculation: " << throughput_speculation_pps
+  Log::dbg() << "Throughput estimate: " << tput_estimate_pps << " pps_t\n";
+  Log::dbg() << "Throughput speculation: " << tput_speculation_pps
              << " pps_t\n";
 
   if (target_ctxs.find(TargetType::Tofino) != target_ctxs.end()) {

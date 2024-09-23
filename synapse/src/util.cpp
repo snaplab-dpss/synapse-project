@@ -1719,8 +1719,7 @@ std::string int2hr(u64 value) {
   return ss.str();
 }
 
-std::string throughput2str(u64 thpt, const std::string &units,
-                           bool human_readable) {
+std::string tput2str(u64 thpt, const std::string &units, bool human_readable) {
   std::stringstream ss;
 
   if (human_readable) {

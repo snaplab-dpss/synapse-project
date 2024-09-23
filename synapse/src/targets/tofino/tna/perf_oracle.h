@@ -22,7 +22,7 @@ struct RecircPortUsage {
 
   // Fraction of traffic being steered to another recirculation port.
   // This avoids us hit_rate_t counting the contribution of recirculation
-  // traffic to the final throughput estimation.
+  // traffic to the final tput estimation.
   hit_rate_t steering_fraction;
 };
 
@@ -37,7 +37,7 @@ private:
   std::vector<RecircPortUsage> recirc_ports_usage;
   hit_rate_t non_recirc_traffic;
 
-  pps_t throughput_pps;
+  pps_t tput_pps;
 
 public:
   PerfOracle(const TNAProperties *properties, int avg_pkt_bytes);
@@ -46,13 +46,13 @@ public:
   void add_recirculated_traffic(int port, int port_recirculations,
                                 hit_rate_t fraction,
                                 std::optional<int> prev_recirc_port);
-  pps_t estimate_throughput_pps() const;
+  pps_t estimate_tput_pps() const;
   void log_debug() const;
 
 private:
   void steer_recirculation_traffic(int source_port, int destination_port,
                                    hit_rate_t fraction);
-  void update_estimate_throughput_pps();
+  void update_estimate_tput_pps();
 };
 
 } // namespace tofino

@@ -43,9 +43,8 @@ public:
       std::cerr << "Result EP: " << best.result->get_id() << "\n";
       std::cerr << "Target EP: " << best.decision.ep->get_id() << "\n";
       std::cerr << "Target node: " << best.decision.node << "\n";
-      std::cerr << "Old: " << best.decision.ep->speculate_throughput_pps()
-                << "\n";
-      std::cerr << "New: " << best.result->speculate_throughput_pps() << "\n";
+      std::cerr << "Old: " << best.decision.ep->speculate_tput_pps() << "\n";
+      std::cerr << "New: " << best.result->speculate_tput_pps() << "\n";
 
       std::vector<impl_t> eps(execution_plans.begin(), execution_plans.end());
 

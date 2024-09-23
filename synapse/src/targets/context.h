@@ -43,7 +43,7 @@ public:
   virtual ~TargetContext() {}
 
   virtual TargetContext *clone() const = 0;
-  virtual pps_t estimate_throughput_pps() const = 0;
+  virtual pps_t estimate_tput_pps() const = 0;
 };
 
 class Context {
@@ -62,8 +62,8 @@ private:
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
   std::unordered_map<TargetType, hit_rate_t> traffic_fraction_per_target;
   std::unordered_map<ep_node_id_t, constraints_t> constraints_per_node;
-  pps_t throughput_estimate_pps;
-  pps_t throughput_speculation_pps;
+  pps_t tput_estimate_pps;
+  pps_t tput_speculation_pps;
 
 public:
   Context(const BDD *bdd, const targets_t &targets,
@@ -104,9 +104,9 @@ public:
   void update_traffic_fractions(TargetType old_target, TargetType new_target,
                                 hit_rate_t fraction);
 
-  void update_throughput_estimates(const EP *ep);
-  pps_t get_throughput_estimate_pps() const;
-  pps_t get_throughput_speculation_pps() const;
+  void update_tput_estimates(const EP *ep);
+  pps_t get_tput_estimate_pps() const;
+  pps_t get_tput_speculation_pps() const;
 
   void add_hit_rate_estimation(const constraints_t &constraints,
                                klee::ref<klee::Expr> new_constraint,
@@ -117,8 +117,8 @@ public:
   void log_debug() const;
 
 private:
-  void update_throughput_speculation(const EP *ep);
-  void update_throughput_estimate();
+  void update_tput_speculation(const EP *ep);
+  void update_tput_estimate();
   void allow_profiler_mutation();
 
   void print_speculations(const EP *ep,

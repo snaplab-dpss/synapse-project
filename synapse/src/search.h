@@ -37,8 +37,8 @@ struct search_solution_t {
   const EP *ep;
   const SearchSpace *search_space;
   Score score;
-  std::string throughput_estimation;
-  std::string throughput_speculation;
+  std::string tput_estimation;
+  std::string tput_speculation;
 };
 
 struct search_report_t {

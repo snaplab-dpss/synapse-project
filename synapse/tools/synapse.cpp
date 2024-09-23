@@ -17,6 +17,7 @@ enum class HeuristicOption {
   DFS,
   RANDOM,
   GALLIUM,
+  GREEDY,
   MAX_THROUGHPUT,
 };
 
@@ -25,7 +26,8 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
     {"dfs", HeuristicOption::DFS},
     {"random", HeuristicOption::RANDOM},
     {"gallium", HeuristicOption::GALLIUM},
-    {"max-throughput", HeuristicOption::MAX_THROUGHPUT},
+    {"greedy", HeuristicOption::GREEDY},
+    {"max-tput", HeuristicOption::MAX_THROUGHPUT},
 };
 
 search_report_t search(const BDD *bdd, Profiler *profiler,
@@ -60,6 +62,12 @@ search_report_t search(const BDD *bdd, Profiler *profiler,
   } break;
   case HeuristicOption::GALLIUM: {
     Gallium heuristic(stop_on_first_solution);
+    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+                        peek_set, pause_on_backtrack);
+    return engine.search();
+  } break;
+  case HeuristicOption::GREEDY: {
+    Greedy heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
@@ -163,9 +171,9 @@ int main(int argc, char **argv) {
   Log::log() << "  Solutions:        " << int2hr(report.meta.solutions) << "\n";
   Log::log() << "Winner EP:\n";
   Log::log() << "  Winner:           " << report.solution.score << "\n";
-  Log::log() << "  Throughput:       " << report.solution.throughput_estimation
+  Log::log() << "  Throughput:       " << report.solution.tput_estimation
              << "\n";
-  Log::log() << "  Speculation:      " << report.solution.throughput_speculation
+  Log::log() << "  Speculation:      " << report.solution.tput_speculation
              << "\n";
   Log::log() << "\n";
 

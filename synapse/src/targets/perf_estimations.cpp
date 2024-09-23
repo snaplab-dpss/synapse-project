@@ -5,7 +5,7 @@
 #include "x86/x86_context.h"
 #include "module_generator.h"
 
-static pps_t estimate_throughput_pps_from_ctx(const Context &ctx) {
+static pps_t estimate_tput_pps_from_ctx(const Context &ctx) {
   pps_t estimation_pps = 0;
 
   const std::unordered_map<TargetType, hit_rate_t> &traffic_fractions =
@@ -26,15 +26,15 @@ static pps_t estimate_throughput_pps_from_ctx(const Context &ctx) {
     } break;
     }
 
-    pps_t target_estimation_pps = target_ctx->estimate_throughput_pps();
+    pps_t target_estimation_pps = target_ctx->estimate_tput_pps();
     estimation_pps += target_estimation_pps * traffic_fraction;
   }
 
   return estimation_pps;
 }
 
-void Context::update_throughput_estimate() {
-  throughput_estimate_pps = estimate_throughput_pps_from_ctx(*this);
+void Context::update_tput_estimate() {
+  tput_estimate_pps = estimate_tput_pps_from_ctx(*this);
 }
 
 struct speculative_data_t : public cookie_t {
@@ -60,10 +60,10 @@ void Context::print_speculations(
   for (const spec_impl_t &speculation : speculations) {
     const BDD *bdd = ep->get_bdd();
     const Node *node = bdd->get_node_by_id(speculation.decision.node);
-    pps_t tput = estimate_throughput_pps_from_ctx(speculation.ctx);
+    pps_t tput = estimate_tput_pps_from_ctx(speculation.ctx);
 
     Log::log() << "  ";
-    Log::log() << throughput2str(tput, "pps");
+    Log::log() << tput2str(tput, "pps");
     Log::log() << ":";
     for (auto tf : speculation.ctx.get_traffic_fractions())
       Log::log() << " [" << tf.first << ":" << std::setfill('0') << std::fixed
@@ -155,8 +155,8 @@ bool Context::is_better_speculation(const spec_impl_t &old_speculation,
   spec_impl_t peek_new = peek_speculation_for_future_nodes(
       new_speculation, ep, node, new_future_nodes, current_target);
 
-  pps_t old_pps = estimate_throughput_pps_from_ctx(peek_old.ctx);
-  pps_t new_pps = estimate_throughput_pps_from_ctx(peek_new.ctx);
+  pps_t old_pps = estimate_tput_pps_from_ctx(peek_old.ctx);
+  pps_t new_pps = estimate_tput_pps_from_ctx(peek_new.ctx);
 
   return new_pps > old_pps;
 }
@@ -207,7 +207,7 @@ spec_impl_t Context::get_best_speculation(const EP *ep, const Node *node,
   return *best;
 }
 
-void Context::update_throughput_speculation(const EP *ep) {
+void Context::update_tput_speculation(const EP *ep) {
   const std::vector<EPLeaf> &leaves = ep->get_leaves();
 
   Context ctx(*this);
@@ -265,18 +265,14 @@ void Context::update_throughput_speculation(const EP *ep) {
   // print_speculations(ep, speculations);
   // DEBUG_PAUSE
 
-  throughput_speculation_pps = estimate_throughput_pps_from_ctx(ctx);
+  tput_speculation_pps = estimate_tput_pps_from_ctx(ctx);
 }
 
-void Context::update_throughput_estimates(const EP *ep) {
-  update_throughput_estimate();
-  update_throughput_speculation(ep);
+void Context::update_tput_estimates(const EP *ep) {
+  update_tput_estimate();
+  update_tput_speculation(ep);
 }
 
-pps_t Context::get_throughput_estimate_pps() const {
-  return throughput_estimate_pps;
-}
+pps_t Context::get_tput_estimate_pps() const { return tput_estimate_pps; }
 
-pps_t Context::get_throughput_speculation_pps() const {
-  return throughput_speculation_pps;
-}
+pps_t Context::get_tput_speculation_pps() const { return tput_speculation_pps; }

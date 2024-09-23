@@ -58,8 +58,8 @@ public:
       return false;
     }
 
-    pps_t old_spec = old_ep->speculate_throughput_pps();
-    pps_t new_spec = new_ep->speculate_throughput_pps();
+    pps_t old_spec = old_ep->speculate_tput_pps();
+    pps_t new_spec = new_ep->speculate_tput_pps();
 
     return new_spec < old_spec;
   }

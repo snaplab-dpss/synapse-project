@@ -330,9 +330,9 @@ void TofinoContext::add_recirculated_traffic(
                                   prev_recirc_port);
 }
 
-pps_t TofinoContext::estimate_throughput_pps() const {
+pps_t TofinoContext::estimate_tput_pps() const {
   const PerfOracle &oracle = tna.get_perf_oracle();
-  return oracle.estimate_throughput_pps();
+  return oracle.estimate_tput_pps();
 }
 
 void TofinoContext::debug_placements() const {

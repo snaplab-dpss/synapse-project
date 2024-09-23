@@ -430,10 +430,6 @@ void EP::update_node_constraints(const EPNode *on_true_node,
   ctx.update_constraints_per_node(on_false_id, on_false_constraints);
 }
 
-pps_t EP::estimate_throughput_pps() const {
-  return ctx.get_throughput_estimate_pps();
-}
+pps_t EP::estimate_tput_pps() const { return ctx.get_tput_estimate_pps(); }
 
-pps_t EP::speculate_throughput_pps() const {
-  return ctx.get_throughput_speculation_pps();
-}
+pps_t EP::speculate_tput_pps() const { return ctx.get_tput_speculation_pps(); }

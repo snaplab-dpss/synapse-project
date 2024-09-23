@@ -16,13 +16,13 @@ PerfOracle::PerfOracle(const TNAProperties *properties, int _avg_pkt_bytes)
       recirc_port_capacity_bps(properties->recirc_port_capacity_bps),
       avg_pkt_bytes(_avg_pkt_bytes),
       recirc_ports_usage(properties->total_recirc_ports), non_recirc_traffic(1),
-      throughput_pps(port_capacity_bps * total_ports) {
+      tput_pps(port_capacity_bps * total_ports) {
   for (int port = 0; port < total_recirc_ports; port++) {
     recirc_ports_usage[port].port = port;
     recirc_ports_usage[port].steering_fraction = 0;
   }
 
-  update_estimate_throughput_pps();
+  update_estimate_tput_pps();
 }
 
 PerfOracle::PerfOracle(const PerfOracle &other)
@@ -32,8 +32,7 @@ PerfOracle::PerfOracle(const PerfOracle &other)
       recirc_port_capacity_bps(other.recirc_port_capacity_bps),
       avg_pkt_bytes(other.avg_pkt_bytes),
       recirc_ports_usage(other.recirc_ports_usage),
-      non_recirc_traffic(other.non_recirc_traffic),
-      throughput_pps(other.throughput_pps) {}
+      non_recirc_traffic(other.non_recirc_traffic), tput_pps(other.tput_pps) {}
 
 static bool fractions_le(hit_rate_t f0, hit_rate_t f1) {
   hit_rate_t delta = f0 - f1;
@@ -87,7 +86,7 @@ void PerfOracle::add_recirculated_traffic(int port, int port_recirculations,
     clamp_fraction(non_recirc_traffic);
   }
 
-  update_estimate_throughput_pps();
+  update_estimate_tput_pps();
 }
 
 void PerfOracle::steer_recirculation_traffic(int source_port,
@@ -175,9 +174,9 @@ static pps_t triple_recirc_estimate(pps_t Tin, pps_t Cr, pps_t Cp,
   return std::min(std::min(Tin, Cp), Tout);
 }
 
-void PerfOracle::update_estimate_throughput_pps() {
+void PerfOracle::update_estimate_tput_pps() {
   bps_t Tswitch_bps = port_capacity_bps * total_ports;
-  bps_t throughput_bps = 0;
+  bps_t tput_bps = 0;
 
   for (const RecircPortUsage &usage : recirc_ports_usage) {
     size_t recirc_depth = usage.fractions.size();
@@ -237,20 +236,20 @@ void PerfOracle::update_estimate_throughput_pps() {
     }
 
     Tsteering_bps = std::min(Tsteering_bps, Tout_bps);
-    throughput_bps += Tout_bps - Tsteering_bps;
+    tput_bps += Tout_bps - Tsteering_bps;
   }
 
-  throughput_bps += non_recirc_traffic * Tswitch_bps;
+  tput_bps += non_recirc_traffic * Tswitch_bps;
 
-  pps_t old_estimate_pps = throughput_pps;
-  pps_t new_estimate_pps = throughput_bps / (avg_pkt_bytes * 8);
+  pps_t old_estimate_pps = tput_pps;
+  pps_t new_estimate_pps = tput_bps / (avg_pkt_bytes * 8);
 
-  assert(new_estimate_pps <= old_estimate_pps);
-
-  throughput_pps = new_estimate_pps;
+  // Round off the errors.
+  // new_estimate_pps should be <= old_estimate_pps
+  tput_pps = std::min(old_estimate_pps, new_estimate_pps);
 }
 
-pps_t PerfOracle::estimate_throughput_pps() const { return throughput_pps; }
+pps_t PerfOracle::estimate_tput_pps() const { return tput_pps; }
 
 void PerfOracle::log_debug() const {
   Log::dbg() << "====== PerfOracle ======\n";
@@ -264,7 +263,7 @@ void PerfOracle::log_debug() const {
     Log::dbg() << " (steering=" << usage.steering_fraction << ")";
     Log::dbg() << "\n";
   }
-  Log::dbg() << "Estimate: " << estimate_throughput_pps() << " pps_t\n";
+  Log::dbg() << "Estimate: " << estimate_tput_pps() << " pps_t\n";
   Log::dbg() << "========================\n";
 }
 

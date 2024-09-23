@@ -16,9 +16,7 @@ public:
     return new x86Context(*this);
   }
 
-  virtual pps_t estimate_throughput_pps() const override {
-    return capacity_pps;
-  }
+  virtual pps_t estimate_tput_pps() const override { return capacity_pps; }
 };
 
 } // namespace x86

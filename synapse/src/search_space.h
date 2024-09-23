@@ -94,6 +94,6 @@ public:
   const HeuristicCfg *get_hcfg() const;
   bool is_backtrack() const;
 
-  static std::string build_meta_throughput_estimate(const EP *ep);
-  static std::string build_meta_throughput_speculation(const EP *ep);
+  static std::string build_meta_tput_estimate(const EP *ep);
+  static std::string build_meta_tput_speculation(const EP *ep);
 };

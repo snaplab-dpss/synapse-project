@@ -241,10 +241,8 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
       .ep = winner,
       .search_space = search_space,
       .score = h->get_score(winner),
-      .throughput_estimation =
-          SearchSpace::build_meta_throughput_estimate(winner),
-      .throughput_speculation =
-          SearchSpace::build_meta_throughput_speculation(winner),
+      .tput_estimation = SearchSpace::build_meta_tput_estimate(winner),
+      .tput_speculation = SearchSpace::build_meta_tput_speculation(winner),
   };
 
   search_report_t report = {
