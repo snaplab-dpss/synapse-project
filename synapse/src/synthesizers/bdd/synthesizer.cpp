@@ -73,13 +73,14 @@ void BDDSynthesizer::synthesize(const BDD *bdd) {
   // Global state
   stack_push();
 
-  init(bdd);
+  init_pre_process(bdd);
   process(bdd);
+  init_post_process();
 
   Synthesizer::dump();
 }
 
-void BDDSynthesizer::init(const BDD *bdd) {
+void BDDSynthesizer::init_pre_process(const BDD *bdd) {
   coder_t &coder = get(MARKER_NF_INIT);
 
   coder << "bool nf_init() {\n";
@@ -125,6 +126,20 @@ void BDDSynthesizer::init(const BDD *bdd) {
     coder << "path_profiler_counter_sz = ";
     coder << bdd->size();
     coder << ";\n";
+  }
+}
+
+void BDDSynthesizer::init_post_process() {
+  coder_t &coder = get(MARKER_NF_INIT);
+
+  if (target == BDDSynthesizerTarget::PROFILER) {
+    for (node_id_t node_id : map_stats_nodes) {
+      coder.indent();
+      coder << "map_stats.init(";
+      coder << node_id;
+      coder << ")";
+      coder << ";\n";
+    }
   }
 
   coder.indent();
@@ -493,6 +508,7 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   if (target == BDDSynthesizerTarget::PROFILER) {
+    map_stats_nodes.insert(call_node->get_id());
     coder.indent();
     coder << "map_stats.update(";
     coder << call_node->get_id() << ", ";
@@ -532,6 +548,7 @@ void BDDSynthesizer::map_put(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   if (target == BDDSynthesizerTarget::PROFILER) {
+    map_stats_nodes.insert(call_node->get_id());
     coder.indent();
     coder << "map_stats.update(";
     coder << call_node->get_id() << ", ";
@@ -569,6 +586,17 @@ void BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
   coder << "&trash";
   coder << ")";
   coder << ";\n";
+
+  if (target == BDDSynthesizerTarget::PROFILER) {
+    map_stats_nodes.insert(call_node->get_id());
+    coder.indent();
+    coder << "map_stats.update(";
+    coder << call_node->get_id() << ", ";
+    coder << k.name << ", ";
+    coder << key->getWidth() / 8;
+    coder << ")";
+    coder << ";\n";
+  }
 
   if (!key_in_stack) {
     stack_add(k);
@@ -1016,6 +1044,7 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
         if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
           out_var = v;
           out_var.name = slice_var(v, offset, expr_bits);
+          out_var.expr = var_slice;
           frame.cache[expr] = out_var;
           return true;
         }

@@ -67,6 +67,7 @@ public:
   get_fraction(const constraints_t &constraints) const;
   std::optional<FlowStats> get_flow_stats(const constraints_t &constraints,
                                           klee::ref<klee::Expr> flow_id) const;
+  const bdd_profile_t &get_bdd_profile() const { return bdd_profile; }
 
   void log_debug() const;
 

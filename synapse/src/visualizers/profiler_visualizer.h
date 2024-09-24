@@ -8,19 +8,19 @@
 
 #include "../bdd/bdd.h"
 #include "../profiler.h"
+#include "../util.h"
 
 class ProfilerVisualizer : public BDDVisualizer {
 public:
   static void visualize(const BDD *bdd, const Profiler *profiler,
                         bool interrupt) {
-    std::unordered_map<node_id_t, hit_rate_t> fractions_per_node =
-        get_fractions_per_node(bdd, profiler);
+    std::unordered_map<node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
 
     bdd_visualizer_opts_t opts;
 
-    opts.colors_per_node = get_colors_per_node(fractions_per_node);
+    opts.colors_per_node = get_colors_per_node(hrpn);
     opts.default_color.first = true;
-    opts.annotations_per_node = get_annocations_per_node(fractions_per_node);
+    opts.annotations_per_node = get_annocations_per_node(profiler, hrpn);
     opts.default_color.second = fraction_to_color(0);
 
     BDDVisualizer::visualize(bdd, interrupt, opts);
@@ -28,7 +28,7 @@ public:
 
 private:
   static std::unordered_map<node_id_t, hit_rate_t>
-  get_fractions_per_node(const BDD *bdd, const Profiler *profiler) {
+  hr_per_node(const BDD *bdd, const Profiler *profiler) {
     std::unordered_map<node_id_t, hit_rate_t> fractions_per_node;
     const Node *root = bdd->get_root();
 
@@ -44,13 +44,27 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string> get_annocations_per_node(
-      const std::unordered_map<node_id_t, hit_rate_t> &fraction_per_node) {
+      const Profiler *profiler,
+      const std::unordered_map<node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<node_id_t, std::string> annocations_per_node;
+    const bdd_profile_t &bdd_profile = profiler->get_bdd_profile();
 
-    for (const auto &[node, fraction] : fraction_per_node) {
+    for (const auto &[node, fraction] : hrpn) {
       std::string color = fraction_to_color(fraction);
       std::stringstream ss;
       ss << "HR: " << std::fixed << fraction;
+
+      for (const auto &map_stats : bdd_profile.map_stats) {
+        if (map_stats.node != node) {
+          continue;
+        }
+
+        ss << "\\n";
+        ss << "Flows: " << int2hr(map_stats.flows);
+        ss << "\\n";
+        ss << "Avg pkts/flow: " << int2hr(map_stats.avg_pkts_per_flow);
+      }
+
       annocations_per_node[node] = ss.str();
     }
 

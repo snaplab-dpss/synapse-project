@@ -422,6 +422,8 @@ struct Stats {
 struct MapStats {
   std::unordered_map<int, Stats> stats_per_map_op;
 
+  void init(int op) { stats_per_map_op[op] = Stats(); }
+
   void update(int op, const void *key, uint32_t len) {
     stats_per_map_op[op].update(key, len);
   }
@@ -496,7 +498,8 @@ void generate_report() {
     }
 
     map_op_stats_json["packets"] = total_packets;
-    map_op_stats_json["avg_pkts_per_flow"] = total_packets / stats.stats.size();
+    map_op_stats_json["avg_pkts_per_flow"] =
+        stats.stats.empty() ? 0 : total_packets / stats.stats.size();
 
     report["map_stats"].push_back(map_op_stats_json);
   }
@@ -587,6 +590,11 @@ bool nf_init() {
   memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
   path_profiler_counter_ptr = path_profiler_counter;
   path_profiler_counter_sz = 84;
+  map_stats.init(54);
+  map_stats.init(49);
+  map_stats.init(35);
+  map_stats.init(29);
+  map_stats.init(21);
   return true;
 }
 
@@ -745,6 +753,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   memcpy((void*)key, (void*)(hdr4+1), 16);
                   void* trash;
                   map_erase(map, key, &trash);
+                  map_stats.update(29, key, 16);
                   // Node 30
                   inc_path_counter(30);
                   hdr4[145] = 0;
@@ -1051,7 +1060,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 vector_borrow(vector2, index, (void**)&vector_value_out3);
                 // Node 57
                 inc_path_counter(57);
-                memcpy((void*)vector_value_out3, (void*)(key3+17), 128);
+                memcpy((void*)vector_value_out3, (void*)(hdr4+17), 128);
                 // Node 58
                 inc_path_counter(58);
                 hdr4[145] = 0;
@@ -1141,7 +1150,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               vector_borrow(vector2, value3, (void**)&vector_value_out4);
               // Node 69
               inc_path_counter(69);
-              memcpy((void*)vector_value_out4, (void*)(key3+17), 128);
+              memcpy((void*)vector_value_out4, (void*)(hdr4+17), 128);
               // Node 70
               inc_path_counter(70);
               hdr4[145] = 0;

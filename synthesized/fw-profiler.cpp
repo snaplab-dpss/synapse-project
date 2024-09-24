@@ -422,6 +422,8 @@ struct Stats {
 struct MapStats {
   std::unordered_map<int, Stats> stats_per_map_op;
 
+  void init(int op) { stats_per_map_op[op] = Stats(); }
+
   void update(int op, const void *key, uint32_t len) {
     stats_per_map_op[op].update(key, len);
   }
@@ -496,7 +498,8 @@ void generate_report() {
     }
 
     map_op_stats_json["packets"] = total_packets;
-    map_op_stats_json["avg_pkts_per_flow"] = total_packets / stats.stats.size();
+    map_op_stats_json["avg_pkts_per_flow"] =
+        stats.stats.empty() ? 0 : total_packets / stats.stats.size();
 
     report["map_stats"].push_back(map_op_stats_json);
   }
@@ -587,6 +590,9 @@ bool nf_init() {
   memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
   path_profiler_counter_ptr = path_profiler_counter;
   path_profiler_counter_sz = 47;
+  map_stats.init(25);
+  map_stats.init(20);
+  map_stats.init(7);
   return true;
 }
 

@@ -98,14 +98,15 @@ int main(int argc, char **argv) {
   HeuristicOption heuristic_opt;
   std::vector<ep_id_t> peek;
   std::filesystem::path bdd_profile;
-  u32 seed{0};
-  bool no_reorder{false};
-  bool show_ep{false};
-  bool show_ss{false};
-  bool show_bdd{false};
-  bool pause_on_backtrack{false};
-  bool not_greedy{false};
-  bool verbose{false};
+  u32 seed = 0;
+  bool no_reorder = false;
+  bool show_prof = false;
+  bool show_ep = false;
+  bool show_ss = false;
+  bool show_bdd = false;
+  bool pause_on_backtrack = false;
+  bool not_greedy = false;
+  bool verbose = false;
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
@@ -120,6 +121,7 @@ int main(int argc, char **argv) {
       ->default_val(std::random_device()());
   app.add_option("--peek", peek, "Peek execution plans.");
   app.add_flag("--no-reorder", no_reorder, "Deactivate BDD reordering.");
+  app.add_flag("--show-prof", show_prof, "Show NF profiling.");
   app.add_flag("--show-ep", show_ep, "Show winner Execution Plan.");
   app.add_flag("--show-ss", show_ss, "Show the entire search space.");
   app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.");
@@ -147,7 +149,10 @@ int main(int argc, char **argv) {
   }
 
   profiler->log_debug();
-  // ProfilerVisualizer::visualize(bdd, profiler, true);
+
+  if (show_prof) {
+    ProfilerVisualizer::visualize(bdd, profiler, true);
+  }
 
   targets_t targets = build_targets(profiler);
 

@@ -35,14 +35,18 @@ private:
   std::vector<stack_frame_t> stack;
   std::unordered_map<std::string, int> reserved_var_names;
 
+  // Relevant for profiling
+  std::unordered_set<node_id_t> map_stats_nodes;
+
 public:
   BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out);
 
   void synthesize(const BDD *bdd);
 
 private:
-  void init(const BDD *bdd);
+  void init_pre_process(const BDD *bdd);
   void process(const BDD *bdd);
+  void init_post_process();
   void synthesize(const Node *node);
 
   var_t build_key(klee::ref<klee::Expr> key_addr, klee::ref<klee::Expr> key,

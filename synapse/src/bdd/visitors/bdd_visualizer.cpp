@@ -111,7 +111,8 @@ BDDVisitorAction BDDVisualizer::visitBranch(const Branch *node) {
 
   if (opts.annotations_per_node.find(node->get_id()) !=
       opts.annotations_per_node.end()) {
-    ss << "\\n" << opts.annotations_per_node.at(node->get_id());
+    ss << "\\n";
+    ss << opts.annotations_per_node.at(node->get_id());
   }
 
   ss << "\"";
@@ -214,7 +215,8 @@ BDDVisitorAction BDDVisualizer::visitCall(const Call *node) {
 
   if (opts.annotations_per_node.find(node->get_id()) !=
       opts.annotations_per_node.end()) {
-    ss << "\\l" << opts.annotations_per_node.at(node->get_id());
+    ss << "\\l";
+    ss << opts.annotations_per_node.at(node->get_id());
   }
 
   ss << "\"";
@@ -262,7 +264,8 @@ BDDVisitorAction BDDVisualizer::visitRoute(const Route *node) {
   }
 
   if (opts.annotations_per_node.find(id) != opts.annotations_per_node.end()) {
-    ss << "\\l" << opts.annotations_per_node.at(id);
+    ss << "\\l";
+    ss << opts.annotations_per_node.at(id);
   }
 
   ss << "\"";
