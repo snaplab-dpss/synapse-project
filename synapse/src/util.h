@@ -118,6 +118,7 @@ symbols_t get_prev_symbols(const Node *node,
 
 struct rw_fractions_t {
   hit_rate_t read;
+  hit_rate_t write_attempt;
   hit_rate_t write;
 };
 

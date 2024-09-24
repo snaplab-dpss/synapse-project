@@ -316,17 +316,19 @@ private:
     std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
     assert(fraction.has_value());
 
-    hit_rate_t cache_hit_rate =
-        get_fcfs_cache_hit_rate(ep, node, key, cache_capacity);
-
     rw_fractions_t rw_fractions =
         get_cond_map_put_rw_profile_fractions(ep, node);
 
-    hit_rate_t write_probability = rw_fractions.write / *fraction;
-    hit_rate_t read_probability = rw_fractions.read / *fraction;
+    hit_rate_t failed_writes = rw_fractions.write_attempt - rw_fractions.write;
 
-    hit_rate_t probability =
-        read_probability + write_probability * cache_hit_rate;
+    hit_rate_t rp = rw_fractions.read / *fraction;
+    hit_rate_t wp = rw_fractions.write / *fraction;
+    hit_rate_t fwp = failed_writes / *fraction;
+
+    hit_rate_t cache_hit_rate =
+        get_fcfs_cache_hit_rate(ep, node, key, cache_capacity);
+
+    hit_rate_t probability = rp + fwp + wp * cache_hit_rate;
 
     return probability;
   }

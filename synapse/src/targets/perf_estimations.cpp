@@ -255,8 +255,8 @@ void Context::update_tput_speculation(const EP *ep) {
     });
   }
 
-  // if (ep->get_id() == 408 || ep->get_id() == 414) {
-  //   print_speculations(ep, nodes_speculations, speculation);
+  // if (ep->get_id() == 61) {
+  //   print_speculations(ep, speculations);
   //   // BDDVisualizer::visualize(ep->get_bdd(), true);
   //   DEBUG_PAUSE
   // }

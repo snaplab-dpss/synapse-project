@@ -39,27 +39,26 @@ public:
     impl_t best = *it;
 
     if (configuration.mutates(best)) {
-      std::cerr << "MUTATION!\n";
-      std::cerr << "Result EP: " << best.result->get_id() << "\n";
-      std::cerr << "Target EP: " << best.decision.ep->get_id() << "\n";
-      std::cerr << "Target node: " << best.decision.node << "\n";
-      std::cerr << "Old: " << best.decision.ep->speculate_tput_pps() << "\n";
-      std::cerr << "New: " << best.result->speculate_tput_pps() << "\n";
-
       std::vector<impl_t> eps(execution_plans.begin(), execution_plans.end());
 
       // Trigger a re-sort with the new mutated heuristic.
       execution_plans = std::multiset<impl_t, HCfg>(configuration);
       execution_plans.insert(eps.begin(), eps.end());
 
-      DEBUG_PAUSE
+      reset_best_it();
+      it = get_next_it();
+      assert(it != execution_plans.end());
+
+      best = *it;
     }
 
     execution_plans.erase(it);
     reset_best_it();
 
-    if (best.decision.ep)
+    if (best.decision.ep) {
       ep_refs[best.decision.ep]--;
+    }
+
     ep_refs[best.result]--;
 
     return best.result;

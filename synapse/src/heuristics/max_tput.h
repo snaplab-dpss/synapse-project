@@ -23,46 +23,45 @@ private:
     }
   };
 
-  std::unordered_map<decision_t, i64, decision_hasher_t> module_tput;
+  std::unordered_map<decision_t, i64, decision_hasher_t> decisions_perf;
 
 public:
   MaxTputCfg()
       : HeuristicCfg(
             "MaxTput",
             {
+                BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
                 BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
 
                 // Avoid desincentivising modules that expand the BDD.
-                BUILD_METRIC(MaxTputCfg, get_switch_progression_nodes, MAX),
-
-                // Let's incentivize the ones that have already processed more
-                // BDD nodes.
-                BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
+                // BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
+                // BUILD_METRIC(MaxTputCfg, get_switch_progression_nodes, MAX),
+                // BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
             }) {}
 
   MaxTputCfg &operator=(const MaxTputCfg &other) {
     assert(other.name == name);
     assert(other.metrics.size() == metrics.size());
-    module_tput = other.module_tput;
+    decisions_perf = other.decisions_perf;
     return *this;
   }
 
-  virtual bool mutates(const impl_t &impl) const override {
-    const EP *old_ep = impl.decision.ep;
-    const EP *new_ep = impl.result;
+  // virtual bool mutates(const impl_t &impl) const override {
+  //   const EP *old_ep = impl.decision.ep;
+  //   const EP *new_ep = impl.result;
 
-    assert(new_ep);
+  //   assert(new_ep);
 
-    // Just an edge case for the first step on the search space.
-    if (!old_ep) {
-      return false;
-    }
+  //   // Just an edge case for the first step on the search space.
+  //   if (!old_ep) {
+  //     return false;
+  //   }
 
-    pps_t old_spec = old_ep->speculate_tput_pps();
-    pps_t new_spec = new_ep->speculate_tput_pps();
+  //   pps_t old_spec = old_ep->speculate_tput_pps();
+  //   pps_t new_spec = new_ep->speculate_tput_pps();
 
-    return new_spec < old_spec;
-  }
+  //   return new_spec < old_spec;
+  // }
 
 private:
   i64 get_tput_speculation(const EP *ep) const;

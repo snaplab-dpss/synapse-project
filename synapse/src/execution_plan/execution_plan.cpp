@@ -217,11 +217,14 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
   meta.depth++;
 
   for (const EPLeaf &new_leaf : new_leaves) {
-    if (!new_leaf.next)
+    if (!new_leaf.next) {
       continue;
+    }
 
-    ctx.update_traffic_fractions(new_leaf.node);
-    meta.update(active_leaf, new_leaf.node, process_node);
+    if (new_leaf.node != new_node) {
+      ctx.update_traffic_fractions(new_leaf.node);
+      meta.update(active_leaf, new_leaf.node, process_node);
+    }
 
     const Module *module = new_leaf.node->get_module();
     TargetType next_target = module->get_next_target();

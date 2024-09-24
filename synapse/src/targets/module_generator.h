@@ -61,6 +61,13 @@ struct impl_t {
   impl_t(const impl_t &other)
       : decision(other.decision), result(other.result),
         bdd_reordered(other.bdd_reordered) {}
+
+  impl_t &operator=(const impl_t &other) {
+    decision = other.decision;
+    result = other.result;
+    bdd_reordered = other.bdd_reordered;
+    return *this;
+  }
 };
 
 class ModuleGenerator {

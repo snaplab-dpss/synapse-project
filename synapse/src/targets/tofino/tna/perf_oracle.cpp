@@ -263,7 +263,7 @@ void PerfOracle::log_debug() const {
     Log::dbg() << " (steering=" << usage.steering_fraction << ")";
     Log::dbg() << "\n";
   }
-  Log::dbg() << "Estimate: " << estimate_tput_pps() << " pps_t\n";
+  Log::dbg() << "Estimate: " << estimate_tput_pps() << " pps\n";
   Log::dbg() << "========================\n";
 }
 

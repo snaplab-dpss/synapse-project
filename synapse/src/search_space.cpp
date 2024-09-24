@@ -155,7 +155,7 @@ void SearchSpace::add_to_active_leaf(
       };
     }
 
-    std::map<std::string, std::string> metadata = {
+    std::vector<std::pair<std::string, std::string>> metadata = {
         {"Tput", build_meta_tput_estimate(impl.result)},
         {"Spec", build_meta_tput_speculation(impl.result)},
     };

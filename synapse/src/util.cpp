@@ -1008,6 +1008,9 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
   const call_t &mg_call = map_get->get_call();
   assert(mg_call.function_name == "map_get");
 
+  klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
+  klee::ref<klee::Expr> key = mg_call.args.at("key").in;
+
   symbols_t symbols = map_get->get_locally_generated_symbols();
   symbol_t map_has_this_key;
   bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
@@ -1021,7 +1024,7 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
                                  0, map_has_this_key.expr->getWidth()));
 
   map_get->visit_nodes([&fractions, &key_not_found_cond, &found_condition,
-                        profiler](const Node *node) {
+                        profiler, obj, key](const Node *node) {
     if (node->get_type() != NodeType::BRANCH) {
       return NodeVisitAction::VISIT_CHILDREN;
     }
@@ -1040,17 +1043,40 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
 
     const Node *read =
         is_key_not_found_cond ? branch->get_on_false() : branch->get_on_true();
-    const Node *write =
+    const Node *write_attempt =
         is_key_not_found_cond ? branch->get_on_true() : branch->get_on_false();
 
-    constraints_t read_constraints = read->get_ordered_branch_constraints();
-    constraints_t write_constraints = write->get_ordered_branch_constraints();
+    std::vector<const Call *> future_map_puts =
+        get_future_functions(write_attempt, {"map_put"});
+    assert(future_map_puts.size() >= 1);
 
-    std::optional<hit_rate_t> rf = profiler->get_fraction(read_constraints);
-    std::optional<hit_rate_t> wf = profiler->get_fraction(write_constraints);
+    const Node *write = nullptr;
+    for (const Call *map_put : future_map_puts) {
+      const call_t &mp_call = map_put->get_call();
+      assert(mp_call.function_name == "map_put");
 
-    if (rf.has_value() && wf.has_value()) {
+      if (solver_toolbox.are_exprs_always_equal(mp_call.args.at("key").in,
+                                                key) &&
+          solver_toolbox.are_exprs_always_equal(mp_call.args.at("map").expr,
+                                                obj)) {
+        write = map_put;
+        break;
+      }
+    }
+
+    assert(write && "map_put not found");
+
+    constraints_t rc = read->get_ordered_branch_constraints();
+    constraints_t wac = write_attempt->get_ordered_branch_constraints();
+    constraints_t wc = write->get_ordered_branch_constraints();
+
+    std::optional<hit_rate_t> rf = profiler->get_fraction(rc);
+    std::optional<hit_rate_t> waf = profiler->get_fraction(wac);
+    std::optional<hit_rate_t> wf = profiler->get_fraction(wc);
+
+    if (rf.has_value() && waf.has_value() && wf.has_value()) {
       fractions.read = rf.value();
+      fractions.write_attempt = waf.value();
       fractions.write = wf.value();
       found_condition = true;
     } else {
