@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "util.h"
+#include "bdd/bdd.h"
 #include "targets/module.h"
 #include "execution_plan/execution_plan.h"
 #include "exprs/retriever.h"

@@ -8,27 +8,26 @@
 
 #include "bdd_visualizer.h"
 #include "../profile.h"
+#include "../../util.h"
 
 class BDDProfileVisualizer : public BDDVisualizer {
 public:
-  BDDProfileVisualizer(const std::string &fname,
-                       const std::unordered_map<node_id_t, u64> &counters)
+  BDDProfileVisualizer(const std::string &fname, const bdd_profile_t &profile)
       : BDDVisualizer(bdd_visualizer_opts_t{
             .fname = fname,
-            .colors_per_node = get_colors_per_node(counters),
+            .colors_per_node = get_colors_per_node(profile.counters),
             .default_color = {true, hit_rate_to_color(0)},
-            .annotations_per_node = get_annocations_per_node(counters),
+            .annotations_per_node = get_annocations_per_node(profile),
             .processed = processed_t(),
         }) {}
 
-  static void visualize(const BDD *bdd,
-                        const std::unordered_map<node_id_t, u64> &counters,
+  static void visualize(const BDD *bdd, const bdd_profile_t &profile,
                         bool interrupt) {
     bdd_visualizer_opts_t opts;
 
-    opts.colors_per_node = get_colors_per_node(counters);
+    opts.colors_per_node = get_colors_per_node(profile.counters);
     opts.default_color.first = true;
-    opts.annotations_per_node = get_annocations_per_node(counters);
+    opts.annotations_per_node = get_annocations_per_node(profile);
     opts.default_color.second = hit_rate_to_color(0);
 
     BDDVisualizer::visualize(bdd, interrupt, opts);
@@ -45,18 +44,31 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string>
-  get_annocations_per_node(const std::unordered_map<node_id_t, u64> &counters) {
-    u64 total_counter = get_total_counter(counters);
+  get_annocations_per_node(const bdd_profile_t &profile) {
+
+    u64 total_counter = get_total_counter(profile.counters);
     std::unordered_map<node_id_t, std::string> annocations_per_node;
 
-    for (auto it = counters.begin(); it != counters.end(); it++) {
-      auto node = it->first;
-      auto counter = it->second;
-      auto node_hit_rate = (float)counter / total_counter;
+    for (auto it = profile.counters.begin(); it != profile.counters.end();
+         it++) {
+      node_id_t node = it->first;
+      u64 counter = it->second;
+      hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
 
       std::stringstream ss;
-      ss << "Hit rate: " << std::fixed << node_hit_rate << " (" << counter
-         << "/" << total_counter << ")";
+      ss << "HR: " << std::fixed << node_hit_rate;
+
+      for (const bdd_profile_t::map_stats_t &map_stats : profile.map_stats) {
+        if (map_stats.node != node) {
+          continue;
+        }
+
+        ss << "\\n";
+        ss << "Flows: " << int2hr(map_stats.flows);
+        ss << "\\n";
+        ss << "Avg pkts/flow: " << int2hr(map_stats.avg_pkts_per_flow);
+      }
+
       annocations_per_node[node] = ss.str();
     }
 
@@ -70,8 +82,8 @@ private:
 
     for (auto it = counters.begin(); it != counters.end(); it++) {
       node_id_t node = it->first;
-      auto counter = it->second;
-      float node_hit_rate = (float)counter / total_counter;
+      u64 counter = it->second;
+      hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
       std::string color = hit_rate_to_color(node_hit_rate);
 
       colors_per_node[node] = color;

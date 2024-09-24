@@ -26,13 +26,13 @@ int main(int argc, char **argv) {
     bdd_profile_t profile = parse_bdd_profile(bdd_profile_file);
 
     if (!output_dot_file.empty()) {
-      BDDProfileVisualizer generator(output_dot_file, profile.counters);
+      BDDProfileVisualizer generator(output_dot_file, profile);
       generator.visit(bdd);
       generator.write();
     }
 
     if (show) {
-      BDDProfileVisualizer::visualize(bdd, profile.counters, false);
+      BDDProfileVisualizer::visualize(bdd, profile, false);
     }
   } else {
     if (!output_dot_file.empty()) {

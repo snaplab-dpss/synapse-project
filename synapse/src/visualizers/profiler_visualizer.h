@@ -54,7 +54,8 @@ private:
       std::stringstream ss;
       ss << "HR: " << std::fixed << fraction;
 
-      for (const auto &map_stats : bdd_profile.map_stats) {
+      for (const bdd_profile_t::map_stats_t &map_stats :
+           bdd_profile.map_stats) {
         if (map_stats.node != node) {
           continue;
         }

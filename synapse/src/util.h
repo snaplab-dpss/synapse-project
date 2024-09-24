@@ -6,7 +6,8 @@
 #include <optional>
 #include <stdint.h>
 
-#include "bdd/bdd.h"
+#include "call_paths/call_paths.h"
+#include "bdd/tree.h"
 #include "exprs/exprs.h"
 
 enum class ModuleType;
