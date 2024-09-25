@@ -750,7 +750,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   dchain_free_index(dchain, value);
                   // Node 29
                   inc_path_counter(29);
-                  memcpy((void*)key, (void*)(hdr4+1), 16);
+                  memcpy((void*)key, (void*)key, 16);
                   void* trash;
                   map_erase(map, key, &trash);
                   map_stats.update(29, key, 16);
@@ -1048,12 +1048,11 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 vector_borrow(vector, index, (void**)&vector_value_out2);
                 // Node 54
                 inc_path_counter(54);
-                memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
+                memcpy((void*)vector_value_out2, (void*)key3, 16);
                 map_put(map, vector_value_out2, index);
                 map_stats.update(54, vector_value_out2, 16);
                 // Node 55
                 inc_path_counter(55);
-                memcpy((void*)vector_value_out2, (void*)(hdr4+1), 16);
                 // Node 56
                 inc_path_counter(56);
                 uint8_t* vector_value_out3 = 0;

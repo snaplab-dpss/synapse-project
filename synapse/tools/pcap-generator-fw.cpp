@@ -16,6 +16,8 @@
 
 #include "../src/pcap.h"
 
+#define NF "fw"
+
 #define SMAC "02:00:00:ca:fe:ee"
 #define DMAC "02:00:00:be:ee:ef"
 
@@ -85,8 +87,8 @@ struct config_t {
   bool traffic_uniform;
   bool traffic_zipf;
   double traffic_zipf_param;
-  unsigned lan_devices;
-  unsigned random_seed;
+  u32 lan_devices;
+  u32 random_seed;
 };
 
 void config_print(const config_t &config) {
@@ -108,7 +110,7 @@ void config_print(const config_t &config) {
 std::string get_base_pcap_fname(const config_t &config) {
   std::stringstream ss;
 
-  ss << "fw";
+  ss << NF;
   ss << "-f" << config.total_flows;
   ss << "-c" << config.churn_fpm;
   if (config.traffic_uniform) {
@@ -120,7 +122,7 @@ std::string get_base_pcap_fname(const config_t &config) {
   return ss.str();
 }
 
-std::string get_warmup_pcap_fname(const config_t &config, uint16_t dev) {
+std::string get_warmup_pcap_fname(const config_t &config, u16 dev) {
   std::stringstream ss;
   ss << get_base_pcap_fname(config);
   ss << "-dev" << dev;
@@ -128,7 +130,7 @@ std::string get_warmup_pcap_fname(const config_t &config, uint16_t dev) {
   return ss.str();
 }
 
-std::string get_pcap_fname(const config_t &config, uint16_t dev) {
+std::string get_pcap_fname(const config_t &config, u16 dev) {
   std::stringstream ss;
   ss << get_base_pcap_fname(config);
   ss << "-dev" << dev;
@@ -147,7 +149,7 @@ std::vector<flow_t> get_base_flows(const config_t &config) {
   return flows;
 }
 
-enum class DevTurn {
+enum class Dev {
   WAN,
   LAN,
 };
@@ -169,9 +171,9 @@ private:
 
   pkt_hdr_t packet_template;
 
-  uint16_t current_lan_dev;
-  std::unordered_map<flow_t, DevTurn, flow_t::flow_hash_t> flows_dev_turn;
-  std::unordered_map<flow_t, uint16_t, flow_t::flow_hash_t> flows_to_lan_dev;
+  u16 current_lan_dev;
+  std::unordered_map<flow_t, Dev, flow_t::flow_hash_t> flows_dev_turn;
+  std::unordered_map<flow_t, u16, flow_t::flow_hash_t> flows_to_lan_dev;
   std::unordered_set<flow_t, flow_t::flow_hash_t> allocated_flows;
   std::unordered_map<flow_t, u64, flow_t::flow_hash_t> counters;
   u64 flows_swapped;
@@ -185,20 +187,20 @@ public:
                    const std::vector<flow_t> &_base_flows)
       : config(_config), flows(_base_flows),
         warmup_writer(get_warmup_pcap_fname(_config, 0)),
-        wan_writer(get_pcap_fname(_config, 0)),
+        wan_writer(get_pcap_fname(_config, config.lan_devices)),
         uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
         zipf_rand(_config.random_seed, _config.traffic_zipf_param,
                   _config.total_flows),
         pd(NULL), pdumper(NULL), packet_template(build_pkt_template()),
-        current_lan_dev(1), counters(0), flows_swapped(0), current_time(0),
+        current_lan_dev(0), counters(0), flows_swapped(0), current_time(0),
         alarm_tick(0), next_alarm(-1) {
-    for (unsigned i = 0; i < config.lan_devices; i++) {
-      lan_writers.emplace_back(get_pcap_fname(config, i + 1));
+    for (u32 i = 0; i < config.lan_devices; i++) {
+      lan_writers.emplace_back(get_pcap_fname(config, i));
     }
 
     for (const flow_t &flow : flows) {
-      flows_dev_turn[flow] = DevTurn::WAN;
-      flows_to_lan_dev[invert_flow(flow)] = current_lan_dev;
+      flows_dev_turn[flow] = Dev::LAN;
+      flows_to_lan_dev[flow] = current_lan_dev;
       counters[flow] = 0;
       advance_lan_dev();
     }
@@ -248,7 +250,7 @@ public:
     int progress = -1;
 
     printf("Traffic: %s\n", wan_writer.get_output_fname().c_str());
-    for (unsigned i = 0; i < lan_writers.size(); i++) {
+    for (u32 i = 0; i < lan_writers.size(); i++) {
       printf("Traffic: %s\n", lan_writers[i].get_output_fname().c_str());
     }
 
@@ -261,8 +263,8 @@ public:
         next_alarm += alarm_tick;
 
         const flow_t &new_flow = flows[chosen_swap_flow_idx];
-        flows_dev_turn[new_flow] = DevTurn::WAN;
-        flows_to_lan_dev[invert_flow(new_flow)] = current_lan_dev;
+        flows_dev_turn[new_flow] = Dev::WAN;
+        flows_to_lan_dev[new_flow] = current_lan_dev;
         advance_lan_dev();
         counters[new_flow] = 0;
       }
@@ -280,20 +282,22 @@ public:
       bool new_flow = allocated_flows.find(flow) == allocated_flows.end();
 
       if (new_flow) {
-        flows_to_lan_dev[invert_flow(flow)] = current_lan_dev;
+        flows_to_lan_dev[flow] = current_lan_dev;
         allocated_flows.insert(flow);
       }
 
-      if (new_flow || flows_dev_turn[flow] == DevTurn::WAN) {
+      if (new_flow || flows_dev_turn[flow] == Dev::LAN) {
         pkt.ip_hdr.saddr = flow.src_ip;
         pkt.ip_hdr.daddr = flow.dst_ip;
         pkt.udp_hdr.source = flow.src_port;
         pkt.udp_hdr.dest = flow.dst_port;
 
-        flows_dev_turn[flow] = DevTurn::LAN;
+        flows_dev_turn[flow] = Dev::WAN;
 
-        wan_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                         sizeof(pkt_hdr_t), current_time);
+        u16 lan_dev = flows_to_lan_dev.at(flow);
+        lan_writers[lan_dev].write((const u_char *)&pkt, sizeof(pkt_hdr_t),
+                                   sizeof(pkt_hdr_t), current_time);
+
       } else {
         flow_t inverted_flow = invert_flow(flow);
 
@@ -302,11 +306,10 @@ public:
         pkt.udp_hdr.source = inverted_flow.src_port;
         pkt.udp_hdr.dest = inverted_flow.dst_port;
 
-        flows_dev_turn[flow] = DevTurn::WAN;
+        flows_dev_turn[flow] = Dev::LAN;
 
-        uint16_t lan_dev = flows_to_lan_dev.at(inverted_flow);
-        lan_writers[lan_dev - 1].write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                                       sizeof(pkt_hdr_t), current_time);
+        wan_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
+                         sizeof(pkt_hdr_t), current_time);
       }
 
       counters[flow]++;
@@ -330,10 +333,7 @@ public:
 
 private:
   void advance_lan_dev() {
-    current_lan_dev = (current_lan_dev + 1) % (config.lan_devices + 1);
-    if (current_lan_dev == 0) {
-      current_lan_dev = 1;
-    }
+    current_lan_dev = (current_lan_dev + 1) % config.lan_devices;
   }
 
   void report() const {
@@ -404,7 +404,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Traffic generator for the FW NF."};
+  CLI::App app{"Traffic generator for the" NF "nf."};
 
   config_t config;
 

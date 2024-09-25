@@ -2,6 +2,10 @@
 #define _FLOW_H_INCLUDED_
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "lib/verified/boilerplate-util.h"
+#include "lib/verified/ether.h"
 
 struct FlowId {
   uint16_t src_port;
@@ -12,24 +16,17 @@ struct FlowId {
   uint8_t protocol;
 } PACKED_FOR_KLEE_VERIFICATION;
 
-#include <stdbool.h>
-#include "lib/verified/boilerplate-util.h"
-
-#include "lib/verified/ether.h"
-
-#include "flow.h"
-
 #define DEFAULT_FLOWID FlowIdc(0, 0, 0, 0, 0, 0)
 
-#define LOG_FLOWID(obj, p)                          \
-  ;                                                 \
-  p("{");                                           \
-  p("src_port: %d", (obj)->src_port);               \
-  p("dst_port: %d", (obj)->dst_port);               \
-  p("src_ip: %d", (obj)->src_ip);                   \
-  p("dst_ip: %d", (obj)->dst_ip);                   \
-  p("internal_device: %d", (obj)->internal_device); \
-  p("protocol: %d", (obj)->protocol);               \
+#define LOG_FLOWID(obj, p)                                                     \
+  ;                                                                            \
+  p("{");                                                                      \
+  p("src_port: %d", (obj)->src_port);                                          \
+  p("dst_port: %d", (obj)->dst_port);                                          \
+  p("src_ip: %d", (obj)->src_ip);                                              \
+  p("dst_ip: %d", (obj)->dst_ip);                                              \
+  p("internal_device: %d", (obj)->internal_device);                            \
+  p("protocol: %d", (obj)->protocol);                                          \
   p("}");
 
 #ifdef KLEE_VERIFICATION
@@ -38,6 +35,6 @@ struct FlowId {
 
 extern struct str_field_descr FlowId_descrs[6];
 extern struct nested_field_descr FlowId_nests[0];
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
-#endif  // _FLOW_H_INCLUDED_
+#endif // _FLOW_H_INCLUDED_

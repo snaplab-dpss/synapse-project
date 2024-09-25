@@ -937,7 +937,12 @@ void BDDSynthesizer::stack_dbg() const {
   for (const stack_frame_t &frame : stack) {
     std::cerr << "------------------------------------------\n";
     for (const var_t &var : frame.vars) {
-      std::cerr << var.name << ": ";
+      std::cerr << "[";
+      std::cerr << var.name;
+      if (!var.addr.isNull()) {
+        std::cerr << "@" << expr_to_string(var.addr, true);
+      }
+      std::cerr << "]: ";
       std::cerr << expr_to_string(var.expr, false) << "\n";
     }
   }
@@ -1014,15 +1019,6 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
   for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
     stack_frame_t &frame = *it;
 
-    if (frame.cache.find(expr) != frame.cache.end()) {
-      out_var = frame.cache.at(expr);
-      return true;
-    }
-  }
-
-  for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
-    stack_frame_t &frame = *it;
-
     for (const var_t &v : frame.vars) {
       if (solver_toolbox.are_exprs_always_equal(v.expr, expr) ||
           solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
@@ -1045,7 +1041,6 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
           out_var = v;
           out_var.name = slice_var(v, offset, expr_bits);
           out_var.expr = var_slice;
-          frame.cache[expr] = out_var;
           return true;
         }
       }
@@ -1058,10 +1053,6 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
 void BDDSynthesizer::stack_add(const var_t &var) {
   stack_frame_t &frame = stack.back();
   frame.vars.push_back(var);
-  frame.cache[var.expr] = var;
-  if (!var.addr.isNull()) {
-    frame.cache[var.addr] = var;
-  }
 }
 
 void BDDSynthesizer::stack_replace(const var_t &var,
@@ -1070,6 +1061,8 @@ void BDDSynthesizer::stack_replace(const var_t &var,
     stack_frame_t &frame = *it;
     for (var_t &v : frame.vars) {
       if (v.name == var.name) {
+        klee::ref<klee::Expr> old_expr = v.expr;
+        assert(old_expr->getWidth() == new_expr->getWidth());
         v.expr = new_expr;
         return;
       }

@@ -29,7 +29,6 @@ private:
 
   struct stack_frame_t {
     std::vector<var_t> vars;
-    std::map<klee::ref<klee::Expr>, var_t> cache;
   };
 
   std::vector<stack_frame_t> stack;

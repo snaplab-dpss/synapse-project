@@ -732,7 +732,6 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             map_stats.update(25, vector_value_out2, 13);
             // Node 26
             inc_path_counter(26);
-            memcpy((void*)vector_value_out2, (void*)key2, 13);
             // Node 27
             inc_path_counter(27);
             uint8_t* vector_value_out3 = 0;

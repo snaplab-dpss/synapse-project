@@ -16,6 +16,8 @@
 
 #include "../src/pcap.h"
 
+#define NF "kvs"
+
 #define SMAC "02:00:00:ca:fe:ee"
 #define DMAC "02:00:00:be:ee:ef"
 #define SRC_IP "10.10.0.1"
@@ -33,8 +35,8 @@
 #define DEFAULT_TRAFFIC_ZIPF false
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
 
-typedef std::array<uint8_t, KEY_SIZE_BYTES> kv_key_t;
-typedef std::array<uint8_t, VALUE_SIZE_BYTES> kv_value_t;
+typedef std::array<u8, KEY_SIZE_BYTES> kv_key_t;
+typedef std::array<u8, VALUE_SIZE_BYTES> kv_value_t;
 
 struct kv_key_hash_t {
   std::size_t operator()(const kv_key_t &key) const {
@@ -53,10 +55,10 @@ enum kvs_op {
 };
 
 struct kvs_hdr_t {
-  uint8_t op;
-  uint8_t key[KEY_SIZE_BYTES];
-  uint8_t value[VALUE_SIZE_BYTES];
-  uint8_t status;
+  u8 op;
+  u8 key[KEY_SIZE_BYTES];
+  u8 value[VALUE_SIZE_BYTES];
+  u8 status;
 } __attribute__((__packed__));
 
 struct pkt_hdr_t {
@@ -109,10 +111,10 @@ void randomize_value(kv_value_t &value) {
 }
 
 struct config_t {
-  unsigned random_seed;
-  uint64_t total_packets;
-  uint64_t total_keys;
-  uint64_t churn_fpm;
+  u32 random_seed;
+  u64 total_packets;
+  u64 total_keys;
+  u64 churn_fpm;
   bool traffic_uniform;
   bool traffic_zipf;
   double traffic_zipf_param;
@@ -136,7 +138,7 @@ void config_print(const config_t &config) {
 std::string get_base_pcap_fname(const config_t &config) {
   std::stringstream ss;
 
-  ss << "kvs";
+  ss << NF;
   ss << "-k" << config.total_keys;
   ss << "-c" << config.churn_fpm;
   if (config.traffic_uniform) {
@@ -192,8 +194,8 @@ private:
   pkt_hdr_t packet_template;
 
   std::unordered_set<kv_key_t, kv_key_hash_t> allocated_keys;
-  std::unordered_map<kv_key_t, uint64_t, kv_key_hash_t> counters;
-  uint64_t keys_swapped;
+  std::unordered_map<kv_key_t, u64, kv_key_hash_t> counters;
+  u64 keys_swapped;
 
   time_ns_t current_time;
   time_ns_t alarm_tick;
@@ -222,8 +224,8 @@ public:
   }
 
   void dump_warmup() {
-    uint64_t counter = 0;
-    uint64_t goal = keys.size();
+    u64 counter = 0;
+    u64 goal = keys.size();
     int progress = -1;
 
     printf("Warmup: %s\n", warmup_writer.get_output_fname().c_str());
@@ -256,22 +258,22 @@ public:
   }
 
   void dump() {
-    uint64_t counter = 0;
-    uint64_t goal = config.total_packets;
+    u64 counter = 0;
+    u64 goal = config.total_packets;
     int progress = -1;
 
     printf("Traffic: %s\n", writer.get_output_fname().c_str());
 
-    for (uint64_t i = 0; i < config.total_packets; i++) {
+    for (u64 i = 0; i < config.total_packets; i++) {
       pkt_hdr_t pkt = packet_template;
 
       if (next_alarm >= 0 && current_time >= next_alarm) {
-        uint64_t chosen_swap_key_idx = uniform_rand.generate();
+        u64 chosen_swap_key_idx = uniform_rand.generate();
         random_swap_key(chosen_swap_key_idx);
         next_alarm += alarm_tick;
       }
 
-      uint64_t key_idx = 0;
+      u64 key_idx = 0;
       if (config.traffic_uniform) {
         key_idx = uniform_rand.generate();
       } else {
@@ -320,17 +322,17 @@ public:
 
 private:
   void report() const {
-    std::vector<uint64_t> counters_values;
+    std::vector<u64> counters_values;
     counters_values.reserve(counters.size());
     for (const auto &kv : counters) {
       counters_values.push_back(kv.second);
     }
     std::sort(counters_values.begin(), counters_values.end(), std::greater{});
 
-    uint64_t total_keys = counters.size();
+    u64 total_keys = counters.size();
 
-    uint64_t hh = 0;
-    uint64_t hh_packets = 0;
+    u64 hh = 0;
+    u64 hh_packets = 0;
     for (size_t i = 0; i < total_keys; i++) {
       hh++;
       hh_packets += counters_values[i];
@@ -355,7 +357,7 @@ private:
     }
   }
 
-  void random_swap_key(uint64_t key_idx) {
+  void random_swap_key(u64 key_idx) {
     assert(key_idx < keys.size());
     kv_key_t new_key;
     randomize_key(new_key);
@@ -385,7 +387,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Traffic generator for the Key-Value Store NF."};
+  CLI::App app{"Traffic generator for the" NF "nf."};
 
   config_t config;
 
