@@ -12,6 +12,7 @@
 #include "nodes/route.h"
 #include "../exprs/retriever.h"
 #include "../exprs/exprs.h"
+#include "../log.h"
 
 struct kQuery_t {
   std::vector<const klee::Array *> arrays;
@@ -988,8 +989,7 @@ void BDD::deserialize(const std::string &file_path) {
   std::ifstream bdd_file(file_path);
 
   if (!bdd_file.is_open()) {
-    std::cerr << "Unable to open BDD file \"" << file_path << "\".\n";
-    exit(1);
+    PANIC("Unable to open BDD file \"%s\".", file_path.c_str());
   }
 
   enum {
@@ -1116,8 +1116,8 @@ void BDD::deserialize(const std::string &file_path) {
     }
 
     if (state == STATE_START && get_next_state(line) != state && !magic_check) {
-      std::cerr << "\"" << file_path << "\" not a BDD file. Aborting.\n";
-      exit(1);
+      PANIC("\"%s\" is not a BDD file (missing magic signature)",
+            file_path.c_str());
     }
 
     state = get_next_state(line);

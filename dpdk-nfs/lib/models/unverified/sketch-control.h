@@ -34,7 +34,7 @@ struct hash {
   uint32_t value;
 };
 
-struct bucket {
+struct sketch_bucket {
   uint32_t value;
 };
 

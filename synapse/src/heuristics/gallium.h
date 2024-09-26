@@ -5,18 +5,10 @@
 class GalliumCfg : public HeuristicCfg {
 public:
   GalliumCfg()
-      : HeuristicCfg(
-            "Gallium",
-            {
-                BUILD_METRIC(GalliumCfg, get_switch_progression_nodes, MAX),
-
-                // Some modules (e.g. SendToController) increase the
-                // number of nodes in the BDD. This means that the
-                // percentage of processed BDD nodes can decrease even
-                // though the number of processed BDD nodes is
-                // increasing, favoring other modules like Recirculate.
-                BUILD_METRIC(GalliumCfg, get_bdd_progress, MAX),
-            }) {}
+      : HeuristicCfg("Gallium",
+                     {
+                         BUILD_METRIC(GalliumCfg, get_bdd_progress, MAX),
+                     }) {}
 
   GalliumCfg &operator=(const GalliumCfg &other) {
     assert(other.name == name);

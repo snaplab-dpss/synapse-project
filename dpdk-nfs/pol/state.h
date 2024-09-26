@@ -4,13 +4,14 @@
 #include "loop.h"
 
 struct State {
-  struct Map* dyn_map;
-  struct Vector* dyn_keys;
-  struct DoubleChain* dyn_heap;
-  struct Vector* dyn_vals;
+  struct TokenBucket *tb;
   uint32_t capacity;
+  uint64_t rate;
+  uint64_t burst;
   uint32_t dev_count;
 };
 
-struct State* alloc_state(uint32_t capacity, uint32_t dev_count);
-#endif  //_STATE_H_INCLUDED_
+struct State *alloc_state(uint32_t capacity, uint64_t rate, uint64_t burst,
+                          uint32_t dev_count);
+
+#endif //_STATE_H_INCLUDED_

@@ -45,6 +45,7 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(vector_allocate),
           POPULATE_SYNTHESIZER(dchain_allocate),
           POPULATE_SYNTHESIZER(sketch_allocate),
+          POPULATE_SYNTHESIZER(tb_allocate),
       }),
       process_synthesizers({
           POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
@@ -67,6 +68,10 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(sketch_fetch),
           POPULATE_SYNTHESIZER(sketch_touch_buckets),
           POPULATE_SYNTHESIZER(sketch_expire),
+          POPULATE_SYNTHESIZER(tb_is_tracing),
+          POPULATE_SYNTHESIZER(tb_trace),
+          POPULATE_SYNTHESIZER(tb_update_and_check),
+          POPULATE_SYNTHESIZER(tb_expire),
       }) {}
 
 void BDDSynthesizer::synthesize(const BDD *bdd) {
@@ -270,9 +275,8 @@ void BDDSynthesizer::synthesize(const Node *node) {
 void BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
   if (this->init_synthesizers.find(call.function_name) ==
       this->init_synthesizers.end()) {
-    std::cerr << "No init synthesizer found for function: "
-              << call.function_name << "\n";
-    exit(1);
+    PANIC("No init synthesizer found for function: %s\n",
+          call.function_name.c_str());
   }
 
   (this->init_synthesizers[call.function_name])(coder, call);
@@ -283,9 +287,8 @@ void BDDSynthesizer::synthesize_process(coder_t &coder, const Call *call_node) {
 
   if (this->process_synthesizers.find(call.function_name) ==
       this->process_synthesizers.end()) {
-    std::cerr << "No process synthesizer found for function: "
-              << call.function_name << "\n";
-    exit(1);
+    PANIC("No process synthesizer found for function: %s\n",
+          call.function_name.c_str());
   }
 
   (this->process_synthesizers[call.function_name])(coder, call_node);
@@ -448,6 +451,10 @@ BDDSynthesizer::var_t BDDSynthesizer::build_key(klee::ref<klee::Expr> key_addr,
 
     coder.indent();
     coder << "uint8_t " << k.name << "[" << key_size << "];\n";
+  }
+
+  if (solver_toolbox.are_exprs_always_equal(k.expr, key)) {
+    return k;
   }
 
   var_t key_value;
@@ -932,6 +939,151 @@ void BDDSynthesizer::sketch_expire(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 }
 
+void BDDSynthesizer::tb_allocate(coder_t &coder, const call_t &call) {
+  klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
+  klee::ref<klee::Expr> rate = call.args.at("rate").expr;
+  klee::ref<klee::Expr> burst = call.args.at("burst").expr;
+  klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+  klee::ref<klee::Expr> tb_out = call.args.at("tb_out").out;
+
+  var_t tb_out_var = build_var("tb", tb_out);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct TokenBucket *";
+  coder_nf_state << tb_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder << "tb_allocate(";
+  coder << transpiler.transpile(capacity) << ", ";
+  coder << transpiler.transpile(rate) << "ull, ";
+  coder << transpiler.transpile(burst) << "ull, ";
+  coder << transpiler.transpile(key_size) << ", ";
+  coder << "&" << tb_out_var.name;
+  coder << ")";
+
+  stack_add(tb_out_var);
+}
+
+void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
+
+  klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
+  klee::ref<klee::Expr> key = call.args.at("key").in;
+  klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
+  klee::ref<klee::Expr> is_tracing = call.ret;
+
+  bool key_in_stack;
+  var_t k = build_key(key_addr, key, coder, key_in_stack);
+
+  var_t it = build_var("is_tracing", is_tracing);
+  var_t index = build_var("index", index_out);
+
+  coder.indent();
+  coder << "int " << index.name << ";\n";
+
+  coder.indent();
+  coder << "int " << it.name << " = ";
+  coder << "tb_is_tracing(";
+  coder << stack_get(tb_addr).name << ", ";
+  coder << k.name << ", ";
+  coder << "&" << index.name;
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(it);
+  stack_add(index);
+
+  if (!key_in_stack) {
+    stack_add(k);
+  } else {
+    stack_replace(k, key);
+  }
+}
+
+void BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
+
+  klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
+  klee::ref<klee::Expr> key = call.args.at("key").in;
+  klee::ref<klee::Expr> pkt_len = call.args.at("pkt_len").expr;
+  klee::ref<klee::Expr> time = call.args.at("time").expr;
+  klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
+  klee::ref<klee::Expr> successfuly_tracing = call.ret;
+
+  bool key_in_stack;
+  var_t k = build_key(key_addr, key, coder, key_in_stack);
+
+  var_t st = build_var("successfuly_tracing", successfuly_tracing);
+  var_t i = build_var("index", index_out);
+
+  coder.indent();
+  coder << "int " << i.name << ";\n";
+
+  coder.indent();
+  coder << "int " << st.name << " = ";
+  coder << "tb_trace(";
+  coder << stack_get(tb_addr).name << ", ";
+  coder << k.name << ", ";
+  coder << transpiler.transpile(pkt_len) << ", ";
+  coder << transpiler.transpile(time) << ", ";
+  coder << "&" << i.name;
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(st);
+  stack_add(i);
+
+  if (!key_in_stack) {
+    stack_add(k);
+  } else {
+    stack_replace(k, key);
+  }
+}
+
+void BDDSynthesizer::tb_update_and_check(coder_t &coder,
+                                         const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> index = call.args.at("index").expr;
+  klee::ref<klee::Expr> pkt_len = call.args.at("pkt_len").expr;
+  klee::ref<klee::Expr> time = call.args.at("time").expr;
+  klee::ref<klee::Expr> pass = call.ret;
+
+  var_t p = build_var("pass", pass);
+
+  coder.indent();
+  coder << "int " << p.name << " = ";
+  coder << "tb_update_and_check(";
+  coder << stack_get(tb_addr).name << ", ";
+  coder << transpiler.transpile(index) << ", ";
+  coder << transpiler.transpile(pkt_len) << ", ";
+  coder << transpiler.transpile(time);
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(p);
+}
+
+void BDDSynthesizer::tb_expire(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> time = call.args.at("time").expr;
+
+  coder.indent();
+  coder << "tb_expire(";
+  coder << stack_get(tb_addr).name << ", ";
+  coder << transpiler.transpile(time);
+  coder << ")";
+  coder << ";\n";
+}
+
 void BDDSynthesizer::stack_dbg() const {
   std::cerr << "================= Vars ================= \n";
   for (const stack_frame_t &frame : stack) {
@@ -963,9 +1115,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(const std::string &name) const {
   }
 
   stack_dbg();
-  std::cerr << "Variable not found in stack: " << name << "\n";
-
-  exit(1);
+  PANIC("Variable not found in stack: %s\n", name.c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
@@ -975,9 +1125,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
   }
 
   stack_dbg();
-  std::cerr << "Variable not found in stack: " << expr_to_string(expr) << "\n";
-
-  exit(1);
+  PANIC("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
 }
 
 code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset,
@@ -1051,6 +1199,11 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
 }
 
 void BDDSynthesizer::stack_add(const var_t &var) {
+  if (var.expr.isNull()) {
+    PANIC("Trying to add a variable with a null expression: %s\n",
+          var.name.c_str());
+  }
+
   stack_frame_t &frame = stack.back();
   frame.vars.push_back(var);
 }

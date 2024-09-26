@@ -33,7 +33,7 @@ NF_LIB_INCLUDE_DIR := $(DPDK_NFS_DIR)
 APP_RELEASE := $(OUT_DIR)/$(APP)
 APP_DEBUG := $(APP_RELEASE)-debug
 
-all: $(APP_RELEASE) $(APP_DEBUG)
+all: $(APP_RELEASE)
 
 $(APP_RELEASE): $(NF) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)

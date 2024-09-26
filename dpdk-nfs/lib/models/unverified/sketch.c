@@ -65,13 +65,13 @@ unsigned hash_hash(void *obj) {
 }
 
 struct str_field_descr bucket_descrs[] = {
-    {offsetof(struct bucket, value), sizeof(uint32_t), 0, "value"},
+    {offsetof(struct sketch_bucket, value), sizeof(uint32_t), 0, "value"},
 };
 struct nested_field_descr bucket_nests[] = {};
 
 bool bucket_eq(void *a, void *b) {
-  struct bucket *id1 = (struct bucket *)a;
-  struct bucket *id2 = (struct bucket *)b;
+  struct sketch_bucket *id1 = (struct sketch_bucket *)a;
+  struct sketch_bucket *id2 = (struct sketch_bucket *)b;
 
   return (id1->value == id2->value);
 }
@@ -79,7 +79,7 @@ bool bucket_eq(void *a, void *b) {
 void bucket_allocate(void *obj) { (uintptr_t) obj; }
 
 unsigned bucket_hash(void *obj) {
-  struct bucket *id = (struct bucket *)obj;
+  struct sketch_bucket *id = (struct sketch_bucket *)obj;
 
   unsigned hash = 0;
   hash = __builtin_ia32_crc32si(hash, id->value);

@@ -27,8 +27,8 @@ run() {
 		make symbex 2>/dev/null
 	popd > /dev/null
 	
-	$CALL_PATHS_TO_BDD --out $BDDS_DIR/$nf.bdd $NFS_DIR/$nf/klee-last/*.call_path #2>/dev/null
-	$BDD_VISUALIZER --in $BDDS_DIR/$nf.bdd --out $BDDS_DIR/$nf.dot #2>/dev/null
+	$CALL_PATHS_TO_BDD --out $BDDS_DIR/$nf.bdd $NFS_DIR/$nf/klee-last/*.call_path 2>/dev/null
+	$BDD_VISUALIZER --in $BDDS_DIR/$nf.bdd --out $BDDS_DIR/$nf.dot 2>/dev/null
 }
 
 run "nop"

@@ -36,10 +36,8 @@ static void assert_markers_in_template(
   for (const auto &kv : coders) {
     const marker_t &marker = MARKER_AFFIX + kv.first + MARKER_SUFFIX;
     if (template_str.find(marker) == std::string::npos) {
-      Log::err() << "Marker \"" << marker
-                 << "\" not found in template: " << template_file.filename()
-                 << "\n";
-      exit(1);
+      PANIC("Marker \"%s\" not found in template: %s\n", marker.c_str(),
+            template_file.c_str());
     }
   }
 }
@@ -50,8 +48,7 @@ Synthesizer::Synthesizer(std::string _template_fname,
     : template_file(get_template_path(_template_fname)),
       coders(get_builders(_markers)), out(_out) {
   if (!std::filesystem::exists(template_file)) {
-    Log::err() << "Template file not found: " << template_file << "\n";
-    exit(1);
+    PANIC("Template file not found: %s\n", template_file.c_str());
   }
 
   assert_markers_in_template(template_file, coders);

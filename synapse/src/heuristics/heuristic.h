@@ -135,8 +135,7 @@ private:
 
   typename std::set<impl_t, HCfg>::iterator get_next_it() {
     if (execution_plans.size() == 0) {
-      Log::err() << "No more execution plans to pick!\n";
-      exit(1);
+      PANIC("No more execution plans to pick!\n");
     }
 
     update_best_it();

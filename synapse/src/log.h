@@ -9,6 +9,14 @@
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');        \
   }
 
+#define PANIC(fmt, ...)                                                        \
+  {                                                                            \
+    fprintf(stderr, "Panic!\n" fmt "\n", ##__VA_ARGS__);                       \
+    fflush(stderr);                                                            \
+    assert(false && "Panic");                                                  \
+    exit(1);                                                                   \
+  }
+
 namespace Colors {
 typedef std::string Color;
 

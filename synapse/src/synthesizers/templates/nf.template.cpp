@@ -1,13 +1,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <lib/verified/map.h>
+#include <lib/verified/vector.h>
+#include <lib/verified/double-chain.h>
+
 #include <lib/unverified/expirator.h>
 #include <lib/unverified/hash.h>
 #include <lib/unverified/sketch.h>
 #include <lib/verified/cht.h>
-#include <lib/verified/double-chain.h>
-#include <lib/verified/map.h>
-#include <lib/verified/vector.h>
+#include <lib/unverified/token-bucket.h>
 
 #include <lib/verified/expirator.h>
 #include <lib/verified/packet-io.h>
@@ -46,8 +48,8 @@ extern "C" {
 #define BATCH_SIZE 32
 #define MAX_NUM_DEVICES 32 // this is quite arbitrary...
 
-#define DROP ((uint16_t)-1)
-#define FLOOD ((uint16_t)-2)
+#define DROP ((uint16_t) - 1)
+#define FLOOD ((uint16_t) - 2)
 
 static const uint16_t RX_QUEUE_SIZE = 1024;
 static const uint16_t TX_QUEUE_SIZE = 1024;

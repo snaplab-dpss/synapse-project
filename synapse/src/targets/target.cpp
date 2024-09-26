@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <sstream>
 
 #include "target.h"
 #include "module.h"
@@ -37,4 +38,10 @@ std::ostream &operator<<(std::ostream &os, TargetType target) {
     break;
   }
   return os;
+}
+
+std::string to_string(TargetType target) {
+  std::stringstream ss;
+  ss << target;
+  return ss.str();
 }

@@ -15,9 +15,6 @@ TESTS:=$(wildcard $(P4_PTF_TESTS_DIR)/*.py)
 CONTROLLER:=$(CONTROLLER_SOURCE_DIR)/controller.py
 TOPOLOGY:=$(CONTROLLER_SOURCE_DIR)/topology.json
 
-CACHE_CAPACITY_EXPONENT_BASE_2:=16
-EXPIRATION_TIME_SEC:=1
-
 install:
 	$(P4_BUILD) $(APP).p4
 
@@ -26,17 +23,11 @@ install2:
 
 debug:
 	rm -rf $(DEBUG_BUILD_DIR)
-	$(P4C) $(P4_DEBUG_FLAGS) -o $(DEBUG_BUILD_DIR) \
-		-DCACHE_CAPACITY_EXPONENT_BASE_2=$(CACHE_CAPACITY_EXPONENT_BASE_2) \
-		-DEXPIRATION_TIME_SEC=$(EXPIRATION_TIME_SEC) \
-		$(APP).p4
+	$(P4C) $(P4_DEBUG_FLAGS) -o $(DEBUG_BUILD_DIR) $(APP).p4
 
 debug2:
 	rm -rf $(DEBUG_BUILD_DIR)
-	$(P4C) $(P4_DEBUG_FLAGS) --target tofino2 --arch t2na -o $(DEBUG_BUILD_DIR) \
-		-DCACHE_CAPACITY_EXPONENT_BASE_2=$(CACHE_CAPACITY_EXPONENT_BASE_2) \
-		-DEXPIRATION_TIME_SEC=$(EXPIRATION_TIME_SEC) \
-		$(APP).p4
+	$(P4C) $(P4_DEBUG_FLAGS) --target tofino2 --arch t2na -o $(DEBUG_BUILD_DIR) $(APP).p4
 
 p4i:
 	@$(P4I) --no-browser -w . --loglevel info

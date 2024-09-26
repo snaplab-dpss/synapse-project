@@ -3,12 +3,11 @@
 #include "../../exprs/exprs.h"
 #include "../../exprs/solver.h"
 #include "../../exprs/simplifier.h"
+#include "../../log.h"
 
 #define TODO(expr)                                                             \
   synthesizer->stack_dbg();                                                    \
-  std::cerr << "\nTODO: " << expr_to_string(expr) << "\n\n";                   \
-  assert(false && "TODO");                                                     \
-  exit(1);
+  PANIC("TODO: %s\n", expr_to_string(expr).c_str());
 
 BDDTranspiler::BDDTranspiler(BDDSynthesizer *_synthesizer)
     : synthesizer(_synthesizer) {}

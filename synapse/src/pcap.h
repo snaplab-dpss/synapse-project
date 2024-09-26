@@ -21,6 +21,7 @@
 #include <optional>
 
 #include "types.h"
+#include "log.h"
 
 struct flow_t {
   in_addr_t src_ip;
@@ -266,8 +267,7 @@ inline long get_file_size(const char *fname) {
 
   // checking if the file exist or not
   if (fp == NULL) {
-    fprintf(stderr, "File %s not found\n", fname);
-    exit(1);
+    PANIC("File %s not found", fname);
   }
 
   fseek(fp, 0L, SEEK_END);
@@ -300,8 +300,7 @@ inline uintmax_t parse_int(const char *str, const char *name, int base,
 
   // There's also a weird failure case with overflows, but let's not care
   if (temp == str || *temp != next) {
-    fprintf(stderr, "Error while parsing '%s': %s\n", name, str);
-    exit(1);
+    PANIC("Error while parsing '%s': %s\n", name, str);
   }
 
   return result;
@@ -381,9 +380,7 @@ public:
     pd = pcap_open_offline(input_fname.c_str(), errbuf);
 
     if (pd == nullptr) {
-      fprintf(stderr, "Unable to open file %s: %s\n", input_fname.c_str(),
-              errbuf);
-      exit(1);
+      PANIC("Unable to open file %s: %s\n", input_fname.c_str(), errbuf);
     }
 
     int link_hdr_type = pcap_datalink(pd);
@@ -397,8 +394,7 @@ public:
       assume_ip = true;
       break;
     default: {
-      fprintf(stderr, "Unknown header type (%d)", link_hdr_type);
-      exit(1);
+      PANIC("Unknown header type (%d)\n", link_hdr_type);
     }
     }
 
@@ -554,8 +550,7 @@ public:
     pdumper = pcap_dump_open(pd, _output_fname.c_str());
 
     if (pdumper == nullptr) {
-      fprintf(stderr, "Unable to write to file %s\n", _output_fname.c_str());
-      exit(1);
+      PANIC("Unable to open file %s for writing\n", _output_fname.c_str());
     }
   }
 

@@ -34,7 +34,7 @@ struct hash {
   uint32_t value;
 };
 
-struct bucket {
+struct sketch_bucket {
   uint32_t value;
 };
 
@@ -123,7 +123,7 @@ int sketch_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
   }
 
   (*sketch_out)->buckets = NULL;
-  if (vector_allocate(sizeof(struct bucket), total_sketch_capacity,
+  if (vector_allocate(sizeof(struct sketch_bucket), total_sketch_capacity,
                       &((*sketch_out)->buckets)) == 0) {
     return 0;
   }

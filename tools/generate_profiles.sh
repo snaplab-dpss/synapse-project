@@ -21,7 +21,12 @@ log_and_run() {
 
 gen_and_build_profiler() {
     nf=$1
-    log_and_run bdd-synthesizer --target profiler --in $BDDS_DIR/$nf.bdd --out $SYNTHESIZED_DIR/$nf-profiler.cpp
+    
+    log_and_run bdd-synthesizer \
+        --target profiler \
+        --in $BDDS_DIR/$nf.bdd \
+        --out $SYNTHESIZED_DIR/$nf-profiler.cpp
+
     log_and_run NF=$nf-profiler.cpp make -f $TOOLS_DIR/Makefile.dpdk
 }
 
@@ -45,7 +50,10 @@ kvs() {
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap
     
-    log_and_run bdd-visualizer --in $BDDS_DIR/kvs.bdd --report $SYNTHESIZED_DIR/$report.json --out $SYNTHESIZED_DIR/$report.dot
+    log_and_run bdd-visualizer \
+        --in $BDDS_DIR/kvs.bdd \
+        --report $SYNTHESIZED_DIR/$report.json \
+        --out $SYNTHESIZED_DIR/$report.dot
 }
 
 fw() {
@@ -70,7 +78,10 @@ fw() {
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
     
-    log_and_run bdd-visualizer --in $BDDS_DIR/fw.bdd --report $SYNTHESIZED_DIR/$report.json --out $SYNTHESIZED_DIR/$report.dot
+    log_and_run bdd-visualizer \
+        --in $BDDS_DIR/fw.bdd \
+        --report $SYNTHESIZED_DIR/$report.json \
+        --out $SYNTHESIZED_DIR/$report.dot
 }
 
 nat() {
@@ -95,7 +106,10 @@ nat() {
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
     
-    log_and_run bdd-visualizer --in $BDDS_DIR/nat.bdd --report $SYNTHESIZED_DIR/$report.json --out $SYNTHESIZED_DIR/$report.dot
+    log_and_run bdd-visualizer \
+        --in $BDDS_DIR/nat.bdd \
+        --report $SYNTHESIZED_DIR/$report.json \
+        --out $SYNTHESIZED_DIR/$report.dot
 }
 
 gen_and_build_profiler fw
@@ -148,3 +162,5 @@ kvs 10000 100000000 unif 0
 kvs 10000 100000000 zipf 0.9
 kvs 10000 100000000 zipf 0.99
 kvs 10000 100000000 zipf 1.26
+
+gen_and_build_profiler pol

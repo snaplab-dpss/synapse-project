@@ -17,7 +17,7 @@ function test_policer {
   RATE=$1
   BURST=$2
 
-  sudo ./build/app/nf \
+  sudo ./build/nf \
         --vdev "net_tap0,iface=test_wan" \
         --vdev "net_tap1,iface=test_lan" \
         --no-huge \
@@ -27,7 +27,7 @@ function test_policer {
         --rate $RATE \
         --burst $BURST \
         --capacity 65536 \
-        >/dev/null 2>/dev/null &
+        >/dev/null 2>&1 &
   NF_PID=$!
 
   while [ ! -f /sys/class/net/test_lan/tun_flags -o \

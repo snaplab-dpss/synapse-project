@@ -13,6 +13,7 @@ enum class TargetType {
 };
 
 std::ostream &operator<<(std::ostream &os, TargetType target);
+std::string to_string(TargetType target);
 
 struct Target {
   const TargetType type;

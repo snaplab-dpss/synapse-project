@@ -42,18 +42,22 @@ const bit<16> TYPE_IPV4        = 0x800;
 const bit<8>  IP_PROTOCOLS_TCP = 6;
 const bit<8>  IP_PROTOCOLS_UDP = 17;
 
-// Pass the value of CACHE_CAPACITY_EXPONENT_BASE_2 during compilation. E.g.:
-// $ p4_build.sh cached_table_map.p4 -DCACHE_CAPACITY_EXPONENT_BASE_2=12
-#define CACHE_CAPACITY (1 << CACHE_CAPACITY_EXPONENT_BASE_2)
+#define CACHE_CAPACITY_EXPONENT_BASE_2 32
+#define CACHE_CAPACITY 65535
 #define ONE_SECOND 15258 // 1 second in units of 2**16 nanoseconds
+
+#define BURST_EXPONENT_BASE_2 14
+#define RATE_EXPONENT_BASE_2 20
+
+#define BURST (1<<BURST_EXPONENT_BASE_2)
+#define RATE (1<<RATE_EXPONENT_BASE_2)
+#define BURST_TOKENS (1<<(RATE_EXPONENT_BASE_2-BURST_EXPONENT_BASE_2))
+#define EXPIRATION_TIME ONE_SECOND
 
 typedef bit<CACHE_CAPACITY_EXPONENT_BASE_2> hash_t;
 typedef bit<32> time_t;
 typedef bit<8> match_counter_t;
-
-// Pass the value of EXPIRATION_TIME_SEC during compilation. E.g.:
-// $ p4_build.sh cached_table_map.p4 -DEXPIRATION_TIME_SEC=1
-const time_t EXPIRATION_TIME = EXPIRATION_TIME_SEC * ONE_SECOND;
+typedef bit<64> tokens_t;
 
 header cpu_h {
 	bit<16> code_path;
@@ -175,6 +179,29 @@ parser IngressParser(
 	}
 }
 
+control Hashing(
+	in bit<32> src_addr,
+	in bit<32> dst_addr,
+	in bit<16> src_port,
+	in bit<16> dst_port,
+	out hash_t hash
+) {
+	Hash<hash_t>(HashAlgorithm_t.CRC32) hash_calculator;
+
+	action calc_hash() {
+		hash = hash_calculator.get({
+			src_addr,
+			dst_addr,
+			src_port,
+			dst_port
+		});
+	}
+	
+	apply {
+		calc_hash();
+	}
+}
+
 control Expirator(
 	in time_t now,
 	in hash_t hash,
@@ -203,198 +230,6 @@ control Expirator(
 	}
 }
 
-control Cache(
-	in time_t now,
-	in bool write,
-	in bit<32> src_addr,
-	in bit<32> dst_addr,
-	in bit<16> src_port,
-	in bit<16> dst_port,
-	in hash_t hash,
-	inout bit<16> port,
-	out bool hit
-) {
-	match_counter_t key_fields_match = 0;
-	bool valid;
-
-	Expirator() expirator;
-
-	Register<bit<32>, _>(CACHE_CAPACITY, 0) keys_src_addr;
-	Register<bit<32>, _>(CACHE_CAPACITY, 0) keys_dst_addr;
-	Register<bit<16>, _>(CACHE_CAPACITY, 0) keys_src_port;
-	Register<bit<16>, _>(CACHE_CAPACITY, 0) keys_dst_port;
-
-	Register<bit<16>, _>(CACHE_CAPACITY, 0) values;
-
-	RegisterAction<bit<32>, hash_t, match_counter_t>(keys_src_addr) read_key_src_addr_action = {
-		void apply(inout bit<32> curr_key, out match_counter_t key_match) {
-			if (curr_key == src_addr) {
-				key_match = 1;
-			} else {
-				key_match = 0;
-			}
-		}
-	};
-
-	RegisterAction<bit<32>, hash_t, match_counter_t>(keys_dst_addr) read_key_dst_addr_action = {
-		void apply(inout bit<32> curr_key, out match_counter_t key_match) {
-			if (curr_key == dst_addr) {
-				key_match = 1;
-			} else {
-				key_match = 0;
-			}
-		}
-	};
-
-	RegisterAction<bit<16>, hash_t, match_counter_t>(keys_src_port) read_key_src_port_action = {
-		void apply(inout bit<16> curr_key, out match_counter_t key_match) {
-			if (curr_key == src_port) {
-				key_match = 1;
-			} else {
-				key_match = 0;
-			}
-		}
-	};
-
-	RegisterAction<bit<16>, hash_t, match_counter_t>(keys_dst_port) read_key_dst_port_action = {
-		void apply(inout bit<16> curr_key, out match_counter_t key_match) {
-			if (curr_key == dst_port) {
-				key_match = 1;
-			} else {
-				key_match = 0;
-			}
-		}
-	};
-
-	RegisterAction<bit<16>, hash_t, bit<16>>(values) read_value_action = {
-		void apply(inout bit<16> curr_value, out bit<16> out_value) {
-			out_value = curr_value;
-		}
-	};
-
-	action read_key_src_addr() {
-		key_fields_match = key_fields_match + read_key_src_addr_action.execute(hash);
-	}
-
-	action read_key_dst_addr() {
-		key_fields_match = key_fields_match + read_key_dst_addr_action.execute(hash);
-	}
-
-	action read_key_src_port() {
-		key_fields_match = key_fields_match + read_key_src_port_action.execute(hash);
-	}
-
-	action read_key_dst_port() {
-		key_fields_match = key_fields_match + read_key_dst_port_action.execute(hash);
-	}
-
-	action read_value() {
-		port = read_value_action.execute(hash);
-	}
-
-	RegisterAction<bit<32>, hash_t, void>(keys_src_addr) write_key_src_addr_action = {
-		void apply(inout bit<32> curr_key) {
-			curr_key = src_addr;
-		}
-	};
-
-	RegisterAction<bit<32>, hash_t, void>(keys_dst_addr) write_key_dst_addr_action = {
-		void apply(inout bit<32> curr_key) {
-			curr_key = dst_addr;
-		}
-	};
-
-	RegisterAction<bit<16>, hash_t, void>(keys_src_port) write_key_src_port_action = {
-		void apply(inout bit<16> curr_key) {
-			curr_key = src_port;
-		}
-	};
-
-	RegisterAction<bit<16>, hash_t, void>(keys_dst_port) write_key_dst_port_action = {
-		void apply(inout bit<16> curr_key) {
-			curr_key = dst_port;
-		}
-	};
-
-	RegisterAction<bit<16>, hash_t, void>(values) write_value_action = {
-		void apply(inout bit<16> curr_value) {
-			curr_value = port;
-		}
-	};
-
-	action write_key_src_addr() {
-		write_key_src_addr_action.execute(hash);
-	}
-
-	action write_key_dst_addr() {
-		write_key_dst_addr_action.execute(hash);
-	}
-
-	action write_key_src_port() {
-		write_key_src_port_action.execute(hash);
-	}
-
-	action write_key_dst_port() {
-		write_key_dst_port_action.execute(hash);
-	}
-
-	action write_value() {
-		write_value_action.execute(hash);
-	}
-
-	apply {
-		hit = false;
-		expirator.apply(now, hash, valid);
-
-		if (!valid && write) {
-			write_key_src_addr();
-			write_key_dst_addr();
-			write_key_src_port();
-			write_key_dst_port();
-			write_value();
-			hit = true;
-		} else if (valid) {
-			read_key_src_addr();
-			read_key_dst_addr();
-			read_key_src_port();
-			read_key_dst_port();
-			read_value();
-
-			if (key_fields_match == 4) {
-				hit = true;
-			}
-		}
-	}
-}
-
-control Hashing(
-	in bit<32> src_addr,
-	in bit<32> dst_addr,
-	in bit<16> src_port,
-	in bit<16> dst_port,
-	out hash_t hash
-) {
-	Hash<hash_t>(HashAlgorithm_t.CRC32) hash_calculator;
-
-	action calc_hash() {
-		hash = hash_calculator.get({
-			src_addr,
-			dst_addr,
-			src_port,
-			dst_port
-		});
-	}
-	
-	apply {
-		calc_hash();
-	}
-}
-
-#define BURST_SIZE 10000
-#define RATE 1000000
-
-typedef bit<32> tokens_t;
-
 control Ingress(
 	/* User */
 	inout my_ingress_headers_t  hdr,
@@ -404,40 +239,49 @@ control Ingress(
 	in    ingress_intrinsic_metadata_t               ig_intr_md,
 	in    ingress_intrinsic_metadata_from_parser_t   ig_prsr_md,
 	inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
-	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
-{
+	inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md
+) {
 	Hashing() hashing;
 
 	hash_t hash;
 	time_t now;
 
-	time_t delta_time;
+	time_t elapsed;
 	tokens_t delta_tokens;
+	tokens_t current_tokens;
 
 	Register<time_t, _>(CACHE_CAPACITY, 0) clocks;
 	Register<tokens_t, _>(CACHE_CAPACITY, 0) tokens;
 
 	RegisterAction<time_t, hash_t, time_t>(clocks) update_clock_action = {
-		void apply(inout time_t last_time, out time_t elapsed) {
-			elapsed = now - last_time;
+		void apply(inout time_t last_time, out time_t out_time) {
+			out_time = now - last_time;
 			last_time = now;
 		}
 	};
 
 	action update_clock() {
-		delta_time = update_clock_action.execute(hash);
-	}
-
-	action calculate_delta_tokens() {
-		delta_tokens = delta_time << 13;
+		elapsed = update_clock_action.execute(hash);
 	}
 
 	RegisterAction<tokens_t, hash_t, tokens_t>(tokens) update_tokens_action = {
-		void apply(inout tokens_t curr_tokens, out tokens_t elapsed) {
-			elapsed = now - last_time;
-			last_time = now;
+		void apply(inout tokens_t last_tokens, out tokens_t out_tokens) {
+			if (elapsed < BURST_TOKENS) {
+				last_tokens = last_tokens + (elapsed << RATE_EXPONENT_BASE_2);
+			} else {
+				last_tokens = BURST_TOKENS;
+			}
+			out_tokens = last_tokens;
 		}
 	};
+
+	action calculate_delta_tokens() {
+		delta_tokens = elapsed << RATE_EXPONENT_BASE_2;
+	}
+
+	action update_tokens() {
+		current_tokens = update_tokens_action.execute(hash);
+	}
 
 	apply {
 		now = ig_intr_md.ingress_mac_tstamp[47:16];
@@ -451,7 +295,7 @@ control Ingress(
 		);
 
 		update_clock();
-		calculate_delta_tokens();
+		update_tokens();
 
 		ig_tm_md.bypass_egress = 1;
 	}

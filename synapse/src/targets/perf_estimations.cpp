@@ -198,10 +198,10 @@ spec_impl_t Context::get_best_speculation(const EP *ep, const Node *node,
   }
 
   if (!best.has_value()) {
-    Log::err() << "No module to speculative execute\n";
-    Log::err() << "Target: " << current_target << "\n";
-    Log::err() << "Node:   " << node->dump(true) << "\n";
-    exit(1);
+    PANIC("No module to speculative execute\n"
+          "Target: %s\n"
+          "Node:   %s\n",
+          to_string(current_target).c_str(), node->dump(true).c_str());
   }
 
   return *best;

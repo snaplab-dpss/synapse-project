@@ -31,14 +31,14 @@ static std::vector<std::string> ignored_functions{
 
 static std::vector<std::string> init_functions{
     "map_allocate",    "vector_allocate", "dchain_allocate",
-    "sketch_allocate", "cht_fill_cht",
+    "sketch_allocate", "cht_fill_cht",    "tb_allocate",
 };
 
 static std::vector<std::string> symbols_in_skippable_conditions{
     "received_a_packet",           "loop_termination",
     "map_allocation_succeeded",    "vector_alloc_success",
     "is_dchain_allocated",         "cht_fill_cht_successful",
-    "sketch_allocation_succeeded",
+    "sketch_allocation_succeeded", "tb_allocation_succeeded",
 };
 
 static std::vector<std::string> rounting_functions{
@@ -114,6 +114,22 @@ static std::unordered_map<std::string, std::unordered_set<std::string>>
         {
             "hash_obj",
             {"hash"},
+        },
+        {
+            "tb_is_tracing",
+            {"is_tracing"},
+        },
+        {
+            "tb_trace",
+            {"index_out"},
+        },
+        {
+            "tb_update_and_check",
+            {"pass"},
+        },
+        {
+            "tb_expire",
+            {"number_of_freed_flows"},
         },
 };
 
@@ -271,7 +287,6 @@ get_successful_call(const std::vector<call_path_t *> &call_paths) {
   }
 
   // No function with successful return.
-  std::cerr << "No function with successful return!\n";
   return call_paths[0]->calls[0];
 }
 

@@ -569,8 +569,107 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-/*@{NF_STATE}@*/
+struct TokenBucket *tb;
+uint64_t path_profiler_counter[24];
 
-/*@{NF_INIT}@*/
 
-/*@{NF_PROCESS}@*/
+bool nf_init() {
+  if (!tb_allocate(65536, 1073741824ull, 131072ull, 4, &tb)) {
+    return false;
+  }
+  memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
+  path_profiler_counter_ptr = path_profiler_counter;
+  path_profiler_counter_sz = 24;
+  return true;
+}
+
+
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
+  // Node 0
+  inc_path_counter(0);
+  uint8_t* hdr;
+  packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
+  // Node 1
+  inc_path_counter(1);
+  if (((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))) {
+    // Node 2
+    inc_path_counter(2);
+    uint8_t* hdr2;
+    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
+    // Node 3
+    inc_path_counter(3);
+    tb_expire(tb, now);
+    // Node 4
+    inc_path_counter(4);
+    if ((0) != (device & 65535)) {
+      // Node 5
+      inc_path_counter(5);
+      packet_return_chunk(buffer, hdr2);
+      // Node 6
+      inc_path_counter(6);
+      packet_return_chunk(buffer, hdr);
+      // Node 7
+      inc_path_counter(7);
+      return 0;
+    } else {
+      // Node 8
+      inc_path_counter(8);
+      uint8_t key[4];
+      int index;
+      int is_tracing = tb_is_tracing(tb, key, &index);
+      // Node 9
+      inc_path_counter(9);
+      if ((0) == (is_tracing)) {
+        // Node 10
+        inc_path_counter(10);
+        int index2;
+        int successfuly_tracing = tb_trace(tb, key, (uint32_t)((uint16_t)(packet_length & 65535)), now, &index2);
+        // Node 11
+        inc_path_counter(11);
+        packet_return_chunk(buffer, hdr2);
+        // Node 12
+        inc_path_counter(12);
+        packet_return_chunk(buffer, hdr);
+        // Node 13
+        inc_path_counter(13);
+        if ((0) == (successfuly_tracing)) {
+          // Node 14
+          inc_path_counter(14);
+          return DROP;
+        } else {
+          // Node 15
+          inc_path_counter(15);
+          return 1;
+        } // (0) == (successfuly_tracing)
+      } else {
+        // Node 16
+        inc_path_counter(16);
+        int pass = tb_update_and_check(tb, index, (uint32_t)((uint16_t)(packet_length & 65535)), now);
+        // Node 17
+        inc_path_counter(17);
+        packet_return_chunk(buffer, hdr2);
+        // Node 18
+        inc_path_counter(18);
+        packet_return_chunk(buffer, hdr);
+        // Node 19
+        inc_path_counter(19);
+        if ((0) == (pass)) {
+          // Node 20
+          inc_path_counter(20);
+          return DROP;
+        } else {
+          // Node 21
+          inc_path_counter(21);
+          return 1;
+        } // (0) == (pass)
+      } // (0) == (is_tracing)
+    } // (0) != (device & 65535)
+  } else {
+    // Node 22
+    inc_path_counter(22);
+    packet_return_chunk(buffer, hdr);
+    // Node 23
+    inc_path_counter(23);
+    return DROP;
+  } // ((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))
+}
