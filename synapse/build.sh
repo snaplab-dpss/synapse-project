@@ -6,8 +6,6 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 
 build() {
-  touch $PROJECT_DIR/CMakeLists.txt
-
   [ -d "$BUILD_DIR" ] || mkdir -p "$BUILD_DIR"
   cd "$BUILD_DIR"
 
@@ -19,9 +17,7 @@ build() {
   make -kj $(nproc) || exit 1
 }
 
-build_profile() {
-  touch $PROJECT_DIR/CMakeLists.txt
-  
+build_profile() { 
   [ -d "$BUILD_DIR" ] || mkdir -p "$BUILD_DIR"
   cd "$BUILD_DIR"
 

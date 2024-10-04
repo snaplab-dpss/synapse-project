@@ -60,7 +60,7 @@ public:
   DECLARE_VISIT(tofino::ParserExtraction)
   DECLARE_VISIT(tofino::ParserReject)
   DECLARE_VISIT(tofino::ModifyHeader)
-  DECLARE_VISIT(tofino::SimpleTableLookup)
+  DECLARE_VISIT(tofino::TableLookup)
   DECLARE_VISIT(tofino::VectorRegisterLookup)
   DECLARE_VISIT(tofino::VectorRegisterUpdate)
   DECLARE_VISIT(tofino::FCFSCachedTableRead)

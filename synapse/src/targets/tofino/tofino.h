@@ -16,13 +16,14 @@
 #include "parser_condition.h"
 #include "parser_reject.h"
 #include "modify_header.h"
-#include "simple_table_lookup.h"
+#include "table_lookup.h"
 #include "vector_register_lookup.h"
 #include "vector_register_update.h"
 #include "fcfs_cached_table_read.h"
 #include "fcfs_cached_table_read_or_write.h"
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
+#include "meter_update.h"
 
 #include "tofino_context.h"
 #include "../../profiler.h"
@@ -47,13 +48,14 @@ struct TofinoTarget : public Target {
                    new ParserConditionGenerator(),
                    new ParserRejectGenerator(),
                    new ModifyHeaderGenerator(),
-                   new SimpleTableLookupGenerator(),
+                   new TableLookupGenerator(),
                    new VectorRegisterLookupGenerator(),
                    new VectorRegisterUpdateGenerator(),
                    new FCFSCachedTableReadGenerator(),
                    new FCFSCachedTableReadOrWriteGenerator(),
                    new FCFSCachedTableWriteGenerator(),
                    new FCFSCachedTableDeleteGenerator(),
+                   new MeterUpdateGenerator(),
                },
                new TofinoContext(version, profiler)) {}
 };

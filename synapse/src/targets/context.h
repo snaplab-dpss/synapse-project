@@ -12,19 +12,22 @@
 class EP;
 
 enum class PlacementDecision {
-  Tofino_SimpleTable,
+  Tofino_Table,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
+  Tofino_Meter,
   TofinoCPU_Map,
   TofinoCPU_Vector,
   TofinoCPU_Dchain,
   TofinoCPU_Cht,
   TofinoCPU_Sketch,
+  TofinoCPU_TB,
   x86_Map,
   x86_Vector,
   x86_Dchain,
   x86_Cht,
   x86_Sketch,
+  x86_TB,
 };
 
 std::ostream &operator<<(std::ostream &os, PlacementDecision decision);
@@ -56,6 +59,7 @@ private:
   std::unordered_map<addr_t, dchain_config_t> dchain_configs;
   std::unordered_map<addr_t, sketch_config_t> sketch_configs;
   std::unordered_map<addr_t, cht_config_t> cht_configs;
+  std::unordered_map<addr_t, tb_config_t> tb_configs;
   std::vector<map_coalescing_objs_t> coalescing_candidates;
   std::optional<expiration_data_t> expiration_data;
   std::unordered_map<addr_t, PlacementDecision> placement_decisions;
@@ -76,11 +80,14 @@ public:
   Context &operator=(const Context &other);
 
   const Profiler *get_profiler() const;
+
   const map_config_t &get_map_config(addr_t addr) const;
   const vector_config_t &get_vector_config(addr_t addr) const;
   const dchain_config_t &get_dchain_config(addr_t addr) const;
   const sketch_config_t &get_sketch_config(addr_t addr) const;
   const cht_config_t &get_cht_config(addr_t addr) const;
+  const tb_config_t &get_tb_config(addr_t addr) const;
+
   std::optional<map_coalescing_objs_t>
   get_map_coalescing_objs(addr_t obj) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;

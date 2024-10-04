@@ -29,7 +29,7 @@ enum class ModuleType {
   Tofino_Drop,
   Tofino_Broadcast,
   Tofino_ModifyHeader,
-  Tofino_SimpleTableLookup,
+  Tofino_TableLookup,
   Tofino_VectorRegisterLookup,
   Tofino_VectorRegisterUpdate,
   Tofino_FCFSCachedTableRead,
@@ -37,6 +37,7 @@ enum class ModuleType {
   Tofino_FCFSCachedTableWrite,
   Tofino_FCFSCachedTableDelete,
   Tofino_Recirculate,
+  Tofino_MeterUpdate,
   TofinoCPU_Ignore,
   TofinoCPU_ParseHeader,
   TofinoCPU_ModifyHeader,
@@ -47,9 +48,9 @@ enum class ModuleType {
   TofinoCPU_Forward,
   TofinoCPU_Broadcast,
   TofinoCPU_Drop,
-  TofinoCPU_SimpleTableLookup,
-  TofinoCPU_SimpleTableUpdate,
-  TofinoCPU_SimpleTableDelete,
+  TofinoCPU_TableLookup,
+  TofinoCPU_TableUpdate,
+  TofinoCPU_TableDelete,
   TofinoCPU_FCFSCachedTableRead,
   TofinoCPU_FCFSCachedTableWrite,
   TofinoCPU_FCFSCachedTableDelete,
@@ -71,6 +72,11 @@ enum class ModuleType {
   TofinoCPU_SketchTouchBuckets,
   TofinoCPU_VectorRegisterLookup,
   TofinoCPU_VectorRegisterUpdate,
+  TofinoCPU_TBIsTracing,
+  TofinoCPU_TBTrace,
+  TofinoCPU_TBUpdateAndCheck,
+  TofinoCPU_TBExpire,
+  TofinoCPU_MeterInsert,
   x86_Ignore,
   x86_If,
   x86_Then,
@@ -99,6 +105,10 @@ enum class ModuleType {
   x86_ChecksumUpdate,
   x86_ChtFindBackend,
   x86_HashObj,
+  x86_TBIsTracing,
+  x86_TBTrace,
+  x86_TBUpdateAndCheck,
+  x86_TBExpire,
 };
 
 inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
@@ -145,8 +155,8 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_ModifyHeader:
     os << "Tofino_ModifyHeader";
     break;
-  case ModuleType::Tofino_SimpleTableLookup:
-    os << "Tofino_SimpleTableLookup";
+  case ModuleType::Tofino_TableLookup:
+    os << "Tofino_TableLookup";
     break;
   case ModuleType::Tofino_VectorRegisterLookup:
     os << "Tofino_VectorRegisterLookup";
@@ -165,6 +175,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_FCFSCachedTableDelete:
     os << "Tofino_FCFSCachedTableDelete";
+    break;
+  case ModuleType::Tofino_MeterUpdate:
+    os << "Tofino_MeterUpdate";
     break;
   case ModuleType::Tofino_Recirculate:
     os << "Tofino_Recirculate";
@@ -199,14 +212,14 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::TofinoCPU_Drop:
     os << "TofinoCPU_Drop";
     break;
-  case ModuleType::TofinoCPU_SimpleTableLookup:
-    os << "TofinoCPU_SimpleTableLookup";
+  case ModuleType::TofinoCPU_TableLookup:
+    os << "TofinoCPU_TableLookup";
     break;
-  case ModuleType::TofinoCPU_SimpleTableUpdate:
-    os << "TofinoCPU_SimpleTableUpdate";
+  case ModuleType::TofinoCPU_TableUpdate:
+    os << "TofinoCPU_TableUpdate";
     break;
-  case ModuleType::TofinoCPU_SimpleTableDelete:
-    os << "TofinoCPU_SimpleTableDelete";
+  case ModuleType::TofinoCPU_TableDelete:
+    os << "TofinoCPU_TableDelete";
     break;
   case ModuleType::TofinoCPU_FCFSCachedTableRead:
     os << "TofinoCPU_FCFSCachedTableRead";
@@ -270,6 +283,21 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::TofinoCPU_VectorRegisterUpdate:
     os << "TofinoCPU_VectorRegisterUpdate";
+    break;
+  case ModuleType::TofinoCPU_TBIsTracing:
+    os << "TofinoCPU_TBIsTracing";
+    break;
+  case ModuleType::TofinoCPU_TBTrace:
+    os << "TofinoCPU_TBTrace";
+    break;
+  case ModuleType::TofinoCPU_TBUpdateAndCheck:
+    os << "TofinoCPU_TBUpdateAndCheck";
+    break;
+  case ModuleType::TofinoCPU_TBExpire:
+    os << "TofinoCPU_TBExpire";
+    break;
+  case ModuleType::TofinoCPU_MeterInsert:
+    os << "TofinoCPU_MeterInsert";
     break;
   case ModuleType::x86_Ignore:
     os << "x86_Ignore";
@@ -354,6 +382,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::x86_HashObj:
     os << "x86_HashObj";
+    break;
+  case ModuleType::x86_TBIsTracing:
+    os << "x86_TBIsTracing";
+    break;
+  case ModuleType::x86_TBTrace:
+    os << "x86_TBTrace";
+    break;
+  case ModuleType::x86_TBUpdateAndCheck:
+    os << "x86_TBUpdateAndCheck";
+    break;
+  case ModuleType::x86_TBExpire:
+    os << "x86_TBExpire";
     break;
   }
 

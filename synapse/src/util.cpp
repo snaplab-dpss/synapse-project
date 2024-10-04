@@ -8,6 +8,24 @@
 #include "exprs/simplifier.h"
 #include "exprs/solver.h"
 
+bool check_same_obj(const Call *call0, const Call *call1,
+                    const std::string &obj_name) {
+  const call_t &c0 = call0->get_call();
+  const call_t &c1 = call1->get_call();
+
+  auto it0 = c0.args.find(obj_name);
+  auto it1 = c1.args.find(obj_name);
+
+  if (it0 == c0.args.end() || it1 == c1.args.end()) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> obj0 = it0->second.expr;
+  klee::ref<klee::Expr> obj1 = it1->second.expr;
+
+  return solver_toolbox.are_exprs_always_equal(obj0, obj1);
+}
+
 // Only for pairs of std::hash-able types for simplicity.
 // You can of course template this struct to allow other hash functions
 struct pair_hash {
@@ -1158,6 +1176,40 @@ bool is_map_get_followed_by_map_puts_on_miss(
   }
 
   return true;
+}
+
+bool is_tb_tracing_check_followed_by_update_on_true(
+    const Call *tb_is_tracing, const Call *&tb_update_and_check) {
+  const call_t &is_tracing_call = tb_is_tracing->get_call();
+
+  if (is_tracing_call.function_name != "tb_is_tracing") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> is_tracing_condition = solver_toolbox.exprBuilder->Ne(
+      is_tracing_call.ret,
+      solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
+
+  std::vector<const Call *> tb_update_and_checks =
+      get_future_functions(tb_is_tracing, {"tb_update_and_check"});
+
+  tb_update_and_check = nullptr;
+  for (const Call *candidate : tb_update_and_checks) {
+    if (!check_same_obj(tb_is_tracing, candidate, "tb")) {
+      continue;
+    }
+
+    klee::ConstraintManager constraints = candidate->get_constraints();
+    if (!solver_toolbox.is_expr_always_true(constraints,
+                                            is_tracing_condition)) {
+      continue;
+    }
+
+    tb_update_and_check = candidate;
+    break;
+  }
+
+  return tb_update_and_check != nullptr;
 }
 
 bool is_map_update_with_dchain(const EP *ep,

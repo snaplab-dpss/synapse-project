@@ -967,7 +967,6 @@ void BDDSynthesizer::tb_allocate(coder_t &coder, const call_t &call) {
 
 void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
   klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
@@ -1005,7 +1004,6 @@ void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
 
 void BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
   klee::ref<klee::Expr> key_addr = call.args.at("key").expr;

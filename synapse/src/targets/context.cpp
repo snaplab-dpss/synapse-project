@@ -156,7 +156,15 @@ Context::Context(const BDD *bdd, const targets_t &targets,
       continue;
     }
 
-    assert(false && "Unknown init call");
+    if (call.function_name == "tb_allocate") {
+      klee::ref<klee::Expr> obj = call.args.at("tb_out").out;
+      addr_t addr = expr_addr_to_obj_addr(obj);
+      tb_config_t cfg = get_tb_config_from_bdd(*bdd, addr);
+      tb_configs[addr] = cfg;
+      continue;
+    }
+
+    PANIC("Unknown init call");
   }
 
   log_bdd_pre_processing(coalescing_candidates);
@@ -167,6 +175,7 @@ Context::Context(const Context &other)
       map_configs(other.map_configs), vector_configs(other.vector_configs),
       dchain_configs(other.dchain_configs),
       sketch_configs(other.sketch_configs), cht_configs(other.cht_configs),
+      tb_configs(other.tb_configs),
       coalescing_candidates(other.coalescing_candidates),
       expiration_data(other.expiration_data),
       placement_decisions(other.placement_decisions),
@@ -187,6 +196,7 @@ Context::Context(Context &&other)
       dchain_configs(std::move(other.dchain_configs)),
       sketch_configs(std::move(other.sketch_configs)),
       cht_configs(std::move(other.cht_configs)),
+      tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
       expiration_data(std::move(other.expiration_data)),
       placement_decisions(std::move(other.placement_decisions)),
@@ -223,6 +233,7 @@ Context &Context::operator=(const Context &other) {
   dchain_configs = other.dchain_configs;
   sketch_configs = other.sketch_configs;
   cht_configs = other.cht_configs;
+  tb_configs = other.tb_configs;
   coalescing_candidates = other.coalescing_candidates;
   expiration_data = other.expiration_data;
   placement_decisions = other.placement_decisions;
@@ -264,6 +275,11 @@ const sketch_config_t &Context::get_sketch_config(addr_t addr) const {
 const cht_config_t &Context::get_cht_config(addr_t addr) const {
   assert(cht_configs.find(addr) != cht_configs.end());
   return cht_configs.at(addr);
+}
+
+const tb_config_t &Context::get_tb_config(addr_t addr) const {
+  assert(tb_configs.find(addr) != tb_configs.end());
+  return tb_configs.at(addr);
 }
 
 std::optional<map_coalescing_objs_t>
@@ -460,14 +476,17 @@ void Context::allow_profiler_mutation() {
 
 std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
   switch (decision) {
-  case PlacementDecision::Tofino_SimpleTable:
-    os << "Tofino::SimpleTable";
+  case PlacementDecision::Tofino_Table:
+    os << "Tofino::Table";
     break;
   case PlacementDecision::Tofino_VectorRegister:
     os << "Tofino::Register";
     break;
   case PlacementDecision::Tofino_FCFSCachedTable:
     os << "Tofino::FCFSCachedTable";
+    break;
+  case PlacementDecision::Tofino_Meter:
+    os << "Tofino::Meter";
     break;
   case PlacementDecision::TofinoCPU_Dchain:
     os << "TofinoCPU::Dchain";
@@ -484,6 +503,9 @@ std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
   case PlacementDecision::TofinoCPU_Cht:
     os << "TofinoCPU::Cht";
     break;
+  case PlacementDecision::TofinoCPU_TB:
+    os << "TofinoCPU::TB";
+    break;
   case PlacementDecision::x86_Map:
     os << "x86::Map";
     break;
@@ -498,6 +520,9 @@ std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
     break;
   case PlacementDecision::x86_Cht:
     os << "x86::Cht";
+    break;
+  case PlacementDecision::x86_TB:
+    os << "x86::TB";
     break;
   }
   return os;

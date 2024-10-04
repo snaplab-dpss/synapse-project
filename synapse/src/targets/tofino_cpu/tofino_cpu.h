@@ -11,9 +11,9 @@
 #include "forward.h"
 #include "broadcast.h"
 #include "drop.h"
-#include "simple_table_lookup.h"
-#include "simple_table_update.h"
-#include "simple_table_delete.h"
+#include "table_lookup.h"
+#include "table_update.h"
+#include "table_delete.h"
 #include "dchain_allocate_new_index.h"
 #include "dchain_is_index_allocated.h"
 #include "dchain_rejuvenate_index.h"
@@ -36,6 +36,11 @@
 #include "fcfs_cached_table_read.h"
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
+#include "tb_is_tracing.h"
+#include "tb_trace.h"
+#include "tb_update_and_check.h"
+#include "tb_expire.h"
+#include "meter_insert.h"
 
 #include "tofino_cpu_context.h"
 
@@ -55,9 +60,9 @@ struct TofinoCPUTarget : public Target {
                    new ForwardGenerator(),
                    new BroadcastGenerator(),
                    new DropGenerator(),
-                   new SimpleTableLookupGenerator(),
-                   new SimpleTableUpdateGenerator(),
-                   new SimpleTableDeleteGenerator(),
+                   new TableLookupGenerator(),
+                   new TableUpdateGenerator(),
+                   new TableDeleteGenerator(),
                    new DchainAllocateNewIndexGenerator(),
                    new DchainIsIndexAllocatedGenerator(),
                    new DchainRejuvenateIndexGenerator(),
@@ -79,6 +84,11 @@ struct TofinoCPUTarget : public Target {
                    new FCFSCachedTableReadGenerator(),
                    new FCFSCachedTableWriteGenerator(),
                    new FCFSCachedTableDeleteGenerator(),
+                   new TBIsTracingGenerator(),
+                   new TBTraceGenerator(),
+                   new TBUpdateAndCheckGenerator(),
+                   new TBExpireGenerator(),
+                   new MeterInsertGenerator(),
                },
                new TofinoCPUContext()) {}
 };

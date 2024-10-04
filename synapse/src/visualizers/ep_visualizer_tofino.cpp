@@ -76,7 +76,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
 }
 
 void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
-                         const tofino::SimpleTableLookup *node) {
+                         const tofino::TableLookup *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -84,7 +84,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
   DS_ID tid = node->get_table_id();
   addr_t obj = node->get_obj();
 
-  label_builder << "SimpleTable Lookup\n";
+  label_builder << "Table Lookup\n";
   label_builder << "(";
   label_builder << "tid=";
   label_builder << tid;
@@ -285,6 +285,22 @@ void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
 
   label_builder << size;
   label_builder << "B)";
+
+  std::string label = label_builder.str();
+  function_call(ep_node, bdd_node, target, label);
+}
+
+void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,
+                         const tofino::MeterUpdate *node) {
+  std::stringstream label_builder;
+
+  const Node *bdd_node = node->get_node();
+  TargetType target = node->get_target();
+  addr_t obj = node->get_obj();
+
+  label_builder << "Meter Update\n";
+  label_builder << "obj=";
+  label_builder << obj;
 
   std::string label = label_builder.str();
   function_call(ep_node, bdd_node, target, label);

@@ -43,6 +43,7 @@ typedef i64 time_ps_t;
 
 typedef u64 pps_t;
 typedef u64 bps_t;
+typedef u64 Bps_t;
 
 typedef double hit_rate_t;
 

@@ -107,8 +107,7 @@ private:
       return false;
     }
 
-    if (!ctx.check_placement(map_objs->map,
-                             PlacementDecision::Tofino_SimpleTable)) {
+    if (!ctx.check_placement(map_objs->map, PlacementDecision::Tofino_Table)) {
       return false;
     }
 

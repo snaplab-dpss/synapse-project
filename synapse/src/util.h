@@ -14,6 +14,9 @@ enum class ModuleType;
 class Module;
 class EP;
 
+bool check_same_obj(const Call *call0, const Call *call1,
+                    const std::string &obj_name);
+
 std::vector<modification_t>
 build_vector_modifications(const Call *vector_borrow,
                            const Call *vector_return);
@@ -174,6 +177,9 @@ void delete_branch_node_from_bdd(const EP *ep, BDD *bdd, node_id_t target_id,
 
 const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
                                                const symbol_t &out_of_space);
+
+bool is_tb_tracing_check_followed_by_update_on_true(
+    const Call *tb_is_tracing, const Call *&tb_update_and_check);
 
 std::string int2hr(u64 value);
 std::string tput2str(u64 thpt, const std::string &units,

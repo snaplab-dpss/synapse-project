@@ -6,16 +6,15 @@ namespace tofino_cpu {
 
 using namespace tofino;
 
-class SimpleTableDelete : public TofinoCPUModule {
+class TableDelete : public TofinoCPUModule {
 private:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  SimpleTableDelete(const Node *node, addr_t _obj,
-                    const std::vector<klee::ref<klee::Expr>> &_keys)
-      : TofinoCPUModule(ModuleType::TofinoCPU_SimpleTableDelete,
-                        "SimpleTableDelete", node),
+  TableDelete(const Node *node, addr_t _obj,
+              const std::vector<klee::ref<klee::Expr>> &_keys)
+      : TofinoCPUModule(ModuleType::TofinoCPU_TableDelete, "TableDelete", node),
         obj(_obj), keys(_keys) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
@@ -24,14 +23,14 @@ public:
   }
 
   virtual Module *clone() const {
-    SimpleTableDelete *cloned = new SimpleTableDelete(node, obj, keys);
+    TableDelete *cloned = new TableDelete(node, obj, keys);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
 
-  std::vector<const tofino::Table *> get_tables(const EP *ep) {
+  std::vector<const tofino::Table *> get_tables(const EP *ep) const {
     const Context &ctx = ep->get_ctx();
     const tofino::TofinoContext *tofino_ctx =
         ctx.get_target_ctx<tofino::TofinoContext>();
@@ -50,11 +49,11 @@ public:
   }
 };
 
-class SimpleTableDeleteGenerator : public TofinoCPUModuleGenerator {
+class TableDeleteGenerator : public TofinoCPUModuleGenerator {
 public:
-  SimpleTableDeleteGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_SimpleTableDelete,
-                                 "SimpleTableDelete") {}
+  TableDeleteGenerator()
+      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TableDelete,
+                                 "TableDelete") {}
 
 protected:
   virtual std::optional<spec_impl_t>
@@ -65,7 +64,7 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!check_simple_table_delete_placement(ep, call_node)) {
+    if (!check_table_delete_placement(ep, call_node)) {
       return std::nullopt;
     }
 
@@ -82,7 +81,7 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place_simple_table_delete(ep, call_node)) {
+    if (!can_place_table_delete(ep, call_node)) {
       return impls;
     }
 
@@ -90,7 +89,7 @@ protected:
     std::vector<klee::ref<klee::Expr>> keys;
     get_table_delete_data(call_node, obj, keys);
 
-    Module *module = new SimpleTableDelete(node, obj, keys);
+    Module *module = new TableDelete(node, obj, keys);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -103,8 +102,7 @@ protected:
   }
 
 private:
-  bool check_simple_table_delete_placement(const EP *ep,
-                                           const Call *call_node) const {
+  bool check_table_delete_placement(const EP *ep, const Call *call_node) const {
     const call_t &call = call_node->get_call();
 
     std::string obj_arg;
@@ -117,11 +115,10 @@ private:
     }
 
     return check_placement(ep, call_node, obj_arg,
-                           PlacementDecision::Tofino_SimpleTable);
+                           PlacementDecision::Tofino_Table);
   }
 
-  bool can_place_simple_table_delete(const EP *ep,
-                                     const Call *call_node) const {
+  bool can_place_table_delete(const EP *ep, const Call *call_node) const {
     const call_t &call = call_node->get_call();
 
     std::string obj_arg;
@@ -133,8 +130,7 @@ private:
       return false;
     }
 
-    return can_place(ep, call_node, obj_arg,
-                     PlacementDecision::Tofino_SimpleTable);
+    return can_place(ep, call_node, obj_arg, PlacementDecision::Tofino_Table);
   }
 
   void get_table_delete_data(const Call *call_node, addr_t &obj,

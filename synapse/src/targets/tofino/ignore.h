@@ -24,6 +24,7 @@ class IgnoreGenerator : public TofinoModuleGenerator {
 private:
   std::unordered_set<std::string> functions_to_always_ignore = {
       "expire_items_single_map",
+      "tb_expire",
       "nf_set_rte_ipv4_udptcp_checksum",
   };
 
@@ -135,8 +136,7 @@ private:
     }
 
     // These are the data structures that can perform rejuvenations.
-    if (!ctx.check_placement(map_objs->map,
-                             PlacementDecision::Tofino_SimpleTable) &&
+    if (!ctx.check_placement(map_objs->map, PlacementDecision::Tofino_Table) &&
         !ctx.check_placement(map_objs->map,
                              PlacementDecision::Tofino_FCFSCachedTable)) {
       return false;

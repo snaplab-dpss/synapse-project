@@ -6,7 +6,7 @@ namespace tofino_cpu {
 
 using namespace tofino;
 
-class SimpleTableLookup : public TofinoCPUModule {
+class TableLookup : public TofinoCPUModule {
 private:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
@@ -14,12 +14,11 @@ private:
   std::optional<symbol_t> found;
 
 public:
-  SimpleTableLookup(const Node *node, addr_t _obj,
-                    const std::vector<klee::ref<klee::Expr>> &_keys,
-                    const std::vector<klee::ref<klee::Expr>> &_values,
-                    const std::optional<symbol_t> &_found)
-      : TofinoCPUModule(ModuleType::TofinoCPU_SimpleTableLookup,
-                        "SimpleTableLookup", node),
+  TableLookup(const Node *node, addr_t _obj,
+              const std::vector<klee::ref<klee::Expr>> &_keys,
+              const std::vector<klee::ref<klee::Expr>> &_values,
+              const std::optional<symbol_t> &_found)
+      : TofinoCPUModule(ModuleType::TofinoCPU_TableLookup, "TableLookup", node),
         obj(_obj), keys(_keys), values(_values), found(_found) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
@@ -28,7 +27,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new SimpleTableLookup(node, obj, keys, values, found);
+    Module *cloned = new TableLookup(node, obj, keys, values, found);
     return cloned;
   }
 
@@ -40,11 +39,11 @@ public:
   const std::optional<symbol_t> &get_found() const { return found; }
 };
 
-class SimpleTableLookupGenerator : public TofinoCPUModuleGenerator {
+class TableLookupGenerator : public TofinoCPUModuleGenerator {
 public:
-  SimpleTableLookupGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_SimpleTableLookup,
-                                 "SimpleTableLookup") {}
+  TableLookupGenerator()
+      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TableLookup,
+                                 "TableLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t>
@@ -55,7 +54,7 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place_simple_table_read(ep, call_node)) {
+    if (!can_place_table_read(ep, call_node)) {
       return std::nullopt;
     }
 
@@ -72,7 +71,7 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!check_simple_table_read_placement(ep, call_node)) {
+    if (!check_table_read_placement(ep, call_node)) {
       return impls;
     }
 
@@ -82,7 +81,7 @@ protected:
     std::optional<symbol_t> found;
     get_table_lookup_data(call_node, obj, keys, values, found);
 
-    Module *module = new SimpleTableLookup(node, obj, keys, values, found);
+    Module *module = new TableLookup(node, obj, keys, values, found);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -95,8 +94,7 @@ protected:
   }
 
 private:
-  bool check_simple_table_read_placement(const EP *ep,
-                                         const Call *call_node) const {
+  bool check_table_read_placement(const EP *ep, const Call *call_node) const {
     const call_t &call = call_node->get_call();
 
     std::string obj_arg;
@@ -112,10 +110,10 @@ private:
     }
 
     return check_placement(ep, call_node, obj_arg,
-                           PlacementDecision::Tofino_SimpleTable);
+                           PlacementDecision::Tofino_Table);
   }
 
-  bool can_place_simple_table_read(const EP *ep, const Call *call_node) const {
+  bool can_place_table_read(const EP *ep, const Call *call_node) const {
     const call_t &call = call_node->get_call();
 
     std::string obj_arg;
@@ -130,8 +128,7 @@ private:
       return false;
     }
 
-    return can_place(ep, call_node, obj_arg,
-                     PlacementDecision::Tofino_SimpleTable);
+    return can_place(ep, call_node, obj_arg, PlacementDecision::Tofino_Table);
   }
 
   void get_table_lookup_data(const Call *call_node, addr_t &obj,

@@ -3,7 +3,7 @@ NF_FILES := kvstore_main.c kvstore_config.c kvstore_manager.c state.c entry.c lo
 NF_ARGS := \
 	--ext $(or $(EXTERNAL),0) \
 	--int $(or $(INTERNAL),1) \
-	--max-entries $(or $(CAPACITY),16384)
+	--max-entries $(or $(CAPACITY),65536)
 
 NF_LAYER := 5
 

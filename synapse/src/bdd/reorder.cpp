@@ -30,6 +30,10 @@ static std::map<std::string, bool> fn_has_side_effects_lookup{
     {"sketch_refresh", true},
     {"sketch_fetch", false},
     {"sketch_touch_buckets", true},
+    {"tb_expire", true},
+    {"tb_is_tracing", false},
+    {"tb_trace", true},
+    {"tb_update_and_check", true},
     {"hash_obj", false},
 };
 
@@ -356,10 +360,6 @@ static bool check_obj(const Node *n0, const Node *n1,
 static bool map_can_reorder(const BDD *bdd, const Node *anchor,
                             const Node *between, const Node *candidate,
                             klee::ref<klee::Expr> &condition) {
-  if (check_no_side_effects(candidate)) {
-    return true;
-  }
-
   // Has side effects, but we encountered a branch condition in between.
   if (between->get_type() == NodeType::BRANCH) {
     return false;
@@ -418,10 +418,6 @@ static bool map_can_reorder(const BDD *bdd, const Node *anchor,
 static bool dchain_can_reorder(const BDD *bdd, const Node *anchor,
                                const Node *between, const Node *candidate,
                                klee::ref<klee::Expr> &condition) {
-  if (check_no_side_effects(candidate)) {
-    return true;
-  }
-
   // Has side effects, but we encountered a branch condition in between.
   if (between->get_type() == NodeType::BRANCH) {
     return false;
@@ -437,10 +433,6 @@ static bool dchain_can_reorder(const BDD *bdd, const Node *anchor,
 static bool vector_can_reorder(const BDD *bdd, const Node *anchor,
                                const Node *between, const Node *candidate,
                                klee::ref<klee::Expr> &condition) {
-  if (check_no_side_effects(candidate)) {
-    return true;
-  }
-
   // Has side effects, but we encountered a branch condition in between.
   if (between->get_type() == NodeType::BRANCH) {
     return false;
@@ -499,16 +491,19 @@ static bool vector_can_reorder(const BDD *bdd, const Node *anchor,
 static bool cht_can_reorder(const BDD *bdd, const Node *anchor,
                             const Node *between, const Node *candidate,
                             klee::ref<klee::Expr> &condition) {
-  return check_no_side_effects(candidate);
+  return true;
 }
 
 static bool sketch_can_reorder(const BDD *bdd, const Node *anchor,
                                const Node *between, const Node *candidate,
                                klee::ref<klee::Expr> &condition) {
-  bool can_reorder = true;
-  can_reorder &= check_no_side_effects(candidate);
-  can_reorder &= !check_obj(between, candidate, "sketch");
-  return can_reorder;
+  return !check_obj(between, candidate, "sketch");
+}
+
+static bool tb_can_reorder(const BDD *bdd, const Node *anchor,
+                           const Node *between, const Node *candidate,
+                           klee::ref<klee::Expr> &condition) {
+  return !check_obj(between, candidate, "tb");
 }
 
 using can_reorder_stateful_op_fn = bool (*)(const BDD *bdd, const Node *anchor,
@@ -533,6 +528,10 @@ const std::unordered_map<std::string, can_reorder_stateful_op_fn>
         {"sketch_refresh", sketch_can_reorder},
         {"sketch_fetch", sketch_can_reorder},
         {"sketch_touch_buckets", sketch_can_reorder},
+        {"tb_expire", tb_can_reorder},
+        {"tb_is_tracing", tb_can_reorder},
+        {"tb_trace", tb_can_reorder},
+        {"tb_update_and_check", tb_can_reorder},
     };
 
 static bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor,
@@ -542,6 +541,10 @@ static bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor,
 
   const Call *call_node = static_cast<const Call *>(candidate);
   const call_t &call = call_node->get_call();
+
+  if (check_no_side_effects(candidate)) {
+    return true;
+  }
 
   auto found_it = can_reorder_handlers.find(call.function_name);
   if (found_it == can_reorder_handlers.end()) {

@@ -10,6 +10,7 @@ typedef std::string DS_ID;
 enum class DSType {
   TABLE,
   REGISTER,
+  METER,
   FCFS_CACHED_TABLE,
 };
 

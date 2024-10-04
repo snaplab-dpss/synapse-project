@@ -170,6 +170,10 @@ SimplePlacer::find_placements(const DS *ds,
     status = find_placements_reg(static_cast<const Register *>(ds), deps,
                                  placements);
     break;
+  case DSType::METER:
+    status =
+        find_placements_meter(static_cast<const Meter *>(ds), deps, placements);
+    break;
   default:
     assert(false && "Unsupported DS type");
   }
@@ -306,10 +310,78 @@ SimplePlacer::find_placements_reg(const Register *reg,
   return PlacementStatus::SUCCESS;
 }
 
+PlacementStatus SimplePlacer::find_placements_meter(
+    const Meter *meter, const std::unordered_set<DS_ID> &deps,
+    std::vector<placement_t> &placements) const {
+  assert(!is_placed(meter->id));
+
+  if (static_cast<int>(meter->keys.size()) > properties->max_exact_match_keys) {
+    return PlacementStatus::TOO_MANY_KEYS;
+  }
+
+  if (meter->get_match_xbar_consume() >
+      properties->exact_match_xbar_per_stage) {
+    return PlacementStatus::XBAR_CONSUME_EXCEEDS_LIMIT;
+  }
+
+  int soonest_stage_id = get_soonest_available_stage(stages, deps);
+  assert(soonest_stage_id < static_cast<int>(stages.size()));
+
+  if (soonest_stage_id < 0) {
+    return PlacementStatus::NO_AVAILABLE_STAGE;
+  }
+
+  bits_t requested_sram = meter->get_consumed_sram();
+  bits_t requested_xbar = meter->get_match_xbar_consume();
+
+  int total_stages = stages.size();
+  for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
+    const Stage *stage = &stages[stage_id];
+
+    if (stage->available_sram == 0) {
+      continue;
+    }
+
+    if (requested_xbar > stage->available_exact_match_xbar) {
+      continue;
+    }
+
+    if (stage->available_logical_ids == 0) {
+      continue;
+    }
+
+    // This is not actually how it happens, but this is a VERY simple placer.
+    bits_t amount_placed = std::min(requested_sram, stage->available_sram);
+
+    placement_t placement = {
+        .stage_id = stage_id,
+        .sram = amount_placed,
+        .map_ram = 0,
+        .xbar = requested_xbar,
+        .logical_ids = 1,
+        .obj = meter->id,
+    };
+
+    requested_sram -= amount_placed;
+    placements.push_back(placement);
+
+    if (requested_sram == 0) {
+      break;
+    }
+  }
+
+  if (requested_sram > 0) {
+    return PlacementStatus::TOO_LARGE;
+  }
+
+  return PlacementStatus::SUCCESS;
+}
+
 void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   switch (ds->type) {
   case DSType::TABLE:
-  case DSType::REGISTER: {
+  case DSType::REGISTER:
+  case DSType::METER: {
     place_primitive_ds(ds, deps);
   } break;
   case DSType::FCFS_CACHED_TABLE: {
@@ -378,7 +450,8 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
 
 void SimplePlacer::place_primitive_ds(const DS *ds,
                                       const std::unordered_set<DS_ID> &deps) {
-  assert(ds->type == DSType::TABLE || ds->type == DSType::REGISTER);
+  assert(ds->type == DSType::TABLE || ds->type == DSType::REGISTER ||
+         ds->type == DSType::METER);
 
   if (is_placed(ds->id)) {
     return;
@@ -402,7 +475,8 @@ SimplePlacer::can_place(const DS *ds,
 
   switch (ds->type) {
   case DSType::TABLE:
-  case DSType::REGISTER: {
+  case DSType::REGISTER:
+  case DSType::METER: {
     std::vector<placement_t> placements;
 
     if (is_self_dependent(ds->id, deps)) {

@@ -32,13 +32,14 @@ class ParserExtraction;
 class ParserCondition;
 class ParserReject;
 class ModifyHeader;
-class SimpleTableLookup;
+class TableLookup;
 class VectorRegisterLookup;
 class VectorRegisterUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadOrWrite;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
+class MeterUpdate;
 } // namespace tofino
 
 namespace tofino_cpu {
@@ -52,8 +53,8 @@ class Else;
 class Forward;
 class Broadcast;
 class Drop;
-class SimpleTableLookup;
-class SimpleTableUpdate;
+class TableLookup;
+class TableUpdate;
 class DchainAllocateNewIndex;
 class DchainRejuvenateIndex;
 class DchainIsIndexAllocated;
@@ -70,12 +71,17 @@ class SketchExpire;
 class SketchFetch;
 class SketchRefresh;
 class SketchTouchBuckets;
-class SimpleTableDelete;
+class TableDelete;
 class VectorRegisterLookup;
 class VectorRegisterUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
+class TBIsTracing;
+class TBTrace;
+class TBUpdateAndCheck;
+class TBExpire;
+class MeterInsert;
 } // namespace tofino_cpu
 
 namespace x86 {
@@ -107,6 +113,10 @@ class SketchRefresh;
 class SketchTouchBuckets;
 class ChtFindBackend;
 class HashObj;
+class TBIsTracing;
+class TBTrace;
+class TBUpdateAndCheck;
+class TBExpire;
 } // namespace x86
 
 class EPVisitor {
@@ -121,6 +131,7 @@ public:
    * **********************************/
 
   VISIT_NOP(tofino::SendToController)
+  VISIT_NOP(tofino::Recirculate)
   VISIT_NOP(tofino::Ignore)
   VISIT_NOP(tofino::IfSimple)
   VISIT_NOP(tofino::If)
@@ -133,14 +144,14 @@ public:
   VISIT_NOP(tofino::ParserCondition)
   VISIT_NOP(tofino::ParserReject)
   VISIT_NOP(tofino::ModifyHeader)
-  VISIT_NOP(tofino::SimpleTableLookup)
+  VISIT_NOP(tofino::TableLookup)
   VISIT_NOP(tofino::VectorRegisterLookup)
   VISIT_NOP(tofino::VectorRegisterUpdate)
   VISIT_NOP(tofino::FCFSCachedTableRead)
   VISIT_NOP(tofino::FCFSCachedTableReadOrWrite)
   VISIT_NOP(tofino::FCFSCachedTableWrite)
   VISIT_NOP(tofino::FCFSCachedTableDelete)
-  VISIT_NOP(tofino::Recirculate)
+  VISIT_NOP(tofino::MeterUpdate)
 
   /*************************************
    *
@@ -158,9 +169,9 @@ public:
   VISIT_NOP(tofino_cpu::Forward)
   VISIT_NOP(tofino_cpu::Broadcast)
   VISIT_NOP(tofino_cpu::Drop)
-  VISIT_NOP(tofino_cpu::SimpleTableLookup)
-  VISIT_NOP(tofino_cpu::SimpleTableUpdate)
-  VISIT_NOP(tofino_cpu::SimpleTableDelete)
+  VISIT_NOP(tofino_cpu::TableLookup)
+  VISIT_NOP(tofino_cpu::TableUpdate)
+  VISIT_NOP(tofino_cpu::TableDelete)
   VISIT_NOP(tofino_cpu::DchainAllocateNewIndex)
   VISIT_NOP(tofino_cpu::DchainRejuvenateIndex)
   VISIT_NOP(tofino_cpu::DchainIsIndexAllocated)
@@ -182,6 +193,11 @@ public:
   VISIT_NOP(tofino_cpu::FCFSCachedTableRead)
   VISIT_NOP(tofino_cpu::FCFSCachedTableWrite)
   VISIT_NOP(tofino_cpu::FCFSCachedTableDelete)
+  VISIT_NOP(tofino_cpu::TBIsTracing)
+  VISIT_NOP(tofino_cpu::TBTrace)
+  VISIT_NOP(tofino_cpu::TBUpdateAndCheck)
+  VISIT_NOP(tofino_cpu::TBExpire)
+  VISIT_NOP(tofino_cpu::MeterInsert)
 
   /*************************************
    *
@@ -217,6 +233,10 @@ public:
   VISIT_NOP(x86::DchainFreeIndex)
   VISIT_NOP(x86::ChtFindBackend)
   VISIT_NOP(x86::HashObj)
+  VISIT_NOP(x86::TBIsTracing)
+  VISIT_NOP(x86::TBTrace)
+  VISIT_NOP(x86::TBUpdateAndCheck)
+  VISIT_NOP(x86::TBExpire)
 
 protected:
   virtual void log(const EPNode *ep_node) const;

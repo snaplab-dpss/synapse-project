@@ -2,6 +2,7 @@
 #include "bdd.h"
 #include "../exprs/exprs.h"
 #include "../exprs/solver.h"
+#include "../log.h"
 
 std::optional<addr_t> get_obj_from_call(const Call *node_call) {
   std::optional<addr_t> addr;
@@ -57,7 +58,7 @@ dchain_config_t get_dchain_config_from_bdd(const BDD &bdd, addr_t dchain_addr) {
     return dchain_config_t{index_range_value};
   }
 
-  assert(false && "Should have found dchain configuration");
+  PANIC("Should have found dchain configuration");
 }
 
 bits_t get_key_size(const BDD &bdd, addr_t addr) {
@@ -93,7 +94,7 @@ bits_t get_key_size(const BDD &bdd, addr_t addr) {
     }
   }
 
-  assert(false && "Should have found at least one node with a key");
+  PANIC("Should have found at least one node with a key");
 }
 
 map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr) {
@@ -121,7 +122,7 @@ map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr) {
     return map_config_t{capacity_value, static_cast<bits_t>(key_size_value)};
   }
 
-  assert(false && "Should have found map configuration");
+  PANIC("Should have found map configuration");
 }
 
 vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr) {
@@ -149,7 +150,7 @@ vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr) {
     return vector_config_t{capacity_value, elem_size_value};
   }
 
-  assert(false && "Should have found vector configuration");
+  PANIC("Should have found vector configuration");
 }
 
 sketch_config_t get_sketch_config_from_bdd(const BDD &bdd, addr_t sketch_addr) {
@@ -180,7 +181,7 @@ sketch_config_t get_sketch_config_from_bdd(const BDD &bdd, addr_t sketch_addr) {
     return sketch_config_t{capacity_value, threshold_value, key_size_value};
   }
 
-  assert(false && "Should have found sketch configuration");
+  PANIC("Should have found sketch configuration");
 }
 
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {
@@ -208,5 +209,39 @@ cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {
     return cht_config_t{capacity_value, height_value};
   }
 
-  assert(false && "Should have found cht configuration");
+  PANIC("Should have found cht configuration");
+}
+
+tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr) {
+  const std::vector<call_t> &init = bdd.get_init();
+
+  for (const call_t &call : init) {
+    if (call.function_name != "tb_allocate")
+      continue;
+
+    klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
+    klee::ref<klee::Expr> rate = call.args.at("rate").expr;
+    klee::ref<klee::Expr> burst = call.args.at("burst").expr;
+    klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+    klee::ref<klee::Expr> tb_out = call.args.at("tb_out").out;
+
+    assert(!capacity.isNull());
+    assert(!rate.isNull());
+    assert(!burst.isNull());
+    assert(!key_size.isNull());
+    assert(!tb_out.isNull());
+
+    addr_t tb_out_addr = expr_addr_to_obj_addr(tb_out);
+    if (tb_out_addr != tb_addr)
+      continue;
+
+    u64 capacity_value = solver_toolbox.value_from_expr(capacity);
+    Bps_t rate_value = solver_toolbox.value_from_expr(rate);
+    bytes_t burst_value = solver_toolbox.value_from_expr(burst);
+    bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
+
+    return tb_config_t{capacity_value, rate_value, burst_value, key_size_value};
+  }
+
+  PANIC("Should have found tb configuration");
 }

@@ -36,13 +36,14 @@ public:
   DECLARE_VISIT(tofino::ParserCondition)
   DECLARE_VISIT(tofino::ParserReject)
   DECLARE_VISIT(tofino::ModifyHeader)
-  DECLARE_VISIT(tofino::SimpleTableLookup)
+  DECLARE_VISIT(tofino::TableLookup)
   DECLARE_VISIT(tofino::VectorRegisterLookup)
   DECLARE_VISIT(tofino::VectorRegisterUpdate)
   DECLARE_VISIT(tofino::FCFSCachedTableRead)
   DECLARE_VISIT(tofino::FCFSCachedTableReadOrWrite)
   DECLARE_VISIT(tofino::FCFSCachedTableWrite)
   DECLARE_VISIT(tofino::FCFSCachedTableDelete)
+  DECLARE_VISIT(tofino::MeterUpdate)
 
   /********************************************
    *
@@ -60,9 +61,9 @@ public:
   DECLARE_VISIT(tofino_cpu::Forward)
   DECLARE_VISIT(tofino_cpu::Broadcast)
   DECLARE_VISIT(tofino_cpu::Drop)
-  DECLARE_VISIT(tofino_cpu::SimpleTableLookup)
-  DECLARE_VISIT(tofino_cpu::SimpleTableUpdate)
-  DECLARE_VISIT(tofino_cpu::SimpleTableDelete)
+  DECLARE_VISIT(tofino_cpu::TableLookup)
+  DECLARE_VISIT(tofino_cpu::TableUpdate)
+  DECLARE_VISIT(tofino_cpu::TableDelete)
   DECLARE_VISIT(tofino_cpu::DchainAllocateNewIndex)
   DECLARE_VISIT(tofino_cpu::DchainRejuvenateIndex)
   DECLARE_VISIT(tofino_cpu::DchainIsIndexAllocated)
@@ -84,6 +85,11 @@ public:
   DECLARE_VISIT(tofino_cpu::FCFSCachedTableRead)
   DECLARE_VISIT(tofino_cpu::FCFSCachedTableWrite)
   DECLARE_VISIT(tofino_cpu::FCFSCachedTableDelete)
+  DECLARE_VISIT(tofino_cpu::TBIsTracing)
+  DECLARE_VISIT(tofino_cpu::TBTrace)
+  DECLARE_VISIT(tofino_cpu::TBUpdateAndCheck)
+  DECLARE_VISIT(tofino_cpu::TBExpire)
+  DECLARE_VISIT(tofino_cpu::MeterInsert)
 
   /********************************************
    *

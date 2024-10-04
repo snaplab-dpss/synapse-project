@@ -22,6 +22,8 @@ bool nf_init(void) {
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
+  tb_expire(state->tb, now);
+
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =
@@ -31,8 +33,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
     NF_DEBUG("Not IPv4, dropping");
     return DROP;
   }
-
-  tb_expire(state->tb, now);
 
   if (device == config.lan_device) {
     // Simply forward outgoing packets.

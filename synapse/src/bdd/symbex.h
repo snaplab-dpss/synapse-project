@@ -34,8 +34,16 @@ struct cht_config_t {
   u64 height;
 };
 
+struct tb_config_t {
+  u64 capacity;
+  Bps_t rate;
+  bytes_t burst;
+  bits_t key_size;
+};
+
 dchain_config_t get_dchain_config_from_bdd(const BDD &bdd, addr_t dchain_addr);
 map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr);
 vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr);
 sketch_config_t get_sketch_config_from_bdd(const BDD &bdd, addr_t sketch_addr);
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr);
+tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr);

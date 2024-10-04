@@ -541,7 +541,7 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 }
 
 void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::SimpleTableLookup *node) {
+                          const tofino::TableLookup *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 

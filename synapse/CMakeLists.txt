@@ -73,8 +73,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_klee.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_curses.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
 
+
 ###############################################################################
-# Build executables (synapse and tools)
+# Build the synapse library
 ###############################################################################
 
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
@@ -82,24 +83,35 @@ list(FILTER SOURCES EXCLUDE REGEX ".*/templates/.*$")
 
 file(GLOB_RECURSE TOOLS ${PROJECT_SOURCE_DIR}/tools/*.cpp)
 
+add_library(synapse ${SOURCES})
+
+target_compile_definitions(synapse PRIVATE ${LLVM_DEFINITIONS})
+target_compile_definitions(synapse PRIVATE ${KLEE_DEFINITIONS})
+
+target_link_libraries(synapse PUBLIC ${KLEE_LIBRARIES})
+target_link_libraries(synapse PUBLIC ${LLVM_LIBRARIES})
+target_link_libraries(synapse PUBLIC ${CURSES_LIBRARIES})
+target_link_libraries(synapse PUBLIC ${Z3_LIBRARIES})
+target_link_libraries(synapse PUBLIC CLI11::CLI11)
+target_link_libraries(synapse PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(synapse PUBLIC ${PCAP_LIBRARY})
+target_link_libraries(synapse PUBLIC Threads::Threads)
+target_link_libraries(synapse PUBLIC dl)
+
+###############################################################################
+# Build executables (synapse and tools)
+###############################################################################
+
 foreach(TOOL ${TOOLS})
     get_filename_component(TOOL_NAME ${TOOL} NAME_WE)
-    set(TOOL_SOURCES ${TOOL} ${SOURCES})
 
-    add_executable(${TOOL_NAME} ${TOOL_SOURCES})
+    set(TOOL_TARGET "${TOOL_NAME}-target")
+    set(TOOL_SOURCES ${TOOL})
 
-    target_compile_definitions(${TOOL_NAME} PRIVATE ${LLVM_DEFINITIONS})
-    target_compile_definitions(${TOOL_NAME} PRIVATE ${KLEE_DEFINITIONS})
+    add_executable(${TOOL_TARGET} ${TOOL_SOURCES})
+    set_target_properties(${TOOL_TARGET} PROPERTIES OUTPUT_NAME "${TOOL_NAME}")
     
-    target_link_libraries(${TOOL_NAME} PUBLIC ${KLEE_LIBRARIES})
-    target_link_libraries(${TOOL_NAME} PUBLIC ${LLVM_LIBRARIES})
-    target_link_libraries(${TOOL_NAME} PUBLIC ${CURSES_LIBRARIES})
-    target_link_libraries(${TOOL_NAME} PUBLIC ${Z3_LIBRARIES})
-    target_link_libraries(${TOOL_NAME} PUBLIC CLI11::CLI11)
-    target_link_libraries(${TOOL_NAME} PUBLIC nlohmann_json::nlohmann_json)
-    target_link_libraries(${TOOL_NAME} PUBLIC ${PCAP_LIBRARY})
-    target_link_libraries(${TOOL_NAME} PUBLIC Threads::Threads)
-    target_link_libraries(${TOOL_NAME} PUBLIC dl)
+    target_link_libraries(${TOOL_TARGET} PUBLIC synapse)
 endforeach(TOOL ${TOOLS})
 
 

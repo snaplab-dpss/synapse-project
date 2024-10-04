@@ -3,6 +3,18 @@
 #include <iostream>
 #include <sstream>
 
+#define COLOR_RESET "\033[0m"
+#define COLOR_BLACK "\033[30m"
+#define COLOR_RED "\033[31m"
+#define COLOR_RED_BRIGHT "\u001b[31;1m"
+#define COLOR_GREEN "\033[32m"
+#define COLOR_YELLOW "\033[33m"
+#define COLOR_BLUE "\033[34m"
+#define COLOR_MAGENTA "\033[35m"
+#define COLOR_CYAN "\033[36m"
+#define COLOR_WHITE ""
+#define COLOR_BOLD "\033[1m"
+
 #define DEBUG_PAUSE                                                            \
   {                                                                            \
     std::cout << "Press Enter to continue ";                                   \
@@ -11,27 +23,17 @@
 
 #define PANIC(fmt, ...)                                                        \
   {                                                                            \
-    fprintf(stderr, "Panic!\n" fmt "\n", ##__VA_ARGS__);                       \
+    fprintf(stderr,                                                            \
+            COLOR_RED_BRIGHT "\n"                                              \
+                             "******************\n"                            \
+                             "*     PANIC!     *\n"                            \
+                             "******************"                              \
+                             "\n" COLOR_RESET fmt "\n",                        \
+            ##__VA_ARGS__);                                                    \
     fflush(stderr);                                                            \
     assert(false && "Panic");                                                  \
     exit(1);                                                                   \
   }
-
-namespace Colors {
-typedef std::string Color;
-
-const Color RESET = "\033[0m";
-const Color BLACK = "\033[30m";
-const Color RED = "\033[31m";
-const Color RED_BRIGHT = "\u001b[31;1m";
-const Color GREEN = "\033[32m";
-const Color YELLOW = "\033[33m";
-const Color BLUE = "\033[34m";
-const Color MAGENTA = "\033[35m";
-const Color CYAN = "\033[36m";
-const Color WHITE = "";
-const Color BOLD = "\033[1m";
-} // namespace Colors
 
 class Log {
 
@@ -51,7 +53,7 @@ public:
   static Log err();
 
 private:
-  Colors::Color color;
+  std::string color;
   Level level;
 
 private:
@@ -59,23 +61,23 @@ private:
     switch (_level) {
     case Level::LOG:
       stream.rdbuf(std::cout.rdbuf());
-      color = Colors::WHITE;
+      color = COLOR_WHITE;
       break;
     case Level::DEBUG:
       stream.rdbuf(std::cerr.rdbuf());
-      color = Colors::CYAN;
+      color = COLOR_CYAN;
       break;
     case Level::WARNING:
       stream.rdbuf(std::cerr.rdbuf());
-      color = Colors::RED;
+      color = COLOR_RED;
       break;
     case Level::ERROR:
       stream.rdbuf(std::cerr.rdbuf());
-      color = Colors::RED_BRIGHT;
+      color = COLOR_RED_BRIGHT;
       break;
     default:
       stream.rdbuf(std::cerr.rdbuf());
-      color = Colors::WHITE;
+      color = COLOR_WHITE;
     }
   }
 
@@ -91,7 +93,7 @@ template <typename T> Log &operator<<(Log &log, T &&t) {
 
   log.stream << log.color;
   log.stream << std::forward<T>(t);
-  log.stream << Colors::RESET;
+  log.stream << COLOR_RESET;
 
   return log;
 }
