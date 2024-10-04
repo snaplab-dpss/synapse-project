@@ -95,11 +95,8 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 }
 
 Context::Context(const BDD *bdd, const targets_t &targets,
-                 const TargetType initial_target,
-                 std::shared_ptr<Profiler> _profiler)
-    : profiler(_profiler), profiler_mutations_allowed(false),
-      expiration_data(build_expiration_data(bdd)), tput_estimate_pps(0),
-      tput_speculation_pps(0) {
+                 const TargetType initial_target, const Profiler &_profiler)
+    : profiler(_profiler), expiration_data(build_expiration_data(bdd)) {
   for (const Target *target : targets) {
     target_ctxs[target->type] = target->ctx->clone();
     traffic_fraction_per_target[target->type] = 0.0;
@@ -171,8 +168,8 @@ Context::Context(const BDD *bdd, const targets_t &targets,
 }
 
 Context::Context(const Context &other)
-    : profiler(other.profiler), profiler_mutations_allowed(false),
-      map_configs(other.map_configs), vector_configs(other.vector_configs),
+    : profiler(other.profiler), map_configs(other.map_configs),
+      vector_configs(other.vector_configs),
       dchain_configs(other.dchain_configs),
       sketch_configs(other.sketch_configs), cht_configs(other.cht_configs),
       tb_configs(other.tb_configs),
@@ -180,9 +177,7 @@ Context::Context(const Context &other)
       expiration_data(other.expiration_data),
       placement_decisions(other.placement_decisions),
       traffic_fraction_per_target(other.traffic_fraction_per_target),
-      constraints_per_node(other.constraints_per_node),
-      tput_estimate_pps(other.tput_estimate_pps),
-      tput_speculation_pps(other.tput_speculation_pps) {
+      constraints_per_node(other.constraints_per_node) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
@@ -190,7 +185,6 @@ Context::Context(const Context &other)
 
 Context::Context(Context &&other)
     : profiler(std::move(other.profiler)),
-      profiler_mutations_allowed(other.profiler_mutations_allowed),
       map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)),
       dchain_configs(std::move(other.dchain_configs)),
@@ -202,9 +196,7 @@ Context::Context(Context &&other)
       placement_decisions(std::move(other.placement_decisions)),
       target_ctxs(std::move(other.target_ctxs)),
       traffic_fraction_per_target(std::move(other.traffic_fraction_per_target)),
-      constraints_per_node(std::move(other.constraints_per_node)),
-      tput_estimate_pps(std::move(other.tput_estimate_pps)),
-      tput_speculation_pps(std::move(other.tput_speculation_pps)) {}
+      constraints_per_node(std::move(other.constraints_per_node)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -244,13 +236,12 @@ Context &Context::operator=(const Context &other) {
 
   traffic_fraction_per_target = other.traffic_fraction_per_target;
   constraints_per_node = other.constraints_per_node;
-  tput_estimate_pps = other.tput_estimate_pps;
-  tput_speculation_pps = other.tput_speculation_pps;
 
   return *this;
 }
 
-const Profiler *Context::get_profiler() const { return profiler.get(); }
+const Profiler &Context::get_profiler() const { return profiler; }
+Profiler &Context::get_mutable_profiler() { return profiler; }
 
 const map_config_t &Context::get_map_config(addr_t addr) const {
   assert(map_configs.find(addr) != map_configs.end());
@@ -386,7 +377,7 @@ void Context::update_traffic_fractions(const EPNode *new_node) {
   }
 
   constraints_t constraints = get_node_constraints(new_node);
-  std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
+  std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
   assert(fraction.has_value());
 
   update_traffic_fractions(old_target, new_target, *fraction);
@@ -438,40 +429,26 @@ constraints_t Context::get_node_constraints(const EPNode *node) const {
 void Context::add_hit_rate_estimation(const constraints_t &constraints,
                                       klee::ref<klee::Expr> new_constraint,
                                       hit_rate_t estimation_rel) {
-  allow_profiler_mutation();
-
   Log::dbg() << "Adding hit rate estimation " << estimation_rel << "\n";
   for (const klee::ref<klee::Expr> &constraint : constraints) {
     Log::dbg() << "   " << expr_to_string(constraint, true) << "\n";
   }
 
-  profiler->insert_relative(constraints, new_constraint, estimation_rel);
+  profiler.insert_relative(constraints, new_constraint, estimation_rel);
 
   Log::dbg() << "\n";
   Log::dbg() << "Resulting Hit rate:\n";
-  profiler->log_debug();
+  profiler.log_debug();
   Log::dbg() << "\n";
 }
 
 void Context::remove_hit_rate_node(const constraints_t &constraints) {
-  allow_profiler_mutation();
-  profiler->remove(constraints);
+  profiler.remove(constraints);
 }
 
 void Context::scale_profiler(const constraints_t &constraints,
                              hit_rate_t factor) {
-  allow_profiler_mutation();
-  profiler->scale(constraints, factor);
-}
-
-void Context::allow_profiler_mutation() {
-  if (profiler_mutations_allowed) {
-    return;
-  }
-
-  Profiler *new_profiler = new Profiler(*profiler);
-  profiler.reset(new_profiler);
-  profiler_mutations_allowed = true;
+  profiler.scale(constraints, factor);
 }
 
 std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
@@ -540,9 +517,6 @@ void Context::log_debug() const {
     Log::dbg() << "    " << obj << ": " << decision << "\n";
   }
   Log::dbg() << "]\n";
-
-  Log::dbg() << "Throughput estimate: " << tput_estimate_pps << " pps\n";
-  Log::dbg() << "Throughput speculation: " << tput_speculation_pps << " pps\n";
 
   if (target_ctxs.find(TargetType::Tofino) != target_ctxs.end()) {
     const tofino::TofinoContext *tofino_ctx =

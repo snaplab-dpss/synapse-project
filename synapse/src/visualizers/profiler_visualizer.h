@@ -12,7 +12,7 @@
 
 class ProfilerVisualizer : public BDDVisualizer {
 public:
-  static void visualize(const BDD *bdd, const Profiler *profiler,
+  static void visualize(const BDD *bdd, const Profiler &profiler,
                         bool interrupt) {
     std::unordered_map<node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
 
@@ -28,13 +28,13 @@ public:
 
 private:
   static std::unordered_map<node_id_t, hit_rate_t>
-  hr_per_node(const BDD *bdd, const Profiler *profiler) {
+  hr_per_node(const BDD *bdd, const Profiler &profiler) {
     std::unordered_map<node_id_t, hit_rate_t> fractions_per_node;
     const Node *root = bdd->get_root();
 
     root->visit_nodes([&fractions_per_node, profiler](const Node *node) {
       constraints_t constraints = node->get_ordered_branch_constraints();
-      std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
+      std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
       assert(fraction.has_value());
       fractions_per_node[node->get_id()] = fraction.value();
       return NodeVisitAction::VISIT_CHILDREN;
@@ -44,10 +44,10 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string> get_annocations_per_node(
-      const Profiler *profiler,
+      const Profiler &profiler,
       const std::unordered_map<node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<node_id_t, std::string> annocations_per_node;
-    const bdd_profile_t &bdd_profile = profiler->get_bdd_profile();
+    const bdd_profile_t &bdd_profile = profiler.get_bdd_profile();
 
     for (const auto &[node, fraction] : hrpn) {
       std::string color = fraction_to_color(fraction);

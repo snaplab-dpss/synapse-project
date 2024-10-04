@@ -22,7 +22,7 @@ PerfOracle::PerfOracle(const TNAProperties *properties, int _avg_pkt_bytes)
     recirc_ports_usage[port].steering_fraction = 0;
   }
 
-  update_estimate_tput_pps();
+  update_tput_estimate();
 }
 
 PerfOracle::PerfOracle(const PerfOracle &other)
@@ -86,7 +86,7 @@ void PerfOracle::add_recirculated_traffic(int port, int port_recirculations,
     clamp_fraction(non_recirc_traffic);
   }
 
-  update_estimate_tput_pps();
+  update_tput_estimate();
 }
 
 void PerfOracle::steer_recirculation_traffic(int source_port,
@@ -174,7 +174,7 @@ static pps_t triple_recirc_estimate(pps_t Tin, pps_t Cr, pps_t Cp,
   return std::min(std::min(Tin, Cp), Tout);
 }
 
-void PerfOracle::update_estimate_tput_pps() {
+void PerfOracle::update_tput_estimate() {
   bps_t Tswitch_bps = port_capacity_bps * total_ports;
   bps_t tput_bps = 0;
 
@@ -250,6 +250,20 @@ void PerfOracle::update_estimate_tput_pps() {
 }
 
 pps_t PerfOracle::estimate_tput_pps() const { return tput_pps; }
+
+bps_t PerfOracle::get_port_capacity_bps() const { return port_capacity_bps; }
+
+pps_t PerfOracle::get_port_capacity_pps() const {
+  return port_capacity_bps / (avg_pkt_bytes * 8);
+}
+
+bps_t PerfOracle::get_max_input_bps() const {
+  return port_capacity_bps * total_ports;
+}
+
+pps_t PerfOracle::get_max_input_pps() const {
+  return get_max_input_bps() / (avg_pkt_bytes * 8);
+}
 
 void PerfOracle::log_debug() const {
   Log::dbg() << "====== PerfOracle ======\n";

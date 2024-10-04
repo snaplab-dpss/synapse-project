@@ -16,7 +16,7 @@ private:
   std::unordered_map<DS_ID, DS *> id_to_ds;
 
 public:
-  TofinoContext(TNAVersion version, const Profiler *profiler);
+  TofinoContext(TNAVersion version, const Profiler &profiler);
   TofinoContext(const TofinoContext &other);
 
   ~TofinoContext();

@@ -30,7 +30,7 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
     {"max-tput", HeuristicOption::MAX_THROUGHPUT},
 };
 
-search_report_t search(const BDD *bdd, Profiler *profiler,
+search_report_t search(const BDD *bdd, const Profiler &profiler,
                        const targets_t &targets, HeuristicOption heuristic_opt,
                        const std::vector<ep_id_t> &peek, bool no_reorder,
                        bool pause_on_backtrack, bool not_greedy) {
@@ -141,14 +141,10 @@ int main(int argc, char **argv) {
 
   RandomEngine::seed(seed);
 
-  Profiler *profiler = nullptr;
-  if (!bdd_profile.empty()) {
-    profiler = new Profiler(bdd, bdd_profile);
-  } else {
-    profiler = new Profiler(bdd);
-  }
+  Profiler profiler =
+      bdd_profile.empty() ? Profiler(bdd) : Profiler(bdd, bdd_profile);
 
-  profiler->log_debug();
+  profiler.log_debug();
 
   if (show_prof) {
     ProfilerVisualizer::visualize(bdd, profiler, true);

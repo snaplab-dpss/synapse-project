@@ -51,7 +51,7 @@ template <class HCfg> class SearchEngine {
 private:
   std::shared_ptr<BDD> bdd;
   Heuristic<HCfg> *h;
-  std::shared_ptr<Profiler> profiler;
+  Profiler profiler;
   const targets_t targets;
 
   const bool allow_bdd_reordering;
@@ -59,12 +59,12 @@ private:
   const bool pause_and_show_on_backtrack;
 
 public:
-  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, Profiler *profiler,
+  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const Profiler &profiler,
                const targets_t &targets, bool allow_bdd_reordering,
                const std::unordered_set<ep_id_t> &peek,
                bool _pause_and_show_on_backtrack);
 
-  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, Profiler *profiler,
+  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const Profiler &profiler,
                const targets_t &_targets);
 
   SearchEngine(const SearchEngine &) = delete;

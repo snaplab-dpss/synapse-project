@@ -6,19 +6,21 @@
 #include "exprs/exprs.h"
 #include "exprs/solver.h"
 
-static hit_rate_t normalize_fraction(hit_rate_t fraction) {
+static hit_rate_t clamp_fraction(hit_rate_t fraction) {
   return std::min(1.0, std::max(0.0, fraction));
 }
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint,
                            hit_rate_t _fraction)
     : constraint(_constraint), fraction(_fraction), on_true(nullptr),
-      on_false(nullptr), prev(nullptr) {}
+      on_false(nullptr), prev(nullptr),
+      annotations({{std::nullopt, [](pps_t in) { return in; }}}) {}
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint,
                            hit_rate_t _fraction, node_id_t _bdd_node_id)
     : constraint(_constraint), fraction(_fraction), bdd_node_id(_bdd_node_id),
-      on_true(nullptr), on_false(nullptr), prev(nullptr) {}
+      on_true(nullptr), on_false(nullptr), prev(nullptr),
+      annotations({{std::nullopt, [](pps_t in) { return in; }}}) {}
 
 ProfilerNode::~ProfilerNode() {
   if (on_true) {
@@ -50,6 +52,8 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
     new_node->on_false = on_false->clone(keep_bdd_info);
     new_node->on_false->prev = new_node;
   }
+
+  new_node->annotations = annotations;
 
   return new_node;
 }
@@ -135,7 +139,7 @@ static ProfilerNode *build_profiler_tree(const Node *node,
     klee::ref<klee::Expr> condition = branch->get_condition();
     u64 counter = bdd_profile.counters.at(node->get_id());
     hit_rate_t fraction =
-        normalize_fraction(static_cast<hit_rate_t>(counter) / max_count);
+        clamp_fraction(static_cast<hit_rate_t>(counter) / max_count);
     node_id_t bdd_node_id = node->get_id();
 
     ProfilerNode *new_node = new ProfilerNode(condition, fraction, bdd_node_id);
@@ -148,8 +152,8 @@ static ProfilerNode *build_profiler_tree(const Node *node,
 
     if (!new_node->on_true && on_true) {
       u64 on_true_counter = bdd_profile.counters.at(on_true->get_id());
-      hit_rate_t on_true_fraction = normalize_fraction(
-          static_cast<hit_rate_t>(on_true_counter) / max_count);
+      hit_rate_t on_true_fraction =
+          clamp_fraction(static_cast<hit_rate_t>(on_true_counter) / max_count);
       node_id_t bdd_node_id = on_true->get_id();
       new_node->on_true =
           new ProfilerNode(nullptr, on_true_fraction, bdd_node_id);
@@ -157,8 +161,8 @@ static ProfilerNode *build_profiler_tree(const Node *node,
 
     if (!new_node->on_false && on_false) {
       u64 on_false_counter = bdd_profile.counters.at(on_false->get_id());
-      hit_rate_t on_false_fraction = normalize_fraction(
-          static_cast<hit_rate_t>(on_false_counter) / max_count);
+      hit_rate_t on_false_fraction =
+          clamp_fraction(static_cast<hit_rate_t>(on_false_counter) / max_count);
       node_id_t bdd_node_id = on_false->get_id();
       new_node->on_false =
           new ProfilerNode(nullptr, on_false_fraction, bdd_node_id);
@@ -299,8 +303,24 @@ Profiler::Profiler(const Profiler &other)
       root(other.root ? other.root->clone(true) : nullptr) {}
 
 Profiler::Profiler(Profiler &&other)
-    : bdd_profile(std::move(bdd_profile)), root(std::move(other.root)) {
+    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)) {
   other.root = nullptr;
+}
+
+Profiler &Profiler::operator=(const Profiler &other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  if (root) {
+    delete root;
+    root = nullptr;
+  }
+
+  bdd_profile = other.bdd_profile;
+  root = other.root ? other.root->clone(true) : nullptr;
+
+  return *this;
 }
 
 Profiler::~Profiler() {
@@ -356,8 +376,8 @@ static void recursive_update_fractions(ProfilerNode *node,
   assert(parent_new_fraction >= 0.0);
   assert(parent_new_fraction <= 1.0);
 
-  hit_rate_t old_fraction = normalize_fraction(node->fraction);
-  hit_rate_t new_fraction = normalize_fraction(
+  hit_rate_t old_fraction = clamp_fraction(node->fraction);
+  hit_rate_t new_fraction = clamp_fraction(
       parent_old_fraction != 0
           ? (parent_new_fraction / parent_old_fraction) * node->fraction
           : 0);
@@ -381,9 +401,8 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint,
   new_node->on_true->prev = new_node;
   new_node->on_false->prev = new_node;
 
-  hit_rate_t fraction_on_true = normalize_fraction(fraction);
-  hit_rate_t fraction_on_false =
-      normalize_fraction(new_node->fraction - fraction);
+  hit_rate_t fraction_on_true = clamp_fraction(fraction);
+  hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
 
   assert(fraction_on_true <= 1.0);
   assert(fraction_on_false <= 1.0);
@@ -422,9 +441,8 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
   new_node->on_true = node;
   new_node->on_false = node->clone(false);
 
-  hit_rate_t fraction_on_true = normalize_fraction(fraction);
-  hit_rate_t fraction_on_false =
-      normalize_fraction(new_node->fraction - fraction);
+  hit_rate_t fraction_on_true = clamp_fraction(fraction);
+  hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
 
   recursive_update_fractions(new_node->on_true, new_node->fraction,
                              fraction_on_true);
@@ -505,13 +523,29 @@ void Profiler::scale(const constraints_t &constraints, hit_rate_t factor) {
   ProfilerNode *node = get_node(constraints);
   assert(node);
 
-  hit_rate_t old_fraction = normalize_fraction(node->fraction);
-  hit_rate_t new_fraction = normalize_fraction(node->fraction * factor);
+  hit_rate_t old_fraction = clamp_fraction(node->fraction);
+  hit_rate_t new_fraction = clamp_fraction(node->fraction * factor);
 
   node->fraction = new_fraction;
 
   recursive_update_fractions(node->on_true, old_fraction, new_fraction);
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
+}
+
+void Profiler::add_tput_calc(const constraints_t &constraints,
+                             tput_calc_fn new_calc) {
+  ProfilerNode *node = get_node(constraints);
+  assert(node);
+  profiler_node_annotation_t new_annotation{std::nullopt, new_calc};
+  node->annotations.push_back(new_annotation);
+}
+
+void Profiler::add_tput_calc(const constraints_t &constraints,
+                             tput_calc_fn new_calc, ep_node_id_t ep_node_id) {
+  ProfilerNode *node = get_node(constraints);
+  assert(node);
+  profiler_node_annotation_t new_annotation{ep_node_id, new_calc};
+  node->annotations.push_back(new_annotation);
 }
 
 std::optional<hit_rate_t>

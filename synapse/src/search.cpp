@@ -10,17 +10,19 @@
 
 template <class HCfg>
 SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
-                                 Profiler *_profiler, const targets_t &_targets,
+                                 const Profiler &_profiler,
+                                 const targets_t &_targets,
                                  bool _allow_bdd_reordering,
                                  const std::unordered_set<ep_id_t> &_peek,
                                  bool _pause_and_show_on_backtrack)
-    : bdd(new BDD(*_bdd)), h(_h), profiler(new Profiler(*_profiler)),
-      targets(_targets), allow_bdd_reordering(_allow_bdd_reordering),
-      peek(_peek), pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
+    : bdd(new BDD(*_bdd)), h(_h), profiler(_profiler), targets(_targets),
+      allow_bdd_reordering(_allow_bdd_reordering), peek(_peek),
+      pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
 
 template <class HCfg>
 SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
-                                 Profiler *_profiler, const targets_t &_targets)
+                                 const Profiler &_profiler,
+                                 const targets_t &_targets)
     : SearchEngine(_bdd, _h, _profiler, _targets, true, {}, false) {}
 
 struct search_step_report_t {

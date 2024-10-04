@@ -51,8 +51,7 @@ public:
 
 class Context {
 private:
-  std::shared_ptr<Profiler> profiler;
-  bool profiler_mutations_allowed;
+  Profiler profiler;
 
   std::unordered_map<addr_t, map_config_t> map_configs;
   std::unordered_map<addr_t, vector_config_t> vector_configs;
@@ -60,26 +59,26 @@ private:
   std::unordered_map<addr_t, sketch_config_t> sketch_configs;
   std::unordered_map<addr_t, cht_config_t> cht_configs;
   std::unordered_map<addr_t, tb_config_t> tb_configs;
+
   std::vector<map_coalescing_objs_t> coalescing_candidates;
   std::optional<expiration_data_t> expiration_data;
+
   std::unordered_map<addr_t, PlacementDecision> placement_decisions;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
   std::unordered_map<TargetType, hit_rate_t> traffic_fraction_per_target;
   std::unordered_map<ep_node_id_t, constraints_t> constraints_per_node;
-  pps_t tput_estimate_pps;
-  pps_t tput_speculation_pps;
 
 public:
   Context(const BDD *bdd, const targets_t &targets,
-          const TargetType initial_target, std::shared_ptr<Profiler> profiler);
+          const TargetType initial_target, const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 
+  Context &operator=(const Context &other);
   ~Context();
 
-  Context &operator=(const Context &other);
-
-  const Profiler *get_profiler() const;
+  const Profiler &get_profiler() const;
+  Profiler &get_mutable_profiler();
 
   const map_config_t &get_map_config(addr_t addr) const;
   const vector_config_t &get_vector_config(addr_t addr) const;
@@ -111,10 +110,6 @@ public:
   void update_traffic_fractions(TargetType old_target, TargetType new_target,
                                 hit_rate_t fraction);
 
-  void update_tput_estimates(const EP *ep);
-  pps_t get_tput_estimate_pps() const;
-  pps_t get_tput_speculation_pps() const;
-
   void add_hit_rate_estimation(const constraints_t &constraints,
                                klee::ref<klee::Expr> new_constraint,
                                hit_rate_t estimation_rel);
@@ -122,27 +117,6 @@ public:
   void scale_profiler(const constraints_t &constraints, hit_rate_t factor);
 
   void log_debug() const;
-
-private:
-  void update_tput_speculation(const EP *ep);
-  void update_tput_estimate();
-  void allow_profiler_mutation();
-
-  void print_speculations(const EP *ep,
-                          const std::vector<spec_impl_t> &speculations) const;
-
-  spec_impl_t get_best_speculation(const EP *ep, const Node *node,
-                                   TargetType current_target,
-                                   Context current_ctx,
-                                   const nodes_t &skip) const;
-
-  spec_impl_t peek_speculation_for_future_nodes(
-      const spec_impl_t &base_speculation, const EP *ep, const Node *anchor,
-      nodes_t future_nodes, TargetType target) const;
-
-  bool is_better_speculation(const spec_impl_t &old_speculation,
-                             const spec_impl_t &new_speculation, const EP *ep,
-                             const Node *node, TargetType target) const;
 };
 
 #define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NS, TCTX)                        \

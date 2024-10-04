@@ -123,8 +123,6 @@ std::vector<impl_t> ModuleGenerator::generate(const EP *ep, const Node *node,
 
   for (const impl_t &id : internal_decisions) {
     EP *ep = id.result;
-    Context &ctx = ep->get_mutable_ctx();
-    ctx.update_tput_estimates(ep);
     implementations.push_back(id);
   }
 
@@ -136,9 +134,6 @@ std::vector<impl_t> ModuleGenerator::generate(const EP *ep, const Node *node,
     std::vector<EP *> reordered = get_reordered(id.result);
 
     for (EP *reordered_ep : reordered) {
-      Context &ctx = reordered_ep->get_mutable_ctx();
-      ctx.update_tput_estimates(reordered_ep);
-
       impl_t new_implementation = id;
       new_implementation.result = reordered_ep;
       new_implementation.bdd_reordered = true;

@@ -327,16 +327,11 @@ TofinoModuleGenerator::get_fcfs_cache_hit_rate(const EP *ep, const Node *node,
                                                klee::ref<klee::Expr> key,
                                                int cache_capacity) const {
   const Context &ctx = ep->get_ctx();
-  const Profiler *profiler = ctx.get_profiler();
+  const Profiler &profiler = ctx.get_profiler();
   constraints_t constraints = node->get_ordered_branch_constraints();
 
   std::optional<FlowStats> flow_stats =
-      profiler->get_flow_stats(constraints, key);
-
-  if (!flow_stats.has_value()) {
-    std::cerr << "Node: " << node->get_id() << "\n";
-    BDDVisualizer::visualize(ep->get_bdd(), false);
-  }
+      profiler.get_flow_stats(constraints, key);
   assert(flow_stats.has_value());
 
   u64 cached_packets = std::min(flow_stats->packets,

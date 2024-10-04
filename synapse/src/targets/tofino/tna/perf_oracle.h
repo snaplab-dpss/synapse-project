@@ -47,12 +47,19 @@ public:
                                 hit_rate_t fraction,
                                 std::optional<int> prev_recirc_port);
   pps_t estimate_tput_pps() const;
+
+  pps_t get_port_capacity_pps() const;
+  bps_t get_port_capacity_bps() const;
+
+  pps_t get_max_input_pps() const;
+  bps_t get_max_input_bps() const;
+
   void log_debug() const;
 
 private:
   void steer_recirculation_traffic(int source_port, int destination_port,
                                    hit_rate_t fraction);
-  void update_estimate_tput_pps();
+  void update_tput_estimate();
 };
 
 } // namespace tofino

@@ -112,10 +112,10 @@ protected:
     }
 
     Context new_ctx = ctx;
-    const Profiler *profiler = new_ctx.get_profiler();
+    const Profiler &profiler = new_ctx.get_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
+    std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
     assert(fraction.has_value());
 
     hit_rate_t on_fail_fraction =
@@ -289,10 +289,10 @@ private:
                                               klee::ref<klee::Expr> key,
                                               int cache_capacity) const {
     const Context &ctx = ep->get_ctx();
-    const Profiler *profiler = ctx.get_profiler();
+    const Profiler &profiler = ctx.get_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
+    std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
     assert(fraction.has_value());
 
     hit_rate_t cache_hit_rate =

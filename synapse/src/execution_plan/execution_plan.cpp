@@ -27,7 +27,7 @@ static TargetType get_initial_target(const targets_t &targets) {
 }
 
 EP::EP(std::shared_ptr<const BDD> _bdd, const targets_t &_targets,
-       std::shared_ptr<Profiler> _profiler)
+       const Profiler &_profiler)
     : id(counter++), bdd(_bdd), root(nullptr),
       initial_target(get_initial_target(_targets)), targets(_targets),
       ctx(_bdd.get(), _targets, initial_target, _profiler),
@@ -313,8 +313,8 @@ void EP::log_debug_placements() const {
 }
 
 void EP::log_debug_hit_rate() const {
-  const Profiler *profiler = ctx.get_profiler();
-  profiler->log_debug();
+  const Profiler &profiler = ctx.get_profiler();
+  profiler.log_debug();
 }
 
 void EP::inspect() const {
@@ -386,8 +386,8 @@ hit_rate_t EP::get_active_leaf_hit_rate() const {
     return 1.0;
   }
 
-  const Profiler *profiler = ctx.get_profiler();
-  std::optional<hit_rate_t> fraction = profiler->get_fraction(constraints);
+  const Profiler &profiler = ctx.get_profiler();
+  std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
   assert(fraction.has_value());
 
   return *fraction;
@@ -432,7 +432,3 @@ void EP::update_node_constraints(const EPNode *on_true_node,
   ctx.update_constraints_per_node(on_true_id, on_true_constraints);
   ctx.update_constraints_per_node(on_false_id, on_false_constraints);
 }
-
-pps_t EP::estimate_tput_pps() const { return ctx.get_tput_estimate_pps(); }
-
-pps_t EP::speculate_tput_pps() const { return ctx.get_tput_speculation_pps(); }

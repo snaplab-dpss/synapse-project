@@ -6,6 +6,7 @@
 #include "types.h"
 
 typedef std::vector<klee::ref<klee::Expr>> constraints_t;
+typedef std::function<pps_t(pps_t)> tput_calc_fn;
 
 struct FlowStats {
   klee::ref<klee::Expr> flow_id;
@@ -13,6 +14,11 @@ struct FlowStats {
   u64 flows;
   u64 avg_pkts_per_flow;
   std::vector<u64> packets_per_flow;
+};
+
+struct profiler_node_annotation_t {
+  std::optional<ep_node_id_t> ep_node_id;
+  tput_calc_fn tput_calc;
 };
 
 struct ProfilerNode {
@@ -24,6 +30,8 @@ struct ProfilerNode {
   ProfilerNode *on_true;
   ProfilerNode *on_false;
   ProfilerNode *prev;
+
+  std::vector<profiler_node_annotation_t> annotations;
 
   ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction);
   ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction,
@@ -50,6 +58,7 @@ public:
   Profiler(const Profiler &other);
   Profiler(Profiler &&other);
 
+  Profiler &operator=(const Profiler &other);
   ~Profiler();
 
   int get_avg_pkt_bytes() const;
@@ -61,6 +70,9 @@ public:
                        hit_rate_t rel_fraction_on_true);
   void remove(const constraints_t &constraints);
   void scale(const constraints_t &constraints, hit_rate_t factor);
+  void add_tput_calc(const constraints_t &constraints, tput_calc_fn new_calc);
+  void add_tput_calc(const constraints_t &constraints, tput_calc_fn new_calc,
+                     ep_node_id_t ep_node_id);
 
   const ProfilerNode *get_root() const { return root; }
   std::optional<hit_rate_t>

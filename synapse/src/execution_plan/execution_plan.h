@@ -43,7 +43,7 @@ private:
 
 public:
   EP(std::shared_ptr<const BDD> bdd, const targets_t &targets,
-     std::shared_ptr<Profiler> profiler);
+     const Profiler &profiler);
 
   EP(const EP &other, bool is_ancestor = true);
 
@@ -116,4 +116,16 @@ public:
 private:
   EPLeaf *get_mutable_active_leaf();
   constraints_t get_active_leaf_constraints() const;
+
+  void print_speculations(const std::vector<spec_impl_t> &speculations) const;
+  spec_impl_t
+  peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
+                                    const Node *anchor, nodes_t future_nodes,
+                                    TargetType current_target) const;
+  spec_impl_t get_best_speculation(const Node *node, TargetType current_target,
+                                   const Context &ctx,
+                                   const nodes_t &skip) const;
+  bool is_better_speculation(const spec_impl_t &old_speculation,
+                             const spec_impl_t &new_speculation,
+                             const Node *node, TargetType current_target) const;
 };

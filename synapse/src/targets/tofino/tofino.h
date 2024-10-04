@@ -31,7 +31,7 @@
 namespace tofino {
 
 struct TofinoTarget : public Target {
-  TofinoTarget(TNAVersion version, const Profiler *profiler)
+  TofinoTarget(TNAVersion version, const Profiler &profiler)
       : Target(TargetType::Tofino,
                {
                    new SendToControllerGenerator(),

@@ -10,8 +10,8 @@
 
 namespace tofino {
 
-TofinoContext::TofinoContext(TNAVersion _version, const Profiler *profiler)
-    : tna(_version, profiler->get_avg_pkt_bytes()) {}
+TofinoContext::TofinoContext(TNAVersion _version, const Profiler &profiler)
+    : tna(_version, profiler.get_avg_pkt_bytes()) {}
 
 TofinoContext::TofinoContext(const TofinoContext &other) : tna(other.tna) {
   for (const auto &kv : other.obj_to_ds) {

@@ -9,8 +9,6 @@ class Module;
 class EPVisitor;
 class EP;
 
-typedef u64 ep_node_id_t;
-
 enum class EPNodeType { BRANCH, CALL, ROUTE };
 enum class EPNodeVisitAction { VISIT_CHILDREN, SKIP_CHILDREN, STOP };
 

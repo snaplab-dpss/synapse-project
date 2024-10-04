@@ -1019,7 +1019,7 @@ bool is_vector_read(const Call *vector_borrow) {
 rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
                                                      const Node *node) {
   const Context &ctx = ep->get_ctx();
-  const Profiler *profiler = ctx.get_profiler();
+  const Profiler &profiler = ctx.get_profiler();
 
   assert(node->get_type() == NodeType::CALL);
   const Call *map_get = static_cast<const Call *>(node);
@@ -1089,9 +1089,9 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
     constraints_t wac = write_attempt->get_ordered_branch_constraints();
     constraints_t wc = write->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> rf = profiler->get_fraction(rc);
-    std::optional<hit_rate_t> waf = profiler->get_fraction(wac);
-    std::optional<hit_rate_t> wf = profiler->get_fraction(wc);
+    std::optional<hit_rate_t> rf = profiler.get_fraction(rc);
+    std::optional<hit_rate_t> waf = profiler.get_fraction(wac);
+    std::optional<hit_rate_t> wf = profiler.get_fraction(wc);
 
     if (rf.has_value() && waf.has_value() && wf.has_value()) {
       fractions.read = rf.value();
