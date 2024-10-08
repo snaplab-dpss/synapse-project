@@ -2,7 +2,7 @@
 
 #include "util.h"
 #include "bdd/bdd.h"
-#include "targets/module.h"
+#include "targets/targets.h"
 #include "execution_plan/execution_plan.h"
 #include "exprs/retriever.h"
 #include "exprs/simplifier.h"
@@ -1864,4 +1864,172 @@ bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
 
   map_objs = data.value();
   return true;
+}
+
+void update_fwd_tput_calcs(Context &ctx, const EP *ep, const Node *node,
+                           int dst_device) {
+  Profiler &profiler = ctx.get_mutable_profiler();
+
+  const tofino::TofinoContext *tofino_ctx =
+      ctx.get_target_ctx<tofino::TofinoContext>();
+  const tofino::TNA &tna = tofino_ctx->get_tna();
+  const tofino::PerfOracle &perf_oracle = tna.get_perf_oracle();
+
+  pps_t port_capacity = perf_oracle.get_port_capacity_pps();
+  constraints_t constraints = node->get_ordered_branch_constraints();
+  std::optional<hit_rate_t> opt_hr = profiler.get_fraction(constraints);
+  assert(opt_hr.has_value());
+  hit_rate_t hr = opt_hr.value();
+
+  // Look for other forwarding modules sending the packet to the same port.
+  // If there are any, they share the same port capacity.
+  // If they send more traffic than the port capacity, proportionality of
+  // profiling hit rate should be considered.
+  std::vector<const EPNode *> fwd_nodes = ep->get_nodes_by_type({
+      ModuleType::Tofino_Forward,
+      ModuleType::TofinoCPU_Forward,
+      ModuleType::x86_Forward,
+  });
+
+  hit_rate_t total_hr = hr;
+
+  for (const EPNode *fwd_node : fwd_nodes) {
+    const Module *fwd_module = fwd_node->get_module();
+
+    switch (fwd_module->get_type()) {
+    case ModuleType::Tofino_Forward: {
+      const tofino::Forward *fwd =
+          dynamic_cast<const tofino::Forward *>(fwd_module);
+      if (fwd->get_dst_device() != dst_device) {
+        continue;
+      }
+    } break;
+    case ModuleType::TofinoCPU_Forward: {
+      const tofino_cpu::Forward *fwd =
+          dynamic_cast<const tofino_cpu::Forward *>(fwd_module);
+      if (fwd->get_dst_device() != dst_device) {
+        continue;
+      }
+    } break;
+    case ModuleType::x86_Forward: {
+      const x86::Forward *fwd = dynamic_cast<const x86::Forward *>(fwd_module);
+      if (fwd->get_dst_device() != dst_device) {
+        continue;
+      }
+    } break;
+    default: {
+      PANIC("Unexpected forwarding module type: %s",
+            to_string(fwd_module->get_type()).c_str());
+    }
+    }
+
+    constraints_t fwd_constraints = ctx.get_node_constraints(fwd_node);
+    std::optional<hit_rate_t> fwd_hr = profiler.get_fraction(fwd_constraints);
+    assert(fwd_hr.has_value());
+
+    total_hr += fwd_hr.value();
+  }
+
+  auto calc_generator = [port_capacity, total_hr](hit_rate_t hr) {
+    return [port_capacity, hr, total_hr](pps_t in) {
+      pps_t out;
+
+      // If the sum of all the traffic is more than the port capacity, then we
+      // should keep proportionality of the profiling hit rate per forwarding
+      // module.
+      if (in > (hr / total_hr) * port_capacity) {
+        out = (hr / total_hr) * port_capacity;
+      } else {
+        out = in;
+      }
+
+      return out;
+    };
+  };
+
+  // Replace tput calculators of the other forwarding modules.
+  for (const EPNode *fwd_node : fwd_nodes) {
+    constraints_t fwd_constraints = ctx.get_node_constraints(fwd_node);
+    std::optional<hit_rate_t> opt_fwd_hr =
+        profiler.get_fraction(fwd_constraints);
+    assert(opt_fwd_hr.has_value());
+
+    hit_rate_t fwd_hr = opt_fwd_hr.value();
+    const Node *node = fwd_node->get_module()->get_node();
+
+    profiler.set_tput_calc(fwd_constraints, node->get_id(),
+                           calc_generator(fwd_hr));
+  }
+
+  // Set the new tput calculator for this forwarding module.
+  profiler.add_tput_calc(constraints, node->get_id(), calc_generator(hr));
+}
+
+void update_s2c_tput_calc(Context &ctx, const EP *ep, const Node *node) {
+  Profiler &profiler = ctx.get_mutable_profiler();
+
+  const tofino::TofinoContext *tofino_ctx =
+      ctx.get_target_ctx<tofino::TofinoContext>();
+  const tofino::TNA &tna = tofino_ctx->get_tna();
+  const tofino::PerfOracle &perf_oracle = tna.get_perf_oracle();
+
+  pps_t port_capacity = perf_oracle.get_port_capacity_pps();
+  constraints_t constraints = node->get_ordered_branch_constraints();
+  std::optional<hit_rate_t> opt_hr = profiler.get_fraction(constraints);
+  assert(opt_hr.has_value());
+  hit_rate_t hr = opt_hr.value();
+
+  // Look for other send to controller modules, as they share the same
+  // interface. If they send more traffic than the controller capacity,
+  // proportionality of profiling hit rate should be considered.
+  std::vector<const EPNode *> s2c_nodes =
+      ep->get_nodes_by_type({ModuleType::Tofino_SendToController});
+
+  hit_rate_t total_hr = hr;
+
+  for (const EPNode *s2c_node : s2c_nodes) {
+    const Module *s2c_module = s2c_node->get_module();
+    assert(s2c_module->get_type() == ModuleType::Tofino_SendToController);
+    const tofino::SendToController *s2c =
+        dynamic_cast<const tofino::SendToController *>(s2c_module);
+
+    constraints_t s2c_constraints = ctx.get_node_constraints(s2c_node);
+    std::optional<hit_rate_t> s2c_hr = profiler.get_fraction(s2c_constraints);
+    assert(s2c_hr.has_value());
+
+    total_hr += s2c_hr.value();
+  }
+
+  auto calc_generator = [total_hr](hit_rate_t hr) {
+    return [hr, total_hr](pps_t in) {
+      pps_t out;
+
+      // If the sum of all the traffic is more than the capacity, then we
+      // should keep proportionality of the profiling hit rate per module.
+      if (in > (hr / total_hr) * CONTROLLER_CAPACITY_PPS) {
+        out = (hr / total_hr) * CONTROLLER_CAPACITY_PPS;
+      } else {
+        out = in;
+      }
+
+      return out;
+    };
+  };
+
+  // Replace tput calculators of the other send to controller modules.
+  for (const EPNode *s2c_node : s2c_nodes) {
+    constraints_t s2c_constraints = ctx.get_node_constraints(s2c_node);
+    std::optional<hit_rate_t> opt_s2c_hr =
+        profiler.get_fraction(s2c_constraints);
+    assert(opt_s2c_hr.has_value());
+
+    hit_rate_t s2c_hr = opt_s2c_hr.value();
+    const Node *node = s2c_node->get_module()->get_node();
+
+    profiler.set_tput_calc(s2c_constraints, node->get_id(),
+                           calc_generator(s2c_hr));
+  }
+
+  // Set the new tput calculator for this forwarding module.
+  profiler.add_tput_calc(constraints, node->get_id(), calc_generator(hr));
 }

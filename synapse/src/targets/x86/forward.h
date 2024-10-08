@@ -2,6 +2,9 @@
 
 #include "x86_module.h"
 
+#include "../tofino/forward.h"
+#include "../tofino_cpu/forward.h"
+
 namespace x86 {
 
 class Forward : public x86Module {
@@ -48,9 +51,17 @@ protected:
 
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (bdd_node_match_pattern(node))
-      return spec_impl_t(decide(ep, node), ctx);
-    return std::nullopt;
+    if (!bdd_node_match_pattern(node)) {
+      return std::nullopt;
+    }
+
+    const Route *route_node = static_cast<const Route *>(node);
+    int dst_device = route_node->get_dst_device();
+
+    Context new_ctx = ctx;
+    update_fwd_tput_calcs(new_ctx, ep, route_node, dst_device);
+
+    return spec_impl_t(decide(ep, node), new_ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -64,11 +75,14 @@ protected:
     const Route *route_node = static_cast<const Route *>(node);
     int dst_device = route_node->get_dst_device();
 
-    Module *module = new Forward(node, dst_device);
-    EPNode *ep_node = new EPNode(module);
-
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
+
+    Context &new_ctx = new_ep->get_mutable_ctx();
+    update_fwd_tput_calcs(new_ctx, ep, route_node, dst_device);
+
+    Module *module = new Forward(node, dst_device);
+    EPNode *ep_node = new EPNode(module);
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});

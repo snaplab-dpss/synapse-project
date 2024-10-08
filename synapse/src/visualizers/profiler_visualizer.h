@@ -20,7 +20,7 @@ public:
 
     opts.colors_per_node = get_colors_per_node(hrpn);
     opts.default_color.first = true;
-    opts.annotations_per_node = get_annocations_per_node(profiler, hrpn);
+    opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
     opts.default_color.second = fraction_to_color(0);
 
     BDDVisualizer::visualize(bdd, interrupt, opts);
@@ -44,28 +44,14 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string> get_annocations_per_node(
-      const Profiler &profiler,
+      const BDD *bdd, const Profiler &profiler,
       const std::unordered_map<node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<node_id_t, std::string> annocations_per_node;
-    const bdd_profile_t &bdd_profile = profiler.get_bdd_profile();
 
     for (const auto &[node, fraction] : hrpn) {
       std::string color = fraction_to_color(fraction);
       std::stringstream ss;
       ss << "HR: " << std::fixed << fraction;
-
-      for (const bdd_profile_t::map_stats_t &map_stats :
-           bdd_profile.map_stats) {
-        if (map_stats.node != node) {
-          continue;
-        }
-
-        ss << "\\n";
-        ss << "Flows: " << int2hr(map_stats.flows);
-        ss << "\\n";
-        ss << "Avg pkts/flow: " << int2hr(map_stats.avg_pkts_per_flow);
-      }
-
       annocations_per_node[node] = ss.str();
     }
 

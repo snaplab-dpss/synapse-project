@@ -1,5 +1,6 @@
 #include "execution_plan.h"
 #include "../targets/targets.h"
+#include "../visualizers/profiler_visualizer.h"
 
 static pps_t pps_from_ingress_tput(pps_t ingress, const Profiler &profiler) {
   pps_t egress = 0;
@@ -11,7 +12,7 @@ static pps_t pps_from_ingress_tput(pps_t ingress, const Profiler &profiler) {
     auto [node, node_ingress] = nrp.back();
     nrp.pop_back();
 
-    pps_t node_egress = 0;
+    pps_t node_egress = node_ingress;
 
     for (auto [ep_node_id, tput_calc] : node->annotations) {
       node_egress = tput_calc(node_ingress);
@@ -49,7 +50,7 @@ static pps_t pps_from_ingress_tput(pps_t ingress, const Profiler &profiler) {
   return egress;
 }
 
-pps_t unstable_pps_from_ctx(const Context &ctx) {
+pps_t EP::unstable_pps_from_ctx(const Context &ctx) const {
   const tofino::TofinoContext *tofino_ctx =
       ctx.get_target_ctx<tofino::TofinoContext>();
 
@@ -67,7 +68,7 @@ pps_t unstable_pps_from_ctx(const Context &ctx) {
   return egress;
 }
 
-pps_t stable_pps_from_ctx(const Context &ctx) {
+pps_t EP::stable_pps_from_ctx(const Context &ctx) const {
   const tofino::TofinoContext *tofino_ctx =
       ctx.get_target_ctx<tofino::TofinoContext>();
 
@@ -86,9 +87,9 @@ pps_t stable_pps_from_ctx(const Context &ctx) {
   pps_t prev_ingress = ingress;
   pps_t diff = smallest_unstable;
 
-  int it = 0;
-
-  while (diff > 10) {
+  // Algorithm for converging to a stable throughput (basically a binary
+  // search). This hopefully doesn't take many iterations...
+  while (diff > STABLE_TPUT_PRECISION) {
     prev_ingress = ingress;
     egress = pps_from_ingress_tput(ingress, profiler);
 
@@ -101,15 +102,12 @@ pps_t stable_pps_from_ctx(const Context &ctx) {
 
     diff = ingress > prev_ingress ? ingress - prev_ingress
                                   : prev_ingress - ingress;
-    it++;
   }
-
-  std::cerr << "Iterations: " << it << std::endl;
 
   return egress;
 }
 
-static pps_t pps_from_ctx(const Context &ctx) {
+pps_t EP::pps_from_ctx(const Context &ctx) const {
   // pps_t estimation_pps = unstable_pps_from_ctx(ctx);
   pps_t estimation_pps = stable_pps_from_ctx(ctx);
   return estimation_pps;
@@ -345,4 +343,6 @@ pps_t EP::speculate_tput_pps() const {
   return pps_from_ctx(speculative_ctx);
 }
 
-pps_t EP::estimate_tput_pps() const { return pps_from_ctx(ctx); }
+pps_t EP::estimate_tput_pps() const {
+  // return pps_from_ctx(ctx);
+}

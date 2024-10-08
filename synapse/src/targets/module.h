@@ -7,6 +7,7 @@
 #include "../visualizers/ep_visualizer.h"
 #include "../visualizers/profiler_visualizer.h"
 #include "../execution_plan/visitor.h"
+#include "../util.h"
 #include "../log.h"
 
 class EP;
@@ -400,6 +401,12 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   return os;
 }
 
+inline std::string to_string(ModuleType type) {
+  std::stringstream ss;
+  ss << type;
+  return ss.str();
+}
+
 class Module {
 protected:
   ModuleType type;
@@ -437,4 +444,8 @@ public:
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const = 0;
   virtual Module *clone() const = 0;
+
+  virtual pps_t compute_egress_tput(const EP *ep, pps_t ingress) const {
+    return ingress;
+  }
 };

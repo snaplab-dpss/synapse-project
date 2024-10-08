@@ -77,6 +77,8 @@ public:
 
   std::vector<const EPNode *> get_prev_nodes() const;
   std::vector<const EPNode *> get_prev_nodes_of_current_target() const;
+  std::vector<const EPNode *>
+  get_nodes_by_type(const std::unordered_set<ModuleType> &types) const;
 
   bool has_target(TargetType type) const;
   const Node *get_next_node() const;
@@ -114,6 +116,10 @@ public:
   void inspect() const;
 
 private:
+  pps_t stable_pps_from_ctx(const Context &ctx) const;
+  pps_t unstable_pps_from_ctx(const Context &ctx) const;
+  pps_t pps_from_ctx(const Context &ctx) const;
+
   EPLeaf *get_mutable_active_leaf();
   constraints_t get_active_leaf_constraints() const;
 

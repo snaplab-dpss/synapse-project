@@ -11,8 +11,9 @@
 #include "exprs/exprs.h"
 
 enum class ModuleType;
-class Module;
 class EP;
+class Module;
+class Context;
 
 bool check_same_obj(const Call *call0, const Call *call1,
                     const std::string &obj_name);
@@ -184,3 +185,7 @@ bool is_tb_tracing_check_followed_by_update_on_true(
 std::string int2hr(u64 value);
 std::string tput2str(u64 thpt, const std::string &units,
                      bool human_readable = false);
+
+void update_fwd_tput_calcs(Context &ctx, const EP *ep, const Node *node,
+                           int dst_device);
+void update_s2c_tput_calc(Context &ctx, const EP *ep, const Node *node);

@@ -5,7 +5,6 @@
 #include "bdd/bdd.h"
 #include "types.h"
 
-typedef std::vector<klee::ref<klee::Expr>> constraints_t;
 typedef std::function<pps_t(pps_t)> tput_calc_fn;
 
 struct FlowStats {
@@ -17,7 +16,7 @@ struct FlowStats {
 };
 
 struct profiler_node_annotation_t {
-  std::optional<ep_node_id_t> ep_node_id;
+  node_id_t node;
   tput_calc_fn tput_calc;
 };
 
@@ -33,9 +32,8 @@ struct ProfilerNode {
 
   std::vector<profiler_node_annotation_t> annotations;
 
-  ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction);
-  ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction,
-               node_id_t _bdd_node_id);
+  ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
+  ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr, node_id_t node);
   ~ProfilerNode();
 
   ProfilerNode *clone(bool keep_bdd_info) const;
@@ -47,12 +45,12 @@ struct ProfilerNode {
 
 class Profiler {
 private:
-  bdd_profile_t bdd_profile;
   ProfilerNode *root;
+  int avg_pkt_size;
 
 public:
-  Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile);
-  Profiler(const BDD *bdd, const std::string &_bdd_profile_fname);
+  Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile);
+  Profiler(const BDD *bdd, const std::string &bdd_profile_fname);
   Profiler(const BDD *bdd);
 
   Profiler(const Profiler &other);
@@ -63,31 +61,28 @@ public:
 
   int get_avg_pkt_bytes() const;
 
-  void insert(const constraints_t &constraints,
-              klee::ref<klee::Expr> constraint, hit_rate_t fraction_on_true);
-  void insert_relative(const constraints_t &constraints,
-                       klee::ref<klee::Expr> constraint,
-                       hit_rate_t rel_fraction_on_true);
+  void insert(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
+              hit_rate_t hr_on_true);
+  void insert_relative(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
+                       hit_rate_t rel_hr_on_true);
   void remove(const constraints_t &constraints);
   void scale(const constraints_t &constraints, hit_rate_t factor);
-  void add_tput_calc(const constraints_t &constraints, tput_calc_fn new_calc);
-  void add_tput_calc(const constraints_t &constraints, tput_calc_fn new_calc,
-                     ep_node_id_t ep_node_id);
+  void add_tput_calc(const constraints_t &cnstrs, node_id_t node,
+                     tput_calc_fn fn);
+  void set_tput_calc(const constraints_t &cnstrs, node_id_t node,
+                     tput_calc_fn fn);
 
   const ProfilerNode *get_root() const { return root; }
-  std::optional<hit_rate_t>
-  get_fraction(const constraints_t &constraints) const;
-  std::optional<FlowStats> get_flow_stats(const constraints_t &constraints,
-                                          klee::ref<klee::Expr> flow_id) const;
-  const bdd_profile_t &get_bdd_profile() const { return bdd_profile; }
+  std::optional<hit_rate_t> get_fraction(const constraints_t &cnstrs) const;
+  std::optional<FlowStats> get_flow_stats(const constraints_t &cnstrs,
+                                          klee::ref<klee::Expr> flow) const;
 
   void log_debug() const;
 
 private:
-  ProfilerNode *get_node(const constraints_t &constraints) const;
+  ProfilerNode *get_node(const constraints_t &cnstrs) const;
 
-  void append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
-              hit_rate_t fraction);
+  void append(ProfilerNode *node, klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void remove(ProfilerNode *node);
-  void replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fraction);
+  void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
 };

@@ -65,7 +65,7 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
       return NodeVisitAction::VISIT_CHILDREN;
     }
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "expire_items_single_map") {
@@ -295,7 +295,7 @@ const tofino::TofinoContext *
 Context::get_target_ctx<tofino::TofinoContext>() const {
   TargetType type = TargetType::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end());
-  return static_cast<const tofino::TofinoContext *>(target_ctxs.at(type));
+  return dynamic_cast<const tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
 template <>
@@ -303,7 +303,7 @@ const tofino_cpu::TofinoCPUContext *
 Context::get_target_ctx<tofino_cpu::TofinoCPUContext>() const {
   TargetType type = TargetType::TofinoCPU;
   assert(target_ctxs.find(type) != target_ctxs.end());
-  return static_cast<const tofino_cpu::TofinoCPUContext *>(
+  return dynamic_cast<const tofino_cpu::TofinoCPUContext *>(
       target_ctxs.at(type));
 }
 
@@ -311,7 +311,7 @@ template <>
 const x86::x86Context *Context::get_target_ctx<x86::x86Context>() const {
   TargetType type = TargetType::x86;
   assert(target_ctxs.find(type) != target_ctxs.end());
-  return static_cast<const x86::x86Context *>(target_ctxs.at(type));
+  return dynamic_cast<const x86::x86Context *>(target_ctxs.at(type));
 }
 
 template <>
@@ -319,7 +319,7 @@ tofino::TofinoContext *
 Context::get_mutable_target_ctx<tofino::TofinoContext>() {
   TargetType type = TargetType::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end());
-  return static_cast<tofino::TofinoContext *>(target_ctxs.at(type));
+  return dynamic_cast<tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
 template <>
@@ -327,14 +327,14 @@ tofino_cpu::TofinoCPUContext *
 Context::get_mutable_target_ctx<tofino_cpu::TofinoCPUContext>() {
   TargetType type = TargetType::TofinoCPU;
   assert(target_ctxs.find(type) != target_ctxs.end());
-  return static_cast<tofino_cpu::TofinoCPUContext *>(target_ctxs.at(type));
+  return dynamic_cast<tofino_cpu::TofinoCPUContext *>(target_ctxs.at(type));
 }
 
 template <>
 x86::x86Context *Context::get_mutable_target_ctx<x86::x86Context>() {
   TargetType type = TargetType::x86;
   assert(target_ctxs.find(type) != target_ctxs.end());
-  return static_cast<x86::x86Context *>(target_ctxs.at(type));
+  return dynamic_cast<x86::x86Context *>(target_ctxs.at(type));
 }
 
 void Context::save_placement(addr_t obj, PlacementDecision decision) {

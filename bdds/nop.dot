@@ -1,8 +1,14 @@
 digraph mygraph {
 	node [shape=box, style="rounded,filled", border=0];
-	1 [label="1:fwd(0)", fillcolor="chartreuse2"];
-	2 [label="2:fwd(1)", fillcolor="chartreuse2"];
-	0 [shape=Mdiamond, label="0:(0 != DEVICE)", fillcolor="yellow"];
-	0 -> 1 [label="True"];
-	0 -> 2 [label="False"];
+	3 [label="3:fwd(0)", fillcolor="chartreuse2"];
+	2 [label="2:packet_return_chunk(\l  p:1073949208,\l  the_chunk:1073759424[packet_chunks[7:14]++0++packet_chunks[0:6]])", fillcolor="cornflowerblue"];
+	2 -> 3;
+	5 [label="5:fwd(0)", fillcolor="chartreuse2"];
+	4 [label="4:packet_return_chunk(\l  p:1073960648,\l  the_chunk:1073759424[packet_chunks[7:14]++1++packet_chunks[0:6]])", fillcolor="cornflowerblue"];
+	4 -> 5;
+	1 [shape=Mdiamond, label="1:(0 != DEVICE)", fillcolor="yellow"];
+	1 -> 2 [label="True"];
+	1 -> 4 [label="False"];
+	0 [label="0:packet_borrow_next_chunk(\l  p:1073949208,\l  length:14,\l  chunk:1073959440[ -> 1073759424])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
+	0 -> 1;
 }

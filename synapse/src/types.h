@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 #include <unordered_set>
+#include <vector>
+
+#include <klee/Constraints.h>
 
 #define MIN_THROUGHPUT_GIGABIT_PER_SEC 1   // Gbps
 #define MAX_THROUGHPUT_GIGABIT_PER_SEC 100 // Gbps
@@ -69,5 +72,7 @@ typedef double hit_rate_t;
 
 #define CONTROLLER_CAPACITY_PPS ((pps_t)100'000)
 #define CPU_CAPACITY_PPS ((pps_t)120'000'000)
+#define STABLE_TPUT_PRECISION 100 // pps
 
 typedef u64 ep_node_id_t;
+typedef std::vector<klee::ref<klee::Expr>> constraints_t;

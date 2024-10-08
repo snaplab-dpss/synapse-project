@@ -8,6 +8,7 @@
 #include <klee/Constraints.h>
 
 #include "../../call_paths/call_paths.h"
+#include "../../types.h"
 
 class BDDVisitor;
 class NodeManager;
@@ -54,7 +55,7 @@ public:
 
   const klee::ConstraintManager &get_constraints() const { return constraints; }
 
-  std::vector<klee::ref<klee::Expr>> get_ordered_branch_constraints() const;
+  constraints_t get_ordered_branch_constraints() const;
 
   Node *get_mutable_next() { return next; }
   Node *get_mutable_prev() { return prev; }

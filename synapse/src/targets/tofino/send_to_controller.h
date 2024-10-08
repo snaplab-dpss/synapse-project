@@ -37,6 +37,7 @@ protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     Context new_ctx = ctx;
+    update_s2c_tput_calc(new_ctx, ep, node);
 
     Profiler &profiler = new_ctx.get_mutable_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
@@ -44,7 +45,6 @@ protected:
     std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
     assert(fraction.has_value());
 
-    profiler.add_tput_calc(constraints, tput_calc_generator(ep));
     new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
                                      *fraction);
 
@@ -62,16 +62,13 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
+    Context &new_ctx = new_ep->get_mutable_ctx();
+    update_s2c_tput_calc(new_ctx, ep, node);
+
     symbols_t symbols = get_dataplane_state(ep, node);
 
     Module *module = new SendToController(node, symbols);
     EPNode *ep_node = new EPNode(module);
-
-    Context &new_ctx = new_ep->get_mutable_ctx();
-    Profiler &profiler = new_ctx.get_mutable_profiler();
-    constraints_t constraints = node->get_ordered_branch_constraints();
-    profiler.add_tput_calc(constraints, tput_calc_generator(ep),
-                           ep_node->get_id());
 
     // Now we need to replicate the parsing operations that were done before.
     BDD *new_bdd = nullptr;
@@ -121,10 +118,6 @@ private:
     next = new_next;
 
     return true;
-  }
-
-  tput_calc_fn tput_calc_generator(const EP *ep) const {
-    return [](pps_t in) { return std::min(in, CONTROLLER_CAPACITY_PPS); };
   }
 };
 

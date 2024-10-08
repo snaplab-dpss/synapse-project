@@ -262,6 +262,17 @@ private:
       new_ep->remove_hit_rate_node(deleted_branch_constraints.value());
     }
 
+    Context &new_ctx = new_ep->get_mutable_ctx();
+    update_s2c_tput_calc(new_ctx, ep, on_cache_delete_failed);
+
+    {
+      // FIXME: remove this
+      std::cerr << "Delete!\n";
+      const Profiler &profiler = new_ctx.get_profiler();
+      profiler.log_debug();
+      DEBUG_PAUSE
+    }
+
     place_fcfs_cached_table(new_ep, map_erase, map_objs, cached_table);
 
     EPLeaf on_cache_delete_success_leaf(then_node, on_cache_delete_success);

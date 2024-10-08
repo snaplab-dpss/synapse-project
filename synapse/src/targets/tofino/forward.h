@@ -45,11 +45,10 @@ protected:
       return std::nullopt;
     }
 
-    Context new_ctx = ctx;
+    int dst_device = route_node->get_dst_device();
 
-    Profiler &profiler = new_ctx.get_mutable_profiler();
-    constraints_t constraints = node->get_ordered_branch_constraints();
-    profiler.add_tput_calc(constraints, tput_calc_generator(ep));
+    Context new_ctx = ctx;
+    update_fwd_tput_calcs(new_ctx, ep, route_node, dst_device);
 
     return spec_impl_t(decide(ep, node), new_ctx);
   }
@@ -74,14 +73,11 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
+    Context &new_ctx = new_ep->get_mutable_ctx();
+    update_fwd_tput_calcs(new_ctx, ep, route_node, dst_device);
+
     Module *module = new Forward(node, dst_device);
     EPNode *ep_node = new EPNode(module);
-
-    Context &new_ctx = new_ep->get_mutable_ctx();
-    Profiler &profiler = new_ctx.get_mutable_profiler();
-    constraints_t constraints = node->get_ordered_branch_constraints();
-    profiler.add_tput_calc(constraints, tput_calc_generator(ep),
-                           ep_node->get_id());
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
@@ -90,13 +86,6 @@ protected:
     tofino_ctx->parser_accept(ep, node);
 
     return impls;
-  }
-
-  tput_calc_fn tput_calc_generator(const EP *ep) const {
-    const TNA &tna = get_tna(ep);
-    const PerfOracle &perf_oracle = tna.get_perf_oracle();
-    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
-    return [port_capacity](pps_t in) { return std::min(in, port_capacity); };
   }
 };
 

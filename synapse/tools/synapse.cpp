@@ -188,7 +188,11 @@ int main(int argc, char **argv) {
   }
 
   if (show_bdd) {
-    BDDVisualizer::visualize(report.solution.ep->get_bdd(), false);
+    // BDDVisualizer::visualize(report.solution.ep->get_bdd(), false);
+    const BDD *solution_bdd = report.solution.ep->get_bdd();
+    const Context &ctx = report.solution.ep->get_ctx();
+    const Profiler &profiler = ctx.get_profiler();
+    ProfilerVisualizer::visualize(bdd, profiler, false);
   }
 
   const Context &ctx = report.solution.ep->get_ctx();

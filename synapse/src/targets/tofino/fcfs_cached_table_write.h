@@ -285,6 +285,17 @@ private:
 
     place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
 
+    Context &new_ctx = new_ep->get_mutable_ctx();
+    update_s2c_tput_calc(new_ctx, new_ep, on_cache_write_failed);
+
+    {
+      // FIXME: remove this
+      std::cerr << "Write!\n";
+      const Profiler &profiler = new_ctx.get_profiler();
+      profiler.log_debug();
+      DEBUG_PAUSE
+    }
+
     EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
     EPLeaf on_cache_write_failed_leaf(send_to_controller_node,
                                       on_cache_write_failed);

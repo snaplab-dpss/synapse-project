@@ -137,6 +137,28 @@ std::vector<const EPNode *> EP::get_prev_nodes_of_current_target() const {
   return prev_nodes;
 }
 
+std::vector<const EPNode *>
+EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
+  std::vector<const EPNode *> found;
+
+  if (!root) {
+    return found;
+  }
+
+  root->visit_nodes([&found, &types](const EPNode *node) {
+    const Module *module = node->get_module();
+    assert(module);
+
+    if (types.find(module->get_type()) != types.end()) {
+      found.push_back(node);
+    }
+
+    return EPNodeVisitAction::VISIT_CHILDREN;
+  });
+
+  return found;
+}
+
 bool EP::has_target(TargetType type) const {
   auto found_it = std::find_if(
       targets.begin(), targets.end(),

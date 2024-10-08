@@ -71,8 +71,7 @@ size_t Node::count_code_paths() const {
   return paths;
 }
 
-std::vector<klee::ref<klee::Expr>>
-Node::get_ordered_branch_constraints() const {
+constraints_t Node::get_ordered_branch_constraints() const {
   std::vector<klee::ref<klee::Expr>> constraints;
 
   const Node *node = this;
