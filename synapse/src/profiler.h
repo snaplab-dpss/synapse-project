@@ -5,19 +5,12 @@
 #include "bdd/bdd.h"
 #include "types.h"
 
-typedef std::function<pps_t(pps_t)> tput_calc_fn;
-
 struct FlowStats {
   klee::ref<klee::Expr> flow_id;
   u64 packets;
   u64 flows;
   u64 avg_pkts_per_flow;
   std::vector<u64> packets_per_flow;
-};
-
-struct profiler_node_annotation_t {
-  node_id_t node;
-  tput_calc_fn tput_calc;
 };
 
 struct ProfilerNode {
@@ -29,8 +22,6 @@ struct ProfilerNode {
   ProfilerNode *on_true;
   ProfilerNode *on_false;
   ProfilerNode *prev;
-
-  std::vector<profiler_node_annotation_t> annotations;
 
   ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr, node_id_t node);
@@ -67,10 +58,6 @@ public:
                        hit_rate_t rel_hr_on_true);
   void remove(const constraints_t &constraints);
   void scale(const constraints_t &constraints, hit_rate_t factor);
-  void add_tput_calc(const constraints_t &cnstrs, node_id_t node,
-                     tput_calc_fn fn);
-  void set_tput_calc(const constraints_t &cnstrs, node_id_t node,
-                     tput_calc_fn fn);
 
   const ProfilerNode *get_root() const { return root; }
   std::optional<hit_rate_t> get_fraction(const constraints_t &cnstrs) const;

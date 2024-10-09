@@ -19,6 +19,9 @@
 #define MILLION 1000000LLU
 #define BILLION 1000000000LLU
 
+#define NEWTON_MAX_ITERATIONS 10
+#define NEWTON_PRECISION 1e-3
+
 #define UINT_16_SWAP_ENDIANNESS(p) ((((p) & 0xff) << 8) | ((p) >> 8 & 0xff))
 
 typedef uint64_t u64;

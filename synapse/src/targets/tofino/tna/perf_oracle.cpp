@@ -4,9 +4,6 @@
 
 #include "tna.h"
 
-#define NEWTON_MAX_ITERATIONS 10
-#define NEWTON_PRECISION 1e-3
-
 namespace tofino {
 
 PerfOracle::PerfOracle(const TNAProperties *properties, int _avg_pkt_bytes)

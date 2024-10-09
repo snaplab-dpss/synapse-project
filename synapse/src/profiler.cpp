@@ -13,12 +13,12 @@ static hit_rate_t clamp_fraction(hit_rate_t fraction) {
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint,
                            hit_rate_t _fraction)
     : constraint(_constraint), fraction(_fraction), on_true(nullptr),
-      on_false(nullptr), prev(nullptr), annotations() {}
+      on_false(nullptr), prev(nullptr) {}
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint,
                            hit_rate_t _fraction, node_id_t _node_id)
     : constraint(_constraint), fraction(_fraction), bdd_node_id(_node_id),
-      on_true(nullptr), on_false(nullptr), prev(nullptr), annotations() {}
+      on_true(nullptr), on_false(nullptr), prev(nullptr) {}
 
 ProfilerNode::~ProfilerNode() {
   if (on_true) {
@@ -51,8 +51,6 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
     new_node->on_false->prev = new_node;
   }
 
-  new_node->annotations = annotations;
-
   return new_node;
 }
 
@@ -71,10 +69,6 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
   for (const FlowStats &flow_stats : node.flows_stats) {
     os << ", ";
     os << "#flows=" << flow_stats.flows;
-  }
-  for (const profiler_node_annotation_t &annotation : node.annotations) {
-    os << ", ";
-    os << "tput_lambda_set_by=" << annotation.node;
   }
   os << ">";
 
@@ -529,29 +523,6 @@ void Profiler::scale(const constraints_t &constraints, hit_rate_t factor) {
 
   recursive_update_fractions(node->on_true, old_fraction, new_fraction);
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
-}
-
-void Profiler::add_tput_calc(const constraints_t &constraints,
-                             node_id_t node_id, tput_calc_fn fn) {
-  ProfilerNode *node = get_node(constraints);
-  assert(node);
-  profiler_node_annotation_t new_annotation{node_id, fn};
-  node->annotations.push_back(new_annotation);
-}
-
-void Profiler::set_tput_calc(const constraints_t &constraints,
-                             node_id_t node_id, tput_calc_fn fn) {
-  ProfilerNode *node = get_node(constraints);
-  assert(node);
-
-  for (profiler_node_annotation_t &annotation : node->annotations) {
-    if (annotation.node == node_id) {
-      annotation.tput_calc = fn;
-      return;
-    }
-  }
-
-  PANIC("Tput calc not found for node_id=%lu", node_id);
 }
 
 std::optional<hit_rate_t>

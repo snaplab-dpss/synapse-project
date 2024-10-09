@@ -24,6 +24,60 @@ public:
   }
 
   int get_dst_device() const { return dst_device; }
+
+  virtual pps_t compute_egress_tput(const EP *ep,
+                                    pps_t ingress) const override {
+    const Context &ctx = ep->get_ctx();
+    const Profiler &profiler = ctx.get_profiler();
+
+    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+    const TNA &tna = tofino_ctx->get_tna();
+    const PerfOracle &perf_oracle = tna.get_perf_oracle();
+
+    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
+    constraints_t constraints = node->get_ordered_branch_constraints();
+    std::optional<hit_rate_t> opt_hr = profiler.get_fraction(constraints);
+    assert(opt_hr.has_value());
+    hit_rate_t hr = opt_hr.value();
+
+    // Look for other forwarding modules sending the packet to the same port.
+    // If there are any, they share the same port capacity.
+    // If they send more traffic than the port capacity, proportionality of
+    // profiling hit rate should be considered.
+    std::vector<const EPNode *> fwd_nodes = ep->get_nodes_by_type({
+        ModuleType::Tofino_Forward,
+    });
+
+    hit_rate_t total_hr = hr;
+
+    for (const EPNode *fwd_node : fwd_nodes) {
+      const Module *fwd_module = fwd_node->get_module();
+      assert(fwd_module->get_type() == ModuleType::Tofino_Forward);
+
+      const Forward *fwd = dynamic_cast<const Forward *>(fwd_module);
+
+      if (fwd->get_dst_device() != dst_device) {
+        continue;
+      }
+
+      constraints_t fwd_constraints = ctx.get_node_constraints(fwd_node);
+      std::optional<hit_rate_t> fwd_hr = profiler.get_fraction(fwd_constraints);
+      assert(fwd_hr.has_value());
+
+      total_hr += fwd_hr.value();
+    }
+
+    pps_t egress = ingress;
+
+    // If the sum of all the traffic is more than the port capacity, then we
+    // should keep proportionality of the profiling hit rate per forwarding
+    // module.
+    if (ingress > (hr / total_hr) * port_capacity) {
+      egress = (hr / total_hr) * port_capacity;
+    }
+
+    return egress;
+  }
 };
 
 class ForwardGenerator : public TofinoModuleGenerator {
@@ -45,12 +99,7 @@ protected:
       return std::nullopt;
     }
 
-    int dst_device = route_node->get_dst_device();
-
-    Context new_ctx = ctx;
-    update_fwd_tput_calcs(new_ctx, ep, route_node, dst_device);
-
-    return spec_impl_t(decide(ep, node), new_ctx);
+    return spec_impl_t(decide(ep, node), ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -72,9 +121,6 @@ protected:
 
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
-
-    Context &new_ctx = new_ep->get_mutable_ctx();
-    update_fwd_tput_calcs(new_ctx, ep, route_node, dst_device);
 
     Module *module = new Forward(node, dst_device);
     EPNode *ep_node = new EPNode(module);

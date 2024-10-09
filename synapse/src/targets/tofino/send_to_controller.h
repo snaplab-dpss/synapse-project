@@ -25,6 +25,54 @@ public:
   }
 
   const symbols_t &get_symbols() const { return symbols; }
+
+  virtual pps_t compute_egress_tput(const EP *ep,
+                                    pps_t ingress) const override {
+    const Context &ctx = ep->get_ctx();
+    const Profiler &profiler = ctx.get_profiler();
+
+    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+    const TNA &tna = tofino_ctx->get_tna();
+    const PerfOracle &perf_oracle = tna.get_perf_oracle();
+
+    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
+    constraints_t constraints = node->get_ordered_branch_constraints();
+    std::optional<hit_rate_t> opt_hr = profiler.get_fraction(constraints);
+    assert(opt_hr.has_value());
+    hit_rate_t hr = opt_hr.value();
+
+    // Look for other send to controller modules, as they share the same
+    // interface. If they send more traffic than the controller capacity,
+    // proportionality of profiling hit rate should be considered.
+    std::vector<const EPNode *> s2c_nodes = ep->get_nodes_by_type({
+        ModuleType::Tofino_SendToController,
+    });
+
+    hit_rate_t total_hr = hr;
+
+    for (const EPNode *s2c_node : s2c_nodes) {
+      const Module *s2c_module = s2c_node->get_module();
+      assert(s2c_module->get_type() == ModuleType::Tofino_SendToController);
+      const SendToController *s2c =
+          dynamic_cast<const SendToController *>(s2c_module);
+
+      constraints_t s2c_constraints = ctx.get_node_constraints(s2c_node);
+      std::optional<hit_rate_t> s2c_hr = profiler.get_fraction(s2c_constraints);
+      assert(s2c_hr.has_value());
+
+      total_hr += s2c_hr.value();
+    }
+
+    pps_t egress = ingress;
+
+    // If the sum of all the traffic is more than the capacity, then we
+    // should keep proportionality of the profiling hit rate per module.
+    if (ingress > (hr / total_hr) * CONTROLLER_CAPACITY_PPS) {
+      egress = (hr / total_hr) * CONTROLLER_CAPACITY_PPS;
+    }
+
+    return egress;
+  }
 };
 
 class SendToControllerGenerator : public TofinoModuleGenerator {
@@ -37,7 +85,6 @@ protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     Context new_ctx = ctx;
-    update_s2c_tput_calc(new_ctx, ep, node);
 
     Profiler &profiler = new_ctx.get_mutable_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
@@ -61,9 +108,6 @@ protected:
     // We can always send to the controller, at any point in time.
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
-
-    Context &new_ctx = new_ep->get_mutable_ctx();
-    update_s2c_tput_calc(new_ctx, ep, node);
 
     symbols_t symbols = get_dataplane_state(ep, node);
 

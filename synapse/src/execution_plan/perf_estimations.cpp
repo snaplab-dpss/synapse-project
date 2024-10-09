@@ -2,49 +2,101 @@
 #include "../targets/targets.h"
 #include "../visualizers/profiler_visualizer.h"
 
-static pps_t pps_from_ingress_tput(pps_t ingress, const Profiler &profiler) {
+struct leaf_tput_t {
+  const EPNode *node;
+  const Node *next;
+  pps_t tput;
+};
+
+static std::vector<leaf_tput_t> compute_leaves_egress_tput(const EP *ep,
+                                                           pps_t ingress) {
+  std::vector<leaf_tput_t> leaves_tput;
+
+  const EPNode *root = ep->get_root();
+  const std::vector<EPLeaf> &leaves = ep->get_leaves();
+
+  if (!root) {
+    assert(leaves.size() == 1);
+    leaves_tput.push_back({leaves[0].node, leaves[0].next, ingress});
+    return leaves_tput;
+  }
+
+  const Context &ctx = ep->get_ctx();
+  const Profiler &profiler = ctx.get_profiler();
+
+  struct node_tput_t {
+    const EPNode *node;
+    pps_t ingress;
+  };
+
+  std::vector<node_tput_t> nodes({{root, ingress}});
+
+  while (!nodes.empty()) {
+    node_tput_t node_tput = nodes.back();
+    nodes.pop_back();
+
+    const EPNode *node = node_tput.node;
+    const Module *module = node->get_module();
+
+    pps_t node_ingress = node_tput.ingress;
+    pps_t node_egress = module->compute_egress_tput(ep, node_ingress);
+
+    auto leaf_it =
+        std::find_if(leaves.begin(), leaves.end(),
+                     [node](const EPLeaf &leaf) { return leaf.node == node; });
+
+    if (leaf_it != leaves.end()) {
+      leaves_tput.push_back({leaf_it->node, leaf_it->next, node_egress});
+      continue;
+    }
+
+    const std::vector<EPNode *> &children = node->get_children();
+
+    if (children.empty()) {
+      leaves_tput.push_back({node, nullptr, node_egress});
+      continue;
+    }
+
+    if (children.size() == 1) {
+      nodes.push_back({children[0], node_egress});
+      continue;
+    }
+
+    assert(children.size() == 2 && "Node with more than 2 children.");
+
+    const EPNode *lhs = children[0];
+    const EPNode *rhs = children[1];
+
+    constraints_t lhs_cnstrs = ctx.get_node_constraints(lhs);
+    constraints_t rhs_cnstrs = ctx.get_node_constraints(rhs);
+
+    std::optional<hit_rate_t> lhs_hr = profiler.get_fraction(lhs_cnstrs);
+    std::optional<hit_rate_t> rhs_hr = profiler.get_fraction(rhs_cnstrs);
+
+    assert(lhs_hr.has_value());
+    assert(rhs_hr.has_value());
+
+    hit_rate_t total_hr = lhs_hr.value() + rhs_hr.value();
+    hit_rate_t lhs_rl_hr = lhs_hr.value() / total_hr;
+    hit_rate_t rhs_rl_hr = rhs_hr.value() / total_hr;
+
+    pps_t lhs_ingress = lhs_rl_hr * node_egress;
+    pps_t rhs_ingress = rhs_rl_hr * node_egress;
+
+    nodes.push_back({lhs, lhs_ingress});
+    nodes.push_back({rhs, rhs_ingress});
+  }
+
+  return leaves_tput;
+}
+
+pps_t EP::pps_from_ingress_tput(pps_t ingress) const {
+  std::vector<leaf_tput_t> leaves_tput =
+      compute_leaves_egress_tput(this, ingress);
+
   pps_t egress = 0;
-
-  std::vector<std::pair<const ProfilerNode *, pps_t>> nrp = {
-      {profiler.get_root(), ingress}};
-
-  while (!nrp.empty()) {
-    auto [node, node_ingress] = nrp.back();
-    nrp.pop_back();
-
-    pps_t node_egress = node_ingress;
-
-    for (auto [ep_node_id, tput_calc] : node->annotations) {
-      node_egress = tput_calc(node_ingress);
-      node_ingress = node_egress;
-    }
-
-    if (node->on_true == nullptr && node->on_false == nullptr) {
-      egress += node_egress;
-      continue;
-    }
-
-    if (node->on_true != nullptr && node->on_false != nullptr) {
-      ProfilerNode *on_true = node->on_true;
-      ProfilerNode *on_false = node->on_false;
-
-      hit_rate_t total_hr = node->fraction;
-      hit_rate_t on_true_rl_hr = on_true->fraction / total_hr;
-      hit_rate_t on_false_rl_hr = on_false->fraction / total_hr;
-
-      pps_t in_on_true = on_true_rl_hr * node_egress;
-      pps_t in_on_false = on_false_rl_hr * node_egress;
-
-      nrp.push_back({on_true, in_on_true});
-      nrp.push_back({on_false, in_on_false});
-
-      continue;
-    }
-
-    assert(node->on_true != nullptr);
-    assert(node->on_false == nullptr);
-
-    nrp.push_back({node->on_true, node_egress});
+  for (const leaf_tput_t &leaf_tput : leaves_tput) {
+    egress += leaf_tput.tput;
   }
 
   return egress;
@@ -57,13 +109,8 @@ pps_t EP::unstable_pps_from_ctx(const Context &ctx) const {
   const tofino::TNA &tna = tofino_ctx->get_tna();
   const tofino::PerfOracle perf_oracle = tna.get_perf_oracle();
 
-  const std::unordered_map<TargetType, hit_rate_t> &traffic_fractions =
-      ctx.get_traffic_fractions();
-
-  const Profiler &profiler = ctx.get_profiler();
-
   pps_t ingress = perf_oracle.get_max_input_pps();
-  pps_t egress = pps_from_ingress_tput(ingress, profiler);
+  pps_t egress = pps_from_ingress_tput(ingress);
 
   return egress;
 }
@@ -74,11 +121,6 @@ pps_t EP::stable_pps_from_ctx(const Context &ctx) const {
 
   const tofino::TNA &tna = tofino_ctx->get_tna();
   const tofino::PerfOracle perf_oracle = tna.get_perf_oracle();
-
-  const std::unordered_map<TargetType, hit_rate_t> &traffic_fractions =
-      ctx.get_traffic_fractions();
-
-  const Profiler &profiler = ctx.get_profiler();
 
   pps_t ingress = perf_oracle.get_max_input_pps();
   pps_t egress = 0;
@@ -91,7 +133,7 @@ pps_t EP::stable_pps_from_ctx(const Context &ctx) const {
   // search). This hopefully doesn't take many iterations...
   while (diff > STABLE_TPUT_PRECISION) {
     prev_ingress = ingress;
-    egress = pps_from_ingress_tput(ingress, profiler);
+    egress = pps_from_ingress_tput(ingress);
 
     if (egress < ingress) {
       smallest_unstable = ingress;
@@ -288,61 +330,105 @@ spec_impl_t EP::get_best_speculation(const Node *node,
 }
 
 pps_t EP::speculate_tput_pps() const {
-  Context speculative_ctx(ctx);
-  nodes_t skip;
+  return estimate_tput_pps();
 
-  std::vector<spec_impl_t> speculations;
+  // Context speculative_ctx(ctx);
+  // nodes_t skip;
 
-  for (const EPLeaf &leaf : leaves) {
-    const Node *node = leaf.next;
+  // std::vector<spec_impl_t> speculations;
 
-    if (!node) {
-      continue;
-    }
+  // for (const EPLeaf &leaf : leaves) {
+  //   const Node *node = leaf.next;
 
-    TargetType current_target;
-    constraints_t constraints;
+  //   if (!node) {
+  //     continue;
+  //   }
 
-    if (leaf.node) {
-      const Module *module = leaf.node->get_module();
-      current_target = module->get_next_target();
-      constraints = ctx.get_node_constraints(leaf.node);
-    } else {
-      current_target = get_current_platform();
-    }
+  //   TargetType current_target;
+  //   constraints_t constraints;
 
-    node->visit_nodes([this, &speculations, current_target, &speculative_ctx,
-                       &skip](const Node *node) {
-      if (skip.find(node->get_id()) != skip.end()) {
-        return NodeVisitAction::VISIT_CHILDREN;
-      }
+  //   if (leaf.node) {
+  //     const Module *module = leaf.node->get_module();
+  //     current_target = module->get_next_target();
+  //     constraints = ctx.get_node_constraints(leaf.node);
+  //   } else {
+  //     current_target = get_current_platform();
+  //   }
 
-      spec_impl_t speculation =
-          get_best_speculation(node, current_target, speculative_ctx, skip);
-      speculations.push_back(speculation);
+  //   node->visit_nodes([this, &speculations, current_target, &speculative_ctx,
+  //                      &skip](const Node *node) {
+  //     if (skip.find(node->get_id()) != skip.end()) {
+  //       return NodeVisitAction::VISIT_CHILDREN;
+  //     }
 
-      speculative_ctx = speculation.ctx;
-      skip = speculation.skip;
+  //     spec_impl_t speculation =
+  //         get_best_speculation(node, current_target, speculative_ctx, skip);
+  //     speculations.push_back(speculation);
 
-      if (speculation.next_target.has_value() &&
-          speculation.next_target.value() != current_target) {
-        return NodeVisitAction::SKIP_CHILDREN;
-      }
+  //     speculative_ctx = speculation.ctx;
+  //     skip = speculation.skip;
 
-      return NodeVisitAction::VISIT_CHILDREN;
-    });
-  }
+  //     if (speculation.next_target.has_value() &&
+  //         speculation.next_target.value() != current_target) {
+  //       return NodeVisitAction::SKIP_CHILDREN;
+  //     }
 
-  // if (id == 2) {
-  //   print_speculations(speculations);
-  //   // BDDVisualizer::visualize(bdd, true);
-  //   // EPVisualizer::visualize(this, false);
-  //   DEBUG_PAUSE
+  //     return NodeVisitAction::VISIT_CHILDREN;
+  //   });
   // }
 
-  return pps_from_ctx(speculative_ctx);
+  // // if (id == 2) {
+  // //   print_speculations(speculations);
+  // //   // BDDVisualizer::visualize(bdd, true);
+  // //   // EPVisualizer::visualize(this, false);
+  // //   DEBUG_PAUSE
+  // // }
+
+  // return pps_from_ctx(speculative_ctx);
 }
 
 pps_t EP::estimate_tput_pps() const {
-  // return pps_from_ctx(ctx);
+  const tofino::TofinoContext *tofino_ctx =
+      ctx.get_target_ctx<tofino::TofinoContext>();
+
+  const tofino::TNA &tna = tofino_ctx->get_tna();
+  const tofino::PerfOracle perf_oracle = tna.get_perf_oracle();
+
+  pps_t ingress = perf_oracle.get_max_input_pps();
+  pps_t egress = 0;
+
+  pps_t smallest_unstable = ingress;
+  pps_t prev_ingress = ingress;
+  pps_t diff = smallest_unstable;
+  std::cerr << "\n====================\n";
+
+  // Algorithm for converging to a stable throughput (basically a binary
+  // search). This hopefully doesn't take many iterations...
+  while (diff > STABLE_TPUT_PRECISION) {
+    prev_ingress = ingress;
+
+    std::vector<leaf_tput_t> leaves_tput =
+        compute_leaves_egress_tput(this, ingress);
+
+    egress = 0;
+    for (const leaf_tput_t &leaf_tput : leaves_tput)
+      egress += leaf_tput.tput;
+    egress = pps_from_ingress_tput(ingress);
+
+    std::cerr << "Ingress: " << ingress << std::endl;
+    std::cerr << "Egress:  " << egress << std::endl;
+    std::cerr << "\n";
+
+    if (egress < ingress) {
+      smallest_unstable = ingress;
+      ingress = (ingress + egress) / 2;
+    } else {
+      ingress = (ingress + smallest_unstable) / 2;
+    }
+
+    diff = ingress > prev_ingress ? ingress - prev_ingress
+                                  : prev_ingress - ingress;
+  }
+
+  return egress;
 }

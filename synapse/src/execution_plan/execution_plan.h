@@ -116,6 +116,7 @@ public:
   void inspect() const;
 
 private:
+  pps_t pps_from_ingress_tput(pps_t ingress) const;
   pps_t stable_pps_from_ctx(const Context &ctx) const;
   pps_t unstable_pps_from_ctx(const Context &ctx) const;
   pps_t pps_from_ctx(const Context &ctx) const;
