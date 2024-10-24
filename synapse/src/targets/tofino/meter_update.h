@@ -215,10 +215,6 @@ protected:
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
     place(ep, obj, PlacementDecision::Tofino_Meter);
     tofino_ctx->place(ep, obj, meter, deps);
-
-    Log::dbg() << "-> ~~~ NEW PLACEMENT ~~~ <-\n";
-    meter->log_debug();
-    tofino_ctx->get_tna().log_debug_placement();
   }
 
   BDD *delete_future_tb_update(EP *ep, const Node *node,

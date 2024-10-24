@@ -31,7 +31,7 @@ bits_t Meter::get_consumed_sram() const {
   return consumed * capacity;
 }
 
-void Meter::log_debug() const {
+void Meter::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "=========== METER ============\n";
   Log::dbg() << "ID:      " << id << "\n";

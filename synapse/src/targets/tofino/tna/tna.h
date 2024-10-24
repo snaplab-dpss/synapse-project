@@ -66,11 +66,10 @@ public:
   can_place_many(const std::vector<std::unordered_set<DS *>> &ds,
                  const std::unordered_set<DS_ID> &deps) const;
 
-  void log_debug_placement() const;
-  void log_debug_perf_oracle() const;
-
   const PerfOracle &get_perf_oracle() const;
   PerfOracle &get_mutable_perf_oracle();
+
+  void debug() const;
 };
 
 } // namespace tofino

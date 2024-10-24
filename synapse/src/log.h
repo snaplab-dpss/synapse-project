@@ -91,9 +91,13 @@ template <typename T> Log &operator<<(Log &log, T &&t) {
   if (log.level < Log::MINIMUM_LOG_LEVEL)
     return log;
 
-  log.stream << log.color;
-  log.stream << std::forward<T>(t);
-  log.stream << COLOR_RESET;
+  // Use a temporary stringstream to handle formatting
+  std::ostringstream temp_stream;
+  temp_stream << std::forward<T>(t);
+  std::string output = temp_stream.str();
+
+  // Now output to the main log stream with color
+  log.stream << log.color << output << COLOR_RESET;
 
   return log;
 }

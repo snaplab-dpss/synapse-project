@@ -29,7 +29,7 @@ struct FCFSCachedTable : public DS {
   FCFSCachedTable(const FCFSCachedTable &other);
 
   DS *clone() const override;
-  void log_debug() const override;
+  void debug() const override;
 
   bool has_table(int op) const;
   std::optional<DS_ID> add_table(int op);

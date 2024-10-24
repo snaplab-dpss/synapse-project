@@ -33,7 +33,7 @@ bits_t Table::get_consumed_sram() const {
   return consumed * num_entries;
 }
 
-void Table::log_debug() const {
+void Table::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "=========== TABLE ============\n";
   Log::dbg() << "ID:      " << id << "\n";

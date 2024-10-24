@@ -31,7 +31,6 @@ using namespace tofino;
 
 IGNORE_MODULE(tofino::Ignore)
 
-VISIT_BRANCH(tofino::IfSimple)
 VISIT_BRANCH(tofino::If)
 VISIT_BRANCH(tofino::ParserCondition)
 

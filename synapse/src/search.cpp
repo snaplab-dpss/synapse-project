@@ -60,7 +60,6 @@ struct search_step_report_t {
 static void log_search_iteration(const search_step_report_t &report,
                                  const search_meta_t &search_meta) {
   TargetType platform = report.chosen->get_current_platform();
-  const EPLeaf *leaf = report.chosen->get_active_leaf();
   const EPMeta &meta = report.chosen->get_meta();
 
   Log::dbg() << "\n";
@@ -69,10 +68,15 @@ static void log_search_iteration(const search_step_report_t &report,
   Log::dbg() << "EP ID:      " << report.chosen->get_id() << "\n";
   Log::dbg() << "Target:     " << platform << "\n";
   Log::dbg() << "Available:  " << report.available_execution_plans << "\n";
-  if (leaf && leaf->node) {
-    const Module *module = leaf->node->get_module();
-    Log::dbg() << "Leaf:       " << module->get_name() << "\n";
+
+  if (report.chosen->has_active_leaf()) {
+    EPLeaf leaf = report.chosen->get_active_leaf();
+    if (leaf.node) {
+      const Module *module = leaf.node->get_module();
+      Log::dbg() << "Leaf:       " << module->get_name() << "\n";
+    }
   }
+
   Log::dbg() << "Node:       " << report.current->dump(true) << "\n";
 
   assert(report.targets.size() == report.name.size() &&
@@ -125,6 +129,11 @@ static void peek_search_space(const std::vector<impl_t> &new_implementations,
                               SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
     if (peek.find(impl.result->get_id()) != peek.end()) {
+      Log::dbg() << "\n";
+      Log::dbg() << "Peeking Execution Plan #" << impl.result->get_id() << "\n";
+
+      impl.result->debug();
+
       BDDVisualizer::visualize(impl.result->get_bdd(), false);
       EPVisualizer::visualize(impl.result, false);
       SSVisualizer::visualize(search_space, impl.result, true);

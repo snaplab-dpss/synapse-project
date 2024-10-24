@@ -19,7 +19,6 @@ enum class ModuleType {
   INVALID_MODULE,
   Tofino_SendToController,
   Tofino_Ignore,
-  Tofino_IfSimple,
   Tofino_If,
   Tofino_ParserExtraction,
   Tofino_ParserCondition,
@@ -122,9 +121,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_Ignore:
     os << "Tofino_Ignore";
-    break;
-  case ModuleType::Tofino_IfSimple:
-    os << "Tofino_IfSimple";
     break;
   case ModuleType::Tofino_If:
     os << "Tofino_If";

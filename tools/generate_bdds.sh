@@ -32,10 +32,10 @@ run() {
 }
 
 run "nop"
-# run "pol"
-# run "fw"
-# run "nat"
-# run "cl"
-# run "psd"
-# run "lb"
-# run "kvs"
+run "pol"
+run "fw"
+run "nat"
+run "cl"
+run "psd"
+run "lb"
+run "kvs"

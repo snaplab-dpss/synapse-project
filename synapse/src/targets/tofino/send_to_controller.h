@@ -35,33 +35,8 @@ public:
     const TNA &tna = tofino_ctx->get_tna();
     const PerfOracle &perf_oracle = tna.get_perf_oracle();
 
-    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
-    constraints_t constraints = node->get_ordered_branch_constraints();
-    std::optional<hit_rate_t> opt_hr = profiler.get_fraction(constraints);
-    assert(opt_hr.has_value());
-    hit_rate_t hr = opt_hr.value();
-
-    // Look for other send to controller modules, as they share the same
-    // interface. If they send more traffic than the controller capacity,
-    // proportionality of profiling hit rate should be considered.
-    std::vector<const EPNode *> s2c_nodes = ep->get_nodes_by_type({
-        ModuleType::Tofino_SendToController,
-    });
-
-    hit_rate_t total_hr = hr;
-
-    for (const EPNode *s2c_node : s2c_nodes) {
-      const Module *s2c_module = s2c_node->get_module();
-      assert(s2c_module->get_type() == ModuleType::Tofino_SendToController);
-      const SendToController *s2c =
-          dynamic_cast<const SendToController *>(s2c_module);
-
-      constraints_t s2c_constraints = ctx.get_node_constraints(s2c_node);
-      std::optional<hit_rate_t> s2c_hr = profiler.get_fraction(s2c_constraints);
-      assert(s2c_hr.has_value());
-
-      total_hr += s2c_hr.value();
-    }
+    hit_rate_t hr = ctx.get_node_hr(node);
+    hit_rate_t total_hr = perf_oracle.get_controller_traffic();
 
     pps_t egress = ingress;
 
@@ -89,11 +64,16 @@ protected:
     Profiler &profiler = new_ctx.get_mutable_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
+    std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
     assert(fraction.has_value());
 
     new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
                                      *fraction);
+
+    TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+    tofino_ctx->get_mutable_tna()
+        .get_mutable_perf_oracle()
+        .add_controller_traffic(new_ctx.get_node_hr(node));
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
     spec_impl.next_target = TargetType::TofinoCPU;
@@ -112,7 +92,7 @@ protected:
     symbols_t symbols = get_dataplane_state(ep, node);
 
     Module *module = new SendToController(node, symbols);
-    EPNode *ep_node = new EPNode(module);
+    EPNode *s2c_node = new EPNode(module);
 
     // Now we need to replicate the parsing operations that were done before.
     BDD *new_bdd = nullptr;
@@ -123,12 +103,18 @@ protected:
     // Note that we don't point to the next BDD node, as it was not actually
     // implemented.
     // We are delegating the implementation to other platform.
-    EPLeaf leaf(ep_node, next);
-    new_ep->process_leaf(ep_node, {leaf}, false);
+    EPLeaf leaf(s2c_node, next);
+    new_ep->process_leaf(s2c_node, {leaf}, false);
 
     if (replicated_bdd) {
       new_ep->replace_bdd(new_bdd);
     }
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->parser_accept(ep, node);
+    tofino_ctx->get_mutable_tna()
+        .get_mutable_perf_oracle()
+        .add_controller_traffic(new_ep->get_ctx().get_node_hr(s2c_node));
 
     // FIXME: missing custom packet parsing for the SyNAPSE header.
 

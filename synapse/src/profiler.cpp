@@ -75,7 +75,7 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
   return os;
 }
 
-void ProfilerNode::log_debug(int lvl) const {
+void ProfilerNode::debug(int lvl) const {
   Log::dbg() << *this;
   Log::dbg() << "\n";
 
@@ -87,7 +87,7 @@ void ProfilerNode::log_debug(int lvl) const {
       Log::dbg() << ((i % 2 != 0) ? "|" : " ");
 
     Log::dbg() << "[T] ";
-    on_true->log_debug(lvl);
+    on_true->debug(lvl);
     lvl--;
   }
 
@@ -99,7 +99,7 @@ void ProfilerNode::log_debug(int lvl) const {
     // Log::dbg() << std::string(2 * lvl, '|');
 
     Log::dbg() << "[F] ";
-    on_false->log_debug(lvl);
+    on_false->debug(lvl);
     lvl--;
   }
 }
@@ -526,7 +526,7 @@ void Profiler::scale(const constraints_t &constraints, hit_rate_t factor) {
 }
 
 std::optional<hit_rate_t>
-Profiler::get_fraction(const constraints_t &constraints) const {
+Profiler::get_hr(const constraints_t &constraints) const {
   ProfilerNode *node = get_node(constraints);
 
   if (!node) {
@@ -536,10 +536,10 @@ Profiler::get_fraction(const constraints_t &constraints) const {
   return node->fraction;
 }
 
-void Profiler::log_debug() const {
+void Profiler::debug() const {
   Log::dbg() << "\n============== Hit Rate Tree ==============\n";
   if (root) {
-    root->log_debug();
+    root->debug();
   }
   Log::dbg() << "===========================================\n\n";
 }

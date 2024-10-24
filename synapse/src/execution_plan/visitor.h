@@ -21,7 +21,6 @@ namespace tofino {
 class SendToController;
 class Recirculate;
 class Ignore;
-class IfSimple;
 class If;
 class Then;
 class Else;
@@ -133,7 +132,6 @@ public:
   VISIT_NOP(tofino::SendToController)
   VISIT_NOP(tofino::Recirculate)
   VISIT_NOP(tofino::Ignore)
-  VISIT_NOP(tofino::IfSimple)
   VISIT_NOP(tofino::If)
   VISIT_NOP(tofino::Then)
   VISIT_NOP(tofino::Else)

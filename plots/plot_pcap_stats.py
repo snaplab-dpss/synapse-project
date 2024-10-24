@@ -13,16 +13,30 @@ import matplotlib.pyplot as plt
 from typing import Literal
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
-PLOTS_DIR = CURRENT_DIR / "plots"
+# PLOTS_DIR = CURRENT_DIR / "plots"
 OUTPUT_FNAME = "pcap_stats"
-REPORTS_DIR = CURRENT_DIR / ".." / "tools" / "pcaps"
+# REPORTS_DIR = CURRENT_DIR / ".." / "tools" / "pcaps"
+
+PLOTS_DIR = Path("/home/fcp/Downloads/imc/caida")
+REPORTS_DIR=Path("/home/fcp/Downloads/imc/caida")
 
 reports = [
-    { "name": "caida_equinix_nyc", "file": "equinix-nyc.dirB.20190117-140000.UTC.anon.json" },
-    { "name": "caida_chicago", "file": "equinix-chicago.json" },
-    { "name": "mawi_202401011400", "file": "mawi_202401011400.json" },
-    { "name": "univ1", "file": "univ1.json" },
-    { "name": "univ2", "file": "univ2.json" },
+    # { "name": "caida_equinix_nyc", "file": "equinix-nyc.dirB.20190117-140000.UTC.anon.json" },
+    # { "name": "caida_chicago", "file": "equinix-chicago.json" },
+    # { "name": "mawi_202401011400", "file": "mawi_202401011400.json" },
+    # { "name": "univ1", "file": "univ1.json" },
+    # { "name": "univ2", "file": "univ2.json" },
+
+    # { "name": "univ2_pt1", "file":  "univ2_pt0.json" },
+    # { "name": "univ2_pt1", "file":  "univ2_pt1.json" },
+    # { "name": "univ2_pt2", "file":  "univ2_pt2.json" },
+    # { "name": "univ2_pt3", "file":  "univ2_pt3.json" },
+    # { "name": "univ2_pt4", "file":  "univ2_pt4.json" },
+    # { "name": "univ2_pt5", "file":  "univ2_pt5.json" },
+    # { "name": "univ2_pt6", "file":  "univ2_pt6.json" },
+    # { "name": "univ2_pt7", "file":  "univ2_pt7.json" },
+    # { "name": "univ2_pt8", "file":  "univ2_pt8.json" },
+    { "name": "equinix-nyc", "file":  "equinix-nyc.json" },
 ]
 
 class CDF(Struct):
@@ -243,12 +257,12 @@ def plot_flow_dts_us_cdf(name: str, flow_dts_us_cdf: CDF):
              xscale, xscale_base)
 
 def plot(name: str, report: StatsReport):
-    plot_pkt_bytes_cdf(name, report.pkt_bytes_cdf)
-    plot_pkts_per_flow_cdf(name, report.pkts_per_flow_cdf)
+    # plot_pkt_bytes_cdf(name, report.pkt_bytes_cdf)
+    # plot_pkts_per_flow_cdf(name, report.pkts_per_flow_cdf)
     plot_top_k_flows_cdf(name, report.top_k_flows_cdf)
-    plot_top_k_flows_bytes_cdf(name, report.top_k_flows_bytes_cdf)
-    plot_flow_duration_us_cdf(name, report.flow_duration_us_cdf)
-    plot_flow_dts_us_cdf(name, report.flow_dts_us_cdf)
+    # plot_top_k_flows_bytes_cdf(name, report.top_k_flows_bytes_cdf)
+    # plot_flow_duration_us_cdf(name, report.flow_duration_us_cdf)
+    # plot_flow_dts_us_cdf(name, report.flow_dts_us_cdf)
 
 def main():
     for report in reports:

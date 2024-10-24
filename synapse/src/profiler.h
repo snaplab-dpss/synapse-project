@@ -28,7 +28,7 @@ struct ProfilerNode {
   ~ProfilerNode();
 
   ProfilerNode *clone(bool keep_bdd_info) const;
-  void log_debug(int lvl = 0) const;
+  void debug(int lvl = 0) const;
 
   bool get_flow_stats(klee::ref<klee::Expr> flow_id,
                       FlowStats &flow_stats) const;
@@ -60,11 +60,11 @@ public:
   void scale(const constraints_t &constraints, hit_rate_t factor);
 
   const ProfilerNode *get_root() const { return root; }
-  std::optional<hit_rate_t> get_fraction(const constraints_t &cnstrs) const;
+  std::optional<hit_rate_t> get_hr(const constraints_t &cnstrs) const;
   std::optional<FlowStats> get_flow_stats(const constraints_t &cnstrs,
                                           klee::ref<klee::Expr> flow) const;
 
-  void log_debug() const;
+  void debug() const;
 
 private:
   ProfilerNode *get_node(const constraints_t &cnstrs) const;

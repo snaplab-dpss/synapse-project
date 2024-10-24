@@ -312,7 +312,7 @@ public:
     add_state(leaf_id, new_state, direction);
   }
 
-  void log_debug() const {
+  void debug() const {
     Log::dbg() << "******  Parser ******\n";
     if (initial_state)
       Log::dbg() << initial_state->dump();

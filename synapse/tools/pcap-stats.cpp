@@ -186,16 +186,14 @@ void dump_report(const std::filesystem::path &output_report,
     j["top_k_flows_bytes_cdf"]["probabilities"].push_back(p);
   }
 
-  printf("\n");
-  printf("Dumping report to %s\n", output_report.c_str());
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Dumping report to %s\n", output_report.c_str());
 
   std::ofstream out(output_report);
   out << j.dump(2) << std::endl;
 }
 
 void print_report(const report_t &report) {
-  printf("\n");
-  printf("\n");
   printf("###################### PCAP Stats ######################\n");
   printf("Start:                    %s\n", fmt_time_hh(report.start).c_str());
   printf("End:                      %s\n", fmt_time_hh(report.end).c_str());
@@ -300,8 +298,8 @@ int main(int argc, char *argv[]) {
 
     if (current_progress > progress) {
       progress = current_progress;
-      printf("\r[Progress %3d%%]", progress);
-      fflush(stdout);
+      fprintf(stderr, "\r[Progress %3d%%]", progress);
+      fflush(stderr);
     }
 
     report.pkt_sizes_cdf.add(sz);

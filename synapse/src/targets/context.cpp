@@ -377,7 +377,7 @@ void Context::update_traffic_fractions(const EPNode *new_node) {
   }
 
   constraints_t constraints = get_node_constraints(new_node);
-  std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
+  std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
   assert(fraction.has_value());
 
   update_traffic_fractions(old_target, new_target, *fraction);
@@ -386,17 +386,17 @@ void Context::update_traffic_fractions(const EPNode *new_node) {
 void Context::update_traffic_fractions(TargetType old_target,
                                        TargetType new_target,
                                        hit_rate_t fraction) {
-  hit_rate_t &old_target_fraction = traffic_fraction_per_target[old_target];
-  hit_rate_t &new_target_fraction = traffic_fraction_per_target[new_target];
+  hit_rate_t &old_target_hr = traffic_fraction_per_target[old_target];
+  hit_rate_t &new_target_hr = traffic_fraction_per_target[new_target];
 
-  old_target_fraction -= fraction;
-  new_target_fraction += fraction;
+  old_target_hr -= fraction;
+  new_target_hr += fraction;
 
-  old_target_fraction = std::max(old_target_fraction, 0.0);
-  old_target_fraction = std::min(old_target_fraction, 1.0);
+  old_target_hr = std::max(old_target_hr, 0.0);
+  old_target_hr = std::min(old_target_hr, 1.0);
 
-  new_target_fraction = std::max(new_target_fraction, 0.0);
-  new_target_fraction = std::min(new_target_fraction, 1.0);
+  new_target_hr = std::max(new_target_hr, 0.0);
+  new_target_hr = std::min(new_target_hr, 1.0);
 }
 
 void Context::update_constraints_per_node(ep_node_id_t node,
@@ -426,6 +426,20 @@ constraints_t Context::get_node_constraints(const EPNode *node) const {
   return {};
 }
 
+hit_rate_t Context::get_node_hr(const EPNode *node) const {
+  constraints_t constraints = get_node_constraints(node);
+  std::optional<hit_rate_t> hr = profiler.get_hr(constraints);
+  assert(hr.has_value());
+  return *hr;
+}
+
+hit_rate_t Context::get_node_hr(const Node *node) const {
+  constraints_t constraints = node->get_ordered_branch_constraints();
+  std::optional<hit_rate_t> hr = profiler.get_hr(constraints);
+  assert(hr.has_value());
+  return *hr;
+}
+
 void Context::add_hit_rate_estimation(const constraints_t &constraints,
                                       klee::ref<klee::Expr> new_constraint,
                                       hit_rate_t estimation_rel) {
@@ -438,7 +452,7 @@ void Context::add_hit_rate_estimation(const constraints_t &constraints,
 
   Log::dbg() << "\n";
   Log::dbg() << "Resulting Hit rate:\n";
-  profiler.log_debug();
+  profiler.debug();
   Log::dbg() << "\n";
 }
 
@@ -505,7 +519,7 @@ std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
   return os;
 }
 
-void Context::log_debug() const {
+void Context::debug() const {
   Log::dbg() << "~~~~~~~~~~~~~~~~~~~~~~~~ Context ~~~~~~~~~~~~~~~~~~~~~~~~\n";
   Log::dbg() << "Traffic fractions:\n";
   for (const auto &[target, fraction] : traffic_fraction_per_target) {
@@ -518,12 +532,8 @@ void Context::log_debug() const {
   }
   Log::dbg() << "]\n";
 
-  if (target_ctxs.find(TargetType::Tofino) != target_ctxs.end()) {
-    const tofino::TofinoContext *tofino_ctx =
-        get_target_ctx<tofino::TofinoContext>();
-    const tofino::TNA &tna = tofino_ctx->get_tna();
-    tna.log_debug_placement();
-    tna.log_debug_perf_oracle();
+  for (const auto &[target, ctx] : target_ctxs) {
+    ctx->debug();
   }
 
   Log::dbg() << "\n";

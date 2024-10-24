@@ -127,7 +127,7 @@ protected:
     const Profiler &profiler = new_ctx.get_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
+    std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
     assert(fraction.has_value());
 
     hit_rate_t on_fail_fraction = *fraction * (1 - chosen_success_estimation);
@@ -305,7 +305,7 @@ private:
     const Profiler &profiler = ctx.get_profiler();
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
+    std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
     assert(fraction.has_value());
 
     constraints_t full_write_constraints =

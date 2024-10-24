@@ -13,7 +13,11 @@ PerfOracle::PerfOracle(const TNAProperties *properties, int _avg_pkt_bytes)
       recirc_port_capacity_bps(properties->recirc_port_capacity_bps),
       avg_pkt_bytes(_avg_pkt_bytes),
       recirc_ports_usage(properties->total_recirc_ports), non_recirc_traffic(1),
-      tput_pps(port_capacity_bps * total_ports) {
+      controller_port_usage(0), tput_pps(port_capacity_bps * total_ports) {
+  for (int port = 0; port < total_ports; port++) {
+    ports_usage[port] = 0;
+  }
+
   for (int port = 0; port < total_recirc_ports; port++) {
     recirc_ports_usage[port].port = port;
     recirc_ports_usage[port].steering_fraction = 0;
@@ -27,9 +31,11 @@ PerfOracle::PerfOracle(const PerfOracle &other)
       port_capacity_bps(other.port_capacity_bps),
       total_recirc_ports(other.total_recirc_ports),
       recirc_port_capacity_bps(other.recirc_port_capacity_bps),
-      avg_pkt_bytes(other.avg_pkt_bytes),
+      avg_pkt_bytes(other.avg_pkt_bytes), ports_usage(other.ports_usage),
       recirc_ports_usage(other.recirc_ports_usage),
-      non_recirc_traffic(other.non_recirc_traffic), tput_pps(other.tput_pps) {}
+      non_recirc_traffic(other.non_recirc_traffic),
+      controller_port_usage(other.controller_port_usage),
+      tput_pps(other.tput_pps) {}
 
 static bool fractions_le(hit_rate_t f0, hit_rate_t f1) {
   hit_rate_t delta = f0 - f1;
@@ -40,6 +46,26 @@ static bool fractions_le(hit_rate_t f0, hit_rate_t f1) {
 static void clamp_fraction(hit_rate_t &fraction) {
   fraction = std::max(0.0, fraction);
   fraction = std::min(1.0, fraction);
+}
+
+void PerfOracle::add_fwd_traffic(int port, hit_rate_t fraction) {
+  assert(port < total_ports);
+  ports_usage[port] += fraction;
+  clamp_fraction(ports_usage[port]);
+}
+
+hit_rate_t PerfOracle::get_fwd_traffic(int port) const {
+  assert(port < total_ports);
+  return ports_usage.at(port);
+}
+
+void PerfOracle::add_controller_traffic(hit_rate_t fraction) {
+  controller_port_usage += fraction;
+  clamp_fraction(controller_port_usage);
+}
+
+hit_rate_t PerfOracle::get_controller_traffic() const {
+  return controller_port_usage;
 }
 
 void PerfOracle::add_recirculated_traffic(int port, int port_recirculations,
@@ -67,7 +93,7 @@ void PerfOracle::add_recirculated_traffic(int port, int port_recirculations,
     assert(port_recirculations == (int)usage.fractions.size());
 
     if (curr_port_recirculations > 0) {
-      // hit_rate_t shenanigans to avoid floating point precision issues
+      // Hit rate shenanigans to avoid floating point precision issues
       hit_rate_t last_fraction = usage.fractions[curr_port_recirculations - 1];
       fraction = std::min(fraction, last_fraction);
     }
@@ -262,8 +288,24 @@ pps_t PerfOracle::get_max_input_pps() const {
   return get_max_input_bps() / (avg_pkt_bytes * 8);
 }
 
-void PerfOracle::log_debug() const {
+void PerfOracle::debug() const {
   Log::dbg() << "====== PerfOracle ======\n";
+
+  Log::dbg() << "Port usage:\n";
+  std::stringstream ss;
+  for (int port = 0; port < total_ports; port++) {
+    ss << "  ";
+    ss << std::setw(2) << std::right << port;
+    ss << ":";
+    ss << std::setw(7) << std::left << ports_usage.at(port);
+    if ((port + 1) % 4 == 0) {
+      ss << "\n";
+    }
+  }
+  Log::dbg() << ss.str() << "\n";
+
+  Log::dbg() << "Controller usage: " << controller_port_usage << "\n";
+
   Log::dbg() << "Non recirculated: " << non_recirc_traffic << "\n";
   Log::dbg() << "Recirculations:\n";
   for (const RecircPortUsage &usage : recirc_ports_usage) {

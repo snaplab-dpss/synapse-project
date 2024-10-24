@@ -93,18 +93,18 @@ std::optional<DS_ID> FCFSCachedTable::add_table(int op) {
   return new_table.id;
 }
 
-void FCFSCachedTable::log_debug() const {
+void FCFSCachedTable::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "======== FCFS CACHED TABLE ========\n";
   Log::dbg() << "ID:      " << id << "\n";
   Log::dbg() << "Entries: " << num_entries << "\n";
   Log::dbg() << "Cache:   " << cache_capacity << "\n";
   for (const Table &table : tables) {
-    table.log_debug();
+    table.debug();
   }
-  cache_expirator.log_debug();
+  cache_expirator.debug();
   for (const Register &cache_key : cache_keys) {
-    cache_key.log_debug();
+    cache_key.debug();
   }
   Log::dbg() << "==============================\n";
 }

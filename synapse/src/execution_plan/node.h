@@ -40,6 +40,7 @@ public:
   EPNode *get_mutable_node_by_id(ep_node_id_t target_id);
 
   bool is_terminal_node() const;
+  std::string dump() const;
   EPNode *clone(bool recursive = false) const;
 
   void visit(EPVisitor &visitor, const EP *ep) const;

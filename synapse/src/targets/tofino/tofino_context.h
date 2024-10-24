@@ -63,7 +63,7 @@ public:
                              const std::vector<std::unordered_set<DS *>> &ds,
                              const std::unordered_set<DS_ID> &deps) const;
 
-  void debug_placements() const;
+  void debug() const override;
 };
 
 } // namespace tofino

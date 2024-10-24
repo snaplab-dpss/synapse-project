@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
   Profiler profiler =
       bdd_profile.empty() ? Profiler(bdd) : Profiler(bdd, bdd_profile);
 
-  profiler.log_debug();
+  profiler.debug();
 
   if (show_prof) {
     ProfilerVisualizer::visualize(bdd, profiler, true);
@@ -195,8 +195,7 @@ int main(int argc, char **argv) {
     ProfilerVisualizer::visualize(bdd, profiler, false);
   }
 
-  const Context &ctx = report.solution.ep->get_ctx();
-  ctx.get_target_ctx<tofino::TofinoContext>()->get_tna().log_debug_placement();
+  report.solution.ep->get_ctx().debug();
 
   // synthesize(report.solution.ep, out_dir);
 

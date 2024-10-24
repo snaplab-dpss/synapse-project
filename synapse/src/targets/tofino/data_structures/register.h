@@ -32,7 +32,7 @@ struct Register : public DS {
   Register(const Register &other);
 
   DS *clone() const override;
-  void log_debug() const override;
+  void debug() const override;
 
   bits_t get_consumed_sram() const;
   int get_num_logical_ids() const;

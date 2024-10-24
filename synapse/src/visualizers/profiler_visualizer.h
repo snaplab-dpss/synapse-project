@@ -34,7 +34,7 @@ private:
 
     root->visit_nodes([&fractions_per_node, profiler](const Node *node) {
       constraints_t constraints = node->get_ordered_branch_constraints();
-      std::optional<hit_rate_t> fraction = profiler.get_fraction(constraints);
+      std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
       assert(fraction.has_value());
       fractions_per_node[node->get_id()] = fraction.value();
       return NodeVisitAction::VISIT_CHILDREN;

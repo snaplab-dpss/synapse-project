@@ -20,7 +20,6 @@ namespace tofino {
 
 const std::unordered_set<ModuleType> branching_modules = {
     ModuleType::Tofino_If,
-    ModuleType::Tofino_IfSimple,
 };
 
 static bool is_branching_node(const EPNode *node) {
@@ -373,6 +372,35 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   const EPNode *then_node = children[0];
   const EPNode *else_node = children[1];
 
+  if (conditions.size() == 1) {
+    klee::ref<klee::Expr> condition = conditions[0];
+
+    ingress.indent();
+    ingress << "if (";
+    ingress << transpiler.transpile(condition);
+    ingress << ") {\n";
+
+    ingress.inc();
+    var_stacks.emplace_back();
+    visit(ep, then_node);
+    var_stacks.pop_back();
+    ingress.dec();
+
+    ingress.indent();
+    ingress.stream << "} else {\n";
+
+    ingress.inc();
+    var_stacks.emplace_back();
+    visit(ep, else_node);
+    var_stacks.pop_back();
+    ingress.dec();
+
+    ingress.indent();
+    ingress << "}\n";
+
+    return;
+  }
+
   code_t cond_val = get_unique_var_name("cond");
 
   ingress.indent();
@@ -410,42 +438,6 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   ingress.indent();
   ingress << "} else {\n";
-
-  ingress.inc();
-  var_stacks.emplace_back();
-  visit(ep, else_node);
-  var_stacks.pop_back();
-  ingress.dec();
-
-  ingress.indent();
-  ingress << "}\n";
-}
-
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::IfSimple *node) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
-
-  klee::ref<klee::Expr> condition = node->get_condition();
-
-  const std::vector<EPNode *> &children = ep_node->get_children();
-  assert(children.size() == 2);
-
-  const EPNode *then_node = children[0];
-  const EPNode *else_node = children[1];
-
-  ingress.indent();
-  ingress << "if (";
-  ingress << transpiler.transpile(condition);
-  ingress << ") {\n";
-
-  ingress.inc();
-  var_stacks.emplace_back();
-  visit(ep, then_node);
-  var_stacks.pop_back();
-  ingress.dec();
-
-  ingress.indent();
-  ingress.stream << "} else {\n";
 
   ingress.inc();
   var_stacks.emplace_back();

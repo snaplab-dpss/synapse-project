@@ -25,7 +25,7 @@ bits_t Register::get_consumed_sram() const {
 
 int Register::get_num_logical_ids() const { return (int)actions.size(); }
 
-void Register::log_debug() const {
+void Register::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "========== REGISTER ==========\n";
   Log::dbg() << "ID:       " << id << "\n";

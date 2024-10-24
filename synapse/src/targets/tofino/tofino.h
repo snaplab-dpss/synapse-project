@@ -5,7 +5,6 @@
 #include "send_to_controller.h"
 #include "recirculate.h"
 #include "ignore.h"
-#include "if_simple.h"
 #include "if.h"
 #include "then.h"
 #include "else.h"
@@ -37,7 +36,6 @@ struct TofinoTarget : public Target {
                    new SendToControllerGenerator(),
                    new RecirculateGenerator(),
                    new IgnoreGenerator(),
-                   new IfSimpleGenerator(),
                    new IfGenerator(),
                    new ThenGenerator(),
                    new ElseGenerator(),

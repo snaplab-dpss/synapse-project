@@ -70,8 +70,8 @@ static std::vector<leaf_tput_t> compute_leaves_egress_tput(const EP *ep,
     constraints_t lhs_cnstrs = ctx.get_node_constraints(lhs);
     constraints_t rhs_cnstrs = ctx.get_node_constraints(rhs);
 
-    std::optional<hit_rate_t> lhs_hr = profiler.get_fraction(lhs_cnstrs);
-    std::optional<hit_rate_t> rhs_hr = profiler.get_fraction(rhs_cnstrs);
+    std::optional<hit_rate_t> lhs_hr = profiler.get_hr(lhs_cnstrs);
+    std::optional<hit_rate_t> rhs_hr = profiler.get_hr(rhs_cnstrs);
 
     assert(lhs_hr.has_value());
     assert(rhs_hr.has_value());
@@ -173,30 +173,34 @@ struct speculative_data_t : public cookie_t {
 
 void EP::print_speculations(
     const std::vector<spec_impl_t> &speculations) const {
-  Log::log() << "Speculating EP " << id << ":\n";
+  std::stringstream ss;
+
+  ss << "Speculating EP " << id << ":\n";
 
   for (const spec_impl_t &speculation : speculations) {
     const Node *node = bdd->get_node_by_id(speculation.decision.node);
     pps_t tput = pps_from_ctx(speculation.ctx);
 
-    Log::log() << "  ";
-    Log::log() << tput2str(tput, "pps");
-    Log::log() << ":";
+    ss << "  ";
+    ss << tput2str(tput, "pps");
+    ss << ":";
     for (auto tf : speculation.ctx.get_traffic_fractions())
-      Log::log() << " [" << tf.first << ":" << std::setfill('0') << std::fixed
-                 << std::setprecision(5) << tf.second << "]";
-    Log::log() << " <- ";
-    Log::log() << speculation.decision.module;
-    Log::log() << " ";
+      ss << " [" << tf.first << ":" << std::setfill('0') << std::fixed
+         << std::setprecision(5) << tf.second << "]";
+    ss << " <- ";
+    ss << speculation.decision.module;
+    ss << " ";
     if (!speculation.skip.empty()) {
-      Log::log() << "skip={";
+      ss << "skip={";
       for (node_id_t skip : speculation.skip)
-        Log::log() << skip << ",";
-      Log::log() << "} ";
+        ss << skip << ",";
+      ss << "} ";
     }
-    Log::log() << "(" << node->dump(true, true) << ")";
-    Log::log() << "\n";
+    ss << "(" << node->dump(true, true) << ")";
+    ss << "\n";
   }
+
+  Log::dbg() << ss.str();
 }
 
 spec_impl_t
@@ -330,94 +334,75 @@ spec_impl_t EP::get_best_speculation(const Node *node,
 }
 
 pps_t EP::speculate_tput_pps() const {
-  return estimate_tput_pps();
+  Context speculative_ctx = ctx;
+  nodes_t skip;
 
-  // Context speculative_ctx(ctx);
-  // nodes_t skip;
+  std::vector<spec_impl_t> speculations;
 
-  // std::vector<spec_impl_t> speculations;
+  for (const EPLeaf &leaf : leaves) {
+    if (!leaf.next) {
+      continue;
+    }
 
-  // for (const EPLeaf &leaf : leaves) {
-  //   const Node *node = leaf.next;
+    TargetType current_target;
+    constraints_t constraints;
 
-  //   if (!node) {
-  //     continue;
-  //   }
+    if (leaf.node) {
+      current_target = leaf.node->get_module()->get_next_target();
+      constraints = ctx.get_node_constraints(leaf.node);
+    } else {
+      current_target = get_current_platform();
+    }
 
-  //   TargetType current_target;
-  //   constraints_t constraints;
+    leaf.next->visit_nodes([this, &speculations, current_target,
+                            &speculative_ctx, &skip](const Node *node) {
+      if (skip.find(node->get_id()) != skip.end()) {
+        return NodeVisitAction::VISIT_CHILDREN;
+      }
 
-  //   if (leaf.node) {
-  //     const Module *module = leaf.node->get_module();
-  //     current_target = module->get_next_target();
-  //     constraints = ctx.get_node_constraints(leaf.node);
-  //   } else {
-  //     current_target = get_current_platform();
-  //   }
+      spec_impl_t speculation =
+          get_best_speculation(node, current_target, speculative_ctx, skip);
+      speculations.push_back(speculation);
 
-  //   node->visit_nodes([this, &speculations, current_target, &speculative_ctx,
-  //                      &skip](const Node *node) {
-  //     if (skip.find(node->get_id()) != skip.end()) {
-  //       return NodeVisitAction::VISIT_CHILDREN;
-  //     }
+      speculative_ctx = speculation.ctx;
+      skip = speculation.skip;
 
-  //     spec_impl_t speculation =
-  //         get_best_speculation(node, current_target, speculative_ctx, skip);
-  //     speculations.push_back(speculation);
+      if (speculation.next_target.has_value() &&
+          speculation.next_target.value() != current_target) {
+        return NodeVisitAction::SKIP_CHILDREN;
+      }
 
-  //     speculative_ctx = speculation.ctx;
-  //     skip = speculation.skip;
+      return NodeVisitAction::VISIT_CHILDREN;
+    });
+  }
 
-  //     if (speculation.next_target.has_value() &&
-  //         speculation.next_target.value() != current_target) {
-  //       return NodeVisitAction::SKIP_CHILDREN;
-  //     }
+  if (id == 2) {
+    print_speculations(speculations);
+    speculative_ctx.debug();
+    // BDDVisualizer::visualize(bdd, true);
+    // EPVisualizer::visualize(this, false);
+    DEBUG_PAUSE
+  }
 
-  //     return NodeVisitAction::VISIT_CHILDREN;
-  //   });
-  // }
-
-  // // if (id == 2) {
-  // //   print_speculations(speculations);
-  // //   // BDDVisualizer::visualize(bdd, true);
-  // //   // EPVisualizer::visualize(this, false);
-  // //   DEBUG_PAUSE
-  // // }
-
-  // return pps_from_ctx(speculative_ctx);
+  return pps_from_ctx(speculative_ctx);
 }
 
 pps_t EP::estimate_tput_pps() const {
   const tofino::TofinoContext *tofino_ctx =
       ctx.get_target_ctx<tofino::TofinoContext>();
 
-  const tofino::TNA &tna = tofino_ctx->get_tna();
-  const tofino::PerfOracle perf_oracle = tna.get_perf_oracle();
-
-  pps_t ingress = perf_oracle.get_max_input_pps();
+  pps_t ingress = tofino_ctx->get_tna().get_perf_oracle().get_max_input_pps();
   pps_t egress = 0;
 
   pps_t smallest_unstable = ingress;
   pps_t prev_ingress = ingress;
   pps_t diff = smallest_unstable;
-  std::cerr << "\n====================\n";
 
   // Algorithm for converging to a stable throughput (basically a binary
   // search). This hopefully doesn't take many iterations...
   while (diff > STABLE_TPUT_PRECISION) {
     prev_ingress = ingress;
-
-    std::vector<leaf_tput_t> leaves_tput =
-        compute_leaves_egress_tput(this, ingress);
-
-    egress = 0;
-    for (const leaf_tput_t &leaf_tput : leaves_tput)
-      egress += leaf_tput.tput;
     egress = pps_from_ingress_tput(ingress);
-
-    std::cerr << "Ingress: " << ingress << std::endl;
-    std::cerr << "Egress:  " << egress << std::endl;
-    std::cerr << "\n";
 
     if (egress < ingress) {
       smallest_unstable = ingress;

@@ -76,9 +76,9 @@ const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
 
 static const Node *get_last_parser_state_op(const EP *ep,
                                             std::optional<bool> &direction) {
-  const EPLeaf *leaf = ep->get_active_leaf();
+  EPLeaf leaf = ep->get_active_leaf();
 
-  const EPNode *node = leaf->node;
+  const EPNode *node = leaf.node;
   const EPNode *next = nullptr;
 
   while (node) {
@@ -126,7 +126,7 @@ void TofinoContext::parser_select(const EP *ep, const Node *node,
   node_id_t leaf_id = last_op->get_id();
   tna.parser.add_select(leaf_id, id, field, values, direction);
 
-  tna.parser.log_debug();
+  tna.parser.debug();
 }
 
 void TofinoContext::parser_transition(const EP *ep, const Node *node,
@@ -145,7 +145,7 @@ void TofinoContext::parser_transition(const EP *ep, const Node *node,
   node_id_t leaf_id = last_op->get_id();
   tna.parser.add_extract(leaf_id, id, hdr, direction);
 
-  tna.parser.log_debug();
+  tna.parser.debug();
 }
 
 void TofinoContext::parser_accept(const EP *ep, const Node *node) {
@@ -162,7 +162,7 @@ void TofinoContext::parser_accept(const EP *ep, const Node *node) {
     tna.parser.accept(leaf_id, id, direction);
   }
 
-  tna.parser.log_debug();
+  tna.parser.debug();
 }
 
 void TofinoContext::parser_reject(const EP *ep, const Node *node) {
@@ -179,7 +179,7 @@ void TofinoContext::parser_reject(const EP *ep, const Node *node) {
     tna.parser.reject(leaf_id, id, direction);
   }
 
-  tna.parser.log_debug();
+  tna.parser.debug();
 }
 
 static const EPNode *get_ep_node_from_bdd_node(const EP *ep, const Node *node) {
@@ -335,7 +335,7 @@ pps_t TofinoContext::estimate_tput_pps() const {
   return oracle.estimate_tput_pps();
 }
 
-void TofinoContext::debug_placements() const {
+void TofinoContext::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "****** Placements ******\n";
   for (const auto &[addr, ds_set] : obj_to_ds) {
@@ -345,6 +345,8 @@ void TofinoContext::debug_placements() const {
     }
   }
   Log::dbg() << "************************\n";
+
+  tna.debug();
 }
 
 } // namespace tofino

@@ -119,12 +119,6 @@ void TofinoModuleGenerator::place_vector_registers(
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
   place(ep, data.obj, PlacementDecision::Tofino_VectorRegister);
   tofino_ctx->place_many(ep, data.obj, {regs}, deps);
-
-  Log::dbg() << "-> ~~~ NEW PLACEMENT ~~~ <-\n";
-  for (DS *reg : regs) {
-    reg->log_debug();
-  }
-  tofino_ctx->get_tna().log_debug_placement();
 }
 
 static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
@@ -298,10 +292,6 @@ void TofinoModuleGenerator::place_fcfs_cached_table(
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
   tofino_ctx->place(ep, map_objs.map, cached_table, deps);
-
-  Log::dbg() << "-> ~~~ NEW PLACEMENT ~~~ <-\n";
-  ds->log_debug();
-  tofino_ctx->get_tna().log_debug_placement();
 }
 
 std::unordered_set<int>

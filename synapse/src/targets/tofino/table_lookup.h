@@ -169,10 +169,6 @@ private:
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
     place(ep, obj, PlacementDecision::Tofino_Table);
     tofino_ctx->place(ep, obj, table, deps);
-
-    Log::dbg() << "-> ~~~ NEW PLACEMENT ~~~ <-\n";
-    table->log_debug();
-    tofino_ctx->get_tna().log_debug_placement();
   }
 
   bool can_place_in_table(const EP *ep, const Call *call_node) const {

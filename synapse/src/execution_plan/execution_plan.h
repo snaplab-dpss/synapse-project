@@ -82,8 +82,11 @@ public:
 
   bool has_target(TargetType type) const;
   const Node *get_next_node() const;
-  const EPLeaf *get_active_leaf() const;
+
+  EPLeaf pop_active_leaf();
+  EPLeaf get_active_leaf() const;
   bool has_active_leaf() const;
+
   TargetType get_current_platform() const;
   EPNode *get_node_by_id(ep_node_id_t id) const;
 
@@ -111,20 +114,24 @@ public:
 
   void visit(EPVisitor &visitor) const;
 
-  void log_debug_placements() const;
-  void log_debug_hit_rate() const;
+  void debug() const;
+  void debug_placements() const;
+  void debug_hit_rate() const;
+
   void inspect() const;
 
 private:
+  std::vector<EPLeaf>::const_iterator get_active_leaf_it() const;
+
   pps_t pps_from_ingress_tput(pps_t ingress) const;
   pps_t stable_pps_from_ctx(const Context &ctx) const;
   pps_t unstable_pps_from_ctx(const Context &ctx) const;
   pps_t pps_from_ctx(const Context &ctx) const;
 
-  EPLeaf *get_mutable_active_leaf();
   constraints_t get_active_leaf_constraints() const;
 
   void print_speculations(const std::vector<spec_impl_t> &speculations) const;
+
   spec_impl_t
   peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
                                     const Node *anchor, nodes_t future_nodes,

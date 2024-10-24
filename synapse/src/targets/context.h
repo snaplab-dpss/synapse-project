@@ -47,6 +47,7 @@ public:
 
   virtual TargetContext *clone() const = 0;
   virtual pps_t estimate_tput_pps() const = 0;
+  virtual void debug() const {}
 };
 
 class Context {
@@ -105,6 +106,8 @@ public:
   void update_constraints_per_node(ep_node_id_t node,
                                    const constraints_t &constraints);
   constraints_t get_node_constraints(const EPNode *node) const;
+  hit_rate_t get_node_hr(const EPNode *node) const;
+  hit_rate_t get_node_hr(const Node *node) const;
 
   void update_traffic_fractions(const EPNode *new_node);
   void update_traffic_fractions(TargetType old_target, TargetType new_target,
@@ -116,7 +119,7 @@ public:
   void remove_hit_rate_node(const constraints_t &constraints);
   void scale_profiler(const constraints_t &constraints, hit_rate_t factor);
 
-  void log_debug() const;
+  void debug() const;
 };
 
 #define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NS, TCTX)                        \

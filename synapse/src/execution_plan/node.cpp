@@ -69,6 +69,12 @@ EPNode *EPNode::get_mutable_node_by_id(ep_node_id_t target_id) {
 
 bool EPNode::is_terminal_node() const { return children.size() == 0; }
 
+std::string EPNode::dump() const {
+  std::stringstream ss;
+  ss << "[" << id << "|" << module->get_target() << "] " << module->get_name();
+  return ss.str();
+}
+
 EPNode *EPNode::clone(bool recursive) const {
   Module *cloned_module = module->clone();
   EPNode *cloned_node = new EPNode(cloned_module);

@@ -584,7 +584,7 @@ void SimplePlacer::replace_placement_request(
   assert(false && "Cannot replace placement request (not found)");
 }
 
-void SimplePlacer::log_debug() const {
+void SimplePlacer::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "====================== SimplePlacer ======================\n";
 

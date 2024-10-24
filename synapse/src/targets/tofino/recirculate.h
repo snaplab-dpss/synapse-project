@@ -28,6 +28,33 @@ public:
 
   symbols_t get_symbols() const { return symbols; }
   int get_recirc_port() const { return recirc_port; }
+
+  virtual pps_t compute_egress_tput(const EP *ep,
+                                    pps_t ingress) const override {
+    const Context &ctx = ep->get_ctx();
+    const Profiler &profiler = ctx.get_profiler();
+
+    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+    const TNA &tna = tofino_ctx->get_tna();
+    const PerfOracle &perf_oracle = tna.get_perf_oracle();
+
+    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
+    constraints_t constraints = node->get_ordered_branch_constraints();
+    std::optional<hit_rate_t> opt_hr = profiler.get_hr(constraints);
+    assert(opt_hr.has_value());
+    hit_rate_t hr = opt_hr.value();
+
+    // One for each consecutive recirculation to the same port.
+    // E.g.:
+    //    Index 0 contains the fraction of traffic recirculated once.
+    //    Index 1 contains the fraction of traffic recirculated twice.
+    //    Etc.
+    std::vector<hit_rate_t> recirculations;
+
+    // Get all the other recirculation nodes.
+
+    return ingress;
+  }
 };
 
 class RecirculateGenerator : public TofinoModuleGenerator {
@@ -128,8 +155,8 @@ private:
 
   std::vector<int> get_past_recirc_ports(const EP *ep,
                                          int total_recirc_ports) const {
-    const EPLeaf *active_leaf = ep->get_active_leaf();
-    const EPNode *node = active_leaf->node;
+    EPLeaf active_leaf = ep->get_active_leaf();
+    const EPNode *node = active_leaf.node;
 
     std::vector<int> past_recirc;
 

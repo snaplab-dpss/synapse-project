@@ -244,8 +244,8 @@ std::vector<const Module *>
 get_prev_modules(const EP *ep, const std::vector<ModuleType> &targets) {
   std::vector<const Module *> modules;
 
-  const EPLeaf *leaf = ep->get_active_leaf();
-  const EPNode *ep_node = leaf->node;
+  EPLeaf leaf = ep->get_active_leaf();
+  const EPNode *ep_node = leaf.node;
 
   while (ep_node) {
     const EPNode *current = ep_node;
@@ -1089,9 +1089,9 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
     constraints_t wac = write_attempt->get_ordered_branch_constraints();
     constraints_t wc = write->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> rf = profiler.get_fraction(rc);
-    std::optional<hit_rate_t> waf = profiler.get_fraction(wac);
-    std::optional<hit_rate_t> wf = profiler.get_fraction(wc);
+    std::optional<hit_rate_t> rf = profiler.get_hr(rc);
+    std::optional<hit_rate_t> waf = profiler.get_hr(wac);
+    std::optional<hit_rate_t> wf = profiler.get_hr(wc);
 
     if (rf.has_value() && waf.has_value() && wf.has_value()) {
       fractions.read = rf.value();

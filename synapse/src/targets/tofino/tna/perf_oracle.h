@@ -21,7 +21,7 @@ struct RecircPortUsage {
   std::vector<hit_rate_t> fractions;
 
   // Fraction of traffic being steered to another recirculation port.
-  // This avoids us hit_rate_t counting the contribution of recirculation
+  // This avoids us hit rate counting the contribution of recirculation
   // traffic to the final tput estimation.
   hit_rate_t steering_fraction;
 };
@@ -34,8 +34,10 @@ private:
   bps_t recirc_port_capacity_bps;
   int avg_pkt_bytes;
 
+  std::unordered_map<int, hit_rate_t> ports_usage;
   std::vector<RecircPortUsage> recirc_ports_usage;
   hit_rate_t non_recirc_traffic;
+  hit_rate_t controller_port_usage;
 
   pps_t tput_pps;
 
@@ -43,9 +45,16 @@ public:
   PerfOracle(const TNAProperties *properties, int avg_pkt_bytes);
   PerfOracle(const PerfOracle &other);
 
+  void add_fwd_traffic(int port, hit_rate_t fraction);
+  hit_rate_t get_fwd_traffic(int port) const;
+
   void add_recirculated_traffic(int port, int port_recirculations,
                                 hit_rate_t fraction,
                                 std::optional<int> prev_recirc_port);
+
+  void add_controller_traffic(hit_rate_t fraction);
+  hit_rate_t get_controller_traffic() const;
+
   pps_t estimate_tput_pps() const;
 
   pps_t get_port_capacity_pps() const;
@@ -54,7 +63,7 @@ public:
   pps_t get_max_input_pps() const;
   bps_t get_max_input_bps() const;
 
-  void log_debug() const;
+  void debug() const;
 
 private:
   void steer_recirculation_traffic(int source_port, int destination_port,

@@ -22,7 +22,7 @@ struct Table : public DS {
   Table(const Table &other);
 
   DS *clone() const override;
-  void log_debug() const override;
+  void debug() const override;
 
   bits_t get_match_xbar_consume() const;
   bits_t get_consumed_sram() const;

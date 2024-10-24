@@ -51,7 +51,7 @@ public:
   PlacementStatus can_place(const DS *ds,
                             const std::unordered_set<DS_ID> &deps) const;
 
-  void log_debug() const;
+  void debug() const;
 
 private:
   struct placement_t;

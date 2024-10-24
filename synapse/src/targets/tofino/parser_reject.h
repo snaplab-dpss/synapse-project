@@ -79,13 +79,13 @@ protected:
 
 private:
   bool is_parser_reject(const EP *ep) const {
-    const EPLeaf *leaf = ep->get_active_leaf();
+    EPLeaf leaf = ep->get_active_leaf();
 
-    if (!leaf || !leaf->node || !leaf->node->get_prev()) {
+    if (!leaf.node || !leaf.node->get_prev()) {
       return false;
     }
 
-    const EPNode *node = leaf->node;
+    const EPNode *node = leaf.node;
     const EPNode *prev = node->get_prev();
     const Module *module = prev->get_module();
 
