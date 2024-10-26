@@ -44,6 +44,17 @@ std::vector<node_id_t> Branch::get_leaves() const {
   return terminating_ids;
 }
 
+std::vector<const Node *> Branch::get_children() const {
+  std::vector<const Node *> children;
+
+  if (next)
+    children.push_back(next);
+  if (on_false)
+    children.push_back(on_false);
+
+  return children;
+}
+
 void Branch::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
 std::string Branch::dump(bool one_liner, bool id_name_only) const {

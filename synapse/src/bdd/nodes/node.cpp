@@ -16,6 +16,14 @@ std::vector<node_id_t> Node::get_leaves() const {
   return next->get_leaves();
 }
 
+std::vector<const Node *> Node::get_children() const {
+  if (next) {
+    return {next};
+  }
+
+  return {};
+}
+
 bool Node::is_reachable(node_id_t id) const {
   const Node *node = this;
   while (node) {

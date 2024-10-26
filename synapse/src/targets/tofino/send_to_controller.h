@@ -28,7 +28,11 @@ public:
 
   virtual pps_t compute_egress_tput(const EP *ep,
                                     pps_t ingress) const override {
-    const Context &ctx = ep->get_ctx();
+    return perf_estimator(ep->get_ctx(), node, ingress);
+  }
+
+  static pps_t perf_estimator(const Context &ctx, const Node *node,
+                              pps_t ingress) {
     const Profiler &profiler = ctx.get_profiler();
 
     const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -75,7 +79,8 @@ protected:
         .get_mutable_perf_oracle()
         .add_controller_traffic(new_ctx.get_node_hr(node));
 
-    spec_impl_t spec_impl(decide(ep, node), new_ctx);
+    spec_impl_t spec_impl(decide(ep, node), new_ctx,
+                          SendToController::perf_estimator);
     spec_impl.next_target = TargetType::TofinoCPU;
 
     return spec_impl;

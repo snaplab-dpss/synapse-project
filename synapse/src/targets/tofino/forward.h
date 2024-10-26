@@ -27,7 +27,11 @@ public:
 
   virtual pps_t compute_egress_tput(const EP *ep,
                                     pps_t ingress) const override {
-    const Context &ctx = ep->get_ctx();
+    return perf_estimator(ep->get_ctx(), node, ingress, dst_device);
+  }
+
+  static pps_t perf_estimator(const Context &ctx, const Node *node,
+                              pps_t ingress, int dst_device) {
     const Profiler &profiler = ctx.get_profiler();
 
     const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -77,7 +81,12 @@ protected:
     tofino_ctx->get_mutable_tna().get_mutable_perf_oracle().add_fwd_traffic(
         dst_device, new_ctx.get_node_hr(node));
 
-    return spec_impl_t(decide(ep, node), new_ctx);
+    auto perf_estimator_fn = [dst_device](const Context &ctx, const Node *node,
+                                          pps_t ingress) {
+      return Forward::perf_estimator(ctx, node, ingress, dst_device);
+    };
+
+    return spec_impl_t(decide(ep, node), new_ctx, perf_estimator_fn);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,

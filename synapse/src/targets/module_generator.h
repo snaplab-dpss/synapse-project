@@ -38,14 +38,25 @@ struct decision_t {
   }
 };
 
+using perf_estimator_fn =
+    std::function<pps_t(const Context &, const Node *, pps_t)>;
+
 struct spec_impl_t {
   decision_t decision;
   Context ctx;
   std::optional<TargetType> next_target;
   nodes_t skip;
+  perf_estimator_fn perf_estimator;
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx)
-      : decision(_decision), ctx(_ctx) {}
+      : decision(_decision), ctx(_ctx),
+        perf_estimator([](const Context &ctx, const Node *node, pps_t ingress) {
+          return ingress;
+        }) {}
+
+  spec_impl_t(const decision_t &_decision, const Context &_ctx,
+              perf_estimator_fn _perf_estimator)
+      : decision(_decision), ctx(_ctx), perf_estimator(_perf_estimator) {}
 };
 
 struct impl_t {

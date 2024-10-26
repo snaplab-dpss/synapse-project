@@ -30,7 +30,7 @@ private:
   std::shared_ptr<const BDD> bdd;
 
   EPNode *root;
-  std::vector<EPLeaf> leaves;
+  std::vector<EPLeaf> active_leaves;
 
   const TargetType initial_target;
   const targets_t targets;
@@ -64,7 +64,7 @@ public:
   ep_id_t get_id() const;
   const BDD *get_bdd() const;
   const EPNode *get_root() const;
-  const std::vector<EPLeaf> &get_leaves() const;
+  const std::vector<EPLeaf> &get_active_leaves() const;
   const targets_t &get_targets() const;
   const nodes_t &get_target_roots(TargetType target) const;
   const std::set<ep_id_t> &get_ancestors() const;
@@ -124,22 +124,19 @@ private:
   std::vector<EPLeaf>::const_iterator get_active_leaf_it() const;
 
   pps_t pps_from_ingress_tput(pps_t ingress) const;
-  pps_t stable_pps_from_ctx(const Context &ctx) const;
-  pps_t unstable_pps_from_ctx(const Context &ctx) const;
-  pps_t pps_from_ctx(const Context &ctx) const;
 
   constraints_t get_active_leaf_constraints() const;
 
   void print_speculations(const std::vector<spec_impl_t> &speculations) const;
 
-  spec_impl_t
-  peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
-                                    const Node *anchor, nodes_t future_nodes,
-                                    TargetType current_target) const;
+  spec_impl_t peek_speculation_for_future_nodes(
+      const spec_impl_t &base_speculation, const Node *anchor,
+      nodes_t future_nodes, TargetType current_target, pps_t ingress) const;
   spec_impl_t get_best_speculation(const Node *node, TargetType current_target,
-                                   const Context &ctx,
-                                   const nodes_t &skip) const;
+                                   const Context &ctx, const nodes_t &skip,
+                                   pps_t ingress) const;
   bool is_better_speculation(const spec_impl_t &old_speculation,
                              const spec_impl_t &new_speculation,
-                             const Node *node, TargetType current_target) const;
+                             const Node *node, TargetType current_target,
+                             pps_t ingress) const;
 };

@@ -40,7 +40,7 @@ EP::EP(std::shared_ptr<const BDD> _bdd, const targets_t &_targets,
     }
   }
 
-  leaves.emplace_back(nullptr, bdd->get_root());
+  active_leaves.emplace_back(nullptr, bdd->get_root());
 }
 
 static std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
@@ -60,15 +60,15 @@ EP::EP(const EP &other, bool is_ancestor)
       ancestors(update_ancestors(other, is_ancestor)),
       targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
   if (!root) {
-    assert(other.leaves.size() == 1);
-    leaves.emplace_back(nullptr, bdd->get_root());
+    assert(other.active_leaves.size() == 1);
+    active_leaves.emplace_back(nullptr, bdd->get_root());
     return;
   }
 
-  for (const EPLeaf &leaf : other.leaves) {
+  for (const EPLeaf &leaf : other.active_leaves) {
     EPNode *leaf_node = root->get_mutable_node_by_id(leaf.node->get_id());
     assert(leaf_node && "Leaf node not found in the cloned tree.");
-    leaves.emplace_back(leaf_node, leaf.next);
+    active_leaves.emplace_back(leaf_node, leaf.next);
   }
 }
 
@@ -87,7 +87,9 @@ const EPNode *EP::get_root() const { return root; }
 
 EPNode *EP::get_mutable_root() { return root; }
 
-const std::vector<EPLeaf> &EP::get_leaves() const { return leaves; }
+const std::vector<EPLeaf> &EP::get_active_leaves() const {
+  return active_leaves;
+}
 
 const targets_t &EP::get_targets() const { return targets; }
 
@@ -171,35 +173,35 @@ const Context &EP::get_ctx() const { return ctx; }
 Context &EP::get_mutable_ctx() { return ctx; }
 
 std::vector<EPLeaf>::const_iterator EP::get_active_leaf_it() const {
-  assert(!leaves.empty() && "No active leaf");
+  assert(!active_leaves.empty() && "No active leaf");
 
-  if (leaves.size() == 1) {
-    return leaves.begin();
+  if (active_leaves.size() == 1) {
+    return active_leaves.begin();
   }
 
   bool has_init_target = false;
-  for (const EPLeaf &leaf : leaves) {
+  for (const EPLeaf &leaf : active_leaves) {
     if (leaf.node->get_module()->get_next_target() == initial_target) {
       has_init_target = true;
       break;
     }
   }
 
-  std::vector<EPLeaf>::const_iterator chosen = leaves.end();
+  std::vector<EPLeaf>::const_iterator chosen = active_leaves.end();
   hit_rate_t chosen_hr = 0;
 
-  std::vector<EPLeaf>::const_iterator it = leaves.begin();
-  while (it != leaves.end()) {
+  std::vector<EPLeaf>::const_iterator it = active_leaves.begin();
+  while (it != active_leaves.end()) {
     hit_rate_t hr = ctx.get_node_hr(it->node);
 
-    // Prioritize leaves that don't change the current target.
+    // Prioritize active_leaves that don't change the current target.
     if (has_init_target &&
         it->node->get_module()->get_next_target() != initial_target) {
       ++it;
       continue;
     }
 
-    if (chosen == leaves.end() || hr > chosen_hr) {
+    if (chosen == active_leaves.end() || hr > chosen_hr) {
       chosen = it;
       chosen_hr = hr;
     }
@@ -220,11 +222,11 @@ const Node *EP::get_next_node() const {
 }
 
 EPLeaf EP::pop_active_leaf() {
-  assert(!leaves.empty() && "No active leaf");
+  assert(!active_leaves.empty() && "No active leaf");
 
   std::vector<EPLeaf>::const_iterator active_leaf_it = get_active_leaf_it();
   EPLeaf leaf = *active_leaf_it;
-  leaves.erase(active_leaf_it);
+  active_leaves.erase(active_leaf_it);
 
   return leaf;
 }
@@ -234,7 +236,7 @@ EPLeaf EP::get_active_leaf() const {
   return *active_leaf_it;
 }
 
-bool EP::has_active_leaf() const { return !leaves.empty(); }
+bool EP::has_active_leaf() const { return !active_leaves.empty(); }
 
 TargetType EP::get_current_platform() const {
   if (!root) {
@@ -254,7 +256,7 @@ void EP::process_leaf(const Node *next_node) {
   meta.process_node(active_leaf.next, current_target);
 
   if (next_node) {
-    leaves.emplace_back(active_leaf.node, next_node);
+    active_leaves.emplace_back(active_leaf.node, next_node);
   }
 }
 
@@ -301,7 +303,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
     const Module *module = new_leaf.node->get_module();
     TargetType next_target = module->get_next_target();
 
-    leaves.push_back(new_leaf);
+    active_leaves.push_back(new_leaf);
   }
 }
 
@@ -319,7 +321,7 @@ void EP::replace_bdd(const BDD *new_bdd,
                                                           : id;
   };
 
-  for (EPLeaf &leaf : leaves) {
+  for (EPLeaf &leaf : active_leaves) {
     assert(leaf.next);
 
     node_id_t new_id = translate_next_node(leaf.next->get_id());
@@ -414,7 +416,7 @@ void EP::inspect() const {
     }
   }
 
-  for (const EPLeaf &leaf : leaves) {
+  for (const EPLeaf &leaf : active_leaves) {
     const Node *next = leaf.next;
     assert(next);
 

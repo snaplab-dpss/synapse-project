@@ -125,8 +125,6 @@ void TofinoContext::parser_select(const EP *ep, const Node *node,
 
   node_id_t leaf_id = last_op->get_id();
   tna.parser.add_select(leaf_id, id, field, values, direction);
-
-  tna.parser.debug();
 }
 
 void TofinoContext::parser_transition(const EP *ep, const Node *node,
@@ -144,8 +142,6 @@ void TofinoContext::parser_transition(const EP *ep, const Node *node,
 
   node_id_t leaf_id = last_op->get_id();
   tna.parser.add_extract(leaf_id, id, hdr, direction);
-
-  tna.parser.debug();
 }
 
 void TofinoContext::parser_accept(const EP *ep, const Node *node) {
@@ -161,8 +157,6 @@ void TofinoContext::parser_accept(const EP *ep, const Node *node) {
     node_id_t leaf_id = last_op->get_id();
     tna.parser.accept(leaf_id, id, direction);
   }
-
-  tna.parser.debug();
 }
 
 void TofinoContext::parser_reject(const EP *ep, const Node *node) {
@@ -178,15 +172,13 @@ void TofinoContext::parser_reject(const EP *ep, const Node *node) {
     node_id_t leaf_id = last_op->get_id();
     tna.parser.reject(leaf_id, id, direction);
   }
-
-  tna.parser.debug();
 }
 
 static const EPNode *get_ep_node_from_bdd_node(const EP *ep, const Node *node) {
-  std::vector<EPLeaf> leaves = ep->get_leaves();
+  std::vector<EPLeaf> active_leaves = ep->get_active_leaves();
   std::vector<const EPNode *> ep_nodes;
 
-  for (const EPLeaf &leaf : leaves) {
+  for (const EPLeaf &leaf : active_leaves) {
     if (leaf.node) {
       ep_nodes.push_back(leaf.node);
     }
@@ -214,10 +206,10 @@ static const EPNode *get_ep_node_from_bdd_node(const EP *ep, const Node *node) {
 
 static const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep,
                                                            const Node *node) {
-  const std::vector<EPLeaf> &leaves = ep->get_leaves();
+  const std::vector<EPLeaf> &active_leaves = ep->get_active_leaves();
 
   while (node) {
-    for (const EPLeaf &leaf : leaves) {
+    for (const EPLeaf &leaf : active_leaves) {
       if (leaf.next == node) {
         return leaf.node;
       }
