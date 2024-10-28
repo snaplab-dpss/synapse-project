@@ -44,3 +44,6 @@ zlog-cfg-cur
 
 # Don't upload pcaps
 *.pcap
+
+# Profiling
+callgrind.out.*
