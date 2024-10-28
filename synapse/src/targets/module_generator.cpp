@@ -4,7 +4,7 @@
 #include "../log.h"
 
 static bool can_process_platform(const EP *ep, TargetType target) {
-  TargetType current_target = ep->get_current_platform();
+  TargetType current_target = ep->get_active_target();
   return current_target == target;
 }
 

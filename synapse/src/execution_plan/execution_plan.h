@@ -87,7 +87,7 @@ public:
   EPLeaf get_active_leaf() const;
   bool has_active_leaf() const;
 
-  TargetType get_current_platform() const;
+  TargetType get_active_target() const;
   EPNode *get_node_by_id(ep_node_id_t id) const;
 
   // TODO: Improve the performance of this method.

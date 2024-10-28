@@ -283,7 +283,7 @@ bool TofinoContext::check_placement(
   PlacementStatus status = tna.can_place(ds, deps);
 
   if (status != PlacementStatus::SUCCESS) {
-    TargetType target = ep->get_current_platform();
+    TargetType target = ep->get_active_target();
     Log::dbg() << "[" << target << "] Cannot place ds " << ds->id << " ("
                << status << ")\n";
   }
@@ -297,7 +297,7 @@ bool TofinoContext::check_many_placements(
   PlacementStatus status = tna.can_place_many(ds, deps);
 
   if (status != PlacementStatus::SUCCESS) {
-    TargetType target = ep->get_current_platform();
+    TargetType target = ep->get_active_target();
     Log::dbg() << "[" << target << "] Cannot place objs (" << status << ")\n";
     Log::dbg() << "  DS:\n";
     for (const auto &ds_list : ds) {

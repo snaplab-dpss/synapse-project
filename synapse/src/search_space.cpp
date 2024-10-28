@@ -10,7 +10,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
   if (!root) {
     ss_node_id_t id = node_id_counter++;
     Score score = hcfg->score(ep);
-    TargetType target = ep->get_current_platform();
+    TargetType target = ep->get_active_target();
     root = new SSNode(id, ep_id, score, target);
     active_leaf = root;
     return;

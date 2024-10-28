@@ -59,7 +59,7 @@ struct search_step_report_t {
 
 static void log_search_iteration(const search_step_report_t &report,
                                  const search_meta_t &search_meta) {
-  TargetType platform = report.chosen->get_current_platform();
+  TargetType platform = report.chosen->get_active_target();
   const EPMeta &meta = report.chosen->get_meta();
 
   Log::dbg() << "\n";

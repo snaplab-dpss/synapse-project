@@ -166,7 +166,7 @@ get_prev_functions(const EP *ep, const Node *node,
                    bool ignore_targets) {
   std::vector<const Call *> prev_functions;
 
-  TargetType target = ep->get_current_platform();
+  TargetType target = ep->get_active_target();
   const nodes_t &roots = ep->get_target_roots(target);
 
   if (!node) {

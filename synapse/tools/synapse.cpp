@@ -156,6 +156,25 @@ int main(int argc, char **argv) {
   search_report_t report = search(bdd, profiler, targets, heuristic_opt, peek,
                                   no_reorder, pause_on_backtrack, not_greedy);
 
+  if (show_ep) {
+    EPVisualizer::visualize(report.solution.ep, false);
+  }
+
+  if (show_ss) {
+    SSVisualizer::visualize(report.solution.search_space, report.solution.ep,
+                            false);
+  }
+
+  if (show_bdd) {
+    // BDDVisualizer::visualize(report.solution.ep->get_bdd(), false);
+    const BDD *solution_bdd = report.solution.ep->get_bdd();
+    const Context &ctx = report.solution.ep->get_ctx();
+    const Profiler &profiler = ctx.get_profiler();
+    ProfilerVisualizer::visualize(bdd, profiler, false);
+  }
+
+  report.solution.ep->get_ctx().debug();
+
   Log::log() << "\n";
   Log::log() << "Params:\n";
   Log::log() << "  Heuristic:        " << report.config.heuristic << "\n";
@@ -177,25 +196,6 @@ int main(int argc, char **argv) {
   Log::log() << "  Speculation:      " << report.solution.tput_speculation
              << "\n";
   Log::log() << "\n";
-
-  if (show_ep) {
-    EPVisualizer::visualize(report.solution.ep, false);
-  }
-
-  if (show_ss) {
-    SSVisualizer::visualize(report.solution.search_space, report.solution.ep,
-                            false);
-  }
-
-  if (show_bdd) {
-    // BDDVisualizer::visualize(report.solution.ep->get_bdd(), false);
-    const BDD *solution_bdd = report.solution.ep->get_bdd();
-    const Context &ctx = report.solution.ep->get_ctx();
-    const Profiler &profiler = ctx.get_profiler();
-    ProfilerVisualizer::visualize(bdd, profiler, false);
-  }
-
-  report.solution.ep->get_ctx().debug();
 
   // synthesize(report.solution.ep, out_dir);
 

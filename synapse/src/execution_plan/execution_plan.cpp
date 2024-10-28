@@ -120,7 +120,7 @@ std::vector<const EPNode *> EP::get_prev_nodes() const {
 std::vector<const EPNode *> EP::get_prev_nodes_of_current_target() const {
   std::vector<const EPNode *> prev_nodes;
 
-  TargetType target = get_current_platform();
+  TargetType target = get_active_target();
   EPLeaf current = get_active_leaf();
   const EPNode *node = current.node;
 
@@ -238,7 +238,7 @@ EPLeaf EP::get_active_leaf() const {
 
 bool EP::has_active_leaf() const { return !active_leaves.empty(); }
 
-TargetType EP::get_current_platform() const {
+TargetType EP::get_active_target() const {
   if (!root) {
     return initial_target;
   }
@@ -250,9 +250,9 @@ TargetType EP::get_current_platform() const {
 }
 
 void EP::process_leaf(const Node *next_node) {
+  TargetType current_target = get_active_target();
   EPLeaf active_leaf = pop_active_leaf();
 
-  TargetType current_target = get_current_platform();
   meta.process_node(active_leaf.next, current_target);
 
   if (next_node) {
@@ -262,7 +262,7 @@ void EP::process_leaf(const Node *next_node) {
 
 void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
                       bool process_node) {
-  TargetType current_target = get_current_platform();
+  TargetType current_target = get_active_target();
   EPLeaf active_leaf = pop_active_leaf();
 
   if (!root) {
