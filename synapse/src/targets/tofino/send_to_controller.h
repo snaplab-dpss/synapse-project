@@ -39,7 +39,7 @@ public:
     const TNA &tna = tofino_ctx->get_tna();
     const PerfOracle &perf_oracle = tna.get_perf_oracle();
 
-    hit_rate_t hr = ctx.get_node_hr(node);
+    hit_rate_t hr = ctx.get_profiler().get_hr(node);
     hit_rate_t total_hr = perf_oracle.get_controller_traffic();
 
     pps_t egress = ingress;
@@ -66,18 +66,15 @@ protected:
     Context new_ctx = ctx;
 
     Profiler &profiler = new_ctx.get_mutable_profiler();
-    constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
-    assert(fraction.has_value());
-
+    hit_rate_t fraction = profiler.get_hr(node);
     new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
-                                     *fraction);
+                                     fraction);
 
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
     tofino_ctx->get_mutable_tna()
         .get_mutable_perf_oracle()
-        .add_controller_traffic(new_ctx.get_node_hr(node));
+        .add_controller_traffic(fraction);
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx,
                           SendToController::perf_estimator);
@@ -119,7 +116,7 @@ protected:
     tofino_ctx->parser_accept(ep, node);
     tofino_ctx->get_mutable_tna()
         .get_mutable_perf_oracle()
-        .add_controller_traffic(new_ep->get_ctx().get_node_hr(s2c_node));
+        .add_controller_traffic(new_ep->get_ctx().get_profiler().get_hr(node));
 
     // FIXME: missing custom packet parsing for the SyNAPSE header.
 

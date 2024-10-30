@@ -92,8 +92,8 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, future_map_puts);
 
-    std::unordered_set<int> allowed_cache_capacities =
-        enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
+    std::vector<int> allowed_cache_capacities =
+        enum_fcfs_cache_cap(cached_table_data.num_entries);
 
     hit_rate_t chosen_success_estimation = 0;
     int chosen_cache_capacity = 0;
@@ -108,7 +108,7 @@ protected:
       if (!can_get_or_build_fcfs_cached_table(
               ep, node, cached_table_data.obj, cached_table_data.key,
               cached_table_data.num_entries, cache_capacity)) {
-        continue;
+        break;
       }
 
       if (success_estimation > chosen_success_estimation) {
@@ -125,16 +125,15 @@ protected:
 
     Context new_ctx = ctx;
     const Profiler &profiler = new_ctx.get_profiler();
-    constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
-    assert(fraction.has_value());
-
-    hit_rate_t on_fail_fraction = *fraction * (1 - chosen_success_estimation);
+    hit_rate_t fraction = profiler.get_hr(node);
+    hit_rate_t on_fail_fraction = fraction * (1 - chosen_success_estimation);
 
     new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
                                      on_fail_fraction);
 
+    // FIXME: not using profiler cache.
+    constraints_t constraints = node->get_ordered_branch_constraints();
     new_ctx.scale_profiler(constraints, chosen_success_estimation);
 
     std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
@@ -183,8 +182,8 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, future_map_puts);
 
-    std::unordered_set<int> allowed_cache_capacities =
-        enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
+    std::vector<int> allowed_cache_capacities =
+        enum_fcfs_cache_cap(cached_table_data.num_entries);
 
     for (int cache_capacity : allowed_cache_capacities) {
       std::optional<impl_t> impl = concretize_cached_table_write(
@@ -193,6 +192,9 @@ protected:
 
       if (impl.has_value()) {
         impls.push_back(*impl);
+      } else {
+        // No need to try bigger caches if we can't even fit a smaller one.
+        break;
       }
     }
 
@@ -303,11 +305,10 @@ private:
                                               int cache_capacity) const {
     const Context &ctx = ep->get_ctx();
     const Profiler &profiler = ctx.get_profiler();
-    constraints_t constraints = node->get_ordered_branch_constraints();
 
-    std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
-    assert(fraction.has_value());
+    hit_rate_t fraction = profiler.get_hr(node);
 
+    // FIXME: not using profiler cache.
     constraints_t full_write_constraints =
         map_put->get_ordered_branch_constraints();
     std::optional<FlowStats> flow_stats =
@@ -319,7 +320,7 @@ private:
     hit_rate_t expected_cached_fraction =
         cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
 
-    return fraction.value() * expected_cached_fraction;
+    return fraction * expected_cached_fraction;
   }
 
   std::unordered_set<DS_ID>

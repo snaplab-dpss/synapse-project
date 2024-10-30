@@ -192,7 +192,7 @@ std::vector<EPLeaf>::const_iterator EP::get_active_leaf_it() const {
 
   std::vector<EPLeaf>::const_iterator it = active_leaves.begin();
   while (it != active_leaves.end()) {
-    hit_rate_t hr = ctx.get_node_hr(it->node);
+    hit_rate_t hr = ctx.get_profiler().get_hr(this, it->node);
 
     // Prioritize active_leaves that don't change the current target.
     if (has_init_target &&
@@ -272,7 +272,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
     new_node->set_prev(active_leaf.node);
   }
 
-  ctx.update_traffic_fractions(new_node);
+  ctx.update_traffic_fractions(this, new_node);
   meta.update(active_leaf, new_node, process_node);
 
   meta.depth++;
@@ -283,7 +283,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
     }
 
     if (new_leaf.node != new_node) {
-      ctx.update_traffic_fractions(new_leaf.node);
+      ctx.update_traffic_fractions(this, new_leaf.node);
       meta.update(active_leaf, new_leaf.node, process_node);
     }
 
@@ -438,17 +438,13 @@ constraints_t EP::get_active_leaf_constraints() const {
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {
-  constraints_t constraints = get_active_leaf_constraints();
+  EPLeaf active_leaf = get_active_leaf();
 
-  if (constraints.empty()) {
-    return 1.0;
+  if (!active_leaf.node) {
+    return 1;
   }
 
-  const Profiler &profiler = ctx.get_profiler();
-  std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
-  assert(fraction.has_value());
-
-  return *fraction;
+  return ctx.get_profiler().get_hr(this, active_leaf.node);
 }
 
 void EP::add_hit_rate_estimation(klee::ref<klee::Expr> new_constraint,

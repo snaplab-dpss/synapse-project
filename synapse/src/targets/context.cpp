@@ -366,7 +366,7 @@ Context::get_traffic_fractions() const {
   return traffic_fraction_per_target;
 }
 
-void Context::update_traffic_fractions(const EPNode *new_node) {
+void Context::update_traffic_fractions(const EP *ep, const EPNode *new_node) {
   const Module *module = new_node->get_module();
 
   TargetType old_target = module->get_target();
@@ -376,11 +376,8 @@ void Context::update_traffic_fractions(const EPNode *new_node) {
     return;
   }
 
-  constraints_t constraints = get_node_constraints(new_node);
-  std::optional<hit_rate_t> fraction = profiler.get_hr(constraints);
-  assert(fraction.has_value());
-
-  update_traffic_fractions(old_target, new_target, *fraction);
+  hit_rate_t fraction = profiler.get_hr(ep, new_node);
+  update_traffic_fractions(old_target, new_target, fraction);
 }
 
 void Context::update_traffic_fractions(TargetType old_target,
@@ -424,20 +421,6 @@ constraints_t Context::get_node_constraints(const EPNode *node) const {
   }
 
   return {};
-}
-
-hit_rate_t Context::get_node_hr(const EPNode *node) const {
-  constraints_t constraints = get_node_constraints(node);
-  std::optional<hit_rate_t> hr = profiler.get_hr(constraints);
-  assert(hr.has_value());
-  return *hr;
-}
-
-hit_rate_t Context::get_node_hr(const Node *node) const {
-  constraints_t constraints = node->get_ordered_branch_constraints();
-  std::optional<hit_rate_t> hr = profiler.get_hr(constraints);
-  assert(hr.has_value());
-  return *hr;
 }
 
 void Context::add_hit_rate_estimation(const constraints_t &constraints,

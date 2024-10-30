@@ -78,18 +78,12 @@ static std::vector<leaf_tput_t> compute_leaves_egress_tput(const EP *ep,
     const EPNode *lhs = children[0];
     const EPNode *rhs = children[1];
 
-    constraints_t lhs_cnstrs = ctx.get_node_constraints(lhs);
-    constraints_t rhs_cnstrs = ctx.get_node_constraints(rhs);
+    hit_rate_t lhs_hr = profiler.get_hr(ep, lhs);
+    hit_rate_t rhs_hr = profiler.get_hr(ep, rhs);
 
-    std::optional<hit_rate_t> lhs_hr = profiler.get_hr(lhs_cnstrs);
-    std::optional<hit_rate_t> rhs_hr = profiler.get_hr(rhs_cnstrs);
-
-    assert(lhs_hr.has_value());
-    assert(rhs_hr.has_value());
-
-    hit_rate_t total_hr = lhs_hr.value() + rhs_hr.value();
-    hit_rate_t lhs_rl_hr = lhs_hr.value() / total_hr;
-    hit_rate_t rhs_rl_hr = rhs_hr.value() / total_hr;
+    hit_rate_t total_hr = lhs_hr + rhs_hr;
+    hit_rate_t lhs_rl_hr = lhs_hr / total_hr;
+    hit_rate_t rhs_rl_hr = rhs_hr / total_hr;
 
     pps_t lhs_ingress = lhs_rl_hr * node_egress;
     pps_t rhs_ingress = rhs_rl_hr * node_egress;
@@ -345,7 +339,7 @@ pps_t EP::speculate_tput_pps() const {
     pps_t tput = ingress;
 
     if (leaf.node) {
-      tput = ctx.get_node_hr(leaf.node) * ingress;
+      tput = ctx.get_profiler().get_hr(this, leaf.node) * ingress;
     }
 
     if (!leaf.next) {
@@ -368,12 +362,12 @@ pps_t EP::speculate_tput_pps() const {
     spec_leaf_t leaf = spec_leaves.back();
     spec_leaves.pop_back();
 
-    hit_rate_t total_hr = speculative_ctx.get_node_hr(leaf.next);
+    hit_rate_t total_hr = ctx.get_profiler().get_hr(leaf.next);
 
     if (skip.find(leaf.next->get_id()) != skip.end()) {
       std::vector<const Node *> children = leaf.next->get_children();
       for (const Node *child : children) {
-        hit_rate_t hr = speculative_ctx.get_node_hr(child);
+        hit_rate_t hr = ctx.get_profiler().get_hr(child);
         pps_t child_tput = (hr / total_hr) * leaf.tput;
         spec_leaves.push_back({child, leaf.target, child_tput});
       }
@@ -398,7 +392,7 @@ pps_t EP::speculate_tput_pps() const {
     }
 
     for (const Node *child : children) {
-      hit_rate_t hr = speculative_ctx.get_node_hr(child);
+      hit_rate_t hr = ctx.get_profiler().get_hr(child);
       pps_t child_tput = (hr / total_hr) * tput;
       spec_leaves.push_back({child, leaf.target, child_tput});
     }

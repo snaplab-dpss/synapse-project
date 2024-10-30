@@ -38,7 +38,7 @@ public:
     const TNA &tna = tofino_ctx->get_tna();
     const PerfOracle &perf_oracle = tna.get_perf_oracle();
 
-    hit_rate_t hr = ctx.get_node_hr(node);
+    hit_rate_t hr = ctx.get_profiler().get_hr(node);
     hit_rate_t total_hr = perf_oracle.get_fwd_traffic(dst_device);
 
     pps_t port_capacity = perf_oracle.get_port_capacity_pps();
@@ -79,7 +79,7 @@ protected:
     Context new_ctx = ctx;
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
     tofino_ctx->get_mutable_tna().get_mutable_perf_oracle().add_fwd_traffic(
-        dst_device, new_ctx.get_node_hr(node));
+        dst_device, new_ctx.get_profiler().get_hr(node));
 
     auto perf_estimator_fn = [dst_device](const Context &ctx, const Node *node,
                                           pps_t ingress) {
@@ -118,7 +118,7 @@ protected:
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->parser_accept(ep, node);
     tofino_ctx->get_mutable_tna().get_mutable_perf_oracle().add_fwd_traffic(
-        dst_device, new_ep->get_ctx().get_node_hr(fwd_node));
+        dst_device, new_ep->get_ctx().get_profiler().get_hr(new_ep, fwd_node));
 
     return impls;
   }

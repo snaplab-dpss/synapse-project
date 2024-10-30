@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <csignal>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_BLACK "\033[30m"
@@ -34,6 +35,15 @@
     assert(false && "Panic");                                                  \
     exit(1);                                                                   \
   }
+
+#define ASSERT_OR_PANIC(stmt, fmt, ...)                                        \
+  {                                                                            \
+    if (!(stmt)) {                                                             \
+      PANIC(fmt, ##__VA_ARGS__);                                               \
+    }                                                                          \
+  }
+
+#define BREAKPOINT raise(SIGTRAP);
 
 class Log {
 

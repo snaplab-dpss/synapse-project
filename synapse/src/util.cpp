@@ -1036,14 +1036,13 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
   assert(found && "Symbol map_has_this_key not found");
 
   rw_fractions_t fractions;
-  bool found_condition = false;
 
   klee::ref<klee::Expr> key_not_found_cond = solver_toolbox.exprBuilder->Eq(
       map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(
                                  0, map_has_this_key.expr->getWidth()));
 
-  map_get->visit_nodes([&fractions, &key_not_found_cond, &found_condition,
-                        profiler, obj, key](const Node *node) {
+  map_get->visit_nodes([&fractions, &key_not_found_cond, profiler, obj,
+                        key](const Node *node) {
     if (node->get_type() != NodeType::BRANCH) {
       return NodeVisitAction::VISIT_CHILDREN;
     }
@@ -1085,29 +1084,13 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
 
     assert(write && "map_put not found");
 
-    constraints_t rc = read->get_ordered_branch_constraints();
-    constraints_t wac = write_attempt->get_ordered_branch_constraints();
-    constraints_t wc = write->get_ordered_branch_constraints();
-
-    std::optional<hit_rate_t> rf = profiler.get_hr(rc);
-    std::optional<hit_rate_t> waf = profiler.get_hr(wac);
-    std::optional<hit_rate_t> wf = profiler.get_hr(wc);
-
-    if (rf.has_value() && waf.has_value() && wf.has_value()) {
-      fractions.read = rf.value();
-      fractions.write_attempt = waf.value();
-      fractions.write = wf.value();
-      found_condition = true;
-    } else {
-      assert(rf.has_value());
-      assert(wf.has_value());
-      found_condition = false;
-    }
+    fractions.read = profiler.get_hr(read);
+    fractions.write_attempt = profiler.get_hr(write_attempt);
+    fractions.write = profiler.get_hr(write);
 
     return NodeVisitAction::STOP;
   });
 
-  assert(found_condition && "map_has_this_key condition not found");
   return fractions;
 }
 
@@ -1864,4 +1847,24 @@ bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
 
   map_objs = data.value();
   return true;
+}
+
+std::vector<int> get_past_recirculations(const EPNode *node) {
+  std::vector<int> past_recirculations;
+
+  while ((node = node->get_prev())) {
+    const Module *module = node->get_module();
+
+    if (!module) {
+      continue;
+    }
+
+    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+      const tofino::Recirculate *recirc_module =
+          static_cast<const tofino::Recirculate *>(module);
+      past_recirculations.push_back(recirc_module->get_recirc_port());
+    }
+  }
+
+  return past_recirculations;
 }

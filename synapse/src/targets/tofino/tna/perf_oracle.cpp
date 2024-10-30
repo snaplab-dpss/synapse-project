@@ -12,18 +12,11 @@ PerfOracle::PerfOracle(const TNAProperties *properties, int _avg_pkt_bytes)
       total_recirc_ports(properties->total_recirc_ports),
       recirc_port_capacity_bps(properties->recirc_port_capacity_bps),
       avg_pkt_bytes(_avg_pkt_bytes),
-      recirc_ports_usage(properties->total_recirc_ports), non_recirc_traffic(1),
-      controller_port_usage(0), tput_pps(port_capacity_bps * total_ports) {
+      recirc_ports_usage(properties->total_recirc_ports),
+      controller_port_usage(0) {
   for (int port = 0; port < total_ports; port++) {
     ports_usage[port] = 0;
   }
-
-  for (int port = 0; port < total_recirc_ports; port++) {
-    recirc_ports_usage[port].port = port;
-    recirc_ports_usage[port].steering_fraction = 0;
-  }
-
-  update_tput_estimate();
 }
 
 PerfOracle::PerfOracle(const PerfOracle &other)
@@ -33,9 +26,7 @@ PerfOracle::PerfOracle(const PerfOracle &other)
       recirc_port_capacity_bps(other.recirc_port_capacity_bps),
       avg_pkt_bytes(other.avg_pkt_bytes), ports_usage(other.ports_usage),
       recirc_ports_usage(other.recirc_ports_usage),
-      non_recirc_traffic(other.non_recirc_traffic),
-      controller_port_usage(other.controller_port_usage),
-      tput_pps(other.tput_pps) {}
+      controller_port_usage(other.controller_port_usage) {}
 
 static bool fractions_le(hit_rate_t f0, hit_rate_t f1) {
   hit_rate_t delta = f0 - f1;
@@ -68,81 +59,39 @@ hit_rate_t PerfOracle::get_controller_traffic() const {
   return controller_port_usage;
 }
 
-void PerfOracle::add_recirculated_traffic(int port, int port_recirculations,
-                                          hit_rate_t fraction,
-                                          std::optional<int> prev_recirc_port) {
+void PerfOracle::add_recirculated_traffic(int port, int recirculations,
+                                          hit_rate_t fraction) {
   assert(port < total_recirc_ports);
-  assert(port_recirculations > 0);
+  assert(recirculations > 0);
 
   assert(fraction >= 0);
   assert(fraction <= 1);
 
-  RecircPortUsage &usage = recirc_ports_usage[port];
-  assert(usage.port == port);
+  recirc_port_usage_t &usage = recirc_ports_usage[port];
+  int curr_recirculations = usage.size();
 
-  int curr_port_recirculations = usage.fractions.size();
+  assert(recirculations <= curr_recirculations + 1);
 
-  assert(port_recirculations <= curr_port_recirculations + 1);
+  if (recirculations > curr_recirculations) {
+    usage.push_back(0);
 
-  if (port_recirculations > curr_port_recirculations) {
-    usage.fractions.push_back(0);
+    assert(curr_recirculations == 0 ||
+           fractions_le(fraction, usage[curr_recirculations - 1]));
+    assert(recirculations == (int)usage.size());
 
-    assert(
-        curr_port_recirculations == 0 ||
-        fractions_le(fraction, usage.fractions[curr_port_recirculations - 1]));
-    assert(port_recirculations == (int)usage.fractions.size());
-
-    if (curr_port_recirculations > 0) {
+    if (curr_recirculations > 0) {
       // Hit rate shenanigans to avoid floating point precision issues
-      hit_rate_t last_fraction = usage.fractions[curr_port_recirculations - 1];
+      hit_rate_t last_fraction = usage[curr_recirculations - 1];
       fraction = std::min(fraction, last_fraction);
     }
   }
 
-  usage.fractions[port_recirculations - 1] += fraction;
-  clamp_fraction(usage.fractions[port_recirculations - 1]);
+  usage[recirculations - 1] += fraction;
+  clamp_fraction(usage[recirculations - 1]);
 
-  if (prev_recirc_port.has_value() && *prev_recirc_port != port) {
-    steer_recirculation_traffic(*prev_recirc_port, port, fraction);
-  } else if (non_recirc_traffic > 0) {
-    non_recirc_traffic -= fraction;
-    clamp_fraction(non_recirc_traffic);
-  }
-
-  update_tput_estimate();
-}
-
-void PerfOracle::steer_recirculation_traffic(int source_port,
-                                             int destination_port,
-                                             hit_rate_t fraction) {
-  assert(source_port < total_recirc_ports);
-  assert(destination_port < total_recirc_ports);
-
-  assert(fraction >= 0);
-  assert(fraction <= 1);
-
-  RecircPortUsage &source_usage = recirc_ports_usage[source_port];
-  RecircPortUsage &destination_usage = recirc_ports_usage[destination_port];
-
-  assert(source_usage.port == source_port);
-  assert(destination_usage.port == destination_port);
-
-  source_usage.steering_fraction += fraction;
-  clamp_fraction(source_usage.steering_fraction);
-}
-
-static pps_t single_recirc_estimate(pps_t Tin, pps_t Cp) {
-  pps_t Tout = std::min(Tin, Cp);
-  return Tout;
-}
-
-static pps_t hit_rate_recirc_estimate(pps_t Tin, pps_t Cr, pps_t Cp,
-                                      hit_rate_t s) {
-  pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2;
-  pps_t Tout_in = (Tin / (hit_rate_t)(Tin + Ts)) * Cr * (1.0 - s);
-  pps_t Tout_s = (Ts / (hit_rate_t)(Tin + Ts)) * Cr;
-  pps_t Tout = Tout_in + Tout_s;
-  return std::min(std::min(Tin, Cp), Tout);
+  // We can only recirculate at most the traffic we have recirculated before.
+  assert(recirculations < 2 ||
+         fractions_le(usage[recirculations - 1], usage[recirculations - 2]));
 }
 
 // Coefficients are in increasing order: x^0, x^1, x^2, ...
@@ -177,102 +126,84 @@ static hit_rate_t newton_root_finder(hit_rate_t *coefficients,
   return x;
 }
 
-static pps_t triple_recirc_estimate(pps_t Tin, pps_t Cr, pps_t Cp,
-                                    hit_rate_t s0, hit_rate_t s1) {
-  hit_rate_t a = (s1 / s0) * (1.0 / Tin);
-  hit_rate_t b = 1;
-  hit_rate_t c = Tin;
-  hit_rate_t d = -1.0 * Tin * Cr * s0;
-
-  hit_rate_t Ts0_coefficients[] = {d, c, b, a};
-  hit_rate_t Ts0 = newton_root_finder(Ts0_coefficients, 4, 0, Cr);
-  hit_rate_t Ts1 = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
-
-  hit_rate_t Tout_in = (Tin / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
-  hit_rate_t Tout_s0 = (Ts0 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
-  hit_rate_t Tout_s1 = (Ts1 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr;
-
-  pps_t Tout = Tout_in + Tout_s0 + Tout_s1;
-
-  return std::min(std::min(Tin, Cp), Tout);
+hit_rate_t PerfOracle::get_recirculated_traffic(int port,
+                                                int recirculations) const {
+  assert(port < total_recirc_ports);
+  assert(recirculations > 0);
+  assert(recirculations <= (int)recirc_ports_usage.at(port).size());
+  return recirc_ports_usage.at(port)[recirculations - 1];
 }
 
-void PerfOracle::update_tput_estimate() {
-  bps_t Tswitch_bps = port_capacity_bps * total_ports;
-  bps_t tput_bps = 0;
+pps_t PerfOracle::get_recirculated_traffic_pps(int port, int recirculations,
+                                               pps_t ingress_pps) const {
+  assert(port < total_recirc_ports);
+  const recirc_port_usage_t &port_usage = recirc_ports_usage.at(port);
 
-  for (const RecircPortUsage &usage : recirc_ports_usage) {
-    size_t recirc_depth = usage.fractions.size();
+  bps_t Tin = ingress_pps * (avg_pkt_bytes * 8);
+  bps_t Cr = recirc_port_capacity_bps;
+  std::vector<bps_t> Tout(port_usage.size());
 
-    if (recirc_depth == 0) {
-      continue;
-    }
-
-    bps_t Tin_bps = Tswitch_bps * usage.fractions[0];
-    bps_t Tsteering_bps = Tswitch_bps * usage.steering_fraction;
-    bps_t Tout_bps = 0;
-
-    switch (recirc_depth) {
-    case 1: {
-      // Single recirculation, easy
-      Tout_bps = single_recirc_estimate(Tin_bps, port_capacity_bps);
-    } break;
-    case 2: {
-      // Recirculation surplus
-      // s is relative to the first recirculation
-
-      assert(fractions_le(usage.fractions[1], usage.fractions[0]));
-
-      if (usage.fractions[0] == 0) {
-        // Nothing to recirculate actually
-        Tout_bps = 0;
-        break;
-      }
-
-      hit_rate_t s = usage.fractions[1] / usage.fractions[0];
-
-      Tout_bps = hit_rate_recirc_estimate(Tin_bps, recirc_port_capacity_bps,
-                                          port_capacity_bps, s);
-    } break;
-    case 3: {
-      // s1 is relative to s0
-      // s0 is relative to the first recirculation
-
-      assert(fractions_le(usage.fractions[2], usage.fractions[1]));
-      assert(fractions_le(usage.fractions[1], usage.fractions[0]));
-
-      if (usage.fractions[0] == 0 || usage.fractions[1] == 0) {
-        // Nothing to recirculate actually
-        Tout_bps = 0;
-        break;
-      }
-
-      hit_rate_t s0 = usage.fractions[1] / usage.fractions[0];
-      hit_rate_t s1 = usage.fractions[2] / usage.fractions[1];
-
-      Tout_bps = triple_recirc_estimate(Tin_bps, recirc_port_capacity_bps,
-                                        port_capacity_bps, s0, s1);
-    } break;
-    default: {
-      assert(false && "TODO");
-    }
-    }
-
-    Tsteering_bps = std::min(Tsteering_bps, Tout_bps);
-    tput_bps += Tout_bps - Tsteering_bps;
+  if (port_usage.empty()) {
+    return 0;
   }
 
-  tput_bps += non_recirc_traffic * Tswitch_bps;
+  switch (port_usage.size()) {
+  case 1: {
+    // Single recirculation, easy
+    Tout[0] = std::min(Tin, Cr);
+  } break;
+  case 2: {
+    // Recirculation surplus
+    // s is relative to the first recirculation
 
-  pps_t old_estimate_pps = tput_pps;
-  pps_t new_estimate_pps = tput_bps / (avg_pkt_bytes * 8);
+    if (port_usage[0] == 0) {
+      // Nothing to recirculate actually
+      Tout[0] = 0;
+      Tout[1] = 0;
+      break;
+    }
 
-  // Round off the errors.
-  // new_estimate_pps should be <= old_estimate_pps
-  tput_pps = std::min(old_estimate_pps, new_estimate_pps);
+    hit_rate_t s = port_usage[1] / port_usage[0];
+    pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2;
+
+    Tout[0] = (Tin / (hit_rate_t)(Tin + Ts)) * Cr * (1.0 - s);
+    Tout[1] = (Ts / (hit_rate_t)(Tin + Ts)) * Cr;
+  } break;
+  case 3: {
+    // s1 is relative to s0
+    // s0 is relative to the first recirculation
+
+    if (port_usage[0] == 0 || port_usage[1] == 0) {
+      // Nothing to recirculate actually
+      Tout[0] = 0;
+      Tout[1] = 0;
+      Tout[2] = 0;
+      break;
+    }
+
+    hit_rate_t s0 = port_usage[1] / port_usage[0];
+    hit_rate_t s1 = port_usage[2] / port_usage[1];
+
+    hit_rate_t a = (s1 / s0) * (1.0 / Tin);
+    hit_rate_t b = 1;
+    hit_rate_t c = Tin;
+    hit_rate_t d = -1.0 * Tin * Cr * s0;
+
+    hit_rate_t Ts0_coefficients[] = {d, c, b, a};
+    hit_rate_t Ts0 = newton_root_finder(Ts0_coefficients, 4, 0, Cr);
+    hit_rate_t Ts1 = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
+
+    Tout[0] = (Tin / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
+    Tout[1] = (Ts0 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
+    Tout[2] = (Ts1 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr;
+  } break;
+  default: {
+    PANIC("TODO: arbitrary recirculation depth");
+  }
+  }
+
+  return Tout[recirculations] / (avg_pkt_bytes * 8);
 }
-
-pps_t PerfOracle::estimate_tput_pps() const { return tput_pps; }
 
 bps_t PerfOracle::get_port_capacity_bps() const { return port_capacity_bps; }
 
@@ -306,17 +237,15 @@ void PerfOracle::debug() const {
 
   Log::dbg() << "Controller usage: " << controller_port_usage << "\n";
 
-  Log::dbg() << "Non recirculated: " << non_recirc_traffic << "\n";
   Log::dbg() << "Recirculations:\n";
-  for (const RecircPortUsage &usage : recirc_ports_usage) {
-    Log::dbg() << "  Port " << usage.port << ":";
-    for (size_t i = 0; i < usage.fractions.size(); i++) {
-      Log::dbg() << " " << usage.fractions[i];
+  for (int recirc_port = 0; recirc_port < total_recirc_ports; recirc_port++) {
+    const recirc_port_usage_t &usage = recirc_ports_usage.at(recirc_port);
+    Log::dbg() << "  Port " << recirc_port << ":";
+    for (size_t i = 0; i < usage.size(); i++) {
+      Log::dbg() << " " << usage[i];
     }
-    Log::dbg() << " (steering=" << usage.steering_fraction << ")";
     Log::dbg() << "\n";
   }
-  Log::dbg() << "Estimate: " << estimate_tput_pps() << " pps\n";
   Log::dbg() << "========================\n";
 }
 

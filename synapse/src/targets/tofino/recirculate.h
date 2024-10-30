@@ -38,22 +38,28 @@ public:
     const TNA &tna = tofino_ctx->get_tna();
     const PerfOracle &perf_oracle = tna.get_perf_oracle();
 
-    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
-    constraints_t constraints = node->get_ordered_branch_constraints();
-    std::optional<hit_rate_t> opt_hr = profiler.get_hr(constraints);
-    assert(opt_hr.has_value());
-    hit_rate_t hr = opt_hr.value();
+    EPLeaf active_leaf = ep->get_active_leaf();
+    std::vector<int> past_recirculations =
+        get_past_recirculations(active_leaf.node);
 
-    // One for each consecutive recirculation to the same port.
-    // E.g.:
-    //    Index 0 contains the fraction of traffic recirculated once.
-    //    Index 1 contains the fraction of traffic recirculated twice.
-    //    Etc.
-    std::vector<hit_rate_t> recirculations;
+    int recirculations = 1;
+    for (int p : past_recirculations) {
+      if (p == recirc_port) {
+        recirculations++;
+      }
+    }
 
-    // Get all the other recirculation nodes.
+    hit_rate_t hr = profiler.get_hr(node);
+    hit_rate_t total_hr =
+        perf_oracle.get_recirculated_traffic(recirc_port, recirculations);
 
-    return ingress;
+    assert(total_hr >= 0);
+    assert(hr <= total_hr);
+
+    pps_t egress_port_pps = perf_oracle.get_recirculated_traffic_pps(
+        recirc_port, recirculations, ingress);
+
+    return (hr / total_hr) * egress_port_pps;
   }
 };
 
@@ -82,10 +88,11 @@ protected:
       return impls;
     }
 
-    int total_recirc_ports = get_total_recirc_ports(ep);
+    int total_recirc_ports =
+        get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
 
-    std::vector<int> past_recirc =
-        get_past_recirc_ports(ep, total_recirc_ports);
+    EPLeaf active_leaf = ep->get_active_leaf();
+    std::vector<int> past_recirc = get_past_recirculations(active_leaf.node);
 
     symbols_t symbols = get_dataplane_state(ep, node);
 
@@ -110,16 +117,9 @@ private:
     return impls;
   }
 
-  int get_total_recirc_ports(const EP *ep) const {
-    const TofinoContext *ctx = get_tofino_ctx(ep);
-    const TNA &tna = ctx->get_tna();
-    const TNAProperties &properties = tna.get_properties();
-    return properties.total_recirc_ports;
-  }
-
   EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols,
                       int recirc_port,
-                      const std::vector<int> &past_recirc) const {
+                      const std::vector<int> &past_recirculations) const {
     EP *new_ep = new EP(*ep);
 
     Module *module = new Recirculate(node, symbols, recirc_port);
@@ -129,55 +129,23 @@ private:
     hit_rate_t recirc_fraction = ep->get_active_leaf_hit_rate();
 
     int port_recirculations = 1;
-    std::optional<int> past_recirc_port;
-
-    for (int p : past_recirc) {
+    for (int p : past_recirculations) {
       if (p == recirc_port) {
-        port_recirculations += 1;
-      }
-
-      if (!past_recirc_port.has_value()) {
-        past_recirc_port = p;
+        port_recirculations++;
       }
     }
 
-    tofino_ctx->add_recirculated_traffic(recirc_port, port_recirculations,
-                                         recirc_fraction, past_recirc_port);
+    tofino_ctx->get_mutable_tna()
+        .get_mutable_perf_oracle()
+        .add_recirculated_traffic(recirc_port, port_recirculations,
+                                  recirc_fraction);
 
     // Note that we don't point to the next BDD node, as it was not actually
     // implemented.
-    // We are delegating the implementation to other platform.
     EPLeaf leaf(ep_node, node);
     new_ep->process_leaf(ep_node, {leaf}, false);
 
     return new_ep;
-  }
-
-  std::vector<int> get_past_recirc_ports(const EP *ep,
-                                         int total_recirc_ports) const {
-    EPLeaf active_leaf = ep->get_active_leaf();
-    const EPNode *node = active_leaf.node;
-
-    std::vector<int> past_recirc;
-
-    while ((node = node->get_prev())) {
-      const Module *module = node->get_module();
-
-      if (!module) {
-        continue;
-      }
-
-      if (module->get_type() == ModuleType::Tofino_Recirculate) {
-        const Recirculate *recirc_module =
-            static_cast<const Recirculate *>(module);
-        int recirc_port = recirc_module->get_recirc_port();
-        assert(recirc_port <= total_recirc_ports);
-
-        past_recirc.push_back(recirc_port);
-      }
-    }
-
-    return past_recirc;
   }
 };
 

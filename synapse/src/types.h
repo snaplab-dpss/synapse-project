@@ -55,6 +55,7 @@ typedef double hit_rate_t;
 
 #define bit_to_byte(B) ((B) / 8)
 #define byte_to_bit(B) ((B) * 8)
+#define align_to_byte(B) ((B) % 8 == 0 ? (B) : (B) + 8 - (B) % 8)
 
 #define gbps_to_bps(R) ((R) * BILLION)
 

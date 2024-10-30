@@ -20,6 +20,9 @@ struct solver_toolbox_t {
     solver = createIndependentSolver(solver);
 
     exprBuilder = klee::createDefaultExprBuilder();
+    assert(exprBuilder);
+
+    exprBuilder = klee::createSimplifyingExprBuilder(exprBuilder);
   }
 
   klee::ref<klee::Expr> create_new_symbol(const klee::Array *array) const;

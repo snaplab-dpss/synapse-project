@@ -25,8 +25,6 @@ public:
     return new TofinoContext(*this);
   }
 
-  virtual pps_t estimate_tput_pps() const override;
-
   const TNA &get_tna() const { return tna; }
   TNA &get_mutable_tna() { return tna; }
 
@@ -34,10 +32,6 @@ public:
   const std::unordered_set<DS *> &get_ds(addr_t addr) const;
   const DS *get_ds_from_id(DS_ID id) const;
   void save_ds(addr_t addr, DS *ds);
-
-  void add_recirculated_traffic(int port, int port_recirculations,
-                                double fraction,
-                                std::optional<int> prev_recirc_port);
 
   void parser_transition(const EP *ep, const Node *node,
                          klee::ref<klee::Expr> hdr);

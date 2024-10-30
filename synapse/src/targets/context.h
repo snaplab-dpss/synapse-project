@@ -46,7 +46,6 @@ public:
   virtual ~TargetContext() {}
 
   virtual TargetContext *clone() const = 0;
-  virtual pps_t estimate_tput_pps() const = 0;
   virtual void debug() const {}
 };
 
@@ -106,10 +105,8 @@ public:
   void update_constraints_per_node(ep_node_id_t node,
                                    const constraints_t &constraints);
   constraints_t get_node_constraints(const EPNode *node) const;
-  hit_rate_t get_node_hr(const EPNode *node) const;
-  hit_rate_t get_node_hr(const Node *node) const;
 
-  void update_traffic_fractions(const EPNode *new_node);
+  void update_traffic_fractions(const EP *ep, const EPNode *new_node);
   void update_traffic_fractions(TargetType old_target, TargetType new_target,
                                 hit_rate_t fraction);
 

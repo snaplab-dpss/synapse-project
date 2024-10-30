@@ -80,7 +80,7 @@ private:
                         const std::unordered_set<DS_ID> &deps,
                         std::vector<placement_t> &placements) const;
 
-  void concretize_placement(Stage *stage, const placement_t &placement);
+  void concretize_placement(Stage &stage, const placement_t &placement);
 
   void save_placement_request(const DS *ds,
                               const std::unordered_set<DS_ID> &deps);

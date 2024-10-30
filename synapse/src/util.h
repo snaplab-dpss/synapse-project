@@ -12,6 +12,7 @@
 
 enum class ModuleType;
 class EP;
+class EPNode;
 class Module;
 class Context;
 
@@ -185,3 +186,5 @@ bool is_tb_tracing_check_followed_by_update_on_true(
 std::string int2hr(u64 value);
 std::string tput2str(u64 thpt, const std::string &units,
                      bool human_readable = false);
+
+std::vector<int> get_past_recirculations(const EPNode *node);

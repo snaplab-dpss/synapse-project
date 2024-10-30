@@ -58,6 +58,14 @@ protected:
     std::unordered_set<RegisterAction> actions;
   };
 
+  /*
+    ======================================================================
+
+                               Vector Registers
+
+    ======================================================================
+ */
+
   std::unordered_set<DS *> build_vector_registers(
       const EP *ep, const Node *node, const vector_register_data_t &data,
       std::unordered_set<DS_ID> &rids, std::unordered_set<DS_ID> &deps) const;
@@ -71,10 +79,17 @@ protected:
   bool
   can_get_or_build_vector_registers(const EP *ep, const Node *node,
                                     const vector_register_data_t &data) const;
-
   void place_vector_registers(EP *ep, const vector_register_data_t &data,
                               const std::unordered_set<DS *> &regs,
                               const std::unordered_set<DS_ID> &deps) const;
+
+  /*
+     ======================================================================
+
+                              FCFS Cached Table
+
+     ======================================================================
+  */
 
   FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const Node *node,
                                          addr_t obj) const;
@@ -91,12 +106,11 @@ protected:
   void place_fcfs_cached_table(EP *ep, const Node *node,
                                const map_coalescing_objs_t &map_objs,
                                FCFSCachedTable *ds) const;
-  std::unordered_set<int>
-  enumerate_fcfs_cache_table_capacities(int num_entries) const;
-
-  hit_rate_t get_fcfs_cache_hit_rate(const EP *ep, const Node *node,
-                                     klee::ref<klee::Expr> key,
-                                     int cache_capacity) const;
+  std::vector<int> enum_fcfs_cache_cap(int num_entries) const;
+  hit_rate_t get_fcfs_cache_hr(const EP *ep, const Node *node,
+                               klee::ref<klee::Expr> key,
+                               int cache_capacity) const;
+  // ======================================================================
 };
 
 } // namespace tofino

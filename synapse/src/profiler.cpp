@@ -1,6 +1,7 @@
 #include <iomanip>
 
 #include "profiler.h"
+#include "execution_plan/execution_plan.h"
 #include "random_engine.h"
 #include "log.h"
 #include "exprs/exprs.h"
@@ -249,14 +250,15 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
 }
 
 Profiler::Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile)
-    : root(nullptr), avg_pkt_size(bdd_profile.meta.avg_pkt_size) {
+    : root(nullptr), avg_pkt_size(bdd_profile.meta.avg_pkt_size), cache() {
   const Node *bdd_root = bdd->get_root();
 
   assert(bdd_profile.counters.find(bdd_root->get_id()) !=
          bdd_profile.counters.end());
   u64 max_count = bdd_profile.counters.at(bdd_root->get_id());
 
-  root = build_profiler_tree(bdd_root, bdd_profile, max_count);
+  root = std::shared_ptr<ProfilerNode>(
+      build_profiler_tree(bdd_root, bdd_profile, max_count));
 
   for (const bdd_profile_t::map_stats_t &map_stats : bdd_profile.map_stats) {
     const Node *node = bdd->get_node_by_id(map_stats.node);
@@ -295,11 +297,11 @@ Profiler::Profiler(const BDD *bdd, const std::string &bdd_profile_fname)
     : Profiler(bdd, parse_bdd_profile(bdd_profile_fname)) {}
 
 Profiler::Profiler(const Profiler &other)
-    : root(other.root ? other.root->clone(true) : nullptr),
-      avg_pkt_size(other.avg_pkt_size) {}
+    : root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
 
 Profiler::Profiler(Profiler &&other)
-    : root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size) {
+    : root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size),
+      cache(std::move(other.cache)) {
   other.root = nullptr;
 }
 
@@ -308,26 +310,17 @@ Profiler &Profiler::operator=(const Profiler &other) {
     return *this;
   }
 
-  if (root) {
-    delete root;
-    root = nullptr;
-  }
-
-  root = other.root ? other.root->clone(true) : nullptr;
+  root = other.root;
+  avg_pkt_size = other.avg_pkt_size;
+  cache = other.cache;
 
   return *this;
-}
-
-Profiler::~Profiler() {
-  if (root) {
-    delete root;
-  }
 }
 
 int Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
 
 ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
-  ProfilerNode *current = root;
+  ProfilerNode *current = root.get();
 
   for (klee::ref<klee::Expr> constraint : constraints) {
     if (!current) {
@@ -353,6 +346,7 @@ ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
     }
   }
 
+  assert(current && "Profiler node not found");
   return current;
 }
 
@@ -383,10 +377,12 @@ static void recursive_update_fractions(ProfilerNode *node,
 
 void Profiler::replace_root(klee::ref<klee::Expr> constraint,
                             hit_rate_t fraction) {
+  assert(false && "Attempted to replace Profiler root node");
+
   ProfilerNode *new_node = new ProfilerNode(constraint, 1.0);
 
-  ProfilerNode *node = root;
-  root = new_node;
+  ProfilerNode *node = root.get();
+  root = std::shared_ptr<ProfilerNode>(new_node);
 
   new_node->on_true = node;
   new_node->on_false = node->clone(false);
@@ -411,8 +407,6 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint,
 
 void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
                       hit_rate_t fraction) {
-  assert(node);
-
   ProfilerNode *parent = node->prev;
 
   if (!parent) {
@@ -444,8 +438,6 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
 }
 
 void Profiler::remove(ProfilerNode *node) {
-  assert(node);
-
   ProfilerNode *parent = node->prev;
   assert(parent && "Cannot remove the root node");
 
@@ -468,8 +460,9 @@ void Profiler::remove(ProfilerNode *node) {
 
   if (!grandparent) {
     // The parent is the root node.
-    assert(root == parent);
-    root = sibling;
+    assert(root.get() == parent);
+    assert(false && "Attempted to replace Profiler root node");
+    // root = sibling;
   } else {
     if (grandparent->on_true == parent) {
       grandparent->on_true = sibling;
@@ -492,12 +485,14 @@ void Profiler::remove(ProfilerNode *node) {
 }
 
 void Profiler::remove(const constraints_t &constraints) {
+  clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
   remove(node);
 }
 
 void Profiler::insert(const constraints_t &constraints,
                       klee::ref<klee::Expr> constraint, hit_rate_t fraction) {
+  clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
   append(node, constraint, fraction);
 }
@@ -505,16 +500,15 @@ void Profiler::insert(const constraints_t &constraints,
 void Profiler::insert_relative(const constraints_t &constraints,
                                klee::ref<klee::Expr> constraint,
                                hit_rate_t rel_fraction_on_true) {
+  clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
-  assert(node);
-
   hit_rate_t fraction = rel_fraction_on_true * node->fraction;
   append(node, constraint, fraction);
 }
 
 void Profiler::scale(const constraints_t &constraints, hit_rate_t factor) {
+  clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
-  assert(node);
 
   hit_rate_t old_fraction = clamp_fraction(node->fraction);
   hit_rate_t new_fraction = clamp_fraction(node->fraction * factor);
@@ -525,14 +519,49 @@ void Profiler::scale(const constraints_t &constraints, hit_rate_t factor) {
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 }
 
-std::optional<hit_rate_t>
-Profiler::get_hr(const constraints_t &constraints) const {
-  ProfilerNode *node = get_node(constraints);
-
-  if (!node) {
-    return std::nullopt;
+hit_rate_t Profiler::get_hr(const Node *node) const {
+  auto found_it = cache.n2p.find(node->get_id());
+  if (found_it != cache.n2p.end()) {
+    assert(found_it->second);
+    return found_it->second->fraction;
   }
 
+  constraints_t constraints = node->get_ordered_branch_constraints();
+  ProfilerNode *profiler_node = get_node(constraints);
+
+  if (!profiler_node) {
+    PANIC("Profiler node not found");
+  }
+
+  cache.n2p[node->get_id()] = profiler_node;
+  cache.p2n[profiler_node] = node->get_id();
+
+  return profiler_node->fraction;
+}
+
+hit_rate_t Profiler::get_hr(const EP *ep, const EPNode *node) const {
+  auto found_it = cache.e2p.find(node->get_id());
+  if (found_it != cache.e2p.end()) {
+    assert(found_it->second);
+    return found_it->second->fraction;
+  }
+
+  const Context &ctx = ep->get_ctx();
+  constraints_t constraints = ctx.get_node_constraints(node);
+  ProfilerNode *profiler_node = get_node(constraints);
+
+  if (!profiler_node) {
+    PANIC("Profiler node not found");
+  }
+
+  cache.e2p[node->get_id()] = profiler_node;
+  cache.p2e[profiler_node] = node->get_id();
+
+  return profiler_node->fraction;
+}
+
+hit_rate_t Profiler::get_hr(const constraints_t &constraints) const {
+  ProfilerNode *node = get_node(constraints);
   return node->fraction;
 }
 
@@ -555,4 +584,19 @@ Profiler::get_flow_stats(const constraints_t &constraints,
   }
 
   return std::nullopt;
+}
+
+void Profiler::clone_tree_if_shared() {
+  assert(root);
+
+  // No need to clone a tree that is not shared.
+  if (root.use_count() == 1) {
+    return;
+  }
+
+  root = std::shared_ptr<ProfilerNode>(root->clone(true));
+  cache.n2p.clear();
+  cache.p2n.clear();
+  cache.e2p.clear();
+  cache.p2e.clear();
 }

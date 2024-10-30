@@ -5,17 +5,12 @@
 namespace tofino_cpu {
 
 class TofinoCPUContext : public TargetContext {
-private:
-  pps_t capacity_pps;
-
 public:
-  TofinoCPUContext() : capacity_pps(100'000) {}
+  TofinoCPUContext() {}
 
   virtual TargetContext *clone() const override {
     return new TofinoCPUContext(*this);
   }
-
-  virtual pps_t estimate_tput_pps() const override { return capacity_pps; }
 };
 
 } // namespace tofino_cpu

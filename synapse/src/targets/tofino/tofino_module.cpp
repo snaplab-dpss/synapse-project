@@ -223,8 +223,8 @@ TofinoModuleGenerator::get_fcfs_cached_table(const EP *ep, const Node *node,
   assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE);
 
   FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
-
   std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
+
   if (!tofino_ctx->check_placement(ep, cached_table, deps)) {
     cached_table = nullptr;
   }
@@ -294,14 +294,13 @@ void TofinoModuleGenerator::place_fcfs_cached_table(
   tofino_ctx->place(ep, map_objs.map, cached_table, deps);
 }
 
-std::unordered_set<int>
-TofinoModuleGenerator::enumerate_fcfs_cache_table_capacities(
-    int num_entries) const {
-  std::unordered_set<int> capacities;
+std::vector<int>
+TofinoModuleGenerator::enum_fcfs_cache_cap(int num_entries) const {
+  std::vector<int> capacities;
 
   int cache_capacity = 8;
   while (1) {
-    capacities.insert(cache_capacity);
+    capacities.push_back(cache_capacity);
     cache_capacity *= 2;
 
     if (cache_capacity > num_entries) {
@@ -312,10 +311,10 @@ TofinoModuleGenerator::enumerate_fcfs_cache_table_capacities(
   return capacities;
 }
 
-hit_rate_t
-TofinoModuleGenerator::get_fcfs_cache_hit_rate(const EP *ep, const Node *node,
-                                               klee::ref<klee::Expr> key,
-                                               int cache_capacity) const {
+hit_rate_t TofinoModuleGenerator::get_fcfs_cache_hr(const EP *ep,
+                                                    const Node *node,
+                                                    klee::ref<klee::Expr> key,
+                                                    int cache_capacity) const {
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
   constraints_t constraints = node->get_ordered_branch_constraints();

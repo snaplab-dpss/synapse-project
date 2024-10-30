@@ -109,19 +109,19 @@ struct SimplePlacer::placement_t {
 };
 
 void SimplePlacer::concretize_placement(
-    Stage *stage, const SimplePlacer::placement_t &placement) {
-  assert(stage->stage_id == placement.stage_id);
+    Stage &stage, const SimplePlacer::placement_t &placement) {
+  assert(stage.stage_id == placement.stage_id);
 
-  assert(stage->available_sram >= placement.sram);
-  assert(stage->available_map_ram >= placement.map_ram);
-  assert(stage->available_exact_match_xbar >= placement.xbar);
-  assert(stage->available_logical_ids >= placement.logical_ids);
+  assert(stage.available_sram >= placement.sram);
+  assert(stage.available_map_ram >= placement.map_ram);
+  assert(stage.available_exact_match_xbar >= placement.xbar);
+  assert(stage.available_logical_ids >= placement.logical_ids);
 
-  stage->available_sram -= placement.sram;
-  stage->available_map_ram -= placement.map_ram;
-  stage->available_exact_match_xbar -= placement.xbar;
-  stage->available_logical_ids -= placement.logical_ids;
-  stage->tables.insert(placement.obj);
+  stage.available_sram -= placement.sram;
+  stage.available_map_ram -= placement.map_ram;
+  stage.available_exact_match_xbar -= placement.xbar;
+  stage.available_logical_ids -= placement.logical_ids;
+  stage.tables.insert(placement.obj);
 }
 
 bool SimplePlacer::is_placed(DS_ID ds_id) const {
@@ -202,27 +202,27 @@ PlacementStatus SimplePlacer::find_placements_table(
     return PlacementStatus::NO_AVAILABLE_STAGE;
   }
 
-  bits_t requested_sram = table->get_consumed_sram();
-  bits_t requested_xbar = table->get_match_xbar_consume();
+  bits_t requested_sram = align_to_byte(table->get_consumed_sram());
+  bits_t requested_xbar = align_to_byte(table->get_match_xbar_consume());
 
   int total_stages = stages.size();
   for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
-    const Stage *stage = &stages[stage_id];
+    const Stage &stage = stages[stage_id];
 
-    if (stage->available_sram == 0) {
+    if (stage.available_sram == 0) {
       continue;
     }
 
-    if (requested_xbar > stage->available_exact_match_xbar) {
+    if (requested_xbar > stage.available_exact_match_xbar) {
       continue;
     }
 
-    if (stage->available_logical_ids == 0) {
+    if (stage.available_logical_ids == 0) {
       continue;
     }
 
     // This is not actually how it happens, but this is a VERY simple placer.
-    bits_t amount_placed = std::min(requested_sram, stage->available_sram);
+    bits_t amount_placed = std::min(requested_sram, stage.available_sram);
 
     placement_t placement = {
         .stage_id = stage_id,
@@ -261,30 +261,30 @@ SimplePlacer::find_placements_reg(const Register *reg,
     return PlacementStatus::NO_AVAILABLE_STAGE;
   }
 
-  bits_t requested_sram = reg->get_consumed_sram();
-  bits_t requested_map_ram = requested_sram;
-  bits_t requested_xbar = reg->index;
+  bits_t requested_sram = align_to_byte(reg->get_consumed_sram());
+  bits_t requested_map_ram = align_to_byte(requested_sram);
+  bits_t requested_xbar = align_to_byte(reg->index);
   int requested_logical_ids = reg->get_num_logical_ids();
 
   int total_stages = stages.size();
   for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
-    const Stage *stage = &stages[stage_id];
+    const Stage &stage = stages[stage_id];
 
     // Note that for tables we can span them across multiple stages, but we
     // can't do that with registers.
-    if (requested_sram > stage->available_sram) {
+    if (requested_sram > stage.available_sram) {
       continue;
     }
 
-    if (requested_map_ram > stage->available_map_ram) {
+    if (requested_map_ram > stage.available_map_ram) {
       continue;
     }
 
-    if (requested_xbar > stage->available_exact_match_xbar) {
+    if (requested_xbar > stage.available_exact_match_xbar) {
       continue;
     }
 
-    if (stage->available_logical_ids < requested_logical_ids) {
+    if (stage.available_logical_ids < requested_logical_ids) {
       continue;
     }
 
@@ -331,27 +331,27 @@ PlacementStatus SimplePlacer::find_placements_meter(
     return PlacementStatus::NO_AVAILABLE_STAGE;
   }
 
-  bits_t requested_sram = meter->get_consumed_sram();
-  bits_t requested_xbar = meter->get_match_xbar_consume();
+  bits_t requested_sram = align_to_byte(meter->get_consumed_sram());
+  bits_t requested_xbar = align_to_byte(meter->get_match_xbar_consume());
 
   int total_stages = stages.size();
   for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
-    const Stage *stage = &stages[stage_id];
+    const Stage &stage = stages[stage_id];
 
-    if (stage->available_sram == 0) {
+    if (stage.available_sram == 0) {
       continue;
     }
 
-    if (requested_xbar > stage->available_exact_match_xbar) {
+    if (requested_xbar > stage.available_exact_match_xbar) {
       continue;
     }
 
-    if (stage->available_logical_ids == 0) {
+    if (stage.available_logical_ids == 0) {
       continue;
     }
 
     // This is not actually how it happens, but this is a VERY simple placer.
-    bits_t amount_placed = std::min(requested_sram, stage->available_sram);
+    bits_t amount_placed = std::min(requested_sram, stage.available_sram);
 
     placement_t placement = {
         .stage_id = stage_id,
@@ -463,8 +463,7 @@ void SimplePlacer::place_primitive_ds(const DS *ds,
 
   for (const placement_t &placement : placements) {
     assert(placement.stage_id < static_cast<int>(stages.size()));
-    Stage *stage = &stages[placement.stage_id];
-    concretize_placement(stage, placement);
+    concretize_placement(stages[placement.stage_id], placement);
   }
 }
 

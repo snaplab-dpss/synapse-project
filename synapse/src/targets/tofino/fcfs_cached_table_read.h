@@ -129,8 +129,8 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, map_get);
 
-    std::unordered_set<int> allowed_cache_capacities =
-        enumerate_fcfs_cache_table_capacities(cached_table_data.num_entries);
+    std::vector<int> allowed_cache_capacities =
+        enum_fcfs_cache_cap(cached_table_data.num_entries);
 
     for (int cache_capacity : allowed_cache_capacities) {
       std::optional<impl_t> impl = concretize_cached_table_read(
@@ -138,6 +138,9 @@ protected:
 
       if (impl.has_value()) {
         impls.push_back(*impl);
+      } else {
+        // No need to try bigger caches if we can't even fit a smaller one.
+        break;
       }
     }
 
