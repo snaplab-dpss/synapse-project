@@ -579,7 +579,6 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   }
 
   dbg();
-  DEBUG_PAUSE
   assert(false && "TODO");
 }
 

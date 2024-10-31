@@ -56,8 +56,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "vector",
-                   PlacementDecision::TofinoCPU_Vector)) {
+    if (!can_impl_ds(ep, call_node, "vector", DSImpl::TofinoCPU_Vector)) {
       return std::nullopt;
     }
 
@@ -79,8 +78,7 @@ protected:
       return impls;
     }
 
-    if (!can_place(ep, call_node, "vector",
-                   PlacementDecision::TofinoCPU_Vector)) {
+    if (!can_impl_ds(ep, call_node, "vector", DSImpl::TofinoCPU_Vector)) {
       return impls;
     }
 
@@ -102,7 +100,8 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    place(new_ep, vector_addr, PlacementDecision::TofinoCPU_Vector);
+    new_ep->get_mutable_ctx().save_ds_impl(vector_addr,
+                                           DSImpl::TofinoCPU_Vector);
 
     return impls;
   }

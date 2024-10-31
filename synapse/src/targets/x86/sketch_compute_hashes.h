@@ -60,7 +60,7 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place(ep, call_node, "sketch", PlacementDecision::x86_Sketch)) {
+    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::x86_Sketch)) {
       return std::nullopt;
     }
 
@@ -78,7 +78,7 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (!can_place(ep, call_node, "sketch", PlacementDecision::x86_Sketch)) {
+    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::x86_Sketch)) {
       return impls;
     }
 
@@ -96,7 +96,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    place(new_ep, sketch_addr, PlacementDecision::x86_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr, DSImpl::x86_Sketch);
 
     return impls;
   }

@@ -50,8 +50,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "chain",
-                   PlacementDecision::TofinoCPU_Dchain)) {
+    if (!can_impl_ds(ep, call_node, "chain", DSImpl::TofinoCPU_Dchain)) {
       return std::nullopt;
     }
 
@@ -73,8 +72,7 @@ protected:
       return impls;
     }
 
-    if (!can_place(ep, call_node, "chain",
-                   PlacementDecision::TofinoCPU_Dchain)) {
+    if (!can_impl_ds(ep, call_node, "chain", DSImpl::TofinoCPU_Dchain)) {
       return impls;
     }
 
@@ -92,7 +90,8 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    place(new_ep, dchain_addr, PlacementDecision::TofinoCPU_Dchain);
+    new_ep->get_mutable_ctx().save_ds_impl(dchain_addr,
+                                           DSImpl::TofinoCPU_Dchain);
 
     return impls;
   }

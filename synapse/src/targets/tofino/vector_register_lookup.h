@@ -63,8 +63,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "vector",
-                   PlacementDecision::Tofino_VectorRegister)) {
+    if (!can_impl_ds(ep, call_node, "vector", DSImpl::Tofino_VectorRegister)) {
       return std::nullopt;
     }
 
@@ -110,8 +109,7 @@ protected:
       return impls;
     }
 
-    if (!can_place(ep, call_node, "vector",
-                   PlacementDecision::Tofino_VectorRegister)) {
+    if (!can_impl_ds(ep, call_node, "vector", DSImpl::Tofino_VectorRegister)) {
       return impls;
     }
 

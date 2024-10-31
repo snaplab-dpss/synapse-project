@@ -1,8 +1,7 @@
 #include "execution_plan.h"
 #include "node.h"
 #include "visitor.h"
-#include "../targets/target.h"
-#include "../targets/module.h"
+#include "../targets/targets.h"
 #include "../exprs/solver.h"
 #include "../profiler.h"
 #include "../log.h"
@@ -272,7 +271,6 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
     new_node->set_prev(active_leaf.node);
   }
 
-  ctx.update_traffic_fractions(this, new_node);
   meta.update(active_leaf, new_node, process_node);
 
   meta.depth++;
@@ -283,7 +281,6 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
     }
 
     if (new_leaf.node != new_node) {
-      ctx.update_traffic_fractions(this, new_leaf.node);
       meta.update(active_leaf, new_leaf.node, process_node);
     }
 
@@ -351,6 +348,9 @@ void EP::replace_bdd(const BDD *new_bdd,
 
   meta.update_total_bdd_nodes(new_bdd);
 
+  // Replacing the BDD might change the hit rate estimations.
+  ctx.get_profiler().clear_cache();
+
   // Reset the BDD only here, because we might lose the final reference to it
   // and we needed the old nodes to find the new ones.
   bdd.reset(new_bdd);
@@ -365,11 +365,10 @@ void EP::debug() const {
 }
 
 void EP::debug_placements() const {
-  Log::dbg() << "Placements:\n";
-  const std::unordered_map<addr_t, PlacementDecision> &placements =
-      ctx.get_placements();
-  for (const auto &[obj, decision] : placements) {
-    Log::dbg() << "  " << obj << " -> " << decision << "\n";
+  Log::dbg() << "Implementations:\n";
+  const std::unordered_map<addr_t, DSImpl> &impls = ctx.get_ds_impls();
+  for (const auto &[obj, impl] : impls) {
+    Log::dbg() << "  " << obj << " -> " << impl << "\n";
   }
 }
 

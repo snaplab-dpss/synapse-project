@@ -41,6 +41,9 @@ private:
   Context ctx;
   EPMeta meta;
 
+  mutable std::optional<pps_t> cached_tput_estimation;
+  mutable std::optional<pps_t> cached_tput_speculation;
+
 public:
   EP(std::shared_ptr<const BDD> bdd, const targets_t &targets,
      const Profiler &profiler);
@@ -124,9 +127,7 @@ private:
   std::vector<EPLeaf>::const_iterator get_active_leaf_it() const;
 
   pps_t pps_from_ingress_tput(pps_t ingress) const;
-
   constraints_t get_active_leaf_constraints() const;
-
   void print_speculations(const std::vector<spec_impl_t> &speculations) const;
 
   spec_impl_t peek_speculation_for_future_nodes(

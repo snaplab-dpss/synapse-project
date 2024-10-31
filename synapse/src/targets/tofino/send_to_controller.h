@@ -66,11 +66,7 @@ protected:
     Context new_ctx = ctx;
 
     Profiler &profiler = new_ctx.get_mutable_profiler();
-
     hit_rate_t fraction = profiler.get_hr(node);
-    new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
-                                     fraction);
-
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
     tofino_ctx->get_mutable_tna()
         .get_mutable_perf_oracle()

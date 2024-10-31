@@ -107,7 +107,7 @@ private:
       return false;
     }
 
-    if (!ctx.check_placement(map_objs->map, PlacementDecision::Tofino_Table)) {
+    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table)) {
       return false;
     }
 
@@ -137,8 +137,7 @@ private:
       return false;
     }
 
-    if (!ctx.check_placement(map_objs->map,
-                             PlacementDecision::Tofino_FCFSCachedTable)) {
+    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable)) {
       return false;
     }
 

@@ -11,7 +11,7 @@
 
 class EP;
 
-enum class PlacementDecision {
+enum class DSImpl {
   Tofino_Table,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
@@ -30,7 +30,7 @@ enum class PlacementDecision {
   x86_TB,
 };
 
-std::ostream &operator<<(std::ostream &os, PlacementDecision decision);
+std::ostream &operator<<(std::ostream &os, DSImpl impl);
 
 struct expiration_data_t {
   time_ns_t expiration_time;
@@ -63,9 +63,8 @@ private:
   std::vector<map_coalescing_objs_t> coalescing_candidates;
   std::optional<expiration_data_t> expiration_data;
 
-  std::unordered_map<addr_t, PlacementDecision> placement_decisions;
+  std::unordered_map<addr_t, DSImpl> ds_impls;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
-  std::unordered_map<TargetType, hit_rate_t> traffic_fraction_per_target;
   std::unordered_map<ep_node_id_t, constraints_t> constraints_per_node;
 
 public:
@@ -90,25 +89,19 @@ public:
   std::optional<map_coalescing_objs_t>
   get_map_coalescing_objs(addr_t obj) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
-  const std::unordered_map<addr_t, PlacementDecision> &get_placements() const;
-  const std::unordered_map<TargetType, hit_rate_t> &
-  get_traffic_fractions() const;
 
   template <class TCtx> const TCtx *get_target_ctx() const;
   template <class TCtx> TCtx *get_mutable_target_ctx();
 
-  void save_placement(addr_t obj, PlacementDecision decision);
-  bool has_placement(addr_t obj) const;
-  bool check_placement(addr_t obj, PlacementDecision decision) const;
-  bool can_place(addr_t obj, PlacementDecision decision) const;
+  const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
+  void save_ds_impl(addr_t obj, DSImpl impl);
+  bool has_ds_impl(addr_t obj) const;
+  bool check_ds_impl(addr_t obj, DSImpl impl) const;
+  bool can_impl_ds(addr_t obj, DSImpl impl) const;
 
   void update_constraints_per_node(ep_node_id_t node,
                                    const constraints_t &constraints);
   constraints_t get_node_constraints(const EPNode *node) const;
-
-  void update_traffic_fractions(const EP *ep, const EPNode *new_node);
-  void update_traffic_fractions(TargetType old_target, TargetType new_target,
-                                hit_rate_t fraction);
 
   void add_hit_rate_estimation(const constraints_t &constraints,
                                klee::ref<klee::Expr> new_constraint,

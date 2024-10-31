@@ -66,7 +66,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, tb_is_tracing, "tb", PlacementDecision::Tofino_Meter)) {
+    if (!can_impl_ds(ep, tb_is_tracing, "tb", DSImpl::Tofino_Meter)) {
       return std::nullopt;
     }
 
@@ -116,7 +116,7 @@ protected:
       return impls;
     }
 
-    if (!can_place(ep, tb_is_tracing, "tb", PlacementDecision::Tofino_Meter)) {
+    if (!can_impl_ds(ep, tb_is_tracing, "tb", DSImpl::Tofino_Meter)) {
       return impls;
     }
 
@@ -213,7 +213,7 @@ protected:
   void place_meter(EP *ep, addr_t obj, Meter *meter,
                    const std::unordered_set<DS_ID> &deps) const {
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
-    place(ep, obj, PlacementDecision::Tofino_Meter);
+    ep->get_mutable_ctx().save_ds_impl(obj, DSImpl::Tofino_Meter);
     tofino_ctx->place(ep, obj, meter, deps);
   }
 

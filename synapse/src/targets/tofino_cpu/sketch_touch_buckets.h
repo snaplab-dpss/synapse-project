@@ -52,8 +52,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "sketch",
-                   PlacementDecision::TofinoCPU_Sketch)) {
+    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::TofinoCPU_Sketch)) {
       return std::nullopt;
     }
 
@@ -75,8 +74,7 @@ protected:
       return impls;
     }
 
-    if (!can_place(ep, call_node, "sketch",
-                   PlacementDecision::TofinoCPU_Sketch)) {
+    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::TofinoCPU_Sketch)) {
       return impls;
     }
 
@@ -99,7 +97,8 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    place(new_ep, sketch_addr, PlacementDecision::TofinoCPU_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr,
+                                           DSImpl::TofinoCPU_Sketch);
 
     return impls;
   }

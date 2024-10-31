@@ -114,10 +114,8 @@ protected:
   virtual std::vector<impl_t> process_node(const EP *ep,
                                            const Node *node) const = 0;
 
-  bool can_place(const EP *ep, const Call *call_node,
-                 const std::string &obj_arg, PlacementDecision decision) const;
-  bool check_placement(const EP *ep, const Call *call_node,
-                       const std::string &obj_arg,
-                       PlacementDecision decision) const;
-  void place(EP *ep, addr_t obj, PlacementDecision decision) const;
+  bool can_impl_ds(const EP *ep, const Call *call_node,
+                   const std::string &obj_arg, DSImpl impl) const;
+  bool check_ds_impl(const EP *ep, const Call *call_node,
+                     const std::string &obj_arg, DSImpl impl) const;
 };

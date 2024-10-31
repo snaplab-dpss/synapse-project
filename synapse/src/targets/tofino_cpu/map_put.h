@@ -52,7 +52,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "map", PlacementDecision::TofinoCPU_Map)) {
+    if (!can_impl_ds(ep, call_node, "map", DSImpl::TofinoCPU_Map)) {
       return std::nullopt;
     }
 
@@ -74,7 +74,7 @@ protected:
       return impls;
     }
 
-    if (!can_place(ep, call_node, "map", PlacementDecision::TofinoCPU_Map)) {
+    if (!can_impl_ds(ep, call_node, "map", DSImpl::TofinoCPU_Map)) {
       return impls;
     }
 
@@ -95,7 +95,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    place(new_ep, map_addr, PlacementDecision::TofinoCPU_Map);
+    new_ep->get_mutable_ctx().save_ds_impl(map_addr, DSImpl::TofinoCPU_Map);
 
     return impls;
   }

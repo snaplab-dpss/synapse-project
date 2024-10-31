@@ -167,7 +167,7 @@ private:
   void place_table(EP *ep, addr_t obj, Table *table,
                    const std::unordered_set<DS_ID> &deps) const {
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
-    place(ep, obj, PlacementDecision::Tofino_Table);
+    ep->get_mutable_ctx().save_ds_impl(obj, DSImpl::Tofino_Table);
     tofino_ctx->place(ep, obj, table, deps);
   }
 
@@ -186,7 +186,7 @@ private:
       return false;
     }
 
-    return can_place(ep, call_node, obj_arg, PlacementDecision::Tofino_Table);
+    return can_impl_ds(ep, call_node, obj_arg, DSImpl::Tofino_Table);
   }
 
   bool get_table_data(const EP *ep, const Call *call_node, addr_t &obj,

@@ -144,9 +144,9 @@ std::vector<impl_t> ModuleGenerator::generate(const EP *ep, const Node *node,
   return implementations;
 }
 
-bool ModuleGenerator::can_place(const EP *ep, const Call *call_node,
-                                const std::string &obj_arg,
-                                PlacementDecision decision) const {
+bool ModuleGenerator::can_impl_ds(const EP *ep, const Call *call_node,
+                                  const std::string &obj_arg,
+                                  DSImpl impl) const {
   const call_t &call = call_node->get_call();
 
   assert(call.args.find(obj_arg) != call.args.end());
@@ -154,12 +154,12 @@ bool ModuleGenerator::can_place(const EP *ep, const Call *call_node,
   addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
   const Context &ctx = ep->get_ctx();
-  return ctx.can_place(obj, decision);
+  return ctx.can_impl_ds(obj, impl);
 }
 
-bool ModuleGenerator::check_placement(const EP *ep, const Call *call_node,
-                                      const std::string &obj_arg,
-                                      PlacementDecision decision) const {
+bool ModuleGenerator::check_ds_impl(const EP *ep, const Call *call_node,
+                                    const std::string &obj_arg,
+                                    DSImpl impl) const {
   const call_t &call = call_node->get_call();
 
   assert(call.args.find(obj_arg) != call.args.end());
@@ -167,11 +167,5 @@ bool ModuleGenerator::check_placement(const EP *ep, const Call *call_node,
   addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
   const Context &ctx = ep->get_ctx();
-  return ctx.check_placement(obj, decision);
-}
-
-void ModuleGenerator::place(EP *ep, addr_t obj,
-                            PlacementDecision decision) const {
-  Context &new_ctx = ep->get_mutable_ctx();
-  new_ctx.save_placement(obj, decision);
+  return ctx.check_ds_impl(obj, impl);
 }

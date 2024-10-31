@@ -99,10 +99,7 @@ Context::Context(const BDD *bdd, const targets_t &targets,
     : profiler(_profiler), expiration_data(build_expiration_data(bdd)) {
   for (const Target *target : targets) {
     target_ctxs[target->type] = target->ctx->clone();
-    traffic_fraction_per_target[target->type] = 0.0;
   }
-
-  traffic_fraction_per_target[initial_target] = 1.0;
 
   const std::vector<call_t> &init_calls = bdd->get_init();
 
@@ -174,9 +171,7 @@ Context::Context(const Context &other)
       sketch_configs(other.sketch_configs), cht_configs(other.cht_configs),
       tb_configs(other.tb_configs),
       coalescing_candidates(other.coalescing_candidates),
-      expiration_data(other.expiration_data),
-      placement_decisions(other.placement_decisions),
-      traffic_fraction_per_target(other.traffic_fraction_per_target),
+      expiration_data(other.expiration_data), ds_impls(other.ds_impls),
       constraints_per_node(other.constraints_per_node) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -193,9 +188,8 @@ Context::Context(Context &&other)
       tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
       expiration_data(std::move(other.expiration_data)),
-      placement_decisions(std::move(other.placement_decisions)),
+      ds_impls(std::move(other.ds_impls)),
       target_ctxs(std::move(other.target_ctxs)),
-      traffic_fraction_per_target(std::move(other.traffic_fraction_per_target)),
       constraints_per_node(std::move(other.constraints_per_node)) {}
 
 Context::~Context() {
@@ -228,13 +222,12 @@ Context &Context::operator=(const Context &other) {
   tb_configs = other.tb_configs;
   coalescing_candidates = other.coalescing_candidates;
   expiration_data = other.expiration_data;
-  placement_decisions = other.placement_decisions;
+  ds_impls = other.ds_impls;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
 
-  traffic_fraction_per_target = other.traffic_fraction_per_target;
   constraints_per_node = other.constraints_per_node;
 
   return *this;
@@ -337,63 +330,27 @@ x86::x86Context *Context::get_mutable_target_ctx<x86::x86Context>() {
   return dynamic_cast<x86::x86Context *>(target_ctxs.at(type));
 }
 
-void Context::save_placement(addr_t obj, PlacementDecision decision) {
-  assert(can_place(obj, decision) && "Incompatible placement decision");
-  placement_decisions[obj] = decision;
+void Context::save_ds_impl(addr_t obj, DSImpl impl) {
+  assert(can_impl_ds(obj, impl) && "Incompatible implementation");
+  ds_impls[obj] = impl;
 }
 
-bool Context::has_placement(addr_t obj) const {
-  return placement_decisions.find(obj) != placement_decisions.end();
+bool Context::has_ds_impl(addr_t obj) const {
+  return ds_impls.find(obj) != ds_impls.end();
 }
 
-bool Context::check_placement(addr_t obj, PlacementDecision decision) const {
-  auto found_it = placement_decisions.find(obj);
-  return found_it != placement_decisions.end() && found_it->second == decision;
+bool Context::check_ds_impl(addr_t obj, DSImpl decision) const {
+  auto found_it = ds_impls.find(obj);
+  return found_it != ds_impls.end() && found_it->second == decision;
 }
 
-bool Context::can_place(addr_t obj, PlacementDecision decision) const {
-  auto found_it = placement_decisions.find(obj);
-  return found_it == placement_decisions.end() || found_it->second == decision;
+bool Context::can_impl_ds(addr_t obj, DSImpl decision) const {
+  auto found_it = ds_impls.find(obj);
+  return found_it == ds_impls.end() || found_it->second == decision;
 }
 
-const std::unordered_map<addr_t, PlacementDecision> &
-Context::get_placements() const {
-  return placement_decisions;
-}
-
-const std::unordered_map<TargetType, hit_rate_t> &
-Context::get_traffic_fractions() const {
-  return traffic_fraction_per_target;
-}
-
-void Context::update_traffic_fractions(const EP *ep, const EPNode *new_node) {
-  const Module *module = new_node->get_module();
-
-  TargetType old_target = module->get_target();
-  TargetType new_target = module->get_next_target();
-
-  if (old_target == new_target) {
-    return;
-  }
-
-  hit_rate_t fraction = profiler.get_hr(ep, new_node);
-  update_traffic_fractions(old_target, new_target, fraction);
-}
-
-void Context::update_traffic_fractions(TargetType old_target,
-                                       TargetType new_target,
-                                       hit_rate_t fraction) {
-  hit_rate_t &old_target_hr = traffic_fraction_per_target[old_target];
-  hit_rate_t &new_target_hr = traffic_fraction_per_target[new_target];
-
-  old_target_hr -= fraction;
-  new_target_hr += fraction;
-
-  old_target_hr = std::max(old_target_hr, 0.0);
-  old_target_hr = std::min(old_target_hr, 1.0);
-
-  new_target_hr = std::max(new_target_hr, 0.0);
-  new_target_hr = std::min(new_target_hr, 1.0);
+const std::unordered_map<addr_t, DSImpl> &Context::get_ds_impls() const {
+  return ds_impls;
 }
 
 void Context::update_constraints_per_node(ep_node_id_t node,
@@ -448,54 +405,54 @@ void Context::scale_profiler(const constraints_t &constraints,
   profiler.scale(constraints, factor);
 }
 
-std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
-  switch (decision) {
-  case PlacementDecision::Tofino_Table:
+std::ostream &operator<<(std::ostream &os, DSImpl impl) {
+  switch (impl) {
+  case DSImpl::Tofino_Table:
     os << "Tofino::Table";
     break;
-  case PlacementDecision::Tofino_VectorRegister:
+  case DSImpl::Tofino_VectorRegister:
     os << "Tofino::Register";
     break;
-  case PlacementDecision::Tofino_FCFSCachedTable:
+  case DSImpl::Tofino_FCFSCachedTable:
     os << "Tofino::FCFSCachedTable";
     break;
-  case PlacementDecision::Tofino_Meter:
+  case DSImpl::Tofino_Meter:
     os << "Tofino::Meter";
     break;
-  case PlacementDecision::TofinoCPU_Dchain:
+  case DSImpl::TofinoCPU_Dchain:
     os << "TofinoCPU::Dchain";
     break;
-  case PlacementDecision::TofinoCPU_Vector:
+  case DSImpl::TofinoCPU_Vector:
     os << "TofinoCPU::Vector";
     break;
-  case PlacementDecision::TofinoCPU_Sketch:
+  case DSImpl::TofinoCPU_Sketch:
     os << "TofinoCPU::Sketch";
     break;
-  case PlacementDecision::TofinoCPU_Map:
+  case DSImpl::TofinoCPU_Map:
     os << "TofinoCPU::Map";
     break;
-  case PlacementDecision::TofinoCPU_Cht:
+  case DSImpl::TofinoCPU_Cht:
     os << "TofinoCPU::Cht";
     break;
-  case PlacementDecision::TofinoCPU_TB:
+  case DSImpl::TofinoCPU_TB:
     os << "TofinoCPU::TB";
     break;
-  case PlacementDecision::x86_Map:
+  case DSImpl::x86_Map:
     os << "x86::Map";
     break;
-  case PlacementDecision::x86_Vector:
+  case DSImpl::x86_Vector:
     os << "x86::Vector";
     break;
-  case PlacementDecision::x86_Dchain:
+  case DSImpl::x86_Dchain:
     os << "x86::Dchain";
     break;
-  case PlacementDecision::x86_Sketch:
+  case DSImpl::x86_Sketch:
     os << "x86::Sketch";
     break;
-  case PlacementDecision::x86_Cht:
+  case DSImpl::x86_Cht:
     os << "x86::Cht";
     break;
-  case PlacementDecision::x86_TB:
+  case DSImpl::x86_TB:
     os << "x86::TB";
     break;
   }
@@ -504,14 +461,9 @@ std::ostream &operator<<(std::ostream &os, PlacementDecision decision) {
 
 void Context::debug() const {
   Log::dbg() << "~~~~~~~~~~~~~~~~~~~~~~~~ Context ~~~~~~~~~~~~~~~~~~~~~~~~\n";
-  Log::dbg() << "Traffic fractions:\n";
-  for (const auto &[target, fraction] : traffic_fraction_per_target) {
-    Log::dbg() << "    " << target << ": " << fraction << "\n";
-  }
-
-  Log::dbg() << "Placement decisions: [\n";
-  for (const auto &[obj, decision] : placement_decisions) {
-    Log::dbg() << "    " << obj << ": " << decision << "\n";
+  Log::dbg() << "Implementations: [\n";
+  for (const auto &[obj, impl] : ds_impls) {
+    Log::dbg() << "    " << obj << ": " << impl << "\n";
   }
   Log::dbg() << "]\n";
 

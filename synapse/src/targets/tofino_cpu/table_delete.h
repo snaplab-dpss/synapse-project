@@ -114,8 +114,7 @@ private:
       return false;
     }
 
-    return check_placement(ep, call_node, obj_arg,
-                           PlacementDecision::Tofino_Table);
+    return check_ds_impl(ep, call_node, obj_arg, DSImpl::Tofino_Table);
   }
 
   bool can_place_table_delete(const EP *ep, const Call *call_node) const {
@@ -130,7 +129,7 @@ private:
       return false;
     }
 
-    return can_place(ep, call_node, obj_arg, PlacementDecision::Tofino_Table);
+    return can_impl_ds(ep, call_node, obj_arg, DSImpl::Tofino_Table);
   }
 
   void get_table_delete_data(const Call *call_node, addr_t &obj,

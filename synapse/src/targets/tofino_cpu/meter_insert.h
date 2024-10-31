@@ -63,7 +63,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!check_placement(ep, tb_trace, "tb", PlacementDecision::Tofino_Meter)) {
+    if (!check_ds_impl(ep, tb_trace, "tb", DSImpl::Tofino_Meter)) {
       return std::nullopt;
     }
 
@@ -85,7 +85,7 @@ protected:
       return impls;
     }
 
-    if (!check_placement(ep, tb_trace, "tb", PlacementDecision::Tofino_Meter)) {
+    if (!check_ds_impl(ep, tb_trace, "tb", DSImpl::Tofino_Meter)) {
       return impls;
     }
 

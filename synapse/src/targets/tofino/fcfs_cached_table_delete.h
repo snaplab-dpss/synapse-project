@@ -118,12 +118,11 @@ protected:
     hit_rate_t on_fail_fraction =
         fraction * (1 - chosen_cache_success_probability);
 
-    new_ctx.update_traffic_fractions(TargetType::Tofino, TargetType::TofinoCPU,
-                                     on_fail_fraction);
-
     // FIXME: not using profiler cache.
     constraints_t constraints = node->get_ordered_branch_constraints();
+
     new_ctx.scale_profiler(constraints, chosen_cache_success_probability);
+    new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
 
     std::vector<const Node *> ignore_nodes =
         get_future_related_nodes(ep, node, map_objs);

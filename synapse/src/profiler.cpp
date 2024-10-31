@@ -565,6 +565,13 @@ hit_rate_t Profiler::get_hr(const constraints_t &constraints) const {
   return node->fraction;
 }
 
+void Profiler::clear_cache() const {
+  cache.n2p.clear();
+  cache.p2n.clear();
+  cache.e2p.clear();
+  cache.p2e.clear();
+}
+
 void Profiler::debug() const {
   Log::dbg() << "\n============== Hit Rate Tree ==============\n";
   if (root) {
@@ -595,8 +602,5 @@ void Profiler::clone_tree_if_shared() {
   }
 
   root = std::shared_ptr<ProfilerNode>(root->clone(true));
-  cache.n2p.clear();
-  cache.p2n.clear();
-  cache.e2p.clear();
-  cache.p2e.clear();
+  clear_cache();
 }

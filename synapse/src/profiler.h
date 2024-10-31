@@ -76,6 +76,7 @@ public:
   std::optional<FlowStats> get_flow_stats(const constraints_t &cnstrs,
                                           klee::ref<klee::Expr> flow) const;
 
+  void clear_cache() const;
   void debug() const;
 
 private:

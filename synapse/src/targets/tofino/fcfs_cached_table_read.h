@@ -91,10 +91,14 @@ protected:
         get_future_vector_key_ops(ep, node, cached_table_data, map_objs);
 
     Context new_ctx = ctx;
+
+    new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
+
     spec_impl_t spec_impl(
         decide(ep, node,
                {{CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}),
         new_ctx);
+
     for (const Call *vector_op : vector_ops) {
       spec_impl.skip.insert(vector_op->get_id());
     }

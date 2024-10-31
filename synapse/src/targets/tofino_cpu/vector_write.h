@@ -59,8 +59,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "vector",
-                   PlacementDecision::TofinoCPU_Vector)) {
+    if (!can_impl_ds(ep, call_node, "vector", DSImpl::TofinoCPU_Vector)) {
       return std::nullopt;
     }
 
@@ -84,8 +83,7 @@ protected:
 
     // We don't need to place the vector, we will never get a vector_return
     // before a vector_borrow.
-    if (!check_placement(ep, call_node, "vector",
-                         PlacementDecision::TofinoCPU_Vector)) {
+    if (!check_ds_impl(ep, call_node, "vector", DSImpl::TofinoCPU_Vector)) {
       return impls;
     }
 

@@ -60,8 +60,7 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place(ep, call_node, "map",
-                   PlacementDecision::Tofino_FCFSCachedTable)) {
+    if (!can_impl_ds(ep, call_node, "map", DSImpl::Tofino_FCFSCachedTable)) {
       return std::nullopt;
     }
 
@@ -83,8 +82,7 @@ protected:
       return impls;
     }
 
-    if (!check_placement(ep, call_node, "map",
-                         PlacementDecision::Tofino_FCFSCachedTable)) {
+    if (!check_ds_impl(ep, call_node, "map", DSImpl::Tofino_FCFSCachedTable)) {
       return impls;
     }
 

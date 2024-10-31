@@ -133,10 +133,6 @@ void EP::print_speculations(
     const Node *node = bdd->get_node_by_id(speculation.decision.node);
 
     ss << "  ";
-    for (auto tf : speculation.ctx.get_traffic_fractions())
-      ss << " [" << tf.first << ":" << std::setfill('0') << std::fixed
-         << std::setprecision(5) << tf.second << "]";
-    ss << " <- ";
     ss << speculation.decision.module;
     ss << " ";
     if (!speculation.skip.empty()) {
@@ -323,6 +319,10 @@ static std::vector<leaf_t> get_leaves(const EP *ep) {
 //   - This makes the speculation pessismistic, as part of the traffic will be
 //  lost.
 pps_t EP::speculate_tput_pps() const {
+  if (cached_tput_speculation.has_value()) {
+    return *cached_tput_speculation;
+  }
+
   pps_t ingress = estimate_tput_pps();
   pps_t egress = 0;
 
@@ -334,6 +334,9 @@ pps_t EP::speculate_tput_pps() const {
 
   std::vector<spec_leaf_t> spec_leaves;
   std::vector<leaf_t> leaves = get_leaves(this);
+
+  // std::cerr << "\n=======================================================\n";
+  // std::cerr << "Speculating EP " << id << ":\n";
 
   for (const leaf_t &leaf : leaves) {
     pps_t tput = ingress;
@@ -368,7 +371,7 @@ pps_t EP::speculate_tput_pps() const {
       std::vector<const Node *> children = leaf.next->get_children();
       for (const Node *child : children) {
         hit_rate_t hr = ctx.get_profiler().get_hr(child);
-        pps_t child_tput = (hr / total_hr) * leaf.tput;
+        pps_t child_tput = total_hr > 0 ? (hr / total_hr) * leaf.tput : 0;
         spec_leaves.push_back({child, leaf.target, child_tput});
       }
       continue;
@@ -384,6 +387,10 @@ pps_t EP::speculate_tput_pps() const {
     pps_t tput =
         speculation.perf_estimator(speculation.ctx, leaf.next, leaf.tput);
 
+    // std::cerr << "Node: " << leaf.next->dump(true, true)
+    //           << " tput: " << int2hr(leaf.tput) << " -> " << int2hr(tput)
+    //           << "\n";
+
     std::vector<const Node *> children = leaf.next->get_children();
 
     if (children.empty()) {
@@ -393,23 +400,35 @@ pps_t EP::speculate_tput_pps() const {
 
     for (const Node *child : children) {
       hit_rate_t hr = ctx.get_profiler().get_hr(child);
-      pps_t child_tput = (hr / total_hr) * tput;
-      spec_leaves.push_back({child, leaf.target, child_tput});
+      pps_t child_tput = total_hr > 0 ? (hr / total_hr) * tput : 0;
+      spec_leaves.push_back({
+          child,
+          speculation.next_target.value_or(leaf.target),
+          child_tput,
+      });
     }
   }
 
-  // if (id == 2) {
+  // if (id == 31) {
   //   print_speculations(speculations);
   //   speculative_ctx.debug();
-  //   // BDDVisualizer::visualize(bdd, false);
+  //   // BDDVisualizer::visualize(bdd.get(), false);
   //   EPVisualizer::visualize(this, false);
+  //   // ProfilerVisualizer::visualize(bdd.get(),
+  //   speculative_ctx.get_profiler(),
+  //   //                               false);
   //   DEBUG_PAUSE
   // }
 
+  cached_tput_speculation = egress;
   return egress;
 }
 
 pps_t EP::estimate_tput_pps() const {
+  if (cached_tput_estimation.has_value()) {
+    return *cached_tput_estimation;
+  }
+
   const tofino::TofinoContext *tofino_ctx =
       ctx.get_target_ctx<tofino::TofinoContext>();
 
@@ -436,6 +455,8 @@ pps_t EP::estimate_tput_pps() const {
     diff = ingress > prev_ingress ? ingress - prev_ingress
                                   : prev_ingress - ingress;
   }
+
+  cached_tput_estimation = egress;
 
   return egress;
 }

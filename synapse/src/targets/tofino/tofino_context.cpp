@@ -282,11 +282,11 @@ bool TofinoContext::check_placement(
     const EP *ep, const DS *ds, const std::unordered_set<DS_ID> &deps) const {
   PlacementStatus status = tna.can_place(ds, deps);
 
-  if (status != PlacementStatus::SUCCESS) {
-    TargetType target = ep->get_active_target();
-    Log::dbg() << "[" << target << "] Cannot place ds " << ds->id << " ("
-               << status << ")\n";
-  }
+  // if (status != PlacementStatus::SUCCESS) {
+  //   TargetType target = ep->get_active_target();
+  //   Log::dbg() << "[" << target << "] Cannot place ds " << ds->id << " ("
+  //              << status << ")\n";
+  // }
 
   return status == PlacementStatus::SUCCESS;
 }
@@ -296,20 +296,19 @@ bool TofinoContext::check_many_placements(
     const std::unordered_set<DS_ID> &deps) const {
   PlacementStatus status = tna.can_place_many(ds, deps);
 
-  if (status != PlacementStatus::SUCCESS) {
-    TargetType target = ep->get_active_target();
-    Log::dbg() << "[" << target << "] Cannot place objs (" << status << ")\n";
-    Log::dbg() << "  DS:\n";
-    for (const auto &ds_list : ds) {
-      for (const DS *ds : ds_list) {
-        Log::dbg() << "   * " << ds->id << "\n";
-      }
-    }
-    Log::dbg() << "  Deps:\n";
-    for (DS_ID dep : deps) {
-      Log::dbg() << "   * " << dep << "\n";
-    }
-  }
+  // if (status != PlacementStatus::SUCCESS) {
+  //   TargetType target = ep->get_active_target();
+  //   Log::dbg() << "[" << target << "] Cannot place objs (" << status <<
+  //   ")\n"; Log::dbg() << "  DS:\n"; for (const auto &ds_list : ds) {
+  //     for (const DS *ds : ds_list) {
+  //       Log::dbg() << "   * " << ds->id << "\n";
+  //     }
+  //   }
+  //   Log::dbg() << "  Deps:\n";
+  //   for (DS_ID dep : deps) {
+  //     Log::dbg() << "   * " << dep << "\n";
+  //   }
+  // }
 
   return status == PlacementStatus::SUCCESS;
 }
