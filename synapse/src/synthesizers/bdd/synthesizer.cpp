@@ -63,11 +63,9 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(dchain_expire_one),
           POPULATE_SYNTHESIZER(dchain_is_index_allocated),
           POPULATE_SYNTHESIZER(dchain_free_index),
-          POPULATE_SYNTHESIZER(cms_compute_hashes),
-          POPULATE_SYNTHESIZER(cms_refresh),
-          POPULATE_SYNTHESIZER(cms_fetch),
-          POPULATE_SYNTHESIZER(cms_touch_buckets),
-          POPULATE_SYNTHESIZER(cms_expire),
+          POPULATE_SYNTHESIZER(cms_increment),
+          POPULATE_SYNTHESIZER(cms_count_min),
+          POPULATE_SYNTHESIZER(cms_cleanup),
           POPULATE_SYNTHESIZER(tb_is_tracing),
           POPULATE_SYNTHESIZER(tb_trace),
           POPULATE_SYNTHESIZER(tb_update_and_check),
@@ -448,12 +446,9 @@ BDDSynthesizer::var_t BDDSynthesizer::build_key(klee::ref<klee::Expr> key_addr,
 
   if (!key_in_stack) {
     k = build_var("key", key, key_addr);
-
     coder.indent();
     coder << "uint8_t " << k.name << "[" << key_size << "];\n";
-  }
-
-  if (solver_toolbox.are_exprs_always_equal(k.expr, key)) {
+  } else if (solver_toolbox.are_exprs_always_equal(k.expr, key)) {
     return k;
   }
 
@@ -816,9 +811,11 @@ void BDDSynthesizer::dchain_free_index(coder_t &coder, const Call *call_node) {
 }
 
 void BDDSynthesizer::cms_allocate(coder_t &coder, const call_t &call) {
-  klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
-  klee::ref<klee::Expr> threshold = call.args.at("threshold").expr;
+  klee::ref<klee::Expr> height = call.args.at("height").expr;
+  klee::ref<klee::Expr> width = call.args.at("width").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+  klee::ref<klee::Expr> cleanup_interval =
+      call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out = call.args.at("cms_out").out;
 
   var_t cms_out_var = build_var("cms", cms_out);
@@ -830,16 +827,17 @@ void BDDSynthesizer::cms_allocate(coder_t &coder, const call_t &call) {
   coder_nf_state << ";\n";
 
   coder << "cms_allocate(";
-  coder << transpiler.transpile(capacity) << ", ";
-  coder << transpiler.transpile(threshold) << ", ";
+  coder << transpiler.transpile(height) << ", ";
+  coder << transpiler.transpile(width) << ", ";
   coder << transpiler.transpile(key_size) << ", ";
+  coder << transpiler.transpile(cleanup_interval) << ", ";
   coder << "&" << cms_out_var.name;
   coder << ")";
 
   stack_add(cms_out_var);
 }
 
-void BDDSynthesizer::cms_compute_hashes(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_increment(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
@@ -850,7 +848,7 @@ void BDDSynthesizer::cms_compute_hashes(coder_t &coder, const Call *call_node) {
   var_t k = build_key(key_addr, key, coder, key_in_stack);
 
   coder.indent();
-  coder << "cms_compute_hashes(";
+  coder << "cms_increment(";
   coder << stack_get(cms_addr).name << ", ";
   coder << k.name;
   coder << ")";
@@ -863,78 +861,59 @@ void BDDSynthesizer::cms_compute_hashes(coder_t &coder, const Call *call_node) {
   }
 }
 
-void BDDSynthesizer::cms_refresh(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
+  klee::ref<klee::Expr> key = call.args.at("key").in;
+  klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
+  klee::ref<klee::Expr> min_estimate = call.ret;
+
+  bool key_in_stack;
+  var_t k = build_key(key_addr, key, coder, key_in_stack);
+
+  var_t me = build_var("min_estimate", min_estimate);
 
   coder.indent();
-  coder << "cms_refresh(";
+  coder << "int " << me.name << " = ";
+  coder << "cms_count_min(";
   coder << stack_get(cms_addr).name << ", ";
-  coder << transpiler.transpile(time);
-  coder << ")";
-  coder << ";\n";
-}
-
-void BDDSynthesizer::cms_fetch(coder_t &coder, const Call *call_node) {
-  const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
-
-  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
-
-  symbol_t overflow;
-  bool found = get_symbol(generated_symbols, "overflow", overflow);
-  assert(found && "Symbol overflow not found");
-
-  var_t o = build_var("overflow", overflow.expr);
-
-  coder.indent();
-  coder << "int " << o.name << " = ";
-  coder << "cms_fetch(";
-  coder << stack_get(cms_addr).name;
+  coder << k.name;
   coder << ")";
   coder << ";\n";
 
-  stack_add(o);
+  if (!key_in_stack) {
+    stack_add(k);
+  } else {
+    stack_replace(k, key);
+  }
+
+  stack_add(me);
 }
 
-void BDDSynthesizer::cms_touch_buckets(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_cleanup(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
-  symbol_t success;
-  bool found = get_symbol(generated_symbols, "success", success);
+  symbol_t cleanup_success;
+  bool found =
+      get_symbol(generated_symbols, "cleanup_success", cleanup_success);
   assert(found && "Symbol success not found");
 
-  var_t s = build_var("success", success.expr);
+  var_t cs = build_var("cleanup_success", cleanup_success.expr);
 
   coder.indent();
-  coder << "int " << s.name << " = ";
-  coder << "cms_touch_buckets(";
+  coder << "int " << cs.name << " = ";
+  coder << "cms_cleanup(";
   coder << stack_get(cms_addr).name << ", ";
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";
 
-  stack_add(s);
-}
-
-void BDDSynthesizer::cms_expire(coder_t &coder, const Call *call_node) {
-  const call_t &call = call_node->get_call();
-
-  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
-
-  coder.indent();
-  coder << "cms_expire(";
-  coder << stack_get(cms_addr).name << ", ";
-  coder << transpiler.transpile(time);
-  coder << ")";
-  coder << ";\n";
+  stack_add(cs);
 }
 
 void BDDSynthesizer::tb_allocate(coder_t &coder, const call_t &call) {

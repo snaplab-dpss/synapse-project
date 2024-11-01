@@ -12,7 +12,7 @@ enum ds_type_t {
   MAP,
   VECTOR,
   DCHAIN,
-  SKETCH,
+  CMS,
   CHT,
 };
 

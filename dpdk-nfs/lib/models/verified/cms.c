@@ -1,12 +1,15 @@
 #include "lib/verified/cms.h"
+
 #include "cms-control.h"
+#include "double-chain-control.h"
+#include "map-control.h"
+#include "vector-control.h"
+
 #include <klee/klee.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../verified/double-chain-control.h"
-#include "../verified/map-control.h"
-#include "../verified/vector-control.h"
+#include "lib/verified/hash.h"
 
 static int calculate_str_size(struct str_field_descr *descr, int len) {
   int rez = 0;
@@ -18,72 +21,6 @@ static int calculate_str_size(struct str_field_descr *descr, int len) {
   }
   klee_assert(rez == sum);
   return rez;
-}
-
-unsigned find_next_power_of_2_bigger_than(uint32_t d) {
-  assert(d <= 0x80000000);
-  unsigned n = 1;
-
-  while (n < d) {
-    n *= 2;
-  }
-
-  return n;
-}
-
-struct str_field_descr hash_descrs[] = {
-    {offsetof(struct hash, value), sizeof(uint32_t), 0, "value"},
-};
-struct nested_field_descr hash_nests[] = {};
-
-bool hash_eq(void *a, void *b) {
-  struct hash *id1 = (struct hash *)a;
-  struct hash *id2 = (struct hash *)b;
-
-  return (id1->value == id2->value);
-}
-
-void hash_allocate(void *obj) {
-  struct hash *id = (struct hash *)obj;
-  id->value = 0;
-}
-
-unsigned hash_hash(void *obj) {
-  klee_trace_ret();
-  klee_trace_param_tagged_ptr(obj, sizeof(struct hash), "obj", "hash", TD_BOTH);
-  for (int i = 0; i < sizeof(hash_descrs) / sizeof(hash_descrs[0]); ++i) {
-    klee_trace_param_ptr_field_arr_directed(
-        obj, hash_descrs[i].offset, hash_descrs[i].width, hash_descrs[i].count,
-        hash_descrs[i].name, TD_BOTH);
-  }
-  for (int i = 0; i < sizeof(hash_nests) / sizeof(hash_nests[0]); ++i) {
-    klee_trace_param_ptr_nested_field_arr_directed(
-        obj, hash_nests[i].base_offset, hash_nests[i].offset,
-        hash_nests[i].width, hash_nests[i].count, hash_nests[i].name, TD_BOTH);
-  }
-  return klee_int("hash_hash");
-}
-
-struct str_field_descr bucket_descrs[] = {
-    {offsetof(struct cms_bucket, value), sizeof(uint32_t), 0, "value"},
-};
-struct nested_field_descr bucket_nests[] = {};
-
-bool bucket_eq(void *a, void *b) {
-  struct cms_bucket *id1 = (struct cms_bucket *)a;
-  struct cms_bucket *id2 = (struct cms_bucket *)b;
-
-  return (id1->value == id2->value);
-}
-
-void bucket_allocate(void *obj) { (uintptr_t) obj; }
-
-unsigned bucket_hash(void *obj) {
-  struct cms_bucket *id = (struct cms_bucket *)obj;
-
-  unsigned hash = 0;
-  hash = __builtin_ia32_crc32si(hash, id->value);
-  return hash;
 }
 
 void cms_set_layout(struct CMS *cms, struct str_field_descr *key_fields,
@@ -111,16 +48,17 @@ void cms_set_entry_condition(struct CMS *cms, cms_entry_condition *cond,
 
 void cms_reset(struct CMS *cms) {}
 
-int cms_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
-                 struct CMS **cms_out) {
+int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size,
+                 time_ns_t cleanup_interval, struct CMS **cms_out) {
   klee_trace_ret();
 
-  klee_trace_param_u32(capacity, "capacity");
-  klee_trace_param_u16(threshold, "threshold");
+  klee_trace_param_u32(height, "height");
+  klee_trace_param_u32(width, "width");
   klee_trace_param_u16(key_size, "key_size");
+  klee_trace_param_i64(cleanup_interval, "cleanup_interval");
   klee_trace_param_ptr(cms_out, sizeof(struct CMS *), "cms_out");
 
-  klee_assert(CMS_HASHES <= CMS_SALTS_BANK_SIZE);
+  klee_assert(height <= CMS_MAX_SALTS_BANK_SIZE);
 
   int allocation_succeeded = klee_int("cms_allocation_succeeded");
 
@@ -134,36 +72,23 @@ int cms_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
   return 0;
 }
 
-void cms_compute_hashes(struct CMS *cms, void *k) {
+void cms_increment(struct CMS *cms, void *key) {
   klee_trace_param_u64((uint64_t)cms, "cms");
-  klee_trace_param_tagged_ptr(k, cms->key_size, "key", cms->key_type, TD_BOTH);
+  klee_trace_param_tagged_ptr(key, cms->key_size, "key", cms->key_type,
+                              TD_BOTH);
 }
 
-void cms_refresh(struct CMS *cms, time_ns_t now) {
-  klee_trace_param_u64((uint64_t)cms, "cms");
-  klee_trace_param_u64(now, "time");
-}
-
-int cms_fetch(struct CMS *cms) {
+uint64_t cms_count_min(struct CMS *cms, void *key) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)cms, "cms");
-  return klee_int("overflow");
+  klee_trace_param_tagged_ptr(key, cms->key_size, "key", cms->key_type,
+                              TD_BOTH);
+  return klee_int("min_estimate");
 }
 
-int cms_touch_buckets(struct CMS *cms, time_ns_t now) {
+int cms_cleanup(struct CMS *cms, time_ns_t now) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)cms, "cms");
-  klee_trace_param_u64(now, "time");
-  return klee_int("success");
-}
-
-void cms_expire(struct CMS *cms, time_ns_t time) {
-  klee_trace_param_u64((uint64_t)cms, "cms");
-  klee_trace_param_i64(time, "time");
-
-  for (int i = 0; i < CMS_HASHES; i++) {
-    int nfreed = klee_int("number_of_freed_flows");
-    klee_assume(0 <= nfreed);
-    // dchain_make_space(cms->allocators[i], nfreed);
-  }
+  klee_trace_param_i64(now, "time");
+  return klee_int("cleanup_success");
 }

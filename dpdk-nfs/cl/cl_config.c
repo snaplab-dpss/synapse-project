@@ -11,40 +11,27 @@
 const uint16_t DEFAULT_LAN = 1;
 const uint16_t DEFAULT_WAN = 0;
 const uint32_t DEFAULT_MAX_FLOWS = 65536;
-const uint32_t DEFAULT_CMS_CAPACITY = 65536;
 const uint16_t DEFAULT_MAX_CLIENTS = 60;
-const uint64_t DEFAULT_FLOW_EXPIRATION_TIME = 1000000;    // 1s
-const uint64_t DEFAULT_CLIENT_EXPIRATION_TIME = 10000000; // 10s
+const uint64_t DEFAULT_EXPIRATION_TIME = 1000000; // 1s
+const uint32_t DEFAULT_SKETCH_HEIGHT = 4;
+const uint32_t DEFAULT_SKETCH_WIDTH = 1024;
+const uint64_t DEFAULT_SKETCH_CLEANUP_INTERVAL = 10000000; // 10s
 
 #define PARSE_ERROR(format, ...)                                               \
   nf_config_usage();                                                           \
   fprintf(stderr, format, ##__VA_ARGS__);                                      \
   exit(EXIT_FAILURE);
 
-int is_power_of_2(uint32_t d) {
-  if (d == 0)
-    return false;
-
-  while (d != 1) {
-    if (d % 2 != 0) {
-      return false;
-    }
-
-    d >>= 1;
-  }
-
-  return true;
-}
-
 void nf_config_init(int argc, char **argv) {
   // Set the default values
   config.lan_device = DEFAULT_LAN;
   config.wan_device = DEFAULT_WAN;
   config.max_flows = DEFAULT_MAX_FLOWS;
-  config.cms_capacity = DEFAULT_CMS_CAPACITY;
   config.max_clients = DEFAULT_MAX_CLIENTS;
-  config.flow_expiration_time = DEFAULT_FLOW_EXPIRATION_TIME;
-  config.client_expiration_time = DEFAULT_CLIENT_EXPIRATION_TIME;
+  config.expiration_time = DEFAULT_EXPIRATION_TIME;
+  config.sketch_height = DEFAULT_SKETCH_HEIGHT;
+  config.sketch_width = DEFAULT_SKETCH_WIDTH;
+  config.sketch_cleanup_interval = DEFAULT_SKETCH_CLEANUP_INTERVAL;
 
   unsigned nb_devices = rte_eth_dev_count_avail();
 
@@ -52,68 +39,58 @@ void nf_config_init(int argc, char **argv) {
       {"lan", required_argument, NULL, 'l'},
       {"wan", required_argument, NULL, 'w'},
       {"max-flows", required_argument, NULL, 'f'},
-      {"capacity", required_argument, NULL, 's'},
       {"max-clients", required_argument, NULL, 'c'},
-      {"expire-flow", required_argument, NULL, 't'},
-      {"expire-client", required_argument, NULL, 'T'},
+      {"expire", required_argument, NULL, 't'},
+      {"sketch-height", required_argument, NULL, 'h'},
+      {"sketch-width", required_argument, NULL, 'W'},
+      {"sketch-cleanup-interval", required_argument, NULL, 'C'},
       {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "l:w:r:t:m:M:c:", long_options,
+  while ((opt = getopt_long(argc, argv, "l:w:f:c:t:h:W:C:", long_options,
                             NULL)) != EOF) {
     switch (opt) {
     case 'l':
       config.lan_device = nf_util_parse_int(optarg, "lan", 10, '\0');
-      if (config.lan_device < 0 || config.lan_device >= nb_devices) {
+      if (config.lan_device >= nb_devices) {
         PARSE_ERROR("Invalid LAN device.\n");
       }
       break;
 
     case 'w':
       config.wan_device = nf_util_parse_int(optarg, "wan", 10, '\0');
-      if (config.wan_device < 0 || config.wan_device >= nb_devices) {
+      if (config.wan_device >= nb_devices) {
         PARSE_ERROR("Invalid WAN device.\n");
       }
       break;
 
     case 'f':
       config.max_flows = nf_util_parse_int(optarg, "max-flows", 10, '\0');
-      if (config.max_flows <= 0) {
-        PARSE_ERROR("Maximum number of flows must be strictly positive.\n");
-      }
-      if (!is_power_of_2(config.max_flows)) {
+      if ((config.max_flows & (config.max_flows - 1)) != 0) {
         PARSE_ERROR("Maximum number of flows must be a power of 2.\n");
-      }
-      break;
-
-    case 's':
-      config.cms_capacity = nf_util_parse_int(optarg, "capacity", 10, '\0');
-      if (config.cms_capacity <= 0) {
-        PARSE_ERROR("CMS capacity must be strictly positive.\n");
       }
       break;
 
     case 'c':
       config.max_clients = nf_util_parse_int(optarg, "max-clients", 10, '\0');
-      if (config.max_clients < 0) {
-        PARSE_ERROR("Maximum number of clients must be >= 0.\n");
-      }
       break;
 
     case 't':
-      config.flow_expiration_time =
-          nf_util_parse_int(optarg, "expire-flow", 10, '\0');
-      if (config.flow_expiration_time <= 0) {
-        PARSE_ERROR("Flow expiration time must be strictly positive.\n");
-      }
+      config.expiration_time = nf_util_parse_int(optarg, "expire", 10, '\0');
       break;
 
-    case 'T':
-      config.client_expiration_time =
-          nf_util_parse_int(optarg, "expire-client", 10, '\0');
-      if (config.client_expiration_time <= 0) {
-        PARSE_ERROR("Client expiration time must be strictly positive.\n");
-      }
+    case 'h':
+      config.sketch_height =
+          nf_util_parse_int(optarg, "sketch-height", 10, '\0');
+      break;
+
+    case 'W':
+      config.sketch_width = nf_util_parse_int(optarg, "sketch-width", 10, '\0');
+      break;
+
+    case 'C':
+      config.sketch_cleanup_interval =
+          nf_util_parse_int(optarg, "sketch-cleanup-interval", 10, '\0');
       break;
 
     default:
@@ -134,17 +111,19 @@ void nf_config_usage(void) {
           " default: %" PRIu16 ".\n"
           "\t--max-flows <max-flows>: maximum number of flows,"
           " default: %" PRIu32 ".\n"
-          "\t--capacity <capacity>: size of the clients\' cms,"
-          " default: %" PRIu32 ".\n"
           "\t--max-clients <max-clients>: maximum allowed number of clients,"
           " default: %" PRIu16 ".\n"
-          "\t--expire-flow <time>: flow expiration time (us).\n"
+          "\t--expire <time>: expiration time (us),"
           " default: %" PRIu64 ".\n"
-          "\t--expire-client <time>: client expiration time (us).\n"
+          "\t--sketch-height <height>: CMS sketch height,"
+          " default: %" PRIu32 ".\n"
+          "\t--sketch-width <width>: CMS sketch width,"
+          " default: %" PRIu32 ".\n"
+          "\t--sketch-cleanup-interval <interval>: CMS sketch cleanup interval,"
           " default: %" PRIu64 ".\n",
-          DEFAULT_LAN, DEFAULT_WAN, DEFAULT_MAX_FLOWS, DEFAULT_CMS_CAPACITY,
-          DEFAULT_MAX_CLIENTS, DEFAULT_FLOW_EXPIRATION_TIME,
-          DEFAULT_CLIENT_EXPIRATION_TIME);
+          DEFAULT_LAN, DEFAULT_WAN, DEFAULT_MAX_FLOWS, DEFAULT_MAX_CLIENTS,
+          DEFAULT_EXPIRATION_TIME, DEFAULT_SKETCH_HEIGHT, DEFAULT_SKETCH_WIDTH,
+          DEFAULT_SKETCH_CLEANUP_INTERVAL);
 }
 
 void nf_config_print(void) {
@@ -153,10 +132,12 @@ void nf_config_print(void) {
   NF_INFO("LAN Device: %" PRIu16, config.lan_device);
   NF_INFO("WAN Device: %" PRIu16, config.wan_device);
   NF_INFO("Max flows: %" PRIu32, config.max_flows);
-  NF_INFO("CMS size: %" PRIu32, config.cms_capacity);
   NF_INFO("Max clients: %" PRIu16, config.max_clients);
-  NF_INFO("Flow expiration time: %" PRIu64, config.flow_expiration_time);
-  NF_INFO("Client expiration time: %" PRIu64, config.client_expiration_time);
+  NF_INFO("Expiration time: %" PRIu64, config.expiration_time);
+  NF_INFO("CMS sketch height: %" PRIu32, config.sketch_height);
+  NF_INFO("CMS sketch width: %" PRIu32, config.sketch_width);
+  NF_INFO("CMS sketch cleanup interval: %" PRIu64,
+          config.sketch_cleanup_interval);
 
   NF_INFO("\n--- ------ ------ ---\n");
 }

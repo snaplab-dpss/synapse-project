@@ -1,8 +1,8 @@
-#include "cms.h"
+#include "cms-util.h"
 
 #include <stdint.h>
 
-const uint32_t CMS_SALTS[CMS_SALTS_BANK_SIZE] = {
+const uint32_t CMS_SALTS[CMS_MAX_SALTS_BANK_SIZE] = {
     0x9b78350f, 0x9bcf144c, 0x8ab29a3e, 0x34d48bf5, 0x78e47449, 0xd6e4af1d,
     0x32ed75e2, 0xb1eb5a08, 0x9cc7fbdf, 0x65b811ea, 0x41fd5ed9, 0x2e6a6782,
     0x3549661d, 0xbb211240, 0x78daa2ae, 0x8ce2d11f, 0x52911493, 0xc2497bd5,

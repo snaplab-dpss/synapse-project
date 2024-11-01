@@ -24,9 +24,10 @@ struct vector_config_t {
 };
 
 struct cms_config_t {
-  u64 capacity;
-  u64 threshold;
+  u64 height;
+  u64 width;
   bits_t key_size;
+  time_ns_t cleanup_interval;
 };
 
 struct cht_config_t {

@@ -14,15 +14,18 @@ struct nf_config {
   // Maximum number of flows
   uint32_t max_flows;
 
-  // CMS size
-  uint32_t cms_capacity;
-
   // Maximum allowed number of clients
   uint16_t max_clients;
 
-  // Expiration time of flows in microseconds
-  uint64_t flow_expiration_time;
+  // Expiration time in microseconds
+  uint64_t expiration_time;
 
-  // Expiration time of clients in microseconds
-  uint64_t client_expiration_time;
+  // Sketch height (i.e. number of rows)
+  uint32_t sketch_height;
+
+  // Sketch width (i.e. number of columns)
+  uint32_t sketch_width;
+
+  // Sketch cleanup interval in microseconds
+  uint64_t sketch_cleanup_interval;
 };

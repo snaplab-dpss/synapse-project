@@ -32,7 +32,8 @@ int vector_allocate(int elem_size, unsigned capacity,
   klee_trace_param_ptr(vector_out, sizeof(struct Vector *), "vector_out");
 
   int allocation_succeeded = klee_int("vector_alloc_success");
-  if (!allocation_succeeded) return 0;
+  if (!allocation_succeeded)
+    return 0;
 
   *vector_out = malloc(sizeof(struct Vector));
   klee_make_symbolic(*vector_out, sizeof(struct Vector), "vector");
@@ -165,6 +166,15 @@ void vector_return(struct Vector *vector, int index, void *value) {
     }
   }
   klee_assert(belongs);
+  klee_forbid_access(vector->data, vector->elem_size * NUM_ELEMS,
+                     "private state");
+}
+
+void vector_clear(struct Vector *vector) {
+  klee_trace_param_u64((uint64_t)vector, "vector");
+
+  klee_allow_access(vector->data, vector->elem_size * NUM_ELEMS);
+  memset(vector->data, 0, vector->elem_size * NUM_ELEMS);
   klee_forbid_access(vector->data, vector->elem_size * NUM_ELEMS,
                      "private state");
 }

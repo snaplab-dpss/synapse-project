@@ -75,11 +75,9 @@ private:
   void dchain_expire_one(coder_t &, const Call *);
   void dchain_is_index_allocated(coder_t &, const Call *);
   void dchain_free_index(coder_t &, const Call *);
-  void cms_compute_hashes(coder_t &, const Call *);
-  void cms_refresh(coder_t &, const Call *);
-  void cms_fetch(coder_t &, const Call *);
-  void cms_touch_buckets(coder_t &, const Call *);
-  void cms_expire(coder_t &, const Call *);
+  void cms_increment(coder_t &, const Call *);
+  void cms_count_min(coder_t &, const Call *);
+  void cms_cleanup(coder_t &, const Call *);
   void tb_is_tracing(coder_t &, const Call *);
   void tb_trace(coder_t &, const Call *);
   void tb_update_and_check(coder_t &, const Call *);

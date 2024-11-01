@@ -18,7 +18,7 @@ from pathlib import Path
 from math import ceil, floor
 
 N_PACKETS = 10000
-N_SOURCES = 100
+N_SOURCES = 20
 
 def random_mac():
     return f"02:00:00:{randint(0, 0xff):02x}:{randint(0, 0xff):02x}:{randint(0, 0xff):02x}"
@@ -39,7 +39,7 @@ def generate_pkts(output):
     dst_ip = random_ip()
     dport = random_port()
 
-    sources = [ (random_ip(), random_port()) for x in range(N_SOURCES) ]
+    sources = [ (random_ip(), random_port()) for _ in range(N_SOURCES) ]
     greedy = random.choice(sources)
 
     print(f"Greedy client: {greedy[0]}")

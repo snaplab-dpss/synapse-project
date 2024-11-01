@@ -160,25 +160,31 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
     if (call.function_name != "cms_allocate")
       continue;
 
-    klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
-    klee::ref<klee::Expr> threshold = call.args.at("threshold").expr;
+    klee::ref<klee::Expr> height = call.args.at("height").expr;
+    klee::ref<klee::Expr> width = call.args.at("width").expr;
     klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+    klee::ref<klee::Expr> cleanup_interval =
+        call.args.at("cleanup_interval").expr;
     klee::ref<klee::Expr> cms_out = call.args.at("cms_out").out;
 
-    assert(!capacity.isNull());
-    assert(!threshold.isNull());
+    assert(!height.isNull());
+    assert(!width.isNull());
     assert(!key_size.isNull());
+    assert(!cleanup_interval.isNull());
     assert(!cms_out.isNull());
 
     addr_t cms_out_addr = expr_addr_to_obj_addr(cms_out);
     if (cms_out_addr != cms_addr)
       continue;
 
-    u64 capacity_value = solver_toolbox.value_from_expr(capacity);
-    u64 threshold_value = solver_toolbox.value_from_expr(threshold);
+    u64 height_value = solver_toolbox.value_from_expr(height);
+    u64 width_value = solver_toolbox.value_from_expr(width);
     bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
+    time_ns_t cleanup_interval_value =
+        solver_toolbox.value_from_expr(cleanup_interval);
 
-    return cms_config_t{capacity_value, threshold_value, key_size_value};
+    return cms_config_t{height_value, width_value, key_size_value,
+                        cleanup_interval_value};
   }
 
   PANIC("Should have found cms configuration");

@@ -3,24 +3,13 @@
 
 #include "lib/verified/cms.h"
 #include "lib/models/str-descr.h"
-#include "../verified/map-control.h"
+#include "map-control.h"
 
 #define PREALLOC_SIZE (256)
 
 typedef map_entry_condition cms_entry_condition;
 
-extern struct str_field_descr hash_fields[1];
-extern struct nested_field_descr hash_nests[0];
-
-extern struct str_field_descr bucket_fields[1];
-extern struct nested_field_descr bucket_nests[0];
-
 struct CMS {
-  struct Map *clients;
-  struct Vector *keys;
-  struct Vector *buckets;
-  struct DoubleChain *allocators[CMS_HASHES];
-
   struct str_field_descr key_fields[PREALLOC_SIZE];
   struct nested_field_descr key_nests[PREALLOC_SIZE];
   int key_field_count;

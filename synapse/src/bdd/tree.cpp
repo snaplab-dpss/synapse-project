@@ -104,12 +104,12 @@ static std::unordered_map<std::string, std::unordered_set<std::string>>
             {"chosen_backend", "prefered_backend_found"},
         },
         {
-            "cms_fetch",
-            {"overflow"},
+            "cms_count_min",
+            {"min_estimate"},
         },
         {
-            "cms_touch_buckets",
-            {"success"},
+            "cms_cleanup",
+            {"cleanup_success"},
         },
         {
             "hash_obj",

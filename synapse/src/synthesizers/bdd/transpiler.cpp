@@ -19,6 +19,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   bool is_const = is_constant(expr);
 
   if (is_const) {
+    u64 value = solver_toolbox.value_from_expr(expr);
     coder << solver_toolbox.value_from_expr(expr);
   } else {
     visit(simplify(expr));

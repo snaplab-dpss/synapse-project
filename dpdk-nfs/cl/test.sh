@@ -16,7 +16,7 @@ function test_cl {
 
   python3 cl.py --output cl.pcap
 
-  sudo ./build/app/nf \
+  sudo ./build/nf \
         --vdev "net_tap0,iface=test_wan" \
         --vdev "net_tap1,iface=test_lan" \
         --lcores 0 \
@@ -25,10 +25,11 @@ function test_cl {
         --lan 1 \
         --wan 0 \
         --max-flows 65536 \
-        --capacity 1024 \
         --max-clients $MAX_CLIENTS \
-        --expire-flow 1000000 \
-        --expire-client 10000000 &
+        --expire 1000000 \
+        --sketch-height 4 \
+        --sketch-width 1024 \
+        --sketch-cleanup-interval 2000000 &
   NF_PID=$!
 
   while [ ! -f /sys/class/net/test_lan/tun_flags -o \
@@ -44,7 +45,7 @@ function test_cl {
 }
 
 make clean
-make EXTRA_CFLAGS="-O0 -g -DENABLE_LOG"
+make DEBUG=1
 
 max_clients=64
 test_cl $max_clients

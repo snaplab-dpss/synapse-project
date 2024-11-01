@@ -18,28 +18,27 @@ struct State *state;
 
 bool nf_init(void) {
   uint32_t max_flows = config.max_flows;
-  uint32_t cms_capacity = config.cms_capacity;
   uint16_t max_clients = config.max_clients;
+  uint32_t sketch_height = config.sketch_height;
+  uint32_t sketch_width = config.sketch_width;
+  uint64_t sketch_cleanup_interval_us = config.sketch_cleanup_interval;
   uint32_t dev_count = rte_eth_dev_count_avail();
 
-  state = alloc_state(max_flows, cms_capacity, max_clients, dev_count);
+  state = alloc_state(max_flows, max_clients, sketch_height, sketch_width,
+                      sketch_cleanup_interval_us * 1000, dev_count);
 
   return state != NULL;
 }
 
-void expire_entries(time_ns_t time) {
-  assert(time >= 0); // we don't support the past
+void expire_entries(time_ns_t now) {
+  assert(now >= 0); // we don't support the past
   assert(sizeof(time_ns_t) <= sizeof(uint64_t));
-  uint64_t time_u = (uint64_t)time; // OK because of the two asserts
-  uint64_t flow_expiration_time_ns =
-      ((uint64_t)config.flow_expiration_time) * 1000; // us to ns
-  uint64_t client_expiration_time_ns =
-      ((uint64_t)config.client_expiration_time) * 1000; // us to ns
-  time_ns_t flow_last_time = time_u - flow_expiration_time_ns;
-  time_ns_t client_last_time = time_u - client_expiration_time_ns;
+  uint64_t time_u = (uint64_t)now; // OK because of the two asserts
+  uint64_t expiration_time_ns = config.expiration_time * 1000; // us to ns
+  time_ns_t last_time = time_u - expiration_time_ns;
   expire_items_single_map(state->flow_allocator, state->flows_keys,
-                          state->flows, flow_last_time);
-  cms_expire(state->cms, client_last_time);
+                          state->flows, last_time);
+  cms_cleanup(state->cms, now);
 }
 
 int allocate_flow(struct flow *flow, time_ns_t time) {
@@ -75,14 +74,21 @@ int limit_clients(struct flow *flow, time_ns_t now) {
   int flow_index = -1;
   int present = map_get(state->flows, flow, &flow_index);
 
-  struct client client = {.src_ip = flow->src_ip, .dst_ip = flow->dst_ip};
-
-  cms_compute_hashes(state->cms, &client);
+  struct client client = {
+      .src_ip = flow->src_ip,
+      .dst_ip = flow->dst_ip,
+  };
 
   if (present) {
     dchain_rejuvenate_index(state->flow_allocator, flow_index, now);
-    cms_refresh(state->cms, now);
-    return true;
+    return 1;
+  }
+
+  cms_increment(state->cms, &client);
+  uint64_t count = cms_count_min(state->cms, &client);
+
+  if (count > config.max_clients) {
+    return 0;
   }
 
   int allocated_flow = allocate_flow(flow, now);
@@ -90,22 +96,16 @@ int limit_clients(struct flow *flow, time_ns_t now) {
   if (!allocated_flow) {
     // Reached the maximum number of allowed flows.
     // Just forward and don't limit...
-    return true;
+    return 1;
   }
 
-  int overflow = cms_fetch(state->cms);
-
-  if (overflow) {
-    return false;
-  }
-
-  cms_touch_buckets(state->cms, now);
-
-  return true;
+  return 1;
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
                time_ns_t now, struct rte_mbuf *mbuf) {
+  expire_entries(now);
+
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
   struct rte_ipv4_hdr *rte_ipv4_header =
@@ -119,8 +119,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   if (tcpudp_header == NULL) {
     return DROP;
   }
-
-  expire_entries(now);
 
   if (device == config.lan_device) {
     // Simply forward outgoing packets.

@@ -15,8 +15,10 @@
 
 struct State *allocated_nf_state = NULL;
 
-struct State *alloc_state(uint32_t max_flows, uint32_t cms_capacity,
-                          uint16_t max_clients, uint32_t dev_count) {
+struct State *alloc_state(uint32_t max_flows, uint16_t max_clients,
+                          uint32_t sketch_height, uint32_t sketch_width,
+                          time_ns_t sketch_cleanup_interval,
+                          uint32_t dev_count) {
   if (allocated_nf_state != NULL)
     return allocated_nf_state;
 
@@ -26,6 +28,7 @@ struct State *alloc_state(uint32_t max_flows, uint32_t cms_capacity,
     return NULL;
 
   ret->max_flows = max_flows;
+  ret->max_clients = max_clients;
   ret->dev_count = dev_count;
 
   ret->flows = NULL;
@@ -45,8 +48,8 @@ struct State *alloc_state(uint32_t max_flows, uint32_t cms_capacity,
   }
 
   ret->cms = NULL;
-  if (cms_allocate(cms_capacity, max_clients, sizeof(struct client),
-                   &(ret->cms)) == 0) {
+  if (cms_allocate(sketch_height, sketch_width, sizeof(struct client),
+                   sketch_cleanup_interval, &(ret->cms)) == 0) {
     return NULL;
   }
 

@@ -25,7 +25,7 @@ struct coder_t {
   code_t dump() const;
 
   coder_t &operator<<(const code_t &code);
-  coder_t &operator<<(int n);
+  coder_t &operator<<(i64 n);
 };
 
 class Synthesizer {

@@ -71,7 +71,7 @@ coder_t &coder_t::operator<<(const code_t &code) {
   return *this;
 }
 
-coder_t &coder_t::operator<<(int n) {
+coder_t &coder_t::operator<<(i64 n) {
   stream << n;
   return *this;
 }
