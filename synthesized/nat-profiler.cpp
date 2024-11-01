@@ -5,9 +5,9 @@ extern "C" {
 #include <lib/verified/double-chain.h>
 #include <lib/verified/map.h>
 #include <lib/verified/vector.h>
-#include <lib/unverified/sketch.h>
-#include <lib/unverified/hash.h>
-#include <lib/unverified/expirator.h>
+#include <lib/verified/sketch.h>
+#include <lib/verified/hash.h>
+#include <lib/verified/expirator.h>
 
 #include <lib/verified/expirator.h>
 #include <lib/verified/packet-io.h>
@@ -572,7 +572,6 @@ struct Vector *vector;
 struct DoubleChain *dchain;
 uint64_t path_profiler_counter[52];
 
-
 bool nf_init() {
   if (!map_allocate(65536, 15, &map)) {
     return false;
@@ -583,7 +582,7 @@ bool nf_init() {
   if (!dchain_allocate(65536, &dchain)) {
     return false;
   }
-  memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
+  memset((void *)path_profiler_counter, 0, sizeof(path_profiler_counter));
   path_profiler_counter_ptr = path_profiler_counter;
   path_profiler_counter_sz = 52;
   map_stats.init(30);
@@ -591,63 +590,77 @@ bool nf_init() {
   return true;
 }
 
-
-int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
+               time_ns_t now) {
   // Node 0
   inc_path_counter(0);
-  int freed_flows = expire_items_single_map(dchain, vector, map, (-1000000000) + (now));
+  int freed_flows =
+      expire_items_single_map(dchain, vector, map, (-1000000000) + (now));
   // Node 1
   inc_path_counter(1);
-  uint8_t* hdr;
-  packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
+  uint8_t *hdr;
+  packet_borrow_next_chunk(buffer, 14, (void **)&hdr);
   // Node 2
   inc_path_counter(2);
-  if (((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))) {
+  if (((8) == (*(uint16_t *)(hdr + 12))) &
+      ((20) <=
+       ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))) {
     // Node 3
     inc_path_counter(3);
-    uint8_t* hdr2;
-    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
+    uint8_t *hdr2;
+    packet_borrow_next_chunk(buffer, 20, (void **)&hdr2);
     // Node 4
     inc_path_counter(4);
-    if ((((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & (((uint32_t)((-34) + ((uint16_t)(packet_length & 65535)))) >= (4))) {
+    if ((((6) == (*(hdr2 + 9))) | ((17) == (*(hdr2 + 9)))) &
+        (((uint32_t)((-34) + ((uint16_t)(packet_length & 65535)))) >= (4))) {
       // Node 5
       inc_path_counter(5);
-      uint8_t* hdr3;
-      packet_borrow_next_chunk(buffer, 4, (void**)&hdr3);
+      uint8_t *hdr3;
+      packet_borrow_next_chunk(buffer, 4, (void **)&hdr3);
       // Node 6
       inc_path_counter(6);
       if ((0) != (device & 65535)) {
         // Node 7
         inc_path_counter(7);
-        int is_allocated = dchain_is_index_allocated(dchain, (uint64_t)((uint32_t)((uint16_t)(*(uint16_t*)(hdr3+2)))));
+        int is_allocated = dchain_is_index_allocated(
+            dchain,
+            (uint64_t)((uint32_t)((uint16_t)(*(uint16_t *)(hdr3 + 2)))));
         // Node 8
         inc_path_counter(8);
         if ((0) != (is_allocated)) {
           // Node 9
           inc_path_counter(9);
-          uint8_t* vector_value_out = 0;
-          vector_borrow(vector, (uint64_t)((uint32_t)((uint16_t)(*(uint16_t*)(hdr3+2)))), (void**)&vector_value_out);
+          uint8_t *vector_value_out = 0;
+          vector_borrow(
+              vector,
+              (uint64_t)((uint32_t)((uint16_t)(*(uint16_t *)(hdr3 + 2)))),
+              (void **)&vector_value_out);
           // Node 10
           inc_path_counter(10);
           // Node 11
           inc_path_counter(11);
-          if ((((*(uint32_t*)(vector_value_out+8)) == (*(uint32_t*)(hdr2+12))) & ((*(uint16_t*)(vector_value_out+2)) == (*(uint16_t*)(hdr3+0)))) & ((*(vector_value_out+14)) == (*(hdr2+9)))) {
+          if ((((*(uint32_t *)(vector_value_out + 8)) ==
+                (*(uint32_t *)(hdr2 + 12))) &
+               ((*(uint16_t *)(vector_value_out + 2)) ==
+                (*(uint16_t *)(hdr3 + 0)))) &
+              ((*(vector_value_out + 14)) == (*(hdr2 + 9)))) {
             // Node 12
             inc_path_counter(12);
-            int checksum = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr*)hdr2, (void*)hdr3);
+            int checksum = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr *)hdr2,
+                                                 (void *)hdr3);
             // Node 13
             inc_path_counter(13);
-            hdr3[2] = *(vector_value_out+0);
-            hdr3[3] = *(vector_value_out+1);
+            hdr3[2] = *(vector_value_out + 0);
+            hdr3[3] = *(vector_value_out + 1);
             packet_return_chunk(buffer, hdr3);
             // Node 14
             inc_path_counter(14);
             hdr2[10] = checksum & 255;
-            hdr2[11] = (checksum>>8) & 255;
-            hdr2[16] = *(vector_value_out+4);
-            hdr2[17] = *(vector_value_out+5);
-            hdr2[18] = *(vector_value_out+6);
-            hdr2[19] = *(vector_value_out+7);
+            hdr2[11] = (checksum >> 8) & 255;
+            hdr2[16] = *(vector_value_out + 4);
+            hdr2[17] = *(vector_value_out + 5);
+            hdr2[18] = *(vector_value_out + 6);
+            hdr2[19] = *(vector_value_out + 7);
             packet_return_chunk(buffer, hdr2);
             // Node 15
             inc_path_counter(15);
@@ -680,7 +693,9 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             // Node 20
             inc_path_counter(20);
             return DROP;
-          } // (((*(uint32_t*)(vector_value_out+8)) == (*(uint32_t*)(hdr2+12))) & ((*(uint16_t*)(vector_value_out+2)) == (*(uint16_t*)(hdr3+0)))) & ((*(vector_value_out+14)) == (*(hdr2+9)))
+          } // (((*(uint32_t*)(vector_value_out+8)) == (*(uint32_t*)(hdr2+12)))
+            // & ((*(uint16_t*)(vector_value_out+2)) == (*(uint16_t*)(hdr3+0))))
+            // & ((*(vector_value_out+14)) == (*(hdr2+9)))
         } else {
           // Node 21
           inc_path_counter(21);
@@ -699,21 +714,21 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         // Node 25
         inc_path_counter(25);
         uint8_t key[15];
-        key[0] = *(hdr3+0);
-        key[1] = *(hdr3+1);
-        key[2] = *(hdr3+2);
-        key[3] = *(hdr3+3);
-        key[4] = *(hdr2+12);
-        key[5] = *(hdr2+13);
-        key[6] = *(hdr2+14);
-        key[7] = *(hdr2+15);
-        key[8] = *(hdr2+16);
-        key[9] = *(hdr2+17);
-        key[10] = *(hdr2+18);
-        key[11] = *(hdr2+19);
+        key[0] = *(hdr3 + 0);
+        key[1] = *(hdr3 + 1);
+        key[2] = *(hdr3 + 2);
+        key[3] = *(hdr3 + 3);
+        key[4] = *(hdr2 + 12);
+        key[5] = *(hdr2 + 13);
+        key[6] = *(hdr2 + 14);
+        key[7] = *(hdr2 + 15);
+        key[8] = *(hdr2 + 16);
+        key[9] = *(hdr2 + 17);
+        key[10] = *(hdr2 + 18);
+        key[11] = *(hdr2 + 19);
         key[12] = 0;
         key[13] = 0;
-        key[14] = *(hdr2+9);
+        key[14] = *(hdr2 + 9);
         int value;
         int map_hit = map_get(map, key, &value);
         map_stats.update(25, key, 15);
@@ -726,30 +741,34 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
           int out_of_space = !dchain_allocate_new_index(dchain, &index, now);
           // Node 28
           inc_path_counter(28);
-          if ((0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) & ((0) == (freed_flows)))))) {
+          if ((0) ==
+              ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) &
+                                    ((0) == (freed_flows)))))) {
             // Node 29
             inc_path_counter(29);
-            uint8_t* vector_value_out2 = 0;
-            vector_borrow(vector, index, (void**)&vector_value_out2);
+            uint8_t *vector_value_out2 = 0;
+            vector_borrow(vector, index, (void **)&vector_value_out2);
             // Node 30
             inc_path_counter(30);
-            memcpy((void*)vector_value_out2, (void*)key, 15);
+            memcpy((void *)vector_value_out2, (void *)key, 15);
             map_put(map, vector_value_out2, index);
             map_stats.update(30, vector_value_out2, 15);
             // Node 31
             inc_path_counter(31);
             // Node 32
             inc_path_counter(32);
-            int checksum2 = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr*)hdr2, (void*)hdr3);
+            int checksum2 = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr *)hdr2,
+                                                  (void *)hdr3);
             // Node 33
             inc_path_counter(33);
             hdr3[0] = (uint16_t)((uint32_t)((uint64_t)((uint32_t)(index))));
-            hdr3[1] = (uint16_t)((uint32_t)((uint64_t)((uint32_t)(index)))>>8);
+            hdr3[1] =
+                (uint16_t)((uint32_t)((uint64_t)((uint32_t)(index))) >> 8);
             packet_return_chunk(buffer, hdr3);
             // Node 34
             inc_path_counter(34);
             hdr2[10] = checksum2 & 255;
-            hdr2[11] = (checksum2>>8) & 255;
+            hdr2[11] = (checksum2 >> 8) & 255;
             hdr2[12] = 1;
             hdr2[13] = 2;
             hdr2[14] = 3;
@@ -786,23 +805,25 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             // Node 40
             inc_path_counter(40);
             return DROP;
-          } // (0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) & ((0) == (freed_flows)))))
+          } // (0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) !=
+            // (out_of_space)))) & ((0) == (freed_flows)))))
         } else {
           // Node 41
           inc_path_counter(41);
           dchain_rejuvenate_index(dchain, value, now);
           // Node 42
           inc_path_counter(42);
-          int checksum3 = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr*)hdr2, (void*)hdr3);
+          int checksum3 =
+              rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr *)hdr2, (void *)hdr3);
           // Node 43
           inc_path_counter(43);
           hdr3[0] = (uint16_t)((uint32_t)((uint64_t)((uint32_t)(value))));
-          hdr3[1] = (uint16_t)((uint32_t)((uint64_t)((uint32_t)(value)))>>8);
+          hdr3[1] = (uint16_t)((uint32_t)((uint64_t)((uint32_t)(value))) >> 8);
           packet_return_chunk(buffer, hdr3);
           // Node 44
           inc_path_counter(44);
           hdr2[10] = checksum3 & 255;
-          hdr2[11] = (checksum3>>8) & 255;
+          hdr2[11] = (checksum3 >> 8) & 255;
           hdr2[12] = 1;
           hdr2[13] = 2;
           hdr2[14] = 3;
@@ -838,7 +859,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       // Node 49
       inc_path_counter(49);
       return DROP;
-    } // (((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & (((uint32_t)((-34) + ((uint16_t)(packet_length & 65535)))) >= (4))
+    } // (((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & (((uint32_t)((-34) +
+      // ((uint16_t)(packet_length & 65535)))) >= (4))
   } else {
     // Node 50
     inc_path_counter(50);
@@ -846,5 +868,6 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
     // Node 51
     inc_path_counter(51);
     return DROP;
-  } // ((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))
+  } // ((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) +
+    // ((uint16_t)(packet_length & 65535))))))
 }

@@ -1,4 +1,4 @@
-#include "lib/unverified/hash.h"
+#include "lib/verified/hash.h"
 
 #include <klee/klee.h>
 #include <stdint.h>

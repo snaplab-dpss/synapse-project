@@ -1,7 +1,7 @@
 #ifndef _LOOP_H_INCLUDED_
 #define _LOOP_H_INCLUDED_
 
-#include "lib/unverified/token-bucket.h"
+#include "lib/verified/token-bucket.h"
 #include "lib/verified/vigor-time.h"
 
 #include "ip_addr.h"

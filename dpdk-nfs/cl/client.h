@@ -8,7 +8,7 @@
 #include "lib/verified/vector.h"
 #include "lib/verified/double-chain.h"
 #include "lib/verified/vigor-time.h"
-#include "lib/unverified/sketch.h"
+#include "lib/verified/sketch.h"
 
 #include <stdint.h>
 
@@ -22,6 +22,6 @@ struct client {
 #include "lib/models/str-descr.h"
 extern struct str_field_descr client_descrs[2];
 extern struct nested_field_descr client_nests[0];
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
-#endif  //_CLIENT_H_INCLUDED_
+#endif //_CLIENT_H_INCLUDED_

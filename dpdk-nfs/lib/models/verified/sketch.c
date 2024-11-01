@@ -1,4 +1,4 @@
-#include "lib/unverified/sketch.h"
+#include "lib/verified/sketch.h"
 #include "sketch-control.h"
 #include <klee/klee.h>
 #include <stdlib.h>

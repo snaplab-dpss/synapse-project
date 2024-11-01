@@ -1,7 +1,7 @@
 #ifndef _TB_STUB_CONTROL_H_INCLUDED_
 #define _TB_STUB_CONTROL_H_INCLUDED_
 
-#include "lib/unverified/token-bucket.h"
+#include "lib/verified/token-bucket.h"
 #include "lib/models/str-descr.h"
 #include "../verified/map-control.h"
 #include "../verified/vigor-time-control.h"

@@ -5,11 +5,11 @@ extern "C" {
 #include <lib/verified/vector.h>
 #include <lib/verified/double-chain.h>
 
-#include <lib/unverified/expirator.h>
-#include <lib/unverified/hash.h>
-#include <lib/unverified/sketch.h>
+#include <lib/verified/expirator.h>
+#include <lib/verified/hash.h>
+#include <lib/verified/sketch.h>
 #include <lib/verified/cht.h>
-#include <lib/unverified/token-bucket.h>
+#include <lib/verified/token-bucket.h>
 
 #include <lib/verified/expirator.h>
 #include <lib/verified/packet-io.h>

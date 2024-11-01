@@ -7,7 +7,7 @@
 #include "lib/verified/cht.h"
 #include "lib/verified/lpm-dir-24-8.h"
 #include "lib/verified/vigor-time.h"
-#include "lib/unverified/sketch.h"
+#include "lib/verified/sketch.h"
 
 #include "flow.h"
 #include "client.h"
@@ -30,4 +30,4 @@ void loop_iteration_border(struct Map **flows, struct Vector **flows_keys,
                            uint32_t dev_count, unsigned int lcore_id,
                            time_ns_t time);
 
-#endif  //_PSD_LOOP_H_INCLUDED_
+#endif //_PSD_LOOP_H_INCLUDED_

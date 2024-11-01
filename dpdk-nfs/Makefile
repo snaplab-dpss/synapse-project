@@ -72,7 +72,6 @@ ifneq (true,$(NF_NO_BASE))
 SRCS-y := $(shell echo $(SELF_DIR)/nf*.c)
 endif
 LIB_SRCS := $(shell echo $(SELF_DIR)/lib/verified/*.c)
-LIB_SRCS += $(shell echo $(SELF_DIR)/lib/unverified/*.c)
 SRCS-y += $(LIB_SRCS)
 SRCS-y += $(NF_FILES)
 # Compiler flags
@@ -192,7 +191,6 @@ VERIF_FILES := $(SELF_DIR)/nf*.c
 VERIF_FILES += $(NF_FILES) *loop.c
 # Models
 VERIF_FILES += $(SELF_DIR)/lib/models/verified/*.c \
-			   $(SELF_DIR)/lib/models/unverified/*.c \
 			   $(SELF_DIR)/lib/models/externals/*.c
 
 # The only thing we don't put in variables is the DPDK model headers,

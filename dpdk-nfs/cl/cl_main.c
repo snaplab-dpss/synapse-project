@@ -4,7 +4,7 @@
 #include <rte_byteorder.h>
 
 #include "lib/verified/expirator.h"
-#include "lib/unverified/expirator.h"
+#include "lib/verified/expirator.h"
 
 #include "nf.h"
 #include "nf-log.h"
@@ -28,13 +28,13 @@ bool nf_init(void) {
 }
 
 void expire_entries(time_ns_t time) {
-  assert(time >= 0);  // we don't support the past
+  assert(time >= 0); // we don't support the past
   assert(sizeof(time_ns_t) <= sizeof(uint64_t));
-  uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
+  uint64_t time_u = (uint64_t)time; // OK because of the two asserts
   uint64_t flow_expiration_time_ns =
-      ((uint64_t)config.flow_expiration_time) * 1000;  // us to ns
+      ((uint64_t)config.flow_expiration_time) * 1000; // us to ns
   uint64_t client_expiration_time_ns =
-      ((uint64_t)config.client_expiration_time) * 1000;  // us to ns
+      ((uint64_t)config.client_expiration_time) * 1000; // us to ns
   time_ns_t flow_last_time = time_u - flow_expiration_time_ns;
   time_ns_t client_last_time = time_u - client_expiration_time_ns;
   expire_items_single_map(state->flow_allocator, state->flows_keys,

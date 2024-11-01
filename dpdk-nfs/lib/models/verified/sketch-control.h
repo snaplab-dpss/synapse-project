@@ -1,7 +1,7 @@
 #ifndef _SKETCH_STUB_CONTROL_H_INCLUDED_
 #define _SKETCH_STUB_CONTROL_H_INCLUDED_
 
-#include "lib/unverified/sketch.h"
+#include "lib/verified/sketch.h"
 #include "lib/models/str-descr.h"
 #include "../verified/map-control.h"
 

@@ -5,11 +5,11 @@ extern "C" {
 #include <lib/verified/vector.h>
 #include <lib/verified/double-chain.h>
 
-#include <lib/unverified/expirator.h>
-#include <lib/unverified/hash.h>
-#include <lib/unverified/sketch.h>
+#include <lib/verified/expirator.h>
+#include <lib/verified/hash.h>
+#include <lib/verified/sketch.h>
 #include <lib/verified/cht.h>
-#include <lib/unverified/token-bucket.h>
+#include <lib/verified/token-bucket.h>
 
 #include <lib/verified/expirator.h>
 #include <lib/verified/packet-io.h>
@@ -572,30 +572,31 @@ int main(int argc, char **argv) {
 struct TokenBucket *tb;
 uint64_t path_profiler_counter[24];
 
-
 bool nf_init() {
   if (!tb_allocate(65536, 1073741824ull, 131072ull, 4, &tb)) {
     return false;
   }
-  memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
+  memset((void *)path_profiler_counter, 0, sizeof(path_profiler_counter));
   path_profiler_counter_ptr = path_profiler_counter;
   path_profiler_counter_sz = 24;
   return true;
 }
 
-
-int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
+               time_ns_t now) {
   // Node 0
   inc_path_counter(0);
-  uint8_t* hdr;
-  packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
+  uint8_t *hdr;
+  packet_borrow_next_chunk(buffer, 14, (void **)&hdr);
   // Node 1
   inc_path_counter(1);
-  if (((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))) {
+  if (((8) == (*(uint16_t *)(hdr + 12))) &
+      ((20) <=
+       ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))) {
     // Node 2
     inc_path_counter(2);
-    uint8_t* hdr2;
-    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
+    uint8_t *hdr2;
+    packet_borrow_next_chunk(buffer, 20, (void **)&hdr2);
     // Node 3
     inc_path_counter(3);
     tb_expire(tb, now);
@@ -623,7 +624,9 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         // Node 10
         inc_path_counter(10);
         int index2;
-        int successfuly_tracing = tb_trace(tb, key, (uint32_t)((uint16_t)(packet_length & 65535)), now, &index2);
+        int successfuly_tracing =
+            tb_trace(tb, key, (uint32_t)((uint16_t)(packet_length & 65535)),
+                     now, &index2);
         // Node 11
         inc_path_counter(11);
         packet_return_chunk(buffer, hdr2);
@@ -644,7 +647,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       } else {
         // Node 16
         inc_path_counter(16);
-        int pass = tb_update_and_check(tb, index, (uint32_t)((uint16_t)(packet_length & 65535)), now);
+        int pass = tb_update_and_check(
+            tb, index, (uint32_t)((uint16_t)(packet_length & 65535)), now);
         // Node 17
         inc_path_counter(17);
         packet_return_chunk(buffer, hdr2);
@@ -671,5 +675,6 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
     // Node 23
     inc_path_counter(23);
     return DROP;
-  } // ((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))
+  } // ((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) +
+    // ((uint16_t)(packet_length & 65535))))))
 }

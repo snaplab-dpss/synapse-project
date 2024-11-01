@@ -4,7 +4,7 @@
 
 #include "loop.h"
 #include "lib/models/verified/vigor-time-control.h"
-#include "lib/models/unverified/token-bucket-control.h"
+#include "lib/models/verified/token-bucket-control.h"
 
 void loop_reset(struct TokenBucket **tb, uint32_t dev_count,
                 unsigned int lcore_id, time_ns_t *time) {

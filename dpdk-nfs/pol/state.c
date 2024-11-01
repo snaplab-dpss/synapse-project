@@ -6,7 +6,7 @@
 
 #ifdef KLEE_VERIFICATION
 #include "lib/models/verified/ether.h"
-#include "lib/models/unverified/token-bucket-control.h"
+#include "lib/models/verified/token-bucket-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;

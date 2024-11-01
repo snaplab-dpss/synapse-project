@@ -7,7 +7,7 @@
 #include "lib/models/verified/double-chain-control.h"
 #include "lib/models/verified/map-control.h"
 #include "lib/models/verified/vector-control.h"
-#include "lib/models/unverified/sketch-control.h"
+#include "lib/models/verified/sketch-control.h"
 
 void loop_reset(struct Map **flows, struct Vector **flows_keys,
                 struct DoubleChain **flow_allocator, struct Sketch **sketch,
@@ -71,4 +71,4 @@ void loop_iteration_border(struct Map **flows, struct Vector **flows_keys,
   loop_invariant_produce(flows, flows_keys, flow_allocator, sketch, max_flows,
                          dev_count, &lcore_id, &time);
 }
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
