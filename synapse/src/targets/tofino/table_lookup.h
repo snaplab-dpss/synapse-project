@@ -58,10 +58,6 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place_in_table(ep, call_node)) {
-      return std::nullopt;
-    }
-
     addr_t obj;
     int num_entries;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -71,6 +67,10 @@ protected:
 
     if (!get_table_data(ep, call_node, obj, num_entries, keys, values, hit,
                         id)) {
+      return std::nullopt;
+    }
+
+    if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
       return std::nullopt;
     }
 
@@ -84,7 +84,10 @@ protected:
 
     delete table;
 
-    return spec_impl_t(decide(ep, node), ctx);
+    Context new_ctx = ctx;
+    new_ctx.save_ds_impl(obj, DSImpl::Tofino_Table);
+
+    return spec_impl_t(decide(ep, node), new_ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -97,10 +100,6 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place_in_table(ep, call_node)) {
-      return impls;
-    }
-
     addr_t obj;
     int num_entries;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -110,6 +109,10 @@ protected:
 
     if (!get_table_data(ep, call_node, obj, num_entries, keys, values, hit,
                         id)) {
+      return impls;
+    }
+
+    if (!ep->get_ctx().can_impl_ds(obj, DSImpl::Tofino_Table)) {
       return impls;
     }
 
@@ -169,24 +172,6 @@ private:
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
     ep->get_mutable_ctx().save_ds_impl(obj, DSImpl::Tofino_Table);
     tofino_ctx->place(ep, obj, table, deps);
-  }
-
-  bool can_place_in_table(const EP *ep, const Call *call_node) const {
-    const call_t &call = call_node->get_call();
-
-    std::string obj_arg;
-    if (call.function_name == "map_get") {
-      obj_arg = "map";
-    } else if (call.function_name == "vector_borrow") {
-      obj_arg = "vector";
-    } else if (call.function_name == "dchain_is_index_allocated" ||
-               call.function_name == "dchain_rejuvenate_index") {
-      obj_arg = "chain";
-    } else {
-      return false;
-    }
-
-    return can_impl_ds(ep, call_node, obj_arg, DSImpl::Tofino_Table);
   }
 
   bool get_table_data(const EP *ep, const Call *call_node, addr_t &obj,

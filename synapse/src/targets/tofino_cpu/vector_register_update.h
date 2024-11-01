@@ -60,7 +60,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "vector", DSImpl::Tofino_VectorRegister)) {
+    klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+    addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
+
+    if (!ctx.can_impl_ds(vector_addr, DSImpl::Tofino_VectorRegister)) {
       return std::nullopt;
     }
 
@@ -82,11 +85,6 @@ protected:
       return impls;
     }
 
-    if (!check_ds_impl(ep, call_node, "vector",
-                       DSImpl::Tofino_VectorRegister)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
     klee::ref<klee::Expr> value_addr_expr = call.args.at("value").expr;
@@ -94,6 +92,10 @@ protected:
 
     addr_t obj = expr_addr_to_obj_addr(obj_expr);
     addr_t value_addr = expr_addr_to_obj_addr(value_addr_expr);
+
+    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_VectorRegister)) {
+      return impls;
+    }
 
     klee::ref<klee::Expr> original_value =
         get_original_vector_value(ep, node, obj);

@@ -60,7 +60,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "map", DSImpl::Tofino_FCFSCachedTable)) {
+    klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+    addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+
+    if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
       return std::nullopt;
     }
 
@@ -82,15 +85,15 @@ protected:
       return impls;
     }
 
-    if (!check_ds_impl(ep, call_node, "map", DSImpl::Tofino_FCFSCachedTable)) {
-      return impls;
-    }
-
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     klee::ref<klee::Expr> value;
     std::optional<symbol_t> found;
     get_data(call_node, obj, keys, value, found);
+
+    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
+      return impls;
+    }
 
     DS_ID id = get_cached_table_id(ep, obj);
 

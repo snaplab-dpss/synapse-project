@@ -64,7 +64,13 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!check_table_delete_placement(ep, call_node)) {
+    addr_t obj;
+    std::vector<klee::ref<klee::Expr>> keys;
+    if (!get_table_delete_data(call_node, obj, keys)) {
+      return std::nullopt;
+    }
+
+    if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
       return std::nullopt;
     }
 
@@ -81,13 +87,15 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place_table_delete(ep, call_node)) {
+    addr_t obj;
+    std::vector<klee::ref<klee::Expr>> keys;
+    if (!get_table_delete_data(call_node, obj, keys)) {
       return impls;
     }
 
-    addr_t obj;
-    std::vector<klee::ref<klee::Expr>> keys;
-    get_table_delete_data(call_node, obj, keys);
+    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_Table)) {
+      return impls;
+    }
 
     Module *module = new TableDelete(node, obj, keys);
     EPNode *ep_node = new EPNode(module);
@@ -102,37 +110,7 @@ protected:
   }
 
 private:
-  bool check_table_delete_placement(const EP *ep, const Call *call_node) const {
-    const call_t &call = call_node->get_call();
-
-    std::string obj_arg;
-    if (call.function_name == "map_erase") {
-      obj_arg = "map";
-    } else if (call.function_name == "dchain_free_index") {
-      obj_arg = "chain";
-    } else {
-      return false;
-    }
-
-    return check_ds_impl(ep, call_node, obj_arg, DSImpl::Tofino_Table);
-  }
-
-  bool can_place_table_delete(const EP *ep, const Call *call_node) const {
-    const call_t &call = call_node->get_call();
-
-    std::string obj_arg;
-    if (call.function_name == "map_erase") {
-      obj_arg = "map";
-    } else if (call.function_name == "dchain_free_index") {
-      obj_arg = "chain";
-    } else {
-      return false;
-    }
-
-    return can_impl_ds(ep, call_node, obj_arg, DSImpl::Tofino_Table);
-  }
-
-  void get_table_delete_data(const Call *call_node, addr_t &obj,
+  bool get_table_delete_data(const Call *call_node, addr_t &obj,
                              std::vector<klee::ref<klee::Expr>> &keys) const {
     const call_t &call = call_node->get_call();
 
@@ -141,8 +119,10 @@ private:
     } else if (call.function_name == "dchain_free_index") {
       table_delete_data_from_dchain_op(call_node, obj, keys);
     } else {
-      assert(false && "Unknown call");
+      return false;
     }
+
+    return true;
   }
 
   void table_delete_data_from_map_op(

@@ -55,7 +55,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "tb", DSImpl::TofinoCPU_TB)) {
+    klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
+    addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+
+    if (!ctx.can_impl_ds(tb_addr, DSImpl::TofinoCPU_TB)) {
       return std::nullopt;
     }
 
@@ -77,16 +80,16 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "tb", DSImpl::TofinoCPU_TB)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
     klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
     klee::ref<klee::Expr> is_tracing = call.ret;
 
     addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(tb_addr, DSImpl::TofinoCPU_TB)) {
+      return impls;
+    }
 
     Module *module = new TBIsTracing(node, tb_addr, key, index_out, is_tracing);
     EPNode *ep_node = new EPNode(module);

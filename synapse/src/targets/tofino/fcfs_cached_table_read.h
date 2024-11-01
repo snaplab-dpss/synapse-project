@@ -74,7 +74,9 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place_fcfs_cached_table(ep, map_objs)) {
+    if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable) ||
+        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable)) {
       return std::nullopt;
     }
 
@@ -126,7 +128,12 @@ protected:
       return impls;
     }
 
-    if (!can_place_fcfs_cached_table(ep, map_objs)) {
+    if (!ep->get_ctx().can_impl_ds(map_objs.map,
+                                   DSImpl::Tofino_FCFSCachedTable) ||
+        !ep->get_ctx().can_impl_ds(map_objs.dchain,
+                                   DSImpl::Tofino_FCFSCachedTable) ||
+        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
+                                   DSImpl::Tofino_FCFSCachedTable)) {
       return impls;
     }
 

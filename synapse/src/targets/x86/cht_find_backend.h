@@ -72,8 +72,12 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "cht", DSImpl::x86_Cht)) {
+    klee::ref<klee::Expr> cht = call.args.at("cht").expr;
+    addr_t cht_addr = expr_addr_to_obj_addr(cht);
+
+    if (!ctx.can_impl_ds(cht_addr, DSImpl::x86_Cht)) {
       return std::nullopt;
     }
 
@@ -91,10 +95,6 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "cht", DSImpl::x86_Cht)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> cht = call.args.at("cht").expr;
     klee::ref<klee::Expr> backends = call.args.at("active_backends").expr;
     klee::ref<klee::Expr> hash = call.args.at("hash").expr;
@@ -104,6 +104,10 @@ protected:
 
     addr_t cht_addr = expr_addr_to_obj_addr(cht);
     addr_t backends_addr = expr_addr_to_obj_addr(backends);
+
+    if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::x86_Cht)) {
+      return impls;
+    }
 
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t backend_found;

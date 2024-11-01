@@ -85,8 +85,12 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "chain", DSImpl::x86_Dchain)) {
+    klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
+    addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+
+    if (!ctx.can_impl_ds(dchain_addr, DSImpl::x86_Dchain)) {
       return std::nullopt;
     }
 
@@ -104,15 +108,15 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "chain", DSImpl::x86_Dchain)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
     klee::ref<klee::Expr> time = call.args.at("time").expr;
     klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
 
     addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(dchain_addr, DSImpl::x86_Dchain)) {
+      return impls;
+    }
 
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t out_of_space;

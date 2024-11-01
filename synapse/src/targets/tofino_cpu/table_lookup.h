@@ -54,7 +54,15 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!can_place_table_read(ep, call_node)) {
+    addr_t obj;
+    std::vector<klee::ref<klee::Expr>> keys;
+    std::vector<klee::ref<klee::Expr>> values;
+    std::optional<symbol_t> found;
+    if (!get_table_lookup_data(call_node, obj, keys, values, found)) {
+      return std::nullopt;
+    }
+
+    if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
       return std::nullopt;
     }
 
@@ -71,15 +79,17 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (!check_table_read_placement(ep, call_node)) {
-      return impls;
-    }
-
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     std::vector<klee::ref<klee::Expr>> values;
     std::optional<symbol_t> found;
-    get_table_lookup_data(call_node, obj, keys, values, found);
+    if (!get_table_lookup_data(call_node, obj, keys, values, found)) {
+      return impls;
+    }
+
+    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_Table)) {
+      return impls;
+    }
 
     Module *module = new TableLookup(node, obj, keys, values, found);
     EPNode *ep_node = new EPNode(module);
@@ -94,43 +104,7 @@ protected:
   }
 
 private:
-  bool check_table_read_placement(const EP *ep, const Call *call_node) const {
-    const call_t &call = call_node->get_call();
-
-    std::string obj_arg;
-    if (call.function_name == "map_get") {
-      obj_arg = "map";
-    } else if (call.function_name == "vector_borrow") {
-      obj_arg = "vector";
-    } else if (call.function_name == "dchain_is_index_allocated" ||
-               call.function_name == "dchain_rejuvenate_index") {
-      obj_arg = "chain";
-    } else {
-      return false;
-    }
-
-    return check_ds_impl(ep, call_node, obj_arg, DSImpl::Tofino_Table);
-  }
-
-  bool can_place_table_read(const EP *ep, const Call *call_node) const {
-    const call_t &call = call_node->get_call();
-
-    std::string obj_arg;
-    if (call.function_name == "map_get") {
-      obj_arg = "map";
-    } else if (call.function_name == "vector_borrow") {
-      obj_arg = "vector";
-    } else if (call.function_name == "dchain_is_index_allocated" ||
-               call.function_name == "dchain_rejuvenate_index") {
-      obj_arg = "chain";
-    } else {
-      return false;
-    }
-
-    return can_impl_ds(ep, call_node, obj_arg, DSImpl::Tofino_Table);
-  }
-
-  void get_table_lookup_data(const Call *call_node, addr_t &obj,
+  bool get_table_lookup_data(const Call *call_node, addr_t &obj,
                              std::vector<klee::ref<klee::Expr>> &keys,
                              std::vector<klee::ref<klee::Expr>> &values,
                              std::optional<symbol_t> &hit) const {
@@ -144,8 +118,10 @@ private:
                call.function_name == "dchain_rejuvenate_index") {
       table_data_from_dchain_op(call_node, obj, keys, values, hit);
     } else {
-      assert(false && "Unsupported function");
+      return false;
     }
+
+    return true;
   }
 
   void table_data_from_map_op(const Call *call_node, addr_t &obj,

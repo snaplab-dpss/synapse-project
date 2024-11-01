@@ -47,16 +47,28 @@ struct spec_impl_t {
   std::optional<TargetType> next_target;
   nodes_t skip;
   perf_estimator_fn perf_estimator;
+  perf_estimator_fn perf_sink;
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx)
       : decision(_decision), ctx(_ctx),
         perf_estimator([](const Context &ctx, const Node *node, pps_t ingress) {
           return ingress;
+        }),
+        perf_sink([](const Context &ctx, const Node *node, pps_t ingress) {
+          return 0;
         }) {}
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx,
               perf_estimator_fn _perf_estimator)
-      : decision(_decision), ctx(_ctx), perf_estimator(_perf_estimator) {}
+      : decision(_decision), ctx(_ctx), perf_estimator(_perf_estimator),
+        perf_sink([](const Context &ctx, const Node *node, pps_t ingress) {
+          return 0;
+        }) {}
+
+  spec_impl_t(const decision_t &_decision, const Context &_ctx,
+              perf_estimator_fn _perf_estimator, perf_estimator_fn _perf_sink)
+      : decision(_decision), ctx(_ctx), perf_estimator(_perf_estimator),
+        perf_sink(_perf_sink) {}
 };
 
 struct impl_t {
@@ -113,9 +125,4 @@ protected:
 
   virtual std::vector<impl_t> process_node(const EP *ep,
                                            const Node *node) const = 0;
-
-  bool can_impl_ds(const EP *ep, const Call *call_node,
-                   const std::string &obj_arg, DSImpl impl) const;
-  bool check_ds_impl(const EP *ep, const Call *call_node,
-                     const std::string &obj_arg, DSImpl impl) const;
 };

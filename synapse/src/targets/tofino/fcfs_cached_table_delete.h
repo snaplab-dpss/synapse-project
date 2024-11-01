@@ -73,7 +73,9 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_place_fcfs_cached_table(ep, map_objs)) {
+    if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable) ||
+        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable)) {
       return std::nullopt;
     }
 
@@ -124,11 +126,24 @@ protected:
     new_ctx.scale_profiler(constraints, chosen_cache_success_probability);
     new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
 
+    auto perf_estimator_fn =
+        [chosen_cache_success_probability](const Context &ctx, const Node *node,
+                                           pps_t ingress) {
+          return chosen_cache_success_probability * ingress;
+        };
+
+    auto perf_sink_fn = [on_fail_fraction](const Context &ctx, const Node *node,
+                                           pps_t ingress) {
+      return on_fail_fraction * ingress;
+    };
+
+    spec_impl_t spec_impl(
+        decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx,
+        perf_estimator_fn, perf_sink_fn);
+
     std::vector<const Node *> ignore_nodes =
         get_future_related_nodes(ep, node, map_objs);
 
-    spec_impl_t spec_impl(
-        decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
     for (const Node *op : ignore_nodes) {
       spec_impl.skip.insert(op->get_id());
     }
@@ -156,7 +171,12 @@ protected:
       return impls;
     }
 
-    if (!can_place_fcfs_cached_table(ep, map_objs)) {
+    if (!ep->get_ctx().can_impl_ds(map_objs.map,
+                                   DSImpl::Tofino_FCFSCachedTable) ||
+        !ep->get_ctx().can_impl_ds(map_objs.dchain,
+                                   DSImpl::Tofino_FCFSCachedTable) ||
+        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
+                                   DSImpl::Tofino_FCFSCachedTable)) {
       return impls;
     }
 

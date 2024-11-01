@@ -65,7 +65,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "cht", DSImpl::TofinoCPU_Cht)) {
+    klee::ref<klee::Expr> cht = call.args.at("cht").expr;
+    addr_t cht_addr = expr_addr_to_obj_addr(cht);
+
+    if (!ctx.can_impl_ds(cht_addr, DSImpl::TofinoCPU_Cht)) {
       return std::nullopt;
     }
 
@@ -87,10 +90,6 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "cht", DSImpl::TofinoCPU_Cht)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> cht = call.args.at("cht").expr;
     klee::ref<klee::Expr> backends = call.args.at("active_backends").expr;
     klee::ref<klee::Expr> hash = call.args.at("hash").expr;
@@ -105,6 +104,10 @@ protected:
     symbol_t backend_found;
     bool found = get_symbol(symbols, "prefered_backend_found", backend_found);
     assert(found && "Symbol prefered_backend_found not found");
+
+    if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::TofinoCPU_Cht)) {
+      return impls;
+    }
 
     Module *module =
         new ChtFindBackend(node, cht_addr, backends_addr, hash, height,

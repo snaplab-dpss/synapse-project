@@ -52,7 +52,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::TofinoCPU_Sketch)) {
+    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
+    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+
+    if (!ctx.can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
       return std::nullopt;
     }
 
@@ -74,14 +77,14 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::TofinoCPU_Sketch)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
     klee::ref<klee::Expr> time = call.args.at("time").expr;
 
     addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+      return impls;
+    }
 
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t success;

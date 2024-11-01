@@ -66,7 +66,7 @@ inline std::ostream &operator<<(std::ostream &os, const Score &score) {
     if (!first)
       os << ",";
     first = false;
-    os << score.values[i];
+    os << int2hr(score.values[i]);
   }
 
   os << ">";

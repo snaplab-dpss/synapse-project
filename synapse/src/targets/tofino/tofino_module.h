@@ -101,8 +101,6 @@ protected:
                                           addr_t obj, klee::ref<klee::Expr> key,
                                           int num_entries,
                                           int cache_capacity) const;
-  bool can_place_fcfs_cached_table(const EP *ep,
-                                   const map_coalescing_objs_t &map_objs) const;
   void place_fcfs_cached_table(EP *ep, const Node *node,
                                const map_coalescing_objs_t &map_objs,
                                FCFSCachedTable *ds) const;

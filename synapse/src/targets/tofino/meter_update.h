@@ -66,10 +66,6 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, tb_is_tracing, "tb", DSImpl::Tofino_Meter)) {
-      return std::nullopt;
-    }
-
     addr_t obj;
     tb_config_t cfg;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -83,6 +79,10 @@ protected:
       return std::nullopt;
     }
 
+    if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
+      return std::nullopt;
+    }
+
     std::unordered_set<DS_ID> deps;
     Meter *meter = build_meter(ep, node, id, cfg, keys, deps);
 
@@ -93,6 +93,8 @@ protected:
     delete meter;
 
     Context new_ctx = ctx;
+    new_ctx.save_ds_impl(obj, DSImpl::Tofino_Meter);
+
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
     spec_impl.skip.insert(tb_update_and_check->get_id());
 
@@ -116,10 +118,6 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, tb_is_tracing, "tb", DSImpl::Tofino_Meter)) {
-      return impls;
-    }
-
     addr_t obj;
     tb_config_t cfg;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -130,6 +128,10 @@ protected:
 
     if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys,
                      pkt_len, hit, pass, id)) {
+      return impls;
+    }
+
+    if (!ep->get_ctx().can_impl_ds(obj, DSImpl::Tofino_Meter)) {
       return impls;
     }
 

@@ -96,7 +96,7 @@ BDDVisitorAction PrinterDebug::visitCall(const Call *node) {
 BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
   node_id_t id = node->get_id();
   u64 dst_device = node->get_dst_device();
-  RouteOperation operation = node->get_operation();
+  RouteOp operation = node->get_operation();
   const Node *next = node->get_next();
 
   std::cerr << "===========================================\n";
@@ -104,15 +104,15 @@ BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
   std::cerr << "type:      route\n";
   std::cerr << "operation: ";
   switch (operation) {
-  case RouteOperation::FWD: {
+  case RouteOp::FWD: {
     std::cerr << "fwd(" << dst_device << ")";
     break;
   }
-  case RouteOperation::DROP: {
+  case RouteOp::DROP: {
     std::cerr << "drop()";
     break;
   }
-  case RouteOperation::BCAST: {
+  case RouteOp::BCAST: {
     std::cerr << "bcast()";
     break;
   }

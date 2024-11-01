@@ -52,7 +52,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "map", DSImpl::TofinoCPU_Map)) {
+    klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+    addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+
+    if (!ctx.can_impl_ds(map_addr, DSImpl::TofinoCPU_Map)) {
       return std::nullopt;
     }
 
@@ -74,10 +77,6 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "map", DSImpl::TofinoCPU_Map)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -85,6 +84,10 @@ protected:
 
     addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
     addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::TofinoCPU_Map)) {
+      return impls;
+    }
 
     Module *module = new MapPut(node, map_addr, key_addr, key, value);
     EPNode *ep_node = new EPNode(module);

@@ -220,9 +220,6 @@ pps_t PerfOracle::get_max_input_pps() const {
 }
 
 void PerfOracle::debug() const {
-  Log::dbg() << "====== PerfOracle ======\n";
-
-  Log::dbg() << "Port usage:\n";
   std::stringstream ss;
   for (int port = 0; port < total_ports; port++) {
     ss << "  ";
@@ -233,10 +230,11 @@ void PerfOracle::debug() const {
       ss << "\n";
     }
   }
-  Log::dbg() << ss.str() << "\n";
 
-  Log::dbg() << "Controller usage: " << controller_port_usage << "\n";
-
+  Log::dbg() << "======================= PerfOracle =======================\n";
+  Log::dbg() << "Ports:\n";
+  Log::dbg() << ss.str();
+  Log::dbg() << "Controller: " << controller_port_usage << "\n";
   Log::dbg() << "Recirculations:\n";
   for (int recirc_port = 0; recirc_port < total_recirc_ports; recirc_port++) {
     const recirc_port_usage_t &usage = recirc_ports_usage.at(recirc_port);
@@ -246,7 +244,7 @@ void PerfOracle::debug() const {
     }
     Log::dbg() << "\n";
   }
-  Log::dbg() << "========================\n";
+  Log::dbg() << "==========================================================\n";
 }
 
 } // namespace tofino

@@ -53,7 +53,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "chain", DSImpl::TofinoCPU_Dchain)) {
+    klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
+    addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+
+    if (!ctx.can_impl_ds(dchain_addr, DSImpl::TofinoCPU_Dchain)) {
       return std::nullopt;
     }
 
@@ -75,15 +78,15 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "chain", DSImpl::TofinoCPU_Dchain)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
     klee::ref<klee::Expr> time = call.args.at("time").expr;
 
     addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(dchain_addr, DSImpl::TofinoCPU_Dchain)) {
+      return impls;
+    }
 
     Module *module = new DchainRejuvenateIndex(node, dchain_addr, index, time);
     EPNode *ep_node = new EPNode(module);

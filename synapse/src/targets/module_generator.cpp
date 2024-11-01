@@ -143,29 +143,3 @@ std::vector<impl_t> ModuleGenerator::generate(const EP *ep, const Node *node,
 
   return implementations;
 }
-
-bool ModuleGenerator::can_impl_ds(const EP *ep, const Call *call_node,
-                                  const std::string &obj_arg,
-                                  DSImpl impl) const {
-  const call_t &call = call_node->get_call();
-
-  assert(call.args.find(obj_arg) != call.args.end());
-  klee::ref<klee::Expr> obj_expr = call.args.at(obj_arg).expr;
-  addr_t obj = expr_addr_to_obj_addr(obj_expr);
-
-  const Context &ctx = ep->get_ctx();
-  return ctx.can_impl_ds(obj, impl);
-}
-
-bool ModuleGenerator::check_ds_impl(const EP *ep, const Call *call_node,
-                                    const std::string &obj_arg,
-                                    DSImpl impl) const {
-  const call_t &call = call_node->get_call();
-
-  assert(call.args.find(obj_arg) != call.args.end());
-  klee::ref<klee::Expr> obj_expr = call.args.at(obj_arg).expr;
-  addr_t obj = expr_addr_to_obj_addr(obj_expr);
-
-  const Context &ctx = ep->get_ctx();
-  return ctx.check_ds_impl(obj, impl);
-}

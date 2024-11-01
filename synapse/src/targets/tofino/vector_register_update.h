@@ -75,17 +75,17 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, vector_borrow, "vector",
-                     DSImpl::Tofino_VectorRegister)) {
-      return std::nullopt;
-    }
-
     std::vector<modification_t> changes;
     vector_register_data_t vector_register_data =
         get_vector_register_data(ep, vector_borrow, vector_return, changes);
 
     // This will be ignored by the Ignore module.
     if (changes.empty()) {
+      return std::nullopt;
+    }
+
+    if (!ctx.can_impl_ds(vector_register_data.obj,
+                         DSImpl::Tofino_VectorRegister)) {
       return std::nullopt;
     }
 
@@ -97,6 +97,9 @@ protected:
     }
 
     Context new_ctx = ctx;
+    new_ctx.save_ds_impl(vector_register_data.obj,
+                         DSImpl::Tofino_VectorRegister);
+
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
     spec_impl.skip.insert(vector_return->get_id());
 
@@ -127,17 +130,17 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, vector_borrow, "vector",
-                     DSImpl::Tofino_VectorRegister)) {
-      return impls;
-    }
-
     std::vector<modification_t> changes;
     vector_register_data_t vector_register_data =
         get_vector_register_data(ep, vector_borrow, vector_return, changes);
 
     // Check the Ignore module.
     if (changes.empty()) {
+      return impls;
+    }
+
+    if (!ep->get_ctx().can_impl_ds(vector_register_data.obj,
+                                   DSImpl::Tofino_VectorRegister)) {
       return impls;
     }
 

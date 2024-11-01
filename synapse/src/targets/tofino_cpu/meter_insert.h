@@ -63,7 +63,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!check_ds_impl(ep, tb_trace, "tb", DSImpl::Tofino_Meter)) {
+    klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
+    addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+
+    if (!ctx.can_impl_ds(tb_addr, DSImpl::Tofino_Meter)) {
       return std::nullopt;
     }
 
@@ -85,14 +88,14 @@ protected:
       return impls;
     }
 
-    if (!check_ds_impl(ep, tb_trace, "tb", DSImpl::Tofino_Meter)) {
-      return impls;
-    }
-
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     klee::ref<klee::Expr> success;
     get_tb_data(tb_trace, obj, keys, success);
+
+    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_Meter)) {
+      return impls;
+    }
 
     Module *module = new MeterInsert(node, obj, keys, success);
     EPNode *ep_node = new EPNode(module);

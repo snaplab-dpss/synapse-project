@@ -231,9 +231,9 @@ bool is_parser_drop(const Node *root) {
     }
 
     const Route *route_node = static_cast<const Route *>(node);
-    RouteOperation op = route_node->get_operation();
+    RouteOp op = route_node->get_operation();
 
-    found_drop = (op == RouteOperation::DROP);
+    found_drop = (op == RouteOp::DROP);
     return NodeVisitAction::STOP;
   });
 
@@ -1774,7 +1774,7 @@ std::string int2hr(u64 value) {
 
   // Add thousands separator
   for (int i = str.size() - 3; i > 0; i -= 3) {
-    str.insert(i, ",");
+    str.insert(i, THOUSANDS_SEPARATOR);
   }
 
   ss << str;
@@ -1798,7 +1798,7 @@ std::string tput2str(u64 thpt, const std::string &units, bool human_readable) {
 
     // Add thousands separator
     for (int i = str.size() - 3; i > 0; i -= 3) {
-      str.insert(i, ",");
+      str.insert(i, THOUSANDS_SEPARATOR);
     }
 
     ss << str;

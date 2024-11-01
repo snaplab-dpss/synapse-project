@@ -6,6 +6,8 @@
 
 #include <klee/Constraints.h>
 
+#define THOUSANDS_SEPARATOR "'"
+
 #define MIN_THROUGHPUT_GIGABIT_PER_SEC 1   // Gbps
 #define MAX_THROUGHPUT_GIGABIT_PER_SEC 100 // Gbps
 

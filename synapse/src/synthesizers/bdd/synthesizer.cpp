@@ -248,19 +248,19 @@ void BDDSynthesizer::synthesize(const Node *node) {
     case NodeType::ROUTE: {
       const Route *route_node = static_cast<const Route *>(node);
 
-      RouteOperation op = route_node->get_operation();
+      RouteOp op = route_node->get_operation();
       int dst_device = route_node->get_dst_device();
 
       switch (op) {
-      case RouteOperation::DROP: {
+      case RouteOp::DROP: {
         coder.indent();
         coder << "return DROP;\n";
       } break;
-      case RouteOperation::BCAST: {
+      case RouteOp::BCAST: {
         coder.indent();
         coder << "return FLOOD;\n";
       } break;
-      case RouteOperation::FWD: {
+      case RouteOp::FWD: {
         coder.indent();
         coder << "return " << dst_device << ";\n";
       } break;

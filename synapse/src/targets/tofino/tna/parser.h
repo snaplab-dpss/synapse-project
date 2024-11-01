@@ -326,9 +326,8 @@ private:
     }
 
     assert(initial_state->type == ParserStateType::TERMINATE);
-    ParserStateTerminate *terminate =
-        static_cast<ParserStateTerminate *>(initial_state);
-    assert(terminate->accept == accepted);
+    assert(static_cast<ParserStateTerminate *>(initial_state)->accept ==
+           accepted);
 
     return true;
   }
@@ -350,9 +349,8 @@ private:
         return false;
       }
 
-      ParserStateTerminate *terminate =
-          static_cast<ParserStateTerminate *>(extractor->next);
-      assert(terminate->accept == accepted);
+      assert(static_cast<ParserStateTerminate *>(extractor->next)->accept ==
+             accepted);
     } break;
     case ParserStateType::SELECT: {
       assert(direction.has_value());
@@ -368,15 +366,9 @@ private:
       if (!next || next->type != ParserStateType::TERMINATE) {
         return false;
       }
-
-      ParserStateTerminate *terminate =
-          static_cast<ParserStateTerminate *>(next);
-      assert(terminate->accept == accepted);
     } break;
     case ParserStateType::TERMINATE: {
-      ParserStateTerminate *terminate =
-          static_cast<ParserStateTerminate *>(leaf);
-      assert(terminate->accept == accepted);
+      assert(static_cast<ParserStateTerminate *>(leaf)->accept == accepted);
     } break;
     }
 
@@ -416,9 +408,7 @@ private:
     }
 
     assert(old_next_state->type == ParserStateType::TERMINATE);
-    ParserStateTerminate *terminate =
-        static_cast<ParserStateTerminate *>(old_next_state);
-    assert(terminate->accept == true);
+    assert(static_cast<ParserStateTerminate *>(old_next_state)->accept == true);
 
     switch (new_state->type) {
     case ParserStateType::EXTRACT: {

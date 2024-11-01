@@ -50,7 +50,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::TofinoCPU_Sketch)) {
+    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
+    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+
+    if (!ctx.can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
       return std::nullopt;
     }
 
@@ -72,14 +75,14 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "sketch", DSImpl::TofinoCPU_Sketch)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
     klee::ref<klee::Expr> key = call.args.at("key").expr;
 
     addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+      return impls;
+    }
 
     Module *module = new SketchComputeHashes(node, sketch_addr, key);
     EPNode *ep_node = new EPNode(module);

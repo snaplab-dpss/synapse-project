@@ -64,8 +64,12 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "vector", DSImpl::x86_Vector)) {
+    klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+    addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
+
+    if (!ctx.can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
       return std::nullopt;
     }
 
@@ -83,10 +87,6 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "vector", DSImpl::x86_Vector)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
     klee::ref<klee::Expr> value_addr_expr = call.args.at("val_out").out;
@@ -94,6 +94,10 @@ protected:
 
     addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
     addr_t value_addr = expr_addr_to_obj_addr(value_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
+      return impls;
+    }
 
     Module *module =
         new VectorRead(node, vector_addr, index, value_addr, value);

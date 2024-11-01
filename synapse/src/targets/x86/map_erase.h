@@ -59,8 +59,12 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "map", DSImpl::x86_Map)) {
+    klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+    addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
       return std::nullopt;
     }
 
@@ -78,15 +82,15 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (!can_impl_ds(ep, call_node, "map", DSImpl::x86_Map)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
     klee::ref<klee::Expr> trash = call.args.at("trash").out;
 
     addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
+      return impls;
+    }
 
     Module *module = new MapErase(node, map_addr, key, trash);
     EPNode *ep_node = new EPNode(module);

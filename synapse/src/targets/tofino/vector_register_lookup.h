@@ -63,12 +63,13 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "vector", DSImpl::Tofino_VectorRegister)) {
-      return std::nullopt;
-    }
-
     vector_register_data_t vector_register_data =
         get_vector_register_data(ep, call_node);
+
+    if (!ctx.can_impl_ds(vector_register_data.obj,
+                         DSImpl::Tofino_VectorRegister)) {
+      return std::nullopt;
+    }
 
     bool can_place_ds =
         can_get_or_build_vector_registers(ep, call_node, vector_register_data);
@@ -81,6 +82,9 @@ protected:
         get_future_vector_return(ep, node, vector_register_data.obj);
 
     Context new_ctx = ctx;
+    new_ctx.save_ds_impl(vector_register_data.obj,
+                         DSImpl::Tofino_VectorRegister);
+
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
     if (vector_return) {
@@ -109,12 +113,13 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "vector", DSImpl::Tofino_VectorRegister)) {
-      return impls;
-    }
-
     vector_register_data_t vector_register_data =
         get_vector_register_data(ep, call_node);
+
+    if (!ep->get_ctx().can_impl_ds(vector_register_data.obj,
+                                   DSImpl::Tofino_VectorRegister)) {
+      return impls;
+    }
 
     std::unordered_set<DS_ID> rids;
     std::unordered_set<DS_ID> deps;

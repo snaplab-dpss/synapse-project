@@ -126,7 +126,6 @@ public:
 private:
   std::vector<EPLeaf>::const_iterator get_active_leaf_it() const;
 
-  pps_t pps_from_ingress_tput(pps_t ingress) const;
   constraints_t get_active_leaf_constraints() const;
   void print_speculations(const std::vector<spec_impl_t> &speculations) const;
 

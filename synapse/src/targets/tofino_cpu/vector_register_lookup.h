@@ -55,7 +55,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "vector", DSImpl::Tofino_VectorRegister)) {
+    klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+    addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
+
+    if (!ctx.can_impl_ds(vector_addr, DSImpl::Tofino_VectorRegister)) {
       return std::nullopt;
     }
 
@@ -77,16 +80,16 @@ protected:
       return impls;
     }
 
-    if (!check_ds_impl(ep, call_node, "vector",
-                       DSImpl::Tofino_VectorRegister)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
     klee::ref<klee::Expr> value = call.extra_vars.at("borrowed_cell").second;
 
     addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
+
+    if (!ep->get_ctx().check_ds_impl(vector_addr,
+                                     DSImpl::Tofino_VectorRegister)) {
+      return impls;
+    }
 
     Module *module = new VectorRegisterLookup(node, vector_addr, index, value);
     EPNode *ep_node = new EPNode(module);

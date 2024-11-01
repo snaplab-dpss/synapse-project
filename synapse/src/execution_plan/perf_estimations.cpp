@@ -95,18 +95,6 @@ static std::vector<leaf_tput_t> compute_leaves_egress_tput(const EP *ep,
   return leaves_tput;
 }
 
-pps_t EP::pps_from_ingress_tput(pps_t ingress) const {
-  std::vector<leaf_tput_t> leaves_tput =
-      compute_leaves_egress_tput(this, ingress);
-
-  pps_t egress = 0;
-  for (const leaf_tput_t &leaf_tput : leaves_tput) {
-    egress += leaf_tput.tput;
-  }
-
-  return egress;
-}
-
 struct speculative_data_t : public cookie_t {
   constraints_t constraints;
   std::unordered_map<node_id_t, klee::ref<klee::Expr>> pending_constraints;
@@ -223,8 +211,16 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation,
   spec_impl_t peek_new = peek_speculation_for_future_nodes(
       new_speculation, node, new_future_nodes, current_target, ingress);
 
+  // FIXME: here's the problem! Before we were calculating performance from
+  // context (traffic counters).
+  // TODO: performance from speculations
+
   pps_t old_pps = peek_old.perf_estimator(peek_old.ctx, node, ingress);
   pps_t new_pps = peek_new.perf_estimator(peek_new.ctx, node, ingress);
+
+  if (node->get_id() == 20 && id == 17) {
+    std::cerr << "    old: " << old_pps << " new: " << new_pps << "\n";
+  }
 
   return new_pps > old_pps;
 }
@@ -253,6 +249,12 @@ spec_impl_t EP::get_best_speculation(const Node *node,
 
       if (!best.has_value()) {
         best = *spec;
+
+        if (node->get_id() == 20 && id == 17) {
+          std::cerr << "    ";
+          std::cerr << spec->decision.module << " is best\n";
+        }
+
         continue;
       }
 
@@ -261,6 +263,12 @@ spec_impl_t EP::get_best_speculation(const Node *node,
 
       bool is_better =
           is_better_speculation(*best, *spec, node, current_target, ingress);
+
+      if (node->get_id() == 20 && id == 17) {
+        std::cerr << "    ";
+        std::cerr << spec->decision.module << " ";
+        std::cerr << "is better? " << is_better << "\n";
+      }
 
       if (is_better) {
         best = *spec;
@@ -386,10 +394,15 @@ pps_t EP::speculate_tput_pps() const {
 
     pps_t tput =
         speculation.perf_estimator(speculation.ctx, leaf.next, leaf.tput);
+    pps_t tput_sink =
+        speculation.perf_sink(speculation.ctx, leaf.next, leaf.tput);
 
-    // std::cerr << "Node: " << leaf.next->dump(true, true)
-    //           << " tput: " << int2hr(leaf.tput) << " -> " << int2hr(tput)
-    //           << "\n";
+    egress += tput_sink;
+
+    // std::cerr << "  " << leaf.next->dump(true, true) << " | "
+    //           << speculation.decision.module << " | " << int2hr(leaf.tput)
+    //           << " -> " << int2hr(tput) << " (sink=" << int2hr(tput_sink)
+    //           << ")\n";
 
     std::vector<const Node *> children = leaf.next->get_children();
 
@@ -409,11 +422,11 @@ pps_t EP::speculate_tput_pps() const {
     }
   }
 
-  // if (id == 31) {
+  // if (id == 17) {
   //   print_speculations(speculations);
   //   speculative_ctx.debug();
   //   // BDDVisualizer::visualize(bdd.get(), false);
-  //   EPVisualizer::visualize(this, false);
+  //   // EPVisualizer::visualize(this, false);
   //   // ProfilerVisualizer::visualize(bdd.get(),
   //   speculative_ctx.get_profiler(),
   //   //                               false);
@@ -424,15 +437,8 @@ pps_t EP::speculate_tput_pps() const {
   return egress;
 }
 
-pps_t EP::estimate_tput_pps() const {
-  if (cached_tput_estimation.has_value()) {
-    return *cached_tput_estimation;
-  }
-
-  const tofino::TofinoContext *tofino_ctx =
-      ctx.get_target_ctx<tofino::TofinoContext>();
-
-  pps_t ingress = tofino_ctx->get_tna().get_perf_oracle().get_max_input_pps();
+static pps_t find_stable_tput(pps_t ingress,
+                              std::function<pps_t(pps_t)> estimator) {
   pps_t egress = 0;
 
   pps_t smallest_unstable = ingress;
@@ -443,7 +449,7 @@ pps_t EP::estimate_tput_pps() const {
   // search). This hopefully doesn't take many iterations...
   while (diff > STABLE_TPUT_PRECISION) {
     prev_ingress = ingress;
-    egress = pps_from_ingress_tput(ingress);
+    egress = estimator(ingress);
 
     if (egress < ingress) {
       smallest_unstable = ingress;
@@ -456,6 +462,29 @@ pps_t EP::estimate_tput_pps() const {
                                   : prev_ingress - ingress;
   }
 
+  return egress;
+}
+
+pps_t EP::estimate_tput_pps() const {
+  if (cached_tput_estimation.has_value()) {
+    return *cached_tput_estimation;
+  }
+
+  pps_t max_ingress = ctx.get_target_ctx<tofino::TofinoContext>()
+                          ->get_tna()
+                          .get_perf_oracle()
+                          .get_max_input_pps();
+
+  auto egress_from_ingress = [this](pps_t ingress) {
+    std::vector<leaf_tput_t> leaves_tput =
+        compute_leaves_egress_tput(this, ingress);
+    pps_t egress = 0;
+    for (const leaf_tput_t &leaf_tput : leaves_tput)
+      egress += leaf_tput.tput;
+    return egress;
+  };
+
+  pps_t egress = find_stable_tput(max_ingress, egress_from_ingress);
   cached_tput_estimation = egress;
 
   return egress;

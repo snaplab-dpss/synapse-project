@@ -4,32 +4,6 @@
 
 static ss_node_id_t node_id_counter = 0;
 
-void SearchSpace::activate_leaf(const EP *ep) {
-  ep_id_t ep_id = ep->get_id();
-
-  if (!root) {
-    ss_node_id_t id = node_id_counter++;
-    Score score = hcfg->score(ep);
-    TargetType target = ep->get_active_target();
-    root = new SSNode(id, ep_id, score, target);
-    active_leaf = root;
-    return;
-  }
-
-  auto ss_node_matcher = [ep_id](const SSNode *node) {
-    return node->ep_id == ep_id;
-  };
-
-  auto found_it = std::find_if(leaves.begin(), leaves.end(), ss_node_matcher);
-  assert(found_it != leaves.end() && "Leaf not found");
-
-  active_leaf = *found_it;
-  leaves.erase(found_it);
-
-  backtrack = (last_eps.find(ep_id) == last_eps.end());
-  last_eps.clear();
-}
-
 static std::string get_bdd_node_description(const Node *node) {
   std::stringstream description;
 
@@ -50,16 +24,16 @@ static std::string get_bdd_node_description(const Node *node) {
   } break;
   case NodeType::ROUTE: {
     const Route *route = static_cast<const Route *>(node);
-    RouteOperation op = route->get_operation();
+    RouteOp op = route->get_operation();
 
     switch (op) {
-    case RouteOperation::BCAST: {
+    case RouteOp::BCAST: {
       description << "broadcast()";
     } break;
-    case RouteOperation::DROP: {
+    case RouteOp::DROP: {
       description << "drop()";
     } break;
-    case RouteOperation::FWD: {
+    case RouteOp::FWD: {
       description << "forward(";
       description << route->get_dst_device();
       description << ")";
@@ -79,6 +53,44 @@ static std::string get_bdd_node_description(const Node *node) {
   Graphviz::sanitize_html_label(node_str);
 
   return node_str;
+}
+
+void SearchSpace::activate_leaf(const EP *ep) {
+  ep_id_t ep_id = ep->get_id();
+
+  if (!root) {
+    ss_node_id_t id = node_id_counter++;
+    Score score = hcfg->score(ep);
+    EPLeaf leaf = ep->get_active_leaf();
+    TargetType target = ep->get_active_target();
+
+    bdd_node_data_t next_bdd_node_data = {
+        .id = leaf.next->get_id(),
+        .description = get_bdd_node_description(leaf.next),
+    };
+
+    std::vector<std::pair<std::string, std::string>> metadata = {
+        {"Tput", build_meta_tput_estimate(ep)},
+        {"Spec", build_meta_tput_speculation(ep)},
+    };
+
+    root = new SSNode(id, ep_id, score, target, next_bdd_node_data, metadata);
+    active_leaf = root;
+    return;
+  }
+
+  auto ss_node_matcher = [ep_id](const SSNode *node) {
+    return node->ep_id == ep_id;
+  };
+
+  auto found_it = std::find_if(leaves.begin(), leaves.end(), ss_node_matcher);
+  assert(found_it != leaves.end() && "Leaf not found");
+
+  active_leaf = *found_it;
+  leaves.erase(found_it);
+
+  backtrack = (last_eps.find(ep_id) == last_eps.end());
+  last_eps.clear();
 }
 
 std::string SearchSpace::build_meta_tput_estimate(const EP *ep) {

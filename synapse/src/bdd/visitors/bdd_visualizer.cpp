@@ -49,15 +49,15 @@ std::string BDDVisualizer::get_color(const Node *node) const {
   } break;
   case NodeType::ROUTE: {
     const Route *route = static_cast<const Route *>(node);
-    RouteOperation operation = route->get_operation();
+    RouteOp operation = route->get_operation();
     switch (operation) {
-    case RouteOperation::FWD:
+    case RouteOp::FWD:
       color = COLOR_FORWARD;
       break;
-    case RouteOperation::DROP:
+    case RouteOp::DROP:
       color = COLOR_DROP;
       break;
-    case RouteOperation::BCAST:
+    case RouteOp::BCAST:
       color = COLOR_BROADCAST;
       break;
     }
@@ -237,7 +237,7 @@ BDDVisitorAction BDDVisualizer::visitCall(const Call *node) {
 BDDVisitorAction BDDVisualizer::visitRoute(const Route *node) {
   node_id_t id = node->get_id();
   int dst_device = node->get_dst_device();
-  RouteOperation operation = node->get_operation();
+  RouteOp operation = node->get_operation();
   const Node *next = node->get_next();
 
   if (next) {
@@ -249,15 +249,15 @@ BDDVisitorAction BDDVisualizer::visitRoute(const Route *node) {
   ss << id << ":";
 
   switch (operation) {
-  case RouteOperation::FWD: {
+  case RouteOp::FWD: {
     ss << "fwd(" << dst_device << ")";
     break;
   }
-  case RouteOperation::DROP: {
+  case RouteOp::DROP: {
     ss << "drop()";
     break;
   }
-  case RouteOperation::BCAST: {
+  case RouteOp::BCAST: {
     ss << "bcast()";
     break;
   }

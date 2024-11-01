@@ -266,14 +266,6 @@ symbols_t TofinoModuleGenerator::get_dataplane_state(const EP *ep,
   return get_prev_symbols(node, roots);
 }
 
-bool TofinoModuleGenerator::can_place_fcfs_cached_table(
-    const EP *ep, const map_coalescing_objs_t &map_objs) const {
-  const Context &ctx = ep->get_ctx();
-  return ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) &&
-         ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable) &&
-         ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
-}
-
 void TofinoModuleGenerator::place_fcfs_cached_table(
     EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
     FCFSCachedTable *ds) const {

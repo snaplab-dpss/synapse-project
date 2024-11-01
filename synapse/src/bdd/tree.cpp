@@ -249,11 +249,11 @@ static Route *route_node_from_call(const call_t &call,
   assert(is_routing_function(call));
 
   if (call.function_name == "packet_free") {
-    return new Route(id, constraints, RouteOperation::DROP);
+    return new Route(id, constraints, RouteOp::DROP);
   }
 
   if (call.function_name == "packet_broadcast") {
-    return new Route(id, constraints, RouteOperation::BCAST);
+    return new Route(id, constraints, RouteOp::BCAST);
   }
 
   assert(call.function_name == "packet_send");
@@ -262,7 +262,7 @@ static Route *route_node_from_call(const call_t &call,
   assert(!dst_device.isNull());
 
   int value = solver_toolbox.value_from_expr(dst_device);
-  return new Route(id, constraints, RouteOperation::FWD, value);
+  return new Route(id, constraints, RouteOp::FWD, value);
 }
 
 static call_t

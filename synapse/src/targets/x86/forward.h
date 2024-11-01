@@ -40,9 +40,9 @@ protected:
     }
 
     const Route *route_node = static_cast<const Route *>(node);
-    RouteOperation op = route_node->get_operation();
+    RouteOp op = route_node->get_operation();
 
-    if (op != RouteOperation::FWD) {
+    if (op != RouteOp::FWD) {
       return false;
     }
 

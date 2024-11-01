@@ -47,7 +47,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!can_impl_ds(ep, call_node, "tb", DSImpl::TofinoCPU_TB)) {
+    klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
+    addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+
+    if (!ctx.can_impl_ds(tb_addr, DSImpl::TofinoCPU_TB)) {
       return std::nullopt;
     }
 
@@ -69,14 +72,14 @@ protected:
       return impls;
     }
 
-    if (!can_impl_ds(ep, call_node, "tb", DSImpl::TofinoCPU_TB)) {
-      return impls;
-    }
-
     klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
     klee::ref<klee::Expr> time = call.args.at("time").expr;
 
     addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+
+    if (!ep->get_ctx().can_impl_ds(tb_addr, DSImpl::TofinoCPU_TB)) {
+      return impls;
+    }
 
     Module *module = new TBExpire(node, tb_addr, time);
     EPNode *ep_node = new EPNode(module);
