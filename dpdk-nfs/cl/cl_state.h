@@ -8,12 +8,13 @@ struct State {
   struct Vector *flows_keys;
   struct DoubleChain *flow_allocator;
 
-  struct Sketch *sketch;
+  struct CMS *cms;
 
   uint32_t max_flows;
   uint32_t dev_count;
 };
 
-struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
+struct State *alloc_state(uint32_t max_flows, uint32_t cms_capacity,
                           uint16_t max_clients, uint32_t dev_count);
-#endif  //_STATE_H_INCLUDED_
+
+#endif //_STATE_H_INCLUDED_

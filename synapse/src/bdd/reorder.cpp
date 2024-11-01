@@ -25,11 +25,11 @@ static std::map<std::string, bool> fn_has_side_effects_lookup{
     {"dchain_rejuvenate_index", true},
     {"cht_find_preferred_available_backend", false},
     {"LoadBalancedFlow_hash", false},
-    {"sketch_expire", true},
-    {"sketch_compute_hashes", true},
-    {"sketch_refresh", true},
-    {"sketch_fetch", false},
-    {"sketch_touch_buckets", true},
+    {"cms_expire", true},
+    {"cms_compute_hashes", true},
+    {"cms_refresh", true},
+    {"cms_fetch", false},
+    {"cms_touch_buckets", true},
     {"tb_expire", true},
     {"tb_is_tracing", false},
     {"tb_trace", true},
@@ -494,10 +494,10 @@ static bool cht_can_reorder(const BDD *bdd, const Node *anchor,
   return true;
 }
 
-static bool sketch_can_reorder(const BDD *bdd, const Node *anchor,
-                               const Node *between, const Node *candidate,
-                               klee::ref<klee::Expr> &condition) {
-  return !check_obj(between, candidate, "sketch");
+static bool cms_can_reorder(const BDD *bdd, const Node *anchor,
+                            const Node *between, const Node *candidate,
+                            klee::ref<klee::Expr> &condition) {
+  return !check_obj(between, candidate, "cms");
 }
 
 static bool tb_can_reorder(const BDD *bdd, const Node *anchor,
@@ -523,11 +523,11 @@ const std::unordered_map<std::string, can_reorder_stateful_op_fn>
         {"dchain_free_index", dchain_can_reorder},
         {"dchain_rejuvenate_index", dchain_can_reorder},
         {"cht_find_preferred_available_backend", cht_can_reorder},
-        {"sketch_expire", sketch_can_reorder},
-        {"sketch_compute_hashes", sketch_can_reorder},
-        {"sketch_refresh", sketch_can_reorder},
-        {"sketch_fetch", sketch_can_reorder},
-        {"sketch_touch_buckets", sketch_can_reorder},
+        {"cms_expire", cms_can_reorder},
+        {"cms_compute_hashes", cms_can_reorder},
+        {"cms_refresh", cms_can_reorder},
+        {"cms_fetch", cms_can_reorder},
+        {"cms_touch_buckets", cms_can_reorder},
         {"tb_expire", tb_can_reorder},
         {"tb_is_tracing", tb_can_reorder},
         {"tb_trace", tb_can_reorder},

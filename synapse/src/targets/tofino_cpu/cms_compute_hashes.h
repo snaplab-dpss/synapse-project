@@ -4,17 +4,17 @@
 
 namespace tofino_cpu {
 
-class SketchComputeHashes : public TofinoCPUModule {
+class CMSComputeHashes : public TofinoCPUModule {
 private:
-  addr_t sketch_addr;
+  addr_t cms_addr;
   klee::ref<klee::Expr> key;
 
 public:
-  SketchComputeHashes(const Node *node, addr_t _sketch_addr,
-                      klee::ref<klee::Expr> _key)
-      : TofinoCPUModule(ModuleType::TofinoCPU_SketchComputeHashes,
-                        "SketchComputeHashes", node),
-        sketch_addr(_sketch_addr), key(_key) {}
+  CMSComputeHashes(const Node *node, addr_t _cms_addr,
+                   klee::ref<klee::Expr> _key)
+      : TofinoCPUModule(ModuleType::TofinoCPU_CMSComputeHashes,
+                        "CMSComputeHashes", node),
+        cms_addr(_cms_addr), key(_key) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -22,19 +22,19 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new SketchComputeHashes(node, sketch_addr, key);
+    Module *cloned = new CMSComputeHashes(node, cms_addr, key);
     return cloned;
   }
 
-  addr_t get_sketch_addr() const { return sketch_addr; }
+  addr_t get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
 };
 
-class SketchComputeHashesGenerator : public TofinoCPUModuleGenerator {
+class CMSComputeHashesGenerator : public TofinoCPUModuleGenerator {
 public:
-  SketchComputeHashesGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_SketchComputeHashes,
-                                 "SketchComputeHashes") {}
+  CMSComputeHashesGenerator()
+      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_CMSComputeHashes,
+                                 "CMSComputeHashes") {}
 
 protected:
   virtual std::optional<spec_impl_t>
@@ -46,14 +46,14 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_compute_hashes") {
+    if (call.function_name != "cms_compute_hashes") {
       return std::nullopt;
     }
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::TofinoCPU_CMS)) {
       return std::nullopt;
     }
 
@@ -71,20 +71,20 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_compute_hashes") {
+    if (call.function_name != "cms_compute_hashes") {
       return impls;
     }
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     klee::ref<klee::Expr> key = call.args.at("key").expr;
 
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::TofinoCPU_CMS)) {
       return impls;
     }
 
-    Module *module = new SketchComputeHashes(node, sketch_addr, key);
+    Module *module = new CMSComputeHashes(node, cms_addr, key);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -93,8 +93,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr,
-                                           DSImpl::TofinoCPU_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::TofinoCPU_CMS);
 
     return impls;
   }

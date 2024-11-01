@@ -79,12 +79,12 @@ bits_t get_key_size(const BDD &bdd, addr_t addr) {
       return solver_toolbox.value_from_expr(key_size);
     }
 
-    if (call.function_name == "sketch_allocate") {
-      klee::ref<klee::Expr> _sketch = call.args.at("sketch").expr;
-      assert(!_sketch.isNull());
+    if (call.function_name == "cms_allocate") {
+      klee::ref<klee::Expr> _cms = call.args.at("cms").expr;
+      assert(!_cms.isNull());
 
-      addr_t _sketch_addr = expr_addr_to_obj_addr(_sketch);
-      if (_sketch_addr != addr)
+      addr_t _cms_addr = expr_addr_to_obj_addr(_cms);
+      if (_cms_addr != addr)
         continue;
 
       klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
@@ -153,35 +153,35 @@ vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr) {
   PANIC("Should have found vector configuration");
 }
 
-sketch_config_t get_sketch_config_from_bdd(const BDD &bdd, addr_t sketch_addr) {
+cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
   const std::vector<call_t> &init = bdd.get_init();
 
   for (const call_t &call : init) {
-    if (call.function_name != "sketch_allocate")
+    if (call.function_name != "cms_allocate")
       continue;
 
     klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
     klee::ref<klee::Expr> threshold = call.args.at("threshold").expr;
     klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
-    klee::ref<klee::Expr> sketch_out = call.args.at("sketch_out").out;
+    klee::ref<klee::Expr> cms_out = call.args.at("cms_out").out;
 
     assert(!capacity.isNull());
     assert(!threshold.isNull());
     assert(!key_size.isNull());
-    assert(!sketch_out.isNull());
+    assert(!cms_out.isNull());
 
-    addr_t sketch_out_addr = expr_addr_to_obj_addr(sketch_out);
-    if (sketch_out_addr != sketch_addr)
+    addr_t cms_out_addr = expr_addr_to_obj_addr(cms_out);
+    if (cms_out_addr != cms_addr)
       continue;
 
     u64 capacity_value = solver_toolbox.value_from_expr(capacity);
     u64 threshold_value = solver_toolbox.value_from_expr(threshold);
     bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
 
-    return sketch_config_t{capacity_value, threshold_value, key_size_value};
+    return cms_config_t{capacity_value, threshold_value, key_size_value};
   }
 
-  PANIC("Should have found sketch configuration");
+  PANIC("Should have found cms configuration");
 }
 
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {

@@ -7,7 +7,7 @@ extern "C" {
 
 #include <lib/verified/expirator.h>
 #include <lib/verified/hash.h>
-#include <lib/verified/sketch.h>
+#include <lib/verified/cms.h>
 #include <lib/verified/cht.h>
 #include <lib/verified/token-bucket.h>
 

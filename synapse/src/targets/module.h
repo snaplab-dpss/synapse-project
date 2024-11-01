@@ -65,11 +65,11 @@ enum class ModuleType {
   TofinoCPU_MapErase,
   TofinoCPU_ChtFindBackend,
   TofinoCPU_HashObj,
-  TofinoCPU_SketchExpire,
-  TofinoCPU_SketchComputeHashes,
-  TofinoCPU_SketchRefresh,
-  TofinoCPU_SketchFetch,
-  TofinoCPU_SketchTouchBuckets,
+  TofinoCPU_CMSExpire,
+  TofinoCPU_CMSComputeHashes,
+  TofinoCPU_CMSRefresh,
+  TofinoCPU_CMSFetch,
+  TofinoCPU_CMSTouchBuckets,
   TofinoCPU_VectorRegisterLookup,
   TofinoCPU_VectorRegisterUpdate,
   TofinoCPU_TBIsTracing,
@@ -93,11 +93,11 @@ enum class ModuleType {
   x86_DchainRejuvenateIndex,
   x86_DchainIsIndexAllocated,
   x86_DchainFreeIndex,
-  x86_SketchExpire,
-  x86_SketchComputeHashes,
-  x86_SketchRefresh,
-  x86_SketchFetch,
-  x86_SketchTouchBuckets,
+  x86_CMSExpire,
+  x86_CMSComputeHashes,
+  x86_CMSRefresh,
+  x86_CMSFetch,
+  x86_CMSTouchBuckets,
   x86_Drop,
   x86_Broadcast,
   x86_ExpireItemsSingleMap,
@@ -260,20 +260,20 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::TofinoCPU_HashObj:
     os << "TofinoCPU_HashObj";
     break;
-  case ModuleType::TofinoCPU_SketchExpire:
-    os << "TofinoCPU_SketchExpire";
+  case ModuleType::TofinoCPU_CMSExpire:
+    os << "TofinoCPU_CMSExpire";
     break;
-  case ModuleType::TofinoCPU_SketchComputeHashes:
-    os << "TofinoCPU_SketchComputeHashes";
+  case ModuleType::TofinoCPU_CMSComputeHashes:
+    os << "TofinoCPU_CMSComputeHashes";
     break;
-  case ModuleType::TofinoCPU_SketchRefresh:
-    os << "TofinoCPU_SketchRefresh";
+  case ModuleType::TofinoCPU_CMSRefresh:
+    os << "TofinoCPU_CMSRefresh";
     break;
-  case ModuleType::TofinoCPU_SketchFetch:
-    os << "TofinoCPU_SketchFetch";
+  case ModuleType::TofinoCPU_CMSFetch:
+    os << "TofinoCPU_CMSFetch";
     break;
-  case ModuleType::TofinoCPU_SketchTouchBuckets:
-    os << "TofinoCPU_SketchTouchBuckets";
+  case ModuleType::TofinoCPU_CMSTouchBuckets:
+    os << "TofinoCPU_CMSTouchBuckets";
     break;
   case ModuleType::TofinoCPU_VectorRegisterLookup:
     os << "TofinoCPU_VectorRegisterLookup";
@@ -344,20 +344,20 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::x86_DchainFreeIndex:
     os << "x86_DchainFreeIndex";
     break;
-  case ModuleType::x86_SketchExpire:
-    os << "x86_SketchExpire";
+  case ModuleType::x86_CMSExpire:
+    os << "x86_CMSExpire";
     break;
-  case ModuleType::x86_SketchComputeHashes:
-    os << "x86_SketchComputeHashes";
+  case ModuleType::x86_CMSComputeHashes:
+    os << "x86_CMSComputeHashes";
     break;
-  case ModuleType::x86_SketchRefresh:
-    os << "x86_SketchRefresh";
+  case ModuleType::x86_CMSRefresh:
+    os << "x86_CMSRefresh";
     break;
-  case ModuleType::x86_SketchFetch:
-    os << "x86_SketchFetch";
+  case ModuleType::x86_CMSFetch:
+    os << "x86_CMSFetch";
     break;
-  case ModuleType::x86_SketchTouchBuckets:
-    os << "x86_SketchTouchBuckets";
+  case ModuleType::x86_CMSTouchBuckets:
+    os << "x86_CMSTouchBuckets";
     break;
   case ModuleType::x86_Drop:
     os << "x86_Drop";

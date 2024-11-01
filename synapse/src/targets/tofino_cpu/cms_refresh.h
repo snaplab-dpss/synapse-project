@@ -4,17 +4,15 @@
 
 namespace tofino_cpu {
 
-class SketchExpire : public TofinoCPUModule {
+class CMSRefresh : public TofinoCPUModule {
 private:
-  addr_t sketch_addr;
+  addr_t cms_addr;
   klee::ref<klee::Expr> time;
 
 public:
-  SketchExpire(const Node *node, addr_t _sketch_addr,
-               klee::ref<klee::Expr> _time)
-      : TofinoCPUModule(ModuleType::TofinoCPU_SketchExpire, "SketchExpire",
-                        node),
-        sketch_addr(_sketch_addr), time(_time) {}
+  CMSRefresh(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _time)
+      : TofinoCPUModule(ModuleType::TofinoCPU_CMSRefresh, "CMSRefresh", node),
+        cms_addr(_cms_addr), time(_time) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -22,19 +20,19 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new SketchExpire(node, sketch_addr, time);
+    Module *cloned = new CMSRefresh(node, cms_addr, time);
     return cloned;
   }
 
-  addr_t get_sketch_addr() const { return sketch_addr; }
+  addr_t get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
 };
 
-class SketchExpireGenerator : public TofinoCPUModuleGenerator {
+class CMSRefreshGenerator : public TofinoCPUModuleGenerator {
 public:
-  SketchExpireGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_SketchExpire,
-                                 "SketchExpire") {}
+  CMSRefreshGenerator()
+      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_CMSRefresh,
+                                 "CMSRefresh") {}
 
 protected:
   virtual std::optional<spec_impl_t>
@@ -46,14 +44,14 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_expire") {
+    if (call.function_name != "cms_refresh") {
       return std::nullopt;
     }
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::TofinoCPU_CMS)) {
       return std::nullopt;
     }
 
@@ -71,20 +69,20 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_expire") {
+    if (call.function_name != "cms_refresh") {
       return impls;
     }
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     klee::ref<klee::Expr> time = call.args.at("time").expr;
 
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::TofinoCPU_CMS)) {
       return impls;
     }
 
-    Module *module = new SketchExpire(node, sketch_addr, time);
+    Module *module = new CMSRefresh(node, cms_addr, time);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -93,8 +91,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr,
-                                           DSImpl::TofinoCPU_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::TofinoCPU_CMS);
 
     return impls;
   }

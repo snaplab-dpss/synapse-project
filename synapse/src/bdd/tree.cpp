@@ -30,15 +30,15 @@ static std::vector<std::string> ignored_functions{
 };
 
 static std::vector<std::string> init_functions{
-    "map_allocate",    "vector_allocate", "dchain_allocate",
-    "sketch_allocate", "cht_fill_cht",    "tb_allocate",
+    "map_allocate", "vector_allocate", "dchain_allocate",
+    "cms_allocate", "cht_fill_cht",    "tb_allocate",
 };
 
 static std::vector<std::string> symbols_in_skippable_conditions{
-    "received_a_packet",           "loop_termination",
-    "map_allocation_succeeded",    "vector_alloc_success",
-    "is_dchain_allocated",         "cht_fill_cht_successful",
-    "sketch_allocation_succeeded", "tb_allocation_succeeded",
+    "received_a_packet",        "loop_termination",
+    "map_allocation_succeeded", "vector_alloc_success",
+    "is_dchain_allocated",      "cht_fill_cht_successful",
+    "cms_allocation_succeeded", "tb_allocation_succeeded",
 };
 
 static std::vector<std::string> rounting_functions{
@@ -104,11 +104,11 @@ static std::unordered_map<std::string, std::unordered_set<std::string>>
             {"chosen_backend", "prefered_backend_found"},
         },
         {
-            "sketch_fetch",
+            "cms_fetch",
             {"overflow"},
         },
         {
-            "sketch_touch_buckets",
+            "cms_touch_buckets",
             {"success"},
         },
         {

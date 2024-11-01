@@ -5,7 +5,7 @@ extern "C" {
 #include <lib/verified/double-chain.h>
 #include <lib/verified/map.h>
 #include <lib/verified/vector.h>
-#include <lib/verified/sketch.h>
+#include <lib/verified/cms.h>
 #include <lib/verified/hash.h>
 #include <lib/verified/expirator.h>
 

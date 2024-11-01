@@ -7,26 +7,26 @@
 #include "lib/verified/cht.h"
 #include "lib/verified/lpm-dir-24-8.h"
 #include "lib/verified/vigor-time.h"
-#include "lib/verified/sketch.h"
+#include "lib/verified/cms.h"
 
 #include "flow.h"
 #include "client.h"
 
 void loop_invariant_consume(struct Map **flows, struct Vector **flows_keys,
                             struct DoubleChain **flow_allocator,
-                            struct Sketch **sketch, uint32_t max_flows,
+                            struct CMS **cms, uint32_t max_flows,
                             uint32_t dev_count, unsigned int lcore_id,
                             time_ns_t time);
 
 void loop_invariant_produce(struct Map **flows, struct Vector **flows_keys,
                             struct DoubleChain **flow_allocator,
-                            struct Sketch **sketch, uint32_t max_flows,
+                            struct CMS **cms, uint32_t max_flows,
                             uint32_t dev_count, unsigned int *lcore_id,
                             time_ns_t *time);
 
 void loop_iteration_border(struct Map **flows, struct Vector **flows_keys,
                            struct DoubleChain **flow_allocator,
-                           struct Sketch **sketch, uint32_t max_flows,
+                           struct CMS **cms, uint32_t max_flows,
                            uint32_t dev_count, unsigned int lcore_id,
                            time_ns_t time);
 

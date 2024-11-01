@@ -8,7 +8,7 @@
 #include "lib/verified/vector.h"
 #include "lib/verified/double-chain.h"
 #include "lib/verified/vigor-time.h"
-#include "lib/verified/sketch.h"
+#include "lib/verified/cms.h"
 
 #include <stdint.h>
 

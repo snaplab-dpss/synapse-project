@@ -26,11 +26,11 @@
 #include "checksum_update.h"
 #include "cht_find_backend.h"
 #include "hash_obj.h"
-#include "sketch_compute_hashes.h"
-#include "sketch_expire.h"
-#include "sketch_fetch.h"
-#include "sketch_refresh.h"
-#include "sketch_touch_buckets.h"
+#include "cms_compute_hashes.h"
+#include "cms_expire.h"
+#include "cms_fetch.h"
+#include "cms_refresh.h"
+#include "cms_touch_buckets.h"
 #include "vector_register_lookup.h"
 #include "vector_register_update.h"
 #include "fcfs_cached_table_read.h"
@@ -74,11 +74,11 @@ struct TofinoCPUTarget : public Target {
                    new MapEraseGenerator(),
                    new ChtFindBackendGenerator(),
                    new HashObjGenerator(),
-                   new SketchComputeHashesGenerator(),
-                   new SketchExpireGenerator(),
-                   new SketchFetchGenerator(),
-                   new SketchRefreshGenerator(),
-                   new SketchTouchBucketsGenerator(),
+                   new CMSComputeHashesGenerator(),
+                   new CMSExpireGenerator(),
+                   new CMSFetchGenerator(),
+                   new CMSRefreshGenerator(),
+                   new CMSTouchBucketsGenerator(),
                    new VectorRegisterLookupGenerator(),
                    new VectorRegisterUpdateGenerator(),
                    new FCFSCachedTableReadGenerator(),

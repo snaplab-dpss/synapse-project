@@ -4,15 +4,15 @@
 
 namespace tofino_cpu {
 
-class SketchFetch : public TofinoCPUModule {
+class CMSFetch : public TofinoCPUModule {
 private:
-  addr_t sketch_addr;
+  addr_t cms_addr;
   symbol_t overflow;
 
 public:
-  SketchFetch(const Node *node, addr_t _sketch_addr, symbol_t _overflow)
-      : TofinoCPUModule(ModuleType::TofinoCPU_SketchFetch, "SketchFetch", node),
-        sketch_addr(_sketch_addr), overflow(_overflow) {}
+  CMSFetch(const Node *node, addr_t _cms_addr, symbol_t _overflow)
+      : TofinoCPUModule(ModuleType::TofinoCPU_CMSFetch, "CMSFetch", node),
+        cms_addr(_cms_addr), overflow(_overflow) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -20,19 +20,18 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new SketchFetch(node, sketch_addr, overflow);
+    Module *cloned = new CMSFetch(node, cms_addr, overflow);
     return cloned;
   }
 
-  addr_t get_sketch_addr() const { return sketch_addr; }
+  addr_t get_cms_addr() const { return cms_addr; }
   const symbol_t &get_overflow() const { return overflow; }
 };
 
-class SketchFetchGenerator : public TofinoCPUModuleGenerator {
+class CMSFetchGenerator : public TofinoCPUModuleGenerator {
 public:
-  SketchFetchGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_SketchFetch,
-                                 "SketchFetch") {}
+  CMSFetchGenerator()
+      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_CMSFetch, "CMSFetch") {}
 
 protected:
   virtual std::optional<spec_impl_t>
@@ -44,14 +43,14 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_fetch") {
+    if (call.function_name != "cms_fetch") {
       return std::nullopt;
     }
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::TofinoCPU_CMS)) {
       return std::nullopt;
     }
 
@@ -69,14 +68,14 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_fetch") {
+    if (call.function_name != "cms_fetch") {
       return impls;
     }
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::TofinoCPU_Sketch)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::TofinoCPU_CMS)) {
       return impls;
     }
 
@@ -85,7 +84,7 @@ protected:
     bool found = get_symbol(symbols, "overflow", overflow);
     assert(found && "Symbol overflow not found");
 
-    Module *module = new SketchFetch(node, sketch_addr, overflow);
+    Module *module = new CMSFetch(node, cms_addr, overflow);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -94,8 +93,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr,
-                                           DSImpl::TofinoCPU_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::TofinoCPU_CMS);
 
     return impls;
   }

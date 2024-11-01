@@ -1,5 +1,5 @@
-#include "lib/verified/sketch.h"
-#include "sketch-control.h"
+#include "lib/verified/cms.h"
+#include "cms-control.h"
 #include <klee/klee.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,13 +65,13 @@ unsigned hash_hash(void *obj) {
 }
 
 struct str_field_descr bucket_descrs[] = {
-    {offsetof(struct sketch_bucket, value), sizeof(uint32_t), 0, "value"},
+    {offsetof(struct cms_bucket, value), sizeof(uint32_t), 0, "value"},
 };
 struct nested_field_descr bucket_nests[] = {};
 
 bool bucket_eq(void *a, void *b) {
-  struct sketch_bucket *id1 = (struct sketch_bucket *)a;
-  struct sketch_bucket *id2 = (struct sketch_bucket *)b;
+  struct cms_bucket *id1 = (struct cms_bucket *)a;
+  struct cms_bucket *id2 = (struct cms_bucket *)b;
 
   return (id1->value == id2->value);
 }
@@ -79,93 +79,91 @@ bool bucket_eq(void *a, void *b) {
 void bucket_allocate(void *obj) { (uintptr_t) obj; }
 
 unsigned bucket_hash(void *obj) {
-  struct sketch_bucket *id = (struct sketch_bucket *)obj;
+  struct cms_bucket *id = (struct cms_bucket *)obj;
 
   unsigned hash = 0;
   hash = __builtin_ia32_crc32si(hash, id->value);
   return hash;
 }
 
-void sketch_set_layout(struct Sketch *sketch,
-                       struct str_field_descr *key_fields, int key_fields_count,
-                       struct nested_field_descr *key_nests,
-                       int nested_key_fields_count, char *key_type) {
+void cms_set_layout(struct CMS *cms, struct str_field_descr *key_fields,
+                    int key_fields_count, struct nested_field_descr *key_nests,
+                    int nested_key_fields_count, char *key_type) {
   // Do not trace. This function is an internal knob of the model.
   klee_assert(key_fields_count < PREALLOC_SIZE);
   klee_assert(nested_key_fields_count < PREALLOC_SIZE);
-  memcpy(sketch->key_fields, key_fields,
+  memcpy(cms->key_fields, key_fields,
          sizeof(struct str_field_descr) * key_fields_count);
   if (0 < nested_key_fields_count) {
-    memcpy(sketch->key_nests, key_nests,
+    memcpy(cms->key_nests, key_nests,
            sizeof(struct nested_field_descr) * nested_key_fields_count);
   }
-  sketch->key_field_count = key_fields_count;
-  sketch->nested_key_field_count = nested_key_fields_count;
-  sketch->key_size = calculate_str_size(key_fields, key_fields_count);
-  klee_assert(sketch->key_size < PREALLOC_SIZE);
-  sketch->has_layout = 1;
-  sketch->key_type = key_type;
+  cms->key_field_count = key_fields_count;
+  cms->nested_key_field_count = nested_key_fields_count;
+  cms->key_size = calculate_str_size(key_fields, key_fields_count);
+  klee_assert(cms->key_size < PREALLOC_SIZE);
+  cms->has_layout = 1;
+  cms->key_type = key_type;
 }
 
-void sketch_set_entry_condition(struct Sketch *sketch,
-                                sketch_entry_condition *cond, void *state) {}
+void cms_set_entry_condition(struct CMS *cms, cms_entry_condition *cond,
+                             void *state) {}
 
-void sketch_reset(struct Sketch *sketch) {}
+void cms_reset(struct CMS *cms) {}
 
-int sketch_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
-                    struct Sketch **sketch_out) {
+int cms_allocate(uint32_t capacity, uint16_t threshold, uint32_t key_size,
+                 struct CMS **cms_out) {
   klee_trace_ret();
 
   klee_trace_param_u32(capacity, "capacity");
   klee_trace_param_u16(threshold, "threshold");
   klee_trace_param_u16(key_size, "key_size");
-  klee_trace_param_ptr(sketch_out, sizeof(struct Sketch *), "sketch_out");
+  klee_trace_param_ptr(cms_out, sizeof(struct CMS *), "cms_out");
 
-  klee_assert(SKETCH_HASHES <= SKETCH_SALTS_BANK_SIZE);
+  klee_assert(CMS_HASHES <= CMS_SALTS_BANK_SIZE);
 
-  int allocation_succeeded = klee_int("sketch_allocation_succeeded");
+  int allocation_succeeded = klee_int("cms_allocation_succeeded");
 
   if (allocation_succeeded) {
-    *sketch_out = malloc(sizeof(struct Sketch));
-    klee_make_symbolic((*sketch_out), sizeof(struct Sketch), "sketch");
-    klee_assert((*sketch_out) != NULL);
+    *cms_out = malloc(sizeof(struct CMS));
+    klee_make_symbolic((*cms_out), sizeof(struct CMS), "cms");
+    klee_assert((*cms_out) != NULL);
     return 1;
   }
 
   return 0;
 }
 
-void sketch_compute_hashes(struct Sketch *sketch, void *k) {
-  klee_trace_param_u64((uint64_t)sketch, "sketch");
-  klee_trace_param_tagged_ptr(k, sketch->key_size, "key", sketch->key_type,
-                              TD_BOTH);
+void cms_compute_hashes(struct CMS *cms, void *k) {
+  klee_trace_param_u64((uint64_t)cms, "cms");
+  klee_trace_param_tagged_ptr(k, cms->key_size, "key", cms->key_type, TD_BOTH);
 }
 
-void sketch_refresh(struct Sketch *sketch, time_ns_t now) {
-  klee_trace_param_u64((uint64_t)sketch, "sketch");
+void cms_refresh(struct CMS *cms, time_ns_t now) {
+  klee_trace_param_u64((uint64_t)cms, "cms");
   klee_trace_param_u64(now, "time");
 }
 
-int sketch_fetch(struct Sketch *sketch) {
+int cms_fetch(struct CMS *cms) {
   klee_trace_ret();
-  klee_trace_param_u64((uint64_t)sketch, "sketch");
+  klee_trace_param_u64((uint64_t)cms, "cms");
   return klee_int("overflow");
 }
 
-int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
+int cms_touch_buckets(struct CMS *cms, time_ns_t now) {
   klee_trace_ret();
-  klee_trace_param_u64((uint64_t)sketch, "sketch");
+  klee_trace_param_u64((uint64_t)cms, "cms");
   klee_trace_param_u64(now, "time");
   return klee_int("success");
 }
 
-void sketch_expire(struct Sketch *sketch, time_ns_t time) {
-  klee_trace_param_u64((uint64_t)sketch, "sketch");
+void cms_expire(struct CMS *cms, time_ns_t time) {
+  klee_trace_param_u64((uint64_t)cms, "cms");
   klee_trace_param_i64(time, "time");
 
-  for (int i = 0; i < SKETCH_HASHES; i++) {
+  for (int i = 0; i < CMS_HASHES; i++) {
     int nfreed = klee_int("number_of_freed_flows");
     klee_assume(0 <= nfreed);
-    // dchain_make_space(sketch->allocators[i], nfreed);
+    // dchain_make_space(cms->allocators[i], nfreed);
   }
 }

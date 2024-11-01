@@ -134,11 +134,11 @@ Context::Context(const BDD *bdd, const targets_t &targets,
       continue;
     }
 
-    if (call.function_name == "sketch_allocate") {
-      klee::ref<klee::Expr> obj = call.args.at("sketch_out").out;
+    if (call.function_name == "cms_allocate") {
+      klee::ref<klee::Expr> obj = call.args.at("cms_out").out;
       addr_t addr = expr_addr_to_obj_addr(obj);
-      sketch_config_t cfg = get_sketch_config_from_bdd(*bdd, addr);
-      sketch_configs[addr] = cfg;
+      cms_config_t cfg = get_cms_config_from_bdd(*bdd, addr);
+      cms_configs[addr] = cfg;
       continue;
     }
 
@@ -167,9 +167,8 @@ Context::Context(const BDD *bdd, const targets_t &targets,
 Context::Context(const Context &other)
     : profiler(other.profiler), map_configs(other.map_configs),
       vector_configs(other.vector_configs),
-      dchain_configs(other.dchain_configs),
-      sketch_configs(other.sketch_configs), cht_configs(other.cht_configs),
-      tb_configs(other.tb_configs),
+      dchain_configs(other.dchain_configs), cms_configs(other.cms_configs),
+      cht_configs(other.cht_configs), tb_configs(other.tb_configs),
       coalescing_candidates(other.coalescing_candidates),
       expiration_data(other.expiration_data), ds_impls(other.ds_impls),
       constraints_per_node(other.constraints_per_node) {
@@ -183,7 +182,7 @@ Context::Context(Context &&other)
       map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)),
       dchain_configs(std::move(other.dchain_configs)),
-      sketch_configs(std::move(other.sketch_configs)),
+      cms_configs(std::move(other.cms_configs)),
       cht_configs(std::move(other.cht_configs)),
       tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
@@ -217,7 +216,7 @@ Context &Context::operator=(const Context &other) {
   map_configs = other.map_configs;
   vector_configs = other.vector_configs;
   dchain_configs = other.dchain_configs;
-  sketch_configs = other.sketch_configs;
+  cms_configs = other.cms_configs;
   cht_configs = other.cht_configs;
   tb_configs = other.tb_configs;
   coalescing_candidates = other.coalescing_candidates;
@@ -251,9 +250,9 @@ const dchain_config_t &Context::get_dchain_config(addr_t addr) const {
   return dchain_configs.at(addr);
 }
 
-const sketch_config_t &Context::get_sketch_config(addr_t addr) const {
-  assert(sketch_configs.find(addr) != sketch_configs.end());
-  return sketch_configs.at(addr);
+const cms_config_t &Context::get_cms_config(addr_t addr) const {
+  assert(cms_configs.find(addr) != cms_configs.end());
+  return cms_configs.at(addr);
 }
 
 const cht_config_t &Context::get_cht_config(addr_t addr) const {
@@ -425,8 +424,8 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::TofinoCPU_Vector:
     os << "TofinoCPU::Vector";
     break;
-  case DSImpl::TofinoCPU_Sketch:
-    os << "TofinoCPU::Sketch";
+  case DSImpl::TofinoCPU_CMS:
+    os << "TofinoCPU::CMS";
     break;
   case DSImpl::TofinoCPU_Map:
     os << "TofinoCPU::Map";
@@ -446,8 +445,8 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::x86_Dchain:
     os << "x86::Dchain";
     break;
-  case DSImpl::x86_Sketch:
-    os << "x86::Sketch";
+  case DSImpl::x86_CMS:
+    os << "x86::CMS";
     break;
   case DSImpl::x86_Cht:
     os << "x86::Cht";

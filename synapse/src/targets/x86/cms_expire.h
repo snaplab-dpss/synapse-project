@@ -4,18 +4,15 @@
 
 namespace x86 {
 
-class SketchTouchBuckets : public x86Module {
+class CMSExpire : public x86Module {
 private:
-  addr_t sketch_addr;
+  addr_t cms_addr;
   klee::ref<klee::Expr> time;
-  symbol_t success;
 
 public:
-  SketchTouchBuckets(const Node *node, addr_t _sketch_addr,
-                     klee::ref<klee::Expr> _time, symbol_t _success)
-      : x86Module(ModuleType::x86_SketchTouchBuckets, "SketchTouchBuckets",
-                  node),
-        sketch_addr(_sketch_addr), time(_time), success(_success) {}
+  CMSExpire(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _time)
+      : x86Module(ModuleType::x86_CMSExpire, "CMSExpire", node),
+        cms_addr(_cms_addr), time(_time) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -23,20 +20,18 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new SketchTouchBuckets(node, sketch_addr, time, success);
+    Module *cloned = new CMSExpire(node, cms_addr, time);
     return cloned;
   }
 
-  addr_t get_sketch_addr() const { return sketch_addr; }
+  addr_t get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
-  const symbol_t &get_success() const { return success; }
 };
 
-class SketchTouchBucketsGenerator : public x86ModuleGenerator {
+class CMSExpireGenerator : public x86ModuleGenerator {
 public:
-  SketchTouchBucketsGenerator()
-      : x86ModuleGenerator(ModuleType::x86_SketchTouchBuckets,
-                           "SketchTouchBuckets") {}
+  CMSExpireGenerator()
+      : x86ModuleGenerator(ModuleType::x86_CMSExpire, "CMSExpire") {}
 
 protected:
   bool bdd_node_match_pattern(const Node *node) const {
@@ -47,7 +42,7 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_touch_buckets") {
+    if (call.function_name != "cms_expire") {
       return false;
     }
 
@@ -63,10 +58,10 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(sketch_addr, DSImpl::x86_Sketch)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CMS)) {
       return std::nullopt;
     }
 
@@ -84,21 +79,16 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     klee::ref<klee::Expr> time = call.args.at("time").expr;
 
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::x86_Sketch)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CMS)) {
       return impls;
     }
 
-    symbols_t symbols = call_node->get_locally_generated_symbols();
-    symbol_t success;
-    bool found = get_symbol(symbols, "success", success);
-    assert(found && "Symbol success not found");
-
-    Module *module = new SketchTouchBuckets(node, sketch_addr, time, success);
+    Module *module = new CMSExpire(node, cms_addr, time);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -107,7 +97,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr, DSImpl::x86_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::x86_CMS);
 
     return impls;
   }

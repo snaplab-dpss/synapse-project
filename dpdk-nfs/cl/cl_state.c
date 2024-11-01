@@ -9,13 +9,13 @@
 #include "lib/models/verified/ether.h"
 #include "lib/models/verified/map-control.h"
 #include "lib/models/verified/vector-control.h"
-#include "lib/models/verified/sketch-control.h"
+#include "lib/models/verified/cms-control.h"
 #include "lib/models/verified/lpm-dir-24-8-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;
 
-struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
+struct State *alloc_state(uint32_t max_flows, uint32_t cms_capacity,
                           uint16_t max_clients, uint32_t dev_count) {
   if (allocated_nf_state != NULL)
     return allocated_nf_state;
@@ -44,9 +44,9 @@ struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
     return NULL;
   }
 
-  ret->sketch = NULL;
-  if (sketch_allocate(sketch_capacity, max_clients, sizeof(struct client),
-                      &(ret->sketch)) == 0) {
+  ret->cms = NULL;
+  if (cms_allocate(cms_capacity, max_clients, sizeof(struct client),
+                   &(ret->cms)) == 0) {
     return NULL;
   }
 
@@ -57,10 +57,9 @@ struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
   vector_set_layout(ret->flows_keys, flow_descrs,
                     sizeof(flow_descrs) / sizeof(flow_descrs[0]), flow_nests,
                     sizeof(flow_nests) / sizeof(flow_nests[0]), "flow");
-  sketch_set_layout(ret->sketch, client_descrs,
-                    sizeof(client_descrs) / sizeof(client_descrs[0]),
-                    client_nests,
-                    sizeof(client_nests) / sizeof(client_nests[0]), "client");
+  cms_set_layout(ret->cms, client_descrs,
+                 sizeof(client_descrs) / sizeof(client_descrs[0]), client_nests,
+                 sizeof(client_nests) / sizeof(client_nests[0]), "client");
 #endif // KLEE_VERIFICATION
 
   allocated_nf_state = ret;
@@ -69,11 +68,11 @@ struct State *alloc_state(uint32_t max_flows, uint32_t sketch_capacity,
 
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
-  loop_iteration_border(
-      &allocated_nf_state->flows, &allocated_nf_state->flows_keys,
-      &allocated_nf_state->flow_allocator, &allocated_nf_state->sketch,
-      allocated_nf_state->max_flows, allocated_nf_state->dev_count, lcore_id,
-      time);
+  loop_iteration_border(&allocated_nf_state->flows,
+                        &allocated_nf_state->flows_keys,
+                        &allocated_nf_state->flow_allocator,
+                        &allocated_nf_state->cms, allocated_nf_state->max_flows,
+                        allocated_nf_state->dev_count, lcore_id, time);
 }
 
 #endif // KLEE_VERIFICATION

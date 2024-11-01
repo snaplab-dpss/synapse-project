@@ -23,11 +23,11 @@
 #include "dchain_is_index_allocated.h"
 #include "dchain_rejuvenate_index.h"
 #include "dchain_free_index.h"
-#include "sketch_compute_hashes.h"
-#include "sketch_expire.h"
-#include "sketch_fetch.h"
-#include "sketch_refresh.h"
-#include "sketch_touch_buckets.h"
+#include "cms_compute_hashes.h"
+#include "cms_expire.h"
+#include "cms_fetch.h"
+#include "cms_refresh.h"
+#include "cms_touch_buckets.h"
 #include "hash_obj.h"
 #include "cht_find_backend.h"
 
@@ -60,11 +60,11 @@ struct x86Target : public Target {
                    new DchainAllocateNewIndexGenerator(),
                    new DchainIsIndexAllocatedGenerator(),
                    new DchainFreeIndexGenerator(),
-                   new SketchComputeHashesGenerator(),
-                   new SketchExpireGenerator(),
-                   new SketchFetchGenerator(),
-                   new SketchRefreshGenerator(),
-                   new SketchTouchBucketsGenerator(),
+                   new CMSComputeHashesGenerator(),
+                   new CMSExpireGenerator(),
+                   new CMSFetchGenerator(),
+                   new CMSRefreshGenerator(),
+                   new CMSTouchBucketsGenerator(),
                    new HashObjGenerator(),
                    new ChtFindBackendGenerator(),
                },

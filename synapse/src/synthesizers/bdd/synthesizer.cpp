@@ -44,7 +44,7 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(map_allocate),
           POPULATE_SYNTHESIZER(vector_allocate),
           POPULATE_SYNTHESIZER(dchain_allocate),
-          POPULATE_SYNTHESIZER(sketch_allocate),
+          POPULATE_SYNTHESIZER(cms_allocate),
           POPULATE_SYNTHESIZER(tb_allocate),
       }),
       process_synthesizers({
@@ -63,11 +63,11 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(dchain_expire_one),
           POPULATE_SYNTHESIZER(dchain_is_index_allocated),
           POPULATE_SYNTHESIZER(dchain_free_index),
-          POPULATE_SYNTHESIZER(sketch_compute_hashes),
-          POPULATE_SYNTHESIZER(sketch_refresh),
-          POPULATE_SYNTHESIZER(sketch_fetch),
-          POPULATE_SYNTHESIZER(sketch_touch_buckets),
-          POPULATE_SYNTHESIZER(sketch_expire),
+          POPULATE_SYNTHESIZER(cms_compute_hashes),
+          POPULATE_SYNTHESIZER(cms_refresh),
+          POPULATE_SYNTHESIZER(cms_fetch),
+          POPULATE_SYNTHESIZER(cms_touch_buckets),
+          POPULATE_SYNTHESIZER(cms_expire),
           POPULATE_SYNTHESIZER(tb_is_tracing),
           POPULATE_SYNTHESIZER(tb_trace),
           POPULATE_SYNTHESIZER(tb_update_and_check),
@@ -815,35 +815,34 @@ void BDDSynthesizer::dchain_free_index(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 }
 
-void BDDSynthesizer::sketch_allocate(coder_t &coder, const call_t &call) {
+void BDDSynthesizer::cms_allocate(coder_t &coder, const call_t &call) {
   klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
   klee::ref<klee::Expr> threshold = call.args.at("threshold").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
-  klee::ref<klee::Expr> sketch_out = call.args.at("sketch_out").out;
+  klee::ref<klee::Expr> cms_out = call.args.at("cms_out").out;
 
-  var_t sketch_out_var = build_var("sketch", sketch_out);
+  var_t cms_out_var = build_var("cms", cms_out);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
-  coder_nf_state << "struct Sketch *";
-  coder_nf_state << sketch_out_var.name;
+  coder_nf_state << "struct CMS *";
+  coder_nf_state << cms_out_var.name;
   coder_nf_state << ";\n";
 
-  coder << "sketch_allocate(";
+  coder << "cms_allocate(";
   coder << transpiler.transpile(capacity) << ", ";
   coder << transpiler.transpile(threshold) << ", ";
   coder << transpiler.transpile(key_size) << ", ";
-  coder << "&" << sketch_out_var.name;
+  coder << "&" << cms_out_var.name;
   coder << ")";
 
-  stack_add(sketch_out_var);
+  stack_add(cms_out_var);
 }
 
-void BDDSynthesizer::sketch_compute_hashes(coder_t &coder,
-                                           const Call *call_node) {
+void BDDSynthesizer::cms_compute_hashes(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> sketch_addr = call.args.at("sketch").expr;
+  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;
   klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
 
@@ -851,8 +850,8 @@ void BDDSynthesizer::sketch_compute_hashes(coder_t &coder,
   var_t k = build_key(key_addr, key, coder, key_in_stack);
 
   coder.indent();
-  coder << "sketch_compute_hashes(";
-  coder << stack_get(sketch_addr).name << ", ";
+  coder << "cms_compute_hashes(";
+  coder << stack_get(cms_addr).name << ", ";
   coder << k.name;
   coder << ")";
   coder << ";\n";
@@ -864,25 +863,25 @@ void BDDSynthesizer::sketch_compute_hashes(coder_t &coder,
   }
 }
 
-void BDDSynthesizer::sketch_refresh(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_refresh(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> sketch_addr = call.args.at("sketch").expr;
+  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
   coder.indent();
-  coder << "sketch_refresh(";
-  coder << stack_get(sketch_addr).name << ", ";
+  coder << "cms_refresh(";
+  coder << stack_get(cms_addr).name << ", ";
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";
 }
 
-void BDDSynthesizer::sketch_fetch(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_fetch(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
-  klee::ref<klee::Expr> sketch_addr = call.args.at("sketch").expr;
+  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
 
   symbol_t overflow;
   bool found = get_symbol(generated_symbols, "overflow", overflow);
@@ -892,20 +891,19 @@ void BDDSynthesizer::sketch_fetch(coder_t &coder, const Call *call_node) {
 
   coder.indent();
   coder << "int " << o.name << " = ";
-  coder << "sketch_fetch(";
-  coder << stack_get(sketch_addr).name;
+  coder << "cms_fetch(";
+  coder << stack_get(cms_addr).name;
   coder << ")";
   coder << ";\n";
 
   stack_add(o);
 }
 
-void BDDSynthesizer::sketch_touch_buckets(coder_t &coder,
-                                          const Call *call_node) {
+void BDDSynthesizer::cms_touch_buckets(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
-  klee::ref<klee::Expr> sketch_addr = call.args.at("sketch").expr;
+  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
   symbol_t success;
@@ -916,8 +914,8 @@ void BDDSynthesizer::sketch_touch_buckets(coder_t &coder,
 
   coder.indent();
   coder << "int " << s.name << " = ";
-  coder << "sketch_touch_buckets(";
-  coder << stack_get(sketch_addr).name << ", ";
+  coder << "cms_touch_buckets(";
+  coder << stack_get(cms_addr).name << ", ";
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";
@@ -925,15 +923,15 @@ void BDDSynthesizer::sketch_touch_buckets(coder_t &coder,
   stack_add(s);
 }
 
-void BDDSynthesizer::sketch_expire(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_expire(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> sketch_addr = call.args.at("sketch").expr;
+  klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
   coder.indent();
-  coder << "sketch_expire(";
-  coder << stack_get(sketch_addr).name << ", ";
+  coder << "cms_expire(";
+  coder << stack_get(cms_addr).name << ", ";
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";

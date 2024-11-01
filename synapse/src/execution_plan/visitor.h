@@ -65,11 +65,11 @@ class MapPut;
 class MapErase;
 class ChtFindBackend;
 class HashObj;
-class SketchComputeHashes;
-class SketchExpire;
-class SketchFetch;
-class SketchRefresh;
-class SketchTouchBuckets;
+class CMSComputeHashes;
+class CMSExpire;
+class CMSFetch;
+class CMSRefresh;
+class CMSTouchBuckets;
 class TableDelete;
 class VectorRegisterLookup;
 class VectorRegisterUpdate;
@@ -105,11 +105,11 @@ class DchainAllocateNewIndex;
 class DchainRejuvenateIndex;
 class DchainIsIndexAllocated;
 class DchainFreeIndex;
-class SketchComputeHashes;
-class SketchExpire;
-class SketchFetch;
-class SketchRefresh;
-class SketchTouchBuckets;
+class CMSComputeHashes;
+class CMSExpire;
+class CMSFetch;
+class CMSRefresh;
+class CMSTouchBuckets;
 class ChtFindBackend;
 class HashObj;
 class TBIsTracing;
@@ -181,11 +181,11 @@ public:
   VISIT_NOP(tofino_cpu::MapErase)
   VISIT_NOP(tofino_cpu::ChtFindBackend)
   VISIT_NOP(tofino_cpu::HashObj)
-  VISIT_NOP(tofino_cpu::SketchComputeHashes)
-  VISIT_NOP(tofino_cpu::SketchExpire)
-  VISIT_NOP(tofino_cpu::SketchFetch)
-  VISIT_NOP(tofino_cpu::SketchRefresh)
-  VISIT_NOP(tofino_cpu::SketchTouchBuckets)
+  VISIT_NOP(tofino_cpu::CMSComputeHashes)
+  VISIT_NOP(tofino_cpu::CMSExpire)
+  VISIT_NOP(tofino_cpu::CMSFetch)
+  VISIT_NOP(tofino_cpu::CMSRefresh)
+  VISIT_NOP(tofino_cpu::CMSTouchBuckets)
   VISIT_NOP(tofino_cpu::VectorRegisterLookup)
   VISIT_NOP(tofino_cpu::VectorRegisterUpdate)
   VISIT_NOP(tofino_cpu::FCFSCachedTableRead)
@@ -222,11 +222,11 @@ public:
   VISIT_NOP(x86::MapPut)
   VISIT_NOP(x86::ChecksumUpdate)
   VISIT_NOP(x86::DchainIsIndexAllocated)
-  VISIT_NOP(x86::SketchComputeHashes)
-  VISIT_NOP(x86::SketchExpire)
-  VISIT_NOP(x86::SketchFetch)
-  VISIT_NOP(x86::SketchRefresh)
-  VISIT_NOP(x86::SketchTouchBuckets)
+  VISIT_NOP(x86::CMSComputeHashes)
+  VISIT_NOP(x86::CMSExpire)
+  VISIT_NOP(x86::CMSFetch)
+  VISIT_NOP(x86::CMSRefresh)
+  VISIT_NOP(x86::CMSTouchBuckets)
   VISIT_NOP(x86::MapErase)
   VISIT_NOP(x86::DchainFreeIndex)
   VISIT_NOP(x86::ChtFindBackend)

@@ -20,13 +20,13 @@ enum class DSImpl {
   TofinoCPU_Vector,
   TofinoCPU_Dchain,
   TofinoCPU_Cht,
-  TofinoCPU_Sketch,
+  TofinoCPU_CMS,
   TofinoCPU_TB,
   x86_Map,
   x86_Vector,
   x86_Dchain,
   x86_Cht,
-  x86_Sketch,
+  x86_CMS,
   x86_TB,
 };
 
@@ -56,7 +56,7 @@ private:
   std::unordered_map<addr_t, map_config_t> map_configs;
   std::unordered_map<addr_t, vector_config_t> vector_configs;
   std::unordered_map<addr_t, dchain_config_t> dchain_configs;
-  std::unordered_map<addr_t, sketch_config_t> sketch_configs;
+  std::unordered_map<addr_t, cms_config_t> cms_configs;
   std::unordered_map<addr_t, cht_config_t> cht_configs;
   std::unordered_map<addr_t, tb_config_t> tb_configs;
 
@@ -82,7 +82,7 @@ public:
   const map_config_t &get_map_config(addr_t addr) const;
   const vector_config_t &get_vector_config(addr_t addr) const;
   const dchain_config_t &get_dchain_config(addr_t addr) const;
-  const sketch_config_t &get_sketch_config(addr_t addr) const;
+  const cms_config_t &get_cms_config(addr_t addr) const;
   const cht_config_t &get_cht_config(addr_t addr) const;
   const tb_config_t &get_tb_config(addr_t addr) const;
 

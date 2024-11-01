@@ -18,11 +18,11 @@ struct State *state;
 
 bool nf_init(void) {
   uint32_t max_flows = config.max_flows;
-  uint32_t sketch_capacity = config.sketch_capacity;
+  uint32_t cms_capacity = config.cms_capacity;
   uint16_t max_clients = config.max_clients;
   uint32_t dev_count = rte_eth_dev_count_avail();
 
-  state = alloc_state(max_flows, sketch_capacity, max_clients, dev_count);
+  state = alloc_state(max_flows, cms_capacity, max_clients, dev_count);
 
   return state != NULL;
 }
@@ -39,7 +39,7 @@ void expire_entries(time_ns_t time) {
   time_ns_t client_last_time = time_u - client_expiration_time_ns;
   expire_items_single_map(state->flow_allocator, state->flows_keys,
                           state->flows, flow_last_time);
-  sketch_expire(state->sketch, client_last_time);
+  cms_expire(state->cms, client_last_time);
 }
 
 int allocate_flow(struct flow *flow, time_ns_t time) {
@@ -77,11 +77,11 @@ int limit_clients(struct flow *flow, time_ns_t now) {
 
   struct client client = {.src_ip = flow->src_ip, .dst_ip = flow->dst_ip};
 
-  sketch_compute_hashes(state->sketch, &client);
+  cms_compute_hashes(state->cms, &client);
 
   if (present) {
     dchain_rejuvenate_index(state->flow_allocator, flow_index, now);
-    sketch_refresh(state->sketch, now);
+    cms_refresh(state->cms, now);
     return true;
   }
 
@@ -93,13 +93,13 @@ int limit_clients(struct flow *flow, time_ns_t now) {
     return true;
   }
 
-  int overflow = sketch_fetch(state->sketch);
+  int overflow = cms_fetch(state->cms);
 
   if (overflow) {
     return false;
   }
 
-  sketch_touch_buckets(state->sketch, now);
+  cms_touch_buckets(state->cms, now);
 
   return true;
 }

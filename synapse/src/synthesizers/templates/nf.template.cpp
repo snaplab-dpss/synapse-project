@@ -4,13 +4,11 @@ extern "C" {
 #include <lib/verified/map.h>
 #include <lib/verified/vector.h>
 #include <lib/verified/double-chain.h>
-
-#include <lib/verified/expirator.h>
-#include <lib/verified/hash.h>
-#include <lib/verified/sketch.h>
 #include <lib/verified/cht.h>
+#include <lib/verified/cms.h>
 #include <lib/verified/token-bucket.h>
 
+#include <lib/verified/hash.h>
 #include <lib/verified/expirator.h>
 #include <lib/verified/packet-io.h>
 #include <lib/verified/tcpudp_hdr.h>

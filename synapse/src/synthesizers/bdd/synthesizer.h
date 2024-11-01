@@ -57,7 +57,7 @@ private:
   void map_allocate(coder_t &, const call_t &);
   void vector_allocate(coder_t &, const call_t &);
   void dchain_allocate(coder_t &, const call_t &);
-  void sketch_allocate(coder_t &, const call_t &);
+  void cms_allocate(coder_t &, const call_t &);
   void tb_allocate(coder_t &, const call_t &);
 
   void packet_borrow_next_chunk(coder_t &, const Call *);
@@ -75,11 +75,11 @@ private:
   void dchain_expire_one(coder_t &, const Call *);
   void dchain_is_index_allocated(coder_t &, const Call *);
   void dchain_free_index(coder_t &, const Call *);
-  void sketch_compute_hashes(coder_t &, const Call *);
-  void sketch_refresh(coder_t &, const Call *);
-  void sketch_fetch(coder_t &, const Call *);
-  void sketch_touch_buckets(coder_t &, const Call *);
-  void sketch_expire(coder_t &, const Call *);
+  void cms_compute_hashes(coder_t &, const Call *);
+  void cms_refresh(coder_t &, const Call *);
+  void cms_fetch(coder_t &, const Call *);
+  void cms_touch_buckets(coder_t &, const Call *);
+  void cms_expire(coder_t &, const Call *);
   void tb_is_tracing(coder_t &, const Call *);
   void tb_trace(coder_t &, const Call *);
   void tb_update_and_check(coder_t &, const Call *);

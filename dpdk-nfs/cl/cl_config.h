@@ -14,8 +14,8 @@ struct nf_config {
   // Maximum number of flows
   uint32_t max_flows;
 
-  // Sketch size
-  uint32_t sketch_capacity;
+  // CMS size
+  uint32_t cms_capacity;
 
   // Maximum allowed number of clients
   uint16_t max_clients;

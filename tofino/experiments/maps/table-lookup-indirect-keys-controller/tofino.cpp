@@ -12,7 +12,7 @@ extern "C" {
 #endif
 #include <bf_rt/bf_rt_common.h>
 #include <bf_switchd/bf_switchd.h>
-#include <bfutils/bf_utils.h>  // required for bfshell
+#include <bfutils/bf_utils.h> // required for bfshell
 #include <pkt_mgr/pkt_mgr_intf.h>
 #ifdef __cplusplus
 }
@@ -199,7 +199,8 @@ int map_allocate(map_keys_equality *keq, map_key_hash *khash, unsigned capacity,
                  struct Map **map_out) {
   struct Map *old_map_val = *map_out;
   struct Map *map_alloc = (struct Map *)malloc(sizeof(struct Map));
-  if (map_alloc == NULL) return 0;
+  if (map_alloc == NULL)
+    return 0;
   *map_out = (struct Map *)map_alloc;
   int *bbs_alloc = (int *)malloc(sizeof(int) * (int)capacity);
   if (bbs_alloc == NULL) {
@@ -460,7 +461,8 @@ int dchain_allocate(int index_range, struct DoubleChain **chain_out) {
   struct DoubleChain *old_chain_out = *chain_out;
   struct DoubleChain *chain_alloc =
       (struct DoubleChain *)malloc(sizeof(struct DoubleChain));
-  if (chain_alloc == NULL) return 0;
+  if (chain_alloc == NULL)
+    return 0;
   *chain_out = (struct DoubleChain *)chain_alloc;
 
   struct dchain_cell *cells_alloc = (struct dchain_cell *)malloc(
@@ -545,7 +547,8 @@ int vector_allocate(int elem_size, unsigned capacity,
                     vector_init_elem *init_elem, struct Vector **vector_out) {
   struct Vector *old_vector_val = *vector_out;
   struct Vector *vector_alloc = (struct Vector *)malloc(sizeof(struct Vector));
-  if (vector_alloc == 0) return 0;
+  if (vector_alloc == 0)
+    return 0;
   *vector_out = (struct Vector *)vector_alloc;
 
   char *data_alloc = (char *)malloc((uint32_t)elem_size * capacity);
@@ -624,7 +627,7 @@ static const uint32_t SKETCH_SALTS[SKETCH_SALTS_BANK_SIZE] = {
     0xceee91e5, 0x1d4c6b18, 0x2a80e6df, 0x396f4d23,
 };
 
-struct Sketch {
+struct CMS {
   struct Map *clients;
   struct Vector *keys;
   struct Vector *buckets;
@@ -645,7 +648,7 @@ struct bucket {
   uint32_t value;
 };
 
-struct sketch_data {
+struct cms_data {
   unsigned hashes[SKETCH_HASHES];
   int present[SKETCH_HASHES];
   int buckets_indexes[SKETCH_HASHES];
@@ -684,45 +687,45 @@ unsigned hash_hash(void *obj) {
 
 void bucket_allocate(void *obj) { (uintptr_t) obj; }
 
-int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
-                    struct Sketch **sketch_out) {
+int cms_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
+                 struct CMS **cms_out) {
   assert(SKETCH_HASHES <= SKETCH_SALTS_BANK_SIZE);
 
-  struct Sketch *sketch_alloc = (struct Sketch *)malloc(sizeof(struct Sketch));
-  if (sketch_alloc == NULL) {
+  struct CMS *cms_alloc = (struct CMS *)malloc(sizeof(struct CMS));
+  if (cms_alloc == NULL) {
     return 0;
   }
 
-  (*sketch_out) = sketch_alloc;
+  (*cms_out) = cms_alloc;
 
-  (*sketch_out)->capacity = capacity;
-  (*sketch_out)->threshold = threshold;
-  (*sketch_out)->kh = kh;
+  (*cms_out)->capacity = capacity;
+  (*cms_out)->threshold = threshold;
+  (*cms_out)->kh = kh;
 
-  unsigned total_sketch_capacity =
+  unsigned total_cms_capacity =
       find_next_power_of_2_bigger_than(capacity * SKETCH_HASHES);
 
-  (*sketch_out)->clients = NULL;
-  if (map_allocate(hash_eq, hash_hash, total_sketch_capacity,
-                   &((*sketch_out)->clients)) == 0) {
+  (*cms_out)->clients = NULL;
+  if (map_allocate(hash_eq, hash_hash, total_cms_capacity,
+                   &((*cms_out)->clients)) == 0) {
     return 0;
   }
 
-  (*sketch_out)->keys = NULL;
-  if (vector_allocate(sizeof(struct hash), total_sketch_capacity, hash_allocate,
-                      &((*sketch_out)->keys)) == 0) {
+  (*cms_out)->keys = NULL;
+  if (vector_allocate(sizeof(struct hash), total_cms_capacity, hash_allocate,
+                      &((*cms_out)->keys)) == 0) {
     return 0;
   }
 
-  (*sketch_out)->buckets = NULL;
-  if (vector_allocate(sizeof(struct bucket), total_sketch_capacity,
-                      bucket_allocate, &((*sketch_out)->buckets)) == 0) {
+  (*cms_out)->buckets = NULL;
+  if (vector_allocate(sizeof(struct bucket), total_cms_capacity,
+                      bucket_allocate, &((*cms_out)->buckets)) == 0) {
     return 0;
   }
 
   for (int i = 0; i < SKETCH_HASHES; i++) {
-    (*sketch_out)->allocators[i] = NULL;
-    if (dchain_allocate(capacity, &((*sketch_out)->allocators[i])) == 0) {
+    (*cms_out)->allocators[i] = NULL;
+    if (dchain_allocate(capacity, &((*cms_out)->allocators[i])) == 0) {
       return 0;
     }
   }
@@ -730,95 +733,94 @@ int sketch_allocate(map_key_hash *kh, uint32_t capacity, uint16_t threshold,
   return 1;
 }
 
-void sketch_compute_hashes(struct Sketch *sketch, void *key) {
+void cms_compute_hashes(struct CMS *cms, void *key) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
-    sketch->internal.buckets_indexes[i] = -1;
-    sketch->internal.present[i] = 0;
-    sketch->internal.hashes[i] = 0;
+    cms->internal.buckets_indexes[i] = -1;
+    cms->internal.present[i] = 0;
+    cms->internal.hashes[i] = 0;
 
-    sketch->internal.hashes[i] =
-        __builtin_ia32_crc32si(sketch->internal.hashes[i], SKETCH_SALTS[i]);
-    sketch->internal.hashes[i] =
-        __builtin_ia32_crc32si(sketch->internal.hashes[i], sketch->kh(key));
-    sketch->internal.hashes[i] %= sketch->capacity;
+    cms->internal.hashes[i] =
+        __builtin_ia32_crc32si(cms->internal.hashes[i], SKETCH_SALTS[i]);
+    cms->internal.hashes[i] =
+        __builtin_ia32_crc32si(cms->internal.hashes[i], cms->kh(key));
+    cms->internal.hashes[i] %= cms->capacity;
   }
 }
 
-void sketch_refresh(struct Sketch *sketch, time_ns_t now) {
+void cms_refresh(struct CMS *cms, time_ns_t now) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
-    map_get(sketch->clients, &sketch->internal.hashes[i],
-            &sketch->internal.buckets_indexes[i]);
-    dchain_rejuvenate_index(sketch->allocators[i],
-                            sketch->internal.buckets_indexes[i], now);
+    map_get(cms->clients, &cms->internal.hashes[i],
+            &cms->internal.buckets_indexes[i]);
+    dchain_rejuvenate_index(cms->allocators[i],
+                            cms->internal.buckets_indexes[i], now);
   }
 }
 
-int sketch_fetch(struct Sketch *sketch) {
+int cms_fetch(struct CMS *cms) {
   int bucket_min_set = false;
   uint32_t *buckets_values[SKETCH_HASHES];
   uint32_t bucket_min = 0;
 
   for (int i = 0; i < SKETCH_HASHES; i++) {
-    sketch->internal.present[i] =
-        map_get(sketch->clients, &sketch->internal.hashes[i],
-                &sketch->internal.buckets_indexes[i]);
+    cms->internal.present[i] = map_get(cms->clients, &cms->internal.hashes[i],
+                                       &cms->internal.buckets_indexes[i]);
 
-    if (!sketch->internal.present[i]) {
+    if (!cms->internal.present[i]) {
       continue;
     }
 
-    int offseted = sketch->internal.buckets_indexes[i] + sketch->capacity * i;
-    vector_borrow(sketch->buckets, offseted, (void **)&buckets_values[i]);
+    int offseted = cms->internal.buckets_indexes[i] + cms->capacity * i;
+    vector_borrow(cms->buckets, offseted, (void **)&buckets_values[i]);
 
     if (!bucket_min_set || bucket_min > *buckets_values[i]) {
       bucket_min = *buckets_values[i];
       bucket_min_set = true;
     }
 
-    vector_return(sketch->buckets, offseted, buckets_values[i]);
+    vector_return(cms->buckets, offseted, buckets_values[i]);
   }
 
-  return bucket_min_set && bucket_min > sketch->threshold;
+  return bucket_min_set && bucket_min > cms->threshold;
 }
 
-int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
+int cms_touch_buckets(struct CMS *cms, time_ns_t now) {
   for (int i = 0; i < SKETCH_HASHES; i++) {
     int bucket_index = -1;
     int present =
-        map_get(sketch->clients, &sketch->internal.hashes[i], &bucket_index);
+        map_get(cms->clients, &cms->internal.hashes[i], &bucket_index);
 
     if (!present) {
       int allocated_client =
-          dchain_allocate_new_index(sketch->allocators[i], &bucket_index, now);
+          dchain_allocate_new_index(cms->allocators[i], &bucket_index, now);
 
       if (!allocated_client) {
-        // Sketch size limit reached.
+        // CMS size limit reached.
         return 0;
       }
 
-      int offseted = bucket_index + sketch->capacity * i;
+      int offseted = bucket_index + cms->capacity * i;
 
       uint32_t *saved_hash = 0;
       uint32_t *saved_bucket = 0;
 
-      vector_borrow(sketch->keys, offseted, (void **)&saved_hash);
-      vector_borrow(sketch->buckets, offseted, (void **)&saved_bucket);
+      vector_borrow(cms->keys, offseted, (void **)&saved_hash);
+      vector_borrow(cms->buckets, offseted, (void **)&saved_bucket);
 
-      (*saved_hash) = sketch->internal.hashes[i];
+      (*saved_hash) = cms->internal.hashes[i];
       (*saved_bucket) = 0;
-      map_put(sketch->clients, saved_hash, bucket_index);
+      map_put(cms->clients, saved_hash, bucket_index);
 
-      vector_return(sketch->keys, offseted, saved_hash);
-      vector_return(sketch->buckets, offseted, saved_bucket);
+      vector_return(cms->keys, offseted, saved_hash);
+      vector_return(cms->buckets, offseted, saved_bucket);
 
       return 1;
     } else {
-      dchain_rejuvenate_index(sketch->allocators[i], bucket_index, now);
+      dchain_rejuvenate_index(cms->allocators[i], bucket_index, now);
       uint32_t *bucket;
-      int offseted = bucket_index + sketch->capacity * i;
-      vector_borrow(sketch->buckets, offseted, (void **)&bucket);
+      int offseted = bucket_index + cms->capacity * i;
+      vector_borrow(cms->buckets, offseted, (void **)&bucket);
       (*bucket)++;
-      vector_return(sketch->buckets, offseted, bucket);
+      vector_return(cms->buckets, offseted, bucket);
       return 1;
     }
   }
@@ -826,18 +828,18 @@ int sketch_touch_buckets(struct Sketch *sketch, time_ns_t now) {
   return 1;
 }
 
-void sketch_expire(struct Sketch *sketch, time_ns_t time) {
+void cms_expire(struct CMS *cms, time_ns_t time) {
   int offset = 0;
   int index = -1;
 
   for (int i = 0; i < SKETCH_HASHES; i++) {
-    offset = i * sketch->capacity;
+    offset = i * cms->capacity;
 
-    while (dchain_expire_one_index(sketch->allocators[i], &index, time)) {
+    while (dchain_expire_one_index(cms->allocators[i], &index, time)) {
       void *key;
-      vector_borrow(sketch->keys, index + offset, &key);
-      map_erase(sketch->clients, key, &key);
-      vector_return(sketch->keys, index + offset, key);
+      vector_borrow(cms->keys, index + offset, &key);
+      map_erase(cms->clients, key, &key);
+      vector_return(cms->keys, index + offset, key);
     }
   }
 }
@@ -1081,8 +1083,7 @@ void setup_bf_session() {
   session = bfrt::BfRtSession::sessionCreate();
 }
 
-template <int key_size>
-bool key_eq(void *k1, void *k2) {
+template <int key_size> bool key_eq(void *k1, void *k2) {
   auto _k1 = (uint8_t *)k1;
   auto _k2 = (uint8_t *)k2;
 
@@ -1095,8 +1096,7 @@ bool key_eq(void *k1, void *k2) {
   return true;
 }
 
-template <int key_size>
-unsigned key_hash(void *k) {
+template <int key_size> unsigned key_hash(void *k) {
   auto _k = (uint8_t *)k;
   unsigned hash = 0;
 
@@ -1108,7 +1108,7 @@ unsigned key_hash(void *k) {
 }
 
 class Table {
-  private:
+private:
   std::string table_name;
   const bfrt::BfRtTable *table;
 
@@ -1119,7 +1119,7 @@ class Table {
   bf_rt_id_t populate_action;
   bf_rt_id_t populate_action_value;
 
-  public:
+public:
   Table(const std::string &_table_name, int n_key_bytes)
       : table_name(_table_name), key_bytes_ids(n_key_bytes) {
     assert(info);
@@ -1162,7 +1162,7 @@ class Table {
     return std::unique_ptr<Table>(new Table(_table_name, n_key_bytes));
   }
 
-  private:
+private:
   void init_table() {
     auto full_table_name = "Ingress." + table_name;
     auto bf_status = info->bfrtTableFromNameGet(full_table_name, &table);

@@ -4,16 +4,16 @@
 
 namespace x86 {
 
-class SketchExpire : public x86Module {
+class CMSComputeHashes : public x86Module {
 private:
-  addr_t sketch_addr;
-  klee::ref<klee::Expr> time;
+  addr_t cms_addr;
+  klee::ref<klee::Expr> key;
 
 public:
-  SketchExpire(const Node *node, addr_t _sketch_addr,
-               klee::ref<klee::Expr> _time)
-      : x86Module(ModuleType::x86_SketchExpire, "SketchExpire", node),
-        sketch_addr(_sketch_addr), time(_time) {}
+  CMSComputeHashes(const Node *node, addr_t _cms_addr,
+                   klee::ref<klee::Expr> _key)
+      : x86Module(ModuleType::x86_CMSComputeHashes, "CMSComputeHashes", node),
+        cms_addr(_cms_addr), key(_key) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -21,18 +21,19 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new SketchExpire(node, sketch_addr, time);
+    Module *cloned = new CMSComputeHashes(node, cms_addr, key);
     return cloned;
   }
 
-  addr_t get_sketch_addr() const { return sketch_addr; }
-  klee::ref<klee::Expr> get_time() const { return time; }
+  addr_t get_cms_addr() const { return cms_addr; }
+  klee::ref<klee::Expr> get_key() const { return key; }
 };
 
-class SketchExpireGenerator : public x86ModuleGenerator {
+class CMSComputeHashesGenerator : public x86ModuleGenerator {
 public:
-  SketchExpireGenerator()
-      : x86ModuleGenerator(ModuleType::x86_SketchExpire, "SketchExpire") {}
+  CMSComputeHashesGenerator()
+      : x86ModuleGenerator(ModuleType::x86_CMSComputeHashes,
+                           "CMSComputeHashes") {}
 
 protected:
   bool bdd_node_match_pattern(const Node *node) const {
@@ -43,7 +44,7 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "sketch_expire") {
+    if (call.function_name != "cms_compute_hashes") {
       return false;
     }
 
@@ -59,10 +60,10 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(sketch_addr, DSImpl::x86_Sketch)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CMS)) {
       return std::nullopt;
     }
 
@@ -80,16 +81,16 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    klee::ref<klee::Expr> sketch_addr_expr = call.args.at("sketch").expr;
-    klee::ref<klee::Expr> time = call.args.at("time").expr;
+    klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    klee::ref<klee::Expr> key = call.args.at("key").in;
 
-    addr_t sketch_addr = expr_addr_to_obj_addr(sketch_addr_expr);
+    addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(sketch_addr, DSImpl::x86_Sketch)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CMS)) {
       return impls;
     }
 
-    Module *module = new SketchExpire(node, sketch_addr, time);
+    Module *module = new CMSComputeHashes(node, cms_addr, key);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -98,7 +99,7 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(sketch_addr, DSImpl::x86_Sketch);
+    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::x86_CMS);
 
     return impls;
   }
