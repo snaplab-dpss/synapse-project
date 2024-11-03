@@ -178,3 +178,19 @@ void vector_clear(struct Vector *vector) {
   klee_forbid_access(vector->data, vector->elem_size * NUM_ELEMS,
                      "private state");
 }
+
+int vector_sample_lt(struct Vector *vector, int samples, void *threshold,
+                     int *index_out) {
+  klee_trace_param_u64((uint64_t)vector, "vector");
+  klee_trace_param_i32(samples, "samples");
+  klee_trace_param_tagged_ptr(threshold, vector->elem_size, "threshold",
+                              vector->cell_type, TD_IN);
+  klee_trace_param_ptr(index_out, sizeof(int), "index_out");
+
+  if (klee_int("found_sample")) {
+    *index_out = klee_int("sample_index");
+    return 1;
+  }
+
+  return 0;
+}

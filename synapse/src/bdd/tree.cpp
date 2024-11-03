@@ -88,6 +88,10 @@ static std::unordered_map<std::string, std::unordered_set<std::string>>
             {"map_has_this_key", "allocated_index"},
         },
         {
+            "map_size",
+            {"map_size"},
+        },
+        {
             "dchain_is_index_allocated",
             {"dchain_is_index_allocated"},
         },
@@ -98,6 +102,10 @@ static std::unordered_map<std::string, std::unordered_set<std::string>>
         {
             "vector_borrow",
             {"vector_data_reset"},
+        },
+        {
+            "vector_sample_lt",
+            {"found_sample", "sample_index"},
         },
         {
             "cht_find_preferred_available_backend",

@@ -48,9 +48,6 @@ private:
   void init_post_process();
   void synthesize(const Node *node);
 
-  var_t build_key(klee::ref<klee::Expr> key_addr, klee::ref<klee::Expr> key,
-                  coder_t &coder, bool &key_in_stack);
-
   void synthesize_init(coder_t &, const call_t &);
   void synthesize_process(coder_t &, const Call *);
 
@@ -68,8 +65,11 @@ private:
   void map_get(coder_t &, const Call *);
   void map_put(coder_t &, const Call *);
   void map_erase(coder_t &, const Call *);
+  void map_size(coder_t &, const Call *);
   void vector_borrow(coder_t &, const Call *);
   void vector_return(coder_t &, const Call *);
+  void vector_clear(coder_t &, const Call *);
+  void vector_sample_lt(coder_t &, const Call *);
   void dchain_allocate_new_index(coder_t &, const Call *);
   void dchain_rejuvenate_index(coder_t &, const Call *);
   void dchain_expire_one(coder_t &, const Call *);
@@ -92,6 +92,9 @@ private:
   void stack_add(const var_t &var);
   void stack_replace(const var_t &var, klee::ref<klee::Expr> new_expr);
 
+  var_t build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr,
+                      klee::ref<klee::Expr> value, coder_t &coder,
+                      bool &found_in_stack);
   var_t build_var(const std::string &name, klee::ref<klee::Expr> expr);
   var_t build_var(const std::string &name, klee::ref<klee::Expr> expr,
                   klee::ref<klee::Expr> addr);

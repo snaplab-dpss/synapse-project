@@ -44,3 +44,30 @@ void vector_return(struct Vector *vector, int index, void *value) {}
 void vector_clear(struct Vector *vector) {
   memset(vector->data, 0, vector->elem_size * vector->capacity);
 }
+
+int vector_sample_lt(struct Vector *vector, int samples, void *threshold,
+                     int *index_out) {
+  for (int i = 0; i < samples; i++) {
+    int index = rand() % vector->capacity;
+    void *elem = vector->data + index * vector->elem_size;
+
+    int threshold_lt_elem = 0;
+    for (int j = vector->elem_size - 1; j >= 0; j--) {
+      if (((uint8_t *)threshold)[j] > ((uint8_t *)elem)[j]) {
+        break;
+      }
+
+      if (((uint8_t *)threshold)[j] < ((uint8_t *)elem)[j]) {
+        threshold_lt_elem = 1;
+        break;
+      }
+    }
+
+    if (threshold_lt_elem) {
+      *index_out = index;
+      return 1;
+    }
+  }
+
+  return 0;
+}

@@ -56,8 +56,11 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(map_get),
           POPULATE_SYNTHESIZER(map_put),
           POPULATE_SYNTHESIZER(map_erase),
+          POPULATE_SYNTHESIZER(map_size),
           POPULATE_SYNTHESIZER(vector_borrow),
           POPULATE_SYNTHESIZER(vector_return),
+          POPULATE_SYNTHESIZER(vector_clear),
+          POPULATE_SYNTHESIZER(vector_sample_lt),
           POPULATE_SYNTHESIZER(dchain_allocate_new_index),
           POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
           POPULATE_SYNTHESIZER(dchain_expire_one),
@@ -435,45 +438,54 @@ void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
   stack_add(map_out_var);
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_key(klee::ref<klee::Expr> key_addr,
-                                                klee::ref<klee::Expr> key,
-                                                coder_t &coder,
-                                                bool &key_in_stack) {
-  bytes_t key_size = key->getWidth() / 8;
+BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(
+    const std::string &base_name, klee::ref<klee::Expr> addr,
+    klee::ref<klee::Expr> value, coder_t &coder, bool &found_in_stack) {
+  bytes_t size = value->getWidth() / 8;
 
-  var_t k;
-  key_in_stack = stack_find(key_addr, k);
-
-  if (!key_in_stack) {
-    k = build_var("key", key, key_addr);
+  var_t var;
+  if (!stack_find(addr, var)) {
+    var = build_var(base_name, value, addr);
     coder.indent();
-    coder << "uint8_t " << k.name << "[" << key_size << "];\n";
-  } else if (solver_toolbox.are_exprs_always_equal(k.expr, key)) {
-    return k;
+    coder << "uint8_t " << var.name << "[" << size << "];\n";
+  } else if (solver_toolbox.are_exprs_always_equal(var.expr, value)) {
+    return var;
   }
 
-  var_t key_value;
-  if (stack_find(key, key_value)) {
-    coder.indent();
-    coder << "memcpy(";
-    coder << "(void*)" << k.name << ", ";
-    coder << "(void*)" << key_value.name << ", ";
-    coder << key_size;
-    coder << ");\n";
+  var_t stack_value;
+  if (stack_find(value, stack_value)) {
 
-    k.expr = key_value.expr;
-  } else {
-    for (bytes_t b = 0; b < key_size; b++) {
-      klee::ref<klee::Expr> key_byte =
-          solver_toolbox.exprBuilder->Extract(k.expr, b * 8, 8);
+    if (stack_value.addr.isNull()) {
+      bits_t width = stack_value.expr->getWidth();
+      assert(width <= klee::Expr::Int64);
       coder.indent();
-      coder << k.name << "[" << b << "] = ";
-      coder << transpiler.transpile(key_byte);
+      coder << "*(uint" << width << "_t*)";
+      coder << var.name;
+      coder << " = ";
+      coder << stack_value.name;
+      coder << ";\n";
+    } else {
+      coder.indent();
+      coder << "memcpy(";
+      coder << "(void*)" << var.name << ", ";
+      coder << "(void*)" << stack_value.name << ", ";
+      coder << size;
+      coder << ");\n";
+    }
+
+    var.expr = stack_value.expr;
+  } else {
+    for (bytes_t b = 0; b < size; b++) {
+      klee::ref<klee::Expr> byte =
+          solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
+      coder.indent();
+      coder << var.name << "[" << b << "] = ";
+      coder << transpiler.transpile(byte);
       coder << ";\n";
     }
   }
 
-  return k;
+  return var;
 }
 
 void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
@@ -495,7 +507,7 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   var_t v = build_var("value", value_out);
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   coder.indent();
   coder << "int " << v.name << ";\n";
@@ -539,7 +551,7 @@ void BDDSynthesizer::map_put(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> value = call.args.at("value").expr;
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   coder.indent();
   coder << "map_put(";
@@ -576,7 +588,7 @@ void BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> trash = call.args.at("trash").expr;
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   coder.indent();
   coder << "void* trash;\n";
@@ -605,6 +617,26 @@ void BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+}
+
+void BDDSynthesizer::map_size(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
+  klee::ref<klee::Expr> map_usage = call.ret;
+
+  var_t s = build_var("map_usage", map_usage);
+
+  coder.indent();
+  coder << "uint32_t " << s.name << ";\n";
+
+  coder.indent();
+  coder << "map_size(";
+  coder << stack_get(map_addr).name;
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(s);
 }
 
 void BDDSynthesizer::vector_allocate(coder_t &coder, const call_t &call) {
@@ -667,12 +699,29 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     return;
   }
 
+  // FIXME: kind of a hack, this should be done in a more generic way. For
+  // example, capturing modifications not by byte but by groups of arithmetic
+  // operations.
+  if (value->getWidth() <= klee::Expr::Int64) {
+    coder.indent();
+    coder << "*(uint" << value->getWidth() << "_t*)";
+    coder << v.name;
+    coder << " = ";
+    coder << transpiler.transpile(value);
+    coder << ";\n";
+    return;
+  }
+
   var_t new_v;
   if (value->getKind() != klee::Expr::Constant && stack_find(value, new_v)) {
     coder.indent();
     coder << "memcpy(";
     coder << "(void*)" << v.name << ", ";
-    coder << "(void*)" << new_v.name << ", ";
+    coder << "(void*)";
+    if (new_v.addr.isNull()) {
+      coder << "&";
+    }
+    coder << new_v.name << ", ";
     coder << value->getWidth() / 8;
     coder << ");\n";
     return;
@@ -687,6 +736,63 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     coder << transpiler.transpile(modification.expr);
     coder << ";\n";
   }
+}
+
+void BDDSynthesizer::vector_clear(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
+
+  coder.indent();
+  coder << "vector_borrow(";
+  coder << stack_get(vector_addr).name;
+  coder << ")";
+  coder << ";\n";
+}
+
+void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
+
+  klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> samples = call.args.at("samples").expr;
+  klee::ref<klee::Expr> threshold_addr = call.args.at("threshold").expr;
+  klee::ref<klee::Expr> threshold = call.args.at("threshold").in;
+  klee::ref<klee::Expr> index_out_addr = call.args.at("index_out").expr;
+  klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
+
+  bool threshold_in_stack;
+  var_t t = build_var_ptr("threshold", threshold_addr, threshold, coder,
+                          threshold_in_stack);
+
+  symbol_t found_sample;
+  bool found = get_symbol(generated_symbols, "found_sample", found_sample);
+  assert(found && "Symbol found_sample not found");
+
+  var_t f = build_var("found_sample", found_sample.expr);
+  var_t i = build_var("sample_index", index_out);
+
+  coder.indent();
+  coder << "int " << i.name << ";\n";
+
+  coder.indent();
+  coder << "int " << f.name << " = ";
+  coder << "vector_sample_lt(";
+  coder << stack_get(vector_addr).name << ", ";
+  coder << transpiler.transpile(samples) << ", ";
+  coder << t.name << ", ";
+  coder << "&" << i.name;
+  coder << ")";
+  coder << ";\n";
+
+  if (!threshold_in_stack) {
+    stack_add(t);
+  } else {
+    stack_replace(t, threshold);
+  }
+
+  stack_add(f);
+  stack_add(i);
 }
 
 void BDDSynthesizer::dchain_allocate(coder_t &coder, const call_t &call) {
@@ -845,7 +951,7 @@ void BDDSynthesizer::cms_increment(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   coder.indent();
   coder << "cms_increment(";
@@ -870,12 +976,12 @@ void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> min_estimate = call.ret;
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   var_t me = build_var("min_estimate", min_estimate);
 
   coder.indent();
-  coder << "int " << me.name << " = ";
+  coder << "uint64_t " << me.name << " = ";
   coder << "cms_count_min(";
   coder << stack_get(cms_addr).name << ", ";
   coder << k.name;
@@ -952,7 +1058,7 @@ void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> is_tracing = call.ret;
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   var_t it = build_var("is_tracing", is_tracing);
   var_t index = build_var("index", index_out);
@@ -991,7 +1097,7 @@ void BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> successfuly_tracing = call.ret;
 
   bool key_in_stack;
-  var_t k = build_key(key_addr, key, coder, key_in_stack);
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   var_t st = build_var("successfuly_tracing", successfuly_tracing);
   var_t i = build_var("index", index_out);

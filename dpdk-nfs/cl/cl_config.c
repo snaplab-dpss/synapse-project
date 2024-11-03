@@ -115,11 +115,11 @@ void nf_config_usage(void) {
           " default: %" PRIu16 ".\n"
           "\t--expire <time>: expiration time (us),"
           " default: %" PRIu64 ".\n"
-          "\t--sketch-height <height>: CMS sketch height,"
+          "\t--sketch-height <height>: CMS height,"
           " default: %" PRIu32 ".\n"
-          "\t--sketch-width <width>: CMS sketch width,"
+          "\t--sketch-width <width>: CMS width,"
           " default: %" PRIu32 ".\n"
-          "\t--sketch-cleanup-interval <interval>: CMS sketch cleanup interval,"
+          "\t--sketch-cleanup-interval <interval>: CMS cleanup interval (us),"
           " default: %" PRIu64 ".\n",
           DEFAULT_LAN, DEFAULT_WAN, DEFAULT_MAX_FLOWS, DEFAULT_MAX_CLIENTS,
           DEFAULT_EXPIRATION_TIME, DEFAULT_SKETCH_HEIGHT, DEFAULT_SKETCH_WIDTH,

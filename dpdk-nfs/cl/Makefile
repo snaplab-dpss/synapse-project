@@ -5,8 +5,8 @@ NF_ARGS := --lan 1 \
            --max-flows $(or $(CAPACITY),65536) \
            --max-clients $(or $(MAX_PORTS),64) \
            --expire $(or $(EXPIRATION_TIME),1000000) \
-           --sketch-height $(or $(EXPIRATION_TIME),4) \
-           --sketch-width $(or $(EXPIRATION_TIME),1024) \
+           --sketch-height $(or $(SKETCH_HEIGHT),4) \
+           --sketch-width $(or $(SKETCH_WIDTH),1024) \
            --sketch-cleanup-interval $(or $(SKETCH_CLEANUP_INTERVAL),10000000) 
 
 NF_LAYER := 4
