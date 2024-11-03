@@ -521,8 +521,8 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   bool found = get_var(hdr, hdr_var);
   assert(found && "Header not found");
 
-  const std::vector<modification_t> &changes = node->get_changes();
-  for (const modification_t &mod : changes) {
+  const std::vector<mod_t> &changes = node->get_changes();
+  for (const mod_t &mod : changes) {
     klee::ref<klee::Expr> expr = mod.expr;
     ingress_apply.indent();
     ingress_apply << hdr_var.name;

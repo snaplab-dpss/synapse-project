@@ -9,12 +9,12 @@ private:
   addr_t vector_addr;
   klee::ref<klee::Expr> index;
   addr_t value_addr;
-  std::vector<modification_t> modifications;
+  std::vector<mod_t> modifications;
 
 public:
   VectorWrite(const Node *node, addr_t _vector_addr,
               klee::ref<klee::Expr> _index, addr_t _value_addr,
-              const std::vector<modification_t> &_modifications)
+              const std::vector<mod_t> &_modifications)
       : x86Module(ModuleType::x86_VectorWrite, "VectorWrite", node),
         vector_addr(_vector_addr), index(_index), value_addr(_value_addr),
         modifications(_modifications) {}
@@ -34,9 +34,7 @@ public:
   klee::ref<klee::Expr> get_index() const { return index; }
   addr_t get_value_addr() const { return value_addr; }
 
-  const std::vector<modification_t> &get_modifications() const {
-    return modifications;
-  }
+  const std::vector<mod_t> &get_modifications() const { return modifications; }
 };
 
 class VectorWriteGenerator : public x86ModuleGenerator {
@@ -104,8 +102,7 @@ protected:
 
     klee::ref<klee::Expr> original_value =
         get_original_vector_value(ep, node, vector_addr);
-    std::vector<modification_t> changes =
-        build_modifications(original_value, value);
+    std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
     // Check the Ignore module.
     if (changes.empty()) {

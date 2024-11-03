@@ -19,15 +19,13 @@ class Context;
 bool check_same_obj(const Call *call0, const Call *call1,
                     const std::string &obj_name);
 
-std::vector<modification_t>
-build_vector_modifications(const Call *vector_borrow,
-                           const Call *vector_return);
-std::vector<modification_t>
-build_hdr_modifications(const Call *packet_borrow_next_chunk,
-                        const Call *packet_return_chunk);
+std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
+                                              const Call *vector_return);
+std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
+                                           const Call *packet_return_chunk);
 
-std::vector<modification_t>
-ignore_checksum_modifications(const std::vector<modification_t> &modifications);
+std::vector<mod_t>
+ignore_checksum_modifications(const std::vector<mod_t> &modifications);
 
 symbol_t create_symbol(const std::string &label, bits_t size);
 

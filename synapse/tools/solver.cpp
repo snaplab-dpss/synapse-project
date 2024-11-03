@@ -2,6 +2,7 @@
 
 #include "../src/exprs/solver.h"
 #include "../src/exprs/exprs.h"
+#include "../src/exprs/retriever.h"
 
 int main() {
   auto A1 = solver_toolbox.create_new_symbol("A", 64);
@@ -20,6 +21,30 @@ int main() {
   assert(success);
 
   std::cerr << "Equal " << result << "\n";
+
+  auto expr1 = solver_toolbox.exprBuilder->Concat(
+      solver_toolbox.exprBuilder->Add(
+          A1, solver_toolbox.exprBuilder->Constant(1, 64)),
+      solver_toolbox.exprBuilder->Add(
+          solver_toolbox.create_new_symbol("B", 64),
+          solver_toolbox.exprBuilder->Constant(1, 64)));
+
+  auto expr2 = solver_toolbox.exprBuilder->Concat(
+      solver_toolbox.exprBuilder->Add(
+          A1, solver_toolbox.exprBuilder->Constant(1, 64)),
+      solver_toolbox.exprBuilder->Add(
+          solver_toolbox.create_new_symbol("B", 64),
+          solver_toolbox.exprBuilder->Constant(12, 64)));
+
+  std::cerr << "expr1 " << expr_to_string(expr1) << "\n";
+  std::cerr << "expr2 " << expr_to_string(expr2) << "\n";
+
+  for (const auto &g : build_expr_mods(expr1, expr2)) {
+    std::cerr << "offset: " << g.offset << "\n";
+    std::cerr << "width:  " << g.width << "\n";
+    std::cerr << "expr:   " << expr_to_string(g.expr) << "\n";
+    std::cerr << "\n";
+  }
 
   return 0;
 }

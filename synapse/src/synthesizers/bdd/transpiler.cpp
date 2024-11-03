@@ -16,9 +16,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   coders.emplace();
   coder_t &coder = coders.top();
 
-  bool is_const = is_constant(expr);
-
-  if (is_const) {
+  if (is_constant(expr)) {
     u64 value = solver_toolbox.value_from_expr(expr);
     coder << solver_toolbox.value_from_expr(expr);
   } else {
@@ -36,7 +34,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   return code;
 }
 
-code_t BDDTranspiler::type_from_size(bits_t size) const {
+code_t BDDTranspiler::type_from_size(bits_t size) {
   code_t type;
 
   switch (size) {
@@ -62,7 +60,7 @@ code_t BDDTranspiler::type_from_size(bits_t size) const {
   return type;
 }
 
-code_t BDDTranspiler::type_from_expr(klee::ref<klee::Expr> expr) const {
+code_t BDDTranspiler::type_from_expr(klee::ref<klee::Expr> expr) {
   return type_from_size(expr->getWidth());
 }
 
@@ -106,6 +104,12 @@ BDDTranspiler::visitConcat(const klee::ConcatExpr &e) {
 
   if (!var.addr.isNull() && expr->getWidth() > 8) {
     coder << "*";
+
+    if (expr->getWidth() <= 64) {
+      coder << "(";
+      coder << type_from_size(expr->getWidth());
+      coder << "*)";
+    }
   }
 
   coder << var.name;

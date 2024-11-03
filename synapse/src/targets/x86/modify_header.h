@@ -7,11 +7,11 @@ namespace x86 {
 class ModifyHeader : public x86Module {
 private:
   addr_t chunk_addr;
-  std::vector<modification_t> changes;
+  std::vector<mod_t> changes;
 
 public:
   ModifyHeader(const Node *node, addr_t _chunk_addr,
-               const std::vector<modification_t> &_changes)
+               const std::vector<mod_t> &_changes)
       : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", node),
         chunk_addr(_chunk_addr), changes(_changes) {}
 
@@ -26,7 +26,7 @@ public:
   }
 
   addr_t get_chunk_addr() const { return chunk_addr; }
-  const std::vector<modification_t> &get_changes() const { return changes; }
+  const std::vector<mod_t> &get_changes() const { return changes; }
 };
 
 class ModifyHeaderGenerator : public x86ModuleGenerator {
@@ -80,7 +80,7 @@ protected:
     klee::ref<klee::Expr> hdr = call.args.at("the_chunk").expr;
     addr_t hdr_addr = expr_addr_to_obj_addr(hdr);
 
-    std::vector<modification_t> changes =
+    std::vector<mod_t> changes =
         build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
 
     EP *new_ep = new EP(*ep);

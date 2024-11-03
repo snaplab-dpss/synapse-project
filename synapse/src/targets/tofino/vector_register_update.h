@@ -10,13 +10,13 @@ private:
   addr_t obj;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> read_value;
-  std::vector<modification_t> modifications;
+  std::vector<mod_t> modifications;
 
 public:
   VectorRegisterUpdate(const Node *node, const std::unordered_set<DS_ID> &_rids,
                        addr_t _obj, klee::ref<klee::Expr> _index,
                        klee::ref<klee::Expr> _read_value,
-                       const std::vector<modification_t> &_modifications)
+                       const std::vector<mod_t> &_modifications)
       : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate,
                      "VectorRegisterUpdate", node),
         rids(_rids), obj(_obj), index(_index), read_value(_read_value),
@@ -37,9 +37,7 @@ public:
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_read_value() const { return read_value; }
-  const std::vector<modification_t> &get_modifications() const {
-    return modifications;
-  }
+  const std::vector<mod_t> &get_modifications() const { return modifications; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
     return rids;
@@ -75,7 +73,7 @@ protected:
       return std::nullopt;
     }
 
-    std::vector<modification_t> changes;
+    std::vector<mod_t> changes;
     vector_register_data_t vector_register_data =
         get_vector_register_data(ep, vector_borrow, vector_return, changes);
 
@@ -130,7 +128,7 @@ protected:
       return impls;
     }
 
-    std::vector<modification_t> changes;
+    std::vector<mod_t> changes;
     vector_register_data_t vector_register_data =
         get_vector_register_data(ep, vector_borrow, vector_return, changes);
 
@@ -194,7 +192,7 @@ private:
   vector_register_data_t
   get_vector_register_data(const EP *ep, const Call *vector_borrow,
                            const Call *vector_return,
-                           std::vector<modification_t> &changes) const {
+                           std::vector<mod_t> &changes) const {
     const call_t &call = vector_borrow->get_call();
 
     klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;

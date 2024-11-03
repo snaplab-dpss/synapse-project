@@ -8,11 +8,11 @@ class ModifyHeader : public TofinoModule {
 private:
   addr_t hdr_addr;
   klee::ref<klee::Expr> hdr;
-  std::vector<modification_t> changes;
+  std::vector<mod_t> changes;
 
 public:
   ModifyHeader(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr,
-               const std::vector<modification_t> &_changes)
+               const std::vector<mod_t> &_changes)
       : TofinoModule(ModuleType::Tofino_ModifyHeader, "ModifyHeader", node),
         hdr_addr(_hdr_addr), hdr(_hdr), changes(_changes) {}
 
@@ -28,7 +28,7 @@ public:
 
   addr_t get_hdr_addr() const { return hdr_addr; }
   klee::ref<klee::Expr> get_hdr() const { return hdr; }
-  const std::vector<modification_t> &get_changes() const { return changes; }
+  const std::vector<mod_t> &get_changes() const { return changes; }
 };
 
 class ModifyHeaderGenerator : public TofinoModuleGenerator {
@@ -79,7 +79,7 @@ protected:
     klee::ref<klee::Expr> hdr =
         packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
 
-    std::vector<modification_t> changes =
+    std::vector<mod_t> changes =
         build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
 
     EP *new_ep = new EP(*ep);

@@ -33,16 +33,16 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
                              const std::vector<std::string> &allowed_symbols);
 
-struct modification_t {
-  int byte;
+struct mod_t {
+  bytes_t offset;
+  bits_t width;
   klee::ref<klee::Expr> expr;
 
-  modification_t(int _byte, klee::ref<klee::Expr> _expr)
-      : byte(_byte), expr(_expr) {}
-
-  modification_t(const modification_t &modification)
-      : byte(modification.byte), expr(modification.expr) {}
+  mod_t(u32 _offset, bits_t _width, klee::ref<klee::Expr> _expr)
+      : offset(_offset), width(_width), expr(_expr) {}
+  mod_t(const mod_t &mod)
+      : offset(mod.offset), width(mod.width), expr(mod.expr) {}
 };
 
-std::vector<modification_t> build_modifications(klee::ref<klee::Expr> before,
-                                                klee::ref<klee::Expr> after);
+std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
+                                   klee::ref<klee::Expr> after);

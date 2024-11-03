@@ -1,26 +1,39 @@
+#include <klee/util/ExprVisitor.h>
+
 #include "exprs.h"
 #include "solver.h"
 
-std::vector<modification_t> build_modifications(klee::ref<klee::Expr> before,
-                                                klee::ref<klee::Expr> after) {
-  std::vector<modification_t> _modifications;
+#include "../log.h"
 
+std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
+                                   klee::ref<klee::Expr> after) {
   assert(before->getWidth() == after->getWidth());
-  klee::Expr::Width size = before->getWidth();
 
-  for (size_t b = 0; b < size; b += 8) {
-    klee::ref<klee::Expr> before_byte =
-        solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
-    klee::ref<klee::Expr> after_byte =
-        solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
+  if (after->getKind() == klee::Expr::Concat) {
+    bits_t msb_width = after->getKid(0)->getWidth();
+    bits_t lsb_width = after->getWidth() - msb_width;
 
-    bool eq = solver_toolbox.are_exprs_always_equal(before_byte, after_byte);
-    if (eq) {
-      continue;
+    std::vector<mod_t> msb_groups = build_expr_mods(
+        solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width),
+        after->getKid(0));
+
+    std::vector<mod_t> lsb_groups = build_expr_mods(
+        solver_toolbox.exprBuilder->Extract(before, 0, lsb_width),
+        after->getKid(1));
+
+    std::vector<mod_t> groups = lsb_groups;
+
+    for (mod_t group : msb_groups) {
+      group.offset += lsb_width / 8;
+      groups.push_back(group);
     }
 
-    _modifications.emplace_back(b / 8, after_byte);
+    return groups;
   }
 
-  return _modifications;
+  if (solver_toolbox.are_exprs_always_equal(before, after)) {
+    return {};
+  }
+
+  return {mod_t(0, after->getWidth(), after)};
 }

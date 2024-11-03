@@ -40,12 +40,11 @@ struct pair_hash {
   }
 };
 
-std::vector<modification_t>
-build_vector_modifications(const Call *vector_borrow,
-                           const Call *vector_return) {
+std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
+                                              const Call *vector_return) {
   using vectors_pair = std::pair<node_id_t, node_id_t>;
   using cache_t =
-      std::unordered_map<vectors_pair, std::vector<modification_t>, pair_hash>;
+      std::unordered_map<vectors_pair, std::vector<mod_t>, pair_hash>;
   static cache_t cache;
 
   auto cache_found_it =
@@ -64,18 +63,16 @@ build_vector_modifications(const Call *vector_borrow,
       vb_call.extra_vars.at("borrowed_cell").second;
   klee::ref<klee::Expr> value = vr_call.args.at("value").in;
 
-  std::vector<modification_t> changes =
-      build_modifications(original_value, value);
+  std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
   cache[{vector_borrow->get_id(), vector_return->get_id()}] = changes;
 
   return changes;
 }
 
-std::vector<modification_t>
-build_hdr_modifications(const Call *packet_borrow_next_chunk,
-                        const Call *packet_return_chunk) {
-  static std::unordered_map<node_id_t, std::vector<modification_t>> cache;
+std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
+                                           const Call *packet_return_chunk) {
+  static std::unordered_map<node_id_t, std::vector<mod_t>> cache;
 
   auto cache_found_it = cache.find(packet_return_chunk->get_id());
   if (cache_found_it != cache.end()) {
@@ -92,7 +89,7 @@ build_hdr_modifications(const Call *packet_borrow_next_chunk,
   klee::ref<klee::Expr> returned = ret_call.args.at("the_chunk").in;
   assert(borrowed->getWidth() == returned->getWidth());
 
-  std::vector<modification_t> changes = build_modifications(borrowed, returned);
+  std::vector<mod_t> changes = build_expr_mods(borrowed, returned);
 
   cache[packet_return_chunk->get_id()] = changes;
 
@@ -101,11 +98,11 @@ build_hdr_modifications(const Call *packet_borrow_next_chunk,
 
 // This is somewhat of a hack... We assume that checksum expressions will only
 // be used to modify checksum fields of a packet, not other packet fields.
-std::vector<modification_t> ignore_checksum_modifications(
-    const std::vector<modification_t> &modifications) {
-  std::vector<modification_t> filtered;
+std::vector<mod_t>
+ignore_checksum_modifications(const std::vector<mod_t> &modifications) {
+  std::vector<mod_t> filtered;
 
-  for (const modification_t &mod : modifications) {
+  for (const mod_t &mod : modifications) {
     klee::ref<klee::Expr> simplified = simplify(mod.expr);
     std::unordered_set<std::string> symbols = get_symbols(simplified);
 
@@ -117,7 +114,7 @@ std::vector<modification_t> ignore_checksum_modifications(
       }
     }
 
-    filtered.emplace_back(mod.byte, simplified);
+    filtered.emplace_back(mod.offset, mod.width, simplified);
   }
 
   return filtered;
@@ -968,8 +965,7 @@ bool is_vector_return_without_modifications(const EP *ep, const Node *node) {
 
   klee::ref<klee::Expr> original_value =
       get_original_vector_value(ep, call_node, vector_addr);
-  std::vector<modification_t> changes =
-      build_modifications(original_value, value);
+  std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
   bool veredict = changes.empty();
   cache[node->get_id()] = veredict;

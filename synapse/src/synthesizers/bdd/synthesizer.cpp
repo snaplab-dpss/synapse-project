@@ -1,6 +1,7 @@
 #include "synthesizer.h"
 #include "../../exprs/exprs.h"
 #include "../../exprs/solver.h"
+#include "../../exprs/retriever.h"
 #include "../../log.h"
 
 #define NF_TEMPLATE_FILENAME "nf.template.cpp"
@@ -328,15 +329,16 @@ void BDDSynthesizer::packet_return_chunk(coder_t &coder,
 
   var_t hdr = stack_get(chunk_addr);
 
-  std::vector<modification_t> changes = build_modifications(hdr.expr, chunk);
+  std::vector<mod_t> changes = build_expr_mods(hdr.expr, chunk);
 
-  for (const modification_t &modification : changes) {
+  for (const mod_t &mod : changes) {
+    assert(mod.width == 8);
     coder.indent();
     coder << hdr.name;
     coder << "[";
-    coder << modification.byte;
+    coder << mod.offset;
     coder << "] = ";
-    coder << transpiler.transpile(modification.expr);
+    coder << transpiler.transpile(mod.expr);
     coder << ";\n";
   }
 
@@ -459,7 +461,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(
       bits_t width = stack_value.expr->getWidth();
       assert(width <= klee::Expr::Int64);
       coder.indent();
-      coder << "*(uint" << width << "_t*)";
+      coder << "*(" << BDDTranspiler::type_from_size(width) << "*)";
       coder << var.name;
       coder << " = ";
       coder << stack_value.name;
@@ -693,22 +695,8 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> value_addr = call.args.at("value").expr;
 
   var_t v = stack_get(value_addr);
-  std::vector<modification_t> changes = build_modifications(v.expr, value);
 
-  if (changes.empty()) {
-    return;
-  }
-
-  // FIXME: kind of a hack, this should be done in a more generic way. For
-  // example, capturing modifications not by byte but by groups of arithmetic
-  // operations.
-  if (value->getWidth() <= klee::Expr::Int64) {
-    coder.indent();
-    coder << "*(uint" << value->getWidth() << "_t*)";
-    coder << v.name;
-    coder << " = ";
-    coder << transpiler.transpile(value);
-    coder << ";\n";
+  if (solver_toolbox.are_exprs_always_equal(v.expr, value)) {
     return;
   }
 
@@ -727,13 +715,24 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     return;
   }
 
-  for (const modification_t &modification : changes) {
+  std::vector<mod_t> changes = build_expr_mods(v.expr, value);
+  for (const mod_t &mod : changes) {
     coder.indent();
-    coder << v.name;
-    coder << "[";
-    coder << modification.byte;
-    coder << "] = ";
-    coder << transpiler.transpile(modification.expr);
+
+    assert(mod.width <= 64);
+
+    if (mod.width == 8) {
+      coder << v.name;
+      coder << "[";
+      coder << mod.offset;
+      coder << "]";
+    } else {
+      coder << "*(" << BDDTranspiler::type_from_size(mod.width) << "*)";
+      coder << v.name;
+    }
+
+    coder << " = ";
+    coder << transpiler.transpile(mod.expr);
     coder << ";\n";
   }
 }
