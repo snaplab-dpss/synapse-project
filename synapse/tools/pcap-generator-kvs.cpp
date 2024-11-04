@@ -35,6 +35,10 @@
 #define DEFAULT_TRAFFIC_ZIPF false
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
 
+// Using 1Gbps as the rate because we go too fast the pcap timestamps can't
+// keep up with the actual time (pcap use us instead of ns).
+#define RATE_GBIT 1
+
 typedef std::array<u8, KEY_SIZE_BYTES> kv_key_t;
 typedef std::array<u8, VALUE_SIZE_BYTES> kv_value_t;
 
@@ -377,12 +381,11 @@ private:
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
 
-    constexpr int rate_gbps = 100;
     constexpr int CRC = 4;
     constexpr int IPG = 20;
     constexpr int bytes = sizeof(pkt_hdr_t) + CRC + IPG;
 
-    current_time += (bytes * 8) / rate_gbps;
+    current_time += (bytes * 8) / RATE_GBIT;
   }
 };
 
