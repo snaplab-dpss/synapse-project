@@ -26,10 +26,10 @@ static TargetType get_initial_target(const targets_t &targets) {
 }
 
 EP::EP(std::shared_ptr<const BDD> _bdd, const targets_t &_targets,
-       const Profiler &_profiler)
+       const toml::table &_config, const Profiler &_profiler)
     : id(counter++), bdd(_bdd), root(nullptr),
       initial_target(get_initial_target(_targets)), targets(_targets),
-      ctx(_bdd.get(), _targets, initial_target, _profiler),
+      ctx(_bdd.get(), _targets, initial_target, _config, _profiler),
       meta(bdd.get(), get_target_types(targets), initial_target) {
   targets_roots[initial_target] = nodes_t({bdd->get_root()->get_id()});
 
@@ -69,6 +69,8 @@ EP::EP(const EP &other, bool is_ancestor)
     assert(leaf_node && "Leaf node not found in the cloned tree.");
     active_leaves.emplace_back(leaf_node, leaf.next);
   }
+
+  sort_leaves();
 }
 
 EP::~EP() {
@@ -171,46 +173,6 @@ const Context &EP::get_ctx() const { return ctx; }
 
 Context &EP::get_mutable_ctx() { return ctx; }
 
-std::vector<EPLeaf>::const_iterator EP::get_active_leaf_it() const {
-  assert(!active_leaves.empty() && "No active leaf");
-
-  if (active_leaves.size() == 1) {
-    return active_leaves.begin();
-  }
-
-  bool has_init_target = false;
-  for (const EPLeaf &leaf : active_leaves) {
-    if (leaf.node->get_module()->get_next_target() == initial_target) {
-      has_init_target = true;
-      break;
-    }
-  }
-
-  std::vector<EPLeaf>::const_iterator chosen = active_leaves.end();
-  hit_rate_t chosen_hr = 0;
-
-  std::vector<EPLeaf>::const_iterator it = active_leaves.begin();
-  while (it != active_leaves.end()) {
-    hit_rate_t hr = ctx.get_profiler().get_hr(this, it->node);
-
-    // Prioritize active_leaves that don't change the current target.
-    if (has_init_target &&
-        it->node->get_module()->get_next_target() != initial_target) {
-      ++it;
-      continue;
-    }
-
-    if (chosen == active_leaves.end() || hr > chosen_hr) {
-      chosen = it;
-      chosen_hr = hr;
-    }
-
-    ++it;
-  }
-
-  return chosen;
-}
-
 const Node *EP::get_next_node() const {
   if (!has_active_leaf()) {
     return nullptr;
@@ -222,18 +184,12 @@ const Node *EP::get_next_node() const {
 
 EPLeaf EP::pop_active_leaf() {
   assert(!active_leaves.empty() && "No active leaf");
-
-  std::vector<EPLeaf>::const_iterator active_leaf_it = get_active_leaf_it();
-  EPLeaf leaf = *active_leaf_it;
-  active_leaves.erase(active_leaf_it);
-
+  EPLeaf leaf = active_leaves.front();
+  active_leaves.erase(active_leaves.begin());
   return leaf;
 }
 
-EPLeaf EP::get_active_leaf() const {
-  std::vector<EPLeaf>::const_iterator active_leaf_it = get_active_leaf_it();
-  return *active_leaf_it;
-}
+EPLeaf EP::get_active_leaf() const { return active_leaves.front(); }
 
 bool EP::has_active_leaf() const { return !active_leaves.empty(); }
 
@@ -256,6 +212,7 @@ void EP::process_leaf(const Node *next_node) {
 
   if (next_node) {
     active_leaves.emplace_back(active_leaf.node, next_node);
+    sort_leaves();
   }
 }
 
@@ -267,7 +224,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
   if (!root) {
     root = new_node;
   } else {
-    active_leaf.node->set_children({new_node});
+    active_leaf.node->set_children(new_node);
     new_node->set_prev(active_leaf.node);
   }
 
@@ -302,6 +259,8 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
 
     active_leaves.push_back(new_leaf);
   }
+
+  sort_leaves();
 }
 
 void EP::replace_bdd(const BDD *new_bdd,
@@ -354,6 +313,8 @@ void EP::replace_bdd(const BDD *new_bdd,
   // Reset the BDD only here, because we might lose the final reference to it
   // and we needed the old nodes to find the new ones.
   bdd.reset(new_bdd);
+
+  sort_leaves();
 }
 
 void EP::visit(EPVisitor &visitor) const { visitor.visit(this); }
@@ -361,6 +322,7 @@ void EP::visit(EPVisitor &visitor) const { visitor.visit(this); }
 void EP::debug() const {
   debug_hit_rate();
   debug_placements();
+  debug_active_leaves();
   ctx.debug();
 }
 
@@ -375,6 +337,19 @@ void EP::debug_placements() const {
 void EP::debug_hit_rate() const {
   const Profiler &profiler = ctx.get_profiler();
   profiler.debug();
+}
+
+void EP::debug_active_leaves() const {
+  const Profiler &profiler = ctx.get_profiler();
+  Log::dbg() << "Active leaves:\n";
+  for (const EPLeaf &leaf : active_leaves) {
+    assert(leaf.next);
+    Log::dbg() << "  " << leaf.next->dump(true, true);
+    if (leaf.node) {
+      Log::dbg() << " | " << leaf.node->dump();
+      Log::dbg() << " | HR=" << profiler.get_hr(leaf.node) << "\n";
+    }
+  }
 }
 
 void EP::inspect() const {
@@ -426,16 +401,6 @@ void EP::inspect() const {
   bdd->inspect();
 }
 
-constraints_t EP::get_active_leaf_constraints() const {
-  EPLeaf active_leaf = get_active_leaf();
-
-  if (!active_leaf.node) {
-    return {};
-  }
-
-  return ctx.get_node_constraints(active_leaf.node);
-}
-
 hit_rate_t EP::get_active_leaf_hit_rate() const {
   EPLeaf active_leaf = get_active_leaf();
 
@@ -443,12 +408,14 @@ hit_rate_t EP::get_active_leaf_hit_rate() const {
     return 1;
   }
 
-  return ctx.get_profiler().get_hr(this, active_leaf.node);
+  return ctx.get_profiler().get_hr(active_leaf.node);
 }
 
 void EP::add_hit_rate_estimation(klee::ref<klee::Expr> new_constraint,
                                  hit_rate_t estimation_rel) {
-  constraints_t constraints = get_active_leaf_constraints();
+  EPLeaf active_leaf = get_active_leaf();
+  assert(active_leaf.node);
+  constraints_t constraints = active_leaf.node->get_constraints();
   ctx.add_hit_rate_estimation(constraints, new_constraint, estimation_rel);
 }
 
@@ -456,23 +423,29 @@ void EP::remove_hit_rate_node(const constraints_t &constraints) {
   ctx.remove_hit_rate_node(constraints);
 }
 
-void EP::update_node_constraints(const EPNode *on_true_node,
-                                 const EPNode *on_false_node,
-                                 klee::ref<klee::Expr> new_constraint) {
-  constraints_t constraints = get_active_leaf_constraints();
+void EP::sort_leaves() {
+  auto prioritize_switch_and_hot_paths = [this](const EPLeaf &l1,
+                                                const EPLeaf &l2) {
+    // Only the first leaf may have no EPNode.
+    assert(l1.node);
+    assert(l2.node);
 
-  klee::ref<klee::Expr> new_constraint_not =
-      solver_toolbox.exprBuilder->Not(new_constraint);
+    if (l1.node->get_module()->get_next_target() != initial_target &&
+        l2.node->get_module()->get_next_target() == initial_target) {
+      return false;
+    }
 
-  constraints_t on_true_constraints = constraints;
-  constraints_t on_false_constraints = constraints;
+    if (l1.node->get_module()->get_next_target() == initial_target &&
+        l2.node->get_module()->get_next_target() != initial_target) {
+      return true;
+    }
 
-  on_true_constraints.push_back(new_constraint);
-  on_false_constraints.push_back(new_constraint_not);
+    hit_rate_t l1_hr = ctx.get_profiler().get_hr(l1.node);
+    hit_rate_t l2_hr = ctx.get_profiler().get_hr(l2.node);
 
-  ep_node_id_t on_true_id = on_true_node->get_id();
-  ep_node_id_t on_false_id = on_false_node->get_id();
+    return l1_hr > l2_hr;
+  };
 
-  ctx.update_constraints_per_node(on_true_id, on_true_constraints);
-  ctx.update_constraints_per_node(on_false_id, on_false_constraints);
+  std::sort(active_leaves.begin(), active_leaves.end(),
+            prioritize_switch_and_hot_paths);
 }

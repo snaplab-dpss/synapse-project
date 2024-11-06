@@ -45,7 +45,13 @@ protected:
       return std::nullopt;
     }
 
-    return spec_impl_t(decide(ep, node), ctx);
+    int dst_device = route_node->get_dst_device();
+
+    Context new_ctx = ctx;
+    new_ctx.get_mutable_perf_oracle().add_fwd_traffic(
+        dst_device, new_ctx.get_profiler().get_hr(node));
+
+    return spec_impl_t(decide(ep, node), new_ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -69,10 +75,13 @@ protected:
     impls.push_back(implement(ep, node, new_ep));
 
     Module *module = new Forward(node, dst_device);
-    EPNode *ep_node = new EPNode(module);
+    EPNode *fwd_node = new EPNode(module);
 
-    EPLeaf leaf(ep_node, node->get_next());
-    new_ep->process_leaf(ep_node, {leaf});
+    EPLeaf leaf(fwd_node, node->get_next());
+    new_ep->process_leaf(fwd_node, {leaf});
+
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(
+        dst_device, get_node_egress(new_ep, fwd_node));
 
     return impls;
   }

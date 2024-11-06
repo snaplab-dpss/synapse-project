@@ -11,21 +11,18 @@
 #include "../targets/tofino_cpu/tofino_cpu.h"
 
 #define SHOW_MODULE_NAME(M)                                                    \
-  void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \
-                           const M *node) {                                    \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
     function_call(ep_node, node->get_node(), node->get_target(),               \
                   node->get_name());                                           \
   }
 
 #define VISIT_BRANCH(M)                                                        \
-  void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \
-                           const M *node) {                                    \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
     branch(ep_node, node->get_node(), node->get_target(), node->get_name());   \
   }
 
 #define IGNORE_MODULE(M)                                                       \
-  void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \
-                           const M *node) {}
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
 
 IGNORE_MODULE(tofino_cpu::Ignore)
 

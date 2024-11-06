@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <optional>
+#include <toml++/toml.hpp>
 
 #include "../context.h"
 #include "tna/tna.h"
@@ -16,7 +17,7 @@ private:
   std::unordered_map<DS_ID, DS *> id_to_ds;
 
 public:
-  TofinoContext(TNAVersion version, const Profiler &profiler);
+  TofinoContext(const toml::table &config);
   TofinoContext(const TofinoContext &other);
 
   ~TofinoContext();

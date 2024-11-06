@@ -95,8 +95,10 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 }
 
 Context::Context(const BDD *bdd, const targets_t &targets,
-                 const TargetType initial_target, const Profiler &_profiler)
-    : profiler(_profiler), expiration_data(build_expiration_data(bdd)) {
+                 const TargetType initial_target, const toml::table &config,
+                 const Profiler &_profiler)
+    : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()),
+      expiration_data(build_expiration_data(bdd)) {
   for (const Target *target : targets) {
     target_ctxs[target->type] = target->ctx->clone();
   }
@@ -165,13 +167,12 @@ Context::Context(const BDD *bdd, const targets_t &targets,
 }
 
 Context::Context(const Context &other)
-    : profiler(other.profiler), map_configs(other.map_configs),
-      vector_configs(other.vector_configs),
+    : profiler(other.profiler), perf_oracle(other.perf_oracle),
+      map_configs(other.map_configs), vector_configs(other.vector_configs),
       dchain_configs(other.dchain_configs), cms_configs(other.cms_configs),
       cht_configs(other.cht_configs), tb_configs(other.tb_configs),
       coalescing_candidates(other.coalescing_candidates),
-      expiration_data(other.expiration_data), ds_impls(other.ds_impls),
-      constraints_per_node(other.constraints_per_node) {
+      expiration_data(other.expiration_data), ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
@@ -179,6 +180,7 @@ Context::Context(const Context &other)
 
 Context::Context(Context &&other)
     : profiler(std::move(other.profiler)),
+      perf_oracle(std::move(other.perf_oracle)),
       map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)),
       dchain_configs(std::move(other.dchain_configs)),
@@ -188,8 +190,7 @@ Context::Context(Context &&other)
       coalescing_candidates(std::move(other.coalescing_candidates)),
       expiration_data(std::move(other.expiration_data)),
       ds_impls(std::move(other.ds_impls)),
-      target_ctxs(std::move(other.target_ctxs)),
-      constraints_per_node(std::move(other.constraints_per_node)) {}
+      target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -213,6 +214,7 @@ Context &Context::operator=(const Context &other) {
   }
 
   profiler = other.profiler;
+  perf_oracle = other.perf_oracle;
   map_configs = other.map_configs;
   vector_configs = other.vector_configs;
   dchain_configs = other.dchain_configs;
@@ -227,13 +229,14 @@ Context &Context::operator=(const Context &other) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
 
-  constraints_per_node = other.constraints_per_node;
-
   return *this;
 }
 
 const Profiler &Context::get_profiler() const { return profiler; }
 Profiler &Context::get_mutable_profiler() { return profiler; }
+
+const PerfOracle &Context::get_perf_oracle() const { return perf_oracle; }
+PerfOracle &Context::get_mutable_perf_oracle() { return perf_oracle; }
 
 const map_config_t &Context::get_map_config(addr_t addr) const {
   assert(map_configs.find(addr) != map_configs.end());
@@ -352,33 +355,6 @@ const std::unordered_map<addr_t, DSImpl> &Context::get_ds_impls() const {
   return ds_impls;
 }
 
-void Context::update_constraints_per_node(ep_node_id_t node,
-                                          const constraints_t &constraints) {
-  assert(constraints_per_node.find(node) == constraints_per_node.end());
-  constraints_per_node[node] = constraints;
-}
-
-constraints_t Context::get_node_constraints(const EPNode *node) const {
-  assert(node);
-
-  while (node) {
-    ep_node_id_t node_id = node->get_id();
-    auto found_it = constraints_per_node.find(node_id);
-
-    if (found_it != constraints_per_node.end()) {
-      return found_it->second;
-    }
-
-    node = node->get_prev();
-
-    if (node) {
-      assert(node->get_children().size() == 1 && "Ambiguous constraints");
-    }
-  }
-
-  return {};
-}
-
 void Context::add_hit_rate_estimation(const constraints_t &constraints,
                                       klee::ref<klee::Expr> new_constraint,
                                       hit_rate_t estimation_rel) {
@@ -469,6 +445,8 @@ void Context::debug() const {
   for (const auto &[target, ctx] : target_ctxs) {
     ctx->debug();
   }
+
+  perf_oracle.debug();
 
   Log::dbg() << "\n";
   Log::dbg() << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";

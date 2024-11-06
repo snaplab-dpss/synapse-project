@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <csignal>
+#include <iomanip>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_BLACK "\033[30m"

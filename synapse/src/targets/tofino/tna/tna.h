@@ -1,19 +1,15 @@
 #pragma once
 
+#include <toml++/toml.hpp>
 #include <unordered_map>
 
 #include "parser.h"
 #include "simple_placer.h"
-#include "perf_oracle.h"
 
 namespace tofino {
 
-enum class TNAVersion { TNA1, TNA2 };
-
 struct TNAProperties {
-  bps_t port_capacity_bps;
   int total_ports;
-  bps_t recirc_port_capacity_bps;
   int total_recirc_ports;
   int max_packet_bytes_in_condition;
   int pipes;
@@ -37,19 +33,15 @@ struct TNAProperties {
 
 class TNA {
 private:
-  const TNAVersion version;
   const TNAProperties properties;
-
   SimplePlacer simple_placer;
-  PerfOracle perf_oracle;
 
 public:
   Parser parser;
 
-  TNA(TNAVersion version, int avg_pkt_bytes);
+  TNA(const toml::table &config);
   TNA(const TNA &other);
 
-  TNAVersion get_version() const { return version; }
   const TNAProperties &get_properties() const { return properties; }
 
   // Tofino compiler complains if we access more than 4 bytes of the packet on
@@ -65,9 +57,6 @@ public:
   PlacementStatus
   can_place_many(const std::vector<std::unordered_set<DS *>> &ds,
                  const std::unordered_set<DS_ID> &deps) const;
-
-  const PerfOracle &get_perf_oracle() const;
-  PerfOracle &get_mutable_perf_oracle();
 
   void debug() const;
 };

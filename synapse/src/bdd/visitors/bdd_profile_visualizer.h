@@ -10,10 +10,10 @@
 #include "../profile.h"
 #include "../../util.h"
 
-class BDDProfileVisualizer : public BDDVisualizer {
+class BDDProfileVisualizer : public BDDViz {
 public:
   BDDProfileVisualizer(const std::string &fname, const bdd_profile_t &profile)
-      : BDDVisualizer(bdd_visualizer_opts_t{
+      : BDDViz(bdd_visualizer_opts_t{
             .fname = fname,
             .colors_per_node = get_colors_per_node(profile.counters),
             .default_color = {true, hit_rate_to_color(0)},
@@ -30,7 +30,7 @@ public:
     opts.annotations_per_node = get_annocations_per_node(profile);
     opts.default_color.second = hit_rate_to_color(0);
 
-    BDDVisualizer::visualize(bdd, interrupt, opts);
+    BDDViz::visualize(bdd, interrupt, opts);
   }
 
 private:

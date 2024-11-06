@@ -149,9 +149,6 @@ protected:
 
       if (impl.has_value()) {
         impls.push_back(*impl);
-      } else {
-        // No need to try bigger caches if we can't even fit a smaller one.
-        break;
       }
     }
 

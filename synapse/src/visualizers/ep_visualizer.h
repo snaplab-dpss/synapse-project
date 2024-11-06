@@ -7,9 +7,9 @@
 #include "../targets/target.h"
 #include "../execution_plan/visitor.h"
 
-class EPVisualizer : public EPVisitor, public Graphviz {
+class EPViz : public EPVisitor, public Graphviz {
 public:
-  EPVisualizer();
+  EPViz();
 
   static void visualize(const EP *ep, bool interrupt);
 

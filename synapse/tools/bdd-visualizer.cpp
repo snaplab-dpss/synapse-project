@@ -39,13 +39,13 @@ int main(int argc, char **argv) {
       bdd_visualizer_opts_t opts;
       opts.fname = output_dot_file.string();
 
-      BDDVisualizer generator(opts);
+      BDDViz generator(opts);
       generator.visit(bdd);
       generator.write();
     }
 
     if (show) {
-      BDDVisualizer::visualize(bdd, false);
+      BDDViz::visualize(bdd, false);
     }
   }
 

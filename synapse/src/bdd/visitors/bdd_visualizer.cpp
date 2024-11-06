@@ -14,12 +14,12 @@ static const char *COLOR_FORWARD = "chartreuse2";
 static const char *COLOR_DROP = "brown1";
 static const char *COLOR_BROADCAST = "purple";
 
-BDDVisualizer::BDDVisualizer(const bdd_visualizer_opts_t &_opts)
+BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts)
     : Graphviz(_opts.fname), opts(_opts) {}
 
-BDDVisualizer::BDDVisualizer() : Graphviz() {}
+BDDViz::BDDViz() : Graphviz() {}
 
-std::string BDDVisualizer::get_color(const Node *node) const {
+std::string BDDViz::get_color(const Node *node) const {
   node_id_t id = node->get_id();
 
   if (opts.colors_per_node.find(id) != opts.colors_per_node.end()) {
@@ -75,15 +75,15 @@ static void log_visualization(const BDD *bdd, const std::string &fname) {
   std::cerr << "\n";
 }
 
-void BDDVisualizer::visualize(const BDD *bdd, bool interrupt,
-                              bdd_visualizer_opts_t opts) {
-  BDDVisualizer visualizer(opts);
+void BDDViz::visualize(const BDD *bdd, bool interrupt,
+                       bdd_visualizer_opts_t opts) {
+  BDDViz visualizer(opts);
   visualizer.visit(bdd);
   log_visualization(bdd, visualizer.fpath);
   visualizer.show(interrupt);
 }
 
-void BDDVisualizer::visit(const BDD *bdd) {
+void BDDViz::visit(const BDD *bdd) {
   const Node *root = bdd->get_root();
 
   ss << "digraph mygraph {\n";
@@ -92,7 +92,7 @@ void BDDVisualizer::visit(const BDD *bdd) {
   ss << "}";
 }
 
-BDDVisitorAction BDDVisualizer::visitBranch(const Branch *node) {
+BDDVisitorAction BDDViz::visitBranch(const Branch *node) {
   const Node *on_true = node->get_on_true();
   const Node *on_false = node->get_on_false();
 
@@ -137,7 +137,7 @@ BDDVisitorAction BDDVisualizer::visitBranch(const Branch *node) {
   return BDDVisitorAction::STOP;
 }
 
-BDDVisitorAction BDDVisualizer::visitCall(const Call *node) {
+BDDVisitorAction BDDViz::visitCall(const Call *node) {
   const call_t &call = node->get_call();
   node_id_t id = node->get_id();
   const Node *next = node->get_next();
@@ -234,7 +234,7 @@ BDDVisitorAction BDDVisualizer::visitCall(const Call *node) {
   return BDDVisitorAction::STOP;
 }
 
-BDDVisitorAction BDDVisualizer::visitRoute(const Route *node) {
+BDDVisitorAction BDDViz::visitRoute(const Route *node) {
   node_id_t id = node->get_id();
   int dst_device = node->get_dst_device();
   RouteOp operation = node->get_operation();
@@ -282,4 +282,4 @@ BDDVisitorAction BDDVisualizer::visitRoute(const Route *node) {
   return BDDVisitorAction::STOP;
 }
 
-void BDDVisualizer::visitRoot(const Node *root) { root->visit(*this); }
+void BDDViz::visitRoot(const Node *root) { root->visit(*this); }

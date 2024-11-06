@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_set>
+#include <toml++/toml.hpp>
 
 #include "execution_plan/execution_plan.h"
 #include "heuristics/heuristic.h"
@@ -51,6 +52,7 @@ template <class HCfg> class SearchEngine {
 private:
   std::shared_ptr<BDD> bdd;
   Heuristic<HCfg> *h;
+  toml::table config;
   Profiler profiler;
   const targets_t targets;
 
@@ -59,13 +61,14 @@ private:
   const bool pause_and_show_on_backtrack;
 
 public:
-  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const Profiler &profiler,
-               const targets_t &targets, bool allow_bdd_reordering,
+  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const toml::table &config,
+               const Profiler &profiler, const targets_t &targets,
+               bool allow_bdd_reordering,
                const std::unordered_set<ep_id_t> &peek,
                bool _pause_and_show_on_backtrack);
 
-  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const Profiler &profiler,
-               const targets_t &_targets);
+  SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const toml::table &config,
+               const Profiler &profiler, const targets_t &_targets);
 
   SearchEngine(const SearchEngine &) = delete;
   SearchEngine(SearchEngine &&) = delete;

@@ -10,7 +10,7 @@
 #include "../profiler.h"
 #include "../util.h"
 
-class ProfilerVisualizer : public BDDVisualizer {
+class ProfilerViz : public BDDViz {
 public:
   static void visualize(const BDD *bdd, const Profiler &profiler,
                         bool interrupt) {
@@ -23,7 +23,7 @@ public:
     opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
     opts.default_color.second = fraction_to_color(0);
 
-    BDDVisualizer::visualize(bdd, interrupt, opts);
+    BDDViz::visualize(bdd, interrupt, opts);
   }
 
 private:

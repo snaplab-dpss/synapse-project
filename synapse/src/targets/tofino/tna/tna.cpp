@@ -4,75 +4,60 @@
 
 namespace tofino {
 
-static TNAProperties properties_from_version(TNAVersion version) {
-  TNAProperties properties;
-
-  switch (version) {
-  case TNAVersion::TNA1:
-    properties = {
-        .port_capacity_bps = 100'000'000'000,
-        .total_ports = 32,
-        .recirc_port_capacity_bps = 125'000'000'000,
-        .total_recirc_ports = 2,
-        .max_packet_bytes_in_condition = 4,
-        .pipes = 2,
-        .stages = 12,
-        .sram_per_stage = 128 * 1024 * 80,
-        .tcam_per_stage = 44 * 512 * 24,
-        .map_ram_per_stage = 128 * 1024 * 48,
-        .max_logical_tcam_tables_per_stage = 8,
-        .max_logical_sram_and_tcam_tables_per_stage = 16,
-        .phv_size = 4000,
-        .phv_8bit_containers = 64,
-        .phv_16bit_containers = 96,
-        .phv_32bit_containers = 64,
-        .packet_buffer_size = static_cast<bits_t>(20e6 * 8),
-        .exact_match_xbar_per_stage = 128 * 8,
-        .max_exact_match_keys = 16,
-        .ternary_match_xbar = 66 * 8,
-        .max_ternary_match_keys = 8,
-        .max_salu_size = 32,
-    };
-    break;
-  case TNAVersion::TNA2:
-    properties = {
-        .port_capacity_bps = 100'000'000'000,
-        .total_ports = 32,
-        .recirc_port_capacity_bps = 125'000'000'000,
-        .total_recirc_ports = 4,
-        .max_packet_bytes_in_condition = 4,
-        .pipes = 4,
-        .stages = 20,
-        .sram_per_stage = 128 * 1024 * 80,
-        .tcam_per_stage = 44 * 512 * 24,
-        .map_ram_per_stage = 128 * 1024 * 48,
-        .max_logical_tcam_tables_per_stage = 8,
-        .max_logical_sram_and_tcam_tables_per_stage = 16,
-        .phv_size = 5000,
-        .phv_8bit_containers = 80,
-        .phv_16bit_containers = 120,
-        .phv_32bit_containers = 80,
-        .packet_buffer_size = static_cast<bits_t>(64e6 * 8),
-        .exact_match_xbar_per_stage = 128 * 8,
-        .max_exact_match_keys = 16,
-        .ternary_match_xbar = 66 * 8,
-        .max_ternary_match_keys = 8,
-        .max_salu_size = 32, // TNA2 actually can supposedly support 64b, but it
-                             // keeps crashing the compiler...
-    };
-    break;
-  }
-
-  return properties;
+static TNAProperties properties_from_config(const toml::table &config) {
+  assert(config.contains("switch"));
+  assert(config["switch"].as_table()->contains("arch"));
+  return {
+      .total_ports = static_cast<int>(
+          config["switch"]["front_panel_ports"].as_array()->size()),
+      .total_recirc_ports = static_cast<int>(
+          config["switch"]["recirculation_ports"].as_array()->size()),
+      .max_packet_bytes_in_condition =
+          *config["switch"]["arch"]["max_packet_bytes_in_condition"]
+               .value<int>(),
+      .pipes = *config["switch"]["arch"]["pipes"].value<int>(),
+      .stages = *config["switch"]["arch"]["stages"].value<int>(),
+      .sram_per_stage =
+          *config["switch"]["arch"]["sram_per_stage"].value<bits_t>(),
+      .tcam_per_stage =
+          *config["switch"]["arch"]["tcam_per_stage"].value<bits_t>(),
+      .map_ram_per_stage =
+          *config["switch"]["arch"]["map_ram_per_stage"].value<bits_t>(),
+      .max_logical_tcam_tables_per_stage =
+          *config["switch"]["arch"]["max_logical_tcam_tables_per_stage"]
+               .value<int>(),
+      .max_logical_sram_and_tcam_tables_per_stage =
+          *config["switch"]["arch"]
+                 ["max_logical_sram_and_tcam_tables_per_stage"]
+                     .value<int>(),
+      .phv_size = *config["switch"]["arch"]["phv_size"].value<bits_t>(),
+      .phv_8bit_containers =
+          *config["switch"]["arch"]["phv_8bit_containers"].value<int>(),
+      .phv_16bit_containers =
+          *config["switch"]["arch"]["phv_16bit_containers"].value<int>(),
+      .phv_32bit_containers =
+          *config["switch"]["arch"]["phv_32bit_containers"].value<int>(),
+      .packet_buffer_size =
+          *config["switch"]["arch"]["packet_buffer_size"].value<bits_t>(),
+      .exact_match_xbar_per_stage =
+          *config["switch"]["arch"]["exact_match_xbar_per_stage"]
+               .value<bits_t>(),
+      .max_exact_match_keys =
+          *config["switch"]["arch"]["max_exact_match_keys"].value<int>(),
+      .ternary_match_xbar =
+          *config["switch"]["arch"]["ternary_match_xbar"].value<bits_t>(),
+      .max_ternary_match_keys =
+          *config["switch"]["arch"]["max_ternary_match_keys"].value<int>(),
+      .max_salu_size =
+          *config["switch"]["arch"]["max_salu_size"].value<bits_t>(),
+  };
 }
 
-TNA::TNA(TNAVersion version, int avg_pkt_bytes)
-    : version(version), properties(properties_from_version(version)),
-      simple_placer(&properties), perf_oracle(&properties, avg_pkt_bytes) {}
+TNA::TNA(const toml::table &config)
+    : properties(properties_from_config(config)), simple_placer(&properties) {}
 
 TNA::TNA(const TNA &other)
-    : version(other.version), properties(other.properties),
-      simple_placer(other.simple_placer), perf_oracle(other.perf_oracle),
+    : properties(other.properties), simple_placer(other.simple_placer),
       parser(other.parser) {}
 
 bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
@@ -132,12 +117,6 @@ TNA::can_place_many(const std::vector<std::unordered_set<DS *>> &candidates,
   return PlacementStatus::SUCCESS;
 }
 
-const PerfOracle &TNA::get_perf_oracle() const { return perf_oracle; }
-PerfOracle &TNA::get_mutable_perf_oracle() { return perf_oracle; }
-
-void TNA::debug() const {
-  simple_placer.debug();
-  perf_oracle.debug();
-}
+void TNA::debug() const { simple_placer.debug(); }
 
 } // namespace tofino

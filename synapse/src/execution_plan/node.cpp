@@ -2,6 +2,7 @@
 #include "visitor.h"
 #include "../targets/module.h"
 #include "../log.h"
+#include "../exprs/solver.h"
 
 static ep_node_id_t counter = 0;
 
@@ -22,11 +23,11 @@ EPNode::~EPNode() {
   }
 }
 
-void EPNode::set_children(const std::vector<EPNode *> &_children) {
-  children = _children;
-}
+void EPNode::set_children(EPNode *next) { children = {next}; }
 
-void EPNode::add_child(EPNode *child) { children.push_back(child); }
+void EPNode::set_children(EPNode *on_true, EPNode *on_false) {
+  children = {on_true, on_false};
+}
 
 void EPNode::set_prev(EPNode *_prev) { prev = _prev; }
 
@@ -67,7 +68,35 @@ EPNode *EPNode::get_mutable_node_by_id(ep_node_id_t target_id) {
   return target;
 }
 
-bool EPNode::is_terminal_node() const { return children.size() == 0; }
+klee::ref<klee::Expr> EPNode::get_constraint() const { return constraint; }
+
+void EPNode::set_constraint(klee::ref<klee::Expr> _constraint) {
+  constraint = _constraint;
+}
+
+constraints_t EPNode::get_constraints() const {
+  constraints_t constraints;
+  const EPNode *node = prev;
+  const EPNode *next = this;
+
+  while (node) {
+    klee::ref<klee::Expr> constraint = node->get_constraint();
+
+    if (node->get_children().size() == 2 && node->get_children()[1] == next) {
+      assert(!constraint.isNull() && "No constraint on a conditional node");
+      constraint = solver_toolbox.exprBuilder->Not(constraint);
+    }
+
+    if (!constraint.isNull()) {
+      constraints.insert(constraints.begin(), constraint);
+    }
+
+    next = node;
+    node = node->get_prev();
+  }
+
+  return constraints;
+}
 
 std::string EPNode::dump() const {
   std::stringstream ss;
@@ -76,23 +105,24 @@ std::string EPNode::dump() const {
 }
 
 EPNode *EPNode::clone(bool recursive) const {
-  Module *cloned_module = module->clone();
-  EPNode *cloned_node = new EPNode(cloned_module);
+  EPNode *cloned_node = new EPNode(module->clone());
 
   // The constructor increments the ID, let's fix that
-  cloned_node->set_id(id);
+  cloned_node->id = id;
 
   if (recursive) {
     std::vector<EPNode *> children_clones;
 
     for (const EPNode *child : children) {
       EPNode *cloned_children = child->clone(true);
-      cloned_children->set_prev(cloned_node);
+      cloned_children->prev = cloned_node;
       children_clones.push_back(cloned_children);
     }
 
-    cloned_node->set_children(children_clones);
+    cloned_node->children = children_clones;
   }
+
+  cloned_node->constraint = constraint;
 
   return cloned_node;
 }

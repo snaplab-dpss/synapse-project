@@ -11,21 +11,18 @@
 #include "../targets/targets.h"
 
 #define SHOW_MODULE_NAME(M)                                                    \
-  void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \
-                           const M *node) {                                    \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
     function_call(ep_node, node->get_node(), node->get_target(),               \
                   node->get_name());                                           \
   }
 
 #define VISIT_BRANCH(M)                                                        \
-  void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \
-                           const M *node) {                                    \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
     branch(ep_node, node->get_node(), node->get_target(), node->get_name());   \
   }
 
 #define IGNORE_MODULE(M)                                                       \
-  void EPVisualizer::visit(const EP *ep, const EPNode *ep_node,                \
-                           const M *node) {}
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
 
 static std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
@@ -45,14 +42,14 @@ static bool should_ignore_node(const EPNode *node) {
   return modules_to_ignore.find(type) != modules_to_ignore.end();
 }
 
-EPVisualizer::EPVisualizer() {}
+EPViz::EPViz() {}
 
-void EPVisualizer::log(const EPNode *ep_node) const {
+void EPViz::log(const EPNode *ep_node) const {
   // Don't log anything.
 }
 
-void EPVisualizer::function_call(const EPNode *ep_node, const Node *node,
-                                 TargetType target, const std::string &label) {
+void EPViz::function_call(const EPNode *ep_node, const Node *node,
+                          TargetType target, const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
@@ -73,8 +70,8 @@ void EPVisualizer::function_call(const EPNode *ep_node, const Node *node,
   ss << "\n";
 }
 
-void EPVisualizer::branch(const EPNode *ep_node, const Node *node,
-                          TargetType target, const std::string &label) {
+void EPViz::branch(const EPNode *ep_node, const Node *node, TargetType target,
+                   const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
@@ -113,15 +110,15 @@ static void log_visualization(const EP *ep, const std::string &fname) {
   Log::log() << "\n";
 }
 
-void EPVisualizer::visualize(const EP *ep, bool interrupt) {
+void EPViz::visualize(const EP *ep, bool interrupt) {
   assert(ep);
-  EPVisualizer visualizer;
+  EPViz visualizer;
   visualizer.visit(ep);
   log_visualization(ep, visualizer.fpath);
   visualizer.show(interrupt);
 }
 
-void EPVisualizer::visit(const EP *ep) {
+void EPViz::visit(const EP *ep) {
   assert(ep);
   ss << "digraph EP {\n";
   ss << "layout=\"dot\";";
@@ -133,7 +130,7 @@ void EPVisualizer::visit(const EP *ep) {
   ss.flush();
 }
 
-void EPVisualizer::visit(const EP *ep, const EPNode *node) {
+void EPViz::visit(const EP *ep, const EPNode *node) {
   assert(ep);
 
   bool ignore = should_ignore_node(node);
@@ -162,8 +159,7 @@ void EPVisualizer::visit(const EP *ep, const EPNode *node) {
     child->visit(*this, ep);
 
     if (!ignore) {
-      ss << node->get_id() << " -> " << child->get_id() << ";"
-         << "\n";
+      ss << node->get_id() << " -> " << child->get_id() << ";" << "\n";
     }
   }
 }

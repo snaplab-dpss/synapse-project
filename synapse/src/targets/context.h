@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <toml++/toml.hpp>
 
 #include "../util.h"
 #include "../log.h"
@@ -8,6 +9,7 @@
 #include "../bdd/bdd.h"
 #include "../execution_plan/node.h"
 #include "target.h"
+#include "perf_oracle.h"
 
 class EP;
 
@@ -52,6 +54,7 @@ public:
 class Context {
 private:
   Profiler profiler;
+  PerfOracle perf_oracle;
 
   std::unordered_map<addr_t, map_config_t> map_configs;
   std::unordered_map<addr_t, vector_config_t> vector_configs;
@@ -65,11 +68,11 @@ private:
 
   std::unordered_map<addr_t, DSImpl> ds_impls;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
-  std::unordered_map<ep_node_id_t, constraints_t> constraints_per_node;
 
 public:
   Context(const BDD *bdd, const targets_t &targets,
-          const TargetType initial_target, const Profiler &profiler);
+          const TargetType initial_target, const toml::table &config,
+          const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 
@@ -78,6 +81,9 @@ public:
 
   const Profiler &get_profiler() const;
   Profiler &get_mutable_profiler();
+
+  const PerfOracle &get_perf_oracle() const;
+  PerfOracle &get_mutable_perf_oracle();
 
   const map_config_t &get_map_config(addr_t addr) const;
   const vector_config_t &get_vector_config(addr_t addr) const;
@@ -98,10 +104,6 @@ public:
   bool has_ds_impl(addr_t obj) const;
   bool check_ds_impl(addr_t obj, DSImpl impl) const;
   bool can_impl_ds(addr_t obj, DSImpl impl) const;
-
-  void update_constraints_per_node(ep_node_id_t node,
-                                   const constraints_t &constraints);
-  constraints_t get_node_constraints(const EPNode *node) const;
 
   void add_hit_rate_estimation(const constraints_t &constraints,
                                klee::ref<klee::Expr> new_constraint,

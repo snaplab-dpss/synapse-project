@@ -32,13 +32,13 @@ struct bdd_visualizer_opts_t {
   processed_t processed;
 };
 
-class BDDVisualizer : public BDDVisitor, public Graphviz {
+class BDDViz : public BDDVisitor, public Graphviz {
 protected:
   bdd_visualizer_opts_t opts;
 
 public:
-  BDDVisualizer(const bdd_visualizer_opts_t &_opts);
-  BDDVisualizer();
+  BDDViz(const bdd_visualizer_opts_t &_opts);
+  BDDViz();
 
   std::string get_color(const Node *node) const;
 

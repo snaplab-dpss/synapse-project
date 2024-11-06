@@ -73,7 +73,7 @@ void apply_reordering_ops(
       break;
     } else {
       assert(reordered_bdd.bdd);
-      BDDVisualizer::visualize(reordered_bdd.bdd, true);
+      BDDViz::visualize(reordered_bdd.bdd, true);
 
       created_bdds.push_back(reordered_bdd.bdd);
       bdd = reordered_bdd.bdd;
@@ -107,7 +107,7 @@ void apply_all_candidates(const BDD *bdd, node_id_t anchor_id) {
     }
     std::cerr << "==================================\n";
 
-    // BDDVisualizer::visualize(reordered_bdd.bdd, true);
+    // BDDViz::visualize(reordered_bdd.bdd, true);
   }
 
   for (reordered_bdd_t &reordered_bdd : bdds) {

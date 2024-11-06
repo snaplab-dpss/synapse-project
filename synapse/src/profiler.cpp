@@ -539,15 +539,14 @@ hit_rate_t Profiler::get_hr(const Node *node) const {
   return profiler_node->fraction;
 }
 
-hit_rate_t Profiler::get_hr(const EP *ep, const EPNode *node) const {
+hit_rate_t Profiler::get_hr(const EPNode *node) const {
   auto found_it = cache.e2p.find(node->get_id());
   if (found_it != cache.e2p.end()) {
     assert(found_it->second);
     return found_it->second->fraction;
   }
 
-  const Context &ctx = ep->get_ctx();
-  constraints_t constraints = ctx.get_node_constraints(node);
+  constraints_t constraints = node->get_constraints();
   ProfilerNode *profiler_node = get_node(constraints);
 
   if (!profiler_node) {

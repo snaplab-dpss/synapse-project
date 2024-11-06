@@ -71,7 +71,7 @@ public:
   void scale(const constraints_t &constraints, hit_rate_t factor);
 
   hit_rate_t get_hr(const Node *node) const;
-  hit_rate_t get_hr(const EP *ep, const EPNode *node) const;
+  hit_rate_t get_hr(const EPNode *node) const;
 
   std::optional<FlowStats> get_flow_stats(const constraints_t &cnstrs,
                                           klee::ref<klee::Expr> flow) const;

@@ -76,8 +76,6 @@ typedef double hit_rate_t;
 
 #define ps_to_ns(T) ((time_ns_t)((double)(T) / (double)THOUSAND))
 
-#define CONTROLLER_CAPACITY_PPS ((pps_t)100'000)
-#define CPU_CAPACITY_PPS ((pps_t)120'000'000)
 #define STABLE_TPUT_PRECISION 100 // pps
 
 typedef u64 ep_node_id_t;

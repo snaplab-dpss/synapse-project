@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <fstream>
 #include <CLI/CLI.hpp>
+#include <toml++/toml.hpp>
 
 #include "../src/bdd/bdd.h"
 #include "../src/log.h"
@@ -30,8 +31,9 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
     {"max-tput", HeuristicOption::MAX_THROUGHPUT},
 };
 
-search_report_t search(const BDD *bdd, const Profiler &profiler,
-                       const targets_t &targets, HeuristicOption heuristic_opt,
+search_report_t search(const BDD *bdd, const toml::table &config,
+                       const Profiler &profiler, const targets_t &targets,
+                       HeuristicOption heuristic_opt,
                        const std::vector<ep_id_t> &peek, bool no_reorder,
                        bool pause_on_backtrack, bool not_greedy) {
   bool stop_on_first_solution = !not_greedy;
@@ -44,37 +46,37 @@ search_report_t search(const BDD *bdd, const Profiler &profiler,
   switch (heuristic_opt) {
   case HeuristicOption::BFS: {
     BFS heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::DFS: {
     DFS heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::RANDOM: {
     Random heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::GALLIUM: {
     Gallium heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::GREEDY: {
     Greedy heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::MAX_THROUGHPUT: {
     MaxTput heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, profiler, targets, !no_reorder,
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
@@ -94,6 +96,7 @@ int main(int argc, char **argv) {
   CLI::App app{"Synapse"};
 
   std::filesystem::path input_bdd_file;
+  std::filesystem::path config_file;
   std::filesystem::path out_dir;
   HeuristicOption heuristic_opt;
   std::vector<ep_id_t> peek;
@@ -110,6 +113,7 @@ int main(int argc, char **argv) {
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
+  app.add_option("--config", config_file, "Configuration file.")->required();
   app.add_option("--out", out_dir, "Output directory for every generated file.")
       ->required();
   app.add_option("--heuristic", heuristic_opt, "Chosen heuristic.")
@@ -137,9 +141,16 @@ int main(int argc, char **argv) {
     Log::MINIMUM_LOG_LEVEL = Log::Level::LOG;
   }
 
+  RandomEngine::seed(seed);
+
   BDD *bdd = new BDD(input_bdd_file);
 
-  RandomEngine::seed(seed);
+  toml::table config;
+  try {
+    config = toml::parse_file(config_file.string());
+  } catch (const toml::parse_error &err) {
+    PANIC("Parsing failed: %s\n", err.what());
+  }
 
   Profiler profiler =
       bdd_profile.empty() ? Profiler(bdd) : Profiler(bdd, bdd_profile);
@@ -147,17 +158,18 @@ int main(int argc, char **argv) {
   profiler.debug();
 
   if (show_prof) {
-    ProfilerVisualizer::visualize(bdd, profiler, true);
+    ProfilerViz::visualize(bdd, profiler, true);
   }
 
-  targets_t targets = build_targets(profiler);
+  targets_t targets = build_targets(config);
 
   // std::string nf_name = nf_name_from_bdd(InputBDDFile);
-  search_report_t report = search(bdd, profiler, targets, heuristic_opt, peek,
-                                  no_reorder, pause_on_backtrack, not_greedy);
+  search_report_t report =
+      search(bdd, config, profiler, targets, heuristic_opt, peek, no_reorder,
+             pause_on_backtrack, not_greedy);
 
   if (show_ep) {
-    EPVisualizer::visualize(report.solution.ep, false);
+    EPViz::visualize(report.solution.ep, false);
   }
 
   if (show_ss) {
@@ -166,11 +178,11 @@ int main(int argc, char **argv) {
   }
 
   if (show_bdd) {
-    // BDDVisualizer::visualize(report.solution.ep->get_bdd(), false);
+    // BDDViz::visualize(report.solution.ep->get_bdd(), false);
     const BDD *solution_bdd = report.solution.ep->get_bdd();
     const Context &ctx = report.solution.ep->get_ctx();
     const Profiler &profiler = ctx.get_profiler();
-    ProfilerVisualizer::visualize(bdd, profiler, false);
+    ProfilerViz::visualize(bdd, profiler, false);
   }
 
   report.solution.ep->get_ctx().debug();

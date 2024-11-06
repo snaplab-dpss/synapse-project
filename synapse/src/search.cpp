@@ -10,20 +10,22 @@
 
 template <class HCfg>
 SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
+                                 const toml::table &_config,
                                  const Profiler &_profiler,
                                  const targets_t &_targets,
                                  bool _allow_bdd_reordering,
                                  const std::unordered_set<ep_id_t> &_peek,
                                  bool _pause_and_show_on_backtrack)
-    : bdd(new BDD(*_bdd)), h(_h), profiler(_profiler), targets(_targets),
-      allow_bdd_reordering(_allow_bdd_reordering), peek(_peek),
-      pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
+    : bdd(new BDD(*_bdd)), h(_h), config(_config), profiler(_profiler),
+      targets(_targets), allow_bdd_reordering(_allow_bdd_reordering),
+      peek(_peek), pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
 
 template <class HCfg>
 SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
+                                 const toml::table &_config,
                                  const Profiler &_profiler,
                                  const targets_t &_targets)
-    : SearchEngine(_bdd, _h, _profiler, _targets, true, {}, false) {}
+    : SearchEngine(_bdd, _h, _config, _profiler, _targets, true, {}, false) {}
 
 struct search_step_report_t {
   int available_execution_plans;
@@ -134,8 +136,8 @@ static void peek_search_space(const std::vector<impl_t> &new_implementations,
 
       impl.result->debug();
 
-      BDDVisualizer::visualize(impl.result->get_bdd(), false);
-      EPVisualizer::visualize(impl.result, false);
+      BDDViz::visualize(impl.result->get_bdd(), false);
+      EPViz::visualize(impl.result, false);
       SSVisualizer::visualize(search_space, impl.result, true);
     }
   }
@@ -145,8 +147,8 @@ static void peek_backtrack(const EP *ep, SearchSpace *search_space,
                            bool pause_and_show_on_backtrack) {
   if (pause_and_show_on_backtrack) {
     Log::dbg() << "Backtracked to " << ep->get_id() << "\n";
-    BDDVisualizer::visualize(ep->get_bdd(), false);
-    // EPVisualizer::visualize(ep, false);
+    BDDViz::visualize(ep->get_bdd(), false);
+    // EPViz::visualize(ep, false);
     SSVisualizer::visualize(search_space, ep, true);
   }
 }
@@ -156,7 +158,7 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
   auto start_search = std::chrono::steady_clock::now();
   SearchSpace *search_space = new SearchSpace(h->get_cfg());
 
-  h->add(new EP(bdd, targets, profiler));
+  h->add(new EP(bdd, targets, config, profiler));
 
   std::unordered_map<node_id_t, int> node_depth;
 

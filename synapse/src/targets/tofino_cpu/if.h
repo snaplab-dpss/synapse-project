@@ -66,7 +66,8 @@ protected:
     EPNode *then_node = new EPNode(then_module);
     EPNode *else_node = new EPNode(else_module);
 
-    if_node->set_children({then_node, else_node});
+    if_node->set_constraint(condition);
+    if_node->set_children(then_node, else_node);
     then_node->set_prev(if_node);
     else_node->set_prev(if_node);
 
@@ -76,7 +77,6 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
-    new_ep->update_node_constraints(then_node, else_node, condition);
     new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
     return impls;

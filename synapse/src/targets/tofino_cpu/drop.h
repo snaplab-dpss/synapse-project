@@ -39,7 +39,11 @@ protected:
       return std::nullopt;
     }
 
-    return spec_impl_t(decide(ep, node), ctx);
+    Context new_ctx = ctx;
+    new_ctx.get_mutable_perf_oracle().add_dropped_traffic(
+        new_ctx.get_profiler().get_hr(node));
+
+    return spec_impl_t(decide(ep, node), new_ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -65,6 +69,9 @@ protected:
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
+
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_dropped_traffic(
+        new_ep->get_mutable_ctx().get_profiler().get_hr(node));
 
     return impls;
   }

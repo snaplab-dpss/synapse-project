@@ -24,35 +24,6 @@ public:
   }
 
   int get_dst_device() const { return dst_device; }
-
-  virtual pps_t compute_egress_tput(const EP *ep,
-                                    pps_t ingress) const override {
-    return perf_estimator(ep->get_ctx(), node, ingress, dst_device);
-  }
-
-  static pps_t perf_estimator(const Context &ctx, const Node *node,
-                              pps_t ingress, int dst_device) {
-    const Profiler &profiler = ctx.get_profiler();
-
-    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-    const TNA &tna = tofino_ctx->get_tna();
-    const PerfOracle &perf_oracle = tna.get_perf_oracle();
-
-    hit_rate_t hr = ctx.get_profiler().get_hr(node);
-    hit_rate_t total_hr = perf_oracle.get_fwd_traffic(dst_device);
-
-    pps_t port_capacity = perf_oracle.get_port_capacity_pps();
-    pps_t egress = ingress;
-
-    // If the sum of all the traffic is more than the port capacity, then we
-    // should keep proportionality of the profiling hit rate per forwarding
-    // module.
-    if (ingress > (hr / total_hr) * port_capacity) {
-      egress = (hr / total_hr) * port_capacity;
-    }
-
-    return egress;
-  }
 };
 
 class ForwardGenerator : public TofinoModuleGenerator {
@@ -77,16 +48,10 @@ protected:
     int dst_device = route_node->get_dst_device();
 
     Context new_ctx = ctx;
-    TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
-    tofino_ctx->get_mutable_tna().get_mutable_perf_oracle().add_fwd_traffic(
+    new_ctx.get_mutable_perf_oracle().add_fwd_traffic(
         dst_device, new_ctx.get_profiler().get_hr(node));
 
-    auto perf_estimator_fn = [dst_device](const Context &ctx, const Node *node,
-                                          pps_t ingress) {
-      return Forward::perf_estimator(ctx, node, ingress, dst_device);
-    };
-
-    return spec_impl_t(decide(ep, node), new_ctx, perf_estimator_fn);
+    return spec_impl_t(decide(ep, node), new_ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -117,8 +82,9 @@ protected:
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->parser_accept(ep, node);
-    tofino_ctx->get_mutable_tna().get_mutable_perf_oracle().add_fwd_traffic(
-        dst_device, new_ep->get_ctx().get_profiler().get_hr(new_ep, fwd_node));
+
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(
+        dst_device, get_node_egress(new_ep, fwd_node));
 
     return impls;
   }

@@ -1864,3 +1864,37 @@ std::vector<int> get_past_recirculations(const EPNode *node) {
 
   return past_recirculations;
 }
+
+port_ingress_t get_node_egress(const EP *ep, const EPNode *node) {
+  const Context &ctx = ep->get_ctx();
+  const Profiler &profiler = ctx.get_profiler();
+
+  port_ingress_t egress;
+  hit_rate_t hr = profiler.get_hr(node);
+
+  if (node->get_module()->get_target() == TargetType::TofinoCPU) {
+    egress.controller = hr;
+    return egress;
+  }
+
+  std::vector<int> past_recirculations = get_past_recirculations(node);
+
+  if (past_recirculations.empty()) {
+    egress.global = hr;
+  } else {
+    int rport = past_recirculations.back();
+    int depth = 1;
+
+    for (size_t i = 1; i < past_recirculations.size(); i++) {
+      if (past_recirculations[i] == rport) {
+        depth++;
+      } else {
+        break;
+      }
+    }
+
+    egress.recirc[{rport, depth}] = hr;
+  }
+
+  return egress;
+}

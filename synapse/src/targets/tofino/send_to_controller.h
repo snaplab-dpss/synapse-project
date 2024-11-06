@@ -25,33 +25,6 @@ public:
   }
 
   const symbols_t &get_symbols() const { return symbols; }
-
-  virtual pps_t compute_egress_tput(const EP *ep,
-                                    pps_t ingress) const override {
-    return perf_estimator(ep->get_ctx(), node, ingress);
-  }
-
-  static pps_t perf_estimator(const Context &ctx, const Node *node,
-                              pps_t ingress) {
-    const Profiler &profiler = ctx.get_profiler();
-
-    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-    const TNA &tna = tofino_ctx->get_tna();
-    const PerfOracle &perf_oracle = tna.get_perf_oracle();
-
-    hit_rate_t hr = ctx.get_profiler().get_hr(node);
-    hit_rate_t total_hr = perf_oracle.get_controller_traffic();
-
-    pps_t egress = ingress;
-
-    // If the sum of all the traffic is more than the capacity, then we
-    // should keep proportionality of the profiling hit rate per module.
-    if (ingress > (hr / total_hr) * CONTROLLER_CAPACITY_PPS) {
-      egress = (hr / total_hr) * CONTROLLER_CAPACITY_PPS;
-    }
-
-    return egress;
-  }
 };
 
 class SendToControllerGenerator : public TofinoModuleGenerator {
@@ -65,15 +38,11 @@ protected:
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     Context new_ctx = ctx;
 
-    Profiler &profiler = new_ctx.get_mutable_profiler();
-    hit_rate_t fraction = profiler.get_hr(node);
-    TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
-    tofino_ctx->get_mutable_tna()
-        .get_mutable_perf_oracle()
-        .add_controller_traffic(fraction);
+    new_ctx.get_mutable_perf_oracle().add_controller_traffic(
+        new_ctx.get_profiler().get_hr(node));
 
-    spec_impl_t spec_impl(decide(ep, node), new_ctx,
-                          SendToController::perf_estimator);
+    spec_impl_t spec_impl(decide(ep, node), new_ctx);
+
     spec_impl.next_target = TargetType::TofinoCPU;
 
     return spec_impl;
@@ -110,9 +79,9 @@ protected:
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->parser_accept(ep, node);
-    tofino_ctx->get_mutable_tna()
-        .get_mutable_perf_oracle()
-        .add_controller_traffic(new_ep->get_ctx().get_profiler().get_hr(node));
+
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
+        get_node_egress(new_ep, s2c_node));
 
     // FIXME: missing custom packet parsing for the SyNAPSE header.
 

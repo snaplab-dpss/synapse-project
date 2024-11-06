@@ -125,21 +125,10 @@ protected:
 
     new_ctx.scale_profiler(constraints, chosen_cache_success_probability);
     new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
-
-    auto perf_estimator_fn =
-        [chosen_cache_success_probability](const Context &ctx, const Node *node,
-                                           pps_t ingress) {
-          return chosen_cache_success_probability * ingress;
-        };
-
-    auto perf_sink_fn = [on_fail_fraction](const Context &ctx, const Node *node,
-                                           pps_t ingress) {
-      return on_fail_fraction * ingress;
-    };
+    new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
     spec_impl_t spec_impl(
-        decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx,
-        perf_estimator_fn, perf_sink_fn);
+        decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
     std::vector<const Node *> ignore_nodes =
         get_future_related_nodes(ep, node, map_objs);
@@ -195,9 +184,6 @@ protected:
 
       if (impl.has_value()) {
         impls.push_back(*impl);
-      } else {
-        // No need to try bigger caches if we can't even fit a smaller one.
-        break;
       }
     }
 
@@ -260,21 +246,21 @@ private:
     EPNode *else_node = new EPNode(else_module);
     EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
 
-    cached_table_delete_node->set_children({if_node});
+    cached_table_delete_node->set_children(if_node);
+
+    if_node->set_constraint(cache_delete_success_condition);
     if_node->set_prev(cached_table_delete_node);
+    if_node->set_children(then_node, else_node);
 
-    if_node->set_children({then_node, else_node});
     then_node->set_prev(if_node);
-    else_node->set_prev(if_node);
 
-    else_node->set_children({send_to_controller_node});
+    else_node->set_prev(if_node);
+    else_node->set_children(send_to_controller_node);
+
     send_to_controller_node->set_prev(else_node);
 
     hit_rate_t cache_success_probability = get_cache_op_success_probability(
         ep, map_erase, cached_table_data.key, cache_capacity);
-
-    new_ep->update_node_constraints(then_node, else_node,
-                                    cache_delete_success_condition);
 
     new_ep->add_hit_rate_estimation(cache_delete_success_condition,
                                     cache_success_probability);
@@ -294,6 +280,9 @@ private:
         {on_cache_delete_success_leaf, on_cache_delete_failed_leaf});
     new_ep->replace_bdd(new_bdd);
     // new_ep->inspect();
+
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
+        get_node_egress(new_ep, send_to_controller_node));
 
     return implement(ep, map_erase, new_ep,
                      {{CACHE_SIZE_PARAM, cache_capacity}});

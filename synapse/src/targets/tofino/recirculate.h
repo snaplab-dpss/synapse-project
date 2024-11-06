@@ -28,39 +28,6 @@ public:
 
   symbols_t get_symbols() const { return symbols; }
   int get_recirc_port() const { return recirc_port; }
-
-  virtual pps_t compute_egress_tput(const EP *ep,
-                                    pps_t ingress) const override {
-    const Context &ctx = ep->get_ctx();
-    const Profiler &profiler = ctx.get_profiler();
-
-    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-    const TNA &tna = tofino_ctx->get_tna();
-    const PerfOracle &perf_oracle = tna.get_perf_oracle();
-
-    EPLeaf active_leaf = ep->get_active_leaf();
-    std::vector<int> past_recirculations =
-        get_past_recirculations(active_leaf.node);
-
-    int recirculations = 1;
-    for (int p : past_recirculations) {
-      if (p == recirc_port) {
-        recirculations++;
-      }
-    }
-
-    hit_rate_t hr = profiler.get_hr(node);
-    hit_rate_t total_hr =
-        perf_oracle.get_recirculated_traffic(recirc_port, recirculations);
-
-    assert(total_hr >= 0);
-    assert(hr <= total_hr);
-
-    pps_t egress_port_pps = perf_oracle.get_recirculated_traffic_pps(
-        recirc_port, recirculations, ingress);
-
-    return (hr / total_hr) * egress_port_pps;
-  }
 };
 
 class RecirculateGenerator : public TofinoModuleGenerator {
@@ -108,10 +75,30 @@ private:
       int total_recirc_ports, const symbols_t &symbols) const {
     std::vector<impl_t> impls;
 
-    for (int recirc_port = 0; recirc_port < total_recirc_ports; recirc_port++) {
-      EP *new_ep = generate_new_ep(ep, node, symbols, recirc_port, past_recirc);
-      impls.push_back(implement(ep, node, new_ep,
-                                {{RECIRCULATION_PORT_PARAM, recirc_port}}));
+    for (int rport = 0; rport < total_recirc_ports; rport++) {
+      bool marked = false;
+      bool returning_recirc = false;
+
+      for (int past_rport : past_recirc) {
+        if (marked && past_rport != rport) {
+          returning_recirc = true;
+          break;
+        }
+
+        if (past_rport == rport) {
+          marked = true;
+        }
+      }
+
+      // We don't support returning back to a past recirculation port after
+      // being sent to a different one.
+      if (returning_recirc) {
+        continue;
+      }
+
+      EP *new_ep = generate_new_ep(ep, node, symbols, rport, past_recirc);
+      impls.push_back(
+          implement(ep, node, new_ep, {{RECIRCULATION_PORT_PARAM, rport}}));
     }
 
     return impls;
@@ -135,10 +122,10 @@ private:
       }
     }
 
-    tofino_ctx->get_mutable_tna()
+    new_ep->get_mutable_ctx()
         .get_mutable_perf_oracle()
-        .add_recirculated_traffic(recirc_port, port_recirculations,
-                                  recirc_fraction);
+        .add_recirculated_traffic(
+            recirc_port, get_node_egress(ep, ep->get_active_leaf().node));
 
     // Note that we don't point to the next BDD node, as it was not actually
     // implemented.

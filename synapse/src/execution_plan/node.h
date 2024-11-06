@@ -18,9 +18,15 @@ private:
   Module *module;
   std::vector<EPNode *> children;
   EPNode *prev;
+  klee::ref<klee::Expr> constraint;
 
 public:
   EPNode(Module *module);
+
+  EPNode(const EPNode &other) = delete;
+  EPNode(EPNode &&other) = delete;
+  EPNode &operator=(const EPNode &other) = delete;
+
   ~EPNode();
 
   ep_node_id_t get_id() const;
@@ -32,14 +38,17 @@ public:
   EPNode *get_prev() const;
 
   void set_id(ep_node_id_t id);
-  void set_children(const std::vector<EPNode *> &children);
-  void add_child(EPNode *child);
+  void set_children(EPNode *child);
+  void set_children(EPNode *on_true, EPNode *on_false);
   void set_prev(EPNode *prev);
 
   const EPNode *get_node_by_id(ep_node_id_t target_id) const;
   EPNode *get_mutable_node_by_id(ep_node_id_t target_id);
 
-  bool is_terminal_node() const;
+  void set_constraint(klee::ref<klee::Expr> constraint);
+  klee::ref<klee::Expr> get_constraint() const;
+  constraints_t get_constraints() const;
+
   std::string dump() const;
   EPNode *clone(bool recursive = false) const;
 

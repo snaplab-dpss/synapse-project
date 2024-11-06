@@ -11,10 +11,13 @@
 #include "exprs/exprs.h"
 
 enum class ModuleType;
+
 class EP;
 class EPNode;
 class Module;
 class Context;
+
+struct port_ingress_t;
 
 bool check_same_obj(const Call *call0, const Call *call1,
                     const std::string &obj_name);
@@ -185,4 +188,9 @@ std::string int2hr(u64 value);
 std::string tput2str(u64 thpt, const std::string &units,
                      bool human_readable = false);
 
+// Vector of past recirculations, from the most recent to the oldest.
+// Elements of the return vector are recirculation ports, and indexes are the
+// order between recirculations.
 std::vector<int> get_past_recirculations(const EPNode *node);
+
+port_ingress_t get_node_egress(const EP *ep, const EPNode *node);

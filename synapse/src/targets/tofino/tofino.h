@@ -1,5 +1,7 @@
 #pragma once
 
+#include <toml++/toml.hpp>
+
 #include "../target.h"
 
 #include "send_to_controller.h"
@@ -30,7 +32,7 @@
 namespace tofino {
 
 struct TofinoTarget : public Target {
-  TofinoTarget(TNAVersion version, const Profiler &profiler)
+  TofinoTarget(const toml::table &config)
       : Target(TargetType::Tofino,
                {
                    new SendToControllerGenerator(),
@@ -55,7 +57,7 @@ struct TofinoTarget : public Target {
                    new FCFSCachedTableDeleteGenerator(),
                    new MeterUpdateGenerator(),
                },
-               new TofinoContext(version, profiler)) {}
+               new TofinoContext(config)) {}
 };
 
 } // namespace tofino

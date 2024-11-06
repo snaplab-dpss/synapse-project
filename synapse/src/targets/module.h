@@ -440,8 +440,4 @@ public:
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const = 0;
   virtual Module *clone() const = 0;
-
-  virtual pps_t compute_egress_tput(const EP *ep, pps_t ingress) const {
-    return ingress;
-  }
 };

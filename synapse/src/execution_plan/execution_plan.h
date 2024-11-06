@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+#include <toml++/toml.hpp>
 
 #include "node.h"
 #include "meta.h"
@@ -30,6 +31,11 @@ private:
   std::shared_ptr<const BDD> bdd;
 
   EPNode *root;
+
+  // Sorted by target priority and hit rates, from highest to lowest priority.
+  // Leaves targeting the switch are prioritized over other targets.
+  // Leaves with higher hit rates are prioritized over lower hit rates.
+  // Don't forget to call the sorting method after adding new leaves.
   std::vector<EPLeaf> active_leaves;
 
   const TargetType initial_target;
@@ -46,7 +52,7 @@ private:
 
 public:
   EP(std::shared_ptr<const BDD> bdd, const targets_t &targets,
-     const Profiler &profiler);
+     const toml::table &config, const Profiler &profiler);
 
   EP(const EP &other, bool is_ancestor = true);
 
@@ -105,11 +111,6 @@ public:
   void add_hit_rate_estimation(klee::ref<klee::Expr> condition,
                                hit_rate_t estimation_rel);
 
-  // WARNING: this should be called before processing the leaf.
-  void update_node_constraints(const EPNode *on_true_node,
-                               const EPNode *on_false_node,
-                               klee::ref<klee::Expr> new_constraint);
-
   void remove_hit_rate_node(const constraints_t &constraints);
 
   pps_t estimate_tput_pps() const;
@@ -120,15 +121,14 @@ public:
   void debug() const;
   void debug_placements() const;
   void debug_hit_rate() const;
+  void debug_active_leaves() const;
 
   void inspect() const;
 
 private:
-  std::vector<EPLeaf>::const_iterator get_active_leaf_it() const;
+  void sort_leaves();
 
-  constraints_t get_active_leaf_constraints() const;
   void print_speculations(const std::vector<spec_impl_t> &speculations) const;
-
   spec_impl_t peek_speculation_for_future_nodes(
       const spec_impl_t &base_speculation, const Node *anchor,
       nodes_t future_nodes, TargetType current_target, pps_t ingress) const;

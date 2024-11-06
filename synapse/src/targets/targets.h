@@ -1,5 +1,7 @@
 #pragma once
 
+#include <toml++/toml.hpp>
+
 #include "target.h"
 #include "context.h"
 
@@ -9,9 +11,9 @@
 
 #include "../profiler.h"
 
-inline targets_t build_targets(const Profiler &profiler) {
+inline targets_t build_targets(const toml::table &config) {
   return {
-      new tofino::TofinoTarget(tofino::TNAVersion::TNA2, profiler),
+      new tofino::TofinoTarget(config),
       new tofino_cpu::TofinoCPUTarget(),
       new x86::x86Target(),
   };
