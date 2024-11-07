@@ -2,31 +2,6 @@
 #include "../targets/targets.h"
 #include "../visualizers/profiler_visualizer.h"
 
-struct leaf_t {
-  const EPNode *node;
-  const Node *next;
-};
-
-static pps_t egress_tput_from_ctx(const Context &ctx, pps_t ingress) {
-  return ctx.get_perf_oracle().estimate_tput(ingress);
-}
-
-struct speculative_data_t : public cookie_t {
-  constraints_t constraints;
-  std::unordered_map<node_id_t, klee::ref<klee::Expr>> pending_constraints;
-
-  speculative_data_t(const constraints_t &_constraints)
-      : constraints(_constraints) {}
-
-  speculative_data_t(const speculative_data_t &other)
-      : constraints(other.constraints),
-        pending_constraints(other.pending_constraints) {}
-
-  virtual speculative_data_t *clone() const {
-    return new speculative_data_t(*this);
-  }
-};
-
 std::string spec2str(const spec_impl_t &speculation, const BDD *bdd) {
   std::stringstream ss;
 
@@ -137,8 +112,8 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation,
   spec_impl_t peek_new = peek_speculation_for_future_nodes(
       new_speculation, node, new_future_nodes, current_target, ingress);
 
-  pps_t old_pps = egress_tput_from_ctx(peek_old.ctx, ingress);
-  pps_t new_pps = egress_tput_from_ctx(peek_new.ctx, ingress);
+  pps_t old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
+  pps_t new_pps = peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
 
   return new_pps > old_pps;
 }
@@ -286,10 +261,11 @@ pps_t EP::speculate_tput_pps() const {
   }
 
   auto egress_from_ingress = [spec_ctx](pps_t ingress) {
-    return egress_tput_from_ctx(spec_ctx, ingress);
+    return spec_ctx.get_perf_oracle().estimate_tput(ingress);
   };
 
   pps_t egress = find_stable_tput(ingress, egress_from_ingress);
+  cached_tput_speculation = egress;
 
   // if (id == 27 || id == 100) {
   //   print_speculations(speculations);
@@ -301,7 +277,6 @@ pps_t EP::speculate_tput_pps() const {
   //   DEBUG_PAUSE
   // }
 
-  cached_tput_speculation = egress;
   return egress;
 }
 
@@ -313,7 +288,7 @@ pps_t EP::estimate_tput_pps() const {
   pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
 
   auto egress_from_ingress = [this](pps_t ingress) {
-    return egress_tput_from_ctx(ctx, ingress);
+    return ctx.get_perf_oracle().estimate_tput(ingress);
   };
 
   pps_t egress = find_stable_tput(max_ingress, egress_from_ingress);

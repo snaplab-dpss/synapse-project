@@ -129,16 +129,15 @@ protected:
     }
 
     Context new_ctx = ctx;
-    const Profiler &profiler = new_ctx.get_profiler();
 
-    hit_rate_t fraction = profiler.get_hr(node);
-    hit_rate_t on_fail_fraction = fraction * (1 - chosen_success_probability);
+    hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
+    hit_rate_t on_fail_hr = hr * (1 - chosen_success_probability);
 
     // FIXME: not using profiler cache.
     constraints_t constraints = node->get_ordered_branch_constraints();
     new_ctx.scale_profiler(constraints, chosen_success_probability);
     new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
-    new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
+    new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_hr);
 
     spec_impl_t spec_impl(
         decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
@@ -318,18 +317,14 @@ private:
   hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
                                               klee::ref<klee::Expr> key,
                                               int cache_capacity) const {
-    const Context &ctx = ep->get_ctx();
-    const Profiler &profiler = ctx.get_profiler();
+    hit_rate_t hr = ep->get_ctx().get_profiler().get_hr(node);
+    rw_fractions_t rw_hr = get_cond_map_put_rw_profile_fractions(ep, node);
 
-    hit_rate_t fraction = profiler.get_hr(node);
-    rw_fractions_t rw_fractions =
-        get_cond_map_put_rw_profile_fractions(ep, node);
+    hit_rate_t failed_writes = rw_hr.write_attempt - rw_hr.write;
 
-    hit_rate_t failed_writes = rw_fractions.write_attempt - rw_fractions.write;
-
-    hit_rate_t rp = rw_fractions.read / fraction;
-    hit_rate_t wp = rw_fractions.write / fraction;
-    hit_rate_t fwp = failed_writes / fraction;
+    hit_rate_t rp = rw_hr.read / hr;
+    hit_rate_t wp = rw_hr.write / hr;
+    hit_rate_t fwp = failed_writes / hr;
 
     hit_rate_t cache_hit_rate =
         get_fcfs_cache_hr(ep, node, key, cache_capacity);
