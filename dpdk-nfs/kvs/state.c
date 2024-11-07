@@ -13,9 +13,7 @@
 
 struct State *allocated_nf_state = NULL;
 
-struct State *alloc_state(uint32_t capacity, uint32_t sketch_height,
-                          uint32_t sketch_width,
-                          time_ns_t sketch_cleanup_interval) {
+struct State *alloc_state(uint32_t capacity, uint64_t expiration_time_us) {
   if (allocated_nf_state != NULL)
     return allocated_nf_state;
 
@@ -24,6 +22,7 @@ struct State *alloc_state(uint32_t capacity, uint32_t sketch_height,
     return NULL;
 
   ret->capacity = capacity;
+  ret->expiration_time_ns = expiration_time_us * 1000;
 
   ret->kvs = NULL;
   if (map_allocate(capacity, sizeof(kv_key_t), &(ret->kvs)) == 0)
@@ -37,13 +36,8 @@ struct State *alloc_state(uint32_t capacity, uint32_t sketch_height,
   if (vector_allocate(sizeof(kv_value_t), capacity, &(ret->values)) == 0)
     return NULL;
 
-  ret->not_cached_counters = NULL;
-  if (cms_allocate(sketch_height, sketch_width, sizeof(kv_key_t),
-                   sketch_cleanup_interval, &(ret->not_cached_counters)) == 0)
-    return NULL;
-
-  ret->cached_counters = NULL;
-  if (vector_allocate(sizeof(uint64_t), capacity, &(ret->cached_counters)) == 0)
+  ret->heap = NULL;
+  if (dchain_allocate(capacity, &(ret->heap)) == 0)
     return NULL;
 
 #ifdef KLEE_VERIFICATION
@@ -52,10 +46,6 @@ struct State *alloc_state(uint32_t capacity, uint32_t sketch_height,
                  sizeof(kv_key_nests) / sizeof(kv_key_nests[0]), "kv_key_t");
   vector_set_layout(ret->keys, NULL, 0, NULL, 0, "kv_key_t");
   vector_set_layout(ret->values, NULL, 0, NULL, 0, "kv_value_t");
-  cms_set_layout(ret->not_cached_counters, kv_key_descrs,
-                 sizeof(kv_key_descrs) / sizeof(kv_key_descrs[0]), kv_key_nests,
-                 sizeof(kv_key_nests) / sizeof(kv_key_nests[0]), "kv_key_t");
-  vector_set_layout(ret->cached_counters, NULL, 0, NULL, 0, "uint64_t");
 #endif // KLEE_VERIFICATION
 
   allocated_nf_state = ret;
@@ -65,9 +55,7 @@ struct State *alloc_state(uint32_t capacity, uint32_t sketch_height,
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
   loop_iteration_border(&allocated_nf_state->kvs, &allocated_nf_state->keys,
-                        &allocated_nf_state->values,
-                        &allocated_nf_state->not_cached_counters,
-                        &allocated_nf_state->cached_counters,
+                        &allocated_nf_state->values, &allocated_nf_state->heap,
                         allocated_nf_state->capacity, lcore_id, time);
 }
 
