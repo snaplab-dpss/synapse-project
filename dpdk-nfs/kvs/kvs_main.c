@@ -76,10 +76,15 @@ bool kvs_cache_lookup(struct State *state, time_ns_t now, enum kvs_op op,
 
 bool kvs_on_cache_miss(struct State *state, time_ns_t now, enum kvs_op op,
                        kv_key_t key, kv_value_t value) {
+  // Only update the cache on PUT operations.
+  if (op != KVS_OP_PUT) {
+    return false;
+  }
+
   unsigned cache_occupancy = map_size(kvs_state->kvs);
 
-  // Only update the cache on PUT operations and when the cache is not full.
-  if (op != KVS_OP_PUT || cache_occupancy == config.capacity) {
+  // Only update the cache if there is enough space.
+  if (cache_occupancy == config.capacity) {
     return false;
   }
 

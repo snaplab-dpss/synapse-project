@@ -40,6 +40,8 @@ digraph mygraph {
 	18 [shape=Mdiamond, label="18:!(16384 == map_size)", fillcolor="yellow"];
 	18 -> 19 [label="True"];
 	18 -> 29 [label="False"];
+	17 [label="17:map_size(map:1073912424) -> map_size\l=>{map_size}", fillcolor="cornflowerblue"];
+	17 -> 18;
 	38 [label="38:fwd(1)", fillcolor="chartreuse2"];
 	37 [label="37:packet_return_chunk(\l  p:1074065184,\l  the_chunk:1073764512[packet_chunks])", fillcolor="cornflowerblue"];
 	37 -> 38;
@@ -49,11 +51,9 @@ digraph mygraph {
 	35 -> 36;
 	34 [label="34:packet_return_chunk(\l  p:1074065184,\l  the_chunk:1073764953[packet_chunks[441:587]])", fillcolor="cornflowerblue"];
 	34 -> 35;
-	17 [shape=Mdiamond, label="17:(1 == packet_chunks[441])", fillcolor="yellow"];
-	17 -> 18 [label="True"];
-	17 -> 34 [label="False"];
-	16 [label="16:map_size(map:1073912424) -> map_size\l=>{map_size}", fillcolor="cornflowerblue"];
-	16 -> 17;
+	16 [shape=Mdiamond, label="16:(1 == packet_chunks[441])", fillcolor="yellow"];
+	16 -> 17 [label="True"];
+	16 -> 34 [label="False"];
 	47 [label="47:fwd(0)", fillcolor="chartreuse2"];
 	46 [label="46:packet_return_chunk(\l  p:1074065184,\l  the_chunk:1073764512[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])", fillcolor="cornflowerblue"];
 	46 -> 47;
