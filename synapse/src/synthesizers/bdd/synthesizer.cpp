@@ -633,6 +633,7 @@ void BDDSynthesizer::map_size(coder_t &coder, const Call *call_node) {
   coder << "uint32_t " << s.name << ";\n";
 
   coder.indent();
+  coder << s.name << " = ";
   coder << "map_size(";
   coder << stack_get(map_addr).name;
   coder << ")";

@@ -15,7 +15,7 @@ struct nf_config config;
 struct State *kvs_state;
 
 bool nf_init(void) {
-  kvs_state = alloc_state(config.capacity, config.expiration_time);
+  kvs_state = alloc_state(config.capacity, config.expiration_time_us);
   return kvs_state != NULL;
 }
 
@@ -35,8 +35,10 @@ void invert_flow(struct rte_ether_hdr *ether_hdr, struct rte_ipv4_hdr *ipv4_hdr,
 }
 
 void kvs_expire(time_ns_t now) {
-  assert(now >= 0);
-  time_ns_t last_time = now - kvs_state->expiration_time_ns;
+  assert(now >= 0); // we don't support the past
+  assert(sizeof(time_ns_t) <= sizeof(uint64_t));
+  uint64_t time_u = (uint64_t)now; // OK because of the two asserts
+  time_ns_t last_time = time_u - kvs_state->expiration_time;
   expire_items_single_map(kvs_state->heap, kvs_state->keys, kvs_state->kvs,
                           last_time);
 }

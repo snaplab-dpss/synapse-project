@@ -15,5 +15,5 @@ struct nf_config {
   uint32_t capacity;
 
   // Expiration time (us)
-  uint64_t expiration_time;
+  uint32_t expiration_time_us;
 };

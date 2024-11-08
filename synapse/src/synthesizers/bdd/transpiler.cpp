@@ -54,7 +54,7 @@ code_t BDDTranspiler::type_from_size(bits_t size) {
     type = "uint64_t";
     break;
   default:
-    assert(false && "Unknown type");
+    PANIC("Unknown type (size=%u)\n", size);
   }
 
   return type;

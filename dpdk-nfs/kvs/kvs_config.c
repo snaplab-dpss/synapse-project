@@ -49,7 +49,7 @@ void nf_config_init(int argc, char **argv) {
       break;
 
     case 't':
-      config.expiration_time = nf_util_parse_int(optarg, "expire", 10, '\0');
+      config.expiration_time_us = nf_util_parse_int(optarg, "expire", 10, '\0');
       break;
 
     default:
@@ -77,7 +77,7 @@ void nf_config_print(void) {
   NF_INFO("Client Device: %" PRIu16, config.client_dev);
   NF_INFO("Server Device: %" PRIu16, config.server_dev);
   NF_INFO("Capacity: %" PRIu32, config.capacity);
-  NF_INFO("Expiration time: %" PRIu64, config.expiration_time);
+  NF_INFO("Expiration time: %" PRIu32 "us", config.expiration_time_us);
 
   NF_INFO("\n--- --- ------ ---\n");
 }

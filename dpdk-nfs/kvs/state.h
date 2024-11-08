@@ -10,7 +10,7 @@ struct State {
   struct DoubleChain *heap;
 
   uint32_t capacity;
-  time_ns_t expiration_time_ns;
+  time_ns_t expiration_time;
 };
 
 struct State *alloc_state(uint32_t capacity, uint64_t expiration_time_us);

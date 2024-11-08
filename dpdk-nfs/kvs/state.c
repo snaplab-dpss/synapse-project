@@ -22,7 +22,7 @@ struct State *alloc_state(uint32_t capacity, uint64_t expiration_time_us) {
     return NULL;
 
   ret->capacity = capacity;
-  ret->expiration_time_ns = expiration_time_us * 1000;
+  ret->expiration_time = expiration_time_us * 1000;
 
   ret->kvs = NULL;
   if (map_allocate(capacity, sizeof(kv_key_t), &(ret->kvs)) == 0)
