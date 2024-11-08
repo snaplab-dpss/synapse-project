@@ -660,19 +660,19 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             if ((1) == (*(hdr4+0))) {
               // Node 17
               inc_path_counter(17);
-              uint32_t map_usage;
-              map_usage = map_size(map);
+              int index;
+              int out_of_space = !dchain_allocate_new_index(dchain, &index, now);
               // Node 18
               inc_path_counter(18);
-              if (!((16384) == (map_usage))) {
+              if ((0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)(!((0) == (out_of_space))))) & ((0) == (freed_flows)))))) {
                 // Node 19
                 inc_path_counter(19);
                 uint8_t* vector_value_out = 0;
-                vector_borrow(vector, map_usage, (void**)&vector_value_out);
+                vector_borrow(vector, index, (void**)&vector_value_out);
                 // Node 20
                 inc_path_counter(20);
                 memcpy((void*)vector_value_out, (void*)key, 16);
-                map_put(map, vector_value_out, map_usage);
+                map_put(map, vector_value_out, index);
                 map_stats.update(20, vector_value_out, 16);
                 // Node 21
                 inc_path_counter(21);
@@ -680,7 +680,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 // Node 22
                 inc_path_counter(22);
                 uint8_t* vector_value_out2 = 0;
-                vector_borrow(vector2, map_usage, (void**)&vector_value_out2);
+                vector_borrow(vector2, index, (void**)&vector_value_out2);
                 // Node 23
                 inc_path_counter(23);
                 memcpy((void*)vector_value_out2, (void*)(hdr4+17), 128);
@@ -739,7 +739,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 // Node 33
                 inc_path_counter(33);
                 return 1;
-              } // !((16384) == (map_usage))
+              } // (0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)(!((0) == (out_of_space))))) & ((0) == (freed_flows)))))
             } else {
               // Node 34
               inc_path_counter(34);

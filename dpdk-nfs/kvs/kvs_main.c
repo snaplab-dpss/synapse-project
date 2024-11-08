@@ -83,14 +83,11 @@ bool kvs_on_cache_miss(struct State *state, time_ns_t now, enum kvs_op op,
     return false;
   }
 
-  unsigned cache_occupancy = map_size(kvs_state->kvs);
-
-  // Only update the cache if there is enough space.
-  if (cache_occupancy == config.capacity) {
+  int index;
+  if (!dchain_allocate_new_index(state->heap, &index, now)) {
+    // Not enough space in the cache.
     return false;
   }
-
-  int index = cache_occupancy;
 
   void *k;
   vector_borrow(state->keys, index, (void **)&k);

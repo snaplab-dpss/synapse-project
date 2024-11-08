@@ -25,12 +25,7 @@
 
 #define PANIC(fmt, ...)                                                        \
   {                                                                            \
-    fprintf(stderr,                                                            \
-            COLOR_RED_BRIGHT "\n"                                              \
-                             "******************\n"                            \
-                             "*     PANIC!     *\n"                            \
-                             "******************"                              \
-                             "\n" COLOR_RESET fmt "\n",                        \
+    fprintf(stderr, COLOR_RED_BRIGHT "\n>PANIC!<\n" COLOR_RESET fmt "\n",      \
             ##__VA_ARGS__);                                                    \
     fflush(stderr);                                                            \
     assert(false && "Panic");                                                  \

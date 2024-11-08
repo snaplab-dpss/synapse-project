@@ -112,39 +112,39 @@ kvs() {
         --out $SYNTHESIZED_DIR/$report.dot
 }
 
-gen_and_build_profiler fw
+# gen_and_build_profiler fw
 
-fw 10000 0 unif 0
-fw 10000 0 zipf 0.9
-fw 10000 0 zipf 0.99
-fw 10000 0 zipf 1.26
+# fw 10000 0 unif 0
+# fw 10000 0 zipf 0.9
+# fw 10000 0 zipf 0.99
+# fw 10000 0 zipf 1.26
 
-fw 10000 1000000 unif 0
-fw 10000 1000000 zipf 0.9
-fw 10000 1000000 zipf 0.99
-fw 10000 1000000 zipf 1.26
+# fw 10000 1000000 unif 0
+# fw 10000 1000000 zipf 0.9
+# fw 10000 1000000 zipf 0.99
+# fw 10000 1000000 zipf 1.26
 
-fw 10000 100000000 unif 0
-fw 10000 100000000 zipf 0.9
-fw 10000 100000000 zipf 0.99
-fw 10000 100000000 zipf 1.26
+# fw 10000 100000000 unif 0
+# fw 10000 100000000 zipf 0.9
+# fw 10000 100000000 zipf 0.99
+# fw 10000 100000000 zipf 1.26
 
-gen_and_build_profiler nat
+# gen_and_build_profiler nat
 
-nat 10000 0 unif 0
-nat 10000 0 zipf 0.9
-nat 10000 0 zipf 0.99
-nat 10000 0 zipf 1.26
+# nat 10000 0 unif 0
+# nat 10000 0 zipf 0.9
+# nat 10000 0 zipf 0.99
+# nat 10000 0 zipf 1.26
 
-nat 10000 1000000 unif 0
-nat 10000 1000000 zipf 0.9
-nat 10000 1000000 zipf 0.99
-nat 10000 1000000 zipf 1.26
+# nat 10000 1000000 unif 0
+# nat 10000 1000000 zipf 0.9
+# nat 10000 1000000 zipf 0.99
+# nat 10000 1000000 zipf 1.26
 
-nat 10000 100000000 unif 0
-nat 10000 100000000 zipf 0.9
-nat 10000 100000000 zipf 0.99
-nat 10000 100000000 zipf 1.26
+# nat 10000 100000000 unif 0
+# nat 10000 100000000 zipf 0.9
+# nat 10000 100000000 zipf 0.99
+# nat 10000 100000000 zipf 1.26
 
 gen_and_build_profiler kvs
 
@@ -163,4 +163,4 @@ kvs 100000 100000000 zipf 0.9
 kvs 100000 100000000 zipf 0.99
 kvs 100000 100000000 zipf 1.26
 
-gen_and_build_profiler pol
+# gen_and_build_profiler pol
