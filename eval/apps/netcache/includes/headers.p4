@@ -1,3 +1,5 @@
+#include "constants.p4"
+
 #ifndef _HEADERS_
 #define _HEADERS_
 
@@ -43,10 +45,18 @@ header udp_t {
     bit<16> checksum;
 }
 
-header icmp_t {
-    bit<8> type;
-    bit<8> code;
-    bit<16> hdrChecksum;
+header netcache_t {
+    bit<8>  op;
+    bit<32> seq;
+    key_t   key;
+    value_t value;
+}
+
+header meta_t {
+    bit<1>      cache_hit;
+    keyIdx_t    key_idx;
+    vtableIdx_t vt_idx;
+    bit<3>      align;
 }
 
 struct ingress_metadata_t {}
@@ -54,11 +64,12 @@ struct ingress_metadata_t {}
 struct egress_metadata_t {}
 
 struct header_t {
-    ethernet_t	    ethernet;
-    ipv4_t		    ipv4;
-    tcp_t		    tcp;
-    udp_t		    udp;
-    icmp_t 		    icmp;
+    ethernet_t	ethernet;
+    ipv4_t		ipv4;
+    tcp_t		tcp;
+    udp_t		udp;
+    netcache_t  netcache;
+    meta_t      meta;
 }
 
 #endif

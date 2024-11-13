@@ -16,4 +16,24 @@ typedef bit<9> port_t;
 
 const port_t CPU_PORT = 255;
 
+// NetCache
+
+const bit<16> NC_PORT = 50000;
+
+#define NC_KEY_WIDTH				16
+#define NC_KEY_IDX_WIDTH			20
+#define NC_VALUE_WIDTH				32
+#define NC_VTABLE_SIZE_WIDTH		16
+#define NC_ENTRIES					65536
+
+typedef bit<NC_KEY_WIDTH>			key_t;
+typedef bit<NC_KEY_IDX_WIDTH>		keyIdx_t;
+typedef bit<NC_VALUE_WIDTH>			value_t;
+typedef bit<NC_VTABLE_SIZE_WIDTH>	vtableIdx_t;
+
+const bit<8> READ_QUERY = 0x00;
+const bit<8> WRITE_QUERY = 0x01;
+const bit<8> DELETE_QUERY = 0x02;
+const bit<8> UPDATE_QUERY = 0x03;
+
 #endif

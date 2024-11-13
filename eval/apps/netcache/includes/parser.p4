@@ -14,7 +14,11 @@
 // Ingress Parser
 // ---------------------------------------------------------------------------
 
-parser SwitchIngressParser(packet_in pkt, out header_t hdr, out ingress_metadata_t ig_md, out ingress_intrinsic_metadata_t ig_intr_md) {
+parser SwitchIngressParser(
+        packet_in pkt,
+        out header_t hdr,
+        out ingress_metadata_t ig_md,
+        out ingress_intrinsic_metadata_t ig_intr_md) {
 
     state start {
         pkt.extract(ig_intr_md);
@@ -35,27 +39,30 @@ parser SwitchIngressParser(packet_in pkt, out header_t hdr, out ingress_metadata
         transition select(hdr.ipv4.protocol) {
             IP_PROTO_UDP : parse_udp;
             IP_PROTO_TCP : parse_tcp;
-            IP_PROTO_ICMP: parse_icmp;
             default : accept;
         }
     }
 
     state parse_udp {
         pkt.extract(hdr.udp);
-        hdr.meta.l4_src_port = hdr.udp.src_port;
-        hdr.meta.l4_dst_port = hdr.udp.dst_port;
-        transition accept;
+        transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+            (NC_PORT, _) : parse_netcache;
+            (_, NC_PORT) : parse_netcache;
+            default : accept;
+        }
     }
 
     state parse_tcp {
         pkt.extract(hdr.tcp);
-        hdr.meta.l4_src_port = hdr.tcp.src_port;
-        hdr.meta.l4_dst_port = hdr.tcp.dst_port;
-        transition accept;
+        transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
+            (NC_PORT, _) : parse_netcache;
+            (_, NC_PORT) : parse_netcache;
+            default : accept;
+        }
     }
 
-    state parse_icmp {
-        pkt.extract(hdr.icmp);
+    state parse_netcache {
+        pkt.extract(hdr.netcache);
         transition accept;
     }
 }
@@ -64,7 +71,11 @@ parser SwitchIngressParser(packet_in pkt, out header_t hdr, out ingress_metadata
 // Egress Parser
 // ---------------------------------------------------------------------------
 
-parser SwitchEgressParser(packet_in pkt, out header_t hdr, out egress_metadata_t eg_md, out egress_intrinsic_metadata_t eg_intr_md) {
+parser SwitchEgressParser(
+        packet_in pkt,
+        out header_t hdr,
+        out egress_metadata_t eg_md,
+        out egress_intrinsic_metadata_t eg_intr_md) {
 
     state start {
         pkt.extract(eg_intr_md);
@@ -84,23 +95,30 @@ parser SwitchEgressParser(packet_in pkt, out header_t hdr, out egress_metadata_t
         transition select(hdr.ipv4.protocol) {
             IP_PROTO_UDP : parse_udp;
             IP_PROTO_TCP : parse_tcp;
-            IP_PROTO_ICMP: parse_icmp;
             default : accept;
         }
     }
 
     state parse_udp {
         pkt.extract(hdr.udp);
-        transition accept;
+        transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+            (NC_PORT, _) : parse_netcache;
+            (_, NC_PORT) : parse_netcache;
+            default : accept;
+        }
     }
 
     state parse_tcp {
         pkt.extract(hdr.tcp);
-        transition accept;
+        transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
+            (NC_PORT, _) : parse_netcache;
+            (_, NC_PORT) : parse_netcache;
+            default : accept;
+        }
     }
 
-    state parse_icmp {
-        pkt.extract(hdr.icmp);
+    state parse_netcache {
+        pkt.extract(hdr.netcache);
         transition accept;
     }
 }

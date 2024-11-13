@@ -18,7 +18,8 @@ control SwitchIngressDeparser(packet_out pkt, inout header_t hdr, in ingress_met
         pkt.emit(hdr.ipv4);
         pkt.emit(hdr.udp);
         pkt.emit(hdr.tcp);
-        pkt.emit(hdr.icmp);
+        pkt.emit(hdr.netcache);
+        pkt.emit(hdr.meta);
     }
 }
 
@@ -32,7 +33,7 @@ control SwitchEgressDeparser(packet_out pkt, inout header_t hdr, in egress_metad
         pkt.emit(hdr.ipv4);
         pkt.emit(hdr.udp);
         pkt.emit(hdr.tcp);
-        pkt.emit(hdr.icmp);
+        pkt.emit(hdr.netcache);
     }
 }
 
