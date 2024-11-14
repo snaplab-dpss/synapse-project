@@ -49,7 +49,7 @@ header netcache_t {
     bit<8>  op;
     bit<32> seq;
     key_t   key;
-    value_t value;
+    val_t   val;
 }
 
 header meta_t {

@@ -24,20 +24,20 @@ control SwitchIngress(
         inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
         inout ingress_intrinsic_metadata_for_tm_t ig_tm_md) {
 
-	Register<bit<NC_VALUE_WIDTH>, bit<16>>(NC_ENTRIES) reg_vtable;
+	Register<bit<NC_VAL_WIDTH>, bit<16>>(NC_ENTRIES) reg_vtable;
 
-	RegisterAction<_, bit<16>, bit<NC_VALUE_WIDTH>>(reg_vtable) ract_vtable_read = {
-		void apply(inout bit<NC_VALUE_WIDTH> value, out bit<NC_VALUE_WIDTH> res) {
-            res = value;
+	RegisterAction<_, bit<16>, bit<NC_VAL_WIDTH>>(reg_vtable) ract_vtable_read = {
+		void apply(inout bit<NC_VAL_WIDTH> val, out bit<NC_VAL_WIDTH> res) {
+            res = val;
 		}
 	};
 
-	RegisterAction<_, bit<16>, bit<NC_VALUE_WIDTH>>(reg_vtable) ract_vtable_update = {
-		void apply(inout bit<NC_VALUE_WIDTH> value) {
+	RegisterAction<_, bit<16>, bit<NC_VAL_WIDTH>>(reg_vtable) ract_vtable_update = {
+		void apply(inout bit<NC_VAL_WIDTH> val) {
             if (hdr.netcache.op == WRITE_QUERY) {
-                value = hdr.netcache.value;
+                val = hdr.netcache.val;
             } else {
-                value = 0;
+                val = 0;
             }
 		}
 	};
@@ -48,7 +48,7 @@ control SwitchIngress(
 	}
 
 	action vtable_read() {
-       hdr.netcache.value = ract_vtable_read.execute(hdr.meta.vt_idx);
+       hdr.netcache.val = ract_vtable_read.execute(hdr.meta.vt_idx);
 	}
 
 	action vtable_update() {
@@ -159,18 +159,61 @@ control SwitchEgress(
     c_cm()      cm;
     c_bloom()   bloom;
 
+	Register<bit<8>, bit<1>>(1) reg_sampl;
+	Register<bit<32>, bit<NC_KEY_WIDTH>>(NC_ENTRIES) reg_key_count;
+
+    bit<1>  sampl_cur;
+    bit<32> cm_result;
+    bit<1>  bloom_result;
+
+	RegisterAction<bit<8>, bit<1>, bit<1>>(reg_sampl) ract_sampl = {
+		void apply(inout bit<8> val, out bit<1> res) {
+            if (val < 3) {
+                val = val + 1;
+            } else {
+                val = 0;
+                res = 1;
+            }
+            res = 0;
+		}
+	};
+
+	RegisterAction<_, bit<16>, bit<32>>(reg_key_count) ract_key_count_incr = {
+		void apply(inout bit<32> val) {
+            val = val + 1;
+		}
+	};
+
+	action sampl_check() {
+       sampl_cur = ract_sampl.execute(0);
+	}
+
+	action key_count_incr() {
+       ract_key_count_incr.execute(hdr.netcache.key);
+	}
+
     apply {
         if (hdr.netcache.isValid()) {
             if (hdr.netcache.op == READ_QUERY) {
-                // Cache hit
-                if (hdr.meta.cache_hit == 1) {
-                    // Update cache counter.
-                } else {
-                    // Update cm sketch.
-                    // If cm cntr > HH_THRESHOLD:
-                    //     Check against bloom filter.
-                    //     If confirmed HH:
-                    //         Update OP to HOT_READ, to inform the server.
+                sampl_check();
+                if (sampl_cur == 1) {
+                    // Cache hit
+                    if (hdr.meta.cache_hit == 1) {
+                        // Update cache counter.
+                        key_count_incr();
+                    } else {
+                        // Update cm sketch.
+                        cm.apply(hdr, cm_result);
+                        // Check cm result against threshold (currently 127).
+                        if (cm_result[31:8] != 0) {
+                            // Check against bloom filter.
+                            bloom.apply(hdr, bloom_result);
+                            // If confirmed HH, update OP to HOT_READ, to inform the server.
+                            if (bloom_result == 0) {
+                                hdr.netcache.op = HOT_READ_QUERY;
+                            }
+                        }
+                    }
                 }
             }
         }

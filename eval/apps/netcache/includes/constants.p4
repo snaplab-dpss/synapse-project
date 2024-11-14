@@ -22,18 +22,22 @@ const bit<16> NC_PORT = 50000;
 
 #define NC_KEY_WIDTH				16
 #define NC_KEY_IDX_WIDTH			20
-#define NC_VALUE_WIDTH				32
+#define NC_VAL_WIDTH				32
 #define NC_VTABLE_SIZE_WIDTH		16
 #define NC_ENTRIES					65536
+#define SKETCH_ENTRIES				16384
+#define BLOOM_ENTRIES				262144
+#define HH_THRES					128
 
 typedef bit<NC_KEY_WIDTH>			key_t;
 typedef bit<NC_KEY_IDX_WIDTH>		keyIdx_t;
-typedef bit<NC_VALUE_WIDTH>			value_t;
+typedef bit<NC_VAL_WIDTH>			val_t;
 typedef bit<NC_VTABLE_SIZE_WIDTH>	vtableIdx_t;
 
 const bit<8> READ_QUERY = 0x00;
 const bit<8> WRITE_QUERY = 0x01;
 const bit<8> DELETE_QUERY = 0x02;
 const bit<8> UPDATE_QUERY = 0x03;
+const bit<8> HOT_READ_QUERY = 0x04;
 
 #endif
