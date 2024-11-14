@@ -21,7 +21,7 @@ const port_t CPU_PORT = 255;
 const bit<16> NC_PORT = 50000;
 
 #define NC_KEY_WIDTH				16
-#define NC_KEY_IDX_WIDTH			20
+#define NC_KEY_IDX_WIDTH			16
 #define NC_VAL_WIDTH				32
 #define NC_VTABLE_SIZE_WIDTH		16
 #define NC_ENTRIES					65536

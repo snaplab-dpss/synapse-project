@@ -12,10 +12,10 @@ control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
                            extended = false,
                            init     = 0x00000000,
                            xor      = 0xFFFFFFFF) crc32_c;
-	
+
 	CRCPolynomial<bit<32>>(coeff    = 0xA833982B,
 						   reversed = true,
-						   msb      = false,
+						   msb		= false,
 						   extended = false,
                            init     = 0x00000000,
                            xor      = 0xFFFFFFFF) crc32_d;
