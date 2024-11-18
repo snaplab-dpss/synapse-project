@@ -73,6 +73,8 @@ private:
 
 			// Fwd table entries.
 			// fwd.add_entry(ig_port, eg_port);
+			
+			// Initial cache lookup config.
 		}
 	}
 

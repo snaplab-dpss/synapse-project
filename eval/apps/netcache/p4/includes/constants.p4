@@ -20,13 +20,21 @@ const port_t CPU_PORT = 255;
 
 const bit<16> NC_PORT = 50000;
 
+// Size of a key field
 #define NC_KEY_WIDTH				16
+// Size of the key index (used in the cache counter)
 #define NC_KEY_IDX_WIDTH			16
+// Size of a value field
 #define NC_VAL_WIDTH				32
+// Size of the vtable index (used to access the vtable register)
 #define NC_VTABLE_SIZE_WIDTH		16
+// Number of entries in the vtable register
 #define NC_ENTRIES					65536
+// Number of entries in each of the CM registers
 #define SKETCH_ENTRIES				16384
+// Number of entries in each of the bloom filter registers
 #define BLOOM_ENTRIES				262144
+// Heavy hitter threshold
 #define HH_THRES					128
 
 typedef bit<NC_KEY_WIDTH>			key_t;
@@ -37,7 +45,6 @@ typedef bit<NC_VTABLE_SIZE_WIDTH>	vtableIdx_t;
 const bit<8> READ_QUERY = 0x00;
 const bit<8> WRITE_QUERY = 0x01;
 const bit<8> DELETE_QUERY = 0x02;
-const bit<8> UPDATE_QUERY = 0x03;
-const bit<8> HOT_READ_QUERY = 0x04;
+const bit<8> HOT_READ_QUERY = 0x03;
 
 #endif

@@ -9,17 +9,19 @@
 #include <variant>
 
 #include "netcache.h"
+#include "listener.h"
 
 #define REPORT_FILE "netcache-controller.tsv"
 
 struct args_t {
+	std::string iface;
 	std::string topology_file_path;
 	bool use_tofino_model;
 	bool bf_prompt;
 
 	args_t(int argc, char **argv) : use_tofino_model(false), bf_prompt(false) {
-		if (argc < 2) {
-			help(argc, argv);
+		if (argc < 4) {
+			help(argv);
 		}
 
 		parse_help(argc, argv);
@@ -30,10 +32,27 @@ struct args_t {
 		parse_bf_prompt_flag(argc, argv);
 	}
 
-	void help(int argc, char **argv) {
+	void help(char **argv) {
 		std::cerr << "Usage: " << argv[0]
-				  << " topology [--bf-prompt] [--tofino-model] [-h|--help]\n";
+				  << " topology -i <listen iface> [--bf-prompt] [--tofino-model] [-h|--help]\n";
 		exit(0);
+	}
+
+	void parse_iface(int argc, char** argv) {
+		auto arg_str = std::string("-i");
+
+		for (auto argi = 1u; argi < argc - 1; argi++) {
+			auto arg = std::string(argv[argi]);
+			auto cmp = arg.compare(arg_str);
+
+			if (cmp == 0) {
+				iface = std::string(argv[argi + 1]);
+				return;
+			}
+		}
+
+		std::cerr << "Option -i not found.\n";
+		help(argv);
 	}
 
 	void parse_tofino_model_flag(int argc, char **argv) {
@@ -67,7 +86,7 @@ struct args_t {
 			auto arg = std::string(argv[i]);
 			for (auto target : targets) {
 				if (arg.compare(target) == 0) {
-					help(argc, argv);
+					help(argv);
 					return;
 				}
 			}
@@ -78,6 +97,7 @@ struct args_t {
 		std::cout << "\n";
 		std::cout << "Configuration:\n";
 		std::cout << "  topology:      " << topology_file_path << "\n";
+		std::cout << "  iface:		   " << iface << "\n";
 		std::cout << "  model:         " << use_tofino_model << "\n";
 		std::cout << "  bf prompt:     " << bf_prompt << "\n";
 	}
@@ -125,6 +145,10 @@ void signalHandler(int signum) {
 	exit(signum);
 }
 
+void process_hot_read_query();
+void process_write_query();
+void process_del_query();
+
 int main(int argc, char **argv) {
 	signal(SIGINT, signalHandler);
 	signal(SIGQUIT, signalHandler);
@@ -137,11 +161,24 @@ int main(int argc, char **argv) {
 
 	args.dump();
 
-	std::cerr << "\nPeregrine controller is ready.\n";
+	auto listener = netcache::Listener(args.iface);
 
-	// main thread sleeps
+	std::cerr << "\nNetCache controller is ready.\n";
+
 	while (1) {
-		sleep(5);
+		auto query = listener.receive_query();
+
+		if (query.valid) {
+			// if query.op == HOT_READ
+			// 	process_hot_read_query();
+			// else if query.op == WRITE
+			// 	process_write_query();
+			// else if query.op == DELETE
+			// 	process_del_query();
+			// else {
+			// 	std::cerr << "Invalid query received.";
+			}
+					
 	}
 
 	return 0;

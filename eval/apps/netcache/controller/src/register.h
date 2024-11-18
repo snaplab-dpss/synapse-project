@@ -2,7 +2,7 @@
 
 #include "table.h"
 
-namespace peregrine {
+namespace netcache {
 
 class Register : public Table {
  private:
@@ -64,4 +64,4 @@ class Register : public Table {
   }
 };
 
-};  // namespace nat
+};  // namespace netcache

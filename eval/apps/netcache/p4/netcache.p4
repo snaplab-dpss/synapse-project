@@ -120,7 +120,6 @@ control SwitchIngress(
             if (hdr.netcache.op == READ_QUERY) {
                 // Cache hit
                 if (hdr.meta.cache_hit == 1) {
-                    // Assume no WRITE/UPDATE validity check, immediately access the cached value.
                     // Update the packet header with the cached value.
                     vtable_read();
                     // Swap the IP src/dst and port src/dst.
