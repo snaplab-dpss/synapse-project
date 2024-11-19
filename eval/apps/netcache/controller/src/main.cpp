@@ -8,10 +8,13 @@
 #include <vector>
 #include <variant>
 
+#include "constants.h"
 #include "netcache.h"
 #include "listener.h"
+#include "process_query.h"
 
 #define REPORT_FILE "netcache-controller.tsv"
+
 
 struct args_t {
 	std::string iface;
@@ -145,10 +148,6 @@ void signalHandler(int signum) {
 	exit(signum);
 }
 
-void process_hot_read_query();
-void process_write_query();
-void process_del_query();
-
 int main(int argc, char **argv) {
 	signal(SIGINT, signalHandler);
 	signal(SIGQUIT, signalHandler);
@@ -162,6 +161,7 @@ int main(int argc, char **argv) {
 	args.dump();
 
 	auto listener = netcache::Listener(args.iface);
+	auto process_query = netcache::ProcessQuery();
 
 	std::cerr << "\nNetCache controller is ready.\n";
 
@@ -169,16 +169,16 @@ int main(int argc, char **argv) {
 		auto query = listener.receive_query();
 
 		if (query.valid) {
-			// if query.op == HOT_READ
-			// 	process_hot_read_query();
-			// else if query.op == WRITE
-			// 	process_write_query();
-			// else if query.op == DELETE
-			// 	process_del_query();
-			// else {
-			// 	std::cerr << "Invalid query received.";
+			if (query.op == WRITE_QUERY) {
+				process_query.write_query(query);
+			} else if (query.op == DELETE_QUERY) {
+				process_query.del_query(query);
+			} else if (query.op == HOT_READ_QUERY) {
+				process_query.hot_read_query(query);
+			} else {
+				std::cerr << "Invalid query received.";
 			}
-					
+		}
 	}
 
 	return 0;

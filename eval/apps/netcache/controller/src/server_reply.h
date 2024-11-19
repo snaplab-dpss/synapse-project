@@ -4,8 +4,6 @@
 #include <stdexcept>
 #include <stdint.h>
 
-#include "packet.h"
-
 namespace netcache {
 
 struct server_reply_t {

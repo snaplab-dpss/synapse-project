@@ -6,6 +6,7 @@
 #include "query.h"
 
 namespace netcache {
+
 class Listener {
 private:
 	int sock_recv;
@@ -17,4 +18,5 @@ public:
 	query_t receive_query();
 	~Listener();
 };
+
 }  // namespace netcache

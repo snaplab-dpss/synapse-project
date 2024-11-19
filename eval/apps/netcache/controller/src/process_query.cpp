@@ -3,6 +3,7 @@
 #include "process_query.h"
 #include "constants.h"
 #include "server_reply.h"
+#include "netcache.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,12 +34,11 @@ ProcessQuery::ProcessQuery() {
 	servaddr.sin_addr.s_addr = inet_addr(SERVER_HOST);
 }
 
-void ProcessQuery::process_hot_read_query(const query_t& hot_read_query) {
+void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
 	// Sample n values from the switch's cached item counter array.
 	// Compare the obtained counter values against the HH report counter value.
 	// If any of the sampled counters < HH report counter:
 	// 	- Evict the key corresponding to the smallest.
-	// 	- Update the key/value corresponding to the HH report directly on the switch.
 
 	auto buffer = hot_read_query.serialize();
 
@@ -69,9 +69,13 @@ void ProcessQuery::process_hot_read_query(const query_t& hot_read_query) {
 	std::cout << "reply.key " << reply.key << "\n";
 	std::cout << "reply.val " << reply.val << "\n";
 #endif
+
+	// Update the key/value corresponding to the HH report directly on the switch.
+	Controller::controller->reg_vtable.allocate(reply.key, reply.val);
+	// Update the cache lookup table.
 }
 
-void ProcessQuery::process_write_query(const query_t& write_query) {
+void ProcessQuery::write_query(const query_t& write_query) {
 
 	auto buffer = write_query.serialize();
 
@@ -101,7 +105,7 @@ void ProcessQuery::process_write_query(const query_t& write_query) {
 	}
 }
 
-void ProcessQuery::process_del_query(const query_t& del_query) {
+void ProcessQuery::del_query(const query_t& del_query) {
 
 	auto buffer = del_query.serialize();
 

@@ -57,8 +57,7 @@ protected:
 			auto bf_status = table->keyFieldIdGet(field.first, field.second);
 
 			if (bf_status != BF_SUCCESS) {
-				std::cerr << "Error configuring table key " << field.first
-						  << "\n";
+				std::cerr << "Error configuring table key " << field.first << "\n";
 				exit(1);
 			}
 		}
@@ -69,8 +68,7 @@ protected:
 			auto bf_status = table->dataFieldIdGet(field.first, field.second);
 
 			if (bf_status != BF_SUCCESS) {
-				std::cerr << "Error configuring table data " << field.first
-						  << "\n";
+				std::cerr << "Error configuring table data " << field.first << "\n";
 				exit(1);
 			}
 		}
@@ -84,8 +82,7 @@ protected:
 				field.first, field.second.first, field.second.second);
 
 			if (bf_status != BF_SUCCESS) {
-				std::cerr << "Error configuring table data with actions "
-						  << field.first << "\n";
+				std::cerr << "Error configuring table data with actions " << field.first << "\n";
 				exit(1);
 			}
 		}
@@ -96,8 +93,7 @@ protected:
 			auto bf_status = table->actionIdGet(action.first, action.second);
 
 			if (bf_status != BF_SUCCESS) {
-				std::cerr << "Error configuring table action " << action.first
-						  << "\n";
+				std::cerr << "Error configuring table action " << action.first << "\n";
 				exit(1);
 			}
 		}

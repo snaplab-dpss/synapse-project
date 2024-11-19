@@ -5,6 +5,7 @@
 #include "packet.h"
 #include "tables/fwd.h"
 #include "tables/cache_lookup.h"
+#include "registers/reg_vtable.h"
 
 #include "topology.h"
 #include "ports.h"
@@ -29,6 +30,11 @@ struct bfrt_info_t;
 class Controller {
 public:
 	static std::shared_ptr<Controller> controller;
+	// Switch tables
+	Fwd fwd;
+	CacheLookup cache_lookup;
+	// Switch registers
+	RegVTable reg_vtable;
 
 private:
 	const bfrt::BfRtInfo *info;
@@ -38,10 +44,6 @@ private:
 	Ports ports;
 	topology_t topology;
 	bool use_tofino_model;
-
-	// Switch resources
-	Fwd fwd;
-	CacheLookup cache_lookup;
 
 	Controller(const bfrt::BfRtInfo *_info,
 			   		 std::shared_ptr<bfrt::BfRtSession> _session,
@@ -54,8 +56,9 @@ private:
 		  ports(_info, _session, _dev_tgt),
 		  topology(_topology),
 		  use_tofino_model(_use_tofino_model),
-		  fwd(_info, session, dev_tgt),
-		  cache_lookup(_info, session, dev_tgt) { 
+		  fwd(_info, _session, _dev_tgt),
+		  cache_lookup(_info, _session, _dev_tgt),
+		  reg_vtable(_info, _session, _dev_tgt) { 
 		if (!use_tofino_model) {
 			config_ports(topology);
 		}

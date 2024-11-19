@@ -18,9 +18,9 @@ struct ProcessQuery {
 
 	ProcessQuery();
 
-	void process_hot_read_query(const query_t& query);
-	void process_write_query(const query_t& query);
-	void process_del_query(const query_t& query);
+	void hot_read_query(const query_t& query);
+	void write_query(const query_t& query);
+	void del_query(const query_t& query);
 };
 
 }  // netcache
