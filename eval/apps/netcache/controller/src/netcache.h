@@ -1,12 +1,14 @@
 #pragma once
 
 #include <algorithm>
+#include <vector>
+#include <random>
+#include <unordered_set>
 
 #include "packet.h"
 #include "tables/fwd.h"
 #include "tables/cache_lookup.h"
 #include "registers/reg_vtable.h"
-
 #include "topology.h"
 #include "ports.h"
 
@@ -46,10 +48,10 @@ private:
 	bool use_tofino_model;
 
 	Controller(const bfrt::BfRtInfo *_info,
-			   		 std::shared_ptr<bfrt::BfRtSession> _session,
-			   		 bf_rt_target_t _dev_tgt,
-			   		 const topology_t &_topology,
-			   		 bool _use_tofino_model)
+			   std::shared_ptr<bfrt::BfRtSession> _session,
+			   bf_rt_target_t _dev_tgt,
+			   const topology_t &_topology,
+			   bool _use_tofino_model)
 		: info(_info),
 		  session(_session),
 		  dev_tgt(_dev_tgt),
@@ -58,7 +60,7 @@ private:
 		  use_tofino_model(_use_tofino_model),
 		  fwd(_info, _session, _dev_tgt),
 		  cache_lookup(_info, _session, _dev_tgt),
-		  reg_vtable(_info, _session, _dev_tgt) { 
+		  reg_vtable(_info, _session, _dev_tgt) {
 		if (!use_tofino_model) {
 			config_ports(topology);
 		}
@@ -76,8 +78,29 @@ private:
 
 			// Fwd table entries.
 			// fwd.add_entry(ig_port, eg_port);
-			
-			// Initial cache lookup config.
+
+			// Insert k entries in the switch's KV store, all with value 0.
+
+			int N = 8192;
+			int k = 50;
+
+			std::random_device rd;
+			std::mt19937 gen(rd());
+
+			std::uniform_int_distribution<> dis(1, N);
+			std::unordered_set<int> elems;
+
+			while (elems.size() < k) { elems.insert(dis(gen)); }
+
+			std::vector<int> sampl_index(elems.begin(), elems.end());
+
+			for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
+
+			// Initial cache lookup table config.
+			// With this setup, we're assuming that key = key_idx, just to simplify.
+			for (int i: sampl_index) {
+				cache_lookup.add_entry(i, i, i);
+			}
 		}
 	}
 

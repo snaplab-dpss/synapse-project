@@ -5,6 +5,11 @@
 #include "server_reply.h"
 #include "netcache.h"
 
+#include <iostream>
+#include <vector>
+#include <random>
+#include <unordered_set>
+#include <algorithm>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -35,44 +40,81 @@ ProcessQuery::ProcessQuery() {
 }
 
 void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
-	// Sample n values from the switch's cached item counter array.
-	// Compare the obtained counter values against the HH report counter value.
-	// If any of the sampled counters < HH report counter:
-	// 	- Evict the key corresponding to the smallest.
+	// Sample k values from the switch's cached item counter array.
+	int N = 8192;
+	int k = 50;
 
-	auto buffer = hot_read_query.serialize();
+	std::random_device rd;
+	std::mt19937 gen(rd());
 
-	auto sent_len =
-		sendto(sockfd, (const char*)buffer.data(), buffer.size(), MSG_CONFIRM,
-			   (const struct sockaddr*)&servaddr, sizeof(servaddr));
+	std::uniform_int_distribution<> dis(1, N);
+	std::unordered_set<int> elems;
 
-	if (sent_len != buffer.size()) {
-		fprintf(stderr, "Truncated packet.\n");
-		exit(EXIT_FAILURE);
+	while (elems.size() < k) { elems.insert(dis(gen)); }
+
+	std::vector<int> sampl_index(elems.begin(), elems.end());
+
+	// Vector that stores all key indexes and counters randomly sampled from the switch.
+	std::vector<std::vector<uint32_t>> sampl_cntr;
+
+	for (int i: sampl_index) {
+		sampl_cntr.push_back({(uint32_t) i,
+							   Controller::controller->reg_vtable.retrieve(i, false)});
 	}
 
-	struct sockaddr_in src_addr;
-	socklen_t socklen = sizeof(src_addr);
-	std::vector<uint8_t> buffer_reply;
+	// Retrieve the index of the smallest counter value from the vector.
 
-	ssize_t len = recvfrom(sockfd, &buffer_reply, 65536, 0,
-						   (struct sockaddr*)&src_addr, &socklen);
+	uint32_t smallest_val = std::numeric_limits<uint32_t>::max();
+	int smallest_idx = -1;
 
-	if (len < 0) {
-		std::cerr << "Failed to receive a response from the server." << std::endl;
-		return;
+	for (size_t i = 0; i < sampl_cntr.size(); ++i) {
+		if (sampl_cntr[i][1] < smallest_val) {
+			smallest_val = sampl_cntr[i][1];
+			smallest_idx = static_cast<int>(i);
+		}
 	}
 
-	server_reply_t reply = server_reply_t(buffer_reply, len);
+	// If the smallest counter value < HH report counter:
+	if (sampl_cntr[smallest_idx][1] < hot_read_query.val) {
+		// Evict the key corresponding to the smallest.
+		Controller::controller->reg_vtable.allocate((uint32_t) sampl_cntr[smallest_idx][0], 0);
 
-#ifndef NDEBUG
-	std::cout << "reply.key " << reply.key << "\n";
-	std::cout << "reply.val " << reply.val << "\n";
-#endif
+		// Retrieve the updated HH report value from the server.
 
-	// Update the key/value corresponding to the HH report directly on the switch.
-	Controller::controller->reg_vtable.allocate(reply.key, reply.val);
-	// Update the cache lookup table.
+		auto buffer = hot_read_query.serialize();
+
+		auto sent_len =
+			sendto(sockfd, (const char*)buffer.data(), buffer.size(), MSG_CONFIRM,
+				(const struct sockaddr*)&servaddr, sizeof(servaddr));
+
+		if (sent_len != buffer.size()) {
+			fprintf(stderr, "Truncated packet.\n");
+			exit(EXIT_FAILURE);
+		}
+		struct sockaddr_in src_addr;
+		socklen_t socklen = sizeof(src_addr);
+		std::vector<uint8_t> buffer_reply;
+
+		ssize_t len = recvfrom(sockfd, &buffer_reply, 65536, 0,
+							(struct sockaddr*)&src_addr, &socklen);
+		if (len < 0) {
+			std::cerr << "Failed to receive a response from the server." << std::endl;
+			return;
+		}
+
+		server_reply_t reply = server_reply_t(buffer_reply, len);
+
+		#ifndef NDEBUG
+		std::cout << "reply.key " << reply.key << "\n";
+		std::cout << "reply.val " << reply.val << "\n";
+		#endif
+
+		// Update the key/value corresponding to the HH report directly on the switch.
+		Controller::controller->reg_vtable.allocate(reply.key, reply.val);
+
+		// Update the cache lookup table to delete the corresponding key.
+		Controller::controller->cache_lookup.del_entry(reply.key);
+	}
 }
 
 void ProcessQuery::write_query(const query_t& write_query) {
@@ -93,7 +135,7 @@ void ProcessQuery::write_query(const query_t& write_query) {
 	float write_confirm;
 
 	ssize_t recv_len = recvfrom(sockfd, &write_confirm, sizeof(write_confirm), 0,
-						   (struct sockaddr*)&src_addr, &socklen);
+								(struct sockaddr*)&src_addr, &socklen);
 
 	if (recv_len < 0) {
 		if (write_confirm != -1) {

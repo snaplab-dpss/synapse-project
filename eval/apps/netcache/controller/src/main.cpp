@@ -15,7 +15,6 @@
 
 #define REPORT_FILE "netcache-controller.tsv"
 
-
 struct args_t {
 	std::string iface;
 	std::string topology_file_path;

@@ -54,6 +54,13 @@ public:
 		assert(bf_status == BF_SUCCESS);
 	}
 
+	void del_entry(uint16_t nc_key) {
+		key_setup(nc_key);
+
+		auto bf_status = table->tableEntryDel(*session, dev_tgt, *key);
+		assert(bf_status == BF_SUCCESS);
+	}
+
 private:
 	void key_setup(uint16_t nc_key) {
 		table->keyReset(key.get());

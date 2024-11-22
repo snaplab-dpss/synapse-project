@@ -15,7 +15,7 @@ class RegVTable : public Register {
   void set_all_false() { overwrite_all_entries(0); }
 
   void allocate(uint16_t index, uint32_t val) { set(index, val); }
-  void retrieve(uint16_t index, bool from_hw = false) { get(index, from_hw); }
+  uint32_t retrieve(uint16_t index, bool from_hw = false) { return get(index, from_hw); }
 };
 
 };  // namespace netcache
