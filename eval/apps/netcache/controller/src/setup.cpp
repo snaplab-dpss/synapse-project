@@ -112,12 +112,12 @@ void init_bf_switchd(bool use_tofino_model, bool bf_prompt) {
 	}
 }
 
-void setup_controller(const std::string &topology_file_path, bool use_tofino_model) {
-	auto topology = parse_topology_file(topology_file_path);
-	setup_controller(topology, use_tofino_model);
+void setup_controller(const std::string &conf_file_path, bool use_tofino_model) {
+	auto conf = parse_conf_file(conf_file_path);
+	setup_controller(conf, use_tofino_model);
 }
 
-void setup_controller(const topology_t &topology, bool use_tofino_model) {
+void setup_controller(const conf_t &conf, bool use_tofino_model) {
 	bf_rt_target_t dev_tgt;
 	dev_tgt.dev_id = 0;
 	dev_tgt.pipe_id = ALL_PIPES;
@@ -132,7 +132,7 @@ void setup_controller(const topology_t &topology, bool use_tofino_model) {
 	// Create a session object
 	auto session = bfrt::BfRtSession::sessionCreate();
 
-	Controller::init(info, session, dev_tgt, topology, use_tofino_model);
+	Controller::init(info, session, dev_tgt, conf, use_tofino_model);
 }
 
-}  // namespace peregrine
+}  // namespace netcache

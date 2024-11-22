@@ -17,7 +17,7 @@
 
 struct args_t {
 	std::string iface;
-	std::string topology_file_path;
+	std::string conf_file_path;
 	bool use_tofino_model;
 	bool bf_prompt;
 
@@ -28,7 +28,7 @@ struct args_t {
 
 		parse_help(argc, argv);
 
-		topology_file_path = std::string(argv[1]);
+		conf_file_path = std::string(argv[1]);
 
 		parse_tofino_model_flag(argc, argv);
 		parse_bf_prompt_flag(argc, argv);
@@ -36,7 +36,7 @@ struct args_t {
 
 	void help(char **argv) {
 		std::cerr << "Usage: " << argv[0]
-				  << " topology -i <listen iface> [--bf-prompt] [--tofino-model] [-h|--help]\n";
+				  << " conf -i <listen iface> [--bf-prompt] [--tofino-model] [-h|--help]\n";
 		exit(0);
 	}
 
@@ -98,7 +98,7 @@ struct args_t {
 	void dump() const {
 		std::cout << "\n";
 		std::cout << "Configuration:\n";
-		std::cout << "  topology:      " << topology_file_path << "\n";
+		std::cout << "  topology:      " << conf_file_path << "\n";
 		std::cout << "  iface:		   " << iface << "\n";
 		std::cout << "  model:         " << use_tofino_model << "\n";
 		std::cout << "  bf prompt:     " << bf_prompt << "\n";
@@ -106,7 +106,7 @@ struct args_t {
 };
 
 void signalHandler(int signum) {
-	auto topology = netcache::Controller::controller->get_topology();
+	auto conf = netcache::Controller::controller->get_conf();
 	auto use_tofino_model = netcache::Controller::controller->get_use_tofino_model();
 
 	auto ofs = std::ofstream(REPORT_FILE);
@@ -118,7 +118,7 @@ void signalHandler(int signum) {
 		exit(1);
 	}
 
-	for (auto connection : topology.connections) {
+	for (auto connection : conf.topology.connections) {
 		auto in_port = connection.in.port;
 
 		if (!use_tofino_model) {
@@ -130,7 +130,7 @@ void signalHandler(int signum) {
 		ofs << in_port << "\t" << tx << "\n";
 	}
 
-	auto stats_port = topology.stats.port;
+	auto stats_port = conf.topology.stats.port;
 
 	if (!use_tofino_model) {
 		stats_port =
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
 	args_t args(argc, argv);
 
 	netcache::init_bf_switchd(args.use_tofino_model, args.bf_prompt);
-	netcache::setup_controller(args.topology_file_path, args.use_tofino_model);
+	netcache::setup_controller(args.conf_file_path, args.use_tofino_model);
 
 	args.dump();
 

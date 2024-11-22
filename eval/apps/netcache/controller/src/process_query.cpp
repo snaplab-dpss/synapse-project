@@ -41,16 +41,17 @@ ProcessQuery::ProcessQuery() {
 
 void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
 	// Sample k values from the switch's cached item counter array.
-	int N = 8192;
-	int k = 50;
+	// k is defined in conf.kv.initial_entries.
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
-	std::uniform_int_distribution<> dis(1, N);
+	std::uniform_int_distribution<> dis(1, Controller::controller->conf.kv.store_size);
 	std::unordered_set<int> elems;
 
-	while (elems.size() < k) { elems.insert(dis(gen)); }
+	while (elems.size() < Controller::controller->conf.kv.initial_entries) {
+		elems.insert(dis(gen));
+	}
 
 	std::vector<int> sampl_index(elems.begin(), elems.end());
 

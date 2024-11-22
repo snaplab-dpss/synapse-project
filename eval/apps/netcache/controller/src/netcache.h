@@ -9,7 +9,7 @@
 #include "tables/fwd.h"
 #include "tables/cache_lookup.h"
 #include "registers/reg_vtable.h"
-#include "topology.h"
+#include "conf.h"
 #include "ports.h"
 
 #ifdef __cplusplus
@@ -24,14 +24,15 @@ extern "C" {
 namespace netcache {
 
 void init_bf_switchd(bool use_tofino_model, bool bf_prompt);
-void setup_controller(const topology_t &topology, bool use_tofino_model);
-void setup_controller(const std::string &topology_file_path, bool use_tofino_model);
+void setup_controller(const conf_t &conf, bool use_tofino_model);
+void setup_controller(const std::string &conf_file_path, bool use_tofino_model);
 
 struct bfrt_info_t;
 
 class Controller {
 public:
 	static std::shared_ptr<Controller> controller;
+	conf_t conf;
 	// Switch tables
 	Fwd fwd;
 	CacheLookup cache_lookup;
@@ -44,30 +45,29 @@ private:
 	bf_rt_target_t dev_tgt;
 
 	Ports ports;
-	topology_t topology;
 	bool use_tofino_model;
 
 	Controller(const bfrt::BfRtInfo *_info,
 			   std::shared_ptr<bfrt::BfRtSession> _session,
 			   bf_rt_target_t _dev_tgt,
-			   const topology_t &_topology,
+			   const conf_t &_conf,
 			   bool _use_tofino_model)
 		: info(_info),
 		  session(_session),
 		  dev_tgt(_dev_tgt),
 		  ports(_info, _session, _dev_tgt),
-		  topology(_topology),
+		  conf(_conf),
 		  use_tofino_model(_use_tofino_model),
 		  fwd(_info, _session, _dev_tgt),
 		  cache_lookup(_info, _session, _dev_tgt),
 		  reg_vtable(_info, _session, _dev_tgt) {
 		if (!use_tofino_model) {
-			config_ports(topology);
+			config_ports(conf);
 		}
 
-		config_stats_port(topology.stats.port, use_tofino_model);
+		config_stats_port(conf.topology.stats.port, use_tofino_model);
 
-		for (auto connection : topology.connections) {
+		for (auto connection : conf.topology.connections) {
 			auto ig_port = connection.in.port;
 			auto eg_port = connection.out.port;
 
@@ -80,17 +80,15 @@ private:
 			// fwd.add_entry(ig_port, eg_port);
 
 			// Insert k entries in the switch's KV store, all with value 0.
-
-			int N = 8192;
-			int k = 50;
+			// k is defined in conf.kv.initial_entries.
 
 			std::random_device rd;
 			std::mt19937 gen(rd());
 
-			std::uniform_int_distribution<> dis(1, N);
+			std::uniform_int_distribution<> dis(1, conf.kv.store_size);
 			std::unordered_set<int> elems;
 
-			while (elems.size() < k) { elems.insert(dis(gen)); }
+			while (elems.size() < conf.kv.initial_entries) { elems.insert(dis(gen)); }
 
 			std::vector<int> sampl_index(elems.begin(), elems.end());
 
@@ -105,7 +103,7 @@ private:
 	}
 
 	void config_stats_port(uint16_t stats_port, bool use_tofino_model);
-	void config_ports(const topology_t &topology);
+	void config_ports(const conf_t &conf);
 
 public:
 	Controller(Controller &other) = delete;
@@ -129,13 +127,13 @@ public:
 		return ports.get_dev_port(front_panel_port, lane);
 	}
 
-	topology_t get_topology() const { return topology; }
+	conf_t get_conf() const { return conf; }
 	bool get_use_tofino_model() const { return use_tofino_model; }
 
 	static void init(const bfrt::BfRtInfo *_info,
 					 std::shared_ptr<bfrt::BfRtSession> _session,
 					 bf_rt_target_t _dev_tgt,
-					 const topology_t &topology,
+					 const conf_t &conf,
 					 bool use_tofino_model);
 };
 

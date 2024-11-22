@@ -1,10 +1,24 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <unistd.h>
 
 namespace netcache {
+
+struct kv_t {
+	uint16_t store_size;
+	uint16_t initial_entries;
+};
+
+struct cm_t {
+	uint16_t reg_size;
+};
+
+struct bloom_t {
+	uint16_t reg_size;
+};
 
 struct topo_port_t {
 	uint16_t port;
@@ -28,6 +42,13 @@ struct topology_t {
 	topo_pipes_t pipes;
 };
 
-topology_t parse_topology_file(const std::string &topology_file_path);
+struct conf_t {
+	kv_t kv;
+	cm_t cm;
+	bloom_t bloom;
+	topology_t topology;
+};
+
+conf_t parse_conf_file(const std::string &conf_file_path);
 
 }  // namespace netcache
