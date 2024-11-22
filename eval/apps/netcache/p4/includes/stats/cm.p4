@@ -3,10 +3,10 @@
 
 control c_cm(inout header_t hdr, out bit<32> cm_result) {
 
-	Register<bit<32>, bit<NC_KEY_WIDTH>>(SKETCH_ENTRIES) reg_cm_0;
-	Register<bit<32>, bit<NC_KEY_WIDTH>>(SKETCH_ENTRIES) reg_cm_1;
-	Register<bit<32>, bit<NC_KEY_WIDTH>>(SKETCH_ENTRIES) reg_cm_2;
-	Register<bit<32>, bit<NC_KEY_WIDTH>>(SKETCH_ENTRIES) reg_cm_3;
+	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_0;
+	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_1;
+	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_2;
+	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_3;
 
 	CRCPolynomial<bit<16>>(coeff    = 0x0589,
 						   reversed = false,
@@ -34,38 +34,38 @@ control c_cm(inout header_t hdr, out bit<32> cm_result) {
 	Hash<bit<16>>(HashAlgorithm_t.CUSTOM, crc16_dnp)	 hash_crc16_dnp;
 	Hash<bit<16>>(HashAlgorithm_t.CUSTOM, crc16_genibus) hash_crc16_genibus;
 
-	bit<16> hash_cm_0;
-	bit<16> hash_cm_1;
-	bit<16> hash_cm_2;
-	bit<16> hash_cm_3;
+	bit<SKETCH_IDX_WIDTH> hash_cm_0;
+	bit<SKETCH_IDX_WIDTH> hash_cm_1;
+	bit<SKETCH_IDX_WIDTH> hash_cm_2;
+	bit<SKETCH_IDX_WIDTH> hash_cm_3;
 
 	bit<32> val_cm_0;
 	bit<32> val_cm_1;
 	bit<32> val_cm_2;
 	bit<32> val_cm_3;
 
-	RegisterAction<_, bit<16>, bit<32>>(reg_cm_0) ract_cm_0_update = {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_0) ract_cm_0_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			val = val + 1;
 			res = val;
 		}
 	};
 
-	RegisterAction<_, bit<16>, bit<32>>(reg_cm_1) ract_cm_1_update = {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_1) ract_cm_1_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			val = val + 1;
 			res = val;
 		}
 	};
 
-	RegisterAction<_, bit<16>, bit<32>>(reg_cm_2) ract_cm_2_update = {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_2) ract_cm_2_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			val = val + 1;
 			res = val;
 		}
 	};
 
-	RegisterAction<_, bit<16>, bit<32>>(reg_cm_3) ract_cm_3_update = {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_3) ract_cm_3_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			val = val + 1;
 			res = val;
@@ -73,19 +73,19 @@ control c_cm(inout header_t hdr, out bit<32> cm_result) {
 	};
 
 	action hash_calc_cm_0() {
-		hash_cm_0 = hash_crc16.get({hdr.netcache.key});
+		hash_cm_0 = (bit<SKETCH_IDX_WIDTH>)hash_crc16.get({hdr.netcache.key})[SKETCH_IDX_WIDTH-1:0];
 	}
 
 	action hash_calc_cm_1() {
-		hash_cm_1 = hash_crc16_dect.get({hdr.netcache.key});
+		hash_cm_1 = (bit<SKETCH_IDX_WIDTH>)hash_crc16_dect.get({hdr.netcache.key})[SKETCH_IDX_WIDTH-1:0];
 	}
 
 	action hash_calc_cm_2() {
-		hash_cm_2 = hash_crc16_dnp.get({hdr.netcache.key});
+		hash_cm_2 = (bit<SKETCH_IDX_WIDTH>)hash_crc16_dnp.get({hdr.netcache.key})[SKETCH_IDX_WIDTH-1:0];
 	}
 
 	action hash_calc_cm_3() {
-		hash_cm_3 = hash_crc16_genibus.get({hdr.netcache.key});
+		hash_cm_3 = (bit<SKETCH_IDX_WIDTH>)hash_crc16_genibus.get({hdr.netcache.key})[SKETCH_IDX_WIDTH-1:0];
 	}
 
 	action cm_0_update() {

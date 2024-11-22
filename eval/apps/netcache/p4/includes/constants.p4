@@ -22,18 +22,22 @@ const bit<16> NC_PORT = 50000;
 
 // Size of a key field
 #define NC_KEY_WIDTH				16
-// Size of the key index (used in the cache counter)
-#define NC_KEY_IDX_WIDTH			16
 // Size of a value field
 #define NC_VAL_WIDTH				32
 // Size of the vtable index (used to access the vtable register)
 #define NC_VTABLE_SIZE_WIDTH		16
 // Number of entries in the vtable register
-#define NC_ENTRIES					65536
+#define NC_ENTRIES					8192
+// Size of the key index used in the cache counter
+#define NC_KEY_IDX_WIDTH			10
 // Number of entries in each of the CM registers
-#define SKETCH_ENTRIES				16384
+#define SKETCH_ENTRIES				1024
+// Hash size (bits) for the CM registers
+#define SKETCH_IDX_WIDTH			10
 // Number of entries in each of the bloom filter registers
-#define BLOOM_ENTRIES				262144
+#define BLOOM_ENTRIES				1024
+// Hash size (bits) for the bloom filter registers
+#define BLOOM_IDX_WIDTH				10
 // Heavy hitter threshold
 #define HH_THRES					128
 

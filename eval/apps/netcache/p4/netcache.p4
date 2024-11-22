@@ -48,11 +48,11 @@ control SwitchIngress(
 	}
 
 	action vtable_read() {
-       hdr.netcache.val = ract_vtable_read.execute(hdr.meta.vt_idx);
+        hdr.netcache.val = ract_vtable_read.execute(hdr.meta.vt_idx);
 	}
 
 	action vtable_update() {
-       ract_vtable_update.execute(hdr.meta.vt_idx);
+        ract_vtable_update.execute(hdr.meta.vt_idx);
 	}
 
 	action update_pkt_udp() {
@@ -203,7 +203,7 @@ control SwitchEgress(
                     } else {
                         // Update cm sketch.
                         cm.apply(hdr, cm_result);
-                        // Check cm result against threshold (currently 127).
+                        // Check cm result against threshold (HH_THRES).
                         if (cm_result[31:8] != 0) {
                             // Check against bloom filter.
                             bloom.apply(hdr, bloom_result);

@@ -2,9 +2,9 @@
 #define _BLOOM_
 
 control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
-	Register<bit<1>, bit<NC_KEY_WIDTH>>(BLOOM_ENTRIES) reg_bloom_0;
-	Register<bit<1>, bit<NC_KEY_WIDTH>>(BLOOM_ENTRIES) reg_bloom_1;
-	Register<bit<1>, bit<NC_KEY_WIDTH>>(BLOOM_ENTRIES) reg_bloom_2;
+	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_0;
+	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_1;
+	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_2;
 
 	CRCPolynomial<bit<32>>(coeff    = 0x1EDC6F41,
 						   reversed = true,
@@ -24,29 +24,29 @@ control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
 	Hash<bit<32>>(HashAlgorithm_t.CUSTOM, crc32_c)	hash_crc32_c;
 	Hash<bit<32>>(HashAlgorithm_t.CUSTOM, crc32_d)	hash_crc32_d;
 
-	bit<32> hash_bloom_0;
-	bit<32> hash_bloom_1;
-	bit<32> hash_bloom_2;
+	bit<BLOOM_IDX_WIDTH> hash_bloom_0;
+	bit<BLOOM_IDX_WIDTH> hash_bloom_1;
+	bit<BLOOM_IDX_WIDTH> hash_bloom_2;
 
 	bit<1> val_bloom_0;
 	bit<1> val_bloom_1;
 	bit<1> val_bloom_2;
 
-	RegisterAction<_, bit<32>, bit<1>>(reg_bloom_0) ract_bloom_0_update = {
+	RegisterAction<_, bit<BLOOM_IDX_WIDTH>, bit<1>>(reg_bloom_0) ract_bloom_0_update = {
 		void apply(inout bit<1> val, out bit<1> res) {
 			res = val;
 			val = 1;
 		}
 	};
 
-	RegisterAction<_, bit<32>, bit<1>>(reg_bloom_1) ract_bloom_1_update = {
+	RegisterAction<_, bit<BLOOM_IDX_WIDTH>, bit<1>>(reg_bloom_1) ract_bloom_1_update = {
 		void apply(inout bit<1> val, out bit<1> res) {
 			res = val;
 			val = 1;
 		}
 	};
 
-	RegisterAction<_, bit<32>, bit<1>>(reg_bloom_2) ract_bloom_2_update = {
+	RegisterAction<_, bit<BLOOM_IDX_WIDTH>, bit<1>>(reg_bloom_2) ract_bloom_2_update = {
 		void apply(inout bit<1> val, out bit<1> res) {
 			res = val;
 			val = 1;
@@ -54,15 +54,15 @@ control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
 	};
 
 	action hash_calc_bloom_0() {
-		hash_bloom_0 = hash_crc32.get({hdr.netcache.key});
+		hash_bloom_0 = (bit<BLOOM_IDX_WIDTH>)hash_crc32.get({hdr.netcache.key})[BLOOM_IDX_WIDTH-1:0];
 	}
 
 	action hash_calc_bloom_1() {
-		hash_bloom_1 = hash_crc32_c.get({hdr.netcache.key});
+		hash_bloom_1 = (bit<BLOOM_IDX_WIDTH>)hash_crc32_c.get({hdr.netcache.key})[BLOOM_IDX_WIDTH-1:0];
 	}
 
 	action hash_calc_bloom_2() {
-		hash_bloom_2 = hash_crc32_d.get({hdr.netcache.key});
+		hash_bloom_2 = (bit<BLOOM_IDX_WIDTH>)hash_crc32_d.get({hdr.netcache.key})[BLOOM_IDX_WIDTH-1:0];
 	}
 
 	action bloom_0_update() {
