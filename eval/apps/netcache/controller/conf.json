@@ -3,11 +3,17 @@
 		"store_size": 8192,
 		"initial_entries": 50
 	},
+	"key_cntr": {
+		"reg_size": 8192,
+		"reset_timer": 0
+	},
 	"cm": {
-		"reg_size": 1024
+		"reg_size": 1024,
+		"reset_timer": 0
 	},
 	"bloom": {
-		"reg_size": 1024
+		"reg_size": 1024,
+		"reset_timer": 0
 	},
 	"topology": {
 		"pipes": {

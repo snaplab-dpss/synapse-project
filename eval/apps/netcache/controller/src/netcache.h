@@ -9,6 +9,14 @@
 #include "tables/fwd.h"
 #include "tables/cache_lookup.h"
 #include "registers/reg_vtable.h"
+#include "registers/reg_key_count.h"
+#include "registers/reg_cm_0.h"
+#include "registers/reg_cm_1.h"
+#include "registers/reg_cm_2.h"
+#include "registers/reg_cm_3.h"
+#include "registers/reg_bloom_0.h"
+#include "registers/reg_bloom_1.h"
+#include "registers/reg_bloom_2.h"
 #include "conf.h"
 #include "ports.h"
 
@@ -38,8 +46,16 @@ public:
 	CacheLookup cache_lookup;
 	// Switch registers
 	RegVTable reg_vtable;
+	RegKeyCount reg_key_count;
+	RegCm0 reg_cm_0;
+	RegCm1 reg_cm_1;
+	RegCm2 reg_cm_2;
+	RegCm3 reg_cm_3;
+	RegBloom0 reg_bloom_0;
+	RegBloom1 reg_bloom_1;
+	RegBloom2 reg_bloom_2;
 
-private:
+;private:
 	const bfrt::BfRtInfo *info;
 	std::shared_ptr<bfrt::BfRtSession> session;
 	bf_rt_target_t dev_tgt;
@@ -60,7 +76,15 @@ private:
 		  use_tofino_model(_use_tofino_model),
 		  fwd(_info, _session, _dev_tgt),
 		  cache_lookup(_info, _session, _dev_tgt),
-		  reg_vtable(_info, _session, _dev_tgt) {
+		  reg_vtable(_info, _session, _dev_tgt),
+		  reg_key_count(_info, _session, _dev_tgt),
+		  reg_cm_0(_info, _session, _dev_tgt),
+		  reg_cm_1(_info, _session, _dev_tgt),
+		  reg_cm_2(_info, _session, _dev_tgt),
+		  reg_cm_3(_info, _session, _dev_tgt),
+		  reg_bloom_0(_info, _session, _dev_tgt),
+		  reg_bloom_1(_info, _session, _dev_tgt),
+		  reg_bloom_2(_info, _session, _dev_tgt) {
 		if (!use_tofino_model) {
 			config_ports(conf);
 		}

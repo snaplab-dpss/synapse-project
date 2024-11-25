@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 #include <variant>
+#include <chrono>
 
 #include "constants.h"
 #include "netcache.h"
@@ -164,7 +165,31 @@ int main(int argc, char **argv) {
 
 	std::cerr << "\nNetCache controller is ready.\n";
 
+	auto last_time = std::chrono::steady_clock::now();
+
 	while (1) {
+		// Check if the reset timers have elapsed.
+		// If so, reset the respective counters.
+		auto cur_time = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(cur_time-last_time);
+
+		if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
+			netcache::Controller::controller->reg_key_count.set_all_false();
+		}
+
+		if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
+			netcache::Controller::controller->reg_cm_0.set_all_false();
+			netcache::Controller::controller->reg_cm_1.set_all_false();
+			netcache::Controller::controller->reg_cm_2.set_all_false();
+			netcache::Controller::controller->reg_cm_3.set_all_false();
+		}
+
+		if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
+			netcache::Controller::controller->reg_bloom_0.set_all_false();
+			netcache::Controller::controller->reg_bloom_1.set_all_false();
+			netcache::Controller::controller->reg_bloom_2.set_all_false();
+		}
+
 		auto query = listener.receive_query();
 
 		if (query.valid) {

@@ -12,12 +12,19 @@ struct kv_t {
 	uint16_t initial_entries;
 };
 
+struct key_cntr_t {
+	uint16_t reg_size;
+	uint16_t reset_timer;
+};
+
 struct cm_t {
 	uint16_t reg_size;
+	uint16_t reset_timer;
 };
 
 struct bloom_t {
 	uint16_t reg_size;
+	uint16_t reset_timer;
 };
 
 struct topo_port_t {
@@ -44,6 +51,7 @@ struct topology_t {
 
 struct conf_t {
 	kv_t kv;
+	key_cntr_t key_cntr;
 	cm_t cm;
 	bloom_t bloom;
 	topology_t topology;
