@@ -1,0 +1,43 @@
+{
+	"kv": {
+		"store_size": 8192,
+		"initial_entries": 50
+	},
+	"key_cntr": {
+		"reg_size": 8192,
+		"reset_timer": 0
+	},
+	"cm": {
+		"reg_size": 1024,
+		"reset_timer": 0
+	},
+	"bloom": {
+		"reg_size": 1024,
+		"reset_timer": 0
+	},
+	"topology": {
+		"pipes": {
+			"external": [ 1 ],
+			"internal": [ 0 ]
+		},
+		"stats": {
+			"port": 11,
+			"capacity": 100,
+			"comment": "e291427x1300274 E810 dev 0 (enp216s0f1)"
+		},
+		"connections": [
+			{
+				"in": {
+					"port": 5,
+					"capacity": 100,
+					"comment": "e291427x1300275 E810 dev 1 (enp175s0f)"
+				},
+				"out": {
+					"port": 10,
+					"capacity": 100,
+					"comment": "e291427x1300274 E810 dev 1 (enp216s0f0)"
+				}
+			}
+		]
+	}
+}
