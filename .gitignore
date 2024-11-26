@@ -21,6 +21,7 @@ log
 logs
 data
 playground
+pcaps
 
 # Draw.io garbage
 .$*.bkp

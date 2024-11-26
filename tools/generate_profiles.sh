@@ -4,9 +4,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
-SYNTHESIZED_DIR=$(realpath $SCRIPT_DIR/../synthesized)
 TOOLS_DIR=$SCRIPT_DIR
-PCAPS_DIR=$TOOLS_DIR/pcaps
+SYNTHESIZED_DIR=$(realpath $SCRIPT_DIR/../synthesized)
+PCAPS_DIR=$(realpath $SCRIPT_DIR/../pcaps)
 BDDS_DIR=$(realpath $SCRIPT_DIR/../bdds)
 
 # Everything will be done inside the synthesized directory
@@ -47,15 +47,15 @@ fw() {
     report=$pcap
 
     log_and_run $SYNTHESIZED_DIR/build/fw-profiler \
-        $SYNTHESIZED_DIR/$report.json \
+        $PCAPS_DIR/$report.json \
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
     
     log_and_run bdd-visualizer \
         --in $BDDS_DIR/fw.bdd \
-        --profile $SYNTHESIZED_DIR/$report.json \
-        --out $SYNTHESIZED_DIR/$report.dot
+        --profile $PCAPS_DIR/$report.json \
+        --out $PCAPS_DIR/$report.dot
 }
 
 nat() {
@@ -75,15 +75,15 @@ nat() {
     report=$pcap
 
     log_and_run $SYNTHESIZED_DIR/build/nat-profiler \
-        $SYNTHESIZED_DIR/$report.json \
+        $PCAPS_DIR/$report.json \
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
     
     log_and_run bdd-visualizer \
         --in $BDDS_DIR/nat.bdd \
-        --profile $SYNTHESIZED_DIR/$report.json \
-        --out $SYNTHESIZED_DIR/$report.dot
+        --profile $PCAPS_DIR/$report.json \
+        --out $PCAPS_DIR/$report.dot
 }
 
 kvs() {
@@ -102,49 +102,49 @@ kvs() {
     report=$pcap
     
     log_and_run $SYNTHESIZED_DIR/build/kvs-profiler \
-        $SYNTHESIZED_DIR/$report.json \
+        $PCAPS_DIR/$report.json \
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap
     
     log_and_run bdd-visualizer \
         --in $BDDS_DIR/kvs.bdd \
-        --profile $SYNTHESIZED_DIR/$report.json \
-        --out $SYNTHESIZED_DIR/$report.dot
+        --profile $PCAPS_DIR/$report.json \
+        --out $PCAPS_DIR/$report.dot
 }
 
-# gen_and_build_profiler fw
+gen_and_build_profiler fw
 
-# fw 10000 0 unif 0
-# fw 10000 0 zipf 0.9
-# fw 10000 0 zipf 0.99
-# fw 10000 0 zipf 1.26
+fw 10000 0 unif 0
+fw 10000 0 zipf 0.9
+fw 10000 0 zipf 0.99
+fw 10000 0 zipf 1.26
 
-# fw 10000 1000000 unif 0
-# fw 10000 1000000 zipf 0.9
-# fw 10000 1000000 zipf 0.99
-# fw 10000 1000000 zipf 1.26
+fw 10000 1000000 unif 0
+fw 10000 1000000 zipf 0.9
+fw 10000 1000000 zipf 0.99
+fw 10000 1000000 zipf 1.26
 
-# fw 10000 100000000 unif 0
-# fw 10000 100000000 zipf 0.9
-# fw 10000 100000000 zipf 0.99
-# fw 10000 100000000 zipf 1.26
+fw 10000 100000000 unif 0
+fw 10000 100000000 zipf 0.9
+fw 10000 100000000 zipf 0.99
+fw 10000 100000000 zipf 1.26
 
-# gen_and_build_profiler nat
+gen_and_build_profiler nat
 
-# nat 10000 0 unif 0
-# nat 10000 0 zipf 0.9
-# nat 10000 0 zipf 0.99
-# nat 10000 0 zipf 1.26
+nat 10000 0 unif 0
+nat 10000 0 zipf 0.9
+nat 10000 0 zipf 0.99
+nat 10000 0 zipf 1.26
 
-# nat 10000 1000000 unif 0
-# nat 10000 1000000 zipf 0.9
-# nat 10000 1000000 zipf 0.99
-# nat 10000 1000000 zipf 1.26
+nat 10000 1000000 unif 0
+nat 10000 1000000 zipf 0.9
+nat 10000 1000000 zipf 0.99
+nat 10000 1000000 zipf 1.26
 
-# nat 10000 100000000 unif 0
-# nat 10000 100000000 zipf 0.9
-# nat 10000 100000000 zipf 0.99
-# nat 10000 100000000 zipf 1.26
+nat 10000 100000000 unif 0
+nat 10000 100000000 zipf 0.9
+nat 10000 100000000 zipf 0.99
+nat 10000 100000000 zipf 1.26
 
 gen_and_build_profiler kvs
 
