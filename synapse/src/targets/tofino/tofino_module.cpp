@@ -152,8 +152,7 @@ static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
 }
 
 static FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node,
-                                                addr_t obj,
-                                                int cache_capacity) {
+                                                addr_t obj) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
@@ -167,10 +166,6 @@ static FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node,
   assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE);
 
   FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
-
-  if (cached_table->cache_capacity != cache_capacity) {
-    return nullptr;
-  }
 
   if (!cached_table->has_table(node->get_id())) {
     FCFSCachedTable *clone =
@@ -197,7 +192,7 @@ FCFSCachedTable *TofinoModuleGenerator::build_or_reuse_fcfs_cached_table(
   bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
 
   if (already_placed) {
-    cached_table = reuse_fcfs_cached_table(ep, node, obj, cache_capacity);
+    cached_table = reuse_fcfs_cached_table(ep, node, obj);
   } else {
     cached_table =
         build_fcfs_cached_table(ep, node, key, num_entries, cache_capacity);
@@ -268,10 +263,7 @@ symbols_t TofinoModuleGenerator::get_dataplane_state(const EP *ep,
 
 void TofinoModuleGenerator::place_fcfs_cached_table(
     EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
-    FCFSCachedTable *ds) const {
-  assert(ds->type == DSType::FCFS_CACHED_TABLE);
-  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(ds);
-
+    FCFSCachedTable *cached_table) const {
   Context &ctx = ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
@@ -299,26 +291,173 @@ TofinoModuleGenerator::enum_fcfs_cache_cap(int num_entries) const {
   return capacities;
 }
 
-hit_rate_t TofinoModuleGenerator::get_fcfs_cache_hr(const EP *ep,
-                                                    const Node *node,
-                                                    klee::ref<klee::Expr> key,
-                                                    int cache_capacity) const {
+hit_rate_t TofinoModuleGenerator::get_fcfs_cache_success_rate(
+    const Context &ctx, const Node *node, klee::ref<klee::Expr> key,
+    int cache_capacity) const {
   constraints_t constraints = node->get_ordered_branch_constraints();
+  FlowStats flow_stats = ctx.get_profiler().get_flow_stats(constraints, key);
 
-  std::optional<FlowStats> flow_stats =
-      ep->get_ctx().get_profiler().get_flow_stats(constraints, key);
-  assert(flow_stats.has_value());
-
-  u64 cached_packets = std::min(flow_stats->packets,
-                                flow_stats->avg_pkts_per_flow * cache_capacity);
+  u64 avg_pkts_per_flow = flow_stats.pkts / flow_stats.flows;
+  u64 cached_packets =
+      std::min(flow_stats.pkts, avg_pkts_per_flow * cache_capacity);
   hit_rate_t hit_rate =
-      cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
+      flow_stats.pkts == 0
+          ? 0
+          : cached_packets / static_cast<hit_rate_t>(flow_stats.pkts);
 
-  // std::cerr << "Pkts/flow: " << flow_stats->avg_pkts_per_flow << "\n";
-  // std::cerr << "Flows: " << flow_stats->flows << "\n";
-  // std::cerr << "Packets: " << flow_stats->packets << "\n";
-  // std::cerr << "Cached packets: " << cached_packets << "\n";
-  // std::cerr << "Cache hit rate: " << hit_rate << "\n";
+  // std::cerr << "node: " << node->dump(true, true) << "\n";
+  // std::cerr << "avg_pkts_per_flow: " << avg_pkts_per_flow << std::endl;
+  // std::cerr << "cached_packets: " << cached_packets << std::endl;
+  // std::cerr << "hit_rate: " << hit_rate << std::endl;
+  // DEBUG_PAUSE
+
+  return hit_rate;
+}
+
+static HHTable *build_hh_table(const EP *ep, const Node *node,
+                               const std::vector<klee::ref<klee::Expr>> &keys,
+                               int num_entries, int cms_width, int cms_height) {
+  const Context &ctx = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+
+  const TNA &tna = tofino_ctx->get_tna();
+  const TNAProperties &properties = tna.get_properties();
+
+  DS_ID id = "hh_table_" + std::to_string(cms_width) + "x" +
+             std::to_string(cms_height);
+
+  std::vector<bits_t> keys_sizes;
+  for (klee::ref<klee::Expr> key : keys) {
+    keys_sizes.push_back(key->getWidth());
+  }
+
+  HHTable *hh_table = new HHTable(id, node->get_id(), num_entries, cms_width,
+                                  cms_height, keys_sizes);
+
+  std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
+  if (!tofino_ctx->check_placement(ep, hh_table, deps)) {
+    delete hh_table;
+    hh_table = nullptr;
+  }
+
+  return hh_table;
+}
+
+static HHTable *reuse_hh_table(const EP *ep, const Node *node, addr_t obj) {
+  const Context &ctx = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+
+  if (!tofino_ctx->has_ds(obj)) {
+    return nullptr;
+  }
+
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+
+  assert(ds.size() == 1);
+  assert((*ds.begin())->type == DSType::HH_TABLE);
+
+  HHTable *hh_table = static_cast<HHTable *>(*ds.begin());
+
+  // if (!hh_table->has_table(node->get_id())) {
+  //   HHTable *clone = static_cast<HHTable *>(hh_table->clone());
+  //   clone->add_table(node->get_id());
+  //   hh_table = clone;
+  // }
+
+  std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
+  if (!tofino_ctx->check_placement(ep, hh_table, deps)) {
+    delete hh_table;
+    hh_table = nullptr;
+  }
+
+  return hh_table;
+}
+
+HHTable *TofinoModuleGenerator::build_or_reuse_hh_table(
+    const EP *ep, const Node *node, addr_t obj,
+    const std::vector<klee::ref<klee::Expr>> &keys, int num_entries,
+    int cms_width, int cms_height) const {
+  HHTable *hh_table = nullptr;
+
+  if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HHTable)) {
+    hh_table = reuse_hh_table(ep, node, obj);
+  } else {
+    hh_table =
+        build_hh_table(ep, node, keys, num_entries, cms_width, cms_height);
+  }
+
+  return hh_table;
+}
+
+bool TofinoModuleGenerator::can_build_or_reuse_hh_table(
+    const EP *ep, const Node *node, addr_t obj,
+    const std::vector<klee::ref<klee::Expr>> &keys, int num_entries,
+    int cms_width, int cms_height) const {
+  HHTable *hh_table = nullptr;
+
+  const Context &ctx = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_HHTable);
+
+  if (already_placed) {
+    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+    const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+
+    assert(ds.size() == 1);
+    assert((*ds.begin())->type == DSType::HH_TABLE);
+
+    hh_table = static_cast<HHTable *>(*ds.begin());
+
+    if (!tofino_ctx->check_placement(ep, hh_table,
+                                     tofino_ctx->get_stateful_deps(ep, node))) {
+      hh_table = nullptr;
+      return false;
+    }
+
+    if (hh_table->cms_width != cms_width ||
+        hh_table->cms_height != cms_height) {
+      return false;
+    }
+
+    return true;
+  }
+
+  hh_table = build_hh_table(ep, node, keys, num_entries, cms_width, cms_height);
+
+  if (!hh_table) {
+    return false;
+  }
+
+  delete hh_table;
+  return true;
+}
+
+void TofinoModuleGenerator::place_fcfs_cached_table(
+    EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
+    HHTable *hh_table) const {
+  Context &ctx = ep->get_mutable_ctx();
+  ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_HHTable);
+  ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_HHTable);
+  ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_HHTable);
+
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
+  std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
+  tofino_ctx->place(ep, map_objs.map, hh_table, deps);
+}
+
+hit_rate_t TofinoModuleGenerator::get_hh_table_hit_success_rate(
+    const Context &ctx, const Node *node, klee::ref<klee::Expr> key,
+    u32 capacity) const {
+  constraints_t constraints = node->get_ordered_branch_constraints();
+  FlowStats flow_stats = ctx.get_profiler().get_flow_stats(constraints, key);
+
+  u64 top_k = 0;
+  for (size_t k = 0; k <= capacity && k < flow_stats.pkts_per_flow.size();
+       k++) {
+    top_k += flow_stats.pkts_per_flow[k];
+  }
+
+  assert(top_k <= flow_stats.pkts);
+  hit_rate_t hit_rate = top_k / static_cast<hit_rate_t>(flow_stats.pkts);
 
   return hit_rate;
 }

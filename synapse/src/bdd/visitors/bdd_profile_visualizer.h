@@ -58,15 +58,15 @@ private:
       std::stringstream ss;
       ss << "HR: " << std::fixed << node_hit_rate;
 
-      for (const bdd_profile_t::map_stats_t &map_stats : profile.map_stats) {
-        if (map_stats.node != node) {
-          continue;
-        }
+      for (const auto &[map_addr, map_stats] : profile.stats_per_map) {
+        for (const auto &node_map_stats : map_stats.nodes) {
+          if (node_map_stats.node != node) {
+            continue;
+          }
 
-        ss << "\\n";
-        ss << "Flows: " << int2hr(map_stats.flows);
-        ss << "\\n";
-        ss << "Avg pkts/flow: " << int2hr(map_stats.avg_pkts_per_flow);
+          ss << "\\n";
+          ss << "Flows: " << int2hr(node_map_stats.flows);
+        }
       }
 
       annocations_per_node[node] = ss.str();

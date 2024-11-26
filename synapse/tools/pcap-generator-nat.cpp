@@ -30,9 +30,9 @@
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
 #define DEFAULT_LAN_DEVICES 1
 
-// Using 1Gbps as the rate because we go too fast the pcap timestamps can't
+// Using 10Gbps as the rate because we go too fast the pcap timestamps can't
 // keep up with the actual time (pcap use us instead of ns).
-#define RATE_GBIT 1
+#define RATE_GBIT 10
 
 struct pkt_hdr_t {
   ether_header eth_hdr;

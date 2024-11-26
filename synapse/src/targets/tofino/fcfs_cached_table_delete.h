@@ -7,22 +7,18 @@ namespace tofino {
 class FCFSCachedTableDelete : public TofinoModule {
 private:
   DS_ID cached_table_id;
-  std::unordered_set<DS_ID> cached_table_bydecisions;
-
   addr_t obj;
   klee::ref<klee::Expr> key;
   symbol_t cached_delete_failed;
 
 public:
-  FCFSCachedTableDelete(
-      const Node *node, DS_ID _cached_table_id,
-      const std::unordered_set<DS_ID> &_cached_table_bydecisions, addr_t _obj,
-      klee::ref<klee::Expr> _key, const symbol_t &_cached_delete_failed)
+  FCFSCachedTableDelete(const Node *node, DS_ID _cached_table_id, addr_t _obj,
+                        klee::ref<klee::Expr> _key,
+                        const symbol_t &_cached_delete_failed)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableDelete,
                      "FCFSCachedTableDelete", node),
-        cached_table_id(_cached_table_id),
-        cached_table_bydecisions(_cached_table_bydecisions), obj(_obj),
-        key(_key), cached_delete_failed(_cached_delete_failed) {}
+        cached_table_id(_cached_table_id), obj(_obj), key(_key),
+        cached_delete_failed(_cached_delete_failed) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -30,9 +26,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableDelete(node, cached_table_id,
-                                               cached_table_bydecisions, obj,
-                                               key, cached_delete_failed);
+    Module *cloned = new FCFSCachedTableDelete(node, cached_table_id, obj, key,
+                                               cached_delete_failed);
     return cloned;
   }
 
@@ -44,7 +39,7 @@ public:
   }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return cached_table_bydecisions;
+    return {cached_table_id};
   }
 };
 
@@ -123,8 +118,12 @@ protected:
     // FIXME: not using profiler cache.
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    new_ctx.scale_profiler(constraints, chosen_cache_success_probability);
-    new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.get_mutable_profiler().scale(constraints,
+                                         chosen_cache_success_probability);
+    new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
     new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
     spec_impl_t spec_impl(
@@ -210,14 +209,11 @@ private:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> bydecisions =
-        get_cached_table_bydecisions(cached_table);
-
     klee::ref<klee::Expr> cache_delete_success_condition =
         build_cache_delete_success_condition(cache_delete_failed);
 
     Module *module = new FCFSCachedTableDelete(
-        map_erase, cached_table->id, bydecisions, cached_table_data.obj,
+        map_erase, cached_table->id, cached_table_data.obj,
         cached_table_data.key, cache_delete_failed);
     EPNode *cached_table_delete_node = new EPNode(module);
 
@@ -262,11 +258,13 @@ private:
     hit_rate_t cache_success_probability = get_cache_op_success_probability(
         ep, map_erase, cached_table_data.key, cache_capacity);
 
-    new_ep->add_hit_rate_estimation(cache_delete_success_condition,
-                                    cache_success_probability);
+    new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(
+        new_ep->get_active_leaf().node->get_constraints(),
+        cache_delete_success_condition, cache_success_probability);
 
     if (deleted_branch_constraints.has_value()) {
-      new_ep->remove_hit_rate_node(deleted_branch_constraints.value());
+      new_ep->get_mutable_ctx().get_mutable_profiler().remove(
+          deleted_branch_constraints.value());
     }
 
     place_fcfs_cached_table(new_ep, map_erase, map_objs, cached_table);
@@ -279,7 +277,7 @@ private:
         cached_table_delete_node,
         {on_cache_delete_success_leaf, on_cache_delete_failed_leaf});
     new_ep->replace_bdd(new_bdd);
-    // new_ep->inspect();
+    new_ep->assert_integrity();
 
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
         get_node_egress(new_ep, send_to_controller_node));
@@ -303,24 +301,9 @@ private:
 
     hit_rate_t fraction = profiler.get_hr(node);
     hit_rate_t cache_hit_rate =
-        get_fcfs_cache_hr(ep, node, key, cache_capacity);
+        get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
 
     return cache_hit_rate;
-  }
-
-  std::unordered_set<DS_ID>
-  get_cached_table_bydecisions(FCFSCachedTable *cached_table) const {
-    std::unordered_set<DS_ID> bydecisions;
-
-    std::vector<std::unordered_set<const DS *>> internal_ds =
-        cached_table->get_internal_ds();
-    for (const std::unordered_set<const DS *> &ds_set : internal_ds) {
-      for (const DS *ds : ds_set) {
-        bydecisions.insert(ds->id);
-      }
-    }
-
-    return bydecisions;
   }
 
   fcfs_cached_table_data_t get_cached_table_data(const EP *ep,
@@ -400,9 +383,8 @@ private:
       non_branch_nodes_to_add.push_back(prev_borrow);
     }
 
-    add_non_branch_nodes_to_bdd(ep, bdd, on_cache_delete_failed,
-                                non_branch_nodes_to_add,
-                                new_on_cache_delete_failed);
+    new_on_cache_delete_failed = add_non_branch_nodes_to_bdd(
+        ep, bdd, on_cache_delete_failed, non_branch_nodes_to_add);
   }
 
   BDD *branch_bdd_on_cache_delete_success(
@@ -417,9 +399,8 @@ private:
     const Node *next = map_erase->get_next();
     assert(next);
 
-    Branch *cache_delete_branch;
-    add_branch_to_bdd(ep, new_bdd, next, cache_delete_success_condition,
-                      cache_delete_branch);
+    Branch *cache_delete_branch =
+        add_branch_to_bdd(ep, new_bdd, next, cache_delete_success_condition);
 
     on_cache_delete_success = cache_delete_branch->get_mutable_on_true();
     on_cache_delete_failed = cache_delete_branch->get_mutable_on_false();

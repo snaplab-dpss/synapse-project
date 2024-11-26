@@ -26,21 +26,25 @@
 #include "checksum_update.h"
 #include "cht_find_backend.h"
 #include "hash_obj.h"
-#include "cms_compute_hashes.h"
-#include "cms_expire.h"
-#include "cms_fetch.h"
-#include "cms_refresh.h"
-#include "cms_touch_buckets.h"
 #include "vector_register_lookup.h"
 #include "vector_register_update.h"
 #include "fcfs_cached_table_read.h"
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
+#include "hh_table_read.h"
+#include "hh_table_update.h"
+#include "hh_table_conditional_update.h"
+#include "hh_table_delete.h"
 #include "tb_is_tracing.h"
 #include "tb_trace.h"
 #include "tb_update_and_check.h"
 #include "tb_expire.h"
 #include "meter_insert.h"
+#include "int_alloc_free_index.h"
+#include "cms_update.h"
+#include "cms_query.h"
+#include "cms_increment.h"
+#include "cms_count_min.h"
 
 #include "tofino_cpu_context.h"
 
@@ -74,21 +78,25 @@ struct TofinoCPUTarget : public Target {
                    new MapEraseGenerator(),
                    new ChtFindBackendGenerator(),
                    new HashObjGenerator(),
-                   new CMSComputeHashesGenerator(),
-                   new CMSExpireGenerator(),
-                   new CMSFetchGenerator(),
-                   new CMSRefreshGenerator(),
-                   new CMSTouchBucketsGenerator(),
                    new VectorRegisterLookupGenerator(),
                    new VectorRegisterUpdateGenerator(),
                    new FCFSCachedTableReadGenerator(),
                    new FCFSCachedTableWriteGenerator(),
                    new FCFSCachedTableDeleteGenerator(),
+                   new HHTableReadGenerator(),
+                   new HHTableUpdateGenerator(),
+                   new HHTableConditionalUpdateGenerator(),
+                   new HHTableDeleteGenerator(),
                    new TBIsTracingGenerator(),
                    new TBTraceGenerator(),
                    new TBUpdateAndCheckGenerator(),
                    new TBExpireGenerator(),
                    new MeterInsertGenerator(),
+                   new IntegerAllocatorFreeIndexGenerator(),
+                   new CMSUpdateGenerator(),
+                   new CMSQueryGenerator(),
+                   new CMSIncrementGenerator(),
+                   new CMSCountMinGenerator(),
                },
                new TofinoCPUContext()) {}
 };

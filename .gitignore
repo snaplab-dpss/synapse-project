@@ -47,3 +47,7 @@ zlog-cfg-cur
 
 # Profiling
 callgrind.out.*
+
+# Some synthesized files that are just too big
+synthesized/*.json
+synthesized/*.dot

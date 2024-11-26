@@ -35,7 +35,7 @@ private:
   std::unordered_map<std::string, int> reserved_var_names;
 
   // Relevant for profiling
-  std::unordered_set<node_id_t> map_stats_nodes;
+  std::unordered_map<node_id_t, klee::ref<klee::Expr>> nodes_to_map;
 
 public:
   BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out);
@@ -77,7 +77,7 @@ private:
   void dchain_free_index(coder_t &, const Call *);
   void cms_increment(coder_t &, const Call *);
   void cms_count_min(coder_t &, const Call *);
-  void cms_cleanup(coder_t &, const Call *);
+  void cms_periodic_cleanup(coder_t &, const Call *);
   void tb_is_tracing(coder_t &, const Call *);
   void tb_trace(coder_t &, const Call *);
   void tb_update_and_check(coder_t &, const Call *);

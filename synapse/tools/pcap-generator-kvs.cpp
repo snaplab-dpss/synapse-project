@@ -35,9 +35,9 @@
 #define DEFAULT_TRAFFIC_ZIPF false
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
 
-// Using 1Gbps as the rate because we go too fast the pcap timestamps can't
+// Using 10Gbps as the rate because we go too fast the pcap timestamps can't
 // keep up with the actual time (pcap use us instead of ns).
-#define RATE_GBIT 1
+#define RATE_GBIT 10
 
 typedef std::array<u8, KEY_SIZE_BYTES> kv_key_t;
 typedef std::array<u8, VALUE_SIZE_BYTES> kv_value_t;
@@ -291,16 +291,13 @@ public:
 
       bool new_key = allocated_keys.find(key) == allocated_keys.end();
 
-      if (new_key) {
-        pkt.kvs_hdr.op = KVS_OP_PUT;
+      pkt.kvs_hdr.op = KVS_OP_PUT;
 
+      if (new_key) {
         kv_value_t value;
         randomize_value(value);
         memcpy(pkt.kvs_hdr.value, value.data(), VALUE_SIZE_BYTES);
-
         allocated_keys.insert(key);
-      } else {
-        pkt.kvs_hdr.op = KVS_OP_GET;
       }
 
       counters[key]++;

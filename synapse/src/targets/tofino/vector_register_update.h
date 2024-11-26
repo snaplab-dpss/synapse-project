@@ -172,7 +172,7 @@ protected:
     EPLeaf leaf(ep_node, new_next);
     new_ep->process_leaf(ep_node, {leaf});
     new_ep->replace_bdd(bdd);
-    // new_ep->inspect();
+    // new_ep->assert_integrity();
 
     return impls;
   }
@@ -231,9 +231,8 @@ private:
     }
 
     bool replace_next = (vector_return == next);
-    Node *replacement;
-    delete_non_branch_node_from_bdd(ep, new_bdd, vector_return->get_id(),
-                                    replacement);
+    Node *replacement =
+        delete_non_branch_node_from_bdd(ep, new_bdd, vector_return->get_id());
 
     if (replace_next) {
       new_next = replacement;

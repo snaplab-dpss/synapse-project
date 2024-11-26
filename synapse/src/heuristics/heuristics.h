@@ -6,6 +6,7 @@
 #include "gallium.h"
 #include "greedy.h"
 #include "max_tput.h"
+#include "ds_pref.h"
 
 #define EXPLICIT_HEURISTIC_TEMPLATE_CLASS_INSTANTIATION(C)                     \
   template class C<BFSCfg>;                                                    \
@@ -13,4 +14,5 @@
   template class C<RandomCfg>;                                                 \
   template class C<GalliumCfg>;                                                \
   template class C<GreedyCfg>;                                                 \
-  template class C<MaxTputCfg>;
+  template class C<MaxTputCfg>;                                                \
+  template class C<DSPrefCfg>;

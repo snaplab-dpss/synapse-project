@@ -132,10 +132,7 @@ static void peek_search_space(const std::vector<impl_t> &new_implementations,
   for (const impl_t &impl : new_implementations) {
     if (peek.find(impl.result->get_id()) != peek.end()) {
       Log::dbg() << "\n";
-      Log::dbg() << "Peeking Execution Plan #" << impl.result->get_id() << "\n";
-
       impl.result->debug();
-
       BDDViz::visualize(impl.result->get_bdd(), false);
       EPViz::visualize(impl.result, false);
       SSVisualizer::visualize(search_space, impl.result, true);
@@ -234,11 +231,11 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     meta.ss_size = search_space->get_size();
     meta.solutions = h->size();
 
-    h->add(new_implementations);
-    h->cleanup();
-
     log_search_iteration(report, meta);
     peek_search_space(new_implementations, peek, search_space);
+
+    h->add(new_implementations);
+    h->cleanup();
   }
 
   meta.ss_size = search_space->get_size();

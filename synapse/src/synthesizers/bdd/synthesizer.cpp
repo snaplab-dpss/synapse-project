@@ -69,7 +69,7 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(dchain_free_index),
           POPULATE_SYNTHESIZER(cms_increment),
           POPULATE_SYNTHESIZER(cms_count_min),
-          POPULATE_SYNTHESIZER(cms_cleanup),
+          POPULATE_SYNTHESIZER(cms_periodic_cleanup),
           POPULATE_SYNTHESIZER(tb_is_tracing),
           POPULATE_SYNTHESIZER(tb_trace),
           POPULATE_SYNTHESIZER(tb_update_and_check),
@@ -140,9 +140,10 @@ void BDDSynthesizer::init_post_process() {
   coder_t &coder = get(MARKER_NF_INIT);
 
   if (target == BDDSynthesizerTarget::PROFILER) {
-    for (node_id_t node_id : map_stats_nodes) {
+    for (const auto &[node_id, map_addr] : nodes_to_map) {
       coder.indent();
-      coder << "map_stats.init(";
+      coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
+      coder << ".init(";
       coder << node_id;
       coder << ")";
       coder << ";\n";
@@ -159,22 +160,27 @@ void BDDSynthesizer::init_post_process() {
 void BDDSynthesizer::process(const BDD *bdd) {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
-  coder << "int nf_process(";
-  coder << "uint16_t device, ";
-  coder << "uint8_t *buffer, ";
-  coder << "uint16_t packet_length, ";
-  coder << "time_ns_t now) {\n";
-
   symbol_t device = bdd->get_device();
-  symbol_t packet_len = bdd->get_packet_len();
+  symbol_t len = bdd->get_packet_len();
   symbol_t now = bdd->get_time();
+
+  var_t device_var = build_var("device", device.expr);
+  var_t len_var = build_var("packet_length", len.expr);
+  var_t now_var = build_var("now", now.expr);
+
+  coder << "int nf_process(";
+  coder << "uint16_t " << device_var.name << ", ";
+  coder << "uint8_t *buffer, ";
+  coder << "uint16_t " << len_var.name << ", ";
+  coder << "time_ns_t " << now_var.name;
+  coder << ") {\n";
 
   coder.inc();
   stack_push();
 
-  stack_add(build_var("device", device.expr));
-  stack_add(build_var("packet_length", packet_len.expr));
-  stack_add(build_var("now", now.expr));
+  stack_add(device_var);
+  stack_add(len_var);
+  stack_add(now_var);
 
   synthesize(bdd->get_root());
 
@@ -328,18 +334,19 @@ void BDDSynthesizer::packet_return_chunk(coder_t &coder,
   klee::ref<klee::Expr> chunk = call.args.at("the_chunk").in;
 
   var_t hdr = stack_get(chunk_addr);
-
   std::vector<mod_t> changes = build_expr_mods(hdr.expr, chunk);
 
   for (const mod_t &mod : changes) {
-    assert(mod.width == 8);
-    coder.indent();
-    coder << hdr.name;
-    coder << "[";
-    coder << mod.offset;
-    coder << "] = ";
-    coder << transpiler.transpile(mod.expr);
-    coder << ";\n";
+    std::vector<klee::ref<klee::Expr>> bytes = bytes_in_expr(mod.expr);
+    for (size_t i = 0; i < bytes.size(); i++) {
+      coder.indent();
+      coder << hdr.name;
+      coder << "[";
+      coder << mod.offset + i;
+      coder << "] = ";
+      coder << transpiler.transpile(bytes[i]);
+      coder << ";\n";
+    }
   }
 
   coder.indent();
@@ -446,7 +453,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(
   bytes_t size = value->getWidth() / 8;
 
   var_t var;
-  if (!stack_find(addr, var)) {
+  if (!(found_in_stack = stack_find(addr, var))) {
     var = build_var(base_name, value, addr);
     coder.indent();
     coder << "uint8_t " << var.name << "[" << size << "];\n";
@@ -456,7 +463,6 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(
 
   var_t stack_value;
   if (stack_find(value, stack_value)) {
-
     if (stack_value.addr.isNull()) {
       bits_t width = stack_value.expr->getWidth();
       assert(width <= klee::Expr::Int64);
@@ -524,12 +530,14 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   if (target == BDDSynthesizerTarget::PROFILER) {
-    map_stats_nodes.insert(call_node->get_id());
+    nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
-    coder << "map_stats.update(";
+    coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
+    coder << ".update(";
     coder << call_node->get_id() << ", ";
     coder << k.name << ", ";
-    coder << key->getWidth() / 8;
+    coder << key->getWidth() / 8 << ", ";
+    coder << "now"; // FIXME: we should get this from the stack
     coder << ")";
     coder << ";\n";
   }
@@ -564,12 +572,14 @@ void BDDSynthesizer::map_put(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   if (target == BDDSynthesizerTarget::PROFILER) {
-    map_stats_nodes.insert(call_node->get_id());
+    nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
-    coder << "map_stats.update(";
+    coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
+    coder << ".update(";
     coder << call_node->get_id() << ", ";
     coder << k.name << ", ";
-    coder << key->getWidth() / 8;
+    coder << key->getWidth() / 8 << ", ";
+    coder << "now"; // FIXME: we should get this from the stack
     coder << ")";
     coder << ";\n";
   }
@@ -604,12 +614,14 @@ void BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   if (target == BDDSynthesizerTarget::PROFILER) {
-    map_stats_nodes.insert(call_node->get_id());
+    nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
-    coder << "map_stats.update(";
+    coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
+    coder << ".update(";
     coder << call_node->get_id() << ", ";
     coder << k.name << ", ";
-    coder << key->getWidth() / 8;
+    coder << key->getWidth() / 8 << ", ";
+    coder << "now"; // FIXME: we should get this from the stack
     coder << ")";
     coder << ";\n";
   }
@@ -997,7 +1009,8 @@ void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
   stack_add(me);
 }
 
-void BDDSynthesizer::cms_cleanup(coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder,
+                                          const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
@@ -1013,7 +1026,7 @@ void BDDSynthesizer::cms_cleanup(coder_t &coder, const Call *call_node) {
 
   coder.indent();
   coder << "int " << cs.name << " = ";
-  coder << "cms_cleanup(";
+  coder << "cms_periodic_cleanup(";
   coder << stack_get(cms_addr).name << ", ";
   coder << transpiler.transpile(time);
   coder << ")";
@@ -1303,7 +1316,9 @@ void BDDSynthesizer::stack_replace(const var_t &var,
     }
   }
 
-  assert(false && "Variable not found in stack");
+  stack_dbg();
+  PANIC("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(),
+        expr_to_string(new_expr).c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,

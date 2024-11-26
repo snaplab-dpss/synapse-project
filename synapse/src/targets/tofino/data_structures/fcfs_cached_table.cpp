@@ -51,8 +51,9 @@ build_cache_keys(const TNAProperties &properties, DS_ID id,
 FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
                                  int _op, int _cache_capacity, int _num_entries,
                                  const std::vector<bits_t> &_keys_sizes)
-    : DS(DSType::FCFS_CACHED_TABLE, _id), cache_capacity(_cache_capacity),
-      num_entries(_num_entries), keys_sizes(_keys_sizes),
+    : DS(DSType::FCFS_CACHED_TABLE, false, _id),
+      cache_capacity(_cache_capacity), num_entries(_num_entries),
+      keys_sizes(_keys_sizes),
       cache_expirator(build_cache_expirator(properties, _id, cache_capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
   assert(_cache_capacity > 0);
@@ -65,7 +66,7 @@ FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
 }
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
-    : DS(DSType::FCFS_CACHED_TABLE, other.id),
+    : DS(other.type, other.primitive, other.id),
       cache_capacity(other.cache_capacity), num_entries(other.num_entries),
       keys_sizes(other.keys_sizes), tables(other.tables),
       cache_expirator(other.cache_expirator), cache_keys(other.cache_keys) {}
@@ -110,7 +111,7 @@ void FCFSCachedTable::debug() const {
 }
 
 std::vector<std::unordered_set<const DS *>>
-FCFSCachedTable::get_internal_ds() const {
+FCFSCachedTable::get_internal() const {
   // Access to the table comes first, then the expirator, and finally the keys.
 
   std::vector<std::unordered_set<const DS *>> internal_ds;

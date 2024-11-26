@@ -7,14 +7,14 @@
 
 #include "node.h"
 #include "meta.h"
+#include "context.h"
 #include "../bdd/bdd.h"
 #include "../targets/target.h"
-#include "../targets/context.h"
 
 class EPVisitor;
 class Profiler;
+struct spec_impl_t;
 
-typedef u64 ep_id_t;
 typedef std::unordered_map<node_id_t, node_id_t> translator_t;
 
 struct EPLeaf {
@@ -104,15 +104,6 @@ public:
   // conditions, and traverses the hit rate tree (using the solver).
   hit_rate_t get_active_leaf_hit_rate() const;
 
-  // Estimation is relative to the parent node.
-  // E.g. if the parent node has a hit rate of 0.5, and the estimation_rel is
-  // 0.1, the hit rate of the current node will be 0.05.
-  // WARNING: this should be called before processing the leaf.
-  void add_hit_rate_estimation(klee::ref<klee::Expr> condition,
-                               hit_rate_t estimation_rel);
-
-  void remove_hit_rate_node(const constraints_t &constraints);
-
   pps_t estimate_tput_pps() const;
   pps_t speculate_tput_pps() const;
 
@@ -123,12 +114,11 @@ public:
   void debug_hit_rate() const;
   void debug_active_leaves() const;
 
-  void inspect() const;
+  void assert_integrity() const;
 
 private:
   void sort_leaves();
 
-  void print_speculations(const std::vector<spec_impl_t> &speculations) const;
   spec_impl_t peek_speculation_for_future_nodes(
       const spec_impl_t &base_speculation, const Node *anchor,
       nodes_t future_nodes, TargetType current_target, pps_t ingress) const;

@@ -47,7 +47,7 @@ public:
     return cloned;
   }
 
-  const addr_t &get_dchain_addr() const { return dchain_addr; }
+  addr_t get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
 

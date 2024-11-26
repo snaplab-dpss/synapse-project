@@ -22,7 +22,6 @@ CFLAGS += -DCAPACITY_POW2
 CFLAGS += -g -std=c++20
 
 CFLAGS_RELEASE := -O3
-CFLAGS_DEBUG := -O0 -rdynamic -DENABLE_LOG -Wfatal-errors
 
 # Some NFs might require the JSON library to generate reports
 CFLAGS += -I$(DEPS_DIR)/json/include
@@ -31,17 +30,12 @@ NF_LIB_BUILD_DIR := $(DPDK_NFS_DIR)/build/
 NF_LIB_INCLUDE_DIR := $(DPDK_NFS_DIR)
 
 APP_RELEASE := $(OUT_DIR)/$(APP)
-APP_DEBUG := $(APP_RELEASE)-debug
 
 all: $(APP_RELEASE)
 
 $(APP_RELEASE): $(NF) $(PC_FILE)
 	@mkdir -p $(OUT_DIR)
 	@$(CXX) $(CFLAGS) $(CFLAGS_RELEASE) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
-
-$(APP_DEBUG): $(NF) $(PC_FILE)
-	@mkdir -p $(OUT_DIR)
-	@$(CXX) $(CFLAGS) $(CFLAGS_DEBUG) $(NF) -o $@ $(LDFLAGS) -I$(NF_LIB_INCLUDE_DIR) -L$(NF_LIB_BUILD_DIR) -lnf
 
 clean:
 	rm -rf $(OUT_DIR)

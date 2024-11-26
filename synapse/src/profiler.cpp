@@ -58,19 +58,17 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
 std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
   os << "<";
   os << "fraction=" << node.fraction;
+
+  if (!node.constraint.isNull()) {
+    os << ", ";
+    os << "cond=" << pretty_print_expr(node.constraint, true);
+  }
+
   if (node.bdd_node_id) {
     os << ", ";
     os << "bdd_node=" << *node.bdd_node_id;
-  } else {
-    if (!node.constraint.isNull()) {
-      os << ", ";
-      os << "cond=" << expr_to_string(node.constraint, true);
-    }
   }
-  for (const FlowStats &flow_stats : node.flows_stats) {
-    os << ", ";
-    os << "#flows=" << flow_stats.flows;
-  }
+
   os << ">";
 
   return os;
@@ -105,20 +103,18 @@ void ProfilerNode::debug(int lvl) const {
   }
 }
 
-bool ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id,
-                                  FlowStats &flow_stats) const {
+FlowStats ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
   for (const FlowStats &stats : flows_stats) {
     if (solver_toolbox.are_exprs_always_equal(flow_id, stats.flow_id)) {
-      flow_stats = stats;
-      return true;
+      return stats;
     }
   }
 
-  return false;
+  PANIC("Flow stats not found");
 }
 
 static ProfilerNode *build_profiler_tree(const Node *node,
-                                         const bdd_profile_t &bdd_profile,
+                                         const bdd_profile_t *bdd_profile,
                                          u64 max_count) {
   ProfilerNode *result = nullptr;
 
@@ -134,7 +130,7 @@ static ProfilerNode *build_profiler_tree(const Node *node,
     const Branch *branch = static_cast<const Branch *>(node);
 
     klee::ref<klee::Expr> condition = branch->get_condition();
-    u64 counter = bdd_profile.counters.at(node->get_id());
+    u64 counter = bdd_profile->counters.at(node->get_id());
     hit_rate_t fraction =
         clamp_fraction(static_cast<hit_rate_t>(counter) / max_count);
     node_id_t bdd_node_id = node->get_id();
@@ -148,7 +144,7 @@ static ProfilerNode *build_profiler_tree(const Node *node,
     new_node->on_false = build_profiler_tree(on_false, bdd_profile, max_count);
 
     if (!new_node->on_true && on_true) {
-      u64 on_true_counter = bdd_profile.counters.at(on_true->get_id());
+      u64 on_true_counter = bdd_profile->counters.at(on_true->get_id());
       hit_rate_t on_true_fraction =
           clamp_fraction(static_cast<hit_rate_t>(on_true_counter) / max_count);
       node_id_t bdd_node_id = on_true->get_id();
@@ -157,7 +153,7 @@ static ProfilerNode *build_profiler_tree(const Node *node,
     }
 
     if (!new_node->on_false && on_false) {
-      u64 on_false_counter = bdd_profile.counters.at(on_false->get_id());
+      u64 on_false_counter = bdd_profile->counters.at(on_false->get_id());
       hit_rate_t on_false_fraction =
           clamp_fraction(static_cast<hit_rate_t>(on_false_counter) / max_count);
       node_id_t bdd_node_id = on_false->get_id();
@@ -183,13 +179,12 @@ static ProfilerNode *build_profiler_tree(const Node *node,
 static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile_t bdd_profile;
 
-  bdd_profile.meta.packets = 100'000;
-  bdd_profile.meta.bytes = std::max(64, RandomEngine::generate() % 1500);
-  bdd_profile.meta.avg_pkt_size =
-      bdd_profile.meta.packets / bdd_profile.meta.bytes;
+  bdd_profile.meta.pkts = 100'000;
+  bdd_profile.meta.bytes =
+      bdd_profile.meta.pkts * std::max(64, RandomEngine::generate() % 1500);
 
   const Node *root = bdd->get_root();
-  bdd_profile.counters[root->get_id()] = bdd_profile.meta.packets;
+  bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
 
   root->visit_nodes([&bdd_profile](const Node *node) {
     assert(bdd_profile.counters.find(node->get_id()) !=
@@ -218,16 +213,21 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
 
       if (call.function_name == "map_get" || call.function_name == "map_put" ||
           call.function_name == "map_erase") {
-        bdd_profile_t::map_stats_t map_stats;
+        klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
+
+        bdd_profile_t::map_stats_t::node_t map_stats;
         map_stats.node = node->get_id();
-        map_stats.packets = current_counter;
+        map_stats.pkts = current_counter;
         map_stats.flows =
             std::max(1ul, RandomEngine::generate() % current_counter);
-        map_stats.avg_pkts_per_flow = current_counter / map_stats.flows;
+
+        u64 avg_pkts_per_flow = current_counter / map_stats.flows;
         for (u64 i = 0; i < map_stats.flows; i++) {
-          map_stats.packets_per_flow.push_back(map_stats.avg_pkts_per_flow);
+          map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
         }
-        bdd_profile.map_stats.push_back(map_stats);
+
+        bdd_profile.stats_per_map[expr_addr_to_obj_addr(map_addr)]
+            .nodes.push_back(map_stats);
       }
 
       if (node->get_next()) {
@@ -249,44 +249,47 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   return bdd_profile;
 }
 
-Profiler::Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile)
-    : root(nullptr), avg_pkt_size(bdd_profile.meta.avg_pkt_size), cache() {
+Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
+    : bdd_profile(new bdd_profile_t(_bdd_profile)), root(nullptr),
+      avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const Node *bdd_root = bdd->get_root();
 
-  assert(bdd_profile.counters.find(bdd_root->get_id()) !=
-         bdd_profile.counters.end());
-  u64 max_count = bdd_profile.counters.at(bdd_root->get_id());
+  assert(bdd_profile->counters.find(bdd_root->get_id()) !=
+         bdd_profile->counters.end());
+  u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
 
   root = std::shared_ptr<ProfilerNode>(
-      build_profiler_tree(bdd_root, bdd_profile, max_count));
+      build_profiler_tree(bdd_root, bdd_profile.get(), max_count));
 
-  for (const bdd_profile_t::map_stats_t &map_stats : bdd_profile.map_stats) {
-    const Node *node = bdd->get_node_by_id(map_stats.node);
-    assert(node && "Node not found");
+  for (const auto &[map_addr, map_stats] : bdd_profile->stats_per_map) {
+    for (const auto &node_map_stats : map_stats.nodes) {
+      const Node *node = bdd->get_node_by_id(node_map_stats.node);
+      assert(node && "Node not found");
 
-    constraints_t constraints = node->get_ordered_branch_constraints();
-    ProfilerNode *profiler_node = get_node(constraints);
-    assert(profiler_node && "Profiler node not found");
+      constraints_t constraints = node->get_ordered_branch_constraints();
+      ProfilerNode *profiler_node = get_node(constraints);
+      assert(profiler_node && "Profiler node not found");
 
-    assert(node->get_type() == NodeType::CALL);
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
+      assert(node->get_type() == NodeType::CALL);
+      const Call *call_node = static_cast<const Call *>(node);
+      const call_t &call = call_node->get_call();
 
-    assert(call.function_name == "map_get" || call.function_name == "map_put" ||
-           call.function_name == "map_erase");
+      assert(call.function_name == "map_get" ||
+             call.function_name == "map_put" ||
+             call.function_name == "map_erase");
 
-    assert(call.args.find("key") != call.args.end());
-    klee::ref<klee::Expr> flow_id = call.args.at("key").in;
+      assert(call.args.find("key") != call.args.end());
+      klee::ref<klee::Expr> flow_id = call.args.at("key").in;
 
-    FlowStats flow_stats = {
-        .flow_id = flow_id,
-        .packets = map_stats.packets,
-        .flows = map_stats.flows,
-        .avg_pkts_per_flow = map_stats.avg_pkts_per_flow,
-        .packets_per_flow = map_stats.packets_per_flow,
-    };
+      FlowStats flow_stats = {
+          .flow_id = flow_id,
+          .pkts = node_map_stats.pkts,
+          .flows = node_map_stats.flows,
+          .pkts_per_flow = node_map_stats.pkts_per_flow,
+      };
 
-    profiler_node->flows_stats.push_back(flow_stats);
+      profiler_node->flows_stats.push_back(flow_stats);
+    }
   }
 }
 
@@ -297,11 +300,12 @@ Profiler::Profiler(const BDD *bdd, const std::string &bdd_profile_fname)
     : Profiler(bdd, parse_bdd_profile(bdd_profile_fname)) {}
 
 Profiler::Profiler(const Profiler &other)
-    : root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
+    : bdd_profile(other.bdd_profile), root(other.root),
+      avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
 
 Profiler::Profiler(Profiler &&other)
-    : root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size),
-      cache(std::move(other.cache)) {
+    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)),
+      avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
   other.root = nullptr;
 }
 
@@ -310,11 +314,16 @@ Profiler &Profiler::operator=(const Profiler &other) {
     return *this;
   }
 
+  bdd_profile = other.bdd_profile;
   root = other.root;
   avg_pkt_size = other.avg_pkt_size;
   cache = other.cache;
 
   return *this;
+}
+
+const bdd_profile_t *Profiler::get_bdd_profile() const {
+  return bdd_profile.get();
 }
 
 int Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
@@ -393,9 +402,6 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint,
   hit_rate_t fraction_on_true = clamp_fraction(fraction);
   hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
 
-  assert(fraction_on_true <= 1.0);
-  assert(fraction_on_false <= 1.0);
-
   assert(fraction_on_true <= new_node->fraction);
   assert(fraction_on_false <= new_node->fraction);
 
@@ -426,7 +432,10 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
   new_node->prev = parent;
 
   new_node->on_true = node;
+  new_node->on_true->prev = new_node;
+
   new_node->on_false = node->clone(false);
+  new_node->on_false->prev = new_node;
 
   hit_rate_t fraction_on_true = clamp_fraction(fraction);
   hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
@@ -446,34 +455,29 @@ void Profiler::remove(ProfilerNode *node) {
   // one side is left).
 
   ProfilerNode *grandparent = parent->prev;
-  ProfilerNode *sibling;
 
-  if (parent->on_true == node) {
-    sibling = parent->on_false;
-    parent->on_false = nullptr;
-  } else {
-    sibling = parent->on_true;
-    parent->on_true = nullptr;
-  }
+  assert(grandparent && "Cannot remove the grandparent node");
+
+  ProfilerNode *sibling =
+      (parent->on_true == node) ? parent->on_false : parent->on_true;
 
   hit_rate_t parent_fraction = parent->fraction;
 
-  if (!grandparent) {
-    // The parent is the root node.
-    assert(root.get() == parent);
-    assert(false && "Attempted to replace Profiler root node");
-    // root = sibling;
+  if (grandparent->on_true == parent) {
+    grandparent->on_true = sibling;
   } else {
-    if (grandparent->on_true == parent) {
-      grandparent->on_true = sibling;
-    } else {
-      grandparent->on_false = sibling;
-    }
-
-    sibling->prev = grandparent;
+    grandparent->on_false = sibling;
   }
 
+  sibling->prev = grandparent;
+
+  parent->on_true = nullptr;
+  parent->on_false = nullptr;
   delete parent;
+
+  node->on_true = nullptr;
+  node->on_false = nullptr;
+  delete node;
 
   hit_rate_t old_fraction = sibling->fraction;
   hit_rate_t new_fraction = parent_fraction;
@@ -488,13 +492,6 @@ void Profiler::remove(const constraints_t &constraints) {
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
   remove(node);
-}
-
-void Profiler::insert(const constraints_t &constraints,
-                      klee::ref<klee::Expr> constraint, hit_rate_t fraction) {
-  clone_tree_if_shared();
-  ProfilerNode *node = get_node(constraints);
-  append(node, constraint, fraction);
 }
 
 void Profiler::insert_relative(const constraints_t &constraints,
@@ -512,6 +509,19 @@ void Profiler::scale(const constraints_t &constraints, hit_rate_t factor) {
 
   hit_rate_t old_fraction = clamp_fraction(node->fraction);
   hit_rate_t new_fraction = clamp_fraction(node->fraction * factor);
+
+  node->fraction = new_fraction;
+
+  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
+  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
+}
+
+void Profiler::set(const constraints_t &constraints, hit_rate_t new_hr) {
+  clone_tree_if_shared();
+  ProfilerNode *node = get_node(constraints);
+
+  hit_rate_t old_fraction = clamp_fraction(node->fraction);
+  hit_rate_t new_fraction = clamp_fraction(new_hr);
 
   node->fraction = new_fraction;
 
@@ -579,17 +589,9 @@ void Profiler::debug() const {
   Log::dbg() << "===========================================\n\n";
 }
 
-std::optional<FlowStats>
-Profiler::get_flow_stats(const constraints_t &constraints,
-                         klee::ref<klee::Expr> flow_id) const {
-  ProfilerNode *node = get_node(constraints);
-
-  FlowStats flow_stats;
-  if (node && node->get_flow_stats(flow_id, flow_stats)) {
-    return flow_stats;
-  }
-
-  return std::nullopt;
+FlowStats Profiler::get_flow_stats(const constraints_t &constraints,
+                                   klee::ref<klee::Expr> flow_id) const {
+  return get_node(constraints)->get_flow_stats(flow_id);
 }
 
 void Profiler::clone_tree_if_shared() {

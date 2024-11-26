@@ -26,7 +26,15 @@
 
 IGNORE_MODULE(tofino_cpu::Ignore)
 
-VISIT_BRANCH(tofino_cpu::If)
+void EPViz::visit(const EP *ep, const EPNode *ep_node,
+                  const tofino_cpu::If *node) {
+  std::stringstream label_builder;
+
+  label_builder << "\\n";
+  label_builder << pretty_print_expr(node->get_condition());
+
+  branch(ep_node, node->get_node(), node->get_target(), label_builder.str());
+}
 
 SHOW_MODULE_NAME(tofino_cpu::ParseHeader)
 SHOW_MODULE_NAME(tofino_cpu::ModifyHeader)
@@ -50,18 +58,22 @@ SHOW_MODULE_NAME(tofino_cpu::MapPut)
 SHOW_MODULE_NAME(tofino_cpu::MapErase)
 SHOW_MODULE_NAME(tofino_cpu::ChtFindBackend)
 SHOW_MODULE_NAME(tofino_cpu::HashObj)
-SHOW_MODULE_NAME(tofino_cpu::CMSComputeHashes)
-SHOW_MODULE_NAME(tofino_cpu::CMSExpire)
-SHOW_MODULE_NAME(tofino_cpu::CMSFetch)
-SHOW_MODULE_NAME(tofino_cpu::CMSRefresh)
-SHOW_MODULE_NAME(tofino_cpu::CMSTouchBuckets)
 SHOW_MODULE_NAME(tofino_cpu::VectorRegisterLookup)
 SHOW_MODULE_NAME(tofino_cpu::VectorRegisterUpdate)
 SHOW_MODULE_NAME(tofino_cpu::FCFSCachedTableRead)
 SHOW_MODULE_NAME(tofino_cpu::FCFSCachedTableWrite)
 SHOW_MODULE_NAME(tofino_cpu::FCFSCachedTableDelete)
+SHOW_MODULE_NAME(tofino_cpu::HHTableRead)
+SHOW_MODULE_NAME(tofino_cpu::HHTableConditionalUpdate)
+SHOW_MODULE_NAME(tofino_cpu::HHTableUpdate)
+SHOW_MODULE_NAME(tofino_cpu::HHTableDelete)
 SHOW_MODULE_NAME(tofino_cpu::TBIsTracing)
 SHOW_MODULE_NAME(tofino_cpu::TBTrace)
 SHOW_MODULE_NAME(tofino_cpu::TBUpdateAndCheck)
 SHOW_MODULE_NAME(tofino_cpu::TBExpire)
 SHOW_MODULE_NAME(tofino_cpu::MeterInsert)
+SHOW_MODULE_NAME(tofino_cpu::IntegerAllocatorFreeIndex)
+SHOW_MODULE_NAME(tofino_cpu::CMSUpdate)
+SHOW_MODULE_NAME(tofino_cpu::CMSQuery)
+SHOW_MODULE_NAME(tofino_cpu::CMSIncrement)
+SHOW_MODULE_NAME(tofino_cpu::CMSCountMin)

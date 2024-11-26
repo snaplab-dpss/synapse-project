@@ -30,10 +30,10 @@ struct FCFSCachedTable : public DS {
 
   DS *clone() const override;
   void debug() const override;
+  std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
   bool has_table(int op) const;
   std::optional<DS_ID> add_table(int op);
-  std::vector<std::unordered_set<const DS *>> get_internal_ds() const;
 };
 
 } // namespace tofino

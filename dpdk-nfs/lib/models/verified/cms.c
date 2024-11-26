@@ -86,7 +86,7 @@ uint64_t cms_count_min(struct CMS *cms, void *key) {
   return klee_int("min_estimate");
 }
 
-int cms_cleanup(struct CMS *cms, time_ns_t now) {
+int cms_periodic_cleanup(struct CMS *cms, time_ns_t now) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)cms, "cms");
   klee_trace_param_i64(now, "time");

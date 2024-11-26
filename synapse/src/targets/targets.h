@@ -3,7 +3,6 @@
 #include <toml++/toml.hpp>
 
 #include "target.h"
-#include "context.h"
 
 #include "x86/x86.h"
 #include "tofino/tofino.h"

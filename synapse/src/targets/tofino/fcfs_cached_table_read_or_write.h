@@ -12,8 +12,6 @@ namespace tofino {
 class FCFSCachedTableReadOrWrite : public TofinoModule {
 private:
   DS_ID cached_table_id;
-  std::unordered_set<DS_ID> cached_table_byproducts;
-
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> read_value;
@@ -22,16 +20,15 @@ private:
   symbol_t cache_write_failed;
 
 public:
-  FCFSCachedTableReadOrWrite(
-      const Node *node, DS_ID _cached_table_id,
-      const std::unordered_set<DS_ID> &_cached_table_byproducts, addr_t _obj,
-      klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _read_value,
-      klee::ref<klee::Expr> _write_value, const symbol_t &_map_has_this_key,
-      const symbol_t &_cache_write_failed)
+  FCFSCachedTableReadOrWrite(const Node *node, DS_ID _cached_table_id,
+                             addr_t _obj, klee::ref<klee::Expr> _key,
+                             klee::ref<klee::Expr> _read_value,
+                             klee::ref<klee::Expr> _write_value,
+                             const symbol_t &_map_has_this_key,
+                             const symbol_t &_cache_write_failed)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableReadOrWrite,
                      "FCFSCachedTableReadOrWrite", node),
-        cached_table_id(_cached_table_id),
-        cached_table_byproducts(_cached_table_byproducts), obj(_obj), key(_key),
+        cached_table_id(_cached_table_id), obj(_obj), key(_key),
         read_value(_read_value), write_value(_write_value),
         map_has_this_key(_map_has_this_key),
         cache_write_failed(_cache_write_failed) {}
@@ -43,8 +40,8 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new FCFSCachedTableReadOrWrite(
-        node, cached_table_id, cached_table_byproducts, obj, key, read_value,
-        write_value, map_has_this_key, cache_write_failed);
+        node, cached_table_id, obj, key, read_value, write_value,
+        map_has_this_key, cache_write_failed);
     return cloned;
   }
 
@@ -57,7 +54,7 @@ public:
   const symbol_t &get_cache_write_failed() const { return cache_write_failed; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return cached_table_byproducts;
+    return {cached_table_id};
   }
 };
 
@@ -135,8 +132,12 @@ protected:
 
     // FIXME: not using profiler cache.
     constraints_t constraints = node->get_ordered_branch_constraints();
-    new_ctx.scale_profiler(constraints, chosen_success_probability);
-    new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.get_mutable_profiler().scale(constraints,
+                                         chosen_success_probability);
+    new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
     new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_hr);
 
     spec_impl_t spec_impl(
@@ -226,14 +227,11 @@ private:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> byproducts =
-        get_cached_table_byproducts(cached_table);
-
     klee::ref<klee::Expr> cache_write_success_condition =
         build_cache_write_success_condition(cache_write_failed);
 
     Module *module = new FCFSCachedTableReadOrWrite(
-        node, cached_table->id, byproducts, fcfs_cached_table_data.obj,
+        node, cached_table->id, fcfs_cached_table_data.obj,
         fcfs_cached_table_data.key, fcfs_cached_table_data.read_value,
         fcfs_cached_table_data.write_value,
         fcfs_cached_table_data.map_has_this_key, cache_write_failed);
@@ -280,21 +278,14 @@ private:
     hit_rate_t cache_success_probability = get_cache_op_success_probability(
         ep, node, fcfs_cached_table_data.key, cache_capacity);
 
-    new_ep->add_hit_rate_estimation(cache_write_success_condition,
-                                    cache_success_probability);
+    new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(
+        new_ep->get_active_leaf().node->get_constraints(),
+        cache_write_success_condition, cache_success_probability);
 
     if (deleted_branch_constraints.has_value()) {
-      new_ep->remove_hit_rate_node(deleted_branch_constraints.value());
+      new_ep->get_mutable_ctx().get_mutable_profiler().remove(
+          deleted_branch_constraints.value());
     }
-
-    // new_bdd->inspect();
-
-    // BDDViz::visualize(new_bdd, false);
-    // ProfilerViz::visualize(ep->get_bdd(),
-    // ep->get_ctx().get_profiler(),
-    //                               false);
-    // ProfilerViz::visualize(new_bdd, new_ep->get_ctx().get_profiler(),
-    //                               true);
 
     place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
 
@@ -306,7 +297,7 @@ private:
         cached_table_cond_write_node,
         {on_cache_write_success_leaf, on_cache_write_failed_leaf});
     new_ep->replace_bdd(new_bdd);
-    // new_ep->inspect();
+    new_ep->assert_integrity();
 
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
         get_node_egress(new_ep, send_to_controller_node));
@@ -327,26 +318,20 @@ private:
     hit_rate_t fwp = failed_writes / hr;
 
     hit_rate_t cache_hit_rate =
-        get_fcfs_cache_hr(ep, node, key, cache_capacity);
+        get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
 
-    hit_rate_t probability = rp + fwp + wp * cache_hit_rate;
+    hit_rate_t probability = rp + wp * cache_hit_rate;
+
+    // if (node->get_id() == 14) {
+    //   std::cerr << "rp: " << rp << std::endl;
+    //   std::cerr << "wp: " << wp << std::endl;
+    //   std::cerr << "fwp: " << fwp << std::endl;
+    //   std::cerr << "cache_hit_rate: " << cache_hit_rate << std::endl;
+    //   std::cerr << "success_probability: " << probability << std::endl;
+    //   DEBUG_PAUSE
+    // }
 
     return probability;
-  }
-
-  std::unordered_set<DS_ID>
-  get_cached_table_byproducts(FCFSCachedTable *cached_table) const {
-    std::unordered_set<DS_ID> byproducts;
-
-    std::vector<std::unordered_set<const DS *>> internal_ds =
-        cached_table->get_internal_ds();
-    for (const std::unordered_set<const DS *> &ds_set : internal_ds) {
-      for (const DS *ds : ds_set) {
-        byproducts.insert(ds->id);
-      }
-    }
-
-    return byproducts;
   }
 
   fcfs_cached_table_data_t
@@ -395,9 +380,9 @@ private:
     Node *map_get_on_cache_write_failed = map_get->clone(manager, false);
     map_get_on_cache_write_failed->recursive_update_ids(id);
 
-    add_non_branch_nodes_to_bdd(ep, bdd, cache_write_branch->get_on_false(),
-                                {map_get_on_cache_write_failed},
-                                new_on_cache_write_failed);
+    new_on_cache_write_failed =
+        add_non_branch_nodes_to_bdd(ep, bdd, cache_write_branch->get_on_false(),
+                                    {map_get_on_cache_write_failed});
   }
 
   void replicate_hdr_parsing_ops_on_cache_write_failed(
@@ -417,9 +402,8 @@ private:
       non_branch_nodes_to_add.push_back(prev_borrow);
     }
 
-    add_non_branch_nodes_to_bdd(ep, bdd, on_cache_write_failed,
-                                non_branch_nodes_to_add,
-                                new_on_cache_write_failed);
+    new_on_cache_write_failed = add_non_branch_nodes_to_bdd(
+        ep, bdd, on_cache_write_failed, non_branch_nodes_to_add);
   }
 
   std::vector<const Node *>
@@ -447,6 +431,10 @@ private:
         const Branch *branch =
             find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
+        // FIXME: We ignore all logic happening when the index is not
+        // successfuly allocated. This is a major simplification, as the NF
+        // might be doing something useful here. We never encountered a scenario
+        // where this was the case, but it could happen nonetheless.
         if (branch) {
           nodes_to_ignore.push_back(branch);
 
@@ -502,14 +490,12 @@ private:
 
           deleted_branch_constraints->push_back(extra_constraint);
 
-          Node *trash;
-          delete_branch_node_from_bdd(ep, bdd, branch->get_id(),
-                                      direction_to_keep, trash);
+          Node *trash = delete_branch_node_from_bdd(ep, bdd, branch->get_id(),
+                                                    direction_to_keep);
         }
       }
 
-      Node *trash;
-      delete_non_branch_node_from_bdd(ep, bdd, target->get_id(), trash);
+      Node *trash = delete_non_branch_node_from_bdd(ep, bdd, target->get_id());
     }
   }
 
@@ -526,9 +512,8 @@ private:
     const Node *next = map_get->get_next();
     assert(next);
 
-    Branch *cache_write_branch;
-    add_branch_to_bdd(ep, new_bdd, next, cache_write_success_condition,
-                      cache_write_branch);
+    Branch *cache_write_branch =
+        add_branch_to_bdd(ep, new_bdd, next, cache_write_success_condition);
 
     on_cache_write_success = cache_write_branch->get_mutable_on_true();
     add_map_get_clone_on_cache_write_failed(

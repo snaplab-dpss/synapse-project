@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
   app.add_option("--out", output_dot_file, "Output dot file.");
-  app.add_option("--report", bdd_profile_file, "BDD profile file.");
+  app.add_option("--profile", bdd_profile_file, "BDD profile file.");
   app.add_flag("--show", show, "Render dot file.");
 
   CLI11_PARSE(app, argc, argv);
@@ -24,6 +24,17 @@ int main(int argc, char **argv) {
 
   if (!bdd_profile_file.empty()) {
     bdd_profile_t profile = parse_bdd_profile(bdd_profile_file);
+
+    for (const auto &map : profile.stats_per_map) {
+      std::cerr << "Map " << map.first << std::endl;
+      for (size_t k = 10; k <= 1000000; k *= 10) {
+        std::cerr << "Top-k=" << k
+                  << " churn=" << profile.churn_top_k_flows(map.first, k)
+                  << " fpm"
+                  << " hr=" << profile.churn_hit_rate_top_k_flows(map.first, k)
+                  << "\n";
+      }
+    }
 
     if (!output_dot_file.empty()) {
       BDDProfileVisualizer generator(output_dot_file, profile);

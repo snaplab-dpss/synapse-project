@@ -49,6 +49,12 @@ protected:
       return std::nullopt;
     }
 
+    const Branch *branch_node = static_cast<const Branch *>(node);
+
+    if (is_parser_condition(branch_node)) {
+      return std::nullopt;
+    }
+
     return spec_impl_t(decide(ep, node), ctx);
   }
 

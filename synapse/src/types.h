@@ -8,12 +8,6 @@
 
 #define THOUSANDS_SEPARATOR "'"
 
-#define MIN_THROUGHPUT_GIGABIT_PER_SEC 1   // Gbps
-#define MAX_THROUGHPUT_GIGABIT_PER_SEC 100 // Gbps
-
-#define MIN_PACKET_SIZE_BYTES 64
-#define MAX_PACKET_SIZE_BYTES 1500
-
 #define TRILLION 1000000000000LLU
 #define BILLION 1000000000LLU
 
@@ -53,30 +47,40 @@ typedef u64 pps_t;
 typedef u64 bps_t;
 typedef u64 Bps_t;
 
+typedef u64 fpm_t; // churn in flows per minute
+typedef u64 fps_t; // churn in flows per second
+
 typedef double hit_rate_t;
 
-#define bit_to_byte(B) ((B) / 8)
-#define byte_to_bit(B) ((B) * 8)
+#define MIN_THROUGHPUT_GIGABIT_PER_SEC ((gbps_t)1)
+#define MAX_THROUGHPUT_GIGABIT_PER_SEC ((gbps_t)100)
+
+#define MIN_PACKET_SIZE_BYTES ((byte_t)64)
+#define MAX_PACKET_SIZE_BYTES ((byte_t)1500)
+
+#define bit_to_byte(B) ((byte_t)((B) / 8))
+#define byte_to_bit(B) ((bit_t)((B) * 8))
 #define align_to_byte(B) ((B) % 8 == 0 ? (B) : (B) + 8 - (B) % 8)
 
-#define gbps_to_bps(R) ((R) * BILLION)
+#define gbps_to_bps(R) ((bps_t)((R) * BILLION))
 
-#define min_to_s(T) ((T) * 60)
+#define min_to_s(T) ((time_s_t)((T) * 60))
 
-#define s_to_min(T) ((T) / (double)(60))
-#define s_to_us(T) ((T) * MILLION)
-#define s_to_ns(T) ((T) * BILLION)
+#define s_to_min(T) ((time_min_t)((T) / (double)(60)))
+#define s_to_us(T) ((time_us_t)((T) * MILLION))
+#define s_to_ns(T) ((time_ns_t)((T) * BILLION))
 
-#define us_to_s(T) ((double)(T) / (double)(MILLION))
-#define us_to_ns(T) ((T) * THOUSAND)
+#define us_to_s(T) ((time_s_t)((double)(T) / (double)(MILLION)))
+#define us_to_ns(T) ((time_ns_t)((T) * THOUSAND))
 
-#define ns_to_s(T) ((double)(T) / (double)(BILLION))
-#define ns_to_us(T) ((T) / THOUSAND)
+#define ns_to_s(T) ((time_s_t)((double)(T) / (double)(BILLION)))
+#define ns_to_us(T) ((time_us_t)((T) / THOUSAND))
 #define ns_to_ps(T) ((time_ps_t)((T) * THOUSAND))
 
 #define ps_to_ns(T) ((time_ns_t)((double)(T) / (double)THOUSAND))
 
-#define STABLE_TPUT_PRECISION 100 // pps
+#define STABLE_TPUT_PRECISION ((pps_t)100) // pps
 
+typedef u64 ep_id_t;
 typedef u64 ep_node_id_t;
 typedef std::vector<klee::ref<klee::Expr>> constraints_t;

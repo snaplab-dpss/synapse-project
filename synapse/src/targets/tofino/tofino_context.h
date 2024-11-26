@@ -4,9 +4,9 @@
 #include <optional>
 #include <toml++/toml.hpp>
 
-#include "../context.h"
 #include "tna/tna.h"
 #include "data_structures/data_structures.h"
+#include "../../execution_plan/context.h"
 
 namespace tofino {
 
@@ -39,7 +39,7 @@ public:
 
   void parser_select(const EP *ep, const Node *node,
                      klee::ref<klee::Expr> field,
-                     const std::vector<int> &values);
+                     const std::vector<int> &values, bool negate);
 
   void parser_accept(const EP *ep, const Node *node);
   void parser_reject(const EP *ep, const Node *node);
@@ -62,3 +62,5 @@ public:
 };
 
 } // namespace tofino
+
+EXPLICIT_TARGET_CONTEXT_INSTANTIATION(tofino, TofinoContext)

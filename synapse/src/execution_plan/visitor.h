@@ -39,6 +39,14 @@ class FCFSCachedTableReadOrWrite;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
 class MeterUpdate;
+class HHTableRead;
+class HHTableConditionalUpdate;
+class IntegerAllocatorRejuvenate;
+class IntegerAllocatorAllocate;
+class IntegerAllocatorIsAllocated;
+class CMSQuery;
+class CMSIncrement;
+class CMSIncAndQuery;
 } // namespace tofino
 
 namespace tofino_cpu {
@@ -65,22 +73,26 @@ class MapPut;
 class MapErase;
 class ChtFindBackend;
 class HashObj;
-class CMSComputeHashes;
-class CMSExpire;
-class CMSFetch;
-class CMSRefresh;
-class CMSTouchBuckets;
 class TableDelete;
 class VectorRegisterLookup;
 class VectorRegisterUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
+class HHTableRead;
+class HHTableConditionalUpdate;
+class HHTableUpdate;
+class HHTableDelete;
 class TBIsTracing;
 class TBTrace;
 class TBUpdateAndCheck;
 class TBExpire;
 class MeterInsert;
+class IntegerAllocatorFreeIndex;
+class CMSUpdate;
+class CMSQuery;
+class CMSIncrement;
+class CMSCountMin;
 } // namespace tofino_cpu
 
 namespace x86 {
@@ -105,11 +117,9 @@ class DchainAllocateNewIndex;
 class DchainRejuvenateIndex;
 class DchainIsIndexAllocated;
 class DchainFreeIndex;
-class CMSComputeHashes;
-class CMSExpire;
-class CMSFetch;
-class CMSRefresh;
-class CMSTouchBuckets;
+class CMSIncrement;
+class CMSCountMin;
+class CMSPeriodicCleanup;
 class ChtFindBackend;
 class HashObj;
 class TBIsTracing;
@@ -150,6 +160,14 @@ public:
   VISIT_NOP(tofino::FCFSCachedTableWrite)
   VISIT_NOP(tofino::FCFSCachedTableDelete)
   VISIT_NOP(tofino::MeterUpdate)
+  VISIT_NOP(tofino::HHTableRead)
+  VISIT_NOP(tofino::HHTableConditionalUpdate)
+  VISIT_NOP(tofino::IntegerAllocatorRejuvenate)
+  VISIT_NOP(tofino::IntegerAllocatorAllocate)
+  VISIT_NOP(tofino::IntegerAllocatorIsAllocated)
+  VISIT_NOP(tofino::CMSQuery)
+  VISIT_NOP(tofino::CMSIncrement)
+  VISIT_NOP(tofino::CMSIncAndQuery)
 
   /*************************************
    *
@@ -181,21 +199,25 @@ public:
   VISIT_NOP(tofino_cpu::MapErase)
   VISIT_NOP(tofino_cpu::ChtFindBackend)
   VISIT_NOP(tofino_cpu::HashObj)
-  VISIT_NOP(tofino_cpu::CMSComputeHashes)
-  VISIT_NOP(tofino_cpu::CMSExpire)
-  VISIT_NOP(tofino_cpu::CMSFetch)
-  VISIT_NOP(tofino_cpu::CMSRefresh)
-  VISIT_NOP(tofino_cpu::CMSTouchBuckets)
   VISIT_NOP(tofino_cpu::VectorRegisterLookup)
   VISIT_NOP(tofino_cpu::VectorRegisterUpdate)
   VISIT_NOP(tofino_cpu::FCFSCachedTableRead)
   VISIT_NOP(tofino_cpu::FCFSCachedTableWrite)
   VISIT_NOP(tofino_cpu::FCFSCachedTableDelete)
+  VISIT_NOP(tofino_cpu::HHTableRead)
+  VISIT_NOP(tofino_cpu::HHTableConditionalUpdate)
+  VISIT_NOP(tofino_cpu::HHTableUpdate)
+  VISIT_NOP(tofino_cpu::HHTableDelete)
   VISIT_NOP(tofino_cpu::TBIsTracing)
   VISIT_NOP(tofino_cpu::TBTrace)
   VISIT_NOP(tofino_cpu::TBUpdateAndCheck)
   VISIT_NOP(tofino_cpu::TBExpire)
   VISIT_NOP(tofino_cpu::MeterInsert)
+  VISIT_NOP(tofino_cpu::IntegerAllocatorFreeIndex)
+  VISIT_NOP(tofino_cpu::CMSUpdate)
+  VISIT_NOP(tofino_cpu::CMSQuery)
+  VISIT_NOP(tofino_cpu::CMSIncrement)
+  VISIT_NOP(tofino_cpu::CMSCountMin)
 
   /*************************************
    *
@@ -222,11 +244,9 @@ public:
   VISIT_NOP(x86::MapPut)
   VISIT_NOP(x86::ChecksumUpdate)
   VISIT_NOP(x86::DchainIsIndexAllocated)
-  VISIT_NOP(x86::CMSComputeHashes)
-  VISIT_NOP(x86::CMSExpire)
-  VISIT_NOP(x86::CMSFetch)
-  VISIT_NOP(x86::CMSRefresh)
-  VISIT_NOP(x86::CMSTouchBuckets)
+  VISIT_NOP(x86::CMSIncrement)
+  VISIT_NOP(x86::CMSCountMin)
+  VISIT_NOP(x86::CMSPeriodicCleanup)
   VISIT_NOP(x86::MapErase)
   VISIT_NOP(x86::DchainFreeIndex)
   VISIT_NOP(x86::ChtFindBackend)

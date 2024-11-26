@@ -12,25 +12,20 @@ namespace tofino {
 class FCFSCachedTableWrite : public TofinoModule {
 private:
   DS_ID cached_table_id;
-  std::unordered_set<DS_ID> cached_table_bydecisions;
-
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> write_value;
   symbol_t cache_write_failed;
 
 public:
-  FCFSCachedTableWrite(
-      const Node *node, DS_ID _cached_table_id,
-      const std::unordered_set<DS_ID> &_cached_table_bydecisions, addr_t _obj,
-      klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _write_value,
-      const symbol_t &_cache_write_failed)
+  FCFSCachedTableWrite(const Node *node, DS_ID _cached_table_id, addr_t _obj,
+                       klee::ref<klee::Expr> _key,
+                       klee::ref<klee::Expr> _write_value,
+                       const symbol_t &_cache_write_failed)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableWrite,
                      "FCFSCachedTableWrite", node),
-        cached_table_id(_cached_table_id),
-        cached_table_bydecisions(_cached_table_bydecisions), obj(_obj),
-        key(_key), write_value(_write_value),
-        cache_write_failed(_cache_write_failed) {}
+        cached_table_id(_cached_table_id), obj(_obj), key(_key),
+        write_value(_write_value), cache_write_failed(_cache_write_failed) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -38,9 +33,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableWrite(
-        node, cached_table_id, cached_table_bydecisions, obj, key, write_value,
-        cache_write_failed);
+    Module *cloned = new FCFSCachedTableWrite(node, cached_table_id, obj, key,
+                                              write_value, cache_write_failed);
     return cloned;
   }
 
@@ -51,7 +45,7 @@ public:
   const symbol_t &get_cache_write_failed() const { return cache_write_failed; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return cached_table_bydecisions;
+    return {cached_table_id};
   }
 };
 
@@ -134,8 +128,12 @@ protected:
     // FIXME: not using profiler cache.
     constraints_t constraints = node->get_ordered_branch_constraints();
 
-    new_ctx.scale_profiler(constraints, chosen_success_estimation);
-    new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.get_mutable_profiler().scale(constraints,
+                                         chosen_success_estimation);
+    new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
     new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
     spec_impl_t spec_impl(
@@ -229,16 +227,12 @@ private:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> bydecisions =
-        get_cached_table_bydecisions(cached_table);
-
     klee::ref<klee::Expr> cache_write_success_condition =
         build_cache_write_success_condition(cache_write_failed);
 
     Module *module = new FCFSCachedTableWrite(
-        node, cached_table->id, bydecisions, cached_table_data.obj,
-        cached_table_data.key, cached_table_data.write_value,
-        cache_write_failed);
+        node, cached_table->id, cached_table_data.obj, cached_table_data.key,
+        cached_table_data.write_value, cache_write_failed);
     EPNode *cached_table_write_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -283,11 +277,13 @@ private:
         get_cache_success_estimation_rel(ep, node, future_map_puts[0],
                                          cached_table_data.key, cache_capacity);
 
-    new_ep->add_hit_rate_estimation(cache_write_success_condition,
-                                    cache_write_success_estimation_rel);
+    new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(
+        new_ep->get_active_leaf().node->get_constraints(),
+        cache_write_success_condition, cache_write_success_estimation_rel);
 
     if (deleted_branch_constraints.has_value()) {
-      new_ep->remove_hit_rate_node(deleted_branch_constraints.value());
+      new_ep->get_mutable_ctx().get_mutable_profiler().remove(
+          deleted_branch_constraints.value());
     }
 
     place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
@@ -299,7 +295,7 @@ private:
     new_ep->process_leaf(cached_table_write_node, {on_cache_write_success_leaf,
                                                    on_cache_write_failed_leaf});
     new_ep->replace_bdd(new_bdd);
-    // new_ep->inspect();
+    new_ep->assert_integrity();
 
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
         get_node_egress(new_ep, send_to_controller_node));
@@ -311,39 +307,10 @@ private:
                                               const Node *map_put,
                                               klee::ref<klee::Expr> key,
                                               int cache_capacity) const {
-    const Context &ctx = ep->get_ctx();
-    const Profiler &profiler = ctx.get_profiler();
-
-    hit_rate_t fraction = profiler.get_hr(node);
-
-    // FIXME: not using profiler cache.
-    constraints_t full_write_constraints =
-        map_put->get_ordered_branch_constraints();
-    std::optional<FlowStats> flow_stats =
-        profiler.get_flow_stats(full_write_constraints, key);
-    assert(flow_stats.has_value());
-
-    u64 cached_packets = std::min(
-        flow_stats->packets, flow_stats->avg_pkts_per_flow * cache_capacity);
-    hit_rate_t expected_cached_fraction =
-        cached_packets / static_cast<hit_rate_t>(flow_stats->packets);
-
+    hit_rate_t fraction = ep->get_ctx().get_profiler().get_hr(node);
+    hit_rate_t expected_cached_fraction = get_fcfs_cache_success_rate(
+        ep->get_ctx(), map_put, key, cache_capacity);
     return fraction * expected_cached_fraction;
-  }
-
-  std::unordered_set<DS_ID>
-  get_cached_table_bydecisions(FCFSCachedTable *cached_table) const {
-    std::unordered_set<DS_ID> bydecisions;
-
-    std::vector<std::unordered_set<const DS *>> internal_ds =
-        cached_table->get_internal_ds();
-    for (const std::unordered_set<const DS *> &ds_set : internal_ds) {
-      for (const DS *ds : ds_set) {
-        bydecisions.insert(ds->id);
-      }
-    }
-
-    return bydecisions;
   }
 
   fcfs_cached_table_data_t
@@ -381,14 +348,8 @@ private:
       nodes_to_ignore.push_back(coalescing_node);
     }
 
-    symbol_t out_of_space;
-    bool found =
-        get_symbol(dchain_allocate_new_index->get_locally_generated_symbols(),
-                   "out_of_space", out_of_space);
-    assert(found && "Symbol out_of_space not found");
-
-    const Branch *branch = find_branch_checking_index_alloc(
-        ep, dchain_allocate_new_index, out_of_space);
+    const Branch *branch =
+        find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
 
     if (branch) {
       nodes_to_ignore.push_back(branch);
@@ -423,10 +384,9 @@ private:
         dchain_allocate_new_index->clone(manager, false);
     dchain_allocate_new_index_on_cache_write_failed->recursive_update_ids(id);
 
-    add_non_branch_nodes_to_bdd(
+    new_on_cache_write_failed = add_non_branch_nodes_to_bdd(
         ep, bdd, cache_write_branch->get_on_false(),
-        {dchain_allocate_new_index_on_cache_write_failed},
-        new_on_cache_write_failed);
+        {dchain_allocate_new_index_on_cache_write_failed});
   }
 
   void replicate_hdr_parsing_ops_on_cache_write_failed(
@@ -446,9 +406,8 @@ private:
       non_branch_nodes_to_add.push_back(prev_borrow);
     }
 
-    add_non_branch_nodes_to_bdd(ep, bdd, on_cache_write_failed,
-                                non_branch_nodes_to_add,
-                                new_on_cache_write_failed);
+    new_on_cache_write_failed = add_non_branch_nodes_to_bdd(
+        ep, bdd, on_cache_write_failed, non_branch_nodes_to_add);
   }
 
   void delete_coalescing_nodes_on_success(
@@ -488,14 +447,12 @@ private:
 
           deleted_branch_constraints->push_back(extra_constraint);
 
-          Node *trash;
-          delete_branch_node_from_bdd(ep, bdd, branch->get_id(),
-                                      direction_to_keep, trash);
+          Node *trash = delete_branch_node_from_bdd(ep, bdd, branch->get_id(),
+                                                    direction_to_keep);
         }
       }
 
-      Node *trash;
-      delete_non_branch_node_from_bdd(ep, bdd, target->get_id(), trash);
+      Node *trash = delete_non_branch_node_from_bdd(ep, bdd, target->get_id());
     }
   }
 
@@ -512,9 +469,8 @@ private:
     const Node *next = dchain_allocate_new_index->get_next();
     assert(next);
 
-    Branch *cache_write_branch;
-    add_branch_to_bdd(ep, new_bdd, next, cache_write_success_condition,
-                      cache_write_branch);
+    Branch *cache_write_branch =
+        add_branch_to_bdd(ep, new_bdd, next, cache_write_success_condition);
     on_cache_write_success = cache_write_branch->get_mutable_on_true();
 
     add_dchain_allocate_new_index_clone_on_cache_write_failed(

@@ -5,8 +5,17 @@
 #include "simplifier.h"
 #include "solver.h"
 
+bool is_readLSB(klee::ref<klee::Expr> expr) {
+  std::string symbol;
+  return is_readLSB(expr, symbol);
+}
+
 bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   assert(!expr.isNull());
+
+  if (expr->getKind() == klee::Expr::Read) {
+    return true;
+  }
 
   if (expr->getKind() != klee::Expr::Concat) {
     return false;
@@ -14,7 +23,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
 
   auto groups = get_expr_groups(expr);
 
-  if (groups.size() <= 1) {
+  if (groups.empty()) {
     return false;
   }
 

@@ -10,10 +10,9 @@ class EPNode;
 
 struct FlowStats {
   klee::ref<klee::Expr> flow_id;
-  u64 packets;
+  u64 pkts;
   u64 flows;
-  u64 avg_pkts_per_flow;
-  std::vector<u64> packets_per_flow;
+  std::vector<u64> pkts_per_flow;
 };
 
 struct ProfilerNode {
@@ -33,12 +32,13 @@ struct ProfilerNode {
   ProfilerNode *clone(bool keep_bdd_info) const;
   void debug(int lvl = 0) const;
 
-  bool get_flow_stats(klee::ref<klee::Expr> flow_id,
-                      FlowStats &flow_stats) const;
+  FlowStats get_flow_stats(klee::ref<klee::Expr> flow_id) const;
 };
 
 class Profiler {
 private:
+  std::shared_ptr<bdd_profile_t> bdd_profile;
+
   std::shared_ptr<ProfilerNode> root;
   int avg_pkt_size;
 
@@ -61,20 +61,25 @@ public:
 
   Profiler &operator=(const Profiler &other);
 
+  const bdd_profile_t *get_bdd_profile() const;
   int get_avg_pkt_bytes() const;
 
-  void insert(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
-              hit_rate_t hr_on_true);
+  // Estimation is relative to the parent node.
+  // E.g. if the parent node has a hit rate of 0.5, and the estimation_rel is
+  // 0.1, the hit rate of the current node will be 0.05.
+  // WARNING: this should be called before processing the leaf.
   void insert_relative(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
                        hit_rate_t rel_hr_on_true);
+
   void remove(const constraints_t &constraints);
   void scale(const constraints_t &constraints, hit_rate_t factor);
+  void set(const constraints_t &constraints, hit_rate_t new_hr);
 
   hit_rate_t get_hr(const Node *node) const;
   hit_rate_t get_hr(const EPNode *node) const;
 
-  std::optional<FlowStats> get_flow_stats(const constraints_t &cnstrs,
-                                          klee::ref<klee::Expr> flow) const;
+  FlowStats get_flow_stats(const constraints_t &cnstrs,
+                           klee::ref<klee::Expr> flow) const;
 
   void clear_cache() const;
   void debug() const;

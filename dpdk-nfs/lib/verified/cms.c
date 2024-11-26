@@ -106,7 +106,7 @@ uint64_t cms_count_min(struct CMS *cms, void *key) {
   return min_val;
 }
 
-int cms_cleanup(struct CMS *cms, time_ns_t now) {
+int cms_periodic_cleanup(struct CMS *cms, time_ns_t now) {
   if (cms->last_cleanup == 0) {
     cms->last_cleanup = now;
     return 0;

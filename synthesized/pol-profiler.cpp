@@ -4,13 +4,11 @@ extern "C" {
 #include <lib/verified/map.h>
 #include <lib/verified/vector.h>
 #include <lib/verified/double-chain.h>
-
-#include <lib/verified/expirator.h>
-#include <lib/verified/hash.h>
-#include <lib/verified/cms.h>
 #include <lib/verified/cht.h>
+#include <lib/verified/cms.h>
 #include <lib/verified/token-bucket.h>
 
+#include <lib/verified/hash.h>
 #include <lib/verified/expirator.h>
 #include <lib/verified/packet-io.h>
 #include <lib/verified/tcpudp_hdr.h>
@@ -65,6 +63,8 @@ using json = nlohmann::json;
 
 #define DEFAULT_SRC_MAC "90:e2:ba:8e:4f:6c"
 #define DEFAULT_DST_MAC "90:e2:ba:8e:4f:6d"
+
+#define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
 #define PARSE_ERROR(argv, format, ...)                                         \
   nf_config_usage(argv);                                                       \
@@ -368,6 +368,8 @@ void nf_config_init(int argc, char **argv) {
   nf_config_print();
 }
 
+bool warmup;
+
 struct Stats {
   struct key_t {
     uint8_t *data;
@@ -396,10 +398,11 @@ struct Stats {
     }
   };
 
-  std::unordered_map<key_t, uint64_t, KeyHasher> stats;
+  std::unordered_map<key_t, uint64_t, KeyHasher> key_counter;
   std::unordered_map<uint32_t, std::unordered_set<uint32_t>> mask_to_crc32;
+  uint64_t total_count;
 
-  Stats() : stats() {
+  Stats() : total_count(0) {
     uint32_t mask = 0;
     while (1) {
       mask = (mask << 1) | 1;
@@ -412,7 +415,8 @@ struct Stats {
 
   void update(const void *key, uint32_t len) {
     key_t k((uint8_t *)key, len);
-    stats[k]++;
+    key_counter[k]++;
+    total_count++;
 
     uint32_t crc32 = rte_hash_crc(k.data, k.len, 0xffffffff);
     for (auto &[mask, hashes] : mask_to_crc32) {
@@ -422,12 +426,37 @@ struct Stats {
 };
 
 struct MapStats {
+  struct epoch_t {
+    Stats stats;
+    time_ns_t start;
+    time_ns_t end;
+    bool warmup;
+
+    epoch_t(time_ns_t _start, bool _warmup)
+        : start(_start), end(-1), warmup(_warmup) {}
+  };
+
   std::unordered_map<int, Stats> stats_per_map_op;
+  std::vector<epoch_t> epochs;
+  time_ns_t epoch_duration;
 
-  void init(int op) { stats_per_map_op[op] = Stats(); }
+  MapStats() : epoch_duration(EPOCH_DURATION_NS) {}
 
-  void update(int op, const void *key, uint32_t len) {
-    stats_per_map_op[op].update(key, len);
+  void init(int op) { stats_per_map_op.insert({op, Stats()}); }
+
+  void update(int op, const void *key, uint32_t len, time_ns_t now) {
+    stats_per_map_op.at(op).update(key, len);
+
+    if (epochs.empty() || (epochs.back().warmup && !warmup) ||
+        now - epochs.back().start > epoch_duration) {
+      epochs.emplace_back(now, warmup);
+    }
+
+    epochs.back().stats.update(key, len);
+
+    if (!epochs.empty()) {
+      epochs.back().end = now;
+    }
   }
 };
 
@@ -437,7 +466,6 @@ MapStats map_stats;
 uint64_t *path_profiler_counter_ptr;
 uint64_t path_profiler_counter_sz;
 time_ns_t elapsed_time;
-bool warmup;
 
 void inc_path_counter(int i) {
   if (warmup) {
@@ -450,7 +478,7 @@ void inc_path_counter(int i) {
 void generate_report() {
   json report;
 
-  report["config"] = json();
+  report["config"] = json::object();
   report["config"]["pcaps"] = json::array();
   for (const auto &dev_pcap : config.pcaps) {
     json dev_pcap_elem;
@@ -460,50 +488,84 @@ void generate_report() {
     report["config"]["pcaps"].push_back(dev_pcap_elem);
   }
 
-  report["counters"] = json();
-  for (unsigned i = 0; i < path_profiler_counter_sz; i++) {
+  report["counters"] = json::object();
+  for (size_t i = 0; i < path_profiler_counter_sz; i++) {
     report["counters"][std::to_string(i)] = path_profiler_counter_ptr[i];
   }
 
-  report["meta"] = json();
+  report["meta"] = json::object();
   report["meta"]["elapsed"] = elapsed_time;
   report["meta"]["packets"] = reader.get_total_packets();
   report["meta"]["bytes"] = reader.get_total_bytes();
-  report["meta"]["avg_pkt_size"] =
-      reader.get_total_bytes() / reader.get_total_packets();
 
-  report["map_stats"] = json::array();
+  report["map_stats"] = json::object();
+  report["map_stats"]["nodes"] = json::array();
   for (const auto &[map_op, stats] : map_stats.stats_per_map_op) {
     json map_op_stats_json;
     map_op_stats_json["node"] = map_op;
     map_op_stats_json["packets_per_flow"] = json::array();
-    map_op_stats_json["flows"] = stats.stats.size();
+    map_op_stats_json["flows"] = stats.key_counter.size();
 
-    map_op_stats_json["crc32_hashes_per_mask"] = json();
+    map_op_stats_json["crc32_hashes_per_mask"] = json::object();
     for (const auto &[mask, crc32_hashes] : stats.mask_to_crc32) {
       map_op_stats_json["crc32_hashes_per_mask"][std::to_string(mask)] =
           crc32_hashes.size();
     }
 
-    uint64_t total_packets = 0;
-    std::vector<uint64_t> packets_per_flow;
-    for (const auto &map_key_stats : stats.stats) {
-      packets_per_flow.push_back(map_key_stats.second);
-      total_packets += map_key_stats.second;
+    auto build_packets_per_flow = [&stats] {
+      auto packets_per_flow = json::array();
+      std::vector<uint64_t> ppf;
+      for (const auto &map_key_stats : stats.key_counter) {
+        ppf.push_back(map_key_stats.second);
+      }
+      std::sort(ppf.begin(), ppf.end(), std::greater<>());
+      for (uint64_t packets : ppf) {
+        packets_per_flow.push_back(packets);
+      }
+      return packets_per_flow;
+    };
+
+    map_op_stats_json["packets_per_flow"] = build_packets_per_flow();
+    map_op_stats_json["packets"] = stats.total_count;
+
+    report["map_stats"]["nodes"].push_back(map_op_stats_json);
+  }
+
+  report["map_stats"]["epochs"] = json::array();
+  for (size_t i = 0; i < map_stats.epochs.size(); i++) {
+    const auto &epoch = map_stats.epochs[i];
+
+    json epoch_json;
+    epoch_json["dt_ns"] = epoch.end - epoch.start;
+    epoch_json["warmup"] = epoch.warmup;
+    epoch_json["packets"] = epoch.stats.total_count;
+    epoch_json["flows"] = epoch.stats.key_counter.size();
+
+    epoch_json["packets_per_persistent_flow"] = json::array();
+    epoch_json["packets_per_new_flow"] = json::array();
+
+    std::vector<uint64_t> pf;
+    std::vector<uint64_t> nf;
+    for (const auto &[key, pkts] : epoch.stats.key_counter) {
+      if (i == 0 || (map_stats.epochs[i - 1].stats.key_counter.find(key) ==
+                     map_stats.epochs[i - 1].stats.key_counter.end())) {
+        nf.push_back(pkts);
+      } else {
+        pf.push_back(pkts);
+      }
+    }
+    std::sort(pf.begin(), pf.end(), std::greater<>());
+    std::sort(nf.begin(), nf.end(), std::greater<>());
+
+    for (uint64_t packets : pf) {
+      epoch_json["packets_per_persistent_flow"].push_back(packets);
     }
 
-    std::sort(packets_per_flow.begin(), packets_per_flow.end(),
-              std::greater<>());
-
-    for (uint64_t packets : packets_per_flow) {
-      map_op_stats_json["packets_per_flow"].push_back(packets);
+    for (uint64_t packets : nf) {
+      epoch_json["packets_per_new_flow"].push_back(packets);
     }
 
-    map_op_stats_json["packets"] = total_packets;
-    map_op_stats_json["avg_pkts_per_flow"] =
-        stats.stats.empty() ? 0 : total_packets / stats.stats.size();
-
-    report["map_stats"].push_back(map_op_stats_json);
+    report["map_stats"]["epochs"].push_back(epoch_json);
   }
 
   std::ofstream os = std::ofstream(config.report_fname);
@@ -586,20 +648,20 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
                time_ns_t now) {
   // Node 0
   inc_path_counter(0);
-  uint8_t *hdr;
-  packet_borrow_next_chunk(buffer, 14, (void **)&hdr);
+  tb_expire(tb, now);
   // Node 1
   inc_path_counter(1);
-  if (((8) == (*(uint16_t *)(hdr + 12))) &
-      ((20) <=
-       ((uint16_t)((uint32_t)((-14) + ((uint16_t)(packet_length & 65535))))))) {
-    // Node 2
-    inc_path_counter(2);
-    uint8_t *hdr2;
-    packet_borrow_next_chunk(buffer, 20, (void **)&hdr2);
+  uint8_t *hdr;
+  packet_borrow_next_chunk(buffer, 14, (void **)&hdr);
+  // Node 2
+  inc_path_counter(2);
+  if (((8) == (*(uint16_t *)(uint16_t *)(hdr + 12))) &
+      ((20) <= ((uint16_t)((uint32_t)((4294967282) +
+                                      ((uint16_t)(packet_length & 65535))))))) {
     // Node 3
     inc_path_counter(3);
-    tb_expire(tb, now);
+    uint8_t *hdr2;
+    packet_borrow_next_chunk(buffer, 20, (void **)&hdr2);
     // Node 4
     inc_path_counter(4);
     if ((0) != (device & 65535)) {
@@ -616,6 +678,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
       // Node 8
       inc_path_counter(8);
       uint8_t key[4];
+      memcpy((void *)key, (void *)(uint32_t *)(hdr2 + 16), 4);
       int index;
       int is_tracing = tb_is_tracing(tb, key, &index);
       // Node 9
@@ -675,6 +738,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
     // Node 23
     inc_path_counter(23);
     return DROP;
-  } // ((8) == (*(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((-14) +
-    // ((uint16_t)(packet_length & 65535))))))
+  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <=
+    // ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length &
+    // 65535))))))
 }

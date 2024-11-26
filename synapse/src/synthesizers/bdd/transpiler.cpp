@@ -17,8 +17,15 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   coder_t &coder = coders.top();
 
   if (is_constant(expr)) {
+    assert(expr->getWidth() <= 64);
     u64 value = solver_toolbox.value_from_expr(expr);
-    coder << solver_toolbox.value_from_expr(expr);
+    coder << value;
+    if (value > (1ull << 31)) {
+      if (!is_constant_signed(expr)) {
+        coder << "U";
+      }
+      coder << "LL";
+    }
   } else {
     visit(simplify(expr));
 

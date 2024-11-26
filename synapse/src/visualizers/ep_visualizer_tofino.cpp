@@ -28,7 +28,17 @@ using namespace tofino;
 
 IGNORE_MODULE(tofino::Ignore)
 
-VISIT_BRANCH(tofino::If)
+void EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::If *node) {
+  std::stringstream label_builder;
+
+  for (klee::ref<klee::Expr> condition : node->get_conditions()) {
+    label_builder << "\\n";
+    label_builder << pretty_print_expr(condition);
+  }
+
+  branch(ep_node, node->get_node(), node->get_target(), label_builder.str());
+}
+
 VISIT_BRANCH(tofino::ParserCondition)
 
 SHOW_MODULE_NAME(tofino::ParserReject)
@@ -51,8 +61,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << port;
   label_builder << ")";
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -67,8 +76,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << dst_device;
   label_builder << ")";
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -88,8 +96,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << obj;
   label_builder << ")";
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -121,8 +128,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << obj;
   label_builder << ")";
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -153,8 +159,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << "], obj=";
   label_builder << obj;
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -181,8 +186,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << "size=";
   label_builder << cached_table->cache_capacity;
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -209,8 +213,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << "size=";
   label_builder << cached_table->cache_capacity;
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -237,8 +240,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << "size=";
   label_builder << cached_table->cache_capacity;
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -265,8 +267,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << "size=";
   label_builder << cached_table->cache_capacity;
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -282,8 +283,7 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << size;
   label_builder << "B)";
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
 
 void EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -298,6 +298,38 @@ void EPViz::visit(const EP *ep, const EPNode *ep_node,
   label_builder << "obj=";
   label_builder << obj;
 
-  std::string label = label_builder.str();
-  function_call(ep_node, bdd_node, target, label);
+  function_call(ep_node, bdd_node, target, label_builder.str());
 }
+
+void EPViz::visit(const EP *ep, const EPNode *ep_node,
+                  const tofino::HHTableRead *node) {
+  const Node *bdd_node = node->get_node();
+  TargetType target = node->get_target();
+  addr_t obj = node->get_obj();
+
+  const DS *ds = ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds_from_id(
+      node->get_hh_table_id());
+
+  assert(ds->type == DSType::HH_TABLE);
+  const HHTable *hh_table = static_cast<const HHTable *>(ds);
+
+  std::stringstream label_builder;
+  label_builder << "HH Table Read\n";
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "CMS=";
+  label_builder << hh_table->cms_width;
+  label_builder << "x";
+  label_builder << hh_table->cms_height;
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+}
+
+SHOW_MODULE_NAME(tofino::IntegerAllocatorRejuvenate)
+SHOW_MODULE_NAME(tofino::IntegerAllocatorAllocate)
+SHOW_MODULE_NAME(tofino::IntegerAllocatorIsAllocated)
+
+SHOW_MODULE_NAME(tofino::CMSQuery)
+SHOW_MODULE_NAME(tofino::CMSIncrement)
+SHOW_MODULE_NAME(tofino::CMSIncAndQuery)

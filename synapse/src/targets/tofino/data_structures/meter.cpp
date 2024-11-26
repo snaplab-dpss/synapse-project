@@ -6,14 +6,14 @@ namespace tofino {
 
 Meter::Meter(DS_ID _id, u64 _capacity, Bps_t _rate, bytes_t _burst,
              const std::vector<bits_t> &_keys)
-    : DS(DSType::METER, _id), capacity(_capacity), rate(_rate), burst(_burst),
-      keys(_keys) {
+    : DS(DSType::METER, true, _id), capacity(_capacity), rate(_rate),
+      burst(_burst), keys(_keys) {
   assert(capacity > 0);
 }
 
 Meter::Meter(const Meter &other)
-    : DS(DSType::METER, other.id), capacity(other.capacity), rate(other.rate),
-      burst(other.burst), keys(other.keys) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity),
+      rate(other.rate), burst(other.burst), keys(other.keys) {}
 
 DS *Meter::clone() const { return new Meter(*this); }
 
@@ -34,13 +34,18 @@ bits_t Meter::get_consumed_sram() const {
 void Meter::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "=========== METER ============\n";
-  Log::dbg() << "ID:      " << id << "\n";
-  Log::dbg() << "Entries: " << capacity << "\n";
-  Log::dbg() << "Rate:    " << rate << " Bps\n";
-  Log::dbg() << "Burst:   " << burst << " B\n";
-  Log::dbg() << "Xbar:    " << get_match_xbar_consume() / 8 << " B\n";
-  Log::dbg() << "SRAM:    " << get_consumed_sram() / 8 << " B\n";
+  Log::dbg() << "ID:        " << id << "\n";
+  Log::dbg() << "Primitive: " << primitive << "\n";
+  Log::dbg() << "Entries:   " << capacity << "\n";
+  Log::dbg() << "Rate:      " << rate << " Bps\n";
+  Log::dbg() << "Burst:     " << burst << " B\n";
+  Log::dbg() << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
+  Log::dbg() << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
   Log::dbg() << "==============================\n";
+}
+
+std::vector<std::unordered_set<const DS *>> Meter::get_internal() const {
+  return {};
 }
 
 std::vector<klee::ref<klee::Expr>>

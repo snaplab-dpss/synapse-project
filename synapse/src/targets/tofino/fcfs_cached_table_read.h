@@ -7,24 +7,19 @@ namespace tofino {
 class FCFSCachedTableRead : public TofinoModule {
 private:
   DS_ID cached_table_id;
-  std::unordered_set<DS_ID> cached_table_bydecisions;
-
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
   symbol_t map_has_this_key;
 
 public:
-  FCFSCachedTableRead(
-      const Node *node, DS_ID _cached_table_id,
-      const std::unordered_set<DS_ID> &_cached_table_bydecisions, addr_t _obj,
-      klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
-      const symbol_t &_map_has_this_key)
+  FCFSCachedTableRead(const Node *node, DS_ID _cached_table_id, addr_t _obj,
+                      klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+                      const symbol_t &_map_has_this_key)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableRead,
                      "FCFSCachedTableRead", node),
-        cached_table_id(_cached_table_id),
-        cached_table_bydecisions(_cached_table_bydecisions), obj(_obj),
-        key(_key), value(_value), map_has_this_key(_map_has_this_key) {}
+        cached_table_id(_cached_table_id), obj(_obj), key(_key), value(_value),
+        map_has_this_key(_map_has_this_key) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -32,9 +27,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new FCFSCachedTableRead(node, cached_table_id, cached_table_bydecisions,
-                                obj, key, value, map_has_this_key);
+    Module *cloned = new FCFSCachedTableRead(node, cached_table_id, obj, key,
+                                             value, map_has_this_key);
     return cloned;
   }
 
@@ -45,7 +39,7 @@ public:
   const symbol_t &get_map_has_this_key() const { return map_has_this_key; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return cached_table_bydecisions;
+    return {cached_table_id};
   }
 };
 
@@ -94,7 +88,9 @@ protected:
 
     Context new_ctx = ctx;
 
-    new_ctx.save_ds_impl(cached_table_data.obj, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
 
     spec_impl_t spec_impl(
         decide(ep, node,
@@ -176,13 +172,9 @@ private:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> bydecisions =
-        get_cached_table_bydecisions(cached_table);
-
     Module *module = new FCFSCachedTableRead(
-        node, cached_table->id, bydecisions, cached_table_data.obj,
-        cached_table_data.key, cached_table_data.read_value,
-        cached_table_data.map_has_this_key);
+        node, cached_table->id, cached_table_data.obj, cached_table_data.key,
+        cached_table_data.read_value, cached_table_data.map_has_this_key);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
@@ -196,24 +188,9 @@ private:
     EPLeaf leaf(ep_node, new_next);
     new_ep->process_leaf(ep_node, {leaf});
     new_ep->replace_bdd(bdd);
-    // new_ep->inspect();
+    new_ep->assert_integrity();
 
     return implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
-  }
-
-  std::unordered_set<DS_ID>
-  get_cached_table_bydecisions(FCFSCachedTable *cached_table) const {
-    std::unordered_set<DS_ID> bydecisions;
-
-    std::vector<std::unordered_set<const DS *>> internal_ds =
-        cached_table->get_internal_ds();
-    for (const std::unordered_set<const DS *> &ds_set : internal_ds) {
-      for (const DS *ds : ds_set) {
-        bydecisions.insert(ds->id);
-      }
-    }
-
-    return bydecisions;
   }
 
   fcfs_cached_table_data_t get_cached_table_data(const EP *ep,
@@ -290,9 +267,8 @@ private:
 
     for (const Call *vector_op : vector_ops) {
       bool replace_next = (vector_op == next);
-      Node *replacement;
-      delete_non_branch_node_from_bdd(ep, new_bdd, vector_op->get_id(),
-                                      replacement);
+      Node *replacement =
+          delete_non_branch_node_from_bdd(ep, new_bdd, vector_op->get_id());
 
       if (replace_next) {
         new_next = replacement;

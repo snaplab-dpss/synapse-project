@@ -48,7 +48,7 @@ public:
   void visit(BDDVisitor &visitor) const;
   void serialize(const std::string &file_path) const;
   void deserialize(const std::string &file_path);
-  void inspect() const;
+  void assert_integrity() const;
 
   const Node *get_node_by_id(node_id_t _id) const;
   Node *get_mutable_node_by_id(node_id_t _id);

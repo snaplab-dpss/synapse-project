@@ -24,8 +24,10 @@ class IgnoreGenerator : public TofinoModuleGenerator {
 private:
   std::unordered_set<std::string> functions_to_always_ignore = {
       "expire_items_single_map",
+      "expire_items_single_map_iteratively",
       "tb_expire",
       "nf_set_rte_ipv4_udptcp_checksum",
+      "cms_periodic_cleanup",
   };
 
 public:
@@ -35,7 +37,7 @@ public:
 protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (!should_ignore(ep, node)) {
+    if (!should_ignore(ep, ctx, node)) {
       return std::nullopt;
     }
 
@@ -46,7 +48,7 @@ protected:
                                            const Node *node) const override {
     std::vector<impl_t> impls;
 
-    if (!should_ignore(ep, node)) {
+    if (!should_ignore(ep, ep->get_ctx(), node)) {
       return impls;
     }
 
@@ -63,7 +65,7 @@ protected:
   }
 
 private:
-  bool should_ignore(const EP *ep, const Node *node) const {
+  bool should_ignore(const EP *ep, const Context &ctx, const Node *node) const {
     if (node->get_type() != NodeType::CALL) {
       return false;
     }
@@ -76,19 +78,16 @@ private:
       return true;
     }
 
-    const Context &ctx = ep->get_ctx();
-
     if (can_ignore_fcfs_cached_table_op(ctx, call)) {
       return true;
     }
 
-    if (call.function_name == "dchain_allocate_new_index" ||
-        call.function_name == "dchain_rejuvenate_index") {
-      return can_ignore_dchain_op(ctx, call);
+    if (can_ignore_dchain_rejuvenation(ctx, call)) {
+      return true;
     }
 
-    if (call.function_name == "vector_return") {
-      return is_vector_return_without_modifications(ep, call_node);
+    if (is_vector_return_without_modifications(ep, call_node)) {
+      return true;
     }
 
     return false;
@@ -96,21 +95,15 @@ private:
 
   bool can_ignore_fcfs_cached_table_op(const Context &ctx,
                                        const call_t &call) const {
-    if (call.function_name != "dchain_free_index") {
+    if (call.function_name != "dchain_free_index" &&
+        call.function_name != "dchain_allocate_new_index") {
       return false;
     }
 
     klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
     addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
 
-    std::optional<map_coalescing_objs_t> map_objs =
-        ctx.get_map_coalescing_objs(dchain_addr);
-
-    if (!map_objs.has_value()) {
-      return false;
-    }
-
-    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable)) {
+    if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_FCFSCachedTable)) {
       return false;
     }
 
@@ -120,23 +113,19 @@ private:
   // We can ignore dchain_rejuvenate_index if the dchain is only used for
   // linking a map with vectors. It doesn't even matter if the data structures
   // are coalesced or not, we can freely ignore it regardless.
-  bool can_ignore_dchain_op(const Context &ctx, const call_t &call) const {
-    assert(call.function_name == "dchain_allocate_new_index" ||
-           call.function_name == "dchain_rejuvenate_index");
+  bool can_ignore_dchain_rejuvenation(const Context &ctx,
+                                      const call_t &call) const {
+    if (call.function_name != "dchain_rejuvenate_index") {
+      return false;
+    }
 
     klee::ref<klee::Expr> chain = call.args.at("chain").expr;
     addr_t chain_addr = expr_addr_to_obj_addr(chain);
 
-    std::optional<map_coalescing_objs_t> map_objs =
-        ctx.get_map_coalescing_objs(chain_addr);
-
-    if (!map_objs.has_value()) {
-      return false;
-    }
-
     // These are the data structures that can perform rejuvenations.
-    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
-        !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable)) {
+    if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) &&
+        !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
+        !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HHTable)) {
       return false;
     }
 

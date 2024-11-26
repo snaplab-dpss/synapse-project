@@ -23,11 +23,9 @@
 #include "dchain_is_index_allocated.h"
 #include "dchain_rejuvenate_index.h"
 #include "dchain_free_index.h"
-#include "cms_compute_hashes.h"
-#include "cms_expire.h"
-#include "cms_fetch.h"
-#include "cms_refresh.h"
-#include "cms_touch_buckets.h"
+#include "cms_count_min.h"
+#include "cms_increment.h"
+#include "cms_periodic_cleanup.h"
 #include "hash_obj.h"
 #include "cht_find_backend.h"
 
@@ -60,11 +58,9 @@ struct x86Target : public Target {
                    new DchainAllocateNewIndexGenerator(),
                    new DchainIsIndexAllocatedGenerator(),
                    new DchainFreeIndexGenerator(),
-                   new CMSComputeHashesGenerator(),
-                   new CMSExpireGenerator(),
-                   new CMSFetchGenerator(),
-                   new CMSRefreshGenerator(),
-                   new CMSTouchBucketsGenerator(),
+                   new CMSCountMinGenerator(),
+                   new CMSIncrementGenerator(),
+                   new CMSPeriodicCleanupGenerator(),
                    new HashObjGenerator(),
                    new ChtFindBackendGenerator(),
                },

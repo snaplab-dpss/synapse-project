@@ -54,7 +54,7 @@ fw() {
     
     log_and_run bdd-visualizer \
         --in $BDDS_DIR/fw.bdd \
-        --report $SYNTHESIZED_DIR/$report.json \
+        --profile $SYNTHESIZED_DIR/$report.json \
         --out $SYNTHESIZED_DIR/$report.dot
 }
 
@@ -82,7 +82,7 @@ nat() {
     
     log_and_run bdd-visualizer \
         --in $BDDS_DIR/nat.bdd \
-        --report $SYNTHESIZED_DIR/$report.json \
+        --profile $SYNTHESIZED_DIR/$report.json \
         --out $SYNTHESIZED_DIR/$report.dot
 }
 
@@ -108,7 +108,7 @@ kvs() {
     
     log_and_run bdd-visualizer \
         --in $BDDS_DIR/kvs.bdd \
-        --report $SYNTHESIZED_DIR/$report.json \
+        --profile $SYNTHESIZED_DIR/$report.json \
         --out $SYNTHESIZED_DIR/$report.dot
 }
 

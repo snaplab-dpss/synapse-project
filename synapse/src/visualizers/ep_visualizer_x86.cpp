@@ -26,7 +26,14 @@
 
 IGNORE_MODULE(x86::Ignore)
 
-VISIT_BRANCH(x86::If)
+void EPViz::visit(const EP *ep, const EPNode *ep_node, const x86::If *node) {
+  std::stringstream label_builder;
+
+  label_builder << "\\n";
+  label_builder << pretty_print_expr(node->get_condition());
+
+  branch(ep_node, node->get_node(), node->get_target(), label_builder.str());
+}
 
 SHOW_MODULE_NAME(x86::Then)
 SHOW_MODULE_NAME(x86::Else)
@@ -47,10 +54,8 @@ SHOW_MODULE_NAME(x86::DchainAllocateNewIndex)
 SHOW_MODULE_NAME(x86::DchainIsIndexAllocated)
 SHOW_MODULE_NAME(x86::DchainRejuvenateIndex)
 SHOW_MODULE_NAME(x86::DchainFreeIndex)
-SHOW_MODULE_NAME(x86::CMSComputeHashes)
-SHOW_MODULE_NAME(x86::CMSExpire)
-SHOW_MODULE_NAME(x86::CMSFetch)
-SHOW_MODULE_NAME(x86::CMSRefresh)
-SHOW_MODULE_NAME(x86::CMSTouchBuckets)
+SHOW_MODULE_NAME(x86::CMSIncrement)
+SHOW_MODULE_NAME(x86::CMSCountMin)
+SHOW_MODULE_NAME(x86::CMSPeriodicCleanup)
 SHOW_MODULE_NAME(x86::HashObj)
 SHOW_MODULE_NAME(x86::ChtFindBackend)

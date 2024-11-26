@@ -116,7 +116,7 @@ static std::unordered_map<std::string, std::unordered_set<std::string>>
             {"min_estimate"},
         },
         {
-            "cms_cleanup",
+            "cms_periodic_cleanup",
             {"cleanup_success"},
         },
         {
@@ -614,7 +614,7 @@ BDD::BDD(const call_paths_t &call_paths) : id(0) {
 
 BDD::BDD(const std::string &file_path) : id(0) { deserialize(file_path); }
 
-void BDD::inspect() const {
+void BDD::assert_integrity() const {
   assert(root);
   root->visit_nodes([](const Node *node) {
     assert(node);

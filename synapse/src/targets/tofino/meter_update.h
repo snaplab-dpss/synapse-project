@@ -234,9 +234,8 @@ protected:
     }
 
     bool replace_next = (tb_update_and_check == next);
-    Node *replacement;
-    delete_non_branch_node_from_bdd(ep, new_bdd, tb_update_and_check->get_id(),
-                                    replacement);
+    Node *replacement = delete_non_branch_node_from_bdd(
+        ep, new_bdd, tb_update_and_check->get_id());
 
     if (replace_next) {
       new_next = replacement;

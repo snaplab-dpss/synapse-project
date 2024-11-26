@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../context.h"
+#include "../../execution_plan/context.h"
 
 namespace tofino_cpu {
 
@@ -14,3 +14,5 @@ public:
 };
 
 } // namespace tofino_cpu
+
+EXPLICIT_TARGET_CONTEXT_INSTANTIATION(tofino_cpu, TofinoCPUContext)

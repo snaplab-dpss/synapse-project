@@ -25,6 +25,14 @@
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
 #include "meter_update.h"
+#include "hh_table_read.h"
+#include "hh_table_conditional_update.h"
+#include "int_alloc_allocate.h"
+#include "int_alloc_is_allocated.h"
+#include "int_alloc_rejuvenate.h"
+#include "cms_query.h"
+#include "cms_increment.h"
+#include "cms_inc_and_query.h"
 
 #include "tofino_context.h"
 #include "../../profiler.h"
@@ -56,6 +64,14 @@ struct TofinoTarget : public Target {
                    new FCFSCachedTableWriteGenerator(),
                    new FCFSCachedTableDeleteGenerator(),
                    new MeterUpdateGenerator(),
+                   new HHTableReadGenerator(),
+                   new HHTableConditionalUpdateGenerator(),
+                   new IntegerAllocatorAllocateGenerator(),
+                   new IntegerAllocatorIsAllocatedGenerator(),
+                   new IntegerAllocatorRejuvenateGenerator(),
+                   new CMSQueryGenerator(),
+                   new CMSIncrementGenerator(),
+                   new CMSIncAndQueryGenerator(),
                },
                new TofinoContext(config)) {}
 };

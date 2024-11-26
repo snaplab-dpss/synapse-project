@@ -110,7 +110,7 @@ static const Node *get_last_parser_state_op(const EP *ep,
 
 void TofinoContext::parser_select(const EP *ep, const Node *node,
                                   klee::ref<klee::Expr> field,
-                                  const std::vector<int> &values) {
+                                  const std::vector<int> &values, bool negate) {
   node_id_t id = node->get_id();
 
   std::optional<bool> direction;
@@ -118,12 +118,12 @@ void TofinoContext::parser_select(const EP *ep, const Node *node,
 
   if (!last_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.add_select(id, field, values);
+    tna.parser.add_select(id, field, values, negate);
     return;
   }
 
   node_id_t leaf_id = last_op->get_id();
-  tna.parser.add_select(leaf_id, id, field, values, direction);
+  tna.parser.add_select(leaf_id, id, field, values, direction, negate);
 }
 
 void TofinoContext::parser_transition(const EP *ep, const Node *node,
@@ -234,6 +234,9 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
     return deps;
   }
 
+  const TofinoContext *tofino_ctx =
+      ep->get_ctx().get_target_ctx<TofinoContext>();
+
   while (ep_node) {
     const Module *module = ep_node->get_module();
 
@@ -247,9 +250,21 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
 
     const TofinoModule *tofino_module =
         static_cast<const TofinoModule *>(module);
-    const std::unordered_set<DS_ID> &generated_ds =
-        tofino_module->get_generated_ds();
-    deps.insert(generated_ds.begin(), generated_ds.end());
+
+    for (DS_ID ds_id : tofino_module->get_generated_ds()) {
+      const DS *ds = tofino_ctx->get_ds_from_id(ds_id);
+      if (ds->primitive) {
+        deps.insert(ds_id);
+      } else {
+        for (const std::unordered_set<const DS *> &ds_set :
+             ds->get_internal()) {
+          for (const DS *internal_ds : ds_set) {
+            assert(internal_ds && "Internal DS not found");
+            deps.insert(internal_ds->id);
+          }
+        }
+      }
+    }
 
     ep_node = ep_node->get_prev();
   }
@@ -327,3 +342,19 @@ void TofinoContext::debug() const {
 }
 
 } // namespace tofino
+
+template <>
+const tofino::TofinoContext *
+Context::get_target_ctx<tofino::TofinoContext>() const {
+  TargetType type = TargetType::Tofino;
+  assert(target_ctxs.find(type) != target_ctxs.end());
+  return dynamic_cast<const tofino::TofinoContext *>(target_ctxs.at(type));
+}
+
+template <>
+tofino::TofinoContext *
+Context::get_mutable_target_ctx<tofino::TofinoContext>() {
+  TargetType type = TargetType::Tofino;
+  assert(target_ctxs.find(type) != target_ctxs.end());
+  return dynamic_cast<tofino::TofinoContext *>(target_ctxs.at(type));
+}

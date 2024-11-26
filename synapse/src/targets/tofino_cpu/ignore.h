@@ -24,6 +24,8 @@ class IgnoreGenerator : public TofinoCPUModuleGenerator {
 private:
   std::unordered_set<std::string> functions_to_always_ignore = {
       "expire_items_single_map",
+      "expire_items_single_map_iteratively",
+      "cms_periodic_cleanup",
   };
 
 public:
@@ -76,16 +78,20 @@ private:
 
     const Context &ctx = ep->get_ctx();
 
-    if (is_fcfs_cached_table_op(ctx, call)) {
-      return true;
-    }
-
     if (call.function_name == "dchain_rejuvenate_index") {
       return can_ignore_dchain_op(ctx, call);
     }
 
-    if (call.function_name == "vector_return") {
-      return is_vector_return_without_modifications(ep, call_node);
+    if (is_vector_borrow_ignored(call_node)) {
+      return true;
+    }
+
+    if (is_vector_return_without_modifications(ep, call_node)) {
+      return true;
+    }
+
+    if (ds_ignore_logic(ctx, call)) {
+      return true;
     }
 
     return false;
@@ -107,41 +113,35 @@ private:
       return false;
     }
 
-    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table)) {
+    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
+        !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
+        !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HHTable)) {
       return false;
     }
 
     return true;
   }
 
-  bool is_fcfs_cached_table_op(const Context &ctx, const call_t &call) const {
+  bool ds_ignore_logic(const Context &ctx, const call_t &call) const {
     addr_t obj;
 
     if (call.function_name == "dchain_rejuvenate_index" ||
         call.function_name == "dchain_allocate_new_index" ||
         call.function_name == "dchain_free_index") {
-      klee::ref<klee::Expr> chain = call.args.at("chain").expr;
-      obj = expr_addr_to_obj_addr(chain);
+      obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
     } else if (call.function_name == "vector_borrow" ||
                call.function_name == "vector_return") {
-      klee::ref<klee::Expr> vector = call.args.at("vector").expr;
-      obj = expr_addr_to_obj_addr(vector);
+      obj = expr_addr_to_obj_addr(call.args.at("vector").expr);
     } else {
       return false;
     }
 
-    std::optional<map_coalescing_objs_t> map_objs =
-        ctx.get_map_coalescing_objs(obj);
-
-    if (!map_objs.has_value()) {
-      return false;
+    if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
+        ctx.check_ds_impl(obj, DSImpl::Tofino_HHTable)) {
+      return true;
     }
 
-    if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable)) {
-      return false;
-    }
-
-    return true;
+    return false;
   }
 };
 

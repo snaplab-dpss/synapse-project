@@ -320,6 +320,12 @@ void EP::replace_bdd(const BDD *new_bdd,
 void EP::visit(EPVisitor &visitor) const { visitor.visit(this); }
 
 void EP::debug() const {
+  Log::dbg() << "ID: " << id << "\n";
+  Log::dbg() << "Ancestors:";
+  for (ep_id_t ancestor : ancestors) {
+    Log::dbg() << "  " << ancestor;
+  }
+  Log::dbg() << "\n";
   debug_hit_rate();
   debug_placements();
   debug_active_leaves();
@@ -352,7 +358,7 @@ void EP::debug_active_leaves() const {
   }
 }
 
-void EP::inspect() const {
+void EP::assert_integrity() const {
   if (!Log::is_debug_active()) {
     return;
   }
@@ -398,7 +404,7 @@ void EP::inspect() const {
     assert(next == found_next);
   }
 
-  bdd->inspect();
+  bdd->assert_integrity();
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {
@@ -409,18 +415,6 @@ hit_rate_t EP::get_active_leaf_hit_rate() const {
   }
 
   return ctx.get_profiler().get_hr(active_leaf.node);
-}
-
-void EP::add_hit_rate_estimation(klee::ref<klee::Expr> new_constraint,
-                                 hit_rate_t estimation_rel) {
-  EPLeaf active_leaf = get_active_leaf();
-  assert(active_leaf.node);
-  constraints_t constraints = active_leaf.node->get_constraints();
-  ctx.add_hit_rate_estimation(constraints, new_constraint, estimation_rel);
-}
-
-void EP::remove_hit_rate_node(const constraints_t &constraints) {
-  ctx.remove_hit_rate_node(constraints);
 }
 
 void EP::sort_leaves() {
@@ -448,4 +442,327 @@ void EP::sort_leaves() {
 
   std::sort(active_leaves.begin(), active_leaves.end(),
             prioritize_switch_and_hot_paths);
+}
+
+std::string spec2str(const spec_impl_t &speculation, const BDD *bdd) {
+  std::stringstream ss;
+
+  ss << speculation.decision.module;
+  ss << " ";
+  if (!speculation.skip.empty()) {
+    ss << "skip={";
+    for (node_id_t skip : speculation.skip)
+      ss << skip << ",";
+    ss << "} ";
+  }
+  ss << "(" << bdd->get_node_by_id(speculation.decision.node)->dump(true, true)
+     << ")";
+
+  return ss.str();
+}
+
+std::string speculations2str(const EP *ep,
+                             const std::vector<spec_impl_t> &speculations) {
+  std::stringstream ss;
+
+  ss << "Speculating EP " << ep->get_id() << ":\n";
+
+  for (const spec_impl_t &speculation : speculations) {
+    const Node *node = ep->get_bdd()->get_node_by_id(speculation.decision.node);
+
+    ss << "  ";
+    ss << spec2str(speculation, ep->get_bdd());
+    ss << "\n";
+  }
+
+  ss << "\n";
+
+  return ss.str();
+}
+
+spec_impl_t EP::peek_speculation_for_future_nodes(
+    const spec_impl_t &base_speculation, const Node *anchor,
+    nodes_t future_nodes, TargetType current_target, pps_t ingress) const {
+  future_nodes.erase(anchor->get_id());
+
+  spec_impl_t speculation = base_speculation;
+  std::vector<spec_impl_t> speculations;
+
+  anchor->visit_nodes([this, &speculation, &speculations, current_target,
+                       ingress, &future_nodes](const Node *node) {
+    if (future_nodes.empty()) {
+      return NodeVisitAction::STOP;
+    }
+
+    if (future_nodes.find(node->get_id()) == future_nodes.end()) {
+      return NodeVisitAction::VISIT_CHILDREN;
+    }
+
+    future_nodes.erase(node->get_id());
+
+    speculation = get_best_speculation(node, current_target, speculation.ctx,
+                                       speculation.skip, ingress);
+    speculations.push_back(speculation);
+
+    if (speculation.next_target.has_value() &&
+        speculation.next_target != current_target) {
+      return NodeVisitAction::SKIP_CHILDREN;
+    }
+
+    return NodeVisitAction::VISIT_CHILDREN;
+  });
+
+  return speculation;
+}
+
+static nodes_t filter_away_nodes(const nodes_t &nodes, const nodes_t &filter) {
+  nodes_t result;
+
+  for (node_id_t node_id : nodes) {
+    if (filter.find(node_id) == filter.end()) {
+      result.insert(node_id);
+    }
+  }
+
+  return result;
+}
+
+// Compare the performance of an old speculation if it were subjected to the
+// nodes ignored by the new speculation, and vise versa.
+bool EP::is_better_speculation(const spec_impl_t &old_speculation,
+                               const spec_impl_t &new_speculation,
+                               const Node *node, TargetType current_target,
+                               pps_t ingress) const {
+  nodes_t old_future_nodes =
+      filter_away_nodes(new_speculation.skip, old_speculation.skip);
+  nodes_t new_future_nodes =
+      filter_away_nodes(old_speculation.skip, new_speculation.skip);
+
+  spec_impl_t peek_old = peek_speculation_for_future_nodes(
+      old_speculation, node, old_future_nodes, current_target, ingress);
+
+  spec_impl_t peek_new = peek_speculation_for_future_nodes(
+      new_speculation, node, new_future_nodes, current_target, ingress);
+
+  pps_t old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
+  pps_t new_pps = peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
+
+  if (old_pps != new_pps) {
+    return new_pps > old_pps;
+  }
+
+  old_future_nodes.clear();
+  new_future_nodes.clear();
+
+  for (const Node *child : node->get_children(true)) {
+    if (old_speculation.skip.find(child->get_id()) ==
+        old_speculation.skip.end()) {
+      old_future_nodes.insert(child->get_id());
+    }
+
+    if (new_speculation.skip.find(child->get_id()) ==
+        new_speculation.skip.end()) {
+      new_future_nodes.insert(child->get_id());
+    }
+  }
+
+  peek_old = peek_speculation_for_future_nodes(
+      old_speculation, node, old_future_nodes, current_target, ingress);
+
+  peek_new = peek_speculation_for_future_nodes(
+      new_speculation, node, new_future_nodes, current_target, ingress);
+
+  old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
+  new_pps = peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
+
+  return new_pps > old_pps;
+}
+
+spec_impl_t EP::get_best_speculation(const Node *node,
+                                     TargetType current_target,
+                                     const Context &ctx, const nodes_t &skip,
+                                     pps_t ingress) const {
+  std::optional<spec_impl_t> best;
+
+  const targets_t &targets = get_targets();
+
+  for (const Target *target : targets) {
+    if (target->type != current_target) {
+      continue;
+    }
+
+    for (const ModuleGenerator *modgen : target->module_generators) {
+      std::optional<spec_impl_t> spec = modgen->speculate(this, node, ctx);
+
+      if (!spec.has_value()) {
+        continue;
+      }
+
+      spec->skip.insert(skip.begin(), skip.end());
+
+      if (!best.has_value()) {
+        best = *spec;
+        continue;
+      }
+
+      assert(best.has_value());
+      assert(spec.has_value());
+
+      bool is_better =
+          is_better_speculation(*best, *spec, node, current_target, ingress);
+
+      if (is_better) {
+        best = *spec;
+      }
+    }
+  }
+
+  if (!best.has_value()) {
+    ctx.debug();
+    // EPViz::visualize(this, false);
+    // BDDViz::visualize(bdd.get(), false);
+
+    PANIC("No module to speculative execute\n"
+          "EP:     %lu\n"
+          "Target: %s\n"
+          "Node:   %s\n",
+          id, to_string(current_target).c_str(), node->dump(true).c_str());
+  }
+
+  return *best;
+}
+
+static pps_t find_stable_tput(pps_t ingress,
+                              std::function<pps_t(pps_t)> estimator) {
+  pps_t egress = 0;
+
+  pps_t smallest_unstable = ingress;
+  pps_t prev_ingress = ingress;
+  pps_t diff = smallest_unstable;
+
+  // Algorithm for converging to a stable throughput (basically a binary
+  // search). This hopefully doesn't take many iterations...
+  while (diff > STABLE_TPUT_PRECISION) {
+    prev_ingress = ingress;
+    egress = estimator(ingress);
+
+    if (egress < ingress) {
+      smallest_unstable = ingress;
+      ingress = (ingress + egress) / 2;
+    } else {
+      ingress = (ingress + smallest_unstable) / 2;
+    }
+
+    diff = ingress > prev_ingress ? ingress - prev_ingress
+                                  : prev_ingress - ingress;
+  }
+
+  return egress;
+}
+
+// Sources of error:
+// 1. Speculative performance is calculated as we make the speculative
+// decisions, so local speculative decisions don't take into consideration
+// future speculative decisions.
+//   - This makes the speculative performance optimistic.
+//   - Fixing this would require a recalculation of the speculative performance
+//   after all decisions were made.
+// 2. Speculative decisions that would perform BDD manipulations don't actually
+// make them. Newer parts of the BDD are abandoned during speculation, along
+// with their hit rates.
+//   - This makes the speculation pessismistic, as part of the traffic will be
+//  lost.
+pps_t EP::speculate_tput_pps() const {
+  if (cached_tput_speculation.has_value()) {
+    return *cached_tput_speculation;
+  }
+
+  pps_t ingress = estimate_tput_pps();
+
+  std::vector<spec_impl_t> speculations;
+  Context spec_ctx = ctx;
+  nodes_t skip;
+
+  Context other = std::move(Context(spec_ctx));
+
+  struct spec_cookie_t : public cookie_t {
+    TargetType target;
+
+    spec_cookie_t(TargetType _target) : target(_target) {}
+
+    virtual spec_cookie_t *clone() const override {
+      return new spec_cookie_t(*this);
+    }
+  };
+
+  for (const EPLeaf &leaf : active_leaves) {
+    if (leaf.node &&
+        leaf.node->get_module()->get_next_target() != initial_target) {
+      continue;
+    }
+
+    assert(leaf.next);
+    leaf.next->visit_nodes([this, &speculations, &spec_ctx, &skip,
+                            ingress](const Node *node) {
+      if (skip.find(node->get_id()) != skip.end()) {
+        return NodeVisitAction::VISIT_CHILDREN;
+      }
+
+      if (ctx.get_profiler().get_hr(node) == 0) {
+        skip.insert(node->get_id());
+        return NodeVisitAction::VISIT_CHILDREN;
+      }
+
+      spec_impl_t speculation =
+          get_best_speculation(node, initial_target, spec_ctx, skip, ingress);
+      speculations.push_back(speculation);
+
+      spec_ctx = speculation.ctx;
+      skip = speculation.skip;
+
+      if (speculation.next_target.has_value()) {
+        // Just ignore if we change the target, we only care about the
+        // switch nodes for now.
+        return NodeVisitAction::SKIP_CHILDREN;
+      }
+
+      return NodeVisitAction::VISIT_CHILDREN;
+    });
+  }
+
+  auto egress_from_ingress = [spec_ctx](pps_t ingress) {
+    return spec_ctx.get_perf_oracle().estimate_tput(ingress);
+  };
+
+  pps_t egress = find_stable_tput(ingress, egress_from_ingress);
+  cached_tput_speculation = egress;
+
+  // if (id == 0) {
+  //   Log::dbg() << speculations2str(this, speculations);
+  //   spec_ctx.debug();
+  //   // BDDViz::visualize(bdd.get(), false);
+  //   // EPViz::visualize(this, false);
+  //   // ProfilerViz::visualize(bdd.get(), spec_ctx.get_profiler(), false);
+  //   // debug_active_leaves();
+  //   DEBUG_PAUSE
+  // }
+
+  return egress;
+}
+
+pps_t EP::estimate_tput_pps() const {
+  if (cached_tput_estimation.has_value()) {
+    return *cached_tput_estimation;
+  }
+
+  pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
+
+  auto egress_from_ingress = [this](pps_t ingress) {
+    return ctx.get_perf_oracle().estimate_tput(ingress);
+  };
+
+  pps_t egress = find_stable_tput(max_ingress, egress_from_ingress);
+  cached_tput_estimation = egress;
+
+  return egress;
 }

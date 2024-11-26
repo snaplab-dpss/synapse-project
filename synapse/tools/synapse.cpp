@@ -19,7 +19,8 @@ enum class HeuristicOption {
   RANDOM,
   GALLIUM,
   GREEDY,
-  MAX_THROUGHPUT,
+  MAX_TPUT,
+  DS_PREF,
 };
 
 const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
@@ -28,7 +29,8 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
     {"random", HeuristicOption::RANDOM},
     {"gallium", HeuristicOption::GALLIUM},
     {"greedy", HeuristicOption::GREEDY},
-    {"max-tput", HeuristicOption::MAX_THROUGHPUT},
+    {"max-tput", HeuristicOption::MAX_TPUT},
+    {"ds-pref", HeuristicOption::DS_PREF},
 };
 
 search_report_t search(const BDD *bdd, const toml::table &config,
@@ -74,8 +76,14 @@ search_report_t search(const BDD *bdd, const toml::table &config,
                         peek_set, pause_on_backtrack);
     return engine.search();
   } break;
-  case HeuristicOption::MAX_THROUGHPUT: {
+  case HeuristicOption::MAX_TPUT: {
     MaxTput heuristic(stop_on_first_solution);
+    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
+                        peek_set, pause_on_backtrack);
+    return engine.search();
+  } break;
+  case HeuristicOption::DS_PREF: {
+    DSPref heuristic(stop_on_first_solution);
     SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
                         peek_set, pause_on_backtrack);
     return engine.search();
@@ -179,10 +187,8 @@ int main(int argc, char **argv) {
 
   if (show_bdd) {
     // BDDViz::visualize(report.solution.ep->get_bdd(), false);
-    const BDD *solution_bdd = report.solution.ep->get_bdd();
-    const Context &ctx = report.solution.ep->get_ctx();
-    const Profiler &profiler = ctx.get_profiler();
-    ProfilerViz::visualize(bdd, profiler, false);
+    ProfilerViz::visualize(report.solution.ep->get_bdd(),
+                           report.solution.ep->get_ctx().get_profiler(), false);
   }
 
   report.solution.ep->get_ctx().debug();

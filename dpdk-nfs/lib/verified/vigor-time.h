@@ -2,6 +2,7 @@
 #define NF_TIME_H_INCLUDED
 #include <stdint.h>
 
+#define time_us_t int64_t
 #define time_ns_t int64_t
 #define PRVIGT PRId64
 
@@ -13,4 +14,4 @@ time_ns_t current_time(void);
 // current_time was invoked at least once.
 time_ns_t recent_time(void);
 
-#endif  // NF_TIME_H_INCLUDED
+#endif // NF_TIME_H_INCLUDED

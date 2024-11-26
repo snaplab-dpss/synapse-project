@@ -10,8 +10,8 @@ dev = 0                        # Client device
 capacity_bps = 100_000_000_000 # Port capacity: 100G
 
 [[switch.front_panel_ports]]
-dev = 1                       # Storage server device
-capacity_bps = 10_000_000_000 # Storage server capacity: 10G (bottleneck)
+dev = 1                      # Storage server device
+capacity_bps = 1_000_000_000 # Storage server capacity: 1G (bottleneck)
 
 ########################################################
 #                 Recirculation ports                  #

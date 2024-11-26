@@ -37,3 +37,14 @@ std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
 
   return {mod_t(0, after->getWidth(), after)};
 }
+
+std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr) {
+  std::vector<klee::ref<klee::Expr>> bytes;
+
+  bytes_t size = expr->getWidth() / 8;
+  for (bytes_t i = 0; i < size; i++) {
+    bytes.push_back(solver_toolbox.exprBuilder->Extract(expr, i * 8, 8));
+  }
+
+  return bytes;
+}

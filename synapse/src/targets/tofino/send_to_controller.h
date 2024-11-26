@@ -38,11 +38,10 @@ protected:
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
     Context new_ctx = ctx;
 
-    new_ctx.get_mutable_perf_oracle().add_controller_traffic(
-        new_ctx.get_profiler().get_hr(node));
+    hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
+    new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
-
     spec_impl.next_target = TargetType::TofinoCPU;
 
     return spec_impl;
@@ -78,6 +77,7 @@ protected:
     }
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+
     tofino_ctx->parser_accept(ep, node);
 
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
@@ -109,10 +109,7 @@ private:
     const BDD *old_bdd = ep->get_bdd();
 
     new_bdd = new BDD(*old_bdd);
-    Node *new_next;
-    add_non_branch_nodes_to_bdd(ep, new_bdd, node, hdr_parsing_ops, new_next);
-
-    next = new_next;
+    next = add_non_branch_nodes_to_bdd(ep, new_bdd, node, hdr_parsing_ops);
 
     return true;
   }

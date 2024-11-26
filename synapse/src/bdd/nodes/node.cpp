@@ -16,12 +16,21 @@ std::vector<node_id_t> Node::get_leaves() const {
   return next->get_leaves();
 }
 
-std::vector<const Node *> Node::get_children() const {
-  if (next) {
-    return {next};
-  }
+std::vector<const Node *> Node::get_children(bool recursive) const {
+  std::vector<const Node *> children;
 
-  return {};
+  const Node *self = this;
+
+  visit_nodes([&children, self](const Node *node) -> NodeVisitAction {
+    if (node == self) {
+      return NodeVisitAction::VISIT_CHILDREN;
+    }
+
+    children.push_back(node);
+    return NodeVisitAction::VISIT_CHILDREN;
+  });
+
+  return children;
 }
 
 bool Node::is_reachable(node_id_t id) const {

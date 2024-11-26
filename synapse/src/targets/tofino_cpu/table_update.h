@@ -67,6 +67,10 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
+    if (is_vector_return_without_modifications(ep, call_node)) {
+      return std::nullopt;
+    }
+
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     std::vector<klee::ref<klee::Expr>> values;
@@ -90,6 +94,10 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+
+    if (is_vector_return_without_modifications(ep, call_node)) {
+      return impls;
+    }
 
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;

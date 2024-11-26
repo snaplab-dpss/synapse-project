@@ -49,6 +49,8 @@ get_future_functions(const Node *root,
 
 bool is_parser_drop(const Node *root);
 
+std::unordered_set<std::string> get_symbols(const Node *node);
+
 // A parser condition should be the single discriminating condition that
 // decides whether a parsing state is performed or not. In BDD language, it
 // decides if a specific packet_borrow_next_chunk is applied.
@@ -92,6 +94,8 @@ klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
 
 bool is_vector_return_without_modifications(const EP *ep, const Node *node);
 bool is_vector_read(const Call *vector_borrow);
+bool is_vector_write(const Call *call_node);
+bool is_vector_borrow_ignored(const Call *vector_borrow);
 
 std::vector<const Call *> get_future_vector_return(const Call *vector_borrow);
 
@@ -129,6 +133,13 @@ struct rw_fractions_t {
   hit_rate_t write;
 };
 
+struct map_get_success_check_t {
+  const Branch *branch;
+  bool success_on_true;
+};
+
+map_get_success_check_t get_map_get_success_check(const EP *ep,
+                                                  const Node *map_get);
 rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
                                                      const Node *map_get);
 
@@ -150,6 +161,9 @@ bool is_map_update_with_dchain(const EP *ep,
                                const Call *dchain_allocate_new_index,
                                std::vector<const Call *> &map_puts);
 
+bool is_index_alloc_on_unsuccessful_map_get(
+    const EP *ep, const Call *dchain_allocate_new_index);
+
 // Tries to find the pattern of a map_get followed by map_erases, but only when
 // the map_get is successful (i.e. the key is found).
 // Conditions to meet:
@@ -162,24 +176,27 @@ bool is_map_get_followed_by_map_erases_on_hit(
 // Appends new non-branch nodes to the BDD in place of the provided current
 // node.
 // Clones all new_nodes and appends them to the BDD.
-void add_non_branch_nodes_to_bdd(const EP *ep, BDD *bdd, const Node *current,
-                                 const std::vector<const Node *> &new_nodes,
-                                 Node *&new_current);
+Node *add_non_branch_nodes_to_bdd(const EP *ep, BDD *bdd, const Node *current,
+                                  const std::vector<const Node *> &new_nodes);
 
 // Appends a single new branch node to the BDD in place of the provided current
 // node. This duplicates the BDD portion starting from the current node, and
 // appends the cloned portion to one of the branches.
-void add_branch_to_bdd(const EP *ep, BDD *bdd, const Node *current,
-                       klee::ref<klee::Expr> condition, Branch *&new_branch);
+Branch *add_branch_to_bdd(const EP *ep, BDD *bdd, const Node *current,
+                          klee::ref<klee::Expr> condition);
 
-void delete_non_branch_node_from_bdd(const EP *ep, BDD *bdd,
-                                     node_id_t target_id, Node *&new_current);
+Node *delete_non_branch_node_from_bdd(const EP *ep, BDD *bdd,
+                                      node_id_t target_id);
 
-void delete_branch_node_from_bdd(const EP *ep, BDD *bdd, node_id_t target_id,
-                                 bool direction_to_keep, Node *&new_current);
+// Returns de node kept from the branch deletion.
+Node *delete_branch_node_from_bdd(const EP *ep, BDD *bdd, node_id_t target_id,
+                                  bool direction_to_keep);
 
 const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
                                                const symbol_t &out_of_space);
+const Branch *
+find_branch_checking_index_alloc(const EP *ep,
+                                 const Node *dchain_allocate_new_index);
 
 bool is_tb_tracing_check_followed_by_update_on_true(
     const Call *tb_is_tracing, const Call *&tb_update_and_check);

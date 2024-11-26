@@ -12,6 +12,7 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner = false);
 std::string pretty_print_expr(klee::ref<klee::Expr> expr,
                               bool use_signed = true);
 
+bool is_readLSB(klee::ref<klee::Expr> expr);
 bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol);
 bool is_packet_readLSB(klee::ref<klee::Expr> expr);
 bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
@@ -46,3 +47,4 @@ struct mod_t {
 
 std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
                                    klee::ref<klee::Expr> after);
+std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr);

@@ -38,6 +38,14 @@ enum class ModuleType {
   Tofino_FCFSCachedTableDelete,
   Tofino_Recirculate,
   Tofino_MeterUpdate,
+  Tofino_HHTableRead,
+  Tofino_HHTableConditionalUpdate,
+  Tofino_IntegerAllocatorRejuvenate,
+  Tofino_IntegerAllocatorAllocate,
+  Tofino_IntegerAllocatorIsAllocated,
+  Tofino_CMSQuery,
+  Tofino_CMSIncrement,
+  Tofino_CMSIncAndQuery,
   TofinoCPU_Ignore,
   TofinoCPU_ParseHeader,
   TofinoCPU_ModifyHeader,
@@ -54,10 +62,15 @@ enum class ModuleType {
   TofinoCPU_FCFSCachedTableRead,
   TofinoCPU_FCFSCachedTableWrite,
   TofinoCPU_FCFSCachedTableDelete,
+  TofinoCPU_HHTableRead,
+  TofinoCPU_HHTableConditionalUpdate,
+  TofinoCPU_HHTableUpdate,
+  TofinoCPU_HHTableDelete,
   TofinoCPU_DchainAllocateNewIndex,
   TofinoCPU_DchainRejuvenateIndex,
   TofinoCPU_DchainIsIndexAllocated,
   TofinoCPU_DchainFreeIndex,
+  TofinoCPU_IntegerAllocatorFreeIndex,
   TofinoCPU_VectorRead,
   TofinoCPU_VectorWrite,
   TofinoCPU_MapGet,
@@ -65,11 +78,6 @@ enum class ModuleType {
   TofinoCPU_MapErase,
   TofinoCPU_ChtFindBackend,
   TofinoCPU_HashObj,
-  TofinoCPU_CMSExpire,
-  TofinoCPU_CMSComputeHashes,
-  TofinoCPU_CMSRefresh,
-  TofinoCPU_CMSFetch,
-  TofinoCPU_CMSTouchBuckets,
   TofinoCPU_VectorRegisterLookup,
   TofinoCPU_VectorRegisterUpdate,
   TofinoCPU_TBIsTracing,
@@ -77,6 +85,10 @@ enum class ModuleType {
   TofinoCPU_TBUpdateAndCheck,
   TofinoCPU_TBExpire,
   TofinoCPU_MeterInsert,
+  TofinoCPU_CMSUpdate,
+  TofinoCPU_CMSQuery,
+  TofinoCPU_CMSIncrement,
+  TofinoCPU_CMSCountMin,
   x86_Ignore,
   x86_If,
   x86_Then,
@@ -93,11 +105,9 @@ enum class ModuleType {
   x86_DchainRejuvenateIndex,
   x86_DchainIsIndexAllocated,
   x86_DchainFreeIndex,
-  x86_CMSExpire,
-  x86_CMSComputeHashes,
-  x86_CMSRefresh,
-  x86_CMSFetch,
-  x86_CMSTouchBuckets,
+  x86_CMSIncrement,
+  x86_CMSCountMin,
+  x86_CMSPeriodicCleanup,
   x86_Drop,
   x86_Broadcast,
   x86_ExpireItemsSingleMap,
@@ -176,6 +186,30 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
+  case ModuleType::Tofino_HHTableRead:
+    os << "Tofino_HHTableRead";
+    break;
+  case ModuleType::Tofino_HHTableConditionalUpdate:
+    os << "Tofino_HHTableConditionalUpdate";
+    break;
+  case ModuleType::Tofino_IntegerAllocatorRejuvenate:
+    os << "Tofino_IntegerAllocatorRejuvenate";
+    break;
+  case ModuleType::Tofino_IntegerAllocatorAllocate:
+    os << "Tofino_IntegerAllocatorAllocate";
+    break;
+  case ModuleType::Tofino_IntegerAllocatorIsAllocated:
+    os << "Tofino_IntegerAllocatorIsAllocated";
+    break;
+  case ModuleType::Tofino_CMSQuery:
+    os << "Tofino_CMSQuery";
+    break;
+  case ModuleType::Tofino_CMSIncrement:
+    os << "Tofino_CMSIncrement";
+    break;
+  case ModuleType::Tofino_CMSIncAndQuery:
+    os << "Tofino_CMSIncAndQuery";
+    break;
   case ModuleType::Tofino_Recirculate:
     os << "Tofino_Recirculate";
     break;
@@ -227,6 +261,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::TofinoCPU_FCFSCachedTableDelete:
     os << "TofinoCPU_FCFSCachedTableDelete";
     break;
+  case ModuleType::TofinoCPU_HHTableRead:
+    os << "TofinoCPU_HHTableRead";
+    break;
+  case ModuleType::TofinoCPU_HHTableConditionalUpdate:
+    os << "TofinoCPU_HHTableConditionalUpdate";
+    break;
+  case ModuleType::TofinoCPU_HHTableUpdate:
+    os << "TofinoCPU_HHTableUpdate";
+    break;
+  case ModuleType::TofinoCPU_HHTableDelete:
+    os << "TofinoCPU_HHTableDelete";
+    break;
   case ModuleType::TofinoCPU_DchainAllocateNewIndex:
     os << "TofinoCPU_DchainAllocateNewIndex";
     break;
@@ -238,6 +284,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::TofinoCPU_DchainFreeIndex:
     os << "TofinoCPU_DchainFreeIndex";
+    break;
+  case ModuleType::TofinoCPU_IntegerAllocatorFreeIndex:
+    os << "TofinoCPU_IntegerAllocatorFreeIndex";
     break;
   case ModuleType::TofinoCPU_VectorRead:
     os << "TofinoCPU_VectorRead";
@@ -260,21 +309,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::TofinoCPU_HashObj:
     os << "TofinoCPU_HashObj";
     break;
-  case ModuleType::TofinoCPU_CMSExpire:
-    os << "TofinoCPU_CMSExpire";
-    break;
-  case ModuleType::TofinoCPU_CMSComputeHashes:
-    os << "TofinoCPU_CMSComputeHashes";
-    break;
-  case ModuleType::TofinoCPU_CMSRefresh:
-    os << "TofinoCPU_CMSRefresh";
-    break;
-  case ModuleType::TofinoCPU_CMSFetch:
-    os << "TofinoCPU_CMSFetch";
-    break;
-  case ModuleType::TofinoCPU_CMSTouchBuckets:
-    os << "TofinoCPU_CMSTouchBuckets";
-    break;
   case ModuleType::TofinoCPU_VectorRegisterLookup:
     os << "TofinoCPU_VectorRegisterLookup";
     break;
@@ -295,6 +329,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::TofinoCPU_MeterInsert:
     os << "TofinoCPU_MeterInsert";
+    break;
+  case ModuleType::TofinoCPU_CMSUpdate:
+    os << "TofinoCPU_CMSUpdate";
+    break;
+  case ModuleType::TofinoCPU_CMSQuery:
+    os << "TofinoCPU_CMSQuery";
+    break;
+  case ModuleType::TofinoCPU_CMSIncrement:
+    os << "TofinoCPU_CMSIncrement";
+    break;
+  case ModuleType::TofinoCPU_CMSCountMin:
+    os << "TofinoCPU_CMSCountMin";
     break;
   case ModuleType::x86_Ignore:
     os << "x86_Ignore";
@@ -344,20 +390,14 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::x86_DchainFreeIndex:
     os << "x86_DchainFreeIndex";
     break;
-  case ModuleType::x86_CMSExpire:
-    os << "x86_CMSExpire";
+  case ModuleType::x86_CMSIncrement:
+    os << "x86_CMSIncrement";
     break;
-  case ModuleType::x86_CMSComputeHashes:
-    os << "x86_CMSComputeHashes";
+  case ModuleType::x86_CMSCountMin:
+    os << "x86_CMSCountMin";
     break;
-  case ModuleType::x86_CMSRefresh:
-    os << "x86_CMSRefresh";
-    break;
-  case ModuleType::x86_CMSFetch:
-    os << "x86_CMSFetch";
-    break;
-  case ModuleType::x86_CMSTouchBuckets:
-    os << "x86_CMSTouchBuckets";
+  case ModuleType::x86_CMSPeriodicCleanup:
+    os << "x86_CMSPeriodicCleanup";
     break;
   case ModuleType::x86_Drop:
     os << "x86_Drop";

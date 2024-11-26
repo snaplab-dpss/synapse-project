@@ -15,11 +15,11 @@
 
 struct FlowManager {
   struct State *state;
-  time_us_t expiration_time;
+  time_ns_t expiration_time;
 };
 
 struct FlowManager *flow_manager_allocate(uint16_t fw_device,
-                                          time_ns_t expiration_time,
+                                          uint32_t expiration_time,
                                           uint64_t max_flows) {
   struct FlowManager *manager =
       (struct FlowManager *)malloc(sizeof(struct FlowManager));
@@ -31,7 +31,7 @@ struct FlowManager *flow_manager_allocate(uint16_t fw_device,
     return NULL;
   }
 
-  manager->expiration_time = expiration_time;
+  manager->expiration_time = expiration_time * 1000;
 
   return manager;
 }
@@ -69,7 +69,7 @@ void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
   assert(time >= 0); // we don't support the past
   assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time; // OK because of the two asserts
-  time_ns_t last_time = time_u - manager->expiration_time * 1000; // us to ns
+  time_ns_t last_time = time_u - manager->expiration_time;
   expire_items_single_map(manager->state->heap, manager->state->fv,
                           manager->state->fm, last_time);
 }

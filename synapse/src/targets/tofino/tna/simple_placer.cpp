@@ -389,7 +389,7 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
         static_cast<const FCFSCachedTable *>(ds);
 
     std::vector<std::unordered_set<const DS *>> ds_to_place =
-        cached_table->get_internal_ds();
+        cached_table->get_internal();
 
     bool already_placed = false;
     for (const PlacementRequest &req : placement_requests) {
@@ -443,6 +443,9 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
       }
     }
   } break;
+  case DSType::HH_TABLE: {
+    // TODO: Implement
+  } break;
   }
 
   save_placement_request(ds, deps);
@@ -493,7 +496,7 @@ SimplePlacer::can_place(const DS *ds,
         static_cast<const FCFSCachedTable *>(ds);
 
     std::vector<std::unordered_set<const DS *>> candidates =
-        cached_table->get_internal_ds();
+        cached_table->get_internal();
 
     bool already_placed = false;
     for (const PlacementRequest &req : placement_requests) {
@@ -554,6 +557,10 @@ SimplePlacer::can_place(const DS *ds,
       }
     }
 
+    return PlacementStatus::SUCCESS;
+  } break;
+  case DSType::HH_TABLE: {
+    // TODO: Implement
     return PlacementStatus::SUCCESS;
   } break;
   }

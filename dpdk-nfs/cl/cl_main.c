@@ -4,7 +4,6 @@
 #include <rte_byteorder.h>
 
 #include "lib/verified/expirator.h"
-#include "lib/verified/expirator.h"
 
 #include "nf.h"
 #include "nf-log.h"
@@ -38,7 +37,7 @@ void expire_entries(time_ns_t now) {
   time_ns_t last_time = time_u - expiration_time_ns;
   expire_items_single_map(state->flow_allocator, state->flows_keys,
                           state->flows, last_time);
-  cms_cleanup(state->cms, now);
+  cms_periodic_cleanup(state->cms, now);
 }
 
 int allocate_flow(struct flow *flow, time_ns_t time) {

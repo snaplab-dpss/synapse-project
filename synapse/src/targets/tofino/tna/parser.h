@@ -97,11 +97,12 @@ struct ParserStateSelect : public ParserState {
   std::vector<int> values;
   ParserState *on_true;
   ParserState *on_false;
+  bool negate;
 
   ParserStateSelect(node_id_t _id, klee::ref<klee::Expr> _field,
-                    const std::vector<int> &_values)
+                    const std::vector<int> &_values, bool _negate)
       : ParserState(_id, ParserStateType::SELECT), field(_field),
-        values(_values), on_true(nullptr), on_false(nullptr) {}
+        values(_values), on_true(nullptr), on_false(nullptr), negate(_negate) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -117,6 +118,7 @@ struct ParserStateSelect : public ParserState {
         ss << ", ";
     }
     ss << "]";
+    ss << ", negate=" << negate;
     ss << ")\n";
 
     lvl++;
@@ -264,15 +266,16 @@ public:
   }
 
   void add_select(node_id_t leaf_id, node_id_t id, klee::ref<klee::Expr> field,
-                  const std::vector<int> &values,
-                  std::optional<bool> direction) {
-    ParserStateSelect *new_state = new ParserStateSelect(id, field, values);
+                  const std::vector<int> &values, std::optional<bool> direction,
+                  bool negate) {
+    ParserStateSelect *new_state =
+        new ParserStateSelect(id, field, values, negate);
     add_state(leaf_id, new_state, direction);
   }
 
   void add_select(node_id_t id, klee::ref<klee::Expr> field,
-                  const std::vector<int> &values) {
-    ParserState *new_state = new ParserStateSelect(id, field, values);
+                  const std::vector<int> &values, bool negate) {
+    ParserState *new_state = new ParserStateSelect(id, field, values, negate);
     add_state(new_state);
   }
 

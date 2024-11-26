@@ -6,14 +6,14 @@ namespace tofino {
 Register::Register(const TNAProperties &properties, DS_ID _id, int _num_entries,
                    bits_t _index, bits_t _value,
                    const std::unordered_set<RegisterAction> &_actions)
-    : DS(DSType::REGISTER, _id), num_entries(_num_entries), index(_index),
+    : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index),
       value(_value), actions(_actions) {
   assert(_num_entries > 0);
   assert(value <= properties.max_salu_size);
 }
 
 Register::Register(const Register &other)
-    : DS(DSType::REGISTER, other.id), num_entries(other.num_entries),
+    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries),
       index(other.index), value(other.value), actions(other.actions) {}
 
 DS *Register::clone() const { return new Register(*this); }
@@ -28,8 +28,9 @@ int Register::get_num_logical_ids() const { return (int)actions.size(); }
 void Register::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "========== REGISTER ==========\n";
-  Log::dbg() << "ID:       " << id << "\n";
-  Log::dbg() << "Entries:  " << num_entries << "\n";
+  Log::dbg() << "ID:        " << id << "\n";
+  Log::dbg() << "Primitive: " << primitive << "\n";
+  Log::dbg() << "Entries:   " << num_entries << "\n";
 
   std::stringstream ss;
 
@@ -55,10 +56,14 @@ void Register::debug() const {
   ss << "]\n";
 
   Log::dbg() << ss.str();
-  Log::dbg() << "Index sz: " << index << "b\n";
-  Log::dbg() << "Value sz: " << value << "b\n";
-  Log::dbg() << "SRAM:     " << get_consumed_sram() / 8 << " B\n";
+  Log::dbg() << "Index sz:  " << index << "b\n";
+  Log::dbg() << "Value sz:  " << value << "b\n";
+  Log::dbg() << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
   Log::dbg() << "==============================\n";
+}
+
+std::vector<std::unordered_set<const DS *>> Register::get_internal() const {
+  return {};
 }
 
 std::vector<klee::ref<klee::Expr>>

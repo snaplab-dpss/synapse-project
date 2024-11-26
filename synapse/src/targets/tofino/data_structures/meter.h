@@ -24,6 +24,7 @@ struct Meter : public DS {
 
   DS *clone() const override;
   void debug() const override;
+  std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
   bits_t get_match_xbar_consume() const;
   bits_t get_consumed_sram() const;

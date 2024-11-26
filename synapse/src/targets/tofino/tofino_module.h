@@ -105,10 +105,33 @@ protected:
                                const map_coalescing_objs_t &map_objs,
                                FCFSCachedTable *ds) const;
   std::vector<int> enum_fcfs_cache_cap(int num_entries) const;
-  hit_rate_t get_fcfs_cache_hr(const EP *ep, const Node *node,
-                               klee::ref<klee::Expr> key,
-                               int cache_capacity) const;
-  // ======================================================================
+  hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const Node *node,
+                                         klee::ref<klee::Expr> key,
+                                         int cache_capacity) const;
+
+  /*
+     ======================================================================
+
+                              Heavy Hitter Table
+
+     ======================================================================
+  */
+
+  bool
+  can_build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
+                              const std::vector<klee::ref<klee::Expr>> &keys,
+                              int num_entries, int cms_width,
+                              int cms_height) const;
+  HHTable *
+  build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
+                          const std::vector<klee::ref<klee::Expr>> &keys,
+                          int num_entries, int cms_width, int cms_height) const;
+  void place_fcfs_cached_table(EP *ep, const Node *node,
+                               const map_coalescing_objs_t &map_objs,
+                               HHTable *ds) const;
+  hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const Node *node,
+                                           klee::ref<klee::Expr> key,
+                                           u32 capacity) const;
 };
 
 } // namespace tofino

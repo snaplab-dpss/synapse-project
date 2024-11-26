@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data_structures/data_structures.h"
-#include "../context.h"
+#include "../../execution_plan/context.h"
 
 namespace x86 {
 
@@ -15,3 +15,5 @@ public:
 };
 
 } // namespace x86
+
+EXPLICIT_TARGET_CONTEXT_INSTANTIATION(x86, x86Context)

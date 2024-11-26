@@ -3,7 +3,6 @@
 
 #include "target.h"
 #include "module.h"
-#include "context.h"
 #include "module_generator.h"
 
 Target::Target(TargetType _type,

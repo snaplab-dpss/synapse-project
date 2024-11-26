@@ -58,6 +58,10 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
+    if (is_vector_write(call_node)) {
+      return std::nullopt;
+    }
+
     addr_t obj;
     int num_entries;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -65,22 +69,12 @@ protected:
     std::optional<symbol_t> hit;
     DS_ID id;
 
-    if (ep->get_id() == 57 && node->get_id() == 27) {
-      std::cerr << "Trying to speculate TableLookup\n";
-    }
-
     if (!get_table_data(ep, call_node, obj, num_entries, keys, values, hit,
                         id)) {
-      if (ep->get_id() == 57 && node->get_id() == 27) {
-        std::cerr << "No table data\n";
-      }
       return std::nullopt;
     }
 
     if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
-      if (ep->get_id() == 57 && node->get_id() == 27) {
-        std::cerr << "Cannot implement DS\n";
-      }
       return std::nullopt;
     }
 
@@ -89,9 +83,6 @@ protected:
         build_table(ep, node, id, num_entries, keys, values, hit, deps);
 
     if (!table) {
-      if (ep->get_id() == 57 && node->get_id() == 27) {
-        std::cerr << "Cannot build table\n";
-      }
       return std::nullopt;
     }
 
@@ -112,6 +103,10 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+
+    if (is_vector_write(call_node)) {
+      return impls;
+    }
 
     addr_t obj;
     int num_entries;
