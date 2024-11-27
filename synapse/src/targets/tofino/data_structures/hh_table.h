@@ -12,11 +12,11 @@
 namespace tofino {
 
 struct HHTable : public DS {
-  int num_entries;
-  int cms_width;
-  int cms_height;
+  u32 num_entries;
+  u32 cms_width;
+  u32 cms_height;
 
-  HHTable(DS_ID id, int op, int num_entries, int cms_width, int cms_height,
+  HHTable(DS_ID id, u32 op, u32 num_entries, u32 cms_width, u32 cms_height,
           const std::vector<bits_t> &keys);
 
   HHTable(const HHTable &other);

@@ -83,8 +83,7 @@ protected:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> deps;
-    Meter *meter = build_meter(ep, node, id, cfg, keys, deps);
+    Meter *meter = build_meter(ep, node, id, cfg, keys);
 
     if (!meter) {
       return std::nullopt;
@@ -135,8 +134,7 @@ protected:
       return impls;
     }
 
-    std::unordered_set<DS_ID> deps;
-    Meter *meter = build_meter(ep, node, id, cfg, keys, deps);
+    Meter *meter = build_meter(ep, node, id, cfg, keys);
 
     if (!meter) {
       return impls;
@@ -152,7 +150,11 @@ protected:
     BDD *bdd =
         delete_future_tb_update(new_ep, node, tb_update_and_check, new_next);
 
-    place_meter(new_ep, obj, meter, deps);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(obj, DSImpl::Tofino_Meter);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->place(new_ep, node, obj, meter);
 
     EPLeaf leaf(ep_node, new_next);
     new_ep->process_leaf(ep_node, {leaf});
@@ -192,8 +194,7 @@ protected:
 
   Meter *build_meter(const EP *ep, const Node *node, DS_ID id,
                      const tb_config_t &cfg,
-                     const std::vector<klee::ref<klee::Expr>> &keys,
-                     std::unordered_set<DS_ID> &deps) const {
+                     const std::vector<klee::ref<klee::Expr>> &keys) const {
     std::vector<bits_t> keys_size;
     for (klee::ref<klee::Expr> key : keys) {
       keys_size.push_back(key->getWidth());
@@ -202,21 +203,12 @@ protected:
     Meter *meter = new Meter(id, cfg.capacity, cfg.rate, cfg.burst, keys_size);
 
     const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
-    deps = tofino_ctx->get_stateful_deps(ep, node);
-
-    if (!tofino_ctx->check_placement(ep, meter, deps)) {
+    if (!tofino_ctx->check_placement(ep, node, meter)) {
       delete meter;
       return nullptr;
     }
 
     return meter;
-  }
-
-  void place_meter(EP *ep, addr_t obj, Meter *meter,
-                   const std::unordered_set<DS_ID> &deps) const {
-    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
-    ep->get_mutable_ctx().save_ds_impl(obj, DSImpl::Tofino_Meter);
-    tofino_ctx->place(ep, obj, meter, deps);
   }
 
   BDD *delete_future_tb_update(EP *ep, const Node *node,

@@ -45,9 +45,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HHTable) ||
-        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HHTable) ||
-        !ctx.check_ds_impl(map_objs.vector_key, DSImpl::Tofino_HHTable)) {
+    if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
+        !ctx.check_ds_impl(map_objs.vector_key,
+                           DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -119,10 +120,12 @@ protected:
     // We actually don't really need this, we could query the CMS right here,
     // but we leave it like this for now.
 
-    if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HHTable) ||
-        !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HHTable) ||
+    if (!ep->get_ctx().check_ds_impl(map_objs.map,
+                                     DSImpl::Tofino_HeavyHitterTable) ||
+        !ep->get_ctx().check_ds_impl(map_objs.dchain,
+                                     DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().check_ds_impl(map_objs.vector_key,
-                                     DSImpl::Tofino_HHTable)) {
+                                     DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 
@@ -287,7 +290,7 @@ private:
   hit_rate_t get_hh_probability(const EP *ep, const Node *node,
                                 addr_t map) const {
     hit_rate_t node_hr = ep->get_ctx().get_profiler().get_hr(node);
-    int capacity = ep->get_ctx().get_map_config(map).capacity;
+    u32 capacity = ep->get_ctx().get_map_config(map).capacity;
     hit_rate_t churn_hr = ep->get_ctx()
                               .get_profiler()
                               .get_bdd_profile()

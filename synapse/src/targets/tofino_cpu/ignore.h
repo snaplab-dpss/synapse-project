@@ -115,7 +115,7 @@ private:
 
     if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
         !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
-        !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HHTable)) {
+        !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
       return false;
     }
 
@@ -137,7 +137,7 @@ private:
     }
 
     if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
-        ctx.check_ds_impl(obj, DSImpl::Tofino_HHTable)) {
+        ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
       return true;
     }
 

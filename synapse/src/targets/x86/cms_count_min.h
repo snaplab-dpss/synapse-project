@@ -64,7 +64,7 @@ protected:
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CMS)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
       return std::nullopt;
     }
 
@@ -92,7 +92,7 @@ protected:
     bool found = get_symbol(symbols, "min_estimate", min_estimate);
     assert(found && "Symbol min_estimate not found");
 
-    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CMS)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
       return impls;
     }
 
@@ -102,7 +102,8 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
-    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::x86_CMS);
+    new_ep->get_mutable_ctx().save_ds_impl(cms_addr,
+                                           DSImpl::x86_CountMinSketch);
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});

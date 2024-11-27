@@ -78,9 +78,7 @@ protected:
       return std::nullopt;
     }
 
-    std::unordered_set<DS_ID> deps;
-    Table *table =
-        build_table(ep, node, id, num_entries, keys, values, hit, deps);
+    Table *table = build_table(ep, node, id, num_entries, keys, values, hit);
 
     if (!table) {
       return std::nullopt;
@@ -124,9 +122,7 @@ protected:
       return impls;
     }
 
-    std::unordered_set<DS_ID> deps;
-    Table *table =
-        build_table(ep, node, id, num_entries, keys, values, hit, deps);
+    Table *table = build_table(ep, node, id, num_entries, keys, values, hit);
 
     if (!table) {
       return impls;
@@ -138,7 +134,11 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
-    place_table(new_ep, obj, table, deps);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(obj, DSImpl::Tofino_Table);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->place(new_ep, node, obj, table);
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
@@ -150,8 +150,7 @@ private:
   Table *build_table(const EP *ep, const Node *node, DS_ID id, int num_entries,
                      const std::vector<klee::ref<klee::Expr>> &keys,
                      const std::vector<klee::ref<klee::Expr>> &values,
-                     const std::optional<symbol_t> &hit,
-                     std::unordered_set<DS_ID> &deps) const {
+                     const std::optional<symbol_t> &hit) const {
     std::vector<bits_t> keys_size;
     for (klee::ref<klee::Expr> key : keys) {
       keys_size.push_back(key->getWidth());
@@ -165,21 +164,12 @@ private:
     Table *table = new Table(id, num_entries, keys_size, params_size);
 
     const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
-    deps = tofino_ctx->get_stateful_deps(ep, node);
-
-    if (!tofino_ctx->check_placement(ep, table, deps)) {
+    if (!tofino_ctx->check_placement(ep, node, table)) {
       delete table;
       return nullptr;
     }
 
     return table;
-  }
-
-  void place_table(EP *ep, addr_t obj, Table *table,
-                   const std::unordered_set<DS_ID> &deps) const {
-    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(ep);
-    ep->get_mutable_ctx().save_ds_impl(obj, DSImpl::Tofino_Table);
-    tofino_ctx->place(ep, obj, table, deps);
   }
 
   bool get_table_data(const EP *ep, const Call *call_node, addr_t &obj,

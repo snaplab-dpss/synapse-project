@@ -51,7 +51,7 @@ protected:
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CMS)) {
+    if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
       return std::nullopt;
     }
 
@@ -78,7 +78,7 @@ protected:
 
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Tofino_CMS)) {
+    if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
       return impls;
     }
 

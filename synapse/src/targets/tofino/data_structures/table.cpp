@@ -4,7 +4,7 @@
 
 namespace tofino {
 
-Table::Table(DS_ID _id, int _num_entries, const std::vector<bits_t> &_keys,
+Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys,
              const std::vector<bits_t> &_params)
     : DS(DSType::TABLE, true, _id), num_entries(_num_entries), keys(_keys),
       params(_params) {

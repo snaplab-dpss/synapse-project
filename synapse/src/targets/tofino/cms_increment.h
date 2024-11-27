@@ -55,12 +55,17 @@ protected:
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ctx.can_impl_ds(cms_addr, DSImpl::Tofino_CMS)) {
+    if (!ctx.can_impl_ds(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+      return std::nullopt;
+    }
+
+    const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
+    if (!can_build_or_reuse_cms(ep, node, cms_addr, cfg.width, cfg.height)) {
       return std::nullopt;
     }
 
     Context new_ctx = ctx;
-    new_ctx.save_ds_impl(cms_addr, DSImpl::Tofino_CMS);
+    new_ctx.save_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch);
 
     return spec_impl_t(decide(ep, node), new_ctx);
   }
@@ -85,11 +90,17 @@ protected:
 
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::Tofino_CMS)) {
+    if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::Tofino_CountMinSketch)) {
       return impls;
     }
 
-    // TODO: implement the actual data structure.
+    const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
+    CountMinSketch *cms =
+        build_or_reuse_cms(ep, node, cms_addr, cfg.width, cfg.height);
+
+    if (!cms) {
+      return impls;
+    }
 
     Module *module = new CMSIncrement(node, cms_addr, key);
     EPNode *ep_node = new EPNode(module);
@@ -97,7 +108,11 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
-    new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::Tofino_CMS);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->place(new_ep, node, cms_addr, cms);
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});

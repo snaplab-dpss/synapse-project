@@ -9,7 +9,7 @@ i64 DSPrefCfg::get_bdd_progress(const EP *ep) const {
 
 i64 DSPrefCfg::get_ds_score(const EP *ep) const {
   std::unordered_map<DSImpl, int> ds_scores = {
-      {DSImpl::Tofino_HHTable, 1},
+      {DSImpl::Tofino_HeavyHitterTable, 1},
   };
 
   i64 score = 0;

@@ -77,7 +77,7 @@ protected:
     klee::ref<klee::Expr> cht = call.args.at("cht").expr;
     addr_t cht_addr = expr_addr_to_obj_addr(cht);
 
-    if (!ctx.can_impl_ds(cht_addr, DSImpl::x86_Cht)) {
+    if (!ctx.can_impl_ds(cht_addr, DSImpl::x86_ConsistentHashTable)) {
       return std::nullopt;
     }
 
@@ -105,7 +105,7 @@ protected:
     addr_t cht_addr = expr_addr_to_obj_addr(cht);
     addr_t backends_addr = expr_addr_to_obj_addr(backends);
 
-    if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::x86_Cht)) {
+    if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::x86_ConsistentHashTable)) {
       return impls;
     }
 
@@ -125,7 +125,8 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(cht_addr, DSImpl::x86_Cht);
+    new_ep->get_mutable_ctx().save_ds_impl(cht_addr,
+                                           DSImpl::x86_ConsistentHashTable);
 
     return impls;
   }

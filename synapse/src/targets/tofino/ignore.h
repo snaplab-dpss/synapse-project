@@ -125,7 +125,7 @@ private:
     // These are the data structures that can perform rejuvenations.
     if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) &&
         !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
-        !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HHTable)) {
+        !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
       return false;
     }
 

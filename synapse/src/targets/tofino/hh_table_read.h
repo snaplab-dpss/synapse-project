@@ -78,9 +78,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_HHTable) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_HHTable) ||
-        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_HHTable)) {
+    if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
+        !ctx.can_impl_ds(map_objs.vector_key,
+                         DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -98,9 +99,9 @@ protected:
     }
 
     Context new_ctx = ctx;
-    new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_HHTable);
-    new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_HHTable);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_HHTable);
+    new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable);
+    new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable);
+    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_HeavyHitterTable);
 
     update_map_get_success_hit_rate(new_ctx, map_get, table_data.key,
                                     table_data.num_entries, mpsc);
@@ -128,10 +129,12 @@ protected:
       return impls;
     }
 
-    if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_HHTable) ||
-        !ep->get_ctx().can_impl_ds(map_objs.dchain, DSImpl::Tofino_HHTable) ||
+    if (!ep->get_ctx().can_impl_ds(map_objs.map,
+                                   DSImpl::Tofino_HeavyHitterTable) ||
+        !ep->get_ctx().can_impl_ds(map_objs.dchain,
+                                   DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().can_impl_ds(map_objs.vector_key,
-                                   DSImpl::Tofino_HHTable)) {
+                                   DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 
@@ -160,15 +163,14 @@ protected:
     impls.push_back(implement(ep, node, new_ep));
 
     new_ep->get_mutable_ctx().save_ds_impl(map_objs.map,
-                                           DSImpl::Tofino_HHTable);
+                                           DSImpl::Tofino_HeavyHitterTable);
     new_ep->get_mutable_ctx().save_ds_impl(map_objs.dchain,
-                                           DSImpl::Tofino_HHTable);
+                                           DSImpl::Tofino_HeavyHitterTable);
     new_ep->get_mutable_ctx().save_ds_impl(map_objs.vector_key,
-                                           DSImpl::Tofino_HHTable);
+                                           DSImpl::Tofino_HeavyHitterTable);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-    tofino_ctx->place(new_ep, map_objs.map, hh_table,
-                      tofino_ctx->get_stateful_deps(ep, node));
+    tofino_ctx->place(new_ep, node, map_objs.map, hh_table);
 
     update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get,
                                     table_data.key, table_data.num_entries,
@@ -188,7 +190,7 @@ private:
     klee::ref<klee::Expr> read_value;
     klee::ref<klee::Expr> map_has_this_key;
     klee::ref<klee::Expr> min_estimate;
-    int num_entries;
+    u32 num_entries;
   };
 
   table_data_t get_table_data(const EP *ep, const Call *map_get) const {
@@ -208,7 +210,7 @@ private:
     addr_t obj = expr_addr_to_obj_addr(obj_expr);
     klee::ref<klee::Expr> min_estimate = solver_toolbox.create_new_symbol(
         "min_estimate_" + std::to_string(map_get->get_id()), 32);
-    int capacity = ep->get_ctx().get_map_config(obj).capacity;
+    u32 capacity = ep->get_ctx().get_map_config(obj).capacity;
 
     table_data_t table_data = {
         .obj = obj,
@@ -225,7 +227,7 @@ private:
 
   void
   update_map_get_success_hit_rate(Context &ctx, const Node *map_get,
-                                  klee::ref<klee::Expr> key, int capacity,
+                                  klee::ref<klee::Expr> key, u32 capacity,
                                   const map_get_success_check_t &mgsc) const {
     hit_rate_t success_rate =
         get_hh_table_hit_success_rate(ctx, map_get, key, capacity);

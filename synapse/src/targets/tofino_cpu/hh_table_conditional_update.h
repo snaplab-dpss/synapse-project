@@ -80,9 +80,10 @@ protected:
       return std::nullopt;
     }
 
-    if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HHTable) ||
-        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HHTable) ||
-        !ctx.check_ds_impl(map_objs.vector_key, DSImpl::Tofino_HHTable)) {
+    if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
+        !ctx.check_ds_impl(map_objs.vector_key,
+                           DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -144,10 +145,12 @@ protected:
       return impls;
     }
 
-    if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HHTable) ||
-        !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HHTable) ||
+    if (!ep->get_ctx().check_ds_impl(map_objs.map,
+                                     DSImpl::Tofino_HeavyHitterTable) ||
+        !ep->get_ctx().check_ds_impl(map_objs.dchain,
+                                     DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().check_ds_impl(map_objs.vector_key,
-                                     DSImpl::Tofino_HHTable)) {
+                                     DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 

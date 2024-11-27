@@ -14,16 +14,16 @@
 namespace tofino {
 
 struct FCFSCachedTable : public DS {
-  int cache_capacity;
-  int num_entries;
+  u32 cache_capacity;
+  u32 num_entries;
   std::vector<bits_t> keys_sizes;
 
   std::vector<Table> tables;
   Register cache_expirator;
   std::vector<Register> cache_keys;
 
-  FCFSCachedTable(const TNAProperties &properties, DS_ID id, int op,
-                  int cache_capacity, int num_entries,
+  FCFSCachedTable(const TNAProperties &properties, DS_ID id, u32 op,
+                  u32 cache_capacity, u32 num_entries,
                   const std::vector<bits_t> &keys_sizes);
 
   FCFSCachedTable(const FCFSCachedTable &other);
@@ -32,8 +32,8 @@ struct FCFSCachedTable : public DS {
   void debug() const override;
   std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
-  bool has_table(int op) const;
-  std::optional<DS_ID> add_table(int op);
+  bool has_table(u32 op) const;
+  std::optional<DS_ID> add_table(u32 op);
 };
 
 } // namespace tofino

@@ -272,16 +272,25 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
   return deps;
 }
 
-void TofinoContext::place(EP *ep, addr_t obj, DS *ds,
-                          const std::unordered_set<DS_ID> &deps) {
+void TofinoContext::place(EP *ep, const Node *node, addr_t obj, DS *ds) {
+  if (has_ds(obj)) {
+    return;
+  }
+
   save_ds(obj, ds);
+
+  std::unordered_set<DS_ID> deps =
+      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep,
+                                                                       node);
   tna.place(ds, deps);
 }
 
-void TofinoContext::place_many(EP *ep, addr_t obj,
-                               const std::vector<std::unordered_set<DS *>> &ds,
-                               const std::unordered_set<DS_ID> &_deps) {
-  std::unordered_set<DS_ID> deps = _deps;
+void TofinoContext::place_many(
+    EP *ep, const Node *node, addr_t obj,
+    const std::vector<std::unordered_set<DS *>> &ds) {
+  if (has_ds(obj)) {
+    return;
+  }
 
   for (const std::unordered_set<DS *> &ds_list : ds) {
     for (DS *ds : ds_list) {
@@ -289,11 +298,19 @@ void TofinoContext::place_many(EP *ep, addr_t obj,
     }
   }
 
+  std::unordered_set<DS_ID> deps =
+      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep,
+                                                                       node);
+
   tna.place_many(ds, deps);
 }
 
-bool TofinoContext::check_placement(
-    const EP *ep, const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+bool TofinoContext::check_placement(const EP *ep, const Node *node,
+                                    const DS *ds) const {
+  std::unordered_set<DS_ID> deps =
+      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep,
+                                                                       node);
+
   PlacementStatus status = tna.can_place(ds, deps);
 
   // if (status != PlacementStatus::SUCCESS) {
@@ -306,8 +323,12 @@ bool TofinoContext::check_placement(
 }
 
 bool TofinoContext::check_many_placements(
-    const EP *ep, const std::vector<std::unordered_set<DS *>> &ds,
-    const std::unordered_set<DS_ID> &deps) const {
+    const EP *ep, const Node *node,
+    const std::vector<std::unordered_set<DS *>> &ds) const {
+  std::unordered_set<DS_ID> deps =
+      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep,
+                                                                       node);
+
   PlacementStatus status = tna.can_place_many(ds, deps);
 
   // if (status != PlacementStatus::SUCCESS) {

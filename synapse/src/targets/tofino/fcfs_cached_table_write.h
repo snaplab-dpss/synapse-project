@@ -88,16 +88,16 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, future_map_puts);
 
-    std::vector<int> allowed_cache_capacities =
+    std::vector<u32> allowed_cache_capacities =
         enum_fcfs_cache_cap(cached_table_data.num_entries);
 
     hit_rate_t chosen_success_estimation = 0;
-    int chosen_cache_capacity = 0;
+    u32 chosen_cache_capacity = 0;
     bool successfully_placed = false;
 
     // We can use a different method for picking the right estimation depending
     // on the time it takes to find a solution.
-    for (int cache_capacity : allowed_cache_capacities) {
+    for (u32 cache_capacity : allowed_cache_capacities) {
       hit_rate_t success_estimation = get_cache_success_estimation_rel(
           ep, node, future_map_puts[0], cached_table_data.key, cache_capacity);
 
@@ -188,10 +188,10 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, future_map_puts);
 
-    std::vector<int> allowed_cache_capacities =
+    std::vector<u32> allowed_cache_capacities =
         enum_fcfs_cache_cap(cached_table_data.num_entries);
 
-    for (int cache_capacity : allowed_cache_capacities) {
+    for (u32 cache_capacity : allowed_cache_capacities) {
       std::optional<impl_t> impl = concretize_cached_table_write(
           ep, node, map_objs, cached_table_data, cache_write_failed,
           cache_capacity, future_map_puts);
@@ -211,13 +211,13 @@ private:
     klee::ref<klee::Expr> read_value;
     klee::ref<klee::Expr> write_value;
     symbol_t map_has_this_key;
-    int num_entries;
+    u32 num_entries;
   };
 
   std::optional<impl_t> concretize_cached_table_write(
       const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
       const fcfs_cached_table_data_t &cached_table_data,
-      const symbol_t &cache_write_failed, int cache_capacity,
+      const symbol_t &cache_write_failed, u32 cache_capacity,
       const std::vector<const Call *> &future_map_puts) const {
     FCFSCachedTable *cached_table = build_or_reuse_fcfs_cached_table(
         ep, node, cached_table_data.obj, cached_table_data.key,
@@ -286,7 +286,13 @@ private:
           deleted_branch_constraints.value());
     }
 
-    place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
 
     EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
     EPLeaf on_cache_write_failed_leaf(send_to_controller_node,
@@ -306,7 +312,7 @@ private:
   hit_rate_t get_cache_success_estimation_rel(const EP *ep, const Node *node,
                                               const Node *map_put,
                                               klee::ref<klee::Expr> key,
-                                              int cache_capacity) const {
+                                              u32 cache_capacity) const {
     hit_rate_t fraction = ep->get_ctx().get_profiler().get_hr(node);
     hit_rate_t expected_cached_fraction = get_fcfs_cache_success_rate(
         ep->get_ctx(), map_put, key, cache_capacity);

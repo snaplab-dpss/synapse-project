@@ -378,19 +378,9 @@ PlacementStatus SimplePlacer::find_placements_meter(
 }
 
 void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
-  switch (ds->type) {
-  case DSType::TABLE:
-  case DSType::REGISTER:
-  case DSType::METER: {
+  if (ds->primitive) {
     place_primitive_ds(ds, deps);
-  } break;
-  case DSType::FCFS_CACHED_TABLE: {
-    const FCFSCachedTable *cached_table =
-        static_cast<const FCFSCachedTable *>(ds);
-
-    std::vector<std::unordered_set<const DS *>> ds_to_place =
-        cached_table->get_internal();
-
+  } else {
     bool already_placed = false;
     for (const PlacementRequest &req : placement_requests) {
       if (req.ds->id == ds->id) {
@@ -401,7 +391,8 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
 
     bool change = false;
     if (already_placed) {
-      for (const std::unordered_set<const DS *> &indep_ds : ds_to_place) {
+      for (const std::unordered_set<const DS *> &indep_ds :
+           ds->get_internal()) {
         for (const DS *ds : indep_ds) {
           if (!is_placed(ds->id)) {
             change = true;
@@ -427,7 +418,8 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
       return;
     } else {
       std::unordered_set<DS_ID> current_deps = deps;
-      for (const std::unordered_set<const DS *> &indep_ds : ds_to_place) {
+      for (const std::unordered_set<const DS *> &indep_ds :
+           ds->get_internal()) {
         std::unordered_set<DS_ID> new_deps;
 
         for (const DS *ds : indep_ds) {
@@ -442,10 +434,6 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
         current_deps.insert(new_deps.begin(), new_deps.end());
       }
     }
-  } break;
-  case DSType::HH_TABLE: {
-    // TODO: Implement
-  } break;
   }
 
   save_placement_request(ds, deps);
@@ -475,12 +463,7 @@ SimplePlacer::can_place(const DS *ds,
                         const std::unordered_set<DS_ID> &deps) const {
   PlacementStatus status = PlacementStatus::UNKNOWN;
 
-  switch (ds->type) {
-  case DSType::TABLE:
-  case DSType::REGISTER:
-  case DSType::METER: {
-    std::vector<placement_t> placements;
-
+  if (ds->primitive) {
     if (is_self_dependent(ds->id, deps)) {
       return PlacementStatus::SELF_DEPENDENCE;
     }
@@ -489,83 +472,72 @@ SimplePlacer::can_place(const DS *ds,
       return is_consistent(ds->id, deps);
     }
 
+    std::vector<placement_t> placements;
     return find_placements(ds, deps, placements);
-  } break;
-  case DSType::FCFS_CACHED_TABLE: {
-    const FCFSCachedTable *cached_table =
-        static_cast<const FCFSCachedTable *>(ds);
+  }
 
-    std::vector<std::unordered_set<const DS *>> candidates =
-        cached_table->get_internal();
+  std::vector<std::unordered_set<const DS *>> candidates = ds->get_internal();
 
-    bool already_placed = false;
-    for (const PlacementRequest &req : placement_requests) {
+  bool already_placed = false;
+  for (const PlacementRequest &req : placement_requests) {
+    if (req.ds->id == ds->id) {
+      already_placed = true;
+      break;
+    }
+  }
+
+  bool change = false;
+  if (already_placed) {
+    for (const std::unordered_set<const DS *> &indep_ds : candidates) {
+      for (const DS *ds : indep_ds) {
+        if (!is_placed(ds->id)) {
+          change = true;
+          break;
+        }
+      }
+    }
+  }
+
+  if (change) {
+    SimplePlacer clean_snapshot(properties);
+
+    for (PlacementRequest req : placement_requests) {
       if (req.ds->id == ds->id) {
-        already_placed = true;
-        break;
+        req.ds = ds;
+        req.deps.insert(deps.begin(), deps.end());
       }
-    }
 
-    bool change = false;
-    if (already_placed) {
-      for (const std::unordered_set<const DS *> &indep_ds : candidates) {
-        for (const DS *ds : indep_ds) {
-          if (!is_placed(ds->id)) {
-            change = true;
-            break;
-          }
-        }
+      status = clean_snapshot.can_place(req.ds, req.deps);
+
+      if (status != PlacementStatus::SUCCESS) {
+        return status;
       }
+
+      clean_snapshot.place(req.ds, req.deps);
     }
+  } else {
+    SimplePlacer snapshot = *this;
 
-    if (change) {
-      SimplePlacer clean_snapshot(properties);
+    std::unordered_set<DS_ID> current_deps = deps;
+    for (const std::unordered_set<const DS *> &indep_ds : candidates) {
+      std::unordered_set<DS_ID> new_deps;
 
-      for (PlacementRequest req : placement_requests) {
-        if (req.ds->id == ds->id) {
-          req.ds = ds;
-          req.deps.insert(deps.begin(), deps.end());
-        }
-
-        status = clean_snapshot.can_place(req.ds, req.deps);
+      for (const DS *ds : indep_ds) {
+        PlacementStatus status = snapshot.can_place(ds, current_deps);
 
         if (status != PlacementStatus::SUCCESS) {
           return status;
         }
 
-        clean_snapshot.place(req.ds, req.deps);
+        snapshot.place(ds, current_deps);
+        new_deps.insert(ds->id);
       }
-    } else {
-      SimplePlacer snapshot = *this;
 
-      std::unordered_set<DS_ID> current_deps = deps;
-      for (const std::unordered_set<const DS *> &indep_ds : candidates) {
-        std::unordered_set<DS_ID> new_deps;
-
-        for (const DS *ds : indep_ds) {
-          PlacementStatus status = snapshot.can_place(ds, current_deps);
-
-          if (status != PlacementStatus::SUCCESS) {
-            return status;
-          }
-
-          snapshot.place(ds, current_deps);
-          new_deps.insert(ds->id);
-        }
-
-        current_deps.insert(new_deps.begin(), new_deps.end());
-      }
+      current_deps.insert(new_deps.begin(), new_deps.end());
     }
-
-    return PlacementStatus::SUCCESS;
-  } break;
-  case DSType::HH_TABLE: {
-    // TODO: Implement
-    return PlacementStatus::SUCCESS;
-  } break;
   }
 
-  return status;
+  return PlacementStatus::SUCCESS;
 }
 
 void SimplePlacer::save_placement_request(

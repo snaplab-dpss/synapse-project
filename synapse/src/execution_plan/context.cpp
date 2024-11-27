@@ -318,31 +318,34 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::Tofino_Meter:
     os << "Tofino::Meter";
     break;
-  case DSImpl::Tofino_HHTable:
+  case DSImpl::Tofino_HeavyHitterTable:
     os << "Tofino::HHTable";
     break;
   case DSImpl::Tofino_IntegerAllocator:
     os << "Tofino::IntegerAllocator";
     break;
-  case DSImpl::Tofino_CMS:
+  case DSImpl::Tofino_CountMinSketch:
     os << "Tofino::CMS";
     break;
-  case DSImpl::TofinoCPU_Dchain:
+  case DSImpl::Tofino_CuckooHashTable:
+    os << "Tofino::CuckooHashTable";
+    break;
+  case DSImpl::TofinoCPU_DoubleChain:
     os << "TofinoCPU::Dchain";
     break;
   case DSImpl::TofinoCPU_Vector:
     os << "TofinoCPU::Vector";
     break;
-  case DSImpl::TofinoCPU_CMS:
+  case DSImpl::TofinoCPU_CountMinSketch:
     os << "TofinoCPU::CMS";
     break;
   case DSImpl::TofinoCPU_Map:
     os << "TofinoCPU::Map";
     break;
-  case DSImpl::TofinoCPU_Cht:
+  case DSImpl::TofinoCPU_ConsistentHashTable:
     os << "TofinoCPU::Cht";
     break;
-  case DSImpl::TofinoCPU_TB:
+  case DSImpl::TofinoCPU_TokenBucket:
     os << "TofinoCPU::TB";
     break;
   case DSImpl::x86_Map:
@@ -351,16 +354,16 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::x86_Vector:
     os << "x86::Vector";
     break;
-  case DSImpl::x86_Dchain:
+  case DSImpl::x86_DoubleChain:
     os << "x86::Dchain";
     break;
-  case DSImpl::x86_CMS:
+  case DSImpl::x86_CountMinSketch:
     os << "x86::CMS";
     break;
-  case DSImpl::x86_Cht:
+  case DSImpl::x86_ConsistentHashTable:
     os << "x86::Cht";
     break;
-  case DSImpl::x86_TB:
+  case DSImpl::x86_TokenBucket:
     os << "x86::TB";
     break;
   }

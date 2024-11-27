@@ -136,10 +136,10 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, map_get);
 
-    std::vector<int> allowed_cache_capacities =
+    std::vector<u32> allowed_cache_capacities =
         enum_fcfs_cache_cap(cached_table_data.num_entries);
 
-    for (int cache_capacity : allowed_cache_capacities) {
+    for (u32 cache_capacity : allowed_cache_capacities) {
       std::optional<impl_t> impl = concretize_cached_table_read(
           ep, node, map_objs, cached_table_data, cache_capacity);
 
@@ -157,13 +157,13 @@ private:
     klee::ref<klee::Expr> key;
     klee::ref<klee::Expr> read_value;
     symbol_t map_has_this_key;
-    int num_entries;
+    u32 num_entries;
   };
 
   std::optional<impl_t> concretize_cached_table_read(
       const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
       const fcfs_cached_table_data_t &cached_table_data,
-      int cache_capacity) const {
+      u32 cache_capacity) const {
     FCFSCachedTable *cached_table = build_or_reuse_fcfs_cached_table(
         ep, node, cached_table_data.obj, cached_table_data.key,
         cached_table_data.num_entries, cache_capacity);
@@ -183,7 +183,13 @@ private:
     BDD *bdd = delete_future_vector_key_ops(new_ep, node, cached_table_data,
                                             map_objs, new_next);
 
-    place_fcfs_cached_table(new_ep, node, map_objs, cached_table);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
 
     EPLeaf leaf(ep_node, new_next);
     new_ep->process_leaf(ep_node, {leaf});

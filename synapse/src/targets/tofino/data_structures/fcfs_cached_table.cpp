@@ -5,24 +5,24 @@
 
 namespace tofino {
 
-static bits_t index_size_from_cache_capacity(int cache_capacity) {
+static bits_t index_size_from_cache_capacity(u32 cache_capacity) {
   // Log base 2 of the cache capacity
   // Assert cache capacity is a power of 2
   assert((cache_capacity & (cache_capacity - 1)) == 0);
   return bits_t(log2(cache_capacity));
 }
 
-static std::string build_table_name(DS_ID id, int table_num) {
+static std::string build_table_name(DS_ID id, u32 table_num) {
   return id + "_table_" + std::to_string(table_num);
 }
 
-static Table build_table(DS_ID id, int table_num, int num_entries,
+static Table build_table(DS_ID id, u32 table_num, u32 num_entries,
                          const std::vector<bits_t> &keys) {
   return Table(build_table_name(id, table_num), num_entries, keys, {});
 }
 
 static Register build_cache_expirator(const TNAProperties &properties, DS_ID id,
-                                      int cache_capacity) {
+                                      u32 cache_capacity) {
   bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
   bits_t timestamp_size = 32;
   return Register(properties, id + "_reg_expirator", cache_capacity, hash_size,
@@ -31,7 +31,7 @@ static Register build_cache_expirator(const TNAProperties &properties, DS_ID id,
 
 static std::vector<Register>
 build_cache_keys(const TNAProperties &properties, DS_ID id,
-                 const std::vector<bits_t> &keys_sizes, int cache_capacity) {
+                 const std::vector<bits_t> &keys_sizes, u32 cache_capacity) {
   std::vector<Register> cache_keys;
 
   bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
@@ -49,7 +49,7 @@ build_cache_keys(const TNAProperties &properties, DS_ID id,
 }
 
 FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
-                                 int _op, int _cache_capacity, int _num_entries,
+                                 u32 _op, u32 _cache_capacity, u32 _num_entries,
                                  const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::FCFS_CACHED_TABLE, false, _id),
       cache_capacity(_cache_capacity), num_entries(_num_entries),
@@ -73,7 +73,7 @@ FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
-bool FCFSCachedTable::has_table(int op) const {
+bool FCFSCachedTable::has_table(u32 op) const {
   std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -82,7 +82,7 @@ bool FCFSCachedTable::has_table(int op) const {
   return false;
 }
 
-std::optional<DS_ID> FCFSCachedTable::add_table(int op) {
+std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
   if (tables.empty()) {
     // There is no need to add a table if there are no tables (we will never hit
     // the problem of having multiple next-chains after the table).

@@ -13,6 +13,7 @@ enum class DSType {
   METER,
   FCFS_CACHED_TABLE,
   HH_TABLE,
+  COUNT_MIN_SKETCH,
 };
 
 struct DS {

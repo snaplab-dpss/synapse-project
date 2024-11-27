@@ -53,7 +53,7 @@ protected:
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
 
-    if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_HHTable)) {
+    if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -79,7 +79,7 @@ protected:
     std::vector<klee::ref<klee::Expr>> keys;
     get_map_erase_data(call_node, obj, keys);
 
-    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HHTable)) {
+    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 

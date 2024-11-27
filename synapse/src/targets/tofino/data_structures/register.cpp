@@ -3,7 +3,7 @@
 
 namespace tofino {
 
-Register::Register(const TNAProperties &properties, DS_ID _id, int _num_entries,
+Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries,
                    bits_t _index, bits_t _value,
                    const std::unordered_set<RegisterAction> &_actions)
     : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index),
@@ -23,7 +23,7 @@ bits_t Register::get_consumed_sram() const {
   return value * num_entries + index_sram_block;
 }
 
-int Register::get_num_logical_ids() const { return (int)actions.size(); }
+u32 Register::get_num_logical_ids() const { return (u32)actions.size(); }
 
 void Register::debug() const {
   Log::dbg() << "\n";

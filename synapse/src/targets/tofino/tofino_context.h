@@ -47,16 +47,14 @@ public:
   std::unordered_set<DS_ID> get_stateful_deps(const EP *ep,
                                               const Node *node) const;
 
-  void place(EP *ep, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps);
-  void place_many(EP *ep, addr_t obj,
-                  const std::vector<std::unordered_set<DS *>> &ds,
-                  const std::unordered_set<DS_ID> &deps);
+  void place(EP *ep, const Node *node, addr_t obj, DS *ds);
+  void place_many(EP *ep, const Node *node, addr_t obj,
+                  const std::vector<std::unordered_set<DS *>> &ds);
 
-  bool check_placement(const EP *ep, const DS *ds,
-                       const std::unordered_set<DS_ID> &deps) const;
-  bool check_many_placements(const EP *ep,
-                             const std::vector<std::unordered_set<DS *>> &ds,
-                             const std::unordered_set<DS_ID> &deps) const;
+  bool check_placement(const EP *ep, const Node *node, const DS *ds) const;
+  bool
+  check_many_placements(const EP *ep, const Node *node,
+                        const std::vector<std::unordered_set<DS *>> &ds) const;
 
   void debug() const override;
 };

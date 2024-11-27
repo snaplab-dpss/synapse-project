@@ -4,8 +4,8 @@
 
 namespace tofino {
 
-HHTable::HHTable(DS_ID _id, int op, int _num_entries, int _cms_width,
-                 int _cms_height, const std::vector<bits_t> &_keys)
+HHTable::HHTable(DS_ID _id, u32 op, u32 _num_entries, u32 _cms_width,
+                 u32 _cms_height, const std::vector<bits_t> &_keys)
     : DS(DSType::HH_TABLE, false, _id), num_entries(_num_entries),
       cms_width(_cms_width), cms_height(_cms_height) {
   assert(_num_entries > 0);

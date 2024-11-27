@@ -77,16 +77,16 @@ protected:
     fcfs_cached_table_data_t cached_table_data =
         get_cached_table_data(ep, map_erase);
 
-    std::vector<int> allowed_cache_capacities =
+    std::vector<u32> allowed_cache_capacities =
         enum_fcfs_cache_cap(cached_table_data.num_entries);
 
     hit_rate_t chosen_cache_success_probability = 0;
-    int chosen_cache_capacity = 0;
+    u32 chosen_cache_capacity = 0;
     bool successfully_placed = false;
 
     // We can use a different method for picking the right estimation depending
     // on the time it takes to find a solution.
-    for (int cache_capacity : allowed_cache_capacities) {
+    for (u32 cache_capacity : allowed_cache_capacities) {
       hit_rate_t cache_success_probability = get_cache_op_success_probability(
           ep, node, cached_table_data.key, cache_capacity);
 
@@ -173,10 +173,10 @@ protected:
 
     symbol_t cache_delete_failed = create_symbol("cache_delete_failed", 32);
 
-    std::vector<int> allowed_cache_capacities =
+    std::vector<u32> allowed_cache_capacities =
         enum_fcfs_cache_cap(cached_table_data.num_entries);
 
-    for (int cache_capacity : allowed_cache_capacities) {
+    for (u32 cache_capacity : allowed_cache_capacities) {
       std::optional<impl_t> impl = concretize_cached_table_delete(
           ep, map_erase, map_objs, cached_table_data, cache_delete_failed,
           cache_capacity);
@@ -193,14 +193,14 @@ private:
   struct fcfs_cached_table_data_t {
     addr_t obj;
     klee::ref<klee::Expr> key;
-    int num_entries;
+    u32 num_entries;
   };
 
   std::optional<impl_t> concretize_cached_table_delete(
       const EP *ep, const Call *map_erase,
       const map_coalescing_objs_t &map_objs,
       const fcfs_cached_table_data_t &cached_table_data,
-      const symbol_t &cache_delete_failed, int cache_capacity) const {
+      const symbol_t &cache_delete_failed, u32 cache_capacity) const {
     FCFSCachedTable *cached_table = build_or_reuse_fcfs_cached_table(
         ep, map_erase, cached_table_data.obj, cached_table_data.key,
         cached_table_data.num_entries, cache_capacity);
@@ -267,7 +267,13 @@ private:
           deleted_branch_constraints.value());
     }
 
-    place_fcfs_cached_table(new_ep, map_erase, map_objs, cached_table);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+    ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+    tofino_ctx->place(new_ep, map_erase, map_objs.map, cached_table);
 
     EPLeaf on_cache_delete_success_leaf(then_node, on_cache_delete_success);
     EPLeaf on_cache_delete_failed_leaf(send_to_controller_node,
@@ -295,7 +301,7 @@ private:
 
   hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
                                               klee::ref<klee::Expr> key,
-                                              int cache_capacity) const {
+                                              u32 cache_capacity) const {
     const Context &ctx = ep->get_ctx();
     const Profiler &profiler = ctx.get_profiler();
 

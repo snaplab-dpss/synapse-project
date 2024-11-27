@@ -63,7 +63,7 @@ protected:
     klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
     addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-    if (!ctx.can_impl_ds(dchain_addr, DSImpl::x86_Dchain)) {
+    if (!ctx.can_impl_ds(dchain_addr, DSImpl::x86_DoubleChain)) {
       return std::nullopt;
     }
 
@@ -86,7 +86,7 @@ protected:
 
     addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-    if (!ep->get_ctx().can_impl_ds(dchain_addr, DSImpl::x86_Dchain)) {
+    if (!ep->get_ctx().can_impl_ds(dchain_addr, DSImpl::x86_DoubleChain)) {
       return impls;
     }
 
@@ -99,7 +99,8 @@ protected:
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(dchain_addr, DSImpl::x86_Dchain);
+    new_ep->get_mutable_ctx().save_ds_impl(dchain_addr,
+                                           DSImpl::x86_DoubleChain);
 
     return impls;
   }

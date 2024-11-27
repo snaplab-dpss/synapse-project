@@ -18,6 +18,14 @@ public:
   virtual std::unordered_set<DS_ID> get_generated_ds() const { return {}; }
 };
 
+struct vector_register_data_t {
+  addr_t obj;
+  u32 num_entries;
+  klee::ref<klee::Expr> index;
+  klee::ref<klee::Expr> value;
+  std::unordered_set<RegisterAction> actions;
+};
+
 class TofinoModuleGenerator : public ModuleGenerator {
 protected:
   ModuleType type;
@@ -50,14 +58,6 @@ protected:
 
   symbols_t get_dataplane_state(const EP *ep, const Node *node) const;
 
-  struct vector_register_data_t {
-    addr_t obj;
-    int num_entries;
-    klee::ref<klee::Expr> index;
-    klee::ref<klee::Expr> value;
-    std::unordered_set<RegisterAction> actions;
-  };
-
   /*
     ======================================================================
 
@@ -66,22 +66,13 @@ protected:
     ======================================================================
  */
 
-  std::unordered_set<DS *> build_vector_registers(
-      const EP *ep, const Node *node, const vector_register_data_t &data,
-      std::unordered_set<DS_ID> &rids, std::unordered_set<DS_ID> &deps) const;
-  std::unordered_set<DS *> get_vector_registers(
-      const EP *ep, const Node *node, const vector_register_data_t &data,
-      std::unordered_set<DS_ID> &rids, std::unordered_set<DS_ID> &deps) const;
-  std::unordered_set<DS *> get_or_build_vector_registers(
+  std::unordered_set<DS *> build_or_reuse_vector_registers(
       const EP *ep, const Node *node, const vector_register_data_t &data,
       bool &already_exists, std::unordered_set<DS_ID> &rids,
       std::unordered_set<DS_ID> &deps) const;
   bool
-  can_get_or_build_vector_registers(const EP *ep, const Node *node,
-                                    const vector_register_data_t &data) const;
-  void place_vector_registers(EP *ep, const vector_register_data_t &data,
-                              const std::unordered_set<DS *> &regs,
-                              const std::unordered_set<DS_ID> &deps) const;
+  can_build_or_reuse_vector_registers(const EP *ep, const Node *node,
+                                      const vector_register_data_t &data) const;
 
   /*
      ======================================================================
@@ -95,19 +86,16 @@ protected:
                                          addr_t obj) const;
   FCFSCachedTable *
   build_or_reuse_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj,
-                                   klee::ref<klee::Expr> key, int num_entries,
-                                   int cache_capacity) const;
+                                   klee::ref<klee::Expr> key, u32 num_entries,
+                                   u32 cache_capacity) const;
   bool can_get_or_build_fcfs_cached_table(const EP *ep, const Node *node,
                                           addr_t obj, klee::ref<klee::Expr> key,
-                                          int num_entries,
-                                          int cache_capacity) const;
-  void place_fcfs_cached_table(EP *ep, const Node *node,
-                               const map_coalescing_objs_t &map_objs,
-                               FCFSCachedTable *ds) const;
-  std::vector<int> enum_fcfs_cache_cap(int num_entries) const;
+                                          u32 num_entries,
+                                          u32 cache_capacity) const;
+  std::vector<u32> enum_fcfs_cache_cap(u32 num_entries) const;
   hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const Node *node,
                                          klee::ref<klee::Expr> key,
-                                         int cache_capacity) const;
+                                         u32 cache_capacity) const;
 
   /*
      ======================================================================
@@ -120,18 +108,28 @@ protected:
   bool
   can_build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
                               const std::vector<klee::ref<klee::Expr>> &keys,
-                              int num_entries, int cms_width,
-                              int cms_height) const;
+                              u32 num_entries, u32 cms_width,
+                              u32 cms_height) const;
   HHTable *
   build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
                           const std::vector<klee::ref<klee::Expr>> &keys,
-                          int num_entries, int cms_width, int cms_height) const;
-  void place_fcfs_cached_table(EP *ep, const Node *node,
-                               const map_coalescing_objs_t &map_objs,
-                               HHTable *ds) const;
+                          u32 num_entries, u32 cms_width, u32 cms_height) const;
   hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const Node *node,
                                            klee::ref<klee::Expr> key,
                                            u32 capacity) const;
+
+  /*
+      ======================================================================
+
+                                Count Min Sketch
+
+      ======================================================================
+  */
+
+  bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                              u32 width, u32 height) const;
+  CountMinSketch *build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                                     u32 width, u32 height) const;
 };
 
 } // namespace tofino

@@ -20,12 +20,12 @@ enum class RegisterAction {
 };
 
 struct Register : public DS {
-  int num_entries;
+  u32 num_entries;
   bits_t index;
   bits_t value;
   std::unordered_set<RegisterAction> actions;
 
-  Register(const TNAProperties &properties, DS_ID id, int num_entries,
+  Register(const TNAProperties &properties, DS_ID id, u32 num_entries,
            bits_t index, bits_t value,
            const std::unordered_set<RegisterAction> &actions);
 
@@ -36,7 +36,7 @@ struct Register : public DS {
   std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
   bits_t get_consumed_sram() const;
-  int get_num_logical_ids() const;
+  u32 get_num_logical_ids() const;
 
   static std::vector<klee::ref<klee::Expr>>
   partition_value(const TNAProperties &properties, klee::ref<klee::Expr> value);

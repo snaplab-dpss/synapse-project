@@ -87,8 +87,8 @@ protected:
       return std::nullopt;
     }
 
-    bool can_place_ds = can_get_or_build_vector_registers(ep, vector_borrow,
-                                                          vector_register_data);
+    bool can_place_ds = can_build_or_reuse_vector_registers(
+        ep, vector_borrow, vector_register_data);
 
     if (!can_place_ds) {
       return std::nullopt;
@@ -146,7 +146,7 @@ protected:
     std::unordered_set<DS_ID> deps;
     bool already_placed = false;
 
-    std::unordered_set<DS *> regs = get_or_build_vector_registers(
+    std::unordered_set<DS *> regs = build_or_reuse_vector_registers(
         ep, vector_borrow, vector_register_data, already_placed, rids, deps);
 
     if (regs.empty()) {
@@ -166,13 +166,17 @@ protected:
         delete_future_vector_return(new_ep, node, vector_return, new_next);
 
     if (!already_placed) {
-      place_vector_registers(new_ep, vector_register_data, regs, deps);
+      Context &ctx = new_ep->get_mutable_ctx();
+      ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
+
+      TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+      tofino_ctx->place_many(new_ep, node, vector_register_data.obj, {regs});
     }
 
     EPLeaf leaf(ep_node, new_next);
     new_ep->process_leaf(ep_node, {leaf});
     new_ep->replace_bdd(bdd);
-    // new_ep->assert_integrity();
+    new_ep->assert_integrity();
 
     return impls;
   }
@@ -207,7 +211,7 @@ private:
 
     vector_register_data_t vector_register_data = {
         .obj = obj,
-        .num_entries = static_cast<int>(cfg.capacity),
+        .num_entries = static_cast<u32>(cfg.capacity),
         .index = index,
         .value = value,
         .actions = {RegisterAction::READ, RegisterAction::SWAP},

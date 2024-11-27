@@ -67,6 +67,8 @@ protected:
 
     klee::ref<klee::Expr> original_condition = branch_node->get_condition();
 
+    std::cerr << "Ep: " << ep->get_id() << "\n";
+    std::cerr << "Node: " << node->dump(true) << "\n";
     selection_t selection = build_parser_select(original_condition);
 
     const Node *on_true = branch_node->get_on_true();
@@ -169,6 +171,9 @@ private:
       selection.values.insert(selection.values.end(), rhs_sel.values.begin(),
                               rhs_sel.values.end());
     } break;
+    case klee::Expr::Kind::Ne:
+      selection.negated = true;
+      [[fallthrough]];
     case klee::Expr::Kind::Eq: {
       klee::ref<klee::Expr> lhs = condition->getKid(0);
       klee::ref<klee::Expr> rhs = condition->getKid(1);

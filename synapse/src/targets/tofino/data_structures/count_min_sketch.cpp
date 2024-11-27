@@ -1,0 +1,58 @@
+#include "count_min_sketch.h"
+
+namespace tofino {
+
+static bits_t index_size_from_width(u32 width) {
+  // Log base 2 of the cache capacity
+  // Assert cache capacity is a power of 2
+  assert((width & (width - 1)) == 0);
+  return bits_t(log2(width));
+}
+
+static std::vector<Register> build_rows(const TNAProperties &properties,
+                                        DS_ID id, u32 width, u32 height) {
+  std::vector<Register> rows;
+  bits_t hash_size = index_size_from_width(width);
+  bits_t counter_size = 32;
+
+  for (size_t i = 0; i < height; i++) {
+    Register row(properties, id + "_row_" + std::to_string(i), width, hash_size,
+                 counter_size, {RegisterAction::WRITE, RegisterAction::READ});
+    rows.push_back(row);
+  }
+
+  return rows;
+}
+
+CountMinSketch::CountMinSketch(const TNAProperties &properties, DS_ID _id,
+                               u32 _width, u32 _height)
+    : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height),
+      rows(build_rows(properties, _id, _width, _height)) {}
+
+CountMinSketch::CountMinSketch(const CountMinSketch &other)
+    : DS(other.type, other.primitive, other.id), width(other.width),
+      height(other.height), rows(other.rows) {}
+
+DS *CountMinSketch::clone() const { return new CountMinSketch(*this); }
+
+void CountMinSketch::debug() const {
+  Log::dbg() << "\n";
+  Log::dbg() << "======== COUNT MIN SKETCH ========\n";
+  Log::dbg() << "ID:     " << id << "\n";
+  Log::dbg() << "Width:  " << width << "\n";
+  Log::dbg() << "Height: " << height << "\n";
+  Log::dbg() << "==============================\n";
+}
+
+std::vector<std::unordered_set<const DS *>>
+CountMinSketch::get_internal() const {
+  std::vector<std::unordered_set<const DS *>> internal_ds;
+
+  internal_ds.emplace_back();
+  for (const Register &row : rows)
+    internal_ds.back().insert(&row);
+
+  return internal_ds;
+}
+
+} // namespace tofino
