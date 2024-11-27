@@ -1,6 +1,6 @@
 #########################################################
 # SyNAPSE makefile
-# Used to compile LibSycon controllers and P4 programs.
+# Used to compile libsycon controllers and P4 programs.
 # Usage: APP=prog_name make -f PATH_TO_THIS_MAKEFILE
 #########################################################
 
@@ -117,4 +117,4 @@ run-dev: install controller-debug
 	@tmux a
 
 clean:
-	rm -rf $(BUILD_DIR) core* bf_drivers.log* zlog-cfg-cur
+	rm -rf $(BUILD_DIR) core* bf_drivers.log* zlog-cfg-cur log

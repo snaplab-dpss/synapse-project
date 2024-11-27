@@ -445,14 +445,15 @@ struct MapStats {
   void init(int op) { stats_per_node.insert({op, Stats()}); }
 
   void update(int op, const void *key, uint32_t len, time_ns_t now) {
-    stats_per_node.at(op).update(key, len);
-
     if (epochs.empty() || (epochs.back().warmup && !warmup) ||
         now - epochs.back().start > epoch_duration) {
       epochs.emplace_back(now, warmup);
     }
 
-    epochs.back().stats.update(key, len);
+    if (!warmup) {
+      stats_per_node.at(op).update(key, len);
+      epochs.back().stats.update(key, len);
+    }
 
     if (!epochs.empty()) {
       epochs.back().end = now;

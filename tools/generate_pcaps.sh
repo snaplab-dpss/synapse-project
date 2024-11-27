@@ -4,8 +4,7 @@ set -euox pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-TOOLS_DIR=$SCRIPT_DIR
-PCAPS_DIR=(realpath $SCRIPT_DIR/../pcaps)
+PCAPS_DIR=$(realpath $SCRIPT_DIR/../pcaps)
 
 mkdir -p $PCAPS_DIR
 cd $PCAPS_DIR

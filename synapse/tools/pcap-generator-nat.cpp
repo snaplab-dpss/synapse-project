@@ -463,7 +463,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Traffic generator for the" NF "nf."};
+  CLI::App app{"Traffic generator for the " NF " nf."};
 
   config_t config;
 
