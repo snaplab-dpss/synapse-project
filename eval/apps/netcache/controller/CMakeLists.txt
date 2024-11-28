@@ -29,7 +29,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUT_DIR})
 set(CFLAGS "-std=c++11 -DSDE_INSTALL=\"${SDE_INSTALL}\"")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFLAGS}")
 
-set(BF_LIBS "-ldriver")
+set(BF_LIBS "-ldriver -ltarget_sys")
 set(LDFLAGS "-Wl,-rpath,${SDE_INSTALL}/lib")
 set(LDLIBS "-L${SDE_INSTALL}/lib -Wl,--start-group ${BF_LIBS} -Wl,--end-group -lm -pthread -lpcap -ldl -levent")
 

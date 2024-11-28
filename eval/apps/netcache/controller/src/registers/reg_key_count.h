@@ -9,7 +9,7 @@ class RegKeyCount : public Register {
   RegKeyCount(const bfrt::BfRtInfo *info,
              std::shared_ptr<bfrt::BfRtSession> session,
              const bf_rt_target_t &dev_tgt)
-      : Register(info, session, dev_tgt, "Egress.reg_key_count") {}
+      : Register(info, session, dev_tgt, "SwitchEgress.reg_key_count") {}
 
   void set_all_true() { overwrite_all_entries(1); }
   void set_all_false() { overwrite_all_entries(0); }

@@ -56,7 +56,7 @@ header meta_t {
     bit<1>      cache_hit;
     keyIdx_t    key_idx;
     vtableIdx_t vt_idx;
-    bit<5>      align;
+    bit<7>      align;
 }
 
 struct ingress_metadata_t {}

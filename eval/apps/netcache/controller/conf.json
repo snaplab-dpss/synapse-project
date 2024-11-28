@@ -5,37 +5,36 @@
 	},
 	"key_cntr": {
 		"reg_size": 8192,
-		"reset_timer": 0
+		"reset_timer": 10000000
 	},
 	"cm": {
 		"reg_size": 1024,
-		"reset_timer": 0
+		"reset_timer": 10000000
 	},
 	"bloom": {
 		"reg_size": 1024,
-		"reset_timer": 0
+		"reset_timer": 10000000
 	},
 	"topology": {
 		"pipes": {
-			"external": [ 1 ],
-			"internal": [ 0 ]
+			"external": [ 0 ]
 		},
 		"stats": {
-			"port": 11,
+			"port": 13,
 			"capacity": 100,
-			"comment": "e291427x1300274 E810 dev 0 (enp216s0f1)"
+			"comment": "veth6"
 		},
 		"connections": [
 			{
 				"in": {
-					"port": 5,
+					"port": 8,
 					"capacity": 100,
-					"comment": "e291427x1300275 E810 dev 1 (enp175s0f)"
+					"comment": "veth0"
 				},
 				"out": {
-					"port": 10,
+					"port": 9,
 					"capacity": 100,
-					"comment": "e291427x1300274 E810 dev 1 (enp216s0f0)"
+					"comment": "veth2"
 				}
 			}
 		]

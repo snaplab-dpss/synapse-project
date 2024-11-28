@@ -89,12 +89,10 @@ struct pkt_hdr_t {
 
 		switch (ip_hdr->protocol) {
 			case IP_PROTO_TCP: {
-				return std::pair<void*, uint16_t>((uint8_t*)ip_hdr + ip_size,
-												  IP_PROTO_TCP);
+				return std::pair<void*, uint16_t>((uint8_t*)ip_hdr + ip_size, IP_PROTO_TCP);
 			} break;
 			case IP_PROTO_UDP: {
-				return std::pair<void*, uint16_t>((uint8_t*)ip_hdr + ip_size,
-												  IP_PROTO_UDP);
+				return std::pair<void*, uint16_t>((uint8_t*)ip_hdr + ip_size, IP_PROTO_UDP);
 			} break;
 			default: {
 				printf("\n*** Not TCP/UDP packet! ***\n");
@@ -104,9 +102,31 @@ struct pkt_hdr_t {
 	}
 
 	bool has_valid_protocol() const {
-		auto ip_hdr = get_l3();
-		return (ip_hdr->protocol == IP_PROTO_TCP ||
-				ip_hdr->protocol == IP_PROTO_UDP);
+		auto l4_hdr_size = get_l4_size();
+
+		if (l4_hdr_size == 0) {
+			printf("\n*** Not a TCP/UDP packet! Can't extract the netcache header. ***\n");
+			return false;
+		}
+
+		auto l4_hdr = get_l4();
+		switch (l4_hdr.second) {
+			case IP_PROTO_TCP: {
+				tcp_hdr_t* tcp_hdr = (tcp_hdr_t*)l4_hdr.first;
+				if (tcp_hdr->src_port == 50000 || tcp_hdr->dst_port == 50000) {
+					return true;
+				} else return false;
+			} break;
+			case IP_PROTO_UDP: {
+				udp_hdr_t* udp_hdr = (udp_hdr_t*)l4_hdr.first;
+				if (udp_hdr->src_port == 50000 || udp_hdr->dst_port == 50000) {
+					return true;
+				} else return false;
+			} break;
+			default: {
+				return false;
+			} break;
+		}
 	}
 
 	size_t get_l4_size() const {
@@ -194,12 +214,11 @@ struct pkt_hdr_t {
 	}
 
 	void pretty_print_netcache() {
-		pretty_print_base();
 
 		if (!has_valid_protocol()) {
 			return;
 		}
-
+		pretty_print_base();
 		auto netcache_hdr = get_netcache_hdr();
 
 		printf("###[ NetCache ]###\n");
