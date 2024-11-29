@@ -9,7 +9,7 @@ class RegCm3 : public Register {
   RegCm3(const bfrt::BfRtInfo *info,
              std::shared_ptr<bfrt::BfRtSession> session,
              const bf_rt_target_t &dev_tgt)
-      : Register(info, session, dev_tgt, "Egress.cm.reg_cm_3") {}
+      : Register(info, session, dev_tgt, "SwitchEgress.cm.reg_cm_3") {}
 
   void set_all_true() { overwrite_all_entries(1); }
   void set_all_false() { overwrite_all_entries(0); }

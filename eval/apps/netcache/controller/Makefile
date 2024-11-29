@@ -25,8 +25,8 @@ BF_LIBS  = -ldriver
 
 LDFLAGS  = -Wl,-rpath,$(SDE_INSTALL)/lib
 
-# LDLIBS   = -L$(SDE_INSTALL)/lib -L$(SDE_INSTALL)/lib/$(ARCH)pd/$(P4_PROG)
-LDLIBS   = -L$(SDE_INSTALL)/lib
+LDLIBS   = -L$(SDE_INSTALL)/lib -L$(SDE_INSTALL)/lib/$(ARCH)pd/$(P4_PROG)
+# LDLIBS   = -L$(SDE_INSTALL)/lib
 LDLIBS  += -Wl,--start-group $(BF_LIBS) -Wl,--end-group
 LDLIBS  += -lm -pthread -lpcap -ldl -levent
 

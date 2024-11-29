@@ -10,12 +10,12 @@ DEBUG_DIR="$BUILD_DIR/debug"
 mkdir -p $RELEASE_DIR
 mkdir -p $DEBUG_DIR
 
-pushd $RELEASE_DIR > /dev/null
-	cmake -DCMAKE_BUILD_TYPE=Release ../..
+pushd $DEBUG_DIR > /dev/null
+	cmake -DCMAKE_BUILD_TYPE=Debug ../..
 	make -j
 popd > /dev/null
 
-pushd $DEBUG_DIR > /dev/null
-	cmake -DCMAKE_BUILD_TYPE=Debug ../..
+pushd $RELEASE_DIR > /dev/null
+	cmake -DCMAKE_BUILD_TYPE=Release ../..
 	make -j
 popd > /dev/null

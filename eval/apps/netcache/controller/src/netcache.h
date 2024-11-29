@@ -119,7 +119,7 @@ public:
 			for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
 
 			// Initial cache lookup table config.
-			// With this setup, we're assuming that key = key_idx, just to simplify.
+			// With this setup, we're assuming that key = key_idx, just to keep it simple.
 			for (int i: sampl_index) {
 				cache_lookup.add_entry(i, i, i);
 			}

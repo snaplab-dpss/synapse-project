@@ -31,6 +31,7 @@ struct args_t {
 
 		conf_file_path = std::string(argv[1]);
 
+		parse_iface(argc, argv);
 		parse_tofino_model_flag(argc, argv);
 		parse_bf_prompt_flag(argc, argv);
 	}
@@ -50,6 +51,7 @@ struct args_t {
 
 			if (cmp == 0) {
 				iface = std::string(argv[argi + 1]);
+				std::cout << "iface: " << iface << std::endl;
 				return;
 			}
 		}
@@ -99,10 +101,10 @@ struct args_t {
 	void dump() const {
 		std::cout << "\n";
 		std::cout << "Configuration:\n";
-		std::cout << "  topology:      " << conf_file_path << "\n";
-		std::cout << "  iface:		   " << iface << "\n";
-		std::cout << "  model:         " << use_tofino_model << "\n";
-		std::cout << "  bf prompt:     " << bf_prompt << "\n";
+		std::cout << "  conf (w/ topo): " << conf_file_path << "\n";
+		std::cout << "  iface:			" << iface << "\n";
+		std::cout << "  model:			" << use_tofino_model << "\n";
+		std::cout << "  bf prompt:		" << bf_prompt << "\n";
 	}
 };
 
@@ -173,31 +175,34 @@ int main(int argc, char **argv) {
 		auto cur_time = std::chrono::steady_clock::now();
 		auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(cur_time-last_time);
 
-		if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
-			netcache::Controller::controller->reg_key_count.set_all_false();
-		}
+		// if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
+		// 	netcache::Controller::controller->reg_key_count.set_all_false();
+		// }
 
-		if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
-			netcache::Controller::controller->reg_cm_0.set_all_false();
-			netcache::Controller::controller->reg_cm_1.set_all_false();
-			netcache::Controller::controller->reg_cm_2.set_all_false();
-			netcache::Controller::controller->reg_cm_3.set_all_false();
-		}
+		// if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
+		// 	netcache::Controller::controller->reg_cm_0.set_all_false();
+		// 	netcache::Controller::controller->reg_cm_1.set_all_false();
+		// 	netcache::Controller::controller->reg_cm_2.set_all_false();
+		// 	netcache::Controller::controller->reg_cm_3.set_all_false();
+		// }
 
-		if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
-			netcache::Controller::controller->reg_bloom_0.set_all_false();
-			netcache::Controller::controller->reg_bloom_1.set_all_false();
-			netcache::Controller::controller->reg_bloom_2.set_all_false();
-		}
+		// if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
+		// 	netcache::Controller::controller->reg_bloom_0.set_all_false();
+		// 	netcache::Controller::controller->reg_bloom_1.set_all_false();
+		// 	netcache::Controller::controller->reg_bloom_2.set_all_false();
+		// }
 
 		auto query = listener.receive_query();
 
 		if (query.valid) {
 			if (query.op == WRITE_QUERY) {
+				printf("WRITE QUERY\n");
 				process_query.write_query(query);
 			} else if (query.op == DELETE_QUERY) {
+				printf("DEL QUERY\n");
 				process_query.del_query(query);
 			} else if (query.op == HOT_READ_QUERY) {
+				printf("HOT READ QUERY\n");
 				process_query.hot_read_query(query);
 			} else {
 				std::cerr << "Invalid query received.";

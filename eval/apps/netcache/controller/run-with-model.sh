@@ -11,12 +11,13 @@ if [ -z ${SDE_INSTALL+x} ]; then
 fi
 
 CONTROLLER_EXE="$SCRIPT_DIR/build/netcache-controller"
-TOPOLOGY_FILE="$SCRIPT_DIR/topology-model-t2na.json"
+CONTROLLER_CONF_FILE="$SCRIPT_DIR/conf.json"
 TOFINO_MODEL_EXE_NAME="tofino-model"
 CONF_DIR="$SDE_INSTALL/share/p4/targets/tofino2"
-CONF_FILE="$CONF_DIR/peregrine.conf"
+CONF_FILE="$CONF_DIR/netcache.conf"
 
-# If the tofino model is not running in the background, launch it
+IFACE="veth0"
+
 if ! ps -e | grep -q "$TOFINO_MODEL_EXE_NAME"; then
 	echo "Tofino model not running. Exiting."
 	exit 1
@@ -28,12 +29,13 @@ if [ "$(grep HugePages_Total /proc/meminfo | awk '{print $2}')" -lt "512" ]; the
 fi
 
 # Compile
-make debug -j
+# make debug -j
 
 # Run controller with model
-echo "Running sudo -E $CONTROLLER_EXE $TOPOLOGY_FILE --tofino-model"
+echo "Running sudo -E $CONTROLLER_EXE $CONTROLLER_CONF_FILE -i $IFACE --tofino-model"
 NETCACHE_HW_CONF=$CONF_FILE \
-	sudo -E $CONTROLLER_EXE \
-	$TOPOLOGY_FILE \
+	sudo -E "$CONTROLLER_EXE" \
+	"$CONTROLLER_CONF_FILE" \
+	-i $IFACE \
 	--tofino-model
 	# --bf-prompt

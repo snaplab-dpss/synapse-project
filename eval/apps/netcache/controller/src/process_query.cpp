@@ -96,7 +96,7 @@ void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
 		socklen_t socklen = sizeof(src_addr);
 		std::vector<uint8_t> buffer_reply;
 
-		ssize_t len = recvfrom(sockfd, &buffer_reply, 65536, 0,
+		ssize_t len = recvfrom(sockfd, &buffer_reply, sizeof(buffer_reply), 0,
 							(struct sockaddr*)&src_addr, &socklen);
 		if (len < 0) {
 			std::cerr << "Failed to receive a response from the server." << std::endl;

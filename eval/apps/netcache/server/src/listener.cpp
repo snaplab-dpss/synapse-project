@@ -42,7 +42,7 @@ Listener::Listener(const std::string &iface) {
 		exit(1);
 	}
 
-	printf("Listening interface %s...\n", iface.c_str());
+	printf("Listening to interface %s...\n", iface.c_str());
 	fflush(stdout);
 }
 
@@ -53,11 +53,11 @@ Listener::~Listener() {
 query_t Listener::receive_query() {
 	struct sockaddr_ll saddr;
 	auto saddr_size = sizeof(struct sockaddr);
-	std::vector<uint8_t> buffer;
+	std::vector<uint8_t> buffer(BUFFER_SIZE);
 
 	// Receive a packet
 	ssize_t len =
-		recvfrom(sock_recv, &buffer, 65536, 0, (struct sockaddr *)&saddr,
+		recvfrom(sock_recv, &buffer, sizeof(buffer), 0, (struct sockaddr *)&saddr,
 				(socklen_t *)&saddr_size);
 
 	if (len < 0) {

@@ -101,6 +101,7 @@ void init_bf_switchd(bool use_tofino_model, bool bf_prompt) {
 	switchd_main_ctx->skip_p4 = false;
 	switchd_main_ctx->skip_port_add = false;
 	switchd_main_ctx->running_in_background = !bf_prompt;
+	// switchd_main_ctx->shell_set_ucli = true;
 	switchd_main_ctx->dev_sts_thread = true;
 	switchd_main_ctx->dev_sts_port = THRIFT_PORT_NUM;
 

@@ -18,20 +18,21 @@ protected:
         init_data({{register_name + ".f1", &content}});
     }
 
-    void set(uint32_t i, uint32_t value) {
+    void set(uint16_t i, uint32_t value) {
         session->beginBatch();
 
         key_setup(i);
         data_setup(value);
 
         auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
+        
         assert(bf_status == BF_SUCCESS);
 
         auto block = true;
         session->endBatch(block);
     }
 
-    uint32_t get(uint32_t i, bool from_hw = false) {
+    uint32_t get(uint16_t i, bool from_hw = false) {
         session->beginBatch();
 
         auto hw_flag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
@@ -42,14 +43,16 @@ protected:
         auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hw_flag, data.get());
         assert(bf_status == BF_SUCCESS);
 
-        uint64_t value;
+        // The output is a vector, one value per pipeline
+        std::vector<uint64_t> value;
         bf_status = data->getValue(content, &value);
         assert(bf_status == BF_SUCCESS);
+        auto size = value.size();
 
         auto block = true;
         session->endBatch(block);
 
-        return (uint32_t)value;
+        return (uint32_t)value[0];
     }
 
     void overwrite_all_entries(uint32_t value) {
