@@ -127,9 +127,12 @@ protected:
   */
 
   bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                              const std::vector<klee::ref<klee::Expr>> &keys,
                               u32 width, u32 height) const;
-  CountMinSketch *build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
-                                     u32 width, u32 height) const;
+  CountMinSketch *
+  build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                     const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
+                     u32 height) const;
 };
 
 } // namespace tofino

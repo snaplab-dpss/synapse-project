@@ -66,9 +66,6 @@ protected:
     }
 
     klee::ref<klee::Expr> original_condition = branch_node->get_condition();
-
-    std::cerr << "Ep: " << ep->get_id() << "\n";
-    std::cerr << "Node: " << node->dump(true) << "\n";
     selection_t selection = build_parser_select(original_condition);
 
     const Node *on_true = branch_node->get_on_true();

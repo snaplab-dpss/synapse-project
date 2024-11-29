@@ -6,15 +6,17 @@ namespace tofino {
 
 class CMSQuery : public TofinoModule {
 private:
+  DS_ID cms_id;
   addr_t cms_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSQuery(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key,
-           klee::ref<klee::Expr> _min_estimate)
+  CMSQuery(const Node *node, DS_ID _cms_id, addr_t _cms_addr,
+           klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType::Tofino_CMSQuery, "CMSQuery", node),
-        cms_addr(_cms_addr), key(_key), min_estimate(_min_estimate) {}
+        cms_id(_cms_id), cms_addr(_cms_addr), key(_key),
+        min_estimate(_min_estimate) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -22,16 +24,16 @@ public:
   }
 
   virtual Module *clone() const override {
-    return new CMSQuery(node, cms_addr, key, min_estimate);
+    return new CMSQuery(node, cms_id, cms_addr, key, min_estimate);
   }
 
+  DS_ID get_cms_id() const { return cms_id; }
   addr_t get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_min_estimate() const { return min_estimate; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    // FIXME:
-    return {};
+    return {cms_id};
   }
 };
 
@@ -55,6 +57,8 @@ protected:
     }
 
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    klee::ref<klee::Expr> key = call.args.at("key").in;
+
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
     if (!ctx.can_impl_ds(cms_addr, DSImpl::Tofino_CountMinSketch)) {
@@ -62,7 +66,10 @@ protected:
     }
 
     const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
-    if (!can_build_or_reuse_cms(ep, node, cms_addr, cfg.width, cfg.height)) {
+    std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
+
+    if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width,
+                                cfg.height)) {
       return std::nullopt;
     }
 
@@ -102,14 +109,17 @@ protected:
     }
 
     const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
+    std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
+
     CountMinSketch *cms =
-        build_or_reuse_cms(ep, node, cms_addr, cfg.width, cfg.height);
+        build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height);
 
     if (!cms) {
       return impls;
     }
 
-    Module *module = new CMSQuery(node, cms_addr, key, min_estimate.expr);
+    Module *module =
+        new CMSQuery(node, cms->id, cms_addr, key, min_estimate.expr);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);

@@ -411,15 +411,22 @@ hit_rate_t TofinoModuleGenerator::get_hh_table_hit_success_rate(
   return hit_rate;
 }
 
-static CountMinSketch *build_cms(const EP *ep, const Node *node, u32 width,
-                                 u32 height) {
+static CountMinSketch *build_cms(const EP *ep, const Node *node,
+                                 const std::vector<klee::ref<klee::Expr>> &keys,
+                                 u32 width, u32 height) {
   const TofinoContext *tofino_ctx =
       ep->get_ctx().get_target_ctx<TofinoContext>();
 
   DS_ID id = "cms_" + std::to_string(width) + "x" + std::to_string(height);
   const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
 
-  CountMinSketch *cms = new CountMinSketch(properties, id, width, height);
+  std::vector<bits_t> keys_sizes;
+  for (klee::ref<klee::Expr> key : keys) {
+    keys_sizes.push_back(key->getWidth());
+  }
+
+  CountMinSketch *cms =
+      new CountMinSketch(properties, id, keys_sizes, width, height);
 
   if (!tofino_ctx->check_placement(ep, node, cms)) {
     delete cms;
@@ -451,10 +458,10 @@ static CountMinSketch *reuse_cms(const EP *ep, const Node *node, addr_t obj) {
   return cms;
 }
 
-bool TofinoModuleGenerator::can_build_or_reuse_cms(const EP *ep,
-                                                   const Node *node, addr_t obj,
-                                                   u32 width,
-                                                   u32 height) const {
+bool TofinoModuleGenerator::can_build_or_reuse_cms(
+    const EP *ep, const Node *node, addr_t obj,
+    const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
+    u32 height) const {
   CountMinSketch *cms = nullptr;
 
   const Context &ctx = ep->get_ctx();
@@ -481,7 +488,7 @@ bool TofinoModuleGenerator::can_build_or_reuse_cms(const EP *ep,
     return true;
   }
 
-  cms = build_cms(ep, node, width, height);
+  cms = build_cms(ep, node, keys, width, height);
 
   if (!cms) {
     return false;
@@ -491,16 +498,16 @@ bool TofinoModuleGenerator::can_build_or_reuse_cms(const EP *ep,
   return true;
 }
 
-CountMinSketch *TofinoModuleGenerator::build_or_reuse_cms(const EP *ep,
-                                                          const Node *node,
-                                                          addr_t obj, u32 width,
-                                                          u32 height) const {
+CountMinSketch *TofinoModuleGenerator::build_or_reuse_cms(
+    const EP *ep, const Node *node, addr_t obj,
+    const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
+    u32 height) const {
   CountMinSketch *cms = nullptr;
 
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_CountMinSketch)) {
     cms = reuse_cms(ep, node, obj);
   } else {
-    cms = build_cms(ep, node, width, height);
+    cms = build_cms(ep, node, keys, width, height);
   }
 
   return cms;

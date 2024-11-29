@@ -174,6 +174,10 @@ SimplePlacer::find_placements(const DS *ds,
     status =
         find_placements_meter(static_cast<const Meter *>(ds), deps, placements);
     break;
+  case DSType::HASH:
+    status =
+        find_placements_hash(static_cast<const Hash *>(ds), deps, placements);
+    break;
   default:
     assert(false && "Unsupported DS type");
   }
@@ -377,6 +381,57 @@ PlacementStatus SimplePlacer::find_placements_meter(
   return PlacementStatus::SUCCESS;
 }
 
+PlacementStatus
+SimplePlacer::find_placements_hash(const Hash *hash,
+                                   const std::unordered_set<DS_ID> &deps,
+                                   std::vector<placement_t> &placements) const {
+  assert(!is_placed(hash->id));
+
+  if (static_cast<int>(hash->keys.size()) > properties->max_exact_match_keys) {
+    return PlacementStatus::TOO_MANY_KEYS;
+  }
+
+  if (hash->get_match_xbar_consume() > properties->exact_match_xbar_per_stage) {
+    return PlacementStatus::XBAR_CONSUME_EXCEEDS_LIMIT;
+  }
+
+  int soonest_stage_id = get_soonest_available_stage(stages, deps);
+  assert(soonest_stage_id < static_cast<int>(stages.size()));
+
+  if (soonest_stage_id < 0) {
+    return PlacementStatus::NO_AVAILABLE_STAGE;
+  }
+
+  bits_t requested_xbar = align_to_byte(hash->get_match_xbar_consume());
+
+  int total_stages = stages.size();
+  for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
+    const Stage &stage = stages[stage_id];
+
+    if (requested_xbar > stage.available_exact_match_xbar) {
+      continue;
+    }
+
+    if (stage.available_logical_ids == 0) {
+      continue;
+    }
+
+    placement_t placement = {
+        .stage_id = stage_id,
+        .sram = 0,
+        .map_ram = 0,
+        .xbar = requested_xbar,
+        .logical_ids = 1,
+        .obj = hash->id,
+    };
+
+    placements.push_back(placement);
+    break;
+  }
+
+  return PlacementStatus::SUCCESS;
+}
+
 void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   if (ds->primitive) {
     place_primitive_ds(ds, deps);
@@ -441,8 +496,7 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
 
 void SimplePlacer::place_primitive_ds(const DS *ds,
                                       const std::unordered_set<DS_ID> &deps) {
-  assert(ds->type == DSType::TABLE || ds->type == DSType::REGISTER ||
-         ds->type == DSType::METER);
+  assert(ds->primitive);
 
   if (is_placed(ds->id)) {
     return;
@@ -591,37 +645,43 @@ void SimplePlacer::debug() const {
     bits_t xbar_consumed = properties->exact_match_xbar_per_stage -
                            stage.available_exact_match_xbar;
 
-    ss << "Stage " << stage.stage_id << ": ";
+    ss << "-------------------------------------\n";
+    ss << "Stage " << stage.stage_id;
+    ss << "\n";
 
-    ss << "SRAM=";
-    ss << sram_consumed / 8;
+    ss << "SRAM: ";
+    ss << int2hr(sram_consumed / 8);
     ss << "/";
-    ss << properties->sram_per_stage / 8;
+    ss << int2hr(properties->sram_per_stage / 8);
     ss << " B ";
-    ss << "(" << sram_usage << "%) ";
+    ss << "(" << sram_usage << "%)";
+    ss << "\n";
 
-    ss << "TCAM=";
-    ss << tcam_consumed / 8;
+    ss << "TCAM: ";
+    ss << int2hr(tcam_consumed / 8);
     ss << "/";
-    ss << properties->tcam_per_stage / 8;
+    ss << int2hr(properties->tcam_per_stage / 8);
     ss << " B ";
-    ss << "(" << tcam_usage << "%) ";
+    ss << "(" << tcam_usage << "%)";
+    ss << "\n";
 
-    ss << "MapRAM=";
-    ss << map_ram_consumed / 8;
+    ss << "MapRAM: ";
+    ss << int2hr(map_ram_consumed / 8);
     ss << "/";
-    ss << properties->map_ram_per_stage / 8;
+    ss << int2hr(properties->map_ram_per_stage / 8);
     ss << " B ";
-    ss << "(" << map_ram_usage << "%) ";
+    ss << "(" << map_ram_usage << "%)";
+    ss << "\n";
 
-    ss << "ExactMatchXBar=";
-    ss << xbar_consumed / 8;
+    ss << "Exact Match Crossbar: ";
+    ss << int2hr(xbar_consumed / 8);
     ss << "/";
-    ss << properties->exact_match_xbar_per_stage / 8;
+    ss << int2hr(properties->exact_match_xbar_per_stage / 8);
     ss << " B ";
-    ss << "(" << xbar_usage << "%) ";
+    ss << "(" << xbar_usage << "%)";
+    ss << "\n";
 
-    ss << "Objs=[";
+    ss << "Objs: [";
     bool first = true;
     for (DS_ID table_id : stage.tables) {
       if (!first) {
@@ -630,7 +690,10 @@ void SimplePlacer::debug() const {
       ss << table_id;
       first = false;
     }
-    ss << "]\n";
+    ss << "]";
+    ss << "\n";
+
+    ss << "-------------------------------------\n";
 
     Log::dbg() << ss.str();
   }

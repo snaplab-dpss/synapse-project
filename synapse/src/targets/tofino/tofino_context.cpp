@@ -228,10 +228,10 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
 
   if (!ep_node) {
     ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
-  }
 
-  if (!ep_node) {
-    return deps;
+    if (!ep_node) {
+      return deps;
+    }
   }
 
   const TofinoContext *tofino_ctx =

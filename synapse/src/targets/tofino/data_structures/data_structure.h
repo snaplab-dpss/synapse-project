@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 #include <string>
+#include <assert.h>
 
 namespace tofino {
 
@@ -11,6 +12,7 @@ enum class DSType {
   TABLE,
   REGISTER,
   METER,
+  HASH,
   FCFS_CACHED_TABLE,
   HH_TABLE,
   COUNT_MIN_SKETCH,
@@ -27,7 +29,11 @@ struct DS {
   virtual ~DS() {}
   virtual DS *clone() const = 0;
   virtual void debug() const = 0;
-  virtual std::vector<std::unordered_set<const DS *>> get_internal() const = 0;
+
+  virtual std::vector<std::unordered_set<const DS *>> get_internal() const {
+    assert(primitive && "Only non primitive data structures have internals");
+    return {};
+  }
 };
 
 } // namespace tofino

@@ -9,6 +9,16 @@ static bits_t index_size_from_width(u32 width) {
   return bits_t(log2(width));
 }
 
+static std::vector<Hash> build_hashes(DS_ID id, u32 height,
+                                      const std::vector<bits_t> &keys) {
+  std::vector<Hash> hashes;
+  for (size_t i = 0; i < height; i++) {
+    Hash hash(id + "_hash_" + std::to_string(i), keys);
+    hashes.push_back(hash);
+  }
+  return hashes;
+}
+
 static std::vector<Register> build_rows(const TNAProperties &properties,
                                         DS_ID id, u32 width, u32 height) {
   std::vector<Register> rows;
@@ -25,13 +35,15 @@ static std::vector<Register> build_rows(const TNAProperties &properties,
 }
 
 CountMinSketch::CountMinSketch(const TNAProperties &properties, DS_ID _id,
-                               u32 _width, u32 _height)
+                               const std::vector<bits_t> &_keys, u32 _width,
+                               u32 _height)
     : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height),
+      hashes(build_hashes(_id, _height, _keys)),
       rows(build_rows(properties, _id, _width, _height)) {}
 
 CountMinSketch::CountMinSketch(const CountMinSketch &other)
     : DS(other.type, other.primitive, other.id), width(other.width),
-      height(other.height), rows(other.rows) {}
+      height(other.height), hashes(other.hashes), rows(other.rows) {}
 
 DS *CountMinSketch::clone() const { return new CountMinSketch(*this); }
 
@@ -48,9 +60,14 @@ std::vector<std::unordered_set<const DS *>>
 CountMinSketch::get_internal() const {
   std::vector<std::unordered_set<const DS *>> internal_ds;
 
-  internal_ds.emplace_back();
-  for (const Register &row : rows)
-    internal_ds.back().insert(&row);
+  assert(rows.size() == height);
+  assert(hashes.size() == height);
+
+  for (size_t i = 0; i < height; i++) {
+    internal_ds.emplace_back();
+    internal_ds.back().insert(&hashes[i]);
+    internal_ds.back().insert(&rows[i]);
+  }
 
   return internal_ds;
 }

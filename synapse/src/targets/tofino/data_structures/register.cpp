@@ -62,10 +62,6 @@ void Register::debug() const {
   Log::dbg() << "==============================\n";
 }
 
-std::vector<std::unordered_set<const DS *>> Register::get_internal() const {
-  return {};
-}
-
 std::vector<klee::ref<klee::Expr>>
 Register::partition_value(const TNAProperties &properties,
                           klee::ref<klee::Expr> value) {

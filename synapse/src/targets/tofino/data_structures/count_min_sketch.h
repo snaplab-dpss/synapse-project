@@ -6,6 +6,7 @@
 #include "data_structure.h"
 #include "table.h"
 #include "register.h"
+#include "hash.h"
 #include "../../../types.h"
 #include "../../../log.h"
 
@@ -15,11 +16,11 @@ struct CountMinSketch : public DS {
   u32 width;
   u32 height;
 
-  // TODO: missing the hash calculators.
+  std::vector<Hash> hashes;
   std::vector<Register> rows;
 
-  CountMinSketch(const TNAProperties &properties, DS_ID id, u32 _width,
-                 u32 _height);
+  CountMinSketch(const TNAProperties &properties, DS_ID id,
+                 const std::vector<bits_t> &keys, u32 width, u32 height);
 
   CountMinSketch(const CountMinSketch &other);
 

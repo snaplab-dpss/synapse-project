@@ -6,13 +6,15 @@ namespace tofino {
 
 class CMSIncrement : public TofinoModule {
 private:
+  DS_ID cms_id;
   addr_t cms_addr;
   klee::ref<klee::Expr> key;
 
 public:
-  CMSIncrement(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
+  CMSIncrement(const Node *node, DS_ID _cms_id, addr_t _cms_addr,
+               klee::ref<klee::Expr> _key)
       : TofinoModule(ModuleType::Tofino_CMSIncrement, "CMSIncrement", node),
-        cms_addr(_cms_addr), key(_key) {}
+        cms_id(_cms_id), cms_addr(_cms_addr), key(_key) {}
 
   virtual void visit(EPVisitor &visitor, const EP *ep,
                      const EPNode *ep_node) const override {
@@ -20,15 +22,15 @@ public:
   }
 
   virtual Module *clone() const override {
-    return new CMSIncrement(node, cms_addr, key);
+    return new CMSIncrement(node, cms_id, cms_addr, key);
   }
 
+  DS_ID get_cms_id() const { return cms_id; }
   addr_t get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    // FIXME:
-    return {};
+    return {cms_id};
   }
 };
 
@@ -53,14 +55,19 @@ protected:
     }
 
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+    klee::ref<klee::Expr> key = call.args.at("key").in;
+
     addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
     if (!ctx.can_impl_ds(cms_addr, DSImpl::Tofino_CountMinSketch)) {
       return std::nullopt;
     }
 
+    std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
     const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
-    if (!can_build_or_reuse_cms(ep, node, cms_addr, cfg.width, cfg.height)) {
+
+    if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width,
+                                cfg.height)) {
       return std::nullopt;
     }
 
@@ -95,14 +102,16 @@ protected:
     }
 
     const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
+    std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
+
     CountMinSketch *cms =
-        build_or_reuse_cms(ep, node, cms_addr, cfg.width, cfg.height);
+        build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height);
 
     if (!cms) {
       return impls;
     }
 
-    Module *module = new CMSIncrement(node, cms_addr, key);
+    Module *module = new CMSIncrement(node, cms->id, cms_addr, key);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);

@@ -44,10 +44,6 @@ void Table::debug() const {
   Log::dbg() << "==============================\n";
 }
 
-std::vector<std::unordered_set<const DS *>> Table::get_internal() const {
-  return {};
-}
-
 std::vector<klee::ref<klee::Expr>>
 Table::build_keys(klee::ref<klee::Expr> key) {
   std::vector<klee::ref<klee::Expr>> keys;

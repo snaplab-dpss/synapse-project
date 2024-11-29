@@ -44,10 +44,6 @@ void Meter::debug() const {
   Log::dbg() << "==============================\n";
 }
 
-std::vector<std::unordered_set<const DS *>> Meter::get_internal() const {
-  return {};
-}
-
 std::vector<klee::ref<klee::Expr>>
 Meter::build_keys(klee::ref<klee::Expr> key) {
   std::vector<klee::ref<klee::Expr>> keys;
