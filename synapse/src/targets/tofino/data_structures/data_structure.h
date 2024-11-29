@@ -34,6 +34,44 @@ struct DS {
     assert(primitive && "Only non primitive data structures have internals");
     return {};
   }
+
+  std::vector<std::unordered_set<const DS *>> get_internal_primitive() const {
+    std::vector<std::unordered_set<const DS *>> primitives;
+
+    for (const auto &data_structures : get_internal()) {
+      primitives.emplace_back();
+
+      std::vector<std::unordered_set<const DS *>> pending;
+
+      for (const DS *ds : data_structures) {
+        if (ds->primitive) {
+          primitives.back().insert(ds);
+          continue;
+        }
+
+        size_t i = 0;
+        for (const auto &pds : ds->get_internal_primitive()) {
+          if (pending.size() <= i) {
+            pending.emplace_back();
+            assert(pending.size() > i);
+          }
+
+          pending[i].insert(pds.begin(), pds.end());
+          i++;
+        }
+      }
+
+      for (size_t i = 0; i < pending.size(); i++) {
+        if (i != 0) {
+          primitives.emplace_back();
+        }
+
+        primitives.back().insert(pending[i].begin(), pending[i].end());
+      }
+    }
+
+    return primitives;
+  }
 };
 
 } // namespace tofino

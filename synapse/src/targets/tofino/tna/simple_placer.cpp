@@ -447,7 +447,7 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
     bool change = false;
     if (already_placed) {
       for (const std::unordered_set<const DS *> &indep_ds :
-           ds->get_internal()) {
+           ds->get_internal_primitive()) {
         for (const DS *ds : indep_ds) {
           if (!is_placed(ds->id)) {
             change = true;
@@ -474,7 +474,7 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
     } else {
       std::unordered_set<DS_ID> current_deps = deps;
       for (const std::unordered_set<const DS *> &indep_ds :
-           ds->get_internal()) {
+           ds->get_internal_primitive()) {
         std::unordered_set<DS_ID> new_deps;
 
         for (const DS *ds : indep_ds) {
@@ -530,7 +530,8 @@ SimplePlacer::can_place(const DS *ds,
     return find_placements(ds, deps, placements);
   }
 
-  std::vector<std::unordered_set<const DS *>> candidates = ds->get_internal();
+  std::vector<std::unordered_set<const DS *>> candidates =
+      ds->get_internal_primitive();
 
   bool already_placed = false;
   for (const PlacementRequest &req : placement_requests) {

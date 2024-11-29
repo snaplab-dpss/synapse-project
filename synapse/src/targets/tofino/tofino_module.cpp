@@ -250,16 +250,12 @@ TofinoModuleGenerator::enum_fcfs_cache_cap(u32 num_entries) const {
   std::vector<u32> capacities;
 
   u32 cache_capacity = 8;
-  while (1) {
+  while (cache_capacity < num_entries) {
     capacities.push_back(cache_capacity);
     cache_capacity *= 2;
 
     // Overflow check
     assert(capacities.empty() || capacities.back() < cache_capacity);
-
-    if (cache_capacity > num_entries) {
-      break;
-    }
   }
 
   return capacities;
@@ -295,16 +291,17 @@ static HHTable *build_hh_table(const EP *ep, const Node *node,
   DS_ID id = "hh_table_" + std::to_string(cms_width) + "x" +
              std::to_string(cms_height);
 
+  const TofinoContext *tofino_ctx =
+      ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
+
   std::vector<bits_t> keys_sizes;
   for (klee::ref<klee::Expr> key : keys) {
     keys_sizes.push_back(key->getWidth());
   }
 
-  HHTable *hh_table = new HHTable(id, node->get_id(), num_entries, cms_width,
-                                  cms_height, keys_sizes);
-
-  const TofinoContext *tofino_ctx =
-      ep->get_ctx().get_target_ctx<TofinoContext>();
+  HHTable *hh_table = new HHTable(properties, id, node->get_id(), num_entries,
+                                  keys_sizes, cms_width, cms_height);
 
   if (!tofino_ctx->check_placement(ep, node, hh_table)) {
     delete hh_table;

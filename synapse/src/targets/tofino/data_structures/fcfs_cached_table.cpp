@@ -16,11 +16,6 @@ static std::string build_table_name(DS_ID id, u32 table_num) {
   return id + "_table_" + std::to_string(table_num);
 }
 
-static Table build_table(DS_ID id, u32 table_num, u32 num_entries,
-                         const std::vector<bits_t> &keys) {
-  return Table(build_table_name(id, table_num), num_entries, keys, {});
-}
-
 static Register build_cache_expirator(const TNAProperties &properties, DS_ID id,
                                       u32 cache_capacity) {
   bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
@@ -56,13 +51,11 @@ FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
       keys_sizes(_keys_sizes),
       cache_expirator(build_cache_expirator(properties, _id, cache_capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
-  assert(_cache_capacity > 0);
-  assert(_num_entries > 0);
+  assert(cache_capacity > 0);
+  assert(num_entries > 0);
+  assert(cache_capacity < num_entries);
 
-  if (cache_capacity < num_entries) {
-    tables.push_back(
-        build_table(id, _op, num_entries - cache_capacity, keys_sizes));
-  }
+  add_table(_op);
 }
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
@@ -72,27 +65,6 @@ FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
       cache_expirator(other.cache_expirator), cache_keys(other.cache_keys) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
-
-bool FCFSCachedTable::has_table(u32 op) const {
-  std::string table_id = build_table_name(id, op);
-  for (const Table &table : tables) {
-    if (table.id == table_id)
-      return true;
-  }
-  return false;
-}
-
-std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
-  if (tables.empty()) {
-    // There is no need to add a table if there are no tables (we will never hit
-    // the problem of having multiple next-chains after the table).
-    return std::nullopt;
-  }
-
-  Table new_table = build_table(id, op, num_entries, keys_sizes);
-  tables.push_back(new_table);
-  return new_table.id;
-}
 
 void FCFSCachedTable::debug() const {
   Log::dbg() << "\n";
@@ -128,6 +100,22 @@ FCFSCachedTable::get_internal() const {
     internal_ds.back().insert(&cache_key);
 
   return internal_ds;
+}
+
+bool FCFSCachedTable::has_table(u32 op) const {
+  std::string table_id = build_table_name(id, op);
+  for (const Table &table : tables) {
+    if (table.id == table_id)
+      return true;
+  }
+  return false;
+}
+
+std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
+  Table new_table(build_table_name(id, op), num_entries - cache_capacity,
+                  keys_sizes, {});
+  tables.push_back(new_table);
+  return new_table.id;
 }
 
 } // namespace tofino
