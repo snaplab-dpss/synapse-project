@@ -57,13 +57,12 @@ query_t Listener::receive_query() {
 
 	// Receive a packet
 	auto data_size =
-		recvfrom(sock_recv, buffer, sizeof(buffer), 0, (struct sockaddr *)&saddr, (socklen_t *)&saddr_size);
+		recvfrom(sock_recv, buffer, 65536, 0, (struct sockaddr *)&saddr, (socklen_t *)&saddr_size);
 
 	if (data_size < 0) {
 		printf("recvfrom error , failed to get packets\n");
 		exit(1);
 	}
-
 	auto pkt = (pkt_hdr_t *)(buffer);
 
 #ifndef NDEBUG

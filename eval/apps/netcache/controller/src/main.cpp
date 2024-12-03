@@ -175,22 +175,22 @@ int main(int argc, char **argv) {
 		auto cur_time = std::chrono::steady_clock::now();
 		auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(cur_time-last_time);
 
-		// if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
-		// 	netcache::Controller::controller->reg_key_count.set_all_false();
-		// }
+		if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
+			netcache::Controller::controller->reg_key_count.set_all_false();
+		}
 
-		// if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
-		// 	netcache::Controller::controller->reg_cm_0.set_all_false();
-		// 	netcache::Controller::controller->reg_cm_1.set_all_false();
-		// 	netcache::Controller::controller->reg_cm_2.set_all_false();
-		// 	netcache::Controller::controller->reg_cm_3.set_all_false();
-		// }
+		if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
+			netcache::Controller::controller->reg_cm_0.set_all_false();
+			netcache::Controller::controller->reg_cm_1.set_all_false();
+			netcache::Controller::controller->reg_cm_2.set_all_false();
+			netcache::Controller::controller->reg_cm_3.set_all_false();
+		}
 
-		// if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
-		// 	netcache::Controller::controller->reg_bloom_0.set_all_false();
-		// 	netcache::Controller::controller->reg_bloom_1.set_all_false();
-		// 	netcache::Controller::controller->reg_bloom_2.set_all_false();
-		// }
+		if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
+			netcache::Controller::controller->reg_bloom_0.set_all_false();
+			netcache::Controller::controller->reg_bloom_1.set_all_false();
+			netcache::Controller::controller->reg_bloom_2.set_all_false();
+		}
 
 		auto query = listener.receive_query();
 
