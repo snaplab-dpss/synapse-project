@@ -25,7 +25,7 @@ protected:
         data_setup(value);
 
         auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
-        
+
         assert(bf_status == BF_SUCCESS);
 
         auto block = true;
@@ -33,12 +33,11 @@ protected:
     }
 
     uint32_t get(uint16_t i, bool from_hw = false) {
-        session->beginBatch();
-
         auto hw_flag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
                                : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
         key_setup(i);
+        table->dataReset(data.get());
 
         auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hw_flag, data.get());
         assert(bf_status == BF_SUCCESS);
@@ -47,12 +46,8 @@ protected:
         std::vector<uint64_t> value;
         bf_status = data->getValue(content, &value);
         assert(bf_status == BF_SUCCESS);
-        auto size = value.size();
 
-        auto block = true;
-        session->endBatch(block);
-
-        return (uint32_t)value[0];
+        return (uint32_t)value[1];
     }
 
     void overwrite_all_entries(uint32_t value) {
