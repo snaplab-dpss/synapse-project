@@ -77,8 +77,13 @@ protected:
     }
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-
     tofino_ctx->parser_accept(ep, node);
+
+    // FIXME: How do we recalculate the estimated throughput after a forwarding
+    // decision is made?
+    // assert((!ep->get_active_leaf().node ||
+    //         !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
+    //        "TODO");
 
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
         get_node_egress(new_ep, s2c_node));

@@ -39,7 +39,7 @@ public:
   const symbol_t &get_out_of_space() const { return out_of_space; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    // FIXME:
+    // FIXME: Missing the Integer Allocator data structure.
     // return {table_id};
     return {};
   }

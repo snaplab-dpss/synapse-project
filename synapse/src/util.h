@@ -210,4 +210,9 @@ std::string tput2str(u64 thpt, const std::string &units,
 // order between recirculations.
 std::vector<int> get_past_recirculations(const EPNode *node);
 
+// Check if a forwarding decision was already made in the dataplane. This is
+// useful for preventing new forwarding decisions (be it forwarding to a
+// specific port or dropping altogether) from being made.
+bool forwarding_decision_already_made(const EPNode *node);
+
 port_ingress_t get_node_egress(const EP *ep, const EPNode *node);

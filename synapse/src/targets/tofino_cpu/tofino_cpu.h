@@ -31,6 +31,9 @@
 #include "fcfs_cached_table_read.h"
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
+#include "map_register_read.h"
+#include "map_register_write.h"
+#include "map_register_delete.h"
 #include "hh_table_read.h"
 #include "hh_table_update.h"
 #include "hh_table_conditional_update.h"
@@ -83,6 +86,9 @@ struct TofinoCPUTarget : public Target {
                    new FCFSCachedTableReadGenerator(),
                    new FCFSCachedTableWriteGenerator(),
                    new FCFSCachedTableDeleteGenerator(),
+                   new MapRegisterReadGenerator(),
+                   new MapRegisterWriteGenerator(),
+                   new MapRegisterDeleteGenerator(),
                    new HHTableReadGenerator(),
                    new HHTableUpdateGenerator(),
                    new HHTableConditionalUpdateGenerator(),

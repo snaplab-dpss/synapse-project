@@ -78,6 +78,10 @@ private:
       return true;
     }
 
+    if (can_ignore_map_register_op(ctx, call)) {
+      return true;
+    }
+
     if (can_ignore_fcfs_cached_table_op(ctx, call)) {
       return true;
     }
@@ -110,6 +114,23 @@ private:
     return true;
   }
 
+  bool can_ignore_map_register_op(const Context &ctx,
+                                  const call_t &call) const {
+    if (call.function_name != "dchain_free_index" &&
+        call.function_name != "dchain_allocate_new_index") {
+      return false;
+    }
+
+    klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
+    addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
+
+    if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_MapRegister)) {
+      return false;
+    }
+
+    return true;
+  }
+
   // We can ignore dchain_rejuvenate_index if the dchain is only used for
   // linking a map with vectors. It doesn't even matter if the data structures
   // are coalesced or not, we can freely ignore it regardless.
@@ -124,6 +145,7 @@ private:
 
     // These are the data structures that can perform rejuvenations.
     if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) &&
+        !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_MapRegister) &&
         !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
         !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
       return false;

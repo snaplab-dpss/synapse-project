@@ -333,3 +333,8 @@ SHOW_MODULE_NAME(tofino::IntegerAllocatorIsAllocated)
 SHOW_MODULE_NAME(tofino::CMSQuery)
 SHOW_MODULE_NAME(tofino::CMSIncrement)
 SHOW_MODULE_NAME(tofino::CMSIncAndQuery)
+
+SHOW_MODULE_NAME(tofino::MapRegisterRead)
+SHOW_MODULE_NAME(tofino::MapRegisterReadOrWrite)
+SHOW_MODULE_NAME(tofino::MapRegisterWrite)
+SHOW_MODULE_NAME(tofino::MapRegisterDelete)

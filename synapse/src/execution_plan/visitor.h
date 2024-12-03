@@ -38,6 +38,10 @@ class FCFSCachedTableRead;
 class FCFSCachedTableReadOrWrite;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
+class MapRegisterRead;
+class MapRegisterReadOrWrite;
+class MapRegisterWrite;
+class MapRegisterDelete;
 class MeterUpdate;
 class HHTableRead;
 class HHTableConditionalUpdate;
@@ -79,6 +83,9 @@ class VectorRegisterUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
+class MapRegisterRead;
+class MapRegisterWrite;
+class MapRegisterDelete;
 class HHTableRead;
 class HHTableConditionalUpdate;
 class HHTableUpdate;
@@ -133,11 +140,9 @@ public:
   virtual void visit(const EP *ep);
   virtual void visit(const EP *ep, const EPNode *ep_node);
 
-  /*************************************
-   *
-   *              Tofino
-   *
-   * **********************************/
+  // ========================================
+  // Tofino
+  // ========================================
 
   VISIT_NOP(tofino::SendToController)
   VISIT_NOP(tofino::Recirculate)
@@ -159,6 +164,10 @@ public:
   VISIT_NOP(tofino::FCFSCachedTableReadOrWrite)
   VISIT_NOP(tofino::FCFSCachedTableWrite)
   VISIT_NOP(tofino::FCFSCachedTableDelete)
+  VISIT_NOP(tofino::MapRegisterRead)
+  VISIT_NOP(tofino::MapRegisterReadOrWrite)
+  VISIT_NOP(tofino::MapRegisterWrite)
+  VISIT_NOP(tofino::MapRegisterDelete)
   VISIT_NOP(tofino::MeterUpdate)
   VISIT_NOP(tofino::HHTableRead)
   VISIT_NOP(tofino::HHTableConditionalUpdate)
@@ -169,11 +178,9 @@ public:
   VISIT_NOP(tofino::CMSIncrement)
   VISIT_NOP(tofino::CMSIncAndQuery)
 
-  /*************************************
-   *
-   *            Tofino CPU
-   *
-   * **********************************/
+  // ========================================
+  // Tofino CPU
+  // ========================================
 
   VISIT_NOP(tofino_cpu::Ignore)
   VISIT_NOP(tofino_cpu::ParseHeader)
@@ -204,6 +211,9 @@ public:
   VISIT_NOP(tofino_cpu::FCFSCachedTableRead)
   VISIT_NOP(tofino_cpu::FCFSCachedTableWrite)
   VISIT_NOP(tofino_cpu::FCFSCachedTableDelete)
+  VISIT_NOP(tofino_cpu::MapRegisterRead)
+  VISIT_NOP(tofino_cpu::MapRegisterWrite)
+  VISIT_NOP(tofino_cpu::MapRegisterDelete)
   VISIT_NOP(tofino_cpu::HHTableRead)
   VISIT_NOP(tofino_cpu::HHTableConditionalUpdate)
   VISIT_NOP(tofino_cpu::HHTableUpdate)
@@ -219,11 +229,9 @@ public:
   VISIT_NOP(tofino_cpu::CMSIncrement)
   VISIT_NOP(tofino_cpu::CMSCountMin)
 
-  /*************************************
-   *
-   *                x86
-   *
-   * **********************************/
+  // ========================================
+  // x86
+  // ========================================
 
   VISIT_NOP(x86::Ignore)
   VISIT_NOP(x86::If)

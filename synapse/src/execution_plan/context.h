@@ -12,20 +12,35 @@
 #include "../targets/target.h"
 
 enum class DSImpl {
+  // ========================================
+  // Tofino
+  // ========================================
+
   Tofino_Table,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
+  Tofino_MapRegister,
   Tofino_Meter,
   Tofino_HeavyHitterTable,
   Tofino_IntegerAllocator,
   Tofino_CountMinSketch,
   Tofino_CuckooHashTable,
+
+  // ========================================
+  // Tofino CPU
+  // ========================================
+
   TofinoCPU_Map,
   TofinoCPU_Vector,
   TofinoCPU_DoubleChain,
   TofinoCPU_ConsistentHashTable,
   TofinoCPU_CountMinSketch,
   TofinoCPU_TokenBucket,
+
+  // ========================================
+  // x86
+  // ========================================
+
   x86_Map,
   x86_Vector,
   x86_DoubleChain,

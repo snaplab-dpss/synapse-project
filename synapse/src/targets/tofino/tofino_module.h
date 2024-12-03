@@ -58,13 +58,9 @@ protected:
 
   symbols_t get_dataplane_state(const EP *ep, const Node *node) const;
 
-  /*
-    ======================================================================
-
-                               Vector Registers
-
-    ======================================================================
- */
+  // ======================================================================
+  //  Vector Registers
+  // ======================================================================
 
   std::unordered_set<DS *> build_or_reuse_vector_registers(
       const EP *ep, const Node *node, const vector_register_data_t &data,
@@ -74,13 +70,9 @@ protected:
   can_build_or_reuse_vector_registers(const EP *ep, const Node *node,
                                       const vector_register_data_t &data) const;
 
-  /*
-     ======================================================================
-
-                              FCFS Cached Table
-
-     ======================================================================
-  */
+  // ======================================================================
+  //  FCFS Cached Table
+  // ======================================================================
 
   FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const Node *node,
                                          addr_t obj) const;
@@ -97,13 +89,21 @@ protected:
                                          klee::ref<klee::Expr> key,
                                          u32 cache_capacity) const;
 
-  /*
-     ======================================================================
+  // ======================================================================
+  //  Map Register
+  // ======================================================================
 
-                              Heavy Hitter Table
+  bool can_build_or_reuse_map_register(const EP *ep, const Node *node,
+                                       addr_t obj, klee::ref<klee::Expr> key,
+                                       u32 num_entries) const;
+  MapRegister *build_or_reuse_map_register(const EP *ep, const Node *node,
+                                           addr_t obj,
+                                           klee::ref<klee::Expr> key,
+                                           u32 num_entries) const;
 
-     ======================================================================
-  */
+  // ======================================================================
+  //  Heavy Hitter Table
+  // ======================================================================
 
   bool
   can_build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
@@ -118,13 +118,9 @@ protected:
                                            klee::ref<klee::Expr> key,
                                            u32 capacity) const;
 
-  /*
-      ======================================================================
-
-                                Count Min Sketch
-
-      ======================================================================
-  */
+  // ======================================================================
+  //  Count Min Sketch
+  // ======================================================================
 
   bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
                               const std::vector<klee::ref<klee::Expr>> &keys,

@@ -114,6 +114,7 @@ private:
     }
 
     if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
+        !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_MapRegister) &&
         !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
         !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
       return false;
@@ -136,7 +137,8 @@ private:
       return false;
     }
 
-    if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
+    if (ctx.check_ds_impl(obj, DSImpl::Tofino_MapRegister) ||
+        ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
         ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
       return true;
     }

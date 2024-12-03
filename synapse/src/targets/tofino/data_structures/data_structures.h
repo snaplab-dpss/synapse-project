@@ -7,3 +7,4 @@
 #include "fcfs_cached_table.h"
 #include "hh_table.h"
 #include "count_min_sketch.h"
+#include "map_register.h"

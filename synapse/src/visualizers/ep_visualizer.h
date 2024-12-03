@@ -16,11 +16,9 @@ public:
   void visit(const EP *ep) override;
   void visit(const EP *ep, const EPNode *ep_node) override;
 
-  /********************************************
-   *
-   *                  Tofino
-   *
-   ********************************************/
+  // ========================================
+  // Tofino
+  // ========================================
 
   DECLARE_VISIT(tofino::SendToController)
   DECLARE_VISIT(tofino::Recirculate)
@@ -42,6 +40,10 @@ public:
   DECLARE_VISIT(tofino::FCFSCachedTableReadOrWrite)
   DECLARE_VISIT(tofino::FCFSCachedTableWrite)
   DECLARE_VISIT(tofino::FCFSCachedTableDelete)
+  DECLARE_VISIT(tofino::MapRegisterRead)
+  DECLARE_VISIT(tofino::MapRegisterReadOrWrite)
+  DECLARE_VISIT(tofino::MapRegisterWrite)
+  DECLARE_VISIT(tofino::MapRegisterDelete)
   DECLARE_VISIT(tofino::MeterUpdate)
   DECLARE_VISIT(tofino::HHTableRead)
   DECLARE_VISIT(tofino::IntegerAllocatorRejuvenate)
@@ -51,11 +53,9 @@ public:
   DECLARE_VISIT(tofino::CMSIncrement)
   DECLARE_VISIT(tofino::CMSIncAndQuery)
 
-  /********************************************
-   *
-   *              Tofino CPU
-   *
-   ********************************************/
+  // ========================================
+  // Tofino CPU
+  // ========================================
 
   DECLARE_VISIT(tofino_cpu::Ignore)
   DECLARE_VISIT(tofino_cpu::ParseHeader)
@@ -86,6 +86,9 @@ public:
   DECLARE_VISIT(tofino_cpu::FCFSCachedTableRead)
   DECLARE_VISIT(tofino_cpu::FCFSCachedTableWrite)
   DECLARE_VISIT(tofino_cpu::FCFSCachedTableDelete)
+  DECLARE_VISIT(tofino_cpu::MapRegisterRead)
+  DECLARE_VISIT(tofino_cpu::MapRegisterWrite)
+  DECLARE_VISIT(tofino_cpu::MapRegisterDelete)
   DECLARE_VISIT(tofino_cpu::HHTableRead)
   DECLARE_VISIT(tofino_cpu::HHTableConditionalUpdate)
   DECLARE_VISIT(tofino_cpu::HHTableUpdate)
@@ -101,11 +104,9 @@ public:
   DECLARE_VISIT(tofino_cpu::CMSIncrement)
   DECLARE_VISIT(tofino_cpu::CMSCountMin)
 
-  /********************************************
-   *
-   *                  x86
-   *
-   ********************************************/
+  // ========================================
+  // x86
+  // ========================================
 
   DECLARE_VISIT(x86::Ignore)
   DECLARE_VISIT(x86::If)

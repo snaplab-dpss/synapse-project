@@ -54,19 +54,13 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
     assert(hr >= 0);
     assert(hr <= 1);
 
-    if (depth > 1) {
-      assert(recirc.find({rport, depth - 1}) != recirc.end());
-      // Hit rate shenanigans to avoid floating point precision issues
-      hr = std::min(recirc[{rport, depth - 1}], hr);
-    }
-
     if (recirc.find(rport_depth_pair) == recirc.end()) {
-      recirc[rport_depth_pair] = hr;
+      recirc.insert({rport_depth_pair, hr});
     } else {
-      recirc[rport_depth_pair] += hr;
+      recirc.at(rport_depth_pair) += hr;
     }
 
-    clamp_fraction(recirc[rport_depth_pair]);
+    clamp_fraction(recirc.at(rport_depth_pair));
   }
 
   return *this;

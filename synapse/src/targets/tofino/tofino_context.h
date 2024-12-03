@@ -30,6 +30,7 @@ public:
   TNA &get_mutable_tna() { return tna; }
 
   bool has_ds(addr_t addr) const;
+  bool has_ds(DS_ID id) const;
   const std::unordered_set<DS *> &get_ds(addr_t addr) const;
   const DS *get_ds_from_id(DS_ID id) const;
   void save_ds(addr_t addr, DS *ds);

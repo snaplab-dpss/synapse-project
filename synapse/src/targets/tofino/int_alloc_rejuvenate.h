@@ -34,7 +34,7 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    // FIXME:
+    // FIXME: Missing the Integer Allocator data structure.
     // return {table_id};
     return {};
   }

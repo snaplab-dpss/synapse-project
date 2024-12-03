@@ -315,6 +315,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::Tofino_FCFSCachedTable:
     os << "Tofino::FCFSCachedTable";
     break;
+  case DSImpl::Tofino_MapRegister:
+    os << "Tofino::MapRegister";
+    break;
   case DSImpl::Tofino_Meter:
     os << "Tofino::Meter";
     break;

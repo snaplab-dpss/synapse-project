@@ -34,7 +34,7 @@ public:
   const symbol_t &get_is_allocated() const { return is_allocated; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    // FIXME:
+    // FIXME: Missing the Integer Allocator data structure.
     // return {table_id};
     return {};
   }

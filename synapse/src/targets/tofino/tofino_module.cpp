@@ -110,6 +110,7 @@ bool TofinoModuleGenerator::can_build_or_reuse_vector_registers(
 }
 
 static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
+                                                addr_t obj,
                                                 klee::ref<klee::Expr> key,
                                                 u32 num_entries,
                                                 u32 cache_capacity) {
@@ -118,7 +119,8 @@ static FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const Node *node,
   const TNA &tna = tofino_ctx->get_tna();
   const TNAProperties &properties = tna.get_properties();
 
-  DS_ID id = "fcfs_cached_table_" + std::to_string(cache_capacity);
+  DS_ID id = "fcfs_cached_table_" + std::to_string(cache_capacity) + "_" +
+             std::to_string(obj);
 
   std::vector<klee::ref<klee::Expr>> keys =
       Register::partition_value(properties, key);
@@ -179,8 +181,8 @@ FCFSCachedTable *TofinoModuleGenerator::build_or_reuse_fcfs_cached_table(
   if (already_placed) {
     cached_table = reuse_fcfs_cached_table(ep, node, obj);
   } else {
-    cached_table =
-        build_fcfs_cached_table(ep, node, key, num_entries, cache_capacity);
+    cached_table = build_fcfs_cached_table(ep, node, obj, key, num_entries,
+                                           cache_capacity);
   }
 
   return cached_table;
@@ -229,7 +231,7 @@ bool TofinoModuleGenerator::can_get_or_build_fcfs_cached_table(
   }
 
   cached_table =
-      build_fcfs_cached_table(ep, node, key, num_entries, cache_capacity);
+      build_fcfs_cached_table(ep, node, obj, key, num_entries, cache_capacity);
 
   if (!cached_table) {
     return false;
@@ -284,12 +286,12 @@ hit_rate_t TofinoModuleGenerator::get_fcfs_cache_success_rate(
   return hit_rate;
 }
 
-static HHTable *build_hh_table(const EP *ep, const Node *node,
+static HHTable *build_hh_table(const EP *ep, const Node *node, addr_t obj,
                                const std::vector<klee::ref<klee::Expr>> &keys,
                                u32 num_entries, u32 cms_width, u32 cms_height) {
 
   DS_ID id = "hh_table_" + std::to_string(cms_width) + "x" +
-             std::to_string(cms_height);
+             std::to_string(cms_height) + "_" + std::to_string(obj);
 
   const TofinoContext *tofino_ctx =
       ep->get_ctx().get_target_ctx<TofinoContext>();
@@ -343,7 +345,7 @@ HHTable *TofinoModuleGenerator::build_or_reuse_hh_table(
     hh_table = reuse_hh_table(ep, node, obj);
   } else {
     hh_table =
-        build_hh_table(ep, node, keys, num_entries, cms_width, cms_height);
+        build_hh_table(ep, node, obj, keys, num_entries, cms_width, cms_height);
   }
 
   return hh_table;
@@ -380,7 +382,8 @@ bool TofinoModuleGenerator::can_build_or_reuse_hh_table(
     return true;
   }
 
-  hh_table = build_hh_table(ep, node, keys, num_entries, cms_width, cms_height);
+  hh_table =
+      build_hh_table(ep, node, obj, keys, num_entries, cms_width, cms_height);
 
   if (!hh_table) {
     return false;
@@ -408,13 +411,14 @@ hit_rate_t TofinoModuleGenerator::get_hh_table_hit_success_rate(
   return hit_rate;
 }
 
-static CountMinSketch *build_cms(const EP *ep, const Node *node,
+static CountMinSketch *build_cms(const EP *ep, const Node *node, addr_t obj,
                                  const std::vector<klee::ref<klee::Expr>> &keys,
                                  u32 width, u32 height) {
   const TofinoContext *tofino_ctx =
       ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  DS_ID id = "cms_" + std::to_string(width) + "x" + std::to_string(height);
+  DS_ID id = "cms_" + std::to_string(width) + "x" + std::to_string(height) +
+             "_" + std::to_string(obj);
   const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
 
   std::vector<bits_t> keys_sizes;
@@ -485,7 +489,7 @@ bool TofinoModuleGenerator::can_build_or_reuse_cms(
     return true;
   }
 
-  cms = build_cms(ep, node, keys, width, height);
+  cms = build_cms(ep, node, obj, keys, width, height);
 
   if (!cms) {
     return false;
@@ -504,10 +508,110 @@ CountMinSketch *TofinoModuleGenerator::build_or_reuse_cms(
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_CountMinSketch)) {
     cms = reuse_cms(ep, node, obj);
   } else {
-    cms = build_cms(ep, node, keys, width, height);
+    cms = build_cms(ep, node, obj, keys, width, height);
   }
 
   return cms;
+}
+
+static MapRegister *reuse_map_register(const EP *ep, const Node *node,
+                                       addr_t obj) {
+  const Context &ctx = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+
+  if (!tofino_ctx->has_ds(obj)) {
+    return nullptr;
+  }
+
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+
+  assert(ds.size() == 1);
+  assert((*ds.begin())->type == DSType::MAP_REGISTER);
+
+  MapRegister *map_register = static_cast<MapRegister *>(*ds.begin());
+
+  if (!tofino_ctx->check_placement(ep, node, map_register)) {
+    map_register = nullptr;
+  }
+
+  return map_register;
+}
+
+static MapRegister *build_map_register(const EP *ep, const Node *node,
+                                       addr_t obj, klee::ref<klee::Expr> key,
+                                       u32 num_entries) {
+  const Context &ctx = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  const TNA &tna = tofino_ctx->get_tna();
+  const TNAProperties &properties = tna.get_properties();
+
+  DS_ID id = "map_register_" + std::to_string(obj);
+
+  std::vector<klee::ref<klee::Expr>> keys =
+      Register::partition_value(properties, key);
+  std::vector<bits_t> keys_sizes;
+  for (klee::ref<klee::Expr> key : keys) {
+    keys_sizes.push_back(key->getWidth());
+  }
+
+  MapRegister *map_register =
+      new MapRegister(properties, id, num_entries, keys_sizes);
+
+  if (!tofino_ctx->check_placement(ep, node, map_register)) {
+    delete map_register;
+    map_register = nullptr;
+  }
+
+  return map_register;
+}
+
+bool TofinoModuleGenerator::can_build_or_reuse_map_register(
+    const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key,
+    u32 num_entries) const {
+  MapRegister *map_register = nullptr;
+
+  const Context &ctx = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_MapRegister);
+
+  if (already_placed) {
+    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+    const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+
+    assert(ds.size() == 1);
+    assert((*ds.begin())->type == DSType::MAP_REGISTER);
+
+    map_register = static_cast<MapRegister *>(*ds.begin());
+
+    if (!tofino_ctx->check_placement(ep, node, map_register)) {
+      map_register = nullptr;
+      return false;
+    }
+
+    return true;
+  }
+
+  map_register = build_map_register(ep, node, obj, key, num_entries);
+
+  if (!map_register) {
+    return false;
+  }
+
+  delete map_register;
+  return true;
+}
+
+MapRegister *TofinoModuleGenerator::build_or_reuse_map_register(
+    const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key,
+    u32 num_entries) const {
+  MapRegister *map_register = nullptr;
+
+  if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_CountMinSketch)) {
+    map_register = reuse_map_register(ep, node, obj);
+  } else {
+    map_register = build_map_register(ep, node, obj, key, num_entries);
+  }
+
+  return map_register;
 }
 
 } // namespace tofino

@@ -24,6 +24,10 @@
 #include "fcfs_cached_table_read_or_write.h"
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
+#include "map_register_read.h"
+#include "map_register_read_or_write.h"
+#include "map_register_write.h"
+#include "map_register_delete.h"
 #include "meter_update.h"
 #include "hh_table_read.h"
 #include "hh_table_conditional_update.h"
@@ -43,35 +47,33 @@ struct TofinoTarget : public Target {
   TofinoTarget(const toml::table &config)
       : Target(TargetType::Tofino,
                {
-                   new SendToControllerGenerator(),
-                   new RecirculateGenerator(),
-                   new IgnoreGenerator(),
-                   new IfGenerator(),
-                   new ThenGenerator(),
-                   new ElseGenerator(),
-                   new ForwardGenerator(),
-                   new DropGenerator(),
-                   new BroadcastGenerator(),
-                   new ParserExtractionGenerator(),
-                   new ParserConditionGenerator(),
-                   new ParserRejectGenerator(),
+                   new SendToControllerGenerator(), new RecirculateGenerator(),
+                   new IgnoreGenerator(), new IfGenerator(),
+                   new ThenGenerator(), new ElseGenerator(),
+                   new ForwardGenerator(), new DropGenerator(),
+                   new BroadcastGenerator(), new ParserExtractionGenerator(),
+                   new ParserConditionGenerator(), new ParserRejectGenerator(),
                    new ModifyHeaderGenerator(),
-                   new TableLookupGenerator(),
+                   //    new TableLookupGenerator(),
                    new VectorRegisterLookupGenerator(),
                    new VectorRegisterUpdateGenerator(),
-                   new FCFSCachedTableReadGenerator(),
-                   new FCFSCachedTableReadOrWriteGenerator(),
-                   new FCFSCachedTableWriteGenerator(),
-                   new FCFSCachedTableDeleteGenerator(),
-                   new MeterUpdateGenerator(),
-                   new HHTableReadGenerator(),
-                   new HHTableConditionalUpdateGenerator(),
-                   new IntegerAllocatorAllocateGenerator(),
-                   new IntegerAllocatorIsAllocatedGenerator(),
-                   new IntegerAllocatorRejuvenateGenerator(),
-                   new CMSQueryGenerator(),
-                   new CMSIncrementGenerator(),
-                   new CMSIncAndQueryGenerator(),
+                   //    new FCFSCachedTableReadGenerator(),
+                   //    new FCFSCachedTableReadOrWriteGenerator(),
+                   //    new FCFSCachedTableWriteGenerator(),
+                   //    new FCFSCachedTableDeleteGenerator(),
+                   new MapRegisterReadGenerator(),
+                   new MapRegisterReadOrWriteGenerator(),
+                   new MapRegisterWriteGenerator(),
+                   new MapRegisterDeleteGenerator(),
+                   //    new MeterUpdateGenerator(),
+                   //    new HHTableReadGenerator(),
+                   //    new HHTableConditionalUpdateGenerator(),
+                   //    new IntegerAllocatorAllocateGenerator(),
+                   //    new IntegerAllocatorIsAllocatedGenerator(),
+                   //    new IntegerAllocatorRejuvenateGenerator(),
+                   //    new CMSQueryGenerator(),
+                   //    new CMSIncrementGenerator(),
+                   //    new CMSIncAndQueryGenerator(),
                },
                new TofinoContext(config)) {}
 };

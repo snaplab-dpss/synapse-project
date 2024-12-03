@@ -17,6 +17,11 @@ enum class TargetType;
 
 enum class ModuleType {
   INVALID_MODULE,
+
+  // ========================================
+  // Tofino
+  // ========================================
+
   Tofino_SendToController,
   Tofino_Ignore,
   Tofino_If,
@@ -36,6 +41,10 @@ enum class ModuleType {
   Tofino_FCFSCachedTableReadOrWrite,
   Tofino_FCFSCachedTableWrite,
   Tofino_FCFSCachedTableDelete,
+  Tofino_MapRegisterRead,
+  Tofino_MapRegisterReadOrWrite,
+  Tofino_MapRegisterWrite,
+  Tofino_MapRegisterDelete,
   Tofino_Recirculate,
   Tofino_MeterUpdate,
   Tofino_HHTableRead,
@@ -46,6 +55,11 @@ enum class ModuleType {
   Tofino_CMSQuery,
   Tofino_CMSIncrement,
   Tofino_CMSIncAndQuery,
+
+  // ========================================
+  // Tofino CPU
+  // ========================================
+
   TofinoCPU_Ignore,
   TofinoCPU_ParseHeader,
   TofinoCPU_ModifyHeader,
@@ -62,6 +76,9 @@ enum class ModuleType {
   TofinoCPU_FCFSCachedTableRead,
   TofinoCPU_FCFSCachedTableWrite,
   TofinoCPU_FCFSCachedTableDelete,
+  TofinoCPU_MapRegisterRead,
+  TofinoCPU_MapRegisterWrite,
+  TofinoCPU_MapRegisterDelete,
   TofinoCPU_HHTableRead,
   TofinoCPU_HHTableConditionalUpdate,
   TofinoCPU_HHTableUpdate,
@@ -89,6 +106,11 @@ enum class ModuleType {
   TofinoCPU_CMSQuery,
   TofinoCPU_CMSIncrement,
   TofinoCPU_CMSCountMin,
+
+  // ========================================
+  // x86
+  // ========================================
+
   x86_Ignore,
   x86_If,
   x86_Then,
@@ -183,6 +205,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_FCFSCachedTableDelete:
     os << "Tofino_FCFSCachedTableDelete";
     break;
+  case ModuleType::Tofino_MapRegisterRead:
+    os << "Tofino_MapRegisterRead";
+    break;
+  case ModuleType::Tofino_MapRegisterReadOrWrite:
+    os << "Tofino_MapRegisterReadOrWrite";
+    break;
+  case ModuleType::Tofino_MapRegisterWrite:
+    os << "Tofino_MapRegisterWrite";
+    break;
+  case ModuleType::Tofino_MapRegisterDelete:
+    os << "Tofino_MapRegisterDelete";
+    break;
   case ModuleType::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
@@ -260,6 +294,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::TofinoCPU_FCFSCachedTableDelete:
     os << "TofinoCPU_FCFSCachedTableDelete";
+    break;
+  case ModuleType::TofinoCPU_MapRegisterRead:
+    os << "TofinoCPU_MapRegisterRead";
+    break;
+  case ModuleType::TofinoCPU_MapRegisterWrite:
+    os << "TofinoCPU_MapRegisterWrite";
+    break;
+  case ModuleType::TofinoCPU_MapRegisterDelete:
+    os << "TofinoCPU_MapRegisterDelete";
     break;
   case ModuleType::TofinoCPU_HHTableRead:
     os << "TofinoCPU_HHTableRead";

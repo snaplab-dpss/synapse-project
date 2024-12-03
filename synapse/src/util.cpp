@@ -2067,6 +2067,24 @@ std::vector<int> get_past_recirculations(const EPNode *node) {
   return past_recirculations;
 }
 
+bool forwarding_decision_already_made(const EPNode *node) {
+  while ((node = node->get_prev())) {
+    const Module *module = node->get_module();
+
+    if (!module) {
+      continue;
+    }
+
+    if (module->get_type() == ModuleType::Tofino_Forward ||
+        module->get_type() == ModuleType::Tofino_Drop ||
+        module->get_type() == ModuleType::Tofino_Broadcast) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 port_ingress_t get_node_egress(const EP *ep, const EPNode *node) {
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
@@ -2084,7 +2102,7 @@ port_ingress_t get_node_egress(const EP *ep, const EPNode *node) {
   if (past_recirculations.empty()) {
     egress.global = hr;
   } else {
-    int rport = past_recirculations.back();
+    int rport = past_recirculations[0];
     int depth = 1;
 
     for (size_t i = 1; i < past_recirculations.size(); i++) {

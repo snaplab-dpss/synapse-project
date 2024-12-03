@@ -44,6 +44,10 @@ bool TofinoContext::has_ds(addr_t addr) const {
   return obj_to_ds.find(addr) != obj_to_ds.end();
 }
 
+bool TofinoContext::has_ds(DS_ID id) const {
+  return id_to_ds.find(id) != id_to_ds.end();
+}
+
 const std::unordered_set<DS *> &TofinoContext::get_ds(addr_t addr) const {
   auto found_it = obj_to_ds.find(addr);
   assert(found_it != obj_to_ds.end() && "Data structure not found");
@@ -67,9 +71,8 @@ void TofinoContext::save_ds(addr_t addr, DS *ds) {
 
 const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
   auto it = id_to_ds.find(id);
-  if (it == id_to_ds.end()) {
-    return nullptr;
-  }
+  ASSERT_OR_PANIC(it != id_to_ds.end(), "Data structure %s not found",
+                  id.c_str());
   return it->second;
 }
 
@@ -253,6 +256,7 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
 
     for (DS_ID ds_id : tofino_module->get_generated_ds()) {
       const DS *ds = tofino_ctx->get_ds_from_id(ds_id);
+
       if (ds->primitive) {
         deps.insert(ds_id);
       } else {
@@ -273,7 +277,8 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
 }
 
 void TofinoContext::place(EP *ep, const Node *node, addr_t obj, DS *ds) {
-  if (has_ds(obj)) {
+  if (has_ds(ds->id)) {
+    // Already placed.
     return;
   }
 
@@ -288,12 +293,13 @@ void TofinoContext::place(EP *ep, const Node *node, addr_t obj, DS *ds) {
 void TofinoContext::place_many(
     EP *ep, const Node *node, addr_t obj,
     const std::vector<std::unordered_set<DS *>> &ds) {
-  if (has_ds(obj)) {
-    return;
-  }
-
   for (const std::unordered_set<DS *> &ds_list : ds) {
     for (DS *ds : ds_list) {
+      if (has_ds(ds->id)) {
+        // Already placed.
+        continue;
+      }
+
       save_ds(obj, ds);
     }
   }

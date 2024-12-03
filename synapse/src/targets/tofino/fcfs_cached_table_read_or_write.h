@@ -282,15 +282,14 @@ private:
         new_ep->get_active_leaf().node->get_constraints(),
         cache_write_success_condition, cache_success_probability);
 
-    if (deleted_branch_constraints.has_value()) {
-      new_ep->get_mutable_ctx().get_mutable_profiler().remove(
-          deleted_branch_constraints.value());
-    }
-
     Context &ctx = new_ep->get_mutable_ctx();
     ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
     ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
     ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
+
+    if (deleted_branch_constraints.has_value()) {
+      ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
+    }
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->place(new_ep, node, map_objs.map, cached_table);

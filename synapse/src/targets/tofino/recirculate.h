@@ -55,14 +55,19 @@ protected:
       return impls;
     }
 
+    EPLeaf active_leaf = ep->get_active_leaf();
+
+    // FIXME: How do we recalculate the estimated throughput after a forwarding
+    // decision is made?
+    // assert((!ep->get_active_leaf().node ||
+    //         !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
+    //        "TODO");
+
     int total_recirc_ports =
         get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
-
-    EPLeaf active_leaf = ep->get_active_leaf();
     std::vector<int> past_recirc = get_past_recirculations(active_leaf.node);
 
     symbols_t symbols = get_dataplane_state(ep, node);
-
     impls = concretize_single_port_recirc(ep, node, past_recirc,
                                           total_recirc_ports, symbols);
 
