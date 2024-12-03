@@ -49,9 +49,6 @@ public:
   bool condition_meets_phv_limit(klee::ref<klee::Expr> expr) const;
 
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
-  void place_many(const std::vector<std::unordered_set<DS *>> &ds,
-                  const std::unordered_set<DS_ID> &deps);
-
   PlacementStatus can_place(const DS *ds,
                             const std::unordered_set<DS_ID> &deps) const;
   PlacementStatus

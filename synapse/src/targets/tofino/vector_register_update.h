@@ -142,15 +142,16 @@ protected:
       return impls;
     }
 
-    std::unordered_set<DS_ID> rids;
-    std::unordered_set<DS_ID> deps;
-    bool already_placed = false;
-
-    std::unordered_set<DS *> regs = build_or_reuse_vector_registers(
-        ep, vector_borrow, vector_register_data, already_placed, rids, deps);
+    std::unordered_set<Register *> regs = build_or_reuse_vector_registers(
+        ep, vector_borrow, vector_register_data);
 
     if (regs.empty()) {
       return impls;
+    }
+
+    std::unordered_set<DS_ID> rids;
+    for (DS *reg : regs) {
+      rids.insert(reg->id);
     }
 
     Module *module = new VectorRegisterUpdate(
@@ -165,12 +166,13 @@ protected:
     BDD *bdd =
         delete_future_vector_return(new_ep, node, vector_return, new_next);
 
-    if (!already_placed) {
-      Context &ctx = new_ep->get_mutable_ctx();
-      ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
+    Context &ctx = new_ep->get_mutable_ctx();
+    ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
-      TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-      tofino_ctx->place_many(new_ep, node, vector_register_data.obj, {regs});
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
+
+    for (Register *reg : regs) {
+      tofino_ctx->place(new_ep, node, vector_register_data.obj, reg);
     }
 
     EPLeaf leaf(ep_node, new_next);

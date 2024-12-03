@@ -2,10 +2,48 @@
 
 namespace tofino {
 
-static std::unordered_set<DS *> build_vector_registers(
-    const EP *ep, const Node *node, const vector_register_data_t &data,
-    std::unordered_set<DS_ID> &rids, std::unordered_set<DS_ID> &deps) {
-  std::unordered_set<DS *> regs;
+Table *TofinoModuleGenerator::build_table(const EP *ep, const Node *node,
+                                          const table_data_t &data) const {
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    keys_size.push_back(key->getWidth());
+  }
+
+  std::vector<bits_t> params_size;
+  for (klee::ref<klee::Expr> value : data.values) {
+    params_size.push_back(value->getWidth());
+  }
+
+  DS_ID id = "table_" + std::to_string(data.obj) + "_" +
+             std::to_string(node->get_id());
+
+  Table *table = new Table(id, data.num_entries, keys_size, params_size);
+
+  const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
+  if (!tofino_ctx->check_placement(ep, node, table)) {
+    delete table;
+    return nullptr;
+  }
+
+  return table;
+}
+
+bool TofinoModuleGenerator::can_build_table(const EP *ep, const Node *node,
+                                            const table_data_t &data) const {
+  Table *table = build_table(ep, node, data);
+
+  if (!table) {
+    return false;
+  }
+
+  delete table;
+  return true;
+}
+
+static std::unordered_set<Register *>
+build_vector_registers(const EP *ep, const Node *node,
+                       const vector_register_data_t &data) {
+  std::unordered_set<Register *> regs;
 
   const TofinoContext *tofino_ctx =
       ep->get_ctx().get_target_ctx<TofinoContext>();
@@ -15,18 +53,18 @@ static std::unordered_set<DS *> build_vector_registers(
       Register::partition_value(properties, data.value);
 
   for (klee::ref<klee::Expr> partition : partitions) {
-    DS_ID rid = "vector_" + std::to_string(node->get_id()) + "_" +
-                std::to_string(rids.size());
+    DS_ID id = "vector_reg_" + std::to_string(data.obj) + "_" +
+               std::to_string(regs.size());
     bits_t partition_size = partition->getWidth();
     Register *reg =
-        new Register(properties, rid, data.num_entries, data.index->getWidth(),
+        new Register(properties, id, data.num_entries, data.index->getWidth(),
                      partition_size, data.actions);
     regs.insert(reg);
-    rids.insert(rid);
   }
 
-  if (!tofino_ctx->check_many_placements(ep, node, {regs})) {
-    for (DS *reg : regs) {
+  if (!tofino_ctx->check_many_placements(
+          ep, node, {std::unordered_set<DS *>(regs.begin(), regs.end())})) {
+    for (Register *reg : regs) {
       delete reg;
     }
     regs.clear();
@@ -35,10 +73,10 @@ static std::unordered_set<DS *> build_vector_registers(
   return regs;
 }
 
-static std::unordered_set<DS *> get_vector_registers(
-    const EP *ep, const Node *node, const vector_register_data_t &data,
-    std::unordered_set<DS_ID> &rids, std::unordered_set<DS_ID> &deps) {
-  std::unordered_set<DS *> regs;
+static std::unordered_set<Register *>
+get_vector_registers(const EP *ep, const Node *node,
+                     const vector_register_data_t &data) {
+  std::unordered_set<Register *> regs;
 
   const TofinoContext *tofino_ctx =
       ep->get_ctx().get_target_ctx<TofinoContext>();
@@ -47,37 +85,34 @@ static std::unordered_set<DS *> get_vector_registers(
     return regs;
   }
 
-  regs = tofino_ctx->get_ds(data.obj);
-  assert(regs.size());
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  assert(!ds.empty());
 
-  for (DS *reg : regs) {
-    assert(reg->type == DSType::REGISTER);
-    rids.insert(reg->id);
+  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
+    return regs;
   }
 
-  if (!tofino_ctx->check_many_placements(ep, node, {regs})) {
-    regs.clear();
+  for (DS *reg : ds) {
+    assert(reg->type == DSType::REGISTER);
+    regs.insert(static_cast<Register *>(reg));
   }
 
   return regs;
 }
 
-std::unordered_set<DS *> TofinoModuleGenerator::build_or_reuse_vector_registers(
-    const EP *ep, const Node *node, const vector_register_data_t &data,
-    bool &already_exists, std::unordered_set<DS_ID> &rids,
-    std::unordered_set<DS_ID> &deps) const {
-  std::unordered_set<DS *> regs;
+std::unordered_set<Register *>
+TofinoModuleGenerator::build_or_reuse_vector_registers(
+    const EP *ep, const Node *node, const vector_register_data_t &data) const {
+  std::unordered_set<Register *> regs;
 
   const Context &ctx = ep->get_ctx();
   bool regs_already_placed =
       ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
   if (regs_already_placed) {
-    regs = get_vector_registers(ep, node, data, rids, deps);
-    already_exists = true;
+    regs = get_vector_registers(ep, node, data);
   } else {
-    regs = build_vector_registers(ep, node, data, rids, deps);
-    already_exists = false;
+    regs = build_vector_registers(ep, node, data);
   }
 
   return regs;
@@ -85,21 +120,15 @@ std::unordered_set<DS *> TofinoModuleGenerator::build_or_reuse_vector_registers(
 
 bool TofinoModuleGenerator::can_build_or_reuse_vector_registers(
     const EP *ep, const Node *node, const vector_register_data_t &data) const {
-  std::unordered_set<DS_ID> rids;
-  std::unordered_set<DS_ID> deps;
-
   const Context &ctx = ep->get_ctx();
   bool regs_already_placed =
       ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
   if (regs_already_placed) {
-    std::unordered_set<DS *> regs =
-        get_vector_registers(ep, node, data, rids, deps);
-    return !regs.empty();
+    return !get_vector_registers(ep, node, data).empty();
   }
 
-  std::unordered_set<DS *> regs =
-      build_vector_registers(ep, node, data, rids, deps);
+  std::unordered_set<Register *> regs = build_vector_registers(ep, node, data);
   bool success = !regs.empty();
 
   for (DS *reg : regs) {

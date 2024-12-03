@@ -49,8 +49,6 @@ public:
                                               const Node *node) const;
 
   void place(EP *ep, const Node *node, addr_t obj, DS *ds);
-  void place_many(EP *ep, const Node *node, addr_t obj,
-                  const std::vector<std::unordered_set<DS *>> &ds);
 
   bool check_placement(const EP *ep, const Node *node, const DS *ds) const;
   bool

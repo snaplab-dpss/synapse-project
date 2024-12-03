@@ -290,27 +290,6 @@ void TofinoContext::place(EP *ep, const Node *node, addr_t obj, DS *ds) {
   tna.place(ds, deps);
 }
 
-void TofinoContext::place_many(
-    EP *ep, const Node *node, addr_t obj,
-    const std::vector<std::unordered_set<DS *>> &ds) {
-  for (const std::unordered_set<DS *> &ds_list : ds) {
-    for (DS *ds : ds_list) {
-      if (has_ds(ds->id)) {
-        // Already placed.
-        continue;
-      }
-
-      save_ds(obj, ds);
-    }
-  }
-
-  std::unordered_set<DS_ID> deps =
-      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep,
-                                                                       node);
-
-  tna.place_many(ds, deps);
-}
-
 bool TofinoContext::check_placement(const EP *ep, const Node *node,
                                     const DS *ds) const {
   std::unordered_set<DS_ID> deps =

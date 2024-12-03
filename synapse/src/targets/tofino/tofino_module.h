@@ -18,6 +18,14 @@ public:
   virtual std::unordered_set<DS_ID> get_generated_ds() const { return {}; }
 };
 
+struct table_data_t {
+  addr_t obj;
+  u32 num_entries;
+  std::vector<klee::ref<klee::Expr>> keys;
+  std::vector<klee::ref<klee::Expr>> values;
+  std::optional<symbol_t> hit;
+};
+
 struct vector_register_data_t {
   addr_t obj;
   u32 num_entries;
@@ -59,13 +67,21 @@ protected:
   symbols_t get_dataplane_state(const EP *ep, const Node *node) const;
 
   // ======================================================================
+  //  Simple Tables
+  // ======================================================================
+
+  Table *build_table(const EP *ep, const Node *node,
+                     const table_data_t &data) const;
+  bool can_build_table(const EP *ep, const Node *node,
+                       const table_data_t &data) const;
+
+  // ======================================================================
   //  Vector Registers
   // ======================================================================
 
-  std::unordered_set<DS *> build_or_reuse_vector_registers(
-      const EP *ep, const Node *node, const vector_register_data_t &data,
-      bool &already_exists, std::unordered_set<DS_ID> &rids,
-      std::unordered_set<DS_ID> &deps) const;
+  std::unordered_set<Register *>
+  build_or_reuse_vector_registers(const EP *ep, const Node *node,
+                                  const vector_register_data_t &data) const;
   bool
   can_build_or_reuse_vector_registers(const EP *ep, const Node *node,
                                       const vector_register_data_t &data) const;

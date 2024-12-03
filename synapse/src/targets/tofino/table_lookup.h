@@ -62,32 +62,22 @@ protected:
       return std::nullopt;
     }
 
-    addr_t obj;
-    int num_entries;
-    std::vector<klee::ref<klee::Expr>> keys;
-    std::vector<klee::ref<klee::Expr>> values;
-    std::optional<symbol_t> hit;
-    DS_ID id;
+    std::optional<table_data_t> table_data = get_table_data(ep, call_node);
 
-    if (!get_table_data(ep, call_node, obj, num_entries, keys, values, hit,
-                        id)) {
+    if (!table_data.has_value()) {
       return std::nullopt;
     }
 
-    if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
+    if (!ctx.can_impl_ds(table_data->obj, DSImpl::Tofino_Table)) {
       return std::nullopt;
     }
 
-    Table *table = build_table(ep, node, id, num_entries, keys, values, hit);
-
-    if (!table) {
+    if (!can_build_table(ep, node, table_data.value())) {
       return std::nullopt;
     }
-
-    delete table;
 
     Context new_ctx = ctx;
-    new_ctx.save_ds_impl(obj, DSImpl::Tofino_Table);
+    new_ctx.save_ds_impl(table_data->obj, DSImpl::Tofino_Table);
 
     return spec_impl_t(decide(ep, node), new_ctx);
   }
@@ -106,39 +96,35 @@ protected:
       return impls;
     }
 
-    addr_t obj;
-    int num_entries;
-    std::vector<klee::ref<klee::Expr>> keys;
-    std::vector<klee::ref<klee::Expr>> values;
-    std::optional<symbol_t> hit;
-    DS_ID id;
+    std::optional<table_data_t> table_data = get_table_data(ep, call_node);
 
-    if (!get_table_data(ep, call_node, obj, num_entries, keys, values, hit,
-                        id)) {
+    if (!table_data.has_value()) {
       return impls;
     }
 
-    if (!ep->get_ctx().can_impl_ds(obj, DSImpl::Tofino_Table)) {
+    if (!ep->get_ctx().can_impl_ds(table_data->obj, DSImpl::Tofino_Table)) {
       return impls;
     }
 
-    Table *table = build_table(ep, node, id, num_entries, keys, values, hit);
+    Table *table = build_table(ep, node, table_data.value());
 
     if (!table) {
       return impls;
     }
 
-    Module *module = new TableLookup(node, id, obj, keys, values, hit);
+    Module *module =
+        new TableLookup(node, table->id, table_data->obj, table_data->keys,
+                        table_data->values, table_data->hit);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
     Context &ctx = new_ep->get_mutable_ctx();
-    ctx.save_ds_impl(obj, DSImpl::Tofino_Table);
+    ctx.save_ds_impl(table_data->obj, DSImpl::Tofino_Table);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-    tofino_ctx->place(new_ep, node, obj, table);
+    tofino_ctx->place(new_ep, node, table_data->obj, table);
 
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
@@ -147,62 +133,32 @@ protected:
   }
 
 private:
-  Table *build_table(const EP *ep, const Node *node, DS_ID id, int num_entries,
-                     const std::vector<klee::ref<klee::Expr>> &keys,
-                     const std::vector<klee::ref<klee::Expr>> &values,
-                     const std::optional<symbol_t> &hit) const {
-    std::vector<bits_t> keys_size;
-    for (klee::ref<klee::Expr> key : keys) {
-      keys_size.push_back(key->getWidth());
-    }
-
-    std::vector<bits_t> params_size;
-    for (klee::ref<klee::Expr> value : values) {
-      params_size.push_back(value->getWidth());
-    }
-
-    Table *table = new Table(id, num_entries, keys_size, params_size);
-
-    const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
-    if (!tofino_ctx->check_placement(ep, node, table)) {
-      delete table;
-      return nullptr;
-    }
-
-    return table;
-  }
-
-  bool get_table_data(const EP *ep, const Call *call_node, addr_t &obj,
-                      int &num_entries,
-                      std::vector<klee::ref<klee::Expr>> &keys,
-                      std::vector<klee::ref<klee::Expr>> &values,
-                      std::optional<symbol_t> &hit, DS_ID &id) const {
+  std::optional<table_data_t> get_table_data(const EP *ep,
+                                             const Call *call_node) const {
     const call_t &call = call_node->get_call();
 
     if (call.function_name == "map_get") {
-      return table_data_from_map_op(ep, call_node, obj, num_entries, keys,
-                                    values, hit, id);
+      return table_data_from_map_op(ep, call_node);
     }
 
     if (call.function_name == "vector_borrow") {
-      return table_data_from_vector_op(ep, call_node, obj, num_entries, keys,
-                                       values, hit, id);
+      if (!is_vector_read(call_node)) {
+        return std::nullopt;
+      }
+
+      return table_data_from_vector_op(ep, call_node);
     }
 
     if (call.function_name == "dchain_is_index_allocated" ||
         call.function_name == "dchain_rejuvenate_index") {
-      return table_data_from_dchain_op(ep, call_node, obj, num_entries, keys,
-                                       values, hit, id);
+      return table_data_from_dchain_op(ep, call_node);
     }
 
-    return false;
+    return std::nullopt;
   }
 
-  bool table_data_from_map_op(const EP *ep, const Call *call_node, addr_t &obj,
-                              int &num_entries,
-                              std::vector<klee::ref<klee::Expr>> &keys,
-                              std::vector<klee::ref<klee::Expr>> &values,
-                              std::optional<symbol_t> &hit, DS_ID &id) const {
+  table_data_t table_data_from_map_op(const EP *ep,
+                                      const Call *call_node) const {
     const call_t &call = call_node->get_call();
     assert(call.function_name == "map_get");
 
@@ -216,29 +172,24 @@ private:
     bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
     assert(found && "Symbol map_has_this_key not found");
 
-    obj = expr_addr_to_obj_addr(map_addr_expr);
-    keys = Table::build_keys(key);
-    values = {value_out};
-    hit = map_has_this_key;
-    id = "map_" + std::to_string(call_node->get_id());
+    addr_t obj = expr_addr_to_obj_addr(map_addr_expr);
 
     const Context &ctx = ep->get_ctx();
     const map_config_t &cfg = ctx.get_map_config(obj);
-    num_entries = cfg.capacity;
 
-    return true;
+    table_data_t table_data = {
+        .obj = expr_addr_to_obj_addr(map_addr_expr),
+        .num_entries = static_cast<u32>(cfg.capacity),
+        .keys = Table::build_keys(key),
+        .values = {value_out},
+        .hit = map_has_this_key,
+    };
+
+    return table_data;
   }
 
-  bool table_data_from_vector_op(const EP *ep, const Call *call_node,
-                                 addr_t &obj, int &num_entries,
-                                 std::vector<klee::ref<klee::Expr>> &keys,
-                                 std::vector<klee::ref<klee::Expr>> &values,
-                                 std::optional<symbol_t> &hit,
-                                 DS_ID &id) const {
-    if (!is_vector_read(call_node)) {
-      return false;
-    }
-
+  table_data_t table_data_from_vector_op(const EP *ep,
+                                         const Call *call_node) const {
     const call_t &call = call_node->get_call();
     assert(call.function_name == "vector_borrow");
 
@@ -246,24 +197,24 @@ private:
     klee::ref<klee::Expr> index = call.args.at("index").expr;
     klee::ref<klee::Expr> cell = call.extra_vars.at("borrowed_cell").second;
 
-    obj = expr_addr_to_obj_addr(vector_addr_expr);
-    keys = {index};
-    values = {cell};
-    id = "vector_" + std::to_string(call_node->get_id());
+    addr_t obj = expr_addr_to_obj_addr(vector_addr_expr);
 
     const Context &ctx = ep->get_ctx();
     const vector_config_t &cfg = ctx.get_vector_config(obj);
-    num_entries = cfg.capacity;
 
-    return true;
+    table_data_t table_data = {
+        .obj = obj,
+        .num_entries = static_cast<u32>(cfg.capacity),
+        .keys = {index},
+        .values = {cell},
+        .hit = std::nullopt,
+    };
+
+    return table_data;
   }
 
-  bool table_data_from_dchain_op(const EP *ep, const Call *call_node,
-                                 addr_t &obj, int &num_entries,
-                                 std::vector<klee::ref<klee::Expr>> &keys,
-                                 std::vector<klee::ref<klee::Expr>> &values,
-                                 std::optional<symbol_t> &hit,
-                                 DS_ID &id) const {
+  table_data_t table_data_from_dchain_op(const EP *ep,
+                                         const Call *call_node) const {
     const call_t &call = call_node->get_call();
     assert(call.function_name == "dchain_is_index_allocated" ||
            call.function_name == "dchain_rejuvenate_index");
@@ -273,8 +224,16 @@ private:
 
     addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-    obj = dchain_addr;
-    keys = {index};
+    const Context &ctx = ep->get_ctx();
+    const dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
+
+    table_data_t table_data = {
+        .obj = dchain_addr,
+        .num_entries = static_cast<u32>(cfg.index_range),
+        .keys = {index},
+        .values = {},
+        .hit = std::nullopt,
+    };
 
     if (call.function_name == "dchain_is_index_allocated") {
       symbols_t symbols = call_node->get_locally_generated_symbols();
@@ -283,16 +242,10 @@ private:
           get_symbol(symbols, "dchain_is_index_allocated", is_allocated);
       assert(found && "Symbol dchain_is_index_allocated not found");
 
-      hit = is_allocated;
+      table_data.hit = is_allocated;
     }
 
-    id = "dchain_" + std::to_string(call_node->get_id());
-
-    const Context &ctx = ep->get_ctx();
-    const dchain_config_t &cfg = ctx.get_dchain_config(obj);
-    num_entries = cfg.index_range;
-
-    return true;
+    return table_data;
   }
 };
 

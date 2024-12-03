@@ -82,11 +82,8 @@ private:
       return can_ignore_dchain_op(ctx, call);
     }
 
-    if (is_vector_borrow_ignored(call_node)) {
-      return true;
-    }
-
-    if (is_vector_return_without_modifications(ep, call_node)) {
+    if (is_vector_return_without_modifications(ep, call_node) &&
+        is_vector_borrow_ignored(call_node)) {
       return true;
     }
 

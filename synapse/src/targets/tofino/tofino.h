@@ -48,29 +48,41 @@ struct TofinoTarget : public Target {
       : Target(TargetType::Tofino,
                {
                    new SendToControllerGenerator(), new RecirculateGenerator(),
-                   new IgnoreGenerator(), new IfGenerator(),
-                   new ThenGenerator(), new ElseGenerator(),
                    new ForwardGenerator(), new DropGenerator(),
-                   new BroadcastGenerator(), new ParserExtractionGenerator(),
+                   new BroadcastGenerator(),
+
+                   new IgnoreGenerator(),
+
+                   new IfGenerator(), new ThenGenerator(), new ElseGenerator(),
+
+                   new ParserExtractionGenerator(),
                    new ParserConditionGenerator(), new ParserRejectGenerator(),
                    new ModifyHeaderGenerator(),
-                   //    new TableLookupGenerator(),
+
+                   new TableLookupGenerator(),
+
                    new VectorRegisterLookupGenerator(),
                    new VectorRegisterUpdateGenerator(),
+
                    //    new FCFSCachedTableReadGenerator(),
                    //    new FCFSCachedTableReadOrWriteGenerator(),
                    //    new FCFSCachedTableWriteGenerator(),
                    //    new FCFSCachedTableDeleteGenerator(),
+
                    new MapRegisterReadGenerator(),
                    new MapRegisterReadOrWriteGenerator(),
                    new MapRegisterWriteGenerator(),
                    new MapRegisterDeleteGenerator(),
+
                    //    new MeterUpdateGenerator(),
+
                    //    new HHTableReadGenerator(),
                    //    new HHTableConditionalUpdateGenerator(),
+
                    //    new IntegerAllocatorAllocateGenerator(),
                    //    new IntegerAllocatorIsAllocatedGenerator(),
                    //    new IntegerAllocatorRejuvenateGenerator(),
+
                    //    new CMSQueryGenerator(),
                    //    new CMSIncrementGenerator(),
                    //    new CMSIncAndQueryGenerator(),

@@ -70,22 +70,6 @@ void TNA::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   simple_placer.place(ds, deps);
 }
 
-void TNA::place_many(const std::vector<std::unordered_set<DS *>> &all_ds,
-                     const std::unordered_set<DS_ID> &_deps) {
-  std::unordered_set<DS_ID> deps = _deps;
-
-  for (const std::unordered_set<DS *> &indep_ds : all_ds) {
-    std::unordered_set<DS_ID> new_deps;
-
-    for (const DS *ds : indep_ds) {
-      place(ds, deps);
-      new_deps.insert(ds->id);
-    }
-
-    deps.insert(new_deps.begin(), new_deps.end());
-  }
-}
-
 PlacementStatus TNA::can_place(const DS *ds,
                                const std::unordered_set<DS_ID> &deps) const {
   return simple_placer.can_place(ds, deps);
