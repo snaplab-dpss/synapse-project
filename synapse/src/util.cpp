@@ -906,6 +906,32 @@ bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj,
   return true;
 }
 
+bool is_vector_map_key_function(const EP *ep, const Node *node) {
+  if (node->get_type() != NodeType::CALL) {
+    return false;
+  }
+
+  const Call *call_node = static_cast<const Call *>(node);
+  const call_t &call = call_node->get_call();
+
+  if (call.function_name != "vector_borrow" &&
+      call.function_name != "vector_return") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> vector = call.args.at("vector").expr;
+  addr_t vector_addr = expr_addr_to_obj_addr(vector);
+
+  std::optional<map_coalescing_objs_t> data =
+      ep->get_ctx().get_map_coalescing_objs(vector_addr);
+
+  if (!data.has_value()) {
+    return false;
+  }
+
+  return data->vector_key == vector_addr;
+}
+
 bool is_parser_condition(const Branch *branch) {
   std::vector<const Call *> future_borrows =
       get_future_functions(branch, {"packet_borrow_next_chunk"});
@@ -1084,6 +1110,11 @@ bool is_vector_borrow_ignored(const Call *vector_borrow) {
   auto found_cache_it = cache.find(vector_borrow->get_id());
   if (found_cache_it != cache.end()) {
     return found_cache_it->second;
+  }
+
+  if (!is_vector_read(vector_borrow)) {
+    cache[vector_borrow->get_id()] = false;
+    return false;
   }
 
   symbols_t symbols = vector_borrow->get_locally_generated_symbols();

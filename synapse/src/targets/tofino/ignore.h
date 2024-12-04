@@ -78,6 +78,10 @@ private:
       return true;
     }
 
+    if (can_ignore_table_op(ctx, call)) {
+      return true;
+    }
+
     if (can_ignore_map_register_op(ctx, call)) {
       return true;
     }
@@ -90,12 +94,42 @@ private:
       return true;
     }
 
-    if (is_vector_return_without_modifications(ep, call_node) &&
-        is_vector_borrow_ignored(call_node)) {
+    if (is_vector_map_key_function(ep, node)) {
+      return true;
+    }
+
+    if (is_vector_borrow_ignored(call_node)) {
+      return true;
+    }
+
+    if (is_vector_return_without_modifications(ep, call_node)) {
       return true;
     }
 
     return false;
+  }
+
+  bool can_ignore_table_op(const Context &ctx, const call_t &call) const {
+    if (call.function_name != "vector_borrow" &&
+        call.function_name != "vector_return") {
+      return false;
+    }
+
+    klee::ref<klee::Expr> vector = call.args.at("vector").expr;
+    addr_t vector_addr = expr_addr_to_obj_addr(vector);
+
+    std::optional<map_coalescing_objs_t> data =
+        ctx.get_map_coalescing_objs(vector_addr);
+
+    if (!data.has_value()) {
+      return false;
+    }
+
+    if (!ctx.check_ds_impl(data->map, DSImpl::Tofino_Table)) {
+      return false;
+    }
+
+    return true;
   }
 
   bool can_ignore_fcfs_cached_table_op(const Context &ctx,

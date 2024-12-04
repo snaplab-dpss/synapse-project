@@ -49,6 +49,10 @@ get_future_functions(const Node *root,
 
 bool is_parser_drop(const Node *root);
 
+// Maps store their keys in a vector, and the values in a separate vector. This
+// function checks if the provided vector function stores the keys for a map.
+bool is_vector_map_key_function(const EP *ep, const Node *node);
+
 std::unordered_set<std::string> get_symbols(const Node *node);
 
 // A parser condition should be the single discriminating condition that

@@ -122,8 +122,8 @@ int main(int argc, char **argv) {
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
   app.add_option("--config", config_file, "Configuration file.")->required();
-  app.add_option("--out", out_dir, "Output directory for every generated file.")
-      ->required();
+  app.add_option("--out", out_dir,
+                 "Output directory for every generated file.");
   app.add_option("--heuristic", heuristic_opt, "Chosen heuristic.")
       ->transform(
           CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case))
@@ -215,7 +215,9 @@ int main(int argc, char **argv) {
              << "\n";
   Log::log() << "\n";
 
-  // synthesize(report.solution.ep, out_dir);
+  if (!out_dir.empty()) {
+    synthesize(report.solution.ep, out_dir);
+  }
 
   if (report.solution.ep) {
     delete report.solution.ep;

@@ -47,16 +47,21 @@ struct TofinoTarget : public Target {
   TofinoTarget(const toml::table &config)
       : Target(TargetType::Tofino,
                {
-                   new SendToControllerGenerator(), new RecirculateGenerator(),
-                   new ForwardGenerator(), new DropGenerator(),
+                   new SendToControllerGenerator(),
+                   new RecirculateGenerator(),
+                   new ForwardGenerator(),
+                   new DropGenerator(),
                    new BroadcastGenerator(),
 
                    new IgnoreGenerator(),
 
-                   new IfGenerator(), new ThenGenerator(), new ElseGenerator(),
+                   new IfGenerator(),
+                   new ThenGenerator(),
+                   new ElseGenerator(),
 
                    new ParserExtractionGenerator(),
-                   new ParserConditionGenerator(), new ParserRejectGenerator(),
+                   new ParserConditionGenerator(),
+                   new ParserRejectGenerator(),
                    new ModifyHeaderGenerator(),
 
                    new TableLookupGenerator(),
@@ -64,28 +69,28 @@ struct TofinoTarget : public Target {
                    new VectorRegisterLookupGenerator(),
                    new VectorRegisterUpdateGenerator(),
 
-                   //    new FCFSCachedTableReadGenerator(),
-                   //    new FCFSCachedTableReadOrWriteGenerator(),
-                   //    new FCFSCachedTableWriteGenerator(),
-                   //    new FCFSCachedTableDeleteGenerator(),
+                   new FCFSCachedTableReadGenerator(),
+                   new FCFSCachedTableReadOrWriteGenerator(),
+                   new FCFSCachedTableWriteGenerator(),
+                   new FCFSCachedTableDeleteGenerator(),
 
                    new MapRegisterReadGenerator(),
                    new MapRegisterReadOrWriteGenerator(),
                    new MapRegisterWriteGenerator(),
                    new MapRegisterDeleteGenerator(),
 
-                   //    new MeterUpdateGenerator(),
+                   new MeterUpdateGenerator(),
 
-                   //    new HHTableReadGenerator(),
-                   //    new HHTableConditionalUpdateGenerator(),
+                   new HHTableReadGenerator(),
+                   new HHTableConditionalUpdateGenerator(),
 
-                   //    new IntegerAllocatorAllocateGenerator(),
-                   //    new IntegerAllocatorIsAllocatedGenerator(),
-                   //    new IntegerAllocatorRejuvenateGenerator(),
+                   new IntegerAllocatorAllocateGenerator(),
+                   new IntegerAllocatorIsAllocatedGenerator(),
+                   new IntegerAllocatorRejuvenateGenerator(),
 
-                   //    new CMSQueryGenerator(),
-                   //    new CMSIncrementGenerator(),
-                   //    new CMSIncAndQueryGenerator(),
+                   new CMSQueryGenerator(),
+                   new CMSIncrementGenerator(),
+                   new CMSIncAndQueryGenerator(),
                },
                new TofinoContext(config)) {}
 };

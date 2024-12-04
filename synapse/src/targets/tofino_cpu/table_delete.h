@@ -64,6 +64,10 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
+    if (is_vector_map_key_function(ep, call_node)) {
+      return std::nullopt;
+    }
+
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     if (!get_table_delete_data(call_node, obj, keys)) {
@@ -86,6 +90,10 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
+
+    if (is_vector_map_key_function(ep, call_node)) {
+      return impls;
+    }
 
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;

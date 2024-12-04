@@ -142,7 +142,8 @@ private:
     }
 
     if (call.function_name == "vector_borrow") {
-      if (!is_vector_read(call_node)) {
+      if (is_vector_map_key_function(ep, call_node) ||
+          !is_vector_read(call_node)) {
         return std::nullopt;
       }
 
