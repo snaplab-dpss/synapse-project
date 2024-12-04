@@ -131,7 +131,7 @@ struct tcp_hdr_t {
 struct vlan_hdr_t {
   u16 vlan_tpid;
   u16 vlan_tci;
-};
+} __attribute__((__packed__));
 
 #define ETHERTYPE_IP 0x0800       /* IP */
 #define ETHERTYPE_ARP 0x0806      /* Address resolution */
