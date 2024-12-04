@@ -89,11 +89,11 @@ pkt_hdr_t build_pkt_template() {
   pkt.ip_hdr.time_to_live = 64;
   pkt.ip_hdr.next_proto_id = IPPROTO_UDP;
   pkt.ip_hdr.hdr_checksum = 0;
-  pkt.ip_hdr.src_addr = 0;
-  pkt.ip_hdr.dst_addr = 0;
+  pkt.ip_hdr.src_addr = inet_addr(SRC_IP);
+  pkt.ip_hdr.dst_addr = inet_addr(DST_IP);
 
-  pkt.udp_hdr.src_port = 0;
-  pkt.udp_hdr.dst_port = 0;
+  pkt.udp_hdr.src_port = htons(SRC_PORT);
+  pkt.udp_hdr.dst_port = htons(DST_PORT);
   pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
   pkt.udp_hdr.checksum = 0;
 
