@@ -669,6 +669,12 @@ concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
   //   return candidate_info;
   // }
 
+  // Uncomment this to allow reordering of routing nodes.
+  if (proposed_candidate->get_type() == NodeType::ROUTE) {
+    candidate_info.status = ReorderingCandidateStatus::NOT_ALLOWED;
+    return candidate_info;
+  }
+
   if (!anchor_reaches_candidate(anchor, proposed_candidate)) {
     candidate_info.status = ReorderingCandidateStatus::UNREACHABLE_CANDIDATE;
     return candidate_info;
