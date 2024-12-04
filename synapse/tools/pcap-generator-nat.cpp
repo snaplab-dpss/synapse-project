@@ -35,34 +35,38 @@
 #define RATE_GBIT 10
 
 struct pkt_hdr_t {
-  ether_header eth_hdr;
-  iphdr ip_hdr;
-  udphdr udp_hdr;
+  ether_hdr_t eth_hdr;
+  ipv4_hdr_t ip_hdr;
+  udp_hdr_t udp_hdr;
+  u8 payload[22];
 } __attribute__((packed));
 
 pkt_hdr_t build_pkt_template() {
   pkt_hdr_t pkt;
 
   pkt.eth_hdr.ether_type = htons(ETHERTYPE_IP);
-  parse_etheraddr(DMAC, (ether_addr *)&pkt.eth_hdr.ether_dhost);
-  parse_etheraddr(SMAC, (ether_addr *)&pkt.eth_hdr.ether_shost);
+  parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
+  parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
 
   pkt.ip_hdr.version = 4;
   pkt.ip_hdr.ihl = 5;
-  pkt.ip_hdr.tos = 0;
-  pkt.ip_hdr.id = 0;
-  pkt.ip_hdr.frag_off = 0;
-  pkt.ip_hdr.ttl = 64;
-  pkt.ip_hdr.protocol = IPPROTO_UDP;
-  pkt.ip_hdr.check = 0;
-  pkt.ip_hdr.saddr = 0;
-  pkt.ip_hdr.daddr = 0;
-  pkt.ip_hdr.tot_len = htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr));
+  pkt.ip_hdr.type_of_service = 0;
+  pkt.ip_hdr.total_length =
+      htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.payload));
+  pkt.ip_hdr.packet_id = 0;
+  pkt.ip_hdr.fragment_offset = 0;
+  pkt.ip_hdr.time_to_live = 64;
+  pkt.ip_hdr.next_proto_id = IPPROTO_UDP;
+  pkt.ip_hdr.hdr_checksum = 0;
+  pkt.ip_hdr.src_addr = 0;
+  pkt.ip_hdr.dst_addr = 0;
 
-  pkt.udp_hdr.source = 0;
-  pkt.udp_hdr.dest = 0;
-  pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr));
-  pkt.udp_hdr.check = 0;
+  pkt.udp_hdr.src_port = 0;
+  pkt.udp_hdr.dst_port = 0;
+  pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.payload));
+  pkt.udp_hdr.checksum = 0;
+
+  memset(pkt.payload, 0x42, sizeof(pkt.payload));
 
   return pkt;
 }
@@ -268,10 +272,10 @@ public:
     for (const flow_t &flow : flows) {
       pkt_hdr_t pkt = packet_template;
 
-      pkt.ip_hdr.saddr = flow.src_ip;
-      pkt.ip_hdr.daddr = flow.dst_ip;
-      pkt.udp_hdr.source = flow.src_port;
-      pkt.udp_hdr.dest = flow.dst_port;
+      pkt.ip_hdr.src_addr = flow.src_ip;
+      pkt.ip_hdr.dst_addr = flow.dst_ip;
+      pkt.udp_hdr.src_port = flow.src_port;
+      pkt.udp_hdr.dst_port = flow.dst_port;
 
       port_allocator.allocate(flow);
       allocated_flows.insert(flow);
@@ -339,10 +343,10 @@ public:
       u16 allocated_port = port_allocator.get(flow);
 
       if (new_flow || flows_dev_turn[flow] == Dev::LAN) {
-        pkt.ip_hdr.saddr = flow.src_ip;
-        pkt.ip_hdr.daddr = flow.dst_ip;
-        pkt.udp_hdr.source = flow.src_port;
-        pkt.udp_hdr.dest = flow.dst_port;
+        pkt.ip_hdr.src_addr = flow.src_ip;
+        pkt.ip_hdr.dst_addr = flow.dst_ip;
+        pkt.udp_hdr.src_port = flow.src_port;
+        pkt.udp_hdr.dst_port = flow.dst_port;
 
         flows_dev_turn[flow] = Dev::WAN;
 
@@ -356,12 +360,12 @@ public:
         bool success = parse_ipv4addr(PUBLIC_IP, &public_ipv4_addr);
         assert(success && "Invalid IPv4 format");
 
-        pkt.ip_hdr.saddr = inverted_flow.src_ip;
-        pkt.udp_hdr.source = inverted_flow.src_port;
+        pkt.ip_hdr.src_addr = inverted_flow.src_ip;
+        pkt.udp_hdr.src_port = inverted_flow.src_port;
 
         // No ntohs, the original NAT doesn't care.
-        pkt.ip_hdr.daddr = public_ipv4_addr;
-        pkt.udp_hdr.dest = allocated_port;
+        pkt.ip_hdr.dst_addr = public_ipv4_addr;
+        pkt.udp_hdr.dst_port = allocated_port;
 
         flows_dev_turn[flow] = Dev::LAN;
 
@@ -453,11 +457,8 @@ private:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-
-    constexpr int CRC = 4;
-    constexpr int IPG = 20;
-    constexpr int bytes = sizeof(pkt_hdr_t) + CRC + IPG;
-
+    constexpr int bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) +
+                          CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     current_time += (bytes * 8) / RATE_GBIT;
   }
 };

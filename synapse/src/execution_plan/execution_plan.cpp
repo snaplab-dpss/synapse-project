@@ -740,6 +740,21 @@ pps_t EP::speculate_tput_pps() const {
   // if (id == 0) {
   //   Log::dbg() << speculations2str(this, speculations);
   //   spec_ctx.debug();
+  //   std::cerr << "Ingress: "
+  //             << tput2str(
+  //                    pps2bps(ingress,
+  //                    ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
+  //             << "\n";
+  //   std::cerr << "Egress from ingress: "
+  //             << tput2str(pps2bps(egress_from_ingress(ingress),
+  //                                 ctx.get_profiler().get_avg_pkt_bytes()),
+  //                         "bps", true)
+  //             << "\n";
+  //   std::cerr << "Stable egress: "
+  //             << tput2str(
+  //                    pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()),
+  //                    "bps", true)
+  //             << "\n";
   //   // BDDViz::visualize(bdd.get(), false);
   //   // EPViz::visualize(this, false);
   //   // ProfilerViz::visualize(bdd.get(), spec_ctx.get_profiler(), false);

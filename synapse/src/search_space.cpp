@@ -96,10 +96,10 @@ void SearchSpace::activate_leaf(const EP *ep) {
 std::string SearchSpace::build_meta_tput_estimate(const EP *ep) {
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
-  int avg_pkt_size = profiler.get_avg_pkt_bytes();
+  bytes_t avg_pkt_size = profiler.get_avg_pkt_bytes();
 
   pps_t estimate_pps = ep->estimate_tput_pps();
-  pps_t estimate_bps = estimate_pps * avg_pkt_size * 8;
+  bps_t estimate_bps = pps2bps(estimate_pps, avg_pkt_size);
 
   std::stringstream ss;
   ss << tput2str(estimate_bps, "bps", true);
@@ -114,10 +114,10 @@ std::string SearchSpace::build_meta_tput_estimate(const EP *ep) {
 std::string SearchSpace::build_meta_tput_speculation(const EP *ep) {
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
-  int avg_pkt_size = profiler.get_avg_pkt_bytes();
+  bytes_t avg_pkt_size = profiler.get_avg_pkt_bytes();
 
   pps_t speculation_pps = ep->speculate_tput_pps();
-  bps_t speculation_bps = speculation_pps * avg_pkt_size * 8;
+  bps_t speculation_bps = pps2bps(speculation_pps, avg_pkt_size);
 
   std::stringstream ss;
   ss << tput2str(speculation_bps, "bps", true);

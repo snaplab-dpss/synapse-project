@@ -40,7 +40,7 @@ private:
   std::shared_ptr<bdd_profile_t> bdd_profile;
 
   std::shared_ptr<ProfilerNode> root;
-  int avg_pkt_size;
+  bytes_t avg_pkt_size;
 
   // Not the prettiest solution, but will do.
   // We cache on reads, and invalidate on writes.
@@ -62,7 +62,7 @@ public:
   Profiler &operator=(const Profiler &other);
 
   const bdd_profile_t *get_bdd_profile() const;
-  int get_avg_pkt_bytes() const;
+  bytes_t get_avg_pkt_bytes() const;
 
   // Estimation is relative to the parent node.
   // E.g. if the parent node has a hit rate of 0.5, and the estimation_rel is

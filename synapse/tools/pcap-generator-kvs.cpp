@@ -66,9 +66,9 @@ struct kvs_hdr_t {
 } __attribute__((__packed__));
 
 struct pkt_hdr_t {
-  ether_header eth_hdr;
-  iphdr ip_hdr;
-  udphdr udp_hdr;
+  ether_hdr_t eth_hdr;
+  ipv4_hdr_t ip_hdr;
+  udp_hdr_t udp_hdr;
   kvs_hdr_t kvs_hdr;
 } __attribute__((packed));
 
@@ -76,26 +76,26 @@ pkt_hdr_t build_pkt_template() {
   pkt_hdr_t pkt;
 
   pkt.eth_hdr.ether_type = htons(ETHERTYPE_IP);
-  parse_etheraddr(DMAC, (ether_addr *)&pkt.eth_hdr.ether_dhost);
-  parse_etheraddr(SMAC, (ether_addr *)&pkt.eth_hdr.ether_shost);
+  parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
+  parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
 
   pkt.ip_hdr.version = 4;
   pkt.ip_hdr.ihl = 5;
-  pkt.ip_hdr.tos = 0;
-  pkt.ip_hdr.id = 0;
-  pkt.ip_hdr.frag_off = 0;
-  pkt.ip_hdr.ttl = 64;
-  pkt.ip_hdr.protocol = IPPROTO_UDP;
-  pkt.ip_hdr.check = 0;
-  pkt.ip_hdr.saddr = inet_addr(SRC_IP);
-  pkt.ip_hdr.daddr = inet_addr(DST_IP);
-  pkt.ip_hdr.tot_len =
+  pkt.ip_hdr.type_of_service = 0;
+  pkt.ip_hdr.total_length =
       htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
+  pkt.ip_hdr.packet_id = 0;
+  pkt.ip_hdr.fragment_offset = 0;
+  pkt.ip_hdr.time_to_live = 64;
+  pkt.ip_hdr.next_proto_id = IPPROTO_UDP;
+  pkt.ip_hdr.hdr_checksum = 0;
+  pkt.ip_hdr.src_addr = 0;
+  pkt.ip_hdr.dst_addr = 0;
 
-  pkt.udp_hdr.source = htons(SRC_PORT);
-  pkt.udp_hdr.dest = htons(DST_PORT);
+  pkt.udp_hdr.src_port = 0;
+  pkt.udp_hdr.dst_port = 0;
   pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
-  pkt.udp_hdr.check = 0;
+  pkt.udp_hdr.checksum = 0;
 
   memset(&pkt.kvs_hdr, 0xff, sizeof(kvs_hdr_t));
 
@@ -377,11 +377,8 @@ private:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-
-    constexpr int CRC = 4;
-    constexpr int IPG = 20;
-    constexpr int bytes = sizeof(pkt_hdr_t) + CRC + IPG;
-
+    constexpr int bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) +
+                          CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     current_time += (bytes * 8) / RATE_GBIT;
   }
 };

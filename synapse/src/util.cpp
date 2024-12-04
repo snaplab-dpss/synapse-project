@@ -8,6 +8,17 @@
 #include "exprs/simplifier.h"
 #include "exprs/solver.h"
 
+pps_t bps2pps(bps_t bps, bytes_t pkt_size) {
+  return bps /
+         ((PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) *
+          8);
+}
+
+bps_t pps2bps(pps_t pps, bytes_t pkt_size) {
+  return pps *
+         (PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8;
+}
+
 bool check_same_obj(const Call *call0, const Call *call1,
                     const std::string &obj_name) {
   const call_t &c0 = call0->get_call();

@@ -19,6 +19,9 @@ class Context;
 
 struct port_ingress_t;
 
+pps_t bps2pps(bps_t bps, bytes_t pkt_size);
+bps_t pps2bps(pps_t pps, bytes_t pkt_size);
+
 bool check_same_obj(const Call *call0, const Call *call1,
                     const std::string &obj_name);
 

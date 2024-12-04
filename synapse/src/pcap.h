@@ -1,13 +1,7 @@
 #pragma once
 
-#include <arpa/inet.h>
 #include <assert.h>
 #include <byteswap.h>
-#include <net/ethernet.h>
-#include <netinet/ip.h>
-#include <netinet/udp.h>
-#include <netinet/tcp.h>
-#include <pcap/vlan.h>
 #include <pcap.h>
 
 #include <iomanip>
@@ -191,8 +185,7 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
 
 /* Compute checksum for count bytes starting at addr, using one's complement of
  * one's complement sum*/
-static unsigned short compute_checksum(unsigned short *addr,
-                                       unsigned int count) {
+static u16 compute_checksum(u8 *addr, u32 count) {
   unsigned long sum = 0;
   while (count > 1) {
     sum += *addr++;
@@ -208,38 +201,38 @@ static unsigned short compute_checksum(unsigned short *addr,
   }
   // one's complement
   sum = ~sum;
-  return ((unsigned short)sum);
+  return ((u16)sum);
 }
 
 /* set ip checksum of a given ip header*/
-inline void compute_ip_checksum(iphdr *iphdrp) {
-  iphdrp->check = 0;
-  iphdrp->check = compute_checksum((unsigned short *)iphdrp, iphdrp->ihl << 2);
+inline void compute_ip_checksum(ipv4_hdr_t *ip_hdr) {
+  ip_hdr->hdr_checksum = 0;
+  ip_hdr->hdr_checksum = compute_checksum((u8 *)ip_hdr, ip_hdr->ihl << 2);
 }
 
 /* set tcp checksum: given IP header and UDP datagram */
-inline void compute_udp_checksum(iphdr *pIph, unsigned short *ipPayload) {
+inline void compute_udp_checksum(ipv4_hdr_t *ip_hdr, u16 *ipPayload) {
   unsigned long sum = 0;
-  udphdr *udphdrp = (udphdr *)(ipPayload);
-  unsigned short udpLen = htons(udphdrp->len);
+  udp_hdr_t *udp_hdr = (udp_hdr_t *)(ipPayload);
+  u16 udpLen = htons(udp_hdr->len);
   // printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~udp len=%dn", udpLen);
   // add the pseudo header
   // printf("add pseudo headern");
   // the source ip
-  sum += (pIph->saddr >> 16) & 0xFFFF;
-  sum += (pIph->saddr) & 0xFFFF;
+  sum += (ip_hdr->src_addr >> 16) & 0xFFFF;
+  sum += (ip_hdr->src_addr) & 0xFFFF;
   // the dest ip
-  sum += (pIph->daddr >> 16) & 0xFFFF;
-  sum += (pIph->daddr) & 0xFFFF;
+  sum += (ip_hdr->dst_addr >> 16) & 0xFFFF;
+  sum += (ip_hdr->dst_addr) & 0xFFFF;
   // protocol and reserved: 17
   sum += htons(IPPROTO_UDP);
   // the length
-  sum += udphdrp->len;
+  sum += udp_hdr->len;
 
   // add the IP payload
   // printf("add ip payloadn");
   // initialize checksum to 0
-  udphdrp->check = 0;
+  udp_hdr->checksum = 0;
   while (udpLen > 1) {
     sum += *ipPayload++;
     udpLen -= 2;
@@ -257,8 +250,7 @@ inline void compute_udp_checksum(iphdr *pIph, unsigned short *ipPayload) {
   // printf("one's complementn");
   sum = ~sum;
   // set computation result
-  udphdrp->check =
-      ((unsigned short)sum == 0x0000) ? 0xFFFF : (unsigned short)sum;
+  udp_hdr->checksum = ((u16)sum == 0x0000) ? 0xFFFF : (u16)sum;
 }
 
 inline long get_file_size(const char *fname) {
@@ -277,11 +269,11 @@ inline long get_file_size(const char *fname) {
   return res;
 }
 
-inline bool parse_etheraddr(const char *str, struct ether_addr *addr) {
+inline bool parse_etheraddr(const char *str, struct ether_addr_t *addr) {
   return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX",
-                addr->ether_addr_octet + 0, addr->ether_addr_octet + 1,
-                addr->ether_addr_octet + 2, addr->ether_addr_octet + 3,
-                addr->ether_addr_octet + 4, addr->ether_addr_octet + 5) == 6;
+                addr->addr_bytes + 0, addr->addr_bytes + 1,
+                addr->addr_bytes + 2, addr->addr_bytes + 3,
+                addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
 inline bool parse_ipv4addr(const char *str, u32 *addr) {
@@ -425,12 +417,12 @@ public:
     ts = header->ts.tv_sec * 1'000'000'000 + header->ts.tv_usec * 1'000;
 
     if (assume_ip) {
-      total_len += sizeof(ether_header);
+      total_len += sizeof(ether_hdr_t);
     } else {
-      const ether_header *ether_hdr =
-          reinterpret_cast<const ether_header *>(data);
-      data += sizeof(ether_header);
-      hdrs_len += sizeof(ether_header);
+      const ether_hdr_t *ether_hdr =
+          reinterpret_cast<const ether_hdr_t *>(data);
+      data += sizeof(ether_hdr_t);
+      hdrs_len += sizeof(ether_hdr_t);
 
       u16 ether_type = ntohs(ether_hdr->ether_type);
 
@@ -440,13 +432,13 @@ public:
         data = reinterpret_cast<const u_char *>(&ether_hdr->ether_type);
 
         // Parse the VLAN header and advance the data pointer.
-        const vlan_tag *vlan_hdr = reinterpret_cast<const vlan_tag *>(data);
-        data += sizeof(vlan_tag);
+        const vlan_hdr_t *vlan_hdr = reinterpret_cast<const vlan_hdr_t *>(data);
+        data += sizeof(vlan_hdr_t);
 
         // Grab the encapsulated ethertype and offset the data pointer.
         ether_type = ntohs(reinterpret_cast<const u16 *>(data)[0]);
         data += sizeof(u16);
-        hdrs_len += sizeof(vlan_tag) + sizeof(u16);
+        hdrs_len += sizeof(vlan_hdr_t) + sizeof(u16);
       }
 
       if (ether_type != ETHERTYPE_IP) {
@@ -455,36 +447,36 @@ public:
       }
     }
 
-    const ip *ip_hdr = reinterpret_cast<const ip *>(data);
-    data += sizeof(ip);
-    hdrs_len += sizeof(ip);
+    const ipv4_hdr_t *ip_hdr = reinterpret_cast<const ipv4_hdr_t *>(data);
+    data += sizeof(ipv4_hdr_t);
+    hdrs_len += sizeof(ipv4_hdr_t);
 
-    if (ip_hdr->ip_v != 4) {
+    if (ip_hdr->version != 4) {
       return true;
     }
 
-    u16 size_hint = ntohs(ip_hdr->ip_len) + sizeof(ether_header);
+    u16 size_hint = ntohs(ip_hdr->total_length) + sizeof(ether_hdr_t);
 
-    u32 src = ntohl(ip_hdr->ip_src.s_addr);
-    u32 dst = ntohl(ip_hdr->ip_dst.s_addr);
+    u32 src = ntohl(ip_hdr->src_addr);
+    u32 dst = ntohl(ip_hdr->dst_addr);
 
     u16 sport;
     u16 dport;
 
     // We only support TCP/UDP
-    switch (ip_hdr->ip_p) {
+    switch (ip_hdr->next_proto_id) {
     case IPPROTO_TCP: {
-      const tcphdr *tcp_hdr = reinterpret_cast<const tcphdr *>(data);
-      hdrs_len += sizeof(tcphdr);
-      sport = ntohs(tcp_hdr->th_sport);
-      dport = ntohs(tcp_hdr->th_dport);
+      const tcp_hdr_t *tcp_hdr = reinterpret_cast<const tcp_hdr_t *>(data);
+      hdrs_len += sizeof(tcp_hdr_t);
+      sport = ntohs(tcp_hdr->src_port);
+      dport = ntohs(tcp_hdr->dst_port);
     } break;
 
     case IPPROTO_UDP: {
-      const udphdr *udp_hdr = reinterpret_cast<const udphdr *>(data);
-      hdrs_len += sizeof(udphdr);
-      sport = ntohs(udp_hdr->uh_sport);
-      dport = ntohs(udp_hdr->uh_dport);
+      const udp_hdr_t *udp_hdr = reinterpret_cast<const udp_hdr_t *>(data);
+      hdrs_len += sizeof(udp_hdr_t);
+      sport = ntohs(udp_hdr->src_port);
+      dport = ntohs(udp_hdr->dst_port);
     } break;
     default: {
       return true;

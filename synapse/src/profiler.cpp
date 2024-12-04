@@ -326,7 +326,7 @@ const bdd_profile_t *Profiler::get_bdd_profile() const {
   return bdd_profile.get();
 }
 
-int Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
+bytes_t Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
 
 ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
   ProfilerNode *current = root.get();

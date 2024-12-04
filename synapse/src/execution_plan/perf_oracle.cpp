@@ -2,6 +2,7 @@
 
 #include "perf_oracle.h"
 #include "../log.h"
+#include "../util.h"
 
 #define EPSILON 1e-6
 
@@ -263,7 +264,7 @@ PerfOracle::get_recirculated_egress(int port, pps_t global_ingress) const {
   assert(port < (int)recirculation_ports_capacities.size());
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
-  bps_t Tin = global_ingress * usage.global * (avg_pkt_bytes * 8);
+  bps_t Tin = pps2bps(global_ingress * usage.global, avg_pkt_bytes);
   bps_t Cr = recirculation_ports_capacities[port];
 
   if (Tin == 0) {
@@ -331,7 +332,7 @@ PerfOracle::get_recirculated_egress(int port, pps_t global_ingress) const {
 
   std::vector<pps_t> Tout_pps(Tout.size());
   for (size_t i = 0; i < Tout.size(); i++) {
-    Tout_pps[i] = Tout[i] / (avg_pkt_bytes * 8);
+    Tout_pps[i] = bps2pps(Tout[i], avg_pkt_bytes);
   }
 
   return Tout_pps;
@@ -345,7 +346,7 @@ bps_t PerfOracle::get_max_input_bps() const {
 }
 
 pps_t PerfOracle::get_max_input_pps() const {
-  return get_max_input_bps() / (avg_pkt_bytes * 8);
+  return bps2pps(get_max_input_bps(), avg_pkt_bytes);
 }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
@@ -397,7 +398,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     }
 
     pps_t port_capacity =
-        front_panel_ports_capacities[fwd_port] / (avg_pkt_bytes * 8);
+        bps2pps(front_panel_ports_capacities[fwd_port], avg_pkt_bytes);
     tput += std::min(port_tput, port_capacity);
   }
 

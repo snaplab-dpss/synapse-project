@@ -351,7 +351,6 @@ void nf_config_init(int argc, char **argv) {
     char *pcap_str = strtok(NULL, ":");
 
     if (!device_str || !pcap_str) {
-      nf_config_usage(argv);
       PARSE_ERROR(argv, "Invalid argument format: %s\n", arg);
     }
 
