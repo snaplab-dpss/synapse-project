@@ -134,6 +134,10 @@ public:
   DECLARE_VISIT(x86::CMSPeriodicCleanup)
   DECLARE_VISIT(x86::HashObj)
   DECLARE_VISIT(x86::ChtFindBackend)
+  DECLARE_VISIT(x86::TBIsTracing)
+  DECLARE_VISIT(x86::TBTrace)
+  DECLARE_VISIT(x86::TBUpdateAndCheck)
+  DECLARE_VISIT(x86::TBExpire)
 
 protected:
   virtual void log(const EPNode *ep_node) const override;

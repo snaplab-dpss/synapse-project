@@ -28,6 +28,10 @@
 #include "cms_periodic_cleanup.h"
 #include "hash_obj.h"
 #include "cht_find_backend.h"
+#include "tb_expire.h"
+#include "tb_is_tracing.h"
+#include "tb_trace.h"
+#include "tb_update_and_check.h"
 
 #include "x86_context.h"
 
@@ -38,31 +42,47 @@ struct x86Target : public Target {
       : Target(TargetType::x86,
                {
                    new IgnoreGenerator(),
-                   new ParseHeaderGenerator(),
-                   new ModifyHeaderGenerator(),
-                   new ChecksumUpdateGenerator(),
-                   new IfGenerator(),
-                   new ThenGenerator(),
-                   new ElseGenerator(),
+
                    new ForwardGenerator(),
                    new BroadcastGenerator(),
                    new DropGenerator(),
+
+                   new ParseHeaderGenerator(),
+                   new ModifyHeaderGenerator(),
+                   new ChecksumUpdateGenerator(),
+
+                   new IfGenerator(),
+                   new ThenGenerator(),
+                   new ElseGenerator(),
+
                    new ExpireItemsSingleMapGenerator(),
                    new ExpireItemsSingleMapIterativelyGenerator(),
+
                    new MapGetGenerator(),
                    new MapPutGenerator(),
                    new MapEraseGenerator(),
+
                    new VectorReadGenerator(),
                    new VectorWriteGenerator(),
+
                    new DchainRejuvenateIndexGenerator(),
                    new DchainAllocateNewIndexGenerator(),
                    new DchainIsIndexAllocatedGenerator(),
                    new DchainFreeIndexGenerator(),
+
                    new CMSCountMinGenerator(),
                    new CMSIncrementGenerator(),
                    new CMSPeriodicCleanupGenerator(),
+
                    new HashObjGenerator(),
+
                    new ChtFindBackendGenerator(),
+
+                   new TBExpireGenerator(),
+                   new TBIsTracingGenerator(),
+                   new TBTraceGenerator(),
+                   new TBUpdateAndCheckGenerator(),
+
                },
                new x86Context()) {}
 };

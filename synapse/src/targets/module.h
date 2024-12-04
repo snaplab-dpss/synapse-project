@@ -22,36 +22,48 @@ enum class ModuleType {
   // Tofino
   // ========================================
 
-  Tofino_SendToController,
   Tofino_Ignore,
-  Tofino_If,
-  Tofino_ParserExtraction,
-  Tofino_ParserCondition,
-  Tofino_ParserReject,
-  Tofino_Then,
-  Tofino_Else,
+
+  Tofino_SendToController,
   Tofino_Forward,
   Tofino_Drop,
   Tofino_Broadcast,
+  Tofino_Recirculate,
+
+  Tofino_If,
+  Tofino_Then,
+  Tofino_Else,
+
+  Tofino_ParserExtraction,
+  Tofino_ParserCondition,
+  Tofino_ParserReject,
+
   Tofino_ModifyHeader,
+
   Tofino_TableLookup,
+
   Tofino_VectorRegisterLookup,
   Tofino_VectorRegisterUpdate,
+
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadOrWrite,
   Tofino_FCFSCachedTableWrite,
   Tofino_FCFSCachedTableDelete,
+
   Tofino_MapRegisterRead,
   Tofino_MapRegisterReadOrWrite,
   Tofino_MapRegisterWrite,
   Tofino_MapRegisterDelete,
-  Tofino_Recirculate,
+
   Tofino_MeterUpdate,
+
   Tofino_HHTableRead,
   Tofino_HHTableConditionalUpdate,
+
   Tofino_IntegerAllocatorRejuvenate,
   Tofino_IntegerAllocatorAllocate,
   Tofino_IntegerAllocatorIsAllocated,
+
   Tofino_CMSQuery,
   Tofino_CMSIncrement,
   Tofino_CMSIncAndQuery,
@@ -64,44 +76,60 @@ enum class ModuleType {
   TofinoCPU_ParseHeader,
   TofinoCPU_ModifyHeader,
   TofinoCPU_ChecksumUpdate,
+
   TofinoCPU_If,
   TofinoCPU_Then,
   TofinoCPU_Else,
+
   TofinoCPU_Forward,
   TofinoCPU_Broadcast,
   TofinoCPU_Drop,
+
   TofinoCPU_TableLookup,
   TofinoCPU_TableUpdate,
   TofinoCPU_TableDelete,
+
   TofinoCPU_FCFSCachedTableRead,
   TofinoCPU_FCFSCachedTableWrite,
   TofinoCPU_FCFSCachedTableDelete,
+
   TofinoCPU_MapRegisterRead,
   TofinoCPU_MapRegisterWrite,
   TofinoCPU_MapRegisterDelete,
+
   TofinoCPU_HHTableRead,
   TofinoCPU_HHTableConditionalUpdate,
   TofinoCPU_HHTableUpdate,
   TofinoCPU_HHTableDelete,
+
   TofinoCPU_DchainAllocateNewIndex,
   TofinoCPU_DchainRejuvenateIndex,
   TofinoCPU_DchainIsIndexAllocated,
   TofinoCPU_DchainFreeIndex,
+
   TofinoCPU_IntegerAllocatorFreeIndex,
+
   TofinoCPU_VectorRead,
   TofinoCPU_VectorWrite,
+
   TofinoCPU_MapGet,
   TofinoCPU_MapPut,
   TofinoCPU_MapErase,
+
   TofinoCPU_ChtFindBackend,
+
   TofinoCPU_HashObj,
+
   TofinoCPU_VectorRegisterLookup,
   TofinoCPU_VectorRegisterUpdate,
+
   TofinoCPU_TBIsTracing,
   TofinoCPU_TBTrace,
   TofinoCPU_TBUpdateAndCheck,
   TofinoCPU_TBExpire,
+
   TofinoCPU_MeterInsert,
+
   TofinoCPU_CMSUpdate,
   TofinoCPU_CMSQuery,
   TofinoCPU_CMSIncrement,
@@ -112,31 +140,42 @@ enum class ModuleType {
   // ========================================
 
   x86_Ignore,
+
   x86_If,
   x86_Then,
   x86_Else,
+
   x86_Forward,
+  x86_Drop,
+  x86_Broadcast,
+
   x86_ParseHeader,
   x86_ModifyHeader,
+  x86_ChecksumUpdate,
+
   x86_MapGet,
   x86_MapPut,
   x86_MapErase,
+
   x86_VectorRead,
   x86_VectorWrite,
+
   x86_DchainAllocateNewIndex,
   x86_DchainRejuvenateIndex,
   x86_DchainIsIndexAllocated,
   x86_DchainFreeIndex,
+
   x86_CMSIncrement,
   x86_CMSCountMin,
   x86_CMSPeriodicCleanup,
-  x86_Drop,
-  x86_Broadcast,
+
   x86_ExpireItemsSingleMap,
   x86_ExpireItemsSingleMapIteratively,
-  x86_ChecksumUpdate,
+
   x86_ChtFindBackend,
+
   x86_HashObj,
+
   x86_TBIsTracing,
   x86_TBTrace,
   x86_TBUpdateAndCheck,

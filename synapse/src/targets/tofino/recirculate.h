@@ -57,11 +57,11 @@ protected:
 
     EPLeaf active_leaf = ep->get_active_leaf();
 
-    // FIXME: How do we recalculate the estimated throughput after a forwarding
+    // TODO: How do we recalculate the estimated throughput after a forwarding
     // decision is made?
-    // assert((!ep->get_active_leaf().node ||
-    //         !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
-    //        "TODO");
+    assert((!ep->get_active_leaf().node ||
+            !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
+           "TODO");
 
     int total_recirc_ports =
         get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;

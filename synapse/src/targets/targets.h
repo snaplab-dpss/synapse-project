@@ -12,8 +12,8 @@
 
 inline targets_t build_targets(const toml::table &config) {
   return {
-      new tofino::TofinoTarget(config),
-      new tofino_cpu::TofinoCPUTarget(),
+      // new tofino::TofinoTarget(config),
+      // new tofino_cpu::TofinoCPUTarget(),
       new x86::x86Target(),
   };
 }
