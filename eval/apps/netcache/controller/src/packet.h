@@ -3,14 +3,14 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <stdio.h>
-
 #include <string>
+#include <iostream>
 
 #define IP_PROTO_TCP 6
 #define IP_PROTO_UDP 17
 #define PORT_NETCACHE 50000
 
-#define MAX_PACKET_SIZE 10000
+#define MAX_PACKET_SIZE 65536
 
 namespace netcache {
 
@@ -95,7 +95,7 @@ struct pkt_hdr_t {
 				return std::pair<void*, uint16_t>((uint8_t*)ip_hdr + ip_size, IP_PROTO_UDP);
 			} break;
 			default: {
-				printf("\n*** Not TCP/UDP packet! ***\n");
+				printf("\n*** Not a TCP/UDP packet! ***\n");
 				exit(1);
 			} break;
 		}
@@ -113,13 +113,13 @@ struct pkt_hdr_t {
 		switch (l4_hdr.second) {
 			case IP_PROTO_TCP: {
 				tcp_hdr_t* tcp_hdr = (tcp_hdr_t*)l4_hdr.first;
-				if (tcp_hdr->src_port == 50000 || tcp_hdr->dst_port == 50000) {
+				if (ntohs(tcp_hdr->src_port) == 50000 || ntohs(tcp_hdr->dst_port) == 50000) {
 					return true;
 				} else return false;
 			} break;
 			case IP_PROTO_UDP: {
 				udp_hdr_t* udp_hdr = (udp_hdr_t*)l4_hdr.first;
-				if (udp_hdr->src_port == 50000 || udp_hdr->dst_port == 50000) {
+				if (ntohs(udp_hdr->src_port) == 50000 || ntohs(udp_hdr->dst_port) == 50000) {
 					return true;
 				} else return false;
 			} break;
