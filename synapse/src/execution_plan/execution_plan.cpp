@@ -317,8 +317,6 @@ void EP::replace_bdd(const BDD *new_bdd,
   sort_leaves();
 }
 
-void EP::visit(EPVisitor &visitor) const { visitor.visit(this); }
-
 void EP::debug() const {
   Log::dbg() << "ID: " << id << "\n";
   Log::dbg() << "Ancestors:";

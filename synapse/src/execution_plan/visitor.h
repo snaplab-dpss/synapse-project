@@ -4,13 +4,15 @@
 #include <memory>
 
 #define DECLARE_VISIT(M)                                                       \
-  void visit(const EP *ep, const EPNode *ep_node, const M *node) override;
+  Action visit(const EP *ep, const EPNode *ep_node, const M *node) override;
 
 #define VISIT_NOP(M)                                                           \
-  virtual void visit(const EP *ep, const EPNode *ep_node, const M *m) {}
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {      \
+    return Action::doChildren;                                                 \
+  }
 
 #define VISIT_TODO(M)                                                          \
-  virtual void visit(const EP *ep, const EPNode *ep_node, const M *m) {        \
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {      \
     assert(false && "TODO");                                                   \
   }
 
@@ -137,6 +139,8 @@ class TBExpire;
 
 class EPVisitor {
 public:
+  enum class Action { skipChildren, doChildren };
+
   virtual void visit(const EP *ep);
   virtual void visit(const EP *ep, const EPNode *ep_node);
 

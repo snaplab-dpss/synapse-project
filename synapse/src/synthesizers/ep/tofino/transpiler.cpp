@@ -8,16 +8,36 @@ namespace tofino {
 Transpiler::Transpiler(const EPSynthesizer *_synthesizer)
     : synthesizer(_synthesizer) {}
 
+static code_t transpile_constant(klee::ref<klee::Expr> expr) {
+  assert(is_constant(expr));
+
+  bytes_t width = expr->getWidth() / 8;
+
+  coder_t code;
+  code << width * 8 << "w";
+
+  for (size_t byte = 0; byte < width; byte++) {
+    klee::ref<klee::Expr> extract =
+        solver_toolbox.exprBuilder->Extract(expr, (width - byte - 1) * 8, 8);
+    u64 byte_value = solver_toolbox.value_from_expr(extract);
+
+    std::stringstream ss;
+    ss << std::hex << std::setw(2) << std::setfill('0') << byte_value;
+
+    code << ss.str();
+  }
+
+  return code.dump();
+}
+
 code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
   Log::dbg() << "Transpile: " << expr_to_string(expr, false) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
 
-  bool is_const = is_constant(expr);
-
-  if (is_const) {
-    coder << solver_toolbox.value_from_expr(expr);
+  if (is_constant(expr)) {
+    coder << transpile_constant(expr);
   } else {
     visit(expr);
 
@@ -29,8 +49,20 @@ code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
   code_t code = coder.dump();
   coders.pop();
 
-  assert(code.size() > 0);
+  assert(!code.empty());
   return code;
+}
+
+code_t Transpiler::type_from_size(bits_t size) const {
+  coder_t coder;
+  coder << "bit<" << size << ">";
+  return coder.dump();
+}
+
+code_t Transpiler::type_from_expr(klee::ref<klee::Expr> expr) const {
+  klee::Expr::Width width = expr->getWidth();
+  assert(width != klee::Expr::InvalidWidth);
+  return type_from_size(width);
 }
 
 klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {

@@ -18,16 +18,6 @@
 
 namespace tofino {
 
-const std::unordered_set<ModuleType> branching_modules = {
-    ModuleType::Tofino_If,
-};
-
-static bool is_branching_node(const EPNode *node) {
-  const Module *module = node->get_module();
-  ModuleType type = module->get_type();
-  return branching_modules.find(type) != branching_modules.end();
-}
-
 static const DS *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -80,17 +70,8 @@ void EPSynthesizer::visit(const EP *ep) {
   Synthesizer::dump();
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *node) {
-  EPVisitor::visit(ep, node);
-
-  if (is_branching_node(node)) {
-    return;
-  }
-
-  const std::vector<EPNode *> &children = node->get_children();
-  for (const EPNode *child : children) {
-    visit(ep, child);
-  }
+void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
+  EPVisitor::visit(ep, ep_node);
 }
 
 static code_t get_parser_state_name(const ParserState *state, bool state_init) {
@@ -125,6 +106,23 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     const ParserState *state = states.front();
     states.erase(states.begin());
 
+    var_stacks.emplace_back();
+    hdrs_stacks.emplace_back();
+
+    for (node_id_t id : state->ids) {
+      if (parser_vars.find(id) != parser_vars.end()) {
+        const vars_t &vars = parser_vars.at(id);
+        var_stacks.back().insert(var_stacks.back().end(), vars.begin(),
+                                 vars.end());
+      }
+
+      if (parser_hdrs.find(id) != parser_hdrs.end()) {
+        const vars_t &vars = parser_hdrs.at(id);
+        hdrs_stacks.back().insert(hdrs_stacks.back().end(), vars.begin(),
+                                  vars.end());
+      }
+    }
+
     switch (state->type) {
     case ParserStateType::EXTRACT: {
       const ParserStateExtract *extract =
@@ -133,7 +131,8 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
       code_t state_name = get_parser_state_name(state, state_init);
 
       var_t hdr_var;
-      bool hdr_found = get_hdr_var(extract->hdr, hdr_var);
+      bool hdr_found =
+          get_hdr_var(*extract->ids.begin(), extract->hdr, hdr_var);
       assert(hdr_found && "Header not found");
 
       assert(extract->next);
@@ -218,6 +217,9 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     } break;
     }
 
+    var_stacks.pop_back();
+    hdrs_stacks.pop_back();
+
     state_init = false;
   }
 }
@@ -231,24 +233,12 @@ code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset,
   return coder.dump();
 }
 
-code_t EPSynthesizer::type_from_size(bits_t size) const {
-  coder_t coder;
-  coder << "bit<" << size << ">";
-  return coder.dump();
-}
-
-code_t EPSynthesizer::type_from_expr(klee::ref<klee::Expr> expr) const {
-  klee::Expr::Width width = expr->getWidth();
-  assert(width != klee::Expr::InvalidWidth);
-  return type_from_size(width);
-}
-
 code_t EPSynthesizer::type_from_var(const var_t &var) const {
   if (var.is_bool) {
     return "bool";
   }
 
-  return type_from_expr(var.expr);
+  return transpiler.type_from_expr(var.expr);
 }
 
 bool EPSynthesizer::get_var(klee::ref<klee::Expr> expr, var_t &out_var) const {
@@ -283,9 +273,29 @@ bool EPSynthesizer::get_var(klee::ref<klee::Expr> expr, var_t &out_var) const {
   return false;
 }
 
-bool EPSynthesizer::get_hdr_var(klee::ref<klee::Expr> expr,
+EPSynthesizer::vars_t EPSynthesizer::get_squashed_vars() const {
+  vars_t vars;
+
+  for (const vars_t &stack : var_stacks) {
+    vars.insert(vars.end(), stack.begin(), stack.end());
+  }
+
+  return vars;
+}
+
+EPSynthesizer::vars_t EPSynthesizer::get_squashed_hdrs() const {
+  vars_t vars;
+
+  for (const vars_t &stack : hdrs_stacks) {
+    vars.insert(vars.end(), stack.begin(), stack.end());
+  }
+
+  return vars;
+}
+
+bool EPSynthesizer::get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr,
                                 var_t &out_var) const {
-  for (const var_t &var : hdrs) {
+  for (const var_t &var : parser_hdrs.at(node_id)) {
     if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       out_var = var;
       return true;
@@ -313,8 +323,8 @@ bool EPSynthesizer::get_hdr_var(klee::ref<klee::Expr> expr,
   return false;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::SendToController *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::SendToController *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
 
@@ -349,19 +359,24 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   ingress_apply << "send_to_controller(";
   ingress_apply << ep_node->get_id();
   ingress_apply << ");\n";
+
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Recirculate *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Recirculate *node) {
   // TODO:
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Ignore *node) {}
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Ignore *node) {
+  return EPVisitor::Action::doChildren;
+}
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::If *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::If *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const std::vector<klee::ref<klee::Expr>> &conditions = node->get_conditions();
@@ -398,7 +413,7 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
     ingress.indent();
     ingress << "}\n";
 
-    return;
+    return EPVisitor::Action::skipChildren;
   }
 
   code_t cond_val = get_unique_var_name("cond");
@@ -447,19 +462,29 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   ingress.indent();
   ingress << "}\n";
+
+  return EPVisitor::Action::skipChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::ParserCondition *node) {}
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::ParserCondition *node) {
+  parser_vars[node->get_node()->get_id()] = get_squashed_vars();
+  parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
+  return EPVisitor::Action::doChildren;
+}
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Then *node) {}
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Then *node) {
+  return EPVisitor::Action::doChildren;
+}
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Else *node) {}
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Else *node) {
+  return EPVisitor::Action::doChildren;
+}
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Forward *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Forward *node) {
   int dst_device = node->get_dst_device();
 
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
@@ -468,26 +493,32 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   ingress << "fwd(";
   ingress << dst_device;
   ingress << ");\n";
+
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Drop *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Drop *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
   ingress.indent();
   ingress << "drop();\n";
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::ParserReject *node) {}
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::ParserReject *node) {
+  return EPVisitor::Action::doChildren;
+}
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::Broadcast *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::Broadcast *node) {
   // TODO:
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::ParserExtraction *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::ParserExtraction *node) {
   klee::ref<klee::Expr> hdr = node->get_hdr();
   code_t hdr_name = get_unique_var_name("hdr");
 
@@ -497,7 +528,7 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   custom_hdrs.inc();
   custom_hdrs.indent();
-  custom_hdrs << type_from_expr(hdr) << " data;\n";
+  custom_hdrs << transpiler.type_from_expr(hdr) << " data;\n";
 
   custom_hdrs.dec();
   custom_hdrs.indent();
@@ -507,12 +538,36 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   ingress_hdrs.indent();
   ingress_hdrs << hdr_name << "_h " << hdr_name << ";\n";
 
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  ingress_apply.indent();
+  ingress_apply << "if(hdr." << hdr_name << ".isValid()) {\n";
+
+  ingress_apply.inc();
+
+  // On header valid only.
+  var_stacks.emplace_back();
+  hdrs_stacks.emplace_back();
+
   var_stacks.back().emplace_back("hdr." + hdr_name + ".data", hdr);
-  hdrs.emplace_back("hdr." + hdr_name, hdr);
+  hdrs_stacks.back().emplace_back("hdr." + hdr_name, hdr);
+
+  parser_vars[node->get_node()->get_id()] = get_squashed_vars();
+  parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
+
+  assert(ep_node->get_children().size() == 1);
+  visit(ep, ep_node->get_children()[0]);
+
+  var_stacks.pop_back();
+  ingress_apply.dec();
+
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  return EPVisitor::Action::skipChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::ModifyHeader *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::ModifyHeader *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   klee::ref<klee::Expr> hdr = node->get_hdr();
@@ -526,14 +581,21 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
     klee::ref<klee::Expr> expr = mod.expr;
     ingress_apply.indent();
     ingress_apply << hdr_var.name;
+    ingress_apply << "[";
+    ingress_apply << mod.offset * 8 + mod.width - 1;
+    ingress_apply << ":";
+    ingress_apply << mod.offset * 8;
+    ingress_apply << "]";
     ingress_apply << " = ";
     ingress_apply << transpiler.transpile(expr);
     ingress_apply << ";\n";
   }
+
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::TableLookup *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::TableLookup *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -561,10 +623,13 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   }
   ingress_apply << ";";
   ingress_apply << "\n";
+
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::VectorRegisterLookup *node) {
+EPVisitor::Action
+EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                     const tofino::VectorRegisterLookup *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -580,16 +645,21 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   dbg();
   assert(false && "TODO");
+
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::VectorRegisterUpdate *node) {
+EPVisitor::Action
+EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                     const tofino::VectorRegisterUpdate *node) {
   // TODO:
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::FCFSCachedTableRead *node) {
+EPVisitor::Action
+EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                     const tofino::FCFSCachedTableRead *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -606,24 +676,31 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   dbg();
 
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::FCFSCachedTableReadOrWrite *node) {
+EPVisitor::Action
+EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                     const tofino::FCFSCachedTableReadOrWrite *node) {
   // TODO:
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::FCFSCachedTableWrite *node) {
+EPVisitor::Action
+EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                     const tofino::FCFSCachedTableWrite *node) {
   // TODO:
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                          const tofino::FCFSCachedTableDelete *node) {
+EPVisitor::Action
+EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                     const tofino::FCFSCachedTableDelete *node) {
   // TODO:
   assert(false && "TODO");
+  return EPVisitor::Action::doChildren;
 }
 
 code_t EPSynthesizer::get_unique_var_name(const code_t &prefix) {

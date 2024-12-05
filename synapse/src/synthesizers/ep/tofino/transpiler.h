@@ -18,6 +18,9 @@ public:
 
   code_t transpile(klee::ref<klee::Expr> expr);
 
+  code_t type_from_size(bits_t size) const;
+  code_t type_from_expr(klee::ref<klee::Expr> expr) const;
+
   klee::ExprVisitor::Action visitNotOptimized(const klee::NotOptimizedExpr &e);
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e);
   klee::ExprVisitor::Action visitSelect(const klee::SelectExpr &e);

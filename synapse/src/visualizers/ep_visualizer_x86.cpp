@@ -11,28 +11,38 @@
 #include "../targets/x86/x86.h"
 
 #define SHOW_MODULE_NAME(M)                                                    \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
+                                 const M *node) {                              \
     function_call(ep_node, node->get_node(), node->get_target(),               \
                   node->get_name());                                           \
+    return EPVisitor::Action::doChildren;                                      \
   }
 
 #define VISIT_BRANCH(M)                                                        \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
+                                 const M *node) {                              \
     branch(ep_node, node->get_node(), node->get_target(), node->get_name());   \
+    return EPVisitor::Action::doChildren;                                      \
   }
 
 #define IGNORE_MODULE(M)                                                       \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
+                                 const M *node) {                              \
+    return EPVisitor::Action::doChildren;                                      \
+  }
 
 IGNORE_MODULE(x86::Ignore)
 
-void EPViz::visit(const EP *ep, const EPNode *ep_node, const x86::If *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
+                               const x86::If *node) {
   std::stringstream label_builder;
 
   label_builder << "\\n";
   label_builder << pretty_print_expr(node->get_condition());
 
   branch(ep_node, node->get_node(), node->get_target(), label_builder.str());
+
+  return EPVisitor::Action::doChildren;
 }
 
 SHOW_MODULE_NAME(x86::Then)

@@ -22,9 +22,9 @@ public:
         dchain_addr(_dchain_addr), vector_addr(_vector_addr),
         map_addr(_map_addr), time(_time), total_freed(_total_freed) {}
 
-  virtual void visit(EPVisitor &visitor, const EP *ep,
-                     const EPNode *ep_node) const override {
-    visitor.visit(ep, ep_node, this);
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
+                                  const EPNode *ep_node) const override {
+    return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {

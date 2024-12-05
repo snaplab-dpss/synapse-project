@@ -33,7 +33,11 @@ private:
 private:
   std::unordered_map<code_t, int> var_prefix_usage;
   std::vector<vars_t> var_stacks;
-  std::vector<var_t> hdrs;
+  std::vector<vars_t> hdrs_stacks;
+
+  std::unordered_map<node_id_t, vars_t> parser_vars;
+  std::unordered_map<node_id_t, vars_t> parser_hdrs;
+
   Transpiler transpiler;
 
 public:
@@ -69,13 +73,16 @@ public:
 
 private:
   code_t slice_var(const var_t &var, unsigned offset, bits_t size) const;
-  code_t type_from_size(bits_t size) const;
-  code_t type_from_expr(klee::ref<klee::Expr> expr) const;
   code_t type_from_var(const var_t &var) const;
 
   code_t get_unique_var_name(const code_t &prefix);
   bool get_var(klee::ref<klee::Expr> expr, var_t &out_var) const;
-  bool get_hdr_var(klee::ref<klee::Expr> expr, var_t &out_var) const;
+
+  vars_t get_squashed_vars() const;
+  vars_t get_squashed_hdrs() const;
+
+  bool get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr,
+                   var_t &out_var) const;
 
   void transpile_parser(const Parser &parser);
   void transpile_table(coder_t &coder, const Table *table,

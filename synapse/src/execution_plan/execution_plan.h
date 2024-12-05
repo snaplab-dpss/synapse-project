@@ -107,8 +107,6 @@ public:
   pps_t estimate_tput_pps() const;
   pps_t speculate_tput_pps() const;
 
-  void visit(EPVisitor &visitor) const;
-
   void debug() const;
   void debug_placements() const;
   void debug_hit_rate() const;

@@ -52,7 +52,6 @@ public:
   std::string dump() const;
   EPNode *clone(bool recursive = false) const;
 
-  void visit(EPVisitor &visitor, const EP *ep) const;
   void visit_nodes(std::function<EPNodeVisitAction(const EPNode *)> fn) const;
   void visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn);
 };

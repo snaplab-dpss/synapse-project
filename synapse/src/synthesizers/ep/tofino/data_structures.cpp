@@ -17,7 +17,7 @@ void EPSynthesizer::transpile_table(
     var_stacks.back().emplace_back(param, value);
 
     coder.indent();
-    coder << type_from_expr(value);
+    coder << transpiler.type_from_expr(value);
     coder << " ";
     coder << param;
     coder << ";\n";
@@ -34,7 +34,7 @@ void EPSynthesizer::transpile_table(
         coder << ", ";
       }
 
-      coder << type_from_expr(value);
+      coder << transpiler.type_from_expr(value);
       coder << " ";
       coder << "_" << action_params[i];
     }
@@ -106,7 +106,7 @@ void EPSynthesizer::transpile_register(coder_t &coder, const Register *reg,
                                        klee::ref<klee::Expr> value) {
   coder.indent();
   coder << "Register<";
-  coder << type_from_size(reg->index);
+  coder << transpiler.type_from_size(reg->index);
   coder << ",_>";
   coder << "(" << reg->num_entries << ",0) ";
   coder << reg->id;
@@ -130,9 +130,9 @@ void EPSynthesizer::transpile_register(coder_t &coder, const Register *reg,
       break;
     }
 
-    coder << type_from_size(reg->index);
+    coder << transpiler.type_from_size(reg->index);
     coder << " _index, ";
-    coder << type_from_expr(value);
+    coder << transpiler.type_from_expr(value);
     coder << " _value) {\n";
 
     coder.inc();

@@ -16,9 +16,9 @@ public:
       : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", node),
         symbols(_symbols), recirc_port(_recirc_port) {}
 
-  virtual void visit(EPVisitor &visitor, const EP *ep,
-                     const EPNode *ep_node) const override {
-    visitor.visit(ep, ep_node, this);
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
+                                  const EPNode *ep_node) const override {
+    return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {

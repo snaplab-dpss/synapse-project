@@ -166,7 +166,3 @@ void EPNode::visit_mutable_nodes(
     nodes.insert(nodes.end(), children.begin(), children.end());
   }
 }
-
-void EPNode::visit(EPVisitor &visitor, const EP *ep) const {
-  visitor.visit(ep, this);
-}

@@ -559,7 +559,7 @@ public:
 
   void set_node(const Node *new_node) { node = new_node; }
 
-  virtual void visit(EPVisitor &visitor, const EP *ep,
-                     const EPNode *ep_node) const = 0;
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
+                                  const EPNode *ep_node) const = 0;
   virtual Module *clone() const = 0;
 };

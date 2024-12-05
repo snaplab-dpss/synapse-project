@@ -139,7 +139,12 @@ void EPViz::visit(const EP *ep, const EPNode *node) {
     ss << node->get_id() << " ";
   }
 
-  EPVisitor::visit(ep, node);
+  const Module *module = node->get_module();
+  EPVisitor::Action action = module->visit(*this, ep, node);
+
+  if (action == EPVisitor::Action::skipChildren) {
+    return;
+  }
 
   const std::vector<EPNode *> &children = node->get_children();
   for (const EPNode *child : children) {
@@ -156,7 +161,7 @@ void EPViz::visit(const EP *ep, const EPNode *node) {
       continue;
     }
 
-    child->visit(*this, ep);
+    visit(ep, child);
 
     if (!ignore) {
       ss << node->get_id() << " -> " << child->get_id() << ";" << "\n";

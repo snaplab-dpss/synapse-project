@@ -19,10 +19,10 @@ void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
       synthesizer.visit(ep);
     } break;
     case TargetType::TofinoCPU: {
-      assert(false && "TODO");
+      // assert(false && "TODO");
     } break;
     case TargetType::x86: {
-      assert(false && "TODO");
+      // assert(false && "TODO");
     } break;
     }
   }

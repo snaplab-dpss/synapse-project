@@ -10,14 +10,23 @@ void EPVisitor::visit(const EP *ep) {
   const EPNode *root = ep->get_root();
 
   if (root) {
-    root->visit(*this, ep);
+    visit(ep, root);
   }
 }
 
 void EPVisitor::visit(const EP *ep, const EPNode *node) {
   log(node);
+
   const Module *module = node->get_module();
-  module->visit(*this, ep, node);
+  EPVisitor::Action action = module->visit(*this, ep, node);
+
+  if (action == EPVisitor::Action::skipChildren) {
+    return;
+  }
+
+  for (const EPNode *child : node->get_children()) {
+    visit(ep, child);
+  }
 }
 
 void EPVisitor::log(const EPNode *node) const {

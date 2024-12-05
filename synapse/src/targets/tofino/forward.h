@@ -13,9 +13,9 @@ public:
       : TofinoModule(ModuleType::Tofino_Forward, "Forward", node),
         dst_device(_dst_device) {}
 
-  virtual void visit(EPVisitor &visitor, const EP *ep,
-                     const EPNode *ep_node) const override {
-    visitor.visit(ep, ep_node, this);
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
+                                  const EPNode *ep_node) const override {
+    return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {

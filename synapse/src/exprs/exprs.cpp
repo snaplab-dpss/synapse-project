@@ -114,11 +114,9 @@ bool is_bool(klee::ref<klee::Expr> expr) {
 }
 
 bool is_constant(klee::ref<klee::Expr> expr) {
-  if (expr->getWidth() > 64)
-    return false;
-
-  if (expr->getKind() == klee::Expr::Kind::Constant)
+  if (expr->getKind() == klee::Expr::Kind::Constant) {
     return true;
+  }
 
   auto value = solver_toolbox.value_from_expr(expr);
   auto const_value =
