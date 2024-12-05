@@ -155,7 +155,7 @@ EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
       found.push_back(node);
     }
 
-    return EPNodeVisitAction::VISIT_CHILDREN;
+    return EPNodeVisitAction::Continue;
   });
 
   return found;
@@ -302,7 +302,7 @@ void EP::replace_bdd(const BDD *new_bdd,
 
     module->set_node(new_node);
 
-    return EPNodeVisitAction::VISIT_CHILDREN;
+    return EPNodeVisitAction::Continue;
   });
 
   meta.update_total_bdd_nodes(new_bdd);
@@ -489,11 +489,11 @@ spec_impl_t EP::peek_speculation_for_future_nodes(
   anchor->visit_nodes([this, &speculation, &speculations, current_target,
                        ingress, &future_nodes](const Node *node) {
     if (future_nodes.empty()) {
-      return NodeVisitAction::STOP;
+      return NodeVisitAction::Stop;
     }
 
     if (future_nodes.find(node->get_id()) == future_nodes.end()) {
-      return NodeVisitAction::VISIT_CHILDREN;
+      return NodeVisitAction::Continue;
     }
 
     future_nodes.erase(node->get_id());
@@ -504,10 +504,10 @@ spec_impl_t EP::peek_speculation_for_future_nodes(
 
     if (speculation.next_target.has_value() &&
         speculation.next_target != current_target) {
-      return NodeVisitAction::SKIP_CHILDREN;
+      return NodeVisitAction::SkipChildren;
     }
 
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 
   return speculation;
@@ -703,12 +703,12 @@ pps_t EP::speculate_tput_pps() const {
     leaf.next->visit_nodes([this, &speculations, &spec_ctx, &skip,
                             ingress](const Node *node) {
       if (skip.find(node->get_id()) != skip.end()) {
-        return NodeVisitAction::VISIT_CHILDREN;
+        return NodeVisitAction::Continue;
       }
 
       if (ctx.get_profiler().get_hr(node) == 0) {
         skip.insert(node->get_id());
-        return NodeVisitAction::VISIT_CHILDREN;
+        return NodeVisitAction::Continue;
       }
 
       spec_impl_t speculation =
@@ -721,10 +721,10 @@ pps_t EP::speculate_tput_pps() const {
       if (speculation.next_target.has_value()) {
         // Just ignore if we change the target, we only care about the
         // switch nodes for now.
-        return NodeVisitAction::SKIP_CHILDREN;
+        return NodeVisitAction::SkipChildren;
       }
 
-      return NodeVisitAction::VISIT_CHILDREN;
+      return NodeVisitAction::Continue;
     });
   }
 

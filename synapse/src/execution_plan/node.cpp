@@ -46,9 +46,9 @@ const EPNode *EPNode::get_node_by_id(ep_node_id_t target_id) const {
   visit_nodes([target_id, &target](const EPNode *node) {
     if (node->get_id() == target_id) {
       target = node;
-      return EPNodeVisitAction::STOP;
+      return EPNodeVisitAction::Stop;
     }
-    return EPNodeVisitAction::VISIT_CHILDREN;
+    return EPNodeVisitAction::Continue;
   });
 
   return target;
@@ -60,9 +60,9 @@ EPNode *EPNode::get_mutable_node_by_id(ep_node_id_t target_id) {
   visit_mutable_nodes([target_id, &target](EPNode *node) {
     if (node->get_id() == target_id) {
       target = node;
-      return EPNodeVisitAction::STOP;
+      return EPNodeVisitAction::Stop;
     }
-    return EPNodeVisitAction::VISIT_CHILDREN;
+    return EPNodeVisitAction::Continue;
   });
 
   return target;
@@ -136,10 +136,10 @@ void EPNode::visit_nodes(
 
     EPNodeVisitAction action = fn(node);
 
-    if (action == EPNodeVisitAction::STOP)
+    if (action == EPNodeVisitAction::Stop)
       return;
 
-    if (action == EPNodeVisitAction::SKIP_CHILDREN)
+    if (action == EPNodeVisitAction::SkipChildren)
       continue;
 
     const std::vector<EPNode *> &children = node->get_children();
@@ -156,10 +156,10 @@ void EPNode::visit_mutable_nodes(
 
     EPNodeVisitAction action = fn(node);
 
-    if (action == EPNodeVisitAction::STOP)
+    if (action == EPNodeVisitAction::Stop)
       return;
 
-    if (action == EPNodeVisitAction::SKIP_CHILDREN)
+    if (action == EPNodeVisitAction::SkipChildren)
       continue;
 
     const std::vector<EPNode *> &children = node->get_children();

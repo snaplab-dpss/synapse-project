@@ -16,7 +16,7 @@ class EPNode;
 enum class TargetType;
 
 enum class ModuleType {
-  INVALID_MODULE,
+  InvalidModule,
 
   // ========================================
   // Tofino
@@ -184,8 +184,8 @@ enum class ModuleType {
 
 inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   switch (type) {
-  case ModuleType::INVALID_MODULE:
-    os << "INVALID_MODULE";
+  case ModuleType::InvalidModule:
+    os << "InvalidModule";
     break;
   case ModuleType::Tofino_SendToController:
     os << "Tofino_SendToController";

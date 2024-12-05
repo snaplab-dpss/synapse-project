@@ -55,7 +55,7 @@ static Node *get_vector_next(const mutable_vector_t &vector) {
   Node *next = nullptr;
 
   switch (vector.node->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     Branch *branch = static_cast<Branch *>(vector.node);
     if (vector.direction) {
       next = branch->get_mutable_on_true();
@@ -63,8 +63,8 @@ static Node *get_vector_next(const mutable_vector_t &vector) {
       next = branch->get_mutable_on_false();
     }
   } break;
-  case NodeType::CALL:
-  case NodeType::ROUTE:
+  case NodeType::Call:
+  case NodeType::Route:
     next = vector.node->get_mutable_next();
     break;
   }
@@ -79,7 +79,7 @@ static const Node *get_vector_next(const vector_t &vector) {
     return next;
 
   switch (vector.node->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     const Branch *branch = static_cast<const Branch *>(vector.node);
     if (vector.direction) {
       next = branch->get_on_true();
@@ -87,8 +87,8 @@ static const Node *get_vector_next(const vector_t &vector) {
       next = branch->get_on_false();
     }
   } break;
-  case NodeType::CALL:
-  case NodeType::ROUTE:
+  case NodeType::Call:
+  case NodeType::Route:
     next = vector.node->get_next();
     break;
   }
@@ -195,10 +195,10 @@ static bool get_siblings(const vector_t &anchor, const Node *target,
       continue;
 
     switch (node->get_type()) {
-    case NodeType::BRANCH: {
+    case NodeType::Branch: {
       const Branch *branch_node = static_cast<const Branch *>(node);
 
-      if (target_type == NodeType::BRANCH) {
+      if (target_type == NodeType::Branch) {
         const Branch *target_branch = static_cast<const Branch *>(target);
 
         bool matching_conditions = solver_toolbox.are_exprs_always_equal(
@@ -218,10 +218,10 @@ static bool get_siblings(const vector_t &anchor, const Node *target,
       if (on_false)
         nodes.push_back(on_false);
     } break;
-    case NodeType::CALL: {
+    case NodeType::Call: {
       const Call *call_node = static_cast<const Call *>(node);
 
-      if (target_type == NodeType::CALL) {
+      if (target_type == NodeType::Call) {
         const Call *call_target = static_cast<const Call *>(target);
 
         bool matching_calls = solver_toolbox.are_calls_equal(
@@ -241,10 +241,10 @@ static bool get_siblings(const vector_t &anchor, const Node *target,
         return false;
       }
     } break;
-    case NodeType::ROUTE: {
+    case NodeType::Route: {
       const Route *route_node = static_cast<const Route *>(node);
 
-      if (target_type == NodeType::ROUTE) {
+      if (target_type == NodeType::Route) {
         const Route *route_target = static_cast<const Route *>(target);
 
         bool matching_route_decisions =
@@ -276,12 +276,12 @@ static bool io_check(const Node *node, const symbols_t &anchor_symbols) {
   bool met = true;
 
   switch (node->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     const Branch *branch_node = static_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch_node->get_condition();
     met &= are_all_symbols_known(condition, anchor_symbols);
   } break;
-  case NodeType::CALL: {
+  case NodeType::Call: {
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
@@ -300,7 +300,7 @@ static bool io_check(const Node *node, const symbols_t &anchor_symbols) {
       }
     }
   } break;
-  case NodeType::ROUTE:
+  case NodeType::Route:
     // Nothing to do here.
     break;
   }
@@ -316,7 +316,7 @@ static bool io_check(klee::ref<klee::Expr> expr,
 static bool check_no_side_effects(const Node *node) {
   NodeType type = node->get_type();
 
-  if (type != NodeType::CALL) {
+  if (type != NodeType::Call) {
     return true;
   }
 
@@ -331,7 +331,7 @@ static bool check_obj(const Node *n0, const Node *n1,
   NodeType n0_type = n0->get_type();
   NodeType n1_type = n1->get_type();
 
-  if ((n0_type != n1_type) || (n0_type != NodeType::CALL)) {
+  if ((n0_type != n1_type) || (n0_type != NodeType::Call)) {
     return true;
   }
 
@@ -359,11 +359,11 @@ static bool map_can_reorder(const BDD *bdd, const Node *anchor,
                             const Node *between, const Node *candidate,
                             klee::ref<klee::Expr> &condition) {
   // Has side effects, but we encountered a branch condition in between.
-  if (between->get_type() == NodeType::BRANCH) {
+  if (between->get_type() == NodeType::Branch) {
     return false;
   }
 
-  if (between->get_type() != NodeType::CALL) {
+  if (between->get_type() != NodeType::Call) {
     return true;
   }
 
@@ -417,11 +417,11 @@ static bool dchain_can_reorder(const BDD *bdd, const Node *anchor,
                                const Node *between, const Node *candidate,
                                klee::ref<klee::Expr> &condition) {
   // Has side effects, but we encountered a branch condition in between.
-  if (between->get_type() == NodeType::BRANCH) {
+  if (between->get_type() == NodeType::Branch) {
     return false;
   }
 
-  if (between->get_type() != NodeType::CALL) {
+  if (between->get_type() != NodeType::Call) {
     return true;
   }
 
@@ -432,11 +432,11 @@ static bool vector_can_reorder(const BDD *bdd, const Node *anchor,
                                const Node *between, const Node *candidate,
                                klee::ref<klee::Expr> &condition) {
   // Has side effects, but we encountered a branch condition in between.
-  if (between->get_type() == NodeType::BRANCH) {
+  if (between->get_type() == NodeType::Branch) {
     return false;
   }
 
-  if (between->get_type() != NodeType::CALL) {
+  if (between->get_type() != NodeType::Call) {
     return true;
   }
 
@@ -533,7 +533,7 @@ const std::unordered_map<std::string, can_reorder_stateful_op_fn>
 static bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor,
                                     const Node *between, const Node *candidate,
                                     klee::ref<klee::Expr> &condition) {
-  assert(candidate->get_type() == NodeType::CALL);
+  assert(candidate->get_type() == NodeType::Call);
 
   const Call *call_node = static_cast<const Call *>(candidate);
   const call_t &call = call_node->get_call();
@@ -621,7 +621,7 @@ static bool condition_check(const vector_t &anchor, const Node *candidate,
 
     if (pos_always_false || neg_always_false) {
       compatible = false;
-      return NodeVisitAction::STOP;
+      return NodeVisitAction::Stop;
     }
 
     bool is_candidate = false;
@@ -629,10 +629,10 @@ static bool condition_check(const vector_t &anchor, const Node *candidate,
     is_candidate |= (siblings.find(node->get_id()) != siblings.end());
 
     if (node == candidate) {
-      return NodeVisitAction::SKIP_CHILDREN;
+      return NodeVisitAction::SkipChildren;
     }
 
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 
   return compatible;
@@ -660,23 +660,24 @@ concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
   const Node *proposed_candidate = bdd->get_node_by_id(proposed_candidate_id);
 
   candidate_info.is_branch =
-      (proposed_candidate->get_type() == NodeType::BRANCH);
+      (proposed_candidate->get_type() == NodeType::Branch);
   candidate_info.id = proposed_candidate_id;
 
   // Uncomment/comment this to allow/disallow reordering of branches.
-  // if (proposed_candidate->get_type() == NodeType::BRANCH) {
-  //   candidate_info.status = ReorderingCandidateStatus::NOT_ALLOWED;
-  //   return candidate_info;
+  // if (proposed_candidate->get_type() == NodeType::Branch) {
+  //   candidate_info.status =
+  //   ReorderingCandidateStatus::NotAllowed; return
+  //   candidate_info;
   // }
 
   // Uncomment this to allow reordering of routing nodes.
-  if (proposed_candidate->get_type() == NodeType::ROUTE) {
-    candidate_info.status = ReorderingCandidateStatus::NOT_ALLOWED;
+  if (proposed_candidate->get_type() == NodeType::Route) {
+    candidate_info.status = ReorderingCandidateStatus::NotAllowed;
     return candidate_info;
   }
 
   if (!anchor_reaches_candidate(anchor, proposed_candidate)) {
-    candidate_info.status = ReorderingCandidateStatus::UNREACHABLE_CANDIDATE;
+    candidate_info.status = ReorderingCandidateStatus::UnreachableCandidate;
     return candidate_info;
   }
 
@@ -687,31 +688,31 @@ concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
 
   // No reordering if the proposed candidate is already following the anchor.
   if (get_vector_next(anchor) == proposed_candidate) {
-    candidate_info.status = ReorderingCandidateStatus::CANDIDATE_FOLLOWS_ANCHOR;
+    candidate_info.status = ReorderingCandidateStatus::CandidateFollowsAnchor;
     return candidate_info;
   }
 
   if (!io_check(proposed_candidate, anchor_symbols)) {
-    candidate_info.status = ReorderingCandidateStatus::IO_CHECK_FAILED;
+    candidate_info.status = ReorderingCandidateStatus::IOCheckFailed;
     return candidate_info;
   }
 
   switch (proposed_candidate->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     // We can always reorder branches as long as the IO dependencies are met.
     get_siblings(anchor, proposed_candidate, false, candidate_info.siblings);
   } break;
-  case NodeType::CALL: {
+  case NodeType::Call: {
     const Call *call_node = static_cast<const Call *>(proposed_candidate);
     const call_t &call = call_node->get_call();
 
     if (!fn_can_be_reordered(call.function_name)) {
-      candidate_info.status = ReorderingCandidateStatus::NOT_ALLOWED;
+      candidate_info.status = ReorderingCandidateStatus::NotAllowed;
       return candidate_info;
     }
 
     if (!rw_check(bdd, anchor.node, call_node, candidate_info.condition)) {
-      candidate_info.status = ReorderingCandidateStatus::RW_CHECK_FAILED;
+      candidate_info.status = ReorderingCandidateStatus::RWCheckFailed;
       return candidate_info;
     }
 
@@ -719,20 +720,20 @@ concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
 
     if (!condition_check(anchor, call_node, candidate_info.siblings,
                          candidate_info.condition)) {
-      candidate_info.status = ReorderingCandidateStatus::IMPOSSIBLE_CONDITION;
+      candidate_info.status = ReorderingCandidateStatus::ImpossibleCondition;
       return candidate_info;
     }
   } break;
-  case NodeType::ROUTE: {
+  case NodeType::Route: {
     if (!get_siblings(anchor, proposed_candidate, true,
                       candidate_info.siblings)) {
-      candidate_info.status = ReorderingCandidateStatus::CONFLICTING_ROUTING;
+      candidate_info.status = ReorderingCandidateStatus::ConflictingRouting;
       return candidate_info;
     }
   } break;
   }
 
-  candidate_info.status = ReorderingCandidateStatus::VALID;
+  candidate_info.status = ReorderingCandidateStatus::Valid;
   return candidate_info;
 }
 
@@ -744,12 +745,12 @@ static node_id_t get_next_branch(const Node *node) {
   assert(next);
 
   next->visit_nodes([&next_branch_id](const Node *node) -> NodeVisitAction {
-    if (node->get_type() == NodeType::BRANCH) {
+    if (node->get_type() == NodeType::Branch) {
       next_branch_id = node->get_id();
-      return NodeVisitAction::STOP;
+      return NodeVisitAction::Stop;
     }
 
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 
   return next_branch_id;
@@ -790,7 +791,7 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd,
     candidate_info_t proposed_candidate =
         concretize_reordering_candidate(bdd, anchor, node->get_id());
 
-    if (proposed_candidate.status == ReorderingCandidateStatus::VALID &&
+    if (proposed_candidate.status == ReorderingCandidateStatus::Valid &&
         allow_candidate(proposed_candidate)) {
       ops.push_back({anchor_info, next->get_id(), proposed_candidate});
     }
@@ -800,7 +801,7 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd,
     //   std::cerr << "Status: " << proposed_candidate.status << "\n";
     // }
 
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 
   return ops;
@@ -811,7 +812,7 @@ static Node *link(const mutable_vector_t &anchor, Node *next) {
   Node *old_next = nullptr;
 
   switch (anchor.node->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     Branch *branch = static_cast<Branch *>(anchor.node);
     if (anchor.direction) {
       old_next = branch->get_mutable_on_true();
@@ -821,8 +822,8 @@ static Node *link(const mutable_vector_t &anchor, Node *next) {
       branch->set_on_false(next);
     }
   } break;
-  case NodeType::CALL:
-  case NodeType::ROUTE: {
+  case NodeType::Call:
+  case NodeType::Route: {
     old_next = anchor.node->get_mutable_next();
     anchor.node->set_next(next);
   } break;
@@ -842,7 +843,7 @@ static void disconnect(Node *node) {
   assert(prev && "Node has no previous node");
 
   bool direction = true;
-  if (prev->get_type() == NodeType::BRANCH) {
+  if (prev->get_type() == NodeType::Branch) {
     Branch *prev_branch = static_cast<Branch *>(prev);
     if (prev_branch->get_on_true() == node) {
       direction = true;
@@ -854,13 +855,13 @@ static void disconnect(Node *node) {
   }
 
   switch (node->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     Branch *branch = static_cast<Branch *>(node);
     branch->set_on_true(nullptr);
     branch->set_on_false(nullptr);
   } break;
-  case NodeType::CALL:
-  case NodeType::ROUTE: {
+  case NodeType::Call:
+  case NodeType::Route: {
     node->set_next(nullptr);
   } break;
   }
@@ -869,7 +870,7 @@ static void disconnect(Node *node) {
 }
 
 static void disconnect_and_link_non_branch(Node *node) {
-  assert(node->get_type() != NodeType::BRANCH);
+  assert(node->get_type() != NodeType::Branch);
 
   Node *next = node->get_mutable_next();
   Node *prev = node->get_mutable_prev();
@@ -877,7 +878,7 @@ static void disconnect_and_link_non_branch(Node *node) {
 
   bool direction = true;
   switch (prev->get_type()) {
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     Branch *prev_branch = static_cast<Branch *>(prev);
     if (prev_branch->get_on_true() == node) {
       direction = true;
@@ -887,8 +888,8 @@ static void disconnect_and_link_non_branch(Node *node) {
       assert(false && "Node not found in previous branch node");
     }
   } break;
-  case NodeType::CALL:
-  case NodeType::ROUTE:
+  case NodeType::Call:
+  case NodeType::Route:
     direction = true;
     break;
   }
@@ -912,7 +913,7 @@ static directions_t get_directions(const Node *anchor, Node *candidate) {
       break;
     }
 
-    if (prev->get_type() == NodeType::BRANCH) {
+    if (prev->get_type() == NodeType::Branch) {
       Branch *prev_branch = static_cast<Branch *>(prev);
 
       Node *prev_on_true = prev_branch->get_mutable_on_true();
@@ -940,7 +941,7 @@ get_branch_candidates(const mutable_vector_t &anchor, Branch *candidate,
   // equally.
   std::unordered_set<Branch *> candidates{candidate};
   for (Node *sibling : siblings) {
-    assert(sibling->get_type() == NodeType::BRANCH);
+    assert(sibling->get_type() == NodeType::Branch);
     candidates.insert(static_cast<Branch *>(sibling));
   }
 
@@ -999,7 +1000,7 @@ static leaves_t get_leaves_from_candidates(
     Node *prev = candidate->get_mutable_prev();
     assert(prev && "Candidate has no previous node");
 
-    if (prev->get_type() == NodeType::BRANCH) {
+    if (prev->get_type() == NodeType::Branch) {
       Branch *prev_branch = static_cast<Branch *>(prev);
       Node *prev_on_true = prev_branch->get_mutable_on_true();
       Node *prev_on_false = prev_branch->get_mutable_on_false();
@@ -1086,7 +1087,7 @@ static dangling_node_t dangling_from_leaf(Node *candidate, dangling_t dangling,
                                           const mutable_vector_t &leaf) {
   Node *node = leaf.node;
 
-  if (leaf.node->get_type() == NodeType::BRANCH) {
+  if (leaf.node->get_type() == NodeType::Branch) {
     Branch *branch = static_cast<Branch *>(leaf.node);
     filter_dangling(dangling, branch, leaf.direction);
   }
@@ -1095,7 +1096,7 @@ static dangling_node_t dangling_from_leaf(Node *candidate, dangling_t dangling,
     Node *prev = node->get_mutable_prev();
     assert(prev && "Node has no previous node");
 
-    if (prev->get_type() == NodeType::BRANCH) {
+    if (prev->get_type() == NodeType::Branch) {
       Branch *prev_branch = static_cast<Branch *>(prev);
 
       Node *prev_on_true = prev_branch->get_mutable_on_true();
@@ -1181,7 +1182,7 @@ static symbol_t get_collision_free_symbol(const symbols_t &symbols,
 
 static void translate_symbols(BDD *bdd, const mutable_vector_t &anchor,
                               Node *candidate) {
-  if (candidate->get_type() != NodeType::CALL)
+  if (candidate->get_type() != NodeType::Call)
     return;
 
   Call *candidate_call = static_cast<Call *>(candidate);
@@ -1221,11 +1222,11 @@ static void pull_candidate(BDD *bdd, const mutable_vector_t &anchor,
                            Node *candidate,
                            const std::unordered_set<Node *> &siblings) {
   switch (candidate->get_type()) {
-  case NodeType::BRANCH:
+  case NodeType::Branch:
     pull_branch(bdd, anchor, static_cast<Branch *>(candidate), siblings);
     break;
-  case NodeType::CALL:
-  case NodeType::ROUTE:
+  case NodeType::Call:
+  case NodeType::Route:
     pull_non_branch(bdd, anchor, candidate, siblings);
     break;
   }
@@ -1326,7 +1327,7 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, node_id_t anchor_id,
     bdds.push_back({new_bdd, op, {}});
   }
 
-  if (anchor->get_type() != NodeType::BRANCH) {
+  if (anchor->get_type() != NodeType::Branch) {
     return bdds;
   }
 
@@ -1388,7 +1389,7 @@ reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info,
       .op2 = std::nullopt,
   };
 
-  if (proposed_candidate.status == ReorderingCandidateStatus::VALID) {
+  if (proposed_candidate.status == ReorderingCandidateStatus::Valid) {
     result.bdd = reorder(bdd, op);
   }
 
@@ -1410,7 +1411,7 @@ static hit_rate_t estimate_reorder(const BDD *bdd, const Node *anchor) {
     return cache[hash];
   }
 
-  if (anchor->get_type() == NodeType::BRANCH) {
+  if (anchor->get_type() == NodeType::Branch) {
     const Branch *branch = static_cast<const Branch *>(anchor);
 
     hit_rate_t lhs = estimate_reorder(bdd, branch->get_on_true());
@@ -1468,29 +1469,29 @@ hit_rate_t estimate_reorder(const BDD *bdd) {
 std::ostream &operator<<(std::ostream &os,
                          const ReorderingCandidateStatus &status) {
   switch (status) {
-  case ReorderingCandidateStatus::VALID:
-    os << "VALID";
+  case ReorderingCandidateStatus::Valid:
+    os << "ReorderingCandidateStatus::Valid";
     break;
-  case ReorderingCandidateStatus::UNREACHABLE_CANDIDATE:
-    os << "UNREACHABLE_CANDIDATE";
+  case ReorderingCandidateStatus::UnreachableCandidate:
+    os << "ReorderingCandidateStatus::UnreachableCandidate";
     break;
-  case ReorderingCandidateStatus::CANDIDATE_FOLLOWS_ANCHOR:
-    os << "CANDIDATE_FOLLOWS_ANCHOR";
+  case ReorderingCandidateStatus::CandidateFollowsAnchor:
+    os << "ReorderingCandidateStatus::CandidateFollowsAnchor";
     break;
-  case ReorderingCandidateStatus::IO_CHECK_FAILED:
-    os << "IO_CHECK_FAILED";
+  case ReorderingCandidateStatus::IOCheckFailed:
+    os << "ReorderingCandidateStatus::IOCheckFailed";
     break;
-  case ReorderingCandidateStatus::RW_CHECK_FAILED:
-    os << "RW_CHECK_FAILED";
+  case ReorderingCandidateStatus::RWCheckFailed:
+    os << "ReorderingCandidateStatus::RWCheckFailed";
     break;
-  case ReorderingCandidateStatus::NOT_ALLOWED:
-    os << "NOT_ALLOWED";
+  case ReorderingCandidateStatus::NotAllowed:
+    os << "ReorderingCandidateStatus::NotAllowed";
     break;
-  case ReorderingCandidateStatus::CONFLICTING_ROUTING:
-    os << "CONFLICTING_ROUTING";
+  case ReorderingCandidateStatus::ConflictingRouting:
+    os << "ReorderingCandidateStatus::ConflictingRouting";
     break;
-  case ReorderingCandidateStatus::IMPOSSIBLE_CONDITION:
-    os << "IMPOSSIBLE_CONDITION";
+  case ReorderingCandidateStatus::ImpossibleCondition:
+    os << "ReorderingCandidateStatus::ImpossibleCondition";
     break;
   }
   return os;

@@ -16,8 +16,8 @@ class NodeManager;
 typedef u64 node_id_t;
 typedef std::unordered_set<node_id_t> nodes_t;
 
-enum class NodeType { BRANCH, CALL, ROUTE };
-enum class NodeVisitAction { VISIT_CHILDREN, SKIP_CHILDREN, STOP };
+enum class NodeType { Branch, Call, Route };
+enum class NodeVisitAction { Continue, SkipChildren, Stop };
 
 struct cookie_t {
   virtual ~cookie_t() {}

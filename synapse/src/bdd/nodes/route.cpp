@@ -25,13 +25,13 @@ std::string Route::dump(bool one_liner, bool id_name_only) const {
   ss << id << ":";
 
   switch (operation) {
-  case RouteOp::FWD:
+  case RouteOp::Forward:
     ss << "FORWARD";
     break;
-  case RouteOp::DROP:
+  case RouteOp::Drop:
     ss << "DROP";
     break;
-  case RouteOp::BCAST:
+  case RouteOp::Broadcast:
     ss << "BROADCAST";
     break;
   }

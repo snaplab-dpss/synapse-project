@@ -25,14 +25,14 @@ public:
 
 protected:
   bool bdd_node_match_pattern(const Node *node) const {
-    if (node->get_type() != NodeType::ROUTE) {
+    if (node->get_type() != NodeType::Route) {
       return false;
     }
 
     const Route *route_node = static_cast<const Route *>(node);
     RouteOp op = route_node->get_operation();
 
-    if (op != RouteOp::DROP) {
+    if (op != RouteOp::Drop) {
       return false;
     }
 

@@ -22,7 +22,7 @@ public:
 protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return std::nullopt;
     }
 
@@ -44,6 +44,11 @@ protected:
                                                 map_objs)) {
       return std::nullopt;
     }
+
+    const Call *map_put = get_future_map_put(node, map_objs.map);
+    ASSERT_OR_PANIC(map_put, "map_put not found");
+
+    table_data_t table_data = get_table_data(map_put);
 
     if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
         !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
@@ -73,12 +78,15 @@ protected:
            "Branch checking index allocation not found");
 
     // FIXME: Assuming index allocation is successful on true.
-    spec_impl.skip.insert(branch_checking_index_alloc->get_id());
-    branch_checking_index_alloc->get_on_true()->visit_nodes(
-        [&spec_impl](const Node *node) {
-          spec_impl.skip.insert(node->get_id());
-          return NodeVisitAction::VISIT_CHILDREN;
-        });
+    const Node *on_hh = branch_checking_index_alloc->get_on_true();
+    std::vector<const Call *> targets = get_coalescing_nodes_from_key(
+        ep->get_bdd(), on_hh, table_data.key, map_objs);
+
+    // Ignore all coalescing nodes if the index allocation is successful (i.e.
+    // it is a heavy hitter), as we are sending everything to the controller.
+    for (const Node *target : targets) {
+      spec_impl.skip.insert(target->get_id());
+    }
 
     return spec_impl;
   }
@@ -87,7 +95,7 @@ protected:
                                            const Node *node) const override {
     std::vector<impl_t> impls;
 
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return impls;
     }
 
@@ -362,7 +370,7 @@ private:
         on_hh = delete_non_branch_node_from_bdd(ep, bdd, on_hh->get_id());
         targets.erase(found_it);
       } else {
-        assert(on_hh->get_type() != NodeType::BRANCH);
+        assert(on_hh->get_type() != NodeType::Branch);
         on_hh = on_hh->get_mutable_next();
       }
     }

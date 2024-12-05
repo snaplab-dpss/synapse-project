@@ -16,7 +16,7 @@ void assert_bdd(const BDD &bdd) {
     const Node *node = nodes[0];
     nodes.erase(nodes.begin());
 
-    if (node->get_type() == NodeType::BRANCH) {
+    if (node->get_type() == NodeType::Branch) {
       const Branch *branch = static_cast<const Branch *>(node);
 
       const Node *on_true = branch->get_on_true();

@@ -12,13 +12,13 @@ private:
 public:
   Call(node_id_t _id, const klee::ConstraintManager &_constraints,
        const call_t &_call, const symbols_t &_generated_symbols)
-      : Node(_id, NodeType::CALL, _constraints), call(_call),
+      : Node(_id, NodeType::Call, _constraints), call(_call),
         generated_symbols(_generated_symbols) {}
 
   Call(node_id_t _id, Node *_next, Node *_prev,
        const klee::ConstraintManager &_constraints, call_t _call,
        const symbols_t &_generated_symbols)
-      : Node(_id, NodeType::CALL, _next, _prev, _constraints), call(_call),
+      : Node(_id, NodeType::Call, _next, _prev, _constraints), call(_call),
         generated_symbols(_generated_symbols) {}
 
   const call_t &get_call() const { return call; }

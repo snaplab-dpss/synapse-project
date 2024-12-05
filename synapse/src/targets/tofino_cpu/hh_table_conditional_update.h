@@ -57,7 +57,7 @@ public:
 protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return std::nullopt;
     }
 
@@ -106,7 +106,7 @@ protected:
     branch_checking_index_alloc->get_on_true()->visit_nodes(
         [&spec_impl](const Node *node) {
           spec_impl.skip.insert(node->get_id());
-          return NodeVisitAction::VISIT_CHILDREN;
+          return NodeVisitAction::Continue;
         });
 
     return spec_impl;
@@ -116,7 +116,7 @@ protected:
                                            const Node *node) const override {
     std::vector<impl_t> impls;
 
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return impls;
     }
 

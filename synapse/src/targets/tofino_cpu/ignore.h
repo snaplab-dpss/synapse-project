@@ -64,7 +64,7 @@ protected:
 
 private:
   bool should_ignore(const EP *ep, const Node *node) const {
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return false;
     }
 

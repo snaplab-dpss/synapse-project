@@ -35,7 +35,7 @@ private:
     root->visit_nodes([&fractions_per_node, profiler](const Node *node) {
       hit_rate_t fraction = profiler.get_hr(node);
       fractions_per_node[node->get_id()] = fraction;
-      return NodeVisitAction::VISIT_CHILDREN;
+      return NodeVisitAction::Continue;
     });
 
     return fractions_per_node;

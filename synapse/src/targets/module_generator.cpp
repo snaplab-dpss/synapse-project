@@ -22,7 +22,7 @@ static void build_node_translations(translator_t &next_nodes_translator,
     processed_nodes_translator[sibling_id] = op.candidate_info.id;
 
     const Node *sibling = old_bdd->get_node_by_id(sibling_id);
-    assert(sibling->get_type() != NodeType::BRANCH);
+    assert(sibling->get_type() != NodeType::Branch);
 
     const Node *replacement = sibling->get_next();
 
@@ -41,7 +41,7 @@ static anchor_info_t get_anchor_info(const EP *ep) {
   const Node *anchor = next->get_prev();
   assert(anchor);
 
-  if (anchor->get_type() != NodeType::BRANCH) {
+  if (anchor->get_type() != NodeType::Branch) {
     return {anchor->get_id(), true};
   }
 

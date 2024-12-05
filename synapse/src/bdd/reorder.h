@@ -6,14 +6,14 @@
 #include "nodes/nodes.h"
 
 enum class ReorderingCandidateStatus {
-  VALID,
-  UNREACHABLE_CANDIDATE,
-  CANDIDATE_FOLLOWS_ANCHOR,
-  IO_CHECK_FAILED,
-  RW_CHECK_FAILED,
-  NOT_ALLOWED,
-  CONFLICTING_ROUTING,
-  IMPOSSIBLE_CONDITION,
+  Valid,
+  UnreachableCandidate,
+  CandidateFollowsAnchor,
+  IOCheckFailed,
+  RWCheckFailed,
+  NotAllowed,
+  ConflictingRouting,
+  ImpossibleCondition,
 };
 
 std::ostream &operator<<(std::ostream &os,

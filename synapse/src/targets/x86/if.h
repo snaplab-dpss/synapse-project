@@ -34,7 +34,7 @@ public:
 
 protected:
   bool bdd_node_match_pattern(const Node *node) const {
-    if (node->get_type() != NodeType::BRANCH) {
+    if (node->get_type() != NodeType::Branch) {
       return false;
     }
 

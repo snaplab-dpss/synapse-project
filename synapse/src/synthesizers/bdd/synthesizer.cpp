@@ -192,7 +192,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
   node->visit_nodes([this, &coder](const Node *node) {
-    NodeVisitAction action = NodeVisitAction::VISIT_CHILDREN;
+    NodeVisitAction action = NodeVisitAction::Continue;
 
     coder.indent();
     coder << "// Node ";
@@ -207,7 +207,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
     }
 
     switch (node->get_type()) {
-    case NodeType::BRANCH: {
+    case NodeType::Branch: {
       const Branch *branch_node = static_cast<const Branch *>(node);
 
       const Node *on_true = branch_node->get_on_true();
@@ -244,31 +244,31 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
       coder << "\n";
 
-      action = NodeVisitAction::STOP;
+      action = NodeVisitAction::Stop;
     } break;
-    case NodeType::CALL: {
+    case NodeType::Call: {
       const Call *call_node = static_cast<const Call *>(node);
       // const call_t &call = call_node->get_call();
       // symbols_t generated_symbols =
       // call_node->get_locally_generated_symbols();
       synthesize_process(coder, call_node);
     } break;
-    case NodeType::ROUTE: {
+    case NodeType::Route: {
       const Route *route_node = static_cast<const Route *>(node);
 
       RouteOp op = route_node->get_operation();
       int dst_device = route_node->get_dst_device();
 
       switch (op) {
-      case RouteOp::DROP: {
+      case RouteOp::Drop: {
         coder.indent();
         coder << "return DROP;\n";
       } break;
-      case RouteOp::BCAST: {
+      case RouteOp::Broadcast: {
         coder.indent();
         coder << "return FLOOD;\n";
       } break;
-      case RouteOp::FWD: {
+      case RouteOp::Forward: {
         coder.indent();
         coder << "return " << dst_device << ";\n";
       } break;

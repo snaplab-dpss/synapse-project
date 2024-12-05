@@ -8,7 +8,7 @@ class Branch;
 class Call;
 class Route;
 
-enum class BDDVisitorAction { VISIT_CHILDREN, STOP };
+enum class BDDVisitorAction { Continue, Stop };
 
 class BDDVisitor {
 public:

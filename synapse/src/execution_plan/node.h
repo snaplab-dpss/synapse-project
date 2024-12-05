@@ -9,8 +9,7 @@ class Module;
 class EPVisitor;
 class EP;
 
-enum class EPNodeType { BRANCH, CALL, ROUTE };
-enum class EPNodeVisitAction { VISIT_CHILDREN, SKIP_CHILDREN, STOP };
+enum class EPNodeVisitAction { Continue, SkipChildren, Stop };
 
 class EPNode {
 private:

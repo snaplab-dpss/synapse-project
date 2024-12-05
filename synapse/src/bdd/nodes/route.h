@@ -2,7 +2,7 @@
 
 #include "node.h"
 
-enum class RouteOp { FWD, DROP, BCAST };
+enum class RouteOp { Forward, Drop, Broadcast };
 
 class Route : public Node {
 private:
@@ -12,19 +12,19 @@ private:
 public:
   Route(node_id_t _id, const klee::ConstraintManager &_constraints,
         RouteOp _operation, int _dst_device)
-      : Node(_id, NodeType::ROUTE, _constraints), operation(_operation),
+      : Node(_id, NodeType::Route, _constraints), operation(_operation),
         dst_device(_dst_device) {}
 
   Route(node_id_t _id, const klee::ConstraintManager &_constraints,
         RouteOp _operation)
-      : Node(_id, NodeType::ROUTE, _constraints), operation(_operation) {
-    assert(operation == RouteOp::DROP || operation == RouteOp::BCAST);
+      : Node(_id, NodeType::Route, _constraints), operation(_operation) {
+    assert(operation == RouteOp::Drop || operation == RouteOp::Broadcast);
   }
 
   Route(node_id_t _id, Node *_next, Node *_prev,
         const klee::ConstraintManager &_constraints, RouteOp _operation,
         int _dst_device)
-      : Node(_id, NodeType::ROUTE, _next, _prev, _constraints),
+      : Node(_id, NodeType::Route, _next, _prev, _constraints),
         operation(_operation), dst_device(_dst_device) {}
 
   int get_dst_device() const { return dst_device; }

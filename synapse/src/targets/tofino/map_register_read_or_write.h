@@ -63,7 +63,7 @@ public:
 protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return std::nullopt;
     }
 
@@ -117,7 +117,7 @@ protected:
                                            const Node *node) const override {
     std::vector<impl_t> impls;
 
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return impls;
     }
 
@@ -199,9 +199,9 @@ private:
     u32 num_entries;
   };
 
-  map_register_data_t
-  get_map_register_data(const EP *ep, const Call *map_get,
-                        std::vector<const Call *> future_map_puts) const {
+  map_register_data_t get_map_register_data(
+      const EP *ep, const Call *map_get,
+      const std::vector<const Call *> &future_map_puts) const {
     map_register_data_t map_register_data;
 
     assert(!future_map_puts.empty());
@@ -267,7 +267,7 @@ private:
 
           next->visit_nodes([&nodes_to_ignore](const Node *node) {
             nodes_to_ignore.push_back(node);
-            return NodeVisitAction::VISIT_CHILDREN;
+            return NodeVisitAction::Continue;
           });
         }
       }

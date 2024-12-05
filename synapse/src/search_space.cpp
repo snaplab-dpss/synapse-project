@@ -11,29 +11,29 @@ static std::string get_bdd_node_description(const Node *node) {
   description << ": ";
 
   switch (node->get_type()) {
-  case NodeType::CALL: {
+  case NodeType::Call: {
     const Call *call_node = static_cast<const Call *>(node);
     description << call_node->get_call().function_name;
   } break;
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     const Branch *branch_node = static_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch_node->get_condition();
     description << "if (";
     description << pretty_print_expr(condition);
     description << ")";
   } break;
-  case NodeType::ROUTE: {
+  case NodeType::Route: {
     const Route *route = static_cast<const Route *>(node);
     RouteOp op = route->get_operation();
 
     switch (op) {
-    case RouteOp::BCAST: {
+    case RouteOp::Broadcast: {
       description << "broadcast()";
     } break;
-    case RouteOp::DROP: {
+    case RouteOp::Drop: {
       description << "drop()";
     } break;
-    case RouteOp::FWD: {
+    case RouteOp::Forward: {
       description << "forward(";
       description << route->get_dst_device();
       description << ")";

@@ -202,11 +202,11 @@ int BDD::get_node_depth(node_id_t _id) const {
 
         if (node->get_id() == _id) {
           depth = depth_tracker->depth;
-          return NodeVisitAction::STOP;
+          return NodeVisitAction::Stop;
         }
 
         depth_tracker->depth++;
-        return NodeVisitAction::VISIT_CHILDREN;
+        return NodeVisitAction::Continue;
       },
       std::make_unique<depth_tracker_t>());
 
@@ -257,11 +257,11 @@ static Route *route_node_from_call(const call_t &call,
   assert(is_routing_function(call));
 
   if (call.function_name == "packet_free") {
-    return new Route(id, constraints, RouteOp::DROP);
+    return new Route(id, constraints, RouteOp::Drop);
   }
 
   if (call.function_name == "packet_broadcast") {
-    return new Route(id, constraints, RouteOp::BCAST);
+    return new Route(id, constraints, RouteOp::Broadcast);
   }
 
   assert(call.function_name == "packet_send");
@@ -270,7 +270,7 @@ static Route *route_node_from_call(const call_t &call,
   assert(!dst_device.isNull());
 
   int value = solver_toolbox.value_from_expr(dst_device);
-  return new Route(id, constraints, RouteOp::FWD, value);
+  return new Route(id, constraints, RouteOp::Forward, value);
 }
 
 static call_t
@@ -577,7 +577,7 @@ symbols_t BDD::get_generated_symbols(const Node *node) const {
   symbols_t symbols{device, packet_len, time};
 
   while (node) {
-    if (node->get_type() == NodeType::CALL) {
+    if (node->get_type() == NodeType::Call) {
       const Call *call_node = static_cast<const Call *>(node);
       symbols_t more_symbols = call_node->get_locally_generated_symbols();
       symbols.insert(more_symbols.begin(), more_symbols.end());
@@ -619,7 +619,7 @@ void BDD::assert_integrity() const {
   root->visit_nodes([](const Node *node) {
     assert(node);
     switch (node->get_type()) {
-    case NodeType::BRANCH: {
+    case NodeType::Branch: {
       const Branch *branch = static_cast<const Branch *>(node);
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
@@ -629,14 +629,14 @@ void BDD::assert_integrity() const {
       assert(on_false->get_prev() == node);
       break;
     } break;
-    case NodeType::CALL:
-    case NodeType::ROUTE: {
+    case NodeType::Call:
+    case NodeType::Route: {
       if (node->get_next()) {
         assert(node->get_next()->get_prev() == node);
       }
     } break;
     }
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 }
 

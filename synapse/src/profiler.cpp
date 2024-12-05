@@ -123,8 +123,8 @@ static ProfilerNode *build_profiler_tree(const Node *node,
   }
 
   node->visit_nodes([&bdd_profile, max_count, &result](const Node *node) {
-    if (node->get_type() != NodeType::BRANCH) {
-      return NodeVisitAction::VISIT_CHILDREN;
+    if (node->get_type() != NodeType::Branch) {
+      return NodeVisitAction::Continue;
     }
 
     const Branch *branch = static_cast<const Branch *>(node);
@@ -170,7 +170,7 @@ static ProfilerNode *build_profiler_tree(const Node *node,
     }
 
     result = new_node;
-    return NodeVisitAction::STOP;
+    return NodeVisitAction::Stop;
   });
 
   return result;
@@ -192,7 +192,7 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
     u64 current_counter = bdd_profile.counters[node->get_id()];
 
     switch (node->get_type()) {
-    case NodeType::BRANCH: {
+    case NodeType::Branch: {
       const Branch *branch = static_cast<const Branch *>(node);
 
       const Node *on_true = branch->get_on_true();
@@ -207,7 +207,7 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
       bdd_profile.counters[on_true->get_id()] = on_true_counter;
       bdd_profile.counters[on_false->get_id()] = on_false_counter;
     } break;
-    case NodeType::CALL: {
+    case NodeType::Call: {
       const Call *call_node = static_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
 
@@ -235,7 +235,7 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
         bdd_profile.counters[next->get_id()] = current_counter;
       }
     } break;
-    case NodeType::ROUTE: {
+    case NodeType::Route: {
       if (node->get_next()) {
         const Node *next = node->get_next();
         bdd_profile.counters[next->get_id()] = current_counter;
@@ -243,7 +243,7 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
     } break;
     }
 
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 
   return bdd_profile;
@@ -270,7 +270,7 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
       ProfilerNode *profiler_node = get_node(constraints);
       assert(profiler_node && "Profiler node not found");
 
-      assert(node->get_type() == NodeType::CALL);
+      assert(node->get_type() == NodeType::Call);
       const Call *call_node = static_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
 

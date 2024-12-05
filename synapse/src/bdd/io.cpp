@@ -343,7 +343,7 @@ void BDD::serialize(const std::string &out_file) const {
     }
 
     switch (node->get_type()) {
-    case NodeType::CALL: {
+    case NodeType::Call: {
       const Call *call_node = static_cast<const Call *>(node);
       const Node *next = node->get_next();
       const symbols_t &symbols = call_node->get_locally_generated_symbols();
@@ -364,7 +364,7 @@ void BDD::serialize(const std::string &out_file) const {
         nodes.push_back(next);
       }
     } break;
-    case NodeType::BRANCH: {
+    case NodeType::Branch: {
       const Branch *branch_node = static_cast<const Branch *>(node);
       klee::ref<klee::Expr> condition = branch_node->get_condition();
       const Node *on_true = branch_node->get_on_true();
@@ -391,7 +391,7 @@ void BDD::serialize(const std::string &out_file) const {
       edges_stream << ")";
       edges_stream << "\n";
     } break;
-    case NodeType::ROUTE: {
+    case NodeType::Route: {
       const Route *route_node = static_cast<const Route *>(node);
       const Node *next = node->get_next();
 
@@ -399,13 +399,13 @@ void BDD::serialize(const std::string &out_file) const {
       nodes_stream << " ";
 
       switch (route_node->get_operation()) {
-      case RouteOp::FWD:
+      case RouteOp::Forward:
         nodes_stream << "FWD";
         break;
-      case RouteOp::DROP:
+      case RouteOp::Drop:
         nodes_stream << "DROP";
         break;
-      case RouteOp::BCAST:
+      case RouteOp::Broadcast:
         nodes_stream << "BCAST";
         break;
       }
@@ -812,11 +812,11 @@ static Node *parse_node_route(node_id_t id,
 
   if (route_operation_str == "FWD") {
     int dst_device = std::stoi(dst_device_str);
-    route_node = new Route(id, constraints, RouteOp::FWD, dst_device);
+    route_node = new Route(id, constraints, RouteOp::Forward, dst_device);
   } else if (route_operation_str == "DROP") {
-    route_node = new Route(id, constraints, RouteOp::DROP);
+    route_node = new Route(id, constraints, RouteOp::Drop);
   } else if (route_operation_str == "BCAST") {
-    route_node = new Route(id, constraints, RouteOp::BCAST);
+    route_node = new Route(id, constraints, RouteOp::Broadcast);
   } else {
     assert(false && "Unknown route operation");
   }
@@ -930,7 +930,7 @@ void process_edge(std::string serialized_edge,
   delim = serialized_edge.find("->");
 
   if (delim != std::string::npos) {
-    assert(prev->get_type() == NodeType::BRANCH);
+    assert(prev->get_type() == NodeType::Branch);
 
     std::string on_true_id_str = serialized_edge.substr(0, delim);
     std::string on_false_id_str = serialized_edge.substr(delim + 2);

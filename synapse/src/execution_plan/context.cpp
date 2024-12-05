@@ -57,15 +57,15 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
   const Node *root = bdd->get_root();
 
   root->visit_nodes([&bdd, &expiration_data](const Node *node) {
-    if (node->get_type() != NodeType::CALL) {
-      return NodeVisitAction::VISIT_CHILDREN;
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
     }
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "expire_items_single_map") {
-      return NodeVisitAction::VISIT_CHILDREN;
+      return NodeVisitAction::Continue;
     }
 
     klee::ref<klee::Expr> time = call.args.at("time").expr;
@@ -84,7 +84,7 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 
     expiration_data = data;
 
-    return NodeVisitAction::STOP;
+    return NodeVisitAction::Stop;
   });
 
   return expiration_data;

@@ -36,7 +36,7 @@ public:
 protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::BRANCH) {
+    if (node->get_type() != NodeType::Branch) {
       return std::nullopt;
     }
 
@@ -47,7 +47,7 @@ protected:
                                            const Node *node) const override {
     std::vector<impl_t> impls;
 
-    if (node->get_type() != NodeType::BRANCH) {
+    if (node->get_type() != NodeType::Branch) {
       return impls;
     }
 

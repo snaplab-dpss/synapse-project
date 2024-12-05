@@ -67,7 +67,7 @@ void apply_reordering_ops(
     reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
 
     if (reordered_bdd.op.candidate_info.status !=
-        ReorderingCandidateStatus::VALID) {
+        ReorderingCandidateStatus::Valid) {
       std::cerr << "Reordering failed: "
                 << reordered_bdd.op.candidate_info.status << "\n";
       break;

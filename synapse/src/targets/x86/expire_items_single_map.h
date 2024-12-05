@@ -48,7 +48,7 @@ public:
 
 protected:
   bool bdd_node_match_pattern(const Node *node) const {
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return false;
     }
 

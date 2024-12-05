@@ -34,14 +34,14 @@ public:
 protected:
   virtual std::optional<spec_impl_t>
   speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::ROUTE) {
+    if (node->get_type() != NodeType::Route) {
       return std::nullopt;
     }
 
     const Route *route_node = static_cast<const Route *>(node);
     RouteOp op = route_node->get_operation();
 
-    if (op != RouteOp::FWD) {
+    if (op != RouteOp::Forward) {
       return std::nullopt;
     }
 
@@ -58,14 +58,14 @@ protected:
                                            const Node *node) const override {
     std::vector<impl_t> impls;
 
-    if (node->get_type() != NodeType::ROUTE) {
+    if (node->get_type() != NodeType::Route) {
       return impls;
     }
 
     const Route *route_node = static_cast<const Route *>(node);
     RouteOp op = route_node->get_operation();
 
-    if (op != RouteOp::FWD) {
+    if (op != RouteOp::Forward) {
       return impls;
     }
 

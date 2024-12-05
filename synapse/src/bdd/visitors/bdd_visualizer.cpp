@@ -41,23 +41,23 @@ std::string BDDViz::get_color(const Node *node) const {
   std::string color;
 
   switch (node->get_type()) {
-  case NodeType::CALL: {
+  case NodeType::Call: {
     color = COLOR_CALL;
   } break;
-  case NodeType::BRANCH: {
+  case NodeType::Branch: {
     color = COLOR_BRANCH;
   } break;
-  case NodeType::ROUTE: {
+  case NodeType::Route: {
     const Route *route = static_cast<const Route *>(node);
     RouteOp operation = route->get_operation();
     switch (operation) {
-    case RouteOp::FWD:
+    case RouteOp::Forward:
       color = COLOR_FORWARD;
       break;
-    case RouteOp::DROP:
+    case RouteOp::Drop:
       color = COLOR_DROP;
       break;
-    case RouteOp::BCAST:
+    case RouteOp::Broadcast:
       color = COLOR_BROADCAST;
       break;
     }
@@ -134,7 +134,7 @@ BDDVisitorAction BDDViz::visitBranch(const Branch *node) {
     ss << " [label=\"False\"];\n";
   }
 
-  return BDDVisitorAction::STOP;
+  return BDDVisitorAction::Stop;
 }
 
 BDDVisitorAction BDDViz::visitCall(const Call *node) {
@@ -231,7 +231,7 @@ BDDVisitorAction BDDViz::visitCall(const Call *node) {
     ss << ";\n";
   }
 
-  return BDDVisitorAction::STOP;
+  return BDDVisitorAction::Stop;
 }
 
 BDDVisitorAction BDDViz::visitRoute(const Route *node) {
@@ -249,15 +249,15 @@ BDDVisitorAction BDDViz::visitRoute(const Route *node) {
   ss << id << ":";
 
   switch (operation) {
-  case RouteOp::FWD: {
+  case RouteOp::Forward: {
     ss << "fwd(" << dst_device << ")";
     break;
   }
-  case RouteOp::DROP: {
+  case RouteOp::Drop: {
     ss << "drop()";
     break;
   }
-  case RouteOp::BCAST: {
+  case RouteOp::Broadcast: {
     ss << "bcast()";
     break;
   }
@@ -279,7 +279,7 @@ BDDVisitorAction BDDViz::visitRoute(const Route *node) {
     ss << ";\n";
   }
 
-  return BDDVisitorAction::STOP;
+  return BDDVisitorAction::Stop;
 }
 
 void BDDViz::visitRoot(const Node *root) { root->visit(*this); }

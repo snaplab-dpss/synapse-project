@@ -66,7 +66,7 @@ protected:
 
 private:
   bool should_ignore(const EP *ep, const Context &ctx, const Node *node) const {
-    if (node->get_type() != NodeType::CALL) {
+    if (node->get_type() != NodeType::Call) {
       return false;
     }
 
@@ -75,10 +75,6 @@ private:
 
     if (functions_to_always_ignore.find(call.function_name) !=
         functions_to_always_ignore.end()) {
-      return true;
-    }
-
-    if (can_ignore_table_op(ctx, call)) {
       return true;
     }
 
@@ -107,29 +103,6 @@ private:
     }
 
     return false;
-  }
-
-  bool can_ignore_table_op(const Context &ctx, const call_t &call) const {
-    if (call.function_name != "vector_borrow" &&
-        call.function_name != "vector_return") {
-      return false;
-    }
-
-    klee::ref<klee::Expr> vector = call.args.at("vector").expr;
-    addr_t vector_addr = expr_addr_to_obj_addr(vector);
-
-    std::optional<map_coalescing_objs_t> data =
-        ctx.get_map_coalescing_objs(vector_addr);
-
-    if (!data.has_value()) {
-      return false;
-    }
-
-    if (!ctx.check_ds_impl(data->map, DSImpl::Tofino_Table)) {
-      return false;
-    }
-
-    return true;
   }
 
   bool can_ignore_fcfs_cached_table_op(const Context &ctx,

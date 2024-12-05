@@ -56,7 +56,7 @@ BDDVisitorAction PrinterDebug::visitBranch(const Branch *node) {
   visitConstraints(node);
   std::cerr << "===========================================\n";
 
-  return traverse ? BDDVisitorAction::VISIT_CHILDREN : BDDVisitorAction::STOP;
+  return traverse ? BDDVisitorAction::Continue : BDDVisitorAction::Stop;
 }
 
 BDDVisitorAction PrinterDebug::visitCall(const Call *node) {
@@ -90,7 +90,7 @@ BDDVisitorAction PrinterDebug::visitCall(const Call *node) {
   visitConstraints(node);
   std::cerr << "===========================================\n";
 
-  return traverse ? BDDVisitorAction::VISIT_CHILDREN : BDDVisitorAction::STOP;
+  return traverse ? BDDVisitorAction::Continue : BDDVisitorAction::Stop;
 }
 
 BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
@@ -104,15 +104,15 @@ BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
   std::cerr << "type:      route\n";
   std::cerr << "operation: ";
   switch (operation) {
-  case RouteOp::FWD: {
+  case RouteOp::Forward: {
     std::cerr << "fwd(" << dst_device << ")";
     break;
   }
-  case RouteOp::DROP: {
+  case RouteOp::Drop: {
     std::cerr << "drop()";
     break;
   }
-  case RouteOp::BCAST: {
+  case RouteOp::Broadcast: {
     std::cerr << "bcast()";
     break;
   }
@@ -124,7 +124,7 @@ BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
   visitConstraints(node);
   std::cerr << "===========================================\n";
 
-  return traverse ? BDDVisitorAction::VISIT_CHILDREN : BDDVisitorAction::STOP;
+  return traverse ? BDDVisitorAction::Continue : BDDVisitorAction::Stop;
 }
 
 void PrinterDebug::visitConstraints(const Node *node) {

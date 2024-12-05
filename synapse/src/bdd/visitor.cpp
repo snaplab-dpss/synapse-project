@@ -10,7 +10,7 @@ void BDDVisitor::visit(const Branch *node) {
   const Node *on_false = node->get_on_false();
 
   BDDVisitorAction action = visitBranch(node);
-  if (action == BDDVisitorAction::VISIT_CHILDREN) {
+  if (action == BDDVisitorAction::Continue) {
     on_true->visit(*this);
     on_false->visit(*this);
   }
@@ -23,7 +23,7 @@ void BDDVisitor::visit(const Call *node) {
   const Node *next = node->get_next();
 
   BDDVisitorAction action = visitCall(node);
-  if (action == BDDVisitorAction::VISIT_CHILDREN && next)
+  if (action == BDDVisitorAction::Continue && next)
     next->visit(*this);
 }
 
@@ -34,7 +34,7 @@ void BDDVisitor::visit(const Route *node) {
   const Node *next = node->get_next();
 
   BDDVisitorAction action = visitRoute(node);
-  if (action == BDDVisitorAction::VISIT_CHILDREN && next)
+  if (action == BDDVisitorAction::Continue && next)
     next->visit(*this);
 }
 

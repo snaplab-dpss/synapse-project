@@ -164,7 +164,7 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     meta.avg_children_per_node[id] = 0;
     meta.visits_per_node[id] = 0;
     node_depth[id] = this->bdd->get_node_depth(id);
-    return NodeVisitAction::VISIT_CHILDREN;
+    return NodeVisitAction::Continue;
   });
 
   while (!h->finished()) {
