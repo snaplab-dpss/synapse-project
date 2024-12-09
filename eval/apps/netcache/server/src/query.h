@@ -1,8 +1,10 @@
 #pragma once
 
+#include <netinet/in.h>
 #include <vector>
 #include <stdexcept>
 #include <stdint.h>
+#include <iostream>
 
 namespace netcache {
 
@@ -15,18 +17,24 @@ struct query_t {
 	uint32_t val;
 
 	query_t(std::vector<uint8_t>& buffer, ssize_t pkt_size) {
+		valid = true;
+
 		size_t cur_offset = 0;
 
 		op = read_uint8(buffer, cur_offset);
 		cur_offset += sizeof(op);
 
-		seq = read_uint32(buffer, cur_offset);
+		if (op != 0 && op != 1 && op != 2 && op != 3) {
+			valid = false;
+		}
+
+		seq = ntohl(read_uint32(buffer, cur_offset));
 		cur_offset += sizeof(seq);
 
-		key = read_uint16(buffer, cur_offset);
+		key = ntohs(read_uint16(buffer, cur_offset));
 		cur_offset += sizeof(key);
 
-		val = read_uint32(buffer, cur_offset);
+		val = ntohl(read_uint32(buffer, cur_offset));
 		cur_offset += sizeof(val);
 	}
 

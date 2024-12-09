@@ -177,6 +177,9 @@ int main(int argc, char **argv) {
 
 		if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
 			netcache::Controller::controller->reg_key_count.set_all_false();
+			#ifndef NDEBUG
+			std::cout << "Reset timer: data plane reg_key_count." << std::endl;
+			#endif
 		}
 
 		if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
@@ -184,25 +187,42 @@ int main(int argc, char **argv) {
 			netcache::Controller::controller->reg_cm_1.set_all_false();
 			netcache::Controller::controller->reg_cm_2.set_all_false();
 			netcache::Controller::controller->reg_cm_3.set_all_false();
+			#ifndef NDEBUG
+			std::cout << "Reset timer: data plane reg_cm_0." << std::endl;
+			std::cout << "Reset timer: data plane reg_cm_1." << std::endl;
+			std::cout << "Reset timer: data plane reg_cm_2." << std::endl;
+			std::cout << "Reset timer: data plane reg_cm_3." << std::endl;
+			#endif
 		}
 
 		if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
 			netcache::Controller::controller->reg_bloom_0.set_all_false();
 			netcache::Controller::controller->reg_bloom_1.set_all_false();
 			netcache::Controller::controller->reg_bloom_2.set_all_false();
+			#ifndef NDEBUG
+			std::cout << "Reset timer: data plane reg_bloom_0." << std::endl;
+			std::cout << "Reset timer: data plane reg_bloom_1." << std::endl;
+			std::cout << "Reset timer: data plane reg_bloom_2." << std::endl;
+			#endif
 		}
 
 		auto query = listener.receive_query();
 
 		if (query.valid) {
 			if (query.op == WRITE_QUERY) {
+				#ifndef NDEBUG
 				printf("WRITE QUERY\n");
+				#endif
 				process_query.write_query(query);
 			} else if (query.op == DELETE_QUERY) {
+				#ifndef NDEBUG
 				printf("DEL QUERY\n");
+				#endif
 				process_query.del_query(query);
 			} else if (query.op == HOT_READ_QUERY) {
+				#ifndef NDEBUG
 				printf("HOT READ QUERY\n");
+				#endif
 				process_query.hot_read_query(query);
 			} else {
 				std::cerr << "Invalid query received.";

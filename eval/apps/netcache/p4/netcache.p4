@@ -103,7 +103,8 @@ control SwitchIngress(
 
 	table fwd {
 		key = {
-			hdr.ethernet.dst_addr : exact;
+			ig_intr_md.ingress_port : exact;
+            hdr.netcache.op         : exact;
 		}
 		actions = {
             set_out_port;
@@ -132,11 +133,9 @@ control SwitchIngress(
             }
 
             else if (hdr.netcache.op == WRITE_QUERY || hdr.netcache.op == DELETE_QUERY) {
-                // Cache hit
-                if (hdr.meta.cache_hit == 1) {
-                    // Update/delete the cached value with the received value.
-                    vtable_update();
-                }
+                // Update/delete the cached value with the received value.
+                hdr.meta.vt_idx = hdr.netcache.key;
+                vtable_update();
             }
         }
         fwd.apply();
@@ -161,19 +160,19 @@ control SwitchEgress(
 	Register<bit<8>, bit<1>>(1) reg_sampl;
 	Register<bit<32>, bit<NC_KEY_WIDTH>>(NC_ENTRIES) reg_key_count;
 
-    bit<1>  sampl_cur;
+    bit<8>  sampl_cur;
     bit<32> cm_result;
     bit<1>  bloom_result;
 
-	RegisterAction<bit<8>, bit<1>, bit<1>>(reg_sampl) ract_sampl = {
-		void apply(inout bit<8> val, out bit<1> res) {
+	RegisterAction<bit<8>, bit<8>, bit<8>>(reg_sampl) ract_sampl = {
+		void apply(inout bit<8> val, out bit<8> res) {
+            res = 0;
             if (val < 3) {
                 val = val + 1;
             } else {
                 val = 0;
                 res = 1;
             }
-            res = 0;
 		}
 	};
 
@@ -194,6 +193,7 @@ control SwitchEgress(
     apply {
         if (hdr.netcache.isValid()) {
             if (hdr.netcache.op == READ_QUERY) {
+                eg_dprsr_md.drop_ctl = 1;
                 sampl_check();
                 if (sampl_cur == 1) {
                     // Cache hit
@@ -204,12 +204,14 @@ control SwitchEgress(
                         // Update cm sketch.
                         cm.apply(hdr, cm_result);
                         // Check cm result against threshold (HH_THRES).
-                        if (cm_result[31:8] != 0) {
+                        if (cm_result[31:7] != 0) {
                             // Check against bloom filter.
                             bloom.apply(hdr, bloom_result);
-                            // If confirmed HH, update OP to HOT_READ, to inform the server.
+                            // If confirmed HH, update OP to HOT_READ and inform the controller.
                             if (bloom_result == 0) {
                                 hdr.netcache.op = HOT_READ_QUERY;
+                                hdr.netcache.val = cm_result;
+                                eg_dprsr_md.drop_ctl = 0;
                             }
                         }
                     }

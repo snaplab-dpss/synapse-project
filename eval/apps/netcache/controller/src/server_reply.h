@@ -1,5 +1,6 @@
 #pragma once
 
+#include <netinet/in.h>
 #include <vector>
 #include <stdexcept>
 #include <stdint.h>

@@ -15,21 +15,16 @@
 
 netcache::report_t report;
 
+std::shared_ptr<netcache::Listener> netcache::Listener::listener_ptr;
+
 struct args_t {
-	std::string iface;
 
 	args_t(int argc, char** argv) {
-		if (argc < 3) {
-			usage(argv);
-		}
-
 		parse_help(argc, argv);
-		parse_iface(argc, argv);
 	}
 
 	void usage(char** argv) const {
-		std::cerr << "Usage: " << argv[0]
-				  << " -i <listen iface> [-h|--help]\n";
+		std::cerr << "Usage: " << argv[0] << " [-h|--help]\n";
 		exit(1);
 	}
 
@@ -52,26 +47,8 @@ struct args_t {
 		}
 	}
 
-	void parse_iface(int argc, char** argv) {
-		auto arg_str = std::string("-i");
-
-		for (auto argi = 1u; argi < argc - 1; argi++) {
-			auto arg = std::string(argv[argi]);
-			auto cmp = arg.compare(arg_str);
-
-			if (cmp == 0) {
-				iface = std::string(argv[argi + 1]);
-				return;
-			}
-		}
-
-		std::cerr << "Option -i not found.\n";
-		usage(argv);
-	}
-
 	void dump() const {
 		std::cerr << "Configuration:\n";
-		std::cerr << "  listen iface: " << iface << "\n";
 		std::cerr << "\n";
 	}
 };
@@ -92,18 +69,29 @@ int main(int argc, char** argv) {
 
 	args.dump();
 
-	auto listener = netcache::Listener(args.iface);
+	auto listener = new netcache::Listener();
+	netcache::Listener::listener_ptr = std::shared_ptr<netcache::Listener>(listener);
+
 	auto store = netcache::Store();
 
 	while (1) {
-		auto query = listener.receive_query();
+		auto query = listener->receive_query();
 
 		if (query.valid) {
 			if (query.op == WRITE_QUERY) {
+				#ifndef NDEBUG
+				std::cout << "Received write query." << std::endl;
+				#endif
 				store.write_query(query);
 			} else if (query.op == DELETE_QUERY) {
+				#ifndef NDEBUG
+				std::cout << "Received delete query." << std::endl;
+				#endif
 				store.del_query(query);
 			} else if (query.op == HOT_READ_QUERY) {
+				#ifndef NDEBUG
+				std::cout << "Received hot read query." << std::endl;
+				#endif
 				store.hot_read_query(query);
 			} else {
 				std::cerr << "Invalid query received.";
