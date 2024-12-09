@@ -36,7 +36,7 @@ void PrinterDebug::visit(const BDD *bdd) {
 
 void PrinterDebug::visitRoot(const Node *root) { root->visit(*this); }
 
-BDDVisitorAction PrinterDebug::visitBranch(const Branch *node) {
+BDDVisitor::Action PrinterDebug::visit(const Branch *node) {
   node_id_t id = node->get_id();
   klee::ref<klee::Expr> condition = node->get_condition();
 
@@ -56,10 +56,10 @@ BDDVisitorAction PrinterDebug::visitBranch(const Branch *node) {
   visitConstraints(node);
   std::cerr << "===========================================\n";
 
-  return traverse ? BDDVisitorAction::Continue : BDDVisitorAction::Stop;
+  return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
 }
 
-BDDVisitorAction PrinterDebug::visitCall(const Call *node) {
+BDDVisitor::Action PrinterDebug::visit(const Call *node) {
   node_id_t id = node->get_id();
   const call_t &call = node->get_call();
   const Node *next = node->get_next();
@@ -90,10 +90,10 @@ BDDVisitorAction PrinterDebug::visitCall(const Call *node) {
   visitConstraints(node);
   std::cerr << "===========================================\n";
 
-  return traverse ? BDDVisitorAction::Continue : BDDVisitorAction::Stop;
+  return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
 }
 
-BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
+BDDVisitor::Action PrinterDebug::visit(const Route *node) {
   node_id_t id = node->get_id();
   u64 dst_device = node->get_dst_device();
   RouteOp operation = node->get_operation();
@@ -124,7 +124,7 @@ BDDVisitorAction PrinterDebug::visitRoute(const Route *node) {
   visitConstraints(node);
   std::cerr << "===========================================\n";
 
-  return traverse ? BDDVisitorAction::Continue : BDDVisitorAction::Stop;
+  return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
 }
 
 void PrinterDebug::visitConstraints(const Node *node) {

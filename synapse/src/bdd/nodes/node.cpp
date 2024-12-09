@@ -267,6 +267,8 @@ void Node::recursive_add_constraint(klee::ref<klee::Expr> constraint) {
   });
 }
 
+void Node::visit(BDDVisitor &visitor) const { visitor.visit(this); }
+
 void Node::visit_nodes(
     std::function<NodeVisitAction(const Node *, cookie_t *)> fn,
     std::unique_ptr<cookie_t> cookie) const {

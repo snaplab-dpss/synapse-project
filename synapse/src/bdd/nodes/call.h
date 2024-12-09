@@ -34,6 +34,5 @@ public:
   virtual Node *clone(NodeManager &manager,
                       bool recursive = false) const override;
 
-  void visit(BDDVisitor &visitor) const override;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;
 };

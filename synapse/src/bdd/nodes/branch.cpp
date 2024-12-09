@@ -44,8 +44,6 @@ std::vector<node_id_t> Branch::get_leaves() const {
   return terminating_ids;
 }
 
-void Branch::visit(BDDVisitor &visitor) const { visitor.visit(this); }
-
 std::string Branch::dump(bool one_liner, bool id_name_only) const {
   std::stringstream ss;
   ss << id << ":";

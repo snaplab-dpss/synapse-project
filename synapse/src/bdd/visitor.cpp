@@ -2,40 +2,39 @@
 #include "bdd.h"
 #include "nodes/nodes.h"
 
-void BDDVisitor::visit(const Branch *node) {
-  if (!node)
+void BDDVisitor::visit(const Node *node) {
+  if (!node) {
     return;
-
-  const Node *on_true = node->get_on_true();
-  const Node *on_false = node->get_on_false();
-
-  BDDVisitorAction action = visitBranch(node);
-  if (action == BDDVisitorAction::Continue) {
-    on_true->visit(*this);
-    on_false->visit(*this);
   }
-}
 
-void BDDVisitor::visit(const Call *node) {
-  if (!node)
-    return;
+  switch (node->get_type()) {
+  case NodeType::Branch: {
+    const Branch *branch = static_cast<const Branch *>(node);
+    const Node *on_true = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
 
-  const Node *next = node->get_next();
+    if (visit(branch) == Action::Continue) {
+      on_true->visit(*this);
+      on_false->visit(*this);
+    }
+  } break;
+  case NodeType::Call: {
+    const Call *call = static_cast<const Call *>(node);
+    const Node *next = call->get_next();
 
-  BDDVisitorAction action = visitCall(node);
-  if (action == BDDVisitorAction::Continue && next)
-    next->visit(*this);
-}
+    if (visit(call) == Action::Continue && next) {
+      next->visit(*this);
+    }
+  } break;
+  case NodeType::Route: {
+    const Route *route = static_cast<const Route *>(node);
+    const Node *next = route->get_next();
 
-void BDDVisitor::visit(const Route *node) {
-  if (!node)
-    return;
-
-  const Node *next = node->get_next();
-
-  BDDVisitorAction action = visitRoute(node);
-  if (action == BDDVisitorAction::Continue && next)
-    next->visit(*this);
+    if (visit(route) == Action::Continue && next) {
+      next->visit(*this);
+    }
+  } break;
+  }
 }
 
 void BDDVisitor::visitRoot(const Node *root) {

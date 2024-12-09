@@ -92,7 +92,7 @@ void BDDViz::visit(const BDD *bdd) {
   ss << "}";
 }
 
-BDDVisitorAction BDDViz::visitBranch(const Branch *node) {
+BDDVisitor::Action BDDViz::visit(const Branch *node) {
   const Node *on_true = node->get_on_true();
   const Node *on_false = node->get_on_false();
 
@@ -134,10 +134,10 @@ BDDVisitorAction BDDViz::visitBranch(const Branch *node) {
     ss << " [label=\"False\"];\n";
   }
 
-  return BDDVisitorAction::Stop;
+  return BDDVisitor::Action::Stop;
 }
 
-BDDVisitorAction BDDViz::visitCall(const Call *node) {
+BDDVisitor::Action BDDViz::visit(const Call *node) {
   const call_t &call = node->get_call();
   node_id_t id = node->get_id();
   const Node *next = node->get_next();
@@ -231,10 +231,10 @@ BDDVisitorAction BDDViz::visitCall(const Call *node) {
     ss << ";\n";
   }
 
-  return BDDVisitorAction::Stop;
+  return BDDVisitor::Action::Stop;
 }
 
-BDDVisitorAction BDDViz::visitRoute(const Route *node) {
+BDDVisitor::Action BDDViz::visit(const Route *node) {
   node_id_t id = node->get_id();
   int dst_device = node->get_dst_device();
   RouteOp operation = node->get_operation();
@@ -279,7 +279,7 @@ BDDVisitorAction BDDViz::visitRoute(const Route *node) {
     ss << ";\n";
   }
 
-  return BDDVisitorAction::Stop;
+  return BDDVisitor::Action::Stop;
 }
 
 void BDDViz::visitRoot(const Node *root) { root->visit(*this); }

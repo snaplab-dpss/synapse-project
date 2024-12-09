@@ -19,8 +19,6 @@ Node *Call::clone(NodeManager &manager, bool recursive) const {
   return clone;
 }
 
-void Call::visit(BDDVisitor &visitor) const { visitor.visit(this); }
-
 std::string Call::dump(bool one_liner, bool id_name_only) const {
   std::stringstream ss;
   ss << id << ":";

@@ -8,19 +8,16 @@ class Branch;
 class Call;
 class Route;
 
-enum class BDDVisitorAction { Continue, Stop };
-
 class BDDVisitor {
 public:
-  virtual void visit(const BDD *bdd);
+  enum class Action { Continue, Stop };
 
-  void visit(const Branch *node);
-  void visit(const Call *node);
-  void visit(const Route *node);
+  virtual void visit(const BDD *bdd);
+  void visit(const Node *node);
 
 protected:
-  virtual BDDVisitorAction visitBranch(const Branch *node) = 0;
-  virtual BDDVisitorAction visitCall(const Call *node) = 0;
-  virtual BDDVisitorAction visitRoute(const Route *node) = 0;
+  virtual Action visit(const Branch *node) = 0;
+  virtual Action visit(const Call *node) = 0;
+  virtual Action visit(const Route *node) = 0;
   virtual void visitRoot(const Node *root);
 };

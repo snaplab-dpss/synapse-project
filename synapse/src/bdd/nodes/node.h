@@ -63,6 +63,7 @@ public:
   const Node *get_node_by_id(node_id_t id) const;
   Node *get_mutable_node_by_id(node_id_t id);
 
+  void visit(BDDVisitor &visitor) const;
   void visit_nodes(std::function<NodeVisitAction(const Node *)> fn) const;
   void visit_mutable_nodes(std::function<NodeVisitAction(Node *)> fn);
 
@@ -87,7 +88,6 @@ public:
   virtual std::vector<node_id_t> get_leaves() const;
   virtual std::vector<const Node *> get_children(bool recursive = false) const;
   virtual Node *clone(NodeManager &manager, bool recursive = false) const = 0;
-  virtual void visit(BDDVisitor &visitor) const = 0;
   virtual std::string dump(bool one_liner = false,
                            bool id_name_only = false) const = 0;
 

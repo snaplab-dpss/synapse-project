@@ -48,9 +48,9 @@ public:
   void visit(const BDD *bdd) override;
   void visitRoot(const Node *root) override;
 
-  BDDVisitorAction visitBranch(const Branch *node) override;
-  BDDVisitorAction visitCall(const Call *node) override;
-  BDDVisitorAction visitRoute(const Route *node) override;
+  BDDVisitor::Action visit(const Branch *node) override;
+  BDDVisitor::Action visit(const Call *node) override;
+  BDDVisitor::Action visit(const Route *node) override;
 
 private:
   std::string get_gv_name(const Node *node) const {
