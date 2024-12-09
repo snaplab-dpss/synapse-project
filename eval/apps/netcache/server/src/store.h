@@ -15,9 +15,6 @@ typedef unsigned char byte_t;
 namespace netcache {
 
 struct Store {
-	int sockfd;
-	struct sockaddr_in servaddr;
-
 	std::map<uint8_t, uint32_t> kv_map;
 
 	Store();

@@ -11,61 +11,61 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <iostream>
 
 #include "query.h"
+#include "store.h"
 
 #define BUFFER_SIZE 65536
+#define IP_ADDR "127.0.0.1"
+#define PORT 50051
 
 typedef unsigned char byte_t;
 
 namespace netcache {
 
-Listener::Listener(const std::string &iface) {
-	std::vector<uint8_t> buffer;
-	sock_recv = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+Listener::Listener() {
+	buffer = (byte_t *)malloc(sizeof(byte_t) * BUFFER_SIZE);
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
-	if (sock_recv < 0) {
+	if (sockfd < 0) {
 		perror("sock_recv creation failed");
 		exit(1);
 	}
 
-	struct sockaddr_ll saddr;
-	memset(&saddr, 0, sizeof(struct sockaddr_ll));
+    // struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr(IP_ADDR);
+    serv_addr.sin_port = htons(PORT);
 
-	saddr.sll_family = AF_PACKET;
-	saddr.sll_protocol = htons(ETH_P_ALL);
-	saddr.sll_ifindex = if_nametoindex(iface.c_str());
+    if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("sock_recv bind failed.");
+        close(sockfd);
+        exit(1);
+    }
 
-	if (bind(sock_recv, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-		perror("sock_recv bind failed");
-		close(sock_recv);
-		exit(1);
-	}
-
-	printf("Listening to interface %s...\n", iface.c_str());
 	fflush(stdout);
 }
 
 Listener::~Listener() {
-	close(sock_recv);
+	close(sockfd);
 }
 
 query_t Listener::receive_query() {
-	struct sockaddr_ll saddr;
-	auto saddr_size = sizeof(struct sockaddr);
-	std::vector<uint8_t> buffer(BUFFER_SIZE);
-
 	// Receive a packet
 	ssize_t len =
-		recvfrom(sock_recv, &buffer, sizeof(buffer), 0, (struct sockaddr *)&saddr,
-				(socklen_t *)&saddr_size);
-
+		recvfrom(sockfd, buffer, 65536, 0, (struct sockaddr *)&ctrl_addr, (socklen_t *)&ctrl_len);
+	
 	if (len < 0) {
 		printf("recvfrom error , failed to receive query.\n");
 		exit(1);
 	}
 
-	return query_t(buffer, len);	
+	std::vector<uint8_t> buffer_vec(buffer, buffer + 65536);
+
+	return query_t(buffer_vec, len);	
 }
 
 };	// namespace netcache
