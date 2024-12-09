@@ -47,7 +47,7 @@ header udp_t {
 
 header netcache_t {
     bit<8>  op;
-    bit<32> seq;
+    bit<8>  seq;
     key_t   key;
     val_t   val;
 }
