@@ -226,15 +226,15 @@ private:
       nodes_to_ignore.push_back(coalescing_node);
     }
 
-    const Branch *branch =
+    index_alloc_check_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
 
-    if (branch) {
-      nodes_to_ignore.push_back(branch);
+    if (index_alloc_check.branch) {
+      nodes_to_ignore.push_back(index_alloc_check.branch);
 
-      bool direction_to_keep = true;
-      const Node *next =
-          direction_to_keep ? branch->get_on_false() : branch->get_on_true();
+      const Node *next = index_alloc_check.success_on_true
+                             ? index_alloc_check.branch->get_on_false()
+                             : index_alloc_check.branch->get_on_true();
 
       next->visit_nodes([&nodes_to_ignore](const Node *node) {
         nodes_to_ignore.push_back(node);
@@ -273,29 +273,31 @@ private:
                                 "out_of_space", out_of_space);
         assert(found && "Symbol out_of_space not found");
 
-        const Branch *branch =
+        index_alloc_check_t index_alloc_check =
             find_branch_checking_index_alloc(ep, node, out_of_space);
 
-        if (branch) {
+        if (index_alloc_check.branch) {
           assert(!deleted_branch_constraints.has_value() &&
                  "Multiple branch checking index allocation detected");
-          deleted_branch_constraints = branch->get_ordered_branch_constraints();
-          bool direction_to_keep = true;
+          deleted_branch_constraints =
+              index_alloc_check.branch->get_ordered_branch_constraints();
 
-          klee::ref<klee::Expr> extra_constraint = branch->get_condition();
+          klee::ref<klee::Expr> extra_constraint =
+              index_alloc_check.branch->get_condition();
 
           // If we want to keep the direction on true, we must remove the on
           // false.
-          if (direction_to_keep) {
+          if (index_alloc_check.success_on_true) {
             extra_constraint =
                 solver_toolbox.exprBuilder->Not(extra_constraint);
           }
 
           deleted_branch_constraints->push_back(extra_constraint);
 
-          bool replace_next = (branch == next);
+          bool replace_next = (index_alloc_check.branch == next);
           Node *replacement = delete_branch_node_from_bdd(
-              ep, new_bdd, branch->get_id(), direction_to_keep);
+              ep, new_bdd, index_alloc_check.branch->get_id(),
+              index_alloc_check.success_on_true);
           if (replace_next) {
             new_next = replacement;
           }

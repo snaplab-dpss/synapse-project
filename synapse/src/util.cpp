@@ -1376,14 +1376,14 @@ bool is_map_update_with_dchain(const EP *ep,
     return false;
   }
 
-  const Branch *index_alloc_branch =
+  index_alloc_check_t index_alloc_check =
       find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
 
-  if (!index_alloc_branch) {
+  if (!index_alloc_check.branch) {
     return false;
   }
 
-  klee::ref<klee::Expr> condition = index_alloc_branch->get_condition();
+  klee::ref<klee::Expr> condition = index_alloc_check.branch->get_condition();
 
   std::vector<const Call *> future_map_puts =
       get_future_functions(dchain_allocate_new_index, {"map_put"});
@@ -1790,8 +1790,9 @@ get_allowed_symbols_for_index_alloc_checking(
   return allowed_symbols;
 }
 
-const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
-                                               const symbol_t &out_of_space) {
+index_alloc_check_t
+find_branch_checking_index_alloc(const EP *ep, const Node *node,
+                                 const symbol_t &out_of_space) {
   ASSERT_OR_PANIC(!out_of_space.expr.isNull(), "out_of_space expr is null");
 
   const Context &ctx = ep->get_ctx();
@@ -1802,9 +1803,12 @@ const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
       get_allowed_symbols_for_index_alloc_checking(out_of_space,
                                                    expiration_data);
 
-  const Branch *target_branch = nullptr;
+  index_alloc_check_t index_alloc_check = {
+      .branch = nullptr,
+      .success_on_true = false,
+  };
 
-  node->visit_nodes([&target_symbols, &target_branch](const Node *node) {
+  node->visit_nodes([&target_symbols, &index_alloc_check](const Node *node) {
     if (node->get_type() != NodeType::Branch) {
       return NodeVisitAction::Continue;
     }
@@ -1820,14 +1824,47 @@ const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
       }
     }
 
-    target_branch = branch;
+    index_alloc_check.branch = branch;
     return NodeVisitAction::Stop;
   });
 
-  return target_branch;
+  if (index_alloc_check.branch) {
+    klee::ref<klee::Expr> success_condition = solver_toolbox.exprBuilder->Eq(
+        out_of_space.expr,
+        solver_toolbox.exprBuilder->Constant(0, out_of_space.expr->getWidth()));
+
+    if (expiration_data.has_value()) {
+      success_condition = solver_toolbox.exprBuilder->Or(
+          success_condition,
+          solver_toolbox.exprBuilder->Ne(
+              expiration_data->number_of_freed_flows.expr,
+              solver_toolbox.exprBuilder->Constant(
+                  0, expiration_data->number_of_freed_flows.expr->getWidth())));
+    }
+
+    assert(index_alloc_check.branch->get_on_true());
+    assert(index_alloc_check.branch->get_on_false());
+
+    const Node *on_true = index_alloc_check.branch->get_on_true();
+    const Node *on_false = index_alloc_check.branch->get_on_false();
+
+    bool success_on_true = solver_toolbox.is_expr_always_true(
+        on_true->get_constraints(), success_condition);
+    bool success_on_false = solver_toolbox.is_expr_always_true(
+        on_false->get_constraints(), success_condition);
+
+    assert((success_on_true || success_on_false) &&
+           "No branch side is successful");
+    assert((success_on_true ^ success_on_false) &&
+           "Both branch sides have the same success condition");
+
+    index_alloc_check.success_on_true = success_on_true;
+  }
+
+  return index_alloc_check;
 }
 
-const Branch *
+index_alloc_check_t
 find_branch_checking_index_alloc(const EP *ep,
                                  const Node *dchain_allocate_new_index) {
   assert(dchain_allocate_new_index->get_type() == NodeType::Call);

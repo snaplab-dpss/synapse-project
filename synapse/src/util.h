@@ -199,9 +199,15 @@ Node *delete_non_branch_node_from_bdd(const EP *ep, BDD *bdd,
 Node *delete_branch_node_from_bdd(const EP *ep, BDD *bdd, node_id_t target_id,
                                   bool direction_to_keep);
 
-const Branch *find_branch_checking_index_alloc(const EP *ep, const Node *node,
-                                               const symbol_t &out_of_space);
-const Branch *
+struct index_alloc_check_t {
+  const Branch *branch;
+  bool success_on_true;
+};
+
+index_alloc_check_t
+find_branch_checking_index_alloc(const EP *ep, const Node *node,
+                                 const symbol_t &out_of_space);
+index_alloc_check_t
 find_branch_checking_index_alloc(const EP *ep,
                                  const Node *dchain_allocate_new_index);
 

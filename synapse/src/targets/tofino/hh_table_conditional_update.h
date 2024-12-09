@@ -72,13 +72,15 @@ protected:
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
     // Get all nodes executed on a successful index allocation.
-    const Branch *branch_checking_index_alloc =
+    index_alloc_check_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-    assert(branch_checking_index_alloc &&
+    assert(index_alloc_check.success_on_true &&
            "Branch checking index allocation not found");
 
-    // FIXME: Assuming index allocation is successful on true.
-    const Node *on_hh = branch_checking_index_alloc->get_on_true();
+    const Node *on_hh = index_alloc_check.success_on_true
+                            ? index_alloc_check.branch->get_on_true()
+                            : index_alloc_check.branch->get_on_false();
+
     std::vector<const Call *> targets = get_coalescing_nodes_from_key(
         ep->get_bdd(), on_hh, table_data.key, map_objs);
 
@@ -118,9 +120,9 @@ protected:
       return impls;
     }
 
-    const Branch *branch_checking_index_alloc =
+    index_alloc_check_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-    if (dchain_allocate_new_index->get_next() != branch_checking_index_alloc) {
+    if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
       return impls;
     }
 
@@ -147,9 +149,12 @@ protected:
 
     table_data_t table_data = get_table_data(map_put);
 
-    // FIXME: Assuming index allocation is successful on true.
-    const Node *next_on_hh = branch_checking_index_alloc->get_on_true();
-    const Node *next_on_not_hh = branch_checking_index_alloc->get_on_false();
+    const Node *next_on_hh = index_alloc_check.success_on_true
+                                 ? index_alloc_check.branch->get_on_true()
+                                 : index_alloc_check.branch->get_on_false();
+    const Node *next_on_not_hh = index_alloc_check.success_on_true
+                                     ? index_alloc_check.branch->get_on_false()
+                                     : index_alloc_check.branch->get_on_true();
 
     klee::ref<klee::Expr> min_estimate_cond =
         build_min_estimate_check_cond(ep, min_estimate, map_objs.map);
@@ -207,12 +212,12 @@ protected:
 
     constraints_t lhs_cnstrs = node->get_ordered_branch_constraints();
     lhs_cnstrs.push_back(min_estimate_cond);
-    lhs_cnstrs.push_back(branch_checking_index_alloc->get_condition());
+    lhs_cnstrs.push_back(index_alloc_check.branch->get_condition());
 
     constraints_t rhs_cnstrs = node->get_ordered_branch_constraints();
     rhs_cnstrs.push_back(solver_toolbox.exprBuilder->Not(min_estimate_cond));
     rhs_cnstrs.push_back(solver_toolbox.exprBuilder->Not(
-        branch_checking_index_alloc->get_condition()));
+        index_alloc_check.branch->get_condition()));
 
     new_ep->get_mutable_ctx().get_mutable_profiler().remove(lhs_cnstrs);
     new_ep->get_mutable_ctx().get_mutable_profiler().remove(rhs_cnstrs);

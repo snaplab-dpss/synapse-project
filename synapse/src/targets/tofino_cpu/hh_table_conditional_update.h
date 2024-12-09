@@ -96,18 +96,21 @@ protected:
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
     // Get all nodes executed on a successful index allocation.
-    const Branch *branch_checking_index_alloc =
+    index_alloc_check_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-    assert(branch_checking_index_alloc &&
+    assert(index_alloc_check.branch &&
            "Branch checking index allocation not found");
 
-    // FIXME: Assuming index allocation is successful on true.
-    spec_impl.skip.insert(branch_checking_index_alloc->get_id());
-    branch_checking_index_alloc->get_on_true()->visit_nodes(
-        [&spec_impl](const Node *node) {
-          spec_impl.skip.insert(node->get_id());
-          return NodeVisitAction::Continue;
-        });
+    spec_impl.skip.insert(index_alloc_check.branch->get_id());
+
+    const Node *on_hh = index_alloc_check.success_on_true
+                            ? index_alloc_check.branch->get_on_true()
+                            : index_alloc_check.branch->get_on_false();
+
+    on_hh->visit_nodes([&spec_impl](const Node *node) {
+      spec_impl.skip.insert(node->get_id());
+      return NodeVisitAction::Continue;
+    });
 
     return spec_impl;
   }
@@ -139,9 +142,9 @@ protected:
       return impls;
     }
 
-    const Branch *branch_checking_index_alloc =
+    index_alloc_check_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-    if (dchain_allocate_new_index->get_next() != branch_checking_index_alloc) {
+    if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
       return impls;
     }
 
@@ -164,9 +167,12 @@ protected:
 
     table_data_t table_data = get_table_data(map_put);
 
-    // FIXME: Assuming index allocation is successful on true.
-    const Node *next_on_hh = branch_checking_index_alloc->get_on_true();
-    const Node *next_on_not_hh = branch_checking_index_alloc->get_on_false();
+    const Node *next_on_hh = index_alloc_check.success_on_true
+                                 ? index_alloc_check.branch->get_on_true()
+                                 : index_alloc_check.branch->get_on_false();
+    const Node *next_on_not_hh = index_alloc_check.success_on_true
+                                     ? index_alloc_check.branch->get_on_false()
+                                     : index_alloc_check.branch->get_on_true();
 
     Module *hh_table_update =
         new HHTableUpdate(node, table_data.obj, table_data.table_keys,
