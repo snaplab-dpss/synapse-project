@@ -21,6 +21,7 @@
 
 #define SERVER_HOST "127.0.0.1"
 #define SERVER_PORT 50051
+#define BUFFER_SIZE 65536
 
 namespace netcache {
 
@@ -94,16 +95,18 @@ void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
 		}
 		struct sockaddr_in src_addr;
 		socklen_t socklen = sizeof(src_addr);
-		std::vector<uint8_t> buffer_reply;
+		uint8_t* buffer_reply = (byte_t *)malloc(sizeof(byte_t) * BUFFER_SIZE);
 
-		ssize_t len = recvfrom(sockfd, &buffer_reply, sizeof(buffer_reply), 0,
+		ssize_t recv_len = recvfrom(sockfd, buffer_reply, 65536, 0,
 							(struct sockaddr*)&src_addr, &socklen);
-		if (len < 0) {
+
+		if (recv_len < 0) {
 			std::cerr << "Failed to receive a response from the server." << std::endl;
 			return;
 		}
 
-		server_reply_t reply = server_reply_t(buffer_reply, len);
+		std::vector<uint8_t> buffer_vec(buffer_reply, buffer_reply + 65536);
+		server_reply_t reply = server_reply_t(buffer_vec, recv_len);
 
 		#ifndef NDEBUG
 		std::cout << "reply.key " << reply.key << "\n";
@@ -131,19 +134,22 @@ void ProcessQuery::write_query(const query_t& write_query) {
 		exit(EXIT_FAILURE);
 	}
 
-	struct sockaddr_in src_addr;
-	socklen_t socklen = sizeof(src_addr);
+	socklen_t socklen = sizeof(servaddr);
 	float write_confirm;
 
 	ssize_t recv_len = recvfrom(sockfd, &write_confirm, sizeof(write_confirm), 0,
-								(struct sockaddr*)&src_addr, &socklen);
+								(struct sockaddr*)&servaddr, &socklen);
 
-	if (recv_len < 0) {
+	if (recv_len > 0) {
 		if (write_confirm != -1) {
+			#ifndef NDEBUG
 			std::cout << "Value successfully updated in the server." << std::endl;
+			#endif
 		}
 	} else {
+		#ifndef NDEBUG
 		std::cerr << "Failed to receive a confirmation from the server." << std::endl;
+		#endif
 		return;
 	}
 }
@@ -165,10 +171,10 @@ void ProcessQuery::del_query(const query_t& del_query) {
 	socklen_t socklen = sizeof(src_addr);
 	float del_confirm;
 
-	ssize_t len = recvfrom(sockfd, &del_confirm, sizeof(del_confirm), 0,
+	ssize_t recv_len = recvfrom(sockfd, &del_confirm, sizeof(del_confirm), 0,
 						   (struct sockaddr*)&src_addr, &socklen);
 
-	if (len < 0) {
+	if (recv_len > 0) {
 		if (del_confirm != -1) {
 			std::cout << "Value successfully deleted from the server." << std::endl;
 		}

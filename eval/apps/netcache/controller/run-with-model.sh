@@ -16,7 +16,7 @@ TOFINO_MODEL_EXE_NAME="tofino-model"
 CONF_DIR="$SDE_INSTALL/share/p4/targets/tofino2"
 CONF_FILE="$CONF_DIR/netcache.conf"
 
-IFACE="veth0"
+IFACE="veth2"
 
 if ! ps -e | grep -q "$TOFINO_MODEL_EXE_NAME"; then
 	echo "Tofino model not running. Exiting."
@@ -37,5 +37,5 @@ NETCACHE_HW_CONF=$CONF_FILE \
 	sudo -E "$CONTROLLER_EXE" \
 	"$CONTROLLER_CONF_FILE" \
 	-i $IFACE \
-	--tofino-model
-	# --bf-prompt
+	--tofino-model \
+	--bf-prompt

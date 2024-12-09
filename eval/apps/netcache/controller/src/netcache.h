@@ -5,6 +5,7 @@
 #include <random>
 #include <unordered_set>
 
+#include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
 #include "tables/cache_lookup.h"
@@ -100,29 +101,37 @@ public:
 				eg_port = ports.get_dev_port(eg_port, 0);
 			}
 
+			#ifndef NDEBUG
+			std::cout << "ig_port: " << ig_port << std::endl;
+			std::cout << "eg_port: " << eg_port << std::endl;
+			#endif
+
 			// Fwd table entries.
-			// fwd.add_entry(ig_port, eg_port);
+			fwd.add_entry(ig_port, READ_QUERY, eg_port);
+			fwd.add_entry(ig_port, WRITE_QUERY, eg_port);
+			fwd.add_entry(ig_port, DELETE_QUERY, eg_port);
+		}
 
-			// Insert k entries in the switch's KV store, all with value 0.
-			// k is defined in conf.kv.initial_entries.
+		// Insert k entries in the switch's KV store, all with value 0.
+		// k is defined in conf.kv.initial_entries.
 
-			std::random_device rd;
-			std::mt19937 gen(rd());
+		std::random_device rd;
+		std::mt19937 gen(rd());
 
-			std::uniform_int_distribution<> dis(1, conf.kv.store_size);
-			std::unordered_set<int> elems;
+		std::uniform_int_distribution<> dis(1, conf.kv.store_size);
+		std::unordered_set<int> elems;
 
-			while (elems.size() < conf.kv.initial_entries) { elems.insert(dis(gen)); }
+		while (elems.size() < conf.kv.initial_entries) { elems.insert(dis(gen)); }
 
-			std::vector<int> sampl_index(elems.begin(), elems.end());
+		std::vector<int> sampl_index(elems.begin(), elems.end());
 
-			for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
+		for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
 
-			// Initial cache lookup table config.
-			// With this setup, we're assuming that key = key_idx, just to keep it simple.
-			for (int i: sampl_index) {
-				cache_lookup.add_entry(i, i, i);
-			}
+		// Initial cache lookup table config.
+		// With this setup, we're assuming that key = key_idx, just to keep it simple.
+		cache_lookup.add_entry(0, 0, 0);
+		for (int i: sampl_index) {
+			cache_lookup.add_entry(i, i, i);
 		}
 	}
 

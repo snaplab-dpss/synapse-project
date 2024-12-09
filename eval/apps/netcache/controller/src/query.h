@@ -11,12 +11,6 @@ namespace netcache {
 struct query_t {
 	bool valid;
 
-	// mac_t mac_src;
-	// ipv4_t ip_src;
-	// ipv4_t ip_dst;
-	// uint8_t ip_proto;
-	// port_t port_src;
-	// port_t port_dst;
 	uint8_t op;
 	uint8_t seq;
 	uint16_t key;
@@ -31,6 +25,7 @@ struct query_t {
 			#endif
 			return;
 		}
+		pkt->pretty_print_base();
 
 		valid =
 			(pkt_size >= (pkt->get_l2_size()
@@ -48,27 +43,6 @@ struct query_t {
 		auto l2 = pkt->get_l2();
 		auto l3 = pkt->get_l3();
 		auto l4 = pkt->get_l4();
-
-		// for (auto byte = 0; byte < sizeof(mac_t); byte++) {
-		// 	mac_src[byte] = l2->src_mac[byte];
-		// }
-
-		// ip_src = l3->src_ip;
-		// ip_dst = l3->dst_ip;
-		// ip_proto = l3->protocol;
-
-		// switch (ip_proto) {
-		// 	case IP_PROTO_TCP: {
-		// 		auto tcp_hdr = (tcp_hdr_t*)l4.first;
-		// 		port_src = tcp_hdr->src_port;
-		// 		port_dst = tcp_hdr->dst_port;
-		// 	} break;
-		// 	case IP_PROTO_UDP: {
-		// 		auto udp_hdr = (udp_hdr_t*)l4.first;
-		// 		port_src = udp_hdr->src_port;
-		// 		port_dst = udp_hdr->dst_port;
-		// 	} break;
-		// }
 
 		auto netcache_hdr = pkt->get_netcache_hdr();
 
