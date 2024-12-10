@@ -192,11 +192,14 @@ control SwitchEgress(
 
     apply {
         if (hdr.netcache.isValid()) {
+            eg_dprsr_md.drop_ctl = 1;
             if (hdr.netcache.op == READ_QUERY) {
-                eg_dprsr_md.drop_ctl = 1;
+                // If cache hit, send a reply back to the client.
+                if (hdr.meta.cache_hit == 1) {
+                    eg_dprsr_md.drop_ctl = 0;
+                }
                 sampl_check();
                 if (sampl_cur == 1) {
-                    // Cache hit
                     if (hdr.meta.cache_hit == 1) {
                         // Update cache counter.
                         key_count_incr();
