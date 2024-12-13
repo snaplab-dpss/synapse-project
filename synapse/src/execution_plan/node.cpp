@@ -83,7 +83,7 @@ constraints_t EPNode::get_constraints() const {
     klee::ref<klee::Expr> constraint = node->get_constraint();
 
     if (node->get_children().size() == 2 && node->get_children()[1] == next) {
-      assert(!constraint.isNull() && "No constraint on a conditional node");
+      ASSERT(!constraint.isNull(), "No constraint on a conditional node");
       constraint = solver_toolbox.exprBuilder->Not(constraint);
     }
 

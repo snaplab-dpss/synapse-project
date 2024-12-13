@@ -46,14 +46,12 @@ protected:
     }
 
     const Call *map_put = get_future_map_put(node, map_objs.map);
-    ASSERT_OR_PANIC(map_put, "map_put not found");
+    ASSERT(map_put, "map_put not found");
 
     table_data_t table_data = get_table_data(map_put);
 
     if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.check_ds_impl(map_objs.vector_key,
-                           DSImpl::Tofino_HeavyHitterTable)) {
+        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -72,12 +70,12 @@ protected:
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
     // Get all nodes executed on a successful index allocation.
-    index_alloc_check_t index_alloc_check =
+    branch_direction_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-    assert(index_alloc_check.success_on_true &&
+    ASSERT(index_alloc_check.direction,
            "Branch checking index allocation not found");
 
-    const Node *on_hh = index_alloc_check.success_on_true
+    const Node *on_hh = index_alloc_check.direction
                             ? index_alloc_check.branch->get_on_true()
                             : index_alloc_check.branch->get_on_false();
 
@@ -120,7 +118,7 @@ protected:
       return impls;
     }
 
-    index_alloc_check_t index_alloc_check =
+    branch_direction_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
     if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
       return impls;
@@ -133,26 +131,23 @@ protected:
     if (!ep->get_ctx().check_ds_impl(map_objs.map,
                                      DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().check_ds_impl(map_objs.dchain,
-                                     DSImpl::Tofino_HeavyHitterTable) ||
-        !ep->get_ctx().check_ds_impl(map_objs.vector_key,
                                      DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 
     klee::ref<klee::Expr> min_estimate = get_min_estimate(ep);
-    assert(!min_estimate.isNull() &&
-           "TODO: HHTableRead not found, so we should "
-           "query the CMS for the min estimate");
+    ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
+                                   "query the CMS for the min estimate");
 
     const Call *map_put = get_future_map_put(node, map_objs.map);
-    ASSERT_OR_PANIC(map_put, "map_put not found");
+    ASSERT(map_put, "map_put not found");
 
     table_data_t table_data = get_table_data(map_put);
 
-    const Node *next_on_hh = index_alloc_check.success_on_true
+    const Node *next_on_hh = index_alloc_check.direction
                                  ? index_alloc_check.branch->get_on_true()
                                  : index_alloc_check.branch->get_on_false();
-    const Node *next_on_not_hh = index_alloc_check.success_on_true
+    const Node *next_on_not_hh = index_alloc_check.direction
                                      ? index_alloc_check.branch->get_on_false()
                                      : index_alloc_check.branch->get_on_true();
 
@@ -246,7 +241,7 @@ private:
 
   table_data_t get_table_data(const Call *map_put) const {
     const call_t &call = map_put->get_call();
-    assert(call.function_name == "map_put");
+    ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -284,9 +279,9 @@ private:
       const EP *ep, klee::ref<klee::Expr> min_estimate, addr_t map) const {
     const std::unordered_set<DS *> &data_structures =
         ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds(map);
-    assert(data_structures.size() == 1);
+    ASSERT(data_structures.size() == 1, "Multiple data structures found");
     const DS *ds = *data_structures.begin();
-    assert(ds->type == DSType::HH_TABLE);
+    ASSERT(ds->type == DSType::HH_TABLE, "Not a heavy hitter table");
     const HHTable *hh_table = static_cast<const HHTable *>(ds);
 
     u32 topk = hh_table->num_entries;
@@ -333,18 +328,15 @@ private:
     BDD *bdd = new BDD(*old_bdd);
 
     Node *node = delete_non_branch_node_from_bdd(
-        ep, bdd, dchain_allocate_new_index->get_id());
+        bdd, dchain_allocate_new_index->get_id());
 
-    min_estimate_cond_branch =
-        add_branch_to_bdd(ep, bdd, node, min_estimate_cond);
+    min_estimate_cond_branch = add_branch_to_bdd(bdd, node, min_estimate_cond);
 
     // FIXME: assuming index allocation is successful on true.
     Node *on_hh = delete_branch_node_from_bdd(
-        ep, bdd, min_estimate_cond_branch->get_mutable_on_true()->get_id(),
-        true);
+        bdd, min_estimate_cond_branch->get_mutable_on_true()->get_id(), true);
     Node *on_not_hh = delete_branch_node_from_bdd(
-        ep, bdd, min_estimate_cond_branch->get_mutable_on_false()->get_id(),
-        false);
+        bdd, min_estimate_cond_branch->get_mutable_on_false()->get_id(), false);
 
     // Add the header parsing operations to the HH branch side, which goes to
     // the controller.
@@ -359,7 +351,7 @@ private:
     hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(),
                            prev_returns.end());
 
-    on_hh = add_non_branch_nodes_to_bdd(ep, bdd, on_hh, hdr_parsing_ops);
+    on_hh = add_non_branch_nodes_to_bdd(bdd, on_hh, hdr_parsing_ops);
 
     // Remove the coalescing nodes from the not HH branch side.
     std::vector<const Call *> targets =
@@ -372,15 +364,15 @@ private:
                                    });
 
       if (found_it != targets.end()) {
-        on_hh = delete_non_branch_node_from_bdd(ep, bdd, on_hh->get_id());
+        on_hh = delete_non_branch_node_from_bdd(bdd, on_hh->get_id());
         targets.erase(found_it);
       } else {
-        assert(on_hh->get_type() != NodeType::Branch);
+        ASSERT(on_hh->get_type() != NodeType::Branch, "Unexpected branch");
         on_hh = on_hh->get_mutable_next();
       }
     }
 
-    assert(targets.empty());
+    ASSERT(targets.empty(), "Not all coalescing nodes removed");
 
     return bdd;
   }

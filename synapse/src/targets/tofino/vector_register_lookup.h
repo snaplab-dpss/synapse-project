@@ -52,32 +52,31 @@ protected:
       return std::nullopt;
     }
 
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
+    const Call *vector_borrow = static_cast<const Call *>(node);
+    const call_t &call = vector_borrow->get_call();
 
     if (call.function_name != "vector_borrow") {
       return std::nullopt;
     }
 
-    if (!is_vector_read(call_node)) {
+    if (!is_vector_read(vector_borrow)) {
       return std::nullopt;
     }
 
     vector_register_data_t vector_register_data =
-        get_vector_register_data(ep, call_node);
+        get_vector_register_data(ep, vector_borrow);
 
     if (!ctx.can_impl_ds(vector_register_data.obj,
                          DSImpl::Tofino_VectorRegister)) {
       return std::nullopt;
     }
 
-    if (!can_build_or_reuse_vector_registers(ep, call_node,
+    if (!can_build_or_reuse_vector_registers(ep, vector_borrow,
                                              vector_register_data)) {
       return std::nullopt;
     }
 
-    const Node *vector_return =
-        get_future_vector_return(ep, node, vector_register_data.obj);
+    const Call *vector_return = get_future_vector_return(vector_borrow);
 
     Context new_ctx = ctx;
     new_ctx.save_ds_impl(vector_register_data.obj,
@@ -186,28 +185,6 @@ private:
     return vector_register_data;
   }
 
-  const Call *get_future_vector_return(const EP *ep, const Node *node,
-                                       addr_t vector) const {
-    std::vector<const Call *> ops =
-        get_future_functions(node, {"vector_return"});
-
-    for (const Call *op : ops) {
-      const call_t &call = op->get_call();
-      assert(call.function_name == "vector_return");
-
-      klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-      addr_t obj = expr_addr_to_obj_addr(obj_expr);
-
-      if (obj != vector) {
-        continue;
-      }
-
-      return op;
-    }
-
-    return nullptr;
-  }
-
   BDD *delete_future_vector_return(EP *ep, const Node *node, addr_t vector,
                                    const Node *&new_next) const {
     const BDD *old_bdd = ep->get_bdd();
@@ -226,7 +203,7 @@ private:
 
     for (const Call *op : ops) {
       const call_t &call = op->get_call();
-      assert(call.function_name == "vector_return");
+      ASSERT(call.function_name == "vector_return", "Unexpected function");
 
       klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
       addr_t obj = expr_addr_to_obj_addr(obj_expr);
@@ -237,7 +214,7 @@ private:
 
       bool replace_next = (op == next);
       Node *replacement =
-          delete_non_branch_node_from_bdd(ep, new_bdd, op->get_id());
+          delete_non_branch_node_from_bdd(new_bdd, op->get_id());
 
       if (replace_next) {
         new_next = replacement;

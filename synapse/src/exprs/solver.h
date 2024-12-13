@@ -5,6 +5,7 @@
 #include <klee/util/ArrayCache.h>
 
 #include "../call_paths/call_paths.h"
+#include "../log.h"
 
 struct solver_toolbox_t {
   klee::Solver *solver;
@@ -13,14 +14,14 @@ struct solver_toolbox_t {
 
   solver_toolbox_t() {
     solver = klee::createCoreSolver(klee::Z3_SOLVER);
-    assert(solver);
+    ASSERT(solver, "Failed to create solver");
 
     solver = createCexCachingSolver(solver);
     solver = createCachingSolver(solver);
     solver = createIndependentSolver(solver);
 
     exprBuilder = klee::createDefaultExprBuilder();
-    assert(exprBuilder);
+    ASSERT(exprBuilder, "Failed to create exprBuilder");
 
     exprBuilder = klee::createSimplifyingExprBuilder(exprBuilder);
   }

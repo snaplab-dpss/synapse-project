@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "node.h"
+#include "../../log.h"
 
 class NodeManager {
 private:
@@ -21,7 +22,7 @@ public:
         [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
 
     if (it != nodes.end()) {
-      assert((*it)->get_id() == node->get_id());
+      ASSERT((*it)->get_id() == node->get_id(), "Invalid node id");
       nodes.erase(it);
     }
   }

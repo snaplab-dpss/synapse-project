@@ -73,9 +73,7 @@ protected:
     }
 
     if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.check_ds_impl(map_objs.vector_key,
-                           DSImpl::Tofino_HeavyHitterTable)) {
+        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -105,8 +103,6 @@ protected:
     if (!ep->get_ctx().check_ds_impl(map_objs.map,
                                      DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().check_ds_impl(map_objs.dchain,
-                                     DSImpl::Tofino_HeavyHitterTable) ||
-        !ep->get_ctx().check_ds_impl(map_objs.vector_key,
                                      DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
@@ -140,7 +136,7 @@ private:
 
   table_data_t get_table_data(const EP *ep, const Call *map_get) const {
     const call_t &call = map_get->get_call();
-    assert(call.function_name == "map_get");
+    ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     symbols_t symbols = map_get->get_locally_generated_symbols();
 
@@ -150,7 +146,7 @@ private:
 
     symbol_t map_has_this_key;
     bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     addr_t obj = expr_addr_to_obj_addr(obj_expr);
     klee::ref<klee::Expr> min_estimate = solver_toolbox.create_new_symbol(

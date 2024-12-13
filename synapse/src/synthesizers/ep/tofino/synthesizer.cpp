@@ -22,7 +22,7 @@ static const DS *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
-  assert(ds && "DS not found");
+  ASSERT(ds, "DS not found");
   return ds;
 }
 
@@ -133,9 +133,9 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
       var_t hdr_var;
       bool hdr_found =
           get_hdr_var(*extract->ids.begin(), extract->hdr, hdr_var);
-      assert(hdr_found && "Header not found");
+      ASSERT(hdr_found, "Header not found");
 
-      assert(extract->next);
+      ASSERT(extract->next, "Next state not found");
       code_t next_state = get_parser_state_name(extract->next, false);
 
       ingress_parser.indent();
@@ -226,7 +226,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 
 code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset,
                                 bits_t size) const {
-  assert(offset + size <= var.expr->getWidth());
+  ASSERT(offset + size <= var.expr->getWidth(), "Invalid slice");
 
   coder_t coder;
   coder << var.name << "[" << offset + size - 1 << ":" << offset << "]";
@@ -333,7 +333,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   for (const symbol_t &symbol : symbols) {
     var_t var;
     bool found = get_var(symbol.expr, var);
-    assert(found && "Symbol not found");
+    ASSERT(found, "Symbol not found");
 
     ingress_apply.indent();
     ingress_apply << "hdr.cpu.";
@@ -366,7 +366,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Recirculate *node) {
   // TODO:
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -382,7 +382,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   const std::vector<klee::ref<klee::Expr>> &conditions = node->get_conditions();
 
   const std::vector<EPNode *> &children = ep_node->get_children();
-  assert(children.size() == 2);
+  ASSERT(children.size() == 2, "If node must have 2 children");
 
   const EPNode *then_node = children[0];
   const EPNode *else_node = children[1];
@@ -513,7 +513,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Broadcast *node) {
   // TODO:
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -554,7 +554,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   parser_vars[node->get_node()->get_id()] = get_squashed_vars();
   parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
 
-  assert(ep_node->get_children().size() == 1);
+  ASSERT(ep_node->get_children().size() == 1,
+         "ParserExtraction must have 1 child");
   visit(ep, ep_node->get_children()[0]);
 
   var_stacks.pop_back();
@@ -574,7 +575,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   var_t hdr_var;
   bool found = get_var(hdr, hdr_var);
-  assert(found && "Header not found");
+  ASSERT(found, "Header not found");
 
   const std::vector<mod_t> &changes = node->get_changes();
   for (const mod_t &mod : changes) {
@@ -644,7 +645,7 @@ EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   }
 
   dbg();
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
 
   return EPVisitor::Action::doChildren;
 }
@@ -653,7 +654,7 @@ EPVisitor::Action
 EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                      const tofino::VectorRegisterUpdate *node) {
   // TODO:
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -675,7 +676,7 @@ EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   dbg();
 
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -683,7 +684,7 @@ EPVisitor::Action
 EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                      const tofino::FCFSCachedTableReadOrWrite *node) {
   // TODO:
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -691,7 +692,7 @@ EPVisitor::Action
 EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                      const tofino::FCFSCachedTableWrite *node) {
   // TODO:
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -699,7 +700,7 @@ EPVisitor::Action
 EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                      const tofino::FCFSCachedTableDelete *node) {
   // TODO:
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 

@@ -9,7 +9,7 @@ Transpiler::Transpiler(const EPSynthesizer *_synthesizer)
     : synthesizer(_synthesizer) {}
 
 static code_t transpile_constant(klee::ref<klee::Expr> expr) {
-  assert(is_constant(expr));
+  ASSERT(is_constant(expr), "Expected a constant expression");
 
   bytes_t width = expr->getWidth() / 8;
 
@@ -49,7 +49,7 @@ code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
   code_t code = coder.dump();
   coders.pop();
 
-  assert(!code.empty());
+  ASSERT(!code.empty(), "Empty code");
   return code;
 }
 
@@ -61,7 +61,7 @@ code_t Transpiler::type_from_size(bits_t size) const {
 
 code_t Transpiler::type_from_expr(klee::ref<klee::Expr> expr) const {
   klee::Expr::Width width = expr->getWidth();
-  assert(width != klee::Expr::InvalidWidth);
+  ASSERT(width != klee::Expr::InvalidWidth, "Invalid width");
   return type_from_size(width);
 }
 
@@ -79,18 +79,18 @@ klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
   Log::dbg() << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action
 Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -108,22 +108,22 @@ klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
   Log::dbg() << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitZExt(const klee::ZExtExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSExt(const klee::SExtExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -154,32 +154,32 @@ klee::ExprVisitor::Action Transpiler::visitSub(const klee::SubExpr &e) {
 }
 
 klee::ExprVisitor::Action Transpiler::visitMul(const klee::MulExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUDiv(const klee::UDivExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSDiv(const klee::SDivExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitURem(const klee::URemExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSRem(const klee::SRemExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNot(const klee::NotExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -210,22 +210,22 @@ klee::ExprVisitor::Action Transpiler::visitOr(const klee::OrExpr &e) {
 }
 
 klee::ExprVisitor::Action Transpiler::visitXor(const klee::XorExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitShl(const klee::ShlExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitLShr(const klee::LShrExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitAShr(const klee::AShrExpr &e) {
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 

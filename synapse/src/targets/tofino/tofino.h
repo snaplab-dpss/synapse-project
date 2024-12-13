@@ -69,15 +69,15 @@ struct TofinoTarget : public Target {
                    //    new FCFSCachedTableWriteGenerator(),
                    //    new FCFSCachedTableDeleteGenerator(),
 
-                   //    new MapRegisterReadGenerator(),
-                   //    new MapRegisterReadOrWriteGenerator(),
-                   //    new MapRegisterWriteGenerator(),
-                   //    new MapRegisterDeleteGenerator(),
+                   new MapRegisterReadGenerator(),
+                   new MapRegisterReadOrWriteGenerator(),
+                   new MapRegisterWriteGenerator(),
+                   new MapRegisterDeleteGenerator(),
 
                    //    new MeterUpdateGenerator(),
 
-                   new HHTableReadGenerator(),
-                   new HHTableConditionalUpdateGenerator(),
+                   //    new HHTableReadGenerator(),
+                   //    new HHTableConditionalUpdateGenerator(),
 
                    //    new IntegerAllocatorAllocateGenerator(),
                    //    new IntegerAllocatorIsAllocatedGenerator(),

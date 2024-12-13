@@ -5,6 +5,7 @@
 
 #include "exprs.h"
 #include "retriever.h"
+#include "../log.h"
 
 class ExprPrettyPrinter : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -19,7 +20,7 @@ public:
   ExprPrettyPrinter() : ExprPrettyPrinter(false) {}
 
   static std::string print(klee::ref<klee::Expr> expr, bool use_signed = true) {
-    assert(!expr.isNull());
+    ASSERT(!expr.isNull(), "Null expr");
 
     if (expr->getKind() != klee::Expr::Kind::Constant) {
       ExprPrettyPrinter printer(use_signed);
@@ -82,7 +83,8 @@ public:
     auto root = ul.root;
     auto index = e.index;
 
-    assert(index->getKind() == klee::Expr::Kind::Constant);
+    ASSERT(index->getKind() == klee::Expr::Kind::Constant,
+           "Non-constant index");
 
     klee::ConstantExpr *index_const =
         static_cast<klee::ConstantExpr *>(index.get());

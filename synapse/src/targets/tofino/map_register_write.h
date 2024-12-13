@@ -63,7 +63,7 @@ protected:
       return std::nullopt;
     }
 
-    assert(!future_map_puts.empty());
+    ASSERT(!future_map_puts.empty(), "No future map puts");
 
     map_coalescing_objs_t map_objs;
     if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
@@ -72,8 +72,7 @@ protected:
     }
 
     if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_MapRegister)) {
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister)) {
       return std::nullopt;
     }
 
@@ -89,7 +88,6 @@ protected:
     Context new_ctx = ctx;
     new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
@@ -120,7 +118,7 @@ protected:
       return impls;
     }
 
-    assert(!future_map_puts.empty());
+    ASSERT(!future_map_puts.empty(), "No future map puts");
 
     map_coalescing_objs_t map_objs;
     if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
@@ -130,8 +128,6 @@ protected:
 
     if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
         !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                   DSImpl::Tofino_MapRegister) ||
-        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
                                    DSImpl::Tofino_MapRegister)) {
       return impls;
     }
@@ -164,7 +160,6 @@ protected:
     Context &ctx = new_ep->get_mutable_ctx();
     ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
     if (deleted_branch_constraints.has_value()) {
       ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
@@ -196,7 +191,7 @@ private:
                         std::vector<const Call *> future_map_puts) const {
     map_register_data_t map_register_data;
 
-    assert(!future_map_puts.empty());
+    ASSERT(!future_map_puts.empty(), "No future map puts");
     const Call *map_put = future_map_puts.front();
 
     const call_t &put_call = map_put->get_call();
@@ -226,13 +221,13 @@ private:
       nodes_to_ignore.push_back(coalescing_node);
     }
 
-    index_alloc_check_t index_alloc_check =
+    branch_direction_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
 
     if (index_alloc_check.branch) {
       nodes_to_ignore.push_back(index_alloc_check.branch);
 
-      const Node *next = index_alloc_check.success_on_true
+      const Node *next = index_alloc_check.direction
                              ? index_alloc_check.branch->get_on_false()
                              : index_alloc_check.branch->get_on_true();
 
@@ -271,13 +266,13 @@ private:
         symbol_t out_of_space;
         bool found = get_symbol(call_target->get_locally_generated_symbols(),
                                 "out_of_space", out_of_space);
-        assert(found && "Symbol out_of_space not found");
+        ASSERT(found, "Symbol out_of_space not found");
 
-        index_alloc_check_t index_alloc_check =
+        branch_direction_t index_alloc_check =
             find_branch_checking_index_alloc(ep, node, out_of_space);
 
         if (index_alloc_check.branch) {
-          assert(!deleted_branch_constraints.has_value() &&
+          ASSERT(!deleted_branch_constraints.has_value(),
                  "Multiple branch checking index allocation detected");
           deleted_branch_constraints =
               index_alloc_check.branch->get_ordered_branch_constraints();
@@ -287,7 +282,7 @@ private:
 
           // If we want to keep the direction on true, we must remove the on
           // false.
-          if (index_alloc_check.success_on_true) {
+          if (index_alloc_check.direction) {
             extra_constraint =
                 solver_toolbox.exprBuilder->Not(extra_constraint);
           }
@@ -296,8 +291,8 @@ private:
 
           bool replace_next = (index_alloc_check.branch == next);
           Node *replacement = delete_branch_node_from_bdd(
-              ep, new_bdd, index_alloc_check.branch->get_id(),
-              index_alloc_check.success_on_true);
+              new_bdd, index_alloc_check.branch->get_id(),
+              index_alloc_check.direction);
           if (replace_next) {
             new_next = replacement;
           }
@@ -306,7 +301,7 @@ private:
 
       bool replace_next = (target == next);
       Node *replacement =
-          delete_non_branch_node_from_bdd(ep, new_bdd, target->get_id());
+          delete_non_branch_node_from_bdd(new_bdd, target->get_id());
       if (replace_next) {
         new_next = replacement;
       }

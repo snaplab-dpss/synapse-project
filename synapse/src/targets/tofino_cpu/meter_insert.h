@@ -37,8 +37,9 @@ public:
         ctx.get_target_ctx<tofino::TofinoContext>();
     const std::unordered_set<tofino::DS *> &data_structures =
         tofino_ctx->get_ds(obj);
-    assert(data_structures.size() == 1);
-    assert((*data_structures.begin())->type == tofino::DSType::METER);
+    ASSERT(data_structures.size() == 1, "Invalid number of data structures");
+    ASSERT((*data_structures.begin())->type == tofino::DSType::METER,
+           "Invalid data structure type");
     return static_cast<tofino::Meter *>(*data_structures.begin());
   }
 };

@@ -16,7 +16,7 @@ public:
   Score(const Score &score) : values(score.values) {}
 
   inline bool operator<(const Score &other) {
-    assert(values.size() == other.values.size());
+    ASSERT(values.size() == other.values.size(), "Scores have different sizes");
     for (size_t i = 0; i < values.size(); i++) {
       i64 this_score = values[i];
       i64 other_score = other.values[i];
@@ -34,7 +34,7 @@ public:
   }
 
   inline bool operator==(const Score &other) {
-    assert(values.size() == other.values.size());
+    ASSERT(values.size() == other.values.size(), "Scores have different sizes");
     for (size_t i = 0; i < values.size(); i++) {
       i64 this_score = values[i];
       i64 other_score = other.values[i];

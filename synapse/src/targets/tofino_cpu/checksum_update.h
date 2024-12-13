@@ -79,7 +79,7 @@ protected:
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t checksum;
     bool found = get_symbol(symbols, "checksum", checksum);
-    assert(found && "Symbol checksum not found");
+    ASSERT(found, "Symbol checksum not found");
 
     addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
     addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);

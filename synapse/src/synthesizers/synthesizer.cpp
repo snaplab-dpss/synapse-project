@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <fstream>
 
 #include "synthesizer.h"
@@ -78,7 +77,7 @@ coder_t &coder_t::operator<<(i64 n) {
 
 coder_t &Synthesizer::get(const std::string &marker) {
   auto it = coders.find(marker);
-  assert(it != coders.end() && "Marker not found.");
+  ASSERT(it != coders.end(), "Marker not found.");
   return it->second;
 }
 
@@ -95,7 +94,7 @@ void Synthesizer::dump() const {
     code_t code = coder.stream.str();
 
     size_t pos = template_str.find(marker);
-    assert(pos != std::string::npos);
+    ASSERT(pos != std::string::npos, "Marker not found in template.");
 
     template_str.replace(pos, marker.size(), code);
   }

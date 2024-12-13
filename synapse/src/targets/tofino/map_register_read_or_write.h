@@ -16,19 +16,25 @@ private:
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> read_value;
   klee::ref<klee::Expr> write_value;
+  klee::ref<klee::Expr> extra_write_condition;
   symbol_t map_has_this_key;
+  symbol_t map_reg_successful_write;
 
 public:
   MapRegisterReadOrWrite(const Node *node, DS_ID _map_register_id, addr_t _obj,
                          klee::ref<klee::Expr> _key,
                          klee::ref<klee::Expr> _read_value,
                          klee::ref<klee::Expr> _write_value,
-                         const symbol_t &_map_has_this_key)
+                         klee::ref<klee::Expr> _extra_write_condition,
+                         const symbol_t &_map_has_this_key,
+                         const symbol_t &_map_reg_successful_write)
       : TofinoModule(ModuleType::Tofino_MapRegisterReadOrWrite,
                      "MapRegisterReadOrWrite", node),
         map_register_id(_map_register_id), obj(_obj), key(_key),
         read_value(_read_value), write_value(_write_value),
-        map_has_this_key(_map_has_this_key) {}
+        extra_write_condition(_extra_write_condition),
+        map_has_this_key(_map_has_this_key),
+        map_reg_successful_write(_map_reg_successful_write) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -36,9 +42,9 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new MapRegisterReadOrWrite(node, map_register_id, obj, key, read_value,
-                                   write_value, map_has_this_key);
+    Module *cloned = new MapRegisterReadOrWrite(
+        node, map_register_id, obj, key, read_value, write_value,
+        extra_write_condition, map_has_this_key, map_reg_successful_write);
     return cloned;
   }
 
@@ -47,7 +53,13 @@ public:
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_read_value() const { return read_value; }
   klee::ref<klee::Expr> get_write_value() const { return write_value; }
+  klee::ref<klee::Expr> get_extra_write_condition() const {
+    return extra_write_condition;
+  }
   const symbol_t &get_map_has_this_key() const { return map_has_this_key; }
+  const symbol_t &get_map_reg_successful_write() const {
+    return map_reg_successful_write;
+  }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override {
     return {map_register_id};
@@ -82,13 +94,12 @@ protected:
     }
 
     if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_MapRegister)) {
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister)) {
       return std::nullopt;
     }
 
     map_register_data_t map_register_data =
-        get_map_register_data(ep, map_get, future_map_puts);
+        get_map_register_data(ep, map_get, future_map_puts[0]);
 
     if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj,
                                          map_register_data.key,
@@ -99,7 +110,6 @@ protected:
     Context new_ctx = ctx;
     new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
@@ -123,10 +133,9 @@ protected:
 
     const Call *map_get = static_cast<const Call *>(node);
 
-    std::vector<const Call *> future_map_puts;
-    if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get,
-                                                 future_map_puts)) {
-      // The map register read should deal with these cases.
+    map_rw_pattern_t map_rw_pattern;
+    if (!is_compact_map_get_followed_by_map_put_on_miss(ep, map_get,
+                                                        map_rw_pattern)) {
       return impls;
     }
 
@@ -137,14 +146,12 @@ protected:
 
     if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
         !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                   DSImpl::Tofino_MapRegister) ||
-        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
                                    DSImpl::Tofino_MapRegister)) {
       return impls;
     }
 
     map_register_data_t map_register_data =
-        get_map_register_data(ep, map_get, future_map_puts);
+        get_map_register_data(ep, map_get, map_rw_pattern.map_put);
 
     MapRegister *map_register = build_or_reuse_map_register(
         ep, node, map_register_data.obj, map_register_data.key,
@@ -154,29 +161,30 @@ protected:
       return impls;
     }
 
+    symbol_t map_reg_successful_write =
+        create_symbol("map_reg_successful_write", 32);
+
     Module *module = new MapRegisterReadOrWrite(
         node, map_register->id, map_register_data.obj, map_register_data.key,
         map_register_data.read_value, map_register_data.write_value,
-        map_register_data.map_has_this_key);
+        map_rw_pattern.map_put_extra_condition.branch
+            ? map_rw_pattern.map_put_extra_condition.branch->get_condition()
+            : nullptr,
+        map_register_data.map_has_this_key, map_reg_successful_write);
     EPNode *ep_node = new EPNode(module);
 
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
     const Node *new_next;
-    std::optional<constraints_t> deleted_branch_constraints;
-    BDD *new_bdd =
-        delete_coalescing_nodes(new_ep, node, map_objs, map_register_data.key,
-                                new_next, deleted_branch_constraints);
+    BDD *new_bdd = rebuild_bdd(new_ep, node, map_rw_pattern,
+                               map_reg_successful_write, new_next);
 
     Context &ctx = new_ep->get_mutable_ctx();
     ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
-    if (deleted_branch_constraints.has_value()) {
-      ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
-    }
+    update_profiler(new_bdd, ctx.get_mutable_profiler(), map_rw_pattern);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->place(new_ep, node, map_objs.map, map_register);
@@ -199,13 +207,9 @@ private:
     u32 num_entries;
   };
 
-  map_register_data_t get_map_register_data(
-      const EP *ep, const Call *map_get,
-      const std::vector<const Call *> &future_map_puts) const {
+  map_register_data_t get_map_register_data(const EP *ep, const Call *map_get,
+                                            const Call *map_put) const {
     map_register_data_t map_register_data;
-
-    assert(!future_map_puts.empty());
-    const Call *map_put = future_map_puts.front();
 
     const call_t &get_call = map_get->get_call();
     const call_t &put_call = map_put->get_call();
@@ -220,7 +224,7 @@ private:
 
     bool found = get_symbol(symbols, "map_has_this_key",
                             map_register_data.map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     const Context &ctx = ep->get_ctx();
     const map_config_t &cfg = ctx.get_map_config(map_register_data.obj);
@@ -249,9 +253,9 @@ private:
         bool found =
             get_symbol(coalescing_node->get_locally_generated_symbols(),
                        "out_of_space", out_of_space);
-        assert(found && "Symbol out_of_space not found");
+        ASSERT(found, "Symbol out_of_space not found");
 
-        index_alloc_check_t index_alloc_check =
+        branch_direction_t index_alloc_check =
             find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
         // FIXME: We ignore all logic happening when the index is not
@@ -261,7 +265,7 @@ private:
         if (index_alloc_check.branch) {
           nodes_to_ignore.push_back(index_alloc_check.branch);
 
-          const Node *next = index_alloc_check.success_on_true
+          const Node *next = index_alloc_check.direction
                                  ? index_alloc_check.branch->get_on_false()
                                  : index_alloc_check.branch->get_on_true();
 
@@ -276,72 +280,98 @@ private:
     return nodes_to_ignore;
   }
 
-  BDD *delete_coalescing_nodes(
-      const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
-      klee::ref<klee::Expr> key, const Node *&new_next,
-      std::optional<constraints_t> &deleted_branch_constraints) const {
+  klee::ref<klee::Expr>
+  build_write_success_condition(const symbol_t &map_reg_write_failed) const {
+    klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(
+        0, map_reg_write_failed.expr->getWidth());
+    return solver_toolbox.exprBuilder->Eq(map_reg_write_failed.expr, zero);
+  }
+
+  void update_profiler(const BDD *bdd, Profiler &profiler,
+                       const map_rw_pattern_t &map_rw_pattern) const {
+    hit_rate_t on_index_alloc_success_hr = profiler.get_hr(
+        map_rw_pattern.index_alloc_check.direction
+            ? map_rw_pattern.index_alloc_check.branch->get_on_true()
+            : map_rw_pattern.index_alloc_check.branch->get_on_false());
+
+    hit_rate_t on_index_alloc_failed_hr = profiler.get_hr(
+        map_rw_pattern.index_alloc_check.direction
+            ? map_rw_pattern.index_alloc_check.branch->get_on_false()
+            : map_rw_pattern.index_alloc_check.branch->get_on_true());
+
+    const Branch *index_alloc_check = static_cast<const Branch *>(
+        bdd->get_node_by_id(map_rw_pattern.index_alloc_check.branch->get_id()));
+
+    profiler.replace_constraint(map_rw_pattern.index_alloc_check.branch
+                                    ->get_ordered_branch_constraints(),
+                                index_alloc_check->get_condition());
+
+    if (map_rw_pattern.map_put_extra_condition.branch) {
+      const Node *to_be_removed =
+          map_rw_pattern.map_put_extra_condition.direction
+              ? map_rw_pattern.map_put_extra_condition.branch->get_on_false()
+              : map_rw_pattern.map_put_extra_condition.branch->get_on_true();
+
+      hit_rate_t removed_hr = profiler.get_hr(to_be_removed);
+
+      profiler.remove(to_be_removed->get_ordered_branch_constraints());
+
+      hit_rate_t new_on_index_alloc_success_hr = on_index_alloc_success_hr;
+      hit_rate_t new_on_index_alloc_failed_hr =
+          on_index_alloc_failed_hr + removed_hr;
+
+      const Node *on_index_alloc_success =
+          map_rw_pattern.index_alloc_check.direction
+              ? index_alloc_check->get_on_true()
+              : index_alloc_check->get_on_false();
+      const Node *on_index_alloc_failed =
+          map_rw_pattern.index_alloc_check.direction
+              ? index_alloc_check->get_on_false()
+              : index_alloc_check->get_on_true();
+
+      profiler.set(on_index_alloc_success->get_ordered_branch_constraints(),
+                   new_on_index_alloc_success_hr);
+      profiler.set(on_index_alloc_failed->get_ordered_branch_constraints(),
+                   new_on_index_alloc_failed_hr);
+    }
+  }
+
+  BDD *rebuild_bdd(const EP *ep, const Node *node,
+                   const map_rw_pattern_t &map_rw_pattern,
+                   const symbol_t &map_reg_successful_write,
+                   const Node *&new_next) const {
     const BDD *old_bdd = ep->get_bdd();
     BDD *new_bdd = new BDD(*old_bdd);
 
     const Node *next = node->get_next();
+    new_next = new_bdd->get_node_by_id(next->get_id());
 
-    if (next) {
-      new_next = new_bdd->get_node_by_id(next->get_id());
+    delete_non_branch_node_from_bdd(
+        new_bdd, map_rw_pattern.dchain_allocate_new_index->get_id());
+
+    if (map_rw_pattern.map_put_extra_condition.branch) {
+      delete_branch_node_from_bdd(
+          new_bdd, map_rw_pattern.map_put_extra_condition.branch->get_id(),
+          map_rw_pattern.map_put_extra_condition.direction);
+    }
+
+    Branch *index_alloc_check_node =
+        static_cast<Branch *>(new_bdd->get_mutable_node_by_id(
+            map_rw_pattern.index_alloc_check.branch->get_id()));
+
+    if (map_rw_pattern.index_alloc_check.direction) {
+      index_alloc_check_node->set_condition(solver_toolbox.exprBuilder->Ne(
+          map_reg_successful_write.expr,
+          solver_toolbox.exprBuilder->Constant(
+              0, map_reg_successful_write.expr->getWidth())));
     } else {
-      new_next = nullptr;
+      index_alloc_check_node->set_condition(solver_toolbox.exprBuilder->Eq(
+          map_reg_successful_write.expr,
+          solver_toolbox.exprBuilder->Constant(
+              0, map_reg_successful_write.expr->getWidth())));
     }
 
-    const std::vector<const Call *> targets =
-        get_coalescing_nodes_from_key(new_bdd, new_next, key, map_objs);
-
-    for (const Node *target : targets) {
-      const Call *call_target = static_cast<const Call *>(target);
-      const call_t &call = call_target->get_call();
-
-      if (call.function_name == "dchain_allocate_new_index") {
-        symbol_t out_of_space;
-        bool found = get_symbol(call_target->get_locally_generated_symbols(),
-                                "out_of_space", out_of_space);
-        assert(found && "Symbol out_of_space not found");
-
-        index_alloc_check_t index_alloc_check =
-            find_branch_checking_index_alloc(ep, node, out_of_space);
-
-        if (index_alloc_check.branch) {
-          assert(!deleted_branch_constraints.has_value() &&
-                 "Multiple branch checking index allocation detected");
-          deleted_branch_constraints =
-              index_alloc_check.branch->get_ordered_branch_constraints();
-
-          klee::ref<klee::Expr> extra_constraint =
-              index_alloc_check.branch->get_condition();
-
-          // If we want to keep the direction on true, we must remove the on
-          // false.
-          if (index_alloc_check.success_on_true) {
-            extra_constraint =
-                solver_toolbox.exprBuilder->Not(extra_constraint);
-          }
-
-          deleted_branch_constraints->push_back(extra_constraint);
-
-          bool replace_next = (index_alloc_check.branch == next);
-          Node *replacement = delete_branch_node_from_bdd(
-              ep, new_bdd, index_alloc_check.branch->get_id(),
-              index_alloc_check.success_on_true);
-          if (replace_next) {
-            new_next = replacement;
-          }
-        }
-      }
-
-      bool replace_next = (target == next);
-      Node *replacement =
-          delete_non_branch_node_from_bdd(ep, new_bdd, target->get_id());
-      if (replace_next) {
-        new_next = replacement;
-      }
-    }
+    delete_non_branch_node_from_bdd(new_bdd, map_rw_pattern.map_put->get_id());
 
     return new_bdd;
   }

@@ -10,7 +10,7 @@ static ep_id_t counter = 0;
 
 static std::unordered_set<TargetType>
 get_target_types(const targets_t &targets) {
-  assert(targets.size());
+  ASSERT(targets.size(), "No targets to get types from.");
   std::unordered_set<TargetType> targets_types;
 
   for (const Target *target : targets) {
@@ -21,15 +21,26 @@ get_target_types(const targets_t &targets) {
 }
 
 static TargetType get_initial_target(const targets_t &targets) {
-  assert(targets.size());
+  ASSERT(targets.size(), "No targets to get the initial target from.");
   return targets[0]->type;
+}
+
+static BDD *setup_bdd(const BDD *bdd) {
+  BDD *new_bdd = new BDD(*bdd);
+
+  delete_all_vector_key_operations_from_bdd(new_bdd);
+
+  // Just to double check that we didn't break anything...
+  new_bdd->assert_integrity();
+
+  return new_bdd;
 }
 
 EP::EP(std::shared_ptr<const BDD> _bdd, const targets_t &_targets,
        const toml::table &_config, const Profiler &_profiler)
-    : id(counter++), bdd(_bdd), root(nullptr),
+    : id(counter++), bdd(setup_bdd(_bdd.get())), root(nullptr),
       initial_target(get_initial_target(_targets)), targets(_targets),
-      ctx(_bdd.get(), _targets, initial_target, _config, _profiler),
+      ctx(bdd.get(), targets, initial_target, _config, _profiler),
       meta(bdd.get(), get_target_types(targets), initial_target) {
   targets_roots[initial_target] = nodes_t({bdd->get_root()->get_id()});
 
@@ -59,14 +70,14 @@ EP::EP(const EP &other, bool is_ancestor)
       ancestors(update_ancestors(other, is_ancestor)),
       targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
   if (!root) {
-    assert(other.active_leaves.size() == 1);
+    ASSERT(other.active_leaves.size() == 1, "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
     return;
   }
 
   for (const EPLeaf &leaf : other.active_leaves) {
     EPNode *leaf_node = root->get_mutable_node_by_id(leaf.node->get_id());
-    assert(leaf_node && "Leaf node not found in the cloned tree.");
+    ASSERT(leaf_node, "Leaf node not found in the cloned tree.");
     active_leaves.emplace_back(leaf_node, leaf.next);
   }
 
@@ -95,7 +106,7 @@ const std::vector<EPLeaf> &EP::get_active_leaves() const {
 const targets_t &EP::get_targets() const { return targets; }
 
 const nodes_t &EP::get_target_roots(TargetType target) const {
-  assert(targets_roots.find(target) != targets_roots.end() &&
+  ASSERT(targets_roots.find(target) != targets_roots.end(),
          "Target not found in the roots map.");
   return targets_roots.at(target);
 }
@@ -149,7 +160,7 @@ EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
 
   root->visit_nodes([&found, &types](const EPNode *node) {
     const Module *module = node->get_module();
-    assert(module);
+    ASSERT(module, "Node without a module");
 
     if (types.find(module->get_type()) != types.end()) {
       found.push_back(node);
@@ -183,7 +194,7 @@ const Node *EP::get_next_node() const {
 }
 
 EPLeaf EP::pop_active_leaf() {
-  assert(!active_leaves.empty() && "No active leaf");
+  ASSERT(!active_leaves.empty(), "No active leaf");
   EPLeaf leaf = active_leaves.front();
   active_leaves.erase(active_leaves.begin());
   return leaf;
@@ -198,7 +209,7 @@ TargetType EP::get_active_target() const {
     return initial_target;
   }
 
-  assert(has_active_leaf() && "No active leaf");
+  ASSERT(has_active_leaf(), "No active leaf");
   EPLeaf active_leaf = get_active_leaf();
 
   return active_leaf.node->get_module()->get_next_target();
@@ -278,11 +289,11 @@ void EP::replace_bdd(const BDD *new_bdd,
   };
 
   for (EPLeaf &leaf : active_leaves) {
-    assert(leaf.next);
+    ASSERT(leaf.next, "Active leaf without a next node");
 
     node_id_t new_id = translate_next_node(leaf.next->get_id());
     const Node *new_node = new_bdd->get_node_by_id(new_id);
-    assert(new_node && "New node not found in the new BDD.");
+    ASSERT(new_node, "New node not found in the new BDD.");
 
     leaf.next = new_node;
   }
@@ -298,7 +309,7 @@ void EP::replace_bdd(const BDD *new_bdd,
     node_id_t target_id = translate_processed_node(node_bdd->get_id());
 
     const Node *new_node = new_bdd->get_node_by_id(target_id);
-    assert(new_node && "New node not found in the new BDD.");
+    ASSERT(new_node, "Node (id=%lu) not found in the new BDD.", target_id);
 
     module->set_node(new_node);
 
@@ -347,7 +358,7 @@ void EP::debug_active_leaves() const {
   const Profiler &profiler = ctx.get_profiler();
   Log::dbg() << "Active leaves:\n";
   for (const EPLeaf &leaf : active_leaves) {
-    assert(leaf.next);
+    ASSERT(leaf.next, "Active leaf without a next node");
     Log::dbg() << "  " << leaf.next->dump(true, true);
     if (leaf.node) {
       Log::dbg() << " | " << leaf.node->dump();
@@ -367,19 +378,19 @@ void EP::assert_integrity() const {
     const EPNode *node = nodes.back();
     nodes.pop_back();
 
-    assert(node);
-    assert(node->get_module());
+    ASSERT(node, "Null node");
+    ASSERT(node->get_module(), "Node without a module");
 
     const Module *module = node->get_module();
     const Node *bdd_node = module->get_node();
-    assert(bdd_node);
+    ASSERT(bdd_node, "Module without a node");
 
     const Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-    assert(bdd_node == found_bdd_node);
+    ASSERT(bdd_node == found_bdd_node, "Node not found in the BDD");
 
     for (const EPNode *child : node->get_children()) {
-      assert(child);
-      assert(child->get_prev() == node);
+      ASSERT(child, "Null child");
+      ASSERT(child->get_prev() == node, "Child without the correct parent");
       nodes.push_back(child);
     }
   }
@@ -387,19 +398,19 @@ void EP::assert_integrity() const {
   for (const auto &[target, roots] : targets_roots) {
     for (const node_id_t root_id : roots) {
       const Node *bdd_node = bdd->get_node_by_id(root_id);
-      assert(bdd_node);
+      ASSERT(bdd_node, "Root node not found in the BDD");
 
       const Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-      assert(bdd_node == found_bdd_node);
+      ASSERT(bdd_node == found_bdd_node, "Root node not found in the BDD");
     }
   }
 
   for (const EPLeaf &leaf : active_leaves) {
     const Node *next = leaf.next;
-    assert(next);
+    ASSERT(next, "Active leaf without a next node");
 
     const Node *found_next = bdd->get_node_by_id(next->get_id());
-    assert(next == found_next);
+    ASSERT(next == found_next, "Next node not found in the BDD");
   }
 
   bdd->assert_integrity();
@@ -419,8 +430,8 @@ void EP::sort_leaves() {
   auto prioritize_switch_and_hot_paths = [this](const EPLeaf &l1,
                                                 const EPLeaf &l2) {
     // Only the first leaf may have no EPNode.
-    assert(l1.node);
-    assert(l2.node);
+    ASSERT(l1.node, "Leaf without a node");
+    ASSERT(l2.node, "Leaf without a node");
 
     if (l1.node->get_module()->get_next_target() != initial_target &&
         l2.node->get_module()->get_next_target() == initial_target) {
@@ -549,6 +560,12 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation,
     return new_pps > old_pps;
   }
 
+  // Speeding things up, we don't need to check for small differences in
+  // throughput.
+  if (old_pps <= STABLE_TPUT_PRECISION) {
+    return false;
+  }
+
   old_future_nodes.clear();
   new_future_nodes.clear();
 
@@ -603,8 +620,8 @@ spec_impl_t EP::get_best_speculation(const Node *node,
         continue;
       }
 
-      assert(best.has_value());
-      assert(spec.has_value());
+      ASSERT(best.has_value(), "No best speculation");
+      ASSERT(spec.has_value(), "No speculation");
 
       bool is_better =
           is_better_speculation(*best, *spec, node, current_target, ingress);
@@ -699,7 +716,7 @@ pps_t EP::speculate_tput_pps() const {
       continue;
     }
 
-    assert(leaf.next);
+    ASSERT(leaf.next, "Active leaf without a next node");
     leaf.next->visit_nodes([this, &speculations, &spec_ctx, &skip,
                             ingress](const Node *node) {
       if (skip.find(node->get_id()) != skip.end()) {

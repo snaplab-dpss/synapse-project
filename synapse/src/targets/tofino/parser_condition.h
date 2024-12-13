@@ -71,8 +71,8 @@ protected:
     const Node *on_true = branch_node->get_on_true();
     const Node *on_false = branch_node->get_on_false();
 
-    assert(on_true);
-    assert(on_false);
+    ASSERT(on_true, "Branch node without on_true");
+    ASSERT(on_false, "Branch node without on_false");
 
     std::vector<const Call *> on_true_borrows =
         get_future_functions(on_true, {"packet_borrow_next_chunk"}, true);
@@ -81,7 +81,8 @@ protected:
 
     // We are working under the assumption that before parsing a header we
     // always perform some kind of checking.
-    assert(on_true_borrows.size() > 0 || on_false_borrows.size() > 0);
+    ASSERT(on_true_borrows.size() > 0 || on_false_borrows.size() > 0,
+           "Not implemented");
 
     if (on_true_borrows.size() != on_false_borrows.size()) {
       const Node *conditional_borrow =
@@ -95,14 +96,14 @@ protected:
       // headers.
       // Right now we are assuming that either we parse the target header, or we
       // drop the packet.
-      assert(is_parser_drop(not_conditional_path) && "Not implemented");
+      ASSERT(is_parser_drop(not_conditional_path), "Not implemented");
 
       // Relevant for IPv4 options, but left for future work.
-      assert(!borrow_has_var_len(conditional_borrow) && "Not implemented");
+      ASSERT(!borrow_has_var_len(conditional_borrow), "Not implemented");
     }
 
-    assert(branch_node->get_on_true());
-    assert(branch_node->get_on_false());
+    ASSERT(branch_node->get_on_true(), "Branch node without on_true");
+    ASSERT(branch_node->get_on_false(), "Branch node without on_false");
 
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
@@ -156,11 +157,12 @@ private:
       selection_t lhs_sel = build_parser_select(lhs);
       selection_t rhs_sel = build_parser_select(rhs);
 
-      assert(solver_toolbox.are_exprs_always_equal(lhs_sel.target,
-                                                   rhs_sel.target));
-      assert(selection.target.isNull() ||
-             solver_toolbox.are_exprs_always_equal(lhs_sel.target,
-                                                   selection.target));
+      ASSERT(
+          solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target),
+          "Not implemented");
+      ASSERT(selection.target.isNull() || solver_toolbox.are_exprs_always_equal(
+                                              lhs_sel.target, selection.target),
+             "Not implemented");
 
       selection.target = lhs_sel.target;
       selection.values.insert(selection.values.end(), lhs_sel.values.begin(),
@@ -178,22 +180,24 @@ private:
       bool lhs_is_readLSB = is_readLSB(lhs);
       bool rhs_is_readLSB = is_readLSB(rhs);
 
-      assert(lhs_is_readLSB || rhs_is_readLSB);
-      assert(lhs_is_readLSB != rhs_is_readLSB);
+      ASSERT(lhs_is_readLSB || rhs_is_readLSB, "Not implemented");
+      ASSERT(lhs_is_readLSB != rhs_is_readLSB, "Not implemented");
 
       klee::ref<klee::Expr> target = lhs_is_readLSB ? lhs : rhs;
-      assert(selection.target.isNull() ||
-             solver_toolbox.are_exprs_always_equal(selection.target, target));
+      ASSERT(selection.target.isNull() || solver_toolbox.are_exprs_always_equal(
+                                              selection.target, target),
+             "Not implemented");
       if (selection.target.isNull()) {
         selection.target = target;
       }
 
       bool lhs_is_target = solver_toolbox.are_exprs_always_equal(lhs, target);
       bool rhs_is_target = solver_toolbox.are_exprs_always_equal(rhs, target);
-      assert(lhs_is_target || rhs_is_target);
+      ASSERT(lhs_is_target || rhs_is_target, "Not implemented");
 
       klee::ref<klee::Expr> value_expr = lhs_is_target ? rhs : lhs;
-      assert(value_expr->getKind() == klee::Expr::Kind::Constant);
+      ASSERT(value_expr->getKind() == klee::Expr::Kind::Constant,
+             "Not implemented");
 
       selection.values.push_back(solver_toolbox.value_from_expr(value_expr));
     } break;
@@ -203,7 +207,7 @@ private:
       selection.negated = !selection.negated;
     } break;
     default: {
-      assert(false && "Not implemented");
+      ASSERT(false, "Not implemented");
     }
     }
 

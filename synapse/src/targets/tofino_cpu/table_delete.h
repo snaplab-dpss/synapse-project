@@ -39,7 +39,7 @@ public:
 
     std::vector<const tofino::Table *> tables;
     for (const tofino::DS *data_structure : data_structures) {
-      assert(data_structure->type == tofino::DSType::TABLE);
+      ASSERT(data_structure->type == tofino::DSType::TABLE, "Not a table");
       const tofino::Table *table =
           static_cast<const tofino::Table *>(data_structure);
       tables.push_back(table);
@@ -64,10 +64,6 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (is_vector_map_key_function(ep, call_node)) {
-      return std::nullopt;
-    }
-
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     if (!get_table_delete_data(call_node, obj, keys)) {
@@ -90,10 +86,6 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
-
-    if (is_vector_map_key_function(ep, call_node)) {
-      return impls;
-    }
 
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -137,7 +129,7 @@ private:
       const Call *call_node, addr_t &obj,
       std::vector<klee::ref<klee::Expr>> &keys) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "map_erase");
+    ASSERT(call.function_name == "map_erase", "Not a map_erase call");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -150,7 +142,7 @@ private:
       const Call *call_node, addr_t &obj,
       std::vector<klee::ref<klee::Expr>> &keys) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "dchain_free_index");
+    ASSERT(call.function_name == "dchain_free_index", "Not a dchain call");
 
     klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;

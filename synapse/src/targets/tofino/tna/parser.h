@@ -328,23 +328,24 @@ private:
       return false;
     }
 
-    assert(initial_state->type == ParserStateType::TERMINATE);
-    assert(static_cast<ParserStateTerminate *>(initial_state)->accept ==
-           accepted);
+    ASSERT(initial_state->type == ParserStateType::TERMINATE, "Invalid parser");
+    ASSERT(static_cast<ParserStateTerminate *>(initial_state)->accept ==
+               accepted,
+           "Invalid parser");
 
     return true;
   }
 
   bool already_terminated(node_id_t leaf_id, node_id_t id,
                           std::optional<bool> direction, bool accepted) {
-    assert(initial_state);
-    assert(states.find(leaf_id) != states.end());
+    ASSERT(initial_state, "Invalid parser");
+    ASSERT(states.find(leaf_id) != states.end(), "Invalid parser");
 
     ParserState *leaf = states[leaf_id];
 
     switch (leaf->type) {
     case ParserStateType::EXTRACT: {
-      assert(!direction.has_value());
+      ASSERT(!direction.has_value(), "Invalid parser");
       ParserStateExtract *extractor = static_cast<ParserStateExtract *>(leaf);
 
       if (!extractor->next ||
@@ -352,11 +353,12 @@ private:
         return false;
       }
 
-      assert(static_cast<ParserStateTerminate *>(extractor->next)->accept ==
-             accepted);
+      ASSERT(static_cast<ParserStateTerminate *>(extractor->next)->accept ==
+                 accepted,
+             "Invalid parser");
     } break;
     case ParserStateType::SELECT: {
-      assert(direction.has_value());
+      ASSERT(direction.has_value(), "Invalid parser");
       ParserStateSelect *condition = static_cast<ParserStateSelect *>(leaf);
 
       if ((*direction && !condition->on_true) ||
@@ -371,7 +373,8 @@ private:
       }
     } break;
     case ParserStateType::TERMINATE: {
-      assert(static_cast<ParserStateTerminate *>(leaf)->accept == accepted);
+      ASSERT(static_cast<ParserStateTerminate *>(leaf)->accept == accepted,
+             "Invalid parser");
     } break;
     }
 
@@ -379,9 +382,9 @@ private:
   }
 
   void add_state(ParserState *new_state) {
-    assert(!initial_state);
-    assert(states.empty());
-    assert(!new_state->ids.empty());
+    ASSERT(!initial_state, "Invalid parser");
+    ASSERT(states.empty(), "Invalid parser");
+    ASSERT(!new_state->ids.empty(), "Invalid parser");
 
     initial_state = new_state;
     states[*new_state->ids.begin()] = new_state;
@@ -389,10 +392,11 @@ private:
 
   void set_next(ParserState *&next_state, ParserState *new_state) {
     if (next_state && next_state->equals(new_state)) {
-      assert(new_state->ids.size() == 1);
+      ASSERT(new_state->ids.size() == 1, "Invalid parser");
 
       node_id_t new_id = *new_state->ids.begin();
-      assert(next_state->ids.find(new_id) == next_state->ids.end());
+      ASSERT(next_state->ids.find(new_id) == next_state->ids.end(),
+             "Invalid parser");
 
       next_state->ids.insert(new_id);
 
@@ -410,37 +414,39 @@ private:
       return;
     }
 
-    assert(old_next_state->type == ParserStateType::TERMINATE);
-    assert(static_cast<ParserStateTerminate *>(old_next_state)->accept == true);
+    ASSERT(old_next_state->type == ParserStateType::TERMINATE,
+           "Invalid parser");
+    ASSERT(static_cast<ParserStateTerminate *>(old_next_state)->accept == true,
+           "Invalid parser");
 
     switch (new_state->type) {
     case ParserStateType::EXTRACT: {
       ParserStateExtract *extractor =
           static_cast<ParserStateExtract *>(new_state);
-      assert(!extractor->next);
+      ASSERT(!extractor->next, "Invalid parser");
       extractor->next = old_next_state;
     } break;
     case ParserStateType::SELECT: {
       ParserStateSelect *condition =
           static_cast<ParserStateSelect *>(new_state);
-      assert(!condition->on_true);
-      assert(!condition->on_false);
+      ASSERT(!condition->on_true, "Invalid parser");
+      ASSERT(!condition->on_false, "Invalid parser");
       condition->on_true = next_state;
       condition->on_false = next_state;
     } break;
     case ParserStateType::TERMINATE: {
-      assert(false && "Cannot add state to terminating state");
+      ASSERT(false, "Cannot add state to terminating state");
     } break;
     }
   }
 
   void add_state(node_id_t leaf_id, ParserState *new_state,
                  std::optional<bool> direction) {
-    assert(initial_state);
-    assert(states.find(leaf_id) != states.end());
-    assert(!new_state->ids.empty());
+    ASSERT(initial_state, "Invalid parser");
+    ASSERT(states.find(leaf_id) != states.end(), "Invalid parser");
+    ASSERT(!new_state->ids.empty(), "Invalid parser");
     for (node_id_t id : new_state->ids) {
-      assert(states.find(id) == states.end());
+      ASSERT(states.find(id) == states.end(), "Invalid parser");
     }
 
     states[*new_state->ids.begin()] = new_state;
@@ -449,12 +455,12 @@ private:
 
     switch (leaf->type) {
     case ParserStateType::EXTRACT: {
-      assert(!direction.has_value());
+      ASSERT(!direction.has_value(), "Invalid parser");
       ParserStateExtract *extractor = static_cast<ParserStateExtract *>(leaf);
       set_next(extractor->next, new_state);
     } break;
     case ParserStateType::SELECT: {
-      assert(direction.has_value());
+      ASSERT(direction.has_value(), "Invalid parser");
       ParserStateSelect *condition = static_cast<ParserStateSelect *>(leaf);
       if (*direction) {
         set_next(condition->on_true, new_state);
@@ -463,7 +469,7 @@ private:
       }
     } break;
     case ParserStateType::TERMINATE: {
-      assert(false && "Cannot add state to terminating state");
+      PANIC("Cannot add state to terminating state");
     } break;
     }
   }

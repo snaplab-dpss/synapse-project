@@ -59,8 +59,8 @@ protected:
 
     // TODO: How do we recalculate the estimated throughput after a forwarding
     // decision is made?
-    assert((!ep->get_active_leaf().node ||
-            !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
+    ASSERT((!ep->get_active_leaf().node ||
+            !forwarding_decision_already_made(ep->get_active_leaf().node)),
            "TODO");
 
     int total_recirc_ports =

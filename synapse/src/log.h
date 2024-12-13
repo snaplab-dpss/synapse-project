@@ -1,5 +1,7 @@
 #pragma once
 
+#include "system.h"
+
 #include <iostream>
 #include <sstream>
 #include <csignal>
@@ -23,26 +25,35 @@
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');        \
   }
 
+#define BREAKPOINT raise(SIGTRAP);
+
 #define PANIC(fmt, ...)                                                        \
   {                                                                            \
-    fprintf(stderr, COLOR_RED_BRIGHT "\n>PANIC!<\n" COLOR_RESET fmt "\n",      \
-            ##__VA_ARGS__);                                                    \
+    fprintf(stderr, COLOR_RED_BRIGHT "\n");                                    \
+    fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                        \
+    fprintf(stderr, COLOR_RESET "\n");                                         \
     fflush(stderr);                                                            \
-    assert(false && "Panic");                                                  \
+    BREAKPOINT                                                                 \
     exit(1);                                                                   \
   }
 
-#define ASSERT_OR_PANIC(stmt, fmt, ...)                                        \
+#define ASSERT(stmt, ...)                                                      \
   {                                                                            \
     if (!(stmt)) {                                                             \
-      PANIC(fmt, ##__VA_ARGS__);                                               \
+      fprintf(stderr, COLOR_RED_BRIGHT "\n");                                  \
+      fprintf(stderr, "ASSERTION FAILED: ");                                   \
+      fprintf(stderr, ##__VA_ARGS__);                                          \
+      fprintf(stderr, "\n");                                                   \
+      fprintf(stderr, "Backtrace:\n");                                         \
+      backtrace();                                                             \
+      fprintf(stderr, COLOR_RESET);                                            \
+      fflush(stderr);                                                          \
+      BREAKPOINT                                                               \
+      exit(1);                                                                 \
     }                                                                          \
   }
 
-#define BREAKPOINT raise(SIGTRAP);
-
 class Log {
-
 public:
   enum Level { DEBUG = 0, LOG = 1, WARNING = 2, ERROR = 3 };
 

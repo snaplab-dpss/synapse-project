@@ -50,7 +50,7 @@ bool TofinoContext::has_ds(DS_ID id) const {
 
 const std::unordered_set<DS *> &TofinoContext::get_ds(addr_t addr) const {
   auto found_it = obj_to_ds.find(addr);
-  assert(found_it != obj_to_ds.end() && "Data structure not found");
+  ASSERT(found_it != obj_to_ds.end(), "Data structure not found");
   return found_it->second;
 }
 
@@ -58,7 +58,7 @@ void TofinoContext::save_ds(addr_t addr, DS *ds) {
   auto found_it = id_to_ds.find(ds->id);
 
   if (found_it != id_to_ds.end()) {
-    assert(found_it->second->id == ds->id);
+    ASSERT(found_it->second->id == ds->id, "Data structure ID mismatch");
     DS *old = found_it->second;
     id_to_ds.erase(ds->id);
     obj_to_ds[addr].erase(old);
@@ -71,8 +71,7 @@ void TofinoContext::save_ds(addr_t addr, DS *ds) {
 
 const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
   auto it = id_to_ds.find(id);
-  ASSERT_OR_PANIC(it != id_to_ds.end(), "Data structure %s not found",
-                  id.c_str());
+  ASSERT(it != id_to_ds.end(), "Data structure %s not found", id.c_str());
   return it->second;
 }
 
@@ -85,10 +84,10 @@ static const Node *get_last_parser_state_op(const EP *ep,
 
   while (node) {
     const Module *module = node->get_module();
-    assert(module && "Module not found");
+    ASSERT(module, "Module not found");
 
     if (module->get_type() == ModuleType::Tofino_ParserCondition) {
-      assert(next && next->get_module());
+      ASSERT(next && next->get_module(), "Next node not found");
       const Module *next_module = next->get_module();
 
       if (next_module->get_type() == ModuleType::Tofino_Then) {
@@ -191,7 +190,7 @@ static const EPNode *get_ep_node_from_bdd_node(const EP *ep, const Node *node) {
     ep_nodes.erase(ep_nodes.begin());
 
     const Module *module = ep_node->get_module();
-    assert(module);
+    ASSERT(module, "Module not found");
 
     if (module->get_node() == node) {
       return ep_node;
@@ -263,7 +262,7 @@ TofinoContext::get_stateful_deps(const EP *ep, const Node *node) const {
         for (const std::unordered_set<const DS *> &ds_set :
              ds->get_internal()) {
           for (const DS *internal_ds : ds_set) {
-            assert(internal_ds && "Internal DS not found");
+            ASSERT(internal_ds, "Internal DS not found");
             deps.insert(internal_ds->id);
           }
         }
@@ -353,7 +352,7 @@ template <>
 const tofino::TofinoContext *
 Context::get_target_ctx<tofino::TofinoContext>() const {
   TargetType type = TargetType::Tofino;
-  assert(target_ctxs.find(type) != target_ctxs.end());
+  ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<const tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
@@ -361,6 +360,6 @@ template <>
 tofino::TofinoContext *
 Context::get_mutable_target_ctx<tofino::TofinoContext>() {
   TargetType type = TargetType::Tofino;
-  assert(target_ctxs.find(type) != target_ctxs.end());
+  ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<tofino::TofinoContext *>(target_ctxs.at(type));
 }

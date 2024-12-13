@@ -6,6 +6,7 @@
 #include "simplifier.h"
 #include "solver.h"
 #include "exprs.h"
+#include "../log.h"
 
 class SymbolRetriever : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -92,7 +93,7 @@ std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr) {
 
   auto cache_found_it = cache.find(expr->hash());
   if (cache_found_it != cache.end()) {
-    assert(expr == cache_found_it->second.first && "Hash collision");
+    ASSERT(expr == cache_found_it->second.first, "Hash collision");
     return cache_found_it->second.second;
   }
 
@@ -154,13 +155,14 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   auto old = expr;
 
   auto process_read = [&](klee::ref<klee::Expr> read_expr) {
-    assert(read_expr->getKind() == klee::Expr::Read);
+    ASSERT(read_expr->getKind() == klee::Expr::Read, "Not a read");
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
 
     klee::ref<klee::Expr> index = read->index;
     const std::string symbol = read->updates.root->name;
 
-    assert(index->getKind() == klee::Expr::Kind::Constant);
+    ASSERT(index->getKind() == klee::Expr::Kind::Constant,
+           "Non-constant index");
 
     klee::ConstantExpr *index_const =
         static_cast<klee::ConstantExpr *>(index.get());
@@ -179,9 +181,10 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   };
 
   auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
-    assert(not_read_expr->getKind() != klee::Expr::Read);
+    ASSERT(not_read_expr->getKind() != klee::Expr::Read,
+           "Non read is actually a read");
     unsigned size = not_read_expr->getWidth();
-    assert(size % 8 == 0);
+    ASSERT(size % 8 == 0, "Size not multiple of 8");
     groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
   };
 
@@ -197,7 +200,7 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ref<klee::Expr> lhs = expr->getKid(0);
     klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-    assert(lhs->getKind() != klee::Expr::Concat);
+    ASSERT(lhs->getKind() != klee::Expr::Concat, "Nested concats");
 
     if (lhs->getKind() == klee::Expr::Read) {
       process_read(lhs);
@@ -221,9 +224,8 @@ void print_groups(const std::vector<expr_group_t> &groups) {
   std::cerr << "Groups: " << groups.size() << "\n";
   for (const auto &group : groups) {
     if (group.has_symbol) {
-      std::cerr << "Group:"
-                << " symbol=" << group.symbol << " offset=" << group.offset
-                << " n_bytes=" << group.n_bytes
+      std::cerr << "Group:" << " symbol=" << group.symbol
+                << " offset=" << group.offset << " n_bytes=" << group.n_bytes
                 << " expr=" << expr_to_string(group.expr, true) << "\n";
     } else {
       std::cerr << "Group: offset=" << group.offset

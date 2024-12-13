@@ -146,14 +146,15 @@ typedef symbols_t (*SymbolsExtractor)(const call_t &call,
 
 static symbols_t packet_chunks_symbol_extractor(const call_t &call,
                                                 const symbols_t &all_symbols) {
-  assert(call.function_name == "packet_borrow_next_chunk");
+  ASSERT(call.function_name == "packet_borrow_next_chunk",
+         "Unexpected function");
 
   const extra_var_t &extra_var = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
 
   symbol_t symbol;
   bool found = get_symbol(all_symbols, "packet_chunks", symbol);
-  assert(found && "Symbol not found");
+  ASSERT(found, "Symbol not found");
 
   symbol.expr = packet_chunk;
   return {symbol};
@@ -254,7 +255,7 @@ static bool is_skip_condition(klee::ref<klee::Expr> condition) {
 static Route *route_node_from_call(const call_t &call,
                                    const klee::ConstraintManager &constraints,
                                    node_id_t id) {
-  assert(is_routing_function(call));
+  ASSERT(is_routing_function(call), "Unexpected function");
 
   if (call.function_name == "packet_free") {
     return new Route(id, constraints, RouteOp::Drop);
@@ -264,10 +265,10 @@ static Route *route_node_from_call(const call_t &call,
     return new Route(id, constraints, RouteOp::Broadcast);
   }
 
-  assert(call.function_name == "packet_send");
+  ASSERT(call.function_name == "packet_send", "Unexpected function");
 
   klee::ref<klee::Expr> dst_device = call.args.at("dst_device").expr;
-  assert(!dst_device.isNull());
+  ASSERT(!dst_device.isNull(), "Null dst_device");
 
   int value = solver_toolbox.value_from_expr(dst_device);
   return new Route(id, constraints, RouteOp::Forward, value);
@@ -275,10 +276,10 @@ static Route *route_node_from_call(const call_t &call,
 
 static call_t
 get_successful_call(const std::vector<call_path_t *> &call_paths) {
-  assert(call_paths.size());
+  ASSERT(call_paths.size(), "No call paths");
 
   for (call_path_t *cp : call_paths) {
-    assert(cp->calls.size());
+    ASSERT(cp->calls.size(), "No calls");
     const call_t &call = cp->calls[0];
 
     if (call.ret.isNull())
@@ -300,7 +301,7 @@ get_successful_call(const std::vector<call_path_t *> &call_paths) {
 
 static klee::ref<klee::Expr>
 simplify_constraint(klee::ref<klee::Expr> constraint) {
-  assert(!constraint.isNull());
+  ASSERT(!constraint.isNull(), "Null constraint");
 
   klee::ref<klee::Expr> simplified = simplify(constraint);
 
@@ -317,7 +318,7 @@ simplify_constraint(klee::ref<klee::Expr> constraint) {
 
 static klee::ref<klee::Expr>
 negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
-  assert(!constraint.isNull());
+  ASSERT(!constraint.isNull(), "Null constraint");
 
   klee::ref<klee::Expr> simplified = simplify(constraint);
 
@@ -357,8 +358,8 @@ static std::optional<symbol_t> get_generated_symbol(
     if (b_suffix.size() == 0)
       return false;
 
-    assert(a_suffix[0] == '_');
-    assert(b_suffix[0] == '_');
+    ASSERT(a_suffix[0] == '_', "Invalid suffix");
+    ASSERT(b_suffix[0] == '_', "Invalid suffix");
 
     int a_suffix_num = std::stoi(a_suffix.substr(1));
     int b_suffix_num = std::stoi(b_suffix.substr(1));
@@ -417,7 +418,7 @@ static symbols_t get_generated_symbols(
 
 static void pop_call_paths(call_paths_t &call_paths) {
   for (call_path_t *cp : call_paths.cps) {
-    assert(cp->calls.size());
+    ASSERT(cp->calls.size(), "No calls");
     cp->calls.erase(cp->calls.begin());
   }
 }
@@ -456,7 +457,7 @@ static Node *bdd_from_call_paths(
     }
 
     if (on_true.cps.size() == call_paths.cps.size()) {
-      assert(on_false.cps.size() == 0);
+      ASSERT(on_false.cps.size() == 0, "Unexpected call paths");
 
       call_t call = get_successful_call(call_paths.cps);
 
@@ -552,7 +553,7 @@ static Node *bdd_from_call_paths(
           bdd_from_call_paths(on_false, manager, init, id, bdd_symbols,
                               on_false_constraints, base_symbols_generated);
 
-      assert(on_true_root && on_false_root);
+      ASSERT(on_true_root && on_false_root, "Invalid BDD");
 
       node->set_on_true(on_true_root);
       node->set_on_false(on_false_root);
@@ -601,7 +602,7 @@ BDD::BDD(const call_paths_t &call_paths) : id(0) {
     } else if (symbol.base == "next_time") {
       time = symbol;
     } else {
-      assert(false && "Unknown BDD symbol");
+      ASSERT(false, "Unknown BDD symbol");
     }
   }
 
@@ -615,24 +616,24 @@ BDD::BDD(const call_paths_t &call_paths) : id(0) {
 BDD::BDD(const std::string &file_path) : id(0) { deserialize(file_path); }
 
 void BDD::assert_integrity() const {
-  assert(root);
+  ASSERT(root, "No root node");
   root->visit_nodes([](const Node *node) {
-    assert(node);
+    ASSERT(node, "Null node");
     switch (node->get_type()) {
     case NodeType::Branch: {
       const Branch *branch = static_cast<const Branch *>(node);
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
-      assert(on_true);
-      assert(on_false);
-      assert(on_true->get_prev() == node);
-      assert(on_false->get_prev() == node);
+      ASSERT(on_true, "No on true node");
+      ASSERT(on_false, "No on false node");
+      ASSERT(on_true->get_prev() == node, "Invalid on true node");
+      ASSERT(on_false->get_prev() == node, "Invalid on false node");
       break;
     } break;
     case NodeType::Call:
     case NodeType::Route: {
       if (node->get_next()) {
-        assert(node->get_next()->get_prev() == node);
+        ASSERT(node->get_next()->get_prev() == node, "Invalid next node");
       }
     } break;
     }

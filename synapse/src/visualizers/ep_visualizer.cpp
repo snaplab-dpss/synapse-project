@@ -53,7 +53,7 @@ void EPViz::function_call(const EPNode *ep_node, const Node *node,
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
-  assert(node_colors.find(target) != node_colors.end());
+  ASSERT(node_colors.find(target) != node_colors.end(), "No color for target");
   ss << "[label=\"";
 
   ss << "[";
@@ -75,7 +75,7 @@ void EPViz::branch(const EPNode *ep_node, const Node *node, TargetType target,
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
-  assert(node_colors.find(target) != node_colors.end());
+  ASSERT(node_colors.find(target) != node_colors.end(), "No color for target");
   ss << "[shape=Mdiamond, label=\"";
 
   ss << "[";
@@ -93,7 +93,7 @@ void EPViz::branch(const EPNode *ep_node, const Node *node, TargetType target,
 }
 
 static void log_visualization(const EP *ep, const std::string &fname) {
-  assert(ep);
+  ASSERT(ep, "Invalid EP");
   Log::log() << "Visualizing EP";
   Log::log() << " id=" << ep->get_id();
   Log::log() << " file=" << fname;
@@ -111,7 +111,7 @@ static void log_visualization(const EP *ep, const std::string &fname) {
 }
 
 void EPViz::visualize(const EP *ep, bool interrupt) {
-  assert(ep);
+  ASSERT(ep, "Invalid EP");
   EPViz visualizer;
   visualizer.visit(ep);
   log_visualization(ep, visualizer.fpath);
@@ -119,7 +119,7 @@ void EPViz::visualize(const EP *ep, bool interrupt) {
 }
 
 void EPViz::visit(const EP *ep) {
-  assert(ep);
+  ASSERT(ep, "Invalid EP");
   ss << "digraph EP {\n";
   ss << "layout=\"dot\";";
   ss << "node [shape=record,style=filled];\n";
@@ -131,7 +131,7 @@ void EPViz::visit(const EP *ep) {
 }
 
 void EPViz::visit(const EP *ep, const EPNode *node) {
-  assert(ep);
+  ASSERT(ep, "Invalid EP");
 
   bool ignore = should_ignore_node(node);
 
@@ -149,7 +149,7 @@ void EPViz::visit(const EP *ep, const EPNode *node) {
   const std::vector<EPNode *> &children = node->get_children();
   for (const EPNode *child : children) {
     while (child && should_ignore_node(child)) {
-      assert(child->get_children().size() <= 1);
+      ASSERT(child->get_children().size() <= 1, "Invalid child");
       if (!child->get_children().empty()) {
         child = child->get_children().front();
       } else {

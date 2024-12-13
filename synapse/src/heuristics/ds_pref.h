@@ -12,8 +12,8 @@ public:
                      }) {}
 
   DSPrefCfg &operator=(const DSPrefCfg &other) {
-    assert(other.name == name);
-    assert(other.metrics.size() == metrics.size());
+    ASSERT(other.name == name, "Mismatched names");
+    ASSERT(other.metrics.size() == metrics.size(), "Mismatched metrics");
     return *this;
   }
 

@@ -7,7 +7,7 @@
 
 std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
                                    klee::ref<klee::Expr> after) {
-  assert(before->getWidth() == after->getWidth());
+  ASSERT(before->getWidth() == after->getWidth(), "Different widths");
 
   if (after->getKind() == klee::Expr::Concat) {
     bits_t msb_width = after->getKid(0)->getWidth();

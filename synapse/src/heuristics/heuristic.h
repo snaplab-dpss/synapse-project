@@ -34,7 +34,7 @@ public:
 
   const EP *pop() {
     auto it = get_next_it();
-    assert(it != execution_plans.end());
+    ASSERT(it != execution_plans.end(), "No more execution plans to pick");
 
     impl_t best = *it;
 
@@ -47,7 +47,7 @@ public:
 
       reset_best_it();
       it = get_next_it();
-      assert(it != execution_plans.end());
+      ASSERT(it != execution_plans.end(), "No more execution plans to pick");
 
       best = *it;
     }
@@ -83,10 +83,10 @@ public:
     for (const impl_t &impl : new_implementations) {
       execution_plans.insert(impl);
 
-      assert(impl.decision.ep);
+      ASSERT(impl.decision.ep, "Invalid execution plan");
       ep_refs[impl.decision.ep]++;
 
-      assert(impl.result);
+      ASSERT(impl.result, "Invalid execution plan");
       ep_refs[impl.result]++;
     }
 
@@ -94,11 +94,12 @@ public:
   }
 
   void add(EP *ep) {
-    assert(execution_plans.empty());
+    ASSERT(execution_plans.empty(),
+           "Cannot add execution plan to non-empty heuristic");
     execution_plans.emplace(ep);
     reset_best_it();
 
-    assert(ep);
+    ASSERT(ep, "Invalid execution plan");
     ep_refs[ep]++;
   }
 
@@ -108,7 +109,7 @@ public:
 
 private:
   void update_best_it() {
-    assert(execution_plans.size());
+    ASSERT(execution_plans.size(), "No execution plans to pick");
 
     if (best_it != execution_plans.end()) {
       return;
@@ -141,7 +142,7 @@ private:
     update_best_it();
 
     auto it = best_it;
-    assert(it != execution_plans.end());
+    ASSERT(it != execution_plans.end(), "Invalid iterator");
 
     if (stop_on_first_solution && !it->result->get_next_node()) {
       return execution_plans.end();

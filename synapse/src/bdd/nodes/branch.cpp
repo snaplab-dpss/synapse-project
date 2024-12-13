@@ -2,6 +2,7 @@
 #include "manager.h"
 #include "../bdd.h"
 #include "../../exprs/exprs.h"
+#include "../../log.h"
 
 Node *Branch::clone(NodeManager &manager, bool recursive) const {
   Node *clone;
@@ -29,8 +30,8 @@ Node *Branch::clone(NodeManager &manager, bool recursive) const {
 std::vector<node_id_t> Branch::get_leaves() const {
   std::vector<node_id_t> terminating_ids;
 
-  assert(next);
-  assert(on_false);
+  ASSERT(next, "No on_true node");
+  ASSERT(on_false, "No on_false node");
 
   auto on_true_ids = next->get_leaves();
   auto on_false_ids = on_false->get_leaves();

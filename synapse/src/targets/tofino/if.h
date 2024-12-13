@@ -77,13 +77,13 @@ protected:
 
     for (klee::ref<klee::Expr> sub_condition : conditions) {
       if (!get_tna(ep).condition_meets_phv_limit(sub_condition)) {
-        assert(false && "TODO: deal with this");
+        ASSERT(false, "TODO: deal with this");
         return impls;
       }
     }
 
-    assert(branch_node->get_on_true());
-    assert(branch_node->get_on_false());
+    ASSERT(branch_node->get_on_true(), "Branch node without on_true");
+    ASSERT(branch_node->get_on_false(), "Branch node without on_false");
 
     Module *if_module = new If(node, condition, conditions);
     Module *then_module = new Then(node);
@@ -126,7 +126,7 @@ private:
       conditions.insert(conditions.end(), rhs_conds.begin(), rhs_conds.end());
     } break;
     case klee::Expr::Kind::Or: {
-      assert(false && "TODO");
+      ASSERT(false, "TODO");
     } break;
     default: {
       conditions.push_back(condition);

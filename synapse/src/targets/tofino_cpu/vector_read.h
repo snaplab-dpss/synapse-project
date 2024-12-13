@@ -56,10 +56,6 @@ protected:
       return std::nullopt;
     }
 
-    if (is_vector_map_key_function(ep, call_node)) {
-      return std::nullopt;
-    }
-
     klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
     addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
 
@@ -82,10 +78,6 @@ protected:
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "vector_borrow") {
-      return impls;
-    }
-
-    if (is_vector_map_key_function(ep, call_node)) {
       return impls;
     }
 

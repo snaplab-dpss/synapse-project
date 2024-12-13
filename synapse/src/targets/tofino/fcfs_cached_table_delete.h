@@ -69,8 +69,7 @@ protected:
     }
 
     if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable) ||
-        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable)) {
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
       return std::nullopt;
     }
 
@@ -122,7 +121,6 @@ protected:
                                          chosen_cache_success_probability);
     new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
     new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
 
     new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
@@ -162,8 +160,6 @@ protected:
     if (!ep->get_ctx().can_impl_ds(map_objs.map,
                                    DSImpl::Tofino_FCFSCachedTable) ||
         !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                   DSImpl::Tofino_FCFSCachedTable) ||
-        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
                                    DSImpl::Tofino_FCFSCachedTable)) {
       return impls;
     }
@@ -270,7 +266,6 @@ private:
     Context &ctx = new_ep->get_mutable_ctx();
     ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
     ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
-    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_FCFSCachedTable);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->place(new_ep, map_erase, map_objs.map, cached_table);
@@ -317,7 +312,8 @@ private:
     fcfs_cached_table_data_t cached_table_data;
 
     const call_t &call = map_erase->get_call();
-    assert(call.function_name == "map_erase");
+    ASSERT(call.function_name == "map_erase",
+           "Expected map_erase but got \"%s\"", call.function_name.c_str());
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -357,13 +353,6 @@ private:
         if (obj != cached_table_data.map) {
           continue;
         }
-      } else {
-        klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-        addr_t obj = expr_addr_to_obj_addr(obj_expr);
-
-        if (obj != cached_table_data.vector_key) {
-          continue;
-        }
       }
 
       related_ops.push_back(op);
@@ -390,7 +379,7 @@ private:
     }
 
     new_on_cache_delete_failed = add_non_branch_nodes_to_bdd(
-        ep, bdd, on_cache_delete_failed, non_branch_nodes_to_add);
+        bdd, on_cache_delete_failed, non_branch_nodes_to_add);
   }
 
   BDD *branch_bdd_on_cache_delete_success(
@@ -403,10 +392,10 @@ private:
     BDD *new_bdd = new BDD(*old_bdd);
 
     const Node *next = map_erase->get_next();
-    assert(next);
+    ASSERT(next, "Next node is null");
 
     Branch *cache_delete_branch =
-        add_branch_to_bdd(ep, new_bdd, next, cache_delete_success_condition);
+        add_branch_to_bdd(new_bdd, next, cache_delete_success_condition);
 
     on_cache_delete_success = cache_delete_branch->get_mutable_on_true();
     on_cache_delete_failed = cache_delete_branch->get_mutable_on_false();

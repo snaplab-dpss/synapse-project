@@ -52,10 +52,6 @@ get_future_functions(const Node *root,
 
 bool is_parser_drop(const Node *root);
 
-// Maps store their keys in a vector, and the values in a separate vector. This
-// function checks if the provided vector function stores the keys for a map.
-bool is_vector_map_key_function(const EP *ep, const Node *node);
-
 std::unordered_set<std::string> get_symbols(const Node *node);
 
 // A parser condition should be the single discriminating condition that
@@ -104,7 +100,7 @@ bool is_vector_read(const Call *vector_borrow);
 bool is_vector_write(const Call *call_node);
 bool is_vector_borrow_ignored(const Call *vector_borrow);
 
-std::vector<const Call *> get_future_vector_return(const Call *vector_borrow);
+const Call *get_future_vector_return(const Call *vector_borrow);
 
 // Get the data associated with this address.
 klee::ref<klee::Expr> get_expr_from_addr(const EP *ep, addr_t addr);
@@ -112,8 +108,7 @@ klee::ref<klee::Expr> get_expr_from_addr(const EP *ep, addr_t addr);
 struct map_coalescing_objs_t {
   addr_t map;
   addr_t dchain;
-  addr_t vector_key;
-  objs_t vectors_values;
+  objs_t vectors;
 };
 
 bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj,
@@ -140,13 +135,16 @@ struct rw_fractions_t {
   hit_rate_t write;
 };
 
-struct map_get_success_check_t {
+struct branch_direction_t {
   const Branch *branch;
-  bool success_on_true;
+  bool direction;
 };
 
-map_get_success_check_t get_map_get_success_check(const EP *ep,
-                                                  const Node *map_get);
+// Checks if the map_get and map_put provided nodes are counterparts of each
+// other. That is, they have the same object and the same key.
+bool are_map_read_write_counterparts(const Call *map_get, const Call *map_put);
+
+branch_direction_t get_map_get_success_check(const Node *map_get);
 rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
                                                      const Node *map_get);
 
@@ -156,9 +154,32 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
 // (1) Has at least 1 future map_put
 // (2) All map_put happen if the map_get was not successful
 // (3) All map_puts with the target obj also have the same key as the map_get
-// (4) All map_puts with the target obj update with the same value
 bool is_map_get_followed_by_map_puts_on_miss(
     const BDD *bdd, const Call *map_get, std::vector<const Call *> &map_puts);
+
+struct map_rw_pattern_t {
+  const Call *map_get;
+  branch_direction_t map_get_success_check;
+  branch_direction_t map_put_extra_condition;
+  const Call *dchain_allocate_new_index;
+  branch_direction_t index_alloc_check;
+  const Call *map_put;
+};
+
+// Similar to is_map_get_followed_by_map_puts_on_miss, but all required nodes
+// are as close together as possible, with no other nodes in between.
+// For this reason, there will be only a single map_put at most.
+// Conditions to meet:
+// (1) 1 future map_put
+// (2) map_put happens if the map_get was not successful
+// (3) map_put with the target obj also has the same key as the map_get
+// (4) There is at most a single extra branch condition between the map_get and
+// map_put operations
+// (5) If there is an extra branch condition for map writes, then the node paths
+// on both the failed extra branch condition and the failed index allocation are
+// the same.
+bool is_compact_map_get_followed_by_map_put_on_miss(
+    const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern);
 
 // (1) Has at least 1 future map_put
 // (2) All map_put happen if the dchain_allocate_new_index was successful
@@ -183,31 +204,28 @@ bool is_map_get_followed_by_map_erases_on_hit(
 // Appends new non-branch nodes to the BDD in place of the provided current
 // node.
 // Clones all new_nodes and appends them to the BDD.
-Node *add_non_branch_nodes_to_bdd(const EP *ep, BDD *bdd, const Node *current,
+Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
                                   const std::vector<const Node *> &new_nodes);
 
 // Appends a single new branch node to the BDD in place of the provided current
 // node. This duplicates the BDD portion starting from the current node, and
 // appends the cloned portion to one of the branches.
-Branch *add_branch_to_bdd(const EP *ep, BDD *bdd, const Node *current,
+Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
                           klee::ref<klee::Expr> condition);
 
-Node *delete_non_branch_node_from_bdd(const EP *ep, BDD *bdd,
-                                      node_id_t target_id);
+Node *delete_non_branch_node_from_bdd(BDD *bdd, node_id_t target_id);
 
 // Returns de node kept from the branch deletion.
-Node *delete_branch_node_from_bdd(const EP *ep, BDD *bdd, node_id_t target_id,
+Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id,
                                   bool direction_to_keep);
 
-struct index_alloc_check_t {
-  const Branch *branch;
-  bool success_on_true;
-};
+// Deletes all vector operations solely responsible for map key management.
+void delete_all_vector_key_operations_from_bdd(BDD *bdd);
 
-index_alloc_check_t
+branch_direction_t
 find_branch_checking_index_alloc(const EP *ep, const Node *node,
                                  const symbol_t &out_of_space);
-index_alloc_check_t
+branch_direction_t
 find_branch_checking_index_alloc(const EP *ep,
                                  const Node *dchain_allocate_new_index);
 
@@ -229,3 +247,11 @@ std::vector<int> get_past_recirculations(const EPNode *node);
 bool forwarding_decision_already_made(const EPNode *node);
 
 port_ingress_t get_node_egress(const EP *ep, const EPNode *node);
+
+// Checks if the nodes are equivalent. That is, they perform the same operation
+// to the same objects (if any).
+bool are_nodes_equivalent(const Node *node0, const Node *node1);
+
+// Checks if two nodes on the BDD are actually equivalent. That is, they perform
+// the exact same operations in the same order.
+bool are_node_paths_equivalent(const Node *node0, const Node *node1);

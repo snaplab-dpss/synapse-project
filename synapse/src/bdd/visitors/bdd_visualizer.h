@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <assert.h>
 #include <ctime>
 #include <fstream>
 #include <iomanip>

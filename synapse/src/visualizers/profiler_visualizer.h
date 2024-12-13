@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <iomanip>
 #include <iostream>
 #include <unordered_map>

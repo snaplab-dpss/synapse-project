@@ -2,15 +2,16 @@
 
 #include "exprs.h"
 #include "solver.h"
+#include "../log.h"
 
 class SwapPacketEndianness : public klee::ExprVisitor::ExprVisitor {
 public:
   SwapPacketEndianness() : klee::ExprVisitor::ExprVisitor(true) {}
 
   klee::ref<klee::Expr> swap_const_endianness(klee::ref<klee::Expr> expr) {
-    assert(!expr.isNull());
-    assert(expr->getKind() == klee::Expr::Constant);
-    assert(expr->getWidth() <= klee::Expr::Int64);
+    ASSERT(!expr.isNull(), "Null expr");
+    ASSERT(expr->getKind() == klee::Expr::Constant, "Not a constant");
+    ASSERT(expr->getWidth() <= klee::Expr::Int64, "Unsupported width");
 
     auto constant = static_cast<const klee::ConstantExpr *>(expr.get());
     auto width = constant->getWidth();
@@ -26,8 +27,8 @@ public:
   }
 
   klee::ref<klee::Expr> visit_binary_expr(klee::ref<klee::Expr> expr) {
-    assert(!expr.isNull());
-    assert(expr->getNumKids() == 2);
+    ASSERT(!expr.isNull(), "Null expr");
+    ASSERT(expr->getNumKids() == 2, "Not a binary expr");
 
     auto lhs = expr->getKid(0);
     auto rhs = expr->getKid(1);
@@ -45,7 +46,7 @@ public:
     auto not_pkt_read = lhs_is_pkt_read ? rhs : lhs;
 
     // TODO: we should consider the other types
-    assert(not_pkt_read->getKind() == klee::Expr::Constant);
+    ASSERT(not_pkt_read->getKind() == klee::Expr::Constant, "Not a constant");
 
     auto new_constant = swap_const_endianness(not_pkt_read);
 

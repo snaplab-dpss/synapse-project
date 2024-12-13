@@ -113,9 +113,10 @@ private:
         ctx.get_target_ctx<tofino::TofinoContext>();
     const std::unordered_set<tofino::DS *> &data_structures =
         tofino_ctx->get_ds(obj);
-    assert(data_structures.size() == 1);
+    ASSERT(data_structures.size() == 1, "Multiple data structures found");
     tofino::DS *ds = *data_structures.begin();
-    assert(ds->type == tofino::DSType::FCFS_CACHED_TABLE);
+    ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE,
+           "Not a FCFS cached table");
     return ds->id;
   }
 
@@ -123,7 +124,7 @@ private:
                 std::vector<klee::ref<klee::Expr>> &keys,
                 klee::ref<klee::Expr> &value) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "map_put");
+    ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;

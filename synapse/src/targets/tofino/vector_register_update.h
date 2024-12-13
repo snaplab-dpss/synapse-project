@@ -186,12 +186,7 @@ protected:
 private:
   bool is_conditional_write(const Call *node,
                             const Call *&vector_return) const {
-    std::vector<const Call *> vector_returns = get_future_vector_return(node);
-    if (vector_returns.size() != 1) {
-      return true;
-    }
-
-    vector_return = vector_returns.at(0);
+    vector_return = get_future_vector_return(node);
     return false;
   }
 
@@ -238,7 +233,7 @@ private:
 
     bool replace_next = (vector_return == next);
     Node *replacement =
-        delete_non_branch_node_from_bdd(ep, new_bdd, vector_return->get_id());
+        delete_non_branch_node_from_bdd(new_bdd, vector_return->get_id());
 
     if (replace_next) {
       new_next = replacement;

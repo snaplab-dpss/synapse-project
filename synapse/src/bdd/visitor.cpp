@@ -1,6 +1,7 @@
 #include "visitor.h"
 #include "bdd.h"
 #include "nodes/nodes.h"
+#include "../log.h"
 
 void BDDVisitor::visit(const Node *node) {
   if (!node) {
@@ -45,6 +46,6 @@ void BDDVisitor::visitRoot(const Node *root) {
 
 void BDDVisitor::visit(const BDD *bdd) {
   const Node *root = bdd->get_root();
-  assert(root);
+  ASSERT(root, "No root node");
   visitRoot(root);
 }

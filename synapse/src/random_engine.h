@@ -3,7 +3,8 @@
 #include <functional>
 #include <random>
 #include <memory>
-#include <assert.h>
+
+#include "log.h"
 
 class RandomEngine {
 private:
@@ -42,7 +43,7 @@ public:
   }
 
   static int generate() {
-    assert(engine);
+    ASSERT(engine, "RandomEngine not seeded");
     return engine->generate_number();
   }
 };

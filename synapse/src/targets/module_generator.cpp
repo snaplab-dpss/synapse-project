@@ -22,7 +22,7 @@ static void build_node_translations(translator_t &next_nodes_translator,
     processed_nodes_translator[sibling_id] = op.candidate_info.id;
 
     const Node *sibling = old_bdd->get_node_by_id(sibling_id);
-    assert(sibling->get_type() != NodeType::Branch);
+    ASSERT(sibling->get_type() != NodeType::Branch, "Branches not supported");
 
     const Node *replacement = sibling->get_next();
 
@@ -36,10 +36,10 @@ static void build_node_translations(translator_t &next_nodes_translator,
 
 static anchor_info_t get_anchor_info(const EP *ep) {
   const Node *next = ep->get_next_node();
-  assert(next);
+  ASSERT(next, "Next node not found");
 
   const Node *anchor = next->get_prev();
-  assert(anchor);
+  ASSERT(anchor, "Anchor node not found");
 
   if (anchor->get_type() != NodeType::Branch) {
     return {anchor->get_id(), true};
@@ -51,7 +51,7 @@ static anchor_info_t get_anchor_info(const EP *ep) {
     return {anchor->get_id(), true};
   }
 
-  assert(branch->get_on_false() == next);
+  ASSERT(branch->get_on_false() == next, "Next node not found in the branch");
   return {anchor->get_id(), false};
 }
 
@@ -87,7 +87,7 @@ static std::vector<EP *> get_reordered(const EP *ep) {
 
     build_node_translations(next_nodes_translator, processed_nodes_translator,
                             bdd, new_bdd.op);
-    assert(!new_bdd.op2.has_value());
+    ASSERT(!new_bdd.op2.has_value(), "Not supported");
 
     new_ep->replace_bdd(new_bdd.bdd, next_nodes_translator,
                         processed_nodes_translator);

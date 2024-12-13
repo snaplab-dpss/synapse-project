@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <math.h>
 
 #include "fcfs_cached_table.h"
@@ -8,7 +7,8 @@ namespace tofino {
 static bits_t index_size_from_cache_capacity(u32 cache_capacity) {
   // Log base 2 of the cache capacity
   // Assert cache capacity is a power of 2
-  assert((cache_capacity & (cache_capacity - 1)) == 0);
+  ASSERT((cache_capacity & (cache_capacity - 1)) == 0,
+         "Cache capacity must be a power of 2");
   return bits_t(log2(cache_capacity));
 }
 
@@ -51,9 +51,10 @@ FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id,
       keys_sizes(_keys_sizes),
       cache_expirator(build_cache_expirator(properties, _id, cache_capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
-  assert(cache_capacity > 0);
-  assert(num_entries > 0);
-  assert(cache_capacity < num_entries);
+  ASSERT(cache_capacity > 0, "Cache capacity must be greater than 0");
+  ASSERT(num_entries > 0, "Number of entries must be greater than 0");
+  ASSERT(cache_capacity < num_entries, "Cache capacity must be less than the "
+                                       "number of entries");
 
   add_table(_op);
 }

@@ -90,10 +90,6 @@ private:
       return true;
     }
 
-    if (is_vector_map_key_function(ep, node)) {
-      return true;
-    }
-
     if (is_vector_borrow_ignored(call_node)) {
       return true;
     }

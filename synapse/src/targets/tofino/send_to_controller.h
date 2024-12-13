@@ -81,8 +81,8 @@ protected:
 
     // TODO: How do we recalculate the estimated throughput after a forwarding
     // decision is made?
-    assert((!ep->get_active_leaf().node ||
-            !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
+    ASSERT((!ep->get_active_leaf().node ||
+            !forwarding_decision_already_made(ep->get_active_leaf().node)),
            "TODO");
 
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
@@ -114,7 +114,7 @@ private:
     const BDD *old_bdd = ep->get_bdd();
 
     new_bdd = new BDD(*old_bdd);
-    next = add_non_branch_nodes_to_bdd(ep, new_bdd, node, hdr_parsing_ops);
+    next = add_non_branch_nodes_to_bdd(new_bdd, node, hdr_parsing_ops);
 
     return true;
   }

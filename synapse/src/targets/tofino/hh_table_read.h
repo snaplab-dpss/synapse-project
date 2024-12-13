@@ -79,13 +79,11 @@ protected:
     }
 
     if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.can_impl_ds(map_objs.vector_key,
-                         DSImpl::Tofino_HeavyHitterTable)) {
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
-    map_get_success_check_t mpsc = get_map_get_success_check(ep, map_get);
+    branch_direction_t mpsc = get_map_get_success_check(map_get);
     if (!mpsc.branch) {
       return std::nullopt;
     }
@@ -101,7 +99,6 @@ protected:
     Context new_ctx = ctx;
     new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable);
     new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_HeavyHitterTable);
 
     update_map_get_success_hit_rate(new_ctx, map_get, table_data.key,
                                     table_data.num_entries, mpsc);
@@ -132,13 +129,11 @@ protected:
     if (!ep->get_ctx().can_impl_ds(map_objs.map,
                                    DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                   DSImpl::Tofino_HeavyHitterTable) ||
-        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
                                    DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 
-    map_get_success_check_t mpsc = get_map_get_success_check(ep, map_get);
+    branch_direction_t mpsc = get_map_get_success_check(map_get);
     if (!mpsc.branch) {
       return impls;
     }
@@ -165,8 +160,6 @@ protected:
     new_ep->get_mutable_ctx().save_ds_impl(map_objs.map,
                                            DSImpl::Tofino_HeavyHitterTable);
     new_ep->get_mutable_ctx().save_ds_impl(map_objs.dchain,
-                                           DSImpl::Tofino_HeavyHitterTable);
-    new_ep->get_mutable_ctx().save_ds_impl(map_objs.vector_key,
                                            DSImpl::Tofino_HeavyHitterTable);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
@@ -195,7 +188,7 @@ private:
 
   table_data_t get_table_data(const EP *ep, const Call *map_get) const {
     const call_t &call = map_get->get_call();
-    assert(call.function_name == "map_get");
+    ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     symbols_t symbols = map_get->get_locally_generated_symbols();
 
@@ -205,7 +198,7 @@ private:
 
     symbol_t map_has_this_key;
     bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     addr_t obj = expr_addr_to_obj_addr(obj_expr);
     klee::ref<klee::Expr> min_estimate = solver_toolbox.create_new_symbol(
@@ -225,18 +218,17 @@ private:
     return table_data;
   }
 
-  void
-  update_map_get_success_hit_rate(Context &ctx, const Node *map_get,
-                                  klee::ref<klee::Expr> key, u32 capacity,
-                                  const map_get_success_check_t &mgsc) const {
+  void update_map_get_success_hit_rate(Context &ctx, const Node *map_get,
+                                       klee::ref<klee::Expr> key, u32 capacity,
+                                       const branch_direction_t &mgsc) const {
     hit_rate_t success_rate =
         get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
 
-    assert(mgsc.branch);
-    const Node *on_success = mgsc.success_on_true ? mgsc.branch->get_on_true()
-                                                  : mgsc.branch->get_on_false();
-    const Node *on_failure = mgsc.success_on_true ? mgsc.branch->get_on_false()
-                                                  : mgsc.branch->get_on_true();
+    ASSERT(mgsc.branch, "No branch checking map_get success");
+    const Node *on_success = mgsc.direction ? mgsc.branch->get_on_true()
+                                            : mgsc.branch->get_on_false();
+    const Node *on_failure = mgsc.direction ? mgsc.branch->get_on_false()
+                                            : mgsc.branch->get_on_true();
 
     hit_rate_t branch_hr = ctx.get_profiler().get_hr(mgsc.branch);
 

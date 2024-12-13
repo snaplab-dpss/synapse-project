@@ -94,9 +94,8 @@ protected:
     }
 
     klee::ref<klee::Expr> min_estimate = get_min_estimate(ep);
-    ASSERT_OR_PANIC(!min_estimate.isNull(),
-                    "TODO: HHTableRead not found, so we should "
-                    "query the CMS for the min estimate");
+    ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
+                                   "query the CMS for the min estimate");
 
     table_data_t table_data = get_table_data(map_put);
 
@@ -124,7 +123,7 @@ private:
 
   table_data_t get_table_data(const Call *map_put) const {
     const call_t &call = map_put->get_call();
-    assert(call.function_name == "map_put");
+    ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;

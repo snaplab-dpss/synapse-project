@@ -98,7 +98,7 @@ static const Node *get_vector_next(const vector_t &vector) {
 
 static bool fn_has_side_effects(const std::string &fn) {
   auto found = fn_has_side_effects_lookup.find(fn);
-  assert(found != fn_has_side_effects_lookup.end() && "Function not found");
+  ASSERT(found != fn_has_side_effects_lookup.end(), "Function not found");
   return found->second;
 }
 
@@ -533,7 +533,7 @@ const std::unordered_map<std::string, can_reorder_stateful_op_fn>
 static bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor,
                                     const Node *between, const Node *candidate,
                                     klee::ref<klee::Expr> &condition) {
-  assert(candidate->get_type() == NodeType::Call);
+  ASSERT(candidate->get_type() == NodeType::Call, "Unexpected node type");
 
   const Call *call_node = static_cast<const Call *>(candidate);
   const call_t &call = call_node->get_call();
@@ -683,8 +683,8 @@ concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
 
   symbols_t anchor_symbols = bdd->get_generated_symbols(anchor.node);
 
-  assert(anchor.node && "Anchor node not found");
-  assert(proposed_candidate && "Proposed candidate node not found");
+  ASSERT(anchor.node, "Anchor node not found");
+  ASSERT(proposed_candidate, "Proposed candidate node not found");
 
   // No reordering if the proposed candidate is already following the anchor.
   if (get_vector_next(anchor) == proposed_candidate) {
@@ -738,11 +738,11 @@ concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
 }
 
 static node_id_t get_next_branch(const Node *node) {
-  assert(node);
+  ASSERT(node, "Node not found");
   node_id_t next_branch_id = -1;
 
   const Node *next = node->get_next();
-  assert(next);
+  ASSERT(next, "Next node not found");
 
   next->visit_nodes([&next_branch_id](const Node *node) -> NodeVisitAction {
     if (node->get_type() == NodeType::Branch) {
@@ -840,7 +840,7 @@ static Node *link(const mutable_vector_t &anchor, Node *next) {
 
 static void disconnect(Node *node) {
   Node *prev = node->get_mutable_prev();
-  assert(prev && "Node has no previous node");
+  ASSERT(prev, "Node has no previous node");
 
   bool direction = true;
   if (prev->get_type() == NodeType::Branch) {
@@ -850,7 +850,7 @@ static void disconnect(Node *node) {
     } else if (prev_branch->get_on_false() == node) {
       direction = false;
     } else {
-      assert(false && "Node not found in previous branch node");
+      ASSERT(false, "Node not found in previous branch node");
     }
   }
 
@@ -870,11 +870,11 @@ static void disconnect(Node *node) {
 }
 
 static void disconnect_and_link_non_branch(Node *node) {
-  assert(node->get_type() != NodeType::Branch);
+  ASSERT(node->get_type() != NodeType::Branch, "Unexpected branch node");
 
   Node *next = node->get_mutable_next();
   Node *prev = node->get_mutable_prev();
-  assert(prev && "Node has no previous node");
+  ASSERT(prev, "Node %lu has no previous node", node->get_id());
 
   bool direction = true;
   switch (prev->get_type()) {
@@ -885,7 +885,7 @@ static void disconnect_and_link_non_branch(Node *node) {
     } else if (prev_branch->get_on_false() == node) {
       direction = false;
     } else {
-      assert(false && "Node not found in previous branch node");
+      ASSERT(false, "Node not found in previous branch node");
     }
   } break;
   case NodeType::Call:
@@ -907,7 +907,7 @@ static directions_t get_directions(const Node *anchor, Node *candidate) {
 
   while (candidate != anchor) {
     Node *prev = candidate->get_mutable_prev();
-    assert(prev);
+    ASSERT(prev, "Candidate has no previous node");
 
     if (prev == anchor) {
       break;
@@ -941,7 +941,7 @@ get_branch_candidates(const mutable_vector_t &anchor, Branch *candidate,
   // equally.
   std::unordered_set<Branch *> candidates{candidate};
   for (Node *sibling : siblings) {
-    assert(sibling->get_type() == NodeType::Branch);
+    ASSERT(sibling->get_type() == NodeType::Branch, "Unexpected node type");
     candidates.insert(static_cast<Branch *>(sibling));
   }
 
@@ -998,7 +998,7 @@ static leaves_t get_leaves_from_candidates(
     Branch *candidate = pair.first;
 
     Node *prev = candidate->get_mutable_prev();
-    assert(prev && "Candidate has no previous node");
+    ASSERT(prev, "Candidate has no previous node");
 
     if (prev->get_type() == NodeType::Branch) {
       Branch *prev_branch = static_cast<Branch *>(prev);
@@ -1056,7 +1056,7 @@ static Node *clone_and_update_nodes(BDD *bdd, Node *candidate,
 
       node_id_t branch_id = direction.first->get_id();
       Node *node_clone = clone->get_mutable_node_by_id(branch_id);
-      assert(node_clone && "Branch node not found in clone");
+      ASSERT(node_clone, "Branch node not found in clone");
 
       Branch *branch_clone = static_cast<Branch *>(node_clone);
       new_directions[branch_clone] = direction.second;
@@ -1094,7 +1094,7 @@ static dangling_node_t dangling_from_leaf(Node *candidate, dangling_t dangling,
 
   while (node != candidate) {
     Node *prev = node->get_mutable_prev();
-    assert(prev && "Node has no previous node");
+    ASSERT(prev, "Node has no previous node");
 
     if (prev->get_type() == NodeType::Branch) {
       Branch *prev_branch = static_cast<Branch *>(prev);
@@ -1107,14 +1107,14 @@ static dangling_node_t dangling_from_leaf(Node *candidate, dangling_t dangling,
       } else if (prev_on_false == node) {
         filter_dangling(dangling, prev_branch, false);
       } else {
-        assert(false && "Node not found in previous branch node");
+        ASSERT(false, "Node not found in previous branch node");
       }
     }
 
     node = prev;
   }
 
-  assert(dangling.size() == 1);
+  ASSERT(dangling.size() == 1, "Unexpected number of dangling nodes");
   return dangling[0];
 }
 
@@ -1136,12 +1136,13 @@ static void pull_branch(BDD *bdd, const mutable_vector_t &anchor,
   dangling_t dangling = disconnect(candidate, branch_candidates);
 
   Node *anchor_old_next = link(anchor, candidate);
-  assert(anchor_old_next && "Anchor has no next node");
+  ASSERT(anchor_old_next, "Anchor has no next node");
 
   Node *anchor_next_clone = clone_and_update_nodes(
       bdd, candidate, siblings, anchor_old_next, dangling, leaves);
 
-  assert(leaves.size() == dangling.size());
+  ASSERT(leaves.size() == dangling.size(),
+         "Unexpected number of dangling nodes");
 
   link({candidate, true}, anchor_old_next);
   link({candidate, false}, anchor_next_clone);
@@ -1249,12 +1250,12 @@ BDD *reorder(const BDD *original_bdd, const reorder_op_t &op) {
   std::unordered_set<Node *> siblings;
   for (node_id_t sibling_id : candidate_info.siblings) {
     Node *sibling = bdd->get_mutable_node_by_id(sibling_id);
-    assert(sibling && "Sibling not found in BDD");
+    ASSERT(sibling, "Sibling not found in BDD");
     siblings.insert(sibling);
   }
 
-  assert(candidate && "Candidate not found in BDD");
-  assert(anchor.node && "Anchor not found in BDD");
+  ASSERT(candidate, "Candidate not found in BDD");
+  ASSERT(anchor.node, "Anchor not found in BDD");
 
   // Reordering can only be done if a given extra condition is met.
   // Therefore, we must introduce a new branch condition evaluating this extra
@@ -1265,7 +1266,7 @@ BDD *reorder(const BDD *original_bdd, const reorder_op_t &op) {
     klee::ConstraintManager anchor_constraints = anchor.node->get_constraints();
 
     Node *after_anchor = get_vector_next(anchor);
-    assert(after_anchor && "Anchor has no next node");
+    ASSERT(after_anchor, "Anchor has no next node");
 
     Node *after_anchor_clone = after_anchor->clone(manager, true);
 
@@ -1281,13 +1282,13 @@ BDD *reorder(const BDD *original_bdd, const reorder_op_t &op) {
     // The candidate will be on the true side of the extra branch node.
     // We just cloned it, so we need to find it again.
     candidate = after_anchor_clone->get_mutable_node_by_id(candidate_info.id);
-    assert(candidate && "Candidate not found in cloned after_anchor");
+    ASSERT(candidate, "Candidate not found in cloned after_anchor");
 
     // Same logic for all the siblings.
     siblings.clear();
     for (node_id_t sibling_id : candidate_info.siblings) {
       Node *sibling = bdd->get_mutable_node_by_id(sibling_id);
-      assert(sibling && "Sibling not found in BDD");
+      ASSERT(sibling, "Sibling not found in BDD");
       siblings.insert(sibling);
     }
 
@@ -1317,7 +1318,7 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, node_id_t anchor_id,
   std::vector<reordered_bdd_t> bdds;
 
   const Node *anchor = bdd->get_node_by_id(anchor_id);
-  assert(anchor && "Anchor not found in BDD");
+  ASSERT(anchor, "Anchor not found in BDD");
 
   std::vector<reorder_op_t> ops =
       get_reorder_ops(bdd, {anchor_id, true}, allow_shape_altering_ops);
@@ -1374,7 +1375,7 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd,
 reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info,
                             node_id_t candidate_id) {
   const Node *anchor = bdd->get_node_by_id(anchor_info.id);
-  assert(anchor && "Anchor not found in BDD");
+  ASSERT(anchor, "Anchor not found in BDD");
 
   vector_t anchor_vector = {anchor, anchor_info.direction};
   const Node *next = get_vector_next(anchor_vector);

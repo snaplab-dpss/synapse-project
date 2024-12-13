@@ -95,7 +95,7 @@ protected:
 
     symbol_t map_has_this_key;
     bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
     addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);

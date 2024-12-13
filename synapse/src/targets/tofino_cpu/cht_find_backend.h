@@ -103,7 +103,7 @@ protected:
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t backend_found;
     bool found = get_symbol(symbols, "prefered_backend_found", backend_found);
-    assert(found && "Symbol prefered_backend_found not found");
+    ASSERT(found, "Symbol prefered_backend_found not found");
 
     if (!ep->get_ctx().can_impl_ds(cht_addr,
                                    DSImpl::TofinoCPU_ConsistentHashTable)) {

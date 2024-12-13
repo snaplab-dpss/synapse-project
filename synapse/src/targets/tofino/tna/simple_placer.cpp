@@ -110,12 +110,13 @@ struct SimplePlacer::placement_t {
 
 void SimplePlacer::concretize_placement(
     Stage &stage, const SimplePlacer::placement_t &placement) {
-  assert(stage.stage_id == placement.stage_id);
+  ASSERT(stage.stage_id == placement.stage_id, "Invalid stage ID");
 
-  assert(stage.available_sram >= placement.sram);
-  assert(stage.available_map_ram >= placement.map_ram);
-  assert(stage.available_exact_match_xbar >= placement.xbar);
-  assert(stage.available_logical_ids >= placement.logical_ids);
+  ASSERT(stage.available_sram >= placement.sram, "Not enough SRAM");
+  ASSERT(stage.available_map_ram >= placement.map_ram, "Not enough MAP RAM");
+  ASSERT(stage.available_exact_match_xbar >= placement.xbar, "Not enough XBAR");
+  ASSERT(stage.available_logical_ids >= placement.logical_ids,
+         "Not enough logical IDs");
 
   stage.available_sram -= placement.sram;
   stage.available_map_ram -= placement.map_ram;
@@ -179,7 +180,7 @@ SimplePlacer::find_placements(const DS *ds,
         find_placements_hash(static_cast<const Hash *>(ds), deps, placements);
     break;
   default:
-    assert(false && "Unsupported DS type");
+    ASSERT(false, "Unsupported DS type");
   }
 
   return status;
@@ -188,7 +189,7 @@ SimplePlacer::find_placements(const DS *ds,
 PlacementStatus SimplePlacer::find_placements_table(
     const Table *table, const std::unordered_set<DS_ID> &deps,
     std::vector<placement_t> &placements) const {
-  assert(!is_placed(table->id));
+  ASSERT(!is_placed(table->id), "Table %s already placed", table->id.c_str());
 
   if (static_cast<int>(table->keys.size()) > properties->max_exact_match_keys) {
     return PlacementStatus::TOO_MANY_KEYS;
@@ -200,7 +201,8 @@ PlacementStatus SimplePlacer::find_placements_table(
   }
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  assert(soonest_stage_id < static_cast<int>(stages.size()));
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
+         "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -256,10 +258,11 @@ PlacementStatus
 SimplePlacer::find_placements_reg(const Register *reg,
                                   const std::unordered_set<DS_ID> &deps,
                                   std::vector<placement_t> &placements) const {
-  assert(!is_placed(reg->id));
+  ASSERT(!is_placed(reg->id), "Register %s already placed", reg->id.c_str());
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  assert(soonest_stage_id < static_cast<int>(stages.size()));
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
+         "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -317,7 +320,7 @@ SimplePlacer::find_placements_reg(const Register *reg,
 PlacementStatus SimplePlacer::find_placements_meter(
     const Meter *meter, const std::unordered_set<DS_ID> &deps,
     std::vector<placement_t> &placements) const {
-  assert(!is_placed(meter->id));
+  ASSERT(!is_placed(meter->id), "Meter %s already placed", meter->id.c_str());
 
   if (static_cast<int>(meter->keys.size()) > properties->max_exact_match_keys) {
     return PlacementStatus::TOO_MANY_KEYS;
@@ -329,7 +332,8 @@ PlacementStatus SimplePlacer::find_placements_meter(
   }
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  assert(soonest_stage_id < static_cast<int>(stages.size()));
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
+         "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -385,7 +389,7 @@ PlacementStatus
 SimplePlacer::find_placements_hash(const Hash *hash,
                                    const std::unordered_set<DS_ID> &deps,
                                    std::vector<placement_t> &placements) const {
-  assert(!is_placed(hash->id));
+  ASSERT(!is_placed(hash->id), "Hash %s already placed", hash->id.c_str());
 
   if (static_cast<int>(hash->keys.size()) > properties->max_exact_match_keys) {
     return PlacementStatus::TOO_MANY_KEYS;
@@ -396,7 +400,8 @@ SimplePlacer::find_placements_hash(const Hash *hash,
   }
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  assert(soonest_stage_id < static_cast<int>(stages.size()));
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
+         "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -496,7 +501,7 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
 
 void SimplePlacer::place_primitive_ds(const DS *ds,
                                       const std::unordered_set<DS_ID> &deps) {
-  assert(ds->primitive);
+  ASSERT(ds->primitive, "DS is not primitive");
 
   if (is_placed(ds->id)) {
     return;
@@ -504,10 +509,11 @@ void SimplePlacer::place_primitive_ds(const DS *ds,
 
   std::vector<placement_t> placements;
   PlacementStatus status = find_placements(ds, deps, placements);
-  assert(status == PlacementStatus::SUCCESS && "Cannot place ds");
+  ASSERT(status == PlacementStatus::SUCCESS, "Cannot place ds");
 
   for (const placement_t &placement : placements) {
-    assert(placement.stage_id < static_cast<int>(stages.size()));
+    ASSERT(placement.stage_id < static_cast<int>(stages.size()),
+           "Invalid stage");
     concretize_placement(stages[placement.stage_id], placement);
   }
 }
@@ -614,7 +620,7 @@ void SimplePlacer::replace_placement_request(
     }
   }
 
-  assert(false && "Cannot replace placement request (not found)");
+  ASSERT(false, "Cannot replace placement request (not found)");
 }
 
 void SimplePlacer::debug() const {

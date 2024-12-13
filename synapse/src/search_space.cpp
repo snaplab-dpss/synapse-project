@@ -84,7 +84,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
   };
 
   auto found_it = std::find_if(leaves.begin(), leaves.end(), ss_node_matcher);
-  assert(found_it != leaves.end() && "Leaf not found");
+  ASSERT(found_it != leaves.end(), "Leaf not found");
 
   active_leaf = *found_it;
   leaves.erase(found_it);
@@ -132,7 +132,7 @@ std::string SearchSpace::build_meta_tput_speculation(const EP *ep) {
 void SearchSpace::add_to_active_leaf(
     const EP *ep, const Node *node, const ModuleGenerator *modgen,
     const std::vector<impl_t> &implementations) {
-  assert(active_leaf && "Active leaf not set");
+  ASSERT(active_leaf, "Active leaf not set");
 
   for (const impl_t &impl : implementations) {
     ss_node_id_t id = node_id_counter++;

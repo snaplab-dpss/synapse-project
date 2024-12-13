@@ -187,8 +187,9 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
 
   root->visit_nodes([&bdd_profile](const Node *node) {
-    assert(bdd_profile.counters.find(node->get_id()) !=
-           bdd_profile.counters.end());
+    ASSERT(bdd_profile.counters.find(node->get_id()) !=
+               bdd_profile.counters.end(),
+           "Node counter not found");
     u64 current_counter = bdd_profile.counters[node->get_id()];
 
     switch (node->get_type()) {
@@ -198,8 +199,8 @@ static bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
-      assert(on_true);
-      assert(on_false);
+      ASSERT(on_true, "Branch node without on_true");
+      ASSERT(on_false, "Branch node without on_false");
 
       u64 on_true_counter = RandomEngine::generate() % (current_counter + 1);
       u64 on_false_counter = current_counter - on_true_counter;
@@ -254,8 +255,9 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
       avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const Node *bdd_root = bdd->get_root();
 
-  assert(bdd_profile->counters.find(bdd_root->get_id()) !=
-         bdd_profile->counters.end());
+  ASSERT(bdd_profile->counters.find(bdd_root->get_id()) !=
+             bdd_profile->counters.end(),
+         "Root node not found");
   u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
 
   root = std::shared_ptr<ProfilerNode>(
@@ -264,21 +266,22 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
   for (const auto &[map_addr, map_stats] : bdd_profile->stats_per_map) {
     for (const auto &node_map_stats : map_stats.nodes) {
       const Node *node = bdd->get_node_by_id(node_map_stats.node);
-      assert(node && "Node not found");
+      ASSERT(node, "Node not found");
 
       constraints_t constraints = node->get_ordered_branch_constraints();
       ProfilerNode *profiler_node = get_node(constraints);
-      assert(profiler_node && "Profiler node not found");
+      ASSERT(profiler_node, "Profiler node not found");
 
-      assert(node->get_type() == NodeType::Call);
+      ASSERT(node->get_type() == NodeType::Call, "Invalid node type");
       const Call *call_node = static_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
 
-      assert(call.function_name == "map_get" ||
-             call.function_name == "map_put" ||
-             call.function_name == "map_erase");
+      ASSERT(call.function_name == "map_get" ||
+                 call.function_name == "map_put" ||
+                 call.function_name == "map_erase",
+             "Invalid call");
 
-      assert(call.args.find("key") != call.args.end());
+      ASSERT(call.args.find("key") != call.args.end(), "Key not found");
       klee::ref<klee::Expr> flow_id = call.args.at("key").in;
 
       FlowStats flow_stats = {
@@ -331,31 +334,29 @@ bytes_t Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
 ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
   ProfilerNode *current = root.get();
 
-  for (klee::ref<klee::Expr> constraint : constraints) {
+  for (klee::ref<klee::Expr> cnstr : constraints) {
     if (!current) {
       return nullptr;
     }
 
-    klee::ref<klee::Expr> not_constraint =
-        solver_toolbox.exprBuilder->Not(constraint);
+    ASSERT(!current->constraint.isNull(), "Invalid profiler node");
 
-    assert(!current->constraint.isNull());
+    klee::ConstraintManager manager;
+    manager.addConstraint(current->constraint);
 
-    bool on_true =
-        solver_toolbox.are_exprs_always_equal(constraint, current->constraint);
-    bool on_false = solver_toolbox.are_exprs_always_equal(not_constraint,
-                                                          current->constraint);
+    bool always_true = solver_toolbox.is_expr_always_true(manager, cnstr);
+    bool always_false = solver_toolbox.is_expr_always_false(manager, cnstr);
 
-    assert(on_true || on_false);
+    ASSERT(always_true || always_false, "Invalid profiler node");
 
-    if (on_true) {
+    if (always_true) {
       current = current->on_true;
     } else {
       current = current->on_false;
     }
   }
 
-  assert(current && "Profiler node not found");
+  ASSERT(current, "Profiler node not found");
   return current;
 }
 
@@ -366,11 +367,11 @@ static void recursive_update_fractions(ProfilerNode *node,
     return;
   }
 
-  assert(parent_old_fraction >= 0.0);
-  assert(parent_old_fraction <= 1.0);
+  ASSERT(parent_old_fraction >= 0.0, "Invalid parent old fraction");
+  ASSERT(parent_old_fraction <= 1.0, "Invalid parent old fraction");
 
-  assert(parent_new_fraction >= 0.0);
-  assert(parent_new_fraction <= 1.0);
+  ASSERT(parent_new_fraction >= 0.0, "Invalid parent new fraction");
+  ASSERT(parent_new_fraction <= 1.0, "Invalid parent new fraction");
 
   hit_rate_t old_fraction = clamp_fraction(node->fraction);
   hit_rate_t new_fraction = clamp_fraction(
@@ -386,7 +387,7 @@ static void recursive_update_fractions(ProfilerNode *node,
 
 void Profiler::replace_root(klee::ref<klee::Expr> constraint,
                             hit_rate_t fraction) {
-  assert(false && "Attempted to replace Profiler root node");
+  ASSERT(false, "Attempted to replace Profiler root node");
 
   ProfilerNode *new_node = new ProfilerNode(constraint, 1.0);
 
@@ -402,8 +403,8 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint,
   hit_rate_t fraction_on_true = clamp_fraction(fraction);
   hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
 
-  assert(fraction_on_true <= new_node->fraction);
-  assert(fraction_on_false <= new_node->fraction);
+  ASSERT(fraction_on_true <= new_node->fraction, "Invalid fraction");
+  ASSERT(fraction_on_false <= new_node->fraction, "Invalid fraction");
 
   recursive_update_fractions(new_node->on_true, new_node->fraction,
                              fraction_on_true);
@@ -422,7 +423,8 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
 
   ProfilerNode *new_node = new ProfilerNode(constraint, node->fraction);
 
-  assert((parent->on_true == node) || (parent->on_false == node));
+  ASSERT((parent->on_true == node) || (parent->on_false == node),
+         "Invalid node");
   if (parent->on_true == node) {
     parent->on_true = new_node;
   } else {
@@ -446,46 +448,60 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
                              fraction_on_false);
 }
 
+Profiler::family_t Profiler::get_family(ProfilerNode *node) const {
+  family_t family = {
+      .node = node,
+      .parent = node->prev,
+      .grandparent = nullptr,
+      .sibling = nullptr,
+  };
+
+  if (family.parent) {
+    family.grandparent = family.parent->prev;
+    family.sibling = (family.parent->on_true == node) ? family.parent->on_false
+                                                      : family.parent->on_true;
+  }
+
+  return family;
+}
+
 void Profiler::remove(ProfilerNode *node) {
-  ProfilerNode *parent = node->prev;
-  assert(parent && "Cannot remove the root node");
+  family_t family = get_family(node);
+
+  ASSERT(family.parent, "Cannot remove the root node");
+  hit_rate_t parent_fraction = family.parent->fraction;
 
   // By removing the current node, the parent is no longer needed (its purpose
   // was to differentiate between the on_true and on_false nodes, but now only
   // one side is left).
 
-  ProfilerNode *grandparent = parent->prev;
+  ASSERT(family.grandparent, "Cannot remove the root node");
 
-  assert(grandparent && "Cannot remove the grandparent node");
-
-  ProfilerNode *sibling =
-      (parent->on_true == node) ? parent->on_false : parent->on_true;
-
-  hit_rate_t parent_fraction = parent->fraction;
-
-  if (grandparent->on_true == parent) {
-    grandparent->on_true = sibling;
+  if (family.grandparent->on_true == family.parent) {
+    family.grandparent->on_true = family.sibling;
   } else {
-    grandparent->on_false = sibling;
+    family.grandparent->on_false = family.sibling;
   }
 
-  sibling->prev = grandparent;
+  family.sibling->prev = family.grandparent;
 
-  parent->on_true = nullptr;
-  parent->on_false = nullptr;
-  delete parent;
+  family.parent->on_true = nullptr;
+  family.parent->on_false = nullptr;
+  delete family.parent;
 
   node->on_true = nullptr;
   node->on_false = nullptr;
   delete node;
 
-  hit_rate_t old_fraction = sibling->fraction;
+  hit_rate_t old_fraction = family.sibling->fraction;
   hit_rate_t new_fraction = parent_fraction;
 
-  sibling->fraction = new_fraction;
+  family.sibling->fraction = new_fraction;
 
-  recursive_update_fractions(sibling->on_true, old_fraction, new_fraction);
-  recursive_update_fractions(sibling->on_false, old_fraction, new_fraction);
+  recursive_update_fractions(family.sibling->on_true, old_fraction,
+                             new_fraction);
+  recursive_update_fractions(family.sibling->on_false, old_fraction,
+                             new_fraction);
 }
 
 void Profiler::remove(const constraints_t &constraints) {
@@ -532,7 +548,7 @@ void Profiler::set(const constraints_t &constraints, hit_rate_t new_hr) {
 hit_rate_t Profiler::get_hr(const Node *node) const {
   auto found_it = cache.n2p.find(node->get_id());
   if (found_it != cache.n2p.end()) {
-    assert(found_it->second);
+    ASSERT(found_it->second, "Invalid profiler node");
     return found_it->second->fraction;
   }
 
@@ -552,7 +568,7 @@ hit_rate_t Profiler::get_hr(const Node *node) const {
 hit_rate_t Profiler::get_hr(const EPNode *node) const {
   auto found_it = cache.e2p.find(node->get_id());
   if (found_it != cache.e2p.end()) {
-    assert(found_it->second);
+    ASSERT(found_it->second, "Invalid profiler node");
     return found_it->second->fraction;
   }
 
@@ -595,7 +611,9 @@ FlowStats Profiler::get_flow_stats(const constraints_t &constraints,
 }
 
 void Profiler::clone_tree_if_shared() {
-  assert(root);
+  clear_cache();
+
+  ASSERT(root, "Invalid profiler root node");
 
   // No need to clone a tree that is not shared.
   if (root.use_count() == 1) {
@@ -603,5 +621,17 @@ void Profiler::clone_tree_if_shared() {
   }
 
   root = std::shared_ptr<ProfilerNode>(root->clone(true));
-  clear_cache();
+}
+
+void Profiler::replace_constraint(ProfilerNode *node,
+                                  klee::ref<klee::Expr> constraint) {
+  clone_tree_if_shared();
+  node->constraint = constraint;
+}
+
+void Profiler::replace_constraint(const constraints_t &constraints,
+                                  klee::ref<klee::Expr> constraint) {
+  clone_tree_if_shared();
+  ProfilerNode *node = get_node(constraints);
+  replace_constraint(node, constraint);
 }

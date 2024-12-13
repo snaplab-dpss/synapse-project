@@ -81,9 +81,7 @@ protected:
     }
 
     if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable) ||
-        !ctx.check_ds_impl(map_objs.vector_key,
-                           DSImpl::Tofino_HeavyHitterTable)) {
+        !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
       return std::nullopt;
     }
 
@@ -96,14 +94,14 @@ protected:
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
     // Get all nodes executed on a successful index allocation.
-    index_alloc_check_t index_alloc_check =
+    branch_direction_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-    assert(index_alloc_check.branch &&
+    ASSERT(index_alloc_check.branch,
            "Branch checking index allocation not found");
 
     spec_impl.skip.insert(index_alloc_check.branch->get_id());
 
-    const Node *on_hh = index_alloc_check.success_on_true
+    const Node *on_hh = index_alloc_check.direction
                             ? index_alloc_check.branch->get_on_true()
                             : index_alloc_check.branch->get_on_false();
 
@@ -142,7 +140,7 @@ protected:
       return impls;
     }
 
-    index_alloc_check_t index_alloc_check =
+    branch_direction_t index_alloc_check =
         find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
     if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
       return impls;
@@ -151,26 +149,23 @@ protected:
     if (!ep->get_ctx().check_ds_impl(map_objs.map,
                                      DSImpl::Tofino_HeavyHitterTable) ||
         !ep->get_ctx().check_ds_impl(map_objs.dchain,
-                                     DSImpl::Tofino_HeavyHitterTable) ||
-        !ep->get_ctx().check_ds_impl(map_objs.vector_key,
                                      DSImpl::Tofino_HeavyHitterTable)) {
       return impls;
     }
 
     klee::ref<klee::Expr> min_estimate = get_min_estimate(ep);
-    ASSERT_OR_PANIC(!min_estimate.isNull(),
-                    "TODO: HHTableRead not found, so we should "
-                    "query the CMS for the min estimate");
+    ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
+                                   "query the CMS for the min estimate");
 
     const Call *map_put = get_future_map_put(node, map_objs.map);
-    ASSERT_OR_PANIC(map_put, "map_put not found");
+    ASSERT(map_put, "map_put not found");
 
     table_data_t table_data = get_table_data(map_put);
 
-    const Node *next_on_hh = index_alloc_check.success_on_true
+    const Node *next_on_hh = index_alloc_check.direction
                                  ? index_alloc_check.branch->get_on_true()
                                  : index_alloc_check.branch->get_on_false();
-    const Node *next_on_not_hh = index_alloc_check.success_on_true
+    const Node *next_on_not_hh = index_alloc_check.direction
                                      ? index_alloc_check.branch->get_on_false()
                                      : index_alloc_check.branch->get_on_true();
 
@@ -178,7 +173,7 @@ protected:
         new HHTableUpdate(node, table_data.obj, table_data.table_keys,
                           table_data.value, min_estimate);
 
-    assert(false && "TODO");
+    ASSERT(false, "TODO");
 
     return impls;
   }
@@ -193,7 +188,7 @@ private:
 
   table_data_t get_table_data(const Call *map_put) const {
     const call_t &call = map_put->get_call();
-    assert(call.function_name == "map_put");
+    ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;

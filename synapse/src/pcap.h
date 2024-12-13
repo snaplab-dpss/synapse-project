@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <byteswap.h>
 #include <pcap.h>
 
@@ -253,22 +252,6 @@ inline void compute_udp_checksum(ipv4_hdr_t *ip_hdr, u16 *ipPayload) {
   udp_hdr->checksum = ((u16)sum == 0x0000) ? 0xFFFF : (u16)sum;
 }
 
-inline long get_file_size(const char *fname) {
-  assert(fname);
-  FILE *fp = fopen(fname, "r");
-
-  // checking if the file exist or not
-  if (fp == NULL) {
-    PANIC("File %s not found", fname);
-  }
-
-  fseek(fp, 0L, SEEK_END);
-  auto res = ftell(fp);
-  fclose(fp);
-
-  return res;
-}
-
 inline bool parse_etheraddr(const char *str, struct ether_addr_t *addr) {
   return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX",
                 addr->addr_bytes + 0, addr->addr_bytes + 1,
@@ -391,7 +374,7 @@ public:
     }
 
     FILE *pcap_fptr = pcap_file(pd);
-    assert(pcap_fptr && "Invalid pcap file pointer");
+    ASSERT(pcap_fptr, "Invalid pcap file pointer");
     pcap_start = ftell(pcap_fptr);
 
     run_preamble();
@@ -581,7 +564,7 @@ public:
   // https://github.com/nal-epfl/castan/blob/master/scripts/pcap_tools/create_zipfian_distribution_pcap.py
   u64 generate() {
     double probability = rand.generate();
-    assert(probability >= 0 && probability <= 1);
+    ASSERT(probability >= 0 && probability <= 1, "Invalid probability");
 
     double p = probability;
     u64 N = range + 1;
@@ -605,7 +588,7 @@ public:
 
       if (std::abs(newx - x) <= tolerance) {
         u64 i = newx - 1;
-        assert(i < range);
+        ASSERT(i < range, "Invalid index");
         return i;
       }
 

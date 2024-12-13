@@ -6,6 +6,7 @@
 #include "exprs.h"
 #include "retriever.h"
 #include "solver.h"
+#include "../log.h"
 
 class ExpressionFilter : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -87,7 +88,7 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
   }
 
   auto filtered = filter.visit(expr);
-  assert(filter.check_symbols(filtered).has_not_allowed == 0);
+  ASSERT(filter.check_symbols(filtered).has_not_allowed == 0, "Invalid filter");
 
   return filtered;
 }

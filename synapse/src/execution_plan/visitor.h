@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <memory>
 
 #define DECLARE_VISIT(M)                                                       \
@@ -13,7 +12,7 @@
 
 #define VISIT_TODO(M)                                                          \
   virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {      \
-    assert(false && "TODO");                                                   \
+    ASSERT(false, "TODO");                                                     \
   }
 
 class EP;

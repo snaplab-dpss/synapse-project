@@ -367,7 +367,7 @@ void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder,
 
   symbol_t checksum;
   bool found = get_symbol(generated_symbols, "checksum", checksum);
-  assert(found && "Symbol checksum not found");
+  ASSERT(found, "Symbol checksum not found");
 
   var_t c = build_var("checksum", checksum.expr);
 
@@ -397,7 +397,7 @@ void BDDSynthesizer::expire_items_single_map(coder_t &coder,
   symbol_t number_of_freed_flows;
   bool found = get_symbol(generated_symbols, "number_of_freed_flows",
                           number_of_freed_flows);
-  assert(found && "Symbol number_of_freed_flows not found");
+  ASSERT(found, "Symbol number_of_freed_flows not found");
 
   var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
 
@@ -422,7 +422,7 @@ void BDDSynthesizer::expire_items_single_map_iteratively(
   coder << "// expire_items_single_map_iteratively";
   coder << ";\n";
 
-  assert(false && "Not implemented");
+  ASSERT(false, "Not implemented");
 }
 
 void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
@@ -465,7 +465,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(
   if (stack_find(value, stack_value)) {
     if (stack_value.addr.isNull()) {
       bits_t width = stack_value.expr->getWidth();
-      assert(width <= klee::Expr::Int64);
+      ASSERT(width <= klee::Expr::Int64, "Invalid width");
       coder.indent();
       coder << "*(" << BDDTranspiler::type_from_size(width) << "*)";
       coder << var.name;
@@ -509,7 +509,7 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   symbol_t map_has_this_key;
   bool found =
       get_symbol(generated_symbols, "map_has_this_key", map_has_this_key);
-  assert(found && "Symbol map_has_this_key not found");
+  ASSERT(found, "Symbol map_has_this_key not found");
 
   var_t r = build_var("map_hit", map_has_this_key.expr);
   var_t v = build_var("value", value_out);
@@ -732,7 +732,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   for (const mod_t &mod : changes) {
     coder.indent();
 
-    assert(mod.width <= 64);
+    ASSERT(mod.width <= 64, "Vector element size is too large");
 
     if (mod.width == 8) {
       coder << v.name;
@@ -779,7 +779,7 @@ void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
 
   symbol_t found_sample;
   bool found = get_symbol(generated_symbols, "found_sample", found_sample);
-  assert(found && "Symbol found_sample not found");
+  ASSERT(found, "Symbol found_sample not found");
 
   var_t f = build_var("found_sample", found_sample.expr);
   var_t i = build_var("sample_index", index_out);
@@ -885,7 +885,7 @@ void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   coder << "// dchain_expire_one";
   coder << ";\n";
 
-  assert(false && "TODO");
+  ASSERT(false, "TODO");
 }
 
 void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder,
@@ -899,7 +899,7 @@ void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder,
   symbol_t is_allocated;
   bool found =
       get_symbol(generated_symbols, "dchain_is_index_allocated", is_allocated);
-  assert(found && "Symbol dchain_is_index_allocated not found");
+  ASSERT(found, "Symbol dchain_is_index_allocated not found");
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
 
@@ -1020,7 +1020,7 @@ void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder,
   symbol_t cleanup_success;
   bool found =
       get_symbol(generated_symbols, "cleanup_success", cleanup_success);
-  assert(found && "Symbol success not found");
+  ASSERT(found, "Symbol success not found");
 
   var_t cs = build_var("cleanup_success", cleanup_success.expr);
 
@@ -1224,7 +1224,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
 
 code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset,
                                  bits_t size) const {
-  assert(offset + size <= var.expr->getWidth());
+  ASSERT(offset + size <= var.expr->getWidth(), "Out of bounds");
 
   coder_t coder;
 
@@ -1309,7 +1309,7 @@ void BDDSynthesizer::stack_replace(const var_t &var,
     for (var_t &v : frame.vars) {
       if (v.name == var.name) {
         klee::ref<klee::Expr> old_expr = v.expr;
-        assert(old_expr->getWidth() == new_expr->getWidth());
+        ASSERT(old_expr->getWidth() == new_expr->getWidth(), "Width mismatch");
         v.expr = new_expr;
         return;
       }

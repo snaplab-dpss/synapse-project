@@ -1,9 +1,10 @@
 #include "call_paths_groups.h"
 #include "../exprs/exprs.h"
 #include "../exprs/solver.h"
+#include "../log.h"
 
 void CallPathsGroup::group_call_paths() {
-  assert(call_paths.cps.size());
+  ASSERT(call_paths.cps.size(), "No call paths to group");
 
   for (call_path_t *cp : call_paths.cps) {
     on_true.cps.clear();
@@ -60,7 +61,7 @@ void CallPathsGroup::group_call_paths() {
       return;
   }
 
-  assert(false && "Could not group call paths");
+  ASSERT(false, "Could not group call paths");
 }
 
 bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
@@ -95,7 +96,7 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
 }
 
 klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
-  assert(on_true.cps.size());
+  ASSERT(on_true.cps.size(), "No call paths on true");
 
   auto possible_discriminating_constraints =
       get_possible_discriminating_constraints();
@@ -111,7 +112,7 @@ klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
 std::vector<klee::ref<klee::Expr>>
 CallPathsGroup::get_possible_discriminating_constraints() const {
   std::vector<klee::ref<klee::Expr>> possible_discriminating_constraints;
-  assert(on_true.cps.size());
+  ASSERT(on_true.cps.size(), "No call paths on true");
 
   for (auto constraint : on_true.cps[0]->constraints) {
     if (satisfies_constraint(on_true.cps, constraint))
@@ -157,8 +158,8 @@ bool CallPathsGroup::satisfies_not_constraint(
 
 bool CallPathsGroup::check_discriminating_constraint(
     klee::ref<klee::Expr> constraint) {
-  assert(on_true.cps.size());
-  assert(on_false.cps.size());
+  ASSERT(on_true.cps.size(), "No call paths on true");
+  ASSERT(on_false.cps.size(), "No call paths on false");
 
   call_paths_t _on_true = on_true;
   call_paths_t _on_false;

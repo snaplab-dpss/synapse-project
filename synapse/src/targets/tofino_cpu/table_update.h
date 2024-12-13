@@ -42,7 +42,7 @@ public:
 
     std::vector<const tofino::Table *> tables;
     for (const tofino::DS *data_structure : data_structures) {
-      assert(data_structure->type == tofino::DSType::TABLE);
+      ASSERT(data_structure->type == tofino::DSType::TABLE, "Not a table");
       const tofino::Table *table =
           static_cast<const tofino::Table *>(data_structure);
       tables.push_back(table);
@@ -71,10 +71,6 @@ protected:
       return std::nullopt;
     }
 
-    if (is_vector_map_key_function(ep, call_node)) {
-      return std::nullopt;
-    }
-
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     std::vector<klee::ref<klee::Expr>> values;
@@ -100,10 +96,6 @@ protected:
     const Call *call_node = static_cast<const Call *>(node);
 
     if (is_vector_return_without_modifications(ep, call_node)) {
-      return impls;
-    }
-
-    if (is_vector_map_key_function(ep, call_node)) {
       return impls;
     }
 
@@ -154,7 +146,7 @@ private:
       std::vector<klee::ref<klee::Expr>> &keys,
       std::vector<klee::ref<klee::Expr>> &values) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "map_put");
+    ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -170,7 +162,7 @@ private:
       std::vector<klee::ref<klee::Expr>> &keys,
       std::vector<klee::ref<klee::Expr>> &values) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "vector_return");
+    ASSERT(call.function_name == "vector_return", "Not a vector_return call");
 
     klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -186,7 +178,8 @@ private:
                             std::vector<klee::ref<klee::Expr>> &keys,
                             std::vector<klee::ref<klee::Expr>> &values) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "dchain_allocate_new_index");
+    ASSERT(call.function_name == "dchain_allocate_new_index",
+           "Not a dchain call");
 
     klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
     klee::ref<klee::Expr> index_out = call.args.at("index_out").out;

@@ -8,7 +8,7 @@ Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys,
              const std::vector<bits_t> &_params)
     : DS(DSType::TABLE, true, _id), num_entries(_num_entries), keys(_keys),
       params(_params) {
-  assert(_num_entries > 0);
+  ASSERT(_num_entries > 0, "Table entries must be greater than 0");
 }
 
 Table::Table(const Table &other)

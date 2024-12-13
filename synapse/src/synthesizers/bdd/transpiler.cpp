@@ -17,7 +17,8 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   coder_t &coder = coders.top();
 
   if (is_constant(expr)) {
-    assert(expr->getWidth() <= 64);
+    ASSERT(expr->getWidth() <= 64, "Unsupported constant width: %u",
+           expr->getWidth());
     u64 value = solver_toolbox.value_from_expr(expr);
     coder << value;
     if (value > (1ull << 31)) {
@@ -37,7 +38,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   code_t code = coder.dump();
   coders.pop();
 
-  assert(!code.empty());
+  ASSERT(!code.empty(), "Empty code");
   return code;
 }
 

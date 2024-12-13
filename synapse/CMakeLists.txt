@@ -34,6 +34,7 @@ string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_R
 add_compile_options(
     -Wall -Wextra -Werror -Wfatal-errors
     -Wno-unused-variable -Wno-unused-parameter
+    -fno-omit-frame-pointer
 )
 
 ###############################################################################
@@ -73,6 +74,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_llvm.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_klee.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_curses.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_unwind.cmake)
 
 
 ###############################################################################
@@ -93,6 +95,7 @@ target_link_libraries(synapse PUBLIC ${KLEE_LIBRARIES})
 target_link_libraries(synapse PUBLIC ${LLVM_LIBRARIES})
 target_link_libraries(synapse PUBLIC ${CURSES_LIBRARIES})
 target_link_libraries(synapse PUBLIC ${Z3_LIBRARIES})
+target_link_libraries(synapse PUBLIC ${LIBUNWIND_LIBRARIES})
 target_link_libraries(synapse PUBLIC CLI11::CLI11)
 target_link_libraries(synapse PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(synapse PUBLIC tomlplusplus::tomlplusplus)

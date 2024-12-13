@@ -1,7 +1,5 @@
 #pragma once
 
-#include <assert.h>
-
 class BDD;
 class Node;
 class Branch;

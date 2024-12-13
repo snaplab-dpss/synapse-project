@@ -1,5 +1,8 @@
 #include "log.h"
 
+#include <iostream>
+#include <sstream>
+
 Log Log::log() { return Log(Log::Level::LOG); }
 Log Log::dbg() { return Log(Log::Level::DEBUG); }
 Log Log::wrn() { return Log(Log::Level::WARNING) << "[WARNING] "; }

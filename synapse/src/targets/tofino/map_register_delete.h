@@ -63,8 +63,7 @@ protected:
     }
 
     if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_MapRegister)) {
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister)) {
       return std::nullopt;
     }
 
@@ -80,7 +79,6 @@ protected:
     Context new_ctx = ctx;
     new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
@@ -116,8 +114,6 @@ protected:
 
     if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
         !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                   DSImpl::Tofino_MapRegister) ||
-        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
                                    DSImpl::Tofino_MapRegister)) {
       return impls;
     }
@@ -148,7 +144,6 @@ protected:
     Context &ctx = new_ep->get_mutable_ctx();
     ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->place(new_ep, map_erase, map_objs.map, map_register);
@@ -174,7 +169,7 @@ private:
     map_register_data_t cached_table_data;
 
     const call_t &call = map_erase->get_call();
-    assert(call.function_name == "map_erase");
+    ASSERT(call.function_name == "map_erase", "Not a map_erase call");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -214,13 +209,6 @@ private:
         if (obj != map_coalescing_objs.map) {
           continue;
         }
-      } else {
-        klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-        addr_t obj = expr_addr_to_obj_addr(obj_expr);
-
-        if (obj != map_coalescing_objs.vector_key) {
-          continue;
-        }
       }
 
       related_ops.push_back(op);
@@ -245,12 +233,12 @@ private:
     }
 
     std::vector<const Node *> future_nodes =
-        get_future_related_nodes(ep, map_erase, map_coalescing_objs);
+        get_future_related_nodes(ep, next, map_coalescing_objs);
 
     for (const Node *node : future_nodes) {
       bool replace = (node == next);
       Node *replacement =
-          delete_non_branch_node_from_bdd(ep, new_bdd, node->get_id());
+          delete_non_branch_node_from_bdd(new_bdd, node->get_id());
       if (replace) {
         next = replacement;
       }

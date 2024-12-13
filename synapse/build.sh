@@ -9,7 +9,7 @@ build() {
   [ -d "$BUILD_DIR" ] || mkdir -p "$BUILD_DIR"
   cd "$BUILD_DIR"
 
-  [ -f "build.ninja" ] || cmake \
+  cmake \
     -G Ninja \
     -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" \
     -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
@@ -23,7 +23,7 @@ build_profile() {
   [ -d "$BUILD_DIR" ] || mkdir -p "$BUILD_DIR"
   cd "$BUILD_DIR"
 
-  [ -f "build.ninja" ] || cmake \
+  cmake \
     -G Ninja \
     -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
     -DCMAKE_EXE_LINKER_FLAGS="-pg" \

@@ -54,10 +54,6 @@ protected:
 
     const Call *call_node = static_cast<const Call *>(node);
 
-    if (is_vector_map_key_function(ep, call_node)) {
-      return std::nullopt;
-    }
-
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
     std::vector<klee::ref<klee::Expr>> values;
@@ -82,10 +78,6 @@ protected:
     }
 
     const Call *call_node = static_cast<const Call *>(node);
-
-    if (is_vector_map_key_function(ep, call_node)) {
-      return impls;
-    }
 
     addr_t obj;
     std::vector<klee::ref<klee::Expr>> keys;
@@ -137,7 +129,7 @@ private:
                               std::vector<klee::ref<klee::Expr>> &values,
                               std::optional<symbol_t> &hit) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "map_get");
+    ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -147,7 +139,7 @@ private:
 
     symbol_t map_has_this_key;
     bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     obj = expr_addr_to_obj_addr(map_addr_expr);
     keys = Table::build_keys(key);
@@ -162,7 +154,7 @@ private:
     // We can implement even if we later update the vector's contents!
 
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "vector_borrow");
+    ASSERT(call.function_name == "vector_borrow", "Not a vector_borrow call");
 
     klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -178,8 +170,9 @@ private:
                                  std::vector<klee::ref<klee::Expr>> &values,
                                  std::optional<symbol_t> &hit) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "dchain_is_index_allocated" ||
-           call.function_name == "dchain_rejuvenate_index");
+    ASSERT(call.function_name == "dchain_is_index_allocated" ||
+               call.function_name == "dchain_rejuvenate_index",
+           "Not a dchain call");
 
     klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
     klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -194,7 +187,7 @@ private:
       symbol_t is_allocated;
       bool found =
           get_symbol(symbols, "dchain_is_index_allocated", is_allocated);
-      assert(found && "Symbol dchain_is_index_allocated not found");
+      ASSERT(found, "Symbol dchain_is_index_allocated not found");
 
       hit = is_allocated;
     }

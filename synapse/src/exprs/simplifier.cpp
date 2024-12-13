@@ -1,9 +1,9 @@
-#include <assert.h>
 #include <unordered_map>
 
 #include "simplifier.h"
 #include "exprs.h"
 #include "solver.h"
+#include "../log.h"
 
 bool simplify_extract(klee::ref<klee::Expr> extract_expr,
                       klee::ref<klee::Expr> &out) {
@@ -37,8 +37,8 @@ bool simplify_extract(klee::ref<klee::Expr> extract_expr,
     }
   }
 
-  assert(!expr.isNull());
-  assert(size <= expr->getWidth());
+  ASSERT(!expr.isNull(), "Null expr");
+  ASSERT(size <= expr->getWidth(), "Size too big");
 
   if (offset == 0 && size == expr->getWidth()) {
     out = expr;
@@ -53,7 +53,7 @@ bool simplify_extract(klee::ref<klee::Expr> extract_expr,
 
 bool is_cmp_0(klee::ref<klee::Expr> expr,
               klee::ref<klee::Expr> &not_const_kid) {
-  assert(!expr.isNull());
+  ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getNumKids() != 2) {
     return false;
@@ -97,7 +97,7 @@ bool is_cmp_0(klee::ref<klee::Expr> expr,
 //      (Eq (w32 0) (ReadLSB w32 (w32 0) out_of_space__64))))
 bool is_extract_0_cond(klee::ref<klee::Expr> expr,
                        klee::ref<klee::Expr> &cond_expr) {
-  assert(!expr.isNull());
+  ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() != klee::Expr::Extract) {
     return false;
@@ -115,7 +115,7 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr,
     kid = kid->getKid(0);
   }
 
-  assert(kid->getKind() != klee::Expr::ZExt);
+  ASSERT(kid->getKind() != klee::Expr::ZExt, "Invalid expr");
 
   auto cond_ops = std::vector<klee::Expr::Kind>{
       klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
@@ -152,7 +152,7 @@ bool can_be_negated(klee::ref<klee::Expr> expr) {
   };
 
   if (transparent.find(expr->getKind()) != transparent.end()) {
-    assert(expr->getNumKids() == 1);
+    ASSERT(expr->getNumKids() == 1, "Invalid expr");
     auto kid = expr->getKid(0);
     return can_be_negated(kid);
   }
@@ -186,7 +186,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
 
   auto kind = expr->getKind();
   auto found_it = negate_map.find(kind);
-  assert(found_it != negate_map.end());
+  ASSERT(found_it != negate_map.end(), "Invalid kind");
 
   switch (found_it->second) {
   case klee::Expr::Or: {
@@ -286,7 +286,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return solver_toolbox.exprBuilder->Not(expr);
   } break;
   default:
-    assert(false && "TODO");
+    ASSERT(false, "TODO");
   }
 
   return expr;
@@ -339,14 +339,14 @@ bool simplify_not_eq(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
     return false;
   }
 
-  assert(expr->getNumKids() == 1);
+  ASSERT(expr->getNumKids() == 1, "Invalid expr");
   expr = expr->getKid(0);
 
   if (expr->getKind() != klee::Expr::Eq) {
     return false;
   }
 
-  assert(expr->getNumKids() == 2);
+  ASSERT(expr->getNumKids() == 2, "Invalid expr");
 
   auto lhs = expr->getKid(0);
   auto rhs = expr->getKid(1);
@@ -369,7 +369,7 @@ bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr,
     return false;
   }
 
-  assert(expr->getNumKids() == 2);
+  ASSERT(expr->getNumKids() == 2, "Invalid expr");
 
   auto lhs = expr->getKid(0);
   auto rhs = expr->getKid(1);
@@ -442,7 +442,7 @@ bool apply_simplifiers(const simplifiers_t &simplifiers,
           solver_toolbox.exprBuilder->ZExt(simplified_kid, max_kid_width);
     }
 
-    assert(simplified_kid->getWidth() == max_kid_width);
+    ASSERT(simplified_kid->getWidth() == max_kid_width, "Invalid width");
     new_kids[i] = simplified_kid;
   }
 
@@ -451,7 +451,7 @@ bool apply_simplifiers(const simplifiers_t &simplifiers,
 }
 
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
-  assert(!expr.isNull());
+  ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() == klee::Expr::Constant) {
     return expr;
@@ -468,7 +468,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
     auto simplified = expr;
 
     apply_simplifiers(simplifiers, expr, simplified);
-    assert(!simplified.isNull());
+    ASSERT(!simplified.isNull(), "Null expr");
 
     for (auto prev : prev_exprs) {
       if (!simplified->compare(*prev.get())) {

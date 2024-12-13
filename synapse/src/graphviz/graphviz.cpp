@@ -5,11 +5,10 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
-
-#include <assert.h>
 #include <unistd.h>
 
 #include "graphviz.h"
+#include "../log.h"
 
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b, u8 _o) : r(_r), g(_g), b(_b), o(_o) {}
 
@@ -45,7 +44,7 @@ std::string rgb_t::to_gv_repr() const {
 static std::filesystem::path random_dot() {
   char filename[] = "/tmp/XXXXXX";
   int fd = mkstemp(filename);
-  assert(fd != -1 && "Failed to create temporary file");
+  ASSERT(fd != -1, "Failed to create temporary file");
   std::string fpath(filename);
   fpath += ".dot";
   return fpath;
@@ -58,7 +57,7 @@ Graphviz::Graphviz() : fpath(random_dot()) {}
 
 void Graphviz::write() const {
   std::ofstream file(fpath);
-  assert(file.is_open() && "Unable to open file");
+  ASSERT(file.is_open(), "Unable to open file");
   file << ss.str();
   file.close();
 }
@@ -75,7 +74,7 @@ void Graphviz::show(bool interrupt) const {
   int status = system(cmd_builder.str().c_str());
   if (status < 0) {
     std::cout << "Error: " << std::strerror(errno) << "\n";
-    assert(false && "Failed to open graph.");
+    ASSERT(false, "Failed to open graph.");
   }
 
   if (interrupt) {

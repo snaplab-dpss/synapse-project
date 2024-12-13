@@ -169,10 +169,12 @@ protected:
                    klee::ref<klee::Expr> pkt_len, klee::ref<klee::Expr> &hit,
                    klee::ref<klee::Expr> pass, DS_ID &id) const {
     const call_t &call_is_tracing = tb_is_tracing->get_call();
-    assert(call_is_tracing.function_name == "tb_is_tracing");
+    ASSERT(call_is_tracing.function_name == "tb_is_tracing",
+           "Unexpected function");
 
     const call_t &call_update = tb_update_and_check->get_call();
-    assert(call_update.function_name == "tb_update_and_check");
+    ASSERT(call_update.function_name == "tb_update_and_check",
+           "Unexpected function");
 
     klee::ref<klee::Expr> tb_addr_expr = call_is_tracing.args.at("tb").expr;
     klee::ref<klee::Expr> key = call_is_tracing.args.at("key").in;
@@ -226,8 +228,8 @@ protected:
     }
 
     bool replace_next = (tb_update_and_check == next);
-    Node *replacement = delete_non_branch_node_from_bdd(
-        ep, new_bdd, tb_update_and_check->get_id());
+    Node *replacement =
+        delete_non_branch_node_from_bdd(new_bdd, tb_update_and_check->get_id());
 
     if (replace_next) {
       new_next = replacement;

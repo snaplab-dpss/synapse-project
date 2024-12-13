@@ -116,9 +116,9 @@ private:
         ctx.get_target_ctx<tofino::TofinoContext>();
     const std::unordered_set<tofino::DS *> &data_structures =
         tofino_ctx->get_ds(obj);
-    assert(data_structures.size() == 1);
+    ASSERT(data_structures.size() == 1, "Multiple data structures found");
     tofino::DS *ds = *data_structures.begin();
-    assert(ds->type == tofino::DSType::MAP_REGISTER);
+    ASSERT(ds->type == tofino::DSType::MAP_REGISTER, "Invalid data structure");
     return ds->id;
   }
 
@@ -127,7 +127,7 @@ private:
                 klee::ref<klee::Expr> &value,
                 std::optional<symbol_t> &hit) const {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "map_get");
+    ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
     klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -137,7 +137,7 @@ private:
 
     symbol_t map_has_this_key;
     bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     obj = expr_addr_to_obj_addr(map_addr_expr);
     keys = Table::build_keys(key);

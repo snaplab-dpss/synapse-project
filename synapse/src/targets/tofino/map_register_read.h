@@ -69,8 +69,7 @@ protected:
     }
 
     if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister) ||
-        !ctx.can_impl_ds(map_objs.vector_key, DSImpl::Tofino_MapRegister)) {
+        !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_MapRegister)) {
       return std::nullopt;
     }
 
@@ -82,21 +81,11 @@ protected:
       return std::nullopt;
     }
 
-    std::vector<const Call *> vector_ops =
-        get_future_vector_key_ops(ep, node, map_register_data, map_objs);
-
     Context new_ctx = ctx;
     new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    new_ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
-    spec_impl_t spec_impl(decide(ep, node), new_ctx);
-
-    for (const Call *vector_op : vector_ops) {
-      spec_impl.skip.insert(vector_op->get_id());
-    }
-
-    return spec_impl;
+    return spec_impl_t(decide(ep, node), new_ctx);
   }
 
   virtual std::vector<impl_t> process_node(const EP *ep,
@@ -121,8 +110,6 @@ protected:
 
     if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_MapRegister) ||
         !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                   DSImpl::Tofino_MapRegister) ||
-        !ep->get_ctx().can_impl_ds(map_objs.vector_key,
                                    DSImpl::Tofino_MapRegister)) {
       return impls;
     }
@@ -145,22 +132,15 @@ protected:
     EP *new_ep = new EP(*ep);
     impls.push_back(implement(ep, node, new_ep));
 
-    const Node *new_next;
-    BDD *bdd = delete_future_vector_key_ops(new_ep, node, map_register_data,
-                                            map_objs, new_next);
-
     Context &ctx = new_ep->get_mutable_ctx();
     ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
     ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
-    ctx.save_ds_impl(map_objs.vector_key, DSImpl::Tofino_MapRegister);
 
     TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
     tofino_ctx->place(new_ep, node, map_objs.map, map_register);
 
-    EPLeaf leaf(ep_node, new_next);
+    EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
-    new_ep->replace_bdd(bdd);
-    new_ep->assert_integrity();
 
     return impls;
   }
@@ -188,7 +168,7 @@ private:
 
     bool found = get_symbol(symbols, "map_has_this_key",
                             map_register_data.map_has_this_key);
-    assert(found && "Symbol map_has_this_key not found");
+    ASSERT(found, "Symbol map_has_this_key not found");
 
     const Context &ctx = ep->get_ctx();
     const map_config_t &cfg = ctx.get_map_config(map_register_data.obj);
@@ -196,66 +176,6 @@ private:
     map_register_data.num_entries = cfg.capacity;
 
     return map_register_data;
-  }
-
-  std::vector<const Call *>
-  get_future_vector_key_ops(const EP *ep, const Node *node,
-                            const map_register_data_t &map_register_data,
-                            const map_coalescing_objs_t &map_objs) const {
-    std::vector<const Call *> vector_ops =
-        get_future_functions(node, {"vector_borrow", "vector_return"});
-
-    for (const Call *vector_op : vector_ops) {
-      const call_t &call = vector_op->get_call();
-
-      klee::ref<klee::Expr> vector = call.args.at("vector").expr;
-      klee::ref<klee::Expr> index = call.args.at("index").expr;
-
-      addr_t vector_addr = expr_addr_to_obj_addr(vector);
-
-      if (vector_addr != map_objs.vector_key) {
-        continue;
-      }
-
-      if (!solver_toolbox.are_exprs_always_equal(
-              index, map_register_data.read_value)) {
-        continue;
-      }
-
-      vector_ops.push_back(vector_op);
-    }
-
-    return vector_ops;
-  }
-
-  BDD *delete_future_vector_key_ops(
-      EP *ep, const Node *node, const map_register_data_t &map_register_data,
-      const map_coalescing_objs_t &map_objs, const Node *&new_next) const {
-    const BDD *old_bdd = ep->get_bdd();
-    BDD *new_bdd = new BDD(*old_bdd);
-
-    const Node *next = node->get_next();
-
-    if (next) {
-      new_next = new_bdd->get_node_by_id(next->get_id());
-    } else {
-      new_next = nullptr;
-    }
-
-    std::vector<const Call *> vector_ops =
-        get_future_vector_key_ops(ep, new_next, map_register_data, map_objs);
-
-    for (const Call *vector_op : vector_ops) {
-      bool replace_next = (vector_op == next);
-      Node *replacement =
-          delete_non_branch_node_from_bdd(ep, new_bdd, vector_op->get_id());
-
-      if (replace_next) {
-        new_next = replacement;
-      }
-    }
-
-    return new_bdd;
   }
 };
 

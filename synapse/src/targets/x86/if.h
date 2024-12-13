@@ -60,8 +60,8 @@ protected:
 
     klee::ref<klee::Expr> condition = branch_node->get_condition();
 
-    assert(branch_node->get_on_true());
-    assert(branch_node->get_on_false());
+    ASSERT(branch_node->get_on_true(), "Missing on_true");
+    ASSERT(branch_node->get_on_false(), "Missing on_false");
 
     Module *if_module = new If(node, condition);
     Module *then_module = new Then(node);

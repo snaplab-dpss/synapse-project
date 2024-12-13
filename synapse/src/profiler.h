@@ -71,6 +71,8 @@ public:
   void insert_relative(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
                        hit_rate_t rel_hr_on_true);
 
+  void replace_constraint(const constraints_t &cnstrs,
+                          klee::ref<klee::Expr> cnstr);
   void remove(const constraints_t &constraints);
   void scale(const constraints_t &constraints, hit_rate_t factor);
   void set(const constraints_t &constraints, hit_rate_t new_hr);
@@ -88,8 +90,18 @@ private:
   ProfilerNode *get_node(const constraints_t &cnstrs) const;
   hit_rate_t get_hr(const constraints_t &cnstrs) const;
 
+  struct family_t {
+    ProfilerNode *node;
+    ProfilerNode *parent;
+    ProfilerNode *grandparent;
+    ProfilerNode *sibling;
+  };
+
+  family_t get_family(ProfilerNode *node) const;
+
   void clone_tree_if_shared();
   void append(ProfilerNode *node, klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void remove(ProfilerNode *node);
   void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
+  void replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> cnstr);
 };
