@@ -113,6 +113,7 @@ protected:
 
     spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
+    // FIXME: we are ignoring more than we should!
     std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
         ep, map_get, map_objs, map_register_data.key);
 
