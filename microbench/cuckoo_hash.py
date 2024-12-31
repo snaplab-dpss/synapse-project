@@ -24,6 +24,10 @@ from crc import Calculator, Configuration
 from prettytable import PrettyTable
 from typing import Set, Tuple
 
+ELEMENT_SIZE_BITS = 16 * 8
+SALT1 = 0x7f4a7c13
+SALT2 = 0x97c29b3a
+
 CRC1_CALCULATOR = Calculator(
 	Configuration(
 		width=32,
@@ -56,16 +60,17 @@ def random_number(min_bits: int, max_bits: int, forbidden: list[int] = []):
 	return value
 
 def hash1(key: int, hash_size_bits: int) -> int:
-	input = struct.pack("!I", key)
+	num_bytes = (key.bit_length() + 7) // 8
+	input = key.to_bytes(num_bytes, byteorder='big')
 	# output = CRC1_CALCULATOR.checksum(input)
-	output = zlib.crc32(struct.pack("!I", 0x7f4a7c13) + input)
+	output = zlib.crc32(struct.pack("!I", SALT1) + input)
 	return output & ((1 << hash_size_bits) - 1)
 
 def hash2(key: int, hash_size_bits: int) -> int:
-	input = struct.pack("!I", key)
-	# output = CRC1_CALCULATOR.checksum(struct.pack("!I", 0x97c29b3a) + input)
+	num_bytes = (key.bit_length() + 7) // 8
+	input = key.to_bytes(num_bytes, byteorder='big')
 	# output = CRC2_CALCULATOR.checksum(input)
-	output = zlib.crc32(struct.pack("!I", 0x97c29b3a) + input)
+	output = zlib.crc32(struct.pack("!I", SALT2) + input)
 	return output & ((1 << hash_size_bits) - 1)
 
 class InsertionResult:
@@ -142,10 +147,6 @@ class CuckooHash:
 		while True:
 			h = hashes[target_tid](target_key, self.hash_size_bits)
 
-			if (target_key, target_tid) in insertions:
-				result.loop = True
-				break
-
 			# print(f"Inserting 0x{target_key:x} in t{target_tid}[{h}]")
 			insertions.add((target_key, target_tid))
 
@@ -156,11 +157,13 @@ class CuckooHash:
 			result.collision = True
 			
 			# print(f"Ejecting 0x{tables[target_tid][h]:x}")
-			
 			tables[target_tid][h], target_key = target_key, tables[target_tid][h]
 			target_tid = 1 - target_tid
 
 			if target_tid == 0:
+				if target_key == key:
+					result.loop = True
+					break
 				result.backtracks += 1
 		
 		if not result.loop:
@@ -200,27 +203,38 @@ class CuckooHash:
 				table.add_row([i, '', ''])
 		return str(table)
 
-def build_loaded_cuckoo_hash(capacity: int, load: float) -> CuckooHash:
+def build_loaded_cuckoo_hash(
+	capacity: int,
+	load: float
+) -> CuckooHash:
 	cuckoo_hash = CuckooHash(capacity)
 	total_elements = int(capacity * load)
 
 	consecutive_fails = 0
 	while cuckoo_hash.total_elements < total_elements:
-		result = cuckoo_hash.insert(random_number(1, 32, list(cuckoo_hash.elements)))
+		random_element = random_number(1, ELEMENT_SIZE_BITS, list(cuckoo_hash.elements))
+		result = cuckoo_hash.insert(random_element)
 		consecutive_fails = consecutive_fails + 1 if not result.success else 0
 		assert consecutive_fails < 50, "Too many consecutive fails"
 	
 	cuckoo_hash.assert_invariants()
+
 	return cuckoo_hash
 
-def get_loop_probability(capacity: int, load: float, iterations: int, num_sets: int) -> Tuple[float, float]:
+def get_loop_probability(
+	capacity: int,
+	load: float,
+	iterations: int,
+	num_sets: int
+) -> Tuple[float, float]:
 	probabilities = []
 
 	for _ in range(num_sets):
 		cuckoo_hash = build_loaded_cuckoo_hash(capacity, load)
 		total_loops = 0
 		for _ in range(iterations):
-			result = cuckoo_hash.insert(random_number(1, 32))
+			random_element = random_number(1, ELEMENT_SIZE_BITS, list(cuckoo_hash.elements))
+			result = cuckoo_hash.insert(random_element)
 			if result.loop:
 				total_loops += 1
 			if result.success:
@@ -233,12 +247,17 @@ def get_loop_probability(capacity: int, load: float, iterations: int, num_sets: 
 
 	return avg, std_dev
 
-def get_estimated_backtracks(capacity: int, load: float, iterations: int) -> Tuple[float, float]:
+def get_estimated_backtracks(
+	capacity: int,
+	load: float,
+	iterations: int
+) -> Tuple[float, float]:
 	backtracks = []
 
 	cuckoo_hash = build_loaded_cuckoo_hash(capacity, load)
 	for _ in range(iterations):
-		result = cuckoo_hash.insert(random_number(1, 32))
+		random_element = random_number(1, ELEMENT_SIZE_BITS, list(cuckoo_hash.elements))
+		result = cuckoo_hash.insert(random_element)
 		backtracks.append(result.backtracks)
 		if result.success:
 			cuckoo_hash.delete(random.choice(list(cuckoo_hash.elements)))
@@ -248,18 +267,21 @@ def get_estimated_backtracks(capacity: int, load: float, iterations: int) -> Tup
 
 	return avg, std_dev
 
-def get_backtrack_probabilities(capacity: int, load: float, iterations: int) -> dict[int, float]:
+def get_backtrack_probabilities(
+	capacity: int,
+	load: float,
+	iterations: int
+) -> dict[int, float]:
 	backtrack_counters: dict[int, int] = {}
 
 	cuckoo_hash = build_loaded_cuckoo_hash(capacity, load)
 	for _ in range(iterations):
-		result = cuckoo_hash.insert(random_number(1, 32))
-
+		random_element = random_number(1, ELEMENT_SIZE_BITS, list(cuckoo_hash.elements))
+		result = cuckoo_hash.insert(random_element)
 		if result.backtracks not in backtrack_counters:
 			backtrack_counters[result.backtracks] = 0
 		else:
 			backtrack_counters[result.backtracks] += 1
-
 		if result.success:
 			cuckoo_hash.delete(random.choice(list(cuckoo_hash.elements)))
 	
@@ -269,29 +291,24 @@ def get_backtrack_probabilities(capacity: int, load: float, iterations: int) -> 
 	return probabilities
 
 def basic_test():
-	cuckoo_hash = build_loaded_cuckoo_hash(8, 1)
-
-	print()
-	print(cuckoo_hash)
-	result = cuckoo_hash.insert(0x04)
-	print(result)
+	cuckoo_hash = build_loaded_cuckoo_hash(256, 1)
 	print(cuckoo_hash)
 
 def main():
 	# capacities = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
 	capacities = [32, 64, 128, 256, 512, 1024, 2048]
 	iterations = 10_000
-	load = 1
+	load = 0.5
 	
 	for c in capacities:
-		avg, stdev = get_loop_probability(c, load, iterations, 10)
-		print(f"{c}\t {avg:.4f}±{stdev:.4f}")
+		# avg, stdev = get_loop_probability(c, load, iterations, 10)
+		# print(f"{c}\t {avg:.4f}±{stdev:.4f}")
 
 		# avg, stdev = get_estimated_backtracks(c, load, iterations)
 		# print(f"{c}\t {avg:.4f}±{stdev:.4f}")
 
-		# probabilities = get_backtrack_probabilities(c, load, iterations)
-		# print(f"{c}\t {[(k,probabilities[k]) for k in sorted(probabilities.keys())]}")
+		probabilities = get_backtrack_probabilities(c, load, iterations)
+		print(f"{c}\t {[(k,probabilities[k]) for k in sorted(probabilities.keys())]}")
 
 	# basic_test()
 

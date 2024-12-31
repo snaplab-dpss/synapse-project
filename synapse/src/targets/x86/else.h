@@ -25,15 +25,10 @@ public:
 
 protected:
   virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    return std::nullopt;
-  }
+  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
   virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override {
-    // Never explicitly generate this module from the BDD.
-    return {};
-  }
+                                           const Node *node) const override;
 };
 
 } // namespace x86

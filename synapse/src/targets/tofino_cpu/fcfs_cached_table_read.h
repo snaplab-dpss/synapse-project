@@ -4,7 +4,7 @@
 
 namespace tofino_cpu {
 
-using namespace tofino;
+using tofino::DS_ID;
 
 class FCFSCachedTableRead : public TofinoCPUModule {
 private:
@@ -48,103 +48,10 @@ public:
 
 protected:
   virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::Call) {
-      return std::nullopt;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    if (call.function_name != "map_get") {
-      return std::nullopt;
-    }
-
-    klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-    addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
-
-    if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
-      return std::nullopt;
-    }
-
-    return spec_impl_t(decide(ep, node), ctx);
-  }
+  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
   virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override {
-    std::vector<impl_t> impls;
-
-    if (node->get_type() != NodeType::Call) {
-      return impls;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    if (call.function_name != "map_get") {
-      return impls;
-    }
-
-    addr_t obj;
-    std::vector<klee::ref<klee::Expr>> keys;
-    klee::ref<klee::Expr> value;
-    std::optional<symbol_t> found;
-    get_data(call_node, obj, keys, value, found);
-
-    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
-      return impls;
-    }
-
-    DS_ID id = get_cached_table_id(ep, obj);
-
-    Module *module = new FCFSCachedTableRead(node, id, obj, keys, value, found);
-    EPNode *ep_node = new EPNode(module);
-
-    EP *new_ep = new EP(*ep);
-    impls.push_back(implement(ep, node, new_ep));
-
-    EPLeaf leaf(ep_node, node->get_next());
-    new_ep->process_leaf(ep_node, {leaf});
-
-    return impls;
-  }
-
-private:
-  DS_ID get_cached_table_id(const EP *ep, addr_t obj) const {
-    const Context &ctx = ep->get_ctx();
-    const tofino::TofinoContext *tofino_ctx =
-        ctx.get_target_ctx<tofino::TofinoContext>();
-    const std::unordered_set<tofino::DS *> &data_structures =
-        tofino_ctx->get_ds(obj);
-    ASSERT(data_structures.size() == 1, "Multiple data structures found");
-    tofino::DS *ds = *data_structures.begin();
-    ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE,
-           "Not a FCFS cached table");
-    return ds->id;
-  }
-
-  void get_data(const Call *call_node, addr_t &obj,
-                std::vector<klee::ref<klee::Expr>> &keys,
-                klee::ref<klee::Expr> &value,
-                std::optional<symbol_t> &hit) const {
-    const call_t &call = call_node->get_call();
-    ASSERT(call.function_name == "map_get", "Not a map_get call");
-
-    klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-    klee::ref<klee::Expr> key = call.args.at("key").in;
-    klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
-
-    symbols_t symbols = call_node->get_locally_generated_symbols();
-
-    symbol_t map_has_this_key;
-    bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-    ASSERT(found, "Symbol map_has_this_key not found");
-
-    obj = expr_addr_to_obj_addr(map_addr_expr);
-    keys = Table::build_keys(key);
-    value = value_out;
-    hit = map_has_this_key;
-  }
+                                           const Node *node) const override;
 };
 
 } // namespace tofino_cpu

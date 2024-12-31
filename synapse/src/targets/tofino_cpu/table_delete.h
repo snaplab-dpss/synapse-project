@@ -4,7 +4,10 @@
 
 namespace tofino_cpu {
 
-using namespace tofino;
+using tofino::DS;
+using tofino::DSType;
+using tofino::Table;
+using tofino::TofinoContext;
 
 class TableDelete : public TofinoCPUModule {
 private:
@@ -30,18 +33,15 @@ public:
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
 
-  std::vector<const tofino::Table *> get_tables(const EP *ep) const {
+  std::vector<const Table *> get_tables(const EP *ep) const {
     const Context &ctx = ep->get_ctx();
-    const tofino::TofinoContext *tofino_ctx =
-        ctx.get_target_ctx<tofino::TofinoContext>();
-    const std::unordered_set<tofino::DS *> &data_structures =
-        tofino_ctx->get_ds(obj);
+    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+    const std::unordered_set<DS *> &data_structures = tofino_ctx->get_ds(obj);
 
-    std::vector<const tofino::Table *> tables;
-    for (const tofino::DS *data_structure : data_structures) {
-      ASSERT(data_structure->type == tofino::DSType::TABLE, "Not a table");
-      const tofino::Table *table =
-          static_cast<const tofino::Table *>(data_structure);
+    std::vector<const Table *> tables;
+    for (const DS *data_structure : data_structures) {
+      ASSERT(data_structure->type == DSType::TABLE, "Not a table");
+      const Table *table = static_cast<const Table *>(data_structure);
       tables.push_back(table);
     }
 
@@ -57,101 +57,10 @@ public:
 
 protected:
   virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (node->get_type() != NodeType::Call) {
-      return std::nullopt;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-
-    addr_t obj;
-    std::vector<klee::ref<klee::Expr>> keys;
-    if (!get_table_delete_data(call_node, obj, keys)) {
-      return std::nullopt;
-    }
-
-    if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
-      return std::nullopt;
-    }
-
-    return spec_impl_t(decide(ep, node), ctx);
-  }
+  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
   virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override {
-    std::vector<impl_t> impls;
-
-    if (node->get_type() != NodeType::Call) {
-      return impls;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-
-    addr_t obj;
-    std::vector<klee::ref<klee::Expr>> keys;
-    if (!get_table_delete_data(call_node, obj, keys)) {
-      return impls;
-    }
-
-    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_Table)) {
-      return impls;
-    }
-
-    Module *module = new TableDelete(node, obj, keys);
-    EPNode *ep_node = new EPNode(module);
-
-    EP *new_ep = new EP(*ep);
-    impls.push_back(implement(ep, node, new_ep));
-
-    EPLeaf leaf(ep_node, node->get_next());
-    new_ep->process_leaf(ep_node, {leaf});
-
-    return impls;
-  }
-
-private:
-  bool get_table_delete_data(const Call *call_node, addr_t &obj,
-                             std::vector<klee::ref<klee::Expr>> &keys) const {
-    const call_t &call = call_node->get_call();
-
-    if (call.function_name == "map_erase") {
-      table_delete_data_from_map_op(call_node, obj, keys);
-    } else if (call.function_name == "dchain_free_index") {
-      table_delete_data_from_dchain_op(call_node, obj, keys);
-    } else {
-      return false;
-    }
-
-    return true;
-  }
-
-  void table_delete_data_from_map_op(
-      const Call *call_node, addr_t &obj,
-      std::vector<klee::ref<klee::Expr>> &keys) const {
-    const call_t &call = call_node->get_call();
-    ASSERT(call.function_name == "map_erase", "Not a map_erase call");
-
-    klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-    klee::ref<klee::Expr> key = call.args.at("key").in;
-
-    obj = expr_addr_to_obj_addr(map_addr_expr);
-    keys = Table::build_keys(key);
-  }
-
-  void table_delete_data_from_dchain_op(
-      const Call *call_node, addr_t &obj,
-      std::vector<klee::ref<klee::Expr>> &keys) const {
-    const call_t &call = call_node->get_call();
-    ASSERT(call.function_name == "dchain_free_index", "Not a dchain call");
-
-    klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-    klee::ref<klee::Expr> index = call.args.at("index").expr;
-
-    addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
-
-    obj = dchain_addr;
-    keys.push_back(index);
-  }
+                                           const Node *node) const override;
 };
 
 } // namespace tofino_cpu

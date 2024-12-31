@@ -26,45 +26,10 @@ public:
 
 protected:
   virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    return std::nullopt;
-  }
+  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
   virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override {
-    std::vector<impl_t> impls;
-
-    if (!should_ignore(ep, node)) {
-      return impls;
-    }
-
-    Module *module = new Ignore(node);
-    EPNode *ep_node = new EPNode(module);
-
-    EP *new_ep = new EP(*ep);
-    impls.push_back(implement(ep, node, new_ep));
-
-    EPLeaf leaf(ep_node, node->get_next());
-    new_ep->process_leaf(ep_node, {leaf});
-
-    return impls;
-  }
-
-private:
-  bool should_ignore(const EP *ep, const Node *node) const {
-    if (node->get_type() != NodeType::Call) {
-      return false;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    if (call.function_name == "vector_return") {
-      return is_vector_return_without_modifications(ep, call_node);
-    }
-
-    return false;
-  }
+                                           const Node *node) const override;
 };
 
 } // namespace x86

@@ -39,63 +39,11 @@ public:
       : x86ModuleGenerator(ModuleType::x86_ChecksumUpdate, "ChecksumUpdate") {}
 
 protected:
-  bool bdd_node_match_pattern(const Node *node) const {
-    if (node->get_type() != NodeType::Call) {
-      return false;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    if (call.function_name != "nf_set_rte_ipv4_udptcp_checksum") {
-      return false;
-    }
-
-    return true;
-  }
-
   virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override {
-    if (bdd_node_match_pattern(node))
-      return spec_impl_t(decide(ep, node), ctx);
-    return std::nullopt;
-  }
+  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
   virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override {
-    std::vector<impl_t> impls;
-
-    if (!bdd_node_match_pattern(node)) {
-      return impls;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    klee::ref<klee::Expr> ip_hdr_addr_expr = call.args.at("ip_header").expr;
-    klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
-    klee::ref<klee::Expr> p = call.args.at("packet").expr;
-
-    symbols_t symbols = call_node->get_locally_generated_symbols();
-    symbol_t checksum;
-    bool found = get_symbol(symbols, "checksum", checksum);
-    ASSERT(found, "Symbol checksum not found");
-
-    addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
-    addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);
-
-    EP *new_ep = new EP(*ep);
-    impls.push_back(implement(ep, node, new_ep));
-
-    Module *module =
-        new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
-    EPNode *ep_node = new EPNode(module);
-
-    EPLeaf leaf(ep_node, node->get_next());
-    new_ep->process_leaf(ep_node, {leaf});
-
-    return impls;
-  }
+                                           const Node *node) const override;
 };
 
 } // namespace x86

@@ -46,7 +46,7 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
   controller += other.controller;
   clamp_fraction(controller);
 
-  for (auto [rport_depth_pair, hr] : other.recirc) {
+  for (const auto [rport_depth_pair, hr] : other.recirc) {
     int rport = rport_depth_pair.first;
     int depth = rport_depth_pair.second;
 
@@ -214,14 +214,16 @@ void PerfOracle::add_controller_traffic(hit_rate_t hr) {
 
 void PerfOracle::add_recirculated_traffic(int port,
                                           const port_ingress_t &ingress) {
-  ASSERT(port >= 0, "Invalid port");
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port");
+  ASSERT(port >= 0, "Invalid port (%d)", port);
+  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
+         port);
   recirc_ports_ingress[port] += ingress;
 }
 
 void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
-  ASSERT(port >= 0, "Invalid port");
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port");
+  ASSERT(port >= 0, "Invalid port (%d)", port);
+  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
+         port);
   port_ingress_t ingress;
   ingress.global = hr;
   add_recirculated_traffic(port, ingress);
@@ -229,18 +231,19 @@ void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
 
 // Coefficients are in increasing order: x^0, x^1, x^2, ...
 // min and max are inclusive
-static hit_rate_t newton_root_finder(hit_rate_t *coefficients,
-                                     int n_coefficients, u64 min, u64 max) {
+static hit_rate_t
+newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 min,
+                   u64 max) {
   hit_rate_t x = (min + max) / 2.0;
   int it = 0;
 
-  while (it < NEWTON_MAX_ITERATIONS) {
-    hit_rate_t f = 0;
-    hit_rate_t df_dx = 0;
+  hit_rate_t f = 0;
+  hit_rate_t df_dx = 0;
 
+  while (it < NEWTON_MAX_ITERATIONS) {
     // It's very important to compute each term in this order, otherwise we
     // don't converge (precision loss)
-    for (int c = n_coefficients; c >= 0; c--) {
+    for (int c = coefficients.size(); c >= 0; c--) {
       f += coefficients[c] * pow(x, c);
 
       if (c > 0) {
@@ -255,6 +258,8 @@ static hit_rate_t newton_root_finder(hit_rate_t *coefficients,
     x = x - f / df_dx;
     it++;
   }
+
+  ASSERT(std::abs(f) <= NEWTON_PRECISION, "Newton's method did not converge");
 
   return x;
 }
@@ -317,8 +322,8 @@ PerfOracle::get_recirculated_egress(int port, pps_t global_ingress) const {
     hit_rate_t c = Tin;
     hit_rate_t d = -1.0 * Tin * Cr * s0;
 
-    hit_rate_t Ts0_coefficients[] = {d, c, b, a};
-    hit_rate_t Ts0 = newton_root_finder(Ts0_coefficients, 4, 0, Cr);
+    std::vector<hit_rate_t> Ts0_coefficients = {d, c, b, a};
+    hit_rate_t Ts0 = newton_root_finder(Ts0_coefficients, 0, Cr);
     hit_rate_t Ts1 = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
 
     Tout[0] = (Tin / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
