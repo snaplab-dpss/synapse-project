@@ -128,7 +128,11 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space,
   }
 }
 
-std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy) {
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy,
+                                           std::shared_ptr<BDD> bdd,
+                                           const Targets &targets,
+                                           const toml::table &targets_config,
+                                           const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
 
   switch (hopt) {
@@ -155,37 +159,33 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
     break;
   }
 
-  return std::make_unique<Heuristic>(std::move(cfg), !not_greedy);
-}
+  std::unique_ptr<EP> starting_ep =
+      std::make_unique<EP>(bdd, targets, targets_config, profiler);
 
-const std::unordered_map<HeuristicOption, std::function<std::unique_ptr<HeuristicCfg>()>>
-    heuristic_config_builder{
-        {HeuristicOption::BFS, []() { return std::make_unique<BFSCfg>(); }},
-        {HeuristicOption::DFS, []() { return std::make_unique<DFSCfg>(); }},
-        {HeuristicOption::RANDOM, []() { return std::make_unique<RandomCfg>(); }},
-        {HeuristicOption::GALLIUM, []() { return std::make_unique<GalliumCfg>(); }},
-        {HeuristicOption::GREEDY, []() { return std::make_unique<GreedyCfg>(); }},
-        {HeuristicOption::MAX_TPUT, []() { return std::make_unique<MaxTputCfg>(); }},
-        {HeuristicOption::DS_PREF, []() { return std::make_unique<DSPrefCfg>(); }},
-    };
+  std::unique_ptr<Heuristic> heuristic =
+      std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
+
+  return heuristic;
+}
 } // namespace
 
 SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt,
                            const Profiler &_profiler, const toml::table &_targets_config,
                            search_config_t _search_config)
-    : bdd(new BDD(*_bdd)), heuristic(build_heuristic(_hopt, _search_config.not_greedy)),
-      profiler(_profiler), targets(Targets(_targets_config)),
-      targets_config(_targets_config), search_config(_search_config) {}
+    : targets_config(_targets_config), search_config(_search_config),
+      bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)),
+      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd,
+                                                     targets, targets_config, profiler)) {
+}
 
 search_report_t SearchEngine::search() {
-  search_meta_t meta;
   auto start_search = std::chrono::steady_clock::now();
+
+  search_meta_t meta;
+  std::unordered_map<node_id_t, int> node_depth;
+
   std::unique_ptr<SearchSpace> search_space =
       std::make_unique<SearchSpace>(heuristic->get_cfg());
-
-  heuristic->add(new EP(bdd, targets, targets_config, profiler));
-
-  std::unordered_map<node_id_t, int> node_depth;
 
   bdd->get_root()->visit_nodes([this, &meta, &node_depth](const Node *node) {
     node_id_t id = node->get_id();
@@ -262,7 +262,7 @@ search_report_t SearchEngine::search() {
     log_search_iteration(report, meta);
     peek_search_space(new_implementations, search_config.peek, search_space.get());
 
-    heuristic->add(new_implementations);
+    heuristic->add(std::move(new_implementations));
     heuristic->cleanup();
   }
 

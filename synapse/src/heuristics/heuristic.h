@@ -7,25 +7,26 @@
 
 class Heuristic {
 private:
-  using impl_comparator_t = std::function<bool(const impl_t &, const impl_t &)>;
+  using ep_cmp_t = std::function<bool(const EP *, const EP *)>;
+  using ep_it_t = typename std::set<const EP *, HeuristicCfg>::iterator;
 
-protected:
   std::unique_ptr<HeuristicCfg> config;
-  std::multiset<impl_t, impl_comparator_t> execution_plans;
-  typename std::set<impl_t, HeuristicCfg>::iterator best_it;
-  bool stop_on_first_solution;
+  std::multiset<const EP *, ep_cmp_t> execution_plans;
+  std::unordered_map<const EP *, const EP *> ancestors;
   std::unordered_map<const EP *, i64> ep_refs;
+  ep_it_t best_it;
+  bool stop_on_first_solution;
 
 public:
-  Heuristic(std::unique_ptr<HeuristicCfg> config, bool stop_on_first_solution);
+  Heuristic(std::unique_ptr<HeuristicCfg> config, std::unique_ptr<EP> starting_ep,
+            bool stop_on_first_solution);
   ~Heuristic();
 
   bool finished();
   const EP *get();
   const EP *pop();
   void cleanup();
-  void add(const std::vector<impl_t> &new_implementations);
-  void add(EP *ep);
+  void add(std::vector<impl_t> &&new_implementations);
 
   size_t size() const;
   const HeuristicCfg *get_cfg() const;
@@ -34,5 +35,5 @@ public:
 private:
   void update_best_it();
   void reset_best_it();
-  typename std::set<impl_t, HeuristicCfg>::iterator get_next_it();
+  ep_it_t get_next_it();
 };

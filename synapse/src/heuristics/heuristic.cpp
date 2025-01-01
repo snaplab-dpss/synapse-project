@@ -2,11 +2,20 @@
 #include "heuristics.h"
 #include "../random_engine.h"
 
-Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, bool _stop_on_first_solution)
+Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config,
+                     std::unique_ptr<EP> starting_ep, bool _stop_on_first_solution)
     : config(std::move(_config)),
-      execution_plans(std::multiset<impl_t, impl_comparator_t>(
-          [&](const impl_t &i1, const impl_t &i2) { return (*config)(i1, i2); })),
-      stop_on_first_solution(_stop_on_first_solution) {}
+      execution_plans(std::multiset<const EP *, ep_cmp_t>(
+          [&](const EP *e1, const EP *e2) { return (*config)(e1, e2); })),
+      stop_on_first_solution(_stop_on_first_solution) {
+  const EP *ep = starting_ep.release();
+  ASSERT(ep, "Invalid execution plan");
+
+  execution_plans.emplace(ep);
+  reset_best_it();
+
+  ep_refs[ep]++;
+}
 
 Heuristic::~Heuristic() {
   for (auto &[ep, count] : ep_refs) {
@@ -21,7 +30,7 @@ bool Heuristic::finished() { return get_next_it() == execution_plans.end(); }
 
 const EP *Heuristic::get() {
   update_best_it();
-  return best_it->result;
+  return *best_it;
 }
 
 const EP *Heuristic::pop() {
@@ -29,11 +38,11 @@ const EP *Heuristic::pop() {
   ASSERT(next_it != execution_plans.end(), "No more execution plans to pick");
 
   if (config->mutates(*next_it)) {
-    std::vector<impl_t> eps(execution_plans.begin(), execution_plans.end());
+    std::vector<const EP *> eps(execution_plans.begin(), execution_plans.end());
 
     // Trigger a re-sort with the new mutated heuristic.
-    execution_plans = std::multiset<impl_t, impl_comparator_t>(
-        [&](const impl_t &i1, const impl_t &i2) { return (*config)(i1, i2); });
+    execution_plans = std::multiset<const EP *, ep_cmp_t>(
+        [&](const EP *e1, const EP *e2) { return (*config)(e1, e2); });
     execution_plans.insert(eps.begin(), eps.end());
 
     reset_best_it();
@@ -41,17 +50,20 @@ const EP *Heuristic::pop() {
     ASSERT(next_it != execution_plans.end(), "No more execution plans to pick");
   }
 
-  if (next_it->decision.ep) {
-    ep_refs[next_it->decision.ep]--;
+  const EP *chosen_ep = *next_it;
+
+  auto ancestor_it = ancestors.find(chosen_ep);
+  if (ancestor_it != ancestors.end()) {
+    ep_refs[ancestor_it->second]--;
+    ancestors.erase(chosen_ep);
   }
-  ep_refs[next_it->result]--;
 
-  const EP *ep = next_it->result;
-
+  ep_refs[chosen_ep]--;
   execution_plans.erase(next_it);
+
   reset_best_it();
 
-  return ep;
+  return chosen_ep;
 }
 
 void Heuristic::cleanup() {
@@ -69,27 +81,22 @@ void Heuristic::cleanup() {
   }
 }
 
-void Heuristic::add(const std::vector<impl_t> &new_implementations) {
-  for (const impl_t &impl : new_implementations) {
-    execution_plans.insert(impl);
+void Heuristic::add(std::vector<impl_t> &&new_implementations) {
+  for (impl_t &impl : new_implementations) {
+    const EP *ep = impl.result;
+
+    ASSERT(ep, "Invalid execution plan");
+    execution_plans.insert(ep);
+    ep_refs[ep]++;
 
     ASSERT(impl.decision.ep, "Invalid execution plan");
+    ancestors[ep] = impl.decision.ep;
     ep_refs[impl.decision.ep]++;
-
-    ASSERT(impl.result, "Invalid execution plan");
-    ep_refs[impl.result]++;
   }
 
   reset_best_it();
-}
 
-void Heuristic::add(EP *ep) {
-  ASSERT(execution_plans.empty(), "Cannot add execution plan to non-empty heuristic");
-  execution_plans.emplace(ep);
-  reset_best_it();
-
-  ASSERT(ep, "Invalid execution plan");
-  ep_refs[ep]++;
+  new_implementations.clear();
 }
 
 size_t Heuristic::size() const { return execution_plans.size(); }
@@ -106,10 +113,10 @@ void Heuristic::update_best_it() {
   }
 
   best_it = execution_plans.begin();
-  Score best_score = get_score(best_it->result);
+  Score best_score = get_score(*best_it);
 
   while (1) {
-    if (best_it == execution_plans.end() || get_score(best_it->result) != best_score) {
+    if (best_it == execution_plans.end() || get_score(*best_it) != best_score) {
       best_it = execution_plans.begin();
     }
 
@@ -123,21 +130,21 @@ void Heuristic::update_best_it() {
 
 void Heuristic::reset_best_it() { best_it = execution_plans.end(); }
 
-typename std::set<impl_t, HeuristicCfg>::iterator Heuristic::get_next_it() {
+Heuristic::ep_it_t Heuristic::get_next_it() {
   if (execution_plans.size() == 0) {
-    PANIC("No more execution plans to pick!\n");
+    PANIC("No more execution plans to pick from!\n");
   }
 
   update_best_it();
 
-  auto it = best_it;
+  ep_it_t it = best_it;
   ASSERT(it != execution_plans.end(), "Invalid iterator");
 
-  if (stop_on_first_solution && !it->result->get_next_node()) {
+  if (stop_on_first_solution && !(*it)->get_next_node()) {
     return execution_plans.end();
   }
 
-  while (it != execution_plans.end() && !it->result->get_next_node()) {
+  while (it != execution_plans.end() && !(*it)->get_next_node()) {
     it++;
   }
 

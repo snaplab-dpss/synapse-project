@@ -38,9 +38,9 @@ public:
     return Score(values);
   }
 
-  virtual bool operator()(const impl_t &i1, const impl_t &i2) const {
-    return score(i1.result) > score(i2.result);
+  virtual bool operator()(const EP *e1, const EP *e2) const {
+    return score(e1) > score(e2);
   }
 
-  virtual bool mutates(const impl_t &impl) const { return false; }
+  virtual bool mutates(const EP *ep) const { return false; }
 };

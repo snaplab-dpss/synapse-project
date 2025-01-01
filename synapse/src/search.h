@@ -52,13 +52,13 @@ struct search_config_t {
 
 class SearchEngine {
 private:
-  std::shared_ptr<BDD> bdd;
-  std::unique_ptr<Heuristic> heuristic;
-  Profiler profiler;
-  Targets targets;
-
   const toml::table targets_config;
   const search_config_t search_config;
+
+  std::shared_ptr<BDD> bdd;
+  Targets targets;
+  Profiler profiler;
+  std::unique_ptr<Heuristic> heuristic;
 
 public:
   SearchEngine(const BDD *bdd, HeuristicOption hopt, const Profiler &profiler,
