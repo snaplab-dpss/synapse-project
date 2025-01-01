@@ -356,8 +356,8 @@ get_generated_symbols(const call_t &call,
   return generated_symbols;
 }
 
-void pop_call_paths(call_paths_t &call_paths) {
-  for (call_path_t *cp : call_paths.cps) {
+void pop_call_paths(call_paths_view_t &call_paths_view) {
+  for (call_path_t *cp : call_paths_view) {
     ASSERT(cp->calls.size(), "No calls");
     cp->calls.erase(cp->calls.begin());
   }
@@ -371,7 +371,15 @@ void build_bdd_symbols(const symbols_t &symbols, symbols_t &bdd_symbols) {
   }
 }
 
-Node *bdd_from_call_paths(call_paths_t call_paths, NodeManager &manager,
+symbols_t get_symbols_from_call_path_view(const call_paths_view_t &call_paths_view) {
+  symbols_t symbols;
+  for (const call_path_t *cp : call_paths_view) {
+    symbols.insert(cp->symbols.begin(), cp->symbols.end());
+  }
+  return symbols;
+}
+
+Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manager,
                           std::vector<call_t> &init, node_id_t &id,
                           symbols_t &bdd_symbols,
                           klee::ConstraintManager constraints = klee::ConstraintManager(),
@@ -380,25 +388,25 @@ Node *bdd_from_call_paths(call_paths_t call_paths, NodeManager &manager,
   Node *root = nullptr;
   Node *leaf = nullptr;
 
-  if (call_paths.cps[0]->calls.size() == 0)
+  if (call_paths_view[0]->calls.size() == 0)
     return root;
 
-  symbols_t symbols = call_paths.get_symbols();
+  symbols_t symbols = get_symbols_from_call_path_view(call_paths_view);
 
-  while (call_paths.cps.size()) {
-    CallPathsGroup group(call_paths);
+  while (call_paths_view.size()) {
+    CallPathsGroup group(call_paths_view);
 
-    const call_paths_t &on_true = group.get_on_true();
-    const call_paths_t &on_false = group.get_on_false();
+    const call_paths_view_t &on_true = group.get_on_true();
+    const call_paths_view_t &on_false = group.get_on_false();
 
-    if (on_true.cps[0]->calls.size() == 0) {
+    if (on_true[0]->calls.size() == 0) {
       break;
     }
 
-    if (on_true.cps.size() == call_paths.cps.size()) {
-      ASSERT(on_false.cps.size() == 0, "Unexpected call paths");
+    if (on_true.size() == call_paths_view.size()) {
+      ASSERT(on_false.size() == 0, "Unexpected call paths");
 
-      call_t call = get_successful_call(call_paths.cps);
+      call_t call = get_successful_call(call_paths_view);
 
       symbols_t generated_symbols =
           get_generated_symbols(call, base_symbols_generated, symbols);
@@ -409,7 +417,7 @@ Node *bdd_from_call_paths(call_paths_t call_paths, NodeManager &manager,
       std::cerr << "==================================\n";
       std::cerr << "Call: " << call << "\n";
       std::cerr << "Call paths:\n";
-      for (const call_path_t *cp : call_paths.cps)
+      for (const call_path_t *cp : call_paths_view)
         std::cerr << "  " << cp->file_name << "\n";
       std::cerr << "Generated symbols (" << generated_symbols.size() << "):\n";
       for (const symbol_t &symbol : generated_symbols)
@@ -443,7 +451,7 @@ Node *bdd_from_call_paths(call_paths_t call_paths, NodeManager &manager,
         }
       }
 
-      pop_call_paths(call_paths);
+      pop_call_paths(call_paths_view);
     } else {
       klee::ref<klee::Expr> discriminating_constraint =
           group.get_discriminating_constraint();
@@ -462,20 +470,20 @@ Node *bdd_from_call_paths(call_paths_t call_paths, NodeManager &manager,
       std::cerr << "==================================\n";
       std::cerr << "Condition: " << expr_to_string(condition, true) << "\n";
       std::cerr << "On true call paths:\n";
-      for (const call_path_t *cp : on_true.cps)
+      for (const call_path_t *cp : on_true)
         std::cerr << "  " << cp->file_name << "\n";
       std::cerr << "On False call paths:\n";
-      for (const call_path_t *cp : on_false.cps)
+      for (const call_path_t *cp : on_false)
         std::cerr << "  " << cp->file_name << "\n";
       std::cerr << "==================================\n";
 
       if (is_skip_condition(condition)) {
         // Assumes the right path is the one with the most call paths (or the on
         // true path, somehwat arbitrarily...)
-        if (on_true.cps.size() >= on_false.cps.size()) {
-          call_paths = on_true;
+        if (on_true.size() >= on_false.size()) {
+          call_paths_view = on_true;
         } else {
-          call_paths = on_false;
+          call_paths_view = on_false;
         }
         continue;
       }
@@ -575,9 +583,9 @@ symbols_t BDD::get_generated_symbols(const Node *node) const {
   return symbols;
 }
 
-BDD::BDD(const call_paths_t &call_paths) : id(0) {
+BDD::BDD(const call_paths_view_t &call_paths_view) : id(0) {
   symbols_t bdd_symbols;
-  root = bdd_from_call_paths(call_paths, manager, init, id, bdd_symbols);
+  root = bdd_from_call_paths(call_paths_view, manager, init, id, bdd_symbols);
 
   for (const symbol_t &symbol : bdd_symbols) {
     if (symbol.base == "DEVICE") {

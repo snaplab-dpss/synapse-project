@@ -63,8 +63,7 @@ int main(int argc, char **argv) {
 
   app.add_option("call-paths", input_call_path_files, "Call paths");
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.");
-  app.add_option("--out", output_bdd_file,
-                 "Output file for BDD serialization.");
+  app.add_option("--out", output_bdd_file, "Output file for BDD serialization.");
 
   CLI11_PARSE(app, argc, argv);
 
@@ -73,15 +72,17 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  BDD bdd = input_bdd_file.empty() ? BDD(call_paths_t(input_call_path_files))
-                                   : BDD(input_bdd_file);
+  call_paths_t call_paths(input_call_path_files);
+
+  BDD bdd = input_bdd_file.empty() ? BDD(call_paths.get_view()) : BDD(input_bdd_file);
   assert_bdd(bdd);
 
   PrinterDebug printer;
   bdd.visit(printer);
 
-  if (!output_bdd_file.empty())
+  if (!output_bdd_file.empty()) {
     bdd.serialize(output_bdd_file);
+  }
 
   std::cout << "BDD size: " << bdd.size() << "\n";
 

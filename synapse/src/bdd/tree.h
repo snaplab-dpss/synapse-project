@@ -23,7 +23,7 @@ private:
 public:
   BDD() : id(0), root(nullptr) {}
 
-  BDD(const call_paths_t &call_paths);
+  BDD(const call_paths_view_t &call_paths);
   BDD(const std::string &file_path);
 
   BDD(const BDD &other);

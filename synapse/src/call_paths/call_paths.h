@@ -58,32 +58,17 @@ struct call_path_t {
   calls_t calls;
 };
 
-call_path_t *load_call_path(const std::string &file_name);
+std::unique_ptr<call_path_t> load_call_path(const std::string &file_name);
+
+typedef std::vector<call_path_t *> call_paths_view_t;
 
 struct call_paths_t {
-  std::vector<call_path_t *> cps;
+  std::vector<std::unique_ptr<call_path_t>> cps;
 
-  call_paths_t() {}
+  call_paths_t();
+  call_paths_t(const std::vector<std::string> &call_path_files);
 
-  call_paths_t(const std::vector<std::string> &call_path_files) {
-    for (const std::string &file : call_path_files)
-      cps.push_back(load_call_path(file));
-    merge_symbols();
-  }
-
-  symbols_t get_symbols() const {
-    symbols_t symbols;
-    for (const call_path_t *cp : cps)
-      symbols.insert(cp->symbols.begin(), cp->symbols.end());
-    return symbols;
-  }
-
-  void merge_symbols();
-
-  void free_call_paths() {
-    for (call_path_t *cp : cps)
-      delete cp;
-  }
+  call_paths_view_t get_view() const;
 };
 
 std::ostream &operator<<(std::ostream &os, klee::ref<klee::Expr> expr);

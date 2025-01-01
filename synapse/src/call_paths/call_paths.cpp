@@ -79,11 +79,11 @@ klee::ref<klee::Expr> parse_expr(const std::set<std::string> &declared_arrays,
   ASSERT(false, "Error parsing expr");
 }
 
-call_path_t *load_call_path(const std::string &file_name) {
+std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
   std::ifstream call_path_file(file_name);
   ASSERT(call_path_file.is_open(), "Unable to open call path file.");
 
-  call_path_t *call_path = new call_path_t;
+  std::unique_ptr<call_path_t> call_path = std::make_unique<call_path_t>();
   call_path->file_name = file_name;
 
   enum {
@@ -606,10 +606,16 @@ struct symbols_merger_t {
   }
 };
 
-void call_paths_t::merge_symbols() {
+call_paths_t::call_paths_t() {}
+
+call_paths_t::call_paths_t(const std::vector<std::string> &call_path_files) {
+  for (const std::string &file : call_path_files) {
+    cps.push_back(load_call_path(file));
+  }
+
   symbols_merger_t merger;
 
-  for (call_path_t *call_path : cps) {
+  for (const std::unique_ptr<call_path_t> &call_path : cps) {
     const klee::ConstraintManager &constraints = call_path->constraints;
     call_path->constraints = merger.save_and_merge(constraints);
 
@@ -618,6 +624,14 @@ void call_paths_t::merge_symbols() {
       call_path->calls[i] = new_call;
     }
   }
+}
+
+call_paths_view_t call_paths_t::get_view() const {
+  call_paths_view_t view;
+  for (const std::unique_ptr<call_path_t> &cp : cps) {
+    view.push_back(cp.get());
+  }
+  return view;
 }
 
 bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol) {

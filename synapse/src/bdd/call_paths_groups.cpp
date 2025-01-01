@@ -4,28 +4,28 @@
 #include "../log.h"
 
 void CallPathsGroup::group_call_paths() {
-  ASSERT(call_paths.cps.size(), "No call paths to group");
+  ASSERT(call_paths.size(), "No call paths to group");
 
-  for (call_path_t *cp : call_paths.cps) {
-    on_true.cps.clear();
-    on_false.cps.clear();
+  for (call_path_t *cp : call_paths) {
+    on_true.clear();
+    on_false.clear();
 
     if (cp->calls.size() == 0)
       continue;
 
     const call_t &call = cp->calls[0];
 
-    for (call_path_t *cp : call_paths.cps) {
+    for (call_path_t *cp : call_paths) {
       if (cp->calls.size() && are_calls_equal(cp->calls[0], call)) {
-        on_true.cps.push_back(cp);
+        on_true.push_back(cp);
         continue;
       }
 
-      on_false.cps.push_back(cp);
+      on_false.push_back(cp);
     }
 
     // all calls are equal, no need do discriminate
-    if (on_false.cps.size() == 0)
+    if (on_false.size() == 0)
       return;
 
     constraint = find_discriminating_constraint();
@@ -35,23 +35,23 @@ void CallPathsGroup::group_call_paths() {
   }
 
   // no more calls
-  if (on_true.cps.size() == 0 && on_false.cps.size() == 0) {
+  if (on_true.size() == 0 && on_false.size() == 0) {
     on_true = call_paths;
     return;
   }
 
   // Last shot...
-  for (unsigned i = 0; i < call_paths.cps.size(); i++) {
-    on_true.cps.clear();
-    on_false.cps.clear();
+  for (unsigned i = 0; i < call_paths.size(); i++) {
+    on_true.clear();
+    on_false.clear();
 
-    for (unsigned j = 0; j < call_paths.cps.size(); j++) {
-      call_path_t *call_path = call_paths.cps[j];
+    for (unsigned j = 0; j < call_paths.size(); j++) {
+      call_path_t *call_path = call_paths[j];
 
       if (i == j) {
-        on_true.cps.push_back(call_path);
+        on_true.push_back(call_path);
       } else {
-        on_false.cps.push_back(call_path);
+        on_false.push_back(call_path);
       }
     }
 
@@ -96,7 +96,7 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
 }
 
 klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
-  ASSERT(on_true.cps.size(), "No call paths on true");
+  ASSERT(on_true.size(), "No call paths on true");
 
   auto possible_discriminating_constraints = get_possible_discriminating_constraints();
 
@@ -111,10 +111,10 @@ klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
 std::vector<klee::ref<klee::Expr>>
 CallPathsGroup::get_possible_discriminating_constraints() const {
   std::vector<klee::ref<klee::Expr>> possible_discriminating_constraints;
-  ASSERT(on_true.cps.size(), "No call paths on true");
+  ASSERT(on_true.size(), "No call paths on true");
 
-  for (auto constraint : on_true.cps[0]->constraints) {
-    if (satisfies_constraint(on_true.cps, constraint))
+  for (auto constraint : on_true[0]->constraints) {
+    if (satisfies_constraint(on_true, constraint))
       possible_discriminating_constraints.push_back(constraint);
   }
 
@@ -152,21 +152,21 @@ bool CallPathsGroup::satisfies_not_constraint(call_path_t *call_path,
 }
 
 bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> constraint) {
-  ASSERT(on_true.cps.size(), "No call paths on true");
-  ASSERT(on_false.cps.size(), "No call paths on false");
+  ASSERT(on_true.size(), "No call paths on true");
+  ASSERT(on_false.size(), "No call paths on false");
 
-  call_paths_t _on_true = on_true;
-  call_paths_t _on_false;
+  call_paths_view_t _on_true = on_true;
+  call_paths_view_t _on_false;
 
-  for (call_path_t *call_path : on_false.cps) {
+  for (call_path_t *call_path : on_false) {
     if (satisfies_constraint(call_path, constraint)) {
-      _on_true.cps.push_back(call_path);
+      _on_true.push_back(call_path);
     } else {
-      _on_false.cps.push_back(call_path);
+      _on_false.push_back(call_path);
     }
   }
 
-  if (_on_false.cps.size() && satisfies_not_constraint(_on_false.cps, constraint)) {
+  if (_on_false.size() && satisfies_not_constraint(_on_false, constraint)) {
     on_true = _on_true;
     on_false = _on_false;
     return true;
