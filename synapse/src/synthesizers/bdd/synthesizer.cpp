@@ -209,7 +209,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
     switch (node->get_type()) {
     case NodeType::Branch: {
-      const Branch *branch_node = static_cast<const Branch *>(node);
+      const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
       const Node *on_true = branch_node->get_on_true();
       const Node *on_false = branch_node->get_on_false();
@@ -248,14 +248,14 @@ void BDDSynthesizer::synthesize(const Node *node) {
       action = NodeVisitAction::Stop;
     } break;
     case NodeType::Call: {
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       // const call_t &call = call_node->get_call();
       // symbols_t generated_symbols =
       // call_node->get_locally_generated_symbols();
       synthesize_process(coder, call_node);
     } break;
     case NodeType::Route: {
-      const Route *route_node = static_cast<const Route *>(node);
+      const Route *route_node = dynamic_cast<const Route *>(node);
 
       RouteOp op = route_node->get_operation();
       int dst_device = route_node->get_dst_device();

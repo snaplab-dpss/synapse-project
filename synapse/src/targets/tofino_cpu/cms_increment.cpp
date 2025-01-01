@@ -2,14 +2,13 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t>
-CMSIncrementFactory::speculate(const EP *ep, const Node *node,
-                               const Context &ctx) const {
+std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const Node *node,
+                                                          const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
@@ -37,7 +36,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
@@ -59,8 +58,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep,
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  new_ep->get_mutable_ctx().save_ds_impl(cms_addr,
-                                         DSImpl::TofinoCPU_CountMinSketch);
+  new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::TofinoCPU_CountMinSketch);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

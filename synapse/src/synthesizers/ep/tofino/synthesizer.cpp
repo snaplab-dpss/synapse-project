@@ -124,7 +124,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 
     switch (state->type) {
     case ParserStateType::EXTRACT: {
-      const ParserStateExtract *extract = static_cast<const ParserStateExtract *>(state);
+      const ParserStateExtract *extract = dynamic_cast<const ParserStateExtract *>(state);
 
       code_t state_name = get_parser_state_name(state, state_init);
 
@@ -152,7 +152,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
       states.push_back(extract->next);
     } break;
     case ParserStateType::SELECT: {
-      const ParserStateSelect *select = static_cast<const ParserStateSelect *>(state);
+      const ParserStateSelect *select = dynamic_cast<const ParserStateSelect *>(state);
 
       code_t state_name = get_parser_state_name(state, state_init);
 
@@ -190,7 +190,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     } break;
     case ParserStateType::TERMINATE: {
       const ParserStateTerminate *terminate =
-          static_cast<const ParserStateTerminate *>(state);
+          dynamic_cast<const ParserStateTerminate *>(state);
 
       code_t state_name = get_parser_state_name(state, state_init);
 
@@ -600,7 +600,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   const std::optional<symbol_t> &hit = node->get_hit();
 
   const DS *ds = get_tofino_ds(ep, table_id);
-  const Table *table = static_cast<const Table *>(ds);
+  const Table *table = dynamic_cast<const Table *>(ds);
 
   transpile_table(ingress, table, keys, values);
 
@@ -633,7 +633,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   for (DS_ID rid : rids) {
     const DS *ds = get_tofino_ds(ep, rid);
-    const Register *reg = static_cast<const Register *>(ds);
+    const Register *reg = dynamic_cast<const Register *>(ds);
     transpile_register(ingress, reg, index, value);
   }
 
@@ -661,7 +661,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   const symbol_t &map_has_this_key = node->get_map_has_this_key();
 
   const DS *ds = get_tofino_ds(ep, cached_table_id);
-  const FCFSCachedTable *fcfs_cached_table = static_cast<const FCFSCachedTable *>(ds);
+  const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
   transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   dbg();

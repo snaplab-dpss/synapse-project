@@ -10,7 +10,7 @@ void BDDVisitor::visit(const Node *node) {
 
   switch (node->get_type()) {
   case NodeType::Branch: {
-    const Branch *branch = static_cast<const Branch *>(node);
+    const Branch *branch = dynamic_cast<const Branch *>(node);
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
@@ -20,7 +20,7 @@ void BDDVisitor::visit(const Node *node) {
     }
   } break;
   case NodeType::Call: {
-    const Call *call = static_cast<const Call *>(node);
+    const Call *call = dynamic_cast<const Call *>(node);
     const Node *next = call->get_next();
 
     if (visit(call) == Action::Continue && next) {
@@ -28,7 +28,7 @@ void BDDVisitor::visit(const Node *node) {
     }
   } break;
   case NodeType::Route: {
-    const Route *route = static_cast<const Route *>(node);
+    const Route *route = dynamic_cast<const Route *>(node);
     const Node *next = route->get_next();
 
     if (visit(route) == Action::Continue && next) {

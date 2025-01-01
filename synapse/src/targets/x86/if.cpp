@@ -21,15 +21,14 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node,
   return std::nullopt;
 }
 
-std::vector<impl_t> IfFactory::process_node(const EP *ep,
-                                            const Node *node) const {
+std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Branch *branch_node = static_cast<const Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   klee::ref<klee::Expr> condition = branch_node->get_condition();
 

@@ -37,12 +37,11 @@ klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
   while (node) {
     if (node->get_module()->get_type() == ModuleType::Tofino_HHTableRead) {
       const tofino::HHTableRead *hh_table_read =
-          static_cast<const tofino::HHTableRead *>(node->get_module());
+          dynamic_cast<const tofino::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
-    } else if (node->get_module()->get_type() ==
-               ModuleType::TofinoCPU_HHTableRead) {
+    } else if (node->get_module()->get_type() == ModuleType::TofinoCPU_HHTableRead) {
       const tofino_cpu::HHTableRead *hh_table_read =
-          static_cast<const tofino_cpu::HHTableRead *>(node->get_module());
+          dynamic_cast<const tofino_cpu::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
     }
     node = node->get_prev();
@@ -54,10 +53,9 @@ klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
 hit_rate_t get_new_hh_probability(const EP *ep, const Node *node, addr_t map) {
   hit_rate_t node_hr = ep->get_ctx().get_profiler().get_hr(node);
   int capacity = ep->get_ctx().get_map_config(map).capacity;
-  hit_rate_t churn_hr = ep->get_ctx()
-                            .get_profiler()
-                            .get_bdd_profile()
-                            ->churn_hit_rate_top_k_flows(map, capacity);
+  hit_rate_t churn_hr =
+      ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(
+          map, capacity);
   return node_hr * churn_hr;
 }
 
@@ -82,11 +80,10 @@ HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *dchain_allocate_new_index = static_cast<const Call *>(node);
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index,
-                                 future_map_puts)) {
+  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index, future_map_puts)) {
     return std::nullopt;
   }
 
@@ -95,8 +92,7 @@ HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
   }
 
   map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
-                                              map_objs)) {
+  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
     return std::nullopt;
   }
 
@@ -116,8 +112,7 @@ HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
   // Get all nodes executed on a successful index allocation.
   branch_direction_t index_alloc_check =
       find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-  ASSERT(index_alloc_check.branch,
-         "Branch checking index allocation not found");
+  ASSERT(index_alloc_check.branch, "Branch checking index allocation not found");
 
   spec_impl.skip.insert(index_alloc_check.branch->get_id());
 
@@ -134,19 +129,17 @@ HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-HHTableConditionalUpdateFactory::process_node(const EP *ep,
-                                              const Node *node) const {
+HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *dchain_allocate_new_index = static_cast<const Call *>(node);
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index,
-                                 future_map_puts)) {
+  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index, future_map_puts)) {
     return impls;
   }
 
@@ -155,8 +148,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep,
   }
 
   map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
-                                              map_objs)) {
+  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
     return impls;
   }
 
@@ -166,10 +158,8 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep,
     return impls;
   }
 
-  if (!ep->get_ctx().check_ds_impl(map_objs.map,
-                                   DSImpl::Tofino_HeavyHitterTable) ||
-      !ep->get_ctx().check_ds_impl(map_objs.dchain,
-                                   DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
   }
 
@@ -189,9 +179,8 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep,
                                    ? index_alloc_check.branch->get_on_false()
                                    : index_alloc_check.branch->get_on_true();
 
-  Module *hh_table_update =
-      new HHTableUpdate(node, table_data.obj, table_data.table_keys,
-                        table_data.value, min_estimate);
+  Module *hh_table_update = new HHTableUpdate(node, table_data.obj, table_data.table_keys,
+                                              table_data.value, min_estimate);
 
   ASSERT(false, "TODO");
 

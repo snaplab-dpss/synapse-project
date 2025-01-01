@@ -2,14 +2,13 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t> DropFactory::speculate(const EP *ep,
-                                                  const Node *node,
+std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const Node *node,
                                                   const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
@@ -23,15 +22,14 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> DropFactory::process_node(const EP *ep,
-                                              const Node *node) const {
+std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {
     return impls;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Drop) {

@@ -25,8 +25,8 @@ struct map_register_data_t {
     read_value = get_call.args.at("value_out").out;
     write_value = put_call.args.at("value").expr;
 
-    bool found = get_symbol(map_get->get_locally_generated_symbols(),
-                            "map_has_this_key", map_has_this_key);
+    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
+                            map_has_this_key);
     ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
@@ -81,17 +81,17 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
 
 void update_profiler(const BDD *bdd, Profiler &profiler,
                      const map_rw_pattern_t &map_rw_pattern) {
-  hit_rate_t on_index_alloc_success_hr = profiler.get_hr(
-      map_rw_pattern.index_alloc_check.direction
-          ? map_rw_pattern.index_alloc_check.branch->get_on_true()
-          : map_rw_pattern.index_alloc_check.branch->get_on_false());
+  hit_rate_t on_index_alloc_success_hr =
+      profiler.get_hr(map_rw_pattern.index_alloc_check.direction
+                          ? map_rw_pattern.index_alloc_check.branch->get_on_true()
+                          : map_rw_pattern.index_alloc_check.branch->get_on_false());
 
-  hit_rate_t on_index_alloc_failed_hr = profiler.get_hr(
-      map_rw_pattern.index_alloc_check.direction
-          ? map_rw_pattern.index_alloc_check.branch->get_on_false()
-          : map_rw_pattern.index_alloc_check.branch->get_on_true());
+  hit_rate_t on_index_alloc_failed_hr =
+      profiler.get_hr(map_rw_pattern.index_alloc_check.direction
+                          ? map_rw_pattern.index_alloc_check.branch->get_on_false()
+                          : map_rw_pattern.index_alloc_check.branch->get_on_true());
 
-  const Branch *index_alloc_check = static_cast<const Branch *>(
+  const Branch *index_alloc_check = dynamic_cast<const Branch *>(
       bdd->get_node_by_id(map_rw_pattern.index_alloc_check.branch->get_id()));
 
   profiler.replace_constraint(
@@ -109,17 +109,14 @@ void update_profiler(const BDD *bdd, Profiler &profiler,
     profiler.remove(to_be_removed->get_ordered_branch_constraints());
 
     hit_rate_t new_on_index_alloc_success_hr = on_index_alloc_success_hr;
-    hit_rate_t new_on_index_alloc_failed_hr =
-        on_index_alloc_failed_hr + removed_hr;
+    hit_rate_t new_on_index_alloc_failed_hr = on_index_alloc_failed_hr + removed_hr;
 
-    const Node *on_index_alloc_success =
-        map_rw_pattern.index_alloc_check.direction
-            ? index_alloc_check->get_on_true()
-            : index_alloc_check->get_on_false();
-    const Node *on_index_alloc_failed =
-        map_rw_pattern.index_alloc_check.direction
-            ? index_alloc_check->get_on_false()
-            : index_alloc_check->get_on_true();
+    const Node *on_index_alloc_success = map_rw_pattern.index_alloc_check.direction
+                                             ? index_alloc_check->get_on_true()
+                                             : index_alloc_check->get_on_false();
+    const Node *on_index_alloc_failed = map_rw_pattern.index_alloc_check.direction
+                                            ? index_alloc_check->get_on_false()
+                                            : index_alloc_check->get_on_true();
 
     profiler.set(on_index_alloc_success->get_ordered_branch_constraints(),
                  new_on_index_alloc_success_hr);
@@ -138,33 +135,31 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
   const Node *next = node->get_next();
   new_next = new_bdd->get_node_by_id(next->get_id());
 
-  delete_non_branch_node_from_bdd(
-      new_bdd.get(), map_rw_pattern.dchain_allocate_new_index->get_id());
+  delete_non_branch_node_from_bdd(new_bdd.get(),
+                                  map_rw_pattern.dchain_allocate_new_index->get_id());
 
   if (map_rw_pattern.map_put_extra_condition.branch) {
-    delete_branch_node_from_bdd(
-        new_bdd.get(), map_rw_pattern.map_put_extra_condition.branch->get_id(),
-        map_rw_pattern.map_put_extra_condition.direction);
+    delete_branch_node_from_bdd(new_bdd.get(),
+                                map_rw_pattern.map_put_extra_condition.branch->get_id(),
+                                map_rw_pattern.map_put_extra_condition.direction);
   }
 
-  Branch *index_alloc_check_node =
-      static_cast<Branch *>(new_bdd->get_mutable_node_by_id(
-          map_rw_pattern.index_alloc_check.branch->get_id()));
+  Branch *index_alloc_check_node = dynamic_cast<Branch *>(
+      new_bdd->get_mutable_node_by_id(map_rw_pattern.index_alloc_check.branch->get_id()));
 
   if (map_rw_pattern.index_alloc_check.direction) {
     index_alloc_check_node->set_condition(solver_toolbox.exprBuilder->Ne(
         map_reg_successful_write.expr,
-        solver_toolbox.exprBuilder->Constant(
-            0, map_reg_successful_write.expr->getWidth())));
+        solver_toolbox.exprBuilder->Constant(0,
+                                             map_reg_successful_write.expr->getWidth())));
   } else {
     index_alloc_check_node->set_condition(solver_toolbox.exprBuilder->Eq(
         map_reg_successful_write.expr,
-        solver_toolbox.exprBuilder->Constant(
-            0, map_reg_successful_write.expr->getWidth())));
+        solver_toolbox.exprBuilder->Constant(0,
+                                             map_reg_successful_write.expr->getWidth())));
   }
 
-  delete_non_branch_node_from_bdd(new_bdd.get(),
-                                  map_rw_pattern.map_put->get_id());
+  delete_non_branch_node_from_bdd(new_bdd.get(), map_rw_pattern.map_put->get_id());
 
   return new_bdd;
 }
@@ -177,11 +172,10 @@ MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get,
-                                               future_map_puts)) {
+  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get, future_map_puts)) {
     // The cached table read should deal with these cases.
     return std::nullopt;
   }
@@ -211,8 +205,8 @@ MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
   // FIXME: we are ignoring more than we should!
-  std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
-      ep, map_get, map_objs, map_register_data.key);
+  std::vector<const Node *> ignore_nodes =
+      get_nodes_to_speculatively_ignore(ep, map_get, map_objs, map_register_data.key);
 
   for (const Node *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
@@ -221,20 +215,18 @@ MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-MapRegisterReadOrWriteFactory::process_node(const EP *ep,
-                                            const Node *node) const {
+std::vector<impl_t> MapRegisterReadOrWriteFactory::process_node(const EP *ep,
+                                                                const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
 
   map_rw_pattern_t map_rw_pattern;
-  if (!is_compact_map_get_followed_by_map_put_on_miss(ep, map_get,
-                                                      map_rw_pattern)) {
+  if (!is_compact_map_get_followed_by_map_put_on_miss(ep, map_get, map_rw_pattern)) {
     return impls;
   }
 
@@ -250,16 +242,15 @@ MapRegisterReadOrWriteFactory::process_node(const EP *ep,
 
   map_register_data_t map_register_data(ep, map_get, map_rw_pattern.map_put);
 
-  MapRegister *map_register = build_or_reuse_map_register(
-      ep, node, map_register_data.obj, map_register_data.key,
-      map_register_data.num_entries);
+  MapRegister *map_register =
+      build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
+                                  map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  symbol_t map_reg_successful_write =
-      create_symbol("map_reg_successful_write", 32);
+  symbol_t map_reg_successful_write = create_symbol("map_reg_successful_write", 32);
 
   Module *module = new MapRegisterReadOrWrite(
       node, map_register->id, map_register_data.obj, map_register_data.key,
@@ -274,8 +265,8 @@ MapRegisterReadOrWriteFactory::process_node(const EP *ep,
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  std::unique_ptr<BDD> new_bdd = rebuild_bdd(
-      new_ep, node, map_rw_pattern, map_reg_successful_write, new_next);
+  std::unique_ptr<BDD> new_bdd =
+      rebuild_bdd(new_ep, node, map_rw_pattern, map_reg_successful_write, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);

@@ -5,13 +5,12 @@
 #include "solver.h"
 #include "../log.h"
 
-bool simplify_extract(klee::ref<klee::Expr> extract_expr,
-                      klee::ref<klee::Expr> &out) {
+bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
   if (extract_expr->getKind() != klee::Expr::Extract) {
     return false;
   }
 
-  auto extract = static_cast<klee::ExtractExpr *>(extract_expr.get());
+  auto extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
 
   auto offset = extract->offset;
   auto expr = extract->expr;
@@ -51,8 +50,7 @@ bool simplify_extract(klee::ref<klee::Expr> extract_expr,
   return true;
 }
 
-bool is_cmp_0(klee::ref<klee::Expr> expr,
-              klee::ref<klee::Expr> &not_const_kid) {
+bool is_cmp_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &not_const_kid) {
   ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getNumKids() != 2) {
@@ -78,8 +76,7 @@ bool is_cmp_0(klee::ref<klee::Expr> expr,
       klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
   };
 
-  auto found_it =
-      std::find(allowed_exprs.begin(), allowed_exprs.end(), other->getKind());
+  auto found_it = std::find(allowed_exprs.begin(), allowed_exprs.end(), other->getKind());
 
   if (found_it == allowed_exprs.end()) {
     return false;
@@ -95,15 +92,14 @@ bool is_cmp_0(klee::ref<klee::Expr> expr,
 // (Extract 0
 //   (ZExt w8
 //      (Eq (w32 0) (ReadLSB w32 (w32 0) out_of_space__64))))
-bool is_extract_0_cond(klee::ref<klee::Expr> expr,
-                       klee::ref<klee::Expr> &cond_expr) {
+bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_expr) {
   ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() != klee::Expr::Extract) {
     return false;
   }
 
-  auto extract = static_cast<klee::ExtractExpr *>(expr.get());
+  auto extract = dynamic_cast<klee::ExtractExpr *>(expr.get());
 
   if (extract->offset != 0) {
     return false;
@@ -123,8 +119,8 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr,
       klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
   };
 
-  auto is_cond = std::find(cond_ops.begin(), cond_ops.end(), kid->getKind()) !=
-                 cond_ops.end();
+  auto is_cond =
+      std::find(cond_ops.begin(), cond_ops.end(), kid->getKind()) != cond_ops.end();
 
   if (is_cond) {
     cond_expr = kid;
@@ -136,10 +132,9 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr,
 
 bool can_be_negated(klee::ref<klee::Expr> expr) {
   auto allowed = std::unordered_set<klee::Expr::Kind>{
-      {klee::Expr::Eq},  {klee::Expr::Ne},  {klee::Expr::Ult},
-      {klee::Expr::Uge}, {klee::Expr::Ule}, {klee::Expr::Ugt},
-      {klee::Expr::Slt}, {klee::Expr::Sge}, {klee::Expr::Sle},
-      {klee::Expr::Sgt}, {klee::Expr::Or},  {klee::Expr::And},
+      {klee::Expr::Eq},  {klee::Expr::Ne},  {klee::Expr::Ult}, {klee::Expr::Uge},
+      {klee::Expr::Ule}, {klee::Expr::Ugt}, {klee::Expr::Slt}, {klee::Expr::Sge},
+      {klee::Expr::Sle}, {klee::Expr::Sgt}, {klee::Expr::Or},  {klee::Expr::And},
   };
 
   if (allowed.find(expr->getKind()) != allowed.end()) {
@@ -168,20 +163,13 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
   }
 
   auto negate_map = std::unordered_map<klee::Expr::Kind, klee::Expr::Kind>{
-      {klee::Expr::Or, klee::Expr::And},
-      {klee::Expr::And, klee::Expr::Or},
-      {klee::Expr::Eq, klee::Expr::Ne},
-      {klee::Expr::Ne, klee::Expr::Eq},
-      {klee::Expr::Ult, klee::Expr::Uge},
-      {klee::Expr::Uge, klee::Expr::Ult},
-      {klee::Expr::Ule, klee::Expr::Ugt},
-      {klee::Expr::Ugt, klee::Expr::Ule},
-      {klee::Expr::Slt, klee::Expr::Sge},
-      {klee::Expr::Sge, klee::Expr::Slt},
-      {klee::Expr::Sle, klee::Expr::Sgt},
-      {klee::Expr::Sgt, klee::Expr::Sle},
-      {klee::Expr::ZExt, klee::Expr::ZExt},
-      {klee::Expr::SExt, klee::Expr::SExt},
+      {klee::Expr::Or, klee::Expr::And},    {klee::Expr::And, klee::Expr::Or},
+      {klee::Expr::Eq, klee::Expr::Ne},     {klee::Expr::Ne, klee::Expr::Eq},
+      {klee::Expr::Ult, klee::Expr::Uge},   {klee::Expr::Uge, klee::Expr::Ult},
+      {klee::Expr::Ule, klee::Expr::Ugt},   {klee::Expr::Ugt, klee::Expr::Ule},
+      {klee::Expr::Slt, klee::Expr::Sge},   {klee::Expr::Sge, klee::Expr::Slt},
+      {klee::Expr::Sle, klee::Expr::Sgt},   {klee::Expr::Sgt, klee::Expr::Sle},
+      {klee::Expr::ZExt, klee::Expr::ZExt}, {klee::Expr::SExt, klee::Expr::SExt},
   };
 
   auto kind = expr->getKind();
@@ -355,8 +343,7 @@ bool simplify_not_eq(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
   return true;
 }
 
-bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr,
-                               klee::ref<klee::Expr> &out) {
+bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
   auto cmp_ops = std::vector<klee::Expr::Kind>{
       klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
       klee::Expr::Ult, klee::Expr::Ule, klee::Expr::Ugt, klee::Expr::Uge,
@@ -400,13 +387,11 @@ bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr,
   return true;
 }
 
-typedef bool (*simplifier_op)(klee::ref<klee::Expr> expr,
-                              klee::ref<klee::Expr> &out);
+typedef bool (*simplifier_op)(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out);
 
 typedef std::vector<simplifier_op> simplifiers_t;
 
-bool apply_simplifiers(const simplifiers_t &simplifiers,
-                       klee::ref<klee::Expr> expr,
+bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr,
                        klee::ref<klee::Expr> &simplified_expr) {
   simplified_expr = expr;
 
@@ -438,8 +423,7 @@ bool apply_simplifiers(const simplifiers_t &simplifiers,
     auto simplified_kid = new_kids[i];
 
     if (simplified_kid->getWidth() < max_kid_width) {
-      simplified_kid =
-          solver_toolbox.exprBuilder->ZExt(simplified_kid, max_kid_width);
+      simplified_kid = solver_toolbox.exprBuilder->ZExt(simplified_kid, max_kid_width);
     }
 
     ASSERT(simplified_kid->getWidth() == max_kid_width, "Invalid width");

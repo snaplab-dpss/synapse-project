@@ -9,7 +9,7 @@ IntegerAllocatorFreeIndexFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_free_index") {
@@ -27,15 +27,14 @@ IntegerAllocatorFreeIndexFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-IntegerAllocatorFreeIndexFactory::process_node(const EP *ep,
-                                               const Node *node) const {
+IntegerAllocatorFreeIndexFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_free_index") {
@@ -47,8 +46,7 @@ IntegerAllocatorFreeIndexFactory::process_node(const EP *ep,
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-  if (!ep->get_ctx().check_ds_impl(dchain_addr,
-                                   DSImpl::Tofino_IntegerAllocator)) {
+  if (!ep->get_ctx().check_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
     return impls;
   }
 

@@ -2,14 +2,14 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t>
-TBUpdateAndCheckFactory::speculate(const EP *ep, const Node *node,
-                                   const Context &ctx) const {
+std::optional<spec_impl_t> TBUpdateAndCheckFactory::speculate(const EP *ep,
+                                                              const Node *node,
+                                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "tb_update_and_check") {
@@ -26,15 +26,15 @@ TBUpdateAndCheckFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-TBUpdateAndCheckFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep,
+                                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "tb_update_and_check") {
@@ -53,8 +53,7 @@ TBUpdateAndCheckFactory::process_node(const EP *ep, const Node *node) const {
     return impls;
   }
 
-  Module *module =
-      new TBUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
+  Module *module = new TBUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -63,8 +62,7 @@ TBUpdateAndCheckFactory::process_node(const EP *ep, const Node *node) const {
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(tb_addr,
-                                         DSImpl::TofinoCPU_TokenBucket);
+  new_ep->get_mutable_ctx().save_ds_impl(tb_addr, DSImpl::TofinoCPU_TokenBucket);
 
   return impls;
 }

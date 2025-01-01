@@ -2,14 +2,13 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t>
-VectorWriteFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_return") {
@@ -34,7 +33,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_return") {
@@ -55,8 +54,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep,
     return impls;
   }
 
-  klee::ref<klee::Expr> original_value =
-      get_original_vector_value(ep, node, vector_addr);
+  klee::ref<klee::Expr> original_value = get_original_vector_value(ep, node, vector_addr);
   std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
   // Check the Ignore module.
@@ -67,8 +65,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep,
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module =
-      new VectorWrite(node, vector_addr, index, value_addr, changes);
+  Module *module = new VectorWrite(node, vector_addr, index, value_addr, changes);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

@@ -94,14 +94,13 @@ bool get_table_lookup_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-TableLookupFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
@@ -126,7 +125,7 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;

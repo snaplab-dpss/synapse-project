@@ -9,7 +9,7 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_return") {
@@ -26,16 +26,15 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-VectorRegisterUpdateFactory::process_node(const EP *ep,
-                                          const Node *node) const {
+std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
+                                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_return") {
@@ -54,8 +53,7 @@ VectorRegisterUpdateFactory::process_node(const EP *ep,
     return impls;
   }
 
-  klee::ref<klee::Expr> original_value =
-      get_original_vector_value(ep, node, obj);
+  klee::ref<klee::Expr> original_value = get_original_vector_value(ep, node, obj);
   std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
   // Check the Ignore module.
@@ -66,8 +64,7 @@ VectorRegisterUpdateFactory::process_node(const EP *ep,
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module =
-      new VectorRegisterUpdate(node, obj, index, value_addr, changes);
+  Module *module = new VectorRegisterUpdate(node, obj, index, value_addr, changes);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

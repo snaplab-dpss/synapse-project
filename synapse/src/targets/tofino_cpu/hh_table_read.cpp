@@ -24,8 +24,8 @@ struct table_data_t {
     ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     symbol_t map_has_this_key_symbol;
-    bool found = get_symbol(map_get->get_locally_generated_symbols(),
-                            "map_has_this_key", map_has_this_key_symbol);
+    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
+                            map_has_this_key_symbol);
     ASSERT(found, "Symbol map_has_this_key not found");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
@@ -40,14 +40,13 @@ struct table_data_t {
 };
 } // namespace
 
-std::optional<spec_impl_t>
-HHTableReadFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
   const call_t &call = map_get->get_call();
 
   if (call.function_name != "map_get") {
@@ -75,7 +74,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
   const call_t &call = map_get->get_call();
 
   if (call.function_name != "map_get") {
@@ -87,18 +86,16 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
     return impls;
   }
 
-  if (!ep->get_ctx().check_ds_impl(map_objs.map,
-                                   DSImpl::Tofino_HeavyHitterTable) ||
-      !ep->get_ctx().check_ds_impl(map_objs.dchain,
-                                   DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
   }
 
   table_data_t table_data(ep, map_get);
 
-  Module *module = new HHTableRead(
-      node, table_data.obj, table_data.table_keys, table_data.read_value,
-      table_data.map_has_this_key, table_data.min_estimate);
+  Module *module =
+      new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value,
+                      table_data.map_has_this_key, table_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

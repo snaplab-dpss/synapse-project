@@ -17,21 +17,21 @@ struct fcfs_cached_table_data_t {
     key = call.args.at("key").in;
     read_value = call.args.at("value_out").out;
 
-    bool found = get_symbol(map_get->get_locally_generated_symbols(),
-                            "map_has_this_key", map_has_this_key);
+    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
+                            map_has_this_key);
     ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 
-EP *concretize_cached_table_read(
-    const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
-    const fcfs_cached_table_data_t &cached_table_data, u32 cache_capacity) {
-  FCFSCachedTable *cached_table =
-      TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-          ep, node, cached_table_data.obj, cached_table_data.key,
-          cached_table_data.num_entries, cache_capacity);
+EP *concretize_cached_table_read(const EP *ep, const Node *node,
+                                 const map_coalescing_objs_t &map_objs,
+                                 const fcfs_cached_table_data_t &cached_table_data,
+                                 u32 cache_capacity) {
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
+      ep, node, cached_table_data.obj, cached_table_data.key,
+      cached_table_data.num_entries, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -48,8 +48,7 @@ EP *concretize_cached_table_read(
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  TofinoContext *tofino_ctx =
-      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -66,7 +65,7 @@ FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
   const call_t &call = map_get->get_call();
 
   if (call.function_name != "map_get") {
@@ -97,21 +96,20 @@ FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node,
   new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   spec_impl_t spec_impl(
-      decide(ep, node, {{CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}),
-      new_ctx);
+      decide(ep, node, {{CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}), new_ctx);
 
   return spec_impl;
 }
 
-std::vector<impl_t>
-FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep,
+                                                             const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
   const call_t &call = map_get->get_call();
 
   if (call.function_name != "map_get") {
@@ -123,10 +121,8 @@ FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node) const {
     return impls;
   }
 
-  if (!ep->get_ctx().can_impl_ds(map_objs.map,
-                                 DSImpl::Tofino_FCFSCachedTable) ||
-      !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                 DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ep->get_ctx().can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return impls;
   }
 
@@ -136,12 +132,11 @@ FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node) const {
       enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
-    EP *new_ep = concretize_cached_table_read(
-        ep, node, map_objs, cached_table_data, cache_capacity);
+    EP *new_ep = concretize_cached_table_read(ep, node, map_objs, cached_table_data,
+                                              cache_capacity);
 
     if (new_ep) {
-      impl_t impl =
-          implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl = implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

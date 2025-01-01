@@ -56,7 +56,7 @@ std::string BDDViz::get_color(const Node *node) const {
     color = COLOR_BRANCH;
   } break;
   case NodeType::Route: {
-    const Route *route = static_cast<const Route *>(node);
+    const Route *route = dynamic_cast<const Route *>(node);
     RouteOp operation = route->get_operation();
     switch (operation) {
     case RouteOp::Forward:

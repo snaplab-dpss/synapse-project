@@ -20,10 +20,9 @@ void table_update_data_from_map_op(const Call *call_node, addr_t &obj,
   values = {value};
 }
 
-void table_update_data_from_vector_op(
-    const Call *call_node, addr_t &obj,
-    std::vector<klee::ref<klee::Expr>> &keys,
-    std::vector<klee::ref<klee::Expr>> &values) {
+void table_update_data_from_vector_op(const Call *call_node, addr_t &obj,
+                                      std::vector<klee::ref<klee::Expr>> &keys,
+                                      std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
   ASSERT(call.function_name == "vector_return", "Not a vector_return call");
 
@@ -40,8 +39,7 @@ void table_data_from_dchain_op(const Call *call_node, addr_t &obj,
                                std::vector<klee::ref<klee::Expr>> &keys,
                                std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "dchain_allocate_new_index",
-         "Not a dchain call");
+  ASSERT(call.function_name == "dchain_allocate_new_index", "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
@@ -72,14 +70,13 @@ bool get_table_update_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-TableUpdateFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> TableUpdateFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
 
   if (is_vector_return_without_modifications(ep, call_node)) {
     return std::nullopt;
@@ -107,7 +104,7 @@ std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
 
   if (is_vector_return_without_modifications(ep, call_node)) {
     return impls;

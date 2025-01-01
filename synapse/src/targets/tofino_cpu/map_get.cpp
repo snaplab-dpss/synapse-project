@@ -2,14 +2,13 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t> MapGetFactory::speculate(const EP *ep,
-                                                    const Node *node,
+std::optional<spec_impl_t> MapGetFactory::speculate(const EP *ep, const Node *node,
                                                     const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "map_get") {
@@ -26,15 +25,14 @@ std::optional<spec_impl_t> MapGetFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MapGetFactory::process_node(const EP *ep,
-                                                const Node *node) const {
+std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "map_get") {
@@ -60,8 +58,8 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep,
     return impls;
   }
 
-  Module *module = new MapGet(node, map_addr, key_addr, key, value_out, success,
-                              map_has_this_key);
+  Module *module =
+      new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

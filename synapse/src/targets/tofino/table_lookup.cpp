@@ -91,8 +91,7 @@ table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
   return table_data;
 }
 
-std::optional<table_data_t> get_table_data(const EP *ep,
-                                           const Call *call_node) {
+std::optional<table_data_t> get_table_data(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   if (call.function_name == "map_get") {
@@ -116,14 +115,13 @@ std::optional<table_data_t> get_table_data(const EP *ep,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-TableLookupFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
 
   if (is_vector_write(call_node)) {
     return std::nullopt;
@@ -157,7 +155,7 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
 
   if (is_vector_write(call_node)) {
     return impls;
@@ -179,9 +177,8 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
     return impls;
   }
 
-  Module *module =
-      new TableLookup(node, table->id, table_data->obj, table_data->keys,
-                      table_data->values, table_data->hit);
+  Module *module = new TableLookup(node, table->id, table_data->obj, table_data->keys,
+                                   table_data->values, table_data->hit);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

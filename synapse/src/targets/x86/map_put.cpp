@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "map_put") {
@@ -19,14 +19,13 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep,
-                                                    const Node *node,
+std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep, const Node *node,
                                                     const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
@@ -39,15 +38,14 @@ std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MapPutFactory::process_node(const EP *ep,
-                                                const Node *node) const {
+std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;

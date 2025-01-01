@@ -8,10 +8,8 @@ using tofino::Table;
 namespace {
 DS_ID get_map_register(const EP *ep, addr_t obj) {
   const Context &ctx = ep->get_ctx();
-  const tofino::TofinoContext *tofino_ctx =
-      ctx.get_target_ctx<tofino::TofinoContext>();
-  const std::unordered_set<tofino::DS *> &data_structures =
-      tofino_ctx->get_ds(obj);
+  const tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<tofino::TofinoContext>();
+  const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   ASSERT(data_structures.size() == 1, "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
   ASSERT(ds->type == tofino::DSType::MAP_REGISTER, "Invalid data structure");
@@ -19,8 +17,7 @@ DS_ID get_map_register(const EP *ep, addr_t obj) {
 }
 
 void get_data(const Call *call_node, addr_t &obj,
-              std::vector<klee::ref<klee::Expr>> &keys,
-              klee::ref<klee::Expr> &value) {
+              std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value) {
   const call_t &call = call_node->get_call();
   ASSERT(call.function_name == "map_put", "Unexpected function");
 
@@ -34,14 +31,14 @@ void get_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
-                                   const Context &ctx) const {
+std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep,
+                                                              const Node *node,
+                                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "map_put") {
@@ -58,15 +55,15 @@ MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
+                                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "map_put") {

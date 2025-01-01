@@ -88,7 +88,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
 
     switch (node->get_type()) {
     case NodeType::Branch: {
-      const Branch *branch = static_cast<const Branch *>(node);
+      const Branch *branch = dynamic_cast<const Branch *>(node);
 
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
@@ -103,7 +103,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
       bdd_profile.counters[on_false->get_id()] = on_false_counter;
     } break;
     case NodeType::Call: {
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
 
       if (call.function_name == "map_get" || call.function_name == "map_put" ||
@@ -291,7 +291,7 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
       ASSERT(profiler_node, "Profiler node not found");
 
       ASSERT(node->get_type() == NodeType::Call, "Invalid node type");
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
 
       ASSERT(call.function_name == "map_get" || call.function_name == "map_put" ||

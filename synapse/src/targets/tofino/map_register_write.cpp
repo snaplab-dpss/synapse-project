@@ -21,14 +21,15 @@ struct map_register_data_t {
   }
 };
 
-std::vector<const Node *> get_nodes_to_speculatively_ignore(
-    const EP *ep, const Call *dchain_allocate_new_index,
-    const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key) {
+std::vector<const Node *>
+get_nodes_to_speculatively_ignore(const EP *ep, const Call *dchain_allocate_new_index,
+                                  const map_coalescing_objs_t &map_objs,
+                                  klee::ref<klee::Expr> key) {
   std::vector<const Node *> nodes_to_ignore;
 
   const BDD *bdd = ep->get_bdd();
-  std::vector<const Call *> coalescing_nodes = get_coalescing_nodes_from_key(
-      bdd, dchain_allocate_new_index, key, map_objs);
+  std::vector<const Call *> coalescing_nodes =
+      get_coalescing_nodes_from_key(bdd, dchain_allocate_new_index, key, map_objs);
 
   for (const Call *coalescing_node : coalescing_nodes) {
     nodes_to_ignore.push_back(coalescing_node);
@@ -53,10 +54,11 @@ std::vector<const Node *> get_nodes_to_speculatively_ignore(
   return nodes_to_ignore;
 }
 
-std::unique_ptr<BDD> delete_coalescing_nodes(
-    const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
-    klee::ref<klee::Expr> key, const Node *&new_next,
-    std::optional<constraints_t> &deleted_branch_constraints) {
+std::unique_ptr<BDD>
+delete_coalescing_nodes(const EP *ep, const Node *node,
+                        const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
+                        const Node *&new_next,
+                        std::optional<constraints_t> &deleted_branch_constraints) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -72,7 +74,7 @@ std::unique_ptr<BDD> delete_coalescing_nodes(
       get_coalescing_nodes_from_key(new_bdd.get(), new_next, key, map_objs);
 
   for (const Node *target : targets) {
-    const Call *call_target = static_cast<const Call *>(target);
+    const Call *call_target = dynamic_cast<const Call *>(target);
     const call_t &call = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
@@ -102,9 +104,9 @@ std::unique_ptr<BDD> delete_coalescing_nodes(
         deleted_branch_constraints->push_back(extra_constraint);
 
         bool replace_next = (index_alloc_check.branch == next);
-        Node *replacement = delete_branch_node_from_bdd(
-            new_bdd.get(), index_alloc_check.branch->get_id(),
-            index_alloc_check.direction);
+        Node *replacement =
+            delete_branch_node_from_bdd(new_bdd.get(), index_alloc_check.branch->get_id(),
+                                        index_alloc_check.direction);
         if (replace_next) {
           new_next = replacement;
         }
@@ -112,8 +114,7 @@ std::unique_ptr<BDD> delete_coalescing_nodes(
     }
 
     bool replace_next = (target == next);
-    Node *replacement =
-        delete_non_branch_node_from_bdd(new_bdd.get(), target->get_id());
+    Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), target->get_id());
     if (replace_next) {
       new_next = replacement;
     }
@@ -123,18 +124,17 @@ std::unique_ptr<BDD> delete_coalescing_nodes(
 }
 } // namespace
 
-std::optional<spec_impl_t>
-MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
-                                   const Context &ctx) const {
+std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep,
+                                                              const Node *node,
+                                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *dchain_allocate_new_index = static_cast<const Call *>(node);
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index,
-                                 future_map_puts)) {
+  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index, future_map_puts)) {
     // The cached table read should deal with these cases.
     return std::nullopt;
   }
@@ -142,8 +142,7 @@ MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
   ASSERT(!future_map_puts.empty(), "No future map puts");
 
   map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
-                                              map_objs)) {
+  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
     return std::nullopt;
   }
 
@@ -176,19 +175,18 @@ MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
+                                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *dchain_allocate_new_index = static_cast<const Call *>(node);
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index,
-                                 future_map_puts)) {
+  if (!is_map_update_with_dchain(ep, dchain_allocate_new_index, future_map_puts)) {
     // The cached table read should deal with these cases.
     return impls;
   }
@@ -196,8 +194,7 @@ MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
   ASSERT(!future_map_puts.empty(), "No future map puts");
 
   map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
-                                              map_objs)) {
+  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
     return impls;
   }
 
@@ -208,17 +205,17 @@ MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
 
   map_register_data_t map_register_data(ep, future_map_puts);
 
-  MapRegister *map_register = build_or_reuse_map_register(
-      ep, node, map_register_data.obj, map_register_data.key,
-      map_register_data.num_entries);
+  MapRegister *map_register =
+      build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
+                                  map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  Module *module = new MapRegisterWrite(
-      node, map_register->id, map_register_data.obj, map_register_data.key,
-      map_register_data.write_value);
+  Module *module =
+      new MapRegisterWrite(node, map_register->id, map_register_data.obj,
+                           map_register_data.key, map_register_data.write_value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -227,8 +224,8 @@ MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
   const Node *new_next;
   std::optional<constraints_t> deleted_branch_constraints;
   std::unique_ptr<BDD> new_bdd =
-      delete_coalescing_nodes(new_ep, node, map_objs, map_register_data.key,
-                              new_next, deleted_branch_constraints);
+      delete_coalescing_nodes(new_ep, node, map_objs, map_register_data.key, new_next,
+                              deleted_branch_constraints);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);

@@ -11,7 +11,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Forward) {
@@ -22,27 +22,25 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep,
-                                                     const Node *node,
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const Node *node,
                                                      const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ForwardFactory::process_node(const EP *ep,
-                                                 const Node *node) const {
+std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   int dst_device = route_node->get_dst_device();
 
   EP *new_ep = new EP(*ep);

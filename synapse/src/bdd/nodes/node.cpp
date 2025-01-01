@@ -91,7 +91,7 @@ size_t Node::count_code_paths() const {
   visit_nodes([&paths](const Node *node) -> NodeVisitAction {
     switch (node->get_type()) {
     case NodeType::Branch: {
-      const Branch *branch_node = static_cast<const Branch *>(node);
+      const Branch *branch_node = dynamic_cast<const Branch *>(node);
       const Node *on_true = branch_node->get_on_true();
       const Node *on_false = branch_node->get_on_false();
       if (!on_true)
@@ -124,7 +124,7 @@ constraints_t Node::get_ordered_branch_constraints() const {
       continue;
     }
 
-    const Branch *branch = static_cast<const Branch *>(prev);
+    const Branch *branch = dynamic_cast<const Branch *>(prev);
     klee::ref<klee::Expr> condition = branch->get_condition();
 
     if (branch->get_on_false() == node) {
@@ -146,7 +146,7 @@ std::string Node::recursive_dump(int lvl) const {
 
   switch (type) {
   case NodeType::Branch: {
-    const Branch *branch_node = static_cast<const Branch *>(this);
+    const Branch *branch_node = dynamic_cast<const Branch *>(this);
     const Node *on_true = branch_node->get_on_true();
     const Node *on_false = branch_node->get_on_false();
     if (on_true)
@@ -191,7 +191,7 @@ void Node::recursive_update_ids(node_id_t &new_id) {
   id = new_id++;
   switch (type) {
   case NodeType::Branch: {
-    Branch *branch_node = static_cast<Branch *>(this);
+    Branch *branch_node = dynamic_cast<Branch *>(this);
     Node *on_true = branch_node->get_mutable_on_true();
     Node *on_false = branch_node->get_mutable_on_false();
     if (on_true)
@@ -239,7 +239,7 @@ void Node::recursive_translate_symbol(const symbol_t &old_symbol,
     if (node->get_type() != NodeType::Call)
       return NodeVisitAction::Continue;
 
-    Call *call_node = static_cast<Call *>(node);
+    Call *call_node = dynamic_cast<Call *>(node);
 
     const call_t &call = call_node->get_call();
     call_t new_call =
@@ -291,7 +291,7 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> 
 
     switch (node->get_type()) {
     case NodeType::Branch: {
-      const Branch *branch_node = static_cast<const Branch *>(node);
+      const Branch *branch_node = dynamic_cast<const Branch *>(node);
       const Node *on_true = branch_node->get_on_true();
       const Node *on_false = branch_node->get_on_false();
 
@@ -346,7 +346,7 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)
 
     switch (node->get_type()) {
     case NodeType::Branch: {
-      Branch *branch_node = static_cast<Branch *>(node);
+      Branch *branch_node = dynamic_cast<Branch *>(node);
       Node *on_true = branch_node->get_mutable_on_true();
       Node *on_false = branch_node->get_mutable_on_false();
 
@@ -384,7 +384,7 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *)> fn) {
 void Node::recursive_free_children(NodeManager &manager) {
   switch (type) {
   case NodeType::Branch: {
-    Branch *branch_node = static_cast<Branch *>(this);
+    Branch *branch_node = dynamic_cast<Branch *>(this);
 
     Node *on_true = branch_node->get_mutable_on_true();
     Node *on_false = branch_node->get_mutable_on_false();

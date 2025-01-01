@@ -55,7 +55,7 @@ std::unordered_set<Register *> get_vector_registers(const EP *ep, const Node *no
 
   for (DS *reg : ds) {
     ASSERT(reg->type == DSType::REGISTER, "Unexpected type");
-    regs.insert(static_cast<Register *>(reg));
+    regs.insert(dynamic_cast<Register *>(reg));
   }
 
   return regs;
@@ -101,10 +101,10 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node, addr_t 
   ASSERT(ds.size() == 1, "Invalid number of DS");
   ASSERT((*ds.begin())->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
 
-  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
+  FCFSCachedTable *cached_table = dynamic_cast<FCFSCachedTable *>(*ds.begin());
 
   if (!cached_table->has_table(node->get_id())) {
-    FCFSCachedTable *clone = static_cast<FCFSCachedTable *>(cached_table->clone());
+    FCFSCachedTable *clone = dynamic_cast<FCFSCachedTable *>(cached_table->clone());
     clone->add_table(node->get_id());
     cached_table = clone;
   }
@@ -155,7 +155,7 @@ HHTable *reuse_hh_table(const EP *ep, const Node *node, addr_t obj) {
   ASSERT(ds.size() == 1, "Invalid number of DS");
   ASSERT((*ds.begin())->type == DSType::HH_TABLE, "Invalid DS type");
 
-  HHTable *hh_table = static_cast<HHTable *>(*ds.begin());
+  HHTable *hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
   if (!tofino_ctx->check_placement(ep, node, hh_table)) {
     hh_table = nullptr;
@@ -200,7 +200,7 @@ CountMinSketch *reuse_cms(const EP *ep, const Node *node, addr_t obj) {
   ASSERT(ds.size() == 1, "Invalid number of DS");
   ASSERT((*ds.begin())->type == DSType::COUNT_MIN_SKETCH, "Invalid DS type");
 
-  CountMinSketch *cms = static_cast<CountMinSketch *>(*ds.begin());
+  CountMinSketch *cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
   if (!tofino_ctx->check_placement(ep, node, cms)) {
     return nullptr;
@@ -222,7 +222,7 @@ MapRegister *reuse_map_register(const EP *ep, const Node *node, addr_t obj) {
   ASSERT(ds.size() == 1, "Invalid number of DS");
   ASSERT((*ds.begin())->type == DSType::MAP_REGISTER, "Invalid DS type");
 
-  MapRegister *map_register = static_cast<MapRegister *>(*ds.begin());
+  MapRegister *map_register = dynamic_cast<MapRegister *>(*ds.begin());
 
   if (!tofino_ctx->check_placement(ep, node, map_register)) {
     map_register = nullptr;
@@ -382,7 +382,7 @@ TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const Node *node, addr_
   ASSERT(ds.size() == 1, "Invalid number of DS");
   ASSERT((*ds.begin())->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
 
-  FCFSCachedTable *cached_table = static_cast<FCFSCachedTable *>(*ds.begin());
+  FCFSCachedTable *cached_table = dynamic_cast<FCFSCachedTable *>(*ds.begin());
 
   if (!tofino_ctx->check_placement(ep, node, cached_table)) {
     cached_table = nullptr;
@@ -494,7 +494,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(
     ASSERT(ds.size() == 1, "Invalid number of DS");
     ASSERT((*ds.begin())->type == DSType::HH_TABLE, "Invalid DS type");
 
-    hh_table = static_cast<HHTable *>(*ds.begin());
+    hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
     if (!tofino_ctx->check_placement(ep, node, hh_table)) {
       hh_table = nullptr;
@@ -551,7 +551,7 @@ bool TofinoModuleFactory::can_build_or_reuse_cms(
     ASSERT(ds.size() == 1, "Invalid number of DS");
     ASSERT((*ds.begin())->type == DSType::COUNT_MIN_SKETCH, "Invalid DS type");
 
-    cms = static_cast<CountMinSketch *>(*ds.begin());
+    cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
     if (!tofino_ctx->check_placement(ep, node, cms)) {
       cms = nullptr;
@@ -606,7 +606,7 @@ bool TofinoModuleFactory::can_build_or_reuse_map_register(const EP *ep, const No
     ASSERT(ds.size() == 1, "Invalid number of DS");
     ASSERT((*ds.begin())->type == DSType::MAP_REGISTER, "Invalid DS type");
 
-    map_register = static_cast<MapRegister *>(*ds.begin());
+    map_register = dynamic_cast<MapRegister *>(*ds.begin());
 
     if (!tofino_ctx->check_placement(ep, node, map_register)) {
       map_register = nullptr;

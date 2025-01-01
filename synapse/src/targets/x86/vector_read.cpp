@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -19,14 +19,13 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-VectorReadFactory::speculate(const EP *ep, const Node *node,
-                             const Context &ctx) const {
+std::optional<spec_impl_t> VectorReadFactory::speculate(const EP *ep, const Node *node,
+                                                        const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
@@ -47,7 +46,7 @@ std::vector<impl_t> VectorReadFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;

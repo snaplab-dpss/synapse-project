@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "cht_find_preferred_available_backend") {
@@ -19,14 +19,14 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-ChtFindBackendFactory::speculate(const EP *ep, const Node *node,
-                                 const Context &ctx) const {
+std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep,
+                                                            const Node *node,
+                                                            const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cht = call.args.at("cht").expr;
@@ -39,15 +39,15 @@ ChtFindBackendFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-ChtFindBackendFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
+                                                        const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cht = call.args.at("cht").expr;
@@ -69,8 +69,8 @@ ChtFindBackendFactory::process_node(const EP *ep, const Node *node) const {
   bool found = get_symbol(symbols, "prefered_backend_found", backend_found);
   ASSERT(found, "Symbol prefered_backend_found not found");
 
-  Module *module = new ChtFindBackend(node, cht_addr, backends_addr, hash,
-                                      height, capacity, backend, backend_found);
+  Module *module = new ChtFindBackend(node, cht_addr, backends_addr, hash, height,
+                                      capacity, backend, backend_found);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -79,8 +79,7 @@ ChtFindBackendFactory::process_node(const EP *ep, const Node *node) const {
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(cht_addr,
-                                         DSImpl::x86_ConsistentHashTable);
+  new_ep->get_mutable_ctx().save_ds_impl(cht_addr, DSImpl::x86_ConsistentHashTable);
 
   return impls;
 }

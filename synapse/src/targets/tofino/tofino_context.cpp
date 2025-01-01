@@ -247,7 +247,7 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep,
       break;
     }
 
-    const TofinoModule *tofino_module = static_cast<const TofinoModule *>(module);
+    const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(module);
 
     for (DS_ID ds_id : tofino_module->get_generated_ds()) {
       const DS *ds = tofino_ctx->get_ds_from_id(ds_id);

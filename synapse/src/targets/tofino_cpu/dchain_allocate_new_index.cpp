@@ -9,7 +9,7 @@ DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -26,16 +26,15 @@ DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-DchainAllocateNewIndexFactory::process_node(const EP *ep,
-                                            const Node *node) const {
+std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep,
+                                                                const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -58,8 +57,7 @@ DchainAllocateNewIndexFactory::process_node(const EP *ep,
 
   Module *module;
   if (found) {
-    module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out,
-                                        out_of_space);
+    module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, out_of_space);
   } else {
     module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
   }
@@ -72,8 +70,7 @@ DchainAllocateNewIndexFactory::process_node(const EP *ep,
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(dchain_addr,
-                                         DSImpl::TofinoCPU_DoubleChain);
+  new_ep->get_mutable_ctx().save_ds_impl(dchain_addr, DSImpl::TofinoCPU_DoubleChain);
 
   return impls;
 }

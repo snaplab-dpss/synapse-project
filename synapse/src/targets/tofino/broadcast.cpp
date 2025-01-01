@@ -2,14 +2,13 @@
 
 namespace tofino {
 
-std::optional<spec_impl_t>
-BroadcastFactory::speculate(const EP *ep, const Node *node,
-                            const Context &ctx) const {
+std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const Node *node,
+                                                       const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Broadcast) {
@@ -19,15 +18,14 @@ BroadcastFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> BroadcastFactory::process_node(const EP *ep,
-                                                   const Node *node) const {
+std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {
     return impls;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Broadcast) {

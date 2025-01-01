@@ -8,8 +8,7 @@ bool is_inc_and_query_cms(const EP *ep, const Call *cms_increment) {
     return false;
   }
 
-  klee::ref<klee::Expr> cms_addr_expr =
-      cms_increment->get_call().args.at("cms").expr;
+  klee::ref<klee::Expr> cms_addr_expr = cms_increment->get_call().args.at("cms").expr;
   addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
   const Node *next = cms_increment->get_next();
@@ -18,35 +17,34 @@ bool is_inc_and_query_cms(const EP *ep, const Call *cms_increment) {
     return false;
   }
 
-  const Call *cms_count_min = static_cast<const Call *>(next);
+  const Call *cms_count_min = dynamic_cast<const Call *>(next);
 
   if (cms_count_min->get_call().function_name != "cms_count_min") {
     return false;
   }
 
-  klee::ref<klee::Expr> cms_addr_expr2 =
-      cms_count_min->get_call().args.at("cms").expr;
+  klee::ref<klee::Expr> cms_addr_expr2 = cms_count_min->get_call().args.at("cms").expr;
   addr_t cms_addr2 = expr_addr_to_obj_addr(cms_addr_expr2);
 
   return cms_addr == cms_addr2;
 }
 } // namespace
 
-std::optional<spec_impl_t>
-CMSIncAndQueryFactory::speculate(const EP *ep, const Node *node,
-                                 const Context &ctx) const {
+std::optional<spec_impl_t> CMSIncAndQueryFactory::speculate(const EP *ep,
+                                                            const Node *node,
+                                                            const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *cms_increment = static_cast<const Call *>(node);
+  const Call *cms_increment = dynamic_cast<const Call *>(node);
   const call_t &call = cms_increment->get_call();
 
   if (!is_inc_and_query_cms(ep, cms_increment)) {
     return std::nullopt;
   }
 
-  const Call *count_min = static_cast<const Call *>(node->get_next());
+  const Call *count_min = dynamic_cast<const Call *>(node->get_next());
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -60,8 +58,7 @@ CMSIncAndQueryFactory::speculate(const EP *ep, const Node *node,
   const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
   std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
 
-  if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width,
-                              cfg.height)) {
+  if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height)) {
     return std::nullopt;
   }
 
@@ -74,21 +71,21 @@ CMSIncAndQueryFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-CMSIncAndQueryFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep,
+                                                        const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *cms_increment = static_cast<const Call *>(node);
+  const Call *cms_increment = dynamic_cast<const Call *>(node);
 
   if (!is_inc_and_query_cms(ep, cms_increment)) {
     return impls;
   }
 
-  const Call *count_min = static_cast<const Call *>(node->get_next());
+  const Call *count_min = dynamic_cast<const Call *>(node->get_next());
   const call_t &call = count_min->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
@@ -115,8 +112,7 @@ CMSIncAndQueryFactory::process_node(const EP *ep, const Node *node) const {
     return impls;
   }
 
-  Module *module =
-      new CMSIncAndQuery(node, cms->id, cms_addr, key, min_estimate.expr);
+  Module *module = new CMSIncAndQuery(node, cms->id, cms_addr, key, min_estimate.expr);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

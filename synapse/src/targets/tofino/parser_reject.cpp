@@ -19,14 +19,13 @@ bool is_parser_reject(const EP *ep) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-ParserRejectFactory::speculate(const EP *ep, const Node *node,
-                               const Context &ctx) const {
+std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const Node *node,
+                                                          const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
@@ -48,7 +47,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
@@ -69,8 +68,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep,
   new_ep->process_leaf(ep_node, {leaf});
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.get_mutable_perf_oracle().add_dropped_traffic(
-      ctx.get_profiler().get_hr(node));
+  ctx.get_mutable_perf_oracle().add_dropped_traffic(ctx.get_profiler().get_hr(node));
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->parser_reject(ep, node);

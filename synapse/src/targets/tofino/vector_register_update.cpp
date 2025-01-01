@@ -8,8 +8,7 @@ bool is_conditional_write(const Call *node, const Call *&vector_return) {
   return false;
 }
 
-vector_register_data_t get_vector_register_data(const EP *ep,
-                                                const Call *vector_borrow,
+vector_register_data_t get_vector_register_data(const EP *ep, const Call *vector_borrow,
                                                 const Call *vector_return,
                                                 std::vector<mod_t> &changes) {
   const call_t &call = vector_borrow->get_call();
@@ -68,7 +67,7 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *vector_borrow = static_cast<const Call *>(node);
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
   const call_t &call = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -93,13 +92,12 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(vector_register_data.obj,
-                       DSImpl::Tofino_VectorRegister)) {
+  if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return std::nullopt;
   }
 
-  bool can_place_ds = can_build_or_reuse_vector_registers(ep, vector_borrow,
-                                                          vector_register_data);
+  bool can_place_ds =
+      can_build_or_reuse_vector_registers(ep, vector_borrow, vector_register_data);
 
   if (!can_place_ds) {
     return std::nullopt;
@@ -114,16 +112,15 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-VectorRegisterUpdateFactory::process_node(const EP *ep,
-                                          const Node *node) const {
+std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
+                                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *vector_borrow = static_cast<const Call *>(node);
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
   const call_t &call = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -165,9 +162,9 @@ VectorRegisterUpdateFactory::process_node(const EP *ep,
     rids.insert(reg->id);
   }
 
-  Module *module = new VectorRegisterUpdate(
-      node, rids, vector_register_data.obj, vector_register_data.index,
-      vector_register_data.value, changes);
+  Module *module = new VectorRegisterUpdate(node, rids, vector_register_data.obj,
+                                            vector_register_data.index,
+                                            vector_register_data.value, changes);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

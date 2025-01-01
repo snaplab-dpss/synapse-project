@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "expire_items_single_map_iteratively") {
@@ -19,8 +19,9 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyFactory::speculate(
-    const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t>
+ExpireItemsSingleMapIterativelyFactory::speculate(const EP *ep, const Node *node,
+                                                  const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return std::nullopt;
@@ -35,7 +36,7 @@ ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
@@ -46,8 +47,8 @@ ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep,
   addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
   addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
 
-  Module *module = new ExpireItemsSingleMapIteratively(
-      node, map_addr, vector_addr, start, n_elems);
+  Module *module =
+      new ExpireItemsSingleMapIteratively(node, map_addr, vector_addr, start, n_elems);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

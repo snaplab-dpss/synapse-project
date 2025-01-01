@@ -796,7 +796,7 @@ void BDD::serialize(const std::string &out_file) const {
 
     switch (node->get_type()) {
     case NodeType::Call: {
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       const Node *next = node->get_next();
       const symbols_t &symbols = call_node->get_locally_generated_symbols();
 
@@ -817,7 +817,7 @@ void BDD::serialize(const std::string &out_file) const {
       }
     } break;
     case NodeType::Branch: {
-      const Branch *branch_node = static_cast<const Branch *>(node);
+      const Branch *branch_node = dynamic_cast<const Branch *>(node);
       klee::ref<klee::Expr> condition = branch_node->get_condition();
       const Node *on_true = branch_node->get_on_true();
       const Node *on_false = branch_node->get_on_false();
@@ -844,7 +844,7 @@ void BDD::serialize(const std::string &out_file) const {
       edges_stream << "\n";
     } break;
     case NodeType::Route: {
-      const Route *route_node = static_cast<const Route *>(node);
+      const Route *route_node = dynamic_cast<const Route *>(node);
       const Node *next = node->get_next();
 
       nodes_stream << "ROUTE";
@@ -935,7 +935,7 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
     std::string on_true_id_str = serialized_edge.substr(0, delim);
     std::string on_false_id_str = serialized_edge.substr(delim + 2);
 
-    Branch *branch_node = static_cast<Branch *>(prev);
+    Branch *branch_node = dynamic_cast<Branch *>(prev);
 
     if (on_true_id_str.size()) {
       node_id_t on_true_id = std::stoi(on_true_id_str);

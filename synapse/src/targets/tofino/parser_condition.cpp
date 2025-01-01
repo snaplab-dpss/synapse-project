@@ -32,11 +32,10 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
     selection_t lhs_sel = build_parser_select(lhs);
     selection_t rhs_sel = build_parser_select(rhs);
 
-    ASSERT(
-        solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target),
-        "Not implemented");
-    ASSERT(selection.target.isNull() || solver_toolbox.are_exprs_always_equal(
-                                            lhs_sel.target, selection.target),
+    ASSERT(solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target),
+           "Not implemented");
+    ASSERT(selection.target.isNull() ||
+               solver_toolbox.are_exprs_always_equal(lhs_sel.target, selection.target),
            "Not implemented");
 
     selection.target = lhs_sel.target;
@@ -71,8 +70,7 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
     ASSERT(lhs_is_target || rhs_is_target, "Not implemented");
 
     klee::ref<klee::Expr> value_expr = lhs_is_target ? rhs : lhs;
-    ASSERT(value_expr->getKind() == klee::Expr::Kind::Constant,
-           "Not implemented");
+    ASSERT(value_expr->getKind() == klee::Expr::Kind::Constant, "Not implemented");
 
     selection.values.push_back(solver_toolbox.value_from_expr(value_expr));
   } break;
@@ -90,14 +88,14 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-ParserConditionFactory::speculate(const EP *ep, const Node *node,
-                                  const Context &ctx) const {
+std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep,
+                                                             const Node *node,
+                                                             const Context &ctx) const {
   if (node->get_type() != NodeType::Branch) {
     return std::nullopt;
   }
 
-  const Branch *branch_node = static_cast<const Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   if (!is_parser_condition(branch_node)) {
     return std::nullopt;
@@ -106,15 +104,15 @@ ParserConditionFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-ParserConditionFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep,
+                                                         const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Branch) {
     return impls;
   }
 
-  const Branch *branch_node = static_cast<const Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   if (!is_parser_condition(branch_node)) {
     return impls;
@@ -136,13 +134,12 @@ ParserConditionFactory::process_node(const EP *ep, const Node *node) const {
 
   // We are working under the assumption that before parsing a header we
   // always perform some kind of checking.
-  ASSERT(on_true_borrows.size() > 0 || on_false_borrows.size() > 0,
-         "Not implemented");
+  ASSERT(on_true_borrows.size() > 0 || on_false_borrows.size() > 0, "Not implemented");
 
   if (on_true_borrows.size() != on_false_borrows.size()) {
-    const Node *conditional_borrow =
-        on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0]
-                                                         : on_false_borrows[0];
+    const Node *conditional_borrow = on_true_borrows.size() > on_false_borrows.size()
+                                         ? on_true_borrows[0]
+                                         : on_false_borrows[0];
     const Node *not_conditional_path =
         on_true_borrows.size() > on_false_borrows.size() ? on_false : on_true;
 

@@ -162,16 +162,16 @@ SimplePlacer::find_placements(const DS *ds, const std::unordered_set<DS_ID> &dep
   PlacementStatus status;
   switch (ds->type) {
   case DSType::TABLE:
-    status = find_placements_table(static_cast<const Table *>(ds), deps, placements);
+    status = find_placements_table(dynamic_cast<const Table *>(ds), deps, placements);
     break;
   case DSType::REGISTER:
-    status = find_placements_reg(static_cast<const Register *>(ds), deps, placements);
+    status = find_placements_reg(dynamic_cast<const Register *>(ds), deps, placements);
     break;
   case DSType::METER:
-    status = find_placements_meter(static_cast<const Meter *>(ds), deps, placements);
+    status = find_placements_meter(dynamic_cast<const Meter *>(ds), deps, placements);
     break;
   case DSType::HASH:
-    status = find_placements_hash(static_cast<const Hash *>(ds), deps, placements);
+    status = find_placements_hash(dynamic_cast<const Hash *>(ds), deps, placements);
     break;
   default:
     ASSERT(false, "Unsupported DS type");

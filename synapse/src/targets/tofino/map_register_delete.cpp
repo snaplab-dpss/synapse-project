@@ -71,8 +71,7 @@ delete_future_related_nodes(const EP *ep, const Node *map_erase,
 
   for (const Node *node : future_nodes) {
     bool replace = (node == next);
-    Node *replacement =
-        delete_non_branch_node_from_bdd(new_bdd.get(), node->get_id());
+    Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), node->get_id());
     if (replace) {
       next = replacement;
     }
@@ -84,14 +83,14 @@ delete_future_related_nodes(const EP *ep, const Node *map_erase,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-MapRegisterDeleteFactory::speculate(const EP *ep, const Node *node,
-                                    const Context &ctx) const {
+std::optional<spec_impl_t> MapRegisterDeleteFactory::speculate(const EP *ep,
+                                                               const Node *node,
+                                                               const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *map_erase = static_cast<const Call *>(node);
+  const Call *map_erase = dynamic_cast<const Call *>(node);
   const call_t &call = map_erase->get_call();
 
   if (call.function_name != "map_erase") {
@@ -122,8 +121,7 @@ MapRegisterDeleteFactory::speculate(const EP *ep, const Node *node,
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
-  std::vector<const Node *> ignore_nodes =
-      get_future_related_nodes(ep, node, map_objs);
+  std::vector<const Node *> ignore_nodes = get_future_related_nodes(ep, node, map_objs);
 
   for (const Node *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
@@ -132,15 +130,15 @@ MapRegisterDeleteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-MapRegisterDeleteFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> MapRegisterDeleteFactory::process_node(const EP *ep,
+                                                           const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *map_erase = static_cast<const Call *>(node);
+  const Call *map_erase = dynamic_cast<const Call *>(node);
   const call_t &call = map_erase->get_call();
 
   if (call.function_name != "map_erase") {
@@ -159,17 +157,16 @@ MapRegisterDeleteFactory::process_node(const EP *ep, const Node *node) const {
 
   map_register_data_t map_register_data(ep, map_erase);
 
-  MapRegister *map_register = build_or_reuse_map_register(
-      ep, map_erase, map_register_data.obj, map_register_data.key,
-      map_register_data.num_entries);
+  MapRegister *map_register =
+      build_or_reuse_map_register(ep, map_erase, map_register_data.obj,
+                                  map_register_data.key, map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  Module *module =
-      new MapRegisterDelete(map_erase, map_register->id, map_register_data.obj,
-                            map_register_data.key);
+  Module *module = new MapRegisterDelete(map_erase, map_register->id,
+                                         map_register_data.obj, map_register_data.key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

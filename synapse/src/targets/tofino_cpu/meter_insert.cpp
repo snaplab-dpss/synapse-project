@@ -20,14 +20,13 @@ void get_tb_data(const Call *tb_trace, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-MeterInsertFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *tb_trace = static_cast<const Call *>(node);
+  const Call *tb_trace = dynamic_cast<const Call *>(node);
   const call_t &call = tb_trace->get_call();
 
   if (call.function_name != "tb_trace") {
@@ -52,7 +51,7 @@ std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *tb_trace = static_cast<const Call *>(node);
+  const Call *tb_trace = dynamic_cast<const Call *>(node);
   const call_t &call = tb_trace->get_call();
 
   if (call.function_name != "tb_trace") {

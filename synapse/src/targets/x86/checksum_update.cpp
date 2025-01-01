@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "nf_set_rte_ipv4_udptcp_checksum") {
@@ -19,23 +19,23 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-ChecksumUpdateFactory::speculate(const EP *ep, const Node *node,
-                                 const Context &ctx) const {
+std::optional<spec_impl_t> ChecksumUpdateFactory::speculate(const EP *ep,
+                                                            const Node *node,
+                                                            const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return std::nullopt;
 }
 
-std::vector<impl_t>
-ChecksumUpdateFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep,
+                                                        const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> ip_hdr_addr_expr = call.args.at("ip_header").expr;

@@ -64,7 +64,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   std::unordered_set<std::string> functions_to_always_ignore{
@@ -104,8 +104,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep,
-                                                    const Node *node,
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node,
                                                     const Context &ctx) const {
   if (!should_ignore(ep, ctx, node)) {
     return std::nullopt;
@@ -114,8 +113,7 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep,
-                                                const Node *node) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, ep->get_ctx(), node)) {

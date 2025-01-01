@@ -2,14 +2,13 @@
 
 namespace tofino {
 
-std::optional<spec_impl_t>
-ModifyHeaderFactory::speculate(const EP *ep, const Node *node,
-                               const Context &ctx) const {
+std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const Node *node,
+                                                          const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "packet_return_chunk") {
@@ -27,15 +26,14 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *packet_return_chunk = static_cast<const Call *>(node);
+  const Call *packet_return_chunk = dynamic_cast<const Call *>(node);
   const call_t &call = packet_return_chunk->get_call();
 
   if (call.function_name != "packet_return_chunk") {
     return impls;
   }
 
-  const Call *packet_borrow_chunk =
-      packet_borrow_from_return(ep, packet_return_chunk);
+  const Call *packet_borrow_chunk = packet_borrow_from_return(ep, packet_return_chunk);
   ASSERT(packet_borrow_chunk,
          "Failed to find packet_borrow_next_chunk from packet_return_chunk");
 

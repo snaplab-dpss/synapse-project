@@ -29,8 +29,8 @@ struct fcfs_cached_table_data_t {
     read_value = get_call.args.at("value_out").out;
     write_value = put_call.args.at("value").expr;
 
-    bool found = get_symbol(map_get->get_locally_generated_symbols(),
-                            "map_has_this_key", map_has_this_key);
+    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
+                            map_has_this_key);
     ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
@@ -39,8 +39,8 @@ struct fcfs_cached_table_data_t {
 
 klee::ref<klee::Expr>
 build_cache_write_success_condition(const symbol_t &cache_write_failed) {
-  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(
-      0, cache_write_failed.expr->getWidth());
+  klee::ref<klee::Expr> zero =
+      solver_toolbox.exprBuilder->Constant(0, cache_write_failed.expr->getWidth());
   return solver_toolbox.exprBuilder->Eq(cache_write_failed.expr, zero);
 }
 
@@ -73,8 +73,7 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
   return probability;
 }
 
-void add_map_get_clone_on_cache_write_failed(const EP *ep, BDD *bdd,
-                                             const Node *map_get,
+void add_map_get_clone_on_cache_write_failed(const EP *ep, BDD *bdd, const Node *map_get,
                                              const Branch *cache_write_branch,
                                              Node *&new_on_cache_write_failed) {
   node_id_t &id = bdd->get_mutable_id();
@@ -86,13 +85,13 @@ void add_map_get_clone_on_cache_write_failed(const EP *ep, BDD *bdd,
       bdd, cache_write_branch->get_on_false(), {map_get_on_cache_write_failed});
 }
 
-void replicate_hdr_parsing_ops_on_cache_write_failed(
-    const EP *ep, BDD *bdd, const Branch *cache_write_branch,
-    Node *&new_on_cache_write_failed) {
+void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd,
+                                                     const Branch *cache_write_branch,
+                                                     Node *&new_on_cache_write_failed) {
   const Node *on_cache_write_failed = cache_write_branch->get_on_false();
 
-  std::vector<const Call *> prev_borrows = get_prev_functions(
-      ep, on_cache_write_failed, {"packet_borrow_next_chunk"});
+  std::vector<const Call *> prev_borrows =
+      get_prev_functions(ep, on_cache_write_failed, {"packet_borrow_next_chunk"});
 
   if (prev_borrows.empty()) {
     return;
@@ -103,8 +102,8 @@ void replicate_hdr_parsing_ops_on_cache_write_failed(
     non_branch_nodes_to_add.push_back(prev_borrow);
   }
 
-  new_on_cache_write_failed = add_non_branch_nodes_to_bdd(
-      bdd, on_cache_write_failed, non_branch_nodes_to_add);
+  new_on_cache_write_failed =
+      add_non_branch_nodes_to_bdd(bdd, on_cache_write_failed, non_branch_nodes_to_add);
 }
 
 std::vector<const Node *>
@@ -154,14 +153,13 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
 }
 
 void delete_coalescing_nodes_on_success(
-    const EP *ep, BDD *bdd, Node *on_success,
-    const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
-    std::optional<constraints_t> &deleted_branch_constraints) {
+    const EP *ep, BDD *bdd, Node *on_success, const map_coalescing_objs_t &map_objs,
+    klee::ref<klee::Expr> key, std::optional<constraints_t> &deleted_branch_constraints) {
   const std::vector<const Call *> targets =
       get_coalescing_nodes_from_key(bdd, on_success, key, map_objs);
 
   for (const Node *target : targets) {
-    const Call *call_target = static_cast<const Call *>(target);
+    const Call *call_target = dynamic_cast<const Call *>(target);
     const call_t &call = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
@@ -190,9 +188,8 @@ void delete_coalescing_nodes_on_success(
 
         deleted_branch_constraints->push_back(extra_constraint);
 
-        Node *trash =
-            delete_branch_node_from_bdd(bdd, index_alloc_check.branch->get_id(),
-                                        index_alloc_check.direction);
+        Node *trash = delete_branch_node_from_bdd(bdd, index_alloc_check.branch->get_id(),
+                                                  index_alloc_check.direction);
       }
     }
 
@@ -217,14 +214,14 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
       add_branch_to_bdd(new_bdd.get(), next, cache_write_success_condition);
 
   on_cache_write_success = cache_write_branch->get_mutable_on_true();
-  add_map_get_clone_on_cache_write_failed(
-      ep, new_bdd.get(), map_get, cache_write_branch, on_cache_write_failed);
+  add_map_get_clone_on_cache_write_failed(ep, new_bdd.get(), map_get, cache_write_branch,
+                                          on_cache_write_failed);
 
-  replicate_hdr_parsing_ops_on_cache_write_failed(
-      ep, new_bdd.get(), cache_write_branch, on_cache_write_failed);
+  replicate_hdr_parsing_ops_on_cache_write_failed(ep, new_bdd.get(), cache_write_branch,
+                                                  on_cache_write_failed);
 
-  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success,
-                                     map_objs, fcfs_cached_table_data.key,
+  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, map_objs,
+                                     fcfs_cached_table_data.key,
                                      deleted_branch_constraints);
 
   return new_bdd;
@@ -234,10 +231,9 @@ EP *concretize_cached_table_cond_write(
     const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
     const fcfs_cached_table_data_t &fcfs_cached_table_data,
     const symbol_t &cache_write_failed, u32 cache_capacity) {
-  FCFSCachedTable *cached_table =
-      TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-          ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.key,
-          fcfs_cached_table_data.num_entries, cache_capacity);
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
+      ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.key,
+      fcfs_cached_table_data.num_entries, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -247,9 +243,8 @@ EP *concretize_cached_table_cond_write(
       build_cache_write_success_condition(cache_write_failed);
 
   Module *module = new FCFSCachedTableReadOrWrite(
-      node, cached_table->id, fcfs_cached_table_data.obj,
-      fcfs_cached_table_data.key, fcfs_cached_table_data.read_value,
-      fcfs_cached_table_data.write_value,
+      node, cached_table->id, fcfs_cached_table_data.obj, fcfs_cached_table_data.key,
+      fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
       fcfs_cached_table_data.map_has_this_key, cache_write_failed);
   EPNode *cached_table_cond_write_node = new EPNode(module);
 
@@ -260,14 +255,13 @@ EP *concretize_cached_table_cond_write(
   std::optional<constraints_t> deleted_branch_constraints;
 
   std::unique_ptr<BDD> new_bdd = branch_bdd_on_cache_write_success(
-      new_ep, node, fcfs_cached_table_data, cache_write_success_condition,
-      map_objs, on_cache_write_success, on_cache_write_failed,
-      deleted_branch_constraints);
+      new_ep, node, fcfs_cached_table_data, cache_write_success_condition, map_objs,
+      on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);
 
   symbols_t symbols = TofinoModuleFactory::get_dataplane_state(ep, node);
 
-  Module *if_module = new If(node, cache_write_success_condition,
-                             {cache_write_success_condition});
+  Module *if_module =
+      new If(node, cache_write_success_condition, {cache_write_success_condition});
   Module *then_module = new Then(node);
   Module *else_module = new Else(node);
   Module *send_to_controller_module =
@@ -295,8 +289,8 @@ EP *concretize_cached_table_cond_write(
       ep, node, fcfs_cached_table_data.key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(
-      new_ep->get_active_leaf().node->get_constraints(),
-      cache_write_success_condition, cache_success_probability);
+      new_ep->get_active_leaf().node->get_constraints(), cache_write_success_condition,
+      cache_success_probability);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
@@ -306,17 +300,14 @@ EP *concretize_cached_table_cond_write(
     ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
   }
 
-  TofinoContext *tofino_ctx =
-      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
 
   EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
-  EPLeaf on_cache_write_failed_leaf(send_to_controller_node,
-                                    on_cache_write_failed);
+  EPLeaf on_cache_write_failed_leaf(send_to_controller_node, on_cache_write_failed);
 
-  new_ep->process_leaf(
-      cached_table_cond_write_node,
-      {on_cache_write_success_leaf, on_cache_write_failed_leaf});
+  new_ep->process_leaf(cached_table_cond_write_node,
+                       {on_cache_write_success_leaf, on_cache_write_failed_leaf});
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
@@ -334,11 +325,10 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get,
-                                               future_map_puts)) {
+  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get, future_map_puts)) {
     // The cached table read should deal with these cases.
     return std::nullopt;
   }
@@ -365,8 +355,8 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
   // We can use a different method for picking the right estimation depending
   // on the time it takes to find a solution.
   for (u32 cache_capacity : allowed_cache_capacities) {
-    hit_rate_t success_probability = get_cache_op_success_probability(
-        ep, node, cached_table_data.key, cache_capacity);
+    hit_rate_t success_probability =
+        get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
     if (!can_get_or_build_fcfs_cached_table(
             ep, node, cached_table_data.obj, cached_table_data.key,
@@ -399,11 +389,11 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_hr);
 
-  spec_impl_t spec_impl(
-      decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
+  spec_impl_t spec_impl(decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}),
+                        new_ctx);
 
-  std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
-      ep, map_get, map_objs, cached_table_data.key);
+  std::vector<const Node *> ignore_nodes =
+      get_nodes_to_speculatively_ignore(ep, map_get, map_objs, cached_table_data.key);
 
   for (const Node *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
@@ -413,19 +403,17 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep,
-                                                const Node *node) const {
+FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get,
-                                               future_map_puts)) {
+  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get, future_map_puts)) {
     // The cached table read should deal with these cases.
     return impls;
   }
@@ -435,10 +423,8 @@ FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep,
     return impls;
   }
 
-  if (!ep->get_ctx().can_impl_ds(map_objs.map,
-                                 DSImpl::Tofino_FCFSCachedTable) ||
-      !ep->get_ctx().can_impl_ds(map_objs.dchain,
-                                 DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ep->get_ctx().can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return impls;
   }
 
@@ -450,13 +436,11 @@ FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep,
       enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
-    EP *new_ep = concretize_cached_table_cond_write(
-        ep, node, map_objs, cached_table_data, cache_write_failed,
-        cache_capacity);
+    EP *new_ep = concretize_cached_table_cond_write(ep, node, map_objs, cached_table_data,
+                                                    cache_write_failed, cache_capacity);
 
     if (new_ep) {
-      impl_t impl =
-          implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl = implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

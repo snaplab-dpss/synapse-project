@@ -2,14 +2,13 @@
 
 namespace tofino {
 
-std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep,
-                                                     const Node *node,
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const Node *node,
                                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Forward) {
@@ -19,21 +18,20 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep,
   int dst_device = route_node->get_dst_device();
 
   Context new_ctx = ctx;
-  new_ctx.get_mutable_perf_oracle().add_fwd_traffic(
-      dst_device, new_ctx.get_profiler().get_hr(node));
+  new_ctx.get_mutable_perf_oracle().add_fwd_traffic(dst_device,
+                                                    new_ctx.get_profiler().get_hr(node));
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ForwardFactory::process_node(const EP *ep,
-                                                 const Node *node) const {
+std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {
     return impls;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Forward) {

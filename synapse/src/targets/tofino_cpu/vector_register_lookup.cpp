@@ -9,7 +9,7 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -26,16 +26,15 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-VectorRegisterLookupFactory::process_node(const EP *ep,
-                                          const Node *node) const {
+std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
+                                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -48,8 +47,7 @@ VectorRegisterLookupFactory::process_node(const EP *ep,
 
   addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
 
-  if (!ep->get_ctx().check_ds_impl(vector_addr,
-                                   DSImpl::Tofino_VectorRegister)) {
+  if (!ep->get_ctx().check_ds_impl(vector_addr, DSImpl::Tofino_VectorRegister)) {
     return impls;
   }
 

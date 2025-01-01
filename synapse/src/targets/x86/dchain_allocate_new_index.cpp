@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -26,7 +26,7 @@ DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
@@ -39,16 +39,15 @@ DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-DchainAllocateNewIndexFactory::process_node(const EP *ep,
-                                            const Node *node) const {
+std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep,
+                                                                const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
@@ -67,8 +66,7 @@ DchainAllocateNewIndexFactory::process_node(const EP *ep,
 
   Module *module;
   if (found) {
-    module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out,
-                                        out_of_space);
+    module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, out_of_space);
   } else {
     module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
   }

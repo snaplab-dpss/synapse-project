@@ -3,8 +3,7 @@
 namespace tofino {
 
 namespace {
-vector_register_data_t get_vector_register_data(const EP *ep,
-                                                const Call *node) {
+vector_register_data_t get_vector_register_data(const EP *ep, const Call *node) {
 
   const call_t &call = node->get_call();
 
@@ -28,8 +27,7 @@ vector_register_data_t get_vector_register_data(const EP *ep,
   return vector_register_data;
 }
 
-std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
-                                                 addr_t vector,
+std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node, addr_t vector,
                                                  const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
@@ -56,8 +54,7 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
     }
 
     bool replace_next = (op == next);
-    Node *replacement =
-        delete_non_branch_node_from_bdd(new_bdd.get(), op->get_id());
+    Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), op->get_id());
 
     if (replace_next) {
       new_next = replacement;
@@ -75,7 +72,7 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *vector_borrow = static_cast<const Call *>(node);
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
   const call_t &call = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -89,13 +86,11 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
   vector_register_data_t vector_register_data =
       get_vector_register_data(ep, vector_borrow);
 
-  if (!ctx.can_impl_ds(vector_register_data.obj,
-                       DSImpl::Tofino_VectorRegister)) {
+  if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return std::nullopt;
   }
 
-  if (!can_build_or_reuse_vector_registers(ep, vector_borrow,
-                                           vector_register_data)) {
+  if (!can_build_or_reuse_vector_registers(ep, vector_borrow, vector_register_data)) {
     return std::nullopt;
   }
 
@@ -113,16 +108,15 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-VectorRegisterLookupFactory::process_node(const EP *ep,
-                                          const Node *node) const {
+std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
+                                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -133,8 +127,7 @@ VectorRegisterLookupFactory::process_node(const EP *ep,
     return impls;
   }
 
-  vector_register_data_t vector_register_data =
-      get_vector_register_data(ep, call_node);
+  vector_register_data_t vector_register_data = get_vector_register_data(ep, call_node);
 
   if (!ep->get_ctx().can_impl_ds(vector_register_data.obj,
                                  DSImpl::Tofino_VectorRegister)) {
@@ -153,17 +146,17 @@ VectorRegisterLookupFactory::process_node(const EP *ep,
     rids.insert(reg->id);
   }
 
-  Module *module = new VectorRegisterLookup(
-      node, rids, vector_register_data.obj, vector_register_data.index,
-      vector_register_data.value);
+  Module *module =
+      new VectorRegisterLookup(node, rids, vector_register_data.obj,
+                               vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  std::unique_ptr<BDD> new_bdd = delete_future_vector_return(
-      new_ep, node, vector_register_data.obj, new_next);
+  std::unique_ptr<BDD> new_bdd =
+      delete_future_vector_return(new_ep, node, vector_register_data.obj, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);

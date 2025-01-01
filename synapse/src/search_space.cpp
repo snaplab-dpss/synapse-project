@@ -13,18 +13,18 @@ std::string get_bdd_node_description(const Node *node) {
 
   switch (node->get_type()) {
   case NodeType::Call: {
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     description << call_node->get_call().function_name;
   } break;
   case NodeType::Branch: {
-    const Branch *branch_node = static_cast<const Branch *>(node);
+    const Branch *branch_node = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch_node->get_condition();
     description << "if (";
     description << pretty_print_expr(condition);
     description << ")";
   } break;
   case NodeType::Route: {
-    const Route *route = static_cast<const Route *>(node);
+    const Route *route = dynamic_cast<const Route *>(node);
     RouteOp op = route->get_operation();
 
     switch (op) {

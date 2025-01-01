@@ -2,14 +2,13 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t>
-TBExpireFactory::speculate(const EP *ep, const Node *node,
-                           const Context &ctx) const {
+std::optional<spec_impl_t> TBExpireFactory::speculate(const EP *ep, const Node *node,
+                                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "tb_expire") {
@@ -26,15 +25,14 @@ TBExpireFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TBExpireFactory::process_node(const EP *ep,
-                                                  const Node *node) const {
+std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "tb_expire") {
@@ -59,8 +57,7 @@ std::vector<impl_t> TBExpireFactory::process_node(const EP *ep,
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(tb_addr,
-                                         DSImpl::TofinoCPU_TokenBucket);
+  new_ep->get_mutable_ctx().save_ds_impl(tb_addr, DSImpl::TofinoCPU_TokenBucket);
 
   return impls;
 }

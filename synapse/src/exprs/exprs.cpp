@@ -35,8 +35,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   return true;
 }
 
-bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
-                       int &n_bytes) {
+bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes) {
   ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() == klee::Expr::Read) {
@@ -47,8 +46,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
 
     klee::ref<klee::Expr> index = read->index;
     if (index->getKind() == klee::Expr::Constant) {
-      klee::ConstantExpr *index_const =
-          static_cast<klee::ConstantExpr *>(index.get());
+      klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
 
       offset = index_const->getZExtValue();
       n_bytes = read->getWidth() / 8;
@@ -93,8 +91,7 @@ bool is_bool(klee::ref<klee::Expr> expr) {
     return true;
   }
 
-  if (expr->getKind() == klee::Expr::ZExt ||
-      expr->getKind() == klee::Expr::SExt ||
+  if (expr->getKind() == klee::Expr::ZExt || expr->getKind() == klee::Expr::SExt ||
       expr->getKind() == klee::Expr::Not) {
     return is_bool(expr->getKid(0));
   }
@@ -103,14 +100,10 @@ bool is_bool(klee::ref<klee::Expr> expr) {
     return is_bool(expr->getKid(0)) && is_bool(expr->getKid(1));
   }
 
-  return expr->getKind() == klee::Expr::Eq ||
-         expr->getKind() == klee::Expr::Uge ||
-         expr->getKind() == klee::Expr::Ugt ||
-         expr->getKind() == klee::Expr::Ule ||
-         expr->getKind() == klee::Expr::Ult ||
-         expr->getKind() == klee::Expr::Sge ||
-         expr->getKind() == klee::Expr::Sgt ||
-         expr->getKind() == klee::Expr::Sle ||
+  return expr->getKind() == klee::Expr::Eq || expr->getKind() == klee::Expr::Uge ||
+         expr->getKind() == klee::Expr::Ugt || expr->getKind() == klee::Expr::Ule ||
+         expr->getKind() == klee::Expr::Ult || expr->getKind() == klee::Expr::Sge ||
+         expr->getKind() == klee::Expr::Sgt || expr->getKind() == klee::Expr::Sle ||
          expr->getKind() == klee::Expr::Slt;
 }
 
@@ -120,8 +113,7 @@ bool is_constant(klee::ref<klee::Expr> expr) {
   }
 
   auto value = solver_toolbox.value_from_expr(expr);
-  auto const_value =
-      solver_toolbox.exprBuilder->Constant(value, expr->getWidth());
+  auto const_value = solver_toolbox.exprBuilder->Constant(value, expr->getWidth());
   auto is_always_eq = solver_toolbox.are_exprs_always_equal(const_value, expr);
 
   return is_always_eq;
@@ -151,7 +143,7 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
   auto width = expr->getWidth();
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    auto constant = static_cast<klee::ConstantExpr *>(expr.get());
+    auto constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
     ASSERT(width <= 64, "Width too big");
     value = constant->getZExtValue(width);
   } else {
@@ -181,8 +173,8 @@ std::optional<std::string> get_symbol(klee::ref<klee::Expr> expr) {
 
 bool manager_contains(const klee::ConstraintManager &constraints,
                       klee::ref<klee::Expr> expr) {
-  auto found_it = std::find_if(
-      constraints.begin(), constraints.end(), [&](klee::ref<klee::Expr> e) {
+  auto found_it =
+      std::find_if(constraints.begin(), constraints.end(), [&](klee::ref<klee::Expr> e) {
         return solver_toolbox.are_exprs_always_equal(e, expr);
       });
   return found_it != constraints.end();

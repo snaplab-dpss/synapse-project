@@ -14,8 +14,7 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
   addr_t chain_addr = expr_addr_to_obj_addr(chain);
 
-  std::optional<map_coalescing_objs_t> map_objs =
-      ctx.get_map_coalescing_objs(chain_addr);
+  std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(chain_addr);
 
   if (!map_objs.has_value()) {
     return false;
@@ -59,7 +58,7 @@ bool should_ignore(const EP *ep, const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   std::unordered_set<std::string> functions_to_always_ignore = {
@@ -95,8 +94,7 @@ bool should_ignore(const EP *ep, const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep,
-                                                    const Node *node,
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node,
                                                     const Context &ctx) const {
   if (!should_ignore(ep, node)) {
     return std::nullopt;
@@ -105,8 +103,7 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep,
-                                                const Node *node) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, node)) {

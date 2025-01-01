@@ -17,8 +17,8 @@ struct map_register_data_t {
     key = call.args.at("key").in;
     read_value = call.args.at("value_out").out;
 
-    bool found = get_symbol(map_get->get_locally_generated_symbols(),
-                            "map_has_this_key", map_has_this_key);
+    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
+                            map_has_this_key);
     ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
@@ -27,14 +27,14 @@ struct map_register_data_t {
 
 } // namespace
 
-std::optional<spec_impl_t>
-MapRegisterReadFactory::speculate(const EP *ep, const Node *node,
-                                  const Context &ctx) const {
+std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep,
+                                                             const Node *node,
+                                                             const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
   const call_t &call = map_get->get_call();
 
   if (call.function_name != "map_get") {
@@ -66,15 +66,15 @@ MapRegisterReadFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t>
-MapRegisterReadFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep,
+                                                         const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
   const call_t &call = map_get->get_call();
 
   if (call.function_name != "map_get") {
@@ -93,9 +93,9 @@ MapRegisterReadFactory::process_node(const EP *ep, const Node *node) const {
 
   map_register_data_t map_register_data(ep, map_get);
 
-  MapRegister *map_register = build_or_reuse_map_register(
-      ep, node, map_register_data.obj, map_register_data.key,
-      map_register_data.num_entries);
+  MapRegister *map_register =
+      build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
+                                  map_register_data.num_entries);
 
   if (!map_register) {
     return impls;

@@ -45,7 +45,7 @@ anchor_info_t get_anchor_info(const EP *ep) {
     return {anchor->get_id(), true};
   }
 
-  const Branch *branch = static_cast<const Branch *>(anchor);
+  const Branch *branch = dynamic_cast<const Branch *>(anchor);
 
   if (branch->get_on_true() == next) {
     return {anchor->get_id(), true};

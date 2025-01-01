@@ -2,14 +2,13 @@
 
 namespace tofino {
 
-std::optional<spec_impl_t>
-CMSQueryFactory::speculate(const EP *ep, const Node *node,
-                           const Context &ctx) const {
+std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const Node *node,
+                                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
@@ -28,8 +27,7 @@ CMSQueryFactory::speculate(const EP *ep, const Node *node,
   const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
   std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
 
-  if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width,
-                              cfg.height)) {
+  if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height)) {
     return std::nullopt;
   }
 
@@ -39,15 +37,14 @@ CMSQueryFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep,
-                                                  const Node *node) const {
+std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
@@ -78,8 +75,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep,
     return impls;
   }
 
-  Module *module =
-      new CMSQuery(node, cms->id, cms_addr, key, min_estimate.expr);
+  Module *module = new CMSQuery(node, cms->id, cms_addr, key, min_estimate.expr);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

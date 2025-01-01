@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Route *route_node = static_cast<const Route *>(node);
+  const Route *route_node = dynamic_cast<const Route *>(node);
   RouteOp op = route_node->get_operation();
 
   if (op != RouteOp::Broadcast) {
@@ -19,16 +19,14 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-BroadcastFactory::speculate(const EP *ep, const Node *node,
-                            const Context &ctx) const {
+std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const Node *node,
+                                                       const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return std::nullopt;
 }
 
-std::vector<impl_t> BroadcastFactory::process_node(const EP *ep,
-                                                   const Node *node) const {
+std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

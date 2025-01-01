@@ -9,7 +9,7 @@ IntegerAllocatorRejuvenateFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_rejuvenate_index") {
@@ -30,15 +30,14 @@ IntegerAllocatorRejuvenateFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-IntegerAllocatorRejuvenateFactory::process_node(const EP *ep,
-                                                const Node *node) const {
+IntegerAllocatorRejuvenateFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "dchain_rejuvenate_index") {
@@ -51,20 +50,17 @@ IntegerAllocatorRejuvenateFactory::process_node(const EP *ep,
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-  if (!ep->get_ctx().can_impl_ds(dchain_addr,
-                                 DSImpl::Tofino_IntegerAllocator)) {
+  if (!ep->get_ctx().can_impl_ds(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
     return impls;
   }
 
-  Module *module =
-      new IntegerAllocatorRejuvenate(node, dchain_addr, index, time);
+  Module *module = new IntegerAllocatorRejuvenate(node, dchain_addr, index, time);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  new_ep->get_mutable_ctx().save_ds_impl(dchain_addr,
-                                         DSImpl::Tofino_IntegerAllocator);
+  new_ep->get_mutable_ctx().save_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

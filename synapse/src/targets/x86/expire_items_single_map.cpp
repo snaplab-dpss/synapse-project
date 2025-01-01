@@ -8,7 +8,7 @@ bool bdd_node_match_pattern(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "expire_items_single_map") {
@@ -27,16 +27,15 @@ ExpireItemsSingleMapFactory::speculate(const EP *ep, const Node *node,
   return std::nullopt;
 }
 
-std::vector<impl_t>
-ExpireItemsSingleMapFactory::process_node(const EP *ep,
-                                          const Node *node) const {
+std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep,
+                                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
@@ -49,8 +48,8 @@ ExpireItemsSingleMapFactory::process_node(const EP *ep,
   addr_t vector_addr = expr_addr_to_obj_addr(vector);
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
 
-  Module *module = new ExpireItemsSingleMap(node, dchain_addr, vector_addr,
-                                            map_addr, time, total_freed);
+  Module *module = new ExpireItemsSingleMap(node, dchain_addr, vector_addr, map_addr,
+                                            time, total_freed);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

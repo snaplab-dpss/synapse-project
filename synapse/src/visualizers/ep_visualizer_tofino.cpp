@@ -10,25 +10,21 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino/tofino.h"
 
-#define SHOW_MODULE_NAME(M)                                                    \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
-                                 const M *node) {                              \
-    function_call(ep_node, node->get_node(), node->get_target(),               \
-                  node->get_name());                                           \
-    return EPVisitor::Action::doChildren;                                      \
+#define SHOW_MODULE_NAME(M)                                                              \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());      \
+    return EPVisitor::Action::doChildren;                                                \
   }
 
-#define VISIT_BRANCH(M)                                                        \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
-                                 const M *node) {                              \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());   \
-    return EPVisitor::Action::doChildren;                                      \
+#define VISIT_BRANCH(M)                                                                  \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());             \
+    return EPVisitor::Action::doChildren;                                                \
   }
 
-#define IGNORE_MODULE(M)                                                       \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
-                                 const M *node) {                              \
-    return EPVisitor::Action::doChildren;                                      \
+#define IGNORE_MODULE(M)                                                                 \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
+    return EPVisitor::Action::doChildren;                                                \
   }
 
 using namespace tofino;
@@ -195,8 +191,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
   ASSERT(ds->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
-  const FCFSCachedTable *cached_table =
-      static_cast<const FCFSCachedTable *>(ds);
+  const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Read\n";
 
@@ -224,8 +219,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
   ASSERT(ds->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
-  const FCFSCachedTable *cached_table =
-      static_cast<const FCFSCachedTable *>(ds);
+  const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Read/Write\n";
 
@@ -253,8 +247,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
   ASSERT(ds->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
-  const FCFSCachedTable *cached_table =
-      static_cast<const FCFSCachedTable *>(ds);
+  const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Write\n";
 
@@ -282,8 +275,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
   ASSERT(ds->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
-  const FCFSCachedTable *cached_table =
-      static_cast<const FCFSCachedTable *>(ds);
+  const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Delete\n";
 
@@ -343,7 +335,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
       node->get_hh_table_id());
 
   ASSERT(ds->type == DSType::HH_TABLE, "Invalid DS type");
-  const HHTable *hh_table = static_cast<const HHTable *>(ds);
+  const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);
 
   std::stringstream label_builder;
   label_builder << "HH Table Read\n";

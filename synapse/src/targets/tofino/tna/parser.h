@@ -86,7 +86,7 @@ struct ParserStateTerminate : public ParserState {
     }
 
     const ParserStateTerminate *other_terminate =
-        static_cast<const ParserStateTerminate *>(other);
+        dynamic_cast<const ParserStateTerminate *>(other);
     return other_terminate->accept == accept;
   }
 };
@@ -149,7 +149,8 @@ struct ParserStateSelect : public ParserState {
       return false;
     }
 
-    const ParserStateSelect *other_select = static_cast<const ParserStateSelect *>(other);
+    const ParserStateSelect *other_select =
+        dynamic_cast<const ParserStateSelect *>(other);
 
     if (!solver_toolbox.are_exprs_always_equal(field, other_select->field)) {
       return false;
@@ -211,7 +212,7 @@ struct ParserStateExtract : public ParserState {
     }
 
     const ParserStateExtract *other_extract =
-        static_cast<const ParserStateExtract *>(other);
+        dynamic_cast<const ParserStateExtract *>(other);
 
     return solver_toolbox.are_exprs_always_equal(hdr, other_extract->hdr);
   }
@@ -326,7 +327,7 @@ private:
     }
 
     ASSERT(initial_state->type == ParserStateType::TERMINATE, "Invalid parser");
-    ASSERT(static_cast<ParserStateTerminate *>(initial_state)->accept == accepted,
+    ASSERT(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted,
            "Invalid parser");
 
     return true;
@@ -342,18 +343,18 @@ private:
     switch (leaf->type) {
     case ParserStateType::EXTRACT: {
       ASSERT(!direction.has_value(), "Invalid parser");
-      ParserStateExtract *extractor = static_cast<ParserStateExtract *>(leaf);
+      ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
 
       if (!extractor->next || extractor->next->type != ParserStateType::TERMINATE) {
         return false;
       }
 
-      ASSERT(static_cast<ParserStateTerminate *>(extractor->next)->accept == accepted,
+      ASSERT(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted,
              "Invalid parser");
     } break;
     case ParserStateType::SELECT: {
       ASSERT(direction.has_value(), "Invalid parser");
-      ParserStateSelect *condition = static_cast<ParserStateSelect *>(leaf);
+      ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(leaf);
 
       if ((*direction && !condition->on_true) || (!*direction && !condition->on_false)) {
         return false;
@@ -366,7 +367,7 @@ private:
       }
     } break;
     case ParserStateType::TERMINATE: {
-      ASSERT(static_cast<ParserStateTerminate *>(leaf)->accept == accepted,
+      ASSERT(dynamic_cast<ParserStateTerminate *>(leaf)->accept == accepted,
              "Invalid parser");
     } break;
     }
@@ -407,17 +408,17 @@ private:
     }
 
     ASSERT(old_next_state->type == ParserStateType::TERMINATE, "Invalid parser");
-    ASSERT(static_cast<ParserStateTerminate *>(old_next_state)->accept == true,
+    ASSERT(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true,
            "Invalid parser");
 
     switch (new_state->type) {
     case ParserStateType::EXTRACT: {
-      ParserStateExtract *extractor = static_cast<ParserStateExtract *>(new_state);
+      ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(new_state);
       ASSERT(!extractor->next, "Invalid parser");
       extractor->next = old_next_state;
     } break;
     case ParserStateType::SELECT: {
-      ParserStateSelect *condition = static_cast<ParserStateSelect *>(new_state);
+      ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(new_state);
       ASSERT(!condition->on_true, "Invalid parser");
       ASSERT(!condition->on_false, "Invalid parser");
       condition->on_true = next_state;
@@ -445,12 +446,12 @@ private:
     switch (leaf->type) {
     case ParserStateType::EXTRACT: {
       ASSERT(!direction.has_value(), "Invalid parser");
-      ParserStateExtract *extractor = static_cast<ParserStateExtract *>(leaf);
+      ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
       set_next(extractor->next, new_state);
     } break;
     case ParserStateType::SELECT: {
       ASSERT(direction.has_value(), "Invalid parser");
-      ParserStateSelect *condition = static_cast<ParserStateSelect *>(leaf);
+      ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(leaf);
       if (*direction) {
         set_next(condition->on_true, new_state);
       } else {

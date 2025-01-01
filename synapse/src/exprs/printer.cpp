@@ -13,9 +13,7 @@ private:
   bool use_signed;
 
 public:
-  ExprPrettyPrinter(bool _use_signed) : ExprVisitor(false) {
-    use_signed = _use_signed;
-  }
+  ExprPrettyPrinter(bool _use_signed) : ExprVisitor(false) { use_signed = _use_signed; }
 
   ExprPrettyPrinter() : ExprPrettyPrinter(false) {}
 
@@ -28,8 +26,7 @@ public:
       return printer.get_result();
     }
 
-    klee::ConstantExpr *constant =
-        static_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
     std::stringstream ss;
 
     if (use_signed) {
@@ -83,11 +80,9 @@ public:
     auto root = ul.root;
     auto index = e.index;
 
-    ASSERT(index->getKind() == klee::Expr::Kind::Constant,
-           "Non-constant index");
+    ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
 
-    klee::ConstantExpr *index_const =
-        static_cast<klee::ConstantExpr *>(index.get());
+    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
     auto i = index_const->getZExtValue();
 
     std::stringstream ss;
@@ -111,8 +106,7 @@ public:
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  std::vector<std::vector<unsigned>>
-  group_bytes(const std::vector<unsigned> bytes) {
+  std::vector<std::vector<unsigned>> group_bytes(const std::vector<unsigned> bytes) {
     std::vector<std::vector<unsigned>> groups;
     std::vector<unsigned> group;
 
@@ -518,8 +512,7 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
 
   if (one_liner) {
     // remove new lines
-    expr_str.erase(std::remove(expr_str.begin(), expr_str.end(), '\n'),
-                   expr_str.end());
+    expr_str.erase(std::remove(expr_str.begin(), expr_str.end(), '\n'), expr_str.end());
 
     // remove duplicated whitespaces
     auto bothAreSpaces = [](char lhs, char rhs) -> bool {

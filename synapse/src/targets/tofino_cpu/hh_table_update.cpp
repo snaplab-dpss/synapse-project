@@ -31,12 +31,11 @@ klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
   while (node) {
     if (node->get_module()->get_type() == ModuleType::Tofino_HHTableRead) {
       const tofino::HHTableRead *hh_table_read =
-          static_cast<const tofino::HHTableRead *>(node->get_module());
+          dynamic_cast<const tofino::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
-    } else if (node->get_module()->get_type() ==
-               ModuleType::TofinoCPU_HHTableRead) {
+    } else if (node->get_module()->get_type() == ModuleType::TofinoCPU_HHTableRead) {
       const tofino_cpu::HHTableRead *hh_table_read =
-          static_cast<const tofino_cpu::HHTableRead *>(node->get_module());
+          dynamic_cast<const tofino_cpu::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
     }
     node = node->get_prev();
@@ -48,14 +47,13 @@ klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
 
 using tofino::Table;
 
-std::optional<spec_impl_t>
-HHTableUpdateFactory::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+std::optional<spec_impl_t> HHTableUpdateFactory::speculate(const EP *ep, const Node *node,
+                                                           const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *map_put = static_cast<const Call *>(node);
+  const Call *map_put = dynamic_cast<const Call *>(node);
   const call_t &call = map_put->get_call();
 
   if (call.function_name != "map_put") {
@@ -80,7 +78,7 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *map_put = static_cast<const Call *>(node);
+  const Call *map_put = dynamic_cast<const Call *>(node);
   const call_t &call = map_put->get_call();
 
   if (call.function_name != "map_put") {
@@ -100,9 +98,8 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
 
   table_data_t table_data(map_put);
 
-  Module *module =
-      new HHTableUpdate(node, table_data.obj, table_data.table_keys,
-                        table_data.value, min_estimate);
+  Module *module = new HHTableUpdate(node, table_data.obj, table_data.table_keys,
+                                     table_data.value, min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

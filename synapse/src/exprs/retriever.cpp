@@ -46,8 +46,7 @@ public:
     return retrieved_strings;
   }
 
-  const std::unordered_map<std::string, klee::UpdateList> &
-  get_retrieved_roots_updates() {
+  const std::unordered_map<std::string, klee::UpdateList> &get_retrieved_roots_updates() {
     return roots_updates;
   }
 
@@ -66,8 +65,7 @@ std::vector<klee::ref<klee::ReadExpr>> get_reads(klee::ref<klee::Expr> expr) {
   return retriever.get_retrieved();
 }
 
-std::vector<klee::ref<klee::ReadExpr>>
-get_packet_reads(klee::ref<klee::Expr> expr) {
+std::vector<klee::ref<klee::ReadExpr>> get_packet_reads(klee::ref<klee::Expr> expr) {
   SymbolRetriever retriever;
   retriever.visit(expr);
   return retriever.get_retrieved_packet_chunks();
@@ -87,8 +85,8 @@ std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
 }
 
 std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr) {
-  static std::unordered_map<
-      unsigned, std::pair<klee::ref<klee::Expr>, std::vector<byte_read_t>>>
+  static std::unordered_map<unsigned,
+                            std::pair<klee::ref<klee::Expr>, std::vector<byte_read_t>>>
       cache;
 
   auto cache_found_it = cache.find(expr->hash());
@@ -105,8 +103,7 @@ std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr) {
     klee::ref<klee::Expr> index = read->index;
 
     if (index->getKind() == klee::Expr::Kind::Constant) {
-      klee::ConstantExpr *index_const =
-          static_cast<klee::ConstantExpr *>(index.get());
+      klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
 
       unsigned byte = index_const->getZExtValue();
       std::string symbol = read->updates.root->name;
@@ -136,8 +133,7 @@ std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr) {
   return bytes;
 }
 
-klee::ref<klee::Expr> concat_lsb(klee::ref<klee::Expr> expr,
-                                 klee::ref<klee::Expr> byte) {
+klee::ref<klee::Expr> concat_lsb(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> byte) {
   if (expr->getKind() != klee::Expr::Concat) {
     return solver_toolbox.exprBuilder->Concat(expr, byte);
   }
@@ -161,28 +157,25 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ref<klee::Expr> index = read->index;
     const std::string symbol = read->updates.root->name;
 
-    ASSERT(index->getKind() == klee::Expr::Kind::Constant,
-           "Non-constant index");
+    ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
 
-    klee::ConstantExpr *index_const =
-        static_cast<klee::ConstantExpr *>(index.get());
+    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
 
     unsigned byte = index_const->getZExtValue();
 
-    if (groups.size() && groups.back().has_symbol &&
-        groups.back().symbol == symbol && groups.back().offset - 1 == byte) {
+    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol &&
+        groups.back().offset - 1 == byte) {
       groups.back().n_bytes++;
       groups.back().offset = byte;
       groups.back().expr = concat_lsb(groups.back().expr, read_expr);
     } else {
-      groups.emplace_back(expr_group_t{true, symbol, byte,
-                                       read_expr->getWidth() / 8, read_expr});
+      groups.emplace_back(
+          expr_group_t{true, symbol, byte, read_expr->getWidth() / 8, read_expr});
     }
   };
 
   auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
-    ASSERT(not_read_expr->getKind() != klee::Expr::Read,
-           "Non read is actually a read");
+    ASSERT(not_read_expr->getKind() != klee::Expr::Read, "Non read is actually a read");
     unsigned size = not_read_expr->getWidth();
     ASSERT(size % 8 == 0, "Size not multiple of 8");
     groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
@@ -224,12 +217,11 @@ void print_groups(const std::vector<expr_group_t> &groups) {
   std::cerr << "Groups: " << groups.size() << "\n";
   for (const auto &group : groups) {
     if (group.has_symbol) {
-      std::cerr << "Group:" << " symbol=" << group.symbol
-                << " offset=" << group.offset << " n_bytes=" << group.n_bytes
+      std::cerr << "Group:" << " symbol=" << group.symbol << " offset=" << group.offset
+                << " n_bytes=" << group.n_bytes
                 << " expr=" << expr_to_string(group.expr, true) << "\n";
     } else {
-      std::cerr << "Group: offset=" << group.offset
-                << " n_bytes=" << group.n_bytes
+      std::cerr << "Group: offset=" << group.offset << " n_bytes=" << group.n_bytes
                 << " expr=" << expr_to_string(group.expr, true) << "\n";
     }
   }

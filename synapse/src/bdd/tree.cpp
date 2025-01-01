@@ -544,7 +544,7 @@ int BDD::get_node_depth(node_id_t _id) const {
 
   root->visit_nodes(
       [_id, &depth](const Node *node, cookie_t *cookie) {
-        depth_tracker_t *depth_tracker = static_cast<depth_tracker_t *>(cookie);
+        depth_tracker_t *depth_tracker = dynamic_cast<depth_tracker_t *>(cookie);
 
         if (node->get_id() == _id) {
           depth = depth_tracker->depth;
@@ -564,7 +564,7 @@ symbols_t BDD::get_generated_symbols(const Node *node) const {
 
   while (node) {
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       symbols_t more_symbols = call_node->get_locally_generated_symbols();
       symbols.insert(more_symbols.begin(), more_symbols.end());
     }
@@ -606,7 +606,7 @@ void BDD::assert_integrity() const {
     ASSERT(node, "Null node");
     switch (node->get_type()) {
     case NodeType::Branch: {
-      const Branch *branch = static_cast<const Branch *>(node);
+      const Branch *branch = dynamic_cast<const Branch *>(node);
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
       ASSERT(on_true, "No on true node");

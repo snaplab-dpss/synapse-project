@@ -152,7 +152,7 @@ std::optional<u64> get_max_value(klee::ref<klee::Expr> original_value,
 
 bool is_counter_inc_op(const Node *vector_borrow, std::optional<u64> &max_value) {
   const Node *branch = vector_borrow->get_next();
-  const Branch *branch_node = static_cast<const Branch *>(branch);
+  const Branch *branch_node = dynamic_cast<const Branch *>(branch);
 
   if (!branch_node) {
     return false;
@@ -163,9 +163,9 @@ bool is_counter_inc_op(const Node *vector_borrow, std::optional<u64> &max_value)
   const Node *on_true = branch_node->get_on_true();
   const Node *on_false = branch_node->get_on_false();
 
-  const Call *borrow_node = static_cast<const Call *>(vector_borrow);
-  const Call *on_true_node = static_cast<const Call *>(on_true);
-  const Call *on_false_node = static_cast<const Call *>(on_false);
+  const Call *borrow_node = dynamic_cast<const Call *>(vector_borrow);
+  const Call *on_true_node = dynamic_cast<const Call *>(on_true);
+  const Call *on_false_node = dynamic_cast<const Call *>(on_false);
 
   if (!on_true_node || !on_false_node) {
     return false;
@@ -224,8 +224,8 @@ bool is_counter_inc_op(const Node *vector_borrow, std::optional<u64> &max_value)
 bool is_counter_read_op(const Node *vector_borrow) {
   const Node *vector_return = vector_borrow->get_next();
 
-  const Call *borrow_node = static_cast<const Call *>(vector_borrow);
-  const Call *return_node = static_cast<const Call *>(vector_return);
+  const Call *borrow_node = dynamic_cast<const Call *>(vector_borrow);
+  const Call *return_node = dynamic_cast<const Call *>(vector_return);
 
   if (!return_node) {
     return false;
@@ -264,7 +264,7 @@ next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) 
       return NodeVisitAction::Continue;
     }
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name == "map_put") {
@@ -381,7 +381,7 @@ get_unfiltered_coalescing_nodes(const BDD *bdd, const Node *node,
   auto filter_map_objs = [&data](const Node *node) {
     ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.args.find("map") != call.args.end()) {
@@ -519,7 +519,7 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
       return NodeVisitAction::Continue;
     }
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
@@ -572,11 +572,11 @@ bool check_same_obj(const Call *call0, const Call *call1, const std::string &obj
 std::unordered_set<std::string> get_symbols(const Node *node) {
   switch (node->get_type()) {
   case NodeType::Branch: {
-    const Branch *branch_node = static_cast<const Branch *>(node);
+    const Branch *branch_node = dynamic_cast<const Branch *>(node);
     return get_symbols(branch_node->get_condition());
   };
   case NodeType::Call: {
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     std::unordered_set<std::string> symbols;
@@ -757,7 +757,7 @@ std::vector<const Call *> get_prev_functions(const EP *ep, const Node *node,
 
   while ((node = node->get_prev())) {
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
       const std::string &fname = call.function_name;
 
@@ -785,7 +785,7 @@ std::vector<const Call *> get_future_functions(const Node *root,
       return NodeVisitAction::Continue;
     }
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     auto found_it = std::find(wanted.begin(), wanted.end(), call.function_name);
@@ -812,7 +812,7 @@ bool is_parser_drop(const Node *root) {
       return NodeVisitAction::Continue;
     }
 
-    const Route *route_node = static_cast<const Route *>(node);
+    const Route *route_node = dynamic_cast<const Route *>(node);
     RouteOp op = route_node->get_operation();
 
     found_drop = (op == RouteOp::Drop);
@@ -1045,7 +1045,7 @@ klee::ref<klee::Expr> get_chunk_from_borrow(const Node *node) {
     return nullptr;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
@@ -1060,7 +1060,7 @@ bool borrow_has_var_len(const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
@@ -1088,7 +1088,7 @@ symbols_t get_prev_symbols(const Node *node, const nodes_t &stop_nodes) {
     }
 
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = static_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
       symbols_t local_symbols = call_node->get_locally_generated_symbols();
 
       for (const symbol_t &symbol : local_symbols) {
@@ -1118,7 +1118,7 @@ bool is_vector_return_without_modifications(const EP *ep, const Node *node) {
     return false;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_return") {
@@ -1161,7 +1161,7 @@ bool is_vector_read(const Call *vector_borrow) {
 
   ASSERT(vector_return->get_type() == NodeType::Call, "Unexpected node type");
 
-  const Call *vr_call = static_cast<const Call *>(vector_return);
+  const Call *vr_call = dynamic_cast<const Call *>(vector_return);
   const call_t &vr = vr_call->get_call();
   ASSERT(vr.function_name == "vector_return", "Unexpected function");
 
@@ -1230,7 +1230,7 @@ bool is_vector_borrow_ignored(const Call *vector_borrow) {
 
 branch_direction_t get_map_get_success_check(const Node *node) {
   ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
 
   const call_t &mg_call = map_get->get_call();
   ASSERT(mg_call.function_name == "map_get", "Unexpected function");
@@ -1254,7 +1254,7 @@ branch_direction_t get_map_get_success_check(const Node *node) {
       return NodeVisitAction::Continue;
     }
 
-    const Branch *branch = static_cast<const Branch *>(node);
+    const Branch *branch = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch->get_condition();
 
     bool is_key_not_found_cond =
@@ -1280,7 +1280,7 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   const Profiler &profiler = ctx.get_profiler();
 
   ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
-  const Call *map_get = static_cast<const Call *>(node);
+  const Call *map_get = dynamic_cast<const Call *>(node);
 
   const call_t &mg_call = map_get->get_call();
   ASSERT(mg_call.function_name == "map_get", "Unexpected function");
@@ -1433,8 +1433,8 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
 
   switch (node0->get_type()) {
   case NodeType::Call: {
-    const Call *call0 = static_cast<const Call *>(node0);
-    const Call *call1 = static_cast<const Call *>(node1);
+    const Call *call0 = dynamic_cast<const Call *>(node0);
+    const Call *call1 = dynamic_cast<const Call *>(node1);
 
     const call_t &call0_call = call0->get_call();
     const call_t &call1_call = call1->get_call();
@@ -1499,8 +1499,8 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
     }
   } break;
   case NodeType::Branch: {
-    const Branch *branch0 = static_cast<const Branch *>(node0);
-    const Branch *branch1 = static_cast<const Branch *>(node1);
+    const Branch *branch0 = dynamic_cast<const Branch *>(node0);
+    const Branch *branch1 = dynamic_cast<const Branch *>(node1);
 
     if (!solver_toolbox.are_exprs_always_equal(branch0->get_condition(),
                                                branch1->get_condition())) {
@@ -1508,8 +1508,8 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
     }
   } break;
   case NodeType::Route: {
-    const Route *route0 = static_cast<const Route *>(node0);
-    const Route *route1 = static_cast<const Route *>(node1);
+    const Route *route0 = dynamic_cast<const Route *>(node0);
+    const Route *route1 = dynamic_cast<const Route *>(node1);
 
     if (route0->get_operation() != route1->get_operation()) {
       return false;
@@ -1606,7 +1606,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
           : map_rw_pattern.map_get_success_check.branch->get_on_true();
 
   if (on_failed_map_get->get_type() == NodeType::Branch) {
-    const Branch *write_extra_condition = static_cast<const Branch *>(on_failed_map_get);
+    const Branch *write_extra_condition = dynamic_cast<const Branch *>(on_failed_map_get);
 
     const Node *on_true = write_extra_condition->get_on_true();
     const Node *on_false = write_extra_condition->get_on_false();
@@ -1635,7 +1635,8 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
     return false;
   }
 
-  map_rw_pattern.dchain_allocate_new_index = static_cast<const Call *>(on_failed_map_get);
+  map_rw_pattern.dchain_allocate_new_index =
+      dynamic_cast<const Call *>(on_failed_map_get);
 
   const call_t &dchain_allocate_new_index_call =
       map_rw_pattern.dchain_allocate_new_index->get_call();
@@ -1847,7 +1848,7 @@ bool is_index_alloc_on_unsuccessful_map_get(const EP *ep,
       continue;
     }
 
-    const Call *call_node = static_cast<const Call *>(map_get);
+    const Call *call_node = dynamic_cast<const Call *>(map_get);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "map_get") {
@@ -1870,7 +1871,7 @@ bool is_index_alloc_on_unsuccessful_map_get(const EP *ep,
 
   symbol_t map_has_this_key;
   bool found =
-      get_symbol(static_cast<const Call *>(map_get)->get_locally_generated_symbols(),
+      get_symbol(dynamic_cast<const Call *>(map_get)->get_locally_generated_symbols(),
                  "map_has_this_key", map_has_this_key);
   ASSERT(found, "Symbol map_has_this_key not found");
 
@@ -1978,7 +1979,7 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
       anchor->set_next(clone);
     } break;
     case NodeType::Branch: {
-      Branch *branch = static_cast<Branch *>(anchor);
+      Branch *branch = dynamic_cast<Branch *>(anchor);
 
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
@@ -2038,7 +2039,7 @@ Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
     anchor->set_next(new_branch);
   } break;
   case NodeType::Branch: {
-    Branch *branch = static_cast<Branch *>(anchor);
+    Branch *branch = dynamic_cast<Branch *>(anchor);
 
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
@@ -2077,7 +2078,7 @@ Node *delete_non_branch_node_from_bdd(BDD *bdd, node_id_t target_id) {
     anchor->set_next(new_current);
   } break;
   case NodeType::Branch: {
-    Branch *branch = static_cast<Branch *>(anchor);
+    Branch *branch = dynamic_cast<Branch *>(anchor);
 
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
@@ -2109,7 +2110,7 @@ Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_
   Node *anchor = target->get_mutable_prev();
   ASSERT(anchor, "No previous node");
 
-  Branch *anchor_next = static_cast<Branch *>(target);
+  Branch *anchor_next = dynamic_cast<Branch *>(target);
 
   Node *target_on_true = anchor_next->get_mutable_on_true();
   Node *target_on_false = anchor_next->get_mutable_on_false();
@@ -2132,7 +2133,7 @@ Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_
     anchor->set_next(new_current);
   } break;
   case NodeType::Branch: {
-    Branch *branch = static_cast<Branch *>(anchor);
+    Branch *branch = dynamic_cast<Branch *>(anchor);
 
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
@@ -2174,7 +2175,7 @@ branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *no
       return NodeVisitAction::Continue;
     }
 
-    const Branch *branch = static_cast<const Branch *>(node);
+    const Branch *branch = dynamic_cast<const Branch *>(node);
 
     klee::ref<klee::Expr> condition = branch->get_condition();
     std::unordered_set<std::string> used_symbols = get_symbols(condition);
@@ -2227,7 +2228,7 @@ branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *no
 branch_direction_t
 find_branch_checking_index_alloc(const EP *ep, const Node *dchain_allocate_new_index) {
   ASSERT(dchain_allocate_new_index->get_type() == NodeType::Call, "Unexpected node type");
-  const Call *call_node = static_cast<const Call *>(dchain_allocate_new_index);
+  const Call *call_node = dynamic_cast<const Call *>(dchain_allocate_new_index);
   const call_t &call = call_node->get_call();
   ASSERT(call.function_name == "dchain_allocate_new_index", "Unexpected function");
 
@@ -2255,7 +2256,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
   auto filter_map_nodes_and_retrieve_index = [&target_key, &index](const Node *node) {
     ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.args.find("key") == call.args.end()) {
@@ -2283,7 +2284,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
   auto filter_vectors_nodes = [&index](const Node *node) {
     ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
@@ -2410,7 +2411,7 @@ std::vector<int> get_past_recirculations(const EPNode *node) {
 
     if (module->get_type() == ModuleType::Tofino_Recirculate) {
       const tofino::Recirculate *recirc_module =
-          static_cast<const tofino::Recirculate *>(module);
+          dynamic_cast<const tofino::Recirculate *>(module);
       past_recirculations.push_back(recirc_module->get_recirc_port());
     }
   }
@@ -2480,7 +2481,7 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd) {
       return NodeVisitAction::Continue;
     }
 
-    const Call *call_node = static_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
     if (call.function_name != "map_get" && call.function_name != "map_put" &&

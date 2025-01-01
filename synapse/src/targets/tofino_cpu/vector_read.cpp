@@ -2,14 +2,13 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t>
-VectorReadFactory::speculate(const EP *ep, const Node *node,
-                             const Context &ctx) const {
+std::optional<spec_impl_t> VectorReadFactory::speculate(const EP *ep, const Node *node,
+                                                        const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
@@ -34,7 +33,7 @@ std::vector<impl_t> VectorReadFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const Call *call_node = static_cast<const Call *>(node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
