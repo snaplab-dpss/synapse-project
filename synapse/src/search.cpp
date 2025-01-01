@@ -127,20 +127,63 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space,
     SSVisualizer::visualize(search_space, ep, true);
   }
 }
+
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy) {
+  std::unique_ptr<HeuristicCfg> cfg;
+
+  switch (hopt) {
+  case HeuristicOption::BFS:
+    cfg = std::make_unique<BFSCfg>();
+    break;
+  case HeuristicOption::DFS:
+    cfg = std::make_unique<DFSCfg>();
+    break;
+  case HeuristicOption::RANDOM:
+    cfg = std::make_unique<RandomCfg>();
+    break;
+  case HeuristicOption::GALLIUM:
+    cfg = std::make_unique<GalliumCfg>();
+    break;
+  case HeuristicOption::GREEDY:
+    cfg = std::make_unique<GreedyCfg>();
+    break;
+  case HeuristicOption::MAX_TPUT:
+    cfg = std::make_unique<MaxTputCfg>();
+    break;
+  case HeuristicOption::DS_PREF:
+    cfg = std::make_unique<DSPrefCfg>();
+    break;
+  }
+
+  return std::make_unique<Heuristic>(std::move(cfg), !not_greedy);
+}
+
+const std::unordered_map<HeuristicOption, std::function<std::unique_ptr<HeuristicCfg>()>>
+    heuristic_config_builder{
+        {HeuristicOption::BFS, []() { return std::make_unique<BFSCfg>(); }},
+        {HeuristicOption::DFS, []() { return std::make_unique<DFSCfg>(); }},
+        {HeuristicOption::RANDOM, []() { return std::make_unique<RandomCfg>(); }},
+        {HeuristicOption::GALLIUM, []() { return std::make_unique<GalliumCfg>(); }},
+        {HeuristicOption::GREEDY, []() { return std::make_unique<GreedyCfg>(); }},
+        {HeuristicOption::MAX_TPUT, []() { return std::make_unique<MaxTputCfg>(); }},
+        {HeuristicOption::DS_PREF, []() { return std::make_unique<DSPrefCfg>(); }},
+    };
 } // namespace
 
-SearchEngine::SearchEngine(const BDD *_bdd, Heuristic *_h,
-                           const toml::table &_targets_config, const Profiler &_profiler,
+SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt,
+                           const Profiler &_profiler, const toml::table &_targets_config,
                            search_config_t _search_config)
-    : bdd(new BDD(*_bdd)), h(_h), targets_config(_targets_config), profiler(_profiler),
-      targets(Targets(_targets_config)), search_config(_search_config) {}
+    : bdd(new BDD(*_bdd)), heuristic(build_heuristic(_hopt, _search_config.not_greedy)),
+      profiler(_profiler), targets(Targets(_targets_config)),
+      targets_config(_targets_config), search_config(_search_config) {}
 
 search_report_t SearchEngine::search() {
   search_meta_t meta;
   auto start_search = std::chrono::steady_clock::now();
-  SearchSpace *search_space = new SearchSpace(h->get_cfg());
+  std::unique_ptr<SearchSpace> search_space =
+      std::make_unique<SearchSpace>(heuristic->get_cfg());
 
-  h->add(new EP(bdd, targets, targets_config, profiler));
+  heuristic->add(new EP(bdd, targets, targets_config, profiler));
 
   std::unordered_map<node_id_t, int> node_depth;
 
@@ -152,12 +195,12 @@ search_report_t SearchEngine::search() {
     return NodeVisitAction::Continue;
   });
 
-  while (!h->finished()) {
+  while (!heuristic->finished()) {
     meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
                             std::chrono::steady_clock::now() - start_search)
                             .count();
 
-    const EP *ep = h->pop();
+    const EP *ep = heuristic->pop();
     search_space->activate_leaf(ep);
 
     meta.avg_bdd_size *= meta.steps;
@@ -167,11 +210,11 @@ search_report_t SearchEngine::search() {
 
     if (search_space->is_backtrack()) {
       meta.backtracks++;
-      peek_backtrack(ep, search_space, search_config.pause_and_show_on_backtrack);
+      peek_backtrack(ep, search_space.get(), search_config.pause_and_show_on_backtrack);
     }
 
     const Node *node = ep->get_next_node();
-    search_step_report_t report(h->size(), ep, node);
+    search_step_report_t report(heuristic->size(), ep, node);
 
     float &avg_node_children = meta.avg_children_per_node[node->get_id()];
     int &node_visits = meta.visits_per_node[node->get_id()];
@@ -182,7 +225,7 @@ search_report_t SearchEngine::search() {
     for (const std::shared_ptr<const Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
         const std::vector<impl_t> implementations =
-            modgen->generate(ep, node, search_config.allow_bdd_reordering);
+            modgen->generate(ep, node, !search_config.no_reorder);
         search_space->add_to_active_leaf(ep, node, modgen.get(), implementations);
         report.save(modgen.get(), implementations);
 
@@ -214,32 +257,28 @@ search_report_t SearchEngine::search() {
     }
 
     meta.ss_size = search_space->get_size();
-    meta.solutions = h->size();
+    meta.solutions = heuristic->size();
 
     log_search_iteration(report, meta);
-    peek_search_space(new_implementations, search_config.peek, search_space);
+    peek_search_space(new_implementations, search_config.peek, search_space.get());
 
-    h->add(new_implementations);
-    h->cleanup();
+    heuristic->add(new_implementations);
+    heuristic->cleanup();
   }
 
   meta.ss_size = search_space->get_size();
-  meta.solutions = h->size();
+  meta.solutions = heuristic->size();
 
-  EP *winner = new EP(*h->get());
+  const EP *winner = heuristic->get();
 
-  const search_solution_t solution = {
-      .ep = winner,
-      .search_space = search_space,
-      .score = h->get_score(winner),
-      .tput_estimation = SearchSpace::build_meta_tput_estimate(winner),
-      .tput_speculation = SearchSpace::build_meta_tput_speculation(winner),
-  };
-
-  search_report_t report = {
-      .heuristic = h->get_cfg()->name,
-      .solution = solution,
-      .meta = meta,
+  search_report_t report{
+      heuristic->get_cfg()->name,
+      std::make_unique<EP>(*winner),
+      std::move(search_space),
+      heuristic->get_score(winner),
+      SearchSpace::build_meta_tput_estimate(winner),
+      SearchSpace::build_meta_tput_speculation(winner),
+      meta,
   };
 
   return report;

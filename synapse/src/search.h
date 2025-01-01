@@ -6,7 +6,7 @@
 #include <toml++/toml.hpp>
 
 #include "execution_plan/execution_plan.h"
-#include "heuristics/heuristic.h"
+#include "heuristics/heuristics.h"
 #include "search_space.h"
 #include "profiler.h"
 
@@ -30,41 +30,39 @@ struct search_meta_t {
   search_meta_t(search_meta_t &&other) = default;
 };
 
-struct search_solution_t {
-  const EP *ep;
-  const SearchSpace *search_space;
+struct search_report_t {
+  std::string heuristic;
+  std::unique_ptr<EP> ep;
+  std::unique_ptr<SearchSpace> search_space;
   Score score;
   std::string tput_estimation;
   std::string tput_speculation;
-};
-
-struct search_report_t {
-  const std::string heuristic;
-  const search_solution_t solution;
-  const search_meta_t meta;
+  search_meta_t meta;
 };
 
 struct search_config_t {
-  bool allow_bdd_reordering;
+  bool no_reorder;
   std::vector<ep_id_t> peek;
   bool pause_and_show_on_backtrack;
+  bool not_greedy;
 
-  search_config_t() : allow_bdd_reordering(false), pause_and_show_on_backtrack(false) {}
+  search_config_t()
+      : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false) {}
 };
 
 class SearchEngine {
 private:
   std::shared_ptr<BDD> bdd;
-  Heuristic *h;
-  const toml::table targets_config;
+  std::unique_ptr<Heuristic> heuristic;
   Profiler profiler;
   Targets targets;
+
+  const toml::table targets_config;
   const search_config_t search_config;
 
 public:
-  SearchEngine(const BDD *bdd, Heuristic *h, const toml::table &targets_config,
-               const Profiler &profiler,
-               search_config_t search_config = search_config_t());
+  SearchEngine(const BDD *bdd, HeuristicOption hopt, const Profiler &profiler,
+               const toml::table &targets_config, search_config_t search_config);
 
   SearchEngine(const SearchEngine &) = delete;
   SearchEngine(SearchEngine &&) = delete;

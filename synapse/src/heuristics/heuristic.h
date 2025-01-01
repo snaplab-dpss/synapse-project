@@ -17,7 +17,7 @@ protected:
   std::unordered_map<const EP *, i64> ep_refs;
 
 public:
-  Heuristic(std::unique_ptr<HeuristicCfg> config, bool _stop_on_first_solution);
+  Heuristic(std::unique_ptr<HeuristicCfg> config, bool stop_on_first_solution);
   ~Heuristic();
 
   bool finished();

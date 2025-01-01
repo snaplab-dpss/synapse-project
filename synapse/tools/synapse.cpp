@@ -21,17 +21,6 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
     {"ds-pref", HeuristicOption::DS_PREF},
 };
 
-const std::unordered_map<HeuristicOption, std::function<std::unique_ptr<HeuristicCfg>()>>
-    heuristic_config_builder{
-        {HeuristicOption::BFS, []() { return std::make_unique<BFSCfg>(); }},
-        {HeuristicOption::DFS, []() { return std::make_unique<DFSCfg>(); }},
-        {HeuristicOption::RANDOM, []() { return std::make_unique<RandomCfg>(); }},
-        {HeuristicOption::GALLIUM, []() { return std::make_unique<GalliumCfg>(); }},
-        {HeuristicOption::GREEDY, []() { return std::make_unique<GreedyCfg>(); }},
-        {HeuristicOption::MAX_TPUT, []() { return std::make_unique<MaxTputCfg>(); }},
-        {HeuristicOption::DS_PREF, []() { return std::make_unique<DSPrefCfg>(); }},
-    };
-
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
   nf_name = nf_name.substr(nf_name.find_last_of("/") + 1);
@@ -59,12 +48,10 @@ int main(int argc, char **argv) {
   std::filesystem::path bdd_profile;
   search_config_t search_config;
   u32 seed = 0;
-  bool no_reorder = false;
   bool show_prof = false;
   bool show_ep = false;
   bool show_ss = false;
   bool show_bdd = false;
-  bool not_greedy = false;
   bool verbose = false;
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
@@ -77,14 +64,14 @@ int main(int argc, char **argv) {
   app.add_option("--profile", bdd_profile, "BDD profile JSON.");
   app.add_option("--seed", seed, "Random seed.")->default_val(std::random_device()());
   app.add_option("--peek", search_config.peek, "Peek execution plans.");
-  app.add_flag("--no-reorder", no_reorder, "Deactivate BDD reordering.");
+  app.add_flag("--no-reorder", search_config.no_reorder, "Deactivate BDD reordering.");
   app.add_flag("--show-prof", show_prof, "Show NF profiling.");
   app.add_flag("--show-ep", show_ep, "Show winner Execution Plan.");
   app.add_flag("--show-ss", show_ss, "Show the entire search space.");
   app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.");
   app.add_flag("--backtrack", search_config.pause_and_show_on_backtrack,
                "Pause on backtrack.");
-  app.add_flag("--not-greedy", not_greedy, "Don't stop on first solution.");
+  app.add_flag("--not-greedy", search_config.not_greedy, "Don't stop on first solution.");
   app.add_flag("-v", verbose, "Verbose mode.");
 
   CLI11_PARSE(app, argc, argv);
@@ -93,10 +80,6 @@ int main(int argc, char **argv) {
     Log::MINIMUM_LOG_LEVEL = Log::Level::DEBUG;
   } else {
     Log::MINIMUM_LOG_LEVEL = Log::Level::LOG;
-  }
-
-  if (no_reorder) {
-    search_config.allow_bdd_reordering = false;
   }
 
   RandomEngine::seed(seed);
@@ -111,25 +94,24 @@ int main(int argc, char **argv) {
   }
 
   // std::string nf_name = nf_name_from_bdd(InputBDDFile);
-  Heuristic heuristic(heuristic_config_builder.at(heuristic_opt)(), !not_greedy);
-  SearchEngine engine(bdd.get(), &heuristic, targets_config, profiler, search_config);
+  SearchEngine engine(bdd.get(), heuristic_opt, profiler, targets_config, search_config);
   search_report_t report = engine.search();
 
   if (show_ep) {
-    EPViz::visualize(report.solution.ep, false);
+    EPViz::visualize(report.ep.get(), false);
   }
 
   if (show_ss) {
-    SSVisualizer::visualize(report.solution.search_space, report.solution.ep, false);
+    SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
   }
 
   if (show_bdd) {
     // BDDViz::visualize(report.solution.ep->get_bdd(), false);
-    ProfilerViz::visualize(report.solution.ep->get_bdd(),
-                           report.solution.ep->get_ctx().get_profiler(), false);
+    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(),
+                           false);
   }
 
-  report.solution.ep->get_ctx().debug();
+  report.ep->get_ctx().debug();
 
   Log::log() << "\n";
   Log::log() << "Params:\n";
@@ -144,21 +126,13 @@ int main(int argc, char **argv) {
   Log::log() << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
   Log::log() << "  Solutions:        " << int2hr(report.meta.solutions) << "\n";
   Log::log() << "Winner EP:\n";
-  Log::log() << "  Winner:           " << report.solution.score << "\n";
-  Log::log() << "  Throughput:       " << report.solution.tput_estimation << "\n";
-  Log::log() << "  Speculation:      " << report.solution.tput_speculation << "\n";
+  Log::log() << "  Winner:           " << report.score << "\n";
+  Log::log() << "  Throughput:       " << report.tput_estimation << "\n";
+  Log::log() << "  Speculation:      " << report.tput_speculation << "\n";
   Log::log() << "\n";
 
   if (!out_dir.empty()) {
-    synthesize(report.solution.ep, out_dir);
-  }
-
-  if (report.solution.ep) {
-    delete report.solution.ep;
-  }
-
-  if (report.solution.search_space) {
-    delete report.solution.search_space;
+    synthesize(report.ep.get(), out_dir);
   }
 
   return 0;
