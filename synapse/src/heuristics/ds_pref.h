@@ -20,5 +20,3 @@ private:
   i64 get_bdd_progress(const EP *ep) const;
   i64 get_ds_score(const EP *ep) const;
 };
-
-using DSPref = Heuristic<DSPrefCfg>;

@@ -18,5 +18,3 @@ public:
 private:
   i64 get_random(const EP *ep) const;
 };
-
-using Random = Heuristic<RandomCfg>;

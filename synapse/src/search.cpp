@@ -106,10 +106,9 @@ void log_search_iteration(const search_step_report_t &report,
 }
 
 void peek_search_space(const std::vector<impl_t> &new_implementations,
-                       const std::unordered_set<ep_id_t> &peek,
-                       SearchSpace *search_space) {
+                       const std::vector<ep_id_t> &peek, SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
-    if (peek.find(impl.result->get_id()) != peek.end()) {
+    if (std::find(peek.begin(), peek.end(), impl.result->get_id()) != peek.end()) {
       Log::dbg() << "\n";
       impl.result->debug();
       BDDViz::visualize(impl.result->get_bdd(), false);
@@ -130,27 +129,18 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space,
 }
 } // namespace
 
-template <class HCfg>
-SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
-                                 const toml::table &_config, const Profiler &_profiler,
-                                 bool _allow_bdd_reordering,
-                                 const std::unordered_set<ep_id_t> &_peek,
-                                 bool _pause_and_show_on_backtrack)
-    : bdd(new BDD(*_bdd)), h(_h), config(_config), profiler(_profiler),
-      targets(Targets(_config)), allow_bdd_reordering(_allow_bdd_reordering), peek(_peek),
-      pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
+SearchEngine::SearchEngine(const BDD *_bdd, Heuristic *_h,
+                           const toml::table &_targets_config, const Profiler &_profiler,
+                           search_config_t _search_config)
+    : bdd(new BDD(*_bdd)), h(_h), targets_config(_targets_config), profiler(_profiler),
+      targets(Targets(_targets_config)), search_config(_search_config) {}
 
-template <class HCfg>
-SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
-                                 const toml::table &_config, const Profiler &_profiler)
-    : SearchEngine(_bdd, _h, _config, _profiler, true, {}, false) {}
-
-template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
+search_report_t SearchEngine::search() {
   search_meta_t meta;
   auto start_search = std::chrono::steady_clock::now();
   SearchSpace *search_space = new SearchSpace(h->get_cfg());
 
-  h->add(new EP(bdd, targets, config, profiler));
+  h->add(new EP(bdd, targets, targets_config, profiler));
 
   std::unordered_map<node_id_t, int> node_depth;
 
@@ -177,7 +167,7 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
 
     if (search_space->is_backtrack()) {
       meta.backtracks++;
-      peek_backtrack(ep, search_space, pause_and_show_on_backtrack);
+      peek_backtrack(ep, search_space, search_config.pause_and_show_on_backtrack);
     }
 
     const Node *node = ep->get_next_node();
@@ -192,7 +182,7 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     for (const std::shared_ptr<const Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
         const std::vector<impl_t> implementations =
-            modgen->generate(ep, node, allow_bdd_reordering);
+            modgen->generate(ep, node, search_config.allow_bdd_reordering);
         search_space->add_to_active_leaf(ep, node, modgen.get(), implementations);
         report.save(modgen.get(), implementations);
 
@@ -227,7 +217,7 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     meta.solutions = h->size();
 
     log_search_iteration(report, meta);
-    peek_search_space(new_implementations, peek, search_space);
+    peek_search_space(new_implementations, search_config.peek, search_space);
 
     h->add(new_implementations);
     h->cleanup();
@@ -238,10 +228,6 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
 
   EP *winner = new EP(*h->get());
 
-  const search_config_t config = {
-      .heuristic = h->get_cfg()->name,
-  };
-
   const search_solution_t solution = {
       .ep = winner,
       .search_space = search_space,
@@ -251,12 +237,10 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
   };
 
   search_report_t report = {
-      .config = config,
+      .heuristic = h->get_cfg()->name,
       .solution = solution,
       .meta = meta,
   };
 
   return report;
 }
-
-EXPLICIT_HEURISTIC_TEMPLATE_CLASS_INSTANTIATION(SearchEngine)

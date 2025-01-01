@@ -21,5 +21,3 @@ private:
   i64 get_bdd_progress(const EP *ep) const;
   i64 get_tput(const EP *ep) const;
 };
-
-using Greedy = Heuristic<GreedyCfg>;

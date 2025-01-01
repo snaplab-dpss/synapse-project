@@ -2,11 +2,13 @@
 #include "heuristics.h"
 #include "../random_engine.h"
 
-template <class HCfg>
-Heuristic<HCfg>::Heuristic(bool _stop_on_first_solution)
-    : stop_on_first_solution(_stop_on_first_solution) {}
+Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, bool _stop_on_first_solution)
+    : config(std::move(_config)),
+      execution_plans(std::multiset<impl_t, impl_comparator_t>(
+          [&](const impl_t &i1, const impl_t &i2) { return (*config)(i1, i2); })),
+      stop_on_first_solution(_stop_on_first_solution) {}
 
-template <class HCfg> Heuristic<HCfg>::~Heuristic() {
+Heuristic::~Heuristic() {
   for (auto &[ep, count] : ep_refs) {
     delete ep;
   }
@@ -15,24 +17,23 @@ template <class HCfg> Heuristic<HCfg>::~Heuristic() {
   execution_plans.clear();
 }
 
-template <class HCfg> bool Heuristic<HCfg>::finished() {
-  return get_next_it() == execution_plans.end();
-}
+bool Heuristic::finished() { return get_next_it() == execution_plans.end(); }
 
-template <class HCfg> const EP *Heuristic<HCfg>::get() {
+const EP *Heuristic::get() {
   update_best_it();
   return best_it->result;
 }
 
-template <class HCfg> const EP *Heuristic<HCfg>::pop() {
+const EP *Heuristic::pop() {
   auto next_it = get_next_it();
   ASSERT(next_it != execution_plans.end(), "No more execution plans to pick");
 
-  if (configuration.mutates(*next_it)) {
+  if (config->mutates(*next_it)) {
     std::vector<impl_t> eps(execution_plans.begin(), execution_plans.end());
 
     // Trigger a re-sort with the new mutated heuristic.
-    execution_plans = std::multiset<impl_t, HCfg>(configuration);
+    execution_plans = std::multiset<impl_t, impl_comparator_t>(
+        [&](const impl_t &i1, const impl_t &i2) { return (*config)(i1, i2); });
     execution_plans.insert(eps.begin(), eps.end());
 
     reset_best_it();
@@ -53,7 +54,7 @@ template <class HCfg> const EP *Heuristic<HCfg>::pop() {
   return ep;
 }
 
-template <class HCfg> void Heuristic<HCfg>::cleanup() {
+void Heuristic::cleanup() {
   std::unordered_set<const EP *> deleted;
 
   for (const auto &[ep, count] : ep_refs) {
@@ -68,8 +69,7 @@ template <class HCfg> void Heuristic<HCfg>::cleanup() {
   }
 }
 
-template <class HCfg>
-void Heuristic<HCfg>::add(const std::vector<impl_t> &new_implementations) {
+void Heuristic::add(const std::vector<impl_t> &new_implementations) {
   for (const impl_t &impl : new_implementations) {
     execution_plans.insert(impl);
 
@@ -83,9 +83,8 @@ void Heuristic<HCfg>::add(const std::vector<impl_t> &new_implementations) {
   reset_best_it();
 }
 
-template <class HCfg> void Heuristic<HCfg>::add(EP *ep) {
-  ASSERT(execution_plans.empty(),
-         "Cannot add execution plan to non-empty heuristic");
+void Heuristic::add(EP *ep) {
+  ASSERT(execution_plans.empty(), "Cannot add execution plan to non-empty heuristic");
   execution_plans.emplace(ep);
   reset_best_it();
 
@@ -93,19 +92,13 @@ template <class HCfg> void Heuristic<HCfg>::add(EP *ep) {
   ep_refs[ep]++;
 }
 
-template <class HCfg> size_t Heuristic<HCfg>::size() const {
-  return execution_plans.size();
-}
+size_t Heuristic::size() const { return execution_plans.size(); }
 
-template <class HCfg> const HCfg *Heuristic<HCfg>::get_cfg() const {
-  return &configuration;
-}
+const HeuristicCfg *Heuristic::get_cfg() const { return config.get(); }
 
-template <class HCfg> Score Heuristic<HCfg>::get_score(const EP *e) const {
-  return configuration.score(e);
-}
+Score Heuristic::get_score(const EP *e) const { return config->score(e); }
 
-template <class HCfg> void Heuristic<HCfg>::update_best_it() {
+void Heuristic::update_best_it() {
   ASSERT(execution_plans.size(), "No execution plans to pick");
 
   if (best_it != execution_plans.end()) {
@@ -116,8 +109,7 @@ template <class HCfg> void Heuristic<HCfg>::update_best_it() {
   Score best_score = get_score(best_it->result);
 
   while (1) {
-    if (best_it == execution_plans.end() ||
-        get_score(best_it->result) != best_score) {
+    if (best_it == execution_plans.end() || get_score(best_it->result) != best_score) {
       best_it = execution_plans.begin();
     }
 
@@ -129,12 +121,9 @@ template <class HCfg> void Heuristic<HCfg>::update_best_it() {
   }
 }
 
-template <class HCfg> void Heuristic<HCfg>::reset_best_it() {
-  best_it = execution_plans.end();
-}
+void Heuristic::reset_best_it() { best_it = execution_plans.end(); }
 
-template <class HCfg>
-typename std::set<impl_t, HCfg>::iterator Heuristic<HCfg>::get_next_it() {
+typename std::set<impl_t, HeuristicCfg>::iterator Heuristic::get_next_it() {
   if (execution_plans.size() == 0) {
     PANIC("No more execution plans to pick!\n");
   }
@@ -154,5 +143,3 @@ typename std::set<impl_t, HCfg>::iterator Heuristic<HCfg>::get_next_it() {
 
   return it;
 }
-
-EXPLICIT_HEURISTIC_TEMPLATE_CLASS_INSTANTIATION(Heuristic)

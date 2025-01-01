@@ -18,5 +18,3 @@ public:
 private:
   i64 get_depth(const EP *ep) const;
 };
-
-using DFS = Heuristic<DFSCfg>;
