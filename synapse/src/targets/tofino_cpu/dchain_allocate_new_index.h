@@ -13,19 +13,17 @@ private:
 
 public:
   DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr,
-                         klee::ref<klee::Expr> _time,
-                         klee::ref<klee::Expr> _index_out,
+                         klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                          const symbol_t &_out_of_space)
-      : TofinoCPUModule(ModuleType::TofinoCPU_DchainAllocateNewIndex,
-                        "DchainAllocate", node),
+      : TofinoCPUModule(ModuleType::TofinoCPU_DchainAllocateNewIndex, "DchainAllocate",
+                        node),
         dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
         out_of_space(_out_of_space) {}
 
   DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr,
-                         klee::ref<klee::Expr> _time,
-                         klee::ref<klee::Expr> _index_out)
-      : TofinoCPUModule(ModuleType::TofinoCPU_DchainAllocateNewIndex,
-                        "DchainAllocate", node),
+                         klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+      : TofinoCPUModule(ModuleType::TofinoCPU_DchainAllocateNewIndex, "DchainAllocate",
+                        node),
         dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
         out_of_space(std::nullopt) {}
 
@@ -38,8 +36,8 @@ public:
     Module *cloned;
 
     if (out_of_space.has_value()) {
-      cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out,
-                                          *out_of_space);
+      cloned =
+          new DchainAllocateNewIndex(node, dchain_addr, time, index_out, *out_of_space);
     } else {
       cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
     }
@@ -51,23 +49,20 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
 
-  const std::optional<symbol_t> &get_out_of_space() const {
-    return out_of_space;
-  }
+  const std::optional<symbol_t> &get_out_of_space() const { return out_of_space; }
 };
 
-class DchainAllocateNewIndexGenerator : public TofinoCPUModuleGenerator {
+class DchainAllocateNewIndexFactory : public TofinoCPUModuleFactory {
 public:
-  DchainAllocateNewIndexGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_DchainAllocateNewIndex,
-                                 "DchainAllocateNewIndex") {}
+  DchainAllocateNewIndexFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_DchainAllocateNewIndex,
+                               "DchainAllocateNewIndex") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

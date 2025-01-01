@@ -5,10 +5,9 @@
 #include "target.h"
 #include "module.h"
 #include "../bdd/bdd.h"
-#include "../execution_plan/execution_plan.h"
 #include "../util.h"
-
-class Context;
+#include "../execution_plan/context.h"
+#include "../execution_plan/execution_plan.h"
 
 struct decision_t {
   const EP *ep;
@@ -26,8 +25,7 @@ struct decision_t {
       : ep(_ep), node(_node), module(_module), params(_params) {}
 
   decision_t(const decision_t &other)
-      : ep(other.ep), node(other.node), module(other.module),
-        params(other.params) {}
+      : ep(other.ep), node(other.node), module(other.module), params(other.params) {}
 
   decision_t &operator=(const decision_t &other) {
     ep = other.ep;
@@ -57,34 +55,21 @@ struct impl_t {
 
   impl_t(const decision_t &_decision, EP *_result, bool _bdd_reordered)
       : decision(_decision), result(_result), bdd_reordered(_bdd_reordered) {}
-
-  impl_t(const impl_t &other)
-      : decision(other.decision), result(other.result),
-        bdd_reordered(other.bdd_reordered) {}
-
-  impl_t &operator=(const impl_t &other) {
-    decision = other.decision;
-    result = other.result;
-    bdd_reordered = other.bdd_reordered;
-    return *this;
-  }
 };
 
-class ModuleGenerator {
+class ModuleFactory {
 protected:
   ModuleType type;
   TargetType target;
   std::string name;
 
 public:
-  ModuleGenerator(ModuleType _type, TargetType _target,
-                  const std::string &_name)
+  ModuleFactory(ModuleType _type, TargetType _target, const std::string &_name)
       : type(_type), target(_target), name(_name) {}
 
-  virtual ~ModuleGenerator() {}
+  virtual ~ModuleFactory() {}
 
-  std::vector<impl_t> generate(const EP *ep, const Node *node,
-                               bool reorder_bdd) const;
+  std::vector<impl_t> generate(const EP *ep, const Node *node, bool reorder_bdd) const;
 
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const = 0;
@@ -100,6 +85,5 @@ protected:
   impl_t implement(const EP *ep, const Node *node, EP *result,
                    std::unordered_map<std::string, i32> params = {}) const;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const = 0;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const = 0;
 };

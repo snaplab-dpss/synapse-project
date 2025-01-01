@@ -20,18 +20,16 @@ public:
   }
 };
 
-class BroadcastGenerator : public TofinoCPUModuleGenerator {
+class BroadcastFactory : public TofinoCPUModuleFactory {
 public:
-  BroadcastGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_Broadcast, "Broadcast") {
-  }
+  BroadcastFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_Broadcast, "Broadcast") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

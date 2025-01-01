@@ -10,37 +10,56 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/targets.h"
 
-#define SHOW_MODULE_NAME(M)                                                    \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
-    function_call(ep_node, node->get_node(), node->get_target(),               \
-                  node->get_name());                                           \
+#define SHOW_MODULE_NAME(M)                                                              \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());      \
   }
 
-#define VISIT_BRANCH(M)                                                        \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {      \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());   \
+#define VISIT_BRANCH(M)                                                                  \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());             \
   }
 
-#define IGNORE_MODULE(M)                                                       \
+#define IGNORE_MODULE(M)                                                                 \
   void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
 
-static std::unordered_map<TargetType, std::string> node_colors = {
+namespace {
+std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
     {TargetType::TofinoCPU, "lightcoral"},
     {TargetType::x86, "orange"},
 };
 
-static std::unordered_set<ModuleType> modules_to_ignore = {
+std::unordered_set<ModuleType> modules_to_ignore = {
     ModuleType::x86_Ignore,
     ModuleType::Tofino_Ignore,
     ModuleType::TofinoCPU_Ignore,
 };
 
-static bool should_ignore_node(const EPNode *node) {
+bool should_ignore_node(const EPNode *node) {
   const Module *module = node->get_module();
   ModuleType type = module->get_type();
   return modules_to_ignore.find(type) != modules_to_ignore.end();
 }
+
+void log_visualization(const EP *ep, const std::string &fname) {
+  ASSERT(ep, "Invalid EP");
+  Log::log() << "Visualizing EP";
+  Log::log() << " id=" << ep->get_id();
+  Log::log() << " file=" << fname;
+  Log::log() << " ancestors=[";
+  bool first = true;
+  for (ep_id_t ancestor : ep->get_ancestors()) {
+    if (!first) {
+      Log::log() << " ";
+    }
+    Log::log() << ancestor;
+    first = false;
+  }
+  Log::log() << "]";
+  Log::log() << "\n";
+}
+} // namespace
 
 EPViz::EPViz() {}
 
@@ -48,8 +67,8 @@ void EPViz::log(const EPNode *ep_node) const {
   // Don't log anything.
 }
 
-void EPViz::function_call(const EPNode *ep_node, const Node *node,
-                          TargetType target, const std::string &label) {
+void EPViz::function_call(const EPNode *ep_node, const Node *node, TargetType target,
+                          const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
@@ -90,24 +109,6 @@ void EPViz::branch(const EPNode *ep_node, const Node *node, TargetType target,
   ss << "\", ";
   ss << "color=" << node_colors[target] << "];";
   ss << "\n";
-}
-
-static void log_visualization(const EP *ep, const std::string &fname) {
-  ASSERT(ep, "Invalid EP");
-  Log::log() << "Visualizing EP";
-  Log::log() << " id=" << ep->get_id();
-  Log::log() << " file=" << fname;
-  Log::log() << " ancestors=[";
-  bool first = true;
-  for (ep_id_t ancestor : ep->get_ancestors()) {
-    if (!first) {
-      Log::log() << " ";
-    }
-    Log::log() << ancestor;
-    first = false;
-  }
-  Log::log() << "]";
-  Log::log() << "\n";
 }
 
 void EPViz::visualize(const EP *ep, bool interrupt) {

@@ -14,7 +14,7 @@ EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols,
   EPNode *ep_node = new EPNode(module);
 
   TofinoContext *tofino_ctx =
-      TofinoModuleGenerator::get_mutable_tofino_ctx(new_ep);
+      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   hit_rate_t recirc_fraction = ep->get_active_leaf_hit_rate();
 
   int port_recirculations = 1;
@@ -63,14 +63,14 @@ EP *concretize_single_port_recirc(const EP *ep, const Node *node,
 } // namespace
 
 std::optional<spec_impl_t>
-RecirculateGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+RecirculateFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   // No reason to speculatively predict recirculations.
   return std::nullopt;
 }
 
-std::vector<impl_t> RecirculateGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> RecirculateFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   const TofinoContext *tofino_ctx = get_tofino_ctx(ep);

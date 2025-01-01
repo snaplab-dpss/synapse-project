@@ -14,8 +14,7 @@ private:
 public:
   MapRegisterDelete(const Node *node, DS_ID _map_register_id, addr_t _obj,
                     klee::ref<klee::Expr> _key)
-      : TofinoModule(ModuleType::Tofino_MapRegisterDelete, "MapRegisterDelete",
-                     node),
+      : TofinoModule(ModuleType::Tofino_MapRegisterDelete, "MapRegisterDelete", node),
         map_register_id(_map_register_id), obj(_obj), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -37,18 +36,16 @@ public:
   }
 };
 
-class MapRegisterDeleteGenerator : public TofinoModuleGenerator {
+class MapRegisterDeleteFactory : public TofinoModuleFactory {
 public:
-  MapRegisterDeleteGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_MapRegisterDelete,
-                              "MapRegisterDelete") {}
+  MapRegisterDeleteFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_MapRegisterDelete, "MapRegisterDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

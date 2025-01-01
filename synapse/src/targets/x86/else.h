@@ -19,16 +19,15 @@ public:
   }
 };
 
-class ElseGenerator : public x86ModuleGenerator {
+class ElseFactory : public x86ModuleFactory {
 public:
-  ElseGenerator() : x86ModuleGenerator(ModuleType::x86_Else, "Else") {}
+  ElseFactory() : x86ModuleFactory(ModuleType::x86_Else, "Else") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

@@ -26,17 +26,15 @@ public:
   int get_dst_device() const { return dst_device; }
 };
 
-class ForwardGenerator : public TofinoCPUModuleGenerator {
+class ForwardFactory : public TofinoCPUModuleFactory {
 public:
-  ForwardGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_Forward, "Forward") {}
+  ForwardFactory() : TofinoCPUModuleFactory(ModuleType::TofinoCPU_Forward, "Forward") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

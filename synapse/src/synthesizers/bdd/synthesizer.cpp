@@ -11,13 +11,14 @@
 #define MARKER_NF_INIT "NF_INIT"
 #define MARKER_NF_PROCESS "NF_PROCESS"
 
-#define POPULATE_SYNTHESIZER(FNAME)                                            \
-  {                                                                            \
-    #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1,     \
-                      std::placeholders::_2)                                   \
+#define POPULATE_SYNTHESIZER(FNAME)                                                      \
+  {                                                                                      \
+    #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1,               \
+                      std::placeholders::_2)                                             \
   }
 
-static std::string template_from_type(BDDSynthesizerTarget target) {
+namespace {
+std::string template_from_type(BDDSynthesizerTarget target) {
   std::string template_filename;
 
   switch (target) {
@@ -31,6 +32,7 @@ static std::string template_from_type(BDDSynthesizerTarget target) {
 
   return template_filename;
 }
+} // namespace
 
 BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
     : Synthesizer(template_from_type(_target),
@@ -40,14 +42,13 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
                       {MARKER_NF_PROCESS, 0},
                   },
                   _out),
-      target(_target), transpiler(this),
-      init_synthesizers({
-          POPULATE_SYNTHESIZER(map_allocate),
-          POPULATE_SYNTHESIZER(vector_allocate),
-          POPULATE_SYNTHESIZER(dchain_allocate),
-          POPULATE_SYNTHESIZER(cms_allocate),
-          POPULATE_SYNTHESIZER(tb_allocate),
-      }),
+      target(_target), transpiler(this), init_synthesizers({
+                                             POPULATE_SYNTHESIZER(map_allocate),
+                                             POPULATE_SYNTHESIZER(vector_allocate),
+                                             POPULATE_SYNTHESIZER(dchain_allocate),
+                                             POPULATE_SYNTHESIZER(cms_allocate),
+                                             POPULATE_SYNTHESIZER(tb_allocate),
+                                         }),
       process_synthesizers({
           POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
           POPULATE_SYNTHESIZER(packet_return_chunk),
@@ -281,10 +282,8 @@ void BDDSynthesizer::synthesize(const Node *node) {
 }
 
 void BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
-  if (this->init_synthesizers.find(call.function_name) ==
-      this->init_synthesizers.end()) {
-    PANIC("No init synthesizer found for function: %s\n",
-          call.function_name.c_str());
+  if (this->init_synthesizers.find(call.function_name) == this->init_synthesizers.end()) {
+    PANIC("No init synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
   (this->init_synthesizers[call.function_name])(coder, call);
@@ -295,15 +294,13 @@ void BDDSynthesizer::synthesize_process(coder_t &coder, const Call *call_node) {
 
   if (this->process_synthesizers.find(call.function_name) ==
       this->process_synthesizers.end()) {
-    PANIC("No process synthesizer found for function: %s\n",
-          call.function_name.c_str());
+    PANIC("No process synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
   (this->process_synthesizers[call.function_name])(coder, call_node);
 }
 
-void BDDSynthesizer::packet_borrow_next_chunk(coder_t &coder,
-                                              const Call *call_node) {
+void BDDSynthesizer::packet_borrow_next_chunk(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> length = call.args.at("length").expr;
@@ -326,8 +323,7 @@ void BDDSynthesizer::packet_borrow_next_chunk(coder_t &coder,
   stack_add(hdr);
 }
 
-void BDDSynthesizer::packet_return_chunk(coder_t &coder,
-                                         const Call *call_node) {
+void BDDSynthesizer::packet_return_chunk(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> chunk_addr = call.args.at("the_chunk").expr;
@@ -384,8 +380,7 @@ void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder,
   stack_add(c);
 }
 
-void BDDSynthesizer::expire_items_single_map(coder_t &coder,
-                                             const Call *call_node) {
+void BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
@@ -395,8 +390,8 @@ void BDDSynthesizer::expire_items_single_map(coder_t &coder,
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
   symbol_t number_of_freed_flows;
-  bool found = get_symbol(generated_symbols, "number_of_freed_flows",
-                          number_of_freed_flows);
+  bool found =
+      get_symbol(generated_symbols, "number_of_freed_flows", number_of_freed_flows);
   ASSERT(found, "Symbol number_of_freed_flows not found");
 
   var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
@@ -414,8 +409,8 @@ void BDDSynthesizer::expire_items_single_map(coder_t &coder,
   stack_add(nfreed);
 }
 
-void BDDSynthesizer::expire_items_single_map_iteratively(
-    coder_t &coder, const Call *call_node) {
+void BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder,
+                                                         const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   coder.indent();
@@ -447,9 +442,11 @@ void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
   stack_add(map_out_var);
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(
-    const std::string &base_name, klee::ref<klee::Expr> addr,
-    klee::ref<klee::Expr> value, coder_t &coder, bool &found_in_stack) {
+BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name,
+                                                    klee::ref<klee::Expr> addr,
+                                                    klee::ref<klee::Expr> value,
+                                                    coder_t &coder,
+                                                    bool &found_in_stack) {
   bytes_t size = value->getWidth() / 8;
 
   var_t var;
@@ -507,8 +504,7 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
 
   symbol_t map_has_this_key;
-  bool found =
-      get_symbol(generated_symbols, "map_has_this_key", map_has_this_key);
+  bool found = get_symbol(generated_symbols, "map_has_this_key", map_has_this_key);
   ASSERT(found, "Symbol map_has_this_key not found");
 
   var_t r = build_var("map_hit", map_has_this_key.expr);
@@ -774,8 +770,8 @@ void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
 
   bool threshold_in_stack;
-  var_t t = build_var_ptr("threshold", threshold_addr, threshold, coder,
-                          threshold_in_stack);
+  var_t t =
+      build_var_ptr("threshold", threshold_addr, threshold, coder, threshold_in_stack);
 
   symbol_t found_sample;
   bool found = get_symbol(generated_symbols, "found_sample", found_sample);
@@ -827,8 +823,7 @@ void BDDSynthesizer::dchain_allocate(coder_t &coder, const call_t &call) {
   stack_add(chain_out_var);
 }
 
-void BDDSynthesizer::dchain_allocate_new_index(coder_t &coder,
-                                               const Call *call_node) {
+void BDDSynthesizer::dchain_allocate_new_index(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
@@ -861,8 +856,7 @@ void BDDSynthesizer::dchain_allocate_new_index(coder_t &coder,
   stack_add(i);
 }
 
-void BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder,
-                                             const Call *call_node) {
+void BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
@@ -888,8 +882,7 @@ void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   ASSERT(false, "TODO");
 }
 
-void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder,
-                                               const Call *call_node) {
+void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
@@ -897,8 +890,7 @@ void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder,
   klee::ref<klee::Expr> index = call.args.at("index").expr;
 
   symbol_t is_allocated;
-  bool found =
-      get_symbol(generated_symbols, "dchain_is_index_allocated", is_allocated);
+  bool found = get_symbol(generated_symbols, "dchain_is_index_allocated", is_allocated);
   ASSERT(found, "Symbol dchain_is_index_allocated not found");
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
@@ -932,8 +924,7 @@ void BDDSynthesizer::cms_allocate(coder_t &coder, const call_t &call) {
   klee::ref<klee::Expr> height = call.args.at("height").expr;
   klee::ref<klee::Expr> width = call.args.at("width").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
-  klee::ref<klee::Expr> cleanup_interval =
-      call.args.at("cleanup_interval").expr;
+  klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out = call.args.at("cms_out").out;
 
   var_t cms_out_var = build_var("cms", cms_out);
@@ -1009,8 +1000,7 @@ void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
   stack_add(me);
 }
 
-void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder,
-                                          const Call *call_node) {
+void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
   symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
@@ -1018,8 +1008,7 @@ void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder,
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
   symbol_t cleanup_success;
-  bool found =
-      get_symbol(generated_symbols, "cleanup_success", cleanup_success);
+  bool found = get_symbol(generated_symbols, "cleanup_success", cleanup_success);
   ASSERT(found, "Symbol success not found");
 
   var_t cs = build_var("cleanup_success", cleanup_success.expr);
@@ -1139,8 +1128,7 @@ void BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
   }
 }
 
-void BDDSynthesizer::tb_update_and_check(coder_t &coder,
-                                         const Call *call_node) {
+void BDDSynthesizer::tb_update_and_check(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
@@ -1222,8 +1210,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
   PANIC("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
 }
 
-code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset,
-                                 bits_t size) const {
+code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset, bits_t size) const {
   ASSERT(offset + size <= var.expr->getWidth(), "Out of bounds");
 
   coder_t coder;
@@ -1294,16 +1281,14 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
 
 void BDDSynthesizer::stack_add(const var_t &var) {
   if (var.expr.isNull()) {
-    PANIC("Trying to add a variable with a null expression: %s\n",
-          var.name.c_str());
+    PANIC("Trying to add a variable with a null expression: %s\n", var.name.c_str());
   }
 
   stack_frame_t &frame = stack.back();
   frame.vars.push_back(var);
 }
 
-void BDDSynthesizer::stack_replace(const var_t &var,
-                                   klee::ref<klee::Expr> new_expr) {
+void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_expr) {
   for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
     stack_frame_t &frame = *it;
     for (var_t &v : frame.vars) {

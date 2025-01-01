@@ -30,32 +30,18 @@ public:
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   klee::ref<klee::Expr> get_success() const { return success; }
-
-  tofino::Meter *get_meter(const EP *ep) const {
-    const Context &ctx = ep->get_ctx();
-    const tofino::TofinoContext *tofino_ctx =
-        ctx.get_target_ctx<tofino::TofinoContext>();
-    const std::unordered_set<tofino::DS *> &data_structures =
-        tofino_ctx->get_ds(obj);
-    ASSERT(data_structures.size() == 1, "Invalid number of data structures");
-    ASSERT((*data_structures.begin())->type == tofino::DSType::METER,
-           "Invalid data structure type");
-    return static_cast<tofino::Meter *>(*data_structures.begin());
-  }
 };
 
-class MeterInsertGenerator : public TofinoCPUModuleGenerator {
+class MeterInsertFactory : public TofinoCPUModuleFactory {
 public:
-  MeterInsertGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_MeterInsert,
-                                 "MeterInsert") {}
+  MeterInsertFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_MeterInsert, "MeterInsert") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

@@ -18,7 +18,8 @@
 #include "../exprs/simplifier.h"
 #include "../exprs/solver.h"
 
-static std::vector<std::string> ignored_functions{
+namespace {
+std::vector<std::string> ignored_functions{
     "start_time",
     "current_time",
     "loop_invariant_consume",
@@ -29,125 +30,121 @@ static std::vector<std::string> ignored_functions{
     "vector_reset",
 };
 
-static std::vector<std::string> init_functions{
+std::vector<std::string> init_functions{
     "map_allocate", "vector_allocate", "dchain_allocate",
     "cms_allocate", "cht_fill_cht",    "tb_allocate",
 };
 
-static std::vector<std::string> symbols_in_skippable_conditions{
-    "received_a_packet",        "loop_termination",
-    "map_allocation_succeeded", "vector_alloc_success",
-    "is_dchain_allocated",      "cht_fill_cht_successful",
+std::vector<std::string> symbols_in_skippable_conditions{
+    "received_a_packet",        "loop_termination",        "map_allocation_succeeded",
+    "vector_alloc_success",     "is_dchain_allocated",     "cht_fill_cht_successful",
     "cms_allocation_succeeded", "tb_allocation_succeeded",
 };
 
-static std::vector<std::string> rounting_functions{
+std::vector<std::string> rounting_functions{
     "packet_send",
     "packet_free",
     "packet_broadcast",
 };
 
-static std::unordered_set<std::string> bdd_symbols{
+std::unordered_set<std::string> bdd_symbols{
     "DEVICE",
     "pkt_len",
     "next_time",
 };
 
-static std::unordered_map<std::string, std::unordered_set<std::string>>
-    symbols_from_call = {
-        {
-            "rte_lcore_count",
-            {"lcores"},
-        },
-        {
-            "rte_ether_addr_hash",
-            {"rte_ether_addr_hash"},
-        },
-        {
-            "nf_set_rte_ipv4_udptcp_checksum",
-            {"checksum"},
-        },
-        {
-            "current_time",
-            {"next_time"},
-        },
-        {
-            "packet_receive",
-            {"DEVICE", "pkt_len"},
-        },
-        {
-            "expire_items_single_map",
-            {"number_of_freed_flows"},
-        },
-        {
-            "expire_items_single_map_iteratively",
-            {"number_of_freed_flows"},
-        },
-        {
-            "map_get",
-            {"map_has_this_key", "allocated_index"},
-        },
-        {
-            "map_size",
-            {"map_size"},
-        },
-        {
-            "dchain_is_index_allocated",
-            {"dchain_is_index_allocated"},
-        },
-        {
-            "dchain_allocate_new_index",
-            {"out_of_space", "new_index"},
-        },
-        {
-            "vector_borrow",
-            {"vector_data_reset"},
-        },
-        {
-            "vector_sample_lt",
-            {"found_sample", "sample_index"},
-        },
-        {
-            "cht_find_preferred_available_backend",
-            {"chosen_backend", "prefered_backend_found"},
-        },
-        {
-            "cms_count_min",
-            {"min_estimate"},
-        },
-        {
-            "cms_periodic_cleanup",
-            {"cleanup_success"},
-        },
-        {
-            "hash_obj",
-            {"hash"},
-        },
-        {
-            "tb_is_tracing",
-            {"is_tracing"},
-        },
-        {
-            "tb_trace",
-            {"index_out"},
-        },
-        {
-            "tb_update_and_check",
-            {"pass"},
-        },
-        {
-            "tb_expire",
-            {"number_of_freed_flows"},
-        },
+std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call = {
+    {
+        "rte_lcore_count",
+        {"lcores"},
+    },
+    {
+        "rte_ether_addr_hash",
+        {"rte_ether_addr_hash"},
+    },
+    {
+        "nf_set_rte_ipv4_udptcp_checksum",
+        {"checksum"},
+    },
+    {
+        "current_time",
+        {"next_time"},
+    },
+    {
+        "packet_receive",
+        {"DEVICE", "pkt_len"},
+    },
+    {
+        "expire_items_single_map",
+        {"number_of_freed_flows"},
+    },
+    {
+        "expire_items_single_map_iteratively",
+        {"number_of_freed_flows"},
+    },
+    {
+        "map_get",
+        {"map_has_this_key", "allocated_index"},
+    },
+    {
+        "map_size",
+        {"map_size"},
+    },
+    {
+        "dchain_is_index_allocated",
+        {"dchain_is_index_allocated"},
+    },
+    {
+        "dchain_allocate_new_index",
+        {"out_of_space", "new_index"},
+    },
+    {
+        "vector_borrow",
+        {"vector_data_reset"},
+    },
+    {
+        "vector_sample_lt",
+        {"found_sample", "sample_index"},
+    },
+    {
+        "cht_find_preferred_available_backend",
+        {"chosen_backend", "prefered_backend_found"},
+    },
+    {
+        "cms_count_min",
+        {"min_estimate"},
+    },
+    {
+        "cms_periodic_cleanup",
+        {"cleanup_success"},
+    },
+    {
+        "hash_obj",
+        {"hash"},
+    },
+    {
+        "tb_is_tracing",
+        {"is_tracing"},
+    },
+    {
+        "tb_trace",
+        {"index_out"},
+    },
+    {
+        "tb_update_and_check",
+        {"pass"},
+    },
+    {
+        "tb_expire",
+        {"number_of_freed_flows"},
+    },
 };
 
-typedef symbols_t (*SymbolsExtractor)(const call_t &call,
-                                      const symbols_t &all_symbols);
+typedef symbols_t (*SymbolsExtractor)(const call_t &call, const symbols_t &all_symbols);
 
-static symbols_t packet_chunks_symbol_extractor(const call_t &call,
-                                                const symbols_t &all_symbols) {
-  ASSERT(call.function_name == "packet_borrow_next_chunk",
-         "Unexpected function");
+symbols_t packet_chunks_symbol_extractor(const call_t &call,
+                                         const symbols_t &all_symbols) {
+  ASSERT(call.function_name == "packet_borrow_next_chunk", "Unexpected function");
 
   const extra_var_t &extra_var = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
@@ -160,80 +157,33 @@ static symbols_t packet_chunks_symbol_extractor(const call_t &call,
   return {symbol};
 }
 
-static std::unordered_map<std::string, SymbolsExtractor>
-    special_symbols_extractors = {
-        {
-            "packet_borrow_next_chunk",
-            packet_chunks_symbol_extractor,
-        },
+std::unordered_map<std::string, SymbolsExtractor> special_symbols_extractors = {
+    {
+        "packet_borrow_next_chunk",
+        packet_chunks_symbol_extractor,
+    },
 };
 
-void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
-
-const Node *BDD::get_node_by_id(node_id_t _id) const {
-  return root ? root->get_node_by_id(_id) : nullptr;
-}
-
-Node *BDD::get_mutable_node_by_id(node_id_t _id) {
-  return root ? root->get_mutable_node_by_id(_id) : nullptr;
-}
-
-int BDD::get_node_depth(node_id_t _id) const {
-  int depth = -1;
-
-  if (!root) {
-    return depth;
-  }
-
-  struct depth_tracker_t : cookie_t {
-    int depth;
-
-    depth_tracker_t() : depth(0) {}
-
-    cookie_t *clone() const override {
-      depth_tracker_t *new_cookie = new depth_tracker_t();
-      new_cookie->depth = depth;
-      return new_cookie;
-    }
-  };
-
-  root->visit_nodes(
-      [_id, &depth](const Node *node, cookie_t *cookie) {
-        depth_tracker_t *depth_tracker = static_cast<depth_tracker_t *>(cookie);
-
-        if (node->get_id() == _id) {
-          depth = depth_tracker->depth;
-          return NodeVisitAction::Stop;
-        }
-
-        depth_tracker->depth++;
-        return NodeVisitAction::Continue;
-      },
-      std::make_unique<depth_tracker_t>());
-
-  return depth;
-}
-
-static bool is_bdd_symbol(const std::string &symbol) {
+bool is_bdd_symbol(const std::string &symbol) {
   return bdd_symbols.find(symbol) != bdd_symbols.end();
 }
 
-static bool is_init_function(const call_t &call) {
-  return std::find(init_functions.begin(), init_functions.end(),
-                   call.function_name) != init_functions.end();
+bool is_init_function(const call_t &call) {
+  return std::find(init_functions.begin(), init_functions.end(), call.function_name) !=
+         init_functions.end();
 }
 
-static bool is_skip_function(const call_t &call) {
+bool is_skip_function(const call_t &call) {
   return std::find(ignored_functions.begin(), ignored_functions.end(),
                    call.function_name) != ignored_functions.end();
 }
 
-static bool is_routing_function(const call_t &call) {
+bool is_routing_function(const call_t &call) {
   return std::find(rounting_functions.begin(), rounting_functions.end(),
                    call.function_name) != rounting_functions.end();
 }
 
-static bool is_skip_condition(klee::ref<klee::Expr> condition) {
+bool is_skip_condition(klee::ref<klee::Expr> condition) {
   std::unordered_set<std::string> symbols = get_symbols(condition);
 
   for (const std::string &symbol : symbols) {
@@ -241,9 +191,9 @@ static bool is_skip_condition(klee::ref<klee::Expr> condition) {
       return symbol.find(s) != std::string::npos;
     };
 
-    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(),
-                                 symbols_in_skippable_conditions.end(),
-                                 base_symbol_comparator);
+    auto found_it =
+        std::find_if(symbols_in_skippable_conditions.begin(),
+                     symbols_in_skippable_conditions.end(), base_symbol_comparator);
 
     if (found_it != symbols_in_skippable_conditions.end())
       return true;
@@ -252,9 +202,8 @@ static bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-static Route *route_node_from_call(const call_t &call,
-                                   const klee::ConstraintManager &constraints,
-                                   node_id_t id) {
+Route *route_node_from_call(const call_t &call,
+                            const klee::ConstraintManager &constraints, node_id_t id) {
   ASSERT(is_routing_function(call), "Unexpected function");
 
   if (call.function_name == "packet_free") {
@@ -274,8 +223,7 @@ static Route *route_node_from_call(const call_t &call,
   return new Route(id, constraints, RouteOp::Forward, value);
 }
 
-static call_t
-get_successful_call(const std::vector<call_path_t *> &call_paths) {
+call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
   ASSERT(call_paths.size(), "No call paths");
 
   for (call_path_t *cp : call_paths) {
@@ -287,8 +235,7 @@ get_successful_call(const std::vector<call_path_t *> &call_paths) {
 
     klee::ref<klee::Expr> zero =
         solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
-    klee::ref<klee::Expr> eq_zero =
-        solver_toolbox.exprBuilder->Eq(call.ret, zero);
+    klee::ref<klee::Expr> eq_zero = solver_toolbox.exprBuilder->Eq(call.ret, zero);
     bool is_ret_success = solver_toolbox.is_expr_always_false(eq_zero);
 
     if (is_ret_success)
@@ -299,8 +246,7 @@ get_successful_call(const std::vector<call_path_t *> &call_paths) {
   return call_paths[0]->calls[0];
 }
 
-static klee::ref<klee::Expr>
-simplify_constraint(klee::ref<klee::Expr> constraint) {
+klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
   ASSERT(!constraint.isNull(), "Null constraint");
 
   klee::ref<klee::Expr> simplified = simplify(constraint);
@@ -310,14 +256,12 @@ simplify_constraint(klee::ref<klee::Expr> constraint) {
 
   klee::Expr::Width width = simplified->getWidth();
   klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, width);
-  klee::ref<klee::Expr> is_not_zero =
-      solver_toolbox.exprBuilder->Ne(simplified, zero);
+  klee::ref<klee::Expr> is_not_zero = solver_toolbox.exprBuilder->Ne(simplified, zero);
 
   return is_not_zero;
 }
 
-static klee::ref<klee::Expr>
-negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
+klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
   ASSERT(!constraint.isNull(), "Null constraint");
 
   klee::ref<klee::Expr> simplified = simplify(constraint);
@@ -327,15 +271,14 @@ negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
 
   klee::Expr::Width width = simplified->getWidth();
   klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, width);
-  klee::ref<klee::Expr> is_zero =
-      solver_toolbox.exprBuilder->Eq(simplified, zero);
+  klee::ref<klee::Expr> is_zero = solver_toolbox.exprBuilder->Eq(simplified, zero);
 
   return is_zero;
 }
 
-static std::optional<symbol_t> get_generated_symbol(
-    const symbols_t &symbols, const std::string &base_symbol,
-    std::unordered_map<std::string, size_t> &base_symbols_generated) {
+std::optional<symbol_t>
+get_generated_symbol(const symbols_t &symbols, const std::string &base_symbol,
+                     std::unordered_map<std::string, size_t> &base_symbols_generated) {
   std::vector<symbol_t> filtered;
 
   for (const symbol_t &symbol : symbols) {
@@ -347,10 +290,8 @@ static std::optional<symbol_t> get_generated_symbol(
     size_t base_a_pos = a.array->name.find(base_symbol);
     size_t base_b_pos = b.array->name.find(base_symbol);
 
-    std::string a_suffix =
-        a.array->name.substr(base_a_pos + base_symbol.size());
-    std::string b_suffix =
-        b.array->name.substr(base_b_pos + base_symbol.size());
+    std::string a_suffix = a.array->name.substr(base_a_pos + base_symbol.size());
+    std::string b_suffix = b.array->name.substr(base_b_pos + base_symbol.size());
 
     if (a_suffix.size() == 0)
       return true;
@@ -371,8 +312,7 @@ static std::optional<symbol_t> get_generated_symbol(
 
   size_t total_base_symbols_generated = 0;
 
-  if (base_symbols_generated.find(base_symbol) !=
-      base_symbols_generated.end()) {
+  if (base_symbols_generated.find(base_symbol) != base_symbols_generated.end()) {
     total_base_symbols_generated = base_symbols_generated[base_symbol];
   } else {
     base_symbols_generated[base_symbol] = 0;
@@ -386,10 +326,10 @@ static std::optional<symbol_t> get_generated_symbol(
   return filtered[total_base_symbols_generated];
 }
 
-static symbols_t get_generated_symbols(
-    const call_t &call,
-    std::unordered_map<std::string, size_t> &base_symbols_generated,
-    const symbols_t &symbols) {
+symbols_t
+get_generated_symbols(const call_t &call,
+                      std::unordered_map<std::string, size_t> &base_symbols_generated,
+                      const symbols_t &symbols) {
   symbols_t generated_symbols;
 
   if (special_symbols_extractors.find(call.function_name) !=
@@ -416,15 +356,14 @@ static symbols_t get_generated_symbols(
   return generated_symbols;
 }
 
-static void pop_call_paths(call_paths_t &call_paths) {
+void pop_call_paths(call_paths_t &call_paths) {
   for (call_path_t *cp : call_paths.cps) {
     ASSERT(cp->calls.size(), "No calls");
     cp->calls.erase(cp->calls.begin());
   }
 }
 
-static void build_bdd_symbols(const symbols_t &symbols,
-                              symbols_t &bdd_symbols) {
+void build_bdd_symbols(const symbols_t &symbols, symbols_t &bdd_symbols) {
   for (const symbol_t &symbol : symbols) {
     if (is_bdd_symbol(symbol.base)) {
       bdd_symbols.insert(symbol);
@@ -432,12 +371,12 @@ static void build_bdd_symbols(const symbols_t &symbols,
   }
 }
 
-static Node *bdd_from_call_paths(
-    call_paths_t call_paths, NodeManager &manager, std::vector<call_t> &init,
-    node_id_t &id, symbols_t &bdd_symbols,
-    klee::ConstraintManager constraints = klee::ConstraintManager(),
-    std::unordered_map<std::string, size_t> base_symbols_generated =
-        std::unordered_map<std::string, size_t>()) {
+Node *bdd_from_call_paths(call_paths_t call_paths, NodeManager &manager,
+                          std::vector<call_t> &init, node_id_t &id,
+                          symbols_t &bdd_symbols,
+                          klee::ConstraintManager constraints = klee::ConstraintManager(),
+                          std::unordered_map<std::string, size_t> base_symbols_generated =
+                              std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
   Node *leaf = nullptr;
 
@@ -509,8 +448,7 @@ static Node *bdd_from_call_paths(
       klee::ref<klee::Expr> discriminating_constraint =
           group.get_discriminating_constraint();
 
-      klee::ref<klee::Expr> condition =
-          simplify_constraint(discriminating_constraint);
+      klee::ref<klee::Expr> condition = simplify_constraint(discriminating_constraint);
       klee::ref<klee::Expr> not_condition =
           negate_and_simplify_constraint(discriminating_constraint);
 
@@ -572,6 +510,53 @@ static Node *bdd_from_call_paths(
   }
 
   return root;
+}
+} // namespace
+
+void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
+
+const Node *BDD::get_node_by_id(node_id_t _id) const {
+  return root ? root->get_node_by_id(_id) : nullptr;
+}
+
+Node *BDD::get_mutable_node_by_id(node_id_t _id) {
+  return root ? root->get_mutable_node_by_id(_id) : nullptr;
+}
+
+int BDD::get_node_depth(node_id_t _id) const {
+  int depth = -1;
+
+  if (!root) {
+    return depth;
+  }
+
+  struct depth_tracker_t : cookie_t {
+    int depth;
+
+    depth_tracker_t() : depth(0) {}
+
+    cookie_t *clone() const override {
+      depth_tracker_t *new_cookie = new depth_tracker_t();
+      new_cookie->depth = depth;
+      return new_cookie;
+    }
+  };
+
+  root->visit_nodes(
+      [_id, &depth](const Node *node, cookie_t *cookie) {
+        depth_tracker_t *depth_tracker = static_cast<depth_tracker_t *>(cookie);
+
+        if (node->get_id() == _id) {
+          depth = depth_tracker->depth;
+          return NodeVisitAction::Stop;
+        }
+
+        depth_tracker->depth++;
+        return NodeVisitAction::Continue;
+      },
+      std::make_unique<depth_tracker_t>());
+
+  return depth;
 }
 
 symbols_t BDD::get_generated_symbols(const Node *node) const {
@@ -642,16 +627,15 @@ void BDD::assert_integrity() const {
 }
 
 BDD::BDD(const BDD &other)
-    : id(other.id), device(other.device), packet_len(other.packet_len),
-      time(other.time), init(other.init) {
+    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time),
+      init(other.init) {
   root = other.root->clone(manager, true);
 }
 
 BDD::BDD(BDD &&other)
     : id(other.id), device(std::move(other.device)),
       packet_len(std::move(other.packet_len)), time(std::move(other.time)),
-      init(std::move(other.init)), root(other.root),
-      manager(std::move(other.manager)) {
+      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)) {
   other.root = nullptr;
 }
 

@@ -3,8 +3,8 @@
 namespace tofino {
 
 namespace {
-bool replicate_hdr_parsing_ops(const EP *ep, const Node *node, BDD *&new_bdd,
-                               const Node *&next) {
+std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node,
+                                               const Node *&next) {
   std::vector<const Call *> prev_borrows =
       get_prev_functions(ep, node, {"packet_borrow_next_chunk"});
   std::vector<const Call *> prev_returns =
@@ -17,21 +17,21 @@ bool replicate_hdr_parsing_ops(const EP *ep, const Node *node, BDD *&new_bdd,
                          prev_returns.end());
 
   if (hdr_parsing_ops.empty()) {
-    return false;
+    return nullptr;
   }
 
   const BDD *old_bdd = ep->get_bdd();
 
-  new_bdd = new BDD(*old_bdd);
-  next = add_non_branch_nodes_to_bdd(new_bdd, node, hdr_parsing_ops);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
+  next = add_non_branch_nodes_to_bdd(new_bdd.get(), node, hdr_parsing_ops);
 
-  return true;
+  return new_bdd;
 }
 } // namespace
 
 std::optional<spec_impl_t>
-SendToControllerGenerator::speculate(const EP *ep, const Node *node,
-                                     const Context &ctx) const {
+SendToControllerFactory::speculate(const EP *ep, const Node *node,
+                                   const Context &ctx) const {
   Context new_ctx = ctx;
 
   hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
@@ -44,7 +44,7 @@ SendToControllerGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-SendToControllerGenerator::process_node(const EP *ep, const Node *node) const {
+SendToControllerFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   // We can always send to the controller, at any point in time.
@@ -57,10 +57,8 @@ SendToControllerGenerator::process_node(const EP *ep, const Node *node) const {
   EPNode *s2c_node = new EPNode(module);
 
   // Now we need to replicate the parsing operations that were done before.
-  BDD *new_bdd = nullptr;
   const Node *next = node;
-
-  bool replicated_bdd = replicate_hdr_parsing_ops(ep, node, new_bdd, next);
+  std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
   // Note that we don't point to the next BDD node, as it was not actually
   // implemented.
@@ -68,8 +66,8 @@ SendToControllerGenerator::process_node(const EP *ep, const Node *node) const {
   EPLeaf leaf(s2c_node, next);
   new_ep->process_leaf(s2c_node, {leaf}, false);
 
-  if (replicated_bdd) {
-    new_ep->replace_bdd(new_bdd);
+  if (new_bdd) {
+    new_ep->replace_bdd(std::move(new_bdd));
   }
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);

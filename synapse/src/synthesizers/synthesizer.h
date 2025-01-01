@@ -35,8 +35,7 @@ private:
   std::ostream &out;
 
 public:
-  Synthesizer(std::string template_fname,
-              std::unordered_map<marker_t, indent_t> markers,
+  Synthesizer(std::string template_fname, std::unordered_map<marker_t, indent_t> markers,
               std::ostream &_out);
 
 protected:

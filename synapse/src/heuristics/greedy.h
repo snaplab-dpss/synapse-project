@@ -5,11 +5,10 @@
 class GreedyCfg : public HeuristicCfg {
 public:
   GreedyCfg()
-      : HeuristicCfg("Greedy",
-                     {
-                         BUILD_METRIC(GreedyCfg, get_bdd_progress, MAX),
-                         BUILD_METRIC(GreedyCfg, get_tput, MAX),
-                     }) {}
+      : HeuristicCfg("Greedy", {
+                                   BUILD_METRIC(GreedyCfg, get_bdd_progress, MAX),
+                                   BUILD_METRIC(GreedyCfg, get_tput, MAX),
+                               }) {}
 
   GreedyCfg &operator=(const GreedyCfg &other) {
     ASSERT(other.name == name, "Mismatched names");

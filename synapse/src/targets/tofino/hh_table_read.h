@@ -16,8 +16,7 @@ private:
 public:
   HHTableRead(const Node *node, DS_ID _hh_table_id, addr_t _obj,
               const std::vector<klee::ref<klee::Expr>> &_keys,
-              klee::ref<klee::Expr> _value,
-              klee::ref<klee::Expr> _map_has_this_key,
+              klee::ref<klee::Expr> _value, klee::ref<klee::Expr> _map_has_this_key,
               klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType::Tofino_HHTableRead, "HHTableRead", node),
         hh_table_id(_hh_table_id), obj(_obj), keys(_keys), value(_value),
@@ -46,17 +45,16 @@ public:
   }
 };
 
-class HHTableReadGenerator : public TofinoModuleGenerator {
+class HHTableReadFactory : public TofinoModuleFactory {
 public:
-  HHTableReadGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_HHTableRead, "HHTableRead") {}
+  HHTableReadFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_HHTableRead, "HHTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

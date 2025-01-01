@@ -3,8 +3,8 @@
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
-ChtFindBackendGenerator::speculate(const EP *ep, const Node *node,
-                                   const Context &ctx) const {
+ChtFindBackendFactory::speculate(const EP *ep, const Node *node,
+                                 const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -27,7 +27,7 @@ ChtFindBackendGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-ChtFindBackendGenerator::process_node(const EP *ep, const Node *node) const {
+ChtFindBackendFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

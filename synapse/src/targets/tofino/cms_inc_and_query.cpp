@@ -33,8 +33,8 @@ bool is_inc_and_query_cms(const EP *ep, const Call *cms_increment) {
 } // namespace
 
 std::optional<spec_impl_t>
-CMSIncAndQueryGenerator::speculate(const EP *ep, const Node *node,
-                                   const Context &ctx) const {
+CMSIncAndQueryFactory::speculate(const EP *ep, const Node *node,
+                                 const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -75,7 +75,7 @@ CMSIncAndQueryGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-CMSIncAndQueryGenerator::process_node(const EP *ep, const Node *node) const {
+CMSIncAndQueryFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

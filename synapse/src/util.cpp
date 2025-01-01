@@ -8,19 +8,551 @@
 #include "exprs/simplifier.h"
 #include "exprs/solver.h"
 
+namespace {
+struct obj_op_t {
+  addr_t obj;
+  const Call *call_node;
+
+  bool operator==(const obj_op_t &other) const { return obj == other.obj; }
+};
+
+struct obj_op_hash_t {
+  size_t operator()(const obj_op_t &obj_op) const { return obj_op.obj; }
+};
+
+typedef std::unordered_set<obj_op_t, obj_op_hash_t> objs_ops_t;
+
+struct next_t {
+  objs_ops_t maps;
+  objs_ops_t vectors;
+  objs_ops_t dchains;
+
+  int size() const { return maps.size() + vectors.size(); }
+
+  void intersect(const next_t &other) {
+    auto intersector = [](objs_ops_t &a, const objs_ops_t &b) {
+      for (auto it = a.begin(); it != a.end();) {
+        if (b.find(*it) == b.end()) {
+          it = a.erase(it);
+        } else {
+          it++;
+        }
+      }
+    };
+
+    intersector(maps, other.maps);
+    intersector(vectors, other.vectors);
+    intersector(dchains, other.dchains);
+  }
+
+  bool has_obj(addr_t obj) const {
+    obj_op_t mock{obj, nullptr};
+    if (maps.find(mock) != maps.end()) {
+      return true;
+    }
+
+    if (vectors.find(mock) != vectors.end()) {
+      return true;
+    }
+
+    if (dchains.find(mock) != dchains.end()) {
+      return true;
+    }
+
+    return false;
+  }
+};
+
+bool is_incrementing_op(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
+  if (after->getKind() != klee::Expr::Add) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> lhs = after->getKid(0);
+  klee::ref<klee::Expr> rhs = after->getKid(1);
+
+  bool lhs_is_const = lhs->getKind() == klee::Expr::Constant;
+  bool rhs_is_const = rhs->getKind() == klee::Expr::Constant;
+
+  if (!lhs_is_const && !rhs_is_const) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> const_expr = lhs_is_const ? lhs : rhs;
+  klee::ref<klee::Expr> not_const_expr = lhs_is_const ? rhs : lhs;
+
+  // We only support increment of one, for now...
+  ASSERT(solver_toolbox.value_from_expr(const_expr) == 1, "Expecting increment");
+
+  return solver_toolbox.are_exprs_always_equal(not_const_expr, before);
+}
+
+std::optional<u64> get_max_value(klee::ref<klee::Expr> original_value,
+                                 klee::ref<klee::Expr> condition) {
+  std::optional<u64> max_value;
+
+  std::optional<std::string> original_symbol = get_symbol(original_value);
+  ASSERT(original_symbol.has_value(), "Expecting a symbol");
+
+  std::optional<std::string> symbol = get_symbol(condition);
+
+  if (!symbol.has_value()) {
+    return max_value;
+  }
+
+  // We are looking for expression that look like this:
+  // !(65536 <= vector_data_reset)
+  // We should be more careful with this and be compatible with more
+  // expressions.
+
+  while (condition->getKind() == klee::Expr::Not) {
+    condition = condition->getKid(0);
+  }
+
+  if (condition->getKind() == klee::Expr::Eq) {
+    klee::ref<klee::Expr> lhs = condition->getKid(0);
+    klee::ref<klee::Expr> rhs = condition->getKid(1);
+
+    if (lhs->getKind() != klee::Expr::Constant) {
+      return max_value;
+    }
+
+    u64 const_value = solver_toolbox.value_from_expr(lhs);
+
+    if (const_value != 0) {
+      return max_value;
+    }
+
+    condition = rhs;
+  }
+
+  if (condition->getKind() != klee::Expr::Ule) {
+    return max_value;
+  }
+
+  klee::ref<klee::Expr> lhs = condition->getKid(0);
+  klee::ref<klee::Expr> rhs = condition->getKid(1);
+
+  bool lhs_is_const = lhs->getKind() == klee::Expr::Constant;
+  bool rhs_is_const = rhs->getKind() == klee::Expr::Constant;
+
+  if (!lhs_is_const && !rhs_is_const) {
+    return max_value;
+  }
+
+  klee::ref<klee::Expr> const_expr = lhs_is_const ? lhs : rhs;
+  klee::ref<klee::Expr> not_const_expr = lhs_is_const ? rhs : lhs;
+
+  if (!solver_toolbox.are_exprs_always_equal(not_const_expr, original_value)) {
+    return max_value;
+  }
+
+  return solver_toolbox.value_from_expr(const_expr);
+}
+
+bool is_counter_inc_op(const Node *vector_borrow, std::optional<u64> &max_value) {
+  const Node *branch = vector_borrow->get_next();
+  const Branch *branch_node = static_cast<const Branch *>(branch);
+
+  if (!branch_node) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> condition = branch_node->get_condition();
+
+  const Node *on_true = branch_node->get_on_true();
+  const Node *on_false = branch_node->get_on_false();
+
+  const Call *borrow_node = static_cast<const Call *>(vector_borrow);
+  const Call *on_true_node = static_cast<const Call *>(on_true);
+  const Call *on_false_node = static_cast<const Call *>(on_false);
+
+  if (!on_true_node || !on_false_node) {
+    return false;
+  }
+
+  const call_t &borrow_call = borrow_node->get_call();
+  const call_t &on_true_call = on_true_node->get_call();
+  const call_t &on_false_call = on_false_node->get_call();
+
+  if (on_true_call.function_name != "vector_return" ||
+      on_false_call.function_name != "vector_return") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> borrow_vector = borrow_call.args.at("vector").expr;
+  klee::ref<klee::Expr> on_true_vector = on_true_call.args.at("vector").expr;
+  klee::ref<klee::Expr> on_false_vector = on_false_call.args.at("vector").expr;
+
+  addr_t borrow_vector_addr = expr_addr_to_obj_addr(borrow_vector);
+  addr_t on_true_vector_addr = expr_addr_to_obj_addr(on_true_vector);
+  addr_t on_false_vector_addr = expr_addr_to_obj_addr(on_false_vector);
+
+  if (borrow_vector_addr != on_true_vector_addr ||
+      borrow_vector_addr != on_false_vector_addr) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> borrow_value = borrow_call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> on_true_value = on_true_call.args.at("value").in;
+  klee::ref<klee::Expr> on_false_value = on_false_call.args.at("value").in;
+
+  bool on_true_inc_op = is_incrementing_op(borrow_value, on_true_value);
+
+  if (!on_true_inc_op) {
+    return false;
+  }
+
+  bool on_false_eq = solver_toolbox.are_exprs_always_equal(borrow_value, on_false_value);
+
+  if (!on_false_eq) {
+    return false;
+  }
+
+  std::optional<u64> local_max_value = get_max_value(borrow_value, condition);
+  ASSERT(local_max_value.has_value(), "Expecting a max value for counter.");
+
+  if (!max_value.has_value()) {
+    max_value = local_max_value;
+  } else if (*max_value != *local_max_value) {
+    return false;
+  }
+
+  return true;
+}
+
+bool is_counter_read_op(const Node *vector_borrow) {
+  const Node *vector_return = vector_borrow->get_next();
+
+  const Call *borrow_node = static_cast<const Call *>(vector_borrow);
+  const Call *return_node = static_cast<const Call *>(vector_return);
+
+  if (!return_node) {
+    return false;
+  }
+
+  const call_t &borrow_call = borrow_node->get_call();
+  const call_t &return_call = return_node->get_call();
+
+  if (return_call.function_name != "vector_return") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> borrow_vector = borrow_call.args.at("vector").expr;
+  klee::ref<klee::Expr> return_vector = return_call.args.at("vector").expr;
+
+  addr_t borrow_vector_addr = expr_addr_to_obj_addr(borrow_vector);
+  addr_t return_vector_addr = expr_addr_to_obj_addr(return_vector);
+
+  if (borrow_vector_addr != return_vector_addr) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> borrow_value = borrow_call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> return_value = return_call.args.at("value").in;
+
+  bool equal_values = solver_toolbox.are_exprs_always_equal(borrow_value, return_value);
+
+  return equal_values;
+}
+
+next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) {
+  next_t candidates;
+
+  root->visit_nodes([&candidates, index](const Node *node) {
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
+
+    if (call.function_name == "map_put") {
+      klee::ref<klee::Expr> map = call.args.at("map").expr;
+      klee::ref<klee::Expr> value = call.args.at("value").expr;
+
+      addr_t map_addr = expr_addr_to_obj_addr(map);
+      bool same_index = solver_toolbox.are_exprs_always_equal(index, value);
+
+      if (same_index) {
+        candidates.maps.insert({map_addr, call_node});
+      }
+    }
+
+    else if (call.function_name == "vector_borrow") {
+      klee::ref<klee::Expr> vector = call.args.at("vector").expr;
+      klee::ref<klee::Expr> value = call.args.at("index").expr;
+
+      addr_t vector_addr = expr_addr_to_obj_addr(vector);
+      bool same_index = solver_toolbox.are_exprs_always_equal(index, value);
+
+      if (same_index) {
+        candidates.vectors.insert({vector_addr, call_node});
+      }
+    }
+
+    return NodeVisitAction::Continue;
+  });
+
+  return candidates;
+}
+
+next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators,
+                                   addr_t obj) {
+  next_t candidates;
+
+  for (const Call *allocator : index_allocators) {
+    const call_t &allocator_call = allocator->get_call();
+
+    klee::ref<klee::Expr> allocated_index = allocator_call.args.at("index_out").out;
+    klee::ref<klee::Expr> dchain = allocator_call.args.at("chain").expr;
+    addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
+
+    // We expect the coalescing candidates to be the same regardless of
+    // where in the BDD we are. In case there is some discrepancy, then it
+    // should be invalid. We thus consider only the intersection of all
+    // candidates.
+
+    next_t new_candidates = get_next_maps_and_vectors(allocator, allocated_index);
+    new_candidates.dchains.insert({dchain_addr, allocator});
+
+    if (!new_candidates.has_obj(obj)) {
+      continue;
+    }
+
+    if (candidates.size() == 0) {
+      candidates = new_candidates;
+    } else {
+
+      // If we can't find the current candidates in the new candidates' list,
+      // then it is not true that we can coalesce them in every scenario of
+      // the NF.
+
+      candidates.intersect(new_candidates);
+    }
+  }
+
+  return candidates;
+}
+
+Branch *create_new_branch(BDD *bdd, const Node *current,
+                          klee::ref<klee::Expr> condition) {
+  node_id_t &id = bdd->get_mutable_id();
+  NodeManager &manager = bdd->get_mutable_manager();
+  klee::ConstraintManager constraints = current->get_constraints();
+  Branch *new_branch = new Branch(id++, constraints, condition);
+  manager.add_node(new_branch);
+  return new_branch;
+}
+
+std::unordered_set<std::string> get_allowed_symbols_for_index_alloc_checking(
+    const symbol_t &out_of_space,
+    const std::optional<expiration_data_t> &expiration_data) {
+  std::unordered_set<std::string> allowed_symbols;
+
+  allowed_symbols.insert(out_of_space.array->name);
+
+  if (expiration_data.has_value()) {
+    allowed_symbols.insert(expiration_data->number_of_freed_flows.array->name);
+  }
+
+  return allowed_symbols;
+}
+
+std::vector<const Call *>
+get_unfiltered_coalescing_nodes(const BDD *bdd, const Node *node,
+                                const map_coalescing_objs_t &data) {
+  std::vector<std::string> target_functions = {
+      "map_get",
+      "map_put",
+      "map_erase",
+      "vector_borrow",
+      "vector_return",
+      "dchain_allocate_new_index",
+      "dchain_rejuvenate_index",
+      "dchain_expire_index",
+      "dchain_is_index_allocated",
+      "dchain_free_index",
+  };
+
+  std::vector<const Call *> unfiltered_nodes =
+      get_future_functions(node, target_functions);
+
+  auto filter_map_objs = [&data](const Node *node) {
+    ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+
+    const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
+
+    if (call.args.find("map") != call.args.end()) {
+      klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
+      addr_t obj = expr_addr_to_obj_addr(obj_expr);
+      if (obj != data.map) {
+        return true;
+      }
+    } else if (call.args.find("vector") != call.args.end()) {
+      klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
+      addr_t obj = expr_addr_to_obj_addr(obj_expr);
+      if (data.vectors.find(obj) == data.vectors.end()) {
+        return true;
+      }
+    } else if (call.args.find("chain") != call.args.end()) {
+      klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
+      addr_t obj = expr_addr_to_obj_addr(obj_expr);
+      if (obj != data.dchain) {
+        return true;
+      }
+    } else {
+      return true;
+    }
+
+    return false;
+  };
+
+  unfiltered_nodes.erase(
+      std::remove_if(unfiltered_nodes.begin(), unfiltered_nodes.end(), filter_map_objs),
+      unfiltered_nodes.end());
+
+  return unfiltered_nodes;
+}
+
+std::pair<hit_rate_t, std::string> n2hr(u64 n) {
+  if (n < 1e3) {
+    return {(hit_rate_t)n, ""};
+  }
+
+  if (n < 1e6) {
+    return {n / 1e3, "K"};
+  }
+
+  if (n < 1e9) {
+    return {n / 1e6, "M"};
+  }
+
+  if (n < 1e12) {
+    return {n / 1e9, "G"};
+  }
+
+  return {n / 1e12, "T"};
+}
+
+addr_t get_vector_map_key(const BDD *bdd,
+                          const map_coalescing_objs_t &map_coalescing_objs) {
+  addr_t vector_key;
+
+  std::vector<const Call *> vector_borrows =
+      get_future_functions(bdd->get_root(), {"vector_borrow"});
+
+  for (const Call *vector_borrow : vector_borrows) {
+    const call_t &vb = vector_borrow->get_call();
+
+    klee::ref<klee::Expr> vector_expr = vb.args.at("vector").expr;
+    klee::ref<klee::Expr> value_addr_expr = vb.args.at("val_out").out;
+
+    addr_t vector_obj = expr_addr_to_obj_addr(vector_expr);
+    addr_t value_addr = expr_addr_to_obj_addr(value_addr_expr);
+
+    if (map_coalescing_objs.vectors.find(vector_obj) ==
+        map_coalescing_objs.vectors.end()) {
+      continue;
+    }
+
+    std::vector<const Call *> map_puts = get_future_functions(vector_borrow, {"map_put"});
+
+    bool is_vector_key = false;
+    for (const Call *map_put : map_puts) {
+      const call_t &mp = map_put->get_call();
+
+      klee::ref<klee::Expr> map_expr = mp.args.at("map").expr;
+      klee::ref<klee::Expr> key_addr_expr = mp.args.at("key").expr;
+
+      addr_t map_obj = expr_addr_to_obj_addr(map_expr);
+      addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
+
+      if (map_obj != map_coalescing_objs.map) {
+        continue;
+      }
+
+      if (key_addr == value_addr) {
+        is_vector_key = true;
+        break;
+      }
+    }
+
+    if (!is_vector_key) {
+      continue;
+    }
+
+    const Call *vector_return = get_future_vector_return(vector_borrow);
+    const call_t &vr = vector_return->get_call();
+
+    klee::ref<klee::Expr> ret_vector_expr = vr.args.at("vector").expr;
+    klee::ref<klee::Expr> ret_value_addr_expr = vr.args.at("value").expr;
+
+    addr_t ret_vector_obj = expr_addr_to_obj_addr(vector_expr);
+    addr_t ret_value_addr = expr_addr_to_obj_addr(value_addr_expr);
+
+    ASSERT(ret_vector_obj == vector_obj, "Vector objects don't match");
+
+    // vector_borrow operation deemed this vector as a key vector, but the
+    // vector_return contradicts this information.
+    ASSERT(ret_value_addr == value_addr, "Value addresses don't match");
+
+    return vector_obj;
+  }
+
+  PANIC("Vector key not found");
+}
+
+void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
+  map_coalescing_objs_t map_coalescing_data;
+  if (!get_map_coalescing_objs_from_bdd(bdd, map, map_coalescing_data)) {
+    return;
+  }
+
+  addr_t vector_key = get_vector_map_key(bdd, map_coalescing_data);
+  std::unordered_set<const Node *> candidates;
+
+  bdd->get_root()->visit_nodes([map_coalescing_data, vector_key,
+                                &candidates](const Node *node) {
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Call *call_node = static_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
+
+    if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
+      return NodeVisitAction::Continue;
+    }
+
+    klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
+    addr_t obj = expr_addr_to_obj_addr(obj_expr);
+
+    if (obj != vector_key) {
+      return NodeVisitAction::Continue;
+    }
+
+    candidates.insert(node);
+
+    return NodeVisitAction::Continue;
+  });
+
+  for (const Node *node : candidates) {
+    delete_non_branch_node_from_bdd(bdd, node->get_id());
+  }
+}
+} // namespace
+
 pps_t bps2pps(bps_t bps, bytes_t pkt_size) {
-  return bps /
-         ((PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) *
-          8);
+  return bps / ((PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8);
 }
 
 bps_t pps2bps(pps_t pps, bytes_t pkt_size) {
-  return pps *
-         (PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8;
+  return pps * (PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8;
 }
 
-bool check_same_obj(const Call *call0, const Call *call1,
-                    const std::string &obj_name) {
+bool check_same_obj(const Call *call0, const Call *call1, const std::string &obj_name) {
   const call_t &c0 = call0->get_call();
   const call_t &c1 = call1->get_call();
 
@@ -88,8 +620,7 @@ std::unordered_set<std::string> get_symbols(const Node *node) {
 // Only for pairs of std::hash-able types for simplicity.
 // You can of course template this struct to allow other hash functions
 struct pair_hash {
-  template <class T1, class T2>
-  std::size_t operator()(const std::pair<T1, T2> &p) const {
+  template <class T1, class T2> std::size_t operator()(const std::pair<T1, T2> &p) const {
     auto h1 = std::hash<T1>{}(p.first);
     auto h2 = std::hash<T2>{}(p.second);
 
@@ -102,12 +633,10 @@ struct pair_hash {
 std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
                                               const Call *vector_return) {
   using vectors_pair = std::pair<node_id_t, node_id_t>;
-  using cache_t =
-      std::unordered_map<vectors_pair, std::vector<mod_t>, pair_hash>;
+  using cache_t = std::unordered_map<vectors_pair, std::vector<mod_t>, pair_hash>;
   static cache_t cache;
 
-  auto cache_found_it =
-      cache.find({vector_borrow->get_id(), vector_return->get_id()});
+  auto cache_found_it = cache.find({vector_borrow->get_id(), vector_return->get_id()});
   if (cache_found_it != cache.end()) {
     return cache_found_it->second;
   }
@@ -118,8 +647,7 @@ std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
   ASSERT(vb_call.function_name == "vector_borrow", "Unexpected function");
   ASSERT(vr_call.function_name == "vector_return", "Unexpected function");
 
-  klee::ref<klee::Expr> original_value =
-      vb_call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> original_value = vb_call.extra_vars.at("borrowed_cell").second;
   klee::ref<klee::Expr> value = vr_call.args.at("value").in;
 
   std::vector<mod_t> changes = build_expr_mods(original_value, value);
@@ -139,12 +667,10 @@ std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
   }
 
   const call_t &ret_call = packet_return_chunk->get_call();
-  ASSERT(ret_call.function_name == "packet_return_chunk",
-         "Unexpected function");
+  ASSERT(ret_call.function_name == "packet_return_chunk", "Unexpected function");
 
   const call_t &bor_call = packet_borrow_next_chunk->get_call();
-  ASSERT(bor_call.function_name == "packet_borrow_next_chunk",
-         "Unexpected function");
+  ASSERT(bor_call.function_name == "packet_borrow_next_chunk", "Unexpected function");
 
   klee::ref<klee::Expr> borrowed = bor_call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned = ret_call.args.at("the_chunk").in;
@@ -187,8 +713,8 @@ bool query_contains_map_has_key(const Branch *node) {
   klee::ref<klee::Expr> _condition = node->get_condition();
   std::unordered_set<std::string> symbols = get_symbols(_condition);
 
-  auto found_it = std::find_if(
-      symbols.begin(), symbols.end(), [](const std::string &symbol) -> bool {
+  auto found_it =
+      std::find_if(symbols.begin(), symbols.end(), [](const std::string &symbol) -> bool {
         return symbol.find("map_has_this_key") != std::string::npos;
       });
 
@@ -199,8 +725,7 @@ bool query_contains_map_has_key(const Branch *node) {
   return true;
 }
 
-const Call *packet_borrow_from_return(const EP *ep,
-                                      const Call *packet_return_chunk) {
+const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk) {
   const call_t &call = packet_return_chunk->get_call();
   ASSERT(call.function_name == "packet_return_chunk", "Unexpected function");
 
@@ -218,10 +743,9 @@ const Call *packet_borrow_from_return(const EP *ep,
   return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
 }
 
-std::vector<const Call *>
-get_prev_functions(const EP *ep, const Node *node,
-                   const std::vector<std::string> &fnames,
-                   bool ignore_targets) {
+std::vector<const Call *> get_prev_functions(const EP *ep, const Node *node,
+                                             const std::vector<std::string> &fnames,
+                                             bool ignore_targets) {
   std::vector<const Call *> prev_functions;
 
   TargetType target = ep->get_active_target();
@@ -251,9 +775,9 @@ get_prev_functions(const EP *ep, const Node *node,
   return prev_functions;
 }
 
-std::vector<const Call *>
-get_future_functions(const Node *root, const std::vector<std::string> &wanted,
-                     bool stop_on_branches) {
+std::vector<const Call *> get_future_functions(const Node *root,
+                                               const std::vector<std::string> &wanted,
+                                               bool stop_on_branches) {
   std::vector<const Call *> functions;
 
   root->visit_nodes([&functions, &wanted](const Node *node) {
@@ -298,8 +822,8 @@ bool is_parser_drop(const Node *root) {
   return found_drop;
 }
 
-std::vector<const Module *>
-get_prev_modules(const EP *ep, const std::vector<ModuleType> &targets) {
+std::vector<const Module *> get_prev_modules(const EP *ep,
+                                             const std::vector<ModuleType> &targets) {
   std::vector<const Module *> modules;
 
   EPLeaf leaf = ep->get_active_leaf();
@@ -331,8 +855,7 @@ bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) {
   };
 
   for (auto symbol : symbols) {
-    auto found_it =
-        std::find(allowed_symbols.begin(), allowed_symbols.end(), symbol);
+    auto found_it = std::find(allowed_symbols.begin(), allowed_symbols.end(), symbol);
 
     if (found_it == allowed_symbols.end()) {
       return false;
@@ -340,206 +863,6 @@ bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) {
   }
 
   return true;
-}
-
-static bool is_incrementing_op(klee::ref<klee::Expr> before,
-                               klee::ref<klee::Expr> after) {
-  if (after->getKind() != klee::Expr::Add) {
-    return false;
-  }
-
-  klee::ref<klee::Expr> lhs = after->getKid(0);
-  klee::ref<klee::Expr> rhs = after->getKid(1);
-
-  bool lhs_is_const = lhs->getKind() == klee::Expr::Constant;
-  bool rhs_is_const = rhs->getKind() == klee::Expr::Constant;
-
-  if (!lhs_is_const && !rhs_is_const) {
-    return false;
-  }
-
-  klee::ref<klee::Expr> const_expr = lhs_is_const ? lhs : rhs;
-  klee::ref<klee::Expr> not_const_expr = lhs_is_const ? rhs : lhs;
-
-  // We only support increment of one, for now...
-  ASSERT(solver_toolbox.value_from_expr(const_expr) == 1,
-         "Expecting increment");
-
-  return solver_toolbox.are_exprs_always_equal(not_const_expr, before);
-}
-
-static std::optional<u64> get_max_value(klee::ref<klee::Expr> original_value,
-                                        klee::ref<klee::Expr> condition) {
-  std::optional<u64> max_value;
-
-  std::optional<std::string> original_symbol = get_symbol(original_value);
-  ASSERT(original_symbol.has_value(), "Expecting a symbol");
-
-  std::optional<std::string> symbol = get_symbol(condition);
-
-  if (!symbol.has_value()) {
-    return max_value;
-  }
-
-  // We are looking for expression that look like this:
-  // !(65536 <= vector_data_reset)
-  // We should be more careful with this and be compatible with more
-  // expressions.
-
-  while (condition->getKind() == klee::Expr::Not) {
-    condition = condition->getKid(0);
-  }
-
-  if (condition->getKind() == klee::Expr::Eq) {
-    klee::ref<klee::Expr> lhs = condition->getKid(0);
-    klee::ref<klee::Expr> rhs = condition->getKid(1);
-
-    if (lhs->getKind() != klee::Expr::Constant) {
-      return max_value;
-    }
-
-    u64 const_value = solver_toolbox.value_from_expr(lhs);
-
-    if (const_value != 0) {
-      return max_value;
-    }
-
-    condition = rhs;
-  }
-
-  if (condition->getKind() != klee::Expr::Ule) {
-    return max_value;
-  }
-
-  klee::ref<klee::Expr> lhs = condition->getKid(0);
-  klee::ref<klee::Expr> rhs = condition->getKid(1);
-
-  bool lhs_is_const = lhs->getKind() == klee::Expr::Constant;
-  bool rhs_is_const = rhs->getKind() == klee::Expr::Constant;
-
-  if (!lhs_is_const && !rhs_is_const) {
-    return max_value;
-  }
-
-  klee::ref<klee::Expr> const_expr = lhs_is_const ? lhs : rhs;
-  klee::ref<klee::Expr> not_const_expr = lhs_is_const ? rhs : lhs;
-
-  if (!solver_toolbox.are_exprs_always_equal(not_const_expr, original_value)) {
-    return max_value;
-  }
-
-  return solver_toolbox.value_from_expr(const_expr);
-}
-
-static bool is_counter_inc_op(const Node *vector_borrow,
-                              std::optional<u64> &max_value) {
-  const Node *branch = vector_borrow->get_next();
-  const Branch *branch_node = static_cast<const Branch *>(branch);
-
-  if (!branch_node) {
-    return false;
-  }
-
-  klee::ref<klee::Expr> condition = branch_node->get_condition();
-
-  const Node *on_true = branch_node->get_on_true();
-  const Node *on_false = branch_node->get_on_false();
-
-  const Call *borrow_node = static_cast<const Call *>(vector_borrow);
-  const Call *on_true_node = static_cast<const Call *>(on_true);
-  const Call *on_false_node = static_cast<const Call *>(on_false);
-
-  if (!on_true_node || !on_false_node) {
-    return false;
-  }
-
-  const call_t &borrow_call = borrow_node->get_call();
-  const call_t &on_true_call = on_true_node->get_call();
-  const call_t &on_false_call = on_false_node->get_call();
-
-  if (on_true_call.function_name != "vector_return" ||
-      on_false_call.function_name != "vector_return") {
-    return false;
-  }
-
-  klee::ref<klee::Expr> borrow_vector = borrow_call.args.at("vector").expr;
-  klee::ref<klee::Expr> on_true_vector = on_true_call.args.at("vector").expr;
-  klee::ref<klee::Expr> on_false_vector = on_false_call.args.at("vector").expr;
-
-  addr_t borrow_vector_addr = expr_addr_to_obj_addr(borrow_vector);
-  addr_t on_true_vector_addr = expr_addr_to_obj_addr(on_true_vector);
-  addr_t on_false_vector_addr = expr_addr_to_obj_addr(on_false_vector);
-
-  if (borrow_vector_addr != on_true_vector_addr ||
-      borrow_vector_addr != on_false_vector_addr) {
-    return false;
-  }
-
-  klee::ref<klee::Expr> borrow_value =
-      borrow_call.extra_vars.at("borrowed_cell").second;
-  klee::ref<klee::Expr> on_true_value = on_true_call.args.at("value").in;
-  klee::ref<klee::Expr> on_false_value = on_false_call.args.at("value").in;
-
-  bool on_true_inc_op = is_incrementing_op(borrow_value, on_true_value);
-
-  if (!on_true_inc_op) {
-    return false;
-  }
-
-  bool on_false_eq =
-      solver_toolbox.are_exprs_always_equal(borrow_value, on_false_value);
-
-  if (!on_false_eq) {
-    return false;
-  }
-
-  std::optional<u64> local_max_value = get_max_value(borrow_value, condition);
-  ASSERT(local_max_value.has_value(), "Expecting a max value for counter.");
-
-  if (!max_value.has_value()) {
-    max_value = local_max_value;
-  } else if (*max_value != *local_max_value) {
-    return false;
-  }
-
-  return true;
-}
-
-static bool is_counter_read_op(const Node *vector_borrow) {
-  const Node *vector_return = vector_borrow->get_next();
-
-  const Call *borrow_node = static_cast<const Call *>(vector_borrow);
-  const Call *return_node = static_cast<const Call *>(vector_return);
-
-  if (!return_node) {
-    return false;
-  }
-
-  const call_t &borrow_call = borrow_node->get_call();
-  const call_t &return_call = return_node->get_call();
-
-  if (return_call.function_name != "vector_return") {
-    return false;
-  }
-
-  klee::ref<klee::Expr> borrow_vector = borrow_call.args.at("vector").expr;
-  klee::ref<klee::Expr> return_vector = return_call.args.at("vector").expr;
-
-  addr_t borrow_vector_addr = expr_addr_to_obj_addr(borrow_vector);
-  addr_t return_vector_addr = expr_addr_to_obj_addr(return_vector);
-
-  if (borrow_vector_addr != return_vector_addr) {
-    return false;
-  }
-
-  klee::ref<klee::Expr> borrow_value =
-      borrow_call.extra_vars.at("borrowed_cell").second;
-  klee::ref<klee::Expr> return_value = return_call.args.at("value").in;
-
-  bool equal_values =
-      solver_toolbox.are_exprs_always_equal(borrow_value, return_value);
-
-  return equal_values;
 }
 
 counter_data_t is_counter(const EP *ep, addr_t obj) {
@@ -590,8 +913,7 @@ klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
 }
 
 klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
-                                                addr_t target_addr,
-                                                const Node *&source) {
+                                                addr_t target_addr, const Node *&source) {
   std::vector<const Call *> all_prev_vector_borrow =
       get_prev_functions(ep, node, {"vector_borrow"}, true);
 
@@ -601,8 +923,7 @@ klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
     const call_t &call = prev_vector_borrow->get_call();
 
     klee::ref<klee::Expr> _vector = call.args.at("vector").expr;
-    klee::ref<klee::Expr> _borrowed_cell =
-        call.extra_vars.at("borrowed_cell").second;
+    klee::ref<klee::Expr> _borrowed_cell = call.extra_vars.at("borrowed_cell").second;
 
     addr_t _vector_addr = expr_addr_to_obj_addr(_vector);
 
@@ -615,8 +936,7 @@ klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
     break;
   }
 
-  ASSERT(!borrowed_cell.isNull(),
-         "Expecting a previous vector borrow but not found.");
+  ASSERT(!borrowed_cell.isNull(), "Expecting a previous vector borrow but not found.");
 
   return borrowed_cell;
 }
@@ -674,173 +994,6 @@ klee::ref<klee::Expr> get_expr_from_addr(const EP *ep, addr_t addr) {
   }
 
   return nullptr;
-}
-
-/*
-  We use this method to check if we can coalesce the Map + Vector + Dchain
-  paradigm into a single data structure mimicking a common map (which
-  maps arbitrary data to arbitrary values).
-
-  These data structures should coalesce if the index allocated by the dchain
-  is used as a map value and a vector index.
-
-  Multiple vectors can be coalesced into the same data structure, but typically
-  a single map and a single dchain are used.
-
-  The pattern we are looking is the following:
-
-  1. Allocating the index
-  -> dchain_allocate_new_index(dchain, &index)
-
-  2. Storing the key
-  -> vector_borrow(vector_1, index, value_1)
-
-  3. Updating the map
-  -> map_put(map_1, key, index)
-
-  4. Returnin the key
-  -> vector_return(vector_1, index, value_1)
-
-  [ Loop updating all the other vectors ]
-  -> vector_borrow(vector_n, index, value_n)
-  -> vector_return(vector_n, index, value_n)
-*/
-
-struct obj_op_t {
-  addr_t obj;
-  const Call *call_node;
-
-  bool operator==(const obj_op_t &other) const { return obj == other.obj; }
-};
-
-struct obj_op_hash_t {
-  size_t operator()(const obj_op_t &obj_op) const { return obj_op.obj; }
-};
-
-typedef std::unordered_set<obj_op_t, obj_op_hash_t> objs_ops_t;
-
-struct next_t {
-  objs_ops_t maps;
-  objs_ops_t vectors;
-  objs_ops_t dchains;
-
-  int size() const { return maps.size() + vectors.size(); }
-
-  void intersect(const next_t &other) {
-    auto intersector = [](objs_ops_t &a, const objs_ops_t &b) {
-      for (auto it = a.begin(); it != a.end();) {
-        if (b.find(*it) == b.end()) {
-          it = a.erase(it);
-        } else {
-          it++;
-        }
-      }
-    };
-
-    intersector(maps, other.maps);
-    intersector(vectors, other.vectors);
-    intersector(dchains, other.dchains);
-  }
-
-  bool has_obj(addr_t obj) const {
-    obj_op_t mock{obj, nullptr};
-    if (maps.find(mock) != maps.end()) {
-      return true;
-    }
-
-    if (vectors.find(mock) != vectors.end()) {
-      return true;
-    }
-
-    if (dchains.find(mock) != dchains.end()) {
-      return true;
-    }
-
-    return false;
-  }
-};
-
-static next_t get_next_maps_and_vectors(const Node *root,
-                                        klee::ref<klee::Expr> index) {
-  next_t candidates;
-
-  root->visit_nodes([&candidates, index](const Node *node) {
-    if (node->get_type() != NodeType::Call) {
-      return NodeVisitAction::Continue;
-    }
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    if (call.function_name == "map_put") {
-      klee::ref<klee::Expr> map = call.args.at("map").expr;
-      klee::ref<klee::Expr> value = call.args.at("value").expr;
-
-      addr_t map_addr = expr_addr_to_obj_addr(map);
-      bool same_index = solver_toolbox.are_exprs_always_equal(index, value);
-
-      if (same_index) {
-        candidates.maps.insert({map_addr, call_node});
-      }
-    }
-
-    else if (call.function_name == "vector_borrow") {
-      klee::ref<klee::Expr> vector = call.args.at("vector").expr;
-      klee::ref<klee::Expr> value = call.args.at("index").expr;
-
-      addr_t vector_addr = expr_addr_to_obj_addr(vector);
-      bool same_index = solver_toolbox.are_exprs_always_equal(index, value);
-
-      if (same_index) {
-        candidates.vectors.insert({vector_addr, call_node});
-      }
-    }
-
-    return NodeVisitAction::Continue;
-  });
-
-  return candidates;
-}
-
-static next_t
-get_allowed_coalescing_objs(std::vector<const Call *> index_allocators,
-                            addr_t obj) {
-  next_t candidates;
-
-  for (const Call *allocator : index_allocators) {
-    const call_t &allocator_call = allocator->get_call();
-
-    klee::ref<klee::Expr> allocated_index =
-        allocator_call.args.at("index_out").out;
-    klee::ref<klee::Expr> dchain = allocator_call.args.at("chain").expr;
-    addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
-
-    // We expect the coalescing candidates to be the same regardless of
-    // where in the BDD we are. In case there is some discrepancy, then it
-    // should be invalid. We thus consider only the intersection of all
-    // candidates.
-
-    next_t new_candidates =
-        get_next_maps_and_vectors(allocator, allocated_index);
-    new_candidates.dchains.insert({dchain_addr, allocator});
-
-    if (!new_candidates.has_obj(obj)) {
-      continue;
-    }
-
-    if (candidates.size() == 0) {
-      candidates = new_candidates;
-    } else {
-
-      // If we can't find the current candidates in the new candidates' list,
-      // then it is not true that we can coalesce them in every scenario of
-      // the NF.
-
-      candidates.intersect(new_candidates);
-    }
-  }
-
-  return candidates;
 }
 
 bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj,
@@ -1018,8 +1171,7 @@ bool is_vector_read(const Call *vector_borrow) {
 
   addr_t vr_obj = expr_addr_to_obj_addr(vr_obj_expr);
   ASSERT(vb_obj == vr_obj, "Different objects");
-  ASSERT(solver_toolbox.are_exprs_always_equal(vb_index, vr_index),
-         "Different indexes");
+  ASSERT(solver_toolbox.are_exprs_always_equal(vb_index, vr_index), "Different indexes");
 
   return solver_toolbox.are_exprs_always_equal(vb_value, vr_value);
 }
@@ -1092,13 +1244,12 @@ branch_direction_t get_map_get_success_check(const Node *node) {
   ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ref<klee::Expr> key_not_found_cond = solver_toolbox.exprBuilder->Eq(
-      map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(
-                                 0, map_has_this_key.expr->getWidth()));
+      map_has_this_key.expr,
+      solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   branch_direction_t success_check = {nullptr, false};
 
-  map_get->visit_nodes([&success_check, key_not_found_cond, obj,
-                        key](const Node *node) {
+  map_get->visit_nodes([&success_check, key_not_found_cond, obj, key](const Node *node) {
     if (node->get_type() != NodeType::Branch) {
       return NodeVisitAction::Continue;
     }
@@ -1124,8 +1275,7 @@ branch_direction_t get_map_get_success_check(const Node *node) {
   return success_check;
 }
 
-rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
-                                                     const Node *node) {
+rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *node) {
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
 
@@ -1148,9 +1298,8 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
   branch_direction_t success_check = get_map_get_success_check(map_get);
   ASSERT(success_check.branch, "Map get success check not found");
 
-  const Node *read = success_check.direction
-                         ? success_check.branch->get_on_true()
-                         : success_check.branch->get_on_false();
+  const Node *read = success_check.direction ? success_check.branch->get_on_true()
+                                             : success_check.branch->get_on_false();
   const Node *write_attempt = success_check.direction
                                   ? success_check.branch->get_on_false()
                                   : success_check.branch->get_on_true();
@@ -1183,8 +1332,8 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
   return fractions;
 }
 
-bool is_map_get_followed_by_map_puts_on_miss(
-    const BDD *bdd, const Call *map_get, std::vector<const Call *> &map_puts) {
+bool is_map_get_followed_by_map_puts_on_miss(const BDD *bdd, const Call *map_get,
+                                             std::vector<const Call *> &map_puts) {
   const call_t &mg_call = map_get->get_call();
 
   if (mg_call.function_name != "map_get") {
@@ -1202,11 +1351,10 @@ bool is_map_get_followed_by_map_puts_on_miss(
   ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ref<klee::Expr> failed_map_get = solver_toolbox.exprBuilder->Eq(
-      map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(
-                                 0, map_has_this_key.expr->getWidth()));
+      map_has_this_key.expr,
+      solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
-  std::vector<const Call *> future_map_puts =
-      get_future_functions(map_get, {"map_put"});
+  std::vector<const Call *> future_map_puts = get_future_functions(map_get, {"map_put"});
 
   klee::ref<klee::Expr> value;
 
@@ -1306,8 +1454,7 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
 
       const auto &call1_arg = call1_call.args.at(arg_name);
 
-      if (!solver_toolbox.are_exprs_always_equal(call0_arg.expr,
-                                                 call1_arg.expr)) {
+      if (!solver_toolbox.are_exprs_always_equal(call0_arg.expr, call1_arg.expr)) {
         return false;
       }
 
@@ -1315,8 +1462,7 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
         return false;
       }
 
-      if (!solver_toolbox.are_exprs_always_equal(call0_arg.out,
-                                                 call1_arg.out)) {
+      if (!solver_toolbox.are_exprs_always_equal(call0_arg.out, call1_arg.out)) {
         return false;
       }
 
@@ -1348,8 +1494,7 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
       }
     }
 
-    if (!solver_toolbox.are_exprs_always_equal(call0_call.ret,
-                                               call1_call.ret)) {
+    if (!solver_toolbox.are_exprs_always_equal(call0_call.ret, call1_call.ret)) {
       return false;
     }
   } break;
@@ -1410,10 +1555,8 @@ bool are_node_paths_equivalent(const Node *node0, const Node *node1) {
       return false;
     }
 
-    nodes0.insert(nodes0.end(), current0_children.begin(),
-                  current0_children.end());
-    nodes1.insert(nodes1.end(), current1_children.begin(),
-                  current1_children.end());
+    nodes0.insert(nodes0.end(), current0_children.begin(), current0_children.end());
+    nodes1.insert(nodes1.end(), current1_children.begin(), current1_children.end());
   }
 
   cache[{node0, node1}] = true;
@@ -1421,10 +1564,9 @@ bool are_node_paths_equivalent(const Node *node0, const Node *node1) {
   return true;
 }
 
-bool is_compact_map_get_followed_by_map_put_on_miss(
-    const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern) {
-  static std::unordered_map<const Call *, std::optional<map_rw_pattern_t>>
-      cache;
+bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get,
+                                                    map_rw_pattern_t &map_rw_pattern) {
+  static std::unordered_map<const Call *, std::optional<map_rw_pattern_t>> cache;
 
   if (cache.find(map_get) != cache.end()) {
     if (!cache[map_get].has_value()) {
@@ -1464,16 +1606,13 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
           : map_rw_pattern.map_get_success_check.branch->get_on_true();
 
   if (on_failed_map_get->get_type() == NodeType::Branch) {
-    const Branch *write_extra_condition =
-        static_cast<const Branch *>(on_failed_map_get);
+    const Branch *write_extra_condition = static_cast<const Branch *>(on_failed_map_get);
 
     const Node *on_true = write_extra_condition->get_on_true();
     const Node *on_false = write_extra_condition->get_on_false();
 
-    std::vector<const Call *> on_true_mp =
-        get_future_functions(on_true, {"map_put"});
-    std::vector<const Call *> on_false_mp =
-        get_future_functions(on_false, {"map_put"});
+    std::vector<const Call *> on_true_mp = get_future_functions(on_true, {"map_put"});
+    std::vector<const Call *> on_false_mp = get_future_functions(on_false, {"map_put"});
 
     if (on_true_mp.size() == 1 && on_false_mp.size() == 0) {
       map_rw_pattern.map_put_extra_condition.branch = write_extra_condition;
@@ -1496,14 +1635,12 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
     return false;
   }
 
-  map_rw_pattern.dchain_allocate_new_index =
-      static_cast<const Call *>(on_failed_map_get);
+  map_rw_pattern.dchain_allocate_new_index = static_cast<const Call *>(on_failed_map_get);
 
   const call_t &dchain_allocate_new_index_call =
       map_rw_pattern.dchain_allocate_new_index->get_call();
 
-  if (dchain_allocate_new_index_call.function_name !=
-      "dchain_allocate_new_index") {
+  if (dchain_allocate_new_index_call.function_name != "dchain_allocate_new_index") {
     cache[map_get] = std::nullopt;
     return false;
   }
@@ -1514,15 +1651,14 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
     return false;
   }
 
-  if (expr_addr_to_obj_addr(
-          dchain_allocate_new_index_call.args.at("chain").expr) !=
+  if (expr_addr_to_obj_addr(dchain_allocate_new_index_call.args.at("chain").expr) !=
       map_objs.dchain) {
     cache[map_get] = std::nullopt;
     return false;
   }
 
-  map_rw_pattern.index_alloc_check = find_branch_checking_index_alloc(
-      ep, map_rw_pattern.dchain_allocate_new_index);
+  map_rw_pattern.index_alloc_check =
+      find_branch_checking_index_alloc(ep, map_rw_pattern.dchain_allocate_new_index);
 
   if (!map_rw_pattern.index_alloc_check.branch ||
       map_rw_pattern.dchain_allocate_new_index->get_next() !=
@@ -1544,8 +1680,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
             ? map_rw_pattern.index_alloc_check.branch->get_on_false()
             : map_rw_pattern.index_alloc_check.branch->get_on_true();
 
-    if (!are_node_paths_equivalent(on_failed_extra_condition,
-                                   on_failed_index_alloc)) {
+    if (!are_node_paths_equivalent(on_failed_extra_condition, on_failed_index_alloc)) {
       cache[map_get] = std::nullopt;
       return false;
     }
@@ -1564,8 +1699,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
 
   map_rw_pattern.map_put = nullptr;
 
-  for (const Call *map_put :
-       get_future_functions(on_index_alloc, {"map_put"})) {
+  for (const Call *map_put : get_future_functions(on_index_alloc, {"map_put"})) {
     if (!are_map_read_write_counterparts(map_get, map_put)) {
       continue;
     }
@@ -1579,8 +1713,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
     map_rw_pattern.map_put = map_put;
   }
 
-  for (const Call *map_put :
-       get_future_functions(on_failed_index_alloc, {"map_put"})) {
+  for (const Call *map_put : get_future_functions(on_failed_index_alloc, {"map_put"})) {
     if (are_map_read_write_counterparts(map_get, map_put)) {
       // map_put operations found on failed index allocation.
       cache[map_get] = std::nullopt;
@@ -1592,8 +1725,8 @@ bool is_compact_map_get_followed_by_map_put_on_miss(
   return true;
 }
 
-bool is_tb_tracing_check_followed_by_update_on_true(
-    const Call *tb_is_tracing, const Call *&tb_update_and_check) {
+bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
+                                                    const Call *&tb_update_and_check) {
   const call_t &is_tracing_call = tb_is_tracing->get_call();
 
   if (is_tracing_call.function_name != "tb_is_tracing") {
@@ -1614,8 +1747,7 @@ bool is_tb_tracing_check_followed_by_update_on_true(
     }
 
     klee::ConstraintManager constraints = candidate->get_constraints();
-    if (!solver_toolbox.is_expr_always_true(constraints,
-                                            is_tracing_condition)) {
+    if (!solver_toolbox.is_expr_always_true(constraints, is_tracing_condition)) {
       continue;
     }
 
@@ -1626,8 +1758,7 @@ bool is_tb_tracing_check_followed_by_update_on_true(
   return tb_update_and_check != nullptr;
 }
 
-bool is_map_update_with_dchain(const EP *ep,
-                               const Call *dchain_allocate_new_index,
+bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
                                std::vector<const Call *> &map_puts) {
   const call_t &call = dchain_allocate_new_index->get_call();
 
@@ -1636,8 +1767,7 @@ bool is_map_update_with_dchain(const EP *ep,
   }
 
   map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
-                                              map_objs)) {
+  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
     return false;
   }
 
@@ -1697,8 +1827,8 @@ bool is_map_update_with_dchain(const EP *ep,
   return true;
 }
 
-bool is_index_alloc_on_unsuccessful_map_get(
-    const EP *ep, const Call *dchain_allocate_new_index) {
+bool is_index_alloc_on_unsuccessful_map_get(const EP *ep,
+                                            const Call *dchain_allocate_new_index) {
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -1706,8 +1836,7 @@ bool is_index_alloc_on_unsuccessful_map_get(
   }
 
   map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index,
-                                              map_objs)) {
+  if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
     return false;
   }
 
@@ -1740,24 +1869,22 @@ bool is_index_alloc_on_unsuccessful_map_get(
   }
 
   symbol_t map_has_this_key;
-  bool found = get_symbol(
-      static_cast<const Call *>(map_get)->get_locally_generated_symbols(),
-      "map_has_this_key", map_has_this_key);
+  bool found =
+      get_symbol(static_cast<const Call *>(map_get)->get_locally_generated_symbols(),
+                 "map_has_this_key", map_has_this_key);
   ASSERT(found, "Symbol map_has_this_key not found");
 
-  klee::ConstraintManager constraints =
-      dchain_allocate_new_index->get_constraints();
+  klee::ConstraintManager constraints = dchain_allocate_new_index->get_constraints();
 
   klee::ref<klee::Expr> found_key = solver_toolbox.exprBuilder->Ne(
-      map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(
-                                 0, map_has_this_key.expr->getWidth()));
+      map_has_this_key.expr,
+      solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   return solver_toolbox.is_expr_always_false(constraints, found_key);
 }
 
-bool is_map_get_followed_by_map_erases_on_hit(
-    const BDD *bdd, const Call *map_get,
-    std::vector<const Call *> &map_erases) {
+bool is_map_get_followed_by_map_erases_on_hit(const BDD *bdd, const Call *map_get,
+                                              std::vector<const Call *> &map_erases) {
   const call_t &mg_call = map_get->get_call();
 
   if (mg_call.function_name != "map_get") {
@@ -1775,8 +1902,8 @@ bool is_map_get_followed_by_map_erases_on_hit(
   ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ref<klee::Expr> successful_map_get = solver_toolbox.exprBuilder->Ne(
-      map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(
-                                 0, map_has_this_key.expr->getWidth()));
+      map_has_this_key.expr,
+      solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   std::vector<const Call *> future_map_erases =
       get_future_functions(map_get, {"map_erase"});
@@ -1856,8 +1983,7 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
-      ASSERT(on_true == anchor_next || on_false == anchor_next,
-             "No connection found");
+      ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
 
       if (on_true == anchor_next) {
         branch->set_on_true(clone);
@@ -1875,16 +2001,6 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
   }
 
   return new_current;
-}
-
-static Branch *create_new_branch(BDD *bdd, const Node *current,
-                                 klee::ref<klee::Expr> condition) {
-  node_id_t &id = bdd->get_mutable_id();
-  NodeManager &manager = bdd->get_mutable_manager();
-  klee::ConstraintManager constraints = current->get_constraints();
-  Branch *new_branch = new Branch(id++, constraints, condition);
-  manager.add_node(new_branch);
-  return new_branch;
 }
 
 Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
@@ -1906,8 +2022,7 @@ Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
   on_false_cond->recursive_update_ids(id);
 
   on_true_cond->recursive_add_constraint(constraint);
-  on_false_cond->recursive_add_constraint(
-      solver_toolbox.exprBuilder->Not(constraint));
+  on_false_cond->recursive_add_constraint(solver_toolbox.exprBuilder->Not(constraint));
 
   Branch *new_branch = create_new_branch(bdd, current, condition);
 
@@ -1928,8 +2043,7 @@ Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    ASSERT(on_true == anchor_next || on_false == anchor_next,
-           "No connection found");
+    ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_branch);
@@ -1985,8 +2099,7 @@ Node *delete_non_branch_node_from_bdd(BDD *bdd, node_id_t target_id) {
   return new_current;
 }
 
-Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id,
-                                  bool direction_to_keep) {
+Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_to_keep) {
   NodeManager &manager = bdd->get_mutable_manager();
 
   Node *target = bdd->get_mutable_node_by_id(target_id);
@@ -2041,33 +2154,15 @@ Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id,
   return new_current;
 }
 
-static std::unordered_set<std::string>
-get_allowed_symbols_for_index_alloc_checking(
-    const symbol_t &out_of_space,
-    const std::optional<expiration_data_t> &expiration_data) {
-  std::unordered_set<std::string> allowed_symbols;
-
-  allowed_symbols.insert(out_of_space.array->name);
-
-  if (expiration_data.has_value()) {
-    allowed_symbols.insert(expiration_data->number_of_freed_flows.array->name);
-  }
-
-  return allowed_symbols;
-}
-
-branch_direction_t
-find_branch_checking_index_alloc(const EP *ep, const Node *node,
-                                 const symbol_t &out_of_space) {
+branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *node,
+                                                    const symbol_t &out_of_space) {
   ASSERT(!out_of_space.expr.isNull(), "out_of_space expr is null");
 
   const Context &ctx = ep->get_ctx();
-  const std::optional<expiration_data_t> expiration_data =
-      ctx.get_expiration_data();
+  const std::optional<expiration_data_t> expiration_data = ctx.get_expiration_data();
 
   std::unordered_set<std::string> target_symbols =
-      get_allowed_symbols_for_index_alloc_checking(out_of_space,
-                                                   expiration_data);
+      get_allowed_symbols_for_index_alloc_checking(out_of_space, expiration_data);
 
   branch_direction_t index_alloc_check = {
       .branch = nullptr,
@@ -2114,13 +2209,12 @@ find_branch_checking_index_alloc(const EP *ep, const Node *node,
     const Node *on_true = index_alloc_check.branch->get_on_true();
     const Node *on_false = index_alloc_check.branch->get_on_false();
 
-    bool success_on_true = solver_toolbox.is_expr_always_true(
-        on_true->get_constraints(), success_condition);
+    bool success_on_true =
+        solver_toolbox.is_expr_always_true(on_true->get_constraints(), success_condition);
     bool success_on_false = solver_toolbox.is_expr_always_true(
         on_false->get_constraints(), success_condition);
 
-    ASSERT((success_on_true || success_on_false),
-           "No branch side is successful");
+    ASSERT((success_on_true || success_on_false), "No branch side is successful");
     ASSERT((success_on_true ^ success_on_false),
            "Both branch sides have the same success condition");
 
@@ -2131,80 +2225,18 @@ find_branch_checking_index_alloc(const EP *ep, const Node *node,
 }
 
 branch_direction_t
-find_branch_checking_index_alloc(const EP *ep,
-                                 const Node *dchain_allocate_new_index) {
-  ASSERT(dchain_allocate_new_index->get_type() == NodeType::Call,
-         "Unexpected node type");
+find_branch_checking_index_alloc(const EP *ep, const Node *dchain_allocate_new_index) {
+  ASSERT(dchain_allocate_new_index->get_type() == NodeType::Call, "Unexpected node type");
   const Call *call_node = static_cast<const Call *>(dchain_allocate_new_index);
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "dchain_allocate_new_index",
-         "Unexpected function");
+  ASSERT(call.function_name == "dchain_allocate_new_index", "Unexpected function");
 
   symbol_t out_of_space;
-  bool found = get_symbol(call_node->get_locally_generated_symbols(),
-                          "out_of_space", out_of_space);
+  bool found = get_symbol(call_node->get_locally_generated_symbols(), "out_of_space",
+                          out_of_space);
   ASSERT(found, "Symbol out_of_space not found");
 
-  return find_branch_checking_index_alloc(ep, dchain_allocate_new_index,
-                                          out_of_space);
-}
-
-static std::vector<const Call *>
-get_unfiltered_coalescing_nodes(const BDD *bdd, const Node *node,
-                                const map_coalescing_objs_t &data) {
-  std::vector<std::string> target_functions = {
-      "map_get",
-      "map_put",
-      "map_erase",
-      "vector_borrow",
-      "vector_return",
-      "dchain_allocate_new_index",
-      "dchain_rejuvenate_index",
-      "dchain_expire_index",
-      "dchain_is_index_allocated",
-      "dchain_free_index",
-  };
-
-  std::vector<const Call *> unfiltered_nodes =
-      get_future_functions(node, target_functions);
-
-  auto filter_map_objs = [&data](const Node *node) {
-    ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
-
-    const Call *call_node = static_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
-
-    if (call.args.find("map") != call.args.end()) {
-      klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-      addr_t obj = expr_addr_to_obj_addr(obj_expr);
-      if (obj != data.map) {
-        return true;
-      }
-    } else if (call.args.find("vector") != call.args.end()) {
-      klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-      addr_t obj = expr_addr_to_obj_addr(obj_expr);
-      if (data.vectors.find(obj) == data.vectors.end()) {
-        return true;
-      }
-    } else if (call.args.find("chain") != call.args.end()) {
-      klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
-      addr_t obj = expr_addr_to_obj_addr(obj_expr);
-      if (obj != data.dchain) {
-        return true;
-      }
-    } else {
-      return true;
-    }
-
-    return false;
-  };
-
-  unfiltered_nodes.erase(std::remove_if(unfiltered_nodes.begin(),
-                                        unfiltered_nodes.end(),
-                                        filter_map_objs),
-                         unfiltered_nodes.end());
-
-  return unfiltered_nodes;
+  return find_branch_checking_index_alloc(ep, dchain_allocate_new_index, out_of_space);
 }
 
 std::vector<const Call *>
@@ -2220,8 +2252,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
 
   klee::ref<klee::Expr> index;
 
-  auto filter_map_nodes_and_retrieve_index = [&target_key,
-                                              &index](const Node *node) {
+  auto filter_map_nodes_and_retrieve_index = [&target_key, &index](const Node *node) {
     ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
     const Call *call_node = static_cast<const Call *>(node);
@@ -2245,8 +2276,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
     return !same_key;
   };
 
-  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(),
-                                      filtered_nodes.end(),
+  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(),
                                       filter_map_nodes_and_retrieve_index),
                        filtered_nodes.end());
 
@@ -2256,8 +2286,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
     const Call *call_node = static_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "vector_borrow" &&
-        call.function_name != "vector_return") {
+    if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
       return false;
     }
 
@@ -2267,10 +2296,9 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
     return !solver_toolbox.are_exprs_always_equal(index, value);
   };
 
-  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(),
-                                      filtered_nodes.end(),
-                                      filter_vectors_nodes),
-                       filtered_nodes.end());
+  filtered_nodes.erase(
+      std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_vectors_nodes),
+      filtered_nodes.end());
 
   return filtered_nodes;
 }
@@ -2278,8 +2306,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
 symbol_t create_symbol(const std::string &label, bits_t size) {
   const klee::Array *array;
 
-  klee::ref<klee::Expr> expr =
-      solver_toolbox.create_new_symbol(label, size, array);
+  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(label, size, array);
 
   symbol_t new_symbol = {
       .base = label,
@@ -2288,26 +2315,6 @@ symbol_t create_symbol(const std::string &label, bits_t size) {
   };
 
   return new_symbol;
-}
-
-static std::pair<hit_rate_t, std::string> n2hr(u64 n) {
-  if (n < 1e3) {
-    return {(hit_rate_t)n, ""};
-  }
-
-  if (n < 1e6) {
-    return {n / 1e3, "K"};
-  }
-
-  if (n < 1e9) {
-    return {n / 1e6, "M"};
-  }
-
-  if (n < 1e12) {
-    return {n / 1e9, "G"};
-  }
-
-  return {n / 1e12, "T"};
 }
 
 std::string int2hr(u64 value) {
@@ -2461,116 +2468,6 @@ port_ingress_t get_node_egress(const EP *ep, const EPNode *node) {
   }
 
   return egress;
-}
-
-static addr_t
-get_vector_map_key(const BDD *bdd,
-                   const map_coalescing_objs_t &map_coalescing_objs) {
-  addr_t vector_key;
-
-  std::vector<const Call *> vector_borrows =
-      get_future_functions(bdd->get_root(), {"vector_borrow"});
-
-  for (const Call *vector_borrow : vector_borrows) {
-    const call_t &vb = vector_borrow->get_call();
-
-    klee::ref<klee::Expr> vector_expr = vb.args.at("vector").expr;
-    klee::ref<klee::Expr> value_addr_expr = vb.args.at("val_out").out;
-
-    addr_t vector_obj = expr_addr_to_obj_addr(vector_expr);
-    addr_t value_addr = expr_addr_to_obj_addr(value_addr_expr);
-
-    if (map_coalescing_objs.vectors.find(vector_obj) ==
-        map_coalescing_objs.vectors.end()) {
-      continue;
-    }
-
-    std::vector<const Call *> map_puts =
-        get_future_functions(vector_borrow, {"map_put"});
-
-    bool is_vector_key = false;
-    for (const Call *map_put : map_puts) {
-      const call_t &mp = map_put->get_call();
-
-      klee::ref<klee::Expr> map_expr = mp.args.at("map").expr;
-      klee::ref<klee::Expr> key_addr_expr = mp.args.at("key").expr;
-
-      addr_t map_obj = expr_addr_to_obj_addr(map_expr);
-      addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
-
-      if (map_obj != map_coalescing_objs.map) {
-        continue;
-      }
-
-      if (key_addr == value_addr) {
-        is_vector_key = true;
-        break;
-      }
-    }
-
-    if (!is_vector_key) {
-      continue;
-    }
-
-    const Call *vector_return = get_future_vector_return(vector_borrow);
-    const call_t &vr = vector_return->get_call();
-
-    klee::ref<klee::Expr> ret_vector_expr = vr.args.at("vector").expr;
-    klee::ref<klee::Expr> ret_value_addr_expr = vr.args.at("value").expr;
-
-    addr_t ret_vector_obj = expr_addr_to_obj_addr(vector_expr);
-    addr_t ret_value_addr = expr_addr_to_obj_addr(value_addr_expr);
-
-    ASSERT(ret_vector_obj == vector_obj, "Vector objects don't match");
-
-    // vector_borrow operation deemed this vector as a key vector, but the
-    // vector_return contradicts this information.
-    ASSERT(ret_value_addr == value_addr, "Value addresses don't match");
-
-    return vector_obj;
-  }
-
-  PANIC("Vector key not found");
-}
-
-static void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
-  map_coalescing_objs_t map_coalescing_data;
-  if (!get_map_coalescing_objs_from_bdd(bdd, map, map_coalescing_data)) {
-    return;
-  }
-
-  addr_t vector_key = get_vector_map_key(bdd, map_coalescing_data);
-  std::unordered_set<const Node *> candidates;
-
-  bdd->get_root()->visit_nodes(
-      [map_coalescing_data, vector_key, &candidates](const Node *node) {
-        if (node->get_type() != NodeType::Call) {
-          return NodeVisitAction::Continue;
-        }
-
-        const Call *call_node = static_cast<const Call *>(node);
-        const call_t &call = call_node->get_call();
-
-        if (call.function_name != "vector_borrow" &&
-            call.function_name != "vector_return") {
-          return NodeVisitAction::Continue;
-        }
-
-        klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-        addr_t obj = expr_addr_to_obj_addr(obj_expr);
-
-        if (obj != vector_key) {
-          return NodeVisitAction::Continue;
-        }
-
-        candidates.insert(node);
-
-        return NodeVisitAction::Continue;
-      });
-
-  for (const Node *node : candidates) {
-    delete_non_branch_node_from_bdd(bdd, node->get_id());
-  }
 }
 
 void delete_all_vector_key_operations_from_bdd(BDD *bdd) {

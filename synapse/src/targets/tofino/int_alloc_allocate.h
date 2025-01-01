@@ -14,8 +14,7 @@ private:
 
 public:
   IntegerAllocatorAllocate(const Node *node, addr_t _dchain_addr,
-                           klee::ref<klee::Expr> _time,
-                           klee::ref<klee::Expr> _index_out,
+                           klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                            const symbol_t &_out_of_space)
       : TofinoModule(ModuleType::Tofino_IntegerAllocatorAllocate,
                      "IntegerAllocatorAllocate", node),
@@ -28,8 +27,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    return new IntegerAllocatorAllocate(node, dchain_addr, time, index_out,
-                                        out_of_space);
+    return new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, out_of_space);
   }
 
   addr_t get_dchain_addr() const { return dchain_addr; }
@@ -44,18 +42,17 @@ public:
   }
 };
 
-class IntegerAllocatorAllocateGenerator : public TofinoModuleGenerator {
+class IntegerAllocatorAllocateFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorAllocateGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_IntegerAllocatorAllocate,
-                              "IntegerAllocatorAllocate") {}
+  IntegerAllocatorAllocateFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorAllocate,
+                            "IntegerAllocatorAllocate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

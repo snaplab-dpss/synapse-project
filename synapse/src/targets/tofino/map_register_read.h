@@ -16,8 +16,7 @@ public:
   MapRegisterRead(const Node *node, DS_ID _map_register_id, addr_t _obj,
                   klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
                   const symbol_t &_map_has_this_key)
-      : TofinoModule(ModuleType::Tofino_MapRegisterRead, "MapRegisterRead",
-                     node),
+      : TofinoModule(ModuleType::Tofino_MapRegisterRead, "MapRegisterRead", node),
         map_register_id(_map_register_id), obj(_obj), key(_key), value(_value),
         map_has_this_key(_map_has_this_key) {}
 
@@ -27,8 +26,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapRegisterRead(node, map_register_id, obj, key, value,
-                                         map_has_this_key);
+    Module *cloned =
+        new MapRegisterRead(node, map_register_id, obj, key, value, map_has_this_key);
     return cloned;
   }
 
@@ -43,18 +42,16 @@ public:
   }
 };
 
-class MapRegisterReadGenerator : public TofinoModuleGenerator {
+class MapRegisterReadFactory : public TofinoModuleFactory {
 public:
-  MapRegisterReadGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_MapRegisterRead,
-                              "MapRegisterRead") {}
+  MapRegisterReadFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_MapRegisterRead, "MapRegisterRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

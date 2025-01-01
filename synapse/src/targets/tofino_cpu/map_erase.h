@@ -31,17 +31,16 @@ public:
   klee::ref<klee::Expr> get_trash() const { return trash; }
 };
 
-class MapEraseGenerator : public TofinoCPUModuleGenerator {
+class MapEraseFactory : public TofinoCPUModuleFactory {
 public:
-  MapEraseGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_MapErase, "MapErase") {}
+  MapEraseFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_MapErase, "MapErase") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

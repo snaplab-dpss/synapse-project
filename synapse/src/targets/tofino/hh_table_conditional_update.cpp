@@ -87,24 +87,28 @@ const Call *get_future_map_put(const Node *node, addr_t map) {
   return nullptr;
 }
 
-BDD *rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index,
-                 const map_coalescing_objs_t &map_objs,
-                 klee::ref<klee::Expr> key,
-                 klee::ref<klee::Expr> min_estimate_cond,
-                 Branch *&min_estimate_cond_branch) {
+std::unique_ptr<BDD> rebuild_bdd(const EP *ep,
+                                 const Node *dchain_allocate_new_index,
+                                 const map_coalescing_objs_t &map_objs,
+                                 klee::ref<klee::Expr> key,
+                                 klee::ref<klee::Expr> min_estimate_cond,
+                                 Branch *&min_estimate_cond_branch) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
-  Node *node =
-      delete_non_branch_node_from_bdd(bdd, dchain_allocate_new_index->get_id());
+  Node *node = delete_non_branch_node_from_bdd(
+      bdd.get(), dchain_allocate_new_index->get_id());
 
-  min_estimate_cond_branch = add_branch_to_bdd(bdd, node, min_estimate_cond);
+  min_estimate_cond_branch =
+      add_branch_to_bdd(bdd.get(), node, min_estimate_cond);
 
   // FIXME: assuming index allocation is successful on true.
   Node *on_hh = delete_branch_node_from_bdd(
-      bdd, min_estimate_cond_branch->get_mutable_on_true()->get_id(), true);
+      bdd.get(), min_estimate_cond_branch->get_mutable_on_true()->get_id(),
+      true);
   Node *on_not_hh = delete_branch_node_from_bdd(
-      bdd, min_estimate_cond_branch->get_mutable_on_false()->get_id(), false);
+      bdd.get(), min_estimate_cond_branch->get_mutable_on_false()->get_id(),
+      false);
 
   // Add the header parsing operations to the HH branch side, which goes to
   // the controller.
@@ -119,11 +123,11 @@ BDD *rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index,
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(),
                          prev_returns.end());
 
-  on_hh = add_non_branch_nodes_to_bdd(bdd, on_hh, hdr_parsing_ops);
+  on_hh = add_non_branch_nodes_to_bdd(bdd.get(), on_hh, hdr_parsing_ops);
 
   // Remove the coalescing nodes from the not HH branch side.
   std::vector<const Call *> targets =
-      get_coalescing_nodes_from_key(bdd, on_hh, key, map_objs);
+      get_coalescing_nodes_from_key(bdd.get(), on_hh, key, map_objs);
 
   while (on_hh && !targets.empty()) {
     auto found_it = std::find_if(targets.begin(), targets.end(),
@@ -132,7 +136,7 @@ BDD *rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index,
                                  });
 
     if (found_it != targets.end()) {
-      on_hh = delete_non_branch_node_from_bdd(bdd, on_hh->get_id());
+      on_hh = delete_non_branch_node_from_bdd(bdd.get(), on_hh->get_id());
       targets.erase(found_it);
     } else {
       ASSERT(on_hh->get_type() != NodeType::Branch, "Unexpected branch");
@@ -149,8 +153,8 @@ BDD *rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index,
 using tofino_cpu::HHTableUpdate;
 
 std::optional<spec_impl_t>
-HHTableConditionalUpdateGenerator::speculate(const EP *ep, const Node *node,
-                                             const Context &ctx) const {
+HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
+                                           const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -220,8 +224,8 @@ HHTableConditionalUpdateGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-HHTableConditionalUpdateGenerator::process_node(const EP *ep,
-                                                const Node *node) const {
+HHTableConditionalUpdateFactory::process_node(const EP *ep,
+                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -288,7 +292,7 @@ HHTableConditionalUpdateGenerator::process_node(const EP *ep,
   impls.push_back(implement(ep, node, new_ep));
 
   Branch *min_estimate_cond_branch;
-  BDD *new_bdd =
+  std::unique_ptr<BDD> new_bdd =
       rebuild_bdd(new_ep, dchain_allocate_new_index, map_objs, table_data.key,
                   min_estimate_cond, min_estimate_cond_branch);
 
@@ -350,7 +354,7 @@ HHTableConditionalUpdateGenerator::process_node(const EP *ep,
   EPLeaf on_not_hh_leaf(else_node, min_estimate_cond_branch->get_on_false());
 
   new_ep->process_leaf(if_node, {on_hh_leaf, on_not_hh_leaf});
-  new_ep->replace_bdd(new_bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(

@@ -53,8 +53,6 @@ void list_candidates(const BDD *bdd, const anchor_info_t &anchor_info) {
 void apply_reordering_ops(
     const BDD *bdd,
     const std::vector<std::pair<anchor_info_t, node_id_t>> &ops) {
-  std::vector<BDD *> created_bdds;
-
   for (const std::pair<anchor_info_t, node_id_t> &op : ops) {
     anchor_info_t anchor_info = op.first;
     node_id_t candidate_id = op.second;
@@ -73,15 +71,8 @@ void apply_reordering_ops(
       break;
     } else {
       assert(reordered_bdd.bdd);
-      BDDViz::visualize(reordered_bdd.bdd, true);
-
-      created_bdds.push_back(reordered_bdd.bdd);
-      bdd = reordered_bdd.bdd;
+      BDDViz::visualize(reordered_bdd.bdd.get(), true);
     }
-  }
-
-  for (BDD *created_bdd : created_bdds) {
-    delete created_bdd;
   }
 }
 
@@ -109,10 +100,6 @@ void apply_all_candidates(const BDD *bdd, node_id_t anchor_id) {
 
     // BDDViz::visualize(reordered_bdd.bdd, true);
   }
-
-  for (reordered_bdd_t &reordered_bdd : bdds) {
-    delete reordered_bdd.bdd;
-  }
 }
 
 void estimate(const BDD *bdd) {
@@ -139,16 +126,14 @@ int main(int argc, char **argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  BDD *bdd = new BDD(input_bdd_file);
+  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file);
 
   // list_candidates(bdd, {20, true});
-  apply_reordering_ops(bdd, {
-                                {{2, false}, 8},
-                            });
+  apply_reordering_ops(bdd.get(), {
+                                      {{2, false}, 8},
+                                  });
   // test_reorder(bdd, 3);
   // estimate(bdd);
-
-  delete bdd;
 
   return 0;
 }

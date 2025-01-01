@@ -31,17 +31,15 @@ public:
   klee::ref<klee::Expr> get_hash() const { return hash; }
 };
 
-class HashObjGenerator : public TofinoCPUModuleGenerator {
+class HashObjFactory : public TofinoCPUModuleFactory {
 public:
-  HashObjGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_HashObj, "HashObj") {}
+  HashObjFactory() : TofinoCPUModuleFactory(ModuleType::TofinoCPU_HashObj, "HashObj") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

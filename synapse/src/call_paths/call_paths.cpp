@@ -18,12 +18,33 @@
 #include "../exprs/replacer.h"
 #include "../exprs/solver.h"
 
+namespace {
+std::string base_from_name(const std::string &name) {
+  ASSERT(name.size(), "Empty name");
+
+  if (!std::isdigit(name.back())) {
+    return name;
+  }
+
+  size_t delim = name.rfind("_");
+  ASSERT(delim != std::string::npos, "Invalid name");
+
+  std::string base = name.substr(0, delim);
+  return base;
+}
+
+symbol_t build_symbol(const klee::Array *array) {
+  std::string base = base_from_name(array->name);
+  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(array);
+  return symbol_t({base, array, expr});
+}
+} // namespace
+
 std::size_t symbol_hash_t::operator()(const symbol_t &s) const noexcept {
   return s.array->hash();
 }
 
-bool symbol_equal_t::operator()(const symbol_t &a,
-                                const symbol_t &b) const noexcept {
+bool symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept {
   return solver_toolbox.are_exprs_always_equal(a.expr, b.expr);
 }
 
@@ -56,26 +77,6 @@ klee::ref<klee::Expr> parse_expr(const std::set<std::string> &declared_arrays,
   }
 
   ASSERT(false, "Error parsing expr");
-}
-
-static std::string base_from_name(const std::string &name) {
-  ASSERT(name.size(), "Empty name");
-
-  if (!std::isdigit(name.back())) {
-    return name;
-  }
-
-  size_t delim = name.rfind("_");
-  ASSERT(delim != std::string::npos, "Invalid name");
-
-  std::string base = name.substr(0, delim);
-  return base;
-}
-
-static symbol_t build_symbol(const klee::Array *array) {
-  std::string base = base_from_name(array->name);
-  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(array);
-  return symbol_t({base, array, expr});
 }
 
 call_path_t *load_call_path(const std::string &file_name) {
@@ -129,8 +130,7 @@ call_path_t *load_call_path(const std::string &file_name) {
 
         llvm::MemoryBuffer *MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
         klee::ExprBuilder *Builder = klee::createDefaultExprBuilder();
-        klee::expr::Parser *P =
-            klee::expr::Parser::Create("", MB, Builder, false);
+        klee::expr::Parser *P = klee::expr::Parser::Create("", MB, Builder, false);
         while (klee::expr::Decl *D = P->ParseTopLevelDecl()) {
           ASSERT(!P->GetNumErrors(), "Error parsing kquery in call path file.");
           if (klee::expr::ArrayDecl *AD = dyn_cast<klee::expr::ArrayDecl>(D)) {
@@ -227,16 +227,14 @@ call_path_t *load_call_path(const std::string &file_name) {
                    "Too many expression in extra variable.");
             if (current_exprs_str[0] != "(...)") {
               ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-              call_path->calls.back().extra_vars[current_extra_var].first =
-                  exprs[0];
+              call_path->calls.back().extra_vars[current_extra_var].first = exprs[0];
               exprs.erase(exprs.begin());
               current_exprs_str.erase(current_exprs_str.begin(),
                                       current_exprs_str.begin() + 2);
             }
             if (current_exprs_str[1] != "(...)") {
               ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-              call_path->calls.back().extra_vars[current_extra_var].second =
-                  exprs[0];
+              call_path->calls.back().extra_vars[current_extra_var].second = exprs[0];
               exprs.erase(exprs.begin());
               current_exprs_str.erase(current_exprs_str.begin(),
                                       current_exprs_str.begin() + 2);
@@ -315,8 +313,7 @@ call_path_t *load_call_path(const std::string &file_name) {
                     auto size = end_delim - start_delim - 1;
                     ASSERT(size > 0, "Invalid call");
 
-                    auto part =
-                        current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                    auto part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
                     current_arg_meta = current_arg_meta.substr(end_delim + 1);
 
                     expr_parts.push_back(part);
@@ -338,8 +335,7 @@ call_path_t *load_call_path(const std::string &file_name) {
 
                     auto symbol = part.substr(0, open_delim);
                     auto meta_expr_str = part.substr(open_delim + 1);
-                    meta_expr_str =
-                        meta_expr_str.substr(0, meta_expr_str.size() - 1);
+                    meta_expr_str = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
                     auto meta_expr = parse_expr(declared_arrays, meta_expr_str);
                     auto meta_size = meta_expr->getWidth();
@@ -347,9 +343,7 @@ call_path_t *load_call_path(const std::string &file_name) {
 
                     offset += meta_size;
 
-                    call_path->calls.back()
-                        .args[current_arg_name]
-                        .meta.push_back(meta);
+                    call_path->calls.back().args[current_arg_name].meta.push_back(meta);
                   }
                 }
               }
@@ -401,20 +395,17 @@ call_path_t *load_call_path(const std::string &file_name) {
 
       if (parenthesis_level == 0) {
         if (!current_extra_var.empty()) {
-          ASSERT(current_exprs_str.size() == 2,
-                 "Too many expression in extra variable.");
+          ASSERT(current_exprs_str.size() == 2, "Too many expression in extra variable.");
           if (current_exprs_str[0] != "(...)") {
             ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-            call_path->calls.back().extra_vars[current_extra_var].first =
-                exprs[0];
+            call_path->calls.back().extra_vars[current_extra_var].first = exprs[0];
             exprs.erase(exprs.begin());
             current_exprs_str.erase(current_exprs_str.begin(),
                                     current_exprs_str.begin() + 2);
           }
           if (current_exprs_str[1] != "(...)") {
             ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-            call_path->calls.back().extra_vars[current_extra_var].second =
-                exprs[0];
+            call_path->calls.back().extra_vars[current_extra_var].second = exprs[0];
             exprs.erase(exprs.begin());
             current_exprs_str.erase(current_exprs_str.begin(),
                                     current_exprs_str.begin() + 2);
@@ -495,8 +486,7 @@ call_path_t *load_call_path(const std::string &file_name) {
                   auto size = end_delim - start_delim - 1;
                   ASSERT(size > 0, "Invalid call");
 
-                  auto part =
-                      current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                  auto part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
                   current_arg_meta = current_arg_meta.substr(end_delim + 1);
 
                   expr_parts.push_back(part);
@@ -518,8 +508,7 @@ call_path_t *load_call_path(const std::string &file_name) {
 
                   auto symbol = part.substr(0, open_delim);
                   auto meta_expr_str = part.substr(open_delim + 1);
-                  meta_expr_str =
-                      meta_expr_str.substr(0, meta_expr_str.size() - 1);
+                  meta_expr_str = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
                   auto meta_expr = parse_expr(declared_arrays, meta_expr_str);
                   auto meta_size = meta_expr->getWidth();
@@ -527,8 +516,7 @@ call_path_t *load_call_path(const std::string &file_name) {
 
                   offset += meta_size;
 
-                  call_path->calls.back().args[current_arg_name].meta.push_back(
-                      meta);
+                  call_path->calls.back().args[current_arg_name].meta.push_back(meta);
                 }
               }
             }
@@ -565,8 +553,7 @@ struct symbols_merger_t {
   std::unordered_set<std::string> symbols;
   std::vector<klee::ref<klee::ReadExpr>> reads;
 
-  klee::ConstraintManager
-  save_and_merge(const klee::ConstraintManager &constraints) {
+  klee::ConstraintManager save_and_merge(const klee::ConstraintManager &constraints) {
     klee::ConstraintManager new_constraints;
 
     for (auto c : constraints) {
@@ -633,8 +620,7 @@ void call_paths_t::merge_symbols() {
   }
 }
 
-bool get_symbol(const symbols_t &symbols, const std::string &base,
-                symbol_t &symbol) {
+bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol) {
   for (const symbol_t &s : symbols) {
     if (s.base == base) {
       symbol = s;

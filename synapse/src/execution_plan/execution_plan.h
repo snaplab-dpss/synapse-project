@@ -39,7 +39,7 @@ private:
   std::vector<EPLeaf> active_leaves;
 
   const TargetType initial_target;
-  const targets_t targets;
+  const Targets targets;
   const std::set<ep_id_t> ancestors;
 
   std::unordered_map<TargetType, nodes_t> targets_roots;
@@ -51,8 +51,8 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
 
 public:
-  EP(std::shared_ptr<const BDD> bdd, const targets_t &targets,
-     const toml::table &config, const Profiler &profiler);
+  EP(std::shared_ptr<const BDD> bdd, const Targets &targets, const toml::table &config,
+     const Profiler &profiler);
 
   EP(const EP &other, bool is_ancestor = true);
 
@@ -65,16 +65,15 @@ public:
                     bool process_node = true);
   void process_leaf(const Node *next_node);
 
-  void
-  replace_bdd(const BDD *new_bdd,
-              const translator_t &next_nodes_translator = translator_t(),
-              const translator_t &processed_nodes_translator = translator_t());
+  void replace_bdd(std::unique_ptr<BDD> new_bdd,
+                   const translator_t &next_nodes_translator = translator_t(),
+                   const translator_t &processed_nodes_translator = translator_t());
 
   ep_id_t get_id() const;
   const BDD *get_bdd() const;
   const EPNode *get_root() const;
   const std::vector<EPLeaf> &get_active_leaves() const;
-  const targets_t &get_targets() const;
+  const Targets &get_targets() const;
   const nodes_t &get_target_roots(TargetType target) const;
   const std::set<ep_id_t> &get_ancestors() const;
   const Context &get_ctx() const;
@@ -117,14 +116,14 @@ public:
 private:
   void sort_leaves();
 
-  spec_impl_t peek_speculation_for_future_nodes(
-      const spec_impl_t &base_speculation, const Node *anchor,
-      nodes_t future_nodes, TargetType current_target, pps_t ingress) const;
+  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
+                                                const Node *anchor, nodes_t future_nodes,
+                                                TargetType current_target,
+                                                pps_t ingress) const;
   spec_impl_t get_best_speculation(const Node *node, TargetType current_target,
                                    const Context &ctx, const nodes_t &skip,
                                    pps_t ingress) const;
   bool is_better_speculation(const spec_impl_t &old_speculation,
-                             const spec_impl_t &new_speculation,
-                             const Node *node, TargetType current_target,
-                             pps_t ingress) const;
+                             const spec_impl_t &new_speculation, const Node *node,
+                             TargetType current_target, pps_t ingress) const;
 };

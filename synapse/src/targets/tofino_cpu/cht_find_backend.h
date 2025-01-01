@@ -17,13 +17,11 @@ private:
 public:
   ChtFindBackend(const Node *node, addr_t _cht_addr, addr_t _backends_addr,
                  klee::ref<klee::Expr> _hash, klee::ref<klee::Expr> _height,
-                 klee::ref<klee::Expr> _capacity,
-                 klee::ref<klee::Expr> _backend, const symbol_t &_found)
-      : TofinoCPUModule(ModuleType::TofinoCPU_ChtFindBackend, "ChtFindBackend",
-                        node),
-        cht_addr(_cht_addr), backends_addr(_backends_addr), hash(_hash),
-        height(_height), capacity(_capacity), backend(_backend), found(_found) {
-  }
+                 klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _backend,
+                 const symbol_t &_found)
+      : TofinoCPUModule(ModuleType::TofinoCPU_ChtFindBackend, "ChtFindBackend", node),
+        cht_addr(_cht_addr), backends_addr(_backends_addr), hash(_hash), height(_height),
+        capacity(_capacity), backend(_backend), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -31,8 +29,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new ChtFindBackend(node, cht_addr, backends_addr, hash,
-                                        height, capacity, backend, found);
+    Module *cloned = new ChtFindBackend(node, cht_addr, backends_addr, hash, height,
+                                        capacity, backend, found);
     return cloned;
   }
 
@@ -45,18 +43,16 @@ public:
   const symbol_t &get_found() const { return found; }
 };
 
-class ChtFindBackendGenerator : public TofinoCPUModuleGenerator {
+class ChtFindBackendFactory : public TofinoCPUModuleFactory {
 public:
-  ChtFindBackendGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_ChtFindBackend,
-                                 "ChtFindBackend") {}
+  ChtFindBackendFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_ChtFindBackend, "ChtFindBackend") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

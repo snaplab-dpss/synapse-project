@@ -14,8 +14,7 @@ public:
   ChecksumUpdate(const Node *node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr,
                  symbol_t _checksum)
       : x86Module(ModuleType::x86_ChecksumUpdate, "SetIpChecksum", node),
-        ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr),
-        checksum(_checksum) {}
+        ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -23,8 +22,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
+    Module *cloned = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
     return cloned;
   }
 
@@ -33,17 +31,16 @@ public:
   const symbol_t &get_checksum() const { return checksum; }
 };
 
-class ChecksumUpdateGenerator : public x86ModuleGenerator {
+class ChecksumUpdateFactory : public x86ModuleFactory {
 public:
-  ChecksumUpdateGenerator()
-      : x86ModuleGenerator(ModuleType::x86_ChecksumUpdate, "ChecksumUpdate") {}
+  ChecksumUpdateFactory()
+      : x86ModuleFactory(ModuleType::x86_ChecksumUpdate, "ChecksumUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

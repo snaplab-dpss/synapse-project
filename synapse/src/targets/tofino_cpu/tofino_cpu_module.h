@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../module.h"
-#include "../module_generator.h"
+#include "../module_factory.h"
 
 #include "tofino_cpu_context.h"
 #include "../tofino/tofino_context.h"
@@ -14,39 +14,21 @@ public:
       : Module(_type, TargetType::TofinoCPU, _name, node) {}
 };
 
-class TofinoCPUModuleGenerator : public ModuleGenerator {
+class TofinoCPUModuleFactory : public ModuleFactory {
 protected:
   ModuleType type;
   TargetType target;
 
 public:
-  TofinoCPUModuleGenerator(ModuleType _type, const std::string &_name)
-      : ModuleGenerator(_type, TargetType::TofinoCPU, _name) {}
+  TofinoCPUModuleFactory(ModuleType _type, const std::string &_name)
+      : ModuleFactory(_type, TargetType::TofinoCPU, _name) {}
 
 protected:
-  const tofino::TofinoContext *get_tofino_ctx(const EP *ep) const {
-    const Context &ctx = ep->get_ctx();
-    const tofino::TofinoContext *tofino_ctx =
-        ctx.get_target_ctx<tofino::TofinoContext>();
-    return tofino_ctx;
-  }
+  const tofino::TofinoContext *get_tofino_ctx(const EP *ep) const;
+  tofino::TofinoContext *get_mutable_tofino_ctx(EP *ep) const;
 
-  tofino::TofinoContext *get_mutable_tofino_ctx(EP *ep) const {
-    Context &ctx = ep->get_mutable_ctx();
-    tofino::TofinoContext *tofino_ctx =
-        ctx.get_mutable_target_ctx<tofino::TofinoContext>();
-    return tofino_ctx;
-  }
-
-  tofino::TNA &get_mutable_tna(EP *ep) const {
-    tofino::TofinoContext *ctx = get_mutable_tofino_ctx(ep);
-    return ctx->get_mutable_tna();
-  }
-
-  const tofino::TNA &get_tna(const EP *ep) const {
-    const tofino::TofinoContext *ctx = get_tofino_ctx(ep);
-    return ctx->get_tna();
-  }
+  const tofino::TNA &get_tna(const EP *ep) const;
+  tofino::TNA &get_mutable_tna(EP *ep) const;
 };
 
 } // namespace tofino_cpu

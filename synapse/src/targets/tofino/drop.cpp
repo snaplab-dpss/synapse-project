@@ -2,9 +2,9 @@
 
 namespace tofino {
 
-std::optional<spec_impl_t> DropGenerator::speculate(const EP *ep,
-                                                    const Node *node,
-                                                    const Context &ctx) const {
+std::optional<spec_impl_t> DropFactory::speculate(const EP *ep,
+                                                  const Node *node,
+                                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
@@ -38,8 +38,8 @@ bool is_parser_reject(const EP *ep) {
   return (type == ModuleType::Tofino_ParserCondition);
 }
 
-std::vector<impl_t> DropGenerator::process_node(const EP *ep,
-                                                const Node *node) const {
+std::vector<impl_t> DropFactory::process_node(const EP *ep,
+                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {

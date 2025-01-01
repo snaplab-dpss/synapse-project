@@ -10,8 +10,7 @@ private:
 
 public:
   ParserCondition(const Node *node, klee::ref<klee::Expr> _condition)
-      : TofinoModule(ModuleType::Tofino_ParserCondition, "ParserCondition",
-                     node),
+      : TofinoModule(ModuleType::Tofino_ParserCondition, "ParserCondition", node),
         condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -27,18 +26,16 @@ public:
   klee::ref<klee::Expr> get_condition() const { return condition; }
 };
 
-class ParserConditionGenerator : public TofinoModuleGenerator {
+class ParserConditionFactory : public TofinoModuleFactory {
 public:
-  ParserConditionGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_ParserCondition,
-                              "ParserCondition") {}
+  ParserConditionFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_ParserCondition, "ParserCondition") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

@@ -2,26 +2,15 @@
 
 #include "target.h"
 #include "module.h"
-#include "module_generator.h"
+#include "module_factory.h"
+#include "targets.h"
 
 Target::Target(TargetType _type,
-               const std::vector<ModuleGenerator *> &_module_generators,
-               const TargetContext *_ctx)
-    : type(_type), module_generators(_module_generators), ctx(_ctx) {}
+               std::vector<std::unique_ptr<ModuleFactory>> &&_module_factories,
+               std::unique_ptr<TargetContext> &&_ctx)
+    : type(_type), module_factories(std::move(_module_factories)), ctx(std::move(_ctx)) {}
 
-Target::~Target() {
-  for (ModuleGenerator *mg : module_generators) {
-    if (mg) {
-      delete mg;
-      mg = nullptr;
-    }
-  }
-
-  if (ctx) {
-    delete ctx;
-    ctx = nullptr;
-  }
-}
+Target::~Target() {}
 
 std::ostream &operator<<(std::ostream &os, TargetType target) {
   switch (target) {
@@ -43,3 +32,12 @@ std::string to_string(TargetType target) {
   ss << target;
   return ss.str();
 }
+
+Targets::Targets(const toml::table &config)
+    : elements{
+          std::make_shared<tofino::TofinoTarget>(config),
+          std::make_shared<tofino_cpu::TofinoCPUTarget>(),
+          std::make_shared<x86::x86Target>(),
+      } {}
+
+Targets::Targets(const Targets &other) : elements(other.elements) {}

@@ -128,22 +128,22 @@ void update_profiler(const BDD *bdd, Profiler &profiler,
   }
 }
 
-BDD *rebuild_bdd(const EP *ep, const Node *node,
-                 const map_rw_pattern_t &map_rw_pattern,
-                 const symbol_t &map_reg_successful_write,
-                 const Node *&new_next) {
+std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
+                                 const map_rw_pattern_t &map_rw_pattern,
+                                 const symbol_t &map_reg_successful_write,
+                                 const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = node->get_next();
   new_next = new_bdd->get_node_by_id(next->get_id());
 
   delete_non_branch_node_from_bdd(
-      new_bdd, map_rw_pattern.dchain_allocate_new_index->get_id());
+      new_bdd.get(), map_rw_pattern.dchain_allocate_new_index->get_id());
 
   if (map_rw_pattern.map_put_extra_condition.branch) {
     delete_branch_node_from_bdd(
-        new_bdd, map_rw_pattern.map_put_extra_condition.branch->get_id(),
+        new_bdd.get(), map_rw_pattern.map_put_extra_condition.branch->get_id(),
         map_rw_pattern.map_put_extra_condition.direction);
   }
 
@@ -163,15 +163,16 @@ BDD *rebuild_bdd(const EP *ep, const Node *node,
             0, map_reg_successful_write.expr->getWidth())));
   }
 
-  delete_non_branch_node_from_bdd(new_bdd, map_rw_pattern.map_put->get_id());
+  delete_non_branch_node_from_bdd(new_bdd.get(),
+                                  map_rw_pattern.map_put->get_id());
 
   return new_bdd;
 }
 } // namespace
 
 std::optional<spec_impl_t>
-MapRegisterReadOrWriteGenerator::speculate(const EP *ep, const Node *node,
-                                           const Context &ctx) const {
+MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
+                                         const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -221,8 +222,8 @@ MapRegisterReadOrWriteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-MapRegisterReadOrWriteGenerator::process_node(const EP *ep,
-                                              const Node *node) const {
+MapRegisterReadOrWriteFactory::process_node(const EP *ep,
+                                            const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -273,21 +274,21 @@ MapRegisterReadOrWriteGenerator::process_node(const EP *ep,
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  BDD *new_bdd = rebuild_bdd(new_ep, node, map_rw_pattern,
-                             map_reg_successful_write, new_next);
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(
+      new_ep, node, map_rw_pattern, map_reg_successful_write, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);
   ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_MapRegister);
 
-  update_profiler(new_bdd, ctx.get_mutable_profiler(), map_rw_pattern);
+  update_profiler(new_bdd.get(), ctx.get_mutable_profiler(), map_rw_pattern);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, map_register);
 
   EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
-  new_ep->replace_bdd(new_bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   return impls;

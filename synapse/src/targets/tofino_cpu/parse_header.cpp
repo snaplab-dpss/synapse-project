@@ -3,8 +3,8 @@
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
-ParseHeaderGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+ParseHeaderFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -19,8 +19,8 @@ ParseHeaderGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ParseHeaderGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> ParseHeaderFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

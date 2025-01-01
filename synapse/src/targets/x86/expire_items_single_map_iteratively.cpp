@@ -19,7 +19,7 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyGenerator::speculate(
+std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyFactory::speculate(
     const EP *ep, const Node *node, const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
@@ -27,8 +27,8 @@ std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyGenerator::speculate(
 }
 
 std::vector<impl_t>
-ExpireItemsSingleMapIterativelyGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

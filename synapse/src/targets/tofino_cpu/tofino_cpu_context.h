@@ -8,9 +8,7 @@ class TofinoCPUContext : public TargetContext {
 public:
   TofinoCPUContext() {}
 
-  virtual TargetContext *clone() const override {
-    return new TofinoCPUContext(*this);
-  }
+  virtual TargetContext *clone() const override { return new TofinoCPUContext(*this); }
 };
 
 } // namespace tofino_cpu

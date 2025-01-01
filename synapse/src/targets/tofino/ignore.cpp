@@ -104,9 +104,9 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-IgnoreGenerator::speculate(const EP *ep, const Node *node,
-                           const Context &ctx) const {
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep,
+                                                    const Node *node,
+                                                    const Context &ctx) const {
   if (!should_ignore(ep, ctx, node)) {
     return std::nullopt;
   }
@@ -114,8 +114,8 @@ IgnoreGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreGenerator::process_node(const EP *ep,
-                                                  const Node *node) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep,
+                                                const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, ep->get_ctx(), node)) {

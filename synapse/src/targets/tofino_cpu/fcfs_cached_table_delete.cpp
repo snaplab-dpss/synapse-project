@@ -33,8 +33,8 @@ void get_map_erase_data(const Call *call_node, addr_t &obj,
 } // namespace
 
 std::optional<spec_impl_t>
-FCFSCachedTableDeleteGenerator::speculate(const EP *ep, const Node *node,
-                                          const Context &ctx) const {
+FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
+                                        const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -57,8 +57,8 @@ FCFSCachedTableDeleteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableDeleteGenerator::process_node(const EP *ep,
-                                             const Node *node) const {
+FCFSCachedTableDeleteFactory::process_node(const EP *ep,
+                                           const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

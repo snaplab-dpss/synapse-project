@@ -91,8 +91,8 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
 } // namespace
 
 std::optional<spec_impl_t>
-ParserConditionGenerator::speculate(const EP *ep, const Node *node,
-                                    const Context &ctx) const {
+ParserConditionFactory::speculate(const EP *ep, const Node *node,
+                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Branch) {
     return std::nullopt;
   }
@@ -107,7 +107,7 @@ ParserConditionGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-ParserConditionGenerator::process_node(const EP *ep, const Node *node) const {
+ParserConditionFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Branch) {

@@ -76,8 +76,8 @@ const Call *get_future_map_put(const Node *node, addr_t map) {
 } // namespace
 
 std::optional<spec_impl_t>
-HHTableConditionalUpdateGenerator::speculate(const EP *ep, const Node *node,
-                                             const Context &ctx) const {
+HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
+                                           const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -134,8 +134,8 @@ HHTableConditionalUpdateGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-HHTableConditionalUpdateGenerator::process_node(const EP *ep,
-                                                const Node *node) const {
+HHTableConditionalUpdateFactory::process_node(const EP *ep,
+                                              const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

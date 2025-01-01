@@ -81,16 +81,14 @@ private:
   vars_t get_squashed_vars() const;
   vars_t get_squashed_hdrs() const;
 
-  bool get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr,
-                   var_t &out_var) const;
+  bool get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr, var_t &out_var) const;
 
   void transpile_parser(const Parser &parser);
   void transpile_table(coder_t &coder, const Table *table,
                        const std::vector<klee::ref<klee::Expr>> &keys,
                        const std::vector<klee::ref<klee::Expr>> &values);
   void transpile_register(coder_t &coder, const Register *reg,
-                          klee::ref<klee::Expr> index,
-                          klee::ref<klee::Expr> value);
+                          klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
   void transpile_fcfs_cached_table(coder_t &coder,
                                    const FCFSCachedTable *fcfs_cached_table,
                                    klee::ref<klee::Expr> key,

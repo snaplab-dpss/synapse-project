@@ -3,8 +3,8 @@
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
-IntegerAllocatorFreeIndexGenerator::speculate(const EP *ep, const Node *node,
-                                              const Context &ctx) const {
+IntegerAllocatorFreeIndexFactory::speculate(const EP *ep, const Node *node,
+                                            const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -27,8 +27,8 @@ IntegerAllocatorFreeIndexGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-IntegerAllocatorFreeIndexGenerator::process_node(const EP *ep,
-                                                 const Node *node) const {
+IntegerAllocatorFreeIndexFactory::process_node(const EP *ep,
+                                               const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

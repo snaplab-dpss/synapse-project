@@ -12,10 +12,9 @@ private:
 
 public:
   DchainRejuvenateIndex(const Node *node, addr_t _dchain_addr,
-                        klee::ref<klee::Expr> _index,
-                        klee::ref<klee::Expr> _time)
-      : TofinoCPUModule(ModuleType::TofinoCPU_DchainRejuvenateIndex,
-                        "DchainRejuvenate", node),
+                        klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
+      : TofinoCPUModule(ModuleType::TofinoCPU_DchainRejuvenateIndex, "DchainRejuvenate",
+                        node),
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -33,18 +32,17 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
 };
 
-class DchainRejuvenateIndexGenerator : public TofinoCPUModuleGenerator {
+class DchainRejuvenateIndexFactory : public TofinoCPUModuleFactory {
 public:
-  DchainRejuvenateIndexGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_DchainRejuvenateIndex,
-                                 "DchainRejuvenateIndex") {}
+  DchainRejuvenateIndexFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_DchainRejuvenateIndex,
+                               "DchainRejuvenateIndex") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

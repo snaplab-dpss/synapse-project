@@ -73,8 +73,8 @@ bool get_table_update_data(const Call *call_node, addr_t &obj,
 } // namespace
 
 std::optional<spec_impl_t>
-TableUpdateGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+TableUpdateFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -99,8 +99,8 @@ TableUpdateGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TableUpdateGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

@@ -4,43 +4,40 @@
 
 namespace tofino {
 
-static bits_t index_size_from_total_entries(u32 capacity) {
+namespace {
+bits_t index_size_from_total_entries(u32 capacity) {
   // Log base 2 of the capacity
   // Assert capacity is a power of 2
   ASSERT((capacity & (capacity - 1)) == 0, "Capacity must be a power of 2");
   return bits_t(log2(capacity));
 }
 
-static Register build_expirator(const TNAProperties &properties, DS_ID id,
-                                u32 capacity) {
+Register build_expirator(const TNAProperties &properties, DS_ID id, u32 capacity) {
   bits_t hash_size = index_size_from_total_entries(capacity);
   bits_t timestamp_size = 32;
-  return Register(properties, id + "_expirator", capacity, hash_size,
-                  timestamp_size, {RegisterAction::WRITE});
+  return Register(properties, id + "_expirator", capacity, hash_size, timestamp_size,
+                  {RegisterAction::WRITE});
 }
 
-static std::vector<Register> build_keys(const TNAProperties &properties,
-                                        DS_ID id,
-                                        const std::vector<bits_t> &keys_sizes,
-                                        u32 capacity) {
+std::vector<Register> build_keys(const TNAProperties &properties, DS_ID id,
+                                 const std::vector<bits_t> &keys_sizes, u32 capacity) {
   std::vector<Register> cache_keys;
 
   bits_t hash_size = index_size_from_total_entries(capacity);
 
   int i = 0;
   for (bits_t key_size : keys_sizes) {
-    Register cache_key(properties, id + "_key_" + std::to_string(i), capacity,
-                       hash_size, key_size,
-                       {RegisterAction::READ, RegisterAction::SWAP});
+    Register cache_key(properties, id + "_key_" + std::to_string(i), capacity, hash_size,
+                       key_size, {RegisterAction::READ, RegisterAction::SWAP});
     i++;
     cache_keys.push_back(cache_key);
   }
 
   return cache_keys;
 }
+} // namespace
 
-MapRegister::MapRegister(const TNAProperties &properties, DS_ID _id,
-                         u32 _num_entries,
+MapRegister::MapRegister(const TNAProperties &properties, DS_ID _id, u32 _num_entries,
                          const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::MAP_REGISTER, false, _id), num_entries(_num_entries),
       expirator(build_expirator(properties, _id, _num_entries)),

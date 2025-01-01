@@ -85,9 +85,8 @@ private:
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
-  Context(const BDD *bdd, const targets_t &targets,
-          const TargetType initial_target, const toml::table &config,
-          const Profiler &profiler);
+  Context(const BDD *bdd, const Targets &targets, const TargetType initial_target,
+          const toml::table &config, const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 
@@ -107,8 +106,7 @@ public:
   const cht_config_t &get_cht_config(addr_t addr) const;
   const tb_config_t &get_tb_config(addr_t addr) const;
 
-  std::optional<map_coalescing_objs_t>
-  get_map_coalescing_objs(addr_t obj) const;
+  std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
 
   template <class TCtx> const TCtx *get_target_ctx() const;
@@ -123,13 +121,11 @@ public:
   void debug() const;
 };
 
-#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)           \
-  namespace NAMESPACE {                                                        \
-  class TARGET_CTX;                                                            \
-  }                                                                            \
-  template <>                                                                  \
-  const NAMESPACE::TARGET_CTX *                                                \
-  Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                      \
-  template <>                                                                  \
-  NAMESPACE::TARGET_CTX *                                                      \
-  Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();
+#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                     \
+  namespace NAMESPACE {                                                                  \
+  class TARGET_CTX;                                                                      \
+  }                                                                                      \
+  template <>                                                                            \
+  const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;   \
+  template <>                                                                            \
+  NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();

@@ -13,8 +13,8 @@ private:
 public:
   HashObj(const Node *node, addr_t _obj_addr, klee::ref<klee::Expr> _size,
           klee::ref<klee::Expr> _hash)
-      : x86Module(ModuleType::x86_HashObj, "HashObj", node),
-        obj_addr(_obj_addr), size(_size), hash(_hash) {}
+      : x86Module(ModuleType::x86_HashObj, "HashObj", node), obj_addr(_obj_addr),
+        size(_size), hash(_hash) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -31,16 +31,15 @@ public:
   klee::ref<klee::Expr> get_hash() const { return hash; }
 };
 
-class HashObjGenerator : public x86ModuleGenerator {
+class HashObjFactory : public x86ModuleFactory {
 public:
-  HashObjGenerator() : x86ModuleGenerator(ModuleType::x86_HashObj, "HashObj") {}
+  HashObjFactory() : x86ModuleFactory(ModuleType::x86_HashObj, "HashObj") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

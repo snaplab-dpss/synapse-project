@@ -2,23 +2,16 @@
 
 #include "ss_visualizer.h"
 
-static std::unordered_map<TargetType, std::string> node_colors = {
+namespace {
+std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
     {TargetType::TofinoCPU, "firebrick2"},
     {TargetType::x86, "orange"},
 };
 
-static std::string selected_color = "green";
+std::string selected_color = "green";
 
-SSVisualizer::SSVisualizer() {}
-
-SSVisualizer::SSVisualizer(const EP *_highlight) {
-  const std::set<ep_id_t> &ancestors = _highlight->get_ancestors();
-  highlight.insert(ancestors.begin(), ancestors.end());
-  highlight.insert(_highlight->get_id());
-}
-
-static std::string stringify_score(const Score &score) {
+std::string stringify_score(const Score &score) {
   std::stringstream score_builder;
   score_builder << score;
 
@@ -28,17 +21,14 @@ static std::string stringify_score(const Score &score) {
   return score_str;
 }
 
-static bool should_highlight(const SSNode *ssnode,
-                             const std::set<ep_id_t> &highlight) {
+bool should_highlight(const SSNode *ssnode, const std::set<ep_id_t> &highlight) {
   return highlight.find(ssnode->ep_id) != highlight.end();
 }
 
-static std::string bold(const std::string &str) { return "<b>" + str + "</b>"; }
+std::string bold(const std::string &str) { return "<b>" + str + "</b>"; }
 
-static void visit_definitions(std::stringstream &ss,
-                              const SearchSpace *search_space,
-                              const SSNode *ssnode,
-                              const std::set<ep_id_t> &highlight) {
+void visit_definitions(std::stringstream &ss, const SearchSpace *search_space,
+                       const SSNode *ssnode, const std::set<ep_id_t> &highlight) {
   const std::string &target_color = node_colors.at(ssnode->target);
 
   auto indent = [&ss](int lvl) { ss << std::string(lvl, '\t'); };
@@ -203,7 +193,7 @@ static void visit_definitions(std::stringstream &ss,
   }
 }
 
-static void visit_links(std::stringstream &ss, const SSNode *ssnode) {
+void visit_links(std::stringstream &ss, const SSNode *ssnode) {
   ss_node_id_t node_id = ssnode->node_id;
   const std::vector<SSNode *> &children = ssnode->children;
 
@@ -217,6 +207,25 @@ static void visit_links(std::stringstream &ss, const SSNode *ssnode) {
   for (const SSNode *child : children) {
     visit_links(ss, child);
   }
+}
+
+void log_visualization(const SearchSpace *search_space, const std::string &fname,
+                       const EP *ep = nullptr) {
+  ASSERT(search_space, "Search space is null");
+  Log::log() << "Visualizing SS";
+  Log::log() << " file=" << fname;
+  if (ep)
+    Log::log() << " highlight=" << ep->get_id();
+  Log::log() << "\n";
+}
+} // namespace
+
+SSVisualizer::SSVisualizer() {}
+
+SSVisualizer::SSVisualizer(const EP *_highlight) {
+  const std::set<ep_id_t> &ancestors = _highlight->get_ancestors();
+  highlight.insert(ancestors.begin(), ancestors.end());
+  highlight.insert(_highlight->get_id());
 }
 
 void SSVisualizer::visit(const SearchSpace *search_space) {
@@ -239,17 +248,6 @@ void SSVisualizer::visit(const SearchSpace *search_space) {
   ss.flush();
 }
 
-static void log_visualization(const SearchSpace *search_space,
-                              const std::string &fname,
-                              const EP *ep = nullptr) {
-  ASSERT(search_space, "Search space is null");
-  Log::log() << "Visualizing SS";
-  Log::log() << " file=" << fname;
-  if (ep)
-    Log::log() << " highlight=" << ep->get_id();
-  Log::log() << "\n";
-}
-
 void SSVisualizer::visualize(const SearchSpace *search_space, bool interrupt) {
   ASSERT(search_space, "Search space is null");
   SSVisualizer visualizer;
@@ -258,8 +256,8 @@ void SSVisualizer::visualize(const SearchSpace *search_space, bool interrupt) {
   visualizer.show(interrupt);
 }
 
-void SSVisualizer::visualize(const SearchSpace *search_space,
-                             const EP *highlight, bool interrupt) {
+void SSVisualizer::visualize(const SearchSpace *search_space, const EP *highlight,
+                             bool interrupt) {
   ASSERT(search_space, "Search space is null");
   SSVisualizer visualizer(highlight);
   visualizer.visit(search_space);

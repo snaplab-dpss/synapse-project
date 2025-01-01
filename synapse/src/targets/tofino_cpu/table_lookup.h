@@ -31,24 +31,20 @@ public:
 
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
-  const std::vector<klee::ref<klee::Expr>> &get_values() const {
-    return values;
-  }
+  const std::vector<klee::ref<klee::Expr>> &get_values() const { return values; }
   const std::optional<symbol_t> &get_found() const { return found; }
 };
 
-class TableLookupGenerator : public TofinoCPUModuleGenerator {
+class TableLookupFactory : public TofinoCPUModuleFactory {
 public:
-  TableLookupGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TableLookup,
-                                 "TableLookup") {}
+  TableLookupFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_TableLookup, "TableLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

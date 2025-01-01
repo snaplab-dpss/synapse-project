@@ -98,8 +98,7 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
 klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
   ASSERT(on_true.cps.size(), "No call paths on true");
 
-  auto possible_discriminating_constraints =
-      get_possible_discriminating_constraints();
+  auto possible_discriminating_constraints = get_possible_discriminating_constraints();
 
   for (auto constraint : possible_discriminating_constraints) {
     if (check_discriminating_constraint(constraint))
@@ -122,9 +121,8 @@ CallPathsGroup::get_possible_discriminating_constraints() const {
   return possible_discriminating_constraints;
 }
 
-bool CallPathsGroup::satisfies_constraint(
-    std::vector<call_path_t *> call_paths,
-    klee::ref<klee::Expr> constraint) const {
+bool CallPathsGroup::satisfies_constraint(std::vector<call_path_t *> call_paths,
+                                          klee::ref<klee::Expr> constraint) const {
   for (const auto &call_path : call_paths) {
     if (!satisfies_constraint(call_path, constraint))
       return false;
@@ -132,16 +130,14 @@ bool CallPathsGroup::satisfies_constraint(
   return true;
 }
 
-bool CallPathsGroup::satisfies_constraint(
-    call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
+bool CallPathsGroup::satisfies_constraint(call_path_t *call_path,
+                                          klee::ref<klee::Expr> constraint) const {
   auto not_constraint = solver_toolbox.exprBuilder->Not(constraint);
-  return solver_toolbox.is_expr_always_false(call_path->constraints,
-                                             not_constraint);
+  return solver_toolbox.is_expr_always_false(call_path->constraints, not_constraint);
 }
 
-bool CallPathsGroup::satisfies_not_constraint(
-    std::vector<call_path_t *> call_paths,
-    klee::ref<klee::Expr> constraint) const {
+bool CallPathsGroup::satisfies_not_constraint(std::vector<call_path_t *> call_paths,
+                                              klee::ref<klee::Expr> constraint) const {
   for (const auto &call_path : call_paths) {
     if (!satisfies_not_constraint(call_path, constraint))
       return false;
@@ -149,15 +145,13 @@ bool CallPathsGroup::satisfies_not_constraint(
   return true;
 }
 
-bool CallPathsGroup::satisfies_not_constraint(
-    call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
+bool CallPathsGroup::satisfies_not_constraint(call_path_t *call_path,
+                                              klee::ref<klee::Expr> constraint) const {
   auto not_constraint = solver_toolbox.exprBuilder->Not(constraint);
-  return solver_toolbox.is_expr_always_true(call_path->constraints,
-                                            not_constraint);
+  return solver_toolbox.is_expr_always_true(call_path->constraints, not_constraint);
 }
 
-bool CallPathsGroup::check_discriminating_constraint(
-    klee::ref<klee::Expr> constraint) {
+bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> constraint) {
   ASSERT(on_true.cps.size(), "No call paths on true");
   ASSERT(on_false.cps.size(), "No call paths on false");
 
@@ -172,8 +166,7 @@ bool CallPathsGroup::check_discriminating_constraint(
     }
   }
 
-  if (_on_false.cps.size() &&
-      satisfies_not_constraint(_on_false.cps, constraint)) {
+  if (_on_false.cps.size() && satisfies_not_constraint(_on_false.cps, constraint)) {
     on_true = _on_true;
     on_false = _on_false;
     return true;

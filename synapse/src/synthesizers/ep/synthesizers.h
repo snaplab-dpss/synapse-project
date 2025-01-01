@@ -9,9 +9,9 @@
 #define X86_OUT_FILENAME "x86.cpp"
 
 void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
-  const targets_t &targets = ep->get_targets();
+  const Targets &targets = ep->get_targets();
 
-  for (const Target *target : targets) {
+  for (const std::shared_ptr<const Target> &target : targets.elements) {
     switch (target->type) {
     case TargetType::Tofino: {
       std::ofstream out(out_dir / TOFINO_OUT_FILENAME);

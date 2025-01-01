@@ -12,8 +12,7 @@ private:
 
 public:
   IntegerAllocatorIsAllocated(const Node *node, addr_t _dchain_addr,
-                              klee::ref<klee::Expr> _index,
-                              const symbol_t &_is_allocated)
+                              klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
       : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated,
                      "IntegerAllocatorIsAllocated", node),
         dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
@@ -40,18 +39,17 @@ public:
   }
 };
 
-class IntegerAllocatorIsAllocatedGenerator : public TofinoModuleGenerator {
+class IntegerAllocatorIsAllocatedFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorIsAllocatedGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_IntegerAllocatorIsAllocated,
-                              "IntegerAllocatorIsAllocated") {}
+  IntegerAllocatorIsAllocatedFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorIsAllocated,
+                            "IntegerAllocatorIsAllocated") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

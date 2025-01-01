@@ -13,11 +13,9 @@ private:
 
 public:
   TBIsTracing(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key,
-              klee::ref<klee::Expr> _index_out,
-              klee::ref<klee::Expr> _is_tracing)
+              klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
       : TofinoCPUModule(ModuleType::TofinoCPU_TBIsTracing, "TBIsTracing", node),
-        tb_addr(_tb_addr), key(_key), index_out(_index_out),
-        is_tracing(_is_tracing) {}
+        tb_addr(_tb_addr), key(_key), index_out(_index_out), is_tracing(_is_tracing) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -35,18 +33,16 @@ public:
   klee::ref<klee::Expr> get_is_tracing() const { return is_tracing; }
 };
 
-class TBIsTracingGenerator : public TofinoCPUModuleGenerator {
+class TBIsTracingFactory : public TofinoCPUModuleFactory {
 public:
-  TBIsTracingGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TBIsTracing,
-                                 "TBIsTracing") {}
+  TBIsTracingFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_TBIsTracing, "TBIsTracing") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

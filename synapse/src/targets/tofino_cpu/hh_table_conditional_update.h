@@ -12,8 +12,7 @@ private:
   symbol_t cache_write_failed;
 
 public:
-  HHTableConditionalUpdate(const Node *node, addr_t _obj,
-                           klee::ref<klee::Expr> _key,
+  HHTableConditionalUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _key,
                            klee::ref<klee::Expr> _write_value,
                            const symbol_t &_cache_write_failed)
       : TofinoCPUModule(ModuleType::TofinoCPU_HHTableConditionalUpdate,
@@ -27,8 +26,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new HHTableConditionalUpdate(node, obj, key, write_value,
-                                                  cache_write_failed);
+    Module *cloned =
+        new HHTableConditionalUpdate(node, obj, key, write_value, cache_write_failed);
     return cloned;
   }
 
@@ -38,18 +37,17 @@ public:
   const symbol_t &get_cache_write_failed() const { return cache_write_failed; }
 };
 
-class HHTableConditionalUpdateGenerator : public TofinoCPUModuleGenerator {
+class HHTableConditionalUpdateFactory : public TofinoCPUModuleFactory {
 public:
-  HHTableConditionalUpdateGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_HHTableConditionalUpdate,
-                                 "HHTableConditionalUpdate") {}
+  HHTableConditionalUpdateFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_HHTableConditionalUpdate,
+                               "HHTableConditionalUpdate") {}
 
 protected:
   std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                        const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

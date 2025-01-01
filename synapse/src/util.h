@@ -22,33 +22,29 @@ struct port_ingress_t;
 pps_t bps2pps(bps_t bps, bytes_t pkt_size);
 bps_t pps2bps(pps_t pps, bytes_t pkt_size);
 
-bool check_same_obj(const Call *call0, const Call *call1,
-                    const std::string &obj_name);
+bool check_same_obj(const Call *call0, const Call *call1, const std::string &obj_name);
 
 std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
                                               const Call *vector_return);
 std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
                                            const Call *packet_return_chunk);
 
-std::vector<mod_t>
-ignore_checksum_modifications(const std::vector<mod_t> &modifications);
+std::vector<mod_t> ignore_checksum_modifications(const std::vector<mod_t> &modifications);
 
 symbol_t create_symbol(const std::string &label, bits_t size);
 
 bool query_contains_map_has_key(const Branch *node);
 
-const Call *packet_borrow_from_return(const EP *ep,
-                                      const Call *packet_return_chunk);
+const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk);
 
 std::vector<const Call *>
 get_prev_functions(const EP *ep, const Node *node,
                    const std::vector<std::string> &functions_names,
                    bool ignore_targets = false);
 
-std::vector<const Call *>
-get_future_functions(const Node *root,
-                     const std::vector<std::string> &functions,
-                     bool stop_on_branches = false);
+std::vector<const Call *> get_future_functions(const Node *root,
+                                               const std::vector<std::string> &functions,
+                                               bool stop_on_branches = false);
 
 bool is_parser_drop(const Node *root);
 
@@ -66,8 +62,8 @@ std::unordered_set<std::string> get_symbols(const Node *node);
 //   - Only looks at the packet
 bool is_parser_condition(const Branch *node);
 
-std::vector<const Module *>
-get_prev_modules(const EP *ep, const std::vector<ModuleType> &types);
+std::vector<const Module *> get_prev_modules(const EP *ep,
+                                             const std::vector<ModuleType> &types);
 
 bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr);
 
@@ -92,8 +88,7 @@ counter_data_t is_counter(const EP *ep, addr_t obj);
 klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
                                                 addr_t target_addr);
 klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
-                                                addr_t target_addr,
-                                                const Node *&source);
+                                                addr_t target_addr, const Node *&source);
 
 bool is_vector_return_without_modifications(const EP *ep, const Node *node);
 bool is_vector_read(const Call *vector_borrow);
@@ -111,6 +106,35 @@ struct map_coalescing_objs_t {
   objs_t vectors;
 };
 
+/*
+  We use this method to check if we can coalesce the Map + Vector + Dchain
+  paradigm into a single data structure mimicking a common map (which
+  maps arbitrary data to arbitrary values).
+
+  These data structures should coalesce if the index allocated by the dchain
+  is used as a map value and a vector index.
+
+  Multiple vectors can be coalesced into the same data structure, but typically
+  a single map and a single dchain are used.
+
+  The pattern we are looking is the following:
+
+  1. Allocating the index
+  -> dchain_allocate_new_index(dchain, &index)
+
+  2. Storing the key
+  -> vector_borrow(vector_1, index, value_1)
+
+  3. Updating the map
+  -> map_put(map_1, key, index)
+
+  4. Returning the key
+  -> vector_return(vector_1, index, value_1)
+
+  [ Loop updating all the other vectors ]
+  -> vector_borrow(vector_n, index, value_n)
+  -> vector_return(vector_n, index, value_n)
+*/
 bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj,
                                       map_coalescing_objs_t &data);
 bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
@@ -119,15 +143,13 @@ bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
                                          map_coalescing_objs_t &map_objs);
 
 std::vector<const Call *>
-get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
-                              klee::ref<klee::Expr> key,
+get_coalescing_nodes_from_key(const BDD *bdd, const Node *node, klee::ref<klee::Expr> key,
                               const map_coalescing_objs_t &data);
 
 klee::ref<klee::Expr> get_chunk_from_borrow(const Node *node);
 bool borrow_has_var_len(const Node *node);
 
-symbols_t get_prev_symbols(const Node *node,
-                           const nodes_t &stop_nodes = nodes_t());
+symbols_t get_prev_symbols(const Node *node, const nodes_t &stop_nodes = nodes_t());
 
 struct rw_fractions_t {
   hit_rate_t read;
@@ -145,8 +167,7 @@ struct branch_direction_t {
 bool are_map_read_write_counterparts(const Call *map_get, const Call *map_put);
 
 branch_direction_t get_map_get_success_check(const Node *map_get);
-rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
-                                                     const Node *map_get);
+rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *map_get);
 
 // Tries to find the pattern of a map_get followed by map_puts, but only when
 // the map_get is not successful (i.e. the key is not found).
@@ -154,8 +175,8 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep,
 // (1) Has at least 1 future map_put
 // (2) All map_put happen if the map_get was not successful
 // (3) All map_puts with the target obj also have the same key as the map_get
-bool is_map_get_followed_by_map_puts_on_miss(
-    const BDD *bdd, const Call *map_get, std::vector<const Call *> &map_puts);
+bool is_map_get_followed_by_map_puts_on_miss(const BDD *bdd, const Call *map_get,
+                                             std::vector<const Call *> &map_puts);
 
 struct map_rw_pattern_t {
   const Call *map_get;
@@ -178,19 +199,18 @@ struct map_rw_pattern_t {
 // (5) If there is an extra branch condition for map writes, then the node paths
 // on both the failed extra branch condition and the failed index allocation are
 // the same.
-bool is_compact_map_get_followed_by_map_put_on_miss(
-    const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern);
+bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get,
+                                                    map_rw_pattern_t &map_rw_pattern);
 
 // (1) Has at least 1 future map_put
 // (2) All map_put happen if the dchain_allocate_new_index was successful
 // (3) All map_puts with the target obj also have the same key as the map_get
 // (4) All map_puts with the target obj update with the same value
-bool is_map_update_with_dchain(const EP *ep,
-                               const Call *dchain_allocate_new_index,
+bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
                                std::vector<const Call *> &map_puts);
 
-bool is_index_alloc_on_unsuccessful_map_get(
-    const EP *ep, const Call *dchain_allocate_new_index);
+bool is_index_alloc_on_unsuccessful_map_get(const EP *ep,
+                                            const Call *dchain_allocate_new_index);
 
 // Tries to find the pattern of a map_get followed by map_erases, but only when
 // the map_get is successful (i.e. the key is found).
@@ -198,8 +218,8 @@ bool is_index_alloc_on_unsuccessful_map_get(
 // (1) Has at least 1 future map_erase
 // (2) All map_erase happen if the map_get was successful
 // (3) All map_erases with the target obj also have the same key as the map_get
-bool is_map_get_followed_by_map_erases_on_hit(
-    const BDD *bdd, const Call *map_get, std::vector<const Call *> &map_erases);
+bool is_map_get_followed_by_map_erases_on_hit(const BDD *bdd, const Call *map_get,
+                                              std::vector<const Call *> &map_erases);
 
 // Appends new non-branch nodes to the BDD in place of the provided current
 // node.
@@ -210,31 +230,26 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
 // Appends a single new branch node to the BDD in place of the provided current
 // node. This duplicates the BDD portion starting from the current node, and
 // appends the cloned portion to one of the branches.
-Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
-                          klee::ref<klee::Expr> condition);
+Branch *add_branch_to_bdd(BDD *bdd, const Node *current, klee::ref<klee::Expr> condition);
 
 Node *delete_non_branch_node_from_bdd(BDD *bdd, node_id_t target_id);
 
 // Returns de node kept from the branch deletion.
-Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id,
-                                  bool direction_to_keep);
+Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_to_keep);
 
 // Deletes all vector operations solely responsible for map key management.
 void delete_all_vector_key_operations_from_bdd(BDD *bdd);
 
+branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *node,
+                                                    const symbol_t &out_of_space);
 branch_direction_t
-find_branch_checking_index_alloc(const EP *ep, const Node *node,
-                                 const symbol_t &out_of_space);
-branch_direction_t
-find_branch_checking_index_alloc(const EP *ep,
-                                 const Node *dchain_allocate_new_index);
+find_branch_checking_index_alloc(const EP *ep, const Node *dchain_allocate_new_index);
 
-bool is_tb_tracing_check_followed_by_update_on_true(
-    const Call *tb_is_tracing, const Call *&tb_update_and_check);
+bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
+                                                    const Call *&tb_update_and_check);
 
 std::string int2hr(u64 value);
-std::string tput2str(u64 thpt, const std::string &units,
-                     bool human_readable = false);
+std::string tput2str(u64 thpt, const std::string &units, bool human_readable = false);
 
 // Vector of past recirculations, from the most recent to the oldest.
 // Elements of the return vector are recirculation ports, and indexes are the

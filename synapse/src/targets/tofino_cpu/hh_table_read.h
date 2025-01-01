@@ -15,12 +15,11 @@ private:
 public:
   HHTableRead(const Node *node, addr_t _obj,
               const std::vector<klee::ref<klee::Expr>> &_keys,
-              klee::ref<klee::Expr> _value,
-              klee::ref<klee::Expr> _map_has_this_key,
+              klee::ref<klee::Expr> _value, klee::ref<klee::Expr> _map_has_this_key,
               klee::ref<klee::Expr> _min_estimate)
       : TofinoCPUModule(ModuleType::TofinoCPU_HHTableRead, "HHTableRead", node),
-        obj(_obj), keys(_keys), value(_value),
-        map_has_this_key(_map_has_this_key), min_estimate(_min_estimate) {}
+        obj(_obj), keys(_keys), value(_value), map_has_this_key(_map_has_this_key),
+        min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -40,18 +39,16 @@ public:
   klee::ref<klee::Expr> get_min_estimate() const { return min_estimate; }
 };
 
-class HHTableReadGenerator : public TofinoCPUModuleGenerator {
+class HHTableReadFactory : public TofinoCPUModuleFactory {
 public:
-  HHTableReadGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_HHTableRead,
-                                 "HHTableRead") {}
+  HHTableReadFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_HHTableRead, "HHTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

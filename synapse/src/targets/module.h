@@ -535,8 +535,7 @@ protected:
 
   Module(ModuleType _type, TargetType _target, const std::string &_name,
          const Node *_node)
-      : type(_type), target(_target), next_target(_target), name(_name),
-        node(_node) {}
+      : type(_type), target(_target), next_target(_target), name(_name), node(_node) {}
 
   Module(ModuleType _type, TargetType _target, TargetType _next_target,
          const std::string &_name, const Node *_node)

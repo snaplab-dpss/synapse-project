@@ -3,8 +3,8 @@
 namespace tofino {
 
 std::optional<spec_impl_t>
-CMSQueryGenerator::speculate(const EP *ep, const Node *node,
-                             const Context &ctx) const {
+CMSQueryFactory::speculate(const EP *ep, const Node *node,
+                           const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -39,8 +39,8 @@ CMSQueryGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSQueryGenerator::process_node(const EP *ep,
-                                                    const Node *node) const {
+std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep,
+                                                  const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

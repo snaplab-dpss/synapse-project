@@ -14,10 +14,8 @@ private:
 public:
   HHTableUpdate(const Node *node, addr_t _obj,
                 const std::vector<klee::ref<klee::Expr>> &_keys,
-                klee::ref<klee::Expr> _value,
-                klee::ref<klee::Expr> _min_estimate)
-      : TofinoCPUModule(ModuleType::TofinoCPU_HHTableUpdate, "HHTableUpdate",
-                        node),
+                klee::ref<klee::Expr> _value, klee::ref<klee::Expr> _min_estimate)
+      : TofinoCPUModule(ModuleType::TofinoCPU_HHTableUpdate, "HHTableUpdate", node),
         obj(_obj), keys(_keys), value(_value), min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -36,18 +34,16 @@ public:
   klee::ref<klee::Expr> get_min_estimate() const { return min_estimate; }
 };
 
-class HHTableUpdateGenerator : public TofinoCPUModuleGenerator {
+class HHTableUpdateFactory : public TofinoCPUModuleFactory {
 public:
-  HHTableUpdateGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_HHTableUpdate,
-                                 "HHTableUpdate") {}
+  HHTableUpdateFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_HHTableUpdate, "HHTableUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

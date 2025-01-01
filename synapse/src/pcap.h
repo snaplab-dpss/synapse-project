@@ -28,10 +28,8 @@ struct flow_t {
       : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
         dst_port(flow.dst_port) {}
 
-  flow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port,
-         in_port_t _dst_port)
-      : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port),
-        dst_port(_dst_port) {}
+  flow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
+      : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
 
   flow_t &operator=(const flow_t &flow) = default;
 
@@ -44,8 +42,7 @@ struct flow_t {
 
   struct flow_hash_t {
     std::size_t operator()(const flow_t &flow) const {
-      return std::hash<in_addr_t>()(flow.src_ip) ^
-             std::hash<in_addr_t>()(flow.dst_ip) ^
+      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
              std::hash<in_port_t>()(flow.src_port) ^
              std::hash<in_port_t>()(flow.dst_port);
     }
@@ -69,10 +66,8 @@ struct sflow_t {
       : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
         dst_port(flow.dst_port) {}
 
-  sflow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port,
-          in_port_t _dst_port)
-      : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port),
-        dst_port(_dst_port) {}
+  sflow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
+      : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
 
   bool operator==(const sflow_t &other) const {
     return (src_ip == other.src_ip && dst_ip == other.dst_ip &&
@@ -83,8 +78,7 @@ struct sflow_t {
 
   struct flow_hash_t {
     std::size_t operator()(const sflow_t &flow) const {
-      return std::hash<in_addr_t>()(flow.src_ip) ^
-             std::hash<in_addr_t>()(flow.dst_ip) ^
+      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
              std::hash<in_port_t>()(flow.src_port) ^
              std::hash<in_port_t>()(flow.dst_port);
     }
@@ -149,8 +143,7 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
   time_us_t end_microseconds = (end % BILLION) / THOUSAND;
 
   std::chrono::system_clock::time_point start_time =
-      std::chrono::system_clock::time_point(
-          std::chrono::seconds(start_seconds)) +
+      std::chrono::system_clock::time_point(std::chrono::seconds(start_seconds)) +
       std::chrono::microseconds(start_microseconds);
 
   std::chrono::system_clock::time_point end_time =
@@ -166,8 +159,7 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
   duration -= minutes;
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
   duration -= seconds;
-  auto microseconds =
-      std::chrono::duration_cast<std::chrono::microseconds>(duration);
+  auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
 
   if (hours.count() > 0) {
     ss << hours.count() << " hours ";
@@ -253,9 +245,8 @@ inline void compute_udp_checksum(ipv4_hdr_t *ip_hdr, u16 *ipPayload) {
 }
 
 inline bool parse_etheraddr(const char *str, struct ether_addr_t *addr) {
-  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX",
-                addr->addr_bytes + 0, addr->addr_bytes + 1,
-                addr->addr_bytes + 2, addr->addr_bytes + 3,
+  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0,
+                addr->addr_bytes + 1, addr->addr_bytes + 2, addr->addr_bytes + 3,
                 addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
@@ -268,8 +259,7 @@ inline bool parse_ipv4addr(const char *str, u32 *addr) {
   return false;
 }
 
-inline uintmax_t parse_int(const char *str, const char *name, int base,
-                           char next) {
+inline uintmax_t parse_int(const char *str, const char *name, int base, char next) {
   char *temp;
   intmax_t result = strtoimax(str, &temp, base);
 
@@ -285,8 +275,7 @@ class RandomEngine {
 private:
   // What a mouth full...
   // This is the product of the bind expression below.
-  typedef std::_Bind<std::uniform_int_distribution<u64>(std::mt19937)>
-      Generator;
+  typedef std::_Bind<std::uniform_int_distribution<u64>(std::mt19937)> Generator;
 
   unsigned rand_seed;
   std::mt19937 gen;
@@ -402,8 +391,7 @@ public:
     if (assume_ip) {
       total_len += sizeof(ether_hdr_t);
     } else {
-      const ether_hdr_t *ether_hdr =
-          reinterpret_cast<const ether_hdr_t *>(data);
+      const ether_hdr_t *ether_hdr = reinterpret_cast<const ether_hdr_t *>(data);
       data += sizeof(ether_hdr_t);
       hdrs_len += sizeof(ether_hdr_t);
 
@@ -514,8 +502,8 @@ private:
 
 public:
   PcapWriter(const std::string &_output_fname, bool _assume_ip, bool _compact)
-      : output_fname(_output_fname), pd(NULL), pdumper(NULL),
-        assume_ip(_assume_ip), compact(_compact) {
+      : output_fname(_output_fname), pd(NULL), pdumper(NULL), assume_ip(_assume_ip),
+        compact(_compact) {
     if (assume_ip) {
       pd = pcap_open_dead(DLT_RAW, 65535 /* snaplen */);
     } else {
@@ -529,8 +517,7 @@ public:
     }
   }
 
-  PcapWriter(const std::string &_output_fname)
-      : PcapWriter(_output_fname, false, true) {}
+  PcapWriter(const std::string &_output_fname) : PcapWriter(_output_fname, false, true) {}
 
   const std::string &get_output_fname() const { return output_fname; }
 
@@ -572,8 +559,8 @@ public:
     double tolerance = 0.01;
     double x = (double)N / 2.0;
 
-    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 -
-                    6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
+    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) +
+                    s - pow(N, -1.0 - s) * s);
 
     while (true) {
       double m = pow(x, -2 - s);
@@ -581,8 +568,7 @@ public:
       double mxx = mx * x;
       double mxxx = mxx * x;
 
-      double a = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) +
-                 (s - (mx * s)) - D;
+      double a = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) + (s - (mx * s)) - D;
       double b = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
       double newx = std::max(1.0, x - a / b);
 

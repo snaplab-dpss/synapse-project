@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "heuristic.h"
-#include "../targets/module_generator.h"
+#include "../targets/module_factory.h"
 
 class MaxTputCfg : public HeuristicCfg {
 private:
@@ -27,17 +27,16 @@ private:
 
 public:
   MaxTputCfg()
-      : HeuristicCfg(
-            "MaxTput",
-            {
-                BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
-                BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
+      : HeuristicCfg("MaxTput",
+                     {
+                         BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
+                         BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
 
-                // Avoid desincentivising modules that expand the BDD.
-                // BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
-                // BUILD_METRIC(MaxTputCfg, get_switch_progression_nodes, MAX),
-                // BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
-            }) {}
+                         // Avoid desincentivising modules that expand the BDD.
+                         // BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
+                         // BUILD_METRIC(MaxTputCfg, get_switch_progression_nodes, MAX),
+                         // BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
+                     }) {}
 
   MaxTputCfg &operator=(const MaxTputCfg &other) {
     ASSERT(other.name == name, "Mismatched names");

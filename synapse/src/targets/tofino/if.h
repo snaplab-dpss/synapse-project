@@ -30,21 +30,18 @@ public:
     return cloned;
   }
 
-  const std::vector<klee::ref<klee::Expr>> &get_conditions() const {
-    return conditions;
-  }
+  const std::vector<klee::ref<klee::Expr>> &get_conditions() const { return conditions; }
 };
 
-class IfGenerator : public TofinoModuleGenerator {
+class IfFactory : public TofinoModuleFactory {
 public:
-  IfGenerator() : TofinoModuleGenerator(ModuleType::Tofino_If, "If") {}
+  IfFactory() : TofinoModuleFactory(ModuleType::Tofino_If, "If") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

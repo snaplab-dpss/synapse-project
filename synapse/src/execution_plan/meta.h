@@ -36,17 +36,15 @@ struct EPMeta {
   }
 
   EPMeta(const EPMeta &other)
-      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth),
-        nodes(other.nodes), reordered_nodes(other.reordered_nodes),
-        steps_per_target(other.steps_per_target),
+      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes),
+        reordered_nodes(other.reordered_nodes), steps_per_target(other.steps_per_target),
         processed_leaves(other.processed_leaves),
-        visited_ep_nodes(other.visited_ep_nodes),
-        processed_nodes(other.processed_nodes),
+        visited_ep_nodes(other.visited_ep_nodes), processed_nodes(other.processed_nodes),
         random_number(RandomEngine::generate()) {}
 
   EPMeta(EPMeta &&other)
-      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth),
-        nodes(other.nodes), reordered_nodes(other.reordered_nodes),
+      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes),
+        reordered_nodes(other.reordered_nodes),
         steps_per_target(std::move(other.steps_per_target)),
         processed_leaves(std::move(other.processed_leaves)),
         visited_ep_nodes(std::move(other.visited_ep_nodes)),

@@ -10,8 +10,7 @@ class RandomEngine {
 private:
   // What a mouth full...
   // This is the product of the bind expression below.
-  typedef std::_Bind<std::uniform_int_distribution<int>(std::mt19937)>
-      Generator;
+  typedef std::_Bind<std::uniform_int_distribution<int>(std::mt19937)> Generator;
 
   unsigned rand_seed;
   std::mt19937 gen;

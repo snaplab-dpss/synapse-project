@@ -9,9 +9,7 @@ class x86Context : public TargetContext {
 public:
   x86Context() {}
 
-  virtual TargetContext *clone() const override {
-    return new x86Context(*this);
-  }
+  virtual TargetContext *clone() const override { return new x86Context(*this); }
 };
 
 } // namespace x86

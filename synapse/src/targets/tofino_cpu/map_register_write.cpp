@@ -35,8 +35,8 @@ void get_data(const Call *call_node, addr_t &obj,
 } // namespace
 
 std::optional<spec_impl_t>
-MapRegisterWriteGenerator::speculate(const EP *ep, const Node *node,
-                                     const Context &ctx) const {
+MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
+                                   const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -59,7 +59,7 @@ MapRegisterWriteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-MapRegisterWriteGenerator::process_node(const EP *ep, const Node *node) const {
+MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

@@ -13,12 +13,11 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  TBUpdateAndCheck(const Node *node, addr_t _tb_addr,
-                   klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
-                   klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
+  TBUpdateAndCheck(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _index,
+                   klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
+                   klee::ref<klee::Expr> _pass)
       : x86Module(ModuleType::x86_TBUpdateAndCheck, "TBUpdateAndCheck", node),
-        tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time),
-        pass(_pass) {}
+        tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -26,8 +25,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new TBUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
+    Module *cloned = new TBUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
     return cloned;
   }
 
@@ -38,18 +36,16 @@ public:
   klee::ref<klee::Expr> get_pass() const { return pass; }
 };
 
-class TBUpdateAndCheckGenerator : public x86ModuleGenerator {
+class TBUpdateAndCheckFactory : public x86ModuleFactory {
 public:
-  TBUpdateAndCheckGenerator()
-      : x86ModuleGenerator(ModuleType::x86_TBUpdateAndCheck,
-                           "TBUpdateAndCheck") {}
+  TBUpdateAndCheckFactory()
+      : x86ModuleFactory(ModuleType::x86_TBUpdateAndCheck, "TBUpdateAndCheck") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

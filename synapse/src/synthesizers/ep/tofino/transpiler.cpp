@@ -5,10 +5,8 @@
 
 namespace tofino {
 
-Transpiler::Transpiler(const EPSynthesizer *_synthesizer)
-    : synthesizer(_synthesizer) {}
-
-static code_t transpile_constant(klee::ref<klee::Expr> expr) {
+namespace {
+code_t transpile_constant(klee::ref<klee::Expr> expr) {
   ASSERT(is_constant(expr), "Expected a constant expression");
 
   bytes_t width = expr->getWidth() / 8;
@@ -29,6 +27,9 @@ static code_t transpile_constant(klee::ref<klee::Expr> expr) {
 
   return code.dump();
 }
+} // namespace
+
+Transpiler::Transpiler(const EPSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
 code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
   Log::dbg() << "Transpile: " << expr_to_string(expr, false) << "\n";
@@ -83,8 +84,7 @@ klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action
-Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
+klee::ExprVisitor::Action Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
   ASSERT(false, "TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
@@ -250,8 +250,7 @@ klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
     var_expr = lhs;
   }
 
-  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) &&
-      var.is_bool) {
+  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) && var.is_bool) {
     u64 value = solver_toolbox.value_from_expr(const_expr);
     if (value == 0) {
       coder << "!";
@@ -288,8 +287,7 @@ klee::ExprVisitor::Action Transpiler::visitNe(const klee::NeExpr &e) {
     var_expr = lhs;
   }
 
-  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) &&
-      var.is_bool) {
+  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) && var.is_bool) {
     u64 value = solver_toolbox.value_from_expr(const_expr);
     if (value != 0) {
       coder << "!";

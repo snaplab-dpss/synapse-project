@@ -13,11 +13,9 @@ private:
 
 public:
   CMSIncAndQuery(const Node *node, DS_ID _cms_id, addr_t _cms_addr,
-                 klee::ref<klee::Expr> _key,
-                 klee::ref<klee::Expr> _min_estimate)
+                 klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType::Tofino_CMSIncAndQuery, "CMSIncAndQuery", node),
-        cms_id(_cms_id), cms_addr(_cms_addr), key(_key),
-        min_estimate(_min_estimate) {}
+        cms_id(_cms_id), cms_addr(_cms_addr), key(_key), min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -33,23 +31,19 @@ public:
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_min_estimate() const { return min_estimate; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return {cms_id};
-  }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cms_id}; }
 };
 
-class CMSIncAndQueryGenerator : public TofinoModuleGenerator {
+class CMSIncAndQueryFactory : public TofinoModuleFactory {
 public:
-  CMSIncAndQueryGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_CMSIncAndQuery,
-                              "CMSIncAndQuery") {}
+  CMSIncAndQueryFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_CMSIncAndQuery, "CMSIncAndQuery") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

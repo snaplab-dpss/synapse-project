@@ -43,9 +43,8 @@ struct hh_table_data_t {
 void update_map_get_success_hit_rate(Context &ctx, const Node *map_get,
                                      klee::ref<klee::Expr> key, u32 capacity,
                                      const branch_direction_t &mgsc) {
-  hit_rate_t success_rate =
-      TofinoModuleGenerator::get_hh_table_hit_success_rate(ctx, map_get, key,
-                                                           capacity);
+  hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(
+      ctx, map_get, key, capacity);
 
   ASSERT(mgsc.branch, "No branch checking map_get success");
   const Node *on_success =
@@ -63,8 +62,8 @@ void update_map_get_success_hit_rate(Context &ctx, const Node *map_get,
 } // namespace
 
 std::optional<spec_impl_t>
-HHTableReadGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+HHTableReadFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -109,8 +108,8 @@ HHTableReadGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> HHTableReadGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

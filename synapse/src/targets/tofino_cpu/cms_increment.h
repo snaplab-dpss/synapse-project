@@ -11,8 +11,7 @@ private:
 
 public:
   CMSIncrement(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
-      : TofinoCPUModule(ModuleType::TofinoCPU_CMSIncrement, "CMSIncrement",
-                        node),
+      : TofinoCPUModule(ModuleType::TofinoCPU_CMSIncrement, "CMSIncrement", node),
         cms_addr(_cms_addr), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -29,18 +28,16 @@ public:
   klee::ref<klee::Expr> get_key() const { return key; }
 };
 
-class CMSIncrementGenerator : public TofinoCPUModuleGenerator {
+class CMSIncrementFactory : public TofinoCPUModuleFactory {
 public:
-  CMSIncrementGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_CMSIncrement,
-                                 "CMSIncrement") {}
+  CMSIncrementFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_CMSIncrement, "CMSIncrement") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

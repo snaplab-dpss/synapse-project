@@ -3,8 +3,8 @@
 namespace tofino {
 
 std::optional<spec_impl_t>
-IntegerAllocatorIsAllocatedGenerator::speculate(const EP *ep, const Node *node,
-                                                const Context &ctx) const {
+IntegerAllocatorIsAllocatedFactory::speculate(const EP *ep, const Node *node,
+                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -30,8 +30,8 @@ IntegerAllocatorIsAllocatedGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-IntegerAllocatorIsAllocatedGenerator::process_node(const EP *ep,
-                                                   const Node *node) const {
+IntegerAllocatorIsAllocatedFactory::process_node(const EP *ep,
+                                                 const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

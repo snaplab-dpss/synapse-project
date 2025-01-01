@@ -20,8 +20,8 @@ bool bdd_node_match_pattern(const Node *node) {
 } // namespace
 
 std::optional<spec_impl_t>
-CMSPeriodicCleanupGenerator::speculate(const EP *ep, const Node *node,
-                                       const Context &ctx) const {
+CMSPeriodicCleanupFactory::speculate(const EP *ep, const Node *node,
+                                     const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
@@ -40,8 +40,7 @@ CMSPeriodicCleanupGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-CMSPeriodicCleanupGenerator::process_node(const EP *ep,
-                                          const Node *node) const {
+CMSPeriodicCleanupFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

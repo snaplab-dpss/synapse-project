@@ -10,6 +10,17 @@
 #include "graphviz.h"
 #include "../log.h"
 
+namespace {
+std::filesystem::path random_dot() {
+  char filename[] = "/tmp/XXXXXX";
+  int fd = mkstemp(filename);
+  ASSERT(fd != -1, "Failed to create temporary file");
+  std::string fpath(filename);
+  fpath += ".dot";
+  return fpath;
+}
+} // namespace
+
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b, u8 _o) : r(_r), g(_g), b(_b), o(_o) {}
 
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b) : rgb_t(_r, _g, _b, 0xff) {}
@@ -39,15 +50,6 @@ std::string rgb_t::to_gv_repr() const {
   ss << std::dec;
 
   return ss.str();
-}
-
-static std::filesystem::path random_dot() {
-  char filename[] = "/tmp/XXXXXX";
-  int fd = mkstemp(filename);
-  ASSERT(fd != -1, "Failed to create temporary file");
-  std::string fpath(filename);
-  fpath += ".dot";
-  return fpath;
 }
 
 Graphviz::Graphviz(const std::filesystem::path &_fpath)
@@ -99,17 +101,17 @@ void Graphviz::find_and_replace(
 }
 
 void Graphviz::sanitize_html_label(std::string &label) {
-  find_and_replace(
-      label, {
-                 {"&", "&amp;"}, // Careful, this needs to be the first
-                                 // one, otherwise we mess everything up. Notice
-                                 // that all the others use ampersands.
-                 {"{", "&#123;"},
-                 {"}", "&#125;"},
-                 {"[", "&#91;"},
-                 {"]", "&#93;"},
-                 {"<", "&lt;"},
-                 {">", "&gt;"},
-                 {"\n", "<br/>"},
-             });
+  find_and_replace(label,
+                   {
+                       {"&", "&amp;"}, // Careful, this needs to be the first
+                                       // one, otherwise we mess everything up. Notice
+                                       // that all the others use ampersands.
+                       {"{", "&#123;"},
+                       {"}", "&#125;"},
+                       {"[", "&#91;"},
+                       {"]", "&#93;"},
+                       {"<", "&lt;"},
+                       {">", "&gt;"},
+                       {"\n", "<br/>"},
+                   });
 }

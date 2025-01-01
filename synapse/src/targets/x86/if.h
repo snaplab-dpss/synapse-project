@@ -25,16 +25,15 @@ public:
   klee::ref<klee::Expr> get_condition() const { return condition; }
 };
 
-class IfGenerator : public x86ModuleGenerator {
+class IfFactory : public x86ModuleFactory {
 public:
-  IfGenerator() : x86ModuleGenerator(ModuleType::x86_If, "If") {}
+  IfFactory() : x86ModuleFactory(ModuleType::x86_If, "If") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

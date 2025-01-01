@@ -4,18 +4,17 @@
 
 namespace tofino {
 
-class HHTableConditionalUpdateGenerator : public TofinoModuleGenerator {
+class HHTableConditionalUpdateFactory : public TofinoModuleFactory {
 public:
-  HHTableConditionalUpdateGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_HHTableConditionalUpdate,
-                              "HHTableConditionalUpdate") {}
+  HHTableConditionalUpdateFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_HHTableConditionalUpdate,
+                            "HHTableConditionalUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

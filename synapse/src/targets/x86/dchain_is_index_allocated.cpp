@@ -20,8 +20,8 @@ bool bdd_node_match_pattern(const Node *node) {
 } // namespace
 
 std::optional<spec_impl_t>
-DchainIsIndexAllocatedGenerator::speculate(const EP *ep, const Node *node,
-                                           const Context &ctx) const {
+DchainIsIndexAllocatedFactory::speculate(const EP *ep, const Node *node,
+                                         const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
@@ -40,8 +40,8 @@ DchainIsIndexAllocatedGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-DchainIsIndexAllocatedGenerator::process_node(const EP *ep,
-                                              const Node *node) const {
+DchainIsIndexAllocatedFactory::process_node(const EP *ep,
+                                            const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

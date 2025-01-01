@@ -10,8 +10,7 @@ private:
 
 public:
   Forward(const Node *node, int _dst_device)
-      : x86Module(ModuleType::x86_Forward, "Forward", node),
-        dst_device(_dst_device) {}
+      : x86Module(ModuleType::x86_Forward, "Forward", node), dst_device(_dst_device) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -26,16 +25,15 @@ public:
   int get_dst_device() const { return dst_device; }
 };
 
-class ForwardGenerator : public x86ModuleGenerator {
+class ForwardFactory : public x86ModuleFactory {
 public:
-  ForwardGenerator() : x86ModuleGenerator(ModuleType::x86_Forward, "Forward") {}
+  ForwardFactory() : x86ModuleFactory(ModuleType::x86_Forward, "Forward") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

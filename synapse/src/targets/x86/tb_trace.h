@@ -17,8 +17,8 @@ public:
   TBTrace(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key,
           klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
           klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
-      : x86Module(ModuleType::x86_TBTrace, "TBTrace", node), tb_addr(_tb_addr),
-        key(_key), pkt_len(_pkt_len), time(_time), index_out(_index_out),
+      : x86Module(ModuleType::x86_TBTrace, "TBTrace", node), tb_addr(_tb_addr), key(_key),
+        pkt_len(_pkt_len), time(_time), index_out(_index_out),
         successfuly_tracing(_is_tracing) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -27,8 +27,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TBTrace(node, tb_addr, key, pkt_len, time, index_out,
-                                 successfuly_tracing);
+    Module *cloned =
+        new TBTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
     return cloned;
   }
 
@@ -37,21 +37,18 @@ public:
   klee::ref<klee::Expr> get_pkt_len() const { return pkt_len; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
-  klee::ref<klee::Expr> get_successfuly_tracing() const {
-    return successfuly_tracing;
-  }
+  klee::ref<klee::Expr> get_successfuly_tracing() const { return successfuly_tracing; }
 };
 
-class TBTraceGenerator : public x86ModuleGenerator {
+class TBTraceFactory : public x86ModuleFactory {
 public:
-  TBTraceGenerator() : x86ModuleGenerator(ModuleType::x86_TBTrace, "TBTrace") {}
+  TBTraceFactory() : x86ModuleFactory(ModuleType::x86_TBTrace, "TBTrace") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

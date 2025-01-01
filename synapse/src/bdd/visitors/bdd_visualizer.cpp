@@ -5,17 +5,25 @@
 #include "../../exprs/exprs.h"
 #include "../../exprs/solver.h"
 
-static const char *COLOR_PROCESSED = "gray";
-static const char *COLOR_NEXT = "cyan";
+namespace {
+const char *COLOR_PROCESSED = "gray";
+const char *COLOR_NEXT = "cyan";
+const char *COLOR_CALL = "cornflowerblue";
+const char *COLOR_BRANCH = "yellow";
+const char *COLOR_FORWARD = "chartreuse2";
+const char *COLOR_DROP = "brown1";
+const char *COLOR_BROADCAST = "purple";
 
-static const char *COLOR_CALL = "cornflowerblue";
-static const char *COLOR_BRANCH = "yellow";
-static const char *COLOR_FORWARD = "chartreuse2";
-static const char *COLOR_DROP = "brown1";
-static const char *COLOR_BROADCAST = "purple";
+void log_visualization(const BDD *bdd, const std::string &fname) {
+  std::cerr << "Visualizing BDD";
+  std::cerr << " id=" << bdd->get_id();
+  std::cerr << " hash=" << bdd->hash();
+  std::cerr << " file=" << fname;
+  std::cerr << "\n";
+}
+} // namespace
 
-BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts)
-    : Graphviz(_opts.fname), opts(_opts) {}
+BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts) : Graphviz(_opts.fname), opts(_opts) {}
 
 BDDViz::BDDViz() : Graphviz() {}
 
@@ -67,16 +75,7 @@ std::string BDDViz::get_color(const Node *node) const {
   return color;
 }
 
-static void log_visualization(const BDD *bdd, const std::string &fname) {
-  std::cerr << "Visualizing BDD";
-  std::cerr << " id=" << bdd->get_id();
-  std::cerr << " hash=" << bdd->hash();
-  std::cerr << " file=" << fname;
-  std::cerr << "\n";
-}
-
-void BDDViz::visualize(const BDD *bdd, bool interrupt,
-                       bdd_visualizer_opts_t opts) {
+void BDDViz::visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts) {
   BDDViz visualizer(opts);
   visualizer.visit(bdd);
   log_visualization(bdd, visualizer.fpath);
@@ -109,8 +108,7 @@ BDDVisitor::Action BDDViz::visit(const Branch *node) {
   ss << node->get_id() << ":";
   ss << pretty_print_expr(condition);
 
-  if (opts.annotations_per_node.find(node->get_id()) !=
-      opts.annotations_per_node.end()) {
+  if (opts.annotations_per_node.find(node->get_id()) != opts.annotations_per_node.end()) {
     ss << "\\n";
     ss << opts.annotations_per_node.at(node->get_id());
   }
@@ -213,8 +211,7 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
     ss << "}";
   }
 
-  if (opts.annotations_per_node.find(node->get_id()) !=
-      opts.annotations_per_node.end()) {
+  if (opts.annotations_per_node.find(node->get_id()) != opts.annotations_per_node.end()) {
     ss << "\\l";
     ss << opts.annotations_per_node.at(node->get_id());
   }

@@ -11,8 +11,8 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const Node *node, addr_t _chunk_addr,
-              klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+  ParseHeader(const Node *node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk,
+              klee::ref<klee::Expr> _length)
       : TofinoCPUModule(ModuleType::TofinoCPU_ParseHeader, "ParseHeader", node),
         chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
 
@@ -31,18 +31,16 @@ public:
   klee::ref<klee::Expr> get_length() const { return length; }
 };
 
-class ParseHeaderGenerator : public TofinoCPUModuleGenerator {
+class ParseHeaderFactory : public TofinoCPUModuleFactory {
 public:
-  ParseHeaderGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_ParseHeader,
-                                 "ParseHeader") {}
+  ParseHeaderFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_ParseHeader, "ParseHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

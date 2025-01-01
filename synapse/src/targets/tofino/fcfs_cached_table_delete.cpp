@@ -31,9 +31,8 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
   const Profiler &profiler = ctx.get_profiler();
 
   hit_rate_t fraction = profiler.get_hr(node);
-  hit_rate_t cache_hit_rate =
-      TofinoModuleGenerator::get_fcfs_cache_success_rate(ep->get_ctx(), node,
-                                                         key, cache_capacity);
+  hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(
+      ep->get_ctx(), node, key, cache_capacity);
 
   return cache_hit_rate;
 }
@@ -91,26 +90,26 @@ void replicate_hdr_parsing_ops_on_cache_delete_failed(
       bdd, on_cache_delete_failed, non_branch_nodes_to_add);
 }
 
-BDD *branch_bdd_on_cache_delete_success(
+std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(
     const EP *ep, const Node *map_erase,
     const fcfs_cached_table_data_t &cached_table_data,
     klee::ref<klee::Expr> cache_delete_success_condition,
     Node *&on_cache_delete_success, Node *&on_cache_delete_failed,
     std::optional<constraints_t> &deleted_branch_constraints) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_erase->get_next();
   ASSERT(next, "Next node is null");
 
   Branch *cache_delete_branch =
-      add_branch_to_bdd(new_bdd, next, cache_delete_success_condition);
+      add_branch_to_bdd(new_bdd.get(), next, cache_delete_success_condition);
 
   on_cache_delete_success = cache_delete_branch->get_mutable_on_true();
   on_cache_delete_failed = cache_delete_branch->get_mutable_on_false();
 
   replicate_hdr_parsing_ops_on_cache_delete_failed(
-      ep, new_bdd, cache_delete_branch, on_cache_delete_failed);
+      ep, new_bdd.get(), cache_delete_branch, on_cache_delete_failed);
 
   return new_bdd;
 }
@@ -127,7 +126,7 @@ EP *concretize_cached_table_delete(
     const fcfs_cached_table_data_t &cached_table_data,
     const symbol_t &cache_delete_failed, u32 cache_capacity) {
   FCFSCachedTable *cached_table =
-      TofinoModuleGenerator::build_or_reuse_fcfs_cached_table(
+      TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
           ep, map_erase, cached_table_data.obj, cached_table_data.key,
           cached_table_data.num_entries, cache_capacity);
 
@@ -149,12 +148,12 @@ EP *concretize_cached_table_delete(
   Node *on_cache_delete_failed;
   std::optional<constraints_t> deleted_branch_constraints;
 
-  BDD *new_bdd = branch_bdd_on_cache_delete_success(
+  std::unique_ptr<BDD> new_bdd = branch_bdd_on_cache_delete_success(
       new_ep, map_erase, cached_table_data, cache_delete_success_condition,
       on_cache_delete_success, on_cache_delete_failed,
       deleted_branch_constraints);
 
-  symbols_t symbols = TofinoModuleGenerator::get_dataplane_state(ep, map_erase);
+  symbols_t symbols = TofinoModuleFactory::get_dataplane_state(ep, map_erase);
 
   Module *if_module = new If(map_erase, cache_delete_success_condition,
                              {cache_delete_success_condition});
@@ -198,7 +197,7 @@ EP *concretize_cached_table_delete(
   ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   TofinoContext *tofino_ctx =
-      TofinoModuleGenerator::get_mutable_tofino_ctx(new_ep);
+      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, map_erase, map_objs.map, cached_table);
 
   EPLeaf on_cache_delete_success_leaf(then_node, on_cache_delete_success);
@@ -207,7 +206,7 @@ EP *concretize_cached_table_delete(
 
   new_ep->process_leaf(cached_table_delete_node, {on_cache_delete_success_leaf,
                                                   on_cache_delete_failed_leaf});
-  new_ep->replace_bdd(new_bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
@@ -218,8 +217,8 @@ EP *concretize_cached_table_delete(
 } // namespace
 
 std::optional<spec_impl_t>
-FCFSCachedTableDeleteGenerator::speculate(const EP *ep, const Node *node,
-                                          const Context &ctx) const {
+FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
+                                        const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -305,8 +304,8 @@ FCFSCachedTableDeleteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableDeleteGenerator::process_node(const EP *ep,
-                                             const Node *node) const {
+FCFSCachedTableDeleteFactory::process_node(const EP *ep,
+                                           const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

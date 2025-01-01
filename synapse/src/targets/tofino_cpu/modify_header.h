@@ -11,10 +11,8 @@ private:
   std::vector<mod_t> changes;
 
 public:
-  ModifyHeader(const Node *node, addr_t _chunk_addr,
-               const std::vector<mod_t> &_changes)
-      : TofinoCPUModule(ModuleType::TofinoCPU_ModifyHeader, "ModifyHeader",
-                        node),
+  ModifyHeader(const Node *node, addr_t _chunk_addr, const std::vector<mod_t> &_changes)
+      : TofinoCPUModule(ModuleType::TofinoCPU_ModifyHeader, "ModifyHeader", node),
         chunk_addr(_chunk_addr), changes(_changes) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -31,18 +29,16 @@ public:
   const std::vector<mod_t> &get_changes() const { return changes; }
 };
 
-class ModifyHeaderGenerator : public TofinoCPUModuleGenerator {
+class ModifyHeaderFactory : public TofinoCPUModuleFactory {
 public:
-  ModifyHeaderGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_ModifyHeader,
-                                 "ModifyHeader") {}
+  ModifyHeaderFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_ModifyHeader, "ModifyHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

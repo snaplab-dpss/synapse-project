@@ -2,17 +2,17 @@
 
 #include <memory>
 
-#define DECLARE_VISIT(M)                                                       \
+#define DECLARE_VISIT(M)                                                                 \
   Action visit(const EP *ep, const EPNode *ep_node, const M *node) override;
 
-#define VISIT_NOP(M)                                                           \
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {      \
-    return Action::doChildren;                                                 \
+#define VISIT_NOP(M)                                                                     \
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {                \
+    return Action::doChildren;                                                           \
   }
 
-#define VISIT_TODO(M)                                                          \
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {      \
-    ASSERT(false, "TODO");                                                     \
+#define VISIT_TODO(M)                                                                    \
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {                \
+    ASSERT(false, "TODO");                                                               \
   }
 
 class EP;

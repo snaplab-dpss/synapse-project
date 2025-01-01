@@ -51,11 +51,12 @@ get_future_related_nodes(const EP *ep, const Node *node,
   return related_ops;
 }
 
-BDD *delete_future_related_nodes(
-    const EP *ep, const Node *map_erase,
-    const map_coalescing_objs_t &map_coalescing_objs, const Node *&new_next) {
+std::unique_ptr<BDD>
+delete_future_related_nodes(const EP *ep, const Node *map_erase,
+                            const map_coalescing_objs_t &map_coalescing_objs,
+                            const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_erase->get_next();
 
@@ -71,7 +72,7 @@ BDD *delete_future_related_nodes(
   for (const Node *node : future_nodes) {
     bool replace = (node == next);
     Node *replacement =
-        delete_non_branch_node_from_bdd(new_bdd, node->get_id());
+        delete_non_branch_node_from_bdd(new_bdd.get(), node->get_id());
     if (replace) {
       next = replacement;
     }
@@ -84,8 +85,8 @@ BDD *delete_future_related_nodes(
 } // namespace
 
 std::optional<spec_impl_t>
-MapRegisterDeleteGenerator::speculate(const EP *ep, const Node *node,
-                                      const Context &ctx) const {
+MapRegisterDeleteFactory::speculate(const EP *ep, const Node *node,
+                                    const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -132,7 +133,7 @@ MapRegisterDeleteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-MapRegisterDeleteGenerator::process_node(const EP *ep, const Node *node) const {
+MapRegisterDeleteFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -175,7 +176,7 @@ MapRegisterDeleteGenerator::process_node(const EP *ep, const Node *node) const {
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  BDD *new_bdd =
+  std::unique_ptr<BDD> new_bdd =
       delete_future_related_nodes(new_ep, map_erase, map_objs, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
@@ -188,7 +189,7 @@ MapRegisterDeleteGenerator::process_node(const EP *ep, const Node *node) const {
   EPLeaf leaf(ep_node, new_next);
 
   new_ep->process_leaf(ep_node, {leaf});
-  new_ep->replace_bdd(new_bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   return impls;

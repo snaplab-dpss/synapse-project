@@ -12,9 +12,8 @@ private:
   std::vector<mod_t> modifications;
 
 public:
-  VectorWrite(const Node *node, addr_t _vector_addr,
-              klee::ref<klee::Expr> _index, addr_t _value_addr,
-              const std::vector<mod_t> &_modifications)
+  VectorWrite(const Node *node, addr_t _vector_addr, klee::ref<klee::Expr> _index,
+              addr_t _value_addr, const std::vector<mod_t> &_modifications)
       : x86Module(ModuleType::x86_VectorWrite, "VectorWrite", node),
         vector_addr(_vector_addr), index(_index), value_addr(_value_addr),
         modifications(_modifications) {}
@@ -25,8 +24,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new VectorWrite(node, vector_addr, index, value_addr, modifications);
+    Module *cloned = new VectorWrite(node, vector_addr, index, value_addr, modifications);
     return cloned;
   }
 
@@ -37,17 +35,15 @@ public:
   const std::vector<mod_t> &get_modifications() const { return modifications; }
 };
 
-class VectorWriteGenerator : public x86ModuleGenerator {
+class VectorWriteFactory : public x86ModuleFactory {
 public:
-  VectorWriteGenerator()
-      : x86ModuleGenerator(ModuleType::x86_VectorWrite, "VectorWrite") {}
+  VectorWriteFactory() : x86ModuleFactory(ModuleType::x86_VectorWrite, "VectorWrite") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

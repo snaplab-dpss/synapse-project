@@ -16,8 +16,7 @@ public:
   FCFSCachedTableRead(const Node *node, DS_ID _cached_table_id, addr_t _obj,
                       klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
                       const symbol_t &_map_has_this_key)
-      : TofinoModule(ModuleType::Tofino_FCFSCachedTableRead,
-                     "FCFSCachedTableRead", node),
+      : TofinoModule(ModuleType::Tofino_FCFSCachedTableRead, "FCFSCachedTableRead", node),
         cached_table_id(_cached_table_id), obj(_obj), key(_key), value(_value),
         map_has_this_key(_map_has_this_key) {}
 
@@ -27,8 +26,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableRead(node, cached_table_id, obj, key,
-                                             value, map_has_this_key);
+    Module *cloned =
+        new FCFSCachedTableRead(node, cached_table_id, obj, key, value, map_has_this_key);
     return cloned;
   }
 
@@ -43,18 +42,17 @@ public:
   }
 };
 
-class FCFSCachedTableReadGenerator : public TofinoModuleGenerator {
+class FCFSCachedTableReadFactory : public TofinoModuleFactory {
 public:
-  FCFSCachedTableReadGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_FCFSCachedTableRead,
-                              "FCFSCachedTableRead") {}
+  FCFSCachedTableReadFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableRead,
+                            "FCFSCachedTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

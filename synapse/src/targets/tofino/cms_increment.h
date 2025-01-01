@@ -29,23 +29,19 @@ public:
   addr_t get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return {cms_id};
-  }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cms_id}; }
 };
 
-class CMSIncrementGenerator : public TofinoModuleGenerator {
+class CMSIncrementFactory : public TofinoModuleFactory {
 public:
-  CMSIncrementGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_CMSIncrement, "CMSIncrement") {
-  }
+  CMSIncrementFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_CMSIncrement, "CMSIncrement") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

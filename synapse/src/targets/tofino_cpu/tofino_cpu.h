@@ -55,56 +55,59 @@ namespace tofino_cpu {
 
 struct TofinoCPUTarget : public Target {
   TofinoCPUTarget()
-      : Target(TargetType::TofinoCPU,
-               {
-                   new IgnoreGenerator(),
-                   new ParseHeaderGenerator(),
-                   new ModifyHeaderGenerator(),
-                   new ChecksumUpdateGenerator(),
-                   new IfGenerator(),
-                   new ThenGenerator(),
-                   new ElseGenerator(),
-                   new ForwardGenerator(),
-                   new BroadcastGenerator(),
-                   new DropGenerator(),
-                   new TableLookupGenerator(),
-                   new TableUpdateGenerator(),
-                   new TableDeleteGenerator(),
-                   new DchainAllocateNewIndexGenerator(),
-                   new DchainIsIndexAllocatedGenerator(),
-                   new DchainRejuvenateIndexGenerator(),
-                   new DchainFreeIndexGenerator(),
-                   new VectorReadGenerator(),
-                   new VectorWriteGenerator(),
-                   new MapGetGenerator(),
-                   new MapPutGenerator(),
-                   new MapEraseGenerator(),
-                   new ChtFindBackendGenerator(),
-                   new HashObjGenerator(),
-                   new VectorRegisterLookupGenerator(),
-                   new VectorRegisterUpdateGenerator(),
-                   new FCFSCachedTableReadGenerator(),
-                   new FCFSCachedTableWriteGenerator(),
-                   new FCFSCachedTableDeleteGenerator(),
-                   new MapRegisterReadGenerator(),
-                   new MapRegisterWriteGenerator(),
-                   new MapRegisterDeleteGenerator(),
-                   new HHTableReadGenerator(),
-                   new HHTableUpdateGenerator(),
-                   new HHTableConditionalUpdateGenerator(),
-                   new HHTableDeleteGenerator(),
-                   new TBIsTracingGenerator(),
-                   new TBTraceGenerator(),
-                   new TBUpdateAndCheckGenerator(),
-                   new TBExpireGenerator(),
-                   new MeterInsertGenerator(),
-                   new IntegerAllocatorFreeIndexGenerator(),
-                   new CMSUpdateGenerator(),
-                   new CMSQueryGenerator(),
-                   new CMSIncrementGenerator(),
-                   new CMSCountMinGenerator(),
-               },
-               new TofinoCPUContext()) {}
+      : Target(
+            TargetType::TofinoCPU,
+            []() -> std::vector<std::unique_ptr<ModuleFactory>> {
+              std::vector<std::unique_ptr<ModuleFactory>> f;
+              f.push_back(std::make_unique<IgnoreFactory>());
+              f.push_back(std::make_unique<ParseHeaderFactory>());
+              f.push_back(std::make_unique<ModifyHeaderFactory>());
+              f.push_back(std::make_unique<ChecksumUpdateFactory>());
+              f.push_back(std::make_unique<IfFactory>());
+              f.push_back(std::make_unique<ThenFactory>());
+              f.push_back(std::make_unique<ElseFactory>());
+              f.push_back(std::make_unique<ForwardFactory>());
+              f.push_back(std::make_unique<BroadcastFactory>());
+              f.push_back(std::make_unique<DropFactory>());
+              f.push_back(std::make_unique<TableLookupFactory>());
+              f.push_back(std::make_unique<TableUpdateFactory>());
+              f.push_back(std::make_unique<TableDeleteFactory>());
+              f.push_back(std::make_unique<DchainAllocateNewIndexFactory>());
+              f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>());
+              f.push_back(std::make_unique<DchainRejuvenateIndexFactory>());
+              f.push_back(std::make_unique<DchainFreeIndexFactory>());
+              f.push_back(std::make_unique<VectorReadFactory>());
+              f.push_back(std::make_unique<VectorWriteFactory>());
+              f.push_back(std::make_unique<MapGetFactory>());
+              f.push_back(std::make_unique<MapPutFactory>());
+              f.push_back(std::make_unique<MapEraseFactory>());
+              f.push_back(std::make_unique<ChtFindBackendFactory>());
+              f.push_back(std::make_unique<HashObjFactory>());
+              f.push_back(std::make_unique<VectorRegisterLookupFactory>());
+              f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
+              f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
+              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
+              f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
+              f.push_back(std::make_unique<MapRegisterReadFactory>());
+              f.push_back(std::make_unique<MapRegisterWriteFactory>());
+              f.push_back(std::make_unique<MapRegisterDeleteFactory>());
+              f.push_back(std::make_unique<HHTableReadFactory>());
+              f.push_back(std::make_unique<HHTableUpdateFactory>());
+              f.push_back(std::make_unique<HHTableConditionalUpdateFactory>());
+              f.push_back(std::make_unique<HHTableDeleteFactory>());
+              f.push_back(std::make_unique<TBIsTracingFactory>());
+              f.push_back(std::make_unique<TBTraceFactory>());
+              f.push_back(std::make_unique<TBUpdateAndCheckFactory>());
+              f.push_back(std::make_unique<TBExpireFactory>());
+              f.push_back(std::make_unique<MeterInsertFactory>());
+              f.push_back(std::make_unique<IntegerAllocatorFreeIndexFactory>());
+              f.push_back(std::make_unique<CMSUpdateFactory>());
+              f.push_back(std::make_unique<CMSQueryFactory>());
+              f.push_back(std::make_unique<CMSIncrementFactory>());
+              f.push_back(std::make_unique<CMSCountMinFactory>());
+              return f;
+            }(),
+            std::make_unique<TofinoCPUContext>()) {}
 };
 
 } // namespace tofino_cpu

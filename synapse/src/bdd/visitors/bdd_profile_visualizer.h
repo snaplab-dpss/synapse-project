@@ -20,8 +20,7 @@ public:
             .processed = processed_t(),
         }) {}
 
-  static void visualize(const BDD *bdd, const bdd_profile_t &profile,
-                        bool interrupt) {
+  static void visualize(const BDD *bdd, const bdd_profile_t &profile, bool interrupt) {
     bdd_visualizer_opts_t opts;
 
     opts.colors_per_node = get_colors_per_node(profile.counters);
@@ -33,8 +32,7 @@ public:
   }
 
 private:
-  static u64
-  get_total_counter(const std::unordered_map<node_id_t, u64> &counters) {
+  static u64 get_total_counter(const std::unordered_map<node_id_t, u64> &counters) {
     u64 total_counter = 0;
     for (auto it = counters.begin(); it != counters.end(); it++) {
       total_counter = std::max(total_counter, it->second);
@@ -48,8 +46,7 @@ private:
     u64 total_counter = get_total_counter(profile.counters);
     std::unordered_map<node_id_t, std::string> annocations_per_node;
 
-    for (auto it = profile.counters.begin(); it != profile.counters.end();
-         it++) {
+    for (auto it = profile.counters.begin(); it != profile.counters.end(); it++) {
       node_id_t node = it->first;
       u64 counter = it->second;
       hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
@@ -112,12 +109,9 @@ private:
     int idx2 = (int)idx1 + 1;
     float frac = value - idx1;
 
-    u8 r =
-        0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
-    u8 g =
-        0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
-    u8 b =
-        0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
+    u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
+    u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
+    u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
 
     rgb_t color(r, g, b);
     return color.to_gv_repr();

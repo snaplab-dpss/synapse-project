@@ -2,9 +2,9 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t>
-ForwardGenerator::speculate(const EP *ep, const Node *node,
-                            const Context &ctx) const {
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep,
+                                                     const Node *node,
+                                                     const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
@@ -25,8 +25,8 @@ ForwardGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ForwardGenerator::process_node(const EP *ep,
-                                                   const Node *node) const {
+std::vector<impl_t> ForwardFactory::process_node(const EP *ep,
+                                                 const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {

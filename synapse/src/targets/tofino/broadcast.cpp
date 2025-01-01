@@ -3,8 +3,8 @@
 namespace tofino {
 
 std::optional<spec_impl_t>
-BroadcastGenerator::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+BroadcastFactory::speculate(const EP *ep, const Node *node,
+                            const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
@@ -19,8 +19,8 @@ BroadcastGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> BroadcastGenerator::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> BroadcastFactory::process_node(const EP *ep,
+                                                   const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {

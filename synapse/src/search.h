@@ -54,7 +54,7 @@ private:
   Heuristic<HCfg> *h;
   toml::table config;
   Profiler profiler;
-  const targets_t targets;
+  Targets targets;
 
   const bool allow_bdd_reordering;
   const std::unordered_set<ep_id_t> peek;
@@ -62,13 +62,11 @@ private:
 
 public:
   SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const toml::table &config,
-               const Profiler &profiler, const targets_t &targets,
-               bool allow_bdd_reordering,
-               const std::unordered_set<ep_id_t> &peek,
-               bool _pause_and_show_on_backtrack);
+               const Profiler &profiler, bool allow_bdd_reordering,
+               const std::unordered_set<ep_id_t> &peek, bool pause_and_show_on_backtrack);
 
   SearchEngine(const BDD *bdd, Heuristic<HCfg> *h, const toml::table &config,
-               const Profiler &profiler, const targets_t &_targets);
+               const Profiler &profiler);
 
   SearchEngine(const SearchEngine &) = delete;
   SearchEngine(SearchEngine &&) = delete;

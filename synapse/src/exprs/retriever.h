@@ -7,8 +7,7 @@
 #include <klee/Expr.h>
 
 std::vector<klee::ref<klee::ReadExpr>> get_reads(klee::ref<klee::Expr> expr);
-std::vector<klee::ref<klee::ReadExpr>>
-get_packet_reads(klee::ref<klee::Expr> expr);
+std::vector<klee::ref<klee::ReadExpr>> get_packet_reads(klee::ref<klee::Expr> expr);
 
 bool has_symbols(klee::ref<klee::Expr> expr);
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr);

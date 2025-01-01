@@ -25,8 +25,7 @@ public:
   }
 
   virtual Module *clone() const {
-    FCFSCachedTableDelete *cloned =
-        new FCFSCachedTableDelete(node, id, obj, keys);
+    FCFSCachedTableDelete *cloned = new FCFSCachedTableDelete(node, id, obj, keys);
     return cloned;
   }
 
@@ -35,18 +34,17 @@ public:
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
 };
 
-class FCFSCachedTableDeleteGenerator : public TofinoCPUModuleGenerator {
+class FCFSCachedTableDeleteFactory : public TofinoCPUModuleFactory {
 public:
-  FCFSCachedTableDeleteGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_FCFSCachedTableDelete,
-                                 "FCFSCachedTableDelete") {}
+  FCFSCachedTableDeleteFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_FCFSCachedTableDelete,
+                               "FCFSCachedTableDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

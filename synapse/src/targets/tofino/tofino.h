@@ -45,49 +45,46 @@ namespace tofino {
 
 struct TofinoTarget : public Target {
   TofinoTarget(const toml::table &config)
-      : Target(TargetType::Tofino,
-               {
-                   new SendToControllerGenerator(), new RecirculateGenerator(),
-                   new ForwardGenerator(), new DropGenerator(),
-                   new BroadcastGenerator(),
-
-                   new IgnoreGenerator(),
-
-                   new IfGenerator(), new ThenGenerator(), new ElseGenerator(),
-
-                   new ParserExtractionGenerator(),
-                   new ParserConditionGenerator(), new ParserRejectGenerator(),
-                   new ModifyHeaderGenerator(),
-
-                   new TableLookupGenerator(),
-
-                   new VectorRegisterLookupGenerator(),
-                   new VectorRegisterUpdateGenerator(),
-
-                   //    new FCFSCachedTableReadGenerator(),
-                   //    new FCFSCachedTableReadOrWriteGenerator(),
-                   //    new FCFSCachedTableWriteGenerator(),
-                   //    new FCFSCachedTableDeleteGenerator(),
-
-                   new MapRegisterReadGenerator(),
-                   new MapRegisterReadOrWriteGenerator(),
-                   new MapRegisterWriteGenerator(),
-                   new MapRegisterDeleteGenerator(),
-
-                   //    new MeterUpdateGenerator(),
-
-                   //    new HHTableReadGenerator(),
-                   //    new HHTableConditionalUpdateGenerator(),
-
-                   //    new IntegerAllocatorAllocateGenerator(),
-                   //    new IntegerAllocatorIsAllocatedGenerator(),
-                   //    new IntegerAllocatorRejuvenateGenerator(),
-
-                   //    new CMSQueryGenerator(),
-                   //    new CMSIncrementGenerator(),
-                   //    new CMSIncAndQueryGenerator(),
-               },
-               new TofinoContext(config)) {}
+      : Target(
+            TargetType::Tofino,
+            []() -> std::vector<std::unique_ptr<ModuleFactory>> {
+              std::vector<std::unique_ptr<ModuleFactory>> f;
+              f.push_back(std::make_unique<SendToControllerFactory>());
+              f.push_back(std::make_unique<RecirculateFactory>());
+              f.push_back(std::make_unique<ForwardFactory>());
+              f.push_back(std::make_unique<DropFactory>());
+              f.push_back(std::make_unique<BroadcastFactory>());
+              f.push_back(std::make_unique<IgnoreFactory>());
+              f.push_back(std::make_unique<IfFactory>());
+              f.push_back(std::make_unique<ThenFactory>());
+              f.push_back(std::make_unique<ElseFactory>());
+              f.push_back(std::make_unique<ParserExtractionFactory>());
+              f.push_back(std::make_unique<ParserConditionFactory>());
+              f.push_back(std::make_unique<ParserRejectFactory>());
+              f.push_back(std::make_unique<ModifyHeaderFactory>());
+              f.push_back(std::make_unique<TableLookupFactory>());
+              f.push_back(std::make_unique<VectorRegisterLookupFactory>());
+              f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableReadOrWriteFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
+              // f.push_back(std::make_unique<MapRegisterReadFactory>());
+              // f.push_back(std::make_unique<MapRegisterReadOrWriteFactory>());
+              // f.push_back(std::make_unique<MapRegisterWriteFactory>());
+              // f.push_back(std::make_unique<MapRegisterDeleteFactory>());
+              f.push_back(std::make_unique<MeterUpdateFactory>());
+              // f.push_back(std::make_unique<HHTableReadFactory>());
+              // f.push_back(std::make_unique<HHTableConditionalUpdateFactory>());
+              f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
+              f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
+              f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());
+              f.push_back(std::make_unique<CMSQueryFactory>());
+              f.push_back(std::make_unique<CMSIncrementFactory>());
+              f.push_back(std::make_unique<CMSIncAndQueryFactory>());
+              return f;
+            }(),
+            std::make_unique<TofinoContext>(config)) {}
 };
 
 } // namespace tofino

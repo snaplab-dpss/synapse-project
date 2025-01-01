@@ -20,18 +20,16 @@ public:
   }
 };
 
-class ParserRejectGenerator : public TofinoModuleGenerator {
+class ParserRejectFactory : public TofinoModuleFactory {
 public:
-  ParserRejectGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_ParserReject, "ParserReject") {
-  }
+  ParserRejectFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_ParserReject, "ParserReject") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

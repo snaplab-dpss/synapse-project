@@ -2,14 +2,14 @@
 
 namespace tofino {
 
-std::optional<spec_impl_t> ThenGenerator::speculate(const EP *ep,
-                                                    const Node *node,
-                                                    const Context &ctx) const {
+std::optional<spec_impl_t> ThenFactory::speculate(const EP *ep,
+                                                  const Node *node,
+                                                  const Context &ctx) const {
   return std::nullopt;
 }
 
-std::vector<impl_t> ThenGenerator::process_node(const EP *ep,
-                                                const Node *node) const {
+std::vector<impl_t> ThenFactory::process_node(const EP *ep,
+                                              const Node *node) const {
   // Never explicitly generate this module from the BDD.
   return {};
 }

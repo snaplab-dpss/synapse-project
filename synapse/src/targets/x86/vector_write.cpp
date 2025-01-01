@@ -20,8 +20,8 @@ bool bdd_node_match_pattern(const Node *node) {
 } // namespace
 
 std::optional<spec_impl_t>
-VectorWriteGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+VectorWriteFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
@@ -39,8 +39,8 @@ VectorWriteGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> VectorWriteGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

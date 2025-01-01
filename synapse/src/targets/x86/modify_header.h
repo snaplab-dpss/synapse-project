@@ -10,8 +10,7 @@ private:
   std::vector<mod_t> changes;
 
 public:
-  ModifyHeader(const Node *node, addr_t _chunk_addr,
-               const std::vector<mod_t> &_changes)
+  ModifyHeader(const Node *node, addr_t _chunk_addr, const std::vector<mod_t> &_changes)
       : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", node),
         chunk_addr(_chunk_addr), changes(_changes) {}
 
@@ -29,17 +28,16 @@ public:
   const std::vector<mod_t> &get_changes() const { return changes; }
 };
 
-class ModifyHeaderGenerator : public x86ModuleGenerator {
+class ModifyHeaderFactory : public x86ModuleFactory {
 public:
-  ModifyHeaderGenerator()
-      : x86ModuleGenerator(ModuleType::x86_ModifyHeader, "ModifyHeader") {}
+  ModifyHeaderFactory()
+      : x86ModuleFactory(ModuleType::x86_ModifyHeader, "ModifyHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

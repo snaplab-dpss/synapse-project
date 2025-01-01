@@ -53,12 +53,12 @@ std::vector<const Node *> get_nodes_to_speculatively_ignore(
   return nodes_to_ignore;
 }
 
-BDD *delete_coalescing_nodes(
+std::unique_ptr<BDD> delete_coalescing_nodes(
     const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
     klee::ref<klee::Expr> key, const Node *&new_next,
     std::optional<constraints_t> &deleted_branch_constraints) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = node->get_next();
 
@@ -69,7 +69,7 @@ BDD *delete_coalescing_nodes(
   }
 
   const std::vector<const Call *> targets =
-      get_coalescing_nodes_from_key(new_bdd, new_next, key, map_objs);
+      get_coalescing_nodes_from_key(new_bdd.get(), new_next, key, map_objs);
 
   for (const Node *target : targets) {
     const Call *call_target = static_cast<const Call *>(target);
@@ -103,7 +103,7 @@ BDD *delete_coalescing_nodes(
 
         bool replace_next = (index_alloc_check.branch == next);
         Node *replacement = delete_branch_node_from_bdd(
-            new_bdd, index_alloc_check.branch->get_id(),
+            new_bdd.get(), index_alloc_check.branch->get_id(),
             index_alloc_check.direction);
         if (replace_next) {
           new_next = replacement;
@@ -113,7 +113,7 @@ BDD *delete_coalescing_nodes(
 
     bool replace_next = (target == next);
     Node *replacement =
-        delete_non_branch_node_from_bdd(new_bdd, target->get_id());
+        delete_non_branch_node_from_bdd(new_bdd.get(), target->get_id());
     if (replace_next) {
       new_next = replacement;
     }
@@ -124,8 +124,8 @@ BDD *delete_coalescing_nodes(
 } // namespace
 
 std::optional<spec_impl_t>
-MapRegisterWriteGenerator::speculate(const EP *ep, const Node *node,
-                                     const Context &ctx) const {
+MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
+                                   const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -177,7 +177,7 @@ MapRegisterWriteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-MapRegisterWriteGenerator::process_node(const EP *ep, const Node *node) const {
+MapRegisterWriteFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -226,7 +226,7 @@ MapRegisterWriteGenerator::process_node(const EP *ep, const Node *node) const {
 
   const Node *new_next;
   std::optional<constraints_t> deleted_branch_constraints;
-  BDD *new_bdd =
+  std::unique_ptr<BDD> new_bdd =
       delete_coalescing_nodes(new_ep, node, map_objs, map_register_data.key,
                               new_next, deleted_branch_constraints);
 
@@ -243,7 +243,7 @@ MapRegisterWriteGenerator::process_node(const EP *ep, const Node *node) const {
 
   EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
-  new_ep->replace_bdd(new_bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   return impls;

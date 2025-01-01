@@ -4,9 +4,8 @@
 
 namespace tofino_cpu {
 
-std::optional<spec_impl_t> IfGenerator::speculate(const EP *ep,
-                                                  const Node *node,
-                                                  const Context &ctx) const {
+std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node,
+                                                const Context &ctx) const {
   if (node->get_type() != NodeType::Branch) {
     return std::nullopt;
   }
@@ -14,8 +13,8 @@ std::optional<spec_impl_t> IfGenerator::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IfGenerator::process_node(const EP *ep,
-                                              const Node *node) const {
+std::vector<impl_t> IfFactory::process_node(const EP *ep,
+                                            const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Branch) {

@@ -5,6 +5,55 @@
 
 namespace tofino {
 
+namespace {
+int get_soonest_available_stage(const std::vector<Stage> &stages,
+                                const std::unordered_set<DS_ID> &deps) {
+  const Stage *soonest_stage = nullptr;
+
+  for (auto it = stages.rbegin(); it != stages.rend(); it++) {
+    const Stage *stage = &(*it);
+
+    bool can_place = true;
+    for (DS_ID dependency : deps) {
+      if (stage->tables.find(dependency) != stage->tables.end()) {
+        can_place = false;
+        break;
+      }
+    }
+
+    if (can_place) {
+      soonest_stage = stage;
+    }
+  }
+
+  if (soonest_stage) {
+    return soonest_stage->stage_id;
+  }
+
+  return -1;
+}
+
+std::vector<Stage> create_stages(const TNAProperties *properties) {
+  std::vector<Stage> stages;
+
+  for (int stage_id = 0; stage_id < properties->stages; stage_id++) {
+    Stage s = {
+        .stage_id = stage_id,
+        .available_sram = properties->sram_per_stage,
+        .available_tcam = properties->tcam_per_stage,
+        .available_map_ram = properties->map_ram_per_stage,
+        .available_exact_match_xbar = properties->exact_match_xbar_per_stage,
+        .available_logical_ids = properties->max_logical_sram_and_tcam_tables_per_stage,
+        .tables = {},
+    };
+
+    stages.push_back(s);
+  }
+
+  return stages;
+}
+} // namespace
+
 std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   switch (status) {
   case PlacementStatus::SUCCESS:
@@ -35,27 +84,6 @@ std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   return os;
 }
 
-static std::vector<Stage> create_stages(const TNAProperties *properties) {
-  std::vector<Stage> stages;
-
-  for (int stage_id = 0; stage_id < properties->stages; stage_id++) {
-    Stage s = {
-        .stage_id = stage_id,
-        .available_sram = properties->sram_per_stage,
-        .available_tcam = properties->tcam_per_stage,
-        .available_map_ram = properties->map_ram_per_stage,
-        .available_exact_match_xbar = properties->exact_match_xbar_per_stage,
-        .available_logical_ids =
-            properties->max_logical_sram_and_tcam_tables_per_stage,
-        .tables = {},
-    };
-
-    stages.push_back(s);
-  }
-
-  return stages;
-}
-
 SimplePlacer::SimplePlacer(const TNAProperties *_properties)
     : properties(_properties), stages(create_stages(_properties)) {}
 
@@ -72,33 +100,6 @@ SimplePlacer::~SimplePlacer() {
   }
 }
 
-static int get_soonest_available_stage(const std::vector<Stage> &stages,
-                                       const std::unordered_set<DS_ID> &deps) {
-  const Stage *soonest_stage = nullptr;
-
-  for (auto it = stages.rbegin(); it != stages.rend(); it++) {
-    const Stage *stage = &(*it);
-
-    bool can_place = true;
-    for (DS_ID dependency : deps) {
-      if (stage->tables.find(dependency) != stage->tables.end()) {
-        can_place = false;
-        break;
-      }
-    }
-
-    if (can_place) {
-      soonest_stage = stage;
-    }
-  }
-
-  if (soonest_stage) {
-    return soonest_stage->stage_id;
-  }
-
-  return -1;
-}
-
 struct SimplePlacer::placement_t {
   int stage_id;
   bits_t sram;
@@ -108,15 +109,14 @@ struct SimplePlacer::placement_t {
   DS_ID obj;
 };
 
-void SimplePlacer::concretize_placement(
-    Stage &stage, const SimplePlacer::placement_t &placement) {
+void SimplePlacer::concretize_placement(Stage &stage,
+                                        const SimplePlacer::placement_t &placement) {
   ASSERT(stage.stage_id == placement.stage_id, "Invalid stage ID");
 
   ASSERT(stage.available_sram >= placement.sram, "Not enough SRAM");
   ASSERT(stage.available_map_ram >= placement.map_ram, "Not enough MAP RAM");
   ASSERT(stage.available_exact_match_xbar >= placement.xbar, "Not enough XBAR");
-  ASSERT(stage.available_logical_ids >= placement.logical_ids,
-         "Not enough logical IDs");
+  ASSERT(stage.available_logical_ids >= placement.logical_ids, "Not enough logical IDs");
 
   stage.available_sram -= placement.sram;
   stage.available_map_ram -= placement.map_ram;
@@ -135,9 +135,8 @@ bool SimplePlacer::is_placed(DS_ID ds_id) const {
   return false;
 }
 
-PlacementStatus
-SimplePlacer::is_consistent(DS_ID ds_id,
-                            const std::unordered_set<DS_ID> &deps) const {
+PlacementStatus SimplePlacer::is_consistent(DS_ID ds_id,
+                                            const std::unordered_set<DS_ID> &deps) const {
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
 
   int total_stages = stages.size();
@@ -152,32 +151,27 @@ SimplePlacer::is_consistent(DS_ID ds_id,
   return PlacementStatus::INCONSISTENT_PLACEMENT;
 }
 
-bool SimplePlacer::is_self_dependent(
-    DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const {
+bool SimplePlacer::is_self_dependent(DS_ID ds_id,
+                                     const std::unordered_set<DS_ID> &deps) const {
   return deps.find(ds_id) != deps.end();
 }
 
 PlacementStatus
-SimplePlacer::find_placements(const DS *ds,
-                              const std::unordered_set<DS_ID> &deps,
+SimplePlacer::find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps,
                               std::vector<placement_t> &placements) const {
   PlacementStatus status;
   switch (ds->type) {
   case DSType::TABLE:
-    status =
-        find_placements_table(static_cast<const Table *>(ds), deps, placements);
+    status = find_placements_table(static_cast<const Table *>(ds), deps, placements);
     break;
   case DSType::REGISTER:
-    status = find_placements_reg(static_cast<const Register *>(ds), deps,
-                                 placements);
+    status = find_placements_reg(static_cast<const Register *>(ds), deps, placements);
     break;
   case DSType::METER:
-    status =
-        find_placements_meter(static_cast<const Meter *>(ds), deps, placements);
+    status = find_placements_meter(static_cast<const Meter *>(ds), deps, placements);
     break;
   case DSType::HASH:
-    status =
-        find_placements_hash(static_cast<const Hash *>(ds), deps, placements);
+    status = find_placements_hash(static_cast<const Hash *>(ds), deps, placements);
     break;
   default:
     ASSERT(false, "Unsupported DS type");
@@ -186,23 +180,22 @@ SimplePlacer::find_placements(const DS *ds,
   return status;
 }
 
-PlacementStatus SimplePlacer::find_placements_table(
-    const Table *table, const std::unordered_set<DS_ID> &deps,
-    std::vector<placement_t> &placements) const {
+PlacementStatus
+SimplePlacer::find_placements_table(const Table *table,
+                                    const std::unordered_set<DS_ID> &deps,
+                                    std::vector<placement_t> &placements) const {
   ASSERT(!is_placed(table->id), "Table %s already placed", table->id.c_str());
 
   if (static_cast<int>(table->keys.size()) > properties->max_exact_match_keys) {
     return PlacementStatus::TOO_MANY_KEYS;
   }
 
-  if (table->get_match_xbar_consume() >
-      properties->exact_match_xbar_per_stage) {
+  if (table->get_match_xbar_consume() > properties->exact_match_xbar_per_stage) {
     return PlacementStatus::XBAR_CONSUME_EXCEEDS_LIMIT;
   }
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
-         "No available stage");
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()), "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -261,8 +254,7 @@ SimplePlacer::find_placements_reg(const Register *reg,
   ASSERT(!is_placed(reg->id), "Register %s already placed", reg->id.c_str());
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
-         "No available stage");
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()), "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -317,23 +309,22 @@ SimplePlacer::find_placements_reg(const Register *reg,
   return PlacementStatus::SUCCESS;
 }
 
-PlacementStatus SimplePlacer::find_placements_meter(
-    const Meter *meter, const std::unordered_set<DS_ID> &deps,
-    std::vector<placement_t> &placements) const {
+PlacementStatus
+SimplePlacer::find_placements_meter(const Meter *meter,
+                                    const std::unordered_set<DS_ID> &deps,
+                                    std::vector<placement_t> &placements) const {
   ASSERT(!is_placed(meter->id), "Meter %s already placed", meter->id.c_str());
 
   if (static_cast<int>(meter->keys.size()) > properties->max_exact_match_keys) {
     return PlacementStatus::TOO_MANY_KEYS;
   }
 
-  if (meter->get_match_xbar_consume() >
-      properties->exact_match_xbar_per_stage) {
+  if (meter->get_match_xbar_consume() > properties->exact_match_xbar_per_stage) {
     return PlacementStatus::XBAR_CONSUME_EXCEEDS_LIMIT;
   }
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
-         "No available stage");
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()), "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -400,8 +391,7 @@ SimplePlacer::find_placements_hash(const Hash *hash,
   }
 
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
-  ASSERT(soonest_stage_id < static_cast<int>(stages.size()),
-         "No available stage");
+  ASSERT(soonest_stage_id < static_cast<int>(stages.size()), "No available stage");
 
   if (soonest_stage_id < 0) {
     return PlacementStatus::NO_AVAILABLE_STAGE;
@@ -512,15 +502,13 @@ void SimplePlacer::place_primitive_ds(const DS *ds,
   ASSERT(status == PlacementStatus::SUCCESS, "Cannot place ds");
 
   for (const placement_t &placement : placements) {
-    ASSERT(placement.stage_id < static_cast<int>(stages.size()),
-           "Invalid stage");
+    ASSERT(placement.stage_id < static_cast<int>(stages.size()), "Invalid stage");
     concretize_placement(stages[placement.stage_id], placement);
   }
 }
 
-PlacementStatus
-SimplePlacer::can_place(const DS *ds,
-                        const std::unordered_set<DS_ID> &deps) const {
+PlacementStatus SimplePlacer::can_place(const DS *ds,
+                                        const std::unordered_set<DS_ID> &deps) const {
   PlacementStatus status = PlacementStatus::UNKNOWN;
 
   if (ds->primitive) {
@@ -536,8 +524,7 @@ SimplePlacer::can_place(const DS *ds,
     return find_placements(ds, deps, placements);
   }
 
-  std::vector<std::unordered_set<const DS *>> candidates =
-      ds->get_internal_primitive();
+  std::vector<std::unordered_set<const DS *>> candidates = ds->get_internal_primitive();
 
   bool already_placed = false;
   for (const PlacementRequest &req : placement_requests) {
@@ -601,14 +588,14 @@ SimplePlacer::can_place(const DS *ds,
   return PlacementStatus::SUCCESS;
 }
 
-void SimplePlacer::save_placement_request(
-    const DS *ds, const std::unordered_set<DS_ID> &deps) {
+void SimplePlacer::save_placement_request(const DS *ds,
+                                          const std::unordered_set<DS_ID> &deps) {
   placement_requests.push_back({ds->clone(), deps});
 }
 
-void SimplePlacer::replace_placement_request(
-    const DS *ds, const std::unordered_set<DS_ID> &deps,
-    const std::vector<Stage> &new_stages) {
+void SimplePlacer::replace_placement_request(const DS *ds,
+                                             const std::unordered_set<DS_ID> &deps,
+                                             const std::vector<Stage> &new_stages) {
   stages = new_stages;
 
   for (PlacementRequest &req : placement_requests) {
@@ -642,15 +629,14 @@ void SimplePlacer::debug() const {
         100.0 - (stage.available_tcam * 100.0) / properties->tcam_per_stage;
     bits_t tcam_consumed = properties->tcam_per_stage - stage.available_tcam;
 
-    double map_ram_usage = 100.0 - (stage.available_map_ram * 100.0) /
-                                       properties->map_ram_per_stage;
-    bits_t map_ram_consumed =
-        properties->map_ram_per_stage - stage.available_map_ram;
+    double map_ram_usage =
+        100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
+    bits_t map_ram_consumed = properties->map_ram_per_stage - stage.available_map_ram;
 
     double xbar_usage = 100.0 - (stage.available_exact_match_xbar * 100.0) /
                                     properties->exact_match_xbar_per_stage;
-    bits_t xbar_consumed = properties->exact_match_xbar_per_stage -
-                           stage.available_exact_match_xbar;
+    bits_t xbar_consumed =
+        properties->exact_match_xbar_per_stage - stage.available_exact_match_xbar;
 
     ss << "-------------------------------------\n";
     ss << "Stage " << stage.stage_id;

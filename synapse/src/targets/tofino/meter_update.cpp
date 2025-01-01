@@ -44,7 +44,7 @@ Meter *build_meter(const EP *ep, const Node *node, DS_ID id,
 
   Meter *meter = new Meter(id, cfg.capacity, cfg.rate, cfg.burst, keys_size);
 
-  const TofinoContext *tofino_ctx = TofinoModuleGenerator::get_tofino_ctx(ep);
+  const TofinoContext *tofino_ctx = TofinoModuleFactory::get_tofino_ctx(ep);
   if (!tofino_ctx->check_placement(ep, node, meter)) {
     delete meter;
     return nullptr;
@@ -53,11 +53,11 @@ Meter *build_meter(const EP *ep, const Node *node, DS_ID id,
   return meter;
 }
 
-BDD *delete_future_tb_update(EP *ep, const Node *node,
-                             const Call *tb_update_and_check,
-                             const Node *&new_next) {
+std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node,
+                                             const Call *tb_update_and_check,
+                                             const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = node->get_next();
 
@@ -68,8 +68,8 @@ BDD *delete_future_tb_update(EP *ep, const Node *node,
   }
 
   bool replace_next = (tb_update_and_check == next);
-  Node *replacement =
-      delete_non_branch_node_from_bdd(new_bdd, tb_update_and_check->get_id());
+  Node *replacement = delete_non_branch_node_from_bdd(
+      new_bdd.get(), tb_update_and_check->get_id());
 
   if (replace_next) {
     new_next = replacement;
@@ -80,8 +80,8 @@ BDD *delete_future_tb_update(EP *ep, const Node *node,
 } // namespace
 
 std::optional<spec_impl_t>
-MeterUpdateGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+MeterUpdateFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -129,8 +129,8 @@ MeterUpdateGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t> MeterUpdateGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -176,7 +176,7 @@ std::vector<impl_t> MeterUpdateGenerator::process_node(const EP *ep,
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  BDD *bdd =
+  std::unique_ptr<BDD> new_bdd =
       delete_future_tb_update(new_ep, node, tb_update_and_check, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
@@ -187,7 +187,7 @@ std::vector<impl_t> MeterUpdateGenerator::process_node(const EP *ep,
 
   EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
-  new_ep->replace_bdd(bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
 
   return impls;
 }

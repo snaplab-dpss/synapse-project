@@ -32,35 +32,18 @@ public:
 
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
-
-  std::vector<const Table *> get_tables(const EP *ep) const {
-    const Context &ctx = ep->get_ctx();
-    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-    const std::unordered_set<DS *> &data_structures = tofino_ctx->get_ds(obj);
-
-    std::vector<const Table *> tables;
-    for (const DS *data_structure : data_structures) {
-      ASSERT(data_structure->type == DSType::TABLE, "Not a table");
-      const Table *table = static_cast<const Table *>(data_structure);
-      tables.push_back(table);
-    }
-
-    return tables;
-  }
 };
 
-class TableDeleteGenerator : public TofinoCPUModuleGenerator {
+class TableDeleteFactory : public TofinoCPUModuleFactory {
 public:
-  TableDeleteGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TableDelete,
-                                 "TableDelete") {}
+  TableDeleteFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_TableDelete, "TableDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

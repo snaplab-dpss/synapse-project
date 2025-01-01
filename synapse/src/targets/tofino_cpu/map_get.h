@@ -14,13 +14,12 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  MapGet(const Node *node, addr_t _map_addr, addr_t _key_addr,
-         klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value_out,
-         klee::ref<klee::Expr> _success, const symbol_t &_map_has_this_key)
+  MapGet(const Node *node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _value_out, klee::ref<klee::Expr> _success,
+         const symbol_t &_map_has_this_key)
       : TofinoCPUModule(ModuleType::TofinoCPU_MapGet, "MapGet", node),
-        map_addr(_map_addr), key_addr(_key_addr), key(_key),
-        value_out(_value_out), success(_success),
-        map_has_this_key(_map_has_this_key) {}
+        map_addr(_map_addr), key_addr(_key_addr), key(_key), value_out(_value_out),
+        success(_success), map_has_this_key(_map_has_this_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -28,8 +27,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapGet(node, map_addr, key_addr, key, value_out,
-                                success, map_has_this_key);
+    Module *cloned =
+        new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
     return cloned;
   }
 
@@ -41,17 +40,15 @@ public:
   const symbol_t &get_map_has_this_key() const { return map_has_this_key; }
 };
 
-class MapGetGenerator : public TofinoCPUModuleGenerator {
+class MapGetFactory : public TofinoCPUModuleFactory {
 public:
-  MapGetGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_MapGet, "MapGet") {}
+  MapGetFactory() : TofinoCPUModuleFactory(ModuleType::TofinoCPU_MapGet, "MapGet") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

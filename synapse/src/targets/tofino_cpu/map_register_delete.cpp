@@ -32,8 +32,8 @@ void get_map_erase_data(const Call *call_node, addr_t &obj,
 } // namespace
 
 std::optional<spec_impl_t>
-MapRegisterDeleteGenerator::speculate(const EP *ep, const Node *node,
-                                      const Context &ctx) const {
+MapRegisterDeleteFactory::speculate(const EP *ep, const Node *node,
+                                    const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -56,7 +56,7 @@ MapRegisterDeleteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-MapRegisterDeleteGenerator::process_node(const EP *ep, const Node *node) const {
+MapRegisterDeleteFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

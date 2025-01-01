@@ -19,16 +19,15 @@ public:
   }
 };
 
-class DropGenerator : public x86ModuleGenerator {
+class DropFactory : public x86ModuleFactory {
 public:
-  DropGenerator() : x86ModuleGenerator(ModuleType::x86_Drop, "Drop") {}
+  DropFactory() : x86ModuleFactory(ModuleType::x86_Drop, "Drop") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

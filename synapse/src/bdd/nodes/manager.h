@@ -17,9 +17,9 @@ public:
   void add_node(Node *node) { nodes.emplace_back(node); }
 
   void free_node(Node *node) {
-    auto it = std::find_if(
-        nodes.begin(), nodes.end(),
-        [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
+    auto it =
+        std::find_if(nodes.begin(), nodes.end(),
+                     [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
 
     if (it != nodes.end()) {
       ASSERT((*it)->get_id() == node->get_id(), "Invalid node id");
@@ -36,7 +36,5 @@ public:
     return manager;
   }
 
-  bool operator==(const NodeManager &other) const {
-    return nodes == other.nodes;
-  }
+  bool operator==(const NodeManager &other) const { return nodes == other.nodes; }
 };

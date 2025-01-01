@@ -49,8 +49,7 @@ struct symbol_equal_t {
 
 typedef std::unordered_set<symbol_t, symbol_hash_t, symbol_equal_t> symbols_t;
 
-bool get_symbol(const symbols_t &symbols, const std::string &base,
-                symbol_t &symbol);
+bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol);
 
 struct call_path_t {
   std::string file_name;

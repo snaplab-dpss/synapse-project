@@ -6,7 +6,8 @@
 
 #define EPSILON 1e-6
 
-static void clamp_fraction(hit_rate_t &fraction) {
+namespace {
+void clamp_fraction(hit_rate_t &fraction) {
   fraction = std::max(0.0, fraction);
   fraction = std::min(1.0, fraction);
   if (fraction < EPSILON) {
@@ -14,11 +15,67 @@ static void clamp_fraction(hit_rate_t &fraction) {
   }
 }
 
+std::vector<bps_t> parse_front_panel_ports(const toml::table &config) {
+  std::vector<bps_t> ports;
+
+  for (const auto &port : *config["switch"]["front_panel_ports"].as_array()) {
+    bps_t capacity = *port.as_table()->at("capacity_bps").value<bps_t>();
+    ports.push_back(capacity);
+  }
+
+  return ports;
+}
+
+std::vector<bps_t> parse_recirculation_ports(const toml::table &config) {
+  std::vector<bps_t> ports;
+
+  for (const auto &port : *config["switch"]["recirculation_ports"].as_array()) {
+    bps_t capacity = *port.as_table()->at("capacity_bps").value<bps_t>();
+    ports.push_back(capacity);
+  }
+
+  return ports;
+}
+
+// Coefficients are in increasing order: x^0, x^1, x^2, ...
+// min and max are inclusive
+hit_rate_t newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 min,
+                              u64 max) {
+  hit_rate_t x = (min + max) / 2.0;
+  int it = 0;
+
+  hit_rate_t f = 0;
+  hit_rate_t df_dx = 0;
+
+  while (it < NEWTON_MAX_ITERATIONS) {
+    // It's very important to compute each term in this order, otherwise we
+    // don't converge (precision loss)
+    for (int c = coefficients.size(); c >= 0; c--) {
+      f += coefficients[c] * pow(x, c);
+
+      if (c > 0) {
+        df_dx += c * coefficients[c] * pow(x, c - 1);
+      }
+    }
+
+    if (std::abs(f) <= NEWTON_PRECISION) {
+      break;
+    }
+
+    x = x - f / df_dx;
+    it++;
+  }
+
+  ASSERT(std::abs(f) <= NEWTON_PRECISION, "Newton's method did not converge");
+
+  return x;
+}
+} // namespace
+
 port_ingress_t::port_ingress_t() : global(0), controller(0) {}
 
 port_ingress_t::port_ingress_t(const port_ingress_t &other)
-    : global(other.global), controller(other.controller), recirc(other.recirc) {
-}
+    : global(other.global), controller(other.controller), recirc(other.recirc) {}
 
 port_ingress_t::port_ingress_t(port_ingress_t &&other)
     : global(std::move(other.global)), controller(std::move(other.controller)),
@@ -101,40 +158,16 @@ hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
   return total_hr;
 }
 
-static std::vector<bps_t> parse_front_panel_ports(const toml::table &config) {
-  std::vector<bps_t> ports;
-
-  for (const auto &port : *config["switch"]["front_panel_ports"].as_array()) {
-    bps_t capacity = *port.as_table()->at("capacity_bps").value<bps_t>();
-    ports.push_back(capacity);
-  }
-
-  return ports;
-}
-
-static std::vector<bps_t> parse_recirculation_ports(const toml::table &config) {
-  std::vector<bps_t> ports;
-
-  for (const auto &port : *config["switch"]["recirculation_ports"].as_array()) {
-    bps_t capacity = *port.as_table()->at("capacity_bps").value<bps_t>();
-    ports.push_back(capacity);
-  }
-
-  return ports;
-}
-
 PerfOracle::PerfOracle(const toml::table &config, int _avg_pkt_bytes)
     : front_panel_ports_capacities(parse_front_panel_ports(config)),
       recirculation_ports_capacities(parse_recirculation_ports(config)),
       controller_capacity(*config["controller"]["capacity_pps"].value<pps_t>()),
-      avg_pkt_bytes(_avg_pkt_bytes), unaccounted_ingress(1),
-      dropped_ingress(0) {
+      avg_pkt_bytes(_avg_pkt_bytes), unaccounted_ingress(1), dropped_ingress(0) {
   for (size_t port = 0; port < front_panel_ports_capacities.size(); port++) {
     ports_ingress[port] = port_ingress_t();
   }
 
-  for (size_t rport = 0; rport < recirculation_ports_capacities.size();
-       rport++) {
+  for (size_t rport = 0; rport < recirculation_ports_capacities.size(); rport++) {
     recirc_ports_ingress[rport] = port_ingress_t();
   }
 }
@@ -142,19 +175,15 @@ PerfOracle::PerfOracle(const toml::table &config, int _avg_pkt_bytes)
 PerfOracle::PerfOracle(const PerfOracle &other)
     : front_panel_ports_capacities(other.front_panel_ports_capacities),
       recirculation_ports_capacities(other.recirculation_ports_capacities),
-      controller_capacity(other.controller_capacity),
-      avg_pkt_bytes(other.avg_pkt_bytes),
-      unaccounted_ingress(other.unaccounted_ingress),
-      ports_ingress(other.ports_ingress),
+      controller_capacity(other.controller_capacity), avg_pkt_bytes(other.avg_pkt_bytes),
+      unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
       recirc_ports_ingress(other.recirc_ports_ingress),
       controller_ingress(other.controller_ingress),
       dropped_ingress(other.dropped_ingress) {}
 
 PerfOracle::PerfOracle(PerfOracle &&other)
-    : front_panel_ports_capacities(
-          std::move(other.front_panel_ports_capacities)),
-      recirculation_ports_capacities(
-          std::move(other.recirculation_ports_capacities)),
+    : front_panel_ports_capacities(std::move(other.front_panel_ports_capacities)),
+      recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)),
       controller_capacity(std::move(other.controller_capacity)),
       avg_pkt_bytes(std::move(other.avg_pkt_bytes)),
       unaccounted_ingress(std::move(other.unaccounted_ingress)),
@@ -212,60 +241,22 @@ void PerfOracle::add_controller_traffic(hit_rate_t hr) {
   add_controller_traffic(ingress);
 }
 
-void PerfOracle::add_recirculated_traffic(int port,
-                                          const port_ingress_t &ingress) {
+void PerfOracle::add_recirculated_traffic(int port, const port_ingress_t &ingress) {
   ASSERT(port >= 0, "Invalid port (%d)", port);
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
-         port);
+  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)", port);
   recirc_ports_ingress[port] += ingress;
 }
 
 void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
   ASSERT(port >= 0, "Invalid port (%d)", port);
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
-         port);
+  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)", port);
   port_ingress_t ingress;
   ingress.global = hr;
   add_recirculated_traffic(port, ingress);
 }
 
-// Coefficients are in increasing order: x^0, x^1, x^2, ...
-// min and max are inclusive
-static hit_rate_t
-newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 min,
-                   u64 max) {
-  hit_rate_t x = (min + max) / 2.0;
-  int it = 0;
-
-  hit_rate_t f = 0;
-  hit_rate_t df_dx = 0;
-
-  while (it < NEWTON_MAX_ITERATIONS) {
-    // It's very important to compute each term in this order, otherwise we
-    // don't converge (precision loss)
-    for (int c = coefficients.size(); c >= 0; c--) {
-      f += coefficients[c] * pow(x, c);
-
-      if (c > 0) {
-        df_dx += c * coefficients[c] * pow(x, c - 1);
-      }
-    }
-
-    if (std::abs(f) <= NEWTON_PRECISION) {
-      break;
-    }
-
-    x = x - f / df_dx;
-    it++;
-  }
-
-  ASSERT(std::abs(f) <= NEWTON_PRECISION, "Newton's method did not converge");
-
-  return x;
-}
-
-std::vector<pps_t>
-PerfOracle::get_recirculated_egress(int port, pps_t global_ingress) const {
+std::vector<pps_t> PerfOracle::get_recirculated_egress(int port,
+                                                       pps_t global_ingress) const {
   ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port");
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
@@ -359,8 +350,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // port and recirculation depth. Recirculation traffic can only come from
   // global ingress and other recirculation ports.
   std::unordered_map<int, std::vector<pps_t>> recirc_egress;
-  for (size_t rport = 0; rport < recirculation_ports_capacities.size();
-       rport++) {
+  for (size_t rport = 0; rport < recirculation_ports_capacities.size(); rport++) {
     recirc_egress[rport] = get_recirculated_egress(rport, ingress);
   }
 
@@ -373,8 +363,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     int depth = port_depth_pair.second;
     ASSERT(rport >= 0, "Invalid recirculation port");
     ASSERT(depth > 0, "Invalid recirculation depth");
-    ASSERT(depth <= (int)recirc_egress[rport].size(),
-           "Invalid recirculation depth");
+    ASSERT(depth <= (int)recirc_egress[rport].size(), "Invalid recirculation depth");
     controller_tput += recirc_egress[rport][depth - 1] * hr;
   }
   controller_tput = std::min(controller_tput, controller_capacity);
@@ -399,13 +388,11 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
       int depth = port_depth_pair.second;
       ASSERT(rport >= 0, "Invalid recirculation port");
       ASSERT(depth > 0, "Invalid recirculation depth");
-      ASSERT(depth <= (int)recirc_egress[rport].size(),
-             "Invalid recirculation depth");
+      ASSERT(depth <= (int)recirc_egress[rport].size(), "Invalid recirculation depth");
       port_tput += recirc_egress[rport][depth - 1] * hr;
     }
 
-    pps_t port_capacity =
-        bps2pps(front_panel_ports_capacities[fwd_port], avg_pkt_bytes);
+    pps_t port_capacity = bps2pps(front_panel_ports_capacities[fwd_port], avg_pkt_bytes);
     tput += std::min(port_tput, port_capacity);
   }
 

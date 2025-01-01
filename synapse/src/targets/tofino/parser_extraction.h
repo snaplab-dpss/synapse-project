@@ -11,10 +11,9 @@ private:
   bytes_t length;
 
 public:
-  ParserExtraction(const Node *node, addr_t _hdr_addr,
-                   klee::ref<klee::Expr> _hdr, bytes_t _length)
-      : TofinoModule(ModuleType::Tofino_ParserExtraction, "ParserExtraction",
-                     node),
+  ParserExtraction(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr,
+                   bytes_t _length)
+      : TofinoModule(ModuleType::Tofino_ParserExtraction, "ParserExtraction", node),
         hdr_addr(_hdr_addr), hdr(_hdr), length(_length) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -23,8 +22,7 @@ public:
   }
 
   virtual Module *clone() const {
-    ParserExtraction *cloned =
-        new ParserExtraction(node, hdr_addr, hdr, length);
+    ParserExtraction *cloned = new ParserExtraction(node, hdr_addr, hdr, length);
     return cloned;
   }
 
@@ -33,18 +31,16 @@ public:
   bytes_t get_length() const { return length; }
 };
 
-class ParserExtractionGenerator : public TofinoModuleGenerator {
+class ParserExtractionFactory : public TofinoModuleFactory {
 public:
-  ParserExtractionGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_ParserExtraction,
-                              "ParserExtraction") {}
+  ParserExtractionFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_ParserExtraction, "ParserExtraction") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

@@ -13,8 +13,7 @@ private:
   void group_call_paths();
   bool check_discriminating_constraint(klee::ref<klee::Expr> constraint);
   klee::ref<klee::Expr> find_discriminating_constraint();
-  std::vector<klee::ref<klee::Expr>>
-  get_possible_discriminating_constraints() const;
+  std::vector<klee::ref<klee::Expr>> get_possible_discriminating_constraints() const;
   bool satisfies_constraint(std::vector<call_path_t *> call_paths,
                             klee::ref<klee::Expr> constraint) const;
   bool satisfies_constraint(call_path_t *call_path,
@@ -31,9 +30,7 @@ public:
     group_call_paths();
   }
 
-  klee::ref<klee::Expr> get_discriminating_constraint() const {
-    return constraint;
-  }
+  klee::ref<klee::Expr> get_discriminating_constraint() const { return constraint; }
 
   const call_paths_t &get_on_true() const { return on_true; }
   const call_paths_t &get_on_false() const { return on_false; }

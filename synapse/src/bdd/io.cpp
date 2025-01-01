@@ -14,6 +14,7 @@
 #include "../exprs/exprs.h"
 #include "../log.h"
 
+namespace {
 struct kQuery_t {
   std::vector<const klee::Array *> arrays;
   std::vector<std::string> exprs;
@@ -47,8 +48,7 @@ struct kQuery_t {
   }
 };
 
-static void fill_arrays(klee::ref<klee::Expr> expr,
-                        std::vector<const klee::Array *> &arrays) {
+void fill_arrays(klee::ref<klee::Expr> expr, std::vector<const klee::Array *> &arrays) {
   std::vector<klee::ref<klee::ReadExpr>> reads = get_reads(expr);
 
   for (klee::ref<klee::ReadExpr> read : reads) {
@@ -56,10 +56,10 @@ static void fill_arrays(klee::ref<klee::Expr> expr,
     const klee::Array *root = updates.root;
 
     ASSERT(root->isSymbolicArray(), "Array is not symbolic");
-    auto found_it = std::find_if(arrays.begin(), arrays.end(),
-                                 [&](const klee::Array *array) {
-                                   return array->getName() == root->getName();
-                                 });
+    auto found_it =
+        std::find_if(arrays.begin(), arrays.end(), [&](const klee::Array *array) {
+          return array->getName() == root->getName();
+        });
 
     if (found_it == arrays.end()) {
       arrays.push_back(root);
@@ -67,8 +67,7 @@ static void fill_arrays(klee::ref<klee::Expr> expr,
   }
 }
 
-static std::string serialize_expr(klee::ref<klee::Expr> expr,
-                                  kQuery_t &kQuery) {
+std::string serialize_expr(klee::ref<klee::Expr> expr, kQuery_t &kQuery) {
   ASSERT(!expr.isNull(), "Null expr");
   fill_arrays(expr, kQuery.arrays);
 
@@ -121,8 +120,7 @@ static std::string serialize_expr(klee::ref<klee::Expr> expr,
 
       auto label_sz = label_name.size();
 
-      if (delim + label_sz < expr_str.size() &&
-          expr_str[delim + label_sz] == ':') {
+      if (delim + label_sz < expr_str.size() && expr_str[delim + label_sz] == ':') {
         pre = expr_str.substr(0, delim);
         post = expr_str.substr(delim + label_sz + 1);
 
@@ -142,7 +140,7 @@ static std::string serialize_expr(klee::ref<klee::Expr> expr,
   return expr_str;
 }
 
-static std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
+std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
   std::stringstream call_stream;
   std::string expr_str;
 
@@ -265,8 +263,7 @@ static std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
   return call_stream.str();
 }
 
-static std::string serialize_symbols(const symbols_t &symbols,
-                                     kQuery_t &kQuery) {
+std::string serialize_symbols(const symbols_t &symbols, kQuery_t &kQuery) {
   std::stringstream symbols_stream;
 
   symbols_stream << "=>";
@@ -291,13 +288,468 @@ static std::string serialize_symbols(const symbols_t &symbols,
   return symbols_stream.str();
 }
 
-static void serialize_init(const std::vector<call_t> &calls,
-                           std::stringstream &init_stream, kQuery_t &kQuery) {
+void serialize_init(const std::vector<call_t> &calls, std::stringstream &init_stream,
+                    kQuery_t &kQuery) {
   for (const call_t &call : calls) {
     init_stream << serialize_call(call, kQuery);
     init_stream << "\n";
   }
 }
+
+klee::ref<klee::Expr> pop_expr(std::vector<klee::ref<klee::Expr>> &exprs) {
+  klee::ref<klee::Expr> expr = exprs[0];
+  exprs.erase(exprs.begin());
+  return expr;
+}
+
+std::vector<meta_t> parse_meta(const std::string &meta_str) {
+  std::vector<meta_t> meta;
+  std::vector<std::string> elems(3);
+
+  auto lvl = 0;
+  auto curr_el = 0;
+
+  for (auto c : meta_str) {
+    if (c == '{') {
+      lvl++;
+      continue;
+    }
+
+    if (c == '}') {
+      lvl--;
+
+      auto symbol = elems[0];
+      auto offset = static_cast<bits_t>(std::stoi(elems[1]));
+      auto size = static_cast<bits_t>(std::stoi(elems[2]));
+
+      auto m = meta_t{symbol, offset, size};
+      meta.push_back(m);
+
+      continue;
+    }
+
+    if (c == ',' && lvl == 0) {
+      for (auto &el : elems) {
+        el.clear();
+      }
+
+      curr_el = 0;
+      continue;
+    }
+
+    else if (c == ',') {
+      curr_el++;
+      continue;
+    }
+
+    elems[curr_el] += c;
+  }
+
+  return meta;
+}
+
+std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
+                                        std::vector<klee::ref<klee::Expr>> &exprs) {
+  std::string arg_name;
+  arg_t arg;
+
+  size_t delim = serialized_arg.find(":");
+  ASSERT(delim != std::string::npos, "Invalid arg");
+
+  arg_name = serialized_arg.substr(0, delim);
+  serialized_arg = serialized_arg.substr(delim + 1);
+
+  std::string expr_str;
+  std::string in_str;
+  std::string out_str;
+  std::string fn_ptr_name;
+  std::string meta_str;
+
+  delim = serialized_arg.find("&");
+
+  if (delim == std::string::npos) {
+    expr_str = serialized_arg;
+  } else {
+    expr_str = serialized_arg.substr(0, delim);
+    serialized_arg = serialized_arg.substr(delim + 1);
+
+    delim = serialized_arg.find("[");
+
+    if (delim == std::string::npos) {
+      fn_ptr_name = serialized_arg;
+    } else {
+      serialized_arg = serialized_arg.substr(delim + 1);
+
+      delim = serialized_arg.find("->");
+      ASSERT(delim != std::string::npos, "Invalid arg");
+
+      in_str = serialized_arg.substr(0, delim);
+
+      serialized_arg = serialized_arg.substr(delim + 2);
+
+      delim = serialized_arg.find("]");
+      ASSERT(delim != std::string::npos, "Invalid arg");
+
+      out_str = serialized_arg.substr(0, delim);
+      meta_str = serialized_arg.substr(delim + 1);
+
+      auto meta_start = meta_str.find("[");
+      auto meta_end = meta_str.find("]");
+
+      ASSERT(meta_start != std::string::npos, "Invalid arg");
+      ASSERT(meta_end != std::string::npos, "Invalid arg");
+
+      meta_str = meta_str.substr(meta_start + 1, meta_end - 1);
+      arg.meta = parse_meta(meta_str);
+    }
+  }
+
+  if (expr_str.size()) {
+    arg.expr = pop_expr(exprs);
+  }
+
+  if (fn_ptr_name.size()) {
+    arg.fn_ptr_name = std::make_pair(true, fn_ptr_name);
+  }
+
+  if (in_str.size()) {
+    arg.in = pop_expr(exprs);
+  }
+
+  if (out_str.size()) {
+    arg.out = pop_expr(exprs);
+  }
+
+  return std::make_pair(arg_name, arg);
+}
+
+std::pair<std::string, extra_var_t>
+parse_extra_var(std::string serialized_extra_var,
+                std::vector<klee::ref<klee::Expr>> &exprs) {
+  std::string extra_var_name;
+  klee::ref<klee::Expr> in;
+  klee::ref<klee::Expr> out;
+
+  size_t delim = serialized_extra_var.find(":");
+  ASSERT(delim != std::string::npos, "Invalid extra var");
+
+  extra_var_name = serialized_extra_var.substr(0, delim);
+  serialized_extra_var = serialized_extra_var.substr(delim + 1);
+
+  std::string in_str;
+  std::string out_str;
+
+  delim = serialized_extra_var.find("[");
+  ASSERT(delim != std::string::npos, "Invalid extra var");
+
+  serialized_extra_var = serialized_extra_var.substr(delim + 1);
+
+  delim = serialized_extra_var.find("->");
+  ASSERT(delim != std::string::npos, "Invalid extra var");
+
+  in_str = serialized_extra_var.substr(0, delim);
+  out_str = serialized_extra_var.substr(delim + 2);
+
+  delim = out_str.find("]");
+  ASSERT(delim != std::string::npos, "Invalid extra var");
+
+  out_str = out_str.substr(0, delim);
+
+  if (in_str.size()) {
+    in = pop_expr(exprs);
+  }
+
+  if (out_str.size()) {
+    out = pop_expr(exprs);
+  }
+
+  return std::make_pair(extra_var_name, std::make_pair(in, out));
+}
+
+call_t parse_call(std::string serialized_call,
+                  std::vector<klee::ref<klee::Expr>> &exprs) {
+
+  call_t call;
+
+  // cleanup by removing duplicated spaces
+  auto new_end = std::unique(serialized_call.begin(), serialized_call.end(),
+                             [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
+  serialized_call.erase(new_end, serialized_call.end());
+
+  size_t delim = serialized_call.find("(");
+  ASSERT(delim != std::string::npos, "Invalid call");
+
+  call.function_name = serialized_call.substr(0, delim);
+  serialized_call = serialized_call.substr(delim + 1);
+
+  std::vector<std::string> args_str;
+
+  int parenthesis_lvl = 1;
+  delim = 0;
+  std::string arg_str;
+  for (auto c : serialized_call) {
+    delim++;
+    if (c == '(' || c == '[') {
+      parenthesis_lvl++;
+    } else if (c == ')' || c == ']') {
+      parenthesis_lvl--;
+
+      if (parenthesis_lvl == 0) {
+        if (arg_str.size()) {
+          args_str.push_back(arg_str);
+          arg_str.clear();
+        }
+        break;
+      }
+    } else if (c == ',' && parenthesis_lvl == 1) {
+      args_str.push_back(arg_str);
+      arg_str.clear();
+
+      continue;
+    }
+
+    arg_str += c;
+  }
+
+  for (auto arg_str : args_str) {
+    auto arg_pair = parse_arg(arg_str, exprs);
+    call.args[arg_pair.first] = arg_pair.second;
+  }
+
+  serialized_call = serialized_call.substr(delim);
+  delim = serialized_call.find("*{");
+
+  if (delim != std::string::npos) {
+    serialized_call = serialized_call.substr(2);
+
+    delim = serialized_call.find("}*");
+    ASSERT(delim != std::string::npos, "Invalid call");
+
+    std::string extra_vars_str = serialized_call.substr(0, delim);
+    serialized_call = serialized_call.substr(delim + 2);
+
+    while (extra_vars_str.size()) {
+      delim = extra_vars_str.find(",");
+
+      std::string extra_var_str;
+
+      if (delim == std::string::npos) {
+        extra_var_str = extra_vars_str;
+      } else {
+        extra_var_str = extra_vars_str.substr(0, delim);
+        extra_vars_str = extra_vars_str.substr(delim + 1);
+      }
+
+      auto extra_var_pair = parse_extra_var(extra_var_str, exprs);
+      call.extra_vars[extra_var_pair.first] = extra_var_pair.second;
+
+      if (delim == std::string::npos) {
+        break;
+      }
+    }
+  }
+
+  delim = serialized_call.find("->");
+  ASSERT(delim != std::string::npos, "Invalid call");
+
+  serialized_call = serialized_call.substr(delim + 2);
+
+  if (serialized_call != "[]") {
+    call.ret = pop_expr(exprs);
+  }
+
+  return call;
+}
+
+symbol_t parse_call_symbol(std::string serialized_symbol,
+                           std::vector<klee::ref<klee::Expr>> &exprs) {
+  size_t delim = serialized_symbol.find(":");
+  ASSERT(delim != std::string::npos, "Invalid symbol");
+
+  std::string base = serialized_symbol.substr(0, delim);
+  serialized_symbol = serialized_symbol.substr(delim + 1);
+
+  klee::ref<klee::Expr> expr = pop_expr(exprs);
+
+  std::vector<const klee::Array *> arrays;
+  fill_arrays(expr, arrays);
+  ASSERT(arrays.size() == 1, "Invalid symbol");
+
+  return symbol_t{base, arrays[0], expr};
+}
+
+symbols_t parse_call_symbols(std::string serialized_symbols,
+                             std::vector<klee::ref<klee::Expr>> &exprs) {
+  symbols_t symbols;
+
+  ASSERT(serialized_symbols[0] == '<', "Invalid symbols");
+
+  if (serialized_symbols == "<>") {
+    return symbols;
+  }
+
+  serialized_symbols = serialized_symbols.substr(1);
+
+  std::string symbol_str;
+  for (char c : serialized_symbols) {
+    if (c == '{') {
+      symbol_str.clear();
+    } else if (c == '}' && symbol_str.size()) {
+      symbol_t symbol = parse_call_symbol(symbol_str, exprs);
+      symbols.insert(symbol);
+    } else if (c == '>') {
+      break;
+    } else {
+      symbol_str += c;
+    }
+  }
+
+  return symbols;
+}
+
+Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
+                      std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
+                      NodeManager &manager) {
+  size_t delim = serialized.find("=>");
+  ASSERT(delim != std::string::npos, "Invalid call");
+
+  std::string call_str = serialized.substr(0, delim);
+  std::string symbols_str = serialized.substr(delim + 2);
+
+  call_t call = parse_call(call_str, exprs);
+  symbols_t symbols = parse_call_symbols(symbols_str, exprs);
+
+  Call *call_node = new Call(id, constraints, call, symbols);
+  manager.add_node(call_node);
+  return call_node;
+}
+
+Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints,
+                        std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
+                        NodeManager &manager) {
+  klee::ref<klee::Expr> condition = pop_expr(exprs);
+  Branch *branch_node = new Branch(id, constraints, condition);
+  manager.add_node(branch_node);
+  return branch_node;
+}
+
+Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
+                       std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
+                       NodeManager &manager) {
+  size_t delim = serialized.find(" ");
+  ASSERT(delim != std::string::npos, "Invalid route");
+
+  auto route_operation_str = serialized.substr(0, delim);
+  auto dst_device_str = serialized.substr(delim + 1);
+
+  Route *route_node;
+
+  if (route_operation_str == "FWD") {
+    int dst_device = std::stoi(dst_device_str);
+    route_node = new Route(id, constraints, RouteOp::Forward, dst_device);
+  } else if (route_operation_str == "DROP") {
+    route_node = new Route(id, constraints, RouteOp::Drop);
+  } else if (route_operation_str == "BCAST") {
+    route_node = new Route(id, constraints, RouteOp::Broadcast);
+  } else {
+    ASSERT(false, "Unknown route operation");
+  }
+
+  manager.add_node(route_node);
+
+  return route_node;
+}
+
+Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>> &exprs,
+                 NodeManager &manager) {
+  Node *node;
+
+  size_t delim = serialized_node.find(":");
+  ASSERT(delim != std::string::npos, "Invalid node");
+
+  node_id_t id = std::stoull(serialized_node.substr(0, delim));
+  serialized_node = serialized_node.substr(delim + 1);
+
+  ASSERT(serialized_node[0] == '(', "Invalid node");
+  serialized_node = serialized_node.substr(1);
+
+  delim = serialized_node.find(" ");
+  ASSERT(delim != std::string::npos, "Invalid node");
+
+  std::string serialized_constraints_num = serialized_node.substr(0, delim);
+
+  serialized_node = serialized_node.substr(delim + 1);
+
+  int constraints_num = std::atoi(serialized_constraints_num.c_str());
+  ASSERT(constraints_num >= 0, "Invalid node");
+
+  klee::ConstraintManager constraint_manager;
+
+  for (int i = 0; i < constraints_num; i++) {
+    klee::ref<klee::Expr> constraint = pop_expr(exprs);
+    constraint_manager.addConstraint(constraint);
+  }
+
+  delim = serialized_node.find(" ");
+  ASSERT(delim != std::string::npos, "Invalid node");
+
+  std::string node_type_str = serialized_node.substr(0, delim);
+
+  serialized_node = serialized_node.substr(delim + 1);
+  serialized_node = serialized_node.substr(0, serialized_node.size() - 1);
+
+  if (node_type_str == "CALL") {
+    node = parse_node_call(id, constraint_manager, serialized_node, exprs, manager);
+  } else if (node_type_str == "BRANCH") {
+    node = parse_node_branch(id, constraint_manager, serialized_node, exprs, manager);
+  } else if (node_type_str == "ROUTE") {
+    node = parse_node_route(id, constraint_manager, serialized_node, exprs, manager);
+  } else {
+    PANIC("Unknown node type");
+  }
+
+  ASSERT(node, "Invalid node");
+
+  return node;
+}
+
+void parse_kQuery(std::string kQuery, std::vector<klee::ref<klee::Expr>> &exprs,
+                  std::vector<const klee::Array *> &arrays) {
+  llvm::MemoryBuffer *MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
+  klee::ExprBuilder *Builder = klee::createDefaultExprBuilder();
+  klee::expr::Parser *P = klee::expr::Parser::Create("", MB, Builder, false);
+
+  while (klee::expr::Decl *D = P->ParseTopLevelDecl()) {
+    ASSERT(!P->GetNumErrors(), "Error parsing kquery in BDD file.");
+
+    if (klee::expr::ArrayDecl *AD = dyn_cast<klee::expr::ArrayDecl>(D)) {
+      arrays.push_back(AD->Root);
+      continue;
+    } else if (klee::expr::QueryCommand *QC = dyn_cast<klee::expr::QueryCommand>(D)) {
+      exprs = QC->Values;
+      break;
+    }
+  }
+}
+
+void parse_bdd_symbol(const std::string &name,
+                      const std::vector<const klee::Array *> &arrays,
+                      std::vector<klee::ref<klee::Expr>> &exprs, symbol_t &symbol) {
+  symbol.base = name;
+  symbol.expr = pop_expr(exprs);
+
+  bool found = false;
+  for (const klee::Array *array : arrays) {
+    if (array->name == name) {
+      symbol.array = array;
+      found = true;
+      break;
+    }
+  }
+
+  ASSERT(found, "Symbol not found in BDD file.");
+}
+} // namespace
 
 void BDD::serialize(const std::string &out_file) const {
   std::ofstream out(out_file);
@@ -453,459 +905,7 @@ void BDD::serialize(const std::string &out_file) const {
   out.close();
 }
 
-static klee::ref<klee::Expr>
-pop_expr(std::vector<klee::ref<klee::Expr>> &exprs) {
-  klee::ref<klee::Expr> expr = exprs[0];
-  exprs.erase(exprs.begin());
-  return expr;
-}
-
-static std::vector<meta_t> parse_meta(const std::string &meta_str) {
-  std::vector<meta_t> meta;
-  std::vector<std::string> elems(3);
-
-  auto lvl = 0;
-  auto curr_el = 0;
-
-  for (auto c : meta_str) {
-    if (c == '{') {
-      lvl++;
-      continue;
-    }
-
-    if (c == '}') {
-      lvl--;
-
-      auto symbol = elems[0];
-      auto offset = static_cast<bits_t>(std::stoi(elems[1]));
-      auto size = static_cast<bits_t>(std::stoi(elems[2]));
-
-      auto m = meta_t{symbol, offset, size};
-      meta.push_back(m);
-
-      continue;
-    }
-
-    if (c == ',' && lvl == 0) {
-      for (auto &el : elems) {
-        el.clear();
-      }
-
-      curr_el = 0;
-      continue;
-    }
-
-    else if (c == ',') {
-      curr_el++;
-      continue;
-    }
-
-    elems[curr_el] += c;
-  }
-
-  return meta;
-}
-
-static std::pair<std::string, arg_t>
-parse_arg(std::string serialized_arg,
-          std::vector<klee::ref<klee::Expr>> &exprs) {
-  std::string arg_name;
-  arg_t arg;
-
-  size_t delim = serialized_arg.find(":");
-  ASSERT(delim != std::string::npos, "Invalid arg");
-
-  arg_name = serialized_arg.substr(0, delim);
-  serialized_arg = serialized_arg.substr(delim + 1);
-
-  std::string expr_str;
-  std::string in_str;
-  std::string out_str;
-  std::string fn_ptr_name;
-  std::string meta_str;
-
-  delim = serialized_arg.find("&");
-
-  if (delim == std::string::npos) {
-    expr_str = serialized_arg;
-  } else {
-    expr_str = serialized_arg.substr(0, delim);
-    serialized_arg = serialized_arg.substr(delim + 1);
-
-    delim = serialized_arg.find("[");
-
-    if (delim == std::string::npos) {
-      fn_ptr_name = serialized_arg;
-    } else {
-      serialized_arg = serialized_arg.substr(delim + 1);
-
-      delim = serialized_arg.find("->");
-      ASSERT(delim != std::string::npos, "Invalid arg");
-
-      in_str = serialized_arg.substr(0, delim);
-
-      serialized_arg = serialized_arg.substr(delim + 2);
-
-      delim = serialized_arg.find("]");
-      ASSERT(delim != std::string::npos, "Invalid arg");
-
-      out_str = serialized_arg.substr(0, delim);
-      meta_str = serialized_arg.substr(delim + 1);
-
-      auto meta_start = meta_str.find("[");
-      auto meta_end = meta_str.find("]");
-
-      ASSERT(meta_start != std::string::npos, "Invalid arg");
-      ASSERT(meta_end != std::string::npos, "Invalid arg");
-
-      meta_str = meta_str.substr(meta_start + 1, meta_end - 1);
-      arg.meta = parse_meta(meta_str);
-    }
-  }
-
-  if (expr_str.size()) {
-    arg.expr = pop_expr(exprs);
-  }
-
-  if (fn_ptr_name.size()) {
-    arg.fn_ptr_name = std::make_pair(true, fn_ptr_name);
-  }
-
-  if (in_str.size()) {
-    arg.in = pop_expr(exprs);
-  }
-
-  if (out_str.size()) {
-    arg.out = pop_expr(exprs);
-  }
-
-  return std::make_pair(arg_name, arg);
-}
-
-static std::pair<std::string, extra_var_t>
-parse_extra_var(std::string serialized_extra_var,
-                std::vector<klee::ref<klee::Expr>> &exprs) {
-  std::string extra_var_name;
-  klee::ref<klee::Expr> in;
-  klee::ref<klee::Expr> out;
-
-  size_t delim = serialized_extra_var.find(":");
-  ASSERT(delim != std::string::npos, "Invalid extra var");
-
-  extra_var_name = serialized_extra_var.substr(0, delim);
-  serialized_extra_var = serialized_extra_var.substr(delim + 1);
-
-  std::string in_str;
-  std::string out_str;
-
-  delim = serialized_extra_var.find("[");
-  ASSERT(delim != std::string::npos, "Invalid extra var");
-
-  serialized_extra_var = serialized_extra_var.substr(delim + 1);
-
-  delim = serialized_extra_var.find("->");
-  ASSERT(delim != std::string::npos, "Invalid extra var");
-
-  in_str = serialized_extra_var.substr(0, delim);
-  out_str = serialized_extra_var.substr(delim + 2);
-
-  delim = out_str.find("]");
-  ASSERT(delim != std::string::npos, "Invalid extra var");
-
-  out_str = out_str.substr(0, delim);
-
-  if (in_str.size()) {
-    in = pop_expr(exprs);
-  }
-
-  if (out_str.size()) {
-    out = pop_expr(exprs);
-  }
-
-  return std::make_pair(extra_var_name, std::make_pair(in, out));
-}
-
-static call_t parse_call(std::string serialized_call,
-                         std::vector<klee::ref<klee::Expr>> &exprs) {
-
-  call_t call;
-
-  // cleanup by removing duplicated spaces
-  auto new_end =
-      std::unique(serialized_call.begin(), serialized_call.end(),
-                  [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
-  serialized_call.erase(new_end, serialized_call.end());
-
-  size_t delim = serialized_call.find("(");
-  ASSERT(delim != std::string::npos, "Invalid call");
-
-  call.function_name = serialized_call.substr(0, delim);
-  serialized_call = serialized_call.substr(delim + 1);
-
-  std::vector<std::string> args_str;
-
-  int parenthesis_lvl = 1;
-  delim = 0;
-  std::string arg_str;
-  for (auto c : serialized_call) {
-    delim++;
-    if (c == '(' || c == '[') {
-      parenthesis_lvl++;
-    } else if (c == ')' || c == ']') {
-      parenthesis_lvl--;
-
-      if (parenthesis_lvl == 0) {
-        if (arg_str.size()) {
-          args_str.push_back(arg_str);
-          arg_str.clear();
-        }
-        break;
-      }
-    } else if (c == ',' && parenthesis_lvl == 1) {
-      args_str.push_back(arg_str);
-      arg_str.clear();
-
-      continue;
-    }
-
-    arg_str += c;
-  }
-
-  for (auto arg_str : args_str) {
-    auto arg_pair = parse_arg(arg_str, exprs);
-    call.args[arg_pair.first] = arg_pair.second;
-  }
-
-  serialized_call = serialized_call.substr(delim);
-  delim = serialized_call.find("*{");
-
-  if (delim != std::string::npos) {
-    serialized_call = serialized_call.substr(2);
-
-    delim = serialized_call.find("}*");
-    ASSERT(delim != std::string::npos, "Invalid call");
-
-    std::string extra_vars_str = serialized_call.substr(0, delim);
-    serialized_call = serialized_call.substr(delim + 2);
-
-    while (extra_vars_str.size()) {
-      delim = extra_vars_str.find(",");
-
-      std::string extra_var_str;
-
-      if (delim == std::string::npos) {
-        extra_var_str = extra_vars_str;
-      } else {
-        extra_var_str = extra_vars_str.substr(0, delim);
-        extra_vars_str = extra_vars_str.substr(delim + 1);
-      }
-
-      auto extra_var_pair = parse_extra_var(extra_var_str, exprs);
-      call.extra_vars[extra_var_pair.first] = extra_var_pair.second;
-
-      if (delim == std::string::npos) {
-        break;
-      }
-    }
-  }
-
-  delim = serialized_call.find("->");
-  ASSERT(delim != std::string::npos, "Invalid call");
-
-  serialized_call = serialized_call.substr(delim + 2);
-
-  if (serialized_call != "[]") {
-    call.ret = pop_expr(exprs);
-  }
-
-  return call;
-}
-
-static symbol_t parse_call_symbol(std::string serialized_symbol,
-                                  std::vector<klee::ref<klee::Expr>> &exprs) {
-  size_t delim = serialized_symbol.find(":");
-  ASSERT(delim != std::string::npos, "Invalid symbol");
-
-  std::string base = serialized_symbol.substr(0, delim);
-  serialized_symbol = serialized_symbol.substr(delim + 1);
-
-  klee::ref<klee::Expr> expr = pop_expr(exprs);
-
-  std::vector<const klee::Array *> arrays;
-  fill_arrays(expr, arrays);
-  ASSERT(arrays.size() == 1, "Invalid symbol");
-
-  return symbol_t{base, arrays[0], expr};
-}
-
-static symbols_t parse_call_symbols(std::string serialized_symbols,
-                                    std::vector<klee::ref<klee::Expr>> &exprs) {
-  symbols_t symbols;
-
-  ASSERT(serialized_symbols[0] == '<', "Invalid symbols");
-
-  if (serialized_symbols == "<>") {
-    return symbols;
-  }
-
-  serialized_symbols = serialized_symbols.substr(1);
-
-  std::string symbol_str;
-  for (char c : serialized_symbols) {
-    if (c == '{') {
-      symbol_str.clear();
-    } else if (c == '}' && symbol_str.size()) {
-      symbol_t symbol = parse_call_symbol(symbol_str, exprs);
-      symbols.insert(symbol);
-    } else if (c == '>') {
-      break;
-    } else {
-      symbol_str += c;
-    }
-  }
-
-  return symbols;
-}
-
-static Node *parse_node_call(node_id_t id,
-                             const klee::ConstraintManager &constraints,
-                             std::string serialized,
-                             std::vector<klee::ref<klee::Expr>> &exprs,
-                             NodeManager &manager) {
-  size_t delim = serialized.find("=>");
-  ASSERT(delim != std::string::npos, "Invalid call");
-
-  std::string call_str = serialized.substr(0, delim);
-  std::string symbols_str = serialized.substr(delim + 2);
-
-  call_t call = parse_call(call_str, exprs);
-  symbols_t symbols = parse_call_symbols(symbols_str, exprs);
-
-  Call *call_node = new Call(id, constraints, call, symbols);
-  manager.add_node(call_node);
-  return call_node;
-}
-
-static Node *parse_node_branch(node_id_t id,
-                               const klee::ConstraintManager &constraints,
-                               std::string serialized,
-                               std::vector<klee::ref<klee::Expr>> &exprs,
-                               NodeManager &manager) {
-  klee::ref<klee::Expr> condition = pop_expr(exprs);
-  Branch *branch_node = new Branch(id, constraints, condition);
-  manager.add_node(branch_node);
-  return branch_node;
-}
-
-static Node *parse_node_route(node_id_t id,
-                              const klee::ConstraintManager &constraints,
-                              std::string serialized,
-                              std::vector<klee::ref<klee::Expr>> &exprs,
-                              NodeManager &manager) {
-  size_t delim = serialized.find(" ");
-  ASSERT(delim != std::string::npos, "Invalid route");
-
-  auto route_operation_str = serialized.substr(0, delim);
-  auto dst_device_str = serialized.substr(delim + 1);
-
-  Route *route_node;
-
-  if (route_operation_str == "FWD") {
-    int dst_device = std::stoi(dst_device_str);
-    route_node = new Route(id, constraints, RouteOp::Forward, dst_device);
-  } else if (route_operation_str == "DROP") {
-    route_node = new Route(id, constraints, RouteOp::Drop);
-  } else if (route_operation_str == "BCAST") {
-    route_node = new Route(id, constraints, RouteOp::Broadcast);
-  } else {
-    ASSERT(false, "Unknown route operation");
-  }
-
-  manager.add_node(route_node);
-
-  return route_node;
-}
-
-static Node *parse_node(std::string serialized_node,
-                        std::vector<klee::ref<klee::Expr>> &exprs,
-                        NodeManager &manager) {
-  Node *node;
-
-  size_t delim = serialized_node.find(":");
-  ASSERT(delim != std::string::npos, "Invalid node");
-
-  node_id_t id = std::stoull(serialized_node.substr(0, delim));
-  serialized_node = serialized_node.substr(delim + 1);
-
-  ASSERT(serialized_node[0] == '(', "Invalid node");
-  serialized_node = serialized_node.substr(1);
-
-  delim = serialized_node.find(" ");
-  ASSERT(delim != std::string::npos, "Invalid node");
-
-  std::string serialized_constraints_num = serialized_node.substr(0, delim);
-
-  serialized_node = serialized_node.substr(delim + 1);
-
-  int constraints_num = std::atoi(serialized_constraints_num.c_str());
-  ASSERT(constraints_num >= 0, "Invalid node");
-
-  klee::ConstraintManager constraint_manager;
-
-  for (int i = 0; i < constraints_num; i++) {
-    klee::ref<klee::Expr> constraint = pop_expr(exprs);
-    constraint_manager.addConstraint(constraint);
-  }
-
-  delim = serialized_node.find(" ");
-  ASSERT(delim != std::string::npos, "Invalid node");
-
-  std::string node_type_str = serialized_node.substr(0, delim);
-
-  serialized_node = serialized_node.substr(delim + 1);
-  serialized_node = serialized_node.substr(0, serialized_node.size() - 1);
-
-  if (node_type_str == "CALL") {
-    node = parse_node_call(id, constraint_manager, serialized_node, exprs,
-                           manager);
-  } else if (node_type_str == "BRANCH") {
-    node = parse_node_branch(id, constraint_manager, serialized_node, exprs,
-                             manager);
-  } else if (node_type_str == "ROUTE") {
-    node = parse_node_route(id, constraint_manager, serialized_node, exprs,
-                            manager);
-  } else {
-    PANIC("Unknown node type");
-  }
-
-  ASSERT(node, "Invalid node");
-
-  return node;
-}
-
-static void parse_kQuery(std::string kQuery,
-                         std::vector<klee::ref<klee::Expr>> &exprs,
-                         std::vector<const klee::Array *> &arrays) {
-  llvm::MemoryBuffer *MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
-  klee::ExprBuilder *Builder = klee::createDefaultExprBuilder();
-  klee::expr::Parser *P = klee::expr::Parser::Create("", MB, Builder, false);
-
-  while (klee::expr::Decl *D = P->ParseTopLevelDecl()) {
-    ASSERT(!P->GetNumErrors(), "Error parsing kquery in BDD file.");
-
-    if (klee::expr::ArrayDecl *AD = dyn_cast<klee::expr::ArrayDecl>(D)) {
-      arrays.push_back(AD->Root);
-      continue;
-    } else if (klee::expr::QueryCommand *QC =
-                   dyn_cast<klee::expr::QueryCommand>(D)) {
-      exprs = QC->Values;
-      break;
-    }
-  }
-}
-
-void process_edge(std::string serialized_edge,
-                  std::map<node_id_t, Node *> &nodes) {
+void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &nodes) {
   size_t delim = serialized_edge.find("(");
   ASSERT(delim != std::string::npos, "Invalid edge");
 
@@ -962,25 +962,6 @@ void process_edge(std::string serialized_edge,
     prev->set_next(next);
     next->set_prev(prev);
   }
-}
-
-static void parse_bdd_symbol(const std::string &name,
-                             const std::vector<const klee::Array *> &arrays,
-                             std::vector<klee::ref<klee::Expr>> &exprs,
-                             symbol_t &symbol) {
-  symbol.base = name;
-  symbol.expr = pop_expr(exprs);
-
-  bool found = false;
-  for (const klee::Array *array : arrays) {
-    if (array->name == name) {
-      symbol.array = array;
-      found = true;
-      break;
-    }
-  }
-
-  ASSERT(found, "Symbol not found in BDD file.");
 }
 
 void BDD::deserialize(const std::string &file_path) {
@@ -1116,8 +1097,7 @@ void BDD::deserialize(const std::string &file_path) {
     }
 
     if (state == STATE_START && get_next_state(line) != state && !magic_check) {
-      PANIC("\"%s\" is not a BDD file (missing magic signature)",
-            file_path.c_str());
+      PANIC("\"%s\" is not a BDD file (missing magic signature)", file_path.c_str());
     }
 
     state = get_next_state(line);

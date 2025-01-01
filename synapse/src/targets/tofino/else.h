@@ -6,8 +6,7 @@ namespace tofino {
 
 class Else : public TofinoModule {
 public:
-  Else(const Node *node)
-      : TofinoModule(ModuleType::Tofino_Else, "Else", node) {}
+  Else(const Node *node) : TofinoModule(ModuleType::Tofino_Else, "Else", node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -20,16 +19,15 @@ public:
   }
 };
 
-class ElseGenerator : public TofinoModuleGenerator {
+class ElseFactory : public TofinoModuleFactory {
 public:
-  ElseGenerator() : TofinoModuleGenerator(ModuleType::Tofino_Else, "Else") {}
+  ElseFactory() : TofinoModuleFactory(ModuleType::Tofino_Else, "Else") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

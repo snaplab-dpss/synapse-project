@@ -11,8 +11,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRegisterLookup(const Node *node, addr_t _obj,
-                       klee::ref<klee::Expr> _index,
+  VectorRegisterLookup(const Node *node, addr_t _obj, klee::ref<klee::Expr> _index,
                        klee::ref<klee::Expr> _value)
       : TofinoCPUModule(ModuleType::TofinoCPU_VectorRegisterLookup,
                         "VectorRegisterLookup", node),
@@ -33,18 +32,17 @@ public:
   klee::ref<klee::Expr> get_value() const { return value; }
 };
 
-class VectorRegisterLookupGenerator : public TofinoCPUModuleGenerator {
+class VectorRegisterLookupFactory : public TofinoCPUModuleFactory {
 public:
-  VectorRegisterLookupGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_VectorRegisterLookup,
-                                 "VectorRegisterLookup") {}
+  VectorRegisterLookupFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_VectorRegisterLookup,
+                               "VectorRegisterLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

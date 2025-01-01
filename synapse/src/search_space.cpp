@@ -2,9 +2,10 @@
 
 #include "bdd/bdd.h"
 
-static ss_node_id_t node_id_counter = 0;
+namespace {
+ss_node_id_t node_id_counter = 0;
 
-static std::string get_bdd_node_description(const Node *node) {
+std::string get_bdd_node_description(const Node *node) {
   std::stringstream description;
 
   description << node->get_id();
@@ -54,6 +55,7 @@ static std::string get_bdd_node_description(const Node *node) {
 
   return node_str;
 }
+} // namespace
 
 void SearchSpace::activate_leaf(const EP *ep) {
   ep_id_t ep_id = ep->get_id();
@@ -79,9 +81,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
     return;
   }
 
-  auto ss_node_matcher = [ep_id](const SSNode *node) {
-    return node->ep_id == ep_id;
-  };
+  auto ss_node_matcher = [ep_id](const SSNode *node) { return node->ep_id == ep_id; };
 
   auto found_it = std::find_if(leaves.begin(), leaves.end(), ss_node_matcher);
   ASSERT(found_it != leaves.end(), "Leaf not found");
@@ -129,9 +129,9 @@ std::string SearchSpace::build_meta_tput_speculation(const EP *ep) {
   return ss.str();
 }
 
-void SearchSpace::add_to_active_leaf(
-    const EP *ep, const Node *node, const ModuleGenerator *modgen,
-    const std::vector<impl_t> &implementations) {
+void SearchSpace::add_to_active_leaf(const EP *ep, const Node *node,
+                                     const ModuleFactory *modgen,
+                                     const std::vector<impl_t> &implementations) {
   ASSERT(active_leaf, "Active leaf not set");
 
   for (const impl_t &impl : implementations) {
@@ -172,8 +172,8 @@ void SearchSpace::add_to_active_leaf(
         {"Spec", build_meta_tput_speculation(impl.result)},
     };
 
-    SSNode *new_node = new SSNode(id, ep_id, score, target, module_data,
-                                  bdd_node_data, next_bdd_node_data, metadata);
+    SSNode *new_node = new SSNode(id, ep_id, score, target, module_data, bdd_node_data,
+                                  next_bdd_node_data, metadata);
 
     active_leaf->children.push_back(new_node);
     leaves.push_back(new_node);

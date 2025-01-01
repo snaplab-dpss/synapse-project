@@ -95,8 +95,8 @@ bool get_table_lookup_data(const Call *call_node, addr_t &obj,
 } // namespace
 
 std::optional<spec_impl_t>
-TableLookupGenerator::speculate(const EP *ep, const Node *node,
-                                const Context &ctx) const {
+TableLookupFactory::speculate(const EP *ep, const Node *node,
+                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -118,8 +118,8 @@ TableLookupGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TableLookupGenerator::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
+                                                     const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

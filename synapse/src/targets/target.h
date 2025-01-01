@@ -1,9 +1,12 @@
 #pragma once
 
+#include <toml++/toml.hpp>
+
 #include <memory>
 #include <vector>
+#include <array>
 
-class ModuleGenerator;
+class ModuleFactory;
 class TargetContext;
 
 enum class TargetType {
@@ -16,13 +19,12 @@ std::ostream &operator<<(std::ostream &os, TargetType target);
 std::string to_string(TargetType target);
 
 struct Target {
-  const TargetType type;
-  const std::vector<ModuleGenerator *> module_generators;
-  const TargetContext *ctx;
+  TargetType type;
+  std::vector<std::unique_ptr<ModuleFactory>> module_factories;
+  std::unique_ptr<TargetContext> ctx;
 
-  Target(TargetType _type,
-         const std::vector<ModuleGenerator *> &_module_generators,
-         const TargetContext *_ctx);
+  Target(TargetType type, std::vector<std::unique_ptr<ModuleFactory>> &&module_factories,
+         std::unique_ptr<TargetContext> &&ctx);
 
   Target(const Target &other) = delete;
   Target(Target &&other) = delete;
@@ -30,4 +32,9 @@ struct Target {
   virtual ~Target();
 };
 
-typedef std::vector<const Target *> targets_t;
+struct Targets {
+  std::array<std::shared_ptr<const Target>, 3> elements;
+
+  Targets(const toml::table &config);
+  Targets(const Targets &other);
+};

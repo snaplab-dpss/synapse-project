@@ -19,38 +19,38 @@
 #define COLOR_WHITE ""
 #define COLOR_BOLD "\033[1m"
 
-#define DEBUG_PAUSE                                                            \
-  {                                                                            \
-    std::cout << "Press Enter to continue ";                                   \
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');        \
+#define DEBUG_PAUSE                                                                      \
+  {                                                                                      \
+    std::cout << "Press Enter to continue ";                                             \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                  \
   }
 
 #define BREAKPOINT raise(SIGTRAP);
 
-#define PANIC(fmt, ...)                                                        \
-  {                                                                            \
-    fprintf(stderr, COLOR_RED_BRIGHT "\n");                                    \
-    fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                        \
-    fprintf(stderr, COLOR_RESET "\n");                                         \
-    fflush(stderr);                                                            \
-    BREAKPOINT                                                                 \
-    exit(1);                                                                   \
+#define PANIC(fmt, ...)                                                                  \
+  {                                                                                      \
+    fprintf(stderr, COLOR_RED_BRIGHT "\n");                                              \
+    fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                                  \
+    fprintf(stderr, COLOR_RESET "\n");                                                   \
+    fflush(stderr);                                                                      \
+    BREAKPOINT                                                                           \
+    exit(1);                                                                             \
   }
 
-#define ASSERT(stmt, ...)                                                      \
-  {                                                                            \
-    if (!(stmt)) {                                                             \
-      fprintf(stderr, COLOR_RED_BRIGHT "\n");                                  \
-      fprintf(stderr, "ASSERTION FAILED: ");                                   \
-      fprintf(stderr, ##__VA_ARGS__);                                          \
-      fprintf(stderr, "\n");                                                   \
-      fprintf(stderr, "Backtrace:\n");                                         \
-      backtrace();                                                             \
-      fprintf(stderr, COLOR_RESET);                                            \
-      fflush(stderr);                                                          \
-      BREAKPOINT                                                               \
-      exit(1);                                                                 \
-    }                                                                          \
+#define ASSERT(stmt, ...)                                                                \
+  {                                                                                      \
+    if (!(stmt)) {                                                                       \
+      fprintf(stderr, COLOR_RED_BRIGHT "\n");                                            \
+      fprintf(stderr, "ASSERTION FAILED: ");                                             \
+      fprintf(stderr, ##__VA_ARGS__);                                                    \
+      fprintf(stderr, "\n");                                                             \
+      fprintf(stderr, "Backtrace:\n");                                                   \
+      backtrace();                                                                       \
+      fprintf(stderr, COLOR_RESET);                                                      \
+      fflush(stderr);                                                                    \
+      BREAKPOINT                                                                         \
+      exit(1);                                                                           \
+    }                                                                                    \
   }
 
 class Log {
@@ -60,9 +60,7 @@ public:
   std::ostream stream;
 
   static Level MINIMUM_LOG_LEVEL;
-  static bool is_debug_active() {
-    return Log::MINIMUM_LOG_LEVEL >= Level::DEBUG;
-  }
+  static bool is_debug_active() { return Log::MINIMUM_LOG_LEVEL >= Level::DEBUG; }
 
   static Log log();
   static Log dbg();

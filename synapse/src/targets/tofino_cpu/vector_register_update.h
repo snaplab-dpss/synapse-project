@@ -12,13 +12,12 @@ private:
   std::vector<mod_t> modifications;
 
 public:
-  VectorRegisterUpdate(const Node *node, addr_t _obj,
-                       klee::ref<klee::Expr> _index, addr_t _value_addr,
-                       const std::vector<mod_t> &_modifications)
+  VectorRegisterUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _index,
+                       addr_t _value_addr, const std::vector<mod_t> &_modifications)
       : TofinoCPUModule(ModuleType::TofinoCPU_VectorRegisterUpdate,
                         "VectorRegisterUpdate", node),
-        obj(_obj), index(_index), value_addr(_value_addr),
-        modifications(_modifications) {}
+        obj(_obj), index(_index), value_addr(_value_addr), modifications(_modifications) {
+  }
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -38,18 +37,17 @@ public:
   const std::vector<mod_t> &get_modifications() const { return modifications; }
 };
 
-class VectorRegisterUpdateGenerator : public TofinoCPUModuleGenerator {
+class VectorRegisterUpdateFactory : public TofinoCPUModuleFactory {
 public:
-  VectorRegisterUpdateGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_VectorRegisterUpdate,
-                                 "VectorRegisterUpdate") {}
+  VectorRegisterUpdateFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_VectorRegisterUpdate,
+                               "VectorRegisterUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

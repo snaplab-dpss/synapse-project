@@ -29,7 +29,7 @@ EP *concretize_cached_table_read(
     const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
     const fcfs_cached_table_data_t &cached_table_data, u32 cache_capacity) {
   FCFSCachedTable *cached_table =
-      TofinoModuleGenerator::build_or_reuse_fcfs_cached_table(
+      TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
           ep, node, cached_table_data.obj, cached_table_data.key,
           cached_table_data.num_entries, cache_capacity);
 
@@ -49,7 +49,7 @@ EP *concretize_cached_table_read(
   ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   TofinoContext *tofino_ctx =
-      TofinoModuleGenerator::get_mutable_tofino_ctx(new_ep);
+      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -60,8 +60,8 @@ EP *concretize_cached_table_read(
 } // namespace
 
 std::optional<spec_impl_t>
-FCFSCachedTableReadGenerator::speculate(const EP *ep, const Node *node,
-                                        const Context &ctx) const {
+FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node,
+                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -104,8 +104,7 @@ FCFSCachedTableReadGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableReadGenerator::process_node(const EP *ep,
-                                           const Node *node) const {
+FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

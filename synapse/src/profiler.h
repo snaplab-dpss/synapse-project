@@ -71,8 +71,7 @@ public:
   void insert_relative(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
                        hit_rate_t rel_hr_on_true);
 
-  void replace_constraint(const constraints_t &cnstrs,
-                          klee::ref<klee::Expr> cnstr);
+  void replace_constraint(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const constraints_t &constraints);
   void scale(const constraints_t &constraints, hit_rate_t factor);
   void set(const constraints_t &constraints, hit_rate_t new_hr);
@@ -80,8 +79,7 @@ public:
   hit_rate_t get_hr(const Node *node) const;
   hit_rate_t get_hr(const EPNode *node) const;
 
-  FlowStats get_flow_stats(const constraints_t &cnstrs,
-                           klee::ref<klee::Expr> flow) const;
+  FlowStats get_flow_stats(const constraints_t &cnstrs, klee::ref<klee::Expr> flow) const;
 
   void clear_cache() const;
   void debug() const;

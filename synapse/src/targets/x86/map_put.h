@@ -12,8 +12,8 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  MapPut(const Node *node, addr_t _map_addr, addr_t _key_addr,
-         klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+  MapPut(const Node *node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _value)
       : x86Module(ModuleType::x86_MapPut, "MapPut", node), map_addr(_map_addr),
         key_addr(_key_addr), key(_key), value(_value) {}
 
@@ -33,16 +33,15 @@ public:
   klee::ref<klee::Expr> get_value() const { return value; }
 };
 
-class MapPutGenerator : public x86ModuleGenerator {
+class MapPutFactory : public x86ModuleFactory {
 public:
-  MapPutGenerator() : x86ModuleGenerator(ModuleType::x86_MapPut, "MapPut") {}
+  MapPutFactory() : x86ModuleFactory(ModuleType::x86_MapPut, "MapPut") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

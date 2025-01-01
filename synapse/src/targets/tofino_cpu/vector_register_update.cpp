@@ -3,8 +3,8 @@
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
-VectorRegisterUpdateGenerator::speculate(const EP *ep, const Node *node,
-                                         const Context &ctx) const {
+VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
+                                       const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -27,8 +27,8 @@ VectorRegisterUpdateGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-VectorRegisterUpdateGenerator::process_node(const EP *ep,
-                                            const Node *node) const {
+VectorRegisterUpdateFactory::process_node(const EP *ep,
+                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

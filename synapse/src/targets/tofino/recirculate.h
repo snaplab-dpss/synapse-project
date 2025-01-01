@@ -28,17 +28,16 @@ public:
   int get_recirc_port() const { return recirc_port; }
 };
 
-class RecirculateGenerator : public TofinoModuleGenerator {
+class RecirculateFactory : public TofinoModuleFactory {
 public:
-  RecirculateGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_Recirculate, "Recirculate") {}
+  RecirculateFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_Recirculate, "Recirculate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

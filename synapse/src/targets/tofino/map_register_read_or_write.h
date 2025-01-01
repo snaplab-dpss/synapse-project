@@ -17,17 +17,15 @@ private:
 
 public:
   MapRegisterReadOrWrite(const Node *node, DS_ID _map_register_id, addr_t _obj,
-                         klee::ref<klee::Expr> _key,
-                         klee::ref<klee::Expr> _read_value,
+                         klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _read_value,
                          klee::ref<klee::Expr> _write_value,
                          klee::ref<klee::Expr> _extra_write_condition,
                          const symbol_t &_map_has_this_key,
                          const symbol_t &_map_reg_successful_write)
-      : TofinoModule(ModuleType::Tofino_MapRegisterReadOrWrite,
-                     "MapRegisterReadOrWrite", node),
-        map_register_id(_map_register_id), obj(_obj), key(_key),
-        read_value(_read_value), write_value(_write_value),
-        extra_write_condition(_extra_write_condition),
+      : TofinoModule(ModuleType::Tofino_MapRegisterReadOrWrite, "MapRegisterReadOrWrite",
+                     node),
+        map_register_id(_map_register_id), obj(_obj), key(_key), read_value(_read_value),
+        write_value(_write_value), extra_write_condition(_extra_write_condition),
         map_has_this_key(_map_has_this_key),
         map_reg_successful_write(_map_reg_successful_write) {}
 
@@ -38,8 +36,8 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new MapRegisterReadOrWrite(
-        node, map_register_id, obj, key, read_value, write_value,
-        extra_write_condition, map_has_this_key, map_reg_successful_write);
+        node, map_register_id, obj, key, read_value, write_value, extra_write_condition,
+        map_has_this_key, map_reg_successful_write);
     return cloned;
   }
 
@@ -61,18 +59,17 @@ public:
   }
 };
 
-class MapRegisterReadOrWriteGenerator : public TofinoModuleGenerator {
+class MapRegisterReadOrWriteFactory : public TofinoModuleFactory {
 public:
-  MapRegisterReadOrWriteGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_MapRegisterReadOrWrite,
-                              "MapRegisterReadOrWrite") {}
+  MapRegisterReadOrWriteFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_MapRegisterReadOrWrite,
+                            "MapRegisterReadOrWrite") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

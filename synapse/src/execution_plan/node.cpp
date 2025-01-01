@@ -4,10 +4,11 @@
 #include "../log.h"
 #include "../exprs/solver.h"
 
-static ep_node_id_t counter = 0;
+namespace {
+ep_node_id_t counter = 0;
+}
 
-EPNode::EPNode(Module *_module)
-    : id(counter++), module(_module), prev(nullptr) {}
+EPNode::EPNode(Module *_module) : id(counter++), module(_module), prev(nullptr) {}
 
 EPNode::~EPNode() {
   if (module) {
@@ -127,8 +128,7 @@ EPNode *EPNode::clone(bool recursive) const {
   return cloned_node;
 }
 
-void EPNode::visit_nodes(
-    std::function<EPNodeVisitAction(const EPNode *)> fn) const {
+void EPNode::visit_nodes(std::function<EPNodeVisitAction(const EPNode *)> fn) const {
   std::vector<const EPNode *> nodes{this};
   while (nodes.size()) {
     const EPNode *node = nodes[0];
@@ -147,8 +147,7 @@ void EPNode::visit_nodes(
   }
 }
 
-void EPNode::visit_mutable_nodes(
-    std::function<EPNodeVisitAction(EPNode *)> fn) {
+void EPNode::visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn) {
   std::vector<EPNode *> nodes{this};
   while (nodes.size()) {
     EPNode *node = nodes[0];

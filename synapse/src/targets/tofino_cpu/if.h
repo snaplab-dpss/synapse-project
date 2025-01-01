@@ -10,8 +10,7 @@ private:
 
 public:
   If(const Node *node, klee::ref<klee::Expr> _condition)
-      : TofinoCPUModule(ModuleType::TofinoCPU_If, "If", node),
-        condition(_condition) {}
+      : TofinoCPUModule(ModuleType::TofinoCPU_If, "If", node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -26,16 +25,15 @@ public:
   klee::ref<klee::Expr> get_condition() const { return condition; }
 };
 
-class IfGenerator : public TofinoCPUModuleGenerator {
+class IfFactory : public TofinoCPUModuleFactory {
 public:
-  IfGenerator() : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_If, "If") {}
+  IfFactory() : TofinoCPUModuleFactory(ModuleType::TofinoCPU_If, "If") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

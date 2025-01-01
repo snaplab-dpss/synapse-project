@@ -18,7 +18,8 @@
 
 namespace tofino {
 
-static const DS *get_tofino_ds(const EP *ep, DS_ID id) {
+namespace {
+const DS *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
@@ -26,12 +27,35 @@ static const DS *get_tofino_ds(const EP *ep, DS_ID id) {
   return ds;
 }
 
-static const Parser &get_tofino_parser(const EP *ep) {
+const Parser &get_tofino_parser(const EP *ep) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna = tofino_ctx->get_tna();
   return tna.parser;
 }
+
+code_t get_parser_state_name(const ParserState *state, bool state_init) {
+  coder_t coder;
+
+  if (state_init) {
+    coder << "parser_init";
+    return coder.dump();
+  }
+
+  coder << "parser_";
+  bool first = true;
+  for (node_id_t id : state->ids) {
+    if (!first) {
+      coder << "_";
+    } else {
+      first = false;
+    }
+    coder << id;
+  }
+
+  return coder.dump();
+}
+} // namespace
 
 EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
     : Synthesizer(TEMPLATE_FILENAME,
@@ -53,9 +77,8 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
   symbol_t time = bdd->get_time();
 
   // Hack
-  var_stacks.back().emplace_back(
-      "ig_intr_md.ingress_port",
-      solver_toolbox.exprBuilder->Extract(device.expr, 0, 16));
+  var_stacks.back().emplace_back("ig_intr_md.ingress_port",
+                                 solver_toolbox.exprBuilder->Extract(device.expr, 0, 16));
 
   var_stacks.back().emplace_back("ig_intr_md.ingress_mac_tstamp[47:16]", time);
 }
@@ -74,28 +97,6 @@ void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   EPVisitor::visit(ep, ep_node);
 }
 
-static code_t get_parser_state_name(const ParserState *state, bool state_init) {
-  coder_t coder;
-
-  if (state_init) {
-    coder << "parser_init";
-    return coder.dump();
-  }
-
-  coder << "parser_";
-  bool first = true;
-  for (node_id_t id : state->ids) {
-    if (!first) {
-      coder << "_";
-    } else {
-      first = false;
-    }
-    coder << id;
-  }
-
-  return coder.dump();
-}
-
 void EPSynthesizer::transpile_parser(const Parser &parser) {
   coder_t &ingress_parser = get(MARKER_INGRESS_PARSER);
 
@@ -112,27 +113,23 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     for (node_id_t id : state->ids) {
       if (parser_vars.find(id) != parser_vars.end()) {
         const vars_t &vars = parser_vars.at(id);
-        var_stacks.back().insert(var_stacks.back().end(), vars.begin(),
-                                 vars.end());
+        var_stacks.back().insert(var_stacks.back().end(), vars.begin(), vars.end());
       }
 
       if (parser_hdrs.find(id) != parser_hdrs.end()) {
         const vars_t &vars = parser_hdrs.at(id);
-        hdrs_stacks.back().insert(hdrs_stacks.back().end(), vars.begin(),
-                                  vars.end());
+        hdrs_stacks.back().insert(hdrs_stacks.back().end(), vars.begin(), vars.end());
       }
     }
 
     switch (state->type) {
     case ParserStateType::EXTRACT: {
-      const ParserStateExtract *extract =
-          static_cast<const ParserStateExtract *>(state);
+      const ParserStateExtract *extract = static_cast<const ParserStateExtract *>(state);
 
       code_t state_name = get_parser_state_name(state, state_init);
 
       var_t hdr_var;
-      bool hdr_found =
-          get_hdr_var(*extract->ids.begin(), extract->hdr, hdr_var);
+      bool hdr_found = get_hdr_var(*extract->ids.begin(), extract->hdr, hdr_var);
       ASSERT(hdr_found, "Header not found");
 
       ASSERT(extract->next, "Next state not found");
@@ -155,8 +152,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
       states.push_back(extract->next);
     } break;
     case ParserStateType::SELECT: {
-      const ParserStateSelect *select =
-          static_cast<const ParserStateSelect *>(state);
+      const ParserStateSelect *select = static_cast<const ParserStateSelect *>(state);
 
       code_t state_name = get_parser_state_name(state, state_init);
 
@@ -165,8 +161,8 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 
       ingress_parser.inc();
       ingress_parser.indent();
-      ingress_parser << "transition select ("
-                     << transpiler.transpile(select->field) << ") {\n";
+      ingress_parser << "transition select (" << transpiler.transpile(select->field)
+                     << ") {\n";
 
       ingress_parser.inc();
 
@@ -224,8 +220,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
   }
 }
 
-code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset,
-                                bits_t size) const {
+code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset, bits_t size) const {
   ASSERT(offset + size <= var.expr->getWidth(), "Invalid slice");
 
   coder_t coder;
@@ -554,8 +549,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   parser_vars[node->get_node()->get_id()] = get_squashed_vars();
   parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
 
-  ASSERT(ep_node->get_children().size() == 1,
-         "ParserExtraction must have 1 child");
+  ASSERT(ep_node->get_children().size() == 1, "ParserExtraction must have 1 child");
   visit(ep, ep_node->get_children()[0]);
 
   var_stacks.pop_back();
@@ -628,9 +622,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action
-EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                     const tofino::VectorRegisterLookup *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::VectorRegisterLookup *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -650,17 +643,15 @@ EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action
-EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                     const tofino::VectorRegisterUpdate *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::VectorRegisterUpdate *node) {
   // TODO:
   ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action
-EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                     const tofino::FCFSCachedTableRead *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::FCFSCachedTableRead *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -670,8 +661,7 @@ EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   const symbol_t &map_has_this_key = node->get_map_has_this_key();
 
   const DS *ds = get_tofino_ds(ep, cached_table_id);
-  const FCFSCachedTable *fcfs_cached_table =
-      static_cast<const FCFSCachedTable *>(ds);
+  const FCFSCachedTable *fcfs_cached_table = static_cast<const FCFSCachedTable *>(ds);
 
   transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   dbg();
@@ -680,25 +670,22 @@ EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action
-EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                     const tofino::FCFSCachedTableReadOrWrite *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::FCFSCachedTableReadOrWrite *node) {
   // TODO:
   ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action
-EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                     const tofino::FCFSCachedTableWrite *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::FCFSCachedTableWrite *node) {
   // TODO:
   ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action
-EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                     const tofino::FCFSCachedTableDelete *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::FCFSCachedTableDelete *node) {
   // TODO:
   ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;

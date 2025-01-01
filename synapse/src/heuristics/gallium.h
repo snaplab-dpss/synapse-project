@@ -5,10 +5,9 @@
 class GalliumCfg : public HeuristicCfg {
 public:
   GalliumCfg()
-      : HeuristicCfg("Gallium",
-                     {
-                         BUILD_METRIC(GalliumCfg, get_bdd_progress, MAX),
-                     }) {}
+      : HeuristicCfg("Gallium", {
+                                    BUILD_METRIC(GalliumCfg, get_bdd_progress, MAX),
+                                }) {}
 
   GalliumCfg &operator=(const GalliumCfg &other) {
     ASSERT(other.name == name, "Mismatched names");

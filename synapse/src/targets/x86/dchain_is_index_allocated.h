@@ -12,10 +12,8 @@ private:
 
 public:
   DchainIsIndexAllocated(const Node *node, addr_t _dchain_addr,
-                         klee::ref<klee::Expr> _index,
-                         const symbol_t &_is_allocated)
-      : x86Module(ModuleType::x86_DchainIsIndexAllocated,
-                  "DchainIsIndexAllocated", node),
+                         klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
+      : x86Module(ModuleType::x86_DchainIsIndexAllocated, "DchainIsIndexAllocated", node),
         dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -24,8 +22,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new DchainIsIndexAllocated(node, dchain_addr, index, is_allocated);
+    Module *cloned = new DchainIsIndexAllocated(node, dchain_addr, index, is_allocated);
     return cloned;
   }
 
@@ -34,18 +31,17 @@ public:
   const symbol_t &get_is_allocated() const { return is_allocated; }
 };
 
-class DchainIsIndexAllocatedGenerator : public x86ModuleGenerator {
+class DchainIsIndexAllocatedFactory : public x86ModuleFactory {
 public:
-  DchainIsIndexAllocatedGenerator()
-      : x86ModuleGenerator(ModuleType::x86_DchainIsIndexAllocated,
-                           "DchainIsIndexAllocated") {}
+  DchainIsIndexAllocatedFactory()
+      : x86ModuleFactory(ModuleType::x86_DchainIsIndexAllocated,
+                         "DchainIsIndexAllocated") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

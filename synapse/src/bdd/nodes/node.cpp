@@ -10,6 +10,30 @@
 #include "../../exprs/renamer.h"
 #include "../../exprs/solver.h"
 
+namespace {
+call_t
+rename_call_symbols(const call_t &call,
+                    const std::unordered_map<std::string, std::string> &translations) {
+  call_t renamed_call = call;
+
+  for (auto &arg_pair : renamed_call.args) {
+    arg_t &arg = renamed_call.args[arg_pair.first];
+    arg.expr = rename_symbols(arg.expr, translations);
+    arg.in = rename_symbols(arg.in, translations);
+    arg.out = rename_symbols(arg.out, translations);
+  }
+
+  for (auto &extra_var_pair : renamed_call.extra_vars) {
+    extra_var_t &extra_var = renamed_call.extra_vars[extra_var_pair.first];
+    extra_var.first = rename_symbols(extra_var.first, translations);
+    extra_var.second = rename_symbols(extra_var.second, translations);
+  }
+
+  renamed_call.ret = rename_symbols(renamed_call.ret, translations);
+  return renamed_call;
+}
+} // namespace
+
 std::vector<node_id_t> Node::get_leaves() const {
   if (!next)
     return std::vector<node_id_t>{id};
@@ -209,28 +233,6 @@ Node *Node::get_mutable_node_by_id(node_id_t _id) {
   return target;
 }
 
-static call_t rename_call_symbols(
-    const call_t &call,
-    const std::unordered_map<std::string, std::string> &translations) {
-  call_t renamed_call = call;
-
-  for (auto &arg_pair : renamed_call.args) {
-    arg_t &arg = renamed_call.args[arg_pair.first];
-    arg.expr = rename_symbols(arg.expr, translations);
-    arg.in = rename_symbols(arg.in, translations);
-    arg.out = rename_symbols(arg.out, translations);
-  }
-
-  for (auto &extra_var_pair : renamed_call.extra_vars) {
-    extra_var_t &extra_var = renamed_call.extra_vars[extra_var_pair.first];
-    extra_var.first = rename_symbols(extra_var.first, translations);
-    extra_var.second = rename_symbols(extra_var.second, translations);
-  }
-
-  renamed_call.ret = rename_symbols(renamed_call.ret, translations);
-  return renamed_call;
-}
-
 void Node::recursive_translate_symbol(const symbol_t &old_symbol,
                                       const symbol_t &new_symbol) {
   visit_mutable_nodes([old_symbol, new_symbol](Node *node) -> NodeVisitAction {
@@ -240,8 +242,8 @@ void Node::recursive_translate_symbol(const symbol_t &old_symbol,
     Call *call_node = static_cast<Call *>(node);
 
     const call_t &call = call_node->get_call();
-    call_t new_call = rename_call_symbols(
-        call, {{old_symbol.array->name, new_symbol.array->name}});
+    call_t new_call =
+        rename_call_symbols(call, {{old_symbol.array->name, new_symbol.array->name}});
     call_node->set_call(new_call);
 
     symbols_t generated_symbols = call_node->get_locally_generated_symbols();
@@ -269,11 +271,9 @@ void Node::recursive_add_constraint(klee::ref<klee::Expr> constraint) {
 
 void Node::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
-void Node::visit_nodes(
-    std::function<NodeVisitAction(const Node *, cookie_t *)> fn,
-    std::unique_ptr<cookie_t> cookie) const {
-  std::vector<std::pair<const Node *, cookie_t *>> nodes{
-      {this, cookie.release()}};
+void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> fn,
+                       std::unique_ptr<cookie_t> cookie) const {
+  std::vector<std::pair<const Node *, cookie_t *>> nodes{{this, cookie.release()}};
 
   while (nodes.size()) {
     const Node *node = nodes[0].first;
@@ -326,9 +326,8 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *)> fn) const {
   visit_nodes([fn](const Node *node, void *) { return fn(node); }, nullptr);
 }
 
-void Node::visit_mutable_nodes(
-    std::function<NodeVisitAction(Node *, cookie_t *)> fn,
-    std::unique_ptr<cookie_t> cookie) {
+void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn,
+                               std::unique_ptr<cookie_t> cookie) {
   std::vector<std::pair<Node *, cookie_t *>> nodes{{this, cookie.release()}};
 
   while (nodes.size()) {
@@ -379,8 +378,7 @@ void Node::visit_mutable_nodes(
 }
 
 void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *)> fn) {
-  visit_mutable_nodes([fn](Node *node, cookie_t *) { return fn(node); },
-                      nullptr);
+  visit_mutable_nodes([fn](Node *node, cookie_t *) { return fn(node); }, nullptr);
 }
 
 void Node::recursive_free_children(NodeManager &manager) {

@@ -17,10 +17,9 @@ private:
 public:
   FCFSCachedTableRead(const Node *node, DS_ID _id, addr_t _obj,
                       const std::vector<klee::ref<klee::Expr>> &_keys,
-                      klee::ref<klee::Expr> _value,
-                      const std::optional<symbol_t> &_found)
-      : TofinoCPUModule(ModuleType::TofinoCPU_FCFSCachedTableRead,
-                        "FCFSCachedTableRead", node),
+                      klee::ref<klee::Expr> _value, const std::optional<symbol_t> &_found)
+      : TofinoCPUModule(ModuleType::TofinoCPU_FCFSCachedTableRead, "FCFSCachedTableRead",
+                        node),
         id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -40,18 +39,17 @@ public:
   const std::optional<symbol_t> &get_found() const { return found; }
 };
 
-class FCFSCachedTableReadGenerator : public TofinoCPUModuleGenerator {
+class FCFSCachedTableReadFactory : public TofinoCPUModuleFactory {
 public:
-  FCFSCachedTableReadGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_FCFSCachedTableRead,
-                                 "FCFSCachedTableRead") {}
+  FCFSCachedTableReadFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_FCFSCachedTableRead,
+                               "FCFSCachedTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

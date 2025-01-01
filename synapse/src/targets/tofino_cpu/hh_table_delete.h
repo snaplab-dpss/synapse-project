@@ -12,8 +12,7 @@ private:
 public:
   HHTableDelete(const Node *node, addr_t _obj,
                 const std::vector<klee::ref<klee::Expr>> &_keys)
-      : TofinoCPUModule(ModuleType::TofinoCPU_HHTableDelete, "HHTableDelete",
-                        node),
+      : TofinoCPUModule(ModuleType::TofinoCPU_HHTableDelete, "HHTableDelete", node),
         obj(_obj), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -30,18 +29,16 @@ public:
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
 };
 
-class HHTableDeleteGenerator : public TofinoCPUModuleGenerator {
+class HHTableDeleteFactory : public TofinoCPUModuleFactory {
 public:
-  HHTableDeleteGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_HHTableDelete,
-                                 "HHTableDelete") {}
+  HHTableDeleteFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_HHTableDelete, "HHTableDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

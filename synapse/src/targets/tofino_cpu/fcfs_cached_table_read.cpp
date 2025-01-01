@@ -43,8 +43,8 @@ void get_data(const Call *call_node, addr_t &obj,
 } // namespace
 
 std::optional<spec_impl_t>
-FCFSCachedTableReadGenerator::speculate(const EP *ep, const Node *node,
-                                        const Context &ctx) const {
+FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node,
+                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -67,8 +67,7 @@ FCFSCachedTableReadGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableReadGenerator::process_node(const EP *ep,
-                                           const Node *node) const {
+FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

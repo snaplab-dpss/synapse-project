@@ -8,25 +8,7 @@
 #include "visualizers/ss_visualizer.h"
 #include "visualizers/ep_visualizer.h"
 
-template <class HCfg>
-SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
-                                 const toml::table &_config,
-                                 const Profiler &_profiler,
-                                 const targets_t &_targets,
-                                 bool _allow_bdd_reordering,
-                                 const std::unordered_set<ep_id_t> &_peek,
-                                 bool _pause_and_show_on_backtrack)
-    : bdd(new BDD(*_bdd)), h(_h), config(_config), profiler(_profiler),
-      targets(_targets), allow_bdd_reordering(_allow_bdd_reordering),
-      peek(_peek), pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
-
-template <class HCfg>
-SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
-                                 const toml::table &_config,
-                                 const Profiler &_profiler,
-                                 const targets_t &_targets)
-    : SearchEngine(_bdd, _h, _config, _profiler, _targets, true, {}, false) {}
-
+namespace {
 struct search_step_report_t {
   int available_execution_plans;
   const EP *chosen;
@@ -41,8 +23,7 @@ struct search_step_report_t {
       : available_execution_plans(_available_execution_plans), chosen(_chosen),
         current(_current) {}
 
-  void save(const ModuleGenerator *modgen,
-            const std::vector<impl_t> &implementations) {
+  void save(const ModuleFactory *modgen, const std::vector<impl_t> &implementations) {
     if (implementations.empty()) {
       return;
     }
@@ -59,8 +40,8 @@ struct search_step_report_t {
   }
 };
 
-static void log_search_iteration(const search_step_report_t &report,
-                                 const search_meta_t &search_meta) {
+void log_search_iteration(const search_step_report_t &report,
+                          const search_meta_t &search_meta) {
   TargetType platform = report.chosen->get_active_target();
   const EPMeta &meta = report.chosen->get_meta();
 
@@ -97,9 +78,8 @@ static void log_search_iteration(const search_step_report_t &report,
     }
     ep_ids << "]";
 
-    Log::dbg() << "MATCH:      " << report.targets[i] << "::" << report.name[i]
-               << " -> " << report.gen_ep_ids[i].size() << " (" << ep_ids.str()
-               << ") EPs\n";
+    Log::dbg() << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> "
+               << report.gen_ep_ids[i].size() << " (" << ep_ids.str() << ") EPs\n";
   }
 
   Log::dbg() << "------------------------------------------\n";
@@ -108,10 +88,9 @@ static void log_search_iteration(const search_step_report_t &report,
   Log::dbg() << "Elapsed:          " << search_meta.elapsed_time << " s\n";
   Log::dbg() << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
   Log::dbg() << "Branching factor: " << search_meta.branching_factor << "\n";
-  Log::dbg() << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size)
+  Log::dbg() << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size) << "\n";
+  Log::dbg() << "SS size (est):    " << int2hr(search_meta.total_ss_size_estimation)
              << "\n";
-  Log::dbg() << "SS size (est):    "
-             << int2hr(search_meta.total_ss_size_estimation) << "\n";
   Log::dbg() << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
   Log::dbg() << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
   Log::dbg() << "Candidates:       " << int2hr(search_meta.solutions) << "\n";
@@ -126,9 +105,9 @@ static void log_search_iteration(const search_step_report_t &report,
   Log::dbg() << "==========================================================\n";
 }
 
-static void peek_search_space(const std::vector<impl_t> &new_implementations,
-                              const std::unordered_set<ep_id_t> &peek,
-                              SearchSpace *search_space) {
+void peek_search_space(const std::vector<impl_t> &new_implementations,
+                       const std::unordered_set<ep_id_t> &peek,
+                       SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
     if (peek.find(impl.result->get_id()) != peek.end()) {
       Log::dbg() << "\n";
@@ -140,8 +119,8 @@ static void peek_search_space(const std::vector<impl_t> &new_implementations,
   }
 }
 
-static void peek_backtrack(const EP *ep, SearchSpace *search_space,
-                           bool pause_and_show_on_backtrack) {
+void peek_backtrack(const EP *ep, SearchSpace *search_space,
+                    bool pause_and_show_on_backtrack) {
   if (pause_and_show_on_backtrack) {
     Log::dbg() << "Backtracked to " << ep->get_id() << "\n";
     BDDViz::visualize(ep->get_bdd(), false);
@@ -149,6 +128,22 @@ static void peek_backtrack(const EP *ep, SearchSpace *search_space,
     SSVisualizer::visualize(search_space, ep, true);
   }
 }
+} // namespace
+
+template <class HCfg>
+SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
+                                 const toml::table &_config, const Profiler &_profiler,
+                                 bool _allow_bdd_reordering,
+                                 const std::unordered_set<ep_id_t> &_peek,
+                                 bool _pause_and_show_on_backtrack)
+    : bdd(new BDD(*_bdd)), h(_h), config(_config), profiler(_profiler),
+      targets(Targets(_config)), allow_bdd_reordering(_allow_bdd_reordering), peek(_peek),
+      pause_and_show_on_backtrack(_pause_and_show_on_backtrack) {}
+
+template <class HCfg>
+SearchEngine<HCfg>::SearchEngine(const BDD *_bdd, Heuristic<HCfg> *_h,
+                                 const toml::table &_config, const Profiler &_profiler)
+    : SearchEngine(_bdd, _h, _config, _profiler, true, {}, false) {}
 
 template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
   search_meta_t meta;
@@ -194,12 +189,12 @@ template <class HCfg> search_report_t SearchEngine<HCfg>::search() {
     std::vector<impl_t> new_implementations;
 
     u64 children = 0;
-    for (const Target *target : targets) {
-      for (const ModuleGenerator *modgen : target->module_generators) {
+    for (const std::shared_ptr<const Target> &target : targets.elements) {
+      for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
         const std::vector<impl_t> implementations =
             modgen->generate(ep, node, allow_bdd_reordering);
-        search_space->add_to_active_leaf(ep, node, modgen, implementations);
-        report.save(modgen, implementations);
+        search_space->add_to_active_leaf(ep, node, modgen.get(), implementations);
+        report.save(modgen.get(), implementations);
 
         for (const impl_t &impl : implementations) {
           new_implementations.push_back(impl);

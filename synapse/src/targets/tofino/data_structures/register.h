@@ -25,9 +25,8 @@ struct Register : public DS {
   bits_t value;
   std::unordered_set<RegisterAction> actions;
 
-  Register(const TNAProperties &properties, DS_ID id, u32 num_entries,
-           bits_t index, bits_t value,
-           const std::unordered_set<RegisterAction> &actions);
+  Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index,
+           bits_t value, const std::unordered_set<RegisterAction> &actions);
 
   Register(const Register &other);
 

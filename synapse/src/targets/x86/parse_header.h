@@ -11,8 +11,8 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const Node *node, addr_t _chunk_addr,
-              klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+  ParseHeader(const Node *node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk,
+              klee::ref<klee::Expr> _length)
       : x86Module(ModuleType::x86_ParseHeader, "ParseHeader", node),
         chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
 
@@ -31,17 +31,15 @@ public:
   klee::ref<klee::Expr> get_length() const { return length; }
 };
 
-class ParseHeaderGenerator : public x86ModuleGenerator {
+class ParseHeaderFactory : public x86ModuleFactory {
 public:
-  ParseHeaderGenerator()
-      : x86ModuleGenerator(ModuleType::x86_ParseHeader, "ParseHeader") {}
+  ParseHeaderFactory() : x86ModuleFactory(ModuleType::x86_ParseHeader, "ParseHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

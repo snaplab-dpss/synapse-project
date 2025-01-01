@@ -36,13 +36,11 @@ protected:
 
 public:
   Node(node_id_t _id, NodeType _type, klee::ConstraintManager _constraints)
-      : id(_id), type(_type), next(nullptr), prev(nullptr),
-        constraints(_constraints) {}
+      : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints) {}
 
   Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev,
        klee::ConstraintManager _constraints)
-      : id(_id), type(_type), next(_next), prev(_prev),
-        constraints(_constraints) {}
+      : id(_id), type(_type), next(_next), prev(_prev), constraints(_constraints) {}
 
   const Node *get_next() const { return next; }
   const Node *get_prev() const { return prev; }
@@ -69,13 +67,11 @@ public:
 
   void visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> fn,
                    std::unique_ptr<cookie_t> cookie) const;
-  void
-  visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn,
-                      std::unique_ptr<cookie_t> cookie);
+  void visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn,
+                           std::unique_ptr<cookie_t> cookie);
 
   void recursive_update_ids(node_id_t &new_id);
-  void recursive_translate_symbol(const symbol_t &old_symbol,
-                                  const symbol_t &new_symbol);
+  void recursive_translate_symbol(const symbol_t &old_symbol, const symbol_t &new_symbol);
   void recursive_add_constraint(klee::ref<klee::Expr> constraint);
   void recursive_free_children(NodeManager &manager);
   std::string recursive_dump(int lvl = 0) const;
@@ -88,8 +84,7 @@ public:
   virtual std::vector<node_id_t> get_leaves() const;
   virtual std::vector<const Node *> get_children(bool recursive = false) const;
   virtual Node *clone(NodeManager &manager, bool recursive = false) const = 0;
-  virtual std::string dump(bool one_liner = false,
-                           bool id_name_only = false) const = 0;
+  virtual std::string dump(bool one_liner = false, bool id_name_only = false) const = 0;
 
   virtual ~Node() = default;
 };

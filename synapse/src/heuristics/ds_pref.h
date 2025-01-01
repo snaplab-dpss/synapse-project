@@ -5,11 +5,10 @@
 class DSPrefCfg : public HeuristicCfg {
 public:
   DSPrefCfg()
-      : HeuristicCfg("DSPref",
-                     {
-                         BUILD_METRIC(DSPrefCfg, get_bdd_progress, MAX),
-                         BUILD_METRIC(DSPrefCfg, get_ds_score, MAX),
-                     }) {}
+      : HeuristicCfg("DSPref", {
+                                   BUILD_METRIC(DSPrefCfg, get_bdd_progress, MAX),
+                                   BUILD_METRIC(DSPrefCfg, get_ds_score, MAX),
+                               }) {}
 
   DSPrefCfg &operator=(const DSPrefCfg &other) {
     ASSERT(other.name == name, "Mismatched names");

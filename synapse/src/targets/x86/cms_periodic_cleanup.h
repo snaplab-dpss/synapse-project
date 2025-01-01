@@ -10,8 +10,7 @@ private:
 
 public:
   CMSPeriodicCleanup(const Node *node, addr_t _cms_addr)
-      : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup",
-                  node),
+      : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup", node),
         cms_addr(_cms_addr) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -27,18 +26,16 @@ public:
   addr_t get_cms_addr() const { return cms_addr; }
 };
 
-class CMSPeriodicCleanupGenerator : public x86ModuleGenerator {
+class CMSPeriodicCleanupFactory : public x86ModuleFactory {
 public:
-  CMSPeriodicCleanupGenerator()
-      : x86ModuleGenerator(ModuleType::x86_CMSPeriodicCleanup,
-                           "CMSPeriodicCleanup") {}
+  CMSPeriodicCleanupFactory()
+      : x86ModuleFactory(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace x86

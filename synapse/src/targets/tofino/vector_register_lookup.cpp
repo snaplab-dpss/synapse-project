@@ -28,10 +28,11 @@ vector_register_data_t get_vector_register_data(const EP *ep,
   return vector_register_data;
 }
 
-BDD *delete_future_vector_return(EP *ep, const Node *node, addr_t vector,
-                                 const Node *&new_next) {
+std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
+                                                 addr_t vector,
+                                                 const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = node->get_next();
 
@@ -55,7 +56,8 @@ BDD *delete_future_vector_return(EP *ep, const Node *node, addr_t vector,
     }
 
     bool replace_next = (op == next);
-    Node *replacement = delete_non_branch_node_from_bdd(new_bdd, op->get_id());
+    Node *replacement =
+        delete_non_branch_node_from_bdd(new_bdd.get(), op->get_id());
 
     if (replace_next) {
       new_next = replacement;
@@ -67,8 +69,8 @@ BDD *delete_future_vector_return(EP *ep, const Node *node, addr_t vector,
 } // namespace
 
 std::optional<spec_impl_t>
-VectorRegisterLookupGenerator::speculate(const EP *ep, const Node *node,
-                                         const Context &ctx) const {
+VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
+                                       const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -112,8 +114,8 @@ VectorRegisterLookupGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-VectorRegisterLookupGenerator::process_node(const EP *ep,
-                                            const Node *node) const {
+VectorRegisterLookupFactory::process_node(const EP *ep,
+                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -160,8 +162,8 @@ VectorRegisterLookupGenerator::process_node(const EP *ep,
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  BDD *bdd = delete_future_vector_return(new_ep, node, vector_register_data.obj,
-                                         new_next);
+  std::unique_ptr<BDD> new_bdd = delete_future_vector_return(
+      new_ep, node, vector_register_data.obj, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
@@ -174,7 +176,7 @@ VectorRegisterLookupGenerator::process_node(const EP *ep,
 
   EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
-  new_ep->replace_bdd(bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   return impls;

@@ -1,10 +1,12 @@
 #include "context.h"
-#include "../targets/target.h"
+#include "../targets/targets.h"
 #include "../exprs/exprs.h"
 #include "../exprs/solver.h"
 #include "../bdd/bdd.h"
 
-static void log_bdd_pre_processing(
+namespace {
+
+void log_bdd_pre_processing(
     const std::vector<map_coalescing_objs_t> &coalescing_candidates) {
   Log::dbg() << "***** BDD pre-processing: *****\n";
   for (const map_coalescing_objs_t &candidate : coalescing_candidates) {
@@ -30,16 +32,14 @@ static void log_bdd_pre_processing(
   Log::dbg() << "*******************************\n";
 }
 
-static time_ns_t
-exp_time_from_expire_items_single_map_time(const BDD *bdd,
-                                           klee::ref<klee::Expr> time) {
+time_ns_t exp_time_from_expire_items_single_map_time(const BDD *bdd,
+                                                     klee::ref<klee::Expr> time) {
   ASSERT(time->getKind() == klee::Expr::Kind::Add, "Invalid time expression");
 
   klee::ref<klee::Expr> lhs = time->getKid(0);
   klee::ref<klee::Expr> rhs = time->getKid(1);
 
-  ASSERT(lhs->getKind() == klee::Expr::Kind::Constant,
-         "Invalid time expression");
+  ASSERT(lhs->getKind() == klee::Expr::Kind::Constant, "Invalid time expression");
 
   const symbol_t &time_symbol = bdd->get_time();
   ASSERT(solver_toolbox.are_exprs_always_equal(rhs, time_symbol.expr),
@@ -51,7 +51,7 @@ exp_time_from_expire_items_single_map_time(const BDD *bdd,
   return exp_time;
 }
 
-static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
+std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
   std::optional<expiration_data_t> expiration_data;
 
   const Node *root = bdd->get_root();
@@ -73,8 +73,7 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t number_of_freed_flows;
-    bool found =
-        get_symbol(symbols, "number_of_freed_flows", number_of_freed_flows);
+    bool found = get_symbol(symbols, "number_of_freed_flows", number_of_freed_flows);
     ASSERT(found, "Symbol number_of_freed_flows not found");
 
     expiration_data_t data = {
@@ -89,13 +88,13 @@ static std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 
   return expiration_data;
 }
+} // namespace
 
-Context::Context(const BDD *bdd, const targets_t &targets,
-                 const TargetType initial_target, const toml::table &config,
-                 const Profiler &_profiler)
+Context::Context(const BDD *bdd, const Targets &targets, const TargetType initial_target,
+                 const toml::table &config, const Profiler &_profiler)
     : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()),
       expiration_data(build_expiration_data(bdd)) {
-  for (const Target *target : targets) {
+  for (const std::shared_ptr<const Target> &target : targets.elements) {
     target_ctxs[target->type] = target->ctx->clone();
   }
 
@@ -175,18 +174,15 @@ Context::Context(const Context &other)
 }
 
 Context::Context(Context &&other)
-    : profiler(std::move(other.profiler)),
-      perf_oracle(std::move(other.perf_oracle)),
+    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)),
       map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)),
       dchain_configs(std::move(other.dchain_configs)),
       cms_configs(std::move(other.cms_configs)),
-      cht_configs(std::move(other.cht_configs)),
-      tb_configs(std::move(other.tb_configs)),
+      cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
       expiration_data(std::move(other.expiration_data)),
-      ds_impls(std::move(other.ds_impls)),
-      target_ctxs(std::move(other.target_ctxs)) {}
+      ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -264,8 +260,7 @@ const tb_config_t &Context::get_tb_config(addr_t addr) const {
   return tb_configs.at(addr);
 }
 
-std::optional<map_coalescing_objs_t>
-Context::get_map_coalescing_objs(addr_t obj) const {
+std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj) const {
   for (const map_coalescing_objs_t &candidate : coalescing_candidates) {
     if (candidate.map == obj || candidate.dchain == obj ||
         candidate.vectors.find(obj) != candidate.vectors.end()) {

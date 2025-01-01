@@ -13,10 +13,8 @@ private:
 
 public:
   MapRegisterWrite(const Node *node, DS_ID _map_register_id, addr_t _obj,
-                   klee::ref<klee::Expr> _key,
-                   klee::ref<klee::Expr> _write_value)
-      : TofinoModule(ModuleType::Tofino_MapRegisterWrite, "MapRegisterWrite",
-                     node),
+                   klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _write_value)
+      : TofinoModule(ModuleType::Tofino_MapRegisterWrite, "MapRegisterWrite", node),
         map_register_id(_map_register_id), obj(_obj), key(_key),
         write_value(_write_value) {}
 
@@ -26,8 +24,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new MapRegisterWrite(node, map_register_id, obj, key, write_value);
+    Module *cloned = new MapRegisterWrite(node, map_register_id, obj, key, write_value);
     return cloned;
   }
 
@@ -41,18 +38,16 @@ public:
   }
 };
 
-class MapRegisterWriteGenerator : public TofinoModuleGenerator {
+class MapRegisterWriteFactory : public TofinoModuleFactory {
 public:
-  MapRegisterWriteGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_MapRegisterWrite,
-                              "MapRegisterWrite") {}
+  MapRegisterWriteFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_MapRegisterWrite, "MapRegisterWrite") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

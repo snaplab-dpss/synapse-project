@@ -28,17 +28,16 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
 };
 
-class TBExpireGenerator : public TofinoCPUModuleGenerator {
+class TBExpireFactory : public TofinoCPUModuleFactory {
 public:
-  TBExpireGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TBExpire, "TBExpire") {}
+  TBExpireFactory()
+      : TofinoCPUModuleFactory(ModuleType::TofinoCPU_TBExpire, "TBExpire") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

@@ -27,8 +27,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TBTrace(node, tb_addr, key, pkt_len, time, index_out,
-                                 successfuly_tracing);
+    Module *cloned =
+        new TBTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
     return cloned;
   }
 
@@ -37,22 +37,18 @@ public:
   klee::ref<klee::Expr> get_pkt_len() const { return pkt_len; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
-  klee::ref<klee::Expr> get_successfuly_tracing() const {
-    return successfuly_tracing;
-  }
+  klee::ref<klee::Expr> get_successfuly_tracing() const { return successfuly_tracing; }
 };
 
-class TBTraceGenerator : public TofinoCPUModuleGenerator {
+class TBTraceFactory : public TofinoCPUModuleFactory {
 public:
-  TBTraceGenerator()
-      : TofinoCPUModuleGenerator(ModuleType::TofinoCPU_TBTrace, "TBTrace") {}
+  TBTraceFactory() : TofinoCPUModuleFactory(ModuleType::TofinoCPU_TBTrace, "TBTrace") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino_cpu

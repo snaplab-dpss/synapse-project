@@ -22,9 +22,9 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-ForwardGenerator::speculate(const EP *ep, const Node *node,
-                            const Context &ctx) const {
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep,
+                                                     const Node *node,
+                                                     const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
@@ -34,8 +34,8 @@ ForwardGenerator::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ForwardGenerator::process_node(const EP *ep,
-                                                   const Node *node) const {
+std::vector<impl_t> ForwardFactory::process_node(const EP *ep,
+                                                 const Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

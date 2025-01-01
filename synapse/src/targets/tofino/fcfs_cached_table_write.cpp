@@ -34,8 +34,8 @@ hit_rate_t get_cache_success_estimation_rel(const EP *ep, const Node *node,
                                             u32 cache_capacity) {
   hit_rate_t fraction = ep->get_ctx().get_profiler().get_hr(node);
   hit_rate_t expected_cached_fraction =
-      TofinoModuleGenerator::get_fcfs_cache_success_rate(ep->get_ctx(), map_put,
-                                                         key, cache_capacity);
+      TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), map_put,
+                                                       key, cache_capacity);
   return fraction * expected_cached_fraction;
 }
 
@@ -160,7 +160,7 @@ void delete_coalescing_nodes_on_success(
   }
 }
 
-BDD *branch_bdd_on_cache_write_success(
+std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
     const EP *ep, const Node *dchain_allocate_new_index,
     const fcfs_cached_table_data_t &cached_table_data,
     klee::ref<klee::Expr> cache_write_success_condition,
@@ -168,22 +168,22 @@ BDD *branch_bdd_on_cache_write_success(
     Node *&on_cache_write_failed,
     std::optional<constraints_t> &deleted_branch_constraints) {
   const BDD *old_bdd = ep->get_bdd();
-  BDD *new_bdd = new BDD(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = dchain_allocate_new_index->get_next();
   ASSERT(next, "No next node");
 
   Branch *cache_write_branch =
-      add_branch_to_bdd(new_bdd, next, cache_write_success_condition);
+      add_branch_to_bdd(new_bdd.get(), next, cache_write_success_condition);
   on_cache_write_success = cache_write_branch->get_mutable_on_true();
 
   add_dchain_allocate_new_index_clone_on_cache_write_failed(
-      ep, new_bdd, dchain_allocate_new_index, cache_write_branch,
+      ep, new_bdd.get(), dchain_allocate_new_index, cache_write_branch,
       on_cache_write_failed);
   replicate_hdr_parsing_ops_on_cache_write_failed(
-      ep, new_bdd, cache_write_branch, on_cache_write_failed);
+      ep, new_bdd.get(), cache_write_branch, on_cache_write_failed);
 
-  delete_coalescing_nodes_on_success(ep, new_bdd, on_cache_write_success,
+  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success,
                                      map_objs, cached_table_data.key,
                                      deleted_branch_constraints);
 
@@ -196,7 +196,7 @@ EP *concretize_cached_table_write(
     const symbol_t &cache_write_failed, u32 cache_capacity,
     const std::vector<const Call *> &future_map_puts) {
   FCFSCachedTable *cached_table =
-      TofinoModuleGenerator::build_or_reuse_fcfs_cached_table(
+      TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
           ep, node, cached_table_data.obj, cached_table_data.key,
           cached_table_data.num_entries, cache_capacity);
 
@@ -218,12 +218,12 @@ EP *concretize_cached_table_write(
   Node *on_cache_write_failed;
   std::optional<constraints_t> deleted_branch_constraints;
 
-  BDD *new_bdd = branch_bdd_on_cache_write_success(
+  std::unique_ptr<BDD> new_bdd = branch_bdd_on_cache_write_success(
       new_ep, node, cached_table_data, cache_write_success_condition, map_objs,
       on_cache_write_success, on_cache_write_failed,
       deleted_branch_constraints);
 
-  symbols_t symbols = TofinoModuleGenerator::get_dataplane_state(ep, node);
+  symbols_t symbols = TofinoModuleFactory::get_dataplane_state(ep, node);
 
   Module *if_module = new If(node, cache_write_success_condition,
                              {cache_write_success_condition});
@@ -267,7 +267,7 @@ EP *concretize_cached_table_write(
   }
 
   TofinoContext *tofino_ctx =
-      TofinoModuleGenerator::get_mutable_tofino_ctx(new_ep);
+      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
 
   EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
@@ -276,7 +276,7 @@ EP *concretize_cached_table_write(
 
   new_ep->process_leaf(cached_table_write_node, {on_cache_write_success_leaf,
                                                  on_cache_write_failed_leaf});
-  new_ep->replace_bdd(new_bdd);
+  new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
@@ -287,8 +287,8 @@ EP *concretize_cached_table_write(
 } // namespace
 
 std::optional<spec_impl_t>
-FCFSCachedTableWriteGenerator::speculate(const EP *ep, const Node *node,
-                                         const Context &ctx) const {
+FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
+                                       const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -377,8 +377,8 @@ FCFSCachedTableWriteGenerator::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableWriteGenerator::process_node(const EP *ep,
-                                            const Node *node) const {
+FCFSCachedTableWriteFactory::process_node(const EP *ep,
+                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

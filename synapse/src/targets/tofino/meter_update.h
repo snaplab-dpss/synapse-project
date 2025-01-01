@@ -19,8 +19,8 @@ public:
               klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _hit,
               klee::ref<klee::Expr> _pass)
       : TofinoModule(ModuleType::Tofino_MeterUpdate, "MeterUpdate", node),
-        table_id(_table_id), obj(_obj), keys(_keys), pkt_len(_pkt_len),
-        hit(_hit), pass(_pass) {}
+        table_id(_table_id), obj(_obj), keys(_keys), pkt_len(_pkt_len), hit(_hit),
+        pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -28,8 +28,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new MeterUpdate(node, table_id, obj, keys, pkt_len, hit, pass);
+    Module *cloned = new MeterUpdate(node, table_id, obj, keys, pkt_len, hit, pass);
     return cloned;
   }
 
@@ -45,17 +44,16 @@ public:
   }
 };
 
-class MeterUpdateGenerator : public TofinoModuleGenerator {
+class MeterUpdateFactory : public TofinoModuleFactory {
 public:
-  MeterUpdateGenerator()
-      : TofinoModuleGenerator(ModuleType::Tofino_MeterUpdate, "MeterUpdate") {}
+  MeterUpdateFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_MeterUpdate, "MeterUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t>
-  speculate(const EP *ep, const Node *node, const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
+                                               const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep,
-                                           const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
 } // namespace tofino

@@ -27,8 +27,7 @@ struct Table : public DS {
   bits_t get_match_xbar_consume() const;
   bits_t get_consumed_sram() const;
 
-  static std::vector<klee::ref<klee::Expr>>
-  build_keys(klee::ref<klee::Expr> key);
+  static std::vector<klee::ref<klee::Expr>> build_keys(klee::ref<klee::Expr> key);
 };
 
 } // namespace tofino

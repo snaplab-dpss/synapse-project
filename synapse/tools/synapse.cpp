@@ -24,18 +24,14 @@ enum class HeuristicOption {
 };
 
 const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
-    {"bfs", HeuristicOption::BFS},
-    {"dfs", HeuristicOption::DFS},
-    {"random", HeuristicOption::RANDOM},
-    {"gallium", HeuristicOption::GALLIUM},
-    {"greedy", HeuristicOption::GREEDY},
-    {"max-tput", HeuristicOption::MAX_TPUT},
+    {"bfs", HeuristicOption::BFS},         {"dfs", HeuristicOption::DFS},
+    {"random", HeuristicOption::RANDOM},   {"gallium", HeuristicOption::GALLIUM},
+    {"greedy", HeuristicOption::GREEDY},   {"max-tput", HeuristicOption::MAX_TPUT},
     {"ds-pref", HeuristicOption::DS_PREF},
 };
 
 search_report_t search(const BDD *bdd, const toml::table &config,
-                       const Profiler &profiler, const targets_t &targets,
-                       HeuristicOption heuristic_opt,
+                       const Profiler &profiler, HeuristicOption heuristic_opt,
                        const std::vector<ep_id_t> &peek, bool no_reorder,
                        bool pause_on_backtrack, bool not_greedy) {
   bool stop_on_first_solution = !not_greedy;
@@ -48,44 +44,44 @@ search_report_t search(const BDD *bdd, const toml::table &config,
   switch (heuristic_opt) {
   case HeuristicOption::BFS: {
     BFS heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::DFS: {
     DFS heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::RANDOM: {
     Random heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::GALLIUM: {
     Gallium heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::GREEDY: {
     Greedy heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::MAX_TPUT: {
     MaxTput heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   case HeuristicOption::DS_PREF: {
     DSPref heuristic(stop_on_first_solution);
-    SearchEngine engine(bdd, &heuristic, config, profiler, targets, !no_reorder,
-                        peek_set, pause_on_backtrack);
+    SearchEngine engine(bdd, &heuristic, config, profiler, !no_reorder, peek_set,
+                        pause_on_backtrack);
     return engine.search();
   } break;
   }
@@ -122,15 +118,12 @@ int main(int argc, char **argv) {
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
       ->required();
   app.add_option("--config", config_file, "Configuration file.")->required();
-  app.add_option("--out", out_dir,
-                 "Output directory for every generated file.");
+  app.add_option("--out", out_dir, "Output directory for every generated file.");
   app.add_option("--heuristic", heuristic_opt, "Chosen heuristic.")
-      ->transform(
-          CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case))
+      ->transform(CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case))
       ->required();
   app.add_option("--profile", bdd_profile, "BDD profile JSON.");
-  app.add_option("--seed", seed, "Random seed.")
-      ->default_val(std::random_device()());
+  app.add_option("--seed", seed, "Random seed.")->default_val(std::random_device()());
   app.add_option("--peek", peek, "Peek execution plans.");
   app.add_flag("--no-reorder", no_reorder, "Deactivate BDD reordering.");
   app.add_flag("--show-prof", show_prof, "Show NF profiling.");
@@ -160,8 +153,7 @@ int main(int argc, char **argv) {
     PANIC("Parsing failed: %s\n", err.what());
   }
 
-  Profiler profiler =
-      bdd_profile.empty() ? Profiler(bdd) : Profiler(bdd, bdd_profile);
+  Profiler profiler = bdd_profile.empty() ? Profiler(bdd) : Profiler(bdd, bdd_profile);
 
   profiler.debug();
 
@@ -169,20 +161,16 @@ int main(int argc, char **argv) {
     ProfilerViz::visualize(bdd, profiler, true);
   }
 
-  targets_t targets = build_targets(config);
-
   // std::string nf_name = nf_name_from_bdd(InputBDDFile);
-  search_report_t report =
-      search(bdd, config, profiler, targets, heuristic_opt, peek, no_reorder,
-             pause_on_backtrack, not_greedy);
+  search_report_t report = search(bdd, config, profiler, heuristic_opt, peek, no_reorder,
+                                  pause_on_backtrack, not_greedy);
 
   if (show_ep) {
     EPViz::visualize(report.solution.ep, false);
   }
 
   if (show_ss) {
-    SSVisualizer::visualize(report.solution.search_space, report.solution.ep,
-                            false);
+    SSVisualizer::visualize(report.solution.search_space, report.solution.ep, false);
   }
 
   if (show_bdd) {
@@ -201,18 +189,14 @@ int main(int argc, char **argv) {
   Log::log() << "  Search time:      " << report.meta.elapsed_time << " s\n";
   Log::log() << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
   Log::log() << "  Steps:            " << int2hr(report.meta.steps) << "\n";
-  Log::log() << "  Backtracks:       " << int2hr(report.meta.backtracks)
-             << "\n";
+  Log::log() << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
   Log::log() << "  Branching factor: " << report.meta.branching_factor << "\n";
-  Log::log() << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size)
-             << "\n";
+  Log::log() << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
   Log::log() << "  Solutions:        " << int2hr(report.meta.solutions) << "\n";
   Log::log() << "Winner EP:\n";
   Log::log() << "  Winner:           " << report.solution.score << "\n";
-  Log::log() << "  Throughput:       " << report.solution.tput_estimation
-             << "\n";
-  Log::log() << "  Speculation:      " << report.solution.tput_speculation
-             << "\n";
+  Log::log() << "  Throughput:       " << report.solution.tput_estimation << "\n";
+  Log::log() << "  Speculation:      " << report.solution.tput_speculation << "\n";
   Log::log() << "\n";
 
   if (!out_dir.empty()) {
@@ -228,8 +212,6 @@ int main(int argc, char **argv) {
   }
 
   delete bdd;
-
-  delete_targets(targets);
 
   return 0;
 }
