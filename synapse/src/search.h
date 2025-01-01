@@ -20,11 +20,13 @@ struct search_meta_t {
   u64 avg_bdd_size;
   float branching_factor;
   float total_ss_size_estimation;
-  int solutions;
+  int unfinished_eps;
+  int finished_eps;
 
   search_meta_t()
       : ss_size(0), elapsed_time(0), steps(0), backtracks(0), avg_bdd_size(0),
-        branching_factor(0), total_ss_size_estimation(0), solutions(0) {}
+        branching_factor(0), total_ss_size_estimation(0), unfinished_eps(0),
+        finished_eps(0) {}
 
   search_meta_t(const search_meta_t &other) = default;
   search_meta_t(search_meta_t &&other) = default;

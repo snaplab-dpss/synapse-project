@@ -10,7 +10,6 @@
 
 namespace {
 struct search_step_report_t {
-  int available_execution_plans;
   const EP *chosen;
   const Node *current;
 
@@ -18,10 +17,8 @@ struct search_step_report_t {
   std::vector<std::string> name;
   std::vector<std::vector<ep_id_t>> gen_ep_ids;
 
-  search_step_report_t(int _available_execution_plans, const EP *_chosen,
-                       const Node *_current)
-      : available_execution_plans(_available_execution_plans), chosen(_chosen),
-        current(_current) {}
+  search_step_report_t(const EP *_chosen, const Node *_current)
+      : chosen(_chosen), current(_current) {}
 
   void save(const ModuleFactory *modgen, const std::vector<impl_t> &implementations) {
     if (implementations.empty()) {
@@ -31,7 +28,6 @@ struct search_step_report_t {
     targets.push_back(modgen->get_target());
     name.push_back(modgen->get_name());
     gen_ep_ids.emplace_back();
-    available_execution_plans += implementations.size();
 
     for (const impl_t &impl : implementations) {
       ep_id_t next_ep_id = impl.result->get_id();
@@ -50,7 +46,6 @@ void log_search_iteration(const search_step_report_t &report,
 
   Log::dbg() << "EP ID:      " << report.chosen->get_id() << "\n";
   Log::dbg() << "Target:     " << platform << "\n";
-  Log::dbg() << "Available:  " << report.available_execution_plans << "\n";
 
   if (report.chosen->has_active_leaf()) {
     EPLeaf leaf = report.chosen->get_active_leaf();
@@ -93,7 +88,8 @@ void log_search_iteration(const search_step_report_t &report,
              << "\n";
   Log::dbg() << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
   Log::dbg() << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
-  Log::dbg() << "Candidates:       " << int2hr(search_meta.solutions) << "\n";
+  Log::dbg() << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
+  Log::dbg() << "Finished EPs:     " << int2hr(search_meta.finished_eps) << "\n";
 
   if (report.targets.size() == 0) {
     Log::dbg() << "\n";
@@ -215,7 +211,7 @@ search_report_t SearchEngine::search() {
     }
 
     const Node *node = ep->get_next_node();
-    search_step_report_t report(heuristic->size(), ep.get(), node);
+    search_step_report_t report(ep.get(), node);
 
     float &avg_node_children = meta.avg_children_per_node[node->get_id()];
     int &node_visits = meta.visits_per_node[node->get_id()];
@@ -257,7 +253,8 @@ search_report_t SearchEngine::search() {
     }
 
     meta.ss_size = search_space->get_size();
-    meta.solutions = heuristic->size();
+    meta.unfinished_eps = heuristic->unfinished_size();
+    meta.finished_eps = heuristic->finished_size();
 
     log_search_iteration(report, meta);
     peek_search_space(new_implementations, search_config.peek, search_space.get());
@@ -266,7 +263,8 @@ search_report_t SearchEngine::search() {
   }
 
   meta.ss_size = search_space->get_size();
-  meta.solutions = heuristic->size();
+  meta.unfinished_eps = heuristic->unfinished_size();
+  meta.finished_eps = heuristic->finished_size();
 
   std::unique_ptr<const EP> winner = heuristic->pop_best_finished();
   Score score = heuristic->get_score(winner.get());

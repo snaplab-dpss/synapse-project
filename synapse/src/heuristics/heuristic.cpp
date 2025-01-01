@@ -84,7 +84,8 @@ void Heuristic::add(std::vector<impl_t> &&new_implementations) {
   new_implementations.clear();
 }
 
-size_t Heuristic::size() const { return finished_eps.size(); }
+size_t Heuristic::unfinished_size() const { return unfinished_eps.size(); }
+size_t Heuristic::finished_size() const { return finished_eps.size(); }
 
 const HeuristicCfg *Heuristic::get_cfg() const { return config.get(); }
 

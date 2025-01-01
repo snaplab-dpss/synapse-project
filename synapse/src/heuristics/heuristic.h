@@ -25,7 +25,8 @@ public:
   std::unique_ptr<const EP> pop_best_finished();
   std::unique_ptr<const EP> pop_next_unfinished();
 
-  size_t size() const;
+  size_t unfinished_size() const;
+  size_t finished_size() const;
   const HeuristicCfg *get_cfg() const;
   Score get_score(const EP *e) const;
 

@@ -124,7 +124,8 @@ int main(int argc, char **argv) {
   Log::log() << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
   Log::log() << "  Branching factor: " << report.meta.branching_factor << "\n";
   Log::log() << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
-  Log::log() << "  Solutions:        " << int2hr(report.meta.solutions) << "\n";
+  Log::log() << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
+  Log::log() << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
   Log::log() << "Winner EP:\n";
   Log::log() << "  Winner:           " << report.score << "\n";
   Log::log() << "  Throughput:       " << report.tput_estimation << "\n";
