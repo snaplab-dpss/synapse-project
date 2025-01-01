@@ -4,147 +4,109 @@
 
 Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config,
                      std::unique_ptr<EP> starting_ep, bool _stop_on_first_solution)
-    : config(std::move(_config)),
-      execution_plans(std::multiset<const EP *, ep_cmp_t>(
-          [&](const EP *e1, const EP *e2) { return (*config)(e1, e2); })),
-      stop_on_first_solution(_stop_on_first_solution) {
+    : config(std::move(_config)), stop_on_first_solution(_stop_on_first_solution) {
   const EP *ep = starting_ep.release();
   ASSERT(ep, "Invalid execution plan");
 
-  execution_plans.emplace(ep);
-  reset_best_it();
+  unfinished_eps.emplace(ep);
 
-  ep_refs[ep]++;
+  rebuild_execution_plans_sets();
 }
 
 Heuristic::~Heuristic() {
-  for (auto &[ep, count] : ep_refs) {
+  for (const EP *ep : unfinished_eps) {
     delete ep;
   }
 
-  ep_refs.clear();
-  execution_plans.clear();
+  for (const EP *ep : finished_eps) {
+    delete ep;
+  }
 }
 
-bool Heuristic::finished() { return get_next_it() == execution_plans.end(); }
+bool Heuristic::is_finished() {
+  if (stop_on_first_solution && !finished_eps.empty()) {
+    return true;
+  }
 
-const EP *Heuristic::get() {
-  update_best_it();
-  return *best_it;
+  // TODO: some stopping condition for a non-greedy approach.
+  return false;
 }
 
-const EP *Heuristic::pop() {
-  auto next_it = get_next_it();
-  ASSERT(next_it != execution_plans.end(), "No more execution plans to pick");
+std::unique_ptr<const EP> Heuristic::pop_best_finished() {
+  ep_it_t best_finished_it = finished_eps.begin();
+  const EP *best = *best_finished_it;
+  finished_eps.erase(best_finished_it);
+  return std::unique_ptr<const EP>(best);
+}
+
+void Heuristic::rebuild_execution_plans_sets() {
+  auto rebuilder = [this](std::multiset<const EP *, ep_cmp_t> &target) {
+    std::vector<const EP *> backup(target.begin(), target.end());
+    target = std::multiset<const EP *, ep_cmp_t>(
+        [this](const EP *e1, const EP *e2) { return (*config)(e1, e2); });
+    target.insert(backup.begin(), backup.end());
+  };
+
+  rebuilder(unfinished_eps);
+  rebuilder(finished_eps);
+}
+
+std::unique_ptr<const EP> Heuristic::pop_next_unfinished() {
+  ep_it_t next_it = get_next_unfinished_it();
+  ASSERT(next_it != unfinished_eps.end(), "No more execution plans to pick");
 
   if (config->mutates(*next_it)) {
-    std::vector<const EP *> eps(execution_plans.begin(), execution_plans.end());
-
     // Trigger a re-sort with the new mutated heuristic.
-    execution_plans = std::multiset<const EP *, ep_cmp_t>(
-        [&](const EP *e1, const EP *e2) { return (*config)(e1, e2); });
-    execution_plans.insert(eps.begin(), eps.end());
-
-    reset_best_it();
-    next_it = get_next_it();
-    ASSERT(next_it != execution_plans.end(), "No more execution plans to pick");
+    // Otherwise the multiset won't use the new instance (modified).
+    rebuild_execution_plans_sets();
+    next_it = get_next_unfinished_it();
+    ASSERT(next_it != unfinished_eps.end(), "No more execution plans to pick");
   }
 
   const EP *chosen_ep = *next_it;
+  unfinished_eps.erase(next_it);
 
-  auto ancestor_it = ancestors.find(chosen_ep);
-  if (ancestor_it != ancestors.end()) {
-    ep_refs[ancestor_it->second]--;
-    ancestors.erase(chosen_ep);
-  }
-
-  ep_refs[chosen_ep]--;
-  execution_plans.erase(next_it);
-
-  reset_best_it();
-
-  return chosen_ep;
-}
-
-void Heuristic::cleanup() {
-  std::unordered_set<const EP *> deleted;
-
-  for (const auto &[ep, count] : ep_refs) {
-    if (count == 0) {
-      deleted.insert(ep);
-      delete ep;
-    }
-  }
-
-  for (const EP *ep : deleted) {
-    ep_refs.erase(ep);
-  }
+  return std::unique_ptr<const EP>(chosen_ep);
 }
 
 void Heuristic::add(std::vector<impl_t> &&new_implementations) {
   for (impl_t &impl : new_implementations) {
     const EP *ep = impl.result;
-
     ASSERT(ep, "Invalid execution plan");
-    execution_plans.insert(ep);
-    ep_refs[ep]++;
 
-    ASSERT(impl.decision.ep, "Invalid execution plan");
-    ancestors[ep] = impl.decision.ep;
-    ep_refs[impl.decision.ep]++;
+    if (ep->get_next_node()) {
+      unfinished_eps.insert(ep);
+    } else {
+      finished_eps.insert(ep);
+    }
   }
-
-  reset_best_it();
 
   new_implementations.clear();
 }
 
-size_t Heuristic::size() const { return execution_plans.size(); }
+size_t Heuristic::size() const { return finished_eps.size(); }
 
 const HeuristicCfg *Heuristic::get_cfg() const { return config.get(); }
 
 Score Heuristic::get_score(const EP *e) const { return config->score(e); }
 
-void Heuristic::update_best_it() {
-  ASSERT(execution_plans.size(), "No execution plans to pick");
+Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
+  ASSERT(!unfinished_eps.empty(), "No execution plans to pick");
 
-  if (best_it != execution_plans.end()) {
-    return;
-  }
-
-  best_it = execution_plans.begin();
-  Score best_score = get_score(*best_it);
+  ep_it_t it = unfinished_eps.begin();
+  Score best_score = get_score(*it);
 
   while (1) {
-    if (best_it == execution_plans.end() || get_score(*best_it) != best_score) {
-      best_it = execution_plans.begin();
+    const EP *ep = *it;
+
+    if ((it == unfinished_eps.end()) || (get_score(ep) != best_score)) {
+      it = unfinished_eps.begin();
     }
 
     if (RandomEngine::generate() % 2 == 0) {
       break;
     }
 
-    best_it++;
-  }
-}
-
-void Heuristic::reset_best_it() { best_it = execution_plans.end(); }
-
-Heuristic::ep_it_t Heuristic::get_next_it() {
-  if (execution_plans.size() == 0) {
-    PANIC("No more execution plans to pick from!\n");
-  }
-
-  update_best_it();
-
-  ep_it_t it = best_it;
-  ASSERT(it != execution_plans.end(), "Invalid iterator");
-
-  if (stop_on_first_solution && !(*it)->get_next_node()) {
-    return execution_plans.end();
-  }
-
-  while (it != execution_plans.end() && !(*it)->get_next_node()) {
     it++;
   }
 

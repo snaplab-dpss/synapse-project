@@ -195,13 +195,13 @@ search_report_t SearchEngine::search() {
     return NodeVisitAction::Continue;
   });
 
-  while (!heuristic->finished()) {
+  while (!heuristic->is_finished()) {
     meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
                             std::chrono::steady_clock::now() - start_search)
                             .count();
 
-    const EP *ep = heuristic->pop();
-    search_space->activate_leaf(ep);
+    std::unique_ptr<const EP> ep = heuristic->pop_next_unfinished();
+    search_space->activate_leaf(ep.get());
 
     meta.avg_bdd_size *= meta.steps;
     meta.avg_bdd_size += ep->get_bdd()->size();
@@ -210,11 +210,12 @@ search_report_t SearchEngine::search() {
 
     if (search_space->is_backtrack()) {
       meta.backtracks++;
-      peek_backtrack(ep, search_space.get(), search_config.pause_and_show_on_backtrack);
+      peek_backtrack(ep.get(), search_space.get(),
+                     search_config.pause_and_show_on_backtrack);
     }
 
     const Node *node = ep->get_next_node();
-    search_step_report_t report(heuristic->size(), ep, node);
+    search_step_report_t report(heuristic->size(), ep.get(), node);
 
     float &avg_node_children = meta.avg_children_per_node[node->get_id()];
     int &node_visits = meta.visits_per_node[node->get_id()];
@@ -225,13 +226,12 @@ search_report_t SearchEngine::search() {
     for (const std::shared_ptr<const Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
         const std::vector<impl_t> implementations =
-            modgen->generate(ep, node, !search_config.no_reorder);
-        search_space->add_to_active_leaf(ep, node, modgen.get(), implementations);
-        report.save(modgen.get(), implementations);
+            modgen->generate(ep.get(), node, !search_config.no_reorder);
 
-        for (const impl_t &impl : implementations) {
-          new_implementations.push_back(impl);
-        }
+        search_space->add_to_active_leaf(ep.get(), node, modgen.get(), implementations);
+        report.save(modgen.get(), implementations);
+        new_implementations.insert(new_implementations.end(), implementations.begin(),
+                                   implementations.end());
 
         if (target->type == TargetType::Tofino) {
           children += implementations.size();
@@ -263,21 +263,23 @@ search_report_t SearchEngine::search() {
     peek_search_space(new_implementations, search_config.peek, search_space.get());
 
     heuristic->add(std::move(new_implementations));
-    heuristic->cleanup();
   }
 
   meta.ss_size = search_space->get_size();
   meta.solutions = heuristic->size();
 
-  const EP *winner = heuristic->get();
+  std::unique_ptr<const EP> winner = heuristic->pop_best_finished();
+  Score score = heuristic->get_score(winner.get());
+  std::string tput_estimation = SearchSpace::build_meta_tput_estimate(winner.get());
+  std::string tput_speculation = SearchSpace::build_meta_tput_speculation(winner.get());
 
   search_report_t report{
       heuristic->get_cfg()->name,
-      std::make_unique<EP>(*winner),
+      std::move(winner),
       std::move(search_space),
-      heuristic->get_score(winner),
-      SearchSpace::build_meta_tput_estimate(winner),
-      SearchSpace::build_meta_tput_speculation(winner),
+      score,
+      tput_estimation,
+      tput_speculation,
       meta,
   };
 

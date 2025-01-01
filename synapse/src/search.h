@@ -32,7 +32,7 @@ struct search_meta_t {
 
 struct search_report_t {
   std::string heuristic;
-  std::unique_ptr<EP> ep;
+  std::unique_ptr<const EP> ep;
   std::unique_ptr<SearchSpace> search_space;
   Score score;
   std::string tput_estimation;

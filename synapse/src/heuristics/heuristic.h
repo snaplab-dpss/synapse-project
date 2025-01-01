@@ -11,10 +11,8 @@ private:
   using ep_it_t = typename std::set<const EP *, HeuristicCfg>::iterator;
 
   std::unique_ptr<HeuristicCfg> config;
-  std::multiset<const EP *, ep_cmp_t> execution_plans;
-  std::unordered_map<const EP *, const EP *> ancestors;
-  std::unordered_map<const EP *, i64> ep_refs;
-  ep_it_t best_it;
+  std::multiset<const EP *, ep_cmp_t> unfinished_eps;
+  std::multiset<const EP *, ep_cmp_t> finished_eps;
   bool stop_on_first_solution;
 
 public:
@@ -22,18 +20,16 @@ public:
             bool stop_on_first_solution);
   ~Heuristic();
 
-  bool finished();
-  const EP *get();
-  const EP *pop();
-  void cleanup();
+  bool is_finished();
   void add(std::vector<impl_t> &&new_implementations);
+  std::unique_ptr<const EP> pop_best_finished();
+  std::unique_ptr<const EP> pop_next_unfinished();
 
   size_t size() const;
   const HeuristicCfg *get_cfg() const;
   Score get_score(const EP *e) const;
 
 private:
-  void update_best_it();
-  void reset_best_it();
-  ep_it_t get_next_it();
+  void rebuild_execution_plans_sets();
+  ep_it_t get_next_unfinished_it();
 };
