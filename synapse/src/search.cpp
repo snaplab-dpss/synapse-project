@@ -196,7 +196,7 @@ search_report_t SearchEngine::search() {
                             std::chrono::steady_clock::now() - start_search)
                             .count();
 
-    std::unique_ptr<const EP> ep = heuristic->pop_next_unfinished();
+    std::unique_ptr<EP> ep = heuristic->pop_next_unfinished();
     search_space->activate_leaf(ep.get());
 
     meta.avg_bdd_size *= meta.steps;
