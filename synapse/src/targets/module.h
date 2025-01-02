@@ -73,68 +73,68 @@ enum class ModuleType {
   // Tofino CPU
   // ========================================
 
-  TofinoCPU_Ignore,
-  TofinoCPU_ParseHeader,
-  TofinoCPU_ModifyHeader,
-  TofinoCPU_ChecksumUpdate,
+  Controller_Ignore,
+  Controller_ParseHeader,
+  Controller_ModifyHeader,
+  Controller_ChecksumUpdate,
 
-  TofinoCPU_If,
-  TofinoCPU_Then,
-  TofinoCPU_Else,
+  Controller_If,
+  Controller_Then,
+  Controller_Else,
 
-  TofinoCPU_Forward,
-  TofinoCPU_Broadcast,
-  TofinoCPU_Drop,
+  Controller_Forward,
+  Controller_Broadcast,
+  Controller_Drop,
 
-  TofinoCPU_TableLookup,
-  TofinoCPU_TableUpdate,
-  TofinoCPU_TableDelete,
+  Controller_TableLookup,
+  Controller_TableUpdate,
+  Controller_TableDelete,
 
-  TofinoCPU_FCFSCachedTableRead,
-  TofinoCPU_FCFSCachedTableWrite,
-  TofinoCPU_FCFSCachedTableDelete,
+  Controller_FCFSCachedTableRead,
+  Controller_FCFSCachedTableWrite,
+  Controller_FCFSCachedTableDelete,
 
-  TofinoCPU_MapRegisterRead,
-  TofinoCPU_MapRegisterWrite,
-  TofinoCPU_MapRegisterDelete,
+  Controller_MapRegisterRead,
+  Controller_MapRegisterWrite,
+  Controller_MapRegisterDelete,
 
-  TofinoCPU_HHTableRead,
-  TofinoCPU_HHTableConditionalUpdate,
-  TofinoCPU_HHTableUpdate,
-  TofinoCPU_HHTableDelete,
+  Controller_HHTableRead,
+  Controller_HHTableConditionalUpdate,
+  Controller_HHTableUpdate,
+  Controller_HHTableDelete,
 
-  TofinoCPU_DchainAllocateNewIndex,
-  TofinoCPU_DchainRejuvenateIndex,
-  TofinoCPU_DchainIsIndexAllocated,
-  TofinoCPU_DchainFreeIndex,
+  Controller_DchainAllocateNewIndex,
+  Controller_DchainRejuvenateIndex,
+  Controller_DchainIsIndexAllocated,
+  Controller_DchainFreeIndex,
 
-  TofinoCPU_IntegerAllocatorFreeIndex,
+  Controller_IntegerAllocatorFreeIndex,
 
-  TofinoCPU_VectorRead,
-  TofinoCPU_VectorWrite,
+  Controller_VectorRead,
+  Controller_VectorWrite,
 
-  TofinoCPU_MapGet,
-  TofinoCPU_MapPut,
-  TofinoCPU_MapErase,
+  Controller_MapGet,
+  Controller_MapPut,
+  Controller_MapErase,
 
-  TofinoCPU_ChtFindBackend,
+  Controller_ChtFindBackend,
 
-  TofinoCPU_HashObj,
+  Controller_HashObj,
 
-  TofinoCPU_VectorRegisterLookup,
-  TofinoCPU_VectorRegisterUpdate,
+  Controller_VectorRegisterLookup,
+  Controller_VectorRegisterUpdate,
 
-  TofinoCPU_TBIsTracing,
-  TofinoCPU_TBTrace,
-  TofinoCPU_TBUpdateAndCheck,
-  TofinoCPU_TBExpire,
+  Controller_TBIsTracing,
+  Controller_TBTrace,
+  Controller_TBUpdateAndCheck,
+  Controller_TBExpire,
 
-  TofinoCPU_MeterInsert,
+  Controller_MeterInsert,
 
-  TofinoCPU_CMSUpdate,
-  TofinoCPU_CMSQuery,
-  TofinoCPU_CMSIncrement,
-  TofinoCPU_CMSCountMin,
+  Controller_CMSUpdate,
+  Controller_CMSQuery,
+  Controller_CMSIncrement,
+  Controller_CMSCountMin,
 
   // ========================================
   // x86
@@ -287,143 +287,143 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_Recirculate:
     os << "Tofino_Recirculate";
     break;
-  case ModuleType::TofinoCPU_Ignore:
-    os << "TofinoCPU_Ignore";
+  case ModuleType::Controller_Ignore:
+    os << "Controller_Ignore";
     break;
-  case ModuleType::TofinoCPU_ParseHeader:
-    os << "TofinoCPU_ParseHeader";
+  case ModuleType::Controller_ParseHeader:
+    os << "Controller_ParseHeader";
     break;
-  case ModuleType::TofinoCPU_ModifyHeader:
-    os << "TofinoCPU_ModifyHeader";
+  case ModuleType::Controller_ModifyHeader:
+    os << "Controller_ModifyHeader";
     break;
-  case ModuleType::TofinoCPU_ChecksumUpdate:
-    os << "TofinoCPU_ChecksumUpdate";
+  case ModuleType::Controller_ChecksumUpdate:
+    os << "Controller_ChecksumUpdate";
     break;
-  case ModuleType::TofinoCPU_If:
-    os << "TofinoCPU_If";
+  case ModuleType::Controller_If:
+    os << "Controller_If";
     break;
-  case ModuleType::TofinoCPU_Then:
-    os << "TofinoCPU_Then";
+  case ModuleType::Controller_Then:
+    os << "Controller_Then";
     break;
-  case ModuleType::TofinoCPU_Else:
-    os << "TofinoCPU_Else";
+  case ModuleType::Controller_Else:
+    os << "Controller_Else";
     break;
-  case ModuleType::TofinoCPU_Forward:
-    os << "TofinoCPU_Forward";
+  case ModuleType::Controller_Forward:
+    os << "Controller_Forward";
     break;
-  case ModuleType::TofinoCPU_Broadcast:
-    os << "TofinoCPU_Broadcast";
+  case ModuleType::Controller_Broadcast:
+    os << "Controller_Broadcast";
     break;
-  case ModuleType::TofinoCPU_Drop:
-    os << "TofinoCPU_Drop";
+  case ModuleType::Controller_Drop:
+    os << "Controller_Drop";
     break;
-  case ModuleType::TofinoCPU_TableLookup:
-    os << "TofinoCPU_TableLookup";
+  case ModuleType::Controller_TableLookup:
+    os << "Controller_TableLookup";
     break;
-  case ModuleType::TofinoCPU_TableUpdate:
-    os << "TofinoCPU_TableUpdate";
+  case ModuleType::Controller_TableUpdate:
+    os << "Controller_TableUpdate";
     break;
-  case ModuleType::TofinoCPU_TableDelete:
-    os << "TofinoCPU_TableDelete";
+  case ModuleType::Controller_TableDelete:
+    os << "Controller_TableDelete";
     break;
-  case ModuleType::TofinoCPU_FCFSCachedTableRead:
-    os << "TofinoCPU_FCFSCachedTableRead";
+  case ModuleType::Controller_FCFSCachedTableRead:
+    os << "Controller_FCFSCachedTableRead";
     break;
-  case ModuleType::TofinoCPU_FCFSCachedTableWrite:
-    os << "TofinoCPU_FCFSCachedTableWrite";
+  case ModuleType::Controller_FCFSCachedTableWrite:
+    os << "Controller_FCFSCachedTableWrite";
     break;
-  case ModuleType::TofinoCPU_FCFSCachedTableDelete:
-    os << "TofinoCPU_FCFSCachedTableDelete";
+  case ModuleType::Controller_FCFSCachedTableDelete:
+    os << "Controller_FCFSCachedTableDelete";
     break;
-  case ModuleType::TofinoCPU_MapRegisterRead:
-    os << "TofinoCPU_MapRegisterRead";
+  case ModuleType::Controller_MapRegisterRead:
+    os << "Controller_MapRegisterRead";
     break;
-  case ModuleType::TofinoCPU_MapRegisterWrite:
-    os << "TofinoCPU_MapRegisterWrite";
+  case ModuleType::Controller_MapRegisterWrite:
+    os << "Controller_MapRegisterWrite";
     break;
-  case ModuleType::TofinoCPU_MapRegisterDelete:
-    os << "TofinoCPU_MapRegisterDelete";
+  case ModuleType::Controller_MapRegisterDelete:
+    os << "Controller_MapRegisterDelete";
     break;
-  case ModuleType::TofinoCPU_HHTableRead:
-    os << "TofinoCPU_HHTableRead";
+  case ModuleType::Controller_HHTableRead:
+    os << "Controller_HHTableRead";
     break;
-  case ModuleType::TofinoCPU_HHTableConditionalUpdate:
-    os << "TofinoCPU_HHTableConditionalUpdate";
+  case ModuleType::Controller_HHTableConditionalUpdate:
+    os << "Controller_HHTableConditionalUpdate";
     break;
-  case ModuleType::TofinoCPU_HHTableUpdate:
-    os << "TofinoCPU_HHTableUpdate";
+  case ModuleType::Controller_HHTableUpdate:
+    os << "Controller_HHTableUpdate";
     break;
-  case ModuleType::TofinoCPU_HHTableDelete:
-    os << "TofinoCPU_HHTableDelete";
+  case ModuleType::Controller_HHTableDelete:
+    os << "Controller_HHTableDelete";
     break;
-  case ModuleType::TofinoCPU_DchainAllocateNewIndex:
-    os << "TofinoCPU_DchainAllocateNewIndex";
+  case ModuleType::Controller_DchainAllocateNewIndex:
+    os << "Controller_DchainAllocateNewIndex";
     break;
-  case ModuleType::TofinoCPU_DchainRejuvenateIndex:
-    os << "TofinoCPU_DchainRejuvenateIndex";
+  case ModuleType::Controller_DchainRejuvenateIndex:
+    os << "Controller_DchainRejuvenateIndex";
     break;
-  case ModuleType::TofinoCPU_DchainIsIndexAllocated:
-    os << "TofinoCPU_DchainIsIndexAllocated";
+  case ModuleType::Controller_DchainIsIndexAllocated:
+    os << "Controller_DchainIsIndexAllocated";
     break;
-  case ModuleType::TofinoCPU_DchainFreeIndex:
-    os << "TofinoCPU_DchainFreeIndex";
+  case ModuleType::Controller_DchainFreeIndex:
+    os << "Controller_DchainFreeIndex";
     break;
-  case ModuleType::TofinoCPU_IntegerAllocatorFreeIndex:
-    os << "TofinoCPU_IntegerAllocatorFreeIndex";
+  case ModuleType::Controller_IntegerAllocatorFreeIndex:
+    os << "Controller_IntegerAllocatorFreeIndex";
     break;
-  case ModuleType::TofinoCPU_VectorRead:
-    os << "TofinoCPU_VectorRead";
+  case ModuleType::Controller_VectorRead:
+    os << "Controller_VectorRead";
     break;
-  case ModuleType::TofinoCPU_VectorWrite:
-    os << "TofinoCPU_VectorWrite";
+  case ModuleType::Controller_VectorWrite:
+    os << "Controller_VectorWrite";
     break;
-  case ModuleType::TofinoCPU_MapGet:
-    os << "TofinoCPU_MapGet";
+  case ModuleType::Controller_MapGet:
+    os << "Controller_MapGet";
     break;
-  case ModuleType::TofinoCPU_MapPut:
-    os << "TofinoCPU_MapPut";
+  case ModuleType::Controller_MapPut:
+    os << "Controller_MapPut";
     break;
-  case ModuleType::TofinoCPU_MapErase:
-    os << "TofinoCPU_MapErase";
+  case ModuleType::Controller_MapErase:
+    os << "Controller_MapErase";
     break;
-  case ModuleType::TofinoCPU_ChtFindBackend:
-    os << "TofinoCPU_ChtFindBackend";
+  case ModuleType::Controller_ChtFindBackend:
+    os << "Controller_ChtFindBackend";
     break;
-  case ModuleType::TofinoCPU_HashObj:
-    os << "TofinoCPU_HashObj";
+  case ModuleType::Controller_HashObj:
+    os << "Controller_HashObj";
     break;
-  case ModuleType::TofinoCPU_VectorRegisterLookup:
-    os << "TofinoCPU_VectorRegisterLookup";
+  case ModuleType::Controller_VectorRegisterLookup:
+    os << "Controller_VectorRegisterLookup";
     break;
-  case ModuleType::TofinoCPU_VectorRegisterUpdate:
-    os << "TofinoCPU_VectorRegisterUpdate";
+  case ModuleType::Controller_VectorRegisterUpdate:
+    os << "Controller_VectorRegisterUpdate";
     break;
-  case ModuleType::TofinoCPU_TBIsTracing:
-    os << "TofinoCPU_TBIsTracing";
+  case ModuleType::Controller_TBIsTracing:
+    os << "Controller_TBIsTracing";
     break;
-  case ModuleType::TofinoCPU_TBTrace:
-    os << "TofinoCPU_TBTrace";
+  case ModuleType::Controller_TBTrace:
+    os << "Controller_TBTrace";
     break;
-  case ModuleType::TofinoCPU_TBUpdateAndCheck:
-    os << "TofinoCPU_TBUpdateAndCheck";
+  case ModuleType::Controller_TBUpdateAndCheck:
+    os << "Controller_TBUpdateAndCheck";
     break;
-  case ModuleType::TofinoCPU_TBExpire:
-    os << "TofinoCPU_TBExpire";
+  case ModuleType::Controller_TBExpire:
+    os << "Controller_TBExpire";
     break;
-  case ModuleType::TofinoCPU_MeterInsert:
-    os << "TofinoCPU_MeterInsert";
+  case ModuleType::Controller_MeterInsert:
+    os << "Controller_MeterInsert";
     break;
-  case ModuleType::TofinoCPU_CMSUpdate:
-    os << "TofinoCPU_CMSUpdate";
+  case ModuleType::Controller_CMSUpdate:
+    os << "Controller_CMSUpdate";
     break;
-  case ModuleType::TofinoCPU_CMSQuery:
-    os << "TofinoCPU_CMSQuery";
+  case ModuleType::Controller_CMSQuery:
+    os << "Controller_CMSQuery";
     break;
-  case ModuleType::TofinoCPU_CMSIncrement:
-    os << "TofinoCPU_CMSIncrement";
+  case ModuleType::Controller_CMSIncrement:
+    os << "Controller_CMSIncrement";
     break;
-  case ModuleType::TofinoCPU_CMSCountMin:
-    os << "TofinoCPU_CMSCountMin";
+  case ModuleType::Controller_CMSCountMin:
+    os << "Controller_CMSCountMin";
     break;
   case ModuleType::x86_Ignore:
     os << "x86_Ignore";

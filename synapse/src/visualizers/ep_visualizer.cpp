@@ -27,14 +27,14 @@ namespace synapse {
 namespace {
 std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
-    {TargetType::TofinoCPU, "lightcoral"},
+    {TargetType::Controller, "lightcoral"},
     {TargetType::x86, "orange"},
 };
 
 std::unordered_set<ModuleType> modules_to_ignore = {
     ModuleType::x86_Ignore,
     ModuleType::Tofino_Ignore,
-    ModuleType::TofinoCPU_Ignore,
+    ModuleType::Controller_Ignore,
 };
 
 bool should_ignore_node(const EPNode *node) {

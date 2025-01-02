@@ -6,7 +6,7 @@ namespace synapse {
 namespace {
 std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
-    {TargetType::TofinoCPU, "firebrick2"},
+    {TargetType::Controller, "firebrick2"},
     {TargetType::x86, "orange"},
 };
 

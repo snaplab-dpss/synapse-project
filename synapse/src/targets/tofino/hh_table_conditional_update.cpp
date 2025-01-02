@@ -5,7 +5,7 @@
 #include "else.h"
 #include "send_to_controller.h"
 #include "hh_table_read.h"
-#include "../tofino_cpu/hh_table_update.h"
+#include "../controller/hh_table_update.h"
 
 namespace synapse {
 namespace tofino {
@@ -143,7 +143,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
 }
 } // namespace
 
-using tofino_cpu::HHTableUpdate;
+using controller::HHTableUpdate;
 
 std::optional<spec_impl_t>
 HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,

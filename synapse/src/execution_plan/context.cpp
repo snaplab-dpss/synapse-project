@@ -327,23 +327,23 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::Tofino_CuckooHashTable:
     os << "Tofino::CuckooHashTable";
     break;
-  case DSImpl::TofinoCPU_DoubleChain:
-    os << "TofinoCPU::Dchain";
+  case DSImpl::Controller_DoubleChain:
+    os << "Controller::Dchain";
     break;
-  case DSImpl::TofinoCPU_Vector:
-    os << "TofinoCPU::Vector";
+  case DSImpl::Controller_Vector:
+    os << "Controller::Vector";
     break;
-  case DSImpl::TofinoCPU_CountMinSketch:
-    os << "TofinoCPU::CMS";
+  case DSImpl::Controller_CountMinSketch:
+    os << "Controller::CMS";
     break;
-  case DSImpl::TofinoCPU_Map:
-    os << "TofinoCPU::Map";
+  case DSImpl::Controller_Map:
+    os << "Controller::Map";
     break;
-  case DSImpl::TofinoCPU_ConsistentHashTable:
-    os << "TofinoCPU::Cht";
+  case DSImpl::Controller_ConsistentHashTable:
+    os << "Controller::Cht";
     break;
-  case DSImpl::TofinoCPU_TokenBucket:
-    os << "TofinoCPU::TB";
+  case DSImpl::Controller_TokenBucket:
+    os << "Controller::TB";
     break;
   case DSImpl::x86_Map:
     os << "x86::Map";

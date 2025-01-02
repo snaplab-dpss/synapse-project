@@ -13,7 +13,7 @@ class TargetContext;
 enum class TargetType {
   x86,
   Tofino,
-  TofinoCPU,
+  Controller,
 };
 
 std::ostream &operator<<(std::ostream &os, TargetType target);

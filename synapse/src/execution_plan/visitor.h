@@ -55,7 +55,7 @@ class CMSIncrement;
 class CMSIncAndQuery;
 } // namespace tofino
 
-namespace tofino_cpu {
+namespace controller {
 class Ignore;
 class ParseHeader;
 class ModifyHeader;
@@ -102,7 +102,7 @@ class CMSUpdate;
 class CMSQuery;
 class CMSIncrement;
 class CMSCountMin;
-} // namespace tofino_cpu
+} // namespace controller
 
 namespace x86 {
 class Ignore;
@@ -186,52 +186,52 @@ public:
   // Tofino CPU
   // ========================================
 
-  VISIT_NOP(tofino_cpu::Ignore)
-  VISIT_NOP(tofino_cpu::ParseHeader)
-  VISIT_NOP(tofino_cpu::ModifyHeader)
-  VISIT_NOP(tofino_cpu::ChecksumUpdate)
-  VISIT_NOP(tofino_cpu::If)
-  VISIT_NOP(tofino_cpu::Then)
-  VISIT_NOP(tofino_cpu::Else)
-  VISIT_NOP(tofino_cpu::Forward)
-  VISIT_NOP(tofino_cpu::Broadcast)
-  VISIT_NOP(tofino_cpu::Drop)
-  VISIT_NOP(tofino_cpu::TableLookup)
-  VISIT_NOP(tofino_cpu::TableUpdate)
-  VISIT_NOP(tofino_cpu::TableDelete)
-  VISIT_NOP(tofino_cpu::DchainAllocateNewIndex)
-  VISIT_NOP(tofino_cpu::DchainRejuvenateIndex)
-  VISIT_NOP(tofino_cpu::DchainIsIndexAllocated)
-  VISIT_NOP(tofino_cpu::DchainFreeIndex)
-  VISIT_NOP(tofino_cpu::VectorRead)
-  VISIT_NOP(tofino_cpu::VectorWrite)
-  VISIT_NOP(tofino_cpu::MapGet)
-  VISIT_NOP(tofino_cpu::MapPut)
-  VISIT_NOP(tofino_cpu::MapErase)
-  VISIT_NOP(tofino_cpu::ChtFindBackend)
-  VISIT_NOP(tofino_cpu::HashObj)
-  VISIT_NOP(tofino_cpu::VectorRegisterLookup)
-  VISIT_NOP(tofino_cpu::VectorRegisterUpdate)
-  VISIT_NOP(tofino_cpu::FCFSCachedTableRead)
-  VISIT_NOP(tofino_cpu::FCFSCachedTableWrite)
-  VISIT_NOP(tofino_cpu::FCFSCachedTableDelete)
-  VISIT_NOP(tofino_cpu::MapRegisterRead)
-  VISIT_NOP(tofino_cpu::MapRegisterWrite)
-  VISIT_NOP(tofino_cpu::MapRegisterDelete)
-  VISIT_NOP(tofino_cpu::HHTableRead)
-  VISIT_NOP(tofino_cpu::HHTableConditionalUpdate)
-  VISIT_NOP(tofino_cpu::HHTableUpdate)
-  VISIT_NOP(tofino_cpu::HHTableDelete)
-  VISIT_NOP(tofino_cpu::TBIsTracing)
-  VISIT_NOP(tofino_cpu::TBTrace)
-  VISIT_NOP(tofino_cpu::TBUpdateAndCheck)
-  VISIT_NOP(tofino_cpu::TBExpire)
-  VISIT_NOP(tofino_cpu::MeterInsert)
-  VISIT_NOP(tofino_cpu::IntegerAllocatorFreeIndex)
-  VISIT_NOP(tofino_cpu::CMSUpdate)
-  VISIT_NOP(tofino_cpu::CMSQuery)
-  VISIT_NOP(tofino_cpu::CMSIncrement)
-  VISIT_NOP(tofino_cpu::CMSCountMin)
+  VISIT_NOP(controller::Ignore)
+  VISIT_NOP(controller::ParseHeader)
+  VISIT_NOP(controller::ModifyHeader)
+  VISIT_NOP(controller::ChecksumUpdate)
+  VISIT_NOP(controller::If)
+  VISIT_NOP(controller::Then)
+  VISIT_NOP(controller::Else)
+  VISIT_NOP(controller::Forward)
+  VISIT_NOP(controller::Broadcast)
+  VISIT_NOP(controller::Drop)
+  VISIT_NOP(controller::TableLookup)
+  VISIT_NOP(controller::TableUpdate)
+  VISIT_NOP(controller::TableDelete)
+  VISIT_NOP(controller::DchainAllocateNewIndex)
+  VISIT_NOP(controller::DchainRejuvenateIndex)
+  VISIT_NOP(controller::DchainIsIndexAllocated)
+  VISIT_NOP(controller::DchainFreeIndex)
+  VISIT_NOP(controller::VectorRead)
+  VISIT_NOP(controller::VectorWrite)
+  VISIT_NOP(controller::MapGet)
+  VISIT_NOP(controller::MapPut)
+  VISIT_NOP(controller::MapErase)
+  VISIT_NOP(controller::ChtFindBackend)
+  VISIT_NOP(controller::HashObj)
+  VISIT_NOP(controller::VectorRegisterLookup)
+  VISIT_NOP(controller::VectorRegisterUpdate)
+  VISIT_NOP(controller::FCFSCachedTableRead)
+  VISIT_NOP(controller::FCFSCachedTableWrite)
+  VISIT_NOP(controller::FCFSCachedTableDelete)
+  VISIT_NOP(controller::MapRegisterRead)
+  VISIT_NOP(controller::MapRegisterWrite)
+  VISIT_NOP(controller::MapRegisterDelete)
+  VISIT_NOP(controller::HHTableRead)
+  VISIT_NOP(controller::HHTableConditionalUpdate)
+  VISIT_NOP(controller::HHTableUpdate)
+  VISIT_NOP(controller::HHTableDelete)
+  VISIT_NOP(controller::TBIsTracing)
+  VISIT_NOP(controller::TBTrace)
+  VISIT_NOP(controller::TBUpdateAndCheck)
+  VISIT_NOP(controller::TBExpire)
+  VISIT_NOP(controller::MeterInsert)
+  VISIT_NOP(controller::IntegerAllocatorFreeIndex)
+  VISIT_NOP(controller::CMSUpdate)
+  VISIT_NOP(controller::CMSQuery)
+  VISIT_NOP(controller::CMSIncrement)
+  VISIT_NOP(controller::CMSCountMin)
 
   // ========================================
   // x86

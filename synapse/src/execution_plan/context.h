@@ -31,12 +31,12 @@ enum class DSImpl {
   // Tofino CPU
   // ========================================
 
-  TofinoCPU_Map,
-  TofinoCPU_Vector,
-  TofinoCPU_DoubleChain,
-  TofinoCPU_ConsistentHashTable,
-  TofinoCPU_CountMinSketch,
-  TofinoCPU_TokenBucket,
+  Controller_Map,
+  Controller_Vector,
+  Controller_DoubleChain,
+  Controller_ConsistentHashTable,
+  Controller_CountMinSketch,
+  Controller_TokenBucket,
 
   // ========================================
   // x86

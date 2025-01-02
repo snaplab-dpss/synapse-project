@@ -11,7 +11,7 @@ private:
 
 public:
   SendToController(const Node *node, symbols_t _symbols)
-      : TofinoModule(ModuleType::Tofino_SendToController, TargetType::TofinoCPU,
+      : TofinoModule(ModuleType::Tofino_SendToController, TargetType::Controller,
                      "SendToController", node),
         symbols(_symbols) {}
 

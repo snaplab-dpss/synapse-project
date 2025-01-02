@@ -27,7 +27,7 @@ TargetView Target::get_view() const {
 
 std::ostream &operator<<(std::ostream &os, TargetType target) {
   switch (target) {
-  case TargetType::TofinoCPU:
+  case TargetType::Controller:
     os << "Ctrl";
     break;
   case TargetType::Tofino:
@@ -57,7 +57,7 @@ TargetView TargetsView::get_initial_target() const {
 Targets::Targets(const toml::table &config)
     : elements{
           std::make_unique<tofino::TofinoTarget>(config),
-          std::make_unique<tofino_cpu::TofinoCPUTarget>(),
+          std::make_unique<controller::ControllerTarget>(),
           std::make_unique<x86::x86Target>(),
       } {}
 

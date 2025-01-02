@@ -36,7 +36,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep,
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
-  spec_impl.next_target = TargetType::TofinoCPU;
+  spec_impl.next_target = TargetType::Controller;
 
   return spec_impl;
 }

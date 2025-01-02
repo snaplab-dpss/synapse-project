@@ -2445,7 +2445,7 @@ port_ingress_t get_node_egress(const EP *ep, const EPNode *node) {
   port_ingress_t egress;
   hit_rate_t hr = profiler.get_hr(node);
 
-  if (node->get_module()->get_target() == TargetType::TofinoCPU) {
+  if (node->get_module()->get_target() == TargetType::Controller) {
     egress.controller = hr;
     return egress;
   }
