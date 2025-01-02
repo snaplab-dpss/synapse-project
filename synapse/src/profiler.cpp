@@ -83,8 +83,9 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
 
   root->visit_nodes([&bdd_profile](const Node *node) {
-    ASSERT(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end(),
-           "Node counter not found");
+    SYNAPSE_ASSERT(bdd_profile.counters.find(node->get_id()) !=
+                       bdd_profile.counters.end(),
+                   "Node counter not found");
     u64 current_counter = bdd_profile.counters[node->get_id()];
 
     switch (node->get_type()) {
@@ -94,8 +95,8 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
-      ASSERT(on_true, "Branch node without on_true");
-      ASSERT(on_false, "Branch node without on_false");
+      SYNAPSE_ASSERT(on_true, "Branch node without on_true");
+      SYNAPSE_ASSERT(on_false, "Branch node without on_false");
 
       u64 on_true_counter = RandomEngine::generate() % (current_counter + 1);
       u64 on_false_counter = current_counter - on_true_counter;
@@ -150,11 +151,11 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
     return;
   }
 
-  ASSERT(parent_old_fraction >= 0.0, "Invalid parent old fraction");
-  ASSERT(parent_old_fraction <= 1.0, "Invalid parent old fraction");
+  SYNAPSE_ASSERT(parent_old_fraction >= 0.0, "Invalid parent old fraction");
+  SYNAPSE_ASSERT(parent_old_fraction <= 1.0, "Invalid parent old fraction");
 
-  ASSERT(parent_new_fraction >= 0.0, "Invalid parent new fraction");
-  ASSERT(parent_new_fraction <= 1.0, "Invalid parent new fraction");
+  SYNAPSE_ASSERT(parent_new_fraction >= 0.0, "Invalid parent new fraction");
+  SYNAPSE_ASSERT(parent_new_fraction <= 1.0, "Invalid parent new fraction");
 
   hit_rate_t old_fraction = clamp_fraction(node->fraction);
   hit_rate_t new_fraction =
@@ -267,7 +268,7 @@ FlowStats ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
     }
   }
 
-  PANIC("Flow stats not found");
+  SYNAPSE_PANIC("Flow stats not found");
 }
 
 Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
@@ -275,8 +276,9 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
       avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const Node *bdd_root = bdd->get_root();
 
-  ASSERT(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end(),
-         "Root node not found");
+  SYNAPSE_ASSERT(bdd_profile->counters.find(bdd_root->get_id()) !=
+                     bdd_profile->counters.end(),
+                 "Root node not found");
   u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
 
   root = std::shared_ptr<ProfilerNode>(
@@ -285,21 +287,21 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
   for (const auto &[map_addr, map_stats] : bdd_profile->stats_per_map) {
     for (const auto &node_map_stats : map_stats.nodes) {
       const Node *node = bdd->get_node_by_id(node_map_stats.node);
-      ASSERT(node, "Node not found");
+      SYNAPSE_ASSERT(node, "Node not found");
 
       constraints_t constraints = node->get_ordered_branch_constraints();
       ProfilerNode *profiler_node = get_node(constraints);
-      ASSERT(profiler_node, "Profiler node not found");
+      SYNAPSE_ASSERT(profiler_node, "Profiler node not found");
 
-      ASSERT(node->get_type() == NodeType::Call, "Invalid node type");
+      SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Invalid node type");
       const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call = call_node->get_call();
 
-      ASSERT(call.function_name == "map_get" || call.function_name == "map_put" ||
-                 call.function_name == "map_erase",
-             "Invalid call");
+      SYNAPSE_ASSERT(call.function_name == "map_get" || call.function_name == "map_put" ||
+                         call.function_name == "map_erase",
+                     "Invalid call");
 
-      ASSERT(call.args.find("key") != call.args.end(), "Key not found");
+      SYNAPSE_ASSERT(call.args.find("key") != call.args.end(), "Key not found");
       klee::ref<klee::Expr> flow_id = call.args.at("key").in;
 
       FlowStats flow_stats = {
@@ -354,7 +356,7 @@ ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
       return nullptr;
     }
 
-    ASSERT(!current->constraint.isNull(), "Invalid profiler node");
+    SYNAPSE_ASSERT(!current->constraint.isNull(), "Invalid profiler node");
 
     klee::ConstraintManager manager;
     manager.addConstraint(current->constraint);
@@ -362,7 +364,7 @@ ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
     bool always_true = solver_toolbox.is_expr_always_true(manager, cnstr);
     bool always_false = solver_toolbox.is_expr_always_false(manager, cnstr);
 
-    ASSERT(always_true || always_false, "Invalid profiler node");
+    SYNAPSE_ASSERT(always_true || always_false, "Invalid profiler node");
 
     if (always_true) {
       current = current->on_true;
@@ -371,12 +373,12 @@ ProfilerNode *Profiler::get_node(const constraints_t &constraints) const {
     }
   }
 
-  ASSERT(current, "Profiler node not found");
+  SYNAPSE_ASSERT(current, "Profiler node not found");
   return current;
 }
 
 void Profiler::replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fraction) {
-  ASSERT(false, "Attempted to replace Profiler root node");
+  SYNAPSE_ASSERT(false, "Attempted to replace Profiler root node");
 
   ProfilerNode *new_node = new ProfilerNode(constraint, 1.0);
 
@@ -392,8 +394,8 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fractio
   hit_rate_t fraction_on_true = clamp_fraction(fraction);
   hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
 
-  ASSERT(fraction_on_true <= new_node->fraction, "Invalid fraction");
-  ASSERT(fraction_on_false <= new_node->fraction, "Invalid fraction");
+  SYNAPSE_ASSERT(fraction_on_true <= new_node->fraction, "Invalid fraction");
+  SYNAPSE_ASSERT(fraction_on_false <= new_node->fraction, "Invalid fraction");
 
   recursive_update_fractions(new_node->on_true, new_node->fraction, fraction_on_true);
   recursive_update_fractions(new_node->on_false, new_node->fraction, fraction_on_false);
@@ -410,7 +412,7 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
 
   ProfilerNode *new_node = new ProfilerNode(constraint, node->fraction);
 
-  ASSERT((parent->on_true == node) || (parent->on_false == node), "Invalid node");
+  SYNAPSE_ASSERT((parent->on_true == node) || (parent->on_false == node), "Invalid node");
   if (parent->on_true == node) {
     parent->on_true = new_node;
   } else {
@@ -452,14 +454,14 @@ Profiler::family_t Profiler::get_family(ProfilerNode *node) const {
 void Profiler::remove(ProfilerNode *node) {
   family_t family = get_family(node);
 
-  ASSERT(family.parent, "Cannot remove the root node");
+  SYNAPSE_ASSERT(family.parent, "Cannot remove the root node");
   hit_rate_t parent_fraction = family.parent->fraction;
 
   // By removing the current node, the parent is no longer needed (its purpose
   // was to differentiate between the on_true and on_false nodes, but now only
   // one side is left).
 
-  ASSERT(family.grandparent, "Cannot remove the root node");
+  SYNAPSE_ASSERT(family.grandparent, "Cannot remove the root node");
 
   if (family.grandparent->on_true == family.parent) {
     family.grandparent->on_true = family.sibling;
@@ -530,7 +532,7 @@ void Profiler::set(const constraints_t &constraints, hit_rate_t new_hr) {
 hit_rate_t Profiler::get_hr(const Node *node) const {
   auto found_it = cache.n2p.find(node->get_id());
   if (found_it != cache.n2p.end()) {
-    ASSERT(found_it->second, "Invalid profiler node");
+    SYNAPSE_ASSERT(found_it->second, "Invalid profiler node");
     return found_it->second->fraction;
   }
 
@@ -538,7 +540,7 @@ hit_rate_t Profiler::get_hr(const Node *node) const {
   ProfilerNode *profiler_node = get_node(constraints);
 
   if (!profiler_node) {
-    PANIC("Profiler node not found");
+    SYNAPSE_PANIC("Profiler node not found");
   }
 
   cache.n2p[node->get_id()] = profiler_node;
@@ -550,7 +552,7 @@ hit_rate_t Profiler::get_hr(const Node *node) const {
 hit_rate_t Profiler::get_hr(const EPNode *node) const {
   auto found_it = cache.e2p.find(node->get_id());
   if (found_it != cache.e2p.end()) {
-    ASSERT(found_it->second, "Invalid profiler node");
+    SYNAPSE_ASSERT(found_it->second, "Invalid profiler node");
     return found_it->second->fraction;
   }
 
@@ -558,7 +560,7 @@ hit_rate_t Profiler::get_hr(const EPNode *node) const {
   ProfilerNode *profiler_node = get_node(constraints);
 
   if (!profiler_node) {
-    PANIC("Profiler node not found");
+    SYNAPSE_PANIC("Profiler node not found");
   }
 
   cache.e2p[node->get_id()] = profiler_node;
@@ -595,7 +597,7 @@ FlowStats Profiler::get_flow_stats(const constraints_t &constraints,
 void Profiler::clone_tree_if_shared() {
   clear_cache();
 
-  ASSERT(root, "Invalid profiler root node");
+  SYNAPSE_ASSERT(root, "Invalid profiler root node");
 
   // No need to clone a tree that is not shared.
   if (root.use_count() == 1) {

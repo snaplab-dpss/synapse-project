@@ -58,7 +58,7 @@ IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node) co
   symbols_t symbols = call_node->get_locally_generated_symbols();
   symbol_t out_of_space;
   bool found = get_symbol(symbols, "out_of_space", out_of_space);
-  ASSERT(found, "Symbol out_of_space not found");
+  SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
   // TODO: implement the actual data structure.
 

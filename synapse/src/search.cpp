@@ -58,9 +58,9 @@ void log_search_iteration(const search_step_report_t &report,
 
   Log::dbg() << "Node:       " << report.current->dump(true) << "\n";
 
-  ASSERT((report.targets.size() == report.name.size() &&
-          report.targets.size() == report.gen_ep_ids.size()),
-         "Mismatch in the number of targets");
+  SYNAPSE_ASSERT((report.targets.size() == report.name.size() &&
+                  report.targets.size() == report.gen_ep_ids.size()),
+                 "Mismatch in the number of targets");
 
   for (size_t i = 0; i < report.targets.size(); i++) {
     std::stringstream ep_ids;

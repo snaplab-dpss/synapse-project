@@ -11,7 +11,7 @@ struct map_register_data_t {
   map_register_data_t(const EP *ep, const Call *map_erase) {
 
     const call_t &call = map_erase->get_call();
-    ASSERT(call.function_name == "map_erase", "Not a map_erase call");
+    SYNAPSE_ASSERT(call.function_name == "map_erase", "Not a map_erase call");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;

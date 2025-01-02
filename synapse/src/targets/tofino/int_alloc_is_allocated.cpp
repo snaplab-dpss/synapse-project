@@ -57,7 +57,7 @@ IntegerAllocatorIsAllocatedFactory::process_node(const EP *ep, const Node *node)
   symbols_t symbols = call_node->get_locally_generated_symbols();
   symbol_t is_allocated;
   bool found = get_symbol(symbols, "dchain_is_index_allocated", is_allocated);
-  ASSERT(found, "Symbol dchain_is_index_allocated not found");
+  SYNAPSE_ASSERT(found, "Symbol dchain_is_index_allocated not found");
 
   Module *module =
       new IntegerAllocatorIsAllocated(node, dchain_addr, index, is_allocated);

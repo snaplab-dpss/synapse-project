@@ -60,7 +60,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node
   symbols_t symbols = call_node->get_locally_generated_symbols();
   symbol_t min_estimate;
   bool found = get_symbol(symbols, "min_estimate", min_estimate);
-  ASSERT(found, "Symbol min_estimate not found");
+  SYNAPSE_ASSERT(found, "Symbol min_estimate not found");
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::Tofino_CountMinSketch)) {
     return impls;

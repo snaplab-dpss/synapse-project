@@ -6,8 +6,9 @@ namespace synapse {
 namespace tofino {
 namespace {
 TNAProperties properties_from_config(const toml::table &config) {
-  ASSERT(config.contains("switch"), "Switch configuration not found");
-  ASSERT(config["switch"].as_table()->contains("arch"), "Arch configuration not found");
+  SYNAPSE_ASSERT(config.contains("switch"), "Switch configuration not found");
+  SYNAPSE_ASSERT(config["switch"].as_table()->contains("arch"),
+                 "Arch configuration not found");
   return {
       .total_ports =
           static_cast<int>(config["switch"]["front_panel_ports"].as_array()->size()),

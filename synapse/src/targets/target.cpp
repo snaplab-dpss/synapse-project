@@ -50,7 +50,7 @@ TargetsView::TargetsView(const std::array<TargetView, 3> &_elements)
     : elements(_elements) {}
 
 TargetView TargetsView::get_initial_target() const {
-  ASSERT(!elements.empty(), "No targets to get the initial target from.");
+  SYNAPSE_ASSERT(!elements.empty(), "No targets to get the initial target from.");
   return elements[0];
 }
 

@@ -8,10 +8,11 @@ bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_
                  klee::ref<klee::Expr> pkt_len, klee::ref<klee::Expr> &hit,
                  klee::ref<klee::Expr> pass, DS_ID &id) {
   const call_t &call_is_tracing = tb_is_tracing->get_call();
-  ASSERT(call_is_tracing.function_name == "tb_is_tracing", "Unexpected function");
+  SYNAPSE_ASSERT(call_is_tracing.function_name == "tb_is_tracing", "Unexpected function");
 
   const call_t &call_update = tb_update_and_check->get_call();
-  ASSERT(call_update.function_name == "tb_update_and_check", "Unexpected function");
+  SYNAPSE_ASSERT(call_update.function_name == "tb_update_and_check",
+                 "Unexpected function");
 
   klee::ref<klee::Expr> tb_addr_expr = call_is_tracing.args.at("tb").expr;
   klee::ref<klee::Expr> key = call_is_tracing.args.at("key").in;

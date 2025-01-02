@@ -10,6 +10,8 @@
 #include "bdd/tree.h"
 #include "exprs/exprs.h"
 
+#define align_to_byte(B) ((B) % 8 == 0 ? (B) : (B) + 8 - (B) % 8)
+
 namespace synapse {
 enum class ModuleType;
 

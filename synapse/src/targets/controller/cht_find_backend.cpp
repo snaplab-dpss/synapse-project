@@ -55,7 +55,7 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
   symbols_t symbols = call_node->get_locally_generated_symbols();
   symbol_t backend_found;
   bool found = get_symbol(symbols, "prefered_backend_found", backend_found);
-  ASSERT(found, "Symbol prefered_backend_found not found");
+  SYNAPSE_ASSERT(found, "Symbol prefered_backend_found not found");
 
   if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::Controller_ConsistentHashTable)) {
     return impls;

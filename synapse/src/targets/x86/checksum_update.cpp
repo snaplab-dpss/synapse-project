@@ -45,7 +45,7 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep,
   symbols_t symbols = call_node->get_locally_generated_symbols();
   symbol_t checksum;
   bool found = get_symbol(symbols, "checksum", checksum);
-  ASSERT(found, "Symbol checksum not found");
+  SYNAPSE_ASSERT(found, "Symbol checksum not found");
 
   addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
   addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);

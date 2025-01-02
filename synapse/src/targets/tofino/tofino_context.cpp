@@ -20,10 +20,10 @@ const Node *get_last_parser_state_op(const EP *ep, std::optional<bool> &directio
 
   while (node) {
     const Module *module = node->get_module();
-    ASSERT(module, "Module not found");
+    SYNAPSE_ASSERT(module, "Module not found");
 
     if (module->get_type() == ModuleType::Tofino_ParserCondition) {
-      ASSERT(next && next->get_module(), "Next node not found");
+      SYNAPSE_ASSERT(next && next->get_module(), "Next node not found");
       const Module *next_module = next->get_module();
 
       if (next_module->get_type() == ModuleType::Tofino_Then) {
@@ -61,7 +61,7 @@ const EPNode *get_ep_node_from_bdd_node(const EP *ep, const Node *node) {
     ep_nodes.erase(ep_nodes.begin());
 
     const Module *module = ep_node->get_module();
-    ASSERT(module, "Module not found");
+    SYNAPSE_ASSERT(module, "Module not found");
 
     if (module->get_node() == node) {
       return ep_node;
@@ -131,7 +131,7 @@ bool TofinoContext::has_ds(DS_ID id) const { return id_to_ds.find(id) != id_to_d
 
 const std::unordered_set<DS *> &TofinoContext::get_ds(addr_t addr) const {
   auto found_it = obj_to_ds.find(addr);
-  ASSERT(found_it != obj_to_ds.end(), "Data structure not found");
+  SYNAPSE_ASSERT(found_it != obj_to_ds.end(), "Data structure not found");
   return found_it->second;
 }
 
@@ -139,7 +139,7 @@ void TofinoContext::save_ds(addr_t addr, DS *ds) {
   auto found_it = id_to_ds.find(ds->id);
 
   if (found_it != id_to_ds.end()) {
-    ASSERT(found_it->second->id == ds->id, "Data structure ID mismatch");
+    SYNAPSE_ASSERT(found_it->second->id == ds->id, "Data structure ID mismatch");
     DS *old = found_it->second;
     id_to_ds.erase(ds->id);
     obj_to_ds[addr].erase(old);
@@ -152,7 +152,7 @@ void TofinoContext::save_ds(addr_t addr, DS *ds) {
 
 const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
   auto it = id_to_ds.find(id);
-  ASSERT(it != id_to_ds.end(), "Data structure %s not found", id.c_str());
+  SYNAPSE_ASSERT(it != id_to_ds.end(), "Data structure %s not found", id.c_str());
   return it->second;
 }
 
@@ -258,7 +258,7 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep,
       } else {
         for (const std::unordered_set<const DS *> &ds_set : ds->get_internal()) {
           for (const DS *internal_ds : ds_set) {
-            ASSERT(internal_ds, "Internal DS not found");
+            SYNAPSE_ASSERT(internal_ds, "Internal DS not found");
             deps.insert(internal_ds->id);
           }
         }
@@ -343,14 +343,14 @@ void TofinoContext::debug() const {
 template <>
 const tofino::TofinoContext *Context::get_target_ctx<tofino::TofinoContext>() const {
   TargetType type = TargetType::Tofino;
-  ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
+  SYNAPSE_ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<const tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
 template <>
 tofino::TofinoContext *Context::get_mutable_target_ctx<tofino::TofinoContext>() {
   TargetType type = TargetType::Tofino;
-  ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
+  SYNAPSE_ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<tofino::TofinoContext *>(target_ctxs.at(type));
 }
 } // namespace synapse

@@ -35,7 +35,7 @@ toml::table parse_targets_config(const std::filesystem::path &targets_config_fil
   try {
     targets_config = toml::parse_file(targets_config_file.string());
   } catch (const toml::parse_error &err) {
-    PANIC("Parsing failed: %s\n", err.what());
+    SYNAPSE_PANIC("Parsing failed: %s\n", err.what());
   }
   return targets_config;
 }
@@ -79,9 +79,9 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   if (verbose) {
-    Log::MINIMUM_LOG_LEVEL = Log::Level::DEBUG;
+    Log::min_log_level = Log::Level::DEBUG;
   } else {
-    Log::MINIMUM_LOG_LEVEL = Log::Level::LOG;
+    Log::min_log_level = Log::Level::LOG;
   }
 
   RandomEngine::seed(seed);

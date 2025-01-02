@@ -18,7 +18,7 @@ struct fcfs_cached_table_data_t {
 
   fcfs_cached_table_data_t(const EP *ep, const Call *map_get,
                            std::vector<const Call *> future_map_puts) {
-    ASSERT(!future_map_puts.empty(), "No future map puts found");
+    SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts found");
     const Call *map_put = future_map_puts.front();
 
     const call_t &get_call = map_get->get_call();
@@ -31,7 +31,7 @@ struct fcfs_cached_table_data_t {
 
     bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
                             map_has_this_key);
-    ASSERT(found, "Symbol map_has_this_key not found");
+    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
@@ -67,7 +67,7 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
   //   std::cerr << "fwp: " << fwp << std::endl;
   //   std::cerr << "cache_hit_rate: " << cache_hit_rate << std::endl;
   //   std::cerr << "success_probability: " << probability << std::endl;
-  //   DEBUG_PAUSE
+  //   dbg_pause();
   // }
 
   return probability;
@@ -125,7 +125,7 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
       symbol_t out_of_space;
       bool found = get_symbol(coalescing_node->get_locally_generated_symbols(),
                               "out_of_space", out_of_space);
-      ASSERT(found, "Symbol out_of_space not found");
+      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);
@@ -166,14 +166,14 @@ void delete_coalescing_nodes_on_success(
       symbol_t out_of_space;
       bool found = get_symbol(call_target->get_locally_generated_symbols(),
                               "out_of_space", out_of_space);
-      ASSERT(found, "Symbol out_of_space not found");
+      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
       if (index_alloc_check.branch) {
-        ASSERT(!deleted_branch_constraints.has_value(),
-               "Multiple branch checking index allocation detected");
+        SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
+                       "Multiple branch checking index allocation detected");
         deleted_branch_constraints =
             index_alloc_check.branch->get_ordered_branch_constraints();
 
@@ -208,7 +208,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_get->get_next();
-  ASSERT(next, "map_get node has no next node");
+  SYNAPSE_ASSERT(next, "map_get node has no next node");
 
   Branch *cache_write_branch =
       add_branch_to_bdd(new_bdd.get(), next, cache_write_success_condition);
@@ -389,8 +389,9 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_hr);
 
-  spec_impl_t spec_impl(decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}),
-                        new_ctx);
+  spec_impl_t spec_impl(
+      decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}),
+      new_ctx);
 
   std::vector<const Node *> ignore_nodes =
       get_nodes_to_speculatively_ignore(ep, map_get, map_objs, cached_table_data.key);
@@ -440,7 +441,8 @@ FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep, const Node *node) 
                                                     cache_write_failed, cache_capacity);
 
     if (new_ep) {
-      impl_t impl = implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl = implement(ep, node, new_ep,
+                              {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

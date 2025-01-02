@@ -23,7 +23,7 @@ public:
                      [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
 
     if (it != nodes.end()) {
-      ASSERT((*it)->get_id() == node->get_id(), "Invalid node id");
+      SYNAPSE_ASSERT((*it)->get_id() == node->get_id(), "Invalid node id");
       nodes.erase(it);
     }
   }

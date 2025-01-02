@@ -4,13 +4,6 @@
 #include "../../exprs/retriever.h"
 #include "../../log.h"
 
-#define NF_TEMPLATE_FILENAME "nf.template.cpp"
-#define PROFILER_TEMPLATE_FILENAME "profiler.template.cpp"
-
-#define MARKER_NF_STATE "NF_STATE"
-#define MARKER_NF_INIT "NF_INIT"
-#define MARKER_NF_PROCESS "NF_PROCESS"
-
 #define POPULATE_SYNTHESIZER(FNAME)                                                      \
   {                                                                                      \
     #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1,               \
@@ -19,6 +12,13 @@
 
 namespace synapse {
 namespace {
+constexpr const char *const NF_TEMPLATE_FILENAME = "nf.template.cpp";
+constexpr const char *const PROFILER_TEMPLATE_FILENAME = "profiler.template.cpp";
+
+constexpr const char *const MARKER_NF_STATE = "NF_STATE";
+constexpr const char *const MARKER_NF_INIT = "NF_INIT";
+constexpr const char *const MARKER_NF_PROCESS = "NF_PROCESS";
+
 std::string template_from_type(BDDSynthesizerTarget target) {
   std::string template_filename;
 
@@ -284,7 +284,8 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
 void BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
   if (this->init_synthesizers.find(call.function_name) == this->init_synthesizers.end()) {
-    PANIC("No init synthesizer found for function: %s\n", call.function_name.c_str());
+    SYNAPSE_PANIC("No init synthesizer found for function: %s\n",
+                  call.function_name.c_str());
   }
 
   (this->init_synthesizers[call.function_name])(coder, call);
@@ -295,7 +296,8 @@ void BDDSynthesizer::synthesize_process(coder_t &coder, const Call *call_node) {
 
   if (this->process_synthesizers.find(call.function_name) ==
       this->process_synthesizers.end()) {
-    PANIC("No process synthesizer found for function: %s\n", call.function_name.c_str());
+    SYNAPSE_PANIC("No process synthesizer found for function: %s\n",
+                  call.function_name.c_str());
   }
 
   (this->process_synthesizers[call.function_name])(coder, call_node);
@@ -364,7 +366,7 @@ void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder,
 
   symbol_t checksum;
   bool found = get_symbol(generated_symbols, "checksum", checksum);
-  ASSERT(found, "Symbol checksum not found");
+  SYNAPSE_ASSERT(found, "Symbol checksum not found");
 
   var_t c = build_var("checksum", checksum.expr);
 
@@ -393,7 +395,7 @@ void BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_no
   symbol_t number_of_freed_flows;
   bool found =
       get_symbol(generated_symbols, "number_of_freed_flows", number_of_freed_flows);
-  ASSERT(found, "Symbol number_of_freed_flows not found");
+  SYNAPSE_ASSERT(found, "Symbol number_of_freed_flows not found");
 
   var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
 
@@ -418,7 +420,7 @@ void BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder,
   coder << "// expire_items_single_map_iteratively";
   coder << ";\n";
 
-  ASSERT(false, "Not implemented");
+  SYNAPSE_ASSERT(false, "Not implemented");
 }
 
 void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
@@ -463,7 +465,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
   if (stack_find(value, stack_value)) {
     if (stack_value.addr.isNull()) {
       bits_t width = stack_value.expr->getWidth();
-      ASSERT(width <= klee::Expr::Int64, "Invalid width");
+      SYNAPSE_ASSERT(width <= klee::Expr::Int64, "Invalid width");
       coder.indent();
       coder << "*(" << BDDTranspiler::type_from_size(width) << "*)";
       coder << var.name;
@@ -506,7 +508,7 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
 
   symbol_t map_has_this_key;
   bool found = get_symbol(generated_symbols, "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   var_t r = build_var("map_hit", map_has_this_key.expr);
   var_t v = build_var("value", value_out);
@@ -729,7 +731,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   for (const mod_t &mod : changes) {
     coder.indent();
 
-    ASSERT(mod.width <= 64, "Vector element size is too large");
+    SYNAPSE_ASSERT(mod.width <= 64, "Vector element size is too large");
 
     if (mod.width == 8) {
       coder << v.name;
@@ -776,7 +778,7 @@ void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
 
   symbol_t found_sample;
   bool found = get_symbol(generated_symbols, "found_sample", found_sample);
-  ASSERT(found, "Symbol found_sample not found");
+  SYNAPSE_ASSERT(found, "Symbol found_sample not found");
 
   var_t f = build_var("found_sample", found_sample.expr);
   var_t i = build_var("sample_index", index_out);
@@ -880,7 +882,7 @@ void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   coder << "// dchain_expire_one";
   coder << ";\n";
 
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
 }
 
 void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {
@@ -892,7 +894,7 @@ void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_
 
   symbol_t is_allocated;
   bool found = get_symbol(generated_symbols, "dchain_is_index_allocated", is_allocated);
-  ASSERT(found, "Symbol dchain_is_index_allocated not found");
+  SYNAPSE_ASSERT(found, "Symbol dchain_is_index_allocated not found");
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
 
@@ -1010,7 +1012,7 @@ void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder, const Call *call_node)
 
   symbol_t cleanup_success;
   bool found = get_symbol(generated_symbols, "cleanup_success", cleanup_success);
-  ASSERT(found, "Symbol success not found");
+  SYNAPSE_ASSERT(found, "Symbol success not found");
 
   var_t cs = build_var("cleanup_success", cleanup_success.expr);
 
@@ -1198,7 +1200,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(const std::string &name) const {
   }
 
   stack_dbg();
-  PANIC("Variable not found in stack: %s\n", name.c_str());
+  SYNAPSE_PANIC("Variable not found in stack: %s\n", name.c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
@@ -1208,11 +1210,11 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
   }
 
   stack_dbg();
-  PANIC("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
+  SYNAPSE_PANIC("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
 }
 
 code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset, bits_t size) const {
-  ASSERT(offset + size <= var.expr->getWidth(), "Out of bounds");
+  SYNAPSE_ASSERT(offset + size <= var.expr->getWidth(), "Out of bounds");
 
   coder_t coder;
 
@@ -1282,7 +1284,8 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
 
 void BDDSynthesizer::stack_add(const var_t &var) {
   if (var.expr.isNull()) {
-    PANIC("Trying to add a variable with a null expression: %s\n", var.name.c_str());
+    SYNAPSE_PANIC("Trying to add a variable with a null expression: %s\n",
+                  var.name.c_str());
   }
 
   stack_frame_t &frame = stack.back();
@@ -1295,7 +1298,7 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
     for (var_t &v : frame.vars) {
       if (v.name == var.name) {
         klee::ref<klee::Expr> old_expr = v.expr;
-        ASSERT(old_expr->getWidth() == new_expr->getWidth(), "Width mismatch");
+        SYNAPSE_ASSERT(old_expr->getWidth() == new_expr->getWidth(), "Width mismatch");
         v.expr = new_expr;
         return;
       }
@@ -1303,8 +1306,8 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
   }
 
   stack_dbg();
-  PANIC("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(),
-        expr_to_string(new_expr).c_str());
+  SYNAPSE_PANIC("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(),
+                expr_to_string(new_expr).c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,

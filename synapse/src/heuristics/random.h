@@ -11,8 +11,8 @@ public:
                                }) {}
 
   RandomCfg &operator=(const RandomCfg &other) {
-    ASSERT(other.name == name, "Mismatched names");
-    ASSERT(other.metrics.size() == metrics.size(), "Mismatched metrics");
+    SYNAPSE_ASSERT(other.name == name, "Mismatched names");
+    SYNAPSE_ASSERT(other.metrics.size() == metrics.size(), "Mismatched metrics");
     return *this;
   }
 

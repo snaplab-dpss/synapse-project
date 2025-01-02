@@ -31,8 +31,8 @@ Node *Branch::clone(NodeManager &manager, bool recursive) const {
 std::vector<node_id_t> Branch::get_leaves() const {
   std::vector<node_id_t> terminating_ids;
 
-  ASSERT(next, "No on_true node");
-  ASSERT(on_false, "No on_false node");
+  SYNAPSE_ASSERT(next, "No on_true node");
+  SYNAPSE_ASSERT(on_false, "No on_false node");
 
   auto on_true_ids = next->get_leaves();
   auto on_false_ids = on_false->get_leaves();

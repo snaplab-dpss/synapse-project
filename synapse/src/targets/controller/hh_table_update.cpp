@@ -16,7 +16,7 @@ struct table_data_t {
 
   table_data_t(const Call *map_put) {
     const call_t &call = map_put->get_call();
-    ASSERT(call.function_name == "map_put", "Not a map_put call");
+    SYNAPSE_ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -94,8 +94,8 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
   }
 
   klee::ref<klee::Expr> min_estimate = get_min_estimate(ep);
-  ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
-                                 "query the CMS for the min estimate");
+  SYNAPSE_ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
+                                         "query the CMS for the min estimate");
 
   table_data_t table_data(map_put);
 

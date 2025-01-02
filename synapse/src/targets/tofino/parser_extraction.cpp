@@ -40,7 +40,7 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep,
   klee::ref<klee::Expr> length_expr = call.args.at("length").expr;
 
   // Relevant for IPv4 options, but left for future work.
-  ASSERT(!borrow_has_var_len(node), "Not implemented");
+  SYNAPSE_ASSERT(!borrow_has_var_len(node), "Not implemented");
   bytes_t length = solver_toolbox.value_from_expr(length_expr);
 
   addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);

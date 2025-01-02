@@ -17,7 +17,7 @@ HHTable::HHTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _num_e
     : DS(DSType::HH_TABLE, false, _id), num_entries(_num_entries),
       keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
       cms(properties, build_cms_name(id), keys_sizes, cms_width, cms_height) {
-  ASSERT(num_entries > 0, "HH Table entries must be greater than 0");
+  SYNAPSE_ASSERT(num_entries > 0, "HH Table entries must be greater than 0");
 
   add_table(_op);
 }

@@ -7,7 +7,7 @@ Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config,
                      std::unique_ptr<EP> starting_ep, bool _stop_on_first_solution)
     : config(std::move(_config)), stop_on_first_solution(_stop_on_first_solution) {
   EP *ep = starting_ep.release();
-  ASSERT(ep, "Invalid execution plan");
+  SYNAPSE_ASSERT(ep, "Invalid execution plan");
 
   unfinished_eps.emplace(ep);
 
@@ -54,14 +54,14 @@ void Heuristic::rebuild_execution_plans_sets() {
 
 std::unique_ptr<EP> Heuristic::pop_next_unfinished() {
   ep_it_t next_it = get_next_unfinished_it();
-  ASSERT(next_it != unfinished_eps.end(), "No more execution plans to pick");
+  SYNAPSE_ASSERT(next_it != unfinished_eps.end(), "No more execution plans to pick");
 
   if (config->mutates(*next_it)) {
     // Trigger a re-sort with the new mutated heuristic.
     // Otherwise the multiset won't use the new instance (modified).
     rebuild_execution_plans_sets();
     next_it = get_next_unfinished_it();
-    ASSERT(next_it != unfinished_eps.end(), "No more execution plans to pick");
+    SYNAPSE_ASSERT(next_it != unfinished_eps.end(), "No more execution plans to pick");
   }
 
   EP *chosen_ep = *next_it;
@@ -73,7 +73,7 @@ std::unique_ptr<EP> Heuristic::pop_next_unfinished() {
 void Heuristic::add(std::vector<impl_t> &&new_implementations) {
   for (impl_t &impl : new_implementations) {
     EP *ep = impl.result;
-    ASSERT(ep, "Invalid execution plan");
+    SYNAPSE_ASSERT(ep, "Invalid execution plan");
 
     if (ep->get_next_node()) {
       unfinished_eps.insert(ep);
@@ -93,7 +93,7 @@ const HeuristicCfg *Heuristic::get_cfg() const { return config.get(); }
 Score Heuristic::get_score(const EP *e) const { return config->score(e); }
 
 Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
-  ASSERT(!unfinished_eps.empty(), "No execution plans to pick");
+  SYNAPSE_ASSERT(!unfinished_eps.empty(), "No execution plans to pick");
 
   ep_it_t it = unfinished_eps.begin();
   Score best_score = get_score(*it);

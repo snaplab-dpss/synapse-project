@@ -22,7 +22,7 @@ struct table_data_t {
 
   table_data_t(const Call *map_put) {
     const call_t &call = map_put->get_call();
-    ASSERT(call.function_name == "map_put", "Not a map_put call");
+    SYNAPSE_ASSERT(call.function_name == "map_put", "Not a map_put call");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -113,7 +113,7 @@ HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
   // Get all nodes executed on a successful index allocation.
   branch_direction_t index_alloc_check =
       find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
-  ASSERT(index_alloc_check.branch, "Branch checking index allocation not found");
+  SYNAPSE_ASSERT(index_alloc_check.branch, "Branch checking index allocation not found");
 
   spec_impl.skip.insert(index_alloc_check.branch->get_id());
 
@@ -165,11 +165,11 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node) co
   }
 
   klee::ref<klee::Expr> min_estimate = get_min_estimate(ep);
-  ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
-                                 "query the CMS for the min estimate");
+  SYNAPSE_ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
+                                         "query the CMS for the min estimate");
 
   const Call *map_put = get_future_map_put(node, map_objs.map);
-  ASSERT(map_put, "map_put not found");
+  SYNAPSE_ASSERT(map_put, "map_put not found");
 
   table_data_t table_data(map_put);
 
@@ -183,7 +183,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node) co
   Module *hh_table_update = new HHTableUpdate(node, table_data.obj, table_data.table_keys,
                                               table_data.value, min_estimate);
 
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
 
   return impls;
 }

@@ -92,7 +92,7 @@ std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr) {
 
   auto cache_found_it = cache.find(expr->hash());
   if (cache_found_it != cache.end()) {
-    ASSERT(expr == cache_found_it->second.first, "Hash collision");
+    SYNAPSE_ASSERT(expr == cache_found_it->second.first, "Hash collision");
     return cache_found_it->second.second;
   }
 
@@ -152,13 +152,13 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   auto old = expr;
 
   auto process_read = [&](klee::ref<klee::Expr> read_expr) {
-    ASSERT(read_expr->getKind() == klee::Expr::Read, "Not a read");
+    SYNAPSE_ASSERT(read_expr->getKind() == klee::Expr::Read, "Not a read");
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
 
     klee::ref<klee::Expr> index = read->index;
     const std::string symbol = read->updates.root->name;
 
-    ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
+    SYNAPSE_ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
 
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
 
@@ -176,9 +176,10 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   };
 
   auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
-    ASSERT(not_read_expr->getKind() != klee::Expr::Read, "Non read is actually a read");
+    SYNAPSE_ASSERT(not_read_expr->getKind() != klee::Expr::Read,
+                   "Non read is actually a read");
     unsigned size = not_read_expr->getWidth();
-    ASSERT(size % 8 == 0, "Size not multiple of 8");
+    SYNAPSE_ASSERT(size % 8 == 0, "Size not multiple of 8");
     groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
   };
 
@@ -194,7 +195,7 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ref<klee::Expr> lhs = expr->getKid(0);
     klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-    ASSERT(lhs->getKind() != klee::Expr::Concat, "Nested concats");
+    SYNAPSE_ASSERT(lhs->getKind() != klee::Expr::Concat, "Nested concats");
 
     if (lhs->getKind() == klee::Expr::Read) {
       process_read(lhs);

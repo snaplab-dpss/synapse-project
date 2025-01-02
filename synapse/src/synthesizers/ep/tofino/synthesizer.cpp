@@ -1,29 +1,30 @@
 #include "synthesizer.h"
 #include "../../../targets/module.h"
 
-#define MARKER_CPU_HEADER "CPU_HEADER"
-#define MARKER_CUSTOM_HEADERS "CUSTOM_HEADERS"
-
-#define MARKER_INGRESS_HEADERS "INGRESS_HEADERS"
-#define MARKER_INGRESS_METADATA "INGRESS_METADATA"
-#define MARKER_INGRESS_PARSER "INGRESS_PARSER"
-#define MARKER_INGRESS_CONTROL "INGRESS_CONTROL"
-#define MARKER_INGRESS_CONTROL_APPLY "INGRESS_CONTROL_APPLY"
-#define MARKER_INGRESS_DEPARSER "INGRESS_DEPARSER"
-
-#define MARKER_EGRESS_HEADERS "EGRESS_HEADERS"
-#define MARKER_EGRESS_METADATA "EGRESS_METADATA"
-
-#define TEMPLATE_FILENAME "tofino.template.p4"
-
 namespace synapse {
 namespace tofino {
 namespace {
+
+constexpr const char *const MARKER_CPU_HEADER = "CPU_HEADER";
+constexpr const char *const MARKER_CUSTOM_HEADERS = "CUSTOM_HEADERS";
+
+constexpr const char *const MARKER_INGRESS_HEADERS = "INGRESS_HEADERS";
+constexpr const char *const MARKER_INGRESS_METADATA = "INGRESS_METADATA";
+constexpr const char *const MARKER_INGRESS_PARSER = "INGRESS_PARSER";
+constexpr const char *const MARKER_INGRESS_CONTROL = "INGRESS_CONTROL";
+constexpr const char *const MARKER_INGRESS_CONTROL_APPLY = "INGRESS_CONTROL_APPLY";
+constexpr const char *const MARKER_INGRESS_DEPARSER = "INGRESS_DEPARSER";
+
+constexpr const char *const MARKER_EGRESS_HEADERS = "EGRESS_HEADERS";
+constexpr const char *const MARKER_EGRESS_METADATA = "EGRESS_METADATA";
+
+constexpr const char *const TEMPLATE_FILENAME = "tofino.template.p4";
+
 const DS *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
-  ASSERT(ds, "DS not found");
+  SYNAPSE_ASSERT(ds, "DS not found");
   return ds;
 }
 
@@ -130,9 +131,9 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 
       var_t hdr_var;
       bool hdr_found = get_hdr_var(*extract->ids.begin(), extract->hdr, hdr_var);
-      ASSERT(hdr_found, "Header not found");
+      SYNAPSE_ASSERT(hdr_found, "Header not found");
 
-      ASSERT(extract->next, "Next state not found");
+      SYNAPSE_ASSERT(extract->next, "Next state not found");
       code_t next_state = get_parser_state_name(extract->next, false);
 
       ingress_parser.indent();
@@ -221,7 +222,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 }
 
 code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset, bits_t size) const {
-  ASSERT(offset + size <= var.expr->getWidth(), "Invalid slice");
+  SYNAPSE_ASSERT(offset + size <= var.expr->getWidth(), "Invalid slice");
 
   coder_t coder;
   coder << var.name << "[" << offset + size - 1 << ":" << offset << "]";
@@ -328,7 +329,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   for (const symbol_t &symbol : symbols) {
     var_t var;
     bool found = get_var(symbol.expr, var);
-    ASSERT(found, "Symbol not found");
+    SYNAPSE_ASSERT(found, "Symbol not found");
 
     ingress_apply.indent();
     ingress_apply << "hdr.cpu.";
@@ -361,7 +362,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Recirculate *node) {
   // TODO:
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -377,7 +378,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   const std::vector<klee::ref<klee::Expr>> &conditions = node->get_conditions();
 
   const std::vector<EPNode *> &children = ep_node->get_children();
-  ASSERT(children.size() == 2, "If node must have 2 children");
+  SYNAPSE_ASSERT(children.size() == 2, "If node must have 2 children");
 
   const EPNode *then_node = children[0];
   const EPNode *else_node = children[1];
@@ -508,7 +509,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Broadcast *node) {
   // TODO:
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -549,7 +550,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   parser_vars[node->get_node()->get_id()] = get_squashed_vars();
   parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
 
-  ASSERT(ep_node->get_children().size() == 1, "ParserExtraction must have 1 child");
+  SYNAPSE_ASSERT(ep_node->get_children().size() == 1,
+                 "ParserExtraction must have 1 child");
   visit(ep, ep_node->get_children()[0]);
 
   var_stacks.pop_back();
@@ -569,7 +571,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
   var_t hdr_var;
   bool found = get_var(hdr, hdr_var);
-  ASSERT(found, "Header not found");
+  SYNAPSE_ASSERT(found, "Header not found");
 
   const std::vector<mod_t> &changes = node->get_changes();
   for (const mod_t &mod : changes) {
@@ -638,7 +640,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   }
 
   dbg();
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
 
   return EPVisitor::Action::doChildren;
 }
@@ -646,7 +648,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::VectorRegisterUpdate *node) {
   // TODO:
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -666,28 +668,28 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   dbg();
 
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableReadOrWrite *node) {
   // TODO:
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableWrite *node) {
   // TODO:
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableDelete *node) {
   // TODO:
-  ASSERT(false, "TODO");
+  SYNAPSE_ASSERT(false, "TODO");
   return EPVisitor::Action::doChildren;
 }
 

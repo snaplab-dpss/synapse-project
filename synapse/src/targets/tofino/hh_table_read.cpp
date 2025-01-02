@@ -1,16 +1,9 @@
 #include "hh_table_read.h"
 
-#define CMS_WIDTH_PARAM "cms_width"
-#define CMS_HEIGHT_PARAM "cms_height"
-#define CMS_THRESHOLD_PARAM "cms_threshold"
-
-#define CMS_WIDTH 1024
-#define CMS_HEIGHT 4
-#define CMS_THRESHOLD 1_000_000
-
 namespace synapse {
 namespace tofino {
 namespace {
+
 struct hh_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
@@ -22,12 +15,12 @@ struct hh_table_data_t {
 
   hh_table_data_t(const EP *ep, const Call *map_get) {
     const call_t &call = map_get->get_call();
-    ASSERT(call.function_name == "map_get", "Not a map_get call");
+    SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     symbol_t map_has_this_key_symbol;
     bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
                             map_has_this_key_symbol);
-    ASSERT(found, "Symbol map_has_this_key not found");
+    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -46,7 +39,7 @@ void update_map_get_success_hit_rate(Context &ctx, const Node *map_get,
   hit_rate_t success_rate =
       TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
 
-  ASSERT(mgsc.branch, "No branch checking map_get success");
+  SYNAPSE_ASSERT(mgsc.branch, "No branch checking map_get success");
   const Node *on_success =
       mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
   const Node *on_failure =

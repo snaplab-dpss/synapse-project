@@ -27,7 +27,7 @@ struct map_register_data_t {
 
     bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
                             map_has_this_key);
-    ASSERT(found, "Symbol map_has_this_key not found");
+    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
@@ -52,7 +52,7 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
       symbol_t out_of_space;
       bool found = get_symbol(coalescing_node->get_locally_generated_symbols(),
                               "out_of_space", out_of_space);
-      ASSERT(found, "Symbol out_of_space not found");
+      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);

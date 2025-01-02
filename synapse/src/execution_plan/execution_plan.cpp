@@ -5,6 +5,7 @@
 #include "../exprs/solver.h"
 #include "../profiler.h"
 #include "../log.h"
+#include "../constants.h"
 
 namespace synapse {
 namespace {
@@ -93,14 +94,14 @@ EP::EP(const EP &other, bool is_ancestor)
       ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots),
       ctx(other.ctx), meta(other.meta) {
   if (!root) {
-    ASSERT(other.active_leaves.size() == 1, "No root and multiple leaves.");
+    SYNAPSE_ASSERT(other.active_leaves.size() == 1, "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
     return;
   }
 
   for (const EPLeaf &leaf : other.active_leaves) {
     EPNode *leaf_node = root->get_mutable_node_by_id(leaf.node->get_id());
-    ASSERT(leaf_node, "Leaf node not found in the cloned tree.");
+    SYNAPSE_ASSERT(leaf_node, "Leaf node not found in the cloned tree.");
     active_leaves.emplace_back(leaf_node, leaf.next);
   }
 
@@ -127,8 +128,8 @@ const std::vector<EPLeaf> &EP::get_active_leaves() const { return active_leaves;
 const TargetsView &EP::get_targets() const { return targets; }
 
 const nodes_t &EP::get_target_roots(TargetType target) const {
-  ASSERT(targets_roots.find(target) != targets_roots.end(),
-         "Target not found in the roots map.");
+  SYNAPSE_ASSERT(targets_roots.find(target) != targets_roots.end(),
+                 "Target not found in the roots map.");
   return targets_roots.at(target);
 }
 
@@ -181,7 +182,7 @@ EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
 
   root->visit_nodes([&found, &types](const EPNode *node) {
     const Module *module = node->get_module();
-    ASSERT(module, "Node without a module");
+    SYNAPSE_ASSERT(module, "Node without a module");
 
     if (types.find(module->get_type()) != types.end()) {
       found.push_back(node);
@@ -215,7 +216,7 @@ const Node *EP::get_next_node() const {
 }
 
 EPLeaf EP::pop_active_leaf() {
-  ASSERT(!active_leaves.empty(), "No active leaf");
+  SYNAPSE_ASSERT(!active_leaves.empty(), "No active leaf");
   EPLeaf leaf = active_leaves.front();
   active_leaves.erase(active_leaves.begin());
   return leaf;
@@ -231,7 +232,7 @@ TargetType EP::get_active_target() const {
     return initial_target;
   }
 
-  ASSERT(has_active_leaf(), "No active leaf");
+  SYNAPSE_ASSERT(has_active_leaf(), "No active leaf");
   EPLeaf active_leaf = get_active_leaf();
 
   return active_leaf.node->get_module()->get_next_target();
@@ -310,11 +311,11 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd,
   };
 
   for (EPLeaf &leaf : active_leaves) {
-    ASSERT(leaf.next, "Active leaf without a next node");
+    SYNAPSE_ASSERT(leaf.next, "Active leaf without a next node");
 
     node_id_t new_id = translate_next_node(leaf.next->get_id());
     const Node *new_node = new_bdd->get_node_by_id(new_id);
-    ASSERT(new_node, "New node not found in the new BDD.");
+    SYNAPSE_ASSERT(new_node, "New node not found in the new BDD.");
 
     leaf.next = new_node;
   }
@@ -330,7 +331,7 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd,
     node_id_t target_id = translate_processed_node(node_bdd->get_id());
 
     const Node *new_node = new_bdd->get_node_by_id(target_id);
-    ASSERT(new_node, "Node (id=%lu) not found in the new BDD.", target_id);
+    SYNAPSE_ASSERT(new_node, "Node (id=%lu) not found in the new BDD.", target_id);
 
     module->set_node(new_node);
 
@@ -379,7 +380,7 @@ void EP::debug_active_leaves() const {
   const Profiler &profiler = ctx.get_profiler();
   Log::dbg() << "Active leaves:\n";
   for (const EPLeaf &leaf : active_leaves) {
-    ASSERT(leaf.next, "Active leaf without a next node");
+    SYNAPSE_ASSERT(leaf.next, "Active leaf without a next node");
     Log::dbg() << "  " << leaf.next->dump(true, true);
     if (leaf.node) {
       Log::dbg() << " | " << leaf.node->dump();
@@ -389,7 +390,7 @@ void EP::debug_active_leaves() const {
 }
 
 void EP::assert_integrity() const {
-  if (!Log::is_debug_active()) {
+  if (!Log::is_dbg_active()) {
     return;
   }
 
@@ -399,19 +400,19 @@ void EP::assert_integrity() const {
     const EPNode *node = nodes.back();
     nodes.pop_back();
 
-    ASSERT(node, "Null node");
-    ASSERT(node->get_module(), "Node without a module");
+    SYNAPSE_ASSERT(node, "Null node");
+    SYNAPSE_ASSERT(node->get_module(), "Node without a module");
 
     const Module *module = node->get_module();
     const Node *bdd_node = module->get_node();
-    ASSERT(bdd_node, "Module without a node");
+    SYNAPSE_ASSERT(bdd_node, "Module without a node");
 
     const Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-    ASSERT(bdd_node == found_bdd_node, "Node not found in the BDD");
+    SYNAPSE_ASSERT(bdd_node == found_bdd_node, "Node not found in the BDD");
 
     for (const EPNode *child : node->get_children()) {
-      ASSERT(child, "Null child");
-      ASSERT(child->get_prev() == node, "Child without the correct parent");
+      SYNAPSE_ASSERT(child, "Null child");
+      SYNAPSE_ASSERT(child->get_prev() == node, "Child without the correct parent");
       nodes.push_back(child);
     }
   }
@@ -419,19 +420,19 @@ void EP::assert_integrity() const {
   for (const auto &[target, roots] : targets_roots) {
     for (const node_id_t root_id : roots) {
       const Node *bdd_node = bdd->get_node_by_id(root_id);
-      ASSERT(bdd_node, "Root node not found in the BDD");
+      SYNAPSE_ASSERT(bdd_node, "Root node not found in the BDD");
 
       const Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-      ASSERT(bdd_node == found_bdd_node, "Root node not found in the BDD");
+      SYNAPSE_ASSERT(bdd_node == found_bdd_node, "Root node not found in the BDD");
     }
   }
 
   for (const EPLeaf &leaf : active_leaves) {
     const Node *next = leaf.next;
-    ASSERT(next, "Active leaf without a next node");
+    SYNAPSE_ASSERT(next, "Active leaf without a next node");
 
     const Node *found_next = bdd->get_node_by_id(next->get_id());
-    ASSERT(next == found_next, "Next node not found in the BDD");
+    SYNAPSE_ASSERT(next == found_next, "Next node not found in the BDD");
   }
 
   bdd->assert_integrity();
@@ -453,8 +454,8 @@ void EP::sort_leaves() {
   auto prioritize_switch_and_hot_paths = [this, initial_target](const EPLeaf &l1,
                                                                 const EPLeaf &l2) {
     // Only the first leaf may have no EPNode.
-    ASSERT(l1.node, "Leaf without a node");
-    ASSERT(l2.node, "Leaf without a node");
+    SYNAPSE_ASSERT(l1.node, "Leaf without a node");
+    SYNAPSE_ASSERT(l2.node, "Leaf without a node");
 
     if (l1.node->get_module()->get_next_target() != initial_target &&
         l2.node->get_module()->get_next_target() == initial_target) {
@@ -624,8 +625,8 @@ spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target
         continue;
       }
 
-      ASSERT(best.has_value(), "No best speculation");
-      ASSERT(spec.has_value(), "No speculation");
+      SYNAPSE_ASSERT(best.has_value(), "No best speculation");
+      SYNAPSE_ASSERT(spec.has_value(), "No speculation");
 
       bool is_better = is_better_speculation(*best, *spec, node, current_target, ingress);
 
@@ -640,11 +641,11 @@ spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target
     // EPViz::visualize(this, false);
     // BDDViz::visualize(bdd.get(), false);
 
-    PANIC("No module to speculative execute\n"
-          "EP:     %lu\n"
-          "Target: %s\n"
-          "Node:   %s\n",
-          id, to_string(current_target).c_str(), node->dump(true).c_str());
+    SYNAPSE_PANIC("No module to speculative execute\n"
+                  "EP:     %lu\n"
+                  "Target: %s\n"
+                  "Node:   %s\n",
+                  id, to_string(current_target).c_str(), node->dump(true).c_str());
   }
 
   return *best;
@@ -690,7 +691,7 @@ pps_t EP::speculate_tput_pps() const {
       continue;
     }
 
-    ASSERT(leaf.next, "Active leaf without a next node");
+    SYNAPSE_ASSERT(leaf.next, "Active leaf without a next node");
     leaf.next->visit_nodes([this, &speculations, initial_target, &spec_ctx, &skip,
                             ingress](const Node *node) {
       if (skip.find(node->get_id()) != skip.end()) {
@@ -748,7 +749,7 @@ pps_t EP::speculate_tput_pps() const {
   //   // EPViz::visualize(this, false);
   //   // ProfilerViz::visualize(bdd.get(), spec_ctx.get_profiler(), false);
   //   // debug_active_leaves();
-  //   DEBUG_PAUSE
+  //   dbg_pause();
   // }
 
   return egress;

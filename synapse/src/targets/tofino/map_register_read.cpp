@@ -19,7 +19,7 @@ struct map_register_data_t {
 
     bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
                             map_has_this_key);
-    ASSERT(found, "Symbol map_has_this_key not found");
+    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }

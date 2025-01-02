@@ -19,7 +19,7 @@ struct fcfs_cached_table_data_t {
 
     bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
                             map_has_this_key);
-    ASSERT(found, "Symbol map_has_this_key not found");
+    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
@@ -96,7 +96,9 @@ FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node,
   new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   spec_impl_t spec_impl(
-      decide(ep, node, {{CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}), new_ctx);
+      decide(ep, node,
+             {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}),
+      new_ctx);
 
   return spec_impl;
 }
@@ -136,7 +138,8 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep,
                                               cache_capacity);
 
     if (new_ep) {
-      impl_t impl = implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl = implement(ep, node, new_ep,
+                              {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

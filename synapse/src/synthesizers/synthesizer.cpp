@@ -2,12 +2,7 @@
 
 #include "synthesizer.h"
 #include "../log.h"
-
-#define INDENTATION_UNIT ' '
-#define INDENTATION_MULTIPLIER 2
-
-#define MARKER_AFFIX "/*@{"
-#define MARKER_SUFFIX "}@*/"
+#include "../constants.h"
 
 namespace synapse {
 namespace {
@@ -34,10 +29,10 @@ void assert_markers_in_template(const std::filesystem::path &template_file,
 
   code_t template_str = buffer.str();
   for (const auto &kv : coders) {
-    const marker_t &marker = MARKER_AFFIX + kv.first + MARKER_SUFFIX;
+    const marker_t &marker = TEMPLATE_MARKER_AFFIX + kv.first + TEMPLATE_MARKER_SUFFIX;
     if (template_str.find(marker) == std::string::npos) {
-      PANIC("Marker \"%s\" not found in template: %s\n", marker.c_str(),
-            template_file.c_str());
+      SYNAPSE_PANIC("Marker \"%s\" not found in template: %s\n", marker.c_str(),
+                    template_file.c_str());
     }
   }
 }
@@ -49,7 +44,7 @@ Synthesizer::Synthesizer(std::string _template_fname,
     : template_file(get_template_path(_template_fname)), coders(get_builders(_markers)),
       out(_out) {
   if (!std::filesystem::exists(template_file)) {
-    PANIC("Template file not found: %s\n", template_file.c_str());
+    SYNAPSE_PANIC("Template file not found: %s\n", template_file.c_str());
   }
 
   assert_markers_in_template(template_file, coders);
@@ -62,7 +57,8 @@ void coder_t::inc() { lvl++; }
 void coder_t::dec() { lvl--; }
 
 void coder_t::indent() {
-  stream << code_t(lvl * INDENTATION_MULTIPLIER, INDENTATION_UNIT);
+  stream << code_t(lvl * SYNTHESIZER_INDENTATION_MULTIPLIER,
+                   SYNTHESIZER_INDENTATION_UNIT);
 }
 
 code_t coder_t::dump() const { return stream.str(); }
@@ -79,7 +75,7 @@ coder_t &coder_t::operator<<(i64 n) {
 
 coder_t &Synthesizer::get(const std::string &marker) {
   auto it = coders.find(marker);
-  ASSERT(it != coders.end(), "Marker not found.");
+  SYNAPSE_ASSERT(it != coders.end(), "Marker not found.");
   return it->second;
 }
 
@@ -92,11 +88,11 @@ void Synthesizer::dump() const {
   code_t template_str = buffer.str();
 
   for (const auto &[marker_label, coder] : coders) {
-    marker_t marker = MARKER_AFFIX + marker_label + MARKER_SUFFIX;
+    marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
     code_t code = coder.stream.str();
 
     size_t pos = template_str.find(marker);
-    ASSERT(pos != std::string::npos, "Marker not found in template.");
+    SYNAPSE_ASSERT(pos != std::string::npos, "Marker not found in template.");
 
     template_str.replace(pos, marker.size(), code);
   }
@@ -107,7 +103,7 @@ void Synthesizer::dump() const {
 
 void Synthesizer::dbg() const {
   for (const auto &[marker_label, coder] : coders) {
-    marker_t marker = MARKER_AFFIX + marker_label + MARKER_SUFFIX;
+    marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
     code_t code = coder.stream.str();
 
     Log::dbg() << "\n====================\n";

@@ -15,7 +15,7 @@ struct fcfs_cached_table_data_t {
   u32 num_entries;
 
   fcfs_cached_table_data_t(const EP *ep, std::vector<const Call *> future_map_puts) {
-    ASSERT(!future_map_puts.empty(), "No future map puts");
+    SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
     const Call *map_put = future_map_puts.front();
 
     const call_t &put_call = map_put->get_call();
@@ -126,14 +126,14 @@ void delete_coalescing_nodes_on_success(
       symbol_t out_of_space;
       bool found = get_symbol(call_target->get_locally_generated_symbols(),
                               "out_of_space", out_of_space);
-      ASSERT(found, "Symbol out_of_space not found");
+      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
       if (index_alloc_check.branch) {
-        ASSERT(!deleted_branch_constraints.has_value(),
-               "Multiple branch checking index allocation detected");
+        SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
+                       "Multiple branch checking index allocation detected");
         deleted_branch_constraints =
             index_alloc_check.branch->get_ordered_branch_constraints();
 
@@ -168,7 +168,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = dchain_allocate_new_index->get_next();
-  ASSERT(next, "No next node");
+  SYNAPSE_ASSERT(next, "No next node");
 
   Branch *cache_write_branch =
       add_branch_to_bdd(new_bdd.get(), next, cache_write_success_condition);
@@ -292,7 +292,7 @@ FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  ASSERT(!future_map_puts.empty(), "No future map puts");
+  SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
 
   map_coalescing_objs_t map_objs;
   if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
@@ -352,8 +352,9 @@ FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
-  spec_impl_t spec_impl(decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}),
-                        new_ctx);
+  spec_impl_t spec_impl(
+      decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}),
+      new_ctx);
 
   std::vector<const Node *> ignore_nodes = get_nodes_to_speculatively_ignore(
       ep, dchain_allocate_new_index, map_objs, cached_table_data.key);
@@ -381,7 +382,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep,
     return impls;
   }
 
-  ASSERT(!future_map_puts.empty(), "No future map puts");
+  SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
 
   map_coalescing_objs_t map_objs;
   if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
@@ -406,7 +407,8 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep,
                                                future_map_puts);
 
     if (new_ep) {
-      impl_t impl = implement(ep, node, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl = implement(ep, node, new_ep,
+                              {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

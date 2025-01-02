@@ -21,7 +21,7 @@ std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> conditi
     conditions.insert(conditions.end(), rhs_conds.begin(), rhs_conds.end());
   } break;
   case klee::Expr::Kind::Or: {
-    ASSERT(false, "TODO");
+    SYNAPSE_ASSERT(false, "TODO");
   } break;
   default: {
     conditions.push_back(condition);
@@ -65,13 +65,13 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node) cons
 
   for (klee::ref<klee::Expr> sub_condition : conditions) {
     if (!get_tna(ep).condition_meets_phv_limit(sub_condition)) {
-      ASSERT(false, "TODO: deal with this");
+      SYNAPSE_ASSERT(false, "TODO: deal with this");
       return impls;
     }
   }
 
-  ASSERT(branch_node->get_on_true(), "Branch node without on_true");
-  ASSERT(branch_node->get_on_false(), "Branch node without on_false");
+  SYNAPSE_ASSERT(branch_node->get_on_true(), "Branch node without on_true");
+  SYNAPSE_ASSERT(branch_node->get_on_false(), "Branch node without on_false");
 
   Module *if_module = new If(node, condition, conditions);
   Module *then_module = new Then(node);

@@ -10,7 +10,7 @@ struct map_register_data_t {
   u32 num_entries;
 
   map_register_data_t(const EP *ep, std::vector<const Call *> future_map_puts) {
-    ASSERT(!future_map_puts.empty(), "No future map puts");
+    SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
     const Call *map_put = future_map_puts.front();
     const call_t &put_call = map_put->get_call();
 
@@ -81,14 +81,14 @@ delete_coalescing_nodes(const EP *ep, const Node *node,
       symbol_t out_of_space;
       bool found = get_symbol(call_target->get_locally_generated_symbols(),
                               "out_of_space", out_of_space);
-      ASSERT(found, "Symbol out_of_space not found");
+      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, node, out_of_space);
 
       if (index_alloc_check.branch) {
-        ASSERT(!deleted_branch_constraints.has_value(),
-               "Multiple branch checking index allocation detected");
+        SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
+                       "Multiple branch checking index allocation detected");
         deleted_branch_constraints =
             index_alloc_check.branch->get_ordered_branch_constraints();
 
@@ -139,7 +139,7 @@ std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep,
     return std::nullopt;
   }
 
-  ASSERT(!future_map_puts.empty(), "No future map puts");
+  SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
 
   map_coalescing_objs_t map_objs;
   if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
@@ -191,7 +191,7 @@ std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
     return impls;
   }
 
-  ASSERT(!future_map_puts.empty(), "No future map puts");
+  SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
 
   map_coalescing_objs_t map_objs;
   if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {

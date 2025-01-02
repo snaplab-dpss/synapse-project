@@ -34,16 +34,16 @@ void log_bdd_pre_processing(
 
 time_ns_t exp_time_from_expire_items_single_map_time(const BDD *bdd,
                                                      klee::ref<klee::Expr> time) {
-  ASSERT(time->getKind() == klee::Expr::Kind::Add, "Invalid time expression");
+  SYNAPSE_ASSERT(time->getKind() == klee::Expr::Kind::Add, "Invalid time expression");
 
   klee::ref<klee::Expr> lhs = time->getKid(0);
   klee::ref<klee::Expr> rhs = time->getKid(1);
 
-  ASSERT(lhs->getKind() == klee::Expr::Kind::Constant, "Invalid time expression");
+  SYNAPSE_ASSERT(lhs->getKind() == klee::Expr::Kind::Constant, "Invalid time expression");
 
   const symbol_t &time_symbol = bdd->get_time();
-  ASSERT(solver_toolbox.are_exprs_always_equal(rhs, time_symbol.expr),
-         "Invalid time expression");
+  SYNAPSE_ASSERT(solver_toolbox.are_exprs_always_equal(rhs, time_symbol.expr),
+                 "Invalid time expression");
 
   u64 unsigned_exp_time = solver_toolbox.value_from_expr(lhs);
   time_ns_t exp_time = ~unsigned_exp_time + 1;
@@ -74,7 +74,7 @@ std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t number_of_freed_flows;
     bool found = get_symbol(symbols, "number_of_freed_flows", number_of_freed_flows);
-    ASSERT(found, "Symbol number_of_freed_flows not found");
+    SYNAPSE_ASSERT(found, "Symbol number_of_freed_flows not found");
 
     expiration_data_t data = {
         .expiration_time = exp_time,
@@ -155,7 +155,7 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &
       continue;
     }
 
-    PANIC("Unknown init call");
+    SYNAPSE_PANIC("Unknown init call");
   }
 
   log_bdd_pre_processing(coalescing_candidates);
@@ -231,32 +231,32 @@ const PerfOracle &Context::get_perf_oracle() const { return perf_oracle; }
 PerfOracle &Context::get_mutable_perf_oracle() { return perf_oracle; }
 
 const map_config_t &Context::get_map_config(addr_t addr) const {
-  ASSERT(map_configs.find(addr) != map_configs.end(), "Map not found");
+  SYNAPSE_ASSERT(map_configs.find(addr) != map_configs.end(), "Map not found");
   return map_configs.at(addr);
 }
 
 const vector_config_t &Context::get_vector_config(addr_t addr) const {
-  ASSERT(vector_configs.find(addr) != vector_configs.end(), "Vector not found");
+  SYNAPSE_ASSERT(vector_configs.find(addr) != vector_configs.end(), "Vector not found");
   return vector_configs.at(addr);
 }
 
 const dchain_config_t &Context::get_dchain_config(addr_t addr) const {
-  ASSERT(dchain_configs.find(addr) != dchain_configs.end(), "Dchain not found");
+  SYNAPSE_ASSERT(dchain_configs.find(addr) != dchain_configs.end(), "Dchain not found");
   return dchain_configs.at(addr);
 }
 
 const cms_config_t &Context::get_cms_config(addr_t addr) const {
-  ASSERT(cms_configs.find(addr) != cms_configs.end(), "CMS not found");
+  SYNAPSE_ASSERT(cms_configs.find(addr) != cms_configs.end(), "CMS not found");
   return cms_configs.at(addr);
 }
 
 const cht_config_t &Context::get_cht_config(addr_t addr) const {
-  ASSERT(cht_configs.find(addr) != cht_configs.end(), "CHT not found");
+  SYNAPSE_ASSERT(cht_configs.find(addr) != cht_configs.end(), "CHT not found");
   return cht_configs.at(addr);
 }
 
 const tb_config_t &Context::get_tb_config(addr_t addr) const {
-  ASSERT(tb_configs.find(addr) != tb_configs.end(), "TB not found");
+  SYNAPSE_ASSERT(tb_configs.find(addr) != tb_configs.end(), "TB not found");
   return tb_configs.at(addr);
 }
 
@@ -276,7 +276,7 @@ const std::optional<expiration_data_t> &Context::get_expiration_data() const {
 }
 
 void Context::save_ds_impl(addr_t obj, DSImpl impl) {
-  ASSERT(can_impl_ds(obj, impl), "Incompatible implementation");
+  SYNAPSE_ASSERT(can_impl_ds(obj, impl), "Incompatible implementation");
   ds_impls[obj] = impl;
 }
 

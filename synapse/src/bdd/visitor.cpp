@@ -47,7 +47,7 @@ void BDDVisitor::visitRoot(const Node *root) {
 
 void BDDVisitor::visit(const BDD *bdd) {
   const Node *root = bdd->get_root();
-  ASSERT(root, "No root node");
+  SYNAPSE_ASSERT(root, "No root node");
   visitRoot(root);
 }
 } // namespace synapse

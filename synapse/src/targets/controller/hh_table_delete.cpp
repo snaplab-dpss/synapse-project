@@ -9,7 +9,7 @@ namespace {
 void get_map_erase_data(const Call *call_node, addr_t &obj,
                         std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "map_erase", "Not a map_erase call");
+  SYNAPSE_ASSERT(call.function_name == "map_erase", "Not a map_erase call");
 
   obj = expr_addr_to_obj_addr(call.args.at("map").expr);
   keys = Table::build_keys(call.args.at("key").in);

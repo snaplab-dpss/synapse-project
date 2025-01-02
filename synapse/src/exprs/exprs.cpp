@@ -13,7 +13,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
 }
 
 bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
-  ASSERT(!expr.isNull(), "Null expr");
+  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() == klee::Expr::Read) {
     return true;
@@ -30,14 +30,14 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   }
 
   const expr_group_t &group = groups[0];
-  ASSERT(group.has_symbol, "Group has no symbol");
+  SYNAPSE_ASSERT(group.has_symbol, "Group has no symbol");
   symbol = group.symbol;
 
   return true;
 }
 
 bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes) {
-  ASSERT(!expr.isNull(), "Null expr");
+  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() == klee::Expr::Read) {
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
@@ -67,7 +67,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes
   }
 
   const expr_group_t &group = groups[0];
-  ASSERT(group.has_symbol, "Group has no symbol");
+  SYNAPSE_ASSERT(group.has_symbol, "Group has no symbol");
 
   if (group.symbol != "packet_chunks") {
     return false;
@@ -86,7 +86,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr) {
 }
 
 bool is_bool(klee::ref<klee::Expr> expr) {
-  ASSERT(!expr.isNull(), "Null expr");
+  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getWidth() == 1) {
     return true;
@@ -127,7 +127,7 @@ bool is_constant_signed(klee::ref<klee::Expr> expr) {
     return false;
   }
 
-  ASSERT(size <= 64, "Size too big");
+  SYNAPSE_ASSERT(size <= 64, "Size too big");
 
   auto value = solver_toolbox.value_from_expr(expr);
   auto sign_bit = value >> (size - 1);
@@ -145,7 +145,7 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
     auto constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
-    ASSERT(width <= 64, "Width too big");
+    SYNAPSE_ASSERT(width <= 64, "Width too big");
     value = constant->getZExtValue(width);
   } else {
     value = solver_toolbox.value_from_expr(expr);
@@ -198,8 +198,8 @@ klee::ConstraintManager join_managers(const klee::ConstraintManager &m1,
 }
 
 addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr) {
-  ASSERT(!obj_addr.isNull(), "Null obj_addr");
-  ASSERT(is_constant(obj_addr), "Non-constant obj_addr");
+  SYNAPSE_ASSERT(!obj_addr.isNull(), "Null obj_addr");
+  SYNAPSE_ASSERT(is_constant(obj_addr), "Non-constant obj_addr");
   return solver_toolbox.value_from_expr(obj_addr);
 }
 
@@ -250,7 +250,7 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
         expr, solver_toolbox.exprBuilder->Constant(0, expr->getWidth()));
     break;
   default:
-    ASSERT(false, "TODO");
+    SYNAPSE_ASSERT(false, "TODO");
   }
 
   return constraint;

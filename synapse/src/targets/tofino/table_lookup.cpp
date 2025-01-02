@@ -5,7 +5,7 @@ namespace tofino {
 namespace {
 table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "map_get", "Unexpected function");
+  SYNAPSE_ASSERT(call.function_name == "map_get", "Unexpected function");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -15,7 +15,7 @@ table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
 
   symbol_t map_has_this_key;
   bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   addr_t obj = expr_addr_to_obj_addr(map_addr_expr);
 
@@ -35,7 +35,7 @@ table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
 
 table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "vector_borrow", "Unexpected function");
+  SYNAPSE_ASSERT(call.function_name == "vector_borrow", "Unexpected function");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -59,9 +59,9 @@ table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
 
 table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "dchain_is_index_allocated" ||
-             call.function_name == "dchain_rejuvenate_index",
-         "Unexpected function");
+  SYNAPSE_ASSERT(call.function_name == "dchain_is_index_allocated" ||
+                     call.function_name == "dchain_rejuvenate_index",
+                 "Unexpected function");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -83,7 +83,7 @@ table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
     symbols_t symbols = call_node->get_locally_generated_symbols();
     symbol_t is_allocated;
     bool found = get_symbol(symbols, "dchain_is_index_allocated", is_allocated);
-    ASSERT(found, "Symbol dchain_is_index_allocated not found");
+    SYNAPSE_ASSERT(found, "Symbol dchain_is_index_allocated not found");
 
     table_data.hit = is_allocated;
   }

@@ -3,15 +3,14 @@
 #include "perf_oracle.h"
 #include "../log.h"
 #include "../util.h"
-
-#define EPSILON 1e-6
+#include "../constants.h"
 
 namespace synapse {
 namespace {
 void clamp_fraction(hit_rate_t &fraction) {
   fraction = std::max(0.0, fraction);
   fraction = std::min(1.0, fraction);
-  if (fraction < EPSILON) {
+  if (fraction < HIT_RATE_EPSILON) {
     fraction = 0;
   }
 }
@@ -67,7 +66,7 @@ hit_rate_t newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 m
     it++;
   }
 
-  ASSERT(std::abs(f) <= NEWTON_PRECISION, "Newton's method did not converge");
+  SYNAPSE_ASSERT(std::abs(f) <= NEWTON_PRECISION, "Newton's method did not converge");
 
   return x;
 }
@@ -95,8 +94,8 @@ port_ingress_t &port_ingress_t::operator=(const port_ingress_t &other) {
 }
 
 port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
-  ASSERT(other.global >= 0, "Global hit rate must be non-negative");
-  ASSERT(other.global <= 1, "Global hit rate must be at most 1");
+  SYNAPSE_ASSERT(other.global >= 0, "Global hit rate must be non-negative");
+  SYNAPSE_ASSERT(other.global <= 1, "Global hit rate must be at most 1");
 
   global += other.global;
   clamp_fraction(global);
@@ -108,10 +107,10 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
     int rport = rport_depth_pair.first;
     int depth = rport_depth_pair.second;
 
-    ASSERT(rport >= 0, "Recirculation port must be non-negative");
-    ASSERT(depth >= 1, "Recirculation depth must be at least 1");
-    ASSERT(hr >= 0, "Hit rate must be non-negative");
-    ASSERT(hr <= 1, "Hit rate must be at most 1");
+    SYNAPSE_ASSERT(rport >= 0, "Recirculation port must be non-negative");
+    SYNAPSE_ASSERT(depth >= 1, "Recirculation depth must be at least 1");
+    SYNAPSE_ASSERT(hr >= 0, "Hit rate must be non-negative");
+    SYNAPSE_ASSERT(hr <= 1, "Hit rate must be at most 1");
 
     if (recirc.find(rport_depth_pair) == recirc.end()) {
       recirc.insert({rport_depth_pair, hr});
@@ -146,7 +145,7 @@ int port_ingress_t::get_max_recirc_depth() const {
 }
 
 hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
-  ASSERT(depth > 0, "Recirculation depth must be at least 1");
+  SYNAPSE_ASSERT(depth > 0, "Recirculation depth must be at least 1");
 
   hit_rate_t total_hr = 0;
 
@@ -212,7 +211,7 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
 }
 
 void PerfOracle::add_fwd_traffic(int port, const port_ingress_t &ingress) {
-  ASSERT(port < (int)front_panel_ports_capacities.size(), "Invalid port");
+  SYNAPSE_ASSERT(port < (int)front_panel_ports_capacities.size(), "Invalid port");
   ports_ingress[port] += ingress;
   unaccounted_ingress -= ingress.get_total_hr();
   clamp_fraction(unaccounted_ingress);
@@ -226,7 +225,7 @@ void PerfOracle::add_dropped_traffic(hit_rate_t hr) {
 }
 
 void PerfOracle::add_fwd_traffic(int port, hit_rate_t hr) {
-  ASSERT(port < (int)front_panel_ports_capacities.size(), "Invalid port");
+  SYNAPSE_ASSERT(port < (int)front_panel_ports_capacities.size(), "Invalid port");
   port_ingress_t ingress;
   ingress.global = hr;
   add_fwd_traffic(port, ingress);
@@ -243,14 +242,16 @@ void PerfOracle::add_controller_traffic(hit_rate_t hr) {
 }
 
 void PerfOracle::add_recirculated_traffic(int port, const port_ingress_t &ingress) {
-  ASSERT(port >= 0, "Invalid port (%d)", port);
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)", port);
+  SYNAPSE_ASSERT(port >= 0, "Invalid port (%d)", port);
+  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
+                 port);
   recirc_ports_ingress[port] += ingress;
 }
 
 void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
-  ASSERT(port >= 0, "Invalid port (%d)", port);
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)", port);
+  SYNAPSE_ASSERT(port >= 0, "Invalid port (%d)", port);
+  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
+                 port);
   port_ingress_t ingress;
   ingress.global = hr;
   add_recirculated_traffic(port, ingress);
@@ -258,7 +259,7 @@ void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
 
 std::vector<pps_t> PerfOracle::get_recirculated_egress(int port,
                                                        pps_t global_ingress) const {
-  ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port");
+  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port");
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
   bps_t Tin = pps2bps(global_ingress * usage.global, avg_pkt_bytes);
@@ -323,7 +324,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port,
     Tout[2] = (Ts1 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr;
   } break;
   default: {
-    PANIC("TODO: arbitrary recirculation depth");
+    SYNAPSE_PANIC("TODO: arbitrary recirculation depth");
   }
   }
 
@@ -362,9 +363,10 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   for (const auto &[port_depth_pair, hr] : controller_ingress.recirc) {
     int rport = port_depth_pair.first;
     int depth = port_depth_pair.second;
-    ASSERT(rport >= 0, "Invalid recirculation port");
-    ASSERT(depth > 0, "Invalid recirculation depth");
-    ASSERT(depth <= (int)recirc_egress[rport].size(), "Invalid recirculation depth");
+    SYNAPSE_ASSERT(rport >= 0, "Invalid recirculation port");
+    SYNAPSE_ASSERT(depth > 0, "Invalid recirculation depth");
+    SYNAPSE_ASSERT(depth <= (int)recirc_egress[rport].size(),
+                   "Invalid recirculation depth");
     controller_tput += recirc_egress[rport][depth - 1] * hr;
   }
   controller_tput = std::min(controller_tput, controller_capacity);
@@ -387,9 +389,10 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     for (const auto &[port_depth_pair, hr] : port_ingress.recirc) {
       int rport = port_depth_pair.first;
       int depth = port_depth_pair.second;
-      ASSERT(rport >= 0, "Invalid recirculation port");
-      ASSERT(depth > 0, "Invalid recirculation depth");
-      ASSERT(depth <= (int)recirc_egress[rport].size(), "Invalid recirculation depth");
+      SYNAPSE_ASSERT(rport >= 0, "Invalid recirculation port");
+      SYNAPSE_ASSERT(depth > 0, "Invalid recirculation depth");
+      SYNAPSE_ASSERT(depth <= (int)recirc_egress[rport].size(),
+                     "Invalid recirculation depth");
       port_tput += recirc_egress[rport][depth - 1] * hr;
     }
 

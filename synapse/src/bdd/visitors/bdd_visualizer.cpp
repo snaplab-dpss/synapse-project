@@ -7,13 +7,13 @@
 
 namespace synapse {
 namespace {
-const char *COLOR_PROCESSED = "gray";
-const char *COLOR_NEXT = "cyan";
-const char *COLOR_CALL = "cornflowerblue";
-const char *COLOR_BRANCH = "yellow";
-const char *COLOR_FORWARD = "chartreuse2";
-const char *COLOR_DROP = "brown1";
-const char *COLOR_BROADCAST = "purple";
+constexpr const char *const COLOR_PROCESSED = "gray";
+constexpr const char *const COLOR_NEXT = "cyan";
+constexpr const char *const COLOR_CALL = "cornflowerblue";
+constexpr const char *const COLOR_BRANCH = "yellow";
+constexpr const char *const COLOR_FORWARD = "chartreuse2";
+constexpr const char *const COLOR_DROP = "brown1";
+constexpr const char *const COLOR_BROADCAST = "purple";
 
 void log_visualization(const BDD *bdd, const std::string &fname) {
   std::cerr << "Visualizing BDD";

@@ -4,11 +4,12 @@
 
 #include "tofino/synthesizer.h"
 
-#define TOFINO_OUT_FILENAME "tofino.p4"
-#define TOFINO_CPU_OUT_FILENAME "controller.cpp"
-#define X86_OUT_FILENAME "x86.cpp"
-
 namespace synapse {
+
+constexpr const char *const TOFINO_OUT_FILENAME = "tofino.p4";
+constexpr const char *const TOFINO_CPU_OUT_FILENAME = "controller.cpp";
+constexpr const char *const X86_OUT_FILENAME = "x86.cpp";
+
 void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
   const TargetsView &targets = ep->get_targets();
 
@@ -20,10 +21,10 @@ void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
       synthesizer.visit(ep);
     } break;
     case TargetType::Controller: {
-      // ASSERT(false , "TODO");
+      // SYNAPSE_ASSERT(false , "TODO");
     } break;
     case TargetType::x86: {
-      // ASSERT(false , "TODO");
+      // SYNAPSE_ASSERT(false , "TODO");
     } break;
     }
   }

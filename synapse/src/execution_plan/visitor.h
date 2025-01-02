@@ -12,7 +12,7 @@
 
 #define VISIT_TODO(M)                                                                    \
   virtual Action visit(const EP *ep, const EPNode *ep_node, const M *m) {                \
-    ASSERT(false, "TODO");                                                               \
+    SYNAPSE_ASSERT(false, "TODO");                                                       \
   }
 
 namespace synapse {

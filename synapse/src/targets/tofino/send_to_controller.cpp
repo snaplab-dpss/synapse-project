@@ -73,9 +73,9 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep,
 
   // TODO: How do we recalculate the estimated throughput after a forwarding
   // decision is made?
-  ASSERT((!ep->get_active_leaf().node ||
-          !forwarding_decision_already_made(ep->get_active_leaf().node)),
-         "TODO");
+  SYNAPSE_ASSERT((!ep->get_active_leaf().node ||
+                  !forwarding_decision_already_made(ep->get_active_leaf().node)),
+                 "TODO");
 
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
       get_node_egress(new_ep, s2c_node));

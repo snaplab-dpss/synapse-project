@@ -36,8 +36,8 @@ klee::ref<klee::Expr>
 solver_toolbox_t::create_new_symbol(const std::string &symbol_name,
                                     klee::Expr::Width width,
                                     const klee::Array *&array) const {
-  ASSERT(symbol_name.size(), "Empty symbol name");
-  ASSERT(width >= 8, "Invalid width");
+  SYNAPSE_ASSERT(symbol_name.size(), "Empty symbol name");
+  SYNAPSE_ASSERT(width >= 8, "Invalid width");
 
   auto domain = klee::Expr::Int32;
   auto range = klee::Expr::Int8;
@@ -88,7 +88,7 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
 
   bool result;
   bool success = solver->mustBeTrue(sat_query, result);
-  ASSERT(success, "Failed to check if expr is always true");
+  SYNAPSE_ASSERT(success, "Failed to check if expr is always true");
 
   return result;
 }
@@ -138,7 +138,7 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
 
   bool result;
   bool success = solver->mayBeTrue(sat_query, result);
-  ASSERT(success, "Failed to check if expr is maybe true");
+  SYNAPSE_ASSERT(success, "Failed to check if expr is maybe true");
 
   return result;
 }
@@ -149,7 +149,7 @@ bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constr
 
   bool result;
   bool success = solver->mayBeFalse(sat_query, result);
-  ASSERT(success, "Failed to check if expr is maybe false");
+  SYNAPSE_ASSERT(success, "Failed to check if expr is maybe false");
 
   return result;
 }
@@ -169,8 +169,8 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1,
   bool eq_in_e1_ctx_success = solver->mustBeTrue(eq_in_e1_ctx_sat_query, eq_in_e1_ctx);
   bool eq_in_e2_ctx_success = solver->mustBeTrue(eq_in_e2_ctx_sat_query, eq_in_e2_ctx);
 
-  ASSERT(eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
-  ASSERT(eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
+  SYNAPSE_ASSERT(eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
+  SYNAPSE_ASSERT(eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
 
   return eq_in_e1_ctx && eq_in_e2_ctx;
 }
@@ -192,8 +192,8 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1,
   bool not_eq_in_e2_ctx_success =
       solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx);
 
-  ASSERT(not_eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
-  ASSERT(not_eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
+  SYNAPSE_ASSERT(not_eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
+  SYNAPSE_ASSERT(not_eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
 
   return not_eq_in_e1_ctx && not_eq_in_e2_ctx;
 }
@@ -223,7 +223,7 @@ bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &const
 
   bool result;
   bool success = solver->mustBeFalse(sat_query, result);
-  ASSERT(success, "Failed to check if expr is always false");
+  SYNAPSE_ASSERT(success, "Failed to check if expr is always false");
 
   return result;
 }
@@ -291,7 +291,7 @@ bool solver_toolbox_t::are_exprs_values_always_equal(klee::ref<klee::Expr> expr1
     std::cerr << "are_exprs_values_always_equal error\n";
     std::cerr << "expr1 not always = " << expr_to_string(v1_const) << "\n";
     std::cerr << "expr1: " << expr_to_string(expr1) << "\n";
-    ASSERT(false, "are_exprs_values_always_equal error");
+    SYNAPSE_ASSERT(false, "are_exprs_values_always_equal error");
     exit(1);
   }
 
@@ -299,7 +299,7 @@ bool solver_toolbox_t::are_exprs_values_always_equal(klee::ref<klee::Expr> expr1
     std::cerr << "are_exprs_values_always_equal error\n";
     std::cerr << "expr2 not always = " << expr_to_string(v2_const) << "\n";
     std::cerr << "expr2: " << expr_to_string(expr2) << "\n";
-    ASSERT(false, "are_exprs_values_always_equal error");
+    SYNAPSE_ASSERT(false, "are_exprs_values_always_equal error");
     exit(1);
   }
 
@@ -327,7 +327,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
 
   klee::ref<klee::ConstantExpr> value_expr;
   bool success = solver->getValue(sat_query, value_expr);
-  ASSERT(success, "Failed to get value from expr");
+  SYNAPSE_ASSERT(success, "Failed to get value from expr");
 
   u64 res = value_expr->getZExtValue();
   cache[expr] = res;
@@ -346,7 +346,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr,
 
   klee::ref<klee::ConstantExpr> value_expr;
   bool success = solver->getValue(sat_query, value_expr);
-  ASSERT(success, "Failed to get value from expr");
+  SYNAPSE_ASSERT(success, "Failed to get value from expr");
 
   return value_expr->getZExtValue();
 }
@@ -412,7 +412,7 @@ solver_toolbox_t::contains(klee::ref<klee::Expr> expr1,
        offset_bits += 8) {
     auto expr1_extracted =
         solver_toolbox.exprBuilder->Extract(expr1, offset_bits, expr2_size_bits);
-    ASSERT(expr1_extracted->getWidth() == expr2->getWidth(), "Invalid width");
+    SYNAPSE_ASSERT(expr1_extracted->getWidth() == expr2->getWidth(), "Invalid width");
 
     if (are_exprs_always_equal(expr1_extracted, expr2)) {
       return contains_result_t(offset_bits, expr1_extracted);

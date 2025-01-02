@@ -40,8 +40,8 @@ public:
                      }) {}
 
   MaxTputCfg &operator=(const MaxTputCfg &other) {
-    ASSERT(other.name == name, "Mismatched names");
-    ASSERT(other.metrics.size() == metrics.size(), "Mismatched metrics");
+    SYNAPSE_ASSERT(other.name == name, "Mismatched names");
+    SYNAPSE_ASSERT(other.metrics.size() == metrics.size(), "Mismatched metrics");
     decisions_perf = other.decisions_perf;
     return *this;
   }
@@ -50,7 +50,7 @@ public:
   //   const EP *old_ep = impl.decision.ep;
   //   const EP *new_ep = impl.result;
 
-  //   ASSERT(new_ep);
+  //   SYNAPSE_ASSERT(new_ep);
 
   //   // Just an edge case for the first step on the search space.
   //   if (!old_ep) {

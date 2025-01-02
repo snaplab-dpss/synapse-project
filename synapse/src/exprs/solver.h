@@ -15,14 +15,14 @@ struct solver_toolbox_t {
 
   solver_toolbox_t() {
     solver = klee::createCoreSolver(klee::Z3_SOLVER);
-    ASSERT(solver, "Failed to create solver");
+    SYNAPSE_ASSERT(solver, "Failed to create solver");
 
     solver = createCexCachingSolver(solver);
     solver = createCachingSolver(solver);
     solver = createIndependentSolver(solver);
 
     exprBuilder = klee::createDefaultExprBuilder();
-    ASSERT(exprBuilder, "Failed to create exprBuilder");
+    SYNAPSE_ASSERT(exprBuilder, "Failed to create exprBuilder");
 
     exprBuilder = klee::createSimplifyingExprBuilder(exprBuilder);
   }

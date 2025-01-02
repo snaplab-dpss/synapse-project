@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "util.h"
+#include "constants.h"
 #include "bdd/bdd.h"
 #include "targets/targets.h"
 #include "execution_plan/execution_plan.h"
@@ -83,7 +84,7 @@ bool is_incrementing_op(klee::ref<klee::Expr> before, klee::ref<klee::Expr> afte
   klee::ref<klee::Expr> not_const_expr = lhs_is_const ? rhs : lhs;
 
   // We only support increment of one, for now...
-  ASSERT(solver_toolbox.value_from_expr(const_expr) == 1, "Expecting increment");
+  SYNAPSE_ASSERT(solver_toolbox.value_from_expr(const_expr) == 1, "Expecting increment");
 
   return solver_toolbox.are_exprs_always_equal(not_const_expr, before);
 }
@@ -93,7 +94,7 @@ std::optional<u64> get_max_value(klee::ref<klee::Expr> original_value,
   std::optional<u64> max_value;
 
   std::optional<std::string> original_symbol = get_symbol(original_value);
-  ASSERT(original_symbol.has_value(), "Expecting a symbol");
+  SYNAPSE_ASSERT(original_symbol.has_value(), "Expecting a symbol");
 
   std::optional<std::string> symbol = get_symbol(condition);
 
@@ -211,7 +212,7 @@ bool is_counter_inc_op(const Node *vector_borrow, std::optional<u64> &max_value)
   }
 
   std::optional<u64> local_max_value = get_max_value(borrow_value, condition);
-  ASSERT(local_max_value.has_value(), "Expecting a max value for counter.");
+  SYNAPSE_ASSERT(local_max_value.has_value(), "Expecting a max value for counter.");
 
   if (!max_value.has_value()) {
     max_value = local_max_value;
@@ -380,7 +381,7 @@ get_unfiltered_coalescing_nodes(const BDD *bdd, const Node *node,
       get_future_functions(node, target_functions);
 
   auto filter_map_objs = [&data](const Node *node) {
-    ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+    SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
@@ -493,16 +494,16 @@ addr_t get_vector_map_key(const BDD *bdd,
     addr_t ret_vector_obj = expr_addr_to_obj_addr(vector_expr);
     addr_t ret_value_addr = expr_addr_to_obj_addr(value_addr_expr);
 
-    ASSERT(ret_vector_obj == vector_obj, "Vector objects don't match");
+    SYNAPSE_ASSERT(ret_vector_obj == vector_obj, "Vector objects don't match");
 
     // vector_borrow operation deemed this vector as a key vector, but the
     // vector_return contradicts this information.
-    ASSERT(ret_value_addr == value_addr, "Value addresses don't match");
+    SYNAPSE_ASSERT(ret_value_addr == value_addr, "Value addresses don't match");
 
     return vector_obj;
   }
 
-  PANIC("Vector key not found");
+  SYNAPSE_PANIC("Vector key not found");
 }
 
 void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
@@ -645,8 +646,8 @@ std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
   const call_t &vb_call = vector_borrow->get_call();
   const call_t &vr_call = vector_return->get_call();
 
-  ASSERT(vb_call.function_name == "vector_borrow", "Unexpected function");
-  ASSERT(vr_call.function_name == "vector_return", "Unexpected function");
+  SYNAPSE_ASSERT(vb_call.function_name == "vector_borrow", "Unexpected function");
+  SYNAPSE_ASSERT(vr_call.function_name == "vector_return", "Unexpected function");
 
   klee::ref<klee::Expr> original_value = vb_call.extra_vars.at("borrowed_cell").second;
   klee::ref<klee::Expr> value = vr_call.args.at("value").in;
@@ -668,14 +669,15 @@ std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
   }
 
   const call_t &ret_call = packet_return_chunk->get_call();
-  ASSERT(ret_call.function_name == "packet_return_chunk", "Unexpected function");
+  SYNAPSE_ASSERT(ret_call.function_name == "packet_return_chunk", "Unexpected function");
 
   const call_t &bor_call = packet_borrow_next_chunk->get_call();
-  ASSERT(bor_call.function_name == "packet_borrow_next_chunk", "Unexpected function");
+  SYNAPSE_ASSERT(bor_call.function_name == "packet_borrow_next_chunk",
+                 "Unexpected function");
 
   klee::ref<klee::Expr> borrowed = bor_call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned = ret_call.args.at("the_chunk").in;
-  ASSERT(borrowed->getWidth() == returned->getWidth(), "Different widths");
+  SYNAPSE_ASSERT(borrowed->getWidth() == returned->getWidth(), "Different widths");
 
   std::vector<mod_t> changes = build_expr_mods(borrowed, returned);
 
@@ -709,7 +711,7 @@ ignore_checksum_modifications(const std::vector<mod_t> &modifications) {
 }
 
 bool query_contains_map_has_key(const Branch *node) {
-  ASSERT(!node->get_condition().isNull(), "No condition");
+  SYNAPSE_ASSERT(!node->get_condition().isNull(), "No condition");
 
   klee::ref<klee::Expr> _condition = node->get_condition();
   std::unordered_set<std::string> symbols = get_symbols(_condition);
@@ -728,7 +730,7 @@ bool query_contains_map_has_key(const Branch *node) {
 
 const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk) {
   const call_t &call = packet_return_chunk->get_call();
-  ASSERT(call.function_name == "packet_return_chunk", "Unexpected function");
+  SYNAPSE_ASSERT(call.function_name == "packet_return_chunk", "Unexpected function");
 
   klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
 
@@ -738,8 +740,8 @@ const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_ch
   std::vector<const Call *> prev_returns =
       get_prev_functions(ep, packet_return_chunk, {"packet_return_chunk"});
 
-  ASSERT(prev_borrows.size(), "No previous borrows");
-  ASSERT(prev_borrows.size() > prev_returns.size(), "No previous borrow");
+  SYNAPSE_ASSERT(prev_borrows.size(), "No previous borrows");
+  SYNAPSE_ASSERT(prev_borrows.size() > prev_returns.size(), "No previous borrow");
 
   return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
 }
@@ -937,7 +939,8 @@ klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
     break;
   }
 
-  ASSERT(!borrowed_cell.isNull(), "Expecting a previous vector borrow but not found.");
+  SYNAPSE_ASSERT(!borrowed_cell.isNull(),
+                 "Expecting a previous vector borrow but not found.");
 
   return borrowed_cell;
 }
@@ -1014,8 +1017,8 @@ bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj,
     return false;
   }
 
-  ASSERT(candidates.maps.size() == 1, "Expecting a single map");
-  ASSERT(candidates.dchains.size() == 1, "Expecting a single dchain");
+  SYNAPSE_ASSERT(candidates.maps.size() == 1, "Expecting a single map");
+  SYNAPSE_ASSERT(candidates.dchains.size() == 1, "Expecting a single dchain");
 
   data.map = candidates.maps.begin()->obj;
   data.dchain = candidates.dchains.begin()->obj;
@@ -1075,7 +1078,7 @@ bool borrow_has_var_len(const Node *node) {
 symbols_t get_prev_symbols(const Node *node, const nodes_t &stop_nodes) {
   symbols_t symbols;
 
-  ASSERT(node, "Node is null");
+  SYNAPSE_ASSERT(node, "Node is null");
   node = node->get_prev();
 
   std::unordered_set<std::string> ignoring_symbols = {
@@ -1160,19 +1163,20 @@ bool is_vector_read(const Call *vector_borrow) {
     return true;
   }
 
-  ASSERT(vector_return->get_type() == NodeType::Call, "Unexpected node type");
+  SYNAPSE_ASSERT(vector_return->get_type() == NodeType::Call, "Unexpected node type");
 
   const Call *vr_call = dynamic_cast<const Call *>(vector_return);
   const call_t &vr = vr_call->get_call();
-  ASSERT(vr.function_name == "vector_return", "Unexpected function");
+  SYNAPSE_ASSERT(vr.function_name == "vector_return", "Unexpected function");
 
   klee::ref<klee::Expr> vr_obj_expr = vr.args.at("vector").expr;
   klee::ref<klee::Expr> vr_index = vr.args.at("index").expr;
   klee::ref<klee::Expr> vr_value = vr.args.at("value").in;
 
   addr_t vr_obj = expr_addr_to_obj_addr(vr_obj_expr);
-  ASSERT(vb_obj == vr_obj, "Different objects");
-  ASSERT(solver_toolbox.are_exprs_always_equal(vb_index, vr_index), "Different indexes");
+  SYNAPSE_ASSERT(vb_obj == vr_obj, "Different objects");
+  SYNAPSE_ASSERT(solver_toolbox.are_exprs_always_equal(vb_index, vr_index),
+                 "Different indexes");
 
   return solver_toolbox.are_exprs_always_equal(vb_value, vr_value);
 }
@@ -1209,7 +1213,7 @@ bool is_vector_borrow_ignored(const Call *vector_borrow) {
   symbols_t symbols = vector_borrow->get_locally_generated_symbols();
   symbol_t value;
   bool found = get_symbol(symbols, "vector_data_reset", value);
-  ASSERT(found, "Symbol vector_data_reset not found");
+  SYNAPSE_ASSERT(found, "Symbol vector_data_reset not found");
 
   bool used = false;
 
@@ -1230,11 +1234,11 @@ bool is_vector_borrow_ignored(const Call *vector_borrow) {
 }
 
 branch_direction_t get_map_get_success_check(const Node *node) {
-  ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+  SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   const call_t &mg_call = map_get->get_call();
-  ASSERT(mg_call.function_name == "map_get", "Unexpected function");
+  SYNAPSE_ASSERT(mg_call.function_name == "map_get", "Unexpected function");
 
   klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
   klee::ref<klee::Expr> key = mg_call.args.at("key").in;
@@ -1242,7 +1246,7 @@ branch_direction_t get_map_get_success_check(const Node *node) {
   symbols_t symbols = map_get->get_locally_generated_symbols();
   symbol_t map_has_this_key;
   bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ref<klee::Expr> key_not_found_cond = solver_toolbox.exprBuilder->Eq(
       map_has_this_key.expr,
@@ -1280,11 +1284,11 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
 
-  ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+  SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   const call_t &mg_call = map_get->get_call();
-  ASSERT(mg_call.function_name == "map_get", "Unexpected function");
+  SYNAPSE_ASSERT(mg_call.function_name == "map_get", "Unexpected function");
 
   klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
   klee::ref<klee::Expr> key = mg_call.args.at("key").in;
@@ -1292,12 +1296,12 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   symbols_t symbols = map_get->get_locally_generated_symbols();
   symbol_t map_has_this_key;
   bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   rw_fractions_t fractions;
 
   branch_direction_t success_check = get_map_get_success_check(map_get);
-  ASSERT(success_check.branch, "Map get success check not found");
+  SYNAPSE_ASSERT(success_check.branch, "Map get success check not found");
 
   const Node *read = success_check.direction ? success_check.branch->get_on_true()
                                              : success_check.branch->get_on_false();
@@ -1307,12 +1311,12 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
 
   std::vector<const Call *> future_map_puts =
       get_future_functions(write_attempt, {"map_put"});
-  ASSERT(future_map_puts.size() >= 1, "map_put not found");
+  SYNAPSE_ASSERT(future_map_puts.size() >= 1, "map_put not found");
 
   const Node *write = nullptr;
   for (const Call *map_put : future_map_puts) {
     const call_t &mp_call = map_put->get_call();
-    ASSERT(mp_call.function_name == "map_put", "Unexpected function");
+    SYNAPSE_ASSERT(mp_call.function_name == "map_put", "Unexpected function");
 
     klee::ref<klee::Expr> o = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> k = mp_call.args.at("key").in;
@@ -1324,7 +1328,7 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
     }
   }
 
-  ASSERT(write, "map_put not found");
+  SYNAPSE_ASSERT(write, "map_put not found");
 
   fractions.read = profiler.get_hr(read);
   fractions.write_attempt = profiler.get_hr(write_attempt);
@@ -1349,7 +1353,7 @@ bool is_map_get_followed_by_map_puts_on_miss(const BDD *bdd, const Call *map_get
   symbols_t symbols = map_get->get_locally_generated_symbols();
   symbol_t map_has_this_key;
   bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ref<klee::Expr> failed_map_get = solver_toolbox.exprBuilder->Eq(
       map_has_this_key.expr,
@@ -1361,7 +1365,7 @@ bool is_map_get_followed_by_map_puts_on_miss(const BDD *bdd, const Call *map_get
 
   for (const Call *map_put : future_map_puts) {
     const call_t &mp_call = map_put->get_call();
-    ASSERT(mp_call.function_name == "map_put", "Unexpected function");
+    SYNAPSE_ASSERT(mp_call.function_name == "map_put", "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> mp_key = mp_call.args.at("key").in;
@@ -1790,7 +1794,7 @@ bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_ind
 
   for (const Call *map_put : future_map_puts) {
     const call_t &mp_call = map_put->get_call();
-    ASSERT(mp_call.function_name == "map_put", "Unexpected function");
+    SYNAPSE_ASSERT(mp_call.function_name == "map_put", "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> mp_key = mp_call.args.at("key").in;
@@ -1874,7 +1878,7 @@ bool is_index_alloc_on_unsuccessful_map_get(const EP *ep,
   bool found =
       get_symbol(dynamic_cast<const Call *>(map_get)->get_locally_generated_symbols(),
                  "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ConstraintManager constraints = dchain_allocate_new_index->get_constraints();
 
@@ -1901,7 +1905,7 @@ bool is_map_get_followed_by_map_erases_on_hit(const BDD *bdd, const Call *map_ge
   symbols_t symbols = map_get->get_locally_generated_symbols();
   symbol_t map_has_this_key;
   bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  ASSERT(found, "Symbol map_has_this_key not found");
+  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
   klee::ref<klee::Expr> successful_map_get = solver_toolbox.exprBuilder->Ne(
       map_has_this_key.expr,
@@ -1912,7 +1916,7 @@ bool is_map_get_followed_by_map_erases_on_hit(const BDD *bdd, const Call *map_ge
 
   for (const Call *map_erase : future_map_erases) {
     const call_t &me_call = map_erase->get_call();
-    ASSERT(me_call.function_name == "map_erase", "Unexpected function");
+    SYNAPSE_ASSERT(me_call.function_name == "map_erase", "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = me_call.args.at("map").expr;
     klee::ref<klee::Expr> me_key = me_call.args.at("key").in;
@@ -1955,7 +1959,7 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
   NodeManager &manager = bdd->get_mutable_manager();
 
   const Node *prev = current->get_prev();
-  ASSERT(prev, "No previous node");
+  SYNAPSE_ASSERT(prev, "No previous node");
 
   node_id_t anchor_id = prev->get_id();
   Node *anchor = bdd->get_mutable_node_by_id(anchor_id);
@@ -1964,7 +1968,7 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
   bool set_new_current = false;
 
   for (const Node *new_node : new_nodes) {
-    ASSERT(new_node->get_type() != NodeType::Branch, "Unexpected branch node");
+    SYNAPSE_ASSERT(new_node->get_type() != NodeType::Branch, "Unexpected branch node");
 
     Node *clone = new_node->clone(manager, false);
     clone->recursive_update_ids(id);
@@ -1985,7 +1989,8 @@ Node *add_non_branch_nodes_to_bdd(BDD *bdd, const Node *current,
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
-      ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
+      SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next,
+                     "No connection found");
 
       if (on_true == anchor_next) {
         branch->set_on_true(clone);
@@ -2011,7 +2016,7 @@ Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
   NodeManager &manager = bdd->get_mutable_manager();
 
   const Node *prev = current->get_prev();
-  ASSERT(prev, "No previous node");
+  SYNAPSE_ASSERT(prev, "No previous node");
 
   node_id_t anchor_id = prev->get_id();
   Node *anchor = bdd->get_mutable_node_by_id(anchor_id);
@@ -2045,7 +2050,8 @@ Branch *add_branch_to_bdd(BDD *bdd, const Node *current,
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
+    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next,
+                   "No connection found");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_branch);
@@ -2065,11 +2071,11 @@ Node *delete_non_branch_node_from_bdd(BDD *bdd, node_id_t target_id) {
   NodeManager &manager = bdd->get_mutable_manager();
 
   Node *anchor_next = bdd->get_mutable_node_by_id(target_id);
-  ASSERT(anchor_next, "Node not found");
-  ASSERT(anchor_next->get_type() != NodeType::Branch, "Unexpected branch node");
+  SYNAPSE_ASSERT(anchor_next, "Node not found");
+  SYNAPSE_ASSERT(anchor_next->get_type() != NodeType::Branch, "Unexpected branch node");
 
   Node *anchor = anchor_next->get_mutable_prev();
-  ASSERT(anchor, "No previous node");
+  SYNAPSE_ASSERT(anchor, "No previous node");
 
   Node *new_current = anchor_next->get_mutable_next();
 
@@ -2084,7 +2090,7 @@ Node *delete_non_branch_node_from_bdd(BDD *bdd, node_id_t target_id) {
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
+    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_current);
@@ -2105,11 +2111,11 @@ Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_
   NodeManager &manager = bdd->get_mutable_manager();
 
   Node *target = bdd->get_mutable_node_by_id(target_id);
-  ASSERT(target, "Node not found");
-  ASSERT(target->get_type() == NodeType::Branch, "Unexpected branch node");
+  SYNAPSE_ASSERT(target, "Node not found");
+  SYNAPSE_ASSERT(target->get_type() == NodeType::Branch, "Unexpected branch node");
 
   Node *anchor = target->get_mutable_prev();
-  ASSERT(anchor, "No previous node");
+  SYNAPSE_ASSERT(anchor, "No previous node");
 
   Branch *anchor_next = dynamic_cast<Branch *>(target);
 
@@ -2139,7 +2145,7 @@ Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
+    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_current);
@@ -2158,7 +2164,7 @@ Node *delete_branch_node_from_bdd(BDD *bdd, node_id_t target_id, bool direction_
 
 branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *node,
                                                     const symbol_t &out_of_space) {
-  ASSERT(!out_of_space.expr.isNull(), "out_of_space expr is null");
+  SYNAPSE_ASSERT(!out_of_space.expr.isNull(), "out_of_space expr is null");
 
   const Context &ctx = ep->get_ctx();
   const std::optional<expiration_data_t> expiration_data = ctx.get_expiration_data();
@@ -2205,8 +2211,8 @@ branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *no
                   0, expiration_data->number_of_freed_flows.expr->getWidth())));
     }
 
-    ASSERT(index_alloc_check.branch->get_on_true(), "No on_true");
-    ASSERT(index_alloc_check.branch->get_on_false(), "No on_false");
+    SYNAPSE_ASSERT(index_alloc_check.branch->get_on_true(), "No on_true");
+    SYNAPSE_ASSERT(index_alloc_check.branch->get_on_false(), "No on_false");
 
     const Node *on_true = index_alloc_check.branch->get_on_true();
     const Node *on_false = index_alloc_check.branch->get_on_false();
@@ -2216,9 +2222,9 @@ branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *no
     bool success_on_false = solver_toolbox.is_expr_always_true(
         on_false->get_constraints(), success_condition);
 
-    ASSERT((success_on_true || success_on_false), "No branch side is successful");
-    ASSERT((success_on_true ^ success_on_false),
-           "Both branch sides have the same success condition");
+    SYNAPSE_ASSERT((success_on_true || success_on_false), "No branch side is successful");
+    SYNAPSE_ASSERT((success_on_true ^ success_on_false),
+                   "Both branch sides have the same success condition");
 
     index_alloc_check.direction = success_on_true;
   }
@@ -2228,15 +2234,17 @@ branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *no
 
 branch_direction_t
 find_branch_checking_index_alloc(const EP *ep, const Node *dchain_allocate_new_index) {
-  ASSERT(dchain_allocate_new_index->get_type() == NodeType::Call, "Unexpected node type");
+  SYNAPSE_ASSERT(dchain_allocate_new_index->get_type() == NodeType::Call,
+                 "Unexpected node type");
   const Call *call_node = dynamic_cast<const Call *>(dchain_allocate_new_index);
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "dchain_allocate_new_index", "Unexpected function");
+  SYNAPSE_ASSERT(call.function_name == "dchain_allocate_new_index",
+                 "Unexpected function");
 
   symbol_t out_of_space;
   bool found = get_symbol(call_node->get_locally_generated_symbols(), "out_of_space",
                           out_of_space);
-  ASSERT(found, "Symbol out_of_space not found");
+  SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
 
   return find_branch_checking_index_alloc(ep, dchain_allocate_new_index, out_of_space);
 }
@@ -2255,7 +2263,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
   klee::ref<klee::Expr> index;
 
   auto filter_map_nodes_and_retrieve_index = [&target_key, &index](const Node *node) {
-    ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+    SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
@@ -2283,7 +2291,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
                        filtered_nodes.end());
 
   auto filter_vectors_nodes = [&index](const Node *node) {
-    ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+    SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
@@ -2292,7 +2300,7 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
       return false;
     }
 
-    ASSERT(!index.isNull(), "Index is null");
+    SYNAPSE_ASSERT(!index.isNull(), "Index is null");
 
     klee::ref<klee::Expr> value = call.args.at("index").expr;
     return !solver_toolbox.are_exprs_always_equal(index, value);
@@ -2325,7 +2333,7 @@ std::string int2hr(u64 value) {
 
   // Add thousands separator
   for (int i = str.size() - 3; i > 0; i -= 3) {
-    str.insert(i, THOUSANDS_SEPARATOR);
+    str.insert(i, 1, THOUSANDS_SEPARATOR);
   }
 
   ss << str;
@@ -2349,7 +2357,7 @@ std::string tput2str(u64 thpt, const std::string &units, bool human_readable) {
 
     // Add thousands separator
     for (int i = str.size() - 3; i > 0; i -= 3) {
-      str.insert(i, THOUSANDS_SEPARATOR);
+      str.insert(i, 1, THOUSANDS_SEPARATOR);
     }
 
     ss << str;
@@ -2364,7 +2372,7 @@ bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
                                             map_coalescing_objs_t &map_objs) {
   const call_t &call = dchain_op->get_call();
 
-  ASSERT(call.args.find("chain") != call.args.end(), "No chain argument");
+  SYNAPSE_ASSERT(call.args.find("chain") != call.args.end(), "No chain argument");
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
 
   addr_t obj = expr_addr_to_obj_addr(obj_expr);
@@ -2384,7 +2392,7 @@ bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
                                          map_coalescing_objs_t &map_objs) {
   const call_t &call = map_op->get_call();
 
-  ASSERT(call.args.find("map") != call.args.end(), "No map argument");
+  SYNAPSE_ASSERT(call.args.find("map") != call.args.end(), "No map argument");
   klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
 
   addr_t obj = expr_addr_to_obj_addr(obj_expr);

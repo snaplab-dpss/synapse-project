@@ -85,7 +85,7 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
   }
 
   auto filtered = filter.visit(expr);
-  ASSERT(filter.check_symbols(filtered).has_not_allowed == 0, "Invalid filter");
+  SYNAPSE_ASSERT(filter.check_symbols(filtered).has_not_allowed == 0, "Invalid filter");
 
   return filtered;
 }

@@ -15,8 +15,8 @@ struct fcfs_cached_table_data_t {
 
   fcfs_cached_table_data_t(const EP *ep, const Call *map_erase) {
     const call_t &call = map_erase->get_call();
-    ASSERT(call.function_name == "map_erase", "Expected map_erase but got \"%s\"",
-           call.function_name.c_str());
+    SYNAPSE_ASSERT(call.function_name == "map_erase", "Expected map_erase but got \"%s\"",
+                   call.function_name.c_str());
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -100,7 +100,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_erase->get_next();
-  ASSERT(next, "Next node is null");
+  SYNAPSE_ASSERT(next, "Next node is null");
 
   Branch *cache_delete_branch =
       add_branch_to_bdd(new_bdd.get(), next, cache_delete_success_condition);
@@ -285,8 +285,9 @@ FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
-  spec_impl_t spec_impl(decide(ep, node, {{CACHE_SIZE_PARAM, chosen_cache_capacity}}),
-                        new_ctx);
+  spec_impl_t spec_impl(
+      decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}),
+      new_ctx);
 
   std::vector<const Node *> ignore_nodes = get_future_related_nodes(ep, node, map_objs);
 
@@ -334,8 +335,8 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep,
         ep, map_erase, map_objs, cached_table_data, cache_delete_failed, cache_capacity);
 
     if (new_ep) {
-      impl_t impl =
-          implement(ep, map_erase, new_ep, {{CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl = implement(ep, map_erase, new_ep,
+                              {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

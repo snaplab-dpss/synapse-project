@@ -22,12 +22,12 @@ struct table_data_t {
 
   table_data_t(const EP *ep, const Call *map_get) {
     const call_t &call = map_get->get_call();
-    ASSERT(call.function_name == "map_get", "Not a map_get call");
+    SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
 
     symbol_t map_has_this_key_symbol;
     bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
                             map_has_this_key_symbol);
-    ASSERT(found, "Symbol map_has_this_key not found");
+    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;

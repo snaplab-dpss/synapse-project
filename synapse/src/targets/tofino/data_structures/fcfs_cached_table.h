@@ -9,10 +9,10 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
-#define CACHE_SIZE_PARAM "cache_size"
-
 namespace synapse {
 namespace tofino {
+
+constexpr const char *const FCFS_CACHED_TABLE_CACHE_SIZE_PARAM = "cache_size";
 
 struct FCFSCachedTable : public DS {
   u32 cache_capacity;

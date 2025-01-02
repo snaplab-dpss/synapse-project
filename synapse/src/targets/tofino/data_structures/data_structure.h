@@ -35,7 +35,7 @@ struct DS {
   virtual void debug() const = 0;
 
   virtual std::vector<std::unordered_set<const DS *>> get_internal() const {
-    ASSERT(primitive, "Only non primitive data structures have internals");
+    SYNAPSE_ASSERT(primitive, "Only non primitive data structures have internals");
     return {};
   }
 
@@ -57,7 +57,7 @@ struct DS {
         for (const auto &pds : ds->get_internal_primitive()) {
           if (pending.size() <= i) {
             pending.emplace_back();
-            ASSERT(pending.size() > i, "Invalid pending size");
+            SYNAPSE_ASSERT(pending.size() > i, "Invalid pending size");
           }
 
           pending[i].insert(pds.begin(), pds.end());

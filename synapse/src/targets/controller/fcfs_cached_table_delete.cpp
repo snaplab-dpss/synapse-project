@@ -11,16 +11,17 @@ DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
   const Context &ctx = ep->get_ctx();
   const tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<tofino::TofinoContext>();
   const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
-  ASSERT(data_structures.size() == 1, "Multiple data structures found");
+  SYNAPSE_ASSERT(data_structures.size() == 1, "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
-  ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE, "Not a FCFS cached table");
+  SYNAPSE_ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE,
+                 "Not a FCFS cached table");
   return ds->id;
 }
 
 void get_map_erase_data(const Call *call_node, addr_t &obj,
                         std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
-  ASSERT(call.function_name == "map_erase", "Not a map_erase call");
+  SYNAPSE_ASSERT(call.function_name == "map_erase", "Not a map_erase call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;

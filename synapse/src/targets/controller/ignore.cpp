@@ -9,7 +9,7 @@ namespace {
 // linking a map with vectors. It doesn't even matter if the data structures
 // are coalesced or not, we can freely ignore it regardless.
 bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
-  ASSERT(call.function_name == "dchain_rejuvenate_index", "Not a dchain call");
+  SYNAPSE_ASSERT(call.function_name == "dchain_rejuvenate_index", "Not a dchain call");
 
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
   addr_t chain_addr = expr_addr_to_obj_addr(chain);

@@ -6,7 +6,7 @@ namespace {
 bits_t index_size_from_width(u32 width) {
   // Log base 2 of the cache capacity
   // Assert cache capacity is a power of 2
-  ASSERT((width & (width - 1)) == 0, "Cache capacity must be a power of 2");
+  SYNAPSE_ASSERT((width & (width - 1)) == 0, "Cache capacity must be a power of 2");
   return bits_t(log2(width));
 }
 
@@ -60,8 +60,8 @@ void CountMinSketch::debug() const {
 std::vector<std::unordered_set<const DS *>> CountMinSketch::get_internal() const {
   std::vector<std::unordered_set<const DS *>> internal_ds;
 
-  ASSERT(rows.size() == height, "Invalid number of rows");
-  ASSERT(hashes.size() == height, "Invalid number of hashes");
+  SYNAPSE_ASSERT(rows.size() == height, "Invalid number of rows");
+  SYNAPSE_ASSERT(hashes.size() == height, "Invalid number of hashes");
 
   for (size_t i = 0; i < height; i++) {
     internal_ds.emplace_back();
