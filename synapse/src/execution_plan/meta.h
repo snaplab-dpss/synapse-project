@@ -26,12 +26,11 @@ struct EPMeta {
   // Useful for uniquely identifying/classifying this EP.
   i64 random_number;
 
-  EPMeta(const BDD *bdd, const std::unordered_set<TargetType> &targets,
-         const TargetType initial_target)
+  EPMeta(const BDD *bdd, const TargetsView &targets)
       : total_bdd_nodes(bdd->size()), depth(0), nodes(0), reordered_nodes(0),
         random_number(RandomEngine::generate()) {
-    for (TargetType target : targets) {
-      steps_per_target[target] = 0;
+    for (const TargetView &target : targets.elements) {
+      steps_per_target[target.type] = 0;
     }
   }
 

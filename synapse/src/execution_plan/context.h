@@ -85,8 +85,8 @@ private:
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
-  Context(const BDD *bdd, const Targets &targets, const TargetType initial_target,
-          const toml::table &config, const Profiler &profiler);
+  Context(const BDD *bdd, const TargetsView &targets, const toml::table &config,
+          const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 

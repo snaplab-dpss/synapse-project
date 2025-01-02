@@ -8,7 +8,6 @@
 
 namespace {
 
-namespace {
 nodes_t filter_away_nodes(const nodes_t &nodes, const nodes_t &filter) {
   nodes_t result;
 
@@ -46,25 +45,8 @@ pps_t find_stable_tput(pps_t ingress, std::function<pps_t(pps_t)> estimator) {
 
   return egress;
 }
-} // namespace
 
-ep_id_t counter = 0;
-
-std::unordered_set<TargetType> get_target_types(const Targets &targets) {
-  ASSERT(targets.elements.size(), "No targets to get types from.");
-  std::unordered_set<TargetType> targets_types;
-
-  for (const std::shared_ptr<const Target> &target : targets.elements) {
-    targets_types.insert(target->type);
-  }
-
-  return targets_types;
-}
-
-TargetType get_initial_target(const Targets &targets) {
-  ASSERT(targets.elements.size(), "No targets to get the initial target from.");
-  return targets.elements[0]->type;
-}
+ep_id_t ep_id_counter = 0;
 
 BDD *setup_bdd(const BDD *bdd) {
   BDD *new_bdd = new BDD(*bdd);
@@ -88,17 +70,17 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 }
 } // namespace
 
-EP::EP(std::shared_ptr<const BDD> _bdd, const Targets &_targets,
+EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets,
        const toml::table &_config, const Profiler &_profiler)
-    : id(counter++), bdd(setup_bdd(_bdd.get())), root(nullptr),
-      initial_target(get_initial_target(_targets)), targets(_targets),
-      ctx(bdd.get(), targets, initial_target, _config, _profiler),
-      meta(bdd.get(), get_target_types(targets), initial_target) {
+    : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets),
+      ctx(bdd.get(), _targets, _config, _profiler), meta(bdd.get(), targets) {
+  TargetType initial_target = targets.get_initial_target().type;
   targets_roots[initial_target] = nodes_t({bdd->get_root()->get_id()});
 
-  for (const std::shared_ptr<const Target> &target : _targets.elements) {
-    if (target->type != initial_target) {
-      targets_roots[target->type] = nodes_t();
+  // TargetType initial_target = targets.
+  for (const TargetView &target : targets.elements) {
+    if (target.type != initial_target) {
+      targets_roots[target.type] = nodes_t();
     }
   }
 
@@ -106,8 +88,8 @@ EP::EP(std::shared_ptr<const BDD> _bdd, const Targets &_targets,
 }
 
 EP::EP(const EP &other, bool is_ancestor)
-    : id(counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr),
-      initial_target(other.initial_target), targets(other.targets),
+    : id(ep_id_counter++), bdd(other.bdd),
+      root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
       ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots),
       ctx(other.ctx), meta(other.meta) {
   if (!root) {
@@ -142,7 +124,7 @@ EPNode *EP::get_mutable_root() { return root; }
 
 const std::vector<EPLeaf> &EP::get_active_leaves() const { return active_leaves; }
 
-const Targets &EP::get_targets() const { return targets; }
+const TargetsView &EP::get_targets() const { return targets; }
 
 const nodes_t &EP::get_target_roots(TargetType target) const {
   ASSERT(targets_roots.find(target) != targets_roots.end(),
@@ -212,10 +194,9 @@ EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
 }
 
 bool EP::has_target(TargetType type) const {
-  auto found_it = std::find_if(targets.elements.begin(), targets.elements.end(),
-                               [type](const std::shared_ptr<const Target> &target) {
-                                 return target->type == type;
-                               });
+  auto found_it =
+      std::find_if(targets.elements.begin(), targets.elements.end(),
+                   [type](const TargetView &target) { return target.type == type; });
 
   return found_it != targets.elements.end();
 }
@@ -246,6 +227,7 @@ bool EP::has_active_leaf() const { return !active_leaves.empty(); }
 
 TargetType EP::get_active_target() const {
   if (!root) {
+    TargetType initial_target = targets.get_initial_target().type;
     return initial_target;
   }
 
@@ -466,7 +448,10 @@ hit_rate_t EP::get_active_leaf_hit_rate() const {
 }
 
 void EP::sort_leaves() {
-  auto prioritize_switch_and_hot_paths = [this](const EPLeaf &l1, const EPLeaf &l2) {
+  TargetType initial_target = targets.get_initial_target().type;
+
+  auto prioritize_switch_and_hot_paths = [this, initial_target](const EPLeaf &l1,
+                                                                const EPLeaf &l2) {
     // Only the first leaf may have no EPNode.
     ASSERT(l1.node, "Leaf without a node");
     ASSERT(l2.node, "Leaf without a node");
@@ -620,14 +605,12 @@ spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target
                                      pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
-  const Targets &targets = get_targets();
-
-  for (const std::shared_ptr<const Target> &target : targets.elements) {
-    if (target->type != current_target) {
+  for (const TargetView &target : targets.elements) {
+    if (target.type != current_target) {
       continue;
     }
 
-    for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
+    for (const ModuleFactory *modgen : target.module_factories) {
       std::optional<spec_impl_t> spec = modgen->speculate(this, node, ctx);
 
       if (!spec.has_value()) {
@@ -700,38 +683,40 @@ pps_t EP::speculate_tput_pps() const {
     virtual spec_cookie_t *clone() const override { return new spec_cookie_t(*this); }
   };
 
+  TargetType initial_target = targets.get_initial_target().type;
+
   for (const EPLeaf &leaf : active_leaves) {
     if (leaf.node && leaf.node->get_module()->get_next_target() != initial_target) {
       continue;
     }
 
     ASSERT(leaf.next, "Active leaf without a next node");
-    leaf.next->visit_nodes(
-        [this, &speculations, &spec_ctx, &skip, ingress](const Node *node) {
-          if (skip.find(node->get_id()) != skip.end()) {
-            return NodeVisitAction::Continue;
-          }
+    leaf.next->visit_nodes([this, &speculations, initial_target, &spec_ctx, &skip,
+                            ingress](const Node *node) {
+      if (skip.find(node->get_id()) != skip.end()) {
+        return NodeVisitAction::Continue;
+      }
 
-          if (ctx.get_profiler().get_hr(node) == 0) {
-            skip.insert(node->get_id());
-            return NodeVisitAction::Continue;
-          }
+      if (ctx.get_profiler().get_hr(node) == 0) {
+        skip.insert(node->get_id());
+        return NodeVisitAction::Continue;
+      }
 
-          spec_impl_t speculation =
-              get_best_speculation(node, initial_target, spec_ctx, skip, ingress);
-          speculations.push_back(speculation);
+      spec_impl_t speculation =
+          get_best_speculation(node, initial_target, spec_ctx, skip, ingress);
+      speculations.push_back(speculation);
 
-          spec_ctx = speculation.ctx;
-          skip = speculation.skip;
+      spec_ctx = speculation.ctx;
+      skip = speculation.skip;
 
-          if (speculation.next_target.has_value()) {
-            // Just ignore if we change the target, we only care about the
-            // switch nodes for now.
-            return NodeVisitAction::SkipChildren;
-          }
+      if (speculation.next_target.has_value()) {
+        // Just ignore if we change the target, we only care about the
+        // switch nodes for now.
+        return NodeVisitAction::SkipChildren;
+      }
 
-          return NodeVisitAction::Continue;
-        });
+      return NodeVisitAction::Continue;
+    });
   }
 
   auto egress_from_ingress = [spec_ctx](pps_t ingress) {

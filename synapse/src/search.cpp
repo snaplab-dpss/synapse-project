@@ -156,7 +156,7 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
   }
 
   std::unique_ptr<EP> starting_ep =
-      std::make_unique<EP>(bdd, targets, targets_config, profiler);
+      std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
 
   std::unique_ptr<Heuristic> heuristic =
       std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
@@ -219,7 +219,7 @@ search_report_t SearchEngine::search() {
     std::vector<impl_t> new_implementations;
 
     u64 children = 0;
-    for (const std::shared_ptr<const Target> &target : targets.elements) {
+    for (const std::unique_ptr<Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
         const std::vector<impl_t> implementations =
             modgen->generate(ep.get(), node, !search_config.no_reorder);

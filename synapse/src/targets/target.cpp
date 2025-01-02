@@ -5,12 +5,24 @@
 #include "module_factory.h"
 #include "targets.h"
 
-Target::Target(TargetType _type,
-               std::vector<std::unique_ptr<ModuleFactory>> &&_module_factories,
-               std::unique_ptr<TargetContext> &&_ctx)
-    : type(_type), module_factories(std::move(_module_factories)), ctx(std::move(_ctx)) {}
+TargetView::TargetView(TargetType _type,
+                       std::vector<const ModuleFactory *> _module_factories,
+                       const TargetContext *_base_ctx)
+    : type(_type), module_factories(_module_factories), base_ctx(_base_ctx) {}
 
-Target::~Target() {}
+Target::Target(TargetType _type,
+               std::vector<std::unique_ptr<ModuleFactory>> _module_factories,
+               std::unique_ptr<TargetContext> _base_ctx)
+    : type(_type), module_factories(std::move(_module_factories)),
+      base_ctx(std::move(_base_ctx)) {}
+
+TargetView Target::get_view() const {
+  std::vector<const ModuleFactory *> factories;
+  for (const std::unique_ptr<ModuleFactory> &factory : module_factories) {
+    factories.push_back(factory.get());
+  }
+  return TargetView(type, factories, base_ctx.get());
+}
 
 std::ostream &operator<<(std::ostream &os, TargetType target) {
   switch (target) {
@@ -33,11 +45,26 @@ std::string to_string(TargetType target) {
   return ss.str();
 }
 
+TargetsView::TargetsView(const std::array<TargetView, 3> &_elements)
+    : elements(_elements) {}
+
+TargetView TargetsView::get_initial_target() const {
+  ASSERT(!elements.empty(), "No targets to get the initial target from.");
+  return elements[0];
+}
+
 Targets::Targets(const toml::table &config)
     : elements{
-          std::make_shared<tofino::TofinoTarget>(config),
-          std::make_shared<tofino_cpu::TofinoCPUTarget>(),
-          std::make_shared<x86::x86Target>(),
+          std::make_unique<tofino::TofinoTarget>(config),
+          std::make_unique<tofino_cpu::TofinoCPUTarget>(),
+          std::make_unique<x86::x86Target>(),
       } {}
 
-Targets::Targets(const Targets &other) : elements(other.elements) {}
+TargetsView Targets::get_view() const {
+  std::array<TargetView, 3> views{
+      elements[0]->get_view(),
+      elements[1]->get_view(),
+      elements[2]->get_view(),
+  };
+  return TargetsView(views);
+}

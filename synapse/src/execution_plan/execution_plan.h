@@ -38,8 +38,7 @@ private:
   // Don't forget to call the sorting method after adding new leaves.
   std::vector<EPLeaf> active_leaves;
 
-  const TargetType initial_target;
-  const Targets targets;
+  const TargetsView targets;
   const std::set<ep_id_t> ancestors;
 
   std::unordered_map<TargetType, nodes_t> targets_roots;
@@ -51,8 +50,8 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
 
 public:
-  EP(std::shared_ptr<const BDD> bdd, const Targets &targets, const toml::table &config,
-     const Profiler &profiler);
+  EP(std::shared_ptr<const BDD> bdd, const TargetsView &targets,
+     const toml::table &config, const Profiler &profiler);
 
   EP(const EP &other, bool is_ancestor = true);
 
@@ -73,7 +72,7 @@ public:
   const BDD *get_bdd() const;
   const EPNode *get_root() const;
   const std::vector<EPLeaf> &get_active_leaves() const;
-  const Targets &get_targets() const;
+  const TargetsView &get_targets() const;
   const nodes_t &get_target_roots(TargetType target) const;
   const std::set<ep_id_t> &get_ancestors() const;
   const Context &get_ctx() const;
