@@ -1,5 +1,6 @@
 #include "cms_count_min.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> CMSCountMinFactory::speculate(const EP *ep, const Node *node,
@@ -72,3 +73,4 @@ std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

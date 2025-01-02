@@ -1,5 +1,6 @@
 #include "fcfs_cached_table_delete.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::DS_ID;
@@ -91,3 +92,4 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

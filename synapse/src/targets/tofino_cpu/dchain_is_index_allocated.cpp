@@ -1,5 +1,6 @@
 #include "dchain_is_index_allocated.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
@@ -70,3 +71,4 @@ std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

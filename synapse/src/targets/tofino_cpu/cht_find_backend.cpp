@@ -1,5 +1,6 @@
 #include "cht_find_backend.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep,
@@ -76,3 +77,4 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

@@ -1,11 +1,11 @@
 #include "synthesizer.h"
 
+namespace synapse {
 namespace tofino {
 
-void EPSynthesizer::transpile_table(
-    coder_t &coder, const Table *table,
-    const std::vector<klee::ref<klee::Expr>> &keys,
-    const std::vector<klee::ref<klee::Expr>> &values) {
+void EPSynthesizer::transpile_table(coder_t &coder, const Table *table,
+                                    const std::vector<klee::ref<klee::Expr>> &keys,
+                                    const std::vector<klee::ref<klee::Expr>> &values) {
   code_t action_name = table->id + "_get_value";
 
   std::vector<code_t> action_params;
@@ -143,11 +143,13 @@ void EPSynthesizer::transpile_register(coder_t &coder, const Register *reg,
   coder.indent();
 }
 
-void EPSynthesizer::transpile_fcfs_cached_table(
-    coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
-    klee::ref<klee::Expr> key, klee::ref<klee::Expr> value) {
+void EPSynthesizer::transpile_fcfs_cached_table(coder_t &coder,
+                                                const FCFSCachedTable *fcfs_cached_table,
+                                                klee::ref<klee::Expr> key,
+                                                klee::ref<klee::Expr> value) {
   for (const Table &table : fcfs_cached_table->tables) {
   }
 }
 
 } // namespace tofino
+} // namespace synapse

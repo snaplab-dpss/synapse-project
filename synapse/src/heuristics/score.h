@@ -8,6 +8,7 @@
 #include "../random_engine.h"
 #include "../log.h"
 
+namespace synapse {
 struct Score {
   std::vector<i64> values;
 
@@ -72,3 +73,4 @@ inline std::ostream &operator<<(std::ostream &os, const Score &score) {
   os << ">";
   return os;
 }
+} // namespace synapse

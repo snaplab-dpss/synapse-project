@@ -1,7 +1,7 @@
 #include "table_delete.h"
 
+namespace synapse {
 namespace tofino_cpu {
-
 namespace {
 void table_delete_data_from_map_op(const Call *call_node, addr_t &obj,
                                    std::vector<klee::ref<klee::Expr>> &keys) {
@@ -99,3 +99,4 @@ std::vector<impl_t> TableDeleteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

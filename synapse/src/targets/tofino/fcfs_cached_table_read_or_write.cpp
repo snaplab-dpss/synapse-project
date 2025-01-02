@@ -5,8 +5,8 @@
 #include "else.h"
 #include "send_to_controller.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct fcfs_cached_table_data_t {
   addr_t obj;
@@ -449,3 +449,4 @@ FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep, const Node *node) 
 }
 
 } // namespace tofino
+} // namespace synapse

@@ -2,8 +2,8 @@
 
 #include "../../../exprs/retriever.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 std::string build_table_name(DS_ID id, u32 table_num) {
   return id + "_table_" + std::to_string(table_num);
@@ -68,3 +68,4 @@ DS_ID HHTable::add_table(u32 op) {
 }
 
 } // namespace tofino
+} // namespace synapse

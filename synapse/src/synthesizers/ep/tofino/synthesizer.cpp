@@ -16,8 +16,8 @@
 
 #define TEMPLATE_FILENAME "tofino.template.p4"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 const DS *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx = ep->get_ctx();
@@ -719,3 +719,4 @@ void EPSynthesizer::dbg_vars() const {
 }
 
 } // namespace tofino
+} // namespace synapse

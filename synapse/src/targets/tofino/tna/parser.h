@@ -11,6 +11,7 @@
 #include "../../../exprs/solver.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct ParserState;
@@ -466,3 +467,4 @@ private:
 };
 
 } // namespace tofino
+} // namespace synapse

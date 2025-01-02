@@ -1,5 +1,6 @@
 #include "checksum_update.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> ChecksumUpdateFactory::speculate(const EP *ep,
@@ -59,3 +60,4 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

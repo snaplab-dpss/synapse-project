@@ -53,6 +53,7 @@
     }                                                                                    \
   }
 
+namespace synapse {
 class Log {
 public:
   enum Level { DEBUG = 0, LOG = 1, WARNING = 2, ERROR = 3 };
@@ -120,3 +121,4 @@ template <typename T> Log &operator<<(Log &log, T &&t) {
 template <typename T> Log &operator<<(Log &&log, T &&t) {
   return log << std::forward<T>(t);
 }
+} // namespace synapse

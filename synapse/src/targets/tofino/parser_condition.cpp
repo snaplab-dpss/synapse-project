@@ -6,8 +6,8 @@
 
 #include "../../exprs/simplifier.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct selection_t {
   klee::ref<klee::Expr> target;
@@ -185,3 +185,4 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

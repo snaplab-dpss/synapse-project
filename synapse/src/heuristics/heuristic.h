@@ -5,6 +5,7 @@
 #include "heuristic_config.h"
 #include "../execution_plan/execution_plan.h"
 
+namespace synapse {
 class Heuristic {
 private:
   using ep_cmp_t = std::function<bool(EP *, EP *)>;
@@ -34,3 +35,4 @@ private:
   void rebuild_execution_plans_sets();
   ep_it_t get_next_unfinished_it();
 };
+} // namespace synapse

@@ -2,8 +2,8 @@
 
 #include <unordered_set>
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
   if (call.function_name != "dchain_free_index" &&
@@ -133,3 +133,4 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) 
 }
 
 } // namespace tofino
+} // namespace synapse

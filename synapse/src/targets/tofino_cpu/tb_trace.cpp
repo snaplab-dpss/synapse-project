@@ -1,5 +1,6 @@
 #include "tb_trace.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> TBTraceFactory::speculate(const EP *ep, const Node *node,
@@ -68,3 +69,4 @@ std::vector<impl_t> TBTraceFactory::process_node(const EP *ep, const Node *node)
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

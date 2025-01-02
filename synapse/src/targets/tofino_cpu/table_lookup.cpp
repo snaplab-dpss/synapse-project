@@ -1,5 +1,6 @@
 #include "table_lookup.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::Table;
@@ -152,3 +153,4 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

@@ -1,7 +1,7 @@
 #include "fcfs_cached_table_read.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct fcfs_cached_table_data_t {
   addr_t obj;
@@ -145,3 +145,4 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

@@ -10,6 +10,7 @@
 #include "bdd/tree.h"
 #include "exprs/exprs.h"
 
+namespace synapse {
 enum class ModuleType;
 
 class EP;
@@ -270,3 +271,4 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1);
 // Checks if two nodes on the BDD are actually equivalent. That is, they perform
 // the exact same operations in the same order.
 bool are_node_paths_equivalent(const Node *node0, const Node *node1);
+} // namespace synapse

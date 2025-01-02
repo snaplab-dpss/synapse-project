@@ -1,5 +1,6 @@
 #include "cms_increment.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const Node *node,
@@ -67,3 +68,4 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

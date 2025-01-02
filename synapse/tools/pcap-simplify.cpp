@@ -6,6 +6,8 @@
 
 #include "../src/pcap.h"
 
+using namespace synapse;
+
 struct pkt_hdr_t {
   ipv4_hdr_t ip_hdr;
   udp_hdr_t udp_hdr;

@@ -18,6 +18,7 @@
 #include "../exprs/replacer.h"
 #include "../exprs/solver.h"
 
+namespace synapse {
 namespace {
 std::string base_from_name(const std::string &name) {
   ASSERT(name.size(), "Empty name");
@@ -714,3 +715,4 @@ std::ostream &operator<<(std::ostream &os, klee::ref<klee::Expr> expr) {
   os << expr_to_string(expr, true);
   return os;
 }
+} // namespace synapse

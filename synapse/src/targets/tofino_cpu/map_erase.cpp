@@ -1,5 +1,6 @@
 #include "map_erase.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> MapEraseFactory::speculate(const EP *ep, const Node *node,
@@ -64,3 +65,4 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const Node *node
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

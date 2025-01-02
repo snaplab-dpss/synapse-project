@@ -3,8 +3,8 @@
 #include "../tofino/forward.h"
 #include "../tofino_cpu/forward.h"
 
+namespace synapse {
 namespace x86 {
-
 namespace {
 bool bdd_node_match_pattern(const Node *node) {
   if (node->get_type() != NodeType::Route) {
@@ -56,3 +56,4 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node)
 }
 
 } // namespace x86
+} // namespace synapse

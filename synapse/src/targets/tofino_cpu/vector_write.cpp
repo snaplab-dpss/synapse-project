@@ -1,5 +1,6 @@
 #include "vector_write.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Node *node,
@@ -75,3 +76,4 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

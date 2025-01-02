@@ -4,6 +4,7 @@
 #include "../module_factory.h"
 #include "tofino_context.h"
 
+namespace synapse {
 namespace tofino {
 
 class TofinoModule : public Module {
@@ -125,3 +126,4 @@ public:
 };
 
 } // namespace tofino
+} // namespace synapse

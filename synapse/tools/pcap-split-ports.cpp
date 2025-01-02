@@ -6,6 +6,8 @@
 
 #include "../src/pcap.h"
 
+using namespace synapse;
+
 int main(int argc, char *argv[]) {
   CLI::App app{"Split pcap traffic into multiple ports."};
 

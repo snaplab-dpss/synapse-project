@@ -1,7 +1,7 @@
 #include "vector_register_lookup.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 vector_register_data_t get_vector_register_data(const EP *ep, const Call *node) {
 
@@ -176,3 +176,4 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

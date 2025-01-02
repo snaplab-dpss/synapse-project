@@ -8,6 +8,7 @@
 #include "../synthesizer.h"
 #include "transpiler.h"
 
+namespace synapse {
 enum class BDDSynthesizerTarget { NF, PROFILER };
 
 class BDDSynthesizer : public Synthesizer {
@@ -101,3 +102,4 @@ private:
 
   friend class BDDTranspiler;
 };
+} // namespace synapse

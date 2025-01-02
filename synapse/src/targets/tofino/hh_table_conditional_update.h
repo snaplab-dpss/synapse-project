@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class HHTableConditionalUpdateFactory : public TofinoModuleFactory {
@@ -18,3 +19,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

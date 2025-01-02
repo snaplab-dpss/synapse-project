@@ -2,8 +2,8 @@
 
 #include "../../execution_plan/execution_plan.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 std::unordered_set<Register *>
 build_vector_registers(const EP *ep, const Node *node,
@@ -643,3 +643,4 @@ MapRegister *TofinoModuleFactory::build_or_reuse_map_register(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

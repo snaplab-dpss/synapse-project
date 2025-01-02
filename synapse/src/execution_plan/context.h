@@ -11,6 +11,7 @@
 #include "../bdd/bdd.h"
 #include "../targets/target.h"
 
+namespace synapse {
 enum class DSImpl {
   // ========================================
   // Tofino
@@ -120,6 +121,7 @@ public:
 
   void debug() const;
 };
+} // namespace synapse
 
 #define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                     \
   namespace NAMESPACE {                                                                  \

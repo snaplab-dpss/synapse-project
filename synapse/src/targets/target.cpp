@@ -5,6 +5,7 @@
 #include "module_factory.h"
 #include "targets.h"
 
+namespace synapse {
 TargetView::TargetView(TargetType _type,
                        std::vector<const ModuleFactory *> _module_factories,
                        const TargetContext *_base_ctx)
@@ -68,3 +69,4 @@ TargetsView Targets::get_view() const {
   };
   return TargetsView(views);
 }
+} // namespace synapse

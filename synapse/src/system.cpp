@@ -14,6 +14,7 @@
 #include <libunwind.h>
 #include <cxxabi.h>
 
+namespace synapse {
 uintptr_t get_base_addr() {
   std::ifstream maps("/proc/self/maps");
   if (!maps.is_open()) {
@@ -108,3 +109,4 @@ long get_file_size(const char *fname) {
 
   return res;
 }
+} // namespace synapse

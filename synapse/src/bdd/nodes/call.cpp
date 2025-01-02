@@ -3,13 +3,13 @@
 #include "../bdd.h"
 #include "../../exprs/exprs.h"
 
+namespace synapse {
 Node *Call::clone(NodeManager &manager, bool recursive) const {
   Call *clone;
 
   if (recursive && next) {
     Node *next_clone = next->clone(manager, true);
-    clone =
-        new Call(id, next_clone, nullptr, constraints, call, generated_symbols);
+    clone = new Call(id, next_clone, nullptr, constraints, call, generated_symbols);
     next_clone->set_prev(clone);
   } else {
     clone = new Call(id, constraints, call, generated_symbols);
@@ -55,19 +55,19 @@ std::string Call::dump(bool one_liner, bool id_name_only) const {
   return ss.str();
 }
 
-symbols_t Call::get_locally_generated_symbols(
-    std::vector<std::string> base_filters) const {
+symbols_t
+Call::get_locally_generated_symbols(std::vector<std::string> base_filters) const {
   if (base_filters.empty()) {
     return generated_symbols;
   }
 
   symbols_t result;
   for (const symbol_t &symbol : generated_symbols) {
-    auto found_it =
-        std::find(base_filters.begin(), base_filters.end(), symbol.base);
+    auto found_it = std::find(base_filters.begin(), base_filters.end(), symbol.base);
     if (found_it != base_filters.end()) {
       result.insert(symbol);
     }
   }
   return result;
 }
+} // namespace synapse

@@ -1,7 +1,7 @@
 #include "meter_update.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_and_check,
                  addr_t &obj, tb_config_t &cfg, std::vector<klee::ref<klee::Expr>> &keys,
@@ -188,3 +188,4 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

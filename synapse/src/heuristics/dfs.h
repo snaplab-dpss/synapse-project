@@ -2,6 +2,7 @@
 
 #include "heuristic.h"
 
+namespace synapse {
 class DFSCfg : public HeuristicCfg {
 public:
   DFSCfg()
@@ -18,3 +19,4 @@ public:
 private:
   i64 get_depth(const EP *ep) const;
 };
+} // namespace synapse

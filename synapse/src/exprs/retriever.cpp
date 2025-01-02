@@ -8,6 +8,7 @@
 #include "exprs.h"
 #include "../log.h"
 
+namespace synapse {
 class SymbolRetriever : public klee::ExprVisitor::ExprVisitor {
 private:
   std::unordered_map<std::string, klee::UpdateList> roots_updates;
@@ -226,3 +227,4 @@ void print_groups(const std::vector<expr_group_t> &groups) {
     }
   }
 }
+} // namespace synapse

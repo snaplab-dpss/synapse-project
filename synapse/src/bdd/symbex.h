@@ -4,6 +4,7 @@
 
 #include "../types.h"
 
+namespace synapse {
 class BDD;
 class Call;
 
@@ -48,3 +49,4 @@ vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr);
 cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr);
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr);
 tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr);
+} // namespace synapse

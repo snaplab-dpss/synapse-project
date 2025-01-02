@@ -1,5 +1,6 @@
 #include "map_register_read.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::DS_ID;
@@ -103,3 +104,4 @@ std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

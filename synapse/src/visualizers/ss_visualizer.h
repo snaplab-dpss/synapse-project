@@ -6,6 +6,7 @@
 #include "profiler_visualizer.h"
 #include "../search_space.h"
 
+namespace synapse {
 class SSVisualizer : public Graphviz {
 private:
   std::set<ep_id_t> highlight;
@@ -20,3 +21,4 @@ public:
   static void visualize(const SearchSpace *search_space, const EP *highlight,
                         bool interrupt);
 };
+} // namespace synapse

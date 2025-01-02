@@ -1,5 +1,6 @@
 #include "dchain_allocate_new_index.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
@@ -76,3 +77,4 @@ std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

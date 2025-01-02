@@ -9,6 +9,7 @@
 #include "nodes/node.h"
 #include "../types.h"
 
+namespace synapse {
 struct dev_pcap_t {
   u16 device;
   std::string pcap;
@@ -58,3 +59,4 @@ struct bdd_profile_t {
 };
 
 bdd_profile_t parse_bdd_profile(const std::string &filename);
+} // namespace synapse

@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 
+namespace synapse {
 class ModuleFactory;
 class TargetContext;
 
@@ -62,3 +63,4 @@ struct Targets {
 
   TargetsView get_view() const;
 };
+} // namespace synapse

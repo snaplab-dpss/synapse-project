@@ -2,6 +2,7 @@
 #include "../targets/module.h"
 #include "../log.h"
 
+namespace synapse {
 i64 DSPrefCfg::get_bdd_progress(const EP *ep) const {
   const EPMeta &meta = ep->get_meta();
   return meta.processed_nodes.size();
@@ -23,3 +24,4 @@ i64 DSPrefCfg::get_ds_score(const EP *ep) const {
 
   return score;
 }
+} // namespace synapse

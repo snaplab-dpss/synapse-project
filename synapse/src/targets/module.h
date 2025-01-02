@@ -10,6 +10,7 @@
 #include "../util.h"
 #include "../log.h"
 
+namespace synapse {
 class EP;
 class EPNode;
 
@@ -562,3 +563,4 @@ public:
                                   const EPNode *ep_node) const = 0;
   virtual Module *clone() const = 0;
 };
+} // namespace synapse

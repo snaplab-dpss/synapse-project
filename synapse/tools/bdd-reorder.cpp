@@ -4,6 +4,8 @@
 #include "../src/bdd/bdd.h"
 #include "../src/exprs/exprs.h"
 
+using namespace synapse;
+
 void print(const BDD *bdd, const reorder_op_t &op) {
   const anchor_info_t &anchor_info = op.anchor_info;
   const candidate_info_t &candidate_info = op.candidate_info;
@@ -18,8 +20,7 @@ void print(const BDD *bdd, const reorder_op_t &op) {
   std::cerr << "\n==================================\n";
 
   std::cerr << "* Anchor:\n";
-  std::cerr << "\t" << anchor->dump(true) << " -> " << anchor_info.direction
-            << "\n";
+  std::cerr << "\t" << anchor->dump(true) << " -> " << anchor_info.direction << "\n";
   std::cerr << "* Evicted:\n";
   std::cerr << "\t" << evicted->dump(true) << "\n";
   std::cerr << "* Candidate:\n";
@@ -34,8 +35,8 @@ void print(const BDD *bdd, const reorder_op_t &op) {
   }
 
   if (!candidate_info.condition.isNull()) {
-    std::cerr << "* Condition: "
-              << expr_to_string(candidate_info.condition, true) << "\n";
+    std::cerr << "* Condition: " << expr_to_string(candidate_info.condition, true)
+              << "\n";
   }
 
   std::cerr << "==================================\n";
@@ -50,9 +51,8 @@ void list_candidates(const BDD *bdd, const anchor_info_t &anchor_info) {
   }
 }
 
-void apply_reordering_ops(
-    const BDD *bdd,
-    const std::vector<std::pair<anchor_info_t, node_id_t>> &ops) {
+void apply_reordering_ops(const BDD *bdd,
+                          const std::vector<std::pair<anchor_info_t, node_id_t>> &ops) {
   for (const std::pair<anchor_info_t, node_id_t> &op : ops) {
     anchor_info_t anchor_info = op.first;
     node_id_t candidate_id = op.second;
@@ -64,10 +64,9 @@ void apply_reordering_ops(
 
     reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
 
-    if (reordered_bdd.op.candidate_info.status !=
-        ReorderingCandidateStatus::Valid) {
-      std::cerr << "Reordering failed: "
-                << reordered_bdd.op.candidate_info.status << "\n";
+    if (reordered_bdd.op.candidate_info.status != ReorderingCandidateStatus::Valid) {
+      std::cerr << "Reordering failed: " << reordered_bdd.op.candidate_info.status
+                << "\n";
       break;
     } else {
       assert(reordered_bdd.bdd);
@@ -93,8 +92,7 @@ void apply_all_candidates(const BDD *bdd, node_id_t anchor_id) {
     std::cerr << "\n==================================\n";
     std::cerr << "Candidate: " << reordered_bdd.op.candidate_info.id << "\n";
     if (reordered_bdd.op2.has_value()) {
-      std::cerr << "Candidate2: " << reordered_bdd.op2->candidate_info.id
-                << "\n";
+      std::cerr << "Candidate2: " << reordered_bdd.op2->candidate_info.id << "\n";
     }
     std::cerr << "==================================\n";
 

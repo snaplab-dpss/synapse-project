@@ -9,6 +9,7 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct Table : public DS {
@@ -31,3 +32,4 @@ struct Table : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

@@ -1,7 +1,7 @@
 #include "table_lookup.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
@@ -197,3 +197,4 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

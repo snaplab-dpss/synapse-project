@@ -10,6 +10,7 @@
 #include "../../exprs/renamer.h"
 #include "../../exprs/solver.h"
 
+namespace synapse {
 namespace {
 call_t
 rename_call_symbols(const call_t &call,
@@ -411,3 +412,4 @@ void Node::recursive_free_children(NodeManager &manager) {
   } break;
   }
 }
+} // namespace synapse

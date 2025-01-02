@@ -2,6 +2,7 @@
 
 #include "tofino_cpu_module.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 class MapPut : public TofinoCPUModule {
@@ -45,3 +46,4 @@ protected:
 };
 
 } // namespace tofino_cpu
+} // namespace synapse

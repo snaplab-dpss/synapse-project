@@ -2,6 +2,7 @@
 
 #include "heuristic.h"
 
+namespace synapse {
 class GreedyCfg : public HeuristicCfg {
 public:
   GreedyCfg()
@@ -21,3 +22,4 @@ private:
   i64 get_bdd_progress(const EP *ep) const;
   i64 get_tput(const EP *ep) const;
 };
+} // namespace synapse

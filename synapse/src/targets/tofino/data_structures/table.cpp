@@ -2,6 +2,7 @@
 
 #include "../../../exprs/retriever.h"
 
+namespace synapse {
 namespace tofino {
 
 Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys,
@@ -44,8 +45,7 @@ void Table::debug() const {
   Log::dbg() << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>>
-Table::build_keys(klee::ref<klee::Expr> key) {
+std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key) {
   std::vector<klee::ref<klee::Expr>> keys;
 
   std::vector<expr_group_t> groups = get_expr_groups(key);
@@ -57,3 +57,4 @@ Table::build_keys(klee::ref<klee::Expr> key) {
 }
 
 } // namespace tofino
+} // namespace synapse

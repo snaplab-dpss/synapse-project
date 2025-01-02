@@ -1,5 +1,6 @@
 #include "hh_table_delete.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::Table;
@@ -74,3 +75,4 @@ std::vector<impl_t> HHTableDeleteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

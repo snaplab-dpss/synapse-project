@@ -1,5 +1,6 @@
 #include "int_alloc_free_index.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
@@ -63,3 +64,4 @@ IntegerAllocatorFreeIndexFactory::process_node(const EP *ep, const Node *node) c
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

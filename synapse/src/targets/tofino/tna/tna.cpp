@@ -2,8 +2,8 @@
 
 #include "../../../exprs/retriever.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 TNAProperties properties_from_config(const toml::table &config) {
   ASSERT(config.contains("switch"), "Switch configuration not found");
@@ -97,3 +97,4 @@ TNA::can_place_many(const std::vector<std::unordered_set<DS *>> &candidates,
 void TNA::debug() const { simple_placer.debug(); }
 
 } // namespace tofino
+} // namespace synapse

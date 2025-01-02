@@ -1,7 +1,7 @@
 #include "vector_register_update.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bool is_conditional_write(const Call *node, const Call *&vector_return) {
   vector_return = get_future_vector_return(node);
@@ -192,3 +192,4 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

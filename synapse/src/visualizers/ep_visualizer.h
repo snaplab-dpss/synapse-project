@@ -7,6 +7,7 @@
 #include "../targets/target.h"
 #include "../execution_plan/visitor.h"
 
+namespace synapse {
 class EPViz : public EPVisitor, public Graphviz {
 public:
   EPViz();
@@ -148,3 +149,4 @@ private:
   void branch(const EPNode *ep_node, const Node *node, TargetType target,
               const std::string &label);
 };
+} // namespace synapse

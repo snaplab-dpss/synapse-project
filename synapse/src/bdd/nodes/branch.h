@@ -2,6 +2,7 @@
 
 #include "node.h"
 
+namespace synapse {
 class NodeManager;
 
 class Branch : public Node {
@@ -38,3 +39,4 @@ public:
 
   std::string dump(bool one_liner = false, bool id_name_only = false) const override;
 };
+} // namespace synapse

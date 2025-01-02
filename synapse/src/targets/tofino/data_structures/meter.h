@@ -9,6 +9,7 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct Meter : public DS {
@@ -32,3 +33,4 @@ struct Meter : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

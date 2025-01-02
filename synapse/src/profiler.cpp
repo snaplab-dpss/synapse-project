@@ -7,6 +7,7 @@
 #include "exprs/exprs.h"
 #include "exprs/solver.h"
 
+namespace synapse {
 namespace {
 hit_rate_t clamp_fraction(hit_rate_t fraction) {
   return std::min(1.0, std::max(0.0, fraction));
@@ -615,3 +616,4 @@ void Profiler::replace_constraint(const constraints_t &constraints,
   ProfilerNode *node = get_node(constraints);
   replace_constraint(node, constraint);
 }
+} // namespace synapse

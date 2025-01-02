@@ -9,6 +9,7 @@
 #define MARKER_AFFIX "/*@{"
 #define MARKER_SUFFIX "}@*/"
 
+namespace synapse {
 namespace {
 std::filesystem::path get_template_path(std::string template_name) {
   std::filesystem::path src_file = __FILE__;
@@ -115,3 +116,4 @@ void Synthesizer::dbg() const {
     Log::dbg() << "====================\n";
   }
 }
+} // namespace synapse

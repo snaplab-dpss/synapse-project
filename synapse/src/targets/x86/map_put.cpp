@@ -1,7 +1,7 @@
 #include "map_put.h"
 
+namespace synapse {
 namespace x86 {
-
 namespace {
 bool bdd_node_match_pattern(const Node *node) {
   if (node->get_type() != NodeType::Call) {
@@ -75,3 +75,4 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const Node *node) 
 }
 
 } // namespace x86
+} // namespace synapse

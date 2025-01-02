@@ -5,6 +5,7 @@
 #include "bdd/bdd.h"
 #include "types.h"
 
+namespace synapse {
 class EP;
 class EPNode;
 
@@ -103,3 +104,4 @@ private:
   void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> cnstr);
 };
+} // namespace synapse

@@ -2,8 +2,8 @@
 
 #include <unordered_set>
 
+namespace synapse {
 namespace tofino_cpu {
-
 namespace {
 // We can ignore dchain_rejuvenate_index if the dchain is only used for
 // linking a map with vectors. It doesn't even matter if the data structures
@@ -123,3 +123,4 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) 
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

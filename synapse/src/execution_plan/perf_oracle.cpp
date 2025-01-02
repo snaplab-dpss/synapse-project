@@ -6,6 +6,7 @@
 
 #define EPSILON 1e-6
 
+namespace synapse {
 namespace {
 void clamp_fraction(hit_rate_t &fraction) {
   fraction = std::max(0.0, fraction);
@@ -455,3 +456,4 @@ void PerfOracle::debug() const {
 
   Log::dbg() << ss.str();
 }
+} // namespace synapse

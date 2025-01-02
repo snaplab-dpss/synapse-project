@@ -1,5 +1,6 @@
 #pragma once
 
+namespace synapse {
 class BDD;
 class Node;
 class Branch;
@@ -19,3 +20,4 @@ protected:
   virtual Action visit(const Route *node) = 0;
   virtual void visitRoot(const Node *root);
 };
+} // namespace synapse

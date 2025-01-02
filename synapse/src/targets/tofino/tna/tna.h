@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "simple_placer.h"
 
+namespace synapse {
 namespace tofino {
 
 struct TNAProperties {
@@ -57,3 +58,4 @@ public:
 };
 
 } // namespace tofino
+} // namespace synapse

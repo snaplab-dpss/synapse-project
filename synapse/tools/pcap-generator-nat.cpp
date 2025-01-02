@@ -34,6 +34,8 @@
 // keep up with the actual time (pcap use us instead of ns).
 #define RATE_GBIT 10
 
+using namespace synapse;
+
 struct pkt_hdr_t {
   ether_hdr_t eth_hdr;
   ipv4_hdr_t ip_hdr;
@@ -231,17 +233,15 @@ private:
   time_ns_t next_alarm;
 
 public:
-  TrafficGenerator(const config_t &_config,
-                   const std::vector<flow_t> &_base_flows)
+  TrafficGenerator(const config_t &_config, const std::vector<flow_t> &_base_flows)
       : config(_config), flows(_base_flows),
         warmup_writer(get_warmup_pcap_fname(_config, 0)),
         wan_writer(get_pcap_fname(_config, config.lan_devices)),
         uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
-        zipf_rand(_config.random_seed, _config.traffic_zipf_param,
-                  _config.total_flows),
+        zipf_rand(_config.random_seed, _config.traffic_zipf_param, _config.total_flows),
         pd(NULL), pdumper(NULL), packet_template(build_pkt_template()),
-        current_lan_dev(0), counters(0), flows_swapped(0), current_time(0),
-        alarm_tick(0), next_alarm(-1) {
+        current_lan_dev(0), counters(0), flows_swapped(0), current_time(0), alarm_tick(0),
+        next_alarm(-1) {
     // Because of the port allocator.
     assert(flows.size() <= 65535);
 
@@ -280,8 +280,8 @@ public:
       port_allocator.allocate(flow);
       allocated_flows.insert(flow);
 
-      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                          sizeof(pkt_hdr_t), current_time);
+      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t),
+                          current_time);
 
       counter++;
       int current_progress = (counter * 100) / goal;
@@ -369,8 +369,8 @@ public:
 
         flows_dev_turn[flow] = Dev::LAN;
 
-        wan_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                         sizeof(pkt_hdr_t), current_time);
+        wan_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t),
+                         current_time);
       }
 
       counters[flow]++;
@@ -393,9 +393,7 @@ public:
   }
 
 private:
-  void advance_lan_dev() {
-    current_lan_dev = (current_lan_dev + 1) % config.lan_devices;
-  }
+  void advance_lan_dev() { current_lan_dev = (current_lan_dev + 1) % config.lan_devices; }
 
   void report() const {
     std::vector<u64> counters_values;
@@ -422,8 +420,8 @@ private:
     printf("Base flows: %ld\n", flows.size());
     printf("Total flows: %ld\n", total_flows);
     printf("Swapped flows: %ld\n", flows_swapped);
-    printf("HH: %ld flows (%.2f%%) %.2f%% volume\n", hh,
-           100.0 * hh / total_flows, 100.0 * hh_packets / config.total_packets);
+    printf("HH: %ld flows (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / total_flows,
+           100.0 * hh_packets / config.total_packets);
     printf("Top 10 flows:\n");
     for (size_t i = 0; i < config.total_flows; i++) {
       printf("  flow %ld: %ld\n", i, counters_values[i]);
@@ -457,8 +455,8 @@ private:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-    constexpr int bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) +
-                          CRC_SIZE_BYTES + IPG_SIZE_BYTES;
+    constexpr int bytes =
+        PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     current_time += (bytes * 8) / RATE_GBIT;
   }
 };

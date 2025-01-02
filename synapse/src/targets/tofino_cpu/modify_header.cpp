@@ -1,5 +1,6 @@
 #include "modify_header.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const Node *node,
@@ -61,3 +62,4 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

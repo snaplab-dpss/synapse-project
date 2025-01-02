@@ -1,5 +1,6 @@
 #include "dchain_rejuvenate_index.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
@@ -66,3 +67,4 @@ std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

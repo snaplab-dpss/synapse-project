@@ -5,6 +5,7 @@
 #include "../../exprs/exprs.h"
 #include "../../exprs/solver.h"
 
+namespace synapse {
 namespace {
 const char *COLOR_PROCESSED = "gray";
 const char *COLOR_NEXT = "cyan";
@@ -280,3 +281,4 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
 }
 
 void BDDViz::visitRoot(const Node *root) { root->visit(*this); }
+} // namespace synapse

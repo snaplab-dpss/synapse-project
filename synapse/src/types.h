@@ -20,6 +20,7 @@
 
 #define UINT_16_SWAP_ENDIANNESS(p) ((((p) & 0xff) << 8) | ((p) >> 8 & 0xff))
 
+namespace synapse {
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -145,3 +146,4 @@ struct vlan_hdr_t {
 #define CRC_SIZE_BYTES 4
 #define PREAMBLE_SIZE_BYTES 8
 #define IPG_SIZE_BYTES 12
+} // namespace synapse

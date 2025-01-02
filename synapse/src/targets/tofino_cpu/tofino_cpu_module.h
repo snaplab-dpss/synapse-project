@@ -6,6 +6,7 @@
 #include "tofino_cpu_context.h"
 #include "../tofino/tofino_context.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 class TofinoCPUModule : public Module {
@@ -32,3 +33,4 @@ protected:
 };
 
 } // namespace tofino_cpu
+} // namespace synapse

@@ -1,5 +1,6 @@
 #include "drop.h"
 
+namespace synapse {
 namespace tofino {
 
 std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const Node *node,
@@ -71,3 +72,4 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node) co
 }
 
 } // namespace tofino
+} // namespace synapse

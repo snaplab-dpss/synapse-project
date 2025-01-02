@@ -41,6 +41,7 @@
 #include "tofino_context.h"
 #include "../../profiler.h"
 
+namespace synapse {
 namespace tofino {
 
 struct TofinoTarget : public Target {
@@ -88,3 +89,4 @@ struct TofinoTarget : public Target {
 };
 
 } // namespace tofino
+} // namespace synapse

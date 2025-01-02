@@ -2,6 +2,7 @@
 #include "../targets/module.h"
 #include "../log.h"
 
+namespace synapse {
 i64 GreedyCfg::get_switch_progression_nodes(const EP *ep) const {
   i64 tofino_decisions = 0;
 
@@ -21,3 +22,4 @@ i64 GreedyCfg::get_bdd_progress(const EP *ep) const {
 }
 
 i64 GreedyCfg::get_tput(const EP *ep) const { return ep->estimate_tput_pps(); }
+} // namespace synapse

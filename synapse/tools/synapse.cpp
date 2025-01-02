@@ -14,6 +14,8 @@
 #include "../src/synthesizers/ep/synthesizers.h"
 #include "../src/targets/targets.h"
 
+using namespace synapse;
+
 const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
     {"bfs", HeuristicOption::BFS},         {"dfs", HeuristicOption::DFS},
     {"random", HeuristicOption::RANDOM},   {"gallium", HeuristicOption::GALLIUM},

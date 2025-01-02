@@ -1,7 +1,7 @@
 #include "cms_inc_and_query.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bool is_inc_and_query_cms(const EP *ep, const Call *cms_increment) {
   if (cms_increment->get_call().function_name != "cms_increment") {
@@ -131,3 +131,4 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

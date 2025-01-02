@@ -2,6 +2,7 @@
 
 #include "nodes/node.h"
 
+namespace synapse {
 class CallPathsGroup {
 private:
   call_paths_view_t call_paths;
@@ -35,3 +36,4 @@ public:
   const call_paths_view_t &get_on_true() const { return on_true; }
   const call_paths_view_t &get_on_false() const { return on_false; }
 };
+} // namespace synapse

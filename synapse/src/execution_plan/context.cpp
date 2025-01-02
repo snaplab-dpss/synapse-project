@@ -4,8 +4,8 @@
 #include "../exprs/solver.h"
 #include "../bdd/bdd.h"
 
+namespace synapse {
 namespace {
-
 void log_bdd_pre_processing(
     const std::vector<map_coalescing_objs_t> &coalescing_candidates) {
   Log::dbg() << "***** BDD pre-processing: *****\n";
@@ -384,3 +384,4 @@ void Context::debug() const {
   Log::dbg() << "\n";
   Log::dbg() << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 }
+} // namespace synapse

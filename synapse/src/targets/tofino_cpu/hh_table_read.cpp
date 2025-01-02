@@ -1,5 +1,6 @@
 #include "hh_table_read.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::DS;
@@ -108,3 +109,4 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

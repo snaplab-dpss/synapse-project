@@ -5,8 +5,8 @@
 #include "then.h"
 #include "send_to_controller.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct fcfs_cached_table_data_t {
   addr_t obj;
@@ -344,3 +344,4 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

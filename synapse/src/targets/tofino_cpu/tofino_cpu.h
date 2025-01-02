@@ -51,6 +51,7 @@
 
 #include "tofino_cpu_context.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 struct TofinoCPUTarget : public Target {
@@ -111,3 +112,4 @@ struct TofinoCPUTarget : public Target {
 };
 
 } // namespace tofino_cpu
+} // namespace synapse

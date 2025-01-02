@@ -8,6 +8,7 @@
 #include "data_structures/data_structures.h"
 #include "../../execution_plan/context.h"
 
+namespace synapse {
 namespace tofino {
 
 class TofinoContext : public TargetContext {
@@ -55,3 +56,4 @@ public:
 } // namespace tofino
 
 EXPLICIT_TARGET_CONTEXT_INSTANTIATION(tofino, TofinoContext)
+} // namespace synapse

@@ -2,6 +2,7 @@
 
 #include "data_structure.h"
 
+namespace synapse {
 namespace x86 {
 
 struct dchain_t : ds_t {
@@ -12,3 +13,4 @@ struct dchain_t : ds_t {
 };
 
 } // namespace x86
+} // namespace synapse

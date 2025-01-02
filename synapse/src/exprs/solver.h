@@ -7,6 +7,7 @@
 #include "../call_paths/call_paths.h"
 #include "../log.h"
 
+namespace synapse {
 struct solver_toolbox_t {
   klee::Solver *solver;
   klee::ExprBuilder *exprBuilder;
@@ -97,3 +98,4 @@ struct solver_toolbox_t {
 };
 
 extern solver_toolbox_t solver_toolbox;
+} // namespace synapse

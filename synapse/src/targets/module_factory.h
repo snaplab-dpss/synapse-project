@@ -9,6 +9,7 @@
 #include "../execution_plan/context.h"
 #include "../execution_plan/execution_plan.h"
 
+namespace synapse {
 struct decision_t {
   const EP *ep;
   node_id_t node;
@@ -87,3 +88,4 @@ protected:
 
   virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const = 0;
 };
+} // namespace synapse

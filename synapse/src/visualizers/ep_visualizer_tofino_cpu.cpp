@@ -10,27 +10,24 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino_cpu/tofino_cpu.h"
 
-#define SHOW_MODULE_NAME(M)                                                    \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
-                                 const M *node) {                              \
-    function_call(ep_node, node->get_node(), node->get_target(),               \
-                  node->get_name());                                           \
-    return EPVisitor::Action::doChildren;                                      \
+#define SHOW_MODULE_NAME(M)                                                              \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());      \
+    return EPVisitor::Action::doChildren;                                                \
   }
 
-#define VISIT_BRANCH(M)                                                        \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
-                                 const M *node) {                              \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());   \
-    return EPVisitor::Action::doChildren;                                      \
+#define VISIT_BRANCH(M)                                                                  \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());             \
+    return EPVisitor::Action::doChildren;                                                \
   }
 
-#define IGNORE_MODULE(M)                                                       \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,          \
-                                 const M *node) {                              \
-    return EPVisitor::Action::doChildren;                                      \
+#define IGNORE_MODULE(M)                                                                 \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
+    return EPVisitor::Action::doChildren;                                                \
   }
 
+namespace synapse {
 IGNORE_MODULE(tofino_cpu::Ignore)
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
@@ -89,3 +86,4 @@ SHOW_MODULE_NAME(tofino_cpu::CMSUpdate)
 SHOW_MODULE_NAME(tofino_cpu::CMSQuery)
 SHOW_MODULE_NAME(tofino_cpu::CMSIncrement)
 SHOW_MODULE_NAME(tofino_cpu::CMSCountMin)
+} // namespace synapse

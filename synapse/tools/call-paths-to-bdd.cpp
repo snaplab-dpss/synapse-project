@@ -4,6 +4,8 @@
 
 #include "../src/bdd/bdd.h"
 
+using namespace synapse;
+
 void assert_bdd(const BDD &bdd) {
   std::cout << "Asserting BDD...\n";
 

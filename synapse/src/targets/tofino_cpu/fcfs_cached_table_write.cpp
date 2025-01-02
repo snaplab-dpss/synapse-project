@@ -1,5 +1,6 @@
 #include "fcfs_cached_table_write.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::DS_ID;
@@ -94,3 +95,4 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

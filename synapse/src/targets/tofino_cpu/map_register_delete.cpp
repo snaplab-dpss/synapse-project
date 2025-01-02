@@ -1,5 +1,6 @@
 #include "map_register_delete.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::DS_ID;
@@ -91,3 +92,4 @@ std::vector<impl_t> MapRegisterDeleteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

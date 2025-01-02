@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class TableLookup : public TofinoModule {
@@ -54,3 +55,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

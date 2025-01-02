@@ -6,6 +6,7 @@
 #include "node.h"
 #include "../../log.h"
 
+namespace synapse {
 class NodeManager {
 private:
   std::vector<std::unique_ptr<Node>> nodes;
@@ -38,3 +39,4 @@ public:
 
   bool operator==(const NodeManager &other) const { return nodes == other.nodes; }
 };
+} // namespace synapse

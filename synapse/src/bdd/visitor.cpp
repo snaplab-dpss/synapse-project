@@ -3,6 +3,7 @@
 #include "nodes/nodes.h"
 #include "../log.h"
 
+namespace synapse {
 void BDDVisitor::visit(const Node *node) {
   if (!node) {
     return;
@@ -49,3 +50,4 @@ void BDDVisitor::visit(const BDD *bdd) {
   ASSERT(root, "No root node");
   visitRoot(root);
 }
+} // namespace synapse

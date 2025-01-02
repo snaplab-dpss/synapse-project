@@ -4,6 +4,7 @@
 
 #include "../synthesizer.h"
 
+namespace synapse {
 class BDDSynthesizer;
 
 class BDDTranspiler : public klee::ExprVisitor::ExprVisitor {
@@ -51,3 +52,4 @@ public:
   klee::ExprVisitor::Action visitSgt(const klee::SgtExpr &e);
   klee::ExprVisitor::Action visitSge(const klee::SgeExpr &e);
 };
+} // namespace synapse

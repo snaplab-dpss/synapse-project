@@ -7,6 +7,7 @@
 #include "../exprs/retriever.h"
 #include "../exprs/solver.h"
 
+namespace synapse {
 namespace {
 std::map<std::string, bool> fn_has_side_effects_lookup{
     {"rte_ether_addr_hash", false},
@@ -1445,3 +1446,4 @@ std::ostream &operator<<(std::ostream &os, const ReorderingCandidateStatus &stat
   }
   return os;
 }
+} // namespace synapse

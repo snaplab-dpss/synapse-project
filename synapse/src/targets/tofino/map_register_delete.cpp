@@ -1,7 +1,7 @@
 #include "map_register_delete.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct map_register_data_t {
   addr_t obj;
@@ -193,3 +193,4 @@ std::vector<impl_t> MapRegisterDeleteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

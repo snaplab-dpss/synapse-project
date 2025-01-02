@@ -16,6 +16,7 @@
 #include "types.h"
 #include "log.h"
 
+namespace synapse {
 struct flow_t {
   in_addr_t src_ip;
   in_addr_t dst_ip;
@@ -593,3 +594,4 @@ in_addr_t random_addr() {
 }
 
 in_port_t random_port() { return rand() % 65536; }
+} // namespace synapse

@@ -3,6 +3,7 @@
 #include "node.h"
 #include "../../log.h"
 
+namespace synapse {
 enum class RouteOp { Forward, Drop, Broadcast };
 
 class Route : public Node {
@@ -34,3 +35,4 @@ public:
 
   std::string dump(bool one_liner = false, bool id_name_only = false) const;
 };
+} // namespace synapse

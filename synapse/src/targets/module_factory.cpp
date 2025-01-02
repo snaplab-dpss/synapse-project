@@ -3,6 +3,7 @@
 #include "../execution_plan/execution_plan.h"
 #include "../log.h"
 
+namespace synapse {
 namespace {
 bool can_process_platform(const EP *ep, TargetType target) {
   TargetType current_target = ep->get_active_target();
@@ -136,3 +137,4 @@ std::vector<impl_t> ModuleFactory::generate(const EP *ep, const Node *node,
 
   return implementations;
 }
+} // namespace synapse

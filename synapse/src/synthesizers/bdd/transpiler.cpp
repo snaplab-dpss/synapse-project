@@ -5,20 +5,19 @@
 #include "../../exprs/simplifier.h"
 #include "../../log.h"
 
-#define TODO(expr)                                                             \
-  synthesizer->stack_dbg();                                                    \
+#define TODO(expr)                                                                       \
+  synthesizer->stack_dbg();                                                              \
   PANIC("TODO: %s\n", expr_to_string(expr).c_str());
 
-BDDTranspiler::BDDTranspiler(BDDSynthesizer *_synthesizer)
-    : synthesizer(_synthesizer) {}
+namespace synapse {
+BDDTranspiler::BDDTranspiler(BDDSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
 code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   coders.emplace();
   coder_t &coder = coders.top();
 
   if (is_constant(expr)) {
-    ASSERT(expr->getWidth() <= 64, "Unsupported constant width: %u",
-           expr->getWidth());
+    ASSERT(expr->getWidth() <= 64, "Unsupported constant width: %u", expr->getWidth());
     u64 value = solver_toolbox.value_from_expr(expr);
     coder << value;
     if (value > (1ull << 31)) {
@@ -95,15 +94,13 @@ BDDTranspiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action
-BDDTranspiler::visitSelect(const klee::SelectExpr &e) {
+klee::ExprVisitor::Action BDDTranspiler::visitSelect(const klee::SelectExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::SelectExpr *>(&e);
   TODO(expr);
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action
-BDDTranspiler::visitConcat(const klee::ConcatExpr &e) {
+klee::ExprVisitor::Action BDDTranspiler::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
 
   coder_t &coder = coders.top();
@@ -124,8 +121,7 @@ BDDTranspiler::visitConcat(const klee::ConcatExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action
-BDDTranspiler::visitExtract(const klee::ExtractExpr &e) {
+klee::ExprVisitor::Action BDDTranspiler::visitExtract(const klee::ExtractExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
 
   klee::Expr::Width width = e.width;
@@ -567,3 +563,4 @@ klee::ExprVisitor::Action BDDTranspiler::visitSge(const klee::SgeExpr &e) {
 
   return klee::ExprVisitor::Action::skipChildren();
 }
+} // namespace synapse

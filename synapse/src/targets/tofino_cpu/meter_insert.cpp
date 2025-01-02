@@ -1,5 +1,6 @@
 #include "meter_insert.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::Table;
@@ -80,3 +81,4 @@ std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

@@ -4,6 +4,7 @@
 #include "profile.h"
 #include "../log.h"
 
+namespace synapse {
 using json = nlohmann::json;
 
 void from_json(const json &j, bdd_profile_t::config_t &config) {
@@ -21,8 +22,7 @@ void from_json(const json &j, bdd_profile_t::meta_t &meta) {
   j.at("bytes").get_to(meta.bytes);
 }
 
-void from_json(const json &j,
-               std::unordered_map<u32, u32> &crc32_hashes_per_mask) {
+void from_json(const json &j, std::unordered_map<u32, u32> &crc32_hashes_per_mask) {
   for (const auto &kv : j.items()) {
     u32 mask = std::stoul(kv.key());
     u32 count = kv.value();
@@ -40,8 +40,7 @@ void from_json(const json &j, bdd_profile_t::map_stats_t::node_t &node) {
   // one is not working for some reason.
   from_json(j["crc32_hashes_per_mask"], node.crc32_hashes_per_mask);
 
-  std::sort(node.pkts_per_flow.begin(), node.pkts_per_flow.end(),
-            std::greater<u64>());
+  std::sort(node.pkts_per_flow.begin(), node.pkts_per_flow.end(), std::greater<u64>());
 }
 
 void from_json(const json &j, bdd_profile_t::map_stats_t::epoch_t &epoch) {
@@ -52,8 +51,8 @@ void from_json(const json &j, bdd_profile_t::map_stats_t::epoch_t &epoch) {
   j.at("pkts_per_persistent_flow").get_to(epoch.pkts_per_persistent_flow);
   j.at("pkts_per_new_flow").get_to(epoch.pkts_per_new_flow);
 
-  std::sort(epoch.pkts_per_persistent_flow.begin(),
-            epoch.pkts_per_persistent_flow.end(), std::greater<u64>());
+  std::sort(epoch.pkts_per_persistent_flow.begin(), epoch.pkts_per_persistent_flow.end(),
+            std::greater<u64>());
   std::sort(epoch.pkts_per_new_flow.begin(), epoch.pkts_per_new_flow.end(),
             std::greater<u64>());
 }
@@ -63,9 +62,8 @@ void from_json(const json &j, bdd_profile_t::map_stats_t &map_stats) {
   j.at("epochs").get_to(map_stats.epochs);
 }
 
-void from_json(
-    const json &j,
-    std::unordered_map<u64, bdd_profile_t::map_stats_t> &stats_per_map) {
+void from_json(const json &j,
+               std::unordered_map<u64, bdd_profile_t::map_stats_t> &stats_per_map) {
   for (const auto &kv : j.items()) {
     u64 map_addr = std::stoull(kv.key());
     bdd_profile_t::map_stats_t map_stats = kv.value();
@@ -197,3 +195,4 @@ u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
 
   return threshold;
 }
+} // namespace synapse

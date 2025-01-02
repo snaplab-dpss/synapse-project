@@ -8,6 +8,7 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct MapRegister : public DS {
@@ -27,3 +28,4 @@ struct MapRegister : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

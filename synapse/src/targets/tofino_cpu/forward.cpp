@@ -1,5 +1,6 @@
 #include "forward.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const Node *node,
@@ -56,3 +57,4 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node)
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

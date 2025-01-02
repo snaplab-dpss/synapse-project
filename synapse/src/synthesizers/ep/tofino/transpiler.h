@@ -4,6 +4,7 @@
 
 #include <klee/util/ExprVisitor.h>
 
+namespace synapse {
 namespace tofino {
 
 class EPSynthesizer;
@@ -55,3 +56,4 @@ public:
 };
 
 } // namespace tofino
+} // namespace synapse

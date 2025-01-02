@@ -6,6 +6,7 @@
 #include "../targets/module.h"
 #include "../log.h"
 
+namespace synapse {
 void EPVisitor::visit(const EP *ep) {
   const EPNode *root = ep->get_root();
 
@@ -35,3 +36,4 @@ void EPVisitor::log(const EPNode *node) const {
   TargetType target = module->get_target();
   Log::dbg() << "[" << target << "] " << name << "\n";
 }
+} // namespace synapse

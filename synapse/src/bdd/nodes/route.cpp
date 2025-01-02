@@ -2,13 +2,13 @@
 #include "manager.h"
 #include "../bdd.h"
 
+namespace synapse {
 Node *Route::clone(NodeManager &manager, bool recursive) const {
   Route *clone;
 
   if (recursive && next) {
     Node *next_clone = next->clone(manager, true);
-    clone =
-        new Route(id, next_clone, nullptr, constraints, operation, dst_device);
+    clone = new Route(id, next_clone, nullptr, constraints, operation, dst_device);
     next_clone->set_prev(clone);
   } else {
     clone = new Route(id, constraints, operation, dst_device);
@@ -36,3 +36,4 @@ std::string Route::dump(bool one_liner, bool id_name_only) const {
 
   return ss.str();
 }
+} // namespace synapse

@@ -27,6 +27,8 @@
     return EPVisitor::Action::doChildren;                                                \
   }
 
+namespace synapse {
+
 using namespace tofino;
 
 IGNORE_MODULE(tofino::Ignore)
@@ -364,3 +366,4 @@ SHOW_MODULE_NAME(tofino::MapRegisterRead)
 SHOW_MODULE_NAME(tofino::MapRegisterReadOrWrite)
 SHOW_MODULE_NAME(tofino::MapRegisterWrite)
 SHOW_MODULE_NAME(tofino::MapRegisterDelete)
+} // namespace synapse

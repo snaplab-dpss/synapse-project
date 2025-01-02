@@ -9,6 +9,7 @@
 #include "../../../targets/tofino/tofino.h"
 #include "../../../targets/tofino/data_structures/data_structures.h"
 
+namespace synapse {
 namespace tofino {
 
 class EPSynthesizer : public Synthesizer, public EPVisitor {
@@ -100,3 +101,4 @@ private:
 };
 
 } // namespace tofino
+} // namespace synapse

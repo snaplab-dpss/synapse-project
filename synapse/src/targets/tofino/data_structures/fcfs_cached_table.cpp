@@ -2,8 +2,8 @@
 
 #include "fcfs_cached_table.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bits_t index_size_from_cache_capacity(u32 cache_capacity) {
   // Log base 2 of the cache capacity
@@ -117,3 +117,4 @@ std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
 }
 
 } // namespace tofino
+} // namespace synapse

@@ -7,6 +7,7 @@
 #include "hh_table_read.h"
 #include "hh_table_update.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::HHTable;
@@ -188,3 +189,4 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node) co
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

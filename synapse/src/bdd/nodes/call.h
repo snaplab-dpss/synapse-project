@@ -4,6 +4,7 @@
 
 #include "node.h"
 
+namespace synapse {
 class Call : public Node {
 private:
   call_t call;
@@ -35,3 +36,4 @@ public:
 
   std::string dump(bool one_liner = false, bool id_name_only = false) const;
 };
+} // namespace synapse

@@ -2,6 +2,7 @@
 #include "else.h"
 #include "then.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node,
@@ -52,3 +53,4 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node) cons
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

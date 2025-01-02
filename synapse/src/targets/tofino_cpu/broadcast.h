@@ -2,6 +2,7 @@
 
 #include "tofino_cpu_module.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 class Broadcast : public TofinoCPUModule {
@@ -33,3 +34,4 @@ protected:
 };
 
 } // namespace tofino_cpu
+} // namespace synapse

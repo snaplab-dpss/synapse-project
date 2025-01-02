@@ -16,6 +16,7 @@
 #include "../../graphviz/graphviz.h"
 #include "../nodes/node.h"
 
+namespace synapse {
 struct processed_t {
   std::unordered_set<node_id_t> nodes;
   const Node *next;
@@ -55,3 +56,4 @@ private:
     return std::to_string(node->get_id());
   }
 };
+} // namespace synapse

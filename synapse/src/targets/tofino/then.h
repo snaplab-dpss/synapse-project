@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class Then : public TofinoModule {
@@ -31,3 +32,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

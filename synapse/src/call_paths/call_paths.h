@@ -8,6 +8,7 @@
 
 #include "../types.h"
 
+namespace synapse {
 struct meta_t {
   std::string symbol;
   bits_t offset;
@@ -75,3 +76,4 @@ std::ostream &operator<<(std::ostream &os, klee::ref<klee::Expr> expr);
 std::ostream &operator<<(std::ostream &os, const arg_t &arg);
 std::ostream &operator<<(std::ostream &os, const call_t &call);
 std::ostream &operator<<(std::ostream &str, const call_path_t &cp);
+} // namespace synapse

@@ -5,6 +5,7 @@
 #include "heuristic.h"
 #include "../targets/module_factory.h"
 
+namespace synapse {
 class MaxTputCfg : public HeuristicCfg {
 private:
   struct decision_hasher_t {
@@ -67,3 +68,4 @@ private:
   i64 get_switch_progression_nodes(const EP *ep) const;
   i64 get_bdd_progress(const EP *ep) const;
 };
+} // namespace synapse

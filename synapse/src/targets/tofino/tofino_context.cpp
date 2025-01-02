@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+namespace synapse {
 namespace tofino {
 
 namespace {
@@ -352,3 +353,4 @@ tofino::TofinoContext *Context::get_mutable_target_ctx<tofino::TofinoContext>() 
   ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<tofino::TofinoContext *>(target_ctxs.at(type));
 }
+} // namespace synapse

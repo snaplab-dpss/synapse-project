@@ -2,6 +2,7 @@
 
 #include "tofino_cpu_module.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 class If : public TofinoCPUModule {
@@ -37,3 +38,4 @@ protected:
 };
 
 } // namespace tofino_cpu
+} // namespace synapse

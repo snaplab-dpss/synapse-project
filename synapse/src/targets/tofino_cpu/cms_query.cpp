@@ -1,5 +1,6 @@
 #include "cms_query.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const Node *node,
@@ -66,3 +67,4 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

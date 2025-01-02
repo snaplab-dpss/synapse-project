@@ -3,6 +3,7 @@
 #include "execution_plan.h"
 #include "../targets/module.h"
 
+namespace synapse {
 void EPMeta::process_node(const Node *node, TargetType target) {
   if (processed_nodes.find(node->get_id()) == processed_nodes.end()) {
     processed_nodes.insert(node->get_id());
@@ -42,6 +43,5 @@ float EPMeta::get_bdd_progress() const {
   return processed_nodes.size() / static_cast<float>(total_bdd_nodes);
 }
 
-void EPMeta::update_total_bdd_nodes(const BDD *bdd) {
-  total_bdd_nodes = bdd->size();
-}
+void EPMeta::update_total_bdd_nodes(const BDD *bdd) { total_bdd_nodes = bdd->size(); }
+} // namespace synapse

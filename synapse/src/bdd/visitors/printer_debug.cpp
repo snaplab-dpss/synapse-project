@@ -4,6 +4,7 @@
 #include "../nodes/nodes.h"
 #include "../../exprs/exprs.h"
 
+namespace synapse {
 void PrinterDebug::debug(const Node *node) {
   PrinterDebug debug(false);
   node->visit(debug);
@@ -136,3 +137,4 @@ void PrinterDebug::visitConstraints(const Node *node) {
     }
   }
 }
+} // namespace synapse

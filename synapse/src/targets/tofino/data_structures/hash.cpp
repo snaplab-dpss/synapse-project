@@ -1,5 +1,6 @@
 #include "hash.h"
 
+namespace synapse {
 namespace tofino {
 
 Hash::Hash(DS_ID _id, const std::vector<bits_t> &_keys)
@@ -27,3 +28,4 @@ void Hash::debug() const {
 }
 
 } // namespace tofino
+} // namespace synapse

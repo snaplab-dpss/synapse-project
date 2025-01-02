@@ -8,6 +8,7 @@
 
 #include "../types.h"
 
+namespace synapse {
 typedef u8 indent_t;
 typedef std::string marker_t;
 typedef std::string code_t;
@@ -43,3 +44,4 @@ protected:
   void dump() const;
   void dbg() const;
 };
+} // namespace synapse

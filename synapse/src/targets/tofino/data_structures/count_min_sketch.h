@@ -10,6 +10,7 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct CountMinSketch : public DS {
@@ -30,3 +31,4 @@ struct CountMinSketch : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

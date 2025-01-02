@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class CMSQuery : public TofinoModule {
@@ -46,3 +47,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

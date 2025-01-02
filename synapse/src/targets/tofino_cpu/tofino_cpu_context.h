@@ -2,6 +2,7 @@
 
 #include "../../execution_plan/context.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 class TofinoCPUContext : public TargetContext {
@@ -14,3 +15,4 @@ public:
 } // namespace tofino_cpu
 
 EXPLICIT_TARGET_CONTEXT_INSTANTIATION(tofino_cpu, TofinoCPUContext)
+} // namespace synapse

@@ -6,6 +6,7 @@
 #include "solver.h"
 #include "../log.h"
 
+namespace synapse {
 bool is_readLSB(klee::ref<klee::Expr> expr) {
   std::string symbol;
   return is_readLSB(expr, symbol);
@@ -254,3 +255,4 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
 
   return constraint;
 }
+} // namespace synapse

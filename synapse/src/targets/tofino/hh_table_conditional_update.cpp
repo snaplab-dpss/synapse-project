@@ -7,8 +7,8 @@
 #include "hh_table_read.h"
 #include "../tofino_cpu/hh_table_update.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct hh_table_data_t {
   addr_t obj;
@@ -344,3 +344,4 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node) co
 }
 
 } // namespace tofino
+} // namespace synapse

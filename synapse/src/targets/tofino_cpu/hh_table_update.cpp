@@ -2,6 +2,7 @@
 #include "hh_table_read.h"
 #include "../tofino/hh_table_read.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::Table;
@@ -112,3 +113,4 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

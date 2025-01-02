@@ -3,14 +3,14 @@
 #include "renamer.h"
 #include "solver.h"
 
+namespace synapse {
 class SymbolRenamer : public klee::ExprVisitor::ExprVisitor {
 private:
   // Before -> After
   std::unordered_map<std::string, std::string> translations;
 
 public:
-  SymbolRenamer(
-      const std::unordered_map<std::string, std::string> &_translations)
+  SymbolRenamer(const std::unordered_map<std::string, std::string> &_translations)
       : translations(_translations) {}
 
   klee::ref<klee::Expr> rename(klee::ref<klee::Expr> expr) {
@@ -39,10 +39,8 @@ public:
     if (found_it != translations.end()) {
       klee::ref<klee::Expr> replaced(const_cast<klee::ReadExpr *>(&e));
       const klee::Array *new_root = solver_toolbox.arr_cache.CreateArray(
-          found_it->second, root->getSize(),
-          root->constantValues.begin().base(),
-          root->constantValues.end().base(), root->getDomain(),
-          root->getRange());
+          found_it->second, root->getSize(), root->constantValues.begin().base(),
+          root->constantValues.end().base(), root->getDomain(), root->getRange());
 
       klee::UpdateList new_ul(new_root, ul.head);
       klee::ref<klee::Expr> replacement =
@@ -55,16 +53,17 @@ public:
   }
 };
 
-klee::ref<klee::Expr> rename_symbols(
-    klee::ref<klee::Expr> expr,
-    const std::unordered_map<std::string, std::string> &translations) {
+klee::ref<klee::Expr>
+rename_symbols(klee::ref<klee::Expr> expr,
+               const std::unordered_map<std::string, std::string> &translations) {
   SymbolRenamer renamer(translations);
   return renamer.rename(expr);
 }
 
-klee::ConstraintManager rename_symbols(
-    const klee::ConstraintManager &constraints,
-    const std::unordered_map<std::string, std::string> &translations) {
+klee::ConstraintManager
+rename_symbols(const klee::ConstraintManager &constraints,
+               const std::unordered_map<std::string, std::string> &translations) {
   SymbolRenamer renamer(translations);
   return renamer.rename(constraints);
 }
+} // namespace synapse

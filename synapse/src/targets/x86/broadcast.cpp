@@ -1,7 +1,7 @@
 #include "broadcast.h"
 
+namespace synapse {
 namespace x86 {
-
 namespace {
 bool bdd_node_match_pattern(const Node *node) {
   if (node->get_type() != NodeType::Route) {
@@ -46,3 +46,4 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const Node *nod
 }
 
 } // namespace x86
+} // namespace synapse

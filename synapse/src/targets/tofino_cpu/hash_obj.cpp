@@ -1,5 +1,6 @@
 #include "hash_obj.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> HashObjFactory::speculate(const EP *ep, const Node *node,
@@ -51,3 +52,4 @@ std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const Node *node)
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

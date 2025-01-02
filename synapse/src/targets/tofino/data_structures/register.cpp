@@ -1,6 +1,7 @@
 #include "register.h"
 #include "../tna/tna.h"
 
+namespace synapse {
 namespace tofino {
 
 Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries,
@@ -63,8 +64,7 @@ void Register::debug() const {
 }
 
 std::vector<klee::ref<klee::Expr>>
-Register::partition_value(const TNAProperties &properties,
-                          klee::ref<klee::Expr> value) {
+Register::partition_value(const TNAProperties &properties, klee::ref<klee::Expr> value) {
   std::vector<klee::ref<klee::Expr>> partitions;
 
   bits_t value_width = value->getWidth();
@@ -87,3 +87,4 @@ Register::partition_value(const TNAProperties &properties,
 }
 
 } // namespace tofino
+} // namespace synapse

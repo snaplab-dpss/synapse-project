@@ -6,6 +6,7 @@
 
 #include <klee/Expr.h>
 
+namespace synapse {
 std::vector<klee::ref<klee::ReadExpr>> get_reads(klee::ref<klee::Expr> expr);
 std::vector<klee::ref<klee::ReadExpr>> get_packet_reads(klee::ref<klee::Expr> expr);
 
@@ -29,3 +30,4 @@ struct expr_group_t {
 std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr);
 std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr);
 void print_groups(const std::vector<expr_group_t> &groups);
+} // namespace synapse

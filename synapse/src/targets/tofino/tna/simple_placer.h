@@ -4,6 +4,7 @@
 
 #include "../data_structures/data_structures.h"
 
+namespace synapse {
 namespace tofino {
 
 enum class PlacementStatus {
@@ -85,3 +86,4 @@ private:
 };
 
 } // namespace tofino
+} // namespace synapse

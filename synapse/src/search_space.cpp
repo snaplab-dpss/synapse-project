@@ -2,6 +2,7 @@
 
 #include "bdd/bdd.h"
 
+namespace synapse {
 namespace {
 ss_node_id_t node_id_counter = 0;
 
@@ -187,3 +188,4 @@ SSNode *SearchSpace::get_root() const { return root; }
 size_t SearchSpace::get_size() const { return size; }
 const HeuristicCfg *SearchSpace::get_hcfg() const { return hcfg; }
 bool SearchSpace::is_backtrack() const { return backtrack; }
+} // namespace synapse

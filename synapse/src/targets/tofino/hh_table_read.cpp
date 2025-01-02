@@ -8,8 +8,8 @@
 #define CMS_HEIGHT 4
 #define CMS_THRESHOLD 1_000_000
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct hh_table_data_t {
   addr_t obj;
@@ -171,3 +171,4 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

@@ -12,6 +12,7 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct HHTable : public DS {
@@ -37,3 +38,4 @@ struct HHTable : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

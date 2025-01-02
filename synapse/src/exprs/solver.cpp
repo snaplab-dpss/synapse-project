@@ -6,6 +6,7 @@
 #include "replacer.h"
 #include "../log.h"
 
+namespace synapse {
 solver_toolbox_t solver_toolbox;
 
 klee::ref<klee::Expr>
@@ -434,3 +435,4 @@ int64_t solver_toolbox_t::signed_value_from_expr(
 
   return -((~value + 1) & mask);
 }
+} // namespace synapse

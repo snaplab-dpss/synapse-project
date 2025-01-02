@@ -2,6 +2,7 @@
 
 #include "x86_module.h"
 
+namespace synapse {
 namespace x86 {
 
 class DchainFreeIndex : public x86Module {
@@ -41,3 +42,4 @@ protected:
 };
 
 } // namespace x86
+} // namespace synapse

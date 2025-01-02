@@ -5,6 +5,7 @@
 #include "solver.h"
 #include "../log.h"
 
+namespace synapse {
 bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
   if (extract_expr->getKind() != klee::Expr::Extract) {
     return false;
@@ -466,3 +467,4 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
 
   return expr;
 }
+} // namespace synapse

@@ -6,6 +6,7 @@
 
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 typedef std::string DS_ID;
@@ -78,3 +79,4 @@ struct DS {
 };
 
 } // namespace tofino
+} // namespace synapse

@@ -2,12 +2,13 @@
 
 #include "../../../exprs/retriever.h"
 
+namespace synapse {
 namespace tofino {
 
 Meter::Meter(DS_ID _id, u32 _capacity, Bps_t _rate, bytes_t _burst,
              const std::vector<bits_t> &_keys)
-    : DS(DSType::METER, true, _id), capacity(_capacity), rate(_rate),
-      burst(_burst), keys(_keys) {
+    : DS(DSType::METER, true, _id), capacity(_capacity), rate(_rate), burst(_burst),
+      keys(_keys) {
   ASSERT(capacity > 0, "Meter capacity must be greater than 0");
 }
 
@@ -44,8 +45,7 @@ void Meter::debug() const {
   Log::dbg() << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>>
-Meter::build_keys(klee::ref<klee::Expr> key) {
+std::vector<klee::ref<klee::Expr>> Meter::build_keys(klee::ref<klee::Expr> key) {
   std::vector<klee::ref<klee::Expr>> keys;
 
   std::vector<expr_group_t> groups = get_expr_groups(key);
@@ -57,3 +57,4 @@ Meter::build_keys(klee::ref<klee::Expr> key) {
 }
 
 } // namespace tofino
+} // namespace synapse

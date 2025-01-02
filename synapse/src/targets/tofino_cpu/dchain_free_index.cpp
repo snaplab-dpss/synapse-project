@@ -1,5 +1,6 @@
 #include "dchain_free_index.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> DchainFreeIndexFactory::speculate(const EP *ep,
@@ -65,3 +66,4 @@ std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

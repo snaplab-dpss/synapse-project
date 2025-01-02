@@ -1,12 +1,12 @@
 #include "tofino_cpu_context.h"
 
+namespace synapse {
 template <>
 const tofino_cpu::TofinoCPUContext *
 Context::get_target_ctx<tofino_cpu::TofinoCPUContext>() const {
   TargetType type = TargetType::TofinoCPU;
   ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
-  return dynamic_cast<const tofino_cpu::TofinoCPUContext *>(
-      target_ctxs.at(type));
+  return dynamic_cast<const tofino_cpu::TofinoCPUContext *>(target_ctxs.at(type));
 }
 
 template <>
@@ -16,3 +16,4 @@ Context::get_mutable_target_ctx<tofino_cpu::TofinoCPUContext>() {
   ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<tofino_cpu::TofinoCPUContext *>(target_ctxs.at(type));
 }
+} // namespace synapse

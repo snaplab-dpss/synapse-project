@@ -39,6 +39,8 @@
 // keep up with the actual time (pcap use us instead of ns).
 #define RATE_GBIT 10
 
+using namespace synapse;
+
 typedef std::array<u8, KEY_SIZE_BYTES> kv_key_t;
 typedef std::array<u8, VALUE_SIZE_BYTES> kv_value_t;
 
@@ -206,17 +208,13 @@ private:
   time_ns_t next_alarm;
 
 public:
-  TrafficGenerator(const config_t &_config,
-                   const std::vector<kv_key_t> &_base_keys)
-      : config(_config), keys(_base_keys),
-        warmup_writer(get_warmup_pcap_fname(_config)),
+  TrafficGenerator(const config_t &_config, const std::vector<kv_key_t> &_base_keys)
+      : config(_config), keys(_base_keys), warmup_writer(get_warmup_pcap_fname(_config)),
         writer(get_pcap_fname(_config)),
         uniform_rand(_config.random_seed, 0, _config.total_keys - 1),
-        zipf_rand(_config.random_seed, _config.traffic_zipf_param,
-                  _config.total_keys),
-        pd(NULL), pdumper(NULL), packet_template(build_pkt_template()),
-        counters(0), keys_swapped(0), current_time(0), alarm_tick(0),
-        next_alarm(-1) {
+        zipf_rand(_config.random_seed, _config.traffic_zipf_param, _config.total_keys),
+        pd(NULL), pdumper(NULL), packet_template(build_pkt_template()), counters(0),
+        keys_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
     for (const kv_key_t &key : keys) {
       counters[key] = 0;
     }
@@ -245,8 +243,8 @@ public:
       randomize_value(value);
       memcpy(pkt.kvs_hdr.value, value.data(), VALUE_SIZE_BYTES);
 
-      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t),
-                          sizeof(pkt_hdr_t), current_time);
+      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t),
+                          current_time);
 
       counter++;
       int current_progress = (counter * 100) / goal;
@@ -377,8 +375,8 @@ private:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-    constexpr int bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) +
-                          CRC_SIZE_BYTES + IPG_SIZE_BYTES;
+    constexpr int bytes =
+        PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     current_time += (bytes * 8) / RATE_GBIT;
   }
 };

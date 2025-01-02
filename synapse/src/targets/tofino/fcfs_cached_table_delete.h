@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class FCFSCachedTableDelete : public TofinoModule {
@@ -54,3 +55,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

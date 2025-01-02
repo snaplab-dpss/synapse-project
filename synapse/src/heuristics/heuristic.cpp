@@ -2,6 +2,7 @@
 #include "heuristics.h"
 #include "../random_engine.h"
 
+namespace synapse {
 Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config,
                      std::unique_ptr<EP> starting_ep, bool _stop_on_first_solution)
     : config(std::move(_config)), stop_on_first_solution(_stop_on_first_solution) {
@@ -113,3 +114,4 @@ Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
 
   return it;
 }
+} // namespace synapse

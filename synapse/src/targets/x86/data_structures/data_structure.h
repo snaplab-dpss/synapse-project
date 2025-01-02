@@ -6,6 +6,7 @@
 
 #include "../../../bdd/bdd.h"
 
+namespace synapse {
 namespace x86 {
 
 enum ds_type_t {
@@ -42,3 +43,4 @@ struct ds_t {
 };
 
 } // namespace x86
+} // namespace synapse

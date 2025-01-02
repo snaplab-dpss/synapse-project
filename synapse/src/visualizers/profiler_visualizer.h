@@ -9,6 +9,7 @@
 #include "../profiler.h"
 #include "../util.h"
 
+namespace synapse {
 class ProfilerViz : public BDDViz {
 public:
   static void visualize(const BDD *bdd, const Profiler &profiler, bool interrupt) {
@@ -115,3 +116,4 @@ private:
     return color.to_gv_repr();
   }
 };
+} // namespace synapse

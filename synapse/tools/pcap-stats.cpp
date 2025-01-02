@@ -13,6 +13,7 @@
 
 #define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
+using namespace synapse;
 using json = nlohmann::json;
 
 class Clock {
@@ -126,8 +127,7 @@ struct report_t {
   CDF flow_dts_us_cdf;
 };
 
-void dump_report(const std::filesystem::path &output_report,
-                 const report_t &report) {
+void dump_report(const std::filesystem::path &output_report, const report_t &report) {
   json j;
   j["start_utc_ns"] = report.start;
   j["end_utc_ns"] = report.end;
@@ -200,23 +200,20 @@ void print_report(const report_t &report) {
   printf("Duration:                 %s\n",
          fmt_time_duration_hh(report.start, report.end).c_str());
   printf("Total packets:            %s\n", fmt(report.total_pkts).c_str());
-  printf("Total TCP/UDP packets:    %s (%d%%)\n",
-         fmt(report.tcpudp_pkts).c_str(),
+  printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(),
          (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
-  printf("Pkt sizes:                %.2f ± %.2f B\n",
-         report.pkt_sizes_cdf.get_avg(), report.pkt_sizes_cdf.get_stdev());
+  printf("Pkt sizes:                %.2f ± %.2f B\n", report.pkt_sizes_cdf.get_avg(),
+         report.pkt_sizes_cdf.get_stdev());
   printf("Pkt sizes CDF:\n");
   for (const auto &[size, prob] : report.pkt_sizes_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", size, prob);
   }
   printf("Total flows:              %s\n", fmt(report.total_flows).c_str());
-  printf("Total symmetric flows:    %s\n",
-         fmt(report.total_symm_flows).c_str());
+  printf("Total symmetric flows:    %s\n", fmt(report.total_symm_flows).c_str());
   printf("Concurrent flows/epoch:   %s ± %s\n",
          fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
          fmt(report.concurrent_flows_per_epoch.get_stdev()).c_str());
-  printf("Pkts/flow:                %.2f ± %.2f\n",
-         report.pkts_per_flow_cdf.get_avg(),
+  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(),
          report.pkts_per_flow_cdf.get_stdev());
   printf("Pkts/flow CDF:\n");
   for (const auto &[pkts, prob] : report.pkts_per_flow_cdf.get_cdf()) {
@@ -269,8 +266,7 @@ int main(int argc, char *argv[]) {
   Clock clock(EPOCH_DURATION_NS);
   std::unordered_set<flow_t, flow_t::flow_hash_t> flows;
   std::unordered_set<sflow_t, sflow_t::flow_hash_t> symm_flows;
-  std::vector<std::unordered_set<flow_t, flow_t::flow_hash_t>>
-      concurrent_flows_per_epoch;
+  std::vector<std::unordered_set<flow_t, flow_t::flow_hash_t>> concurrent_flows_per_epoch;
 
   std::unordered_map<flow_t, u64, sflow_t::flow_hash_t> pkts_per_flow;
   std::unordered_map<flow_t, u64, sflow_t::flow_hash_t> bytes_per_flow;

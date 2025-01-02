@@ -3,6 +3,7 @@
 #include "data_structures/data_structures.h"
 #include "../../execution_plan/context.h"
 
+namespace synapse {
 namespace x86 {
 
 class x86Context : public TargetContext {
@@ -15,3 +16,4 @@ public:
 } // namespace x86
 
 EXPLICIT_TARGET_CONTEXT_INSTANTIATION(x86, x86Context)
+} // namespace synapse

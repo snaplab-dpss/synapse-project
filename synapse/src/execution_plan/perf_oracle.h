@@ -8,6 +8,7 @@
 
 #include "../types.h"
 
+namespace synapse {
 // Depth values start from 1.
 // A depth 0 value would be global, and does not come from recirculation.
 // Depth 1 would be the first recirculation, depth 2 the second, etc.
@@ -103,3 +104,4 @@ public:
 private:
   std::vector<pps_t> get_recirculated_egress(int port, pps_t ingress) const;
 };
+} // namespace synapse

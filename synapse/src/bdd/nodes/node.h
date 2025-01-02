@@ -10,6 +10,7 @@
 #include "../../call_paths/call_paths.h"
 #include "../../types.h"
 
+namespace synapse {
 class BDDVisitor;
 class NodeManager;
 
@@ -88,3 +89,4 @@ public:
 
   virtual ~Node() = default;
 };
+} // namespace synapse

@@ -2,6 +2,7 @@
 
 #include "heuristic.h"
 
+namespace synapse {
 class GalliumCfg : public HeuristicCfg {
 public:
   GalliumCfg()
@@ -19,3 +20,4 @@ private:
   i64 get_switch_progression_nodes(const EP *ep) const;
   i64 get_bdd_progress(const EP *ep) const;
 };
+} // namespace synapse

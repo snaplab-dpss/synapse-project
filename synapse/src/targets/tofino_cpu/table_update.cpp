@@ -1,5 +1,6 @@
 #include "table_update.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::Table;
@@ -134,3 +135,4 @@ std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

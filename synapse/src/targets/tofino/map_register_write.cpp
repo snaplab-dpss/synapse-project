@@ -1,7 +1,7 @@
 #include "map_register_write.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 struct map_register_data_t {
   addr_t obj;
@@ -247,3 +247,4 @@ std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

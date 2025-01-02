@@ -9,6 +9,7 @@
 
 #include "../types.h"
 
+namespace synapse {
 struct rgb_t {
   u8 r;
   u8 g;
@@ -38,3 +39,4 @@ public:
                    const std::vector<std::pair<std::string, std::string>> &replacements);
   static void sanitize_html_label(std::string &label);
 };
+} // namespace synapse

@@ -2,6 +2,7 @@
 #include "../targets/module.h"
 #include "../log.h"
 
+namespace synapse {
 i64 MaxTputCfg::get_tput_speculation(const EP *ep) const {
   return ep->speculate_tput_pps();
 }
@@ -23,3 +24,4 @@ i64 MaxTputCfg::get_bdd_progress(const EP *ep) const {
   const EPMeta &meta = ep->get_meta();
   return meta.processed_nodes.size();
 }
+} // namespace synapse

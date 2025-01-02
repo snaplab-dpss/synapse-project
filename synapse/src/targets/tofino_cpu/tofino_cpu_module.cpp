@@ -2,6 +2,7 @@
 
 #include "../../execution_plan/execution_plan.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 const tofino::TofinoContext *TofinoCPUModuleFactory::get_tofino_ctx(const EP *ep) const {
@@ -27,3 +28,4 @@ const tofino::TNA &TofinoCPUModuleFactory::get_tna(const EP *ep) const {
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

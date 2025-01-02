@@ -2,6 +2,7 @@
 
 #include "../visitor.h"
 
+namespace synapse {
 class PrinterDebug : public BDDVisitor {
 private:
   bool traverse;
@@ -22,3 +23,4 @@ public:
 private:
   void visitConstraints(const Node *node);
 };
+} // namespace synapse

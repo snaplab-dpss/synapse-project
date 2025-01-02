@@ -2,6 +2,7 @@
 
 #include "heuristic.h"
 
+namespace synapse {
 class RandomCfg : public HeuristicCfg {
 public:
   RandomCfg()
@@ -18,3 +19,4 @@ public:
 private:
   i64 get_random(const EP *ep) const;
 };
+} // namespace synapse

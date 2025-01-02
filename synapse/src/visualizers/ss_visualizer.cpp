@@ -2,6 +2,7 @@
 
 #include "ss_visualizer.h"
 
+namespace synapse {
 namespace {
 std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
@@ -264,3 +265,4 @@ void SSVisualizer::visualize(const SearchSpace *search_space, const EP *highligh
   log_visualization(search_space, visualizer.fpath, highlight);
   visualizer.show(interrupt);
 }
+} // namespace synapse

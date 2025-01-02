@@ -10,6 +10,7 @@
 #define BUILD_METRIC(cls, name, obj)                                                     \
   { std::bind(&cls::name, this, std::placeholders::_1), Metric::Objective::obj }
 
+namespace synapse {
 class HeuristicCfg {
 protected:
   struct Metric {
@@ -44,3 +45,4 @@ public:
 
   virtual bool mutates(const EP *ep) const { return false; }
 };
+} // namespace synapse

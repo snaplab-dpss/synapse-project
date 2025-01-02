@@ -5,6 +5,7 @@
 #include "visitor.h"
 #include "symbex.h"
 
+namespace synapse {
 class BDDVisitor;
 
 class BDD {
@@ -56,3 +57,4 @@ public:
 
   NodeManager &get_mutable_manager() { return manager; }
 };
+} // namespace synapse

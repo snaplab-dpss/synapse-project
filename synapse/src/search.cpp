@@ -8,6 +8,7 @@
 #include "visualizers/ss_visualizer.h"
 #include "visualizers/ep_visualizer.h"
 
+namespace synapse {
 namespace {
 struct search_step_report_t {
   const EP *chosen;
@@ -283,3 +284,4 @@ search_report_t SearchEngine::search() {
 
   return report;
 }
+} // namespace synapse

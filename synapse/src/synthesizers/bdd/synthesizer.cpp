@@ -17,6 +17,7 @@
                       std::placeholders::_2)                                             \
   }
 
+namespace synapse {
 namespace {
 std::string template_from_type(BDDSynthesizerTarget target) {
   std::string template_filename;
@@ -1322,3 +1323,4 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,
   reserved_var_names[name] += 1;
   return var_t(name + std::to_string(reserved_var_names[name]), expr, addr);
 }
+} // namespace synapse

@@ -4,6 +4,7 @@
 #include "solver.h"
 #include "../log.h"
 
+namespace synapse {
 class SwapPacketEndianness : public klee::ExprVisitor::ExprVisitor {
 public:
   SwapPacketEndianness() : klee::ExprVisitor::ExprVisitor(true) {}
@@ -79,3 +80,4 @@ klee::ref<klee::Expr> swap_packet_endianness(klee::ref<klee::Expr> expr) {
   SwapPacketEndianness swapper;
   return swapper.visit(expr);
 }
+} // namespace synapse

@@ -1,7 +1,7 @@
 #include "dchain_rejuvenate_index.h"
 
+namespace synapse {
 namespace x86 {
-
 namespace {
 bool bdd_node_match_pattern(const Node *node) {
   if (node->get_type() != NodeType::Call) {
@@ -75,3 +75,4 @@ std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep,
 }
 
 } // namespace x86
+} // namespace synapse

@@ -6,6 +6,8 @@
 #include "../src/bdd/bdd.h"
 #include "../src/synthesizers/bdd/synthesizer.h"
 
+using namespace synapse;
+
 const std::unordered_map<std::string, BDDSynthesizerTarget> target_converter{
     {"nf", BDDSynthesizerTarget::NF},
     {"profiler", BDDSynthesizerTarget::PROFILER},

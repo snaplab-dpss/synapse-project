@@ -15,6 +15,7 @@
     ASSERT(false, "TODO");                                                               \
   }
 
+namespace synapse {
 class EP;
 class EPNode;
 
@@ -270,3 +271,4 @@ public:
 protected:
   virtual void log(const EPNode *ep_node) const;
 };
+} // namespace synapse

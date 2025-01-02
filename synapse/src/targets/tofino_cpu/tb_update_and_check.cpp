@@ -1,5 +1,6 @@
 #include "tb_update_and_check.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t> TBUpdateAndCheckFactory::speculate(const EP *ep,
@@ -68,3 +69,4 @@ std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

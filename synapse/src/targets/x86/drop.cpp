@@ -1,5 +1,6 @@
 #include "drop.h"
 
+namespace synapse {
 namespace x86 {
 
 namespace {
@@ -46,3 +47,4 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node) co
 }
 
 } // namespace x86
+} // namespace synapse

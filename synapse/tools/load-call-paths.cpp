@@ -5,6 +5,8 @@
 #include "../src/call_paths/call_paths.h"
 #include "../src/exprs/exprs.h"
 
+using namespace synapse;
+
 int main(int argc, char **argv, char **envp) {
   CLI::App app{"Load call paths"};
 

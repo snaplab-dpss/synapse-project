@@ -9,6 +9,7 @@
 #include "../../../types.h"
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
 
 struct TNAProperties;
@@ -41,3 +42,4 @@ struct Register : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

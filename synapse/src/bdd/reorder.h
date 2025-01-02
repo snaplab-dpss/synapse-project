@@ -5,6 +5,7 @@
 #include "tree.h"
 #include "nodes/nodes.h"
 
+namespace synapse {
 enum class ReorderingCandidateStatus {
   Valid,
   UnreachableCandidate,
@@ -60,3 +61,4 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd,
 std::unique_ptr<BDD> reorder(const BDD *bdd, const reorder_op_t &op);
 
 double estimate_reorder(const BDD *bdd);
+} // namespace synapse

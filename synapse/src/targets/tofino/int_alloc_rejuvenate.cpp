@@ -1,5 +1,6 @@
 #include "int_alloc_rejuvenate.h"
 
+namespace synapse {
 namespace tofino {
 
 std::optional<spec_impl_t>
@@ -69,3 +70,4 @@ IntegerAllocatorRejuvenateFactory::process_node(const EP *ep, const Node *node) 
 }
 
 } // namespace tofino
+} // namespace synapse

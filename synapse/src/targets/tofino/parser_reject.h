@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class ParserReject : public TofinoModule {
@@ -33,3 +34,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

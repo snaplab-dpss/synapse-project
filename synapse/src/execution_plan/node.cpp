@@ -4,11 +4,13 @@
 #include "../log.h"
 #include "../exprs/solver.h"
 
+namespace synapse {
 namespace {
-ep_node_id_t counter = 0;
+ep_node_id_t ep_node_id_counter = 0;
 }
 
-EPNode::EPNode(Module *_module) : id(counter++), module(_module), prev(nullptr) {}
+EPNode::EPNode(Module *_module)
+    : id(ep_node_id_counter++), module(_module), prev(nullptr) {}
 
 EPNode::~EPNode() {
   if (module) {
@@ -165,3 +167,4 @@ void EPNode::visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn) 
     nodes.insert(nodes.end(), children.begin(), children.end());
   }
 }
+} // namespace synapse

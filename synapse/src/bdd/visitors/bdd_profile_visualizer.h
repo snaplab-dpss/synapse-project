@@ -9,6 +9,7 @@
 #include "../profile.h"
 #include "../../util.h"
 
+namespace synapse {
 class BDDProfileVisualizer : public BDDViz {
 public:
   BDDProfileVisualizer(const std::string &fname, const bdd_profile_t &profile)
@@ -137,3 +138,4 @@ private:
     return color.to_gv_repr();
   }
 };
+} // namespace synapse

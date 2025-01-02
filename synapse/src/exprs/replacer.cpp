@@ -6,6 +6,7 @@
 #include "replacer.h"
 #include "solver.h"
 
+namespace synapse {
 class SymbolReplacer : public klee::ExprVisitor::ExprVisitor {
 private:
   std::unordered_map<std::string, klee::UpdateList> roots_updates;
@@ -39,8 +40,7 @@ public:
 
     if (roots_updates.find(root->name) != roots_updates.end()) {
       const klee::UpdateList &new_ul = roots_updates.at(root->name);
-      klee::ref<klee::Expr> new_read =
-          solver_toolbox.exprBuilder->Read(new_ul, e.index);
+      klee::ref<klee::Expr> new_read = solver_toolbox.exprBuilder->Read(new_ul, e.index);
       auto it = replacements.find(new_read);
 
       if (it == replacements.end()) {
@@ -60,3 +60,4 @@ replace_symbols(klee::ref<klee::Expr> expr,
   SymbolReplacer rs(reads);
   return rs.visit(expr);
 }
+} // namespace synapse

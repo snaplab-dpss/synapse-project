@@ -1,7 +1,7 @@
 #include "parser_reject.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bool is_parser_reject(const EP *ep) {
   EPLeaf leaf = ep->get_active_leaf();
@@ -77,3 +77,4 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

@@ -4,6 +4,7 @@
 #include "../exprs/solver.h"
 #include "../log.h"
 
+namespace synapse {
 std::optional<addr_t> get_obj_from_call(const Call *node_call) {
   std::optional<addr_t> addr;
 
@@ -12,8 +13,7 @@ std::optional<addr_t> get_obj_from_call(const Call *node_call) {
 
   klee::ref<klee::Expr> obj;
 
-  if (call.function_name == "vector_borrow" ||
-      call.function_name == "vector_return") {
+  if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
     obj = call.args.at("vector").expr;
     ASSERT(!obj.isNull(), "Invalid vector object");
   }
@@ -164,8 +164,7 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
     klee::ref<klee::Expr> height = call.args.at("height").expr;
     klee::ref<klee::Expr> width = call.args.at("width").expr;
     klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
-    klee::ref<klee::Expr> cleanup_interval =
-        call.args.at("cleanup_interval").expr;
+    klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
     klee::ref<klee::Expr> cms_out = call.args.at("cms_out").out;
 
     ASSERT(!height.isNull(), "Invalid height");
@@ -181,8 +180,7 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
     u64 height_value = solver_toolbox.value_from_expr(height);
     u64 width_value = solver_toolbox.value_from_expr(width);
     bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
-    time_ns_t cleanup_interval_value =
-        solver_toolbox.value_from_expr(cleanup_interval);
+    time_ns_t cleanup_interval_value = solver_toolbox.value_from_expr(cleanup_interval);
 
     return cms_config_t{height_value, width_value, key_size_value,
                         cleanup_interval_value};
@@ -252,3 +250,4 @@ tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr) {
 
   PANIC("Should have found tb configuration");
 }
+} // namespace synapse

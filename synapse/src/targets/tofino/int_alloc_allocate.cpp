@@ -1,5 +1,6 @@
 #include "int_alloc_allocate.h"
 
+namespace synapse {
 namespace tofino {
 
 std::optional<spec_impl_t>
@@ -77,3 +78,4 @@ IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node) co
 }
 
 } // namespace tofino
+} // namespace synapse

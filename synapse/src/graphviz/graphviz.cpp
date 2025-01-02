@@ -10,6 +10,7 @@
 #include "graphviz.h"
 #include "../log.h"
 
+namespace synapse {
 namespace {
 std::filesystem::path random_dot() {
   char filename[] = "/tmp/XXXXXX";
@@ -115,3 +116,4 @@ void Graphviz::sanitize_html_label(std::string &label) {
                        {"\n", "<br/>"},
                    });
 }
+} // namespace synapse

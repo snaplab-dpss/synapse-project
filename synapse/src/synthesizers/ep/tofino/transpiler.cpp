@@ -3,8 +3,8 @@
 #include "../../../exprs/exprs.h"
 #include "../../../exprs/solver.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 code_t transpile_constant(klee::ref<klee::Expr> expr) {
   ASSERT(is_constant(expr), "Expected a constant expression");
@@ -408,3 +408,4 @@ klee::ExprVisitor::Action Transpiler::visitSge(const klee::SgeExpr &e) {
 }
 
 } // namespace tofino
+} // namespace synapse

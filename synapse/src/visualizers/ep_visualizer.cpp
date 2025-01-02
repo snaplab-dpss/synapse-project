@@ -23,6 +23,7 @@
 #define IGNORE_MODULE(M)                                                                 \
   void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
 
+namespace synapse {
 namespace {
 std::unordered_map<TargetType, std::string> node_colors = {
     {TargetType::Tofino, "cornflowerblue"},
@@ -169,3 +170,4 @@ void EPViz::visit(const EP *ep, const EPNode *node) {
     }
   }
 }
+} // namespace synapse

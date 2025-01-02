@@ -8,6 +8,7 @@
 #define TOFINO_CPU_OUT_FILENAME "tofino_cpu.cpp"
 #define X86_OUT_FILENAME "x86.cpp"
 
+namespace synapse {
 void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
   const TargetsView &targets = ep->get_targets();
 
@@ -27,3 +28,4 @@ void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
     }
   }
 }
+} // namespace synapse

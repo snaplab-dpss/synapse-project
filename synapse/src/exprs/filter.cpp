@@ -8,6 +8,7 @@
 #include "solver.h"
 #include "../log.h"
 
+namespace synapse {
 class ExpressionFilter : public klee::ExprVisitor::ExprVisitor {
 private:
   std::vector<std::string> allowed_symbols;
@@ -27,8 +28,7 @@ public:
     std::unordered_set<std::string> symbols = get_symbols(expr);
 
     for (auto s : symbols) {
-      auto found_it =
-          std::find(allowed_symbols.begin(), allowed_symbols.end(), s);
+      auto found_it = std::find(allowed_symbols.begin(), allowed_symbols.end(), s);
 
       if (found_it != allowed_symbols.end()) {
         info.has_allowed = true;
@@ -42,35 +42,32 @@ public:
 
   // Acts only if either lhs or rhs has **only** allowed symbols, while the
   // other has not allowed symbols. Returns the expression with allowed symbols.
-  klee::ref<klee::Expr>
-  pick_filtered_expression(klee::ref<klee::Expr> lhs,
-                           klee::ref<klee::Expr> rhs) const {
+  klee::ref<klee::Expr> pick_filtered_expression(klee::ref<klee::Expr> lhs,
+                                                 klee::ref<klee::Expr> rhs) const {
     auto lhs_info = check_symbols(lhs);
     auto rhs_info = check_symbols(rhs);
 
-    if (lhs_info.has_allowed && !lhs_info.has_not_allowed &&
-        rhs_info.has_not_allowed) {
+    if (lhs_info.has_allowed && !lhs_info.has_not_allowed && rhs_info.has_not_allowed) {
       return lhs;
     }
 
-    if (rhs_info.has_allowed && !rhs_info.has_not_allowed &&
-        lhs_info.has_not_allowed) {
+    if (rhs_info.has_allowed && !rhs_info.has_not_allowed && lhs_info.has_not_allowed) {
       return rhs;
     }
 
     return klee::ref<klee::Expr>();
   }
 
-#define REPLACE_BINARY_OP_WITH_ALLOWED_CHILD(T)                                \
-  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                 \
-    if (e.getNumKids() != 2)                                                   \
-      return Action::doChildren();                                             \
-    auto lhs = e.getKid(0);                                                    \
-    auto rhs = e.getKid(1);                                                    \
-    auto new_expr = pick_filtered_expression(lhs, rhs);                        \
-    if (new_expr.isNull())                                                     \
-      return Action::doChildren();                                             \
-    return Action::changeTo(new_expr);                                         \
+#define REPLACE_BINARY_OP_WITH_ALLOWED_CHILD(T)                                          \
+  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                           \
+    if (e.getNumKids() != 2)                                                             \
+      return Action::doChildren();                                                       \
+    auto lhs = e.getKid(0);                                                              \
+    auto rhs = e.getKid(1);                                                              \
+    auto new_expr = pick_filtered_expression(lhs, rhs);                                  \
+    if (new_expr.isNull())                                                               \
+      return Action::doChildren();                                                       \
+    return Action::changeTo(new_expr);                                                   \
   }
 
   REPLACE_BINARY_OP_WITH_ALLOWED_CHILD(And)
@@ -92,3 +89,4 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
 
   return filtered;
 }
+} // namespace synapse

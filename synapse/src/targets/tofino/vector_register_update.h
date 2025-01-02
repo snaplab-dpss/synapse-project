@@ -2,6 +2,7 @@
 
 #include "tofino_module.h"
 
+namespace synapse {
 namespace tofino {
 
 class VectorRegisterUpdate : public TofinoModule {
@@ -56,3 +57,4 @@ protected:
 };
 
 } // namespace tofino
+} // namespace synapse

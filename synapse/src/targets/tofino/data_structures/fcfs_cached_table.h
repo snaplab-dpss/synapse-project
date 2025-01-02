@@ -11,6 +11,7 @@
 
 #define CACHE_SIZE_PARAM "cache_size"
 
+namespace synapse {
 namespace tofino {
 
 struct FCFSCachedTable : public DS {
@@ -36,3 +37,4 @@ struct FCFSCachedTable : public DS {
 };
 
 } // namespace tofino
+} // namespace synapse

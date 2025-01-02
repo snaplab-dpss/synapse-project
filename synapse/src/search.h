@@ -10,6 +10,7 @@
 #include "search_space.h"
 #include "profiler.h"
 
+namespace synapse {
 struct search_meta_t {
   size_t ss_size;
   time_t elapsed_time;
@@ -73,3 +74,4 @@ public:
 
   search_report_t search();
 };
+} // namespace synapse

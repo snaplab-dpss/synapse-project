@@ -1,5 +1,6 @@
 #include "tb_is_tracing.h"
 
+namespace synapse {
 namespace x86 {
 
 std::optional<spec_impl_t> TBIsTracingFactory::speculate(const EP *ep, const Node *node,
@@ -66,3 +67,4 @@ std::vector<impl_t> TBIsTracingFactory::process_node(const EP *ep,
 }
 
 } // namespace x86
+} // namespace synapse

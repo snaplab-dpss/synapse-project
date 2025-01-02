@@ -11,6 +11,7 @@
 #include "../bdd/bdd.h"
 #include "../targets/target.h"
 
+namespace synapse {
 class EPVisitor;
 class Profiler;
 struct spec_impl_t;
@@ -126,3 +127,4 @@ private:
                              const spec_impl_t &new_speculation, const Node *node,
                              TargetType current_target, pps_t ingress) const;
 };
+} // namespace synapse

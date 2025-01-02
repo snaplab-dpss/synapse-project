@@ -9,6 +9,7 @@
 #include "../profiler.h"
 #include "../random_engine.h"
 
+namespace synapse {
 class EPLeaf;
 
 struct EPMeta {
@@ -72,3 +73,4 @@ struct EPMeta {
   void update_total_bdd_nodes(const BDD *bdd);
   void update(const EPLeaf &leaf, const EPNode *new_node, bool process_node);
 };
+} // namespace synapse

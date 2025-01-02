@@ -4,6 +4,8 @@
 #include "../src/exprs/exprs.h"
 #include "../src/exprs/retriever.h"
 
+using namespace synapse;
+
 int main() {
   auto A1 = solver_toolbox.create_new_symbol("A", 64);
   std::cerr << "A1 " << expr_to_string(A1) << "\n";
@@ -23,18 +25,14 @@ int main() {
   std::cerr << "Equal " << result << "\n";
 
   auto expr1 = solver_toolbox.exprBuilder->Concat(
-      solver_toolbox.exprBuilder->Add(
-          A1, solver_toolbox.exprBuilder->Constant(1, 64)),
-      solver_toolbox.exprBuilder->Add(
-          solver_toolbox.create_new_symbol("B", 64),
-          solver_toolbox.exprBuilder->Constant(1, 64)));
+      solver_toolbox.exprBuilder->Add(A1, solver_toolbox.exprBuilder->Constant(1, 64)),
+      solver_toolbox.exprBuilder->Add(solver_toolbox.create_new_symbol("B", 64),
+                                      solver_toolbox.exprBuilder->Constant(1, 64)));
 
   auto expr2 = solver_toolbox.exprBuilder->Concat(
-      solver_toolbox.exprBuilder->Add(
-          A1, solver_toolbox.exprBuilder->Constant(1, 64)),
-      solver_toolbox.exprBuilder->Add(
-          solver_toolbox.create_new_symbol("B", 64),
-          solver_toolbox.exprBuilder->Constant(12, 64)));
+      solver_toolbox.exprBuilder->Add(A1, solver_toolbox.exprBuilder->Constant(1, 64)),
+      solver_toolbox.exprBuilder->Add(solver_toolbox.create_new_symbol("B", 64),
+                                      solver_toolbox.exprBuilder->Constant(12, 64)));
 
   std::cerr << "expr1 " << expr_to_string(expr1) << "\n";
   std::cerr << "expr2 " << expr_to_string(expr2) << "\n";

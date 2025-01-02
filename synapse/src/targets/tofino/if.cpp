@@ -3,8 +3,8 @@
 #include "else.h"
 #include "then.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> condition) {
   std::vector<klee::ref<klee::Expr>> conditions;
@@ -98,3 +98,4 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node) cons
 }
 
 } // namespace tofino
+} // namespace synapse

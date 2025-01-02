@@ -1,5 +1,6 @@
 #include "parser_extraction.h"
 
+namespace synapse {
 namespace tofino {
 
 std::optional<spec_impl_t> ParserExtractionFactory::speculate(const EP *ep,
@@ -60,3 +61,4 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

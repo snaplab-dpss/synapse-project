@@ -7,6 +7,7 @@
 #include "retriever.h"
 #include "../log.h"
 
+namespace synapse {
 class ExprPrettyPrinter : public klee::ExprVisitor::ExprVisitor {
 private:
   std::string result;
@@ -525,3 +526,4 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
 
   return expr_str;
 }
+} // namespace synapse

@@ -1,7 +1,7 @@
 #include "count_min_sketch.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bits_t index_size_from_width(u32 width) {
   // Log base 2 of the cache capacity
@@ -73,3 +73,4 @@ std::vector<std::unordered_set<const DS *>> CountMinSketch::get_internal() const
 }
 
 } // namespace tofino
+} // namespace synapse

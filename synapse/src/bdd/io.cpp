@@ -14,6 +14,7 @@
 #include "../exprs/exprs.h"
 #include "../log.h"
 
+namespace synapse {
 namespace {
 struct kQuery_t {
   std::vector<const klee::Array *> arrays;
@@ -1105,3 +1106,4 @@ void BDD::deserialize(const std::string &file_path) {
 
   ASSERT(magic_check, "Not a BDD file (missing magic signature)");
 }
+} // namespace synapse

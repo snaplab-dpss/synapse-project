@@ -2,19 +2,17 @@
 
 #define RECIRCULATION_PORT_PARAM "recirc_port"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols,
-                    int recirc_port,
-                    const std::vector<int> &past_recirculations) {
+                    int recirc_port, const std::vector<int> &past_recirculations) {
   EP *new_ep = new EP(*ep);
 
   Module *module = new Recirculate(node, symbols, recirc_port);
   EPNode *ep_node = new EPNode(module);
 
-  TofinoContext *tofino_ctx =
-      TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
   hit_rate_t recirc_fraction = ep->get_active_leaf_hit_rate();
 
   int port_recirculations = 1;
@@ -36,8 +34,8 @@ EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols,
 }
 
 EP *concretize_single_port_recirc(const EP *ep, const Node *node,
-                                  const std::vector<int> &past_recirc,
-                                  int rport, const symbols_t &symbols) {
+                                  const std::vector<int> &past_recirc, int rport,
+                                  const symbols_t &symbols) {
   bool marked = false;
   bool returning_recirc = false;
 
@@ -62,9 +60,8 @@ EP *concretize_single_port_recirc(const EP *ep, const Node *node,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-RecirculateFactory::speculate(const EP *ep, const Node *node,
-                              const Context &ctx) const {
+std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const Node *node,
+                                                         const Context &ctx) const {
   // No reason to speculatively predict recirculations.
   return std::nullopt;
 }
@@ -97,11 +94,9 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep,
   symbols_t symbols = get_dataplane_state(ep, node);
 
   for (int rport = 0; rport < total_recirc_ports; rport++) {
-    EP *new_ep =
-        concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);
+    EP *new_ep = concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);
     if (new_ep) {
-      impl_t impl =
-          implement(ep, node, new_ep, {{RECIRCULATION_PORT_PARAM, rport}});
+      impl_t impl = implement(ep, node, new_ep, {{RECIRCULATION_PORT_PARAM, rport}});
       impls.push_back(impl);
     }
   }
@@ -110,3 +105,4 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino
+} // namespace synapse

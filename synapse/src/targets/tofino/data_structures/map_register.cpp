@@ -2,8 +2,8 @@
 
 #include "map_register.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 bits_t index_size_from_total_entries(u32 capacity) {
   // Log base 2 of the capacity
@@ -79,3 +79,4 @@ std::vector<std::unordered_set<const DS *>> MapRegister::get_internal() const {
 }
 
 } // namespace tofino
+} // namespace synapse

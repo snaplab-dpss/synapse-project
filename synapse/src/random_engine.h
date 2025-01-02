@@ -6,6 +6,7 @@
 
 #include "log.h"
 
+namespace synapse {
 class RandomEngine {
 private:
   // What a mouth full...
@@ -46,3 +47,4 @@ public:
     return engine->generate_number();
   }
 };
+} // namespace synapse

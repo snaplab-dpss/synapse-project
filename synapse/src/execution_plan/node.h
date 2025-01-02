@@ -5,6 +5,7 @@
 
 #include "../types.h"
 
+namespace synapse {
 class Module;
 class EPVisitor;
 class EP;
@@ -54,3 +55,4 @@ public:
   void visit_nodes(std::function<EPNodeVisitAction(const EPNode *)> fn) const;
   void visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn);
 };
+} // namespace synapse

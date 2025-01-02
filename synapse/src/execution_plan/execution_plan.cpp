@@ -6,8 +6,8 @@
 #include "../profiler.h"
 #include "../log.h"
 
+namespace synapse {
 namespace {
-
 nodes_t filter_away_nodes(const nodes_t &nodes, const nodes_t &filter) {
   nodes_t result;
 
@@ -770,3 +770,4 @@ pps_t EP::estimate_tput_pps() const {
 
   return egress;
 }
+} // namespace synapse

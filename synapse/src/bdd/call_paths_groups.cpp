@@ -3,6 +3,7 @@
 #include "../exprs/solver.h"
 #include "../log.h"
 
+namespace synapse {
 void CallPathsGroup::group_call_paths() {
   ASSERT(call_paths.size(), "No call paths to group");
 
@@ -174,3 +175,4 @@ bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> const
 
   return false;
 }
+} // namespace synapse

@@ -4,6 +4,8 @@
 
 #include "../src/bdd/bdd.h"
 
+using namespace synapse;
+
 int main(int argc, char **argv) {
   CLI::App app{"Visualize BDD"};
 
@@ -28,10 +30,8 @@ int main(int argc, char **argv) {
     for (const auto &map : profile.stats_per_map) {
       std::cerr << "Map " << map.first << std::endl;
       for (size_t k = 10; k <= 1000000; k *= 10) {
-        std::cerr << "Top-k=" << k
-                  << " churn=" << profile.churn_top_k_flows(map.first, k)
-                  << " fpm"
-                  << " hr=" << profile.churn_hit_rate_top_k_flows(map.first, k)
+        std::cerr << "Top-k=" << k << " churn=" << profile.churn_top_k_flows(map.first, k)
+                  << " fpm" << " hr=" << profile.churn_hit_rate_top_k_flows(map.first, k)
                   << "\n";
       }
     }

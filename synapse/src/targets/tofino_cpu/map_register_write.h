@@ -2,6 +2,7 @@
 
 #include "tofino_cpu_module.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 using tofino::DS_ID;
@@ -50,3 +51,4 @@ protected:
 };
 
 } // namespace tofino_cpu
+} // namespace synapse

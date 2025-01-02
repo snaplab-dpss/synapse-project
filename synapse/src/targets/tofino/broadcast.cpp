@@ -1,5 +1,6 @@
 #include "broadcast.h"
 
+namespace synapse {
 namespace tofino {
 
 std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const Node *node,
@@ -48,3 +49,4 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const Node *nod
 }
 
 } // namespace tofino
+} // namespace synapse

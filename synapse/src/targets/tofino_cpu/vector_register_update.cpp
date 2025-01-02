@@ -1,5 +1,6 @@
 #include "vector_register_update.h"
 
+namespace synapse {
 namespace tofino_cpu {
 
 std::optional<spec_impl_t>
@@ -74,3 +75,4 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
 }
 
 } // namespace tofino_cpu
+} // namespace synapse

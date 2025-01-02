@@ -9,6 +9,7 @@
 #include "execution_plan/execution_plan.h"
 #include "targets/module_factory.h"
 
+namespace synapse {
 typedef int ss_node_id_t;
 
 struct module_data_t {
@@ -94,3 +95,4 @@ public:
   static std::string build_meta_tput_estimate(const EP *ep);
   static std::string build_meta_tput_speculation(const EP *ep);
 };
+} // namespace synapse

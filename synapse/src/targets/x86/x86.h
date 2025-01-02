@@ -35,6 +35,7 @@
 
 #include "x86_context.h"
 
+namespace synapse {
 namespace x86 {
 
 struct x86Target : public Target {
@@ -79,3 +80,4 @@ struct x86Target : public Target {
 };
 
 } // namespace x86
+} // namespace synapse

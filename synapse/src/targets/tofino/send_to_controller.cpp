@@ -1,7 +1,7 @@
 #include "send_to_controller.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node,
                                                const Node *&next) {
@@ -11,10 +11,8 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node,
       get_prev_functions(ep, node, {"packet_return_chunk"});
 
   std::vector<const Node *> hdr_parsing_ops;
-  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(),
-                         prev_borrows.end());
-  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(),
-                         prev_returns.end());
+  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
+  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
 
   if (hdr_parsing_ops.empty()) {
     return nullptr;
@@ -29,9 +27,9 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-SendToControllerFactory::speculate(const EP *ep, const Node *node,
-                                   const Context &ctx) const {
+std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep,
+                                                              const Node *node,
+                                                              const Context &ctx) const {
   Context new_ctx = ctx;
 
   hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
@@ -43,8 +41,8 @@ SendToControllerFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t>
-SendToControllerFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep,
+                                                          const Node *node) const {
   std::vector<impl_t> impls;
 
   // We can always send to the controller, at any point in time.
@@ -88,3 +86,4 @@ SendToControllerFactory::process_node(const EP *ep, const Node *node) const {
 }
 
 } // namespace tofino
+} // namespace synapse

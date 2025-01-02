@@ -18,6 +18,7 @@
 #include "../exprs/simplifier.h"
 #include "../exprs/solver.h"
 
+namespace synapse {
 namespace {
 std::vector<std::string> ignored_functions{
     "start_time",
@@ -658,3 +659,4 @@ BDD &BDD::operator=(const BDD &other) {
   root = other.root->clone(manager, true);
   return *this;
 }
+} // namespace synapse

@@ -8,6 +8,7 @@
 #include "exprs/simplifier.h"
 #include "exprs/solver.h"
 
+namespace synapse {
 namespace {
 struct obj_op_t {
   addr_t obj;
@@ -2504,3 +2505,4 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd) {
     delete_all_vector_key_operations_from_bdd(bdd, map);
   }
 }
+} // namespace synapse

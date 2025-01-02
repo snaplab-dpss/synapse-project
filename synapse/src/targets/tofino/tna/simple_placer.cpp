@@ -3,8 +3,8 @@
 
 #include "../../../log.h"
 
+namespace synapse {
 namespace tofino {
-
 namespace {
 int get_soonest_available_stage(const std::vector<Stage> &stages,
                                 const std::unordered_set<DS_ID> &deps) {
@@ -695,3 +695,4 @@ void SimplePlacer::debug() const {
 }
 
 } // namespace tofino
+} // namespace synapse
