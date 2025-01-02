@@ -64,12 +64,12 @@ private:
 
 public:
   SearchEngine(const BDD *bdd, HeuristicOption hopt, const Profiler &profiler,
-               const toml::table &targets_config, search_config_t search_config);
+               const toml::table &targets_config, const search_config_t &search_config);
 
   SearchEngine(const SearchEngine &) = delete;
   SearchEngine(SearchEngine &&) = delete;
-
   SearchEngine &operator=(const SearchEngine &) = delete;
+  ~SearchEngine() = default;
 
   search_report_t search();
 };

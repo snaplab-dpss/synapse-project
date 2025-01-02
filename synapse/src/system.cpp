@@ -34,8 +34,7 @@ uintptr_t get_base_addr() {
 
 std::string get_exec_path() {
   std::array<char, PATH_MAX> buffer;
-  ssize_t len =
-      readlink("/proc/self/exe", buffer.data(), sizeof(buffer.data()) - 1);
+  ssize_t len = readlink("/proc/self/exe", buffer.data(), sizeof(buffer.data()) - 1);
 
   if (len == -1) {
     perror("readlink");

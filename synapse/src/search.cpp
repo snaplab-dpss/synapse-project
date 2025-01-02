@@ -167,7 +167,7 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 
 SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt,
                            const Profiler &_profiler, const toml::table &_targets_config,
-                           search_config_t _search_config)
+                           const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config),
       bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)),
       profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd,
