@@ -20,35 +20,13 @@ import math
 import random
 import statistics
 
-from crc import Calculator, Configuration
 from prettytable import PrettyTable
 from typing import Set, Tuple
 
 ELEMENT_SIZE_BITS = 16 * 8
-SALT1 = 0x7f4a7c13
-SALT2 = 0x97c29b3a
 
-CRC1_CALCULATOR = Calculator(
-	Configuration(
-		width=32,
-		polynomial=0x104c11db7,
-		reverse_input=True,
-		init_value=0x00000000,
-		final_xor_value=0xFFFFFFFF,
-		reverse_output=True,
-	)
-)
-
-CRC2_CALCULATOR = Calculator(
-	Configuration(
-		width=32,
-		polynomial=0x8005,
-		reverse_input=False,
-		init_value=0xFFFF,
-		final_xor_value=0x0000,
-		reverse_output=False,
-	)
-)
+SALT0 = 0x7f4a7c13
+SALT1 = 0x97c29b3a
 
 def random_number(min_bits: int, max_bits: int, forbidden: list[int] = []):
 	assert min_bits >= 1
@@ -58,21 +36,7 @@ def random_number(min_bits: int, max_bits: int, forbidden: list[int] = []):
 		if value not in forbidden:
 			break
 	return value
-
-def hash1(key: int, hash_size_bits: int) -> int:
-	num_bytes = (key.bit_length() + 7) // 8
-	input = key.to_bytes(num_bytes, byteorder='big')
-	# output = CRC1_CALCULATOR.checksum(input)
-	output = zlib.crc32(struct.pack("!I", SALT1) + input)
-	return output & ((1 << hash_size_bits) - 1)
-
-def hash2(key: int, hash_size_bits: int) -> int:
-	num_bytes = (key.bit_length() + 7) // 8
-	input = key.to_bytes(num_bytes, byteorder='big')
-	# output = CRC2_CALCULATOR.checksum(input)
-	output = zlib.crc32(struct.pack("!I", SALT2) + input)
-	return output & ((1 << hash_size_bits) - 1)
-
+				
 class InsertionResult:
 	success: bool
 	already_inserted: bool
@@ -102,30 +66,43 @@ class CuckooHash:
 
 		self.capacity = capacity
 		self.hash_size_bits = int(math.log(capacity, 2))
+		self.t0: dict[int, int] = dict()
 		self.t1: dict[int, int] = dict()
-		self.t2: dict[int, int] = dict()
 		self.total_elements = 0
 		self.elements: Set[int] = set()
 	
+	def _hash(self, key: int, salt: int) -> int:
+		num_bytes = ELEMENT_SIZE_BITS // 8
+		input_bytes = key.to_bytes(num_bytes, byteorder='big')
+		salt_bytes = struct.pack("!I", salt)
+		output = zlib.crc32(salt_bytes + input_bytes)
+		return output & ((1 << self.hash_size_bits) - 1)
+	
+	def hash0(self, key: int) -> int:
+		return self._hash(key, SALT0)
+
+	def hash1(self, key: int) -> int:
+		return self._hash(key, SALT1)
+	
 	def lookup(self, key: int) -> bool:
-		h1 = hash1(key, self.hash_size_bits)
-		h2 = hash2(key, self.hash_size_bits)
-		if h1 in self.t1 and self.t1[h1] == key:
+		h0 = self.hash0(key)
+		h1 = self.hash1(key)
+		if h0 in self.t0 and self.t0[h0] == key:
 			return True
-		if h2 in self.t2 and self.t2[h2] == key:
+		if h1 in self.t1 and self.t1[h1] == key:
 			return True
 		return False
 	
 	def delete(self, key: int) -> bool:
-		h1 = hash1(key, self.hash_size_bits)
-		h2 = hash2(key, self.hash_size_bits)
-		if h1 in self.t1 and self.t1[h1] == key:
-			del self.t1[h1]
+		h0 = self.hash0(key)
+		h1 = self.hash1(key)
+		if h0 in self.t0 and self.t0[h0] == key:
+			del self.t0[h0]
 			self.elements.remove(key)
 			self.total_elements -= 1
 			return True
-		if h2 in self.t2 and self.t2[h2] == key:
-			del self.t2[h2]
+		if h1 in self.t1 and self.t1[h1] == key:
+			del self.t1[h1]
 			self.elements.remove(key)
 			self.total_elements -= 1
 			return True
@@ -134,18 +111,21 @@ class CuckooHash:
 	def insert(self, key: int) -> InsertionResult:
 		result = InsertionResult()
 
+		# Every insertion requires a recirculation first
+		result.backtracks = 1
+
 		if self.lookup(key):
 			result.already_inserted = True
 			return result
 
 		insertions = set()
-		tables = [self.t1, self.t2]
-		hashes = [hash1, hash2]
+		tables = [self.t0, self.t1]
+		hashes = [self.hash0, self.hash1]
 		target_key = key
 		target_tid = 0
 
 		while True:
-			h = hashes[target_tid](target_key, self.hash_size_bits)
+			h = hashes[target_tid](target_key)
 
 			# print(f"Inserting 0x{target_key:x} in t{target_tid}[{h}]")
 			insertions.add((target_key, target_tid))
@@ -171,34 +151,31 @@ class CuckooHash:
 			self.elements.add(key)
 			self.total_elements += 1
 
-		# print(result)
-		# print(self)
-
 		return result
 	
 	def assert_invariants(self):
-		assert len(self.t1) + len(self.t2) == self.total_elements
+		assert len(self.t0) + len(self.t1) == self.total_elements
 		assert len(self.elements) == self.total_elements
 
 		for element in self.elements:
-			h1 = hash1(element, self.hash_size_bits)
-			h2 = hash2(element, self.hash_size_bits)
-			in_t1 = h1 in self.t1 and self.t1[h1] == element
-			in_t2 = h2 in self.t2 and self.t2[h2] == element
+			h0 = self.hash0(element)
+			h1 = self.hash1(element)
+			in_t1 = h0 in self.t0 and self.t0[h0] == element
+			in_t2 = h1 in self.t1 and self.t1[h1] == element
 			assert in_t1 or in_t2, f"Element 0x{element:x} not found in tables"
 			assert not (in_t1 and in_t2), f"Element 0x{element:x} found in both tables"
 	
 	def __str__(self) -> str:
 		table = PrettyTable()
-		table.field_names = [ "hash", "t1", "t2" ]
+		table.field_names = [ "hash", "t0", "t1" ]
 
 		for i in range(self.capacity):
-			if i in self.t1 and i in self.t2:
-				table.add_row([i, hex(self.t1[i]), hex(self.t2[i])])
+			if i in self.t0 and i in self.t1:
+				table.add_row([i, hex(self.t0[i]), hex(self.t1[i])])
+			elif i in self.t0:
+				table.add_row([i, hex(self.t0[i]), ''])
 			elif i in self.t1:
-				table.add_row([i, hex(self.t1[i]), ''])
-			elif i in self.t2:
-				table.add_row([i, '', hex(self.t2[i])])
+				table.add_row([i, '', hex(self.t1[i])])
 			else:
 				table.add_row([i, '', ''])
 		return str(table)
@@ -294,6 +271,29 @@ def basic_test():
 	cuckoo_hash = build_loaded_cuckoo_hash(256, 1)
 	print(cuckoo_hash)
 
+def test_collision():
+	cuckoo_hash = CuckooHash(8)
+	
+	keys = []
+	key0 = random_number(1, ELEMENT_SIZE_BITS)
+	keys.append(key0)
+	h0 = cuckoo_hash.hash0(key0)
+	while True:
+		key1 = random_number(1, ELEMENT_SIZE_BITS, keys)
+		keys.append(key1)
+		if cuckoo_hash.hash0(key1) == h0:
+			break
+	
+	print(f"Inserting key=0x{key0:x} hash={h0}")
+	r0 = cuckoo_hash.insert(key0)
+	print(cuckoo_hash)
+	print(r0)
+
+	print(f"Inserting key=0x{key1:x} hash={cuckoo_hash.hash0(key1)}")
+	r1 = cuckoo_hash.insert(key1)
+	print(cuckoo_hash)
+	print(r1)
+
 def main():
 	# capacities = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
 	capacities = [32, 64, 128, 256, 512, 1024, 2048]
@@ -313,4 +313,5 @@ def main():
 	# basic_test()
 
 if __name__ == '__main__':
-	main()
+	# main()
+	test_collision()

@@ -33,10 +33,13 @@ compile() {
 	$P4_COMPILER $p4
 }
 
-setup_veth() {
+setup() {
 	if ! ifconfig | grep -q "veth"; then
 		sudo $VETH_SETUP_SCRIPT
 	fi
+
+	rm -rf $LOG_DIR
+	mkdir -p $LOG_DIR
 }
 
 fix_tty() {
@@ -48,7 +51,6 @@ run_tofino_model() {
 
 	echo "[*] Running tofino model in the background"
 	
-	mkdir -p $LOG_DIR
 	pushd $LOG_DIR
 		$TOFINO_MODEL_SCRIPT \
 			-p $program \
@@ -72,7 +74,6 @@ run_switchd() {
 
 	echo "[*] Running switch daemon in the background"
 	
-	mkdir -p $LOG_DIR
 	pushd $LOG_DIR
 		$SWITCHD_SCRIPT \
 			-p $program \
@@ -118,7 +119,7 @@ if [ "$SKIP_SETUP" != "--skip-setup" ]; then
 	trap cleanup EXIT
 	cleanup
 	compile $P4_SRC
-	setup_veth
+	setup
 	run_tofino_model $P4_PROGRAM
 	fix_tty
 	run_switchd $P4_PROGRAM

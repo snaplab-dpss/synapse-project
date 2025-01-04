@@ -33,6 +33,7 @@
 #define CPU_PCIE_PORT 320
 #define IN_PORT 0
 #define OUT_PORT 1
+#define RECIRCULATION_PORT 68
 #endif
 
 typedef bit<9> port_t;
@@ -42,30 +43,22 @@ const bit<16> TYPE_IPV4 = 0x800;
 
 const bit<8> IP_PROTOCOLS_TCP = 6;
 const bit<8> IP_PROTOCOLS_UDP = 17;
-const bit<8> IP_PROTOCOLS_WARMUP = 146;
 
-const bit<32> HASH_SALT_0 = 0xfbc31fc7;
-const bit<32> HASH_SALT_1 = 0x2681580b;
-const bit<32> HASH_SALT_2 = 0x486d7e2f;
+const bit<32> HASH_SALT_0 = 0x7f4a7c13;
+const bit<32> HASH_SALT_1 = 0x97c29b3a;
 
 #define CUCKOO_HASH_BITS 10
+#define CUCKOO_HASH_BYTE_ALIGNMENT 6
 #define CUCKOO_CAPACITY (1 << CUCKOO_HASH_BITS)
 
 #define ONE_SECOND 15258 // 1 second in units of 2**16 nanoseconds
-#define EXPIRATION_TIME (5 * ONE_SECOND)
+#define EXPIRATION_TIME (1 * ONE_SECOND)
+
+#define MAX_RECIRCULATIONS 4
 
 typedef bit<32> time_t;
 typedef bit<CUCKOO_HASH_BITS> hash_t;
-
-header cpu_h {
-	bit<16> code_path;
-	
-	@padding port_pad_t pad0;
-	port_t in_port;
-
-	@padding port_pad_t pad1;
-	port_t out_port;
-}
+typedef bit<CUCKOO_HASH_BYTE_ALIGNMENT> hash_pad_t;
 
 header ethernet_t {
 	bit<48> dstAddr;
@@ -73,59 +66,36 @@ header ethernet_t {
 	bit<16> etherType;
 }
 
-header ipv4_t {
-	bit<4>  version;
-	bit<4>  ihl;
-	bit<8>  diffserv;
-	bit<16> total_len;
-	bit<16> identification;
-	bit<3>  flags;
-	bit<13> frag_offset;
-	bit<8>  ttl;
-	bit<8>  protocol;
-	bit<16> hdr_checksum;
-	bit<32> src_addr;
-	bit<32> dst_addr;
-}
-
-header udp_t {
-	bit<16> src_port;
-	bit<16> dst_port;
-	bit<16> length;
-	bit<16> checksum;
-}
-
-header kvs_t {
+header app_t {
 	bit<8> op;
 	bit<128> key;
-	bit<1024> value;
 	bit<8> success;
-	bit<8> tid;
-	bit<8> already_inserted;
-	bit<8> collision;
-	bit<32> backtracks;
-	bit<8> loop;
+	bit<8> tid; // debug
+	@padding hash_pad_t hash_pad; // debug
+	hash_t hash; // debug
+	bit<8> duplicate; // debug
+	bit<8> collision; // debug
+	bit<32> recirc; // debug
+	bit<8> max_recirc; // debug
 };
 
 header recirc_h {
 	bit<128> key;
-	bit<1024> value;
+	time_t swap_time;
 };
 
 struct empty_header_t {}
 struct empty_metadata_t {}
 
 struct my_ingress_metadata_t {
-	bit<32> cuckoo_recirc_it;
+	bit<128> key;
+	time_t swap_time;
 }
 
 struct my_ingress_headers_t {
 	recirc_h recirc;
-	cpu_h cpu;
 	ethernet_t ethernet;
-	ipv4_t ipv4;
-	udp_t udp;
-	kvs_t kvs;
+	app_t app;
 }
 
 parser TofinoIngressParser(
@@ -166,55 +136,27 @@ parser IngressParser(
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
 
-		meta.cuckoo_recirc_it = 0;
+		meta.key = 0;
+		meta.swap_time = 0;
 
 		transition select(ig_intr_md.ingress_port) {
-			CPU_PCIE_PORT: parse_cpu;
 			RECIRCULATION_PORT: parse_recirculation;
 			default: parse_ethernet;
 		}
 	}
 
-	state parse_cpu {
-		pkt.extract(hdr.cpu);
-		transition parse_ethernet;
-	}
-
 	state parse_recirculation {
-		meta.cuckoo_recirc_it = 1;
+		pkt.extract(hdr.recirc);
 		transition parse_ethernet;
 	}
 
 	state parse_ethernet {
 		pkt.extract(hdr.ethernet);
-		transition select(hdr.ethernet.etherType) {
-			TYPE_IPV4: parse_ipv4;
-			default: accept;
-		}
+		transition parse_app;
 	}
 
-	state parse_ipv4 {
-		pkt.extract(hdr.ipv4);
-		transition select(hdr.ipv4.protocol) {
-			IP_PROTOCOLS_UDP: parse_udp;
-			IP_PROTOCOLS_WARMUP: parse_warmup;
-			default: accept;
-		}
-	}
-
-	state parse_warmup {
-		meta.is_warmup_pkt = true;
-		transition parse_udp;
-	}
-
-	state parse_udp {
-		pkt.extract(hdr.udp);
-		transition parse_kvs;
-	}
-
-	state parse_kvs {
-		kvs_t kvs;
-		pkt.extract(kvs);
+	state parse_app {
+		pkt.extract(hdr.app);
 		transition accept;
 	}
 }
@@ -238,15 +180,15 @@ control Ingress(
 
 	action calc_hash0() {
 		h0 = hash_calc0.get({
-			hdr.kvs.key,
-			HASH_SALT_0
+			HASH_SALT_0,
+			meta.key
 		});
 	}
 
 	action calc_hash1() {
 		h1 = hash_calc1.get({
-			hdr.kvs.key,
-			HASH_SALT_1
+			HASH_SALT_1,
+			meta.key
 		});
 	}
 
@@ -266,10 +208,10 @@ control Ingress(
 
 	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0_action = {
 		void apply(inout time_t alarm, out bool alive) {
-			alive = false;
 			if (now < alarm) {
 				alive = true;
-				alarm = now + EXPIRATION_TIME;
+			} else {
+				alive = false;
 			}
 		}
 	};
@@ -280,10 +222,10 @@ control Ingress(
 
 	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_read_t1_action = {
 		void apply(inout time_t alarm, out bool alive) {
-			alive = false;
 			if (now < alarm) {
 				alive = true;
-				alarm = now + EXPIRATION_TIME;
+			} else {
+				alive = false;
 			}
 		}
 	};
@@ -292,32 +234,34 @@ control Ingress(
 		expirator_valid_t1 = expirator_read_t1_action.execute(h1);
 	}
 
-	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_write_t0_action = {
-		void apply(inout time_t alarm, out bool set) {
-			set = false;
+	RegisterAction<time_t, hash_t, time_t>(expirator_t0) expirator_swap_t0_action = {
+		void apply(inout time_t alarm, out time_t out_time) {
 			if (now >= alarm) {
-				set = true;
-				alarm = now + EXPIRATION_TIME;
+				out_time = 0;
+			} else {
+				out_time = alarm;
 			}
+			alarm = meta.swap_time;
 		}
 	};
 
-	action expirator_write_t0() {
-		expirator_valid_t0 = expirator_write_t0_action.execute(h0);
+	action expirator_swap_t0() {
+		meta.swap_time = expirator_swap_t0_action.execute(h0);
 	}
 
-	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_write_t1_action = {
-		void apply(inout time_t alarm, out bool set) {
-			set = false;
+	RegisterAction<time_t, hash_t, time_t>(expirator_t1) expirator_swap_t1_action = {
+		void apply(inout time_t alarm, out time_t out_time) {
 			if (now >= alarm) {
-				set = true;
-				alarm = now + EXPIRATION_TIME;
+				out_time = 0;
+			} else {
+				out_time = alarm;
 			}
+			alarm = meta.swap_time;
 		}
 	};
 
-	action expirator_write_t1() {
-		expirator_valid_t1 = expirator_write_t1_action.execute(h1);
+	action expirator_swap_t1() {
+		meta.swap_time = expirator_swap_t1_action.execute(h1);
 	}
 
 	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_delete_t0_action = {
@@ -357,295 +301,129 @@ control Ingress(
 	bit<8> t0_eq_count = 0;
 	bit<8> t1_eq_count = 0;
 
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k0_31) read_t0_k0_31_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[31:0]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
+	#define CUCKOO_READ(num, msb, lsb) \
+		RegisterAction<bit<32>, hash_t, bit<8>>(t##num##_k##lsb##_##msb) read_t##num##_k##lsb##_##msb##_action = { \
+			void apply(inout bit<32> value, out bit<8> result) { \
+				if (value == meta.key[msb:lsb]) { \
+					result = 1; \
+				} else { \
+					result = 0; \
+				} \
+			} \
+		}; \
+		action read_t##num##_k##lsb##_##msb() { \
+			t##num##_eq_count = t##num##_eq_count + read_t##num##_k##lsb##_##msb##_action.execute(h##num); \
 		}
-	};
-
-	action read_t0_k0_31() {
-		t0_eq_count = t0_eq_count + read_t0_k0_31_action.execute(h0);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k0_31) read_t1_k0_31_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[31:0]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
+	
+	#define CUCKOO_SWAP(num, msb, lsb) \
+		RegisterAction<bit<32>, hash_t, bit<32>>(t##num##_k##lsb##_##msb) swap_t##num##_k##lsb##_##msb##_action = { \
+			void apply(inout bit<32> value, out bit<32> out_value) { \
+				out_value = value; \
+				value = meta.key[msb:lsb]; \
+			} \
+		}; \
+		action swap_t##num##_k##lsb##_##msb() { \
+			meta.key[msb:lsb] = swap_t##num##_k##lsb##_##msb##_action.execute(h##num); \
 		}
-	};
 
-	action read_t1_k0_31() {
-		t1_eq_count = t1_eq_count + read_t1_k0_31_action.execute(h1);
-	}
+	CUCKOO_READ(0, 31, 0)
+	CUCKOO_READ(0, 63, 32)
+	CUCKOO_READ(0, 95, 64)
+	CUCKOO_READ(0, 127, 96)
 
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k32_63) read_t0_k32_63_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[63:32]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
+	CUCKOO_SWAP(0, 31, 0)
+	CUCKOO_SWAP(0, 63, 32)
+	CUCKOO_SWAP(0, 95, 64)
+	CUCKOO_SWAP(0, 127, 96)
 
-	action read_t0_k32_63() {
-		t0_eq_count = t0_eq_count + read_t0_k32_63_action.execute(h0);
-	}
+	CUCKOO_READ(1, 31, 0)
+	CUCKOO_READ(1, 63, 32)
+	CUCKOO_READ(1, 95, 64)
+	CUCKOO_READ(1, 127, 96)
 
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k32_63) read_t1_k32_63_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[63:32]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k32_63() {
-		t1_eq_count = t1_eq_count + read_t1_k32_63_action.execute(h1);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k64_95) read_t0_k64_95_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[95:64]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t0_k64_95() {
-		t0_eq_count = t0_eq_count + read_t0_k64_95_action.execute(h0);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k64_95) read_t1_k64_95_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[95:64]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k64_95() {
-		t1_eq_count = t1_eq_count + read_t1_k64_95_action.execute(h1);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k96_127) read_t0_k96_127_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[127:96]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t0_k96_127() {
-		t0_eq_count = t0_eq_count + read_t0_k96_127_action.execute(h0);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k96_127) read_t1_k96_127_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[127:96]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k96_127() {
-		t1_eq_count = t1_eq_count + read_t1_k96_127_action.execute(h1);
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	RegisterAction<bit<32>, hash_t, void>(t0_k0_31) write_t0_k0_31_action = {
-		void apply(inout bit<32> value) {
-			value = hdr.kvs.key[31:0];
-		}
-	};
-
-	action write_t0_k0_31() {
-		write_t0_k0_31_action.execute(h0);
-	}
-
-	// TODO: finish the writes: 32-63, 64-95, 96-127
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k0_31) read_t1_k0_31_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[31:0]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k0_31() {
-		t1_eq_count = t1_eq_count + read_t1_k0_31_action.execute(h1);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k32_63) read_t0_k32_63_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[63:32]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t0_k32_63() {
-		t0_eq_count = t0_eq_count + read_t0_k32_63_action.execute(h0);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k32_63) read_t1_k32_63_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[63:32]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k32_63() {
-		t1_eq_count = t1_eq_count + read_t1_k32_63_action.execute(h1);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k64_95) read_t0_k64_95_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[95:64]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t0_k64_95() {
-		t0_eq_count = t0_eq_count + read_t0_k64_95_action.execute(h0);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k64_95) read_t1_k64_95_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[95:64]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k64_95() {
-		t1_eq_count = t1_eq_count + read_t1_k64_95_action.execute(h1);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t0_k96_127) read_t0_k96_127_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[127:96]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t0_k96_127() {
-		t0_eq_count = t0_eq_count + read_t0_k96_127_action.execute(h0);
-	}
-
-	RegisterAction<bit<32>, hash_t, bit<8>>(t1_k96_127) read_t1_k96_127_action = {
-		void apply(inout bit<32> value, out bit<8> result) {
-			if (value == hdr.kvs.key[127:96]) {
-				result = 1;
-			} else {
-				result = 0;
-			}
-		}
-	};
-
-	action read_t1_k96_127() {
-		t1_eq_count = t1_eq_count + read_t1_k96_127_action.execute(h1);
-	}
+	CUCKOO_SWAP(1, 31, 0)
+	CUCKOO_SWAP(1, 63, 32)
+	CUCKOO_SWAP(1, 95, 64)
+	CUCKOO_SWAP(1, 127, 96)
 
 	action forward(port_t port) {
 		ig_tm_md.ucast_egress_port = port;
-	}
-
-	action send_to_controller() {
-		hdr.cpu.setValid();
-		hdr.cpu.code_path = 1234;
-		hdr.cpu.in_port = ig_intr_md.ingress_port;
-		forward(CPU_PCIE_PORT);
+		hdr.recirc.setInvalid();
 	}
 
 	action recirculate() {
 		forward(RECIRCULATION_PORT);
+		hdr.recirc.setValid();
+		hdr.recirc.key = meta.key;
+		hdr.recirc.swap_time = meta.swap_time;
+		hdr.app.recirc = hdr.app.recirc + 1;
 	}
 
 	apply {
-		calc_hash0();
-		calc_hash1();
-
 		set_now();
 
+		bool trigger_recirculation = false;
+
 		if (hdr.recirc.isValid()) {
-			expirator_write_t0();
+			meta.key = hdr.recirc.key;
+			meta.swap_time = hdr.recirc.swap_time;
 
-			if (expirator_valid_t0) {
-				write_t0_k0_31();
-				write_t0_k32_63();
-				write_t0_k64_95();
-				write_t0_k96_127();
+			calc_hash0();
 
-				hdr.kvs.tid = 0;
-				hdr.kvs.success = 1;
+			swap_t0_k0_31();
+			swap_t0_k32_63();
+			swap_t0_k64_95();
+			swap_t0_k96_127();
+
+			expirator_swap_t0();
+
+			hdr.app.tid = 0;
+			hdr.app.hash = h0;
+
+			if (meta.swap_time == 0) {
+				hdr.app.success = 1;
 			} else {
-				expirator_write_t1();
+				calc_hash1();
 
-				if (expirator_valid_t1) {
-					write_t1_k0_31();
-					write_t1_k32_63();
-					write_t1_k64_95();
-					write_t1_k96_127();
+				swap_t1_k0_31();
+				swap_t1_k32_63();
+				swap_t1_k64_95();
+				swap_t1_k96_127();
 
-					hdr.kvs.tid = 1;
-					hdr.kvs.success = 1;
+				expirator_swap_t1();
+
+				bool key_eq = false;
+				if (meta.key[31:0] == hdr.app.key[31:0]) {
+					if (meta.key[63:32] == hdr.app.key[63:32]) {
+						if (meta.key[95:64] == hdr.app.key[95:64]) {
+							if (meta.key[127:96] == hdr.app.key[127:96]) {
+								key_eq = true;
+							}
+						}
+					}
+				}
+
+				if (meta.swap_time == 0) {
+					if (key_eq) {
+						hdr.app.tid = 1;
+						hdr.app.hash = h1;
+					}
+					hdr.app.success = 1;
+					hdr.app.collision = 1;
+				} else if (hdr.app.recirc == MAX_RECIRCULATIONS) {
+					hdr.app.success = 0;
+					hdr.app.max_recirc = 1;
 				} else {
-					recirculate();
-					hdr.recirc.backtracks = hdr.recirc.backtracks + 1;
+					trigger_recirculation = true;
 				}
 			}
 		} else {
+			meta.key = hdr.app.key;
+			meta.swap_time = now + EXPIRATION_TIME;
+
+			calc_hash0();
+			calc_hash1();
+
 			expirator_read_t0();
 			expirator_read_t1();
 
@@ -660,27 +438,44 @@ control Ingress(
 			read_t1_k96_127();
 
 			if (expirator_valid_t0 && t0_eq_count == 4) {
-				hdr.kvs.tid = 0;
-				if (hdr.kvs.op == 0) {
-					hdr.kvs.success = 1;
+				// Key is found in table 0
+				hdr.app.tid = 0;
+				hdr.app.hash = h0;
+				if (hdr.app.op == 0) {
+					// Successful read operation
+					hdr.app.success = 1;
 				} else {
-					hdr.kvs.success = 0;
-					hdr.kvs.already_inserted = 1;
+					// Key is already inserted
+					hdr.app.success = 0;
+					hdr.app.duplicate = 1;
 				}
 			} else if (expirator_valid_t1 && t1_eq_count == 4) {
-				hdr.kvs.tid = 1;
-				if (hdr.kvs.op == 0) {
-					hdr.kvs.success = 1;
+				// Key is not found in table 0 but found in table 1
+				hdr.app.tid = 1;
+				hdr.app.hash = h1;
+				if (hdr.app.op == 0) {
+					// Successful read operation
+					hdr.app.success = 1;
 				} else {
-					hdr.kvs.success = 0;
-					hdr.kvs.already_inserted = 1;
+					// Key is already inserted
+					hdr.app.success = 0;
+					hdr.app.duplicate = 1;
 				}
-			} else if (hdr.kvs.op == 1) {
-				recirculate();
+			} else if (hdr.app.op == 1) {
+				// Not in table 0 or table 1, and write operation
+				trigger_recirculation = true;
+			} else {
+				// Not in table 0 or table 1, and read operation
+				hdr.app.success = 0;
 			}
 		}
 
-		forward(0);
+		if (trigger_recirculation) {
+			recirculate();
+		} else {
+			forward(OUT_PORT);
+		}
+
 		ig_tm_md.bypass_egress = 1;
 	}
 }
