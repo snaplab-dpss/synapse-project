@@ -30,7 +30,7 @@ assert test_param_get('arch') in [ 'tofino', 'tofino2' ]
 IN_PORT = 0 if test_param_get('arch') == 'tofino' else 8
 OUT_PORT = 1 if test_param_get('arch') == 'tofino' else 9
 
-class InsertionResult:
+class Report:
 	def __init__(self):
 		self.success = False
 		self.duplicate = False
@@ -43,12 +43,12 @@ class InsertionResult:
 	def __str__(self):
 		str = ""
 		str += f"success={self.success} "
+		str += f"tid={self.tid} "
+		str += f"hash=0x{self.hash:x} "
 		str += f"duplicate={self.duplicate} "
 		str += f"collision={self.collision} "
 		str += f"recirc={self.recirc} "
-		str += f"loop={self.loop} "
-		str += f"hash=0x{self.hash:x} "
-		str += f"tid={self.tid}"
+		str += f"loop={self.loop}"
 		return str
 
 class CuckooHashEmulator:
@@ -114,14 +114,17 @@ class CuckooHashEmulator:
 		return False
 
 	def insert(self, key):
-		result = InsertionResult()
-
-		# Every insertion requires a recirculation first.
-		result.recirc = 1
+		result = Report()
 
 		if self.lookup(key):
+			tid, hash = self.get_tid_and_hash(key)
+			result.tid = tid
+			result.hash = hash
 			result.duplicate = True
 			return result
+		
+		# Every insertion requires a recirculation first.
+		result.recirc = 1
 
 		insertions = set()
 		tables = [self.t0, self.t1]
@@ -328,14 +331,19 @@ class App(scapy.packet.Packet):
 		scapy.fields.BitField("duplicate", 0, 8),
 		scapy.fields.BitField("collision", 0, 8),
 		scapy.fields.BitField("recirc", 0, 32),
-		scapy.fields.BitField("max_recirc", 0, 8),
+		scapy.fields.BitField("loop", 0, 8),
 	]
 
-	def mysummary(self):
-		return f"op={self.op} key=0x{self.key:x} success={self.success} " \
-			f"tid={self.tid} hash={hex(self.hash)} " \
-			f"duplicate={self.duplicate} collision={self.collision} " \
-			f"recirc={self.recirc} max_recirc={self.max_recirc}"
+	def build_report(self):
+		result = Report()
+		result.success = False if self.success == 0 else True
+		result.tid = self.tid
+		result.hash = self.hash
+		result.duplicate = False if self.duplicate == 0 else True
+		result.collision = False if self.collision == 0 else True
+		result.recirc = self.recirc
+		result.loop = False if self.loop == 0 else True
+		return result
 
 scapy.packet.bind_layers(scapy.layers.l2.Ether, App)
 
@@ -349,7 +357,7 @@ def send_and_get_result_back(bfruntimetest, op, key):
 	oether = scapy.layers.l2.Ether(obytes)
 	oapp = App(bytes(oether[1]))
 
-	return oapp
+	return oapp.build_report()
 
 class SingleInsertion(BfRuntimeTest):
 	def setUp(self):
@@ -368,32 +376,31 @@ class SingleInsertion(BfRuntimeTest):
 			key = custom_random(1, KEY_SIZE_BITS, keys)
 			keys.append(key)
 
-			emulated_result = self.emulator.insert(key)
+			expected = self.emulator.insert(key)
 			result = send_and_get_result_back(self, OP_WRITE, key)
-			value = self.cuckoo_hash.read(emulated_result.tid, emulated_result.hash)
+			value = self.cuckoo_hash.read(expected.tid, expected.hash)
 			
+			print("[SingleInsertion]")
 			print(f"Key:      0x{key:x}")
-			print(f"Expected: tid={emulated_result.tid} hash={hex(emulated_result.hash)}")
+			print(f"Expected: tid={expected.tid} hash={hex(expected.hash)}")
 			print(f"Read:     0x{value:x}")
 			print(f"Result:   {result}")
 			print()
 
-			assert emulated_result.success
-			assert not emulated_result.duplicate
-			assert not emulated_result.collision
-			assert not emulated_result.loop
+			assert expected.success
+			assert not expected.duplicate
+			assert not expected.collision
+			assert not expected.loop
 
-			assert result.op == OP_WRITE
-			assert result.key == key
-			assert result.success == 1
-			assert result.tid == emulated_result.tid
-			assert result.hash == emulated_result.hash
-			assert result.duplicate == 0
-			assert result.collision == 0
-			assert result.recirc == emulated_result.recirc
-			assert result.max_recirc == 0
+			assert result.success
+			assert result.tid == expected.tid
+			assert result.hash == expected.hash
+			assert not result.duplicate
+			assert not result.collision
+			assert result.recirc == expected.recirc
+			assert not result.loop
 
-			self.cuckoo_hash.delete(emulated_result.tid, emulated_result.hash)
+			self.cuckoo_hash.delete(expected.tid, expected.hash)
 			self.emulator.clear()
 
 class SpecificSingleInsertions(BfRuntimeTest):
@@ -411,32 +418,31 @@ class SpecificSingleInsertions(BfRuntimeTest):
 		keys = [0, (1 << KEY_SIZE_BITS) - 1]
 
 		for key in keys:
-			emulated_result = self.emulator.insert(key)
+			expected = self.emulator.insert(key)
 			result = send_and_get_result_back(self, OP_WRITE, key)
-			value = self.cuckoo_hash.read(emulated_result.tid, emulated_result.hash)
+			value = self.cuckoo_hash.read(expected.tid, expected.hash)
 			
+			print("[SpecificSingleInsertions]")
 			print(f"Key:      0x{key:x}")
-			print(f"Expected: tid={emulated_result.tid} hash={hex(emulated_result.hash)}")
+			print(f"Expected: tid={expected.tid} hash={hex(expected.hash)}")
 			print(f"Read:     0x{value:x}")
 			print(f"Result:   {result}")
 			print()
 
-			assert emulated_result.success
-			assert not emulated_result.duplicate
-			assert not emulated_result.collision
-			assert not emulated_result.loop
+			assert expected.success
+			assert not expected.duplicate
+			assert not expected.collision
+			assert not expected.loop
 
-			assert result.op == OP_WRITE
-			assert result.key == key
-			assert result.success == 1
-			assert result.tid == emulated_result.tid
-			assert result.hash == emulated_result.hash
-			assert result.duplicate == 0
-			assert result.collision == 0
-			assert result.recirc == emulated_result.recirc
-			assert result.max_recirc == 0
+			assert result.success
+			assert result.tid == expected.tid
+			assert result.hash == expected.hash
+			assert not result.duplicate
+			assert not result.collision
+			assert result.recirc == expected.recirc
+			assert not result.loop
 
-			self.cuckoo_hash.delete(emulated_result.tid, emulated_result.hash)
+			self.cuckoo_hash.delete(expected.tid, expected.hash)
 			self.emulator.clear()
 
 class CollisionInsert(BfRuntimeTest):
@@ -464,26 +470,27 @@ class CollisionInsert(BfRuntimeTest):
 				if h0 == self.emulator.hash0(key1):
 					break
 			
+			print("[CollisionInsert]")
 			print(f"Key0:     0x{key0:x}")
 			print(f"Key1:     0x{key1:x}")
 			print(f"Hash:     0x{h0:x}")
 
-			emulated_result_0 = self.emulator.insert(key0)
-			emulated_result_1 = self.emulator.insert(key1)
+			expected_0 = self.emulator.insert(key0)
+			expected_1 = self.emulator.insert(key1)
 
-			assert emulated_result_0.success
-			assert not emulated_result_0.duplicate
-			assert not emulated_result_0.collision
-			assert not emulated_result_0.loop
-			assert emulated_result_0.tid == 0
-			assert emulated_result_0.hash == h0
+			assert expected_0.success
+			assert not expected_0.duplicate
+			assert not expected_0.collision
+			assert not expected_0.loop
+			assert expected_0.tid == 0
+			assert expected_0.hash == h0
 
-			assert emulated_result_1.success
-			assert not emulated_result_1.duplicate
-			assert emulated_result_1.collision
-			assert not emulated_result_1.loop
-			assert emulated_result_1.tid == 0
-			assert emulated_result_1.hash == h0
+			assert expected_1.success
+			assert not expected_1.duplicate
+			assert expected_1.collision
+			assert not expected_1.loop
+			assert expected_1.tid == 0
+			assert expected_1.hash == h0
 
 			assert self.emulator.get_tid_and_hash(key0)[0] == 1
 			assert self.emulator.get_tid_and_hash(key1)[0] == 0
@@ -495,23 +502,19 @@ class CollisionInsert(BfRuntimeTest):
 			print(f"Result 1: {result1}")
 			print()
 
-			assert result0.op == OP_WRITE
-			assert result0.key == key0
-			assert result0.success == 1
-			assert result0.tid == emulated_result_0.tid
-			assert result0.hash == emulated_result_0.hash
-			assert result0.duplicate == 0
-			assert result0.collision == 0
-			assert result0.recirc == emulated_result_0.recirc
+			assert result0.success
+			assert result0.tid == expected_0.tid
+			assert result0.hash == expected_0.hash
+			assert not result0.duplicate
+			assert not result0.collision
+			assert result0.recirc == expected_0.recirc
 
-			assert result1.op == OP_WRITE
-			assert result1.key == key1
-			assert result1.success == 1
-			assert result1.tid == emulated_result_1.tid
-			assert result1.hash == emulated_result_1.hash
-			assert result1.duplicate == 0
-			assert result1.collision == 1
-			assert result1.recirc == emulated_result_1.recirc
+			assert result1.success
+			assert result1.tid == expected_1.tid
+			assert result1.hash == expected_1.hash
+			assert not result1.duplicate
+			assert result1.collision
+			assert result1.recirc == expected_1.recirc
 
 			assert key1 == self.cuckoo_hash.read(0, self.emulator.hash0(key1))
 			assert key0 == self.cuckoo_hash.read(1, self.emulator.hash1(key0))
@@ -540,11 +543,12 @@ class RandomPopulationWithoutLoops(BfRuntimeTest):
 				key = custom_random(1, KEY_SIZE_BITS, keys)
 				keys.append(key)
 
+				print("[RandomPopulationWithoutLoops]")
 				print(f"Usage:    {usage} (current={self.emulator.usage()})")
 				print(f"Key:      0x{key:x}")
 
-				emulated_result = self.emulator.insert(key)
-				if emulated_result.loop:
+				expected = self.emulator.insert(key)
+				if expected.loop:
 					print("*** Loop detected, retrying... ***")
 					self.emulator.clear()
 					for k in used_keys:
@@ -553,26 +557,24 @@ class RandomPopulationWithoutLoops(BfRuntimeTest):
 				used_keys.append(key)
 				
 				result = send_and_get_result_back(self, OP_WRITE, key)
-				value = self.cuckoo_hash.read(emulated_result.tid, emulated_result.hash)
+				value = self.cuckoo_hash.read(expected.tid, expected.hash)
 				
-				print(f"Expected: tid={emulated_result.tid} hash={hex(emulated_result.hash)}")
+				print(f"Expected: tid={expected.tid} hash={hex(expected.hash)}")
 				print(f"Read:     0x{value:x}")
 				print(f"Result:   {result}")
 				print()
 
-				assert emulated_result.success
-				assert not emulated_result.duplicate
-				assert not emulated_result.loop
+				assert expected.success
+				assert not expected.duplicate
+				assert not expected.loop
 
-				assert result.op == OP_WRITE
-				assert result.key == key
-				assert result.success == 1
-				assert result.tid == emulated_result.tid
-				assert result.hash == emulated_result.hash
-				assert result.duplicate == 0
-				assert result.collision == 0 if not emulated_result.collision else 1
-				assert result.recirc == emulated_result.recirc
-				assert result.max_recirc == 0
+				assert result.success
+				assert result.tid == expected.tid
+				assert result.hash == expected.hash
+				assert not result.duplicate
+				assert result.collision == expected.collision
+				assert result.recirc == expected.recirc
+				assert not result.loop
 
 				# Make the entry never expire
 				self.cuckoo_hash.expirator_write(result.tid, result.hash, 0xffffffff)
@@ -597,8 +599,8 @@ class ReadAfterWrite(BfRuntimeTest):
 		while self.emulator.usage() < usage:
 			key = custom_random(1, KEY_SIZE_BITS, self.keys)
 
-			emulated_result = self.emulator.insert(key)
-			if not emulated_result.success:
+			expected = self.emulator.insert(key)
+			if not expected.success:
 				self.emulator.clear()
 				for k in self.keys:
 					self.emulator.insert(k)
@@ -606,12 +608,12 @@ class ReadAfterWrite(BfRuntimeTest):
 			
 			result = send_and_get_result_back(self, OP_WRITE, key)
 
-			assert result.success == 1
-			assert result.duplicate == 0
-			assert result.max_recirc == 0
+			assert result.success
+			assert not result.duplicate
+			assert not result.loop
 
-			assert emulated_result.tid == result.tid
-			assert emulated_result.hash == result.hash
+			assert expected.tid == result.tid
+			assert expected.hash == result.hash
 
 			self.keys.append(key)
 
@@ -628,18 +630,18 @@ class ReadAfterWrite(BfRuntimeTest):
 			tid, hash = self.emulator.get_tid_and_hash(key)
 			result = send_and_get_result_back(self, OP_READ, key)
 
+			print("[ReadAfterWrite]")
 			print(f"Key:    0x{key:x}")
 			print(f"Tid:    0x{tid}")
 			print(f"Hash:   0x{hash:x}")
 			print(f"Result: {result}")
+			print()
 
-			assert result.op == OP_READ
-			assert result.key == key
-			assert result.success == 1
-			assert result.duplicate == 0
-			assert result.collision == 0
-			assert result.recirc == 0
-			assert result.max_recirc == 0
+			assert result.success
+			assert not result.duplicate
+			assert not result.collision
+			assert not result.recirc
+			assert not result.loop
 
 			value = self.cuckoo_hash.read(tid, hash)
 			assert key == value
@@ -661,8 +663,8 @@ class AlreadyInserted(BfRuntimeTest):
 			key = custom_random(1, KEY_SIZE_BITS, keys)
 			keys.append(key)
 
-			emulated_result = self.emulator.insert(key)
-			if not emulated_result.success:
+			expected = self.emulator.insert(key)
+			if not expected.success:
 				self.emulator.clear()
 				for k in keys:
 					self.emulator.insert(k)
@@ -671,18 +673,19 @@ class AlreadyInserted(BfRuntimeTest):
 			result0 = send_and_get_result_back(self, OP_WRITE, key)
 			result1 = send_and_get_result_back(self, OP_WRITE, key)
 
-			print(f"Duplicate insertion of key 0x{key:x}")
+			print("[AlreadyInserted]")
+			print(f"Key:      0x{key:x}")
 			print(f"Result 0: {result0}")
 			print(f"Result 1: {result1}")
 			print()
 
-			assert result0.success == 1
-			assert result0.duplicate == 0
-			assert result0.max_recirc == 0
+			assert result0.success
+			assert not result0.duplicate
+			assert not result0.loop
 
-			assert result1.success == 0
-			assert result1.duplicate == 1
-			assert result1.max_recirc == 0
+			assert not result1.success
+			assert result1.duplicate
+			assert not result1.loop
 
 class CatchingLoops(BfRuntimeTest):
 	def setUp(self):
@@ -696,14 +699,14 @@ class CatchingLoops(BfRuntimeTest):
 		self.emulator = CuckooHashEmulator()
 
 		usage = 1
-		self.used_keys = []
 		self.keys = []
+		self.used_keys = []
 		while self.emulator.usage() < usage:
 			key = custom_random(1, KEY_SIZE_BITS, self.keys)
 			self.keys.append(key)
 
-			emulated_result = self.emulator.insert(key)
-			if not emulated_result.success:
+			expected = self.emulator.insert(key)
+			if not expected.success:
 				self.emulator.clear()
 				for k in self.used_keys:
 					self.emulator.insert(k)
@@ -712,12 +715,12 @@ class CatchingLoops(BfRuntimeTest):
 			
 			result = send_and_get_result_back(self, OP_WRITE, key)
 
-			assert result.success == 1
-			assert result.duplicate == 0
-			assert result.max_recirc == 0
+			assert result.success
+			assert not result.duplicate
+			assert not result.loop
 
-			assert emulated_result.tid == result.tid
-			assert emulated_result.hash == result.hash
+			assert expected.tid == result.tid
+			assert expected.hash == result.hash
 
 			assert key == self.cuckoo_hash.read(result.tid, result.hash)
 			assert self.emulator.lookup(key)
@@ -730,19 +733,14 @@ class CatchingLoops(BfRuntimeTest):
 			self.cuckoo_hash.expirator_write(result.tid, result.hash, 0xffffffff)
 	
 	def runTest(self):
-		# Because the emulator is capable of detecting loops but not the
-		# Tofino implementation, the loop operation might on hardware might
-		# evict other entries.
-		# For this reason, this test might fail (although it's unlikely).
-
 		target_loops = 100
 		loops = 0
 		while loops < target_loops:
 			key = custom_random(1, KEY_SIZE_BITS, self.keys)
 			self.keys.append(key)
 
-			emulated_result = self.emulator.insert(key)
-			if not emulated_result.loop:
+			expected = self.emulator.insert(key)
+			if not expected.loop:
 				self.emulator.clear()
 				for k in self.used_keys:
 					self.emulator.insert(k)
@@ -752,17 +750,47 @@ class CatchingLoops(BfRuntimeTest):
 			result = send_and_get_result_back(self, OP_WRITE, key)
 			loops += 1
 
-			print(f"Loop insertion of key 0x{key:x}")
+			print("[CatchingLoops]")
+			print(f"Key:      0x{key:x}")
 			print(f"Loop:     {loops}/{target_loops}")
-			print(f"Expected: {emulated_result}")
+			print(f"Expected: {expected}")
 			print(f"Result:   {result}")
 			print()
 
-			assert result.success == 0
-			assert result.duplicate == 0
-			assert result.collision == 0
-			assert result.recirc == 4
-			assert result.max_recirc == 1
+			assert not result.success
+			assert result.loop
+			assert result.recirc == expected.recirc
+
+class Random(BfRuntimeTest):
+	def setUp(self):
+		client_id = 0
+		BfRuntimeTest.setUp(self, client_id, PROGRAM)
+
+		self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+		self.target = gc.Target(device_id=0)
+
+		self.cuckoo_hash = CuckooHash(self.bfrt_info, self.target)
+		self.emulator = CuckooHashEmulator()
+	
+	def runTest(self):
+		for _ in range(1000):
+			key = custom_random(1, KEY_SIZE_BITS)
+
+			expected = self.emulator.insert(key)
+			result = send_and_get_result_back(self, OP_WRITE, key)
 
 			# Make the entry never expire
-			self.cuckoo_hash.expirator_write(result.tid, result.hash, 0xffffffff)
+			if result.success:
+				self.cuckoo_hash.expirator_write(result.tid, result.hash, 0xffffffff)
+
+			print("[Random]")
+			print(f"Key:      0x{key:x}")
+			print(f"Expected: {expected}")
+			print(f"Result:   {result}")
+			print()
+
+			assert result.success == expected.success
+			assert result.duplicate == expected.duplicate
+			assert result.collision == expected.collision
+			assert result.recirc == expected.recirc
+			assert result.loop == expected.loop

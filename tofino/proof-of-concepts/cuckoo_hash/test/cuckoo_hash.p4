@@ -68,10 +68,16 @@ header app_t {
 	bit<8> op;
 	bit<128> key;
 	bit<8> success;
+	bit<8> tid; // debug
+	@padding hash_pad_t hash_pad; // debug
+	hash_t hash; // debug
+	bit<8> duplicate; // debug
+	bit<8> collision; // debug
+	bit<32> recirc; // debug
+	bit<8> loop; // debug
 };
 
 header recirc_h {
-	bit<32> times;
 	bit<128> key;
 	time_t swap_time;
 };
@@ -80,7 +86,6 @@ struct empty_header_t {}
 struct empty_metadata_t {}
 
 struct my_ingress_metadata_t {
-	bit<32> recirc_times;
 	bit<128> key;
 	time_t swap_time;
 }
@@ -129,7 +134,6 @@ parser IngressParser(
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
 
-		meta.recirc_times = 0;
 		meta.key = 0;
 		meta.swap_time = 0;
 
@@ -350,7 +354,7 @@ control Ingress(
 		hdr.recirc.setValid();
 		hdr.recirc.key = meta.key;
 		hdr.recirc.swap_time = meta.swap_time;
-		hdr.recirc.times = meta.recirc_times + 1;
+		hdr.app.recirc = hdr.app.recirc + 1;
 	}
 
 	apply {
@@ -361,7 +365,6 @@ control Ingress(
 		if (hdr.recirc.isValid()) {
 			meta.key = hdr.recirc.key;
 			meta.swap_time = hdr.recirc.swap_time;
-			meta.recirc_times = hdr.recirc.times;
 
 			calc_hash0();
 
@@ -372,9 +375,14 @@ control Ingress(
 
 			expirator_swap_t0();
 
+			hdr.app.tid = 0;
+			hdr.app.hash = h0;
+
 			if (meta.swap_time == 0) {
 				hdr.app.success = 1;
 			} else {
+				hdr.app.collision = 1;
+				
 				calc_hash1();
 
 				swap_t1_k0_31();
@@ -396,8 +404,14 @@ control Ingress(
 				}
 
 				if (meta.swap_time == 0) {
+					if (is_original_key) {
+						hdr.app.tid = 1;
+						hdr.app.hash = h1;
+					}
 					hdr.app.success = 1;
-				} else if (meta.recirc_times == 1 || !is_original_key) {
+				} else if (is_original_key && hdr.app.recirc > 1) {
+					hdr.app.loop = 1;
+				} else {
 					trigger_recirculation = true;
 				}
 			}
@@ -422,20 +436,34 @@ control Ingress(
 			read_t1_k96_127();
 
 			if (expirator_valid_t0 && t0_eq_count == 4) {
+				// Key is found in table 0
+				hdr.app.tid = 0;
+				hdr.app.hash = h0;
 				if (hdr.app.op == 0) {
+					// Successful read operation
 					hdr.app.success = 1;
 				} else {
+					// Key is already inserted
 					hdr.app.success = 0;
+					hdr.app.duplicate = 1;
 				}
 			} else if (expirator_valid_t1 && t1_eq_count == 4) {
+				// Key is not found in table 0 but found in table 1
+				hdr.app.tid = 1;
+				hdr.app.hash = h1;
 				if (hdr.app.op == 0) {
+					// Successful read operation
 					hdr.app.success = 1;
 				} else {
+					// Key is already inserted
 					hdr.app.success = 0;
+					hdr.app.duplicate = 1;
 				}
 			} else if (hdr.app.op == 1) {
+				// Not in table 0 or table 1, and write operation
 				trigger_recirculation = true;
 			} else {
+				// Not in table 0 or table 1, and read operation
 				hdr.app.success = 0;
 			}
 		}
