@@ -25,6 +25,8 @@ public:
   HeuristicCfg(const std::string &_name, const std::vector<Metric> &_metrics)
       : name(_name), metrics(_metrics) {}
 
+  virtual ~HeuristicCfg() = default;
+
   Score score(const EP *e) const {
     size_t N = metrics.size();
     std::vector<i64> values(N);

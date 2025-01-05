@@ -1,7 +1,7 @@
 #include "hh_table_read.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 using tofino::DS;
 using tofino::DS_ID;
@@ -108,5 +108,5 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

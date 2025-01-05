@@ -9,6 +9,11 @@ class Route;
 
 class BDDVisitor {
 public:
+  BDDVisitor() = default;
+  BDDVisitor(const BDDVisitor &) = default;
+  BDDVisitor(BDDVisitor &&) = default;
+  virtual ~BDDVisitor() = default;
+
   enum class Action { Continue, Stop };
 
   virtual void visit(const BDD *bdd);

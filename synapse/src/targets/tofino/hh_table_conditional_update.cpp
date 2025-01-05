@@ -143,7 +143,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
 }
 } // namespace
 
-using controller::HHTableUpdate;
+using ctrl::HHTableUpdate;
 
 std::optional<spec_impl_t>
 HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,

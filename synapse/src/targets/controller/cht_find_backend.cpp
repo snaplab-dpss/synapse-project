@@ -1,7 +1,7 @@
 #include "cht_find_backend.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep,
                                                             const Node *node,
@@ -77,5 +77,5 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

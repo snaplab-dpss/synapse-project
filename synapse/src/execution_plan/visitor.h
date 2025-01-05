@@ -55,7 +55,7 @@ class CMSIncrement;
 class CMSIncAndQuery;
 } // namespace tofino
 
-namespace controller {
+namespace ctrl {
 class Ignore;
 class ParseHeader;
 class ModifyHeader;
@@ -102,7 +102,7 @@ class CMSUpdate;
 class CMSQuery;
 class CMSIncrement;
 class CMSCountMin;
-} // namespace controller
+} // namespace ctrl
 
 namespace x86 {
 class Ignore;
@@ -139,6 +139,11 @@ class TBExpire;
 
 class EPVisitor {
 public:
+  EPVisitor() = default;
+  EPVisitor(const EPVisitor &) = default;
+  EPVisitor(EPVisitor &&) = default;
+  virtual ~EPVisitor() = default;
+
   enum class Action { skipChildren, doChildren };
 
   virtual void visit(const EP *ep);
@@ -186,52 +191,52 @@ public:
   // Tofino CPU
   // ========================================
 
-  VISIT_NOP(controller::Ignore)
-  VISIT_NOP(controller::ParseHeader)
-  VISIT_NOP(controller::ModifyHeader)
-  VISIT_NOP(controller::ChecksumUpdate)
-  VISIT_NOP(controller::If)
-  VISIT_NOP(controller::Then)
-  VISIT_NOP(controller::Else)
-  VISIT_NOP(controller::Forward)
-  VISIT_NOP(controller::Broadcast)
-  VISIT_NOP(controller::Drop)
-  VISIT_NOP(controller::TableLookup)
-  VISIT_NOP(controller::TableUpdate)
-  VISIT_NOP(controller::TableDelete)
-  VISIT_NOP(controller::DchainAllocateNewIndex)
-  VISIT_NOP(controller::DchainRejuvenateIndex)
-  VISIT_NOP(controller::DchainIsIndexAllocated)
-  VISIT_NOP(controller::DchainFreeIndex)
-  VISIT_NOP(controller::VectorRead)
-  VISIT_NOP(controller::VectorWrite)
-  VISIT_NOP(controller::MapGet)
-  VISIT_NOP(controller::MapPut)
-  VISIT_NOP(controller::MapErase)
-  VISIT_NOP(controller::ChtFindBackend)
-  VISIT_NOP(controller::HashObj)
-  VISIT_NOP(controller::VectorRegisterLookup)
-  VISIT_NOP(controller::VectorRegisterUpdate)
-  VISIT_NOP(controller::FCFSCachedTableRead)
-  VISIT_NOP(controller::FCFSCachedTableWrite)
-  VISIT_NOP(controller::FCFSCachedTableDelete)
-  VISIT_NOP(controller::MapRegisterRead)
-  VISIT_NOP(controller::MapRegisterWrite)
-  VISIT_NOP(controller::MapRegisterDelete)
-  VISIT_NOP(controller::HHTableRead)
-  VISIT_NOP(controller::HHTableConditionalUpdate)
-  VISIT_NOP(controller::HHTableUpdate)
-  VISIT_NOP(controller::HHTableDelete)
-  VISIT_NOP(controller::TBIsTracing)
-  VISIT_NOP(controller::TBTrace)
-  VISIT_NOP(controller::TBUpdateAndCheck)
-  VISIT_NOP(controller::TBExpire)
-  VISIT_NOP(controller::MeterInsert)
-  VISIT_NOP(controller::IntegerAllocatorFreeIndex)
-  VISIT_NOP(controller::CMSUpdate)
-  VISIT_NOP(controller::CMSQuery)
-  VISIT_NOP(controller::CMSIncrement)
-  VISIT_NOP(controller::CMSCountMin)
+  VISIT_NOP(ctrl::Ignore)
+  VISIT_NOP(ctrl::ParseHeader)
+  VISIT_NOP(ctrl::ModifyHeader)
+  VISIT_NOP(ctrl::ChecksumUpdate)
+  VISIT_NOP(ctrl::If)
+  VISIT_NOP(ctrl::Then)
+  VISIT_NOP(ctrl::Else)
+  VISIT_NOP(ctrl::Forward)
+  VISIT_NOP(ctrl::Broadcast)
+  VISIT_NOP(ctrl::Drop)
+  VISIT_NOP(ctrl::TableLookup)
+  VISIT_NOP(ctrl::TableUpdate)
+  VISIT_NOP(ctrl::TableDelete)
+  VISIT_NOP(ctrl::DchainAllocateNewIndex)
+  VISIT_NOP(ctrl::DchainRejuvenateIndex)
+  VISIT_NOP(ctrl::DchainIsIndexAllocated)
+  VISIT_NOP(ctrl::DchainFreeIndex)
+  VISIT_NOP(ctrl::VectorRead)
+  VISIT_NOP(ctrl::VectorWrite)
+  VISIT_NOP(ctrl::MapGet)
+  VISIT_NOP(ctrl::MapPut)
+  VISIT_NOP(ctrl::MapErase)
+  VISIT_NOP(ctrl::ChtFindBackend)
+  VISIT_NOP(ctrl::HashObj)
+  VISIT_NOP(ctrl::VectorRegisterLookup)
+  VISIT_NOP(ctrl::VectorRegisterUpdate)
+  VISIT_NOP(ctrl::FCFSCachedTableRead)
+  VISIT_NOP(ctrl::FCFSCachedTableWrite)
+  VISIT_NOP(ctrl::FCFSCachedTableDelete)
+  VISIT_NOP(ctrl::MapRegisterRead)
+  VISIT_NOP(ctrl::MapRegisterWrite)
+  VISIT_NOP(ctrl::MapRegisterDelete)
+  VISIT_NOP(ctrl::HHTableRead)
+  VISIT_NOP(ctrl::HHTableConditionalUpdate)
+  VISIT_NOP(ctrl::HHTableUpdate)
+  VISIT_NOP(ctrl::HHTableDelete)
+  VISIT_NOP(ctrl::TBIsTracing)
+  VISIT_NOP(ctrl::TBTrace)
+  VISIT_NOP(ctrl::TBUpdateAndCheck)
+  VISIT_NOP(ctrl::TBExpire)
+  VISIT_NOP(ctrl::MeterInsert)
+  VISIT_NOP(ctrl::IntegerAllocatorFreeIndex)
+  VISIT_NOP(ctrl::CMSUpdate)
+  VISIT_NOP(ctrl::CMSQuery)
+  VISIT_NOP(ctrl::CMSIncrement)
+  VISIT_NOP(ctrl::CMSCountMin)
 
   // ========================================
   // x86

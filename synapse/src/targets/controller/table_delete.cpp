@@ -1,7 +1,7 @@
 #include "table_delete.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 namespace {
 void table_delete_data_from_map_op(const Call *call_node, addr_t &obj,
                                    std::vector<klee::ref<klee::Expr>> &keys) {
@@ -98,5 +98,5 @@ std::vector<impl_t> TableDeleteFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

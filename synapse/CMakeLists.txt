@@ -32,9 +32,17 @@ string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_R
 ###############################################################################
 
 add_compile_options(
-    -Wall -Wextra -Werror -Wfatal-errors
-    -Wno-unused-variable -Wno-unused-parameter
+    -Wall
+    -Wextra
+    -Werror
+    -Wfatal-errors
+    -Wno-unused-variable
+    -Wno-unused-parameter
     -fno-omit-frame-pointer
+    -Wnon-virtual-dtor
+    -pedantic
+    -Wcast-align
+    -Wmisleading-indentation
 )
 
 ###############################################################################

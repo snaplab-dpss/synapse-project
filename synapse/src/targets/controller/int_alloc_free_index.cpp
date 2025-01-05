@@ -1,7 +1,7 @@
 #include "int_alloc_free_index.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t>
 IntegerAllocatorFreeIndexFactory::speculate(const EP *ep, const Node *node,
@@ -63,5 +63,5 @@ IntegerAllocatorFreeIndexFactory::process_node(const EP *ep, const Node *node) c
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

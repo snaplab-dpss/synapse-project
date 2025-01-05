@@ -1,7 +1,7 @@
 #include "map_register_write.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 using tofino::DS_ID;
 using tofino::Table;
@@ -94,5 +94,5 @@ std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

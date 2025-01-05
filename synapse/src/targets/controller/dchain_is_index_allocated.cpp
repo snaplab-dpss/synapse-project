@@ -1,7 +1,7 @@
 #include "dchain_is_index_allocated.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t>
 DchainIsIndexAllocatedFactory::speculate(const EP *ep, const Node *node,
@@ -70,5 +70,5 @@ std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

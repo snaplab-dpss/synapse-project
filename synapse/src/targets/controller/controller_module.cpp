@@ -3,7 +3,7 @@
 #include "../../execution_plan/execution_plan.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 const tofino::TofinoContext *ControllerModuleFactory::get_tofino_ctx(const EP *ep) const {
   const Context &ctx = ep->get_ctx();
@@ -27,5 +27,5 @@ const tofino::TNA &ControllerModuleFactory::get_tna(const EP *ep) const {
   return ctx->get_tna();
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

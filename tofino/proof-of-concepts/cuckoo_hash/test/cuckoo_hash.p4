@@ -86,6 +86,7 @@ struct empty_header_t {}
 struct empty_metadata_t {}
 
 struct my_ingress_metadata_t {
+	time_t now;
 	bit<128> key;
 	time_t swap_time;
 }
@@ -134,6 +135,7 @@ parser IngressParser(
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
 
+		meta.now = ig_intr_md.ingress_mac_tstamp[47:16];
 		meta.key = 0;
 		meta.swap_time = 0;
 
@@ -192,21 +194,15 @@ control Ingress(
 
 	// ============================== Expirator ==============================
 
-	time_t now = 0;
-
 	bool expirator_valid_t0 = false;
 	bool expirator_valid_t1 = false;
 
 	Register<time_t, _>(CUCKOO_CAPACITY, 0) expirator_t0;
 	Register<time_t, _>(CUCKOO_CAPACITY, 0) expirator_t1;
 
-	action set_now() {
-		now = ig_intr_md.ingress_mac_tstamp[47:16];
-	}
-
 	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0_action = {
 		void apply(inout time_t alarm, out bool alive) {
-			if (now < alarm) {
+			if (meta.now < alarm) {
 				alive = true;
 			} else {
 				alive = false;
@@ -220,7 +216,7 @@ control Ingress(
 
 	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_read_t1_action = {
 		void apply(inout time_t alarm, out bool alive) {
-			if (now < alarm) {
+			if (meta.now < alarm) {
 				alive = true;
 			} else {
 				alive = false;
@@ -234,7 +230,7 @@ control Ingress(
 
 	RegisterAction<time_t, hash_t, time_t>(expirator_t0) expirator_swap_t0_action = {
 		void apply(inout time_t alarm, out time_t out_time) {
-			if (now >= alarm) {
+			if (meta.now >= alarm) {
 				out_time = 0;
 			} else {
 				out_time = alarm;
@@ -249,7 +245,7 @@ control Ingress(
 
 	RegisterAction<time_t, hash_t, time_t>(expirator_t1) expirator_swap_t1_action = {
 		void apply(inout time_t alarm, out time_t out_time) {
-			if (now >= alarm) {
+			if (meta.now >= alarm) {
 				out_time = 0;
 			} else {
 				out_time = alarm;
@@ -358,8 +354,6 @@ control Ingress(
 	}
 
 	apply {
-		set_now();
-
 		bool trigger_recirculation = false;
 
 		if (hdr.recirc.isValid()) {
@@ -417,7 +411,7 @@ control Ingress(
 			}
 		} else {
 			meta.key = hdr.app.key;
-			meta.swap_time = now + EXPIRATION_TIME;
+			meta.swap_time = meta.now + EXPIRATION_TIME;
 
 			calc_hash0();
 			calc_hash1();

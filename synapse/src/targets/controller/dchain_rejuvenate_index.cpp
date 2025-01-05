@@ -1,7 +1,7 @@
 #include "dchain_rejuvenate_index.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t>
 DchainRejuvenateIndexFactory::speculate(const EP *ep, const Node *node,
@@ -66,5 +66,5 @@ std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

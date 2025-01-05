@@ -1,7 +1,7 @@
 #include "vector_register_lookup.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t>
 VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
@@ -64,5 +64,5 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

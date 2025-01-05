@@ -57,7 +57,7 @@ TargetView TargetsView::get_initial_target() const {
 Targets::Targets(const toml::table &config)
     : elements{
           std::make_unique<tofino::TofinoTarget>(config),
-          std::make_unique<controller::ControllerTarget>(),
+          std::make_unique<ctrl::ControllerTarget>(),
           std::make_unique<x86::x86Target>(),
       } {}
 

@@ -1,7 +1,7 @@
 #include "cms_update.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t> CMSUpdateFactory::speculate(const EP *ep, const Node *node,
                                                        const Context &ctx) const {
@@ -61,5 +61,5 @@ std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const Node *nod
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

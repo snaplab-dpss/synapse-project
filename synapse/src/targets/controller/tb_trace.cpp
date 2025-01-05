@@ -1,7 +1,7 @@
 #include "tb_trace.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t> TBTraceFactory::speculate(const EP *ep, const Node *node,
                                                      const Context &ctx) const {
@@ -68,5 +68,5 @@ std::vector<impl_t> TBTraceFactory::process_node(const EP *ep, const Node *node)
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

@@ -1,7 +1,7 @@
 #include "table_update.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 using tofino::Table;
 
@@ -134,5 +134,5 @@ std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

@@ -52,7 +52,7 @@
 #include "controller_context.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 struct ControllerTarget : public Target {
   ControllerTarget()
@@ -111,5 +111,5 @@ struct ControllerTarget : public Target {
             std::make_unique<ControllerContext>()) {}
 };
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

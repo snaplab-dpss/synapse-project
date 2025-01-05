@@ -7,7 +7,7 @@
 #include "../tofino/tofino_context.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 class ControllerModule : public Module {
 public:
@@ -32,5 +32,5 @@ protected:
   tofino::TNA &get_mutable_tna(EP *ep) const;
 };
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

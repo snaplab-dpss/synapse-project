@@ -3,7 +3,7 @@
 #include <unordered_set>
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 namespace {
 // We can ignore dchain_rejuvenate_index if the dchain is only used for
 // linking a map with vectors. It doesn't even matter if the data structures
@@ -122,5 +122,5 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) 
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

@@ -3,7 +3,7 @@
 #include "../../execution_plan/context.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 class ControllerContext : public TargetContext {
 public:
@@ -12,7 +12,7 @@ public:
   virtual TargetContext *clone() const override { return new ControllerContext(*this); }
 };
 
-} // namespace controller
+} // namespace ctrl
 
 EXPLICIT_TARGET_CONTEXT_INSTANTIATION(controller, ControllerContext)
 } // namespace synapse

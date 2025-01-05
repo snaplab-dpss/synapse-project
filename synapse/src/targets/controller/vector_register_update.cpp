@@ -1,7 +1,7 @@
 #include "vector_register_update.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t>
 VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
@@ -74,5 +74,5 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

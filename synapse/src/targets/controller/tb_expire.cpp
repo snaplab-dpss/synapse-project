@@ -1,7 +1,7 @@
 #include "tb_expire.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t> TBExpireFactory::speculate(const EP *ep, const Node *node,
                                                       const Context &ctx) const {
@@ -63,5 +63,5 @@ std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const Node *node
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

@@ -3,7 +3,7 @@
 #include "controller_module.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 class CMSUpdate : public ControllerModule {
 private:
@@ -41,5 +41,5 @@ protected:
   virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
 };
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

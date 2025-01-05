@@ -3,7 +3,7 @@
 #include "../tofino/hh_table_read.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 using tofino::Table;
 
@@ -35,8 +35,8 @@ klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
           dynamic_cast<const tofino::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
     } else if (node->get_module()->get_type() == ModuleType::Controller_HHTableRead) {
-      const controller::HHTableRead *hh_table_read =
-          dynamic_cast<const controller::HHTableRead *>(node->get_module());
+      const ctrl::HHTableRead *hh_table_read =
+          dynamic_cast<const ctrl::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
     }
     node = node->get_prev();
@@ -112,5 +112,5 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

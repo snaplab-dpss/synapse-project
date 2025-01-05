@@ -1,7 +1,7 @@
 #include "drop.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const Node *node,
                                                   const Context &ctx) const {
@@ -52,5 +52,5 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node) co
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

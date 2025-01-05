@@ -1,7 +1,7 @@
 #include "tb_update_and_check.h"
 
 namespace synapse {
-namespace controller {
+namespace ctrl {
 
 std::optional<spec_impl_t> TBUpdateAndCheckFactory::speculate(const EP *ep,
                                                               const Node *node,
@@ -68,5 +68,5 @@ std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep,
   return impls;
 }
 
-} // namespace controller
+} // namespace ctrl
 } // namespace synapse

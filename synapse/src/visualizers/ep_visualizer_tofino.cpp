@@ -354,6 +354,11 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
+                               const tofino::HHTableConditionalUpdate *node) {
+  SYNAPSE_PANIC("TODO");
+}
+
 SHOW_MODULE_NAME(tofino::IntegerAllocatorRejuvenate)
 SHOW_MODULE_NAME(tofino::IntegerAllocatorAllocate)
 SHOW_MODULE_NAME(tofino::IntegerAllocatorIsAllocated)

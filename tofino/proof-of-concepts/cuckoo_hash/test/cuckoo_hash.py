@@ -3,6 +3,7 @@
 import zlib
 import random
 import struct
+import time
 
 import bfrt_grpc.client as gc
 from ptf.testutils import test_param_get, send_packet, dp_poll
@@ -382,7 +383,7 @@ class SingleInsertion(BfRuntimeTest):
 			
 			print("[SingleInsertion]")
 			print(f"Key:      0x{key:x}")
-			print(f"Expected: tid={expected.tid} hash={hex(expected.hash)}")
+			print(f"Expected: tid={expected.tid} hash=0x{expected.hash:x}")
 			print(f"Read:     0x{value:x}")
 			print(f"Result:   {result}")
 			print()
@@ -620,7 +621,7 @@ class ReadAfterWrite(BfRuntimeTest):
 			assert key == self.cuckoo_hash.read(result.tid, result.hash)
 			assert self.emulator.lookup(key)
 
-			print(f"Inserted t{result.tid}[{hex(result.hash)}] = 0x{key:x}")
+			print(f"Inserted t{result.tid}[0x{result.hash:x}] = 0x{key:x}")
 			
 			# Make the entry never expire
 			self.cuckoo_hash.expirator_write(result.tid, result.hash, 0xffffffff)
@@ -632,7 +633,7 @@ class ReadAfterWrite(BfRuntimeTest):
 
 			print("[ReadAfterWrite]")
 			print(f"Key:    0x{key:x}")
-			print(f"Tid:    0x{tid}")
+			print(f"Tid:    {tid}")
 			print(f"Hash:   0x{hash:x}")
 			print(f"Result: {result}")
 			print()
@@ -725,12 +726,12 @@ class CatchingLoops(BfRuntimeTest):
 			assert key == self.cuckoo_hash.read(result.tid, result.hash)
 			assert self.emulator.lookup(key)
 
-			print(f"Usage:    {usage} (current={self.emulator.usage()})")
-			print(f"Inserted: t{result.tid}[{hex(result.hash)}] = 0x{key:x}")
-			print()
-			
 			# Make the entry never expire
 			self.cuckoo_hash.expirator_write(result.tid, result.hash, 0xffffffff)
+
+			print(f"Usage:    {usage} (current={self.emulator.usage()})")
+			print(f"Inserted: t{result.tid}[0x{result.hash:x}] = 0x{key:x}")
+			print()
 	
 	def runTest(self):
 		target_loops = 100
@@ -794,3 +795,49 @@ class Random(BfRuntimeTest):
 			assert result.collision == expected.collision
 			assert result.recirc == expected.recirc
 			assert result.loop == expected.loop
+
+class ExpiredEntries(BfRuntimeTest):
+	def setUp(self):
+		client_id = 0
+		BfRuntimeTest.setUp(self, client_id, PROGRAM)
+
+		self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+		self.target = gc.Target(device_id=0)
+
+		self.cuckoo_hash = CuckooHash(self.bfrt_info, self.target)
+
+		n = 0
+		self.keys = []
+		self.used_keys = []
+		while n < CUCKOO_HASH_CAPACITY:
+			key = custom_random(1, KEY_SIZE_BITS, self.keys)
+			self.keys.append(key)
+
+			result = send_and_get_result_back(self, OP_WRITE, key)
+
+			if not result.success:
+				continue
+
+			self.used_keys.append(key)
+			n += 1
+
+			print(f"Inserted:   t{result.tid}[0x{result.hash:x}] = 0x{key:x}")
+			print(f"Insertions: {n}/{CUCKOO_HASH_CAPACITY}")
+			print(f"Result:     {result}")
+			print()
+
+			assert key == self.cuckoo_hash.read(result.tid, result.hash)
+
+	def runTest(self):
+		print("Sleeping for 1 second...")
+		time.sleep(1)
+
+		for key in self.used_keys:
+			result = send_and_get_result_back(self, OP_READ, key)
+
+			print("[ExpiredEntries]")
+			print(f"Key:       0x{key:x}")
+			print(f"Result:    {result}")
+			print()
+
+			assert not result.success
