@@ -44,12 +44,12 @@ public:
 
   static void visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts = {});
 
-  void visit(const BDD *bdd) override;
-  void visitRoot(const Node *root) override;
+  void visit(const BDD *bdd) override final;
+  void visitRoot(const Node *root) override final;
 
-  BDDVisitor::Action visit(const Branch *node) override;
-  BDDVisitor::Action visit(const Call *node) override;
-  BDDVisitor::Action visit(const Route *node) override;
+  BDDVisitor::Action visit(const Branch *node) override final;
+  BDDVisitor::Action visit(const Call *node) override final;
+  BDDVisitor::Action visit(const Route *node) override final;
 
 private:
   std::string get_gv_name(const Node *node) const {

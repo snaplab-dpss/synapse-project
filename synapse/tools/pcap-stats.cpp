@@ -58,12 +58,12 @@ public:
     total += count;
   }
 
-  std::map<u64, float> get_cdf() const {
-    std::map<u64, float> cdf;
+  std::map<u64, double> get_cdf() const {
+    std::map<u64, double> cdf;
     u64 accounted = 0;
 
-    float next_p = 0;
-    float step = 0.05;
+    double next_p = 0;
+    double step = 0.05;
 
     for (const auto &[value, count] : values) {
       accounted += count;
@@ -73,7 +73,7 @@ public:
         break;
       }
 
-      float p = (float)accounted / total;
+      double p = static_cast<double>(accounted) / total;
 
       if (p >= next_p) {
         cdf[value] = p;
@@ -206,7 +206,7 @@ void print_report(const report_t &report) {
          report.pkt_sizes_cdf.get_stdev());
   printf("Pkt sizes CDF:\n");
   for (const auto &[size, prob] : report.pkt_sizes_cdf.get_cdf()) {
-    printf("             %11lu: %.2f\n", size, prob);
+    printf("             %11lu: %.2lf\n", size, prob);
   }
   printf("Total flows:              %s\n", fmt(report.total_flows).c_str());
   printf("Total symmetric flows:    %s\n", fmt(report.total_symm_flows).c_str());
@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
     for (const auto &dt : ts.dts) {
       dt_sum += dt / THOUSAND;
     }
-    report.flow_dts_us_cdf.add(dt_sum / (float)ts.dts.size());
+    report.flow_dts_us_cdf.add(dt_sum / (double)ts.dts.size());
   }
 
   print_report(report);

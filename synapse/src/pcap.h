@@ -171,7 +171,8 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
     ss << minutes.count() << " min ";
   }
 
-  ss << seconds.count() + ((float)microseconds.count() / MILLION) << " sec ";
+  ss << seconds.count() + (static_cast<double>(microseconds.count()) / MILLION)
+     << " sec ";
 
   return ss.str();
 }

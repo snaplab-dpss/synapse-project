@@ -17,10 +17,10 @@ struct search_meta_t {
   u64 steps;
   u64 backtracks;
   std::unordered_map<node_id_t, int> visits_per_node;
-  std::unordered_map<node_id_t, float> avg_children_per_node;
+  std::unordered_map<node_id_t, double> avg_children_per_node;
   u64 avg_bdd_size;
-  float branching_factor;
-  float total_ss_size_estimation;
+  double branching_factor;
+  double total_ss_size_estimation;
   int unfinished_eps;
   int finished_eps;
 

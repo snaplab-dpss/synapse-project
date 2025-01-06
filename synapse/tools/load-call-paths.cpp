@@ -5,12 +5,19 @@
 #include "../src/call_paths/call_paths.h"
 #include "../src/exprs/exprs.h"
 
-using namespace synapse;
+using synapse::arg_t;
+using synapse::ArrayManager;
+using synapse::call_path_t;
+using synapse::call_paths_t;
+using synapse::call_t;
+using synapse::expr_to_string;
+using synapse::extra_var_t;
+using synapse::meta_t;
 
 int main(int argc, char **argv, char **envp) {
   CLI::App app{"Load call paths"};
 
-  std::vector<std::string> input_call_path_files;
+  std::vector<std::filesystem::path> input_call_path_files;
   app.add_option("call-paths", input_call_path_files, "Call paths")->required();
 
   CLI11_PARSE(app, argc, argv);
@@ -19,7 +26,8 @@ int main(int argc, char **argv, char **envp) {
     std::cout << "Loading: " << file << "\n";
   }
 
-  call_paths_t call_paths(input_call_path_files);
+  ArrayManager manager;
+  call_paths_t call_paths(input_call_path_files, &manager);
 
   for (size_t i = 0; i < call_paths.cps.size(); i++) {
     std::cout << "Call Path " << i << "\n";

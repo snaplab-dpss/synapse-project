@@ -2,11 +2,14 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <filesystem>
+#include <vector>
 
 #include <klee/Constraints.h>
-#include <klee/ExprBuilder.h>
 
 #include "../types.h"
+#include "../exprs/symbol.h"
+#include "../exprs/array_manager.h"
 
 namespace synapse {
 struct meta_t {
@@ -34,40 +37,23 @@ struct call_t {
 
 typedef std::vector<call_t> calls_t;
 
-struct symbol_t {
-  std::string base;
-  const klee::Array *array;
-  klee::ref<klee::Expr> expr;
-};
-
-struct symbol_hash_t {
-  std::size_t operator()(const symbol_t &s) const noexcept;
-};
-
-struct symbol_equal_t {
-  bool operator()(const symbol_t &a, const symbol_t &b) const noexcept;
-};
-
-typedef std::unordered_set<symbol_t, symbol_hash_t, symbol_equal_t> symbols_t;
-
-bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol);
-
 struct call_path_t {
   std::string file_name;
   klee::ConstraintManager constraints;
-  symbols_t symbols;
+  symbols_t symbols; // TODO: remove, arrays are stored in ArrayManager
   calls_t calls;
 };
 
-std::unique_ptr<call_path_t> load_call_path(const std::string &file_name);
+std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
+                                            ArrayManager *manager);
 
 typedef std::vector<call_path_t *> call_paths_view_t;
 
 struct call_paths_t {
   std::vector<std::unique_ptr<call_path_t>> cps;
 
-  call_paths_t();
-  call_paths_t(const std::vector<std::string> &call_path_files);
+  call_paths_t(const std::vector<std::filesystem::path> &call_path_files,
+               ArrayManager *manager);
 
   call_paths_view_t get_view() const;
 };

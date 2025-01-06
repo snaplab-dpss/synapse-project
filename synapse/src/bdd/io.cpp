@@ -2,6 +2,8 @@
 #include <iostream>
 
 #include <expr/Parser.h>
+#include <klee/ExprBuilder.h>
+
 #include <llvm/Support/MemoryBuffer.h>
 
 #include "io.h"
@@ -974,7 +976,7 @@ void BDD::deserialize(const std::string &file_path) {
     SYNAPSE_PANIC("Unable to open BDD file \"%s\".", file_path.c_str());
   }
 
-  enum {
+  enum class state_t {
     STATE_START,
     STATE_KQUERY,
     STATE_SYMBOLS,
@@ -982,21 +984,21 @@ void BDD::deserialize(const std::string &file_path) {
     STATE_NODES,
     STATE_EDGES,
     STATE_ROOT,
-  } state = STATE_START;
+  } state = state_t::STATE_START;
 
   auto get_next_state = [&](std::string line) {
     if (line == KQUERY_DELIMITER)
-      return STATE_KQUERY;
+      return state_t::STATE_KQUERY;
     if (line == SYMBOLS_DELIMITER)
-      return STATE_SYMBOLS;
+      return state_t::STATE_SYMBOLS;
     if (line == INIT_DELIMITER)
-      return STATE_INIT;
+      return state_t::STATE_INIT;
     if (line == NODES_DELIMITER)
-      return STATE_NODES;
+      return state_t::STATE_NODES;
     if (line == EDGES_DELIMITER)
-      return STATE_EDGES;
+      return state_t::STATE_EDGES;
     if (line == ROOT_DELIMITER)
-      return STATE_ROOT;
+      return state_t::STATE_ROOT;
     return state;
   };
 
@@ -1018,19 +1020,19 @@ void BDD::deserialize(const std::string &file_path) {
       continue;
 
     switch (state) {
-    case STATE_START: {
+    case state_t::STATE_START: {
       if (line == MAGIC_SIGNATURE)
         magic_check = true;
     } break;
 
-    case STATE_KQUERY: {
+    case state_t::STATE_KQUERY: {
       kQuery += line + "\n";
 
       if (get_next_state(line) != state)
         parse_kQuery(kQuery, exprs, arrays);
     } break;
 
-    case STATE_SYMBOLS: {
+    case state_t::STATE_SYMBOLS: {
       if (get_next_state(line) != state)
         break;
 
@@ -1045,7 +1047,7 @@ void BDD::deserialize(const std::string &file_path) {
 
     } break;
 
-    case STATE_INIT: {
+    case state_t::STATE_INIT: {
       if (get_next_state(line) != state)
         break;
 
@@ -1053,7 +1055,7 @@ void BDD::deserialize(const std::string &file_path) {
       init.push_back(call);
     } break;
 
-    case STATE_NODES: {
+    case state_t::STATE_NODES: {
       if (get_next_state(line) != state)
         break;
 
@@ -1080,13 +1082,13 @@ void BDD::deserialize(const std::string &file_path) {
       }
     } break;
 
-    case STATE_EDGES: {
+    case state_t::STATE_EDGES: {
       if (get_next_state(line) != state)
         break;
       process_edge(line, nodes);
     } break;
 
-    case STATE_ROOT: {
+    case state_t::STATE_ROOT: {
       if (get_next_state(line) != state)
         break;
 
@@ -1097,7 +1099,7 @@ void BDD::deserialize(const std::string &file_path) {
     } break;
     }
 
-    if (state == STATE_START && get_next_state(line) != state && !magic_check) {
+    if (state == state_t::STATE_START && get_next_state(line) != state && !magic_check) {
       SYNAPSE_PANIC("\"%s\" is not a BDD file (missing magic signature)",
                     file_path.c_str());
     }

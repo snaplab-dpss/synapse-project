@@ -4,7 +4,13 @@
 
 #include "../src/bdd/bdd.h"
 
-using namespace synapse;
+using synapse::ArrayManager;
+using synapse::BDD;
+using synapse::Branch;
+using synapse::call_paths_t;
+using synapse::Node;
+using synapse::NodeType;
+using synapse::PrinterDebug;
 
 void assert_bdd(const BDD &bdd) {
   std::cout << "Asserting BDD...\n";
@@ -59,7 +65,7 @@ void assert_bdd(const BDD &bdd) {
 int main(int argc, char **argv) {
   CLI::App app{"Call paths to BDD"};
 
-  std::vector<std::string> input_call_path_files;
+  std::vector<std::filesystem::path> input_call_path_files;
   std::filesystem::path input_bdd_file;
   std::filesystem::path output_bdd_file;
 
@@ -74,7 +80,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  call_paths_t call_paths(input_call_path_files);
+  ArrayManager manager;
+  call_paths_t call_paths(input_call_path_files, &manager);
 
   BDD bdd = input_bdd_file.empty() ? BDD(call_paths.get_view()) : BDD(input_bdd_file);
   assert_bdd(bdd);

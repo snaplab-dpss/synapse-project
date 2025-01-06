@@ -68,7 +68,7 @@ struct EPMeta {
     return *this;
   }
 
-  float get_bdd_progress() const;
+  double get_bdd_progress() const;
   void process_node(const Node *node, TargetType target);
   void update_total_bdd_nodes(const BDD *bdd);
   void update(const EPLeaf &leaf, const EPNode *new_node, bool process_node);

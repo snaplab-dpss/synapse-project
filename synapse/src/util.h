@@ -34,8 +34,6 @@ std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
 
 std::vector<mod_t> ignore_checksum_modifications(const std::vector<mod_t> &modifications);
 
-symbol_t create_symbol(const std::string &label, bits_t size);
-
 bool query_contains_map_has_key(const Branch *node);
 
 const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk);

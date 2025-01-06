@@ -2313,20 +2313,6 @@ get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
   return filtered_nodes;
 }
 
-symbol_t create_symbol(const std::string &label, bits_t size) {
-  const klee::Array *array;
-
-  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(label, size, array);
-
-  symbol_t new_symbol = {
-      .base = label,
-      .array = array,
-      .expr = expr,
-  };
-
-  return new_symbol;
-}
-
 std::string int2hr(u64 value) {
   std::stringstream ss;
   std::string str = std::to_string(value);

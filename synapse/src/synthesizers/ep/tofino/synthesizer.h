@@ -51,26 +51,46 @@ public:
   void visit(const EP *ep) override;
   void visit(const EP *ep, const EPNode *ep_node) override;
 
-  DECLARE_VISIT(tofino::SendToController)
-  DECLARE_VISIT(tofino::Recirculate)
-  DECLARE_VISIT(tofino::Ignore)
-  DECLARE_VISIT(tofino::If)
-  DECLARE_VISIT(tofino::Then)
-  DECLARE_VISIT(tofino::Else)
-  DECLARE_VISIT(tofino::Forward)
-  DECLARE_VISIT(tofino::Drop)
-  DECLARE_VISIT(tofino::Broadcast)
-  DECLARE_VISIT(tofino::ParserCondition)
-  DECLARE_VISIT(tofino::ParserExtraction)
-  DECLARE_VISIT(tofino::ParserReject)
-  DECLARE_VISIT(tofino::ModifyHeader)
-  DECLARE_VISIT(tofino::TableLookup)
-  DECLARE_VISIT(tofino::VectorRegisterLookup)
-  DECLARE_VISIT(tofino::VectorRegisterUpdate)
-  DECLARE_VISIT(tofino::FCFSCachedTableRead)
-  DECLARE_VISIT(tofino::FCFSCachedTableReadOrWrite)
-  DECLARE_VISIT(tofino::FCFSCachedTableWrite)
-  DECLARE_VISIT(tofino::FCFSCachedTableDelete)
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::SendToController *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Recirculate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Ignore *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::If *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Then *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Else *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Forward *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Drop *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::Broadcast *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::ParserCondition *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::ParserExtraction *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::ParserReject *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::TableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::VectorRegisterLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::VectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::FCFSCachedTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::FCFSCachedTableReadOrWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::FCFSCachedTableWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node,
+               const tofino::FCFSCachedTableDelete *node) override final;
 
 private:
   code_t slice_var(const var_t &var, unsigned offset, bits_t size) const;

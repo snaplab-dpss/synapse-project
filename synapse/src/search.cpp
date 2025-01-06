@@ -1,6 +1,6 @@
 #include <chrono>
 #include <iomanip>
-
+#include <cmath>
 #include "search.h"
 #include "log.h"
 #include "targets/targets.h"
@@ -214,7 +214,7 @@ search_report_t SearchEngine::search() {
     const Node *node = ep->get_next_node();
     search_step_report_t report(ep.get(), node);
 
-    float &avg_node_children = meta.avg_children_per_node[node->get_id()];
+    double &avg_node_children = meta.avg_children_per_node[node->get_id()];
     int &node_visits = meta.visits_per_node[node->get_id()];
 
     std::vector<impl_t> new_implementations;
@@ -244,12 +244,12 @@ search_report_t SearchEngine::search() {
 
       meta.branching_factor = 0;
       for (const auto &kv : meta.avg_children_per_node)
-        meta.branching_factor += std::max(1.0f, kv.second);
+        meta.branching_factor += std::max(1.0, kv.second);
       meta.branching_factor /= meta.avg_children_per_node.size();
 
       meta.total_ss_size_estimation = 0;
       for (const auto &[id, depth] : node_depth) {
-        meta.total_ss_size_estimation += pow(meta.branching_factor, depth + 1);
+        meta.total_ss_size_estimation += std::pow(meta.branching_factor, depth + 1);
       }
     }
 

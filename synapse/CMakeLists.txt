@@ -38,12 +38,20 @@ add_compile_options(
     -Wfatal-errors
     -Wno-unused-variable
     -Wno-unused-parameter
-    -fno-omit-frame-pointer
     -Wnon-virtual-dtor
     -pedantic
     -Wcast-align
     -Wmisleading-indentation
+    -Wduplicated-cond
+    -Wduplicated-branches
+    -Wlogical-op
+    -Wdouble-promotion
+
+    -fno-omit-frame-pointer
+    -fsanitize=address
 )
+
+add_link_options(-fsanitize=address)
 
 ###############################################################################
 # Setting output targets
@@ -83,7 +91,6 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_klee.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_curses.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_unwind.cmake)
-
 
 ###############################################################################
 # Build the synapse library

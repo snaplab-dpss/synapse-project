@@ -250,9 +250,10 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
         expr, solver_toolbox.exprBuilder->Constant(0, expr->getWidth()));
     break;
   default:
-    SYNAPSE_ASSERT(false, "TODO");
+    SYNAPSE_PANIC("TODO");
   }
 
   return constraint;
 }
+
 } // namespace synapse

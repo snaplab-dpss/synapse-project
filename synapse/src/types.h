@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <klee/Constraints.h>
+#include <klee/Expr.h>
 
 namespace synapse {
 typedef uint64_t u64;

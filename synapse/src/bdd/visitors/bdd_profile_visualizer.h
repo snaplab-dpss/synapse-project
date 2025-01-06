@@ -89,14 +89,14 @@ private:
     return colors_per_node;
   }
 
-  static std::string hit_rate_to_color(float node_hit_rate) {
+  static std::string hit_rate_to_color(hit_rate_t node_hit_rate) {
     // std::string color = hit_rate_to_rainbow(node_hit_rate);
     // std::string color = hit_rate_to_blue(node_hit_rate);
     std::string color = hit_rate_to_blue_red_scale(node_hit_rate);
     return color;
   }
 
-  static std::string hit_rate_to_rainbow(float node_hit_rate) {
+  static std::string hit_rate_to_rainbow(hit_rate_t node_hit_rate) {
     rgb_t blue(0, 0, 1);
     rgb_t cyan(0, 1, 1);
     rgb_t green(0, 1, 0);
@@ -105,10 +105,10 @@ private:
 
     std::vector<rgb_t> palette{blue, cyan, green, yellow, red};
 
-    float value = node_hit_rate * (palette.size() - 1);
+    double value = node_hit_rate * (palette.size() - 1);
     int idx1 = (int)std::floor(value);
     int idx2 = (int)idx1 + 1;
-    float frac = value - idx1;
+    double frac = value - idx1;
 
     u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
     u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
@@ -118,7 +118,7 @@ private:
     return color.to_gv_repr();
   }
 
-  static std::string hit_rate_to_blue(float node_hit_rate) {
+  static std::string hit_rate_to_blue(hit_rate_t node_hit_rate) {
     u8 r = 0xff * (1 - node_hit_rate);
     u8 g = 0xff * (1 - node_hit_rate);
     u8 b = 0xff;
@@ -128,7 +128,7 @@ private:
     return color.to_gv_repr();
   }
 
-  static std::string hit_rate_to_blue_red_scale(float node_hit_rate) {
+  static std::string hit_rate_to_blue_red_scale(hit_rate_t node_hit_rate) {
     u8 r = 0xff * node_hit_rate;
     u8 g = 0;
     u8 b = 0xff * (1 - node_hit_rate);

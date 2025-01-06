@@ -1,5 +1,4 @@
 #include <dlfcn.h>
-#include <expr/Parser.h>
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
@@ -9,6 +8,7 @@
 #include <klee/perf-contracts.h>
 #include <klee/Constraints.h>
 #include <klee/Solver.h>
+#include <expr/Parser.h>
 
 #include <llvm/Support/MemoryBuffer.h>
 
@@ -17,89 +17,34 @@
 #include "../exprs/retriever.h"
 #include "../exprs/replacer.h"
 #include "../exprs/solver.h"
+#include "../exprs/kQuery.h"
 
 namespace synapse {
-namespace {
-std::string base_from_name(const std::string &name) {
-  SYNAPSE_ASSERT(name.size(), "Empty name");
 
-  if (!std::isdigit(name.back())) {
-    return name;
-  }
+std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
+                                            ArrayManager *manager) {
+  kQueryParser parser(manager);
 
-  size_t delim = name.rfind("_");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid name");
-
-  std::string base = name.substr(0, delim);
-  return base;
-}
-
-symbol_t build_symbol(const klee::Array *array) {
-  std::string base = base_from_name(array->name);
-  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(array);
-  return symbol_t({base, array, expr});
-}
-} // namespace
-
-std::size_t symbol_hash_t::operator()(const symbol_t &s) const noexcept {
-  return s.array->hash();
-}
-
-bool symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept {
-  return solver_toolbox.are_exprs_always_equal(a.expr, b.expr);
-}
-
-klee::ref<klee::Expr> parse_expr(const std::set<std::string> &declared_arrays,
-                                 const std::string &expr_str) {
-  std::stringstream kQuery_builder;
-
-  for (auto arr : declared_arrays) {
-    kQuery_builder << arr;
-    kQuery_builder << "\n";
-  }
-
-  kQuery_builder << "(query [] false [";
-  kQuery_builder << "(" << expr_str << ")";
-  kQuery_builder << "])";
-
-  auto kQuery = kQuery_builder.str();
-
-  auto MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
-  auto Builder = klee::createDefaultExprBuilder();
-  auto P = klee::expr::Parser::Create("", MB, Builder, true);
-
-  while (auto D = P->ParseTopLevelDecl()) {
-    SYNAPSE_ASSERT(!P->GetNumErrors(), "Error parsing kquery in call path file.");
-
-    if (auto QC = dyn_cast<klee::expr::QueryCommand>(D)) {
-      SYNAPSE_ASSERT(QC->Values.size() == 1, "Error parsing expr");
-      return QC->Values[0];
-    }
-  }
-
-  SYNAPSE_ASSERT(false, "Error parsing expr");
-}
-
-std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
-  std::ifstream call_path_file(file_name);
+  std::ifstream call_path_file(fpath.string());
   SYNAPSE_ASSERT(call_path_file.is_open(), "Unable to open call path file.");
 
   std::unique_ptr<call_path_t> call_path = std::make_unique<call_path_t>();
-  call_path->file_name = file_name;
+  call_path->file_name = fpath.filename();
 
-  enum {
+  enum class state_t {
     STATE_INIT,
     STATE_KQUERY,
     STATE_CALLS,
     STATE_CALLS_MULTILINE,
     STATE_DONE
-  } state = STATE_INIT;
+  } state = state_t::STATE_INIT;
 
-  std::string kQuery;
-  std::vector<klee::ref<klee::Expr>> exprs;
+  std::vector<klee::ref<klee::Expr>> values;
   std::set<std::string> declared_arrays;
 
   int parenthesis_level = 0;
+
+  std::string query_str;
 
   std::string current_extra_var;
   std::string current_arg;
@@ -113,51 +58,46 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
     std::getline(call_path_file, line);
 
     switch (state) {
-    case STATE_INIT: {
+    case state_t::STATE_INIT: {
       if (line == ";;-- kQuery --") {
-        state = STATE_KQUERY;
+        state = state_t::STATE_KQUERY;
       }
     } break;
 
-    case STATE_KQUERY: {
+    case state_t::STATE_KQUERY: {
       if (line == ";;-- Calls --") {
-        if (kQuery.substr(kQuery.length() - 2) == "])") {
-          kQuery = kQuery.substr(0, kQuery.length() - 2) + "\n";
-          kQuery += "])";
-        } else if (kQuery.substr(kQuery.length() - 6) == "false)") {
-          kQuery = kQuery.substr(0, kQuery.length() - 1) + " [\n";
-          kQuery += "])";
+        if (query_str.substr(query_str.length() - 2) == "])") {
+          query_str = query_str.substr(0, query_str.length() - 2) + "\n";
+          query_str += "])";
+        } else if (query_str.substr(query_str.length() - 6) == "false)") {
+          query_str = query_str.substr(0, query_str.length() - 1) + " [\n";
+          query_str += "])";
         }
 
-        llvm::MemoryBuffer *MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
-        klee::ExprBuilder *Builder = klee::createDefaultExprBuilder();
-        klee::expr::Parser *P = klee::expr::Parser::Create("", MB, Builder, false);
-        while (klee::expr::Decl *D = P->ParseTopLevelDecl()) {
-          SYNAPSE_ASSERT(!P->GetNumErrors(), "Error parsing kquery in call path file.");
-          if (klee::expr::ArrayDecl *AD = dyn_cast<klee::expr::ArrayDecl>(D)) {
-            call_path->symbols.insert(build_symbol(AD->Root));
-          } else if (klee::expr::QueryCommand *QC =
-                         dyn_cast<klee::expr::QueryCommand>(D)) {
-            call_path->constraints = klee::ConstraintManager(QC->Constraints);
-            exprs = QC->Values;
-            break;
-          }
+        kQuery_t kQuery = parser.parse(query_str);
+
+        for (klee::ref<klee::Expr> constraint : kQuery.constraints) {
+          call_path->constraints.addConstraint(constraint);
         }
 
-        state = STATE_CALLS;
+        for (klee::ref<klee::Expr> value : kQuery.values) {
+          values.push_back(value);
+        }
+
+        state = state_t::STATE_CALLS;
       } else {
-        kQuery += "\n" + line;
+        query_str += "\n" + line;
 
         if (line.substr(0, sizeof("array ") - 1) == "array ") {
           declared_arrays.insert(line);
         }
       }
-      break;
+    } break;
 
-    case STATE_CALLS:
+    case state_t::STATE_CALLS: {
       if (line == ";;-- Constraints --") {
-        SYNAPSE_ASSERT(exprs.empty(), "Too many expressions in kQuery.");
-        state = STATE_DONE;
+        SYNAPSE_ASSERT(values.empty(), "Too many expressions in kQuery.");
+        state = state_t::STATE_DONE;
       } else {
         size_t delim = line.find(":");
         SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
@@ -221,22 +161,22 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
         }
 
         if (parenthesis_level > 0) {
-          state = STATE_CALLS_MULTILINE;
+          state = state_t::STATE_CALLS_MULTILINE;
         } else {
           if (!current_extra_var.empty()) {
             SYNAPSE_ASSERT(current_exprs_str.size() == 2,
                            "Too many expression in extra variable.");
             if (current_exprs_str[0] != "(...)") {
-              SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-              call_path->calls.back().extra_vars[current_extra_var].first = exprs[0];
-              exprs.erase(exprs.begin());
+              SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+              call_path->calls.back().extra_vars[current_extra_var].first = values[0];
+              values.erase(values.begin());
               current_exprs_str.erase(current_exprs_str.begin(),
                                       current_exprs_str.begin() + 2);
             }
             if (current_exprs_str[1] != "(...)") {
-              SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-              call_path->calls.back().extra_vars[current_extra_var].second = exprs[0];
-              exprs.erase(exprs.begin());
+              SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+              call_path->calls.back().extra_vars[current_extra_var].second = values[0];
+              values.erase(values.begin());
               current_exprs_str.erase(current_exprs_str.begin(),
                                       current_exprs_str.begin() + 2);
             }
@@ -261,12 +201,12 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
 
               delim = current_arg.find("&");
               if (delim == std::string::npos) {
-                SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-                call_path->calls.back().args[current_arg_name].expr = exprs[0];
-                exprs.erase(exprs.begin(), exprs.begin() + 1);
+                SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                call_path->calls.back().args[current_arg_name].expr = values[0];
+                values.erase(values.begin(), values.begin() + 1);
               } else {
-                call_path->calls.back().args[current_arg_name].expr = exprs[0];
-                exprs.erase(exprs.begin(), exprs.begin() + 1);
+                call_path->calls.back().args[current_arg_name].expr = values[0];
+                values.erase(values.begin(), values.begin() + 1);
 
                 if (current_arg.substr(delim + 1) == "[...]") {
                   continue;
@@ -290,15 +230,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
                 SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
 
                 if (current_arg.substr(0, delim).size()) {
-                  SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-                  call_path->calls.back().args[current_arg_name].in = exprs[0];
-                  exprs.erase(exprs.begin(), exprs.begin() + 1);
+                  SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                  call_path->calls.back().args[current_arg_name].in = values[0];
+                  values.erase(values.begin(), values.begin() + 1);
                 }
 
                 if (current_arg.substr(delim + 2).size()) {
-                  SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-                  call_path->calls.back().args[current_arg_name].out = exprs[0];
-                  exprs.erase(exprs.begin(), exprs.begin() + 1);
+                  SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                  call_path->calls.back().args[current_arg_name].out = values[0];
+                  values.erase(values.begin(), values.begin() + 1);
                 }
 
                 if (current_arg_meta.size()) {
@@ -338,7 +278,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
                     auto meta_expr_str = part.substr(open_delim + 1);
                     meta_expr_str = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
-                    auto meta_expr = parse_expr(declared_arrays, meta_expr_str);
+                    auto meta_expr = parser.parse_expr(meta_expr_str);
                     auto meta_size = meta_expr->getWidth();
                     auto meta = meta_t{symbol, offset, meta_size};
 
@@ -353,14 +293,14 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
           }
 
           if (current_exprs_str.size()) {
-            call_path->calls.back().ret = exprs[0];
-            exprs.erase(exprs.begin());
+            call_path->calls.back().ret = values[0];
+            values.erase(values.begin());
           }
         }
       }
     } break;
 
-    case STATE_CALLS_MULTILINE: {
+    case state_t::STATE_CALLS_MULTILINE: {
       current_expr_str += " ";
       for (char c : line) {
         current_expr_str += c;
@@ -399,16 +339,16 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
           SYNAPSE_ASSERT(current_exprs_str.size() == 2,
                          "Too many expression in extra variable.");
           if (current_exprs_str[0] != "(...)") {
-            SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-            call_path->calls.back().extra_vars[current_extra_var].first = exprs[0];
-            exprs.erase(exprs.begin());
+            SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+            call_path->calls.back().extra_vars[current_extra_var].first = values[0];
+            values.erase(values.begin());
             current_exprs_str.erase(current_exprs_str.begin(),
                                     current_exprs_str.begin() + 2);
           }
           if (current_exprs_str[1] != "(...)") {
-            SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-            call_path->calls.back().extra_vars[current_extra_var].second = exprs[0];
-            exprs.erase(exprs.begin());
+            SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+            call_path->calls.back().extra_vars[current_extra_var].second = values[0];
+            values.erase(values.begin());
             current_exprs_str.erase(current_exprs_str.begin(),
                                     current_exprs_str.begin() + 2);
           }
@@ -435,12 +375,12 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
 
             delim = current_arg.find("&");
             if (delim == std::string::npos) {
-              SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-              call_path->calls.back().args[current_arg_name].expr = exprs[0];
-              exprs.erase(exprs.begin(), exprs.begin() + 1);
+              SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+              call_path->calls.back().args[current_arg_name].expr = values[0];
+              values.erase(values.begin(), values.begin() + 1);
             } else {
-              call_path->calls.back().args[current_arg_name].expr = exprs[0];
-              exprs.erase(exprs.begin(), exprs.begin() + 1);
+              call_path->calls.back().args[current_arg_name].expr = values[0];
+              values.erase(values.begin(), values.begin() + 1);
 
               if (current_arg.substr(delim + 1) == "[...]") {
                 continue;
@@ -464,15 +404,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
               SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
 
               if (current_arg.substr(0, delim).size()) {
-                SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-                call_path->calls.back().args[current_arg_name].in = exprs[0];
-                exprs.erase(exprs.begin(), exprs.begin() + 1);
+                SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                call_path->calls.back().args[current_arg_name].in = values[0];
+                values.erase(values.begin(), values.begin() + 1);
               }
 
               if (current_arg.substr(delim + 2).size()) {
-                SYNAPSE_ASSERT(exprs.size() >= 1, "Not enough expression in kQuery.");
-                call_path->calls.back().args[current_arg_name].out = exprs[0];
-                exprs.erase(exprs.begin(), exprs.begin() + 1);
+                SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                call_path->calls.back().args[current_arg_name].out = values[0];
+                values.erase(values.begin(), values.begin() + 1);
               }
 
               if (current_arg_meta.size()) {
@@ -512,7 +452,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
                   auto meta_expr_str = part.substr(open_delim + 1);
                   meta_expr_str = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
-                  auto meta_expr = parse_expr(declared_arrays, meta_expr_str);
+                  auto meta_expr = parser.parse_expr(meta_expr_str);
                   auto meta_size = meta_expr->getWidth();
                   auto meta = meta_t{symbol, offset, meta_size};
 
@@ -528,22 +468,22 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
         }
 
         if (current_exprs_str.size()) {
-          call_path->calls.back().ret = exprs[0];
-          exprs.erase(exprs.begin());
+          call_path->calls.back().ret = values[0];
+          values.erase(values.begin());
         }
 
-        state = STATE_CALLS;
+        state = state_t::STATE_CALLS;
       }
 
       continue;
     } break;
 
-    case STATE_DONE: {
+    case state_t::STATE_DONE: {
       continue;
     } break;
 
     default: {
-      SYNAPSE_ASSERT(false, "Invalid call path file.");
+      SYNAPSE_PANIC("Invalid call path file.");
     } break;
     }
   }
@@ -551,79 +491,27 @@ std::unique_ptr<call_path_t> load_call_path(const std::string &file_name) {
   return call_path;
 }
 
-struct symbols_merger_t {
-  std::unordered_set<std::string> symbols;
-  std::vector<klee::ref<klee::ReadExpr>> reads;
-
-  klee::ConstraintManager save_and_merge(const klee::ConstraintManager &constraints) {
-    klee::ConstraintManager new_constraints;
-
-    for (auto c : constraints) {
-      klee::ref<klee::Expr> new_c = save_and_merge(c);
-      new_constraints.addConstraint(new_c);
-    }
-
-    return new_constraints;
+call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files,
+                           ArrayManager *manager) {
+  for (const std::filesystem::path &fpath : call_path_files) {
+    cps.push_back(load_call_path(fpath, manager));
   }
 
-  call_t save_and_merge(const call_t &call) {
-    call_t new_call = call;
-
-    for (auto it = call.args.begin(); it != call.args.end(); it++) {
-      const arg_t &arg = call.args.at(it->first);
-      new_call.args[it->first].expr = save_and_merge(arg.expr);
-      new_call.args[it->first].in = save_and_merge(arg.in);
-      new_call.args[it->first].out = save_and_merge(arg.out);
+  for (const auto &call_path : cps) {
+    for (const auto &expr : call_path->constraints) {
+      assert(manager->manages_all_in_expr(expr));
     }
-
-    for (auto it = call.extra_vars.begin(); it != call.extra_vars.end(); it++) {
-      const std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>> &extra_var =
-          call.extra_vars.at(it->first);
-      new_call.extra_vars[it->first].first = save_and_merge(extra_var.first);
-      new_call.extra_vars[it->first].second = save_and_merge(extra_var.second);
-    }
-
-    new_call.ret = save_and_merge(call.ret);
-    return new_call;
-  }
-
-  klee::ref<klee::Expr> save_and_merge(klee::ref<klee::Expr> expr) {
-    if (expr.isNull()) {
-      return expr;
-    }
-
-    std::vector<klee::ref<klee::ReadExpr>> new_reads = get_reads(expr);
-
-    for (klee::ref<klee::ReadExpr> read : new_reads) {
-      const klee::UpdateList &ul = read->updates;
-      const klee::Array *root = ul.root;
-
-      if (symbols.find(root->name) != symbols.end())
-        continue;
-
-      reads.push_back(read);
-    }
-
-    return replace_symbols(expr, reads);
-  }
-};
-
-call_paths_t::call_paths_t() {}
-
-call_paths_t::call_paths_t(const std::vector<std::string> &call_path_files) {
-  for (const std::string &file : call_path_files) {
-    cps.push_back(load_call_path(file));
-  }
-
-  symbols_merger_t merger;
-
-  for (const std::unique_ptr<call_path_t> &call_path : cps) {
-    const klee::ConstraintManager &constraints = call_path->constraints;
-    call_path->constraints = merger.save_and_merge(constraints);
-
-    for (size_t i = 0; i < call_path->calls.size(); i++) {
-      call_t new_call = merger.save_and_merge(call_path->calls[i]);
-      call_path->calls[i] = new_call;
+    for (const auto &call : call_path->calls) {
+      for (const auto &arg : call.args) {
+        assert(manager->manages_all_in_expr(arg.second.expr));
+        assert(manager->manages_all_in_expr(arg.second.in));
+        assert(manager->manages_all_in_expr(arg.second.out));
+      }
+      for (const auto &extra_var : call.extra_vars) {
+        assert(manager->manages_all_in_expr(extra_var.second.first));
+        assert(manager->manages_all_in_expr(extra_var.second.second));
+      }
+      assert(manager->manages_all_in_expr(call.ret));
     }
   }
 }
@@ -634,16 +522,6 @@ call_paths_view_t call_paths_t::get_view() const {
     view.push_back(cp.get());
   }
   return view;
-}
-
-bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol) {
-  for (const symbol_t &s : symbols) {
-    if (s.base == base) {
-      symbol = s;
-      return true;
-    }
-  }
-  return false;
 }
 
 std::ostream &operator<<(std::ostream &os, const arg_t &arg) {
