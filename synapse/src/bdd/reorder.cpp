@@ -5,7 +5,6 @@
 #include "visitors/bdd_visualizer.h"
 #include "reorder.h"
 #include "../util/exprs.h"
-#include "../util/retriever.h"
 #include "../util/solver.h"
 
 namespace synapse {
@@ -110,14 +109,11 @@ bool fn_can_be_reordered(const std::string &fn) {
   return found_it == fn_cannot_reorder_lookup.end();
 }
 
-bool read_in_chunk(klee::ref<klee::ReadExpr> read, klee::ref<klee::Expr> chunk) {
-  klee::ref<klee::Expr> index_expr = read->index;
-  unsigned byte_read = solver_toolbox.value_from_expr(index_expr);
+bool read_in_chunk(const symbolic_read_t &read, klee::ref<klee::Expr> chunk) {
+  const symbolic_reads_t known_chunk_bytes = get_unique_symbolic_reads(chunk);
 
-  std::vector<byte_read_t> known_chunk_bytes = get_bytes_read(chunk);
-
-  auto is_byte_read = [byte_read](const byte_read_t &read) {
-    return read.symbol == "packet_chunks" && read.offset == byte_read;
+  auto is_byte_read = [read](const symbolic_read_t &chunk_read) {
+    return symbolic_read_equal_t{}(read, chunk_read);
   };
 
   auto found_it = std::find_if(known_chunk_bytes.begin(), known_chunk_bytes.end(), is_byte_read);
@@ -125,9 +121,9 @@ bool read_in_chunk(klee::ref<klee::ReadExpr> read, klee::ref<klee::Expr> chunk) 
 }
 
 bool are_all_symbols_known(klee::ref<klee::Expr> expr, const symbols_t &known_symbols) {
-  std::unordered_set<std::string> dependencies = get_symbols(expr);
+  std::unordered_set<std::string> dependencies = symbol_t::get_symbols_names(expr);
 
-  if (dependencies.size() == 0) {
+  if (dependencies.empty()) {
     return true;
   }
 
@@ -150,9 +146,9 @@ bool are_all_symbols_known(klee::ref<klee::Expr> expr, const symbols_t &known_sy
     return true;
   }
 
-  std::vector<klee::ref<klee::ReadExpr>> packet_dependencies = get_packet_reads(expr);
+  symbolic_reads_t packet_dependencies = get_unique_symbolic_reads(expr, "packet_chunks");
 
-  for (klee::ref<klee::ReadExpr> dependency : packet_dependencies) {
+  for (const symbolic_read_t &dependency : packet_dependencies) {
     bool filled = false;
     for (const symbol_t &known : known_symbols) {
       if (known.name == "packet_chunks" && read_in_chunk(dependency, known.expr)) {
@@ -970,18 +966,17 @@ void pull_branch(BDD *bdd, const mutable_vector_t &anchor, Branch *candidate,
   stitch_dangling(bdd, candidate, dangling, leaves);
 }
 
-symbol_t get_collision_free_symbol(const symbols_t &available_symbols,
-                                   const symbol_t &candidate_symbol,
+symbol_t get_collision_free_symbol(const symbol_t &candidate_symbol,
                                    SymbolManager *symbol_manager) {
+  symbols_t used_symbols = symbol_manager->get_symbols();
   std::string name;
-
   int suffix = 1;
   while (true) {
     name = candidate_symbol.base + "_r" + std::to_string(suffix);
-    auto found_it = std::find_if(available_symbols.begin(), available_symbols.end(),
+    auto found_it = std::find_if(used_symbols.begin(), used_symbols.end(),
                                  [name](const symbol_t &s) { return s.name == name; });
 
-    if (found_it == available_symbols.end()) {
+    if (found_it == used_symbols.end()) {
       break;
     }
 
@@ -997,11 +992,10 @@ void translate_symbols(BDD *bdd, const mutable_vector_t &anchor, Node *candidate
 
   Call *candidate_call = dynamic_cast<Call *>(candidate);
   const symbols_t &candidate_symbols = candidate_call->get_local_symbols();
-  symbols_t symbols = bdd->get_generated_symbols(candidate);
 
   for (const symbol_t &candidate_symbol : candidate_symbols) {
     symbol_t new_symbol =
-        get_collision_free_symbol(symbols, candidate_symbol, bdd->get_mutable_symbol_manager());
+        get_collision_free_symbol(candidate_symbol, bdd->get_mutable_symbol_manager());
     candidate->recursive_translate_symbol(bdd->get_mutable_symbol_manager(), candidate_symbol,
                                           new_symbol);
   }
@@ -1265,7 +1259,8 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op) {
 
     Node *after_anchor_clone = after_anchor->clone(manager, true);
 
-    Branch *extra_branch = new Branch(id, anchor_constraints, candidate_info.condition);
+    Branch *extra_branch = new Branch(id, anchor_constraints, bdd->get_mutable_symbol_manager(),
+                                      candidate_info.condition);
     manager.add_node(extra_branch);
     id++;
 

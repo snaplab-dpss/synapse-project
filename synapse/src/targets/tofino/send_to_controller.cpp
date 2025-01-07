@@ -4,9 +4,10 @@ namespace synapse {
 namespace tofino {
 namespace {
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, const Node *&next) {
-  std::vector<const Call *> prev_borrows =
-      get_prev_functions(ep, node, {"packet_borrow_next_chunk"});
-  std::vector<const Call *> prev_returns = get_prev_functions(ep, node, {"packet_return_chunk"});
+  std::vector<const Call *> prev_borrows = node->get_prev_functions(
+      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns = node->get_prev_functions(
+      {"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const Node *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
@@ -19,7 +20,7 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, c
   const BDD *old_bdd = ep->get_bdd();
 
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
-  next = add_non_branch_nodes_to_bdd(new_bdd.get(), node, hdr_parsing_ops);
+  next = new_bdd->clone_and_add_non_branches(node, hdr_parsing_ops);
 
   return new_bdd;
 }

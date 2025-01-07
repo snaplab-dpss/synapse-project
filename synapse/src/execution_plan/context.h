@@ -5,7 +5,7 @@
 
 #include "node.h"
 #include "perf_oracle.h"
-#include "../util.h"
+#include "../util/util.h"
 #include "../log.h"
 #include "../profiler.h"
 #include "../bdd/bdd.h"

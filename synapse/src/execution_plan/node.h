@@ -9,6 +9,7 @@ namespace synapse {
 class Module;
 class EPVisitor;
 class EP;
+enum class ModuleType;
 
 enum class EPNodeVisitAction { Continue, SkipChildren, Stop };
 

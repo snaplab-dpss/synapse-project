@@ -60,7 +60,7 @@ bool should_ignore(const EP *ep, const Node *node) {
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
-  std::unordered_set<std::string> functions_to_always_ignore = {
+  const std::unordered_set<std::string> functions_to_always_ignore{
       "expire_items_single_map",
       "expire_items_single_map_iteratively",
       "cms_periodic_cleanup",
@@ -76,11 +76,11 @@ bool should_ignore(const EP *ep, const Node *node) {
     return can_ignore_dchain_op(ctx, call);
   }
 
-  if (is_vector_borrow_ignored(call_node)) {
+  if (call_node->is_vector_borrow_ignored()) {
     return true;
   }
 
-  if (is_vector_return_without_modifications(ep, call_node)) {
+  if (call_node->is_vector_return_without_modifications()) {
     return true;
   }
 

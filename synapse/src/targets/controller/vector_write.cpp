@@ -55,7 +55,11 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  klee::ref<klee::Expr> original_value = get_original_vector_value(ep, node, vector_addr);
+  const Call *vector_return = call_node->get_vector_borrow_from_return();
+  SYNAPSE_ASSERT(vector_return, "Vector return without borrow");
+
+  klee::ref<klee::Expr> original_value =
+      vector_return->get_call().extra_vars.at("borrowed_cell").second;
   std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
   // Check the Ignore module.

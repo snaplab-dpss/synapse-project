@@ -21,7 +21,7 @@ typedef u32 bits_t;
 typedef u32 bytes_t;
 
 typedef u64 addr_t;
-typedef std::unordered_set<addr_t> objs_t;
+typedef std::unordered_set<addr_t> addrs_t;
 
 typedef i64 time_s_t;
 typedef i64 time_ms_t;

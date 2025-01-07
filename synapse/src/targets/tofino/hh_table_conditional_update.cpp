@@ -71,7 +71,7 @@ klee::ref<klee::Expr> build_min_estimate_check_cond(const EP *ep, const symbol_t
 // }
 
 const Call *get_future_map_put(const Node *node, addr_t map) {
-  for (const Call *map_put : get_future_functions(node, {"map_put"})) {
+  for (const Call *map_put : node->get_future_functions({"map_put"})) {
     const call_t &call = map_put->get_call();
     klee::ref<klee::Expr> map_expr = call.args.at("map").expr;
 
@@ -90,31 +90,30 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
-  Node *node = delete_non_branch_node_from_bdd(bdd.get(), dchain_allocate_new_index->get_id());
+  Node *node = bdd->delete_non_branch(dchain_allocate_new_index->get_id());
 
-  min_estimate_cond_branch = add_branch_to_bdd(bdd.get(), node, min_estimate_cond);
+  min_estimate_cond_branch = bdd->clone_and_add_branch(node, min_estimate_cond);
 
   // FIXME: assuming index allocation is successful on true.
-  Node *on_hh = delete_branch_node_from_bdd(
-      bdd.get(), min_estimate_cond_branch->get_mutable_on_true()->get_id(), true);
-  // Node *on_not_hh = delete_branch_node_from_bdd(
-  //     bdd.get(), min_estimate_cond_branch->get_mutable_on_false()->get_id(), false);
+  Node *on_hh = bdd->delete_branch(min_estimate_cond_branch->get_mutable_on_true()->get_id(), true);
+  // Node *on_not_hh = bdd->delete_branch(
+  //     min_estimate_cond_branch->get_mutable_on_false()->get_id(), false);
 
   // Add the header parsing operations to the HH branch side, which goes to
   // the controller.
-  std::vector<const Call *> prev_borrows =
-      get_prev_functions(ep, on_hh, {"packet_borrow_next_chunk"});
-  std::vector<const Call *> prev_returns = get_prev_functions(ep, on_hh, {"packet_return_chunk"});
+  std::vector<const Call *> prev_borrows = on_hh->get_prev_functions(
+      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns = on_hh->get_prev_functions(
+      {"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const Node *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
 
-  on_hh = add_non_branch_nodes_to_bdd(bdd.get(), on_hh, hdr_parsing_ops);
+  on_hh = bdd->clone_and_add_non_branches(on_hh, hdr_parsing_ops);
 
   // Remove the coalescing nodes from the not HH branch side.
-  std::vector<const Call *> targets =
-      get_coalescing_nodes_from_key(bdd.get(), on_hh, key, map_objs);
+  std::vector<const Call *> targets = get_coalescing_nodes_from_key(on_hh, key, map_objs);
 
   while (on_hh && !targets.empty()) {
     auto found_it = std::find_if(targets.begin(), targets.end(), [&on_hh](const Call *target) {
@@ -122,7 +121,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
     });
 
     if (found_it != targets.end()) {
-      on_hh = delete_non_branch_node_from_bdd(bdd.get(), on_hh->get_id());
+      on_hh = bdd->delete_non_branch(on_hh->get_id());
       targets.erase(found_it);
     } else {
       SYNAPSE_ASSERT(on_hh->get_type() != NodeType::Branch, "Unexpected branch");
@@ -185,14 +184,14 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
 
   // Get all nodes executed on a successful index allocation.
   branch_direction_t index_alloc_check =
-      find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
+      dchain_allocate_new_index->find_branch_checking_index_alloc();
   SYNAPSE_ASSERT(index_alloc_check.direction, "Branch checking index allocation not found");
 
   const Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true()
                                                   : index_alloc_check.branch->get_on_false();
 
   std::vector<const Call *> targets =
-      get_coalescing_nodes_from_key(ep->get_bdd(), on_hh, table_data.key, map_objs);
+      get_coalescing_nodes_from_key(on_hh, table_data.key, map_objs);
 
   // Ignore all coalescing nodes if the index allocation is successful (i.e.
   // it is a heavy hitter), as we are sending everything to the controller.
@@ -229,7 +228,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
   }
 
   branch_direction_t index_alloc_check =
-      find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
+      dchain_allocate_new_index->find_branch_checking_index_alloc();
   if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
     return impls;
   }

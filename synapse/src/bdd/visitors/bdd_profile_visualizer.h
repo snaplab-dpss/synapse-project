@@ -7,7 +7,7 @@
 
 #include "bdd_visualizer.h"
 #include "../profile.h"
-#include "../../util.h"
+#include "../../util/util.h"
 
 namespace synapse {
 class BDDProfileVisualizer : public BDDViz {

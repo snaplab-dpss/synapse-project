@@ -94,7 +94,7 @@ std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const
 
   const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
-  if (!is_parser_condition(branch_node)) {
+  if (!branch_node->is_parser_condition()) {
     return std::nullopt;
   }
 
@@ -111,7 +111,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Nod
 
   const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
-  if (!is_parser_condition(branch_node)) {
+  if (!branch_node->is_parser_condition()) {
     return impls;
   }
 
@@ -125,9 +125,9 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Nod
   SYNAPSE_ASSERT(on_false, "Branch node without on_false");
 
   std::vector<const Call *> on_true_borrows =
-      get_future_functions(on_true, {"packet_borrow_next_chunk"}, true);
+      on_true->get_future_functions({"packet_borrow_next_chunk"}, true);
   std::vector<const Call *> on_false_borrows =
-      get_future_functions(on_false, {"packet_borrow_next_chunk"}, true);
+      on_false->get_future_functions({"packet_borrow_next_chunk"}, true);
 
   // We are working under the assumption that before parsing a header we
   // always perform some kind of checking.
@@ -143,10 +143,13 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Nod
     // headers.
     // Right now we are assuming that either we parse the target header, or we
     // drop the packet.
-    SYNAPSE_ASSERT(is_parser_drop(not_conditional_path), "Not implemented");
+    SYNAPSE_ASSERT(not_conditional_path->is_packet_drop_code_path(), "Not implemented");
 
     // Relevant for IPv4 options, but left for future work.
-    SYNAPSE_ASSERT(!borrow_has_var_len(conditional_borrow), "Not implemented");
+    if (conditional_borrow->get_type() == NodeType::Call) {
+      const Call *cb = dynamic_cast<const Call *>(conditional_borrow);
+      SYNAPSE_ASSERT(!cb->is_hdr_parse_with_var_len(), "Not implemented");
+    }
   }
 
   SYNAPSE_ASSERT(branch_node->get_on_true(), "Branch node without on_true");

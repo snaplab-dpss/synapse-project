@@ -12,7 +12,7 @@ bool should_ignore(const EP *ep, const Node *node) {
   const call_t &call = call_node->get_call();
 
   if (call.function_name == "vector_return") {
-    return is_vector_return_without_modifications(ep, call_node);
+    return call_node->is_vector_return_without_modifications();
   }
 
   return false;

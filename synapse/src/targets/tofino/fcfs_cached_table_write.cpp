@@ -39,18 +39,16 @@ std::vector<const Node *> get_nodes_to_speculatively_ignore(const EP *ep,
                                                             const Call *dchain_allocate_new_index,
                                                             const map_coalescing_objs_t &map_objs,
                                                             klee::ref<klee::Expr> key) {
-  std::vector<const Node *> nodes_to_ignore;
-
-  const BDD *bdd = ep->get_bdd();
   std::vector<const Call *> coalescing_nodes =
-      get_coalescing_nodes_from_key(bdd, dchain_allocate_new_index, key, map_objs);
+      get_coalescing_nodes_from_key(dchain_allocate_new_index, key, map_objs);
 
+  std::vector<const Node *> nodes_to_ignore;
   for (const Call *coalescing_node : coalescing_nodes) {
     nodes_to_ignore.push_back(coalescing_node);
   }
 
   branch_direction_t index_alloc_check =
-      find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
+      dchain_allocate_new_index->find_branch_checking_index_alloc();
 
   if (index_alloc_check.branch) {
     nodes_to_ignore.push_back(index_alloc_check.branch);
@@ -82,8 +80,8 @@ void add_dchain_allocate_new_index_clone_on_cache_write_failed(
       dchain_allocate_new_index->clone(manager, false);
   dchain_allocate_new_index_on_cache_write_failed->recursive_update_ids(id);
 
-  new_on_cache_write_failed = add_non_branch_nodes_to_bdd(
-      bdd, cache_write_branch->get_on_false(), {dchain_allocate_new_index_on_cache_write_failed});
+  new_on_cache_write_failed = bdd->clone_and_add_non_branches(
+      cache_write_branch->get_on_false(), {dchain_allocate_new_index_on_cache_write_failed});
 }
 
 void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd,
@@ -91,8 +89,8 @@ void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd,
                                                      Node *&new_on_cache_write_failed) {
   const Node *on_cache_write_failed = cache_write_branch->get_on_false();
 
-  std::vector<const Call *> prev_borrows =
-      get_prev_functions(ep, on_cache_write_failed, {"packet_borrow_next_chunk"});
+  std::vector<const Call *> prev_borrows = on_cache_write_failed->get_prev_functions(
+      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   if (prev_borrows.empty()) {
     return;
@@ -104,7 +102,7 @@ void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd,
   }
 
   new_on_cache_write_failed =
-      add_non_branch_nodes_to_bdd(bdd, on_cache_write_failed, non_branch_nodes_to_add);
+      bdd->clone_and_add_non_branches(on_cache_write_failed, non_branch_nodes_to_add);
 }
 
 void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, Node *on_success,
@@ -112,16 +110,14 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, Node *on_success
                                         klee::ref<klee::Expr> key,
                                         std::optional<constraints_t> &deleted_branch_constraints) {
   const std::vector<const Call *> targets =
-      get_coalescing_nodes_from_key(bdd, on_success, key, map_objs);
+      get_coalescing_nodes_from_key(on_success, key, map_objs);
 
   for (const Node *target : targets) {
     const Call *call_target = dynamic_cast<const Call *>(target);
     const call_t &call = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space = call_target->get_local_symbol("out_of_space");
-      branch_direction_t index_alloc_check =
-          find_branch_checking_index_alloc(ep, on_success, out_of_space);
+      branch_direction_t index_alloc_check = call_target->find_branch_checking_index_alloc();
 
       if (index_alloc_check.branch) {
         SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
@@ -138,12 +134,11 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, Node *on_success
 
         deleted_branch_constraints->push_back(extra_constraint);
 
-        delete_branch_node_from_bdd(bdd, index_alloc_check.branch->get_id(),
-                                    index_alloc_check.direction);
+        bdd->delete_branch(index_alloc_check.branch->get_id(), index_alloc_check.direction);
       }
     }
 
-    delete_non_branch_node_from_bdd(bdd, target->get_id());
+    bdd->delete_non_branch(target->get_id());
   }
 }
 
@@ -160,8 +155,7 @@ branch_bdd_on_cache_write_success(const EP *ep, const Node *dchain_allocate_new_
   const Node *next = dchain_allocate_new_index->get_next();
   SYNAPSE_ASSERT(next, "No next node");
 
-  Branch *cache_write_branch =
-      add_branch_to_bdd(new_bdd.get(), next, cache_write_success_condition);
+  Branch *cache_write_branch = new_bdd->clone_and_add_branch(next, cache_write_success_condition);
   on_cache_write_success = cache_write_branch->get_mutable_on_true();
 
   add_dchain_allocate_new_index_clone_on_cache_write_failed(

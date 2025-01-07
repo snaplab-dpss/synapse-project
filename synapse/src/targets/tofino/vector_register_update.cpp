@@ -4,7 +4,7 @@ namespace synapse {
 namespace tofino {
 namespace {
 bool is_conditional_write(const Call *node, const Call *&vector_return) {
-  vector_return = get_future_vector_return(node);
+  vector_return = node->get_vector_return_from_borrow();
   return false;
 }
 
@@ -48,7 +48,7 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
   }
 
   bool replace_next = (vector_return == next);
-  Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), vector_return->get_id());
+  Node *replacement = new_bdd->delete_non_branch(vector_return->get_id());
 
   if (replace_next) {
     new_next = replacement;
@@ -71,7 +71,7 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  if (is_vector_read(vector_borrow)) {
+  if (vector_borrow->is_vector_read()) {
     return std::nullopt;
   }
 
@@ -123,7 +123,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  if (is_vector_read(vector_borrow)) {
+  if (vector_borrow->is_vector_read()) {
     return impls;
   }
 

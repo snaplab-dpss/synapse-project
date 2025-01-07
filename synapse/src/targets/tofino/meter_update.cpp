@@ -64,7 +64,7 @@ std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node,
   }
 
   bool replace_next = (tb_update_and_check == next);
-  Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), tb_update_and_check->get_id());
+  Node *replacement = new_bdd->delete_non_branch(tb_update_and_check->get_id());
 
   if (replace_next) {
     new_next = replacement;

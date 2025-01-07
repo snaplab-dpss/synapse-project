@@ -2,7 +2,6 @@
 
 #include "../src/util/solver.h"
 #include "../src/util/exprs.h"
-#include "../src/util/retriever.h"
 #include "../src/util/symbol_manager.h"
 
 using synapse::build_expr_mods;

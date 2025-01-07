@@ -1,6 +1,6 @@
 #include "tna.h"
 
-#include "../../../util/retriever.h"
+#include "../../../util/exprs.h"
 
 namespace synapse {
 namespace tofino {
@@ -45,8 +45,14 @@ TNA::TNA(const TNA &other)
     : properties(other.properties), simple_placer(other.simple_placer), parser(other.parser) {}
 
 bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
-  std::vector<klee::ref<klee::ReadExpr>> chunks = get_packet_reads(expr);
-  return static_cast<int>(chunks.size()) <= properties.max_packet_bytes_in_condition;
+  int total_packet_bytes_read = 0;
+  symbolic_reads_t bytes_read = get_unique_symbolic_reads(expr);
+  for (const symbolic_read_t &byte_read : bytes_read) {
+    if (byte_read.symbol == "packet_chunks") {
+      total_packet_bytes_read += 1;
+    }
+  }
+  return total_packet_bytes_read <= properties.max_packet_bytes_in_condition;
 }
 
 void TNA::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {

@@ -42,7 +42,7 @@ private:
   const TargetsView targets;
   const std::set<ep_id_t> ancestors;
 
-  std::unordered_map<TargetType, nodes_t> targets_roots;
+  std::unordered_map<TargetType, node_ids_t> targets_roots;
 
   Context ctx;
   EPMeta meta;
@@ -74,7 +74,7 @@ public:
   const EPNode *get_root() const;
   const std::vector<EPLeaf> &get_active_leaves() const;
   const TargetsView &get_targets() const;
-  const nodes_t &get_target_roots(TargetType target) const;
+  const node_ids_t &get_target_roots(TargetType target) const;
   const std::set<ep_id_t> &get_ancestors() const;
   const Context &get_ctx() const;
   const EPMeta &get_meta() const;
@@ -82,6 +82,7 @@ public:
   EPNode *get_mutable_root();
   Context &get_mutable_ctx();
   EPNode *get_mutable_node_by_id(ep_node_id_t id);
+  EPLeaf pop_active_leaf();
 
   std::vector<const EPNode *> get_prev_nodes() const;
   std::vector<const EPNode *> get_prev_nodes_of_current_target() const;
@@ -89,11 +90,8 @@ public:
 
   bool has_target(TargetType type) const;
   const Node *get_next_node() const;
-
-  EPLeaf pop_active_leaf();
   EPLeaf get_active_leaf() const;
   bool has_active_leaf() const;
-
   TargetType get_active_target() const;
   EPNode *get_node_by_id(ep_node_id_t id) const;
 
@@ -109,17 +107,15 @@ public:
   void debug_placements() const;
   void debug_hit_rate() const;
   void debug_active_leaves() const;
-
   void assert_integrity() const;
 
 private:
   void sort_leaves();
-
   spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
-                                                const Node *anchor, nodes_t future_nodes,
+                                                const Node *anchor, node_ids_t future_nodes,
                                                 TargetType current_target, pps_t ingress) const;
   spec_impl_t get_best_speculation(const Node *node, TargetType current_target, const Context &ctx,
-                                   const nodes_t &skip, pps_t ingress) const;
+                                   const node_ids_t &skip, pps_t ingress) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
                              const Node *node, TargetType current_target, pps_t ingress) const;
 };

@@ -111,7 +111,7 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
 
   // Get all nodes executed on a successful index allocation.
   branch_direction_t index_alloc_check =
-      find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
+      dchain_allocate_new_index->find_branch_checking_index_alloc();
   SYNAPSE_ASSERT(index_alloc_check.branch, "Branch checking index allocation not found");
 
   spec_impl.skip.insert(index_alloc_check.branch->get_id());
@@ -153,7 +153,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
   }
 
   branch_direction_t index_alloc_check =
-      find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
+      dchain_allocate_new_index->find_branch_checking_index_alloc();
   if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
     return impls;
   }

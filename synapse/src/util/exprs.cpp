@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "exprs.h"
-#include "retriever.h"
 #include "simplifier.h"
 #include "solver.h"
 #include "../log.h"
@@ -27,7 +26,7 @@ public:
   expr_info_t check_symbols(klee::ref<klee::Expr> expr) const {
     expr_info_t info{false, false};
 
-    std::unordered_set<std::string> symbols = get_symbols(expr);
+    std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(expr);
 
     for (auto s : symbols) {
       auto found_it = std::find(allowed_symbols.begin(), allowed_symbols.end(), s);
@@ -82,6 +81,18 @@ public:
     return Action::changeTo(new_expr);
   }
 };
+
+klee::ref<klee::Expr> concat_lsb(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> byte) {
+  if (expr->getKind() != klee::Expr::Concat) {
+    return solver_toolbox.exprBuilder->Concat(expr, byte);
+  }
+
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
+
+  klee::ref<klee::Expr> new_kids[] = {lhs, concat_lsb(rhs, byte)};
+  return expr->rebuild(new_kids);
+}
 } // namespace
 
 bool is_readLSB(klee::ref<klee::Expr> expr) {
@@ -100,7 +111,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
     return false;
   }
 
-  auto groups = get_expr_groups(expr);
+  std::vector<expr_group_t> groups = get_expr_groups(expr);
 
   if (groups.empty()) {
     return false;
@@ -113,7 +124,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   return true;
 }
 
-bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes) {
+bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &size) {
   SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
 
   if (expr->getKind() == klee::Expr::Read) {
@@ -127,7 +138,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes
       klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
 
       offset = index_const->getZExtValue();
-      n_bytes = read->getWidth() / 8;
+      size = read->getWidth() / 8;
 
       return true;
     }
@@ -151,15 +162,15 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes
   }
 
   offset = group.offset;
-  n_bytes = group.n_bytes;
+  size = group.size;
 
   return true;
 }
 
 bool is_packet_readLSB(klee::ref<klee::Expr> expr) {
   bytes_t offset;
-  int n_bytes;
-  return is_packet_readLSB(expr, offset, n_bytes);
+  bytes_t size;
+  return is_packet_readLSB(expr, offset, size);
 }
 
 bool is_bool(klee::ref<klee::Expr> expr) {
@@ -235,18 +246,6 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
   }
 
   return -((~value + 1) & mask);
-}
-
-std::optional<std::string> get_symbol(klee::ref<klee::Expr> expr) {
-  std::optional<std::string> symbol;
-
-  std::unordered_set<std::string> symbols = get_symbols(expr);
-
-  if (symbols.size() == 1) {
-    symbol = *symbols.begin();
-  }
-
-  return symbol;
 }
 
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) {
@@ -384,6 +383,130 @@ std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr) {
   for (bytes_t i = 0; i < size; i++) {
     bytes.push_back(solver_toolbox.exprBuilder->Extract(expr, i * 8, 8));
   }
+
+  return bytes;
+}
+
+std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
+  std::vector<expr_group_t> groups;
+
+  auto process_read = [&](klee::ref<klee::Expr> read_expr) {
+    SYNAPSE_ASSERT(read_expr->getKind() == klee::Expr::Read, "Not a read");
+    klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
+
+    klee::ref<klee::Expr> index = read->index;
+    const std::string symbol = read->updates.root->name;
+
+    SYNAPSE_ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
+
+    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+
+    unsigned byte = index_const->getZExtValue();
+
+    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol &&
+        groups.back().offset - 1 == byte) {
+      groups.back().size++;
+      groups.back().offset = byte;
+      groups.back().expr = concat_lsb(groups.back().expr, read_expr);
+    } else {
+      groups.emplace_back(true, symbol, byte, read_expr->getWidth() / 8, read_expr);
+    }
+  };
+
+  auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
+    SYNAPSE_ASSERT(not_read_expr->getKind() != klee::Expr::Read, "Non read is actually a read");
+    unsigned size = not_read_expr->getWidth();
+    SYNAPSE_ASSERT(size % 8 == 0, "Size not multiple of 8");
+    groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
+  };
+
+  if (expr->getKind() == klee::Expr::Extract) {
+    klee::ref<klee::Expr> extract_expr = expr;
+    klee::ref<klee::Expr> out;
+    if (simplify_extract(extract_expr, out)) {
+      expr = out;
+    }
+  }
+
+  while (expr->getKind() == klee::Expr::Concat) {
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
+
+    SYNAPSE_ASSERT(lhs->getKind() != klee::Expr::Concat, "Nested concats");
+
+    if (lhs->getKind() == klee::Expr::Read) {
+      process_read(lhs);
+    } else {
+      process_not_read(lhs);
+    }
+
+    expr = rhs;
+  }
+
+  if (expr->getKind() == klee::Expr::Read) {
+    process_read(expr);
+  } else {
+    process_not_read(expr);
+  }
+
+  return groups;
+}
+
+std::size_t symbolic_read_hash_t::operator()(const symbolic_read_t &s) const noexcept {
+  std::hash<std::string> hash_fn;
+  return hash_fn(s.symbol + std::to_string(s.offset));
+}
+
+bool symbolic_read_equal_t::operator()(const symbolic_read_t &a,
+                                       const symbolic_read_t &b) const noexcept {
+  return a.symbol == b.symbol && a.offset == b.offset;
+}
+
+symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr,
+                                           std::optional<std::string> symbol_filter) {
+  static std::unordered_map<unsigned, std::pair<klee::ref<klee::Expr>, symbolic_reads_t>> cache;
+
+  auto cache_found_it = cache.find(expr->hash());
+  if (cache_found_it != cache.end()) {
+    SYNAPSE_ASSERT(expr == cache_found_it->second.first, "Hash collision");
+    return cache_found_it->second.second;
+  }
+
+  symbolic_reads_t bytes;
+
+  switch (expr->getKind()) {
+  case klee::Expr::Kind::Read: {
+    klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
+    klee::ref<klee::Expr> index = read->index;
+
+    if (index->getKind() == klee::Expr::Kind::Constant) {
+      klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+
+      bytes_t byte = index_const->getZExtValue();
+      std::string symbol = read->updates.root->name;
+
+      if (!symbol_filter.has_value() || symbol == symbol_filter.value()) {
+        bytes.insert({byte, symbol});
+      }
+    }
+  } break;
+  case klee::Expr::Kind::Concat: {
+    klee::ConcatExpr *concat = dyn_cast<klee::ConcatExpr>(expr);
+
+    klee::ref<klee::Expr> left = concat->getLeft();
+    klee::ref<klee::Expr> right = concat->getRight();
+
+    symbolic_reads_t lbytes = get_unique_symbolic_reads(left);
+    symbolic_reads_t rbytes = get_unique_symbolic_reads(right);
+
+    bytes.insert(lbytes.begin(), lbytes.end());
+    bytes.insert(rbytes.begin(), rbytes.end());
+  } break;
+  default:
+    break;
+  }
+
+  cache[expr->hash()] = {expr, bytes};
 
   return bytes;
 }

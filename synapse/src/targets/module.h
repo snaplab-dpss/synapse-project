@@ -7,7 +7,7 @@
 #include "../visualizers/ep_visualizer.h"
 #include "../visualizers/profiler_visualizer.h"
 #include "../execution_plan/visitor.h"
-#include "../util.h"
+#include "../util/util.h"
 #include "../log.h"
 
 namespace synapse {

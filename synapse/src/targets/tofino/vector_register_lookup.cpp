@@ -40,7 +40,7 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node, addr_
     new_next = nullptr;
   }
 
-  std::vector<const Call *> ops = get_future_functions(node, {"vector_return"});
+  std::vector<const Call *> ops = node->get_future_functions({"vector_return"});
 
   for (const Call *op : ops) {
     const call_t &call = op->get_call();
@@ -54,7 +54,7 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node, addr_
     }
 
     bool replace_next = (op == next);
-    Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), op->get_id());
+    Node *replacement = new_bdd->delete_non_branch(op->get_id());
 
     if (replace_next) {
       new_next = replacement;
@@ -78,7 +78,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  if (!is_vector_read(vector_borrow)) {
+  if (!vector_borrow->is_vector_read()) {
     return std::nullopt;
   }
 
@@ -92,7 +92,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  const Call *vector_return = get_future_vector_return(vector_borrow);
+  const Call *vector_return = vector_borrow->get_vector_return_from_borrow();
 
   Context new_ctx = ctx;
   new_ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
@@ -121,7 +121,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  if (!is_vector_read(call_node)) {
+  if (!call_node->is_vector_read()) {
     return impls;
   }
 

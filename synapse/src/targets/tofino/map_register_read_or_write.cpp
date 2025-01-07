@@ -32,21 +32,16 @@ struct map_register_data_t {
 std::vector<const Node *> get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
                                                             const map_coalescing_objs_t &map_objs,
                                                             klee::ref<klee::Expr> key) {
-  std::vector<const Node *> nodes_to_ignore;
-
-  const BDD *bdd = ep->get_bdd();
   std::vector<const Call *> coalescing_nodes =
-      get_coalescing_nodes_from_key(bdd, on_success, key, map_objs);
+      get_coalescing_nodes_from_key(on_success, key, map_objs);
 
+  std::vector<const Node *> nodes_to_ignore;
   for (const Call *coalescing_node : coalescing_nodes) {
     nodes_to_ignore.push_back(coalescing_node);
 
     const call_t &call = coalescing_node->get_call();
-
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space = coalescing_node->get_local_symbol("out_of_space");
-      branch_direction_t index_alloc_check =
-          find_branch_checking_index_alloc(ep, on_success, out_of_space);
+      branch_direction_t index_alloc_check = coalescing_node->find_branch_checking_index_alloc();
 
       // FIXME: We ignore all logic happening when the index is not
       // successfuly allocated. This is a major simplification, as the NF
@@ -122,13 +117,11 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
   const Node *next = node->get_next();
   new_next = new_bdd->get_node_by_id(next->get_id());
 
-  delete_non_branch_node_from_bdd(new_bdd.get(),
-                                  map_rw_pattern.dchain_allocate_new_index->get_id());
+  new_bdd->delete_non_branch(map_rw_pattern.dchain_allocate_new_index->get_id());
 
   if (map_rw_pattern.map_put_extra_condition.branch) {
-    delete_branch_node_from_bdd(new_bdd.get(),
-                                map_rw_pattern.map_put_extra_condition.branch->get_id(),
-                                map_rw_pattern.map_put_extra_condition.direction);
+    new_bdd->delete_branch(map_rw_pattern.map_put_extra_condition.branch->get_id(),
+                           map_rw_pattern.map_put_extra_condition.direction);
   }
 
   Branch *index_alloc_check_node = dynamic_cast<Branch *>(
@@ -144,7 +137,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
         solver_toolbox.exprBuilder->Constant(0, map_reg_successful_write.expr->getWidth())));
   }
 
-  delete_non_branch_node_from_bdd(new_bdd.get(), map_rw_pattern.map_put->get_id());
+  new_bdd->delete_non_branch(map_rw_pattern.map_put->get_id());
 
   return new_bdd;
 }
@@ -159,7 +152,7 @@ std::optional<spec_impl_t> MapRegisterReadOrWriteFactory::speculate(const EP *ep
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!is_map_get_followed_by_map_puts_on_miss(ep->get_bdd(), map_get, future_map_puts)) {
+  if (!map_get->is_map_get_followed_by_map_puts_on_miss(future_map_puts)) {
     // The cached table read should deal with these cases.
     return std::nullopt;
   }

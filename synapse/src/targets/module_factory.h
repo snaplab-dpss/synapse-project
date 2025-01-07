@@ -5,7 +5,7 @@
 #include "target.h"
 #include "module.h"
 #include "../bdd/bdd.h"
-#include "../util.h"
+#include "../util/util.h"
 #include "../execution_plan/context.h"
 #include "../execution_plan/execution_plan.h"
 #include "../util/symbol_manager.h"
@@ -42,7 +42,7 @@ struct spec_impl_t {
   decision_t decision;
   Context ctx;
   std::optional<TargetType> next_target;
-  nodes_t skip;
+  node_ids_t skip;
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx) {}
 };

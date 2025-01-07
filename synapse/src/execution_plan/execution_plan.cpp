@@ -9,8 +9,8 @@
 
 namespace synapse {
 namespace {
-nodes_t filter_away_nodes(const nodes_t &nodes, const nodes_t &filter) {
-  nodes_t result;
+node_ids_t filter_away_nodes(const node_ids_t &nodes, const node_ids_t &filter) {
+  node_ids_t result;
 
   for (node_id_t node_id : nodes) {
     if (filter.find(node_id) == filter.end()) {
@@ -76,12 +76,12 @@ EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml:
     : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets),
       ctx(bdd.get(), _targets, _config, _profiler), meta(bdd.get(), targets) {
   TargetType initial_target = targets.get_initial_target().type;
-  targets_roots[initial_target] = nodes_t({bdd->get_root()->get_id()});
+  targets_roots[initial_target] = node_ids_t({bdd->get_root()->get_id()});
 
   // TargetType initial_target = targets.
   for (const TargetView &target : targets.elements) {
     if (target.type != initial_target) {
-      targets_roots[target.type] = nodes_t();
+      targets_roots[target.type] = node_ids_t();
     }
   }
 
@@ -126,7 +126,7 @@ const std::vector<EPLeaf> &EP::get_active_leaves() const { return active_leaves;
 
 const TargetsView &EP::get_targets() const { return targets; }
 
-const nodes_t &EP::get_target_roots(TargetType target) const {
+const node_ids_t &EP::get_target_roots(TargetType target) const {
   SYNAPSE_ASSERT(targets_roots.find(target) != targets_roots.end(),
                  "Target not found in the roots map.");
   return targets_roots.at(target);
@@ -497,7 +497,7 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 }
 
 spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
-                                                  const Node *anchor, nodes_t future_nodes,
+                                                  const Node *anchor, node_ids_t future_nodes,
                                                   TargetType current_target, pps_t ingress) const {
   future_nodes.erase(anchor->get_id());
 
@@ -535,8 +535,8 @@ spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_specul
 bool EP::is_better_speculation(const spec_impl_t &old_speculation,
                                const spec_impl_t &new_speculation, const Node *node,
                                TargetType current_target, pps_t ingress) const {
-  nodes_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
-  nodes_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
+  node_ids_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
+  node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
 
   spec_impl_t peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes,
                                                            current_target, ingress);
@@ -583,7 +583,8 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation,
 }
 
 spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target,
-                                     const Context &ctx, const nodes_t &skip, pps_t ingress) const {
+                                     const Context &ctx, const node_ids_t &skip,
+                                     pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
   for (const TargetView &target : targets.elements) {
@@ -652,7 +653,7 @@ pps_t EP::speculate_tput_pps() const {
 
   std::vector<spec_impl_t> speculations;
   Context spec_ctx = ctx;
-  nodes_t skip;
+  node_ids_t skip;
 
   Context other = std::move(Context(spec_ctx));
   TargetType initial_target = targets.get_initial_target().type;

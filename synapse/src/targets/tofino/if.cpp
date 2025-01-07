@@ -40,7 +40,7 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node,
 
   const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
-  if (is_parser_condition(branch_node)) {
+  if (branch_node->is_parser_condition()) {
     return std::nullopt;
   }
 
@@ -57,7 +57,7 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node,
 
   const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
-  if (is_parser_condition(branch_node)) {
+  if (branch_node->is_parser_condition()) {
     return impls;
   }
 

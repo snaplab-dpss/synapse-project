@@ -22,7 +22,7 @@ struct EPMeta {
   std::unordered_map<TargetType, size_t> steps_per_target;
   std::unordered_set<ep_node_id_t> processed_leaves;
   std::unordered_set<ep_node_id_t> visited_ep_nodes;
-  nodes_t processed_nodes;
+  node_ids_t processed_nodes;
 
   // Useful for uniquely identifying/classifying this EP.
   i64 random_number;

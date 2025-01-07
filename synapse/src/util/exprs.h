@@ -44,4 +44,33 @@ struct mod_t {
 
 std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
 std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr);
+
+struct expr_group_t {
+  bool has_symbol;
+  std::string symbol;
+  bytes_t offset;
+  bytes_t size;
+  klee::ref<klee::Expr> expr;
+};
+
+std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr);
+
+struct symbolic_read_t {
+  bytes_t offset;
+  std::string symbol;
+};
+
+struct symbolic_read_hash_t {
+  std::size_t operator()(const symbolic_read_t &s) const noexcept;
+};
+
+struct symbolic_read_equal_t {
+  bool operator()(const symbolic_read_t &a, const symbolic_read_t &b) const noexcept;
+};
+
+typedef std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t>
+    symbolic_reads_t;
+
+symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr,
+                                           std::optional<std::string> symbol_filter = std::nullopt);
 } // namespace synapse

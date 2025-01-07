@@ -53,15 +53,20 @@ public:
   void serialize(const std::filesystem::path &fpath) const;
   void deserialize(const std::filesystem::path &fpath);
   void assert_integrity() const;
+  int get_node_depth(node_id_t id) const;
 
   const Node *get_node_by_id(node_id_t id) const;
   Node *get_mutable_node_by_id(node_id_t id);
-  int get_node_depth(node_id_t id) const;
 
   NodeManager &get_mutable_manager() { return manager; }
   const NodeManager &get_manager() const { return manager; }
 
   SymbolManager *get_mutable_symbol_manager() { return symbol_manager; }
   const SymbolManager *get_symbol_manager() const { return symbol_manager; }
+
+  Node *delete_non_branch(node_id_t target_id);
+  Node *delete_branch(node_id_t target_id, bool direction_to_keep);
+  Node *clone_and_add_non_branches(const Node *current, const std::vector<const Node *> &new_nodes);
+  Branch *clone_and_add_branch(const Node *current, klee::ref<klee::Expr> condition);
 };
 } // namespace synapse

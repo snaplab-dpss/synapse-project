@@ -70,7 +70,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
     return std::nullopt;
   }
 
-  branch_direction_t mpsc = get_map_get_success_check(map_get);
+  branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return std::nullopt;
   }
@@ -116,7 +116,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  branch_direction_t mpsc = get_map_get_success_check(map_get);
+  branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return impls;
   }

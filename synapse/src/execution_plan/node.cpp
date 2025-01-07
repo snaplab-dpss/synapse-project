@@ -162,4 +162,5 @@ void EPNode::visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn) 
     nodes.insert(nodes.end(), children.begin(), children.end());
   }
 }
+
 } // namespace synapse

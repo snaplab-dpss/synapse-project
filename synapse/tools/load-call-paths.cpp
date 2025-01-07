@@ -2,7 +2,7 @@
 #include <vector>
 #include <CLI/CLI.hpp>
 
-#include "../src/call_paths/call_paths.h"
+#include "../src/call_paths.h"
 #include "../src/util/exprs.h"
 
 using synapse::arg_t;

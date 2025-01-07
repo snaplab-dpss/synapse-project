@@ -25,18 +25,16 @@ std::vector<const Node *> get_nodes_to_speculatively_ignore(const EP *ep,
                                                             const Call *dchain_allocate_new_index,
                                                             const map_coalescing_objs_t &map_objs,
                                                             klee::ref<klee::Expr> key) {
-  std::vector<const Node *> nodes_to_ignore;
-
-  const BDD *bdd = ep->get_bdd();
   std::vector<const Call *> coalescing_nodes =
-      get_coalescing_nodes_from_key(bdd, dchain_allocate_new_index, key, map_objs);
+      get_coalescing_nodes_from_key(dchain_allocate_new_index, key, map_objs);
 
+  std::vector<const Node *> nodes_to_ignore;
   for (const Call *coalescing_node : coalescing_nodes) {
     nodes_to_ignore.push_back(coalescing_node);
   }
 
   branch_direction_t index_alloc_check =
-      find_branch_checking_index_alloc(ep, dchain_allocate_new_index);
+      dchain_allocate_new_index->find_branch_checking_index_alloc();
 
   if (index_alloc_check.branch) {
     nodes_to_ignore.push_back(index_alloc_check.branch);
@@ -68,17 +66,14 @@ delete_coalescing_nodes(const EP *ep, const Node *node, const map_coalescing_obj
     new_next = nullptr;
   }
 
-  const std::vector<const Call *> targets =
-      get_coalescing_nodes_from_key(new_bdd.get(), new_next, key, map_objs);
+  const std::vector<const Call *> targets = get_coalescing_nodes_from_key(new_next, key, map_objs);
 
   for (const Node *target : targets) {
     const Call *call_target = dynamic_cast<const Call *>(target);
     const call_t &call = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space = call_target->get_local_symbol("out_of_space");
-      branch_direction_t index_alloc_check =
-          find_branch_checking_index_alloc(ep, node, out_of_space);
+      branch_direction_t index_alloc_check = call_target->find_branch_checking_index_alloc();
 
       if (index_alloc_check.branch) {
         SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
@@ -96,8 +91,8 @@ delete_coalescing_nodes(const EP *ep, const Node *node, const map_coalescing_obj
         deleted_branch_constraints->push_back(extra_constraint);
 
         bool replace_next = (index_alloc_check.branch == next);
-        Node *replacement = delete_branch_node_from_bdd(
-            new_bdd.get(), index_alloc_check.branch->get_id(), index_alloc_check.direction);
+        Node *replacement =
+            new_bdd->delete_branch(index_alloc_check.branch->get_id(), index_alloc_check.direction);
         if (replace_next) {
           new_next = replacement;
         }
@@ -105,7 +100,7 @@ delete_coalescing_nodes(const EP *ep, const Node *node, const map_coalescing_obj
     }
 
     bool replace_next = (target == next);
-    Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), target->get_id());
+    Node *replacement = new_bdd->delete_non_branch(target->get_id());
     if (replace_next) {
       new_next = replacement;
     }

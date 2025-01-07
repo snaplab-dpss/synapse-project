@@ -413,4 +413,171 @@ void Node::recursive_free_children(NodeManager &manager) {
   } break;
   }
 }
+
+symbols_t Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
+  symbols_t symbols;
+  const Node *node = get_prev();
+
+  const std::unordered_set<std::string> ignoring_symbols{
+      "packet_chunks",
+      "out_of_space",
+  };
+
+  while (node) {
+    if (stop_nodes.find(node->get_id()) != stop_nodes.end()) {
+      break;
+    }
+
+    if (node->get_type() == NodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const symbols_t &local_symbols = call_node->get_local_symbols();
+
+      for (const symbol_t &symbol : local_symbols) {
+        if (ignoring_symbols.find(symbol.base) != ignoring_symbols.end()) {
+          continue;
+        }
+
+        symbols.insert(symbol);
+      }
+    }
+
+    node = node->get_prev();
+  }
+
+  return symbols;
+}
+
+std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string> &wanted,
+                                                   const node_ids_t &stop_nodes) const {
+  std::vector<const Call *> prev_functions;
+
+  const Node *node = this;
+  while ((node = node->get_prev())) {
+    if (node->get_type() == NodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call = call_node->get_call();
+      const std::string &fname = call.function_name;
+
+      auto found_it = std::find(wanted.begin(), wanted.end(), fname);
+      if (found_it != wanted.end()) {
+        prev_functions.insert(prev_functions.begin(), call_node);
+      }
+    }
+
+    if (stop_nodes.find(node->get_id()) != stop_nodes.end()) {
+      break;
+    }
+  }
+
+  return prev_functions;
+}
+
+std::vector<const Call *> Node::get_future_functions(const std::vector<std::string> &wanted,
+                                                     bool stop_on_branches) const {
+  std::vector<const Call *> functions;
+
+  visit_nodes([&functions, &wanted](const Node *node) {
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call = call_node->get_call();
+
+    auto found_it = std::find(wanted.begin(), wanted.end(), call.function_name);
+
+    if (found_it != wanted.end()) {
+      functions.push_back(call_node);
+    }
+
+    return NodeVisitAction::Continue;
+  });
+
+  return functions;
+}
+
+symbols_t Node::get_used_symbols() const {
+  symbols_t symbols;
+
+  switch (type) {
+  case NodeType::Branch: {
+    const Branch *branch_node = dynamic_cast<const Branch *>(this);
+    klee::ref<klee::Expr> expr = branch_node->get_condition();
+    std::unordered_set<std::string> names = symbol_t::get_symbols_names(expr);
+    for (const std::string &name : names) {
+      symbols.insert(symbol_manager->get_symbol(name));
+    }
+  } break;
+  case NodeType::Call: {
+    const Call *call_node = dynamic_cast<const Call *>(this);
+    const call_t &call = call_node->get_call();
+
+    for (const auto &[arg_name, arg] : call.args) {
+      if (!arg.expr.isNull()) {
+        std::unordered_set<std::string> names = symbol_t::get_symbols_names(arg.expr);
+        for (const std::string &name : names) {
+          symbols.insert(symbol_manager->get_symbol(name));
+        }
+      }
+
+      if (!arg.in.isNull()) {
+        std::unordered_set<std::string> names = symbol_t::get_symbols_names(arg.in);
+        for (const std::string &name : names) {
+          symbols.insert(symbol_manager->get_symbol(name));
+        }
+      }
+
+      if (!arg.out.isNull()) {
+        std::unordered_set<std::string> names = symbol_t::get_symbols_names(arg.out);
+        for (const std::string &name : names) {
+          symbols.insert(symbol_manager->get_symbol(name));
+        }
+      }
+    }
+
+    for (const auto &[extra_var_name, extra_var] : call.extra_vars) {
+      if (!extra_var.first.isNull()) {
+        std::unordered_set<std::string> names = symbol_t::get_symbols_names(extra_var.first);
+        for (const std::string &name : names) {
+          symbols.insert(symbol_manager->get_symbol(name));
+        }
+      }
+
+      if (!extra_var.second.isNull()) {
+        std::unordered_set<std::string> names = symbol_t::get_symbols_names(extra_var.second);
+        for (const std::string &name : names) {
+          symbols.insert(symbol_manager->get_symbol(name));
+        }
+      }
+    }
+  } break;
+  case NodeType::Route:
+    break;
+  }
+
+  return symbols;
+}
+
+bool Node::is_packet_drop_code_path() const {
+  bool found_drop = false;
+
+  visit_nodes([&found_drop](const Node *node) {
+    if (node->get_type() == NodeType::Branch) {
+      return NodeVisitAction::Stop;
+    }
+
+    if (node->get_type() != NodeType::Route) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Route *route_node = dynamic_cast<const Route *>(node);
+    RouteOp op = route_node->get_operation();
+
+    found_drop |= (op == RouteOp::Drop);
+    return NodeVisitAction::Stop;
+  });
+
+  return found_drop;
+}
+
 } // namespace synapse

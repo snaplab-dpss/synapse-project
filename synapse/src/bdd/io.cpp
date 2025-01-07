@@ -6,7 +6,6 @@
 #include "nodes/call.h"
 #include "nodes/branch.h"
 #include "nodes/route.h"
-#include "../util/retriever.h"
 #include "../util/exprs.h"
 #include "../log.h"
 #include "../util/kQuery.h"
@@ -499,8 +498,8 @@ symbols_t parse_call_symbols(std::string serialized_symbols,
 }
 
 Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
-                      std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
-                      NodeManager &manager) {
+                      SymbolManager *symbol_manager, std::string serialized,
+                      std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find("=>");
   SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
 
@@ -510,23 +509,23 @@ Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
   call_t call = parse_call(call_str, exprs);
   symbols_t symbols = parse_call_symbols(symbols_str, exprs);
 
-  Call *call_node = new Call(id, constraints, call, symbols);
+  Call *call_node = new Call(id, constraints, symbol_manager, call, symbols);
   manager.add_node(call_node);
   return call_node;
 }
 
 Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints,
-                        std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
-                        NodeManager &manager) {
+                        SymbolManager *symbol_manager, std::string serialized,
+                        std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   klee::ref<klee::Expr> condition = pop_expr(exprs);
-  Branch *branch_node = new Branch(id, constraints, condition);
+  Branch *branch_node = new Branch(id, constraints, symbol_manager, condition);
   manager.add_node(branch_node);
   return branch_node;
 }
 
 Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
-                       std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
-                       NodeManager &manager) {
+                       SymbolManager *symbol_manager, std::string serialized,
+                       std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find(" ");
   SYNAPSE_ASSERT(delim != std::string::npos, "Invalid route");
 
@@ -537,11 +536,11 @@ Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
 
   if (route_operation_str == "FWD") {
     int dst_device = std::stoi(dst_device_str);
-    route_node = new Route(id, constraints, RouteOp::Forward, dst_device);
+    route_node = new Route(id, constraints, symbol_manager, RouteOp::Forward, dst_device);
   } else if (route_operation_str == "DROP") {
-    route_node = new Route(id, constraints, RouteOp::Drop);
+    route_node = new Route(id, constraints, symbol_manager, RouteOp::Drop);
   } else if (route_operation_str == "BCAST") {
-    route_node = new Route(id, constraints, RouteOp::Broadcast);
+    route_node = new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
   } else {
     SYNAPSE_ASSERT(false, "Unknown route operation");
   }
@@ -552,7 +551,7 @@ Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
 }
 
 Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>> &exprs,
-                 NodeManager &manager) {
+                 NodeManager &manager, SymbolManager *symbol_manager) {
   Node *node;
 
   size_t delim = serialized_node.find(":");
@@ -568,17 +567,14 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
   SYNAPSE_ASSERT(delim != std::string::npos, "Invalid node");
 
   std::string serialized_constraints_num = serialized_node.substr(0, delim);
-
   serialized_node = serialized_node.substr(delim + 1);
-
   int constraints_num = std::atoi(serialized_constraints_num.c_str());
   SYNAPSE_ASSERT(constraints_num >= 0, "Invalid node");
 
-  klee::ConstraintManager constraint_manager;
-
+  klee::ConstraintManager constraints;
   for (int i = 0; i < constraints_num; i++) {
     klee::ref<klee::Expr> constraint = pop_expr(exprs);
-    constraint_manager.addConstraint(constraint);
+    constraints.addConstraint(constraint);
   }
 
   delim = serialized_node.find(" ");
@@ -590,11 +586,11 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
   serialized_node = serialized_node.substr(0, serialized_node.size() - 1);
 
   if (node_type_str == "CALL") {
-    node = parse_node_call(id, constraint_manager, serialized_node, exprs, manager);
+    node = parse_node_call(id, constraints, symbol_manager, serialized_node, exprs, manager);
   } else if (node_type_str == "BRANCH") {
-    node = parse_node_branch(id, constraint_manager, serialized_node, exprs, manager);
+    node = parse_node_branch(id, constraints, symbol_manager, serialized_node, exprs, manager);
   } else if (node_type_str == "ROUTE") {
-    node = parse_node_route(id, constraint_manager, serialized_node, exprs, manager);
+    node = parse_node_route(id, constraints, symbol_manager, serialized_node, exprs, manager);
   } else {
     SYNAPSE_PANIC("Unknown node type");
   }
@@ -920,7 +916,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       }
 
       if (parenthesis_level == 0) {
-        Node *node = parse_node(current_node, exprs, manager);
+        Node *node = parse_node(current_node, exprs, manager, symbol_manager);
 
         SYNAPSE_ASSERT(node, "Invalid node");
         SYNAPSE_ASSERT(nodes.find(node->get_id()) == nodes.end(), "Duplicate node");

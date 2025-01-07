@@ -10,7 +10,6 @@
 #include "nodes/call.h"
 #include "nodes/route.h"
 #include "../util/exprs.h"
-#include "../util/retriever.h"
 #include "../util/simplifier.h"
 #include "../util/solver.h"
 
@@ -168,7 +167,7 @@ bool is_routing_function(const call_t &call) {
 }
 
 bool is_skip_condition(klee::ref<klee::Expr> condition) {
-  std::unordered_set<std::string> symbols = get_symbols(condition);
+  std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(condition);
 
   for (const std::string &symbol : symbols) {
     auto base_symbol_comparator = [symbol](const std::string &s) {
@@ -185,16 +184,17 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call, const klee::ConstraintManager &constraints,
-                            node_id_t id) {
+Route *route_node_from_call(const call_t &call, node_id_t id,
+                            const klee::ConstraintManager &constraints,
+                            SymbolManager *symbol_manager) {
   SYNAPSE_ASSERT(is_routing_function(call), "Unexpected function");
 
   if (call.function_name == "packet_free") {
-    return new Route(id, constraints, RouteOp::Drop);
+    return new Route(id, constraints, symbol_manager, RouteOp::Drop);
   }
 
   if (call.function_name == "packet_broadcast") {
-    return new Route(id, constraints, RouteOp::Broadcast);
+    return new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
   }
 
   SYNAPSE_ASSERT(call.function_name == "packet_send", "Unexpected function");
@@ -203,7 +203,7 @@ Route *route_node_from_call(const call_t &call, const klee::ConstraintManager &c
   SYNAPSE_ASSERT(!dst_device.isNull(), "Null dst_device");
 
   int value = solver_toolbox.value_from_expr(dst_device);
-  return new Route(id, constraints, RouteOp::Forward, value);
+  return new Route(id, constraints, symbol_manager, RouteOp::Forward, value);
 }
 
 call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
@@ -262,7 +262,7 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
 std::optional<symbol_t>
 get_generated_symbol(const SymbolManager *manager, const std::string &base,
                      std::unordered_map<std::string, size_t> &base_symbols_generated) {
-  std::vector<symbol_t> filtered = manager->get_symbols_with_base(base);
+  symbols_t symbols = manager->get_symbols_with_base(base);
 
   auto symbol_cmp = [base](const symbol_t &a, const symbol_t &b) {
     SYNAPSE_ASSERT(a.base == b.base, "Different base symbols");
@@ -290,6 +290,8 @@ get_generated_symbol(const SymbolManager *manager, const std::string &base,
     return a_suffix_num < b_suffix_num;
   };
 
+  std::vector<symbol_t> filtered;
+  filtered.insert(filtered.end(), symbols.begin(), symbols.end());
   std::sort(filtered.begin(), filtered.end(), symbol_cmp);
 
   size_t total_base_symbols_generated = 0;
@@ -340,7 +342,7 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
   }
 }
 
-Node *bdd_from_call_paths(call_paths_view_t call_paths_view, const SymbolManager *symbol_manager,
+Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager,
                           NodeManager &node_manager, std::vector<call_t> &init, node_id_t &id,
                           klee::ConstraintManager constraints = klee::ConstraintManager(),
                           std::unordered_map<std::string, size_t> base_symbols_generated =
@@ -390,9 +392,9 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, const SymbolManager
         Node *node;
 
         if (is_routing_function(call)) {
-          node = route_node_from_call(call, constraints, id);
+          node = route_node_from_call(call, id, constraints, symbol_manager);
         } else {
-          node = new Call(id, constraints, call, call_symbols);
+          node = new Call(id, constraints, symbol_manager, call, call_symbols);
         }
 
         node_manager.add_node(node);
@@ -444,7 +446,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, const SymbolManager
         continue;
       }
 
-      Branch *node = new Branch(id, constraints, condition);
+      Branch *node = new Branch(id, constraints, symbol_manager, condition);
       id++;
       node_manager.add_node(node);
 
@@ -472,6 +474,15 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, const SymbolManager
   }
 
   return root;
+}
+
+Branch *create_new_branch(BDD *bdd, const Node *current, klee::ref<klee::Expr> condition) {
+  node_id_t &id = bdd->get_mutable_id();
+  NodeManager &manager = bdd->get_mutable_manager();
+  klee::ConstraintManager constraints = current->get_constraints();
+  Branch *new_branch = new Branch(id++, constraints, bdd->get_mutable_symbol_manager(), condition);
+  manager.add_node(new_branch);
+  return new_branch;
 }
 } // namespace
 
@@ -609,4 +620,207 @@ BDD &BDD::operator=(const BDD &other) {
   symbol_manager = other.symbol_manager;
   return *this;
 }
+
+Node *BDD::delete_non_branch(node_id_t target_id) {
+  Node *anchor_next = get_mutable_node_by_id(target_id);
+  SYNAPSE_ASSERT(anchor_next, "Node not found");
+  SYNAPSE_ASSERT(anchor_next->get_type() != NodeType::Branch, "Unexpected branch node");
+
+  Node *anchor = anchor_next->get_mutable_prev();
+  SYNAPSE_ASSERT(anchor, "No previous node");
+
+  Node *new_current = anchor_next->get_mutable_next();
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_current);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_current);
+    } else {
+      branch->set_on_false(new_current);
+    }
+
+  } break;
+  }
+
+  new_current->set_prev(anchor);
+  manager.free_node(anchor_next);
+
+  return new_current;
+}
+
+Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
+  Node *target = get_mutable_node_by_id(target_id);
+  SYNAPSE_ASSERT(target, "Node not found");
+  SYNAPSE_ASSERT(target->get_type() == NodeType::Branch, "Unexpected branch node");
+
+  Node *anchor = target->get_mutable_prev();
+  SYNAPSE_ASSERT(anchor, "No previous node");
+
+  Branch *anchor_next = dynamic_cast<Branch *>(target);
+
+  Node *target_on_true = anchor_next->get_mutable_on_true();
+  Node *target_on_false = anchor_next->get_mutable_on_false();
+
+  Node *new_current;
+
+  if (direction_to_keep) {
+    new_current = target_on_true;
+    target_on_false->recursive_free_children(manager);
+    manager.free_node(target_on_false);
+  } else {
+    new_current = target_on_false;
+    target_on_true->recursive_free_children(manager);
+    manager.free_node(target_on_true);
+  }
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_current);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_current);
+    } else {
+      branch->set_on_false(new_current);
+    }
+
+  } break;
+  }
+
+  new_current->set_prev(anchor);
+  manager.free_node(anchor_next);
+
+  return new_current;
+}
+
+Node *BDD::clone_and_add_non_branches(const Node *current,
+                                      const std::vector<const Node *> &new_nodes) {
+  Node *new_current = nullptr;
+
+  if (new_nodes.empty()) {
+    return new_current;
+  }
+
+  const Node *prev = current->get_prev();
+  SYNAPSE_ASSERT(prev, "No previous node");
+
+  node_id_t anchor_id = prev->get_id();
+  Node *anchor = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next = get_mutable_node_by_id(current->get_id());
+
+  bool set_new_current = false;
+
+  for (const Node *new_node : new_nodes) {
+    SYNAPSE_ASSERT(new_node->get_type() != NodeType::Branch, "Unexpected branch node");
+
+    Node *clone = new_node->clone(manager, false);
+    clone->recursive_update_ids(id);
+
+    if (!set_new_current) {
+      new_current = clone;
+      set_new_current = true;
+    }
+
+    switch (anchor->get_type()) {
+    case NodeType::Call:
+    case NodeType::Route: {
+      anchor->set_next(clone);
+    } break;
+    case NodeType::Branch: {
+      Branch *branch = dynamic_cast<Branch *>(anchor);
+
+      const Node *on_true = branch->get_on_true();
+      const Node *on_false = branch->get_on_false();
+
+      SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
+
+      if (on_true == anchor_next) {
+        branch->set_on_true(clone);
+      } else {
+        branch->set_on_false(clone);
+      }
+
+    } break;
+    }
+
+    clone->set_prev(anchor);
+    clone->set_next(anchor_next);
+    anchor_next->set_prev(clone);
+    anchor = clone;
+  }
+
+  return new_current;
+}
+
+Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> condition) {
+  const Node *prev = current->get_prev();
+  SYNAPSE_ASSERT(prev, "No previous node");
+
+  node_id_t anchor_id = prev->get_id();
+  Node *anchor = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next = get_mutable_node_by_id(current->get_id());
+
+  klee::ref<klee::Expr> constraint = constraint_from_expr(condition);
+
+  Node *on_true_cond = anchor_next;
+  Node *on_false_cond = anchor_next->clone(manager, true);
+  on_false_cond->recursive_update_ids(id);
+
+  on_true_cond->recursive_add_constraint(constraint);
+  on_false_cond->recursive_add_constraint(solver_toolbox.exprBuilder->Not(constraint));
+
+  Branch *new_branch = create_new_branch(this, current, condition);
+
+  new_branch->set_on_true(on_true_cond);
+  new_branch->set_on_false(on_false_cond);
+
+  on_true_cond->set_prev(new_branch);
+  on_false_cond->set_prev(new_branch);
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_branch);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_branch);
+    } else {
+      branch->set_on_false(new_branch);
+    }
+
+  } break;
+  }
+
+  new_branch->set_prev(anchor);
+
+  return new_branch;
+}
+
 } // namespace synapse

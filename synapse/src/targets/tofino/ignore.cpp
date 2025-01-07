@@ -91,11 +91,11 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
     return true;
   }
 
-  if (is_vector_borrow_ignored(call_node)) {
+  if (call_node->is_vector_borrow_ignored()) {
     return true;
   }
 
-  if (is_vector_return_without_modifications(ep, call_node)) {
+  if (call_node->is_vector_return_without_modifications()) {
     return true;
   }
 

@@ -79,7 +79,7 @@ std::optional<spec_impl_t> TableUpdateFactory::speculate(const EP *ep, const Nod
 
   const Call *call_node = dynamic_cast<const Call *>(node);
 
-  if (is_vector_return_without_modifications(ep, call_node)) {
+  if (call_node->is_vector_return_without_modifications()) {
     return std::nullopt;
   }
 
@@ -107,7 +107,7 @@ std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep, const Node *n
 
   const Call *call_node = dynamic_cast<const Call *>(node);
 
-  if (is_vector_return_without_modifications(ep, call_node)) {
+  if (call_node->is_vector_return_without_modifications()) {
     return impls;
   }
 

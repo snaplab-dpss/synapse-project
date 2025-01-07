@@ -33,7 +33,7 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
 
 std::vector<const Node *> get_future_related_nodes(const EP *ep, const Node *node,
                                                    const map_coalescing_objs_t &cached_table_data) {
-  std::vector<const Call *> ops = get_future_functions(node, {"dchain_free_index", "map_erase"});
+  std::vector<const Call *> ops = node->get_future_functions({"dchain_free_index", "map_erase"});
 
   std::vector<const Node *> related_ops;
   for (const Call *op : ops) {
@@ -66,8 +66,8 @@ void replicate_hdr_parsing_ops_on_cache_delete_failed(const EP *ep, BDD *bdd,
                                                       Node *&new_on_cache_delete_failed) {
   const Node *on_cache_delete_failed = cache_delete_branch->get_on_false();
 
-  std::vector<const Call *> prev_borrows =
-      get_prev_functions(ep, on_cache_delete_failed, {"packet_borrow_next_chunk"});
+  std::vector<const Call *> prev_borrows = on_cache_delete_failed->get_prev_functions(
+      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   if (prev_borrows.empty()) {
     return;
@@ -79,7 +79,7 @@ void replicate_hdr_parsing_ops_on_cache_delete_failed(const EP *ep, BDD *bdd,
   }
 
   new_on_cache_delete_failed =
-      add_non_branch_nodes_to_bdd(bdd, on_cache_delete_failed, non_branch_nodes_to_add);
+      bdd->clone_and_add_non_branches(on_cache_delete_failed, non_branch_nodes_to_add);
 }
 
 std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(
@@ -92,8 +92,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(
   const Node *next = map_erase->get_next();
   SYNAPSE_ASSERT(next, "Next node is null");
 
-  Branch *cache_delete_branch =
-      add_branch_to_bdd(new_bdd.get(), next, cache_delete_success_condition);
+  Branch *cache_delete_branch = new_bdd->clone_and_add_branch(next, cache_delete_success_condition);
 
   on_cache_delete_success = cache_delete_branch->get_mutable_on_true();
   on_cache_delete_failed = cache_delete_branch->get_mutable_on_false();

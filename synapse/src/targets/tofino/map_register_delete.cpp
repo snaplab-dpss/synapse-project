@@ -22,7 +22,7 @@ struct map_register_data_t {
 std::vector<const Node *>
 get_future_related_nodes(const EP *ep, const Node *node,
                          const map_coalescing_objs_t &map_coalescing_objs) {
-  std::vector<const Call *> ops = get_future_functions(node, {"dchain_free_index", "map_erase"});
+  std::vector<const Call *> ops = node->get_future_functions({"dchain_free_index", "map_erase"});
 
   std::vector<const Node *> related_ops;
   for (const Call *op : ops) {
@@ -68,7 +68,7 @@ std::unique_ptr<BDD> delete_future_related_nodes(const EP *ep, const Node *map_e
 
   for (const Node *node : future_nodes) {
     bool replace = (node == next);
-    Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), node->get_id());
+    Node *replacement = new_bdd->delete_non_branch(node->get_id());
     if (replace) {
       next = replacement;
     }

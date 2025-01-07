@@ -20,12 +20,12 @@ typedef std::unordered_map<node_id_t, ParserState *> states_t;
 enum class ParserStateType { EXTRACT, SELECT, TERMINATE };
 
 struct ParserState {
-  nodes_t ids;
+  node_ids_t ids;
   ParserStateType type;
 
   ParserState(node_id_t _id, ParserStateType _type) : ids({_id}), type(_type) {}
 
-  ParserState(const nodes_t &_ids, ParserStateType _type) : ids(_ids), type(_type) {}
+  ParserState(const node_ids_t &_ids, ParserStateType _type) : ids(_ids), type(_type) {}
 
   virtual ~ParserState() {}
 
@@ -238,7 +238,7 @@ public:
   }
 
   ~Parser() {
-    nodes_t freed;
+    node_ids_t freed;
 
     // The states data structure can have duplicates, so we need to make sure
     for (const auto &[node_id, state] : states) {

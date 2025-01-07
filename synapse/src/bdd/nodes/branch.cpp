@@ -14,13 +14,14 @@ Node *Branch::clone(NodeManager &manager, bool recursive) const {
   if (recursive) {
     Node *on_true_clone = on_true ? on_true->clone(manager, true) : nullptr;
     Node *on_false_clone = on_false ? on_false->clone(manager, true) : nullptr;
-    clone = new Branch(id, nullptr, constraints, on_true_clone, on_false_clone, condition);
+    clone = new Branch(id, nullptr, constraints, symbol_manager, on_true_clone, on_false_clone,
+                       condition);
     if (on_true_clone)
       on_true_clone->set_prev(clone);
     if (on_false_clone)
       on_false_clone->set_prev(clone);
   } else {
-    clone = new Branch(id, constraints, condition);
+    clone = new Branch(id, constraints, symbol_manager, condition);
   }
 
   manager.add_node(clone);
@@ -56,4 +57,25 @@ std::string Branch::dump(bool one_liner, bool id_name_only) const {
   ss << expr_to_string(condition, one_liner);
   return ss.str();
 }
+
+bool Branch::is_parser_condition() const {
+  std::vector<const Call *> future_borrows = get_future_functions({"packet_borrow_next_chunk"});
+
+  if (future_borrows.size() == 0) {
+    return false;
+  }
+
+  const std::vector<std::string> allowed_names{"pkt_len", "packet_chunks", "DEVICE"};
+  const std::unordered_set<std::string> names = symbol_t::get_symbols_names(condition);
+
+  for (const std::string &name : names) {
+    auto found_it = std::find(allowed_names.begin(), allowed_names.end(), name);
+    if (found_it == allowed_names.end()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 } // namespace synapse

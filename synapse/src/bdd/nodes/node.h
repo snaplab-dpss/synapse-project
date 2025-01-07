@@ -7,15 +7,17 @@
 
 #include <klee/Constraints.h>
 
-#include "../../call_paths/call_paths.h"
+#include "../../call_paths.h"
+#include "../../util/symbol_manager.h"
 #include "../../types.h"
 
 namespace synapse {
 class BDDVisitor;
 class NodeManager;
+class Call;
 
 typedef u64 node_id_t;
-typedef std::unordered_set<node_id_t> nodes_t;
+typedef std::unordered_set<node_id_t> node_ids_t;
 
 enum class NodeType { Branch, Call, Route };
 enum class NodeVisitAction { Continue, SkipChildren, Stop };
@@ -34,14 +36,18 @@ protected:
   Node *prev;
 
   klee::ConstraintManager constraints;
+  SymbolManager *symbol_manager;
 
 public:
-  Node(node_id_t _id, NodeType _type, klee::ConstraintManager _constraints)
-      : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints) {}
+  Node(node_id_t _id, NodeType _type, const klee::ConstraintManager &_constraints,
+       SymbolManager *_symbol_manager)
+      : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints),
+        symbol_manager(_symbol_manager) {}
 
   Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev,
-       klee::ConstraintManager _constraints)
-      : id(_id), type(_type), next(_next), prev(_prev), constraints(_constraints) {}
+       const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager)
+      : id(_id), type(_type), next(_next), prev(_prev), constraints(_constraints),
+        symbol_manager(_symbol_manager) {}
 
   const Node *get_next() const { return next; }
   const Node *get_prev() const { return prev; }
@@ -82,6 +88,13 @@ public:
   std::string hash(bool recursive) const;
   size_t count_children(bool recursive) const;
   size_t count_code_paths() const;
+  symbols_t get_used_symbols() const;
+  symbols_t get_prev_symbols(const node_ids_t &stop_nodes = node_ids_t()) const;
+  std::vector<const Call *> get_prev_functions(const std::vector<std::string> &functions_names,
+                                               const node_ids_t &stop_nodes = node_ids_t()) const;
+  std::vector<const Call *> get_future_functions(const std::vector<std::string> &functions,
+                                                 bool stop_on_branches = false) const;
+  bool is_packet_drop_code_path() const;
 
   virtual std::vector<node_id_t> get_leaves() const;
   virtual std::vector<const Node *> get_children(bool recursive = false) const;

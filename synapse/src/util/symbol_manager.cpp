@@ -125,19 +125,19 @@ symbol_t SymbolManager::get_symbol(const std::string &name) const {
   return symbols_it->second;
 }
 
-std::vector<symbol_t> SymbolManager::get_symbols() const {
-  std::vector<symbol_t> result;
+symbols_t SymbolManager::get_symbols() const {
+  symbols_t result;
   for (const auto &symbol : symbols) {
-    result.push_back(symbol.second);
+    result.insert(symbol.second);
   }
   return result;
 }
 
-std::vector<symbol_t> SymbolManager::get_symbols_with_base(const std::string &base) const {
-  std::vector<symbol_t> result;
+symbols_t SymbolManager::get_symbols_with_base(const std::string &base) const {
+  symbols_t result;
   for (const auto &symbol : symbols) {
     if (symbol.second.base == base) {
-      result.push_back(symbol.second);
+      result.insert(symbol.second);
     }
   }
   return result;
@@ -149,7 +149,9 @@ symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
 
   if (symbols_it != symbols.end()) {
     const symbol_t &symbol = symbols_it->second;
-    SYNAPSE_ASSERT(symbol.expr->getWidth() == size, "Size mismatch");
+    SYNAPSE_ASSERT(symbol.expr->getWidth() == size,
+                   "Size mismatch (expr=%s, size=%u, requested=%u)",
+                   expr_to_string(symbol.expr, true).c_str(), symbol.expr->getWidth(), size);
     return symbol;
   }
 

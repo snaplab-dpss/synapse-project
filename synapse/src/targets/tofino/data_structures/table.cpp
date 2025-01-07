@@ -1,6 +1,6 @@
 #include "table.h"
 
-#include "../../../util/retriever.h"
+#include "../../../util/exprs.h"
 
 namespace synapse {
 namespace tofino {

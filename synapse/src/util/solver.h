@@ -5,7 +5,7 @@
 #include <klee/ExprBuilder.h>
 #include <klee/Solver.h>
 
-#include "../call_paths/call_paths.h"
+#include "../call_paths.h"
 
 namespace synapse {
 struct solver_toolbox_t {

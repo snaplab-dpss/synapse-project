@@ -4,7 +4,6 @@
 #include <klee/util/ExprVisitor.h>
 
 #include "exprs.h"
-#include "retriever.h"
 #include "../log.h"
 
 namespace synapse {
@@ -40,22 +39,22 @@ public:
         break;
       };
       case klee::Expr::Int8: {
-        int8_t value = constant->getZExtValue(8);
+        i8 value = constant->getZExtValue(8);
         ss << (int)value;
         break;
       };
       case klee::Expr::Int16: {
-        int16_t value = constant->getZExtValue(16);
+        i16 value = constant->getZExtValue(16);
         ss << (int)value;
         break;
       };
       case klee::Expr::Int32: {
-        int32_t value = constant->getZExtValue(32);
+        i32 value = constant->getZExtValue(32);
         ss << (int)value;
         break;
       };
       case klee::Expr::Int64: {
-        int64_t value = constant->getZExtValue(64);
+        i64 value = constant->getZExtValue(64);
         ss << (int)value;
         break;
       };
@@ -109,37 +108,13 @@ public:
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  std::vector<std::vector<unsigned>> group_bytes(const std::vector<unsigned> bytes) {
-    std::vector<std::vector<unsigned>> groups;
-    std::vector<unsigned> group;
-
-    if (bytes.size() == 0) {
-      return groups;
-    }
-
-    for (auto byte : bytes) {
-      if (group.size() > 0 && byte + 1 != group.back()) {
-        groups.push_back(group);
-        group.clear();
-      }
-
-      group.push_back(byte);
-    }
-
-    if (group.size() > 0) {
-      groups.push_back(group);
-    }
-
-    return groups;
-  }
-
   klee::ExprVisitor::Action visitConcat(const klee::ConcatExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
     std::vector<expr_group_t> groups = get_expr_groups(eref);
 
     if (groups.size() == 1 && groups[0].has_symbol && groups[0].offset == 0 &&
-        groups[0].n_bytes == (eref->getWidth() / 8)) {
+        groups[0].size == (eref->getWidth() / 8)) {
       result = groups[0].symbol;
       return klee::ExprVisitor::Action::skipChildren();
     }
@@ -158,13 +133,13 @@ public:
       } else {
         ss << group.symbol;
 
-        if (group.n_bytes == 1) {
+        if (group.size == 1) {
           ss << "[" << group.offset << "]";
         } else {
           ss << "[";
           ss << group.offset;
           ss << ":";
-          ss << (group.offset + group.n_bytes);
+          ss << (group.offset + group.size);
           ss << "]";
         }
       }
@@ -508,24 +483,24 @@ void remove_expr_str_labels(std::string &expr_str) {
       break;
     }
 
-    auto start = delim;
-    auto end = delim;
+    size_t start = delim;
+    size_t end = delim;
 
     while (expr_str[--start] != 'N') {
       SYNAPSE_ASSERT(start > 0 && start < expr_str.size(), "Invalid start");
     }
 
-    auto pre = expr_str.substr(0, start);
-    auto post = expr_str.substr(end + 1);
+    std::string pre = expr_str.substr(0, start);
+    std::string post = expr_str.substr(end + 1);
 
-    auto label_name = expr_str.substr(start, end - start);
-    auto label_expr = std::string();
+    std::string label_name = expr_str.substr(start, end - start);
+    std::string label_expr;
 
     expr_str = pre + post;
 
-    auto parenthesis_lvl = 0;
+    int parenthesis_lvl = 0;
 
-    for (auto c : post) {
+    for (char c : post) {
       if (c == '(') {
         parenthesis_lvl++;
       } else if (c == ')') {
@@ -546,7 +521,7 @@ void remove_expr_str_labels(std::string &expr_str) {
         break;
       }
 
-      auto label_sz = label_name.size();
+      size_t label_sz = label_name.size();
 
       if (delim + label_sz < expr_str.size() && expr_str[delim + label_sz] == ':') {
         pre = expr_str.substr(0, delim);

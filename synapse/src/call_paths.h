@@ -7,9 +7,9 @@
 
 #include <klee/Constraints.h>
 
-#include "../types.h"
-#include "../util/symbol.h"
-#include "../util/symbol_manager.h"
+#include "types.h"
+#include "util/symbol.h"
+#include "util/symbol_manager.h"
 
 namespace synapse {
 struct meta_t {

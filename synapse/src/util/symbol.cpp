@@ -53,6 +53,18 @@ symbol_t::symbol_t(klee::ref<klee::Expr> _expr) : expr(_expr) {
   base = base_from_name(name);
 }
 
+bool symbol_t::is_symbol(klee::ref<klee::Expr> expr) {
+  SymbolNamesRetriever retriever;
+  retriever.visit(expr);
+  return retriever.get_names().size() == 1;
+}
+
+std::unordered_set<std::string> symbol_t::get_symbols_names(klee::ref<klee::Expr> expr) {
+  SymbolNamesRetriever retriever;
+  retriever.visit(expr);
+  return retriever.get_names();
+}
+
 bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol) {
   for (const symbol_t &s : symbols) {
     if (s.base == base) {

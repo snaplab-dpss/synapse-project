@@ -7,7 +7,7 @@
 
 #include "../bdd/bdd.h"
 #include "../profiler.h"
-#include "../util.h"
+#include "../util/util.h"
 
 namespace synapse {
 class ProfilerViz : public BDDViz {

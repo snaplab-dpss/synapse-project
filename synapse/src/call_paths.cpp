@@ -13,11 +13,10 @@
 #include <llvm/Support/MemoryBuffer.h>
 
 #include "call_paths.h"
-#include "../util/exprs.h"
-#include "../util/retriever.h"
-#include "../util/solver.h"
-#include "../util/kQuery.h"
-#include "../system.h"
+#include "util/exprs.h"
+#include "util/solver.h"
+#include "util/kQuery.h"
+#include "system.h"
 
 namespace synapse {
 

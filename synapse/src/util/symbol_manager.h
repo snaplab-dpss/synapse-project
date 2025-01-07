@@ -30,8 +30,8 @@ public:
 
   bool has_symbol(const std::string &name) const;
   symbol_t get_symbol(const std::string &name) const;
-  std::vector<symbol_t> get_symbols() const;
-  std::vector<symbol_t> get_symbols_with_base(const std::string &base) const;
+  symbols_t get_symbols() const;
+  symbols_t get_symbols_with_base(const std::string &base) const;
   bool manages(klee::ref<klee::Expr> expr) const;
 
   void store_clone(const klee::Array *array);
