@@ -48,9 +48,10 @@ add_compile_options(
     -fno-omit-frame-pointer
 )
 
-# Uncomment the following lines to enable AddressSanitizer
-# add_compile_options(-fsanitize=address)
-# add_link_options(-fsanitize=address)
+if (ENABLE_ADDRESS_SANITIZER)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+endif()
 
 ###############################################################################
 # Setting output targets
