@@ -1,6 +1,6 @@
 #include "call_paths_groups.h"
-#include "../exprs/exprs.h"
-#include "../exprs/solver.h"
+#include "../util/exprs.h"
+#include "../util/solver.h"
 #include "../log.h"
 
 namespace synapse {

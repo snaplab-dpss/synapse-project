@@ -8,7 +8,7 @@
 #include "../util.h"
 #include "../execution_plan/context.h"
 #include "../execution_plan/execution_plan.h"
-#include "../exprs/symbol_manager.h"
+#include "../util/symbol_manager.h"
 
 namespace synapse {
 struct decision_t {

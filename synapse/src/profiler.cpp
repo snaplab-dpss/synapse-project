@@ -4,8 +4,8 @@
 #include "execution_plan/execution_plan.h"
 #include "random_engine.h"
 #include "log.h"
-#include "exprs/exprs.h"
-#include "exprs/solver.h"
+#include "util/exprs.h"
+#include "util/solver.h"
 
 namespace synapse {
 namespace {

@@ -7,8 +7,8 @@
 #include <unordered_map>
 
 #include "../../../bdd/bdd.h"
-#include "../../../exprs/exprs.h"
-#include "../../../exprs/solver.h"
+#include "../../../util/exprs.h"
+#include "../../../util/solver.h"
 #include "../../../log.h"
 
 namespace synapse {

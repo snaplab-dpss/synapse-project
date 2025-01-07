@@ -1,8 +1,8 @@
 #include "transpiler.h"
 #include "synthesizer.h"
-#include "../../exprs/exprs.h"
-#include "../../exprs/solver.h"
-#include "../../exprs/simplifier.h"
+#include "../../util/exprs.h"
+#include "../../util/solver.h"
+#include "../../util/simplifier.h"
 #include "../../log.h"
 
 #define TODO(expr)                                                                                 \

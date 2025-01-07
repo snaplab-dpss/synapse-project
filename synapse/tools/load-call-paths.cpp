@@ -3,7 +3,7 @@
 #include <CLI/CLI.hpp>
 
 #include "../src/call_paths/call_paths.h"
-#include "../src/exprs/exprs.h"
+#include "../src/util/exprs.h"
 
 using synapse::arg_t;
 using synapse::call_path_t;

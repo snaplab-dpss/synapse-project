@@ -1,7 +1,7 @@
 #include "call.h"
 #include "manager.h"
 #include "../bdd.h"
-#include "../../exprs/exprs.h"
+#include "../../util/exprs.h"
 
 namespace synapse {
 Node *Call::clone(NodeManager &manager, bool recursive) const {

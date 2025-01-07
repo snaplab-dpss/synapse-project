@@ -2,7 +2,7 @@
 #include "node.h"
 #include "visitor.h"
 #include "../targets/targets.h"
-#include "../exprs/solver.h"
+#include "../util/solver.h"
 #include "../profiler.h"
 #include "../log.h"
 #include "../constants.h"

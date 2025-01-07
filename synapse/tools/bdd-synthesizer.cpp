@@ -5,7 +5,7 @@
 
 #include "../src/bdd/bdd.h"
 #include "../src/synthesizers/bdd/synthesizer.h"
-#include "../src/exprs/symbol_manager.h"
+#include "../src/util/symbol_manager.h"
 
 using namespace synapse;
 

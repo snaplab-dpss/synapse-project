@@ -6,7 +6,84 @@
 #include "solver.h"
 #include "../log.h"
 
+#include <klee/util/ExprVisitor.h>
+
 namespace synapse {
+
+namespace {
+struct expr_info_t {
+  bool has_allowed;
+  bool has_not_allowed;
+};
+
+class ExpressionFilter : public klee::ExprVisitor::ExprVisitor {
+private:
+  std::vector<std::string> allowed_symbols;
+
+public:
+  ExpressionFilter(const std::vector<std::string> &_allowed_symbols)
+      : ExprVisitor(true), allowed_symbols(_allowed_symbols) {}
+
+  expr_info_t check_symbols(klee::ref<klee::Expr> expr) const {
+    expr_info_t info{false, false};
+
+    std::unordered_set<std::string> symbols = get_symbols(expr);
+
+    for (auto s : symbols) {
+      auto found_it = std::find(allowed_symbols.begin(), allowed_symbols.end(), s);
+
+      if (found_it != allowed_symbols.end()) {
+        info.has_allowed = true;
+      } else {
+        info.has_not_allowed = true;
+      }
+    }
+
+    return info;
+  }
+
+  // Acts only if either lhs or rhs has **only** allowed symbols, while the
+  // other has not allowed symbols. Returns the expression with allowed symbols.
+  klee::ref<klee::Expr> pick_filtered_expression(klee::ref<klee::Expr> lhs,
+                                                 klee::ref<klee::Expr> rhs) const {
+    expr_info_t lhs_info = check_symbols(lhs);
+    expr_info_t rhs_info = check_symbols(rhs);
+
+    if (lhs_info.has_allowed && !lhs_info.has_not_allowed && rhs_info.has_not_allowed) {
+      return lhs;
+    }
+
+    if (rhs_info.has_allowed && !rhs_info.has_not_allowed && lhs_info.has_not_allowed) {
+      return rhs;
+    }
+
+    return klee::ref<klee::Expr>();
+  }
+
+  klee::ExprVisitor::Action visitAnd(const klee::AndExpr &e) {
+    if (e.getNumKids() != 2)
+      return Action::doChildren();
+    klee::ref<klee::Expr> lhs = e.getKid(0);
+    klee::ref<klee::Expr> rhs = e.getKid(1);
+    klee::ref<klee::Expr> new_expr = pick_filtered_expression(lhs, rhs);
+    if (new_expr.isNull())
+      return Action::doChildren();
+    return Action::changeTo(new_expr);
+  }
+
+  klee::ExprVisitor::Action visitAnd(const klee::OrExpr &e) {
+    if (e.getNumKids() != 2)
+      return Action::doChildren();
+    klee::ref<klee::Expr> lhs = e.getKid(0);
+    klee::ref<klee::Expr> rhs = e.getKid(1);
+    klee::ref<klee::Expr> new_expr = pick_filtered_expression(lhs, rhs);
+    if (new_expr.isNull())
+      return Action::doChildren();
+    return Action::changeTo(new_expr);
+  }
+};
+} // namespace
+
 bool is_readLSB(klee::ref<klee::Expr> expr) {
   std::string symbol;
   return is_readLSB(expr, symbol);
@@ -253,6 +330,62 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
   }
 
   return constraint;
+}
+
+klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
+                             const std::vector<std::string> &allowed_symbols) {
+  ExpressionFilter filter(allowed_symbols);
+
+  expr_info_t data = filter.check_symbols(expr);
+  if (!data.has_allowed && data.has_not_allowed) {
+    return solver_toolbox.exprBuilder->True();
+  }
+
+  klee::ref<klee::Expr> filtered = filter.visit(expr);
+  SYNAPSE_ASSERT(filter.check_symbols(filtered).has_not_allowed == 0, "Invalid filter");
+
+  return filtered;
+}
+
+std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
+  SYNAPSE_ASSERT(before->getWidth() == after->getWidth(), "Different widths");
+
+  if (after->getKind() == klee::Expr::Concat) {
+    bits_t msb_width = after->getKid(0)->getWidth();
+    bits_t lsb_width = after->getWidth() - msb_width;
+
+    std::vector<mod_t> msb_groups = build_expr_mods(
+        solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
+
+    std::vector<mod_t> lsb_groups = build_expr_mods(
+        solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
+
+    std::vector<mod_t> groups = lsb_groups;
+
+    for (mod_t group : msb_groups) {
+      group.offset += lsb_width / 8;
+      groups.push_back(group);
+    }
+
+    return groups;
+  }
+
+  if (solver_toolbox.are_exprs_always_equal(before, after)) {
+    return {};
+  }
+
+  return {mod_t(0, after->getWidth(), after)};
+}
+
+std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr) {
+  std::vector<klee::ref<klee::Expr>> bytes;
+
+  bytes_t size = expr->getWidth() / 8;
+  for (bytes_t i = 0; i < size; i++) {
+    bytes.push_back(solver_toolbox.exprBuilder->Extract(expr, i * 8, 8));
+  }
+
+  return bytes;
 }
 
 } // namespace synapse

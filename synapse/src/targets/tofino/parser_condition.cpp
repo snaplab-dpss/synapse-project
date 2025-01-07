@@ -4,7 +4,7 @@
 #include "then.h"
 #include "else.h"
 
-#include "../../exprs/simplifier.h"
+#include "../../util/simplifier.h"
 
 namespace synapse {
 namespace tofino {

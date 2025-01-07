@@ -3,7 +3,6 @@
 #include "exprs.h"
 #include "solver.h"
 #include "retriever.h"
-#include "replacer.h"
 #include "../log.h"
 
 namespace synapse {

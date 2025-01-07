@@ -2,8 +2,8 @@
 
 #include "../tree.h"
 #include "../nodes/nodes.h"
-#include "../../exprs/exprs.h"
-#include "../../exprs/solver.h"
+#include "../../util/exprs.h"
+#include "../../util/solver.h"
 
 namespace synapse {
 namespace {

@@ -6,10 +6,10 @@
 #include "nodes/call.h"
 #include "nodes/branch.h"
 #include "nodes/route.h"
-#include "../exprs/retriever.h"
-#include "../exprs/exprs.h"
+#include "../util/retriever.h"
+#include "../util/exprs.h"
 #include "../log.h"
-#include "../exprs/kQuery.h"
+#include "../util/kQuery.h"
 
 namespace synapse {
 namespace {

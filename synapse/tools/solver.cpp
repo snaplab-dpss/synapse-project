@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "../src/exprs/solver.h"
-#include "../src/exprs/exprs.h"
-#include "../src/exprs/retriever.h"
-#include "../src/exprs/symbol_manager.h"
+#include "../src/util/solver.h"
+#include "../src/util/exprs.h"
+#include "../src/util/retriever.h"
+#include "../src/util/symbol_manager.h"
 
 using synapse::build_expr_mods;
 using synapse::expr_to_string;

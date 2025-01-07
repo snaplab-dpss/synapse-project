@@ -13,7 +13,7 @@
 #include "../src/search.h"
 #include "../src/synthesizers/ep/synthesizers.h"
 #include "../src/targets/targets.h"
-#include "../src/exprs/symbol_manager.h"
+#include "../src/util/symbol_manager.h"
 
 using namespace synapse;
 

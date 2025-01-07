@@ -2,7 +2,7 @@
 #include "visitor.h"
 #include "../targets/module.h"
 #include "../log.h"
-#include "../exprs/solver.h"
+#include "../util/solver.h"
 
 namespace synapse {
 namespace {

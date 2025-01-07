@@ -7,7 +7,7 @@
 #include "call.h"
 #include "manager.h"
 #include "../bdd.h"
-#include "../../exprs/solver.h"
+#include "../../util/solver.h"
 
 namespace synapse {
 namespace {

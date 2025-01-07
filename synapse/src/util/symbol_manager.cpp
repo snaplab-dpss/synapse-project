@@ -1,7 +1,7 @@
 #include "symbol_manager.h"
 #include "../system.h"
-#include "../exprs/solver.h"
-#include "../exprs/exprs.h"
+#include "../util/solver.h"
+#include "../util/exprs.h"
 
 #include <klee/ExprBuilder.h>
 #include <klee/util/ExprVisitor.h>

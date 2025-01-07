@@ -1,7 +1,7 @@
 #include "transpiler.h"
 #include "synthesizer.h"
-#include "../../../exprs/exprs.h"
-#include "../../../exprs/solver.h"
+#include "../../../util/exprs.h"
+#include "../../../util/solver.h"
 
 namespace synapse {
 namespace tofino {

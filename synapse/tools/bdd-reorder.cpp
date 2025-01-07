@@ -2,8 +2,8 @@
 #include <CLI/CLI.hpp>
 
 #include "../src/bdd/bdd.h"
-#include "../src/exprs/exprs.h"
-#include "../src/exprs/symbol_manager.h"
+#include "../src/util/exprs.h"
+#include "../src/util/symbol_manager.h"
 
 using synapse::anchor_info_t;
 using synapse::BDD;

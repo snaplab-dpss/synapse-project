@@ -1,7 +1,7 @@
 #include "synthesizer.h"
-#include "../../exprs/exprs.h"
-#include "../../exprs/solver.h"
-#include "../../exprs/retriever.h"
+#include "../../util/exprs.h"
+#include "../../util/solver.h"
+#include "../../util/retriever.h"
 #include "../../log.h"
 
 #define POPULATE_SYNTHESIZER(FNAME)                                                                \

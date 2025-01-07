@@ -1,7 +1,7 @@
 #include "branch.h"
 #include "manager.h"
 #include "../bdd.h"
-#include "../../exprs/exprs.h"
+#include "../../util/exprs.h"
 #include "../../log.h"
 
 namespace synapse {

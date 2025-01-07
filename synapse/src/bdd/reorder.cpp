@@ -4,9 +4,9 @@
 
 #include "visitors/bdd_visualizer.h"
 #include "reorder.h"
-#include "../exprs/exprs.h"
-#include "../exprs/retriever.h"
-#include "../exprs/solver.h"
+#include "../util/exprs.h"
+#include "../util/retriever.h"
+#include "../util/solver.h"
 
 namespace synapse {
 namespace {

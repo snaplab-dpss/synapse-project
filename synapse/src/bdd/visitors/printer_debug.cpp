@@ -2,7 +2,7 @@
 
 #include "../tree.h"
 #include "../nodes/nodes.h"
-#include "../../exprs/exprs.h"
+#include "../../util/exprs.h"
 
 namespace synapse {
 void PrinterDebug::debug(const Node *node) {

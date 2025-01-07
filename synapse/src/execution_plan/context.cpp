@@ -1,7 +1,7 @@
 #include "context.h"
 #include "../targets/targets.h"
-#include "../exprs/exprs.h"
-#include "../exprs/solver.h"
+#include "../util/exprs.h"
+#include "../util/solver.h"
 #include "../bdd/bdd.h"
 
 namespace synapse {

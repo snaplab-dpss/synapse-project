@@ -4,7 +4,7 @@
 
 #include "../src/bdd/bdd.h"
 #include "../src/bdd/visitors/bdd_visualizer.h"
-#include "../src/exprs/symbol_manager.h"
+#include "../src/util/symbol_manager.h"
 
 using synapse::BDD;
 using synapse::Branch;

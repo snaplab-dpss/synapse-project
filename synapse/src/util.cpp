@@ -5,9 +5,9 @@
 #include "bdd/bdd.h"
 #include "targets/targets.h"
 #include "execution_plan/execution_plan.h"
-#include "exprs/retriever.h"
-#include "exprs/simplifier.h"
-#include "exprs/solver.h"
+#include "util/retriever.h"
+#include "util/simplifier.h"
+#include "util/solver.h"
 
 namespace synapse {
 namespace {
