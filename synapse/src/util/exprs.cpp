@@ -82,6 +82,31 @@ public:
   }
 };
 
+class SymbolicReadsRetriever : public klee::ExprVisitor::ExprVisitor {
+private:
+  std::optional<std::string> filter;
+  symbolic_reads_t symbolic_reads;
+
+public:
+  SymbolicReadsRetriever() {}
+  SymbolicReadsRetriever(std::optional<std::string> _filter) : filter(_filter) {}
+
+  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
+    SYNAPSE_ASSERT(e.index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
+
+    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
+    const bytes_t byte = index_const->getZExtValue();
+    const std::string name = e.updates.root->name;
+
+    if (!filter.has_value() || name == filter.value()) {
+      symbolic_reads.insert({byte, name});
+    }
+    return klee::ExprVisitor::Action::doChildren();
+  }
+
+  const symbolic_reads_t &get_symbolic_reads() const { return symbolic_reads; }
+};
+
 klee::ref<klee::Expr> concat_lsb(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> byte) {
   if (expr->getKind() != klee::Expr::Concat) {
     return solver_toolbox.exprBuilder->Concat(expr, byte);
@@ -464,51 +489,9 @@ bool symbolic_read_equal_t::operator()(const symbolic_read_t &a,
 
 symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr,
                                            std::optional<std::string> symbol_filter) {
-  static std::unordered_map<unsigned, std::pair<klee::ref<klee::Expr>, symbolic_reads_t>> cache;
-
-  auto cache_found_it = cache.find(expr->hash());
-  if (cache_found_it != cache.end()) {
-    SYNAPSE_ASSERT(expr == cache_found_it->second.first, "Hash collision");
-    return cache_found_it->second.second;
-  }
-
-  symbolic_reads_t bytes;
-
-  switch (expr->getKind()) {
-  case klee::Expr::Kind::Read: {
-    klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
-    klee::ref<klee::Expr> index = read->index;
-
-    if (index->getKind() == klee::Expr::Kind::Constant) {
-      klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-
-      bytes_t byte = index_const->getZExtValue();
-      std::string symbol = read->updates.root->name;
-
-      if (!symbol_filter.has_value() || symbol == symbol_filter.value()) {
-        bytes.insert({byte, symbol});
-      }
-    }
-  } break;
-  case klee::Expr::Kind::Concat: {
-    klee::ConcatExpr *concat = dyn_cast<klee::ConcatExpr>(expr);
-
-    klee::ref<klee::Expr> left = concat->getLeft();
-    klee::ref<klee::Expr> right = concat->getRight();
-
-    symbolic_reads_t lbytes = get_unique_symbolic_reads(left);
-    symbolic_reads_t rbytes = get_unique_symbolic_reads(right);
-
-    bytes.insert(lbytes.begin(), lbytes.end());
-    bytes.insert(rbytes.begin(), rbytes.end());
-  } break;
-  default:
-    break;
-  }
-
-  cache[expr->hash()] = {expr, bytes};
-
-  return bytes;
+  SymbolicReadsRetriever retriever(symbol_filter);
+  retriever.visit(expr);
+  return retriever.get_symbolic_reads();
 }
 
 } // namespace synapse

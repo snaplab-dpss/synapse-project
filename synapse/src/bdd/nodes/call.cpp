@@ -97,7 +97,10 @@ bool Call::is_vector_read() const {
   }
 
   SYNAPSE_ASSERT(vector_borrow, "Vector borrow not found");
-  SYNAPSE_ASSERT(vector_return, "Vector return not found");
+
+  if (!vector_return) {
+    return true;
+  }
 
   const call_t &vb = vector_borrow->get_call();
   const call_t &vr = vector_return->get_call();

@@ -112,11 +112,6 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Nod
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
-
-  if (call.function_name != "vector_borrow") {
-    return std::nullopt;
-  }
 
   if (call_node->is_vector_write()) {
     return std::nullopt;
@@ -151,11 +146,6 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *n
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
-
-  if (call.function_name != "vector_borrow") {
-    return impls;
-  }
 
   if (call_node->is_vector_write()) {
     return impls;

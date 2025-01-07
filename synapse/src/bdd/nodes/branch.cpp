@@ -61,7 +61,7 @@ std::string Branch::dump(bool one_liner, bool id_name_only) const {
 bool Branch::is_parser_condition() const {
   std::vector<const Call *> future_borrows = get_future_functions({"packet_borrow_next_chunk"});
 
-  if (future_borrows.size() == 0) {
+  if (future_borrows.empty()) {
     return false;
   }
 

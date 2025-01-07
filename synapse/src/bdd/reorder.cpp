@@ -130,7 +130,6 @@ bool are_all_symbols_known(klee::ref<klee::Expr> expr, const symbols_t &known_sy
   bool has_packet_dependencies = false;
   for (const std::string &dependency : dependencies) {
     auto is_dependency = [dependency](const symbol_t &s) { return s.name == dependency; };
-
     auto found_it = std::find_if(known_symbols.begin(), known_symbols.end(), is_dependency);
 
     if (found_it == known_symbols.end()) {
@@ -969,6 +968,7 @@ void pull_branch(BDD *bdd, const mutable_vector_t &anchor, Branch *candidate,
 symbol_t get_collision_free_symbol(const symbol_t &candidate_symbol,
                                    SymbolManager *symbol_manager) {
   symbols_t used_symbols = symbol_manager->get_symbols();
+
   std::string name;
   int suffix = 1;
   while (true) {
@@ -1206,8 +1206,7 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
     return true;
   };
 
-  next->visit_nodes([&ops, &bdd, anchor, next, anchor_info,
-                     allow_candidate](const Node *node) -> NodeVisitAction {
+  next->visit_nodes([&ops, &bdd, anchor, next, anchor_info, allow_candidate](const Node *node) {
     candidate_info_t proposed_candidate =
         concretize_reordering_candidate(bdd, anchor, node->get_id());
 
