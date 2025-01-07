@@ -12,8 +12,8 @@ private:
 
 public:
   CMSIncrement(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
-      : x86Module(ModuleType::x86_CMSIncrement, "CMSIncrement", node),
-        cms_addr(_cms_addr), key(_key) {}
+      : x86Module(ModuleType::x86_CMSIncrement, "CMSIncrement", node), cms_addr(_cms_addr),
+        key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -31,14 +31,14 @@ public:
 
 class CMSIncrementFactory : public x86ModuleFactory {
 public:
-  CMSIncrementFactory()
-      : x86ModuleFactory(ModuleType::x86_CMSIncrement, "CMSIncrement") {}
+  CMSIncrementFactory() : x86ModuleFactory(ModuleType::x86_CMSIncrement, "CMSIncrement") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

@@ -197,8 +197,7 @@ void print_report(const report_t &report) {
   printf("###################### PCAP Stats ######################\n");
   printf("Start:                    %s\n", fmt_time_hh(report.start).c_str());
   printf("End:                      %s\n", fmt_time_hh(report.end).c_str());
-  printf("Duration:                 %s\n",
-         fmt_time_duration_hh(report.start, report.end).c_str());
+  printf("Duration:                 %s\n", fmt_time_duration_hh(report.start, report.end).c_str());
   printf("Total packets:            %s\n", fmt(report.total_pkts).c_str());
   printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(),
          (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
@@ -226,8 +225,7 @@ void print_report(const report_t &report) {
   for (const auto &[duration, prob] : report.flow_duration_us_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", duration, prob);
   }
-  printf("Flow time inter-packets:  %s ± %s us\n",
-         fmt(report.flow_dts_us_cdf.get_avg()).c_str(),
+  printf("Flow time inter-packets:  %s ± %s us\n", fmt(report.flow_dts_us_cdf.get_avg()).c_str(),
          fmt(report.flow_dts_us_cdf.get_stdev()).c_str());
   printf("Flow time inter-packets CDF (us):\n");
   for (const auto &[gap, prob] : report.flow_dts_us_cdf.get_cdf()) {
@@ -235,13 +233,11 @@ void print_report(const report_t &report) {
   }
   printf("Top-k flows (#pkts) CDF:\n");
   for (const auto &[k, prob] : report.top_k_flows_cdf.get_cdf()) {
-    printf("             %11lu: %.2f (%d%%)\n", k, prob,
-           (int)(k * 100.0 / report.total_flows));
+    printf("             %11lu: %.2f (%d%%)\n", k, prob, (int)(k * 100.0 / report.total_flows));
   }
   printf("Top-k flows (bytes) CDF:\n");
   for (const auto &[k, prob] : report.top_k_flows_bytes_cdf.get_cdf()) {
-    printf("             %11lu: %.2f (%d%%)\n", k, prob,
-           (int)(k * 100.0 / report.total_flows));
+    printf("             %11lu: %.2f (%d%%)\n", k, prob, (int)(k * 100.0 / report.total_flows));
   }
 }
 
@@ -354,10 +350,8 @@ int main(int argc, char *argv[]) {
 
   assert(pkts_per_flow_values.size() == bytes_per_flow_values.size());
 
-  std::sort(pkts_per_flow_values.begin(), pkts_per_flow_values.end(),
-            std::greater<u64>());
-  std::sort(bytes_per_flow_values.begin(), bytes_per_flow_values.end(),
-            std::greater<u64>());
+  std::sort(pkts_per_flow_values.begin(), pkts_per_flow_values.end(), std::greater<u64>());
+  std::sort(bytes_per_flow_values.begin(), bytes_per_flow_values.end(), std::greater<u64>());
 
   for (size_t i = 0; i < pkts_per_flow_values.size(); i++) {
     report.top_k_flows_cdf.add(i + 1, pkts_per_flow_values[i]);

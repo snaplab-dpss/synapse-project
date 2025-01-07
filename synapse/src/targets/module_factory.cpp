@@ -83,12 +83,10 @@ std::vector<EP *> get_reordered(const EP *ep) {
     translator_t next_nodes_translator;
     translator_t processed_nodes_translator;
 
-    build_node_translations(next_nodes_translator, processed_nodes_translator, bdd,
-                            new_bdd.op);
+    build_node_translations(next_nodes_translator, processed_nodes_translator, bdd, new_bdd.op);
     SYNAPSE_ASSERT(!new_bdd.op2.has_value(), "Not supported");
 
-    new_ep->replace_bdd(std::move(new_bdd.bdd), next_nodes_translator,
-                        processed_nodes_translator);
+    new_ep->replace_bdd(std::move(new_bdd.bdd), next_nodes_translator, processed_nodes_translator);
     new_ep->assert_integrity();
 
     reordered.push_back(new_ep);
@@ -109,14 +107,14 @@ impl_t ModuleFactory::implement(const EP *ep, const Node *node, EP *result,
 }
 
 std::vector<impl_t> ModuleFactory::generate(const EP *ep, const Node *node,
-                                            bool reorder_bdd) const {
+                                            SymbolManager *symbol_manager, bool reorder_bdd) const {
   std::vector<impl_t> implementations;
 
   if (!can_process_platform(ep, target)) {
     return implementations;
   }
 
-  std::vector<impl_t> internal_decisions = process_node(ep, node);
+  std::vector<impl_t> internal_decisions = process_node(ep, node, symbol_manager);
 
   for (const impl_t &impl : internal_decisions) {
     implementations.push_back(impl);

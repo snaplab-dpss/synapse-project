@@ -18,11 +18,12 @@
 #include "../exprs/replacer.h"
 #include "../exprs/solver.h"
 #include "../exprs/kQuery.h"
+#include "../system.h"
 
 namespace synapse {
 
 std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
-                                            ArrayManager *manager) {
+                                            SymbolManager *manager) {
   kQueryParser parser(manager);
 
   std::ifstream call_path_file(fpath.string());
@@ -153,8 +154,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
           auto remainder = line.substr(remainder_delim + last_store.size());
           auto ret_symbol = std::string("-> ");
           auto ret_delim = remainder.find(ret_symbol);
-          if (ret_delim != std::string::npos &&
-              remainder.substr(ret_symbol.size() + 1) != "[]") {
+          if (ret_delim != std::string::npos && remainder.substr(ret_symbol.size() + 1) != "[]") {
             auto ret = remainder.substr(ret_symbol.size() + 1);
             current_exprs_str.push_back(ret);
           }
@@ -164,21 +164,18 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
           state = state_t::STATE_CALLS_MULTILINE;
         } else {
           if (!current_extra_var.empty()) {
-            SYNAPSE_ASSERT(current_exprs_str.size() == 2,
-                           "Too many expression in extra variable.");
+            SYNAPSE_ASSERT(current_exprs_str.size() == 2, "Too many expression in extra variable.");
             if (current_exprs_str[0] != "(...)") {
               SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
               call_path->calls.back().extra_vars[current_extra_var].first = values[0];
               values.erase(values.begin());
-              current_exprs_str.erase(current_exprs_str.begin(),
-                                      current_exprs_str.begin() + 2);
+              current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
             }
             if (current_exprs_str[1] != "(...)") {
               SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
               call_path->calls.back().extra_vars[current_extra_var].second = values[0];
               values.erase(values.begin());
-              current_exprs_str.erase(current_exprs_str.begin(),
-                                      current_exprs_str.begin() + 2);
+              current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
             }
           } else {
             bool parsed_last_arg = false;
@@ -327,8 +324,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
         auto remainder = line.substr(remainder_delim + last_store.size());
         auto ret_symbol = std::string("-> ");
         auto ret_delim = remainder.find(ret_symbol);
-        if (ret_delim != std::string::npos &&
-            remainder.substr(ret_symbol.size() + 1) != "[]") {
+        if (ret_delim != std::string::npos && remainder.substr(ret_symbol.size() + 1) != "[]") {
           auto ret = remainder.substr(ret_symbol.size() + 1);
           current_exprs_str.push_back(ret);
         }
@@ -336,21 +332,18 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 
       if (parenthesis_level == 0) {
         if (!current_extra_var.empty()) {
-          SYNAPSE_ASSERT(current_exprs_str.size() == 2,
-                         "Too many expression in extra variable.");
+          SYNAPSE_ASSERT(current_exprs_str.size() == 2, "Too many expression in extra variable.");
           if (current_exprs_str[0] != "(...)") {
             SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
             call_path->calls.back().extra_vars[current_extra_var].first = values[0];
             values.erase(values.begin());
-            current_exprs_str.erase(current_exprs_str.begin(),
-                                    current_exprs_str.begin() + 2);
+            current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
           }
           if (current_exprs_str[1] != "(...)") {
             SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
             call_path->calls.back().extra_vars[current_extra_var].second = values[0];
             values.erase(values.begin());
-            current_exprs_str.erase(current_exprs_str.begin(),
-                                    current_exprs_str.begin() + 2);
+            current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
           }
         } else {
           bool parsed_last_arg = false;
@@ -492,35 +485,37 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 }
 
 call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files,
-                           ArrayManager *manager) {
+                           SymbolManager *_manager)
+    : manager(_manager) {
   for (const std::filesystem::path &fpath : call_path_files) {
-    cps.push_back(load_call_path(fpath, manager));
+    data.push_back(load_call_path(fpath, manager));
   }
 
-  for (const auto &call_path : cps) {
+  for (const auto &call_path : data) {
     for (const auto &expr : call_path->constraints) {
-      assert(manager->manages_all_in_expr(expr));
+      assert(manager->manages(expr));
     }
     for (const auto &call : call_path->calls) {
       for (const auto &arg : call.args) {
-        assert(manager->manages_all_in_expr(arg.second.expr));
-        assert(manager->manages_all_in_expr(arg.second.in));
-        assert(manager->manages_all_in_expr(arg.second.out));
+        assert(manager->manages(arg.second.expr));
+        assert(manager->manages(arg.second.in));
+        assert(manager->manages(arg.second.out));
       }
       for (const auto &extra_var : call.extra_vars) {
-        assert(manager->manages_all_in_expr(extra_var.second.first));
-        assert(manager->manages_all_in_expr(extra_var.second.second));
+        assert(manager->manages(extra_var.second.first));
+        assert(manager->manages(extra_var.second.second));
       }
-      assert(manager->manages_all_in_expr(call.ret));
+      assert(manager->manages(call.ret));
     }
   }
 }
 
 call_paths_view_t call_paths_t::get_view() const {
   call_paths_view_t view;
-  for (const std::unique_ptr<call_path_t> &cp : cps) {
-    view.push_back(cp.get());
+  for (const std::unique_ptr<call_path_t> &cp : data) {
+    view.data.push_back(cp.get());
   }
+  view.manager = manager;
   return view;
 }
 

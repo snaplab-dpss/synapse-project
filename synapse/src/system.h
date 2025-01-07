@@ -18,30 +18,30 @@
 #define COLOR_WHITE ""
 #define COLOR_BOLD "\033[1m"
 
-#define SYNAPSE_PANIC(fmt, ...)                                                          \
-  {                                                                                      \
-    fprintf(stderr, COLOR_RED_BRIGHT "\n");                                              \
-    fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                                  \
-    fprintf(stderr, COLOR_RESET "\n");                                                   \
-    fflush(stderr);                                                                      \
-    dbg_breakpoint();                                                                    \
-    exit(1);                                                                             \
+#define SYNAPSE_PANIC(fmt, ...)                                                                    \
+  {                                                                                                \
+    fprintf(stderr, COLOR_RED_BRIGHT "\n");                                                        \
+    fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                                            \
+    fprintf(stderr, COLOR_RESET "\n");                                                             \
+    fflush(stderr);                                                                                \
+    dbg_breakpoint();                                                                              \
+    exit(1);                                                                                       \
   }
 
-#define SYNAPSE_ASSERT(stmt, ...)                                                        \
-  {                                                                                      \
-    if (!(stmt)) {                                                                       \
-      fprintf(stderr, COLOR_RED_BRIGHT "\n");                                            \
-      fprintf(stderr, "ASSERTION FAILED: ");                                             \
-      fprintf(stderr, ##__VA_ARGS__);                                                    \
-      fprintf(stderr, "\n");                                                             \
-      fprintf(stderr, "Backtrace:\n");                                                   \
-      backtrace();                                                                       \
-      fprintf(stderr, COLOR_RESET);                                                      \
-      fflush(stderr);                                                                    \
-      dbg_breakpoint();                                                                  \
-      exit(1);                                                                           \
-    }                                                                                    \
+#define SYNAPSE_ASSERT(stmt, ...)                                                                  \
+  {                                                                                                \
+    if (!(stmt)) {                                                                                 \
+      fprintf(stderr, COLOR_RED_BRIGHT "\n");                                                      \
+      fprintf(stderr, "ASSERTION FAILED: ");                                                       \
+      fprintf(stderr, ##__VA_ARGS__);                                                              \
+      fprintf(stderr, "\n");                                                                       \
+      fprintf(stderr, "Backtrace:\n");                                                             \
+      backtrace();                                                                                 \
+      fprintf(stderr, COLOR_RESET);                                                                \
+      fflush(stderr);                                                                              \
+      dbg_breakpoint();                                                                            \
+      exit(1);                                                                                     \
+    }                                                                                              \
   }
 
 namespace synapse {

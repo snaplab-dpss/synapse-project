@@ -8,6 +8,7 @@
 #include "../util.h"
 #include "../execution_plan/context.h"
 #include "../execution_plan/execution_plan.h"
+#include "../exprs/symbol_manager.h"
 
 namespace synapse {
 struct decision_t {
@@ -43,8 +44,7 @@ struct spec_impl_t {
   std::optional<TargetType> next_target;
   nodes_t skip;
 
-  spec_impl_t(const decision_t &_decision, const Context &_ctx)
-      : decision(_decision), ctx(_ctx) {}
+  spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx) {}
 };
 
 struct impl_t {
@@ -70,7 +70,8 @@ public:
 
   virtual ~ModuleFactory() {}
 
-  std::vector<impl_t> generate(const EP *ep, const Node *node, bool reorder_bdd) const;
+  std::vector<impl_t> generate(const EP *ep, const Node *node, SymbolManager *symbol_manager,
+                               bool reorder_bdd) const;
 
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const = 0;
@@ -86,6 +87,7 @@ protected:
   impl_t implement(const EP *ep, const Node *node, EP *result,
                    std::unordered_map<std::string, i32> params = {}) const;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const = 0;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const = 0;
 };
 } // namespace synapse

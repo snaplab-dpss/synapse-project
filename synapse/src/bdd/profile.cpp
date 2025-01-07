@@ -53,8 +53,7 @@ void from_json(const json &j, bdd_profile_t::map_stats_t::epoch_t &epoch) {
 
   std::sort(epoch.pkts_per_persistent_flow.begin(), epoch.pkts_per_persistent_flow.end(),
             std::greater<u64>());
-  std::sort(epoch.pkts_per_new_flow.begin(), epoch.pkts_per_new_flow.end(),
-            std::greater<u64>());
+  std::sort(epoch.pkts_per_new_flow.begin(), epoch.pkts_per_new_flow.end(), std::greater<u64>());
 }
 
 void from_json(const json &j, bdd_profile_t::map_stats_t &map_stats) {
@@ -62,8 +61,7 @@ void from_json(const json &j, bdd_profile_t::map_stats_t &map_stats) {
   j.at("epochs").get_to(map_stats.epochs);
 }
 
-void from_json(const json &j,
-               std::unordered_map<u64, bdd_profile_t::map_stats_t> &stats_per_map) {
+void from_json(const json &j, std::unordered_map<u64, bdd_profile_t::map_stats_t> &stats_per_map) {
   for (const auto &kv : j.items()) {
     u64 map_addr = std::stoull(kv.key());
     bdd_profile_t::map_stats_t map_stats = kv.value();
@@ -114,8 +112,8 @@ fpm_t bdd_profile_t::churn_top_k_flows(u64 map, u32 k) const {
     size_t i = 0;
     size_t j = 0;
     size_t top_k_new_flows = 0;
-    while (i < epoch.pkts_per_persistent_flow.size() &&
-           j < epoch.pkts_per_new_flow.size() && i + j < k) {
+    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() &&
+           i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
         i++;
       } else {
@@ -151,8 +149,8 @@ hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
     size_t i = 0;
     size_t j = 0;
     size_t top_k_new_flows = 0;
-    while (i < epoch.pkts_per_persistent_flow.size() &&
-           j < epoch.pkts_per_new_flow.size() && i + j < k) {
+    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() &&
+           i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
         i++;
       } else {
@@ -181,8 +179,8 @@ u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
 
     size_t i = 0;
     size_t j = 0;
-    while (i < epoch.pkts_per_persistent_flow.size() &&
-           j < epoch.pkts_per_new_flow.size() && i + j < k) {
+    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() &&
+           i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
         threshold = std::min(threshold, epoch.pkts_per_persistent_flow[i]);
         i++;

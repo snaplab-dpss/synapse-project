@@ -37,8 +37,7 @@ struct search_step_report_t {
   }
 };
 
-void log_search_iteration(const search_step_report_t &report,
-                          const search_meta_t &search_meta) {
+void log_search_iteration(const search_step_report_t &report, const search_meta_t &search_meta) {
   TargetType platform = report.chosen->get_active_target();
   const EPMeta &meta = report.chosen->get_meta();
 
@@ -85,8 +84,7 @@ void log_search_iteration(const search_step_report_t &report,
   Log::dbg() << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
   Log::dbg() << "Branching factor: " << search_meta.branching_factor << "\n";
   Log::dbg() << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size) << "\n";
-  Log::dbg() << "SS size (est):    " << int2hr(search_meta.total_ss_size_estimation)
-             << "\n";
+  Log::dbg() << "SS size (est):    " << int2hr(search_meta.total_ss_size_estimation) << "\n";
   Log::dbg() << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
   Log::dbg() << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
   Log::dbg() << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
@@ -115,8 +113,7 @@ void peek_search_space(const std::vector<impl_t> &new_implementations,
   }
 }
 
-void peek_backtrack(const EP *ep, SearchSpace *search_space,
-                    bool pause_and_show_on_backtrack) {
+void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show_on_backtrack) {
   if (pause_and_show_on_backtrack) {
     Log::dbg() << "Backtracked to " << ep->get_id() << "\n";
     BDDViz::visualize(ep->get_bdd(), false);
@@ -126,8 +123,7 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space,
 }
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy,
-                                           std::shared_ptr<BDD> bdd,
-                                           const Targets &targets,
+                                           std::shared_ptr<BDD> bdd, const Targets &targets,
                                            const toml::table &targets_config,
                                            const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
@@ -166,14 +162,13 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 }
 } // namespace
 
-SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt,
-                           const Profiler &_profiler, const toml::table &_targets_config,
+SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler,
+                           const toml::table &_targets_config,
                            const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config),
-      bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)),
-      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd,
-                                                     targets, targets_config, profiler)) {
-}
+      bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)), profiler(_profiler),
+      heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config,
+                                profiler)) {}
 
 search_report_t SearchEngine::search() {
   auto start_search = std::chrono::steady_clock::now();
@@ -181,8 +176,7 @@ search_report_t SearchEngine::search() {
   search_meta_t meta;
   std::unordered_map<node_id_t, int> node_depth;
 
-  std::unique_ptr<SearchSpace> search_space =
-      std::make_unique<SearchSpace>(heuristic->get_cfg());
+  std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   bdd->get_root()->visit_nodes([this, &meta, &node_depth](const Node *node) {
     node_id_t id = node->get_id();
@@ -207,8 +201,7 @@ search_report_t SearchEngine::search() {
 
     if (search_space->is_backtrack()) {
       meta.backtracks++;
-      peek_backtrack(ep.get(), search_space.get(),
-                     search_config.pause_and_show_on_backtrack);
+      peek_backtrack(ep.get(), search_space.get(), search_config.pause_and_show_on_backtrack);
     }
 
     const Node *node = ep->get_next_node();
@@ -222,8 +215,8 @@ search_report_t SearchEngine::search() {
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
-        const std::vector<impl_t> implementations =
-            modgen->generate(ep.get(), node, !search_config.no_reorder);
+        const std::vector<impl_t> implementations = modgen->generate(
+            ep.get(), node, bdd->get_mutable_symbol_manager(), !search_config.no_reorder);
 
         search_space->add_to_active_leaf(ep.get(), node, modgen.get(), implementations);
         report.save(modgen.get(), implementations);

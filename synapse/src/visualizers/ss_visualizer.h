@@ -18,7 +18,6 @@ private:
 
 public:
   static void visualize(const SearchSpace *search_space, bool interrupt);
-  static void visualize(const SearchSpace *search_space, const EP *highlight,
-                        bool interrupt);
+  static void visualize(const SearchSpace *search_space, const EP *highlight, bool interrupt);
 };
 } // namespace synapse

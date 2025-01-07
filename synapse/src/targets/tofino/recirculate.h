@@ -12,8 +12,8 @@ private:
 
 public:
   Recirculate(const Node *node, symbols_t _symbols, int _recirc_port)
-      : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", node),
-        symbols(_symbols), recirc_port(_recirc_port) {}
+      : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", node), symbols(_symbols),
+        recirc_port(_recirc_port) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -31,14 +31,14 @@ public:
 
 class RecirculateFactory : public TofinoModuleFactory {
 public:
-  RecirculateFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_Recirculate, "Recirculate") {}
+  RecirculateFactory() : TofinoModuleFactory(ModuleType::Tofino_Recirculate, "Recirculate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

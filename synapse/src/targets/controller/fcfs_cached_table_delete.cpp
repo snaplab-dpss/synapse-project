@@ -13,8 +13,7 @@ DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
   const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   SYNAPSE_ASSERT(data_structures.size() == 1, "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
-  SYNAPSE_ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE,
-                 "Not a FCFS cached table");
+  SYNAPSE_ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE, "Not a FCFS cached table");
   return ds->id;
 }
 
@@ -31,9 +30,8 @@ void get_map_erase_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
-                                        const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
+                                                                   const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -55,8 +53,9 @@ FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep,
-                                                               const Node *node) const {
+std::vector<impl_t>
+FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

@@ -31,14 +31,14 @@ public:
 
 class DchainFreeIndexFactory : public x86ModuleFactory {
 public:
-  DchainFreeIndexFactory()
-      : x86ModuleFactory(ModuleType::x86_DchainFreeIndex, "DchainFreeIndex") {}
+  DchainFreeIndexFactory() : x86ModuleFactory(ModuleType::x86_DchainFreeIndex, "DchainFreeIndex") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

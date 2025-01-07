@@ -19,9 +19,8 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t>
-DchainIsIndexAllocatedFactory::speculate(const EP *ep, const Node *node,
-                                         const Context &ctx) const {
+std::optional<spec_impl_t> DchainIsIndexAllocatedFactory::speculate(const EP *ep, const Node *node,
+                                                                    const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
@@ -39,8 +38,9 @@ DchainIsIndexAllocatedFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep,
-                                                                const Node *node) const {
+std::vector<impl_t>
+DchainIsIndexAllocatedFactory::process_node(const EP *ep, const Node *node,
+                                            SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -59,11 +59,7 @@ std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep,
     return impls;
   }
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-  symbol_t is_allocated;
-  bool found = get_symbol(symbols, "dchain_is_index_allocated", is_allocated);
-  SYNAPSE_ASSERT(found, "Symbol dchain_is_index_allocated not found");
-
+  symbol_t is_allocated = call_node->get_local_symbol("is_allocated");
   Module *module = new DchainIsIndexAllocated(node, dchain_addr, index, is_allocated);
   EPNode *ep_node = new EPNode(module);
 

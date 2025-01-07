@@ -14,9 +14,8 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  MapRegisterRead(const Node *node, DS_ID _map_register_id, addr_t _obj,
-                  klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
-                  const symbol_t &_map_has_this_key)
+  MapRegisterRead(const Node *node, DS_ID _map_register_id, addr_t _obj, klee::ref<klee::Expr> _key,
+                  klee::ref<klee::Expr> _value, const symbol_t &_map_has_this_key)
       : TofinoModule(ModuleType::Tofino_MapRegisterRead, "MapRegisterRead", node),
         map_register_id(_map_register_id), obj(_obj), key(_key), value(_value),
         map_has_this_key(_map_has_this_key) {}
@@ -27,8 +26,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new MapRegisterRead(node, map_register_id, obj, key, value, map_has_this_key);
+    Module *cloned = new MapRegisterRead(node, map_register_id, obj, key, value, map_has_this_key);
     return cloned;
   }
 
@@ -38,9 +36,7 @@ public:
   klee::ref<klee::Expr> get_value() const { return value; }
   const symbol_t &get_map_has_this_key() const { return map_has_this_key; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return {map_register_id};
-  }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {map_register_id}; }
 };
 
 class MapRegisterReadFactory : public TofinoModuleFactory {
@@ -52,7 +48,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

@@ -7,30 +7,28 @@
 #include "call.h"
 #include "manager.h"
 #include "../bdd.h"
-#include "../../exprs/renamer.h"
 #include "../../exprs/solver.h"
 
 namespace synapse {
 namespace {
-call_t
-rename_call_symbols(const call_t &call,
-                    const std::unordered_map<std::string, std::string> &translations) {
+call_t rename_call_symbols(SymbolManager *symbol_manager, const call_t &call,
+                           const std::unordered_map<std::string, std::string> &translations) {
   call_t renamed_call = call;
 
   for (auto &arg_pair : renamed_call.args) {
     arg_t &arg = renamed_call.args[arg_pair.first];
-    arg.expr = rename_symbols(arg.expr, translations);
-    arg.in = rename_symbols(arg.in, translations);
-    arg.out = rename_symbols(arg.out, translations);
+    arg.expr = symbol_manager->translate(arg.expr, translations);
+    arg.in = symbol_manager->translate(arg.in, translations);
+    arg.out = symbol_manager->translate(arg.out, translations);
   }
 
   for (auto &extra_var_pair : renamed_call.extra_vars) {
     extra_var_t &extra_var = renamed_call.extra_vars[extra_var_pair.first];
-    extra_var.first = rename_symbols(extra_var.first, translations);
-    extra_var.second = rename_symbols(extra_var.second, translations);
+    extra_var.first = symbol_manager->translate(extra_var.first, translations);
+    extra_var.second = symbol_manager->translate(extra_var.second, translations);
   }
 
-  renamed_call.ret = rename_symbols(renamed_call.ret, translations);
+  renamed_call.ret = symbol_manager->translate(renamed_call.ret, translations);
   return renamed_call;
 }
 } // namespace
@@ -69,8 +67,7 @@ bool Node::is_reachable(node_id_t id) const {
 }
 
 size_t Node::count_children(bool recursive) const {
-  NodeVisitAction action =
-      recursive ? NodeVisitAction::Continue : NodeVisitAction::SkipChildren;
+  NodeVisitAction action = recursive ? NodeVisitAction::Continue : NodeVisitAction::SkipChildren;
   const Node *self = this;
 
   size_t total = 0;
@@ -208,11 +205,11 @@ void Node::recursive_update_ids(node_id_t &new_id) {
   }
 }
 
-const Node *Node::get_node_by_id(node_id_t _id) const {
+const Node *Node::get_node_by_id(node_id_t node_id) const {
   const Node *target = nullptr;
 
-  visit_nodes([_id, &target](const Node *node) -> NodeVisitAction {
-    if (node->get_id() == _id) {
+  visit_nodes([node_id, &target](const Node *node) -> NodeVisitAction {
+    if (node->get_id() == node_id) {
       target = node;
       return NodeVisitAction::Stop;
     }
@@ -222,21 +219,23 @@ const Node *Node::get_node_by_id(node_id_t _id) const {
   return target;
 }
 
-Node *Node::get_mutable_node_by_id(node_id_t _id) {
+Node *Node::get_mutable_node_by_id(node_id_t node_id) {
   Node *target = nullptr;
-  visit_mutable_nodes([_id, &target](Node *node) -> NodeVisitAction {
-    if (node->get_id() == _id) {
+
+  visit_mutable_nodes([node_id, &target](Node *node) -> NodeVisitAction {
+    if (node->get_id() == node_id) {
       target = node;
       return NodeVisitAction::Stop;
     }
     return NodeVisitAction::Continue;
   });
+
   return target;
 }
 
-void Node::recursive_translate_symbol(const symbol_t &old_symbol,
+void Node::recursive_translate_symbol(SymbolManager *symbol_manager, const symbol_t &old_symbol,
                                       const symbol_t &new_symbol) {
-  visit_mutable_nodes([old_symbol, new_symbol](Node *node) -> NodeVisitAction {
+  visit_mutable_nodes([symbol_manager, old_symbol, new_symbol](Node *node) -> NodeVisitAction {
     if (node->get_type() != NodeType::Call)
       return NodeVisitAction::Continue;
 
@@ -244,14 +243,12 @@ void Node::recursive_translate_symbol(const symbol_t &old_symbol,
 
     const call_t &call = call_node->get_call();
     call_t new_call =
-        rename_call_symbols(call, {{old_symbol.array->name, new_symbol.array->name}});
+        rename_call_symbols(symbol_manager, call, {{old_symbol.name, new_symbol.name}});
     call_node->set_call(new_call);
 
-    symbols_t generated_symbols = call_node->get_locally_generated_symbols();
+    symbols_t generated_symbols = call_node->get_local_symbols();
 
-    auto same_symbol = [old_symbol](const symbol_t &s) {
-      return s.base == old_symbol.base;
-    };
+    auto same_symbol = [old_symbol](const symbol_t &s) { return s.base == old_symbol.base; };
 
     size_t removed = std::erase_if(generated_symbols, same_symbol);
     if (removed > 0) {
@@ -274,19 +271,17 @@ void Node::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
 void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> fn,
                        std::unique_ptr<cookie_t> cookie) const {
-  std::vector<std::pair<const Node *, cookie_t *>> nodes{{this, cookie.release()}};
+  std::vector<std::pair<const Node *, std::unique_ptr<cookie_t>>> nodes;
+  nodes.push_back({this, std::move(cookie)});
 
   while (nodes.size()) {
     const Node *node = nodes[0].first;
-    cookie_t *node_cookie = nodes[0].second;
-
+    std::unique_ptr<cookie_t> node_cookie = std::move(nodes[0].second);
     nodes.erase(nodes.begin());
 
-    NodeVisitAction action = fn(node, node_cookie);
+    NodeVisitAction action = fn(node, node_cookie.get());
 
     if (action == NodeVisitAction::Stop) {
-      if (node_cookie)
-        delete node_cookie;
       return;
     }
 
@@ -297,27 +292,31 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> 
       const Node *on_false = branch_node->get_on_false();
 
       if (on_true && action != NodeVisitAction::SkipChildren) {
-        cookie_t *new_cookie = node_cookie ? node_cookie->clone() : node_cookie;
-        nodes.push_back({on_true, new_cookie});
+        std::unique_ptr<cookie_t> new_cookie;
+        if (node_cookie) {
+          new_cookie = node_cookie->clone();
+        }
+        nodes.push_back({on_true, std::move(new_cookie)});
       }
 
       if (on_false && action != NodeVisitAction::SkipChildren) {
-        cookie_t *new_cookie = node_cookie ? node_cookie->clone() : node_cookie;
-        nodes.push_back({on_false, new_cookie});
+        std::unique_ptr<cookie_t> new_cookie;
+        if (node_cookie) {
+          new_cookie = node_cookie->clone();
+        }
+        nodes.push_back({on_false, std::move(new_cookie)});
       }
-
-      delete node_cookie;
     } break;
     case NodeType::Call:
     case NodeType::Route: {
       const Node *next = node->get_next();
-
       if (next && action != NodeVisitAction::SkipChildren) {
-        nodes.push_back({next, node_cookie});
-      } else {
-        delete node_cookie;
+        std::unique_ptr<cookie_t> new_cookie;
+        if (node_cookie) {
+          new_cookie = node_cookie->clone();
+        }
+        nodes.push_back({next, std::move(node_cookie)});
       }
-
     } break;
     }
   }
@@ -329,19 +328,17 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *)> fn) const {
 
 void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn,
                                std::unique_ptr<cookie_t> cookie) {
-  std::vector<std::pair<Node *, cookie_t *>> nodes{{this, cookie.release()}};
+  std::vector<std::pair<Node *, std::unique_ptr<cookie_t>>> nodes;
+  nodes.push_back({this, std::move(cookie)});
 
   while (nodes.size()) {
     Node *node = nodes[0].first;
-    cookie_t *node_cookie = nodes[0].second;
-
+    std::unique_ptr<cookie_t> node_cookie = std::move(nodes[0].second);
     nodes.erase(nodes.begin());
 
-    NodeVisitAction action = fn(node, node_cookie);
+    NodeVisitAction action = fn(node, node_cookie.get());
 
     if (action == NodeVisitAction::Stop) {
-      if (node_cookie)
-        delete node_cookie;
       return;
     }
 
@@ -352,27 +349,31 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)
       Node *on_false = branch_node->get_mutable_on_false();
 
       if (on_true && action != NodeVisitAction::SkipChildren) {
-        cookie_t *new_cookie = node_cookie ? node_cookie->clone() : node_cookie;
-        nodes.push_back({on_true, new_cookie});
+        std::unique_ptr<cookie_t> new_cookie;
+        if (node_cookie) {
+          new_cookie = node_cookie->clone();
+        }
+        nodes.push_back({on_true, std::move(new_cookie)});
       }
 
       if (on_false && action != NodeVisitAction::SkipChildren) {
-        cookie_t *new_cookie = node_cookie ? node_cookie->clone() : node_cookie;
-        nodes.push_back({on_false, new_cookie});
+        std::unique_ptr<cookie_t> new_cookie;
+        if (node_cookie) {
+          new_cookie = node_cookie->clone();
+        }
+        nodes.push_back({on_false, std::move(new_cookie)});
       }
-
-      delete node_cookie;
     } break;
     case NodeType::Call:
     case NodeType::Route: {
       Node *next = node->get_mutable_next();
-
       if (next && action != NodeVisitAction::SkipChildren) {
-        nodes.push_back({next, node_cookie});
-      } else {
-        delete node_cookie;
+        std::unique_ptr<cookie_t> new_cookie;
+        if (node_cookie) {
+          new_cookie = node_cookie->clone();
+        }
+        nodes.push_back({next, std::move(node_cookie)});
       }
-
     } break;
     }
   }

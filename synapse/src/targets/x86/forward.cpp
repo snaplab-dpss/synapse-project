@@ -28,12 +28,11 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const Node *n
     return std::nullopt;
   }
 
-  const Route *route_node = dynamic_cast<const Route *>(node);
-
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node,
+                                                 SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

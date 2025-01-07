@@ -20,9 +20,9 @@ public:
                  klee::ref<klee::Expr> _hash, klee::ref<klee::Expr> _height,
                  klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _backend,
                  const symbol_t &_found)
-      : x86Module(ModuleType::x86_ChtFindBackend, "ChtFindBackend", node),
-        cht_addr(_cht_addr), backends_addr(_backends_addr), hash(_hash), height(_height),
-        capacity(_capacity), backend(_backend), found(_found) {}
+      : x86Module(ModuleType::x86_ChtFindBackend, "ChtFindBackend", node), cht_addr(_cht_addr),
+        backends_addr(_backends_addr), hash(_hash), height(_height), capacity(_capacity),
+        backend(_backend), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -30,8 +30,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new ChtFindBackend(node, cht_addr, backends_addr, hash, height,
-                                        capacity, backend, found);
+    Module *cloned =
+        new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, found);
     return cloned;
   }
 
@@ -46,14 +46,14 @@ public:
 
 class ChtFindBackendFactory : public x86ModuleFactory {
 public:
-  ChtFindBackendFactory()
-      : x86ModuleFactory(ModuleType::x86_ChtFindBackend, "ChtFindBackend") {}
+  ChtFindBackendFactory() : x86ModuleFactory(ModuleType::x86_ChtFindBackend, "ChtFindBackend") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

@@ -17,10 +17,10 @@ private:
 
 public:
   MapRegisterRead(const Node *node, DS_ID _id, addr_t _obj,
-                  const std::vector<klee::ref<klee::Expr>> &_keys,
-                  klee::ref<klee::Expr> _value, const std::optional<symbol_t> &_found)
-      : ControllerModule(ModuleType::Controller_MapRegisterRead, "MapRegisterRead", node),
-        id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
+                  const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value,
+                  const std::optional<symbol_t> &_found)
+      : ControllerModule(ModuleType::Controller_MapRegisterRead, "MapRegisterRead", node), id(_id),
+        obj(_obj), keys(_keys), value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -42,14 +42,14 @@ public:
 class MapRegisterReadFactory : public ControllerModuleFactory {
 public:
   MapRegisterReadFactory()
-      : ControllerModuleFactory(ModuleType::Controller_MapRegisterRead,
-                                "MapRegisterRead") {}
+      : ControllerModuleFactory(ModuleType::Controller_MapRegisterRead, "MapRegisterRead") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

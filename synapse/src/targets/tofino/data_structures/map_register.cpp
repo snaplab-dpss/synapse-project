@@ -27,8 +27,8 @@ std::vector<Register> build_keys(const TNAProperties &properties, DS_ID id,
 
   int i = 0;
   for (bits_t key_size : keys_sizes) {
-    Register cache_key(properties, id + "_key_" + std::to_string(i), capacity, hash_size,
-                       key_size, {RegisterAction::READ, RegisterAction::SWAP});
+    Register cache_key(properties, id + "_key_" + std::to_string(i), capacity, hash_size, key_size,
+                       {RegisterAction::READ, RegisterAction::SWAP});
     i++;
     cache_keys.push_back(cache_key);
   }

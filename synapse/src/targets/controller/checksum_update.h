@@ -12,8 +12,7 @@ private:
   symbol_t checksum;
 
 public:
-  ChecksumUpdate(const Node *node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr,
-                 symbol_t _checksum)
+  ChecksumUpdate(const Node *node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
       : ControllerModule(ModuleType::Controller_ChecksumUpdate, "SetIpChecksum", node),
         ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
 
@@ -35,14 +34,14 @@ public:
 class ChecksumUpdateFactory : public ControllerModuleFactory {
 public:
   ChecksumUpdateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_ChecksumUpdate, "ChecksumUpdate") {
-  }
+      : ControllerModuleFactory(ModuleType::Controller_ChecksumUpdate, "ChecksumUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

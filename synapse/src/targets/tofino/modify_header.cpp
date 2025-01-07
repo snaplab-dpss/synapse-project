@@ -19,8 +19,8 @@ std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const No
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep,
-                                                      const Node *node) const {
+std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const Node *node,
+                                                      SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -40,11 +40,9 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep,
 
   klee::ref<klee::Expr> hdr_addr_expr = call.args.at("the_chunk").expr;
   addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);
-  klee::ref<klee::Expr> hdr =
-      packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> hdr = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
 
-  std::vector<mod_t> changes =
-      build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
+  std::vector<mod_t> changes = build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

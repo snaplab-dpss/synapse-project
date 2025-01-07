@@ -6,17 +6,15 @@
 #include "../log.h"
 
 namespace synapse {
-std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
-                                   klee::ref<klee::Expr> after) {
+std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
   SYNAPSE_ASSERT(before->getWidth() == after->getWidth(), "Different widths");
 
   if (after->getKind() == klee::Expr::Concat) {
     bits_t msb_width = after->getKid(0)->getWidth();
     bits_t lsb_width = after->getWidth() - msb_width;
 
-    std::vector<mod_t> msb_groups =
-        build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width),
-                        after->getKid(0));
+    std::vector<mod_t> msb_groups = build_expr_mods(
+        solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
 
     std::vector<mod_t> lsb_groups = build_expr_mods(
         solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));

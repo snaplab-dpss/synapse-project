@@ -30,8 +30,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new ChtFindBackend(node, cht_addr, backends_addr, hash, height,
-                                        capacity, backend, found);
+    Module *cloned =
+        new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, found);
     return cloned;
   }
 
@@ -47,14 +47,14 @@ public:
 class ChtFindBackendFactory : public ControllerModuleFactory {
 public:
   ChtFindBackendFactory()
-      : ControllerModuleFactory(ModuleType::Controller_ChtFindBackend, "ChtFindBackend") {
-  }
+      : ControllerModuleFactory(ModuleType::Controller_ChtFindBackend, "ChtFindBackend") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

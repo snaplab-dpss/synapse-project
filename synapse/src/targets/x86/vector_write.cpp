@@ -38,8 +38,8 @@ std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

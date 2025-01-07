@@ -13,6 +13,7 @@
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 #include <cxxabi.h>
+#include <dlfcn.h>
 
 namespace synapse {
 uintptr_t get_base_addr() {
@@ -61,6 +62,25 @@ std::string exec_cmd(const std::string &cmd) {
   return result;
 }
 
+std::string resolve_line_info(const char *executable, uintptr_t address) {
+  char buffer[PATH_MAX];
+  const char *resolved_path = realpath(executable, buffer);
+
+  std::ostringstream cmd;
+  cmd << "addr2line -e " << resolved_path << " " << std::hex << address;
+
+  std::string result = exec_cmd(cmd.str());
+  result.erase(result.find_last_not_of("\n") + 1);
+
+  const std::string discriminator_marker = " (discriminator";
+  size_t marker_pos = result.find(discriminator_marker);
+  if (marker_pos != std::string::npos) {
+    result = result.substr(0, marker_pos);
+  }
+
+  return result;
+}
+
 void backtrace() {
   unw_cursor_t cursor;
   unw_context_t context;
@@ -76,21 +96,35 @@ void backtrace() {
   }
 
   while (unw_step(&cursor) > 0) {
-    unw_word_t offset;
+    unw_word_t offset, pc;
     std::array<char, 256> fname;
 
-    if (unw_get_proc_name(&cursor, fname.data(), sizeof(fname), &offset) == 0) {
-      int demangle_status;
-      char *demangled_name =
-          abi::__cxa_demangle(fname.data(), nullptr, nullptr, &demangle_status);
-      fprintf(stderr, "  -> %s\n",
-              (demangle_status == 0 ? demangled_name : fname.data()));
+    if (std::string(fname.data()) == "main") {
+      break;
+    }
 
+    unw_get_reg(&cursor, UNW_REG_IP, &pc);
+    if (pc == 0) {
+      break;
+    }
+
+    if (unw_get_proc_name(&cursor, fname.data(), sizeof(fname), &offset) == 0) {
+      int demangle_status = 0;
+      char *demangled_name = abi::__cxa_demangle(fname.data(), nullptr, nullptr, &demangle_status);
+      fprintf(stderr, "  -> %s ", (demangle_status == 0 ? demangled_name : fname.data()));
       if (demangle_status == 0) {
-        free(demangled_name);
+        std::free(demangled_name);
       }
     } else {
-      fprintf(stderr, "  -> [unknown]\n");
+      fprintf(stderr, "  -> [unknown] ");
+    }
+
+    Dl_info info;
+    if (dladdr((void *)pc, &info) && info.dli_fname) {
+      uintptr_t load_base = reinterpret_cast<uintptr_t>(info.dli_fbase);
+      uintptr_t relative_pc = pc - load_base;
+      const std::string line_info = resolve_line_info(info.dli_fname, relative_pc);
+      fprintf(stderr, " (in %s %s)\n", info.dli_fname, line_info.c_str());
     }
   }
 }

@@ -60,7 +60,7 @@ digraph mygraph {
 	13 -> 34 [label="False"];
 	12 [label="12:map_get(\l  map:1073922560,\l  key:1074059514[packet_chunks[156]++packet_chunks[159:167]++packet_chunks[294:298]],\l  value_out:1074062096[4294967295 -> allocated_index]) -> 1\l=>{allocated_index,map_has_this_key}", fillcolor="cornflowerblue"];
 	12 -> 13;
-	7 [shape=Mdiamond, label="7:!!DEVICE", fillcolor="yellow"];
+	7 [shape=Mdiamond, label="7:DEVICE", fillcolor="yellow"];
 	7 -> 8 [label="True"];
 	7 -> 12 [label="False"];
 	6 [label="6:packet_borrow_next_chunk(\l  p:1074034864,\l  length:4,\l  chunk:1074047096[ -> 1073766246])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
@@ -83,7 +83,7 @@ digraph mygraph {
 	3 -> 42 [label="False"];
 	2 [label="2:packet_borrow_next_chunk(\l  p:1074034864,\l  length:14,\l  chunk:1074045640[ -> 1073765952])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
 	2 -> 3;
-	1 [label="1:cms_periodic_cleanup(\l  cms:1073949496,\l  time:next_time) -> cleanup_success", fillcolor="cornflowerblue"];
+	1 [label="1:cms_periodic_cleanup(\l  cms:1073949496,\l  time:next_time) -> cleanup_success\l=>{cleanup_success}", fillcolor="cornflowerblue"];
 	1 -> 2;
 	0 [label="0:expire_items_single_map(\l  chain:1073948984,\l  vector:1073936344,\l  time:(18446744072709551616 + next_time),\l  map:1073922560) -> number_of_freed_flows\l=>{number_of_freed_flows}", fillcolor="cornflowerblue"];
 	0 -> 1;

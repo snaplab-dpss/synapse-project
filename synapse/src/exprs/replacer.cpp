@@ -54,9 +54,8 @@ public:
   }
 };
 
-klee::ref<klee::Expr>
-replace_symbols(klee::ref<klee::Expr> expr,
-                const std::vector<klee::ref<klee::ReadExpr>> &reads) {
+klee::ref<klee::Expr> replace_symbols(klee::ref<klee::Expr> expr,
+                                      const std::vector<klee::ref<klee::ReadExpr>> &reads) {
   SymbolReplacer rs(reads);
   return rs.visit(expr);
 }

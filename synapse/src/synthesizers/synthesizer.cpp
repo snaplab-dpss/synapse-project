@@ -11,8 +11,7 @@ std::filesystem::path get_template_path(std::string template_name) {
   return src_file.parent_path() / "templates" / template_name;
 }
 
-std::unordered_map<marker_t, coder_t>
-get_builders(std::unordered_map<marker_t, indent_t> markers) {
+std::unordered_map<marker_t, coder_t> get_builders(std::unordered_map<marker_t, indent_t> markers) {
   std::unordered_map<marker_t, coder_t> coders;
   for (const auto &[marker, lvl] : markers) {
     coders[marker] = coder_t(lvl);
@@ -39,10 +38,8 @@ void assert_markers_in_template(const std::filesystem::path &template_file,
 } // namespace
 
 Synthesizer::Synthesizer(std::string _template_fname,
-                         std::unordered_map<marker_t, indent_t> _markers,
-                         std::ostream &_out)
-    : template_file(get_template_path(_template_fname)), coders(get_builders(_markers)),
-      out(_out) {
+                         std::unordered_map<marker_t, indent_t> _markers, std::ostream &_out)
+    : template_file(get_template_path(_template_fname)), coders(get_builders(_markers)), out(_out) {
   if (!std::filesystem::exists(template_file)) {
     SYNAPSE_PANIC("Template file not found: %s\n", template_file.c_str());
   }
@@ -57,8 +54,7 @@ void coder_t::inc() { lvl++; }
 void coder_t::dec() { lvl--; }
 
 void coder_t::indent() {
-  stream << code_t(lvl * SYNTHESIZER_INDENTATION_MULTIPLIER,
-                   SYNTHESIZER_INDENTATION_UNIT);
+  stream << code_t(lvl * SYNTHESIZER_INDENTATION_MULTIPLIER, SYNTHESIZER_INDENTATION_UNIT);
 }
 
 code_t coder_t::dump() const { return stream.str(); }

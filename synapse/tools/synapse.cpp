@@ -13,6 +13,7 @@
 #include "../src/search.h"
 #include "../src/synthesizers/ep/synthesizers.h"
 #include "../src/targets/targets.h"
+#include "../src/exprs/symbol_manager.h"
 
 using namespace synapse;
 
@@ -47,7 +48,7 @@ int main(int argc, char **argv) {
   std::filesystem::path targets_config_file;
   std::filesystem::path out_dir;
   HeuristicOption heuristic_opt;
-  std::filesystem::path bdd_profile;
+  std::filesystem::path profile_file;
   search_config_t search_config;
   u32 seed = 0;
   bool show_prof = false;
@@ -56,14 +57,13 @@ int main(int argc, char **argv) {
   bool show_bdd = false;
   bool verbose = false;
 
-  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
-      ->required();
+  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
   app.add_option("--config", targets_config_file, "Configuration file.")->required();
   app.add_option("--out", out_dir, "Output directory for every generated file.");
   app.add_option("--heuristic", heuristic_opt, "Chosen heuristic.")
       ->transform(CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case))
       ->required();
-  app.add_option("--profile", bdd_profile, "BDD profile JSON.");
+  app.add_option("--profile", profile_file, "BDD profile_file JSON.");
   app.add_option("--seed", seed, "Random seed.")->default_val(std::random_device()());
   app.add_option("--peek", search_config.peek, "Peek execution plans.");
   app.add_flag("--no-reorder", search_config.no_reorder, "Deactivate BDD reordering.");
@@ -71,8 +71,7 @@ int main(int argc, char **argv) {
   app.add_flag("--show-ep", show_ep, "Show winner Execution Plan.");
   app.add_flag("--show-ss", show_ss, "Show the entire search space.");
   app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.");
-  app.add_flag("--backtrack", search_config.pause_and_show_on_backtrack,
-               "Pause on backtrack.");
+  app.add_flag("--backtrack", search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
   app.add_flag("--not-greedy", search_config.not_greedy, "Don't stop on first solution.");
   app.add_flag("-v", verbose, "Verbose mode.");
 
@@ -85,10 +84,11 @@ int main(int argc, char **argv) {
   }
 
   RandomEngine::seed(seed);
-  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file);
+  SymbolManager symbol_manager;
+  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
   toml::table targets_config = parse_targets_config(targets_config_file);
   Profiler profiler =
-      bdd_profile.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), bdd_profile);
+      profile_file.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), profile_file);
 
   if (show_prof) {
     profiler.debug();
@@ -109,8 +109,7 @@ int main(int argc, char **argv) {
 
   if (show_bdd) {
     // BDDViz::visualize(report.solution.ep->get_bdd(), false);
-    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(),
-                           false);
+    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
   }
 
   report.ep->get_ctx().debug();

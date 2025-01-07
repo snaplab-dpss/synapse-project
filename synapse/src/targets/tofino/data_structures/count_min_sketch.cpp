@@ -20,15 +20,14 @@ std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &
   return hashes;
 }
 
-std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 width,
-                                 u32 height) {
+std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 width, u32 height) {
   std::vector<Register> rows;
   bits_t hash_size = index_size_from_width(width);
   bits_t counter_size = 32;
 
   for (size_t i = 0; i < height; i++) {
-    Register row(properties, id + "_row_" + std::to_string(i), width, hash_size,
-                 counter_size, {RegisterAction::WRITE, RegisterAction::READ});
+    Register row(properties, id + "_row_" + std::to_string(i), width, hash_size, counter_size,
+                 {RegisterAction::WRITE, RegisterAction::READ});
     rows.push_back(row);
   }
 

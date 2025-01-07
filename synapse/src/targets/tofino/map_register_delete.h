@@ -32,9 +32,7 @@ public:
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return {map_register_id};
-  }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {map_register_id}; }
 };
 
 class MapRegisterDeleteFactory : public TofinoModuleFactory {
@@ -46,7 +44,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

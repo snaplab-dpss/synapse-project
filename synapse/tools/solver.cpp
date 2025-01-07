@@ -3,17 +3,24 @@
 #include "../src/exprs/solver.h"
 #include "../src/exprs/exprs.h"
 #include "../src/exprs/retriever.h"
+#include "../src/exprs/symbol_manager.h"
 
-using namespace synapse;
+using synapse::build_expr_mods;
+using synapse::expr_to_string;
+using synapse::mod_t;
+using synapse::solver_toolbox;
+using synapse::symbol_t;
+using synapse::SymbolManager;
 
 int main() {
-  klee::ref<klee::Expr> A1 = solver_toolbox.create_new_symbol("A", 64);
-  std::cerr << "A1 " << expr_to_string(A1) << "\n";
+  SymbolManager symbol_manager;
+  symbol_t A1 = symbol_manager.create_symbol("A", 64);
+  std::cerr << "A1 " << expr_to_string(A1.expr) << "\n";
 
-  klee::ref<klee::Expr> A2 = solver_toolbox.create_new_symbol("A", 64);
-  std::cerr << "A2 " << expr_to_string(A2) << "\n";
+  symbol_t A2 = symbol_manager.create_symbol("A", 64);
+  std::cerr << "A2 " << expr_to_string(A2.expr) << "\n";
 
-  klee::ref<klee::Expr> eq = solver_toolbox.exprBuilder->Eq(A1, A2);
+  klee::ref<klee::Expr> eq = solver_toolbox.exprBuilder->Eq(A1.expr, A2.expr);
 
   klee::ConstraintManager constraints;
   klee::Query sat_query(constraints, eq);
@@ -25,13 +32,13 @@ int main() {
   std::cerr << "Equal " << result << "\n";
 
   klee::ref<klee::Expr> expr1 = solver_toolbox.exprBuilder->Concat(
-      solver_toolbox.exprBuilder->Add(A1, solver_toolbox.exprBuilder->Constant(1, 64)),
-      solver_toolbox.exprBuilder->Add(solver_toolbox.create_new_symbol("B", 64),
+      solver_toolbox.exprBuilder->Add(A1.expr, solver_toolbox.exprBuilder->Constant(1, 64)),
+      solver_toolbox.exprBuilder->Add(symbol_manager.create_symbol("B", 64).expr,
                                       solver_toolbox.exprBuilder->Constant(1, 64)));
 
   klee::ref<klee::Expr> expr2 = solver_toolbox.exprBuilder->Concat(
-      solver_toolbox.exprBuilder->Add(A1, solver_toolbox.exprBuilder->Constant(1, 64)),
-      solver_toolbox.exprBuilder->Add(solver_toolbox.create_new_symbol("B", 64),
+      solver_toolbox.exprBuilder->Add(A1.expr, solver_toolbox.exprBuilder->Constant(1, 64)),
+      solver_toolbox.exprBuilder->Add(symbol_manager.create_symbol("B", 64).expr,
                                       solver_toolbox.exprBuilder->Constant(12, 64)));
 
   std::cerr << "expr1 " << expr_to_string(expr1) << "\n";

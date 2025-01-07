@@ -96,8 +96,7 @@ private:
   var_t build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr,
                       klee::ref<klee::Expr> value, coder_t &coder, bool &found_in_stack);
   var_t build_var(const std::string &name, klee::ref<klee::Expr> expr);
-  var_t build_var(const std::string &name, klee::ref<klee::Expr> expr,
-                  klee::ref<klee::Expr> addr);
+  var_t build_var(const std::string &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr);
   code_t slice_var(const var_t &var, unsigned offset, bits_t size) const;
 
   friend class BDDTranspiler;

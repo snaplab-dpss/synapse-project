@@ -10,14 +10,13 @@ private:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
-  klee::ref<klee::Expr> min_estimate;
+  symbol_t min_estimate;
 
 public:
-  HHTableUpdate(const Node *node, addr_t _obj,
-                const std::vector<klee::ref<klee::Expr>> &_keys,
-                klee::ref<klee::Expr> _value, klee::ref<klee::Expr> _min_estimate)
-      : ControllerModule(ModuleType::Controller_HHTableUpdate, "HHTableUpdate", node),
-        obj(_obj), keys(_keys), value(_value), min_estimate(_min_estimate) {}
+  HHTableUpdate(const Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+                klee::ref<klee::Expr> _value, const symbol_t &_min_estimate)
+      : ControllerModule(ModuleType::Controller_HHTableUpdate, "HHTableUpdate", node), obj(_obj),
+        keys(_keys), value(_value), min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -32,7 +31,7 @@ public:
   addr_t get_obj() const { return obj; }
   std::vector<klee::ref<klee::Expr>> get_keys() const { return keys; }
   klee::ref<klee::Expr> get_value() const { return value; }
-  klee::ref<klee::Expr> get_min_estimate() const { return min_estimate; }
+  const symbol_t &get_min_estimate() const { return min_estimate; }
 };
 
 class HHTableUpdateFactory : public ControllerModuleFactory {
@@ -44,7 +43,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

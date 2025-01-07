@@ -9,7 +9,7 @@
 
 #include "../types.h"
 #include "../exprs/symbol.h"
-#include "../exprs/array_manager.h"
+#include "../exprs/symbol_manager.h"
 
 namespace synapse {
 struct meta_t {
@@ -40,20 +40,22 @@ typedef std::vector<call_t> calls_t;
 struct call_path_t {
   std::string file_name;
   klee::ConstraintManager constraints;
-  symbols_t symbols; // TODO: remove, arrays are stored in ArrayManager
   calls_t calls;
 };
 
 std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
-                                            ArrayManager *manager);
+                                            SymbolManager *manager);
 
-typedef std::vector<call_path_t *> call_paths_view_t;
+struct call_paths_view_t {
+  std::vector<call_path_t *> data;
+  SymbolManager *manager;
+};
 
 struct call_paths_t {
-  std::vector<std::unique_ptr<call_path_t>> cps;
+  std::vector<std::unique_ptr<call_path_t>> data;
+  SymbolManager *manager;
 
-  call_paths_t(const std::vector<std::filesystem::path> &call_path_files,
-               ArrayManager *manager);
+  call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *manager);
 
   call_paths_view_t get_view() const;
 };

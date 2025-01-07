@@ -182,8 +182,7 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
     bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
     time_ns_t cleanup_interval_value = solver_toolbox.value_from_expr(cleanup_interval);
 
-    return cms_config_t{height_value, width_value, key_size_value,
-                        cleanup_interval_value};
+    return cms_config_t{height_value, width_value, key_size_value, cleanup_interval_value};
   }
 
   SYNAPSE_PANIC("Should have found cms configuration");

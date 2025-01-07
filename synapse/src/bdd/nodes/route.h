@@ -14,8 +14,7 @@ private:
 public:
   Route(node_id_t _id, const klee::ConstraintManager &_constraints, RouteOp _operation,
         int _dst_device)
-      : Node(_id, NodeType::Route, _constraints), operation(_operation),
-        dst_device(_dst_device) {}
+      : Node(_id, NodeType::Route, _constraints), operation(_operation), dst_device(_dst_device) {}
 
   Route(node_id_t _id, const klee::ConstraintManager &_constraints, RouteOp _operation)
       : Node(_id, NodeType::Route, _constraints), operation(_operation) {
@@ -23,8 +22,8 @@ public:
                    "Invalid operation");
   }
 
-  Route(node_id_t _id, Node *_next, Node *_prev,
-        const klee::ConstraintManager &_constraints, RouteOp _operation, int _dst_device)
+  Route(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints,
+        RouteOp _operation, int _dst_device)
       : Node(_id, NodeType::Route, _next, _prev, _constraints), operation(_operation),
         dst_device(_dst_device) {}
 

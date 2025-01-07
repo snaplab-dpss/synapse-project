@@ -75,8 +75,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
       "cms_periodic_cleanup",
   };
 
-  if (functions_to_always_ignore.find(call.function_name) !=
-      functions_to_always_ignore.end()) {
+  if (functions_to_always_ignore.find(call.function_name) != functions_to_always_ignore.end()) {
     return true;
   }
 
@@ -113,7 +112,8 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *no
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node,
+                                                SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, ep->get_ctx(), node)) {

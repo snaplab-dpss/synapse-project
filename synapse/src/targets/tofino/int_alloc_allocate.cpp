@@ -3,9 +3,9 @@
 namespace synapse {
 namespace tofino {
 
-std::optional<spec_impl_t>
-IntegerAllocatorAllocateFactory::speculate(const EP *ep, const Node *node,
-                                           const Context &ctx) const {
+std::optional<spec_impl_t> IntegerAllocatorAllocateFactory::speculate(const EP *ep,
+                                                                      const Node *node,
+                                                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -31,7 +31,8 @@ IntegerAllocatorAllocateFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node) const {
+IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node,
+                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -55,15 +56,11 @@ IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node) co
     return impls;
   }
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-  symbol_t out_of_space;
-  bool found = get_symbol(symbols, "out_of_space", out_of_space);
-  SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
+  symbol_t out_of_space = call_node->get_local_symbol("out_of_space");
 
   // TODO: implement the actual data structure.
 
-  Module *module =
-      new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, out_of_space);
+  Module *module = new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, out_of_space);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

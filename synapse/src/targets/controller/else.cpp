@@ -8,7 +8,8 @@ std::optional<spec_impl_t> ElseFactory::speculate(const EP *ep, const Node *node
   return std::nullopt;
 }
 
-std::vector<impl_t> ElseFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> ElseFactory::process_node(const EP *ep, const Node *node,
+                                              SymbolManager *symbol_manager) const {
   // Never explicitly generate this module from the BDD.
   return {};
 }

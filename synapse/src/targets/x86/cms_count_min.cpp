@@ -38,8 +38,8 @@ std::optional<spec_impl_t> CMSCountMinFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -53,11 +53,7 @@ std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep,
   klee::ref<klee::Expr> key = call.args.at("key").in;
 
   addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
-
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-  symbol_t min_estimate;
-  bool found = get_symbol(symbols, "min_estimate", min_estimate);
-  SYNAPSE_ASSERT(found, "Symbol min_estimate not found");
+  symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return impls;

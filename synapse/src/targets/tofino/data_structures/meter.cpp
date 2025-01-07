@@ -7,14 +7,13 @@ namespace tofino {
 
 Meter::Meter(DS_ID _id, u32 _capacity, Bps_t _rate, bytes_t _burst,
              const std::vector<bits_t> &_keys)
-    : DS(DSType::METER, true, _id), capacity(_capacity), rate(_rate), burst(_burst),
-      keys(_keys) {
+    : DS(DSType::METER, true, _id), capacity(_capacity), rate(_rate), burst(_burst), keys(_keys) {
   SYNAPSE_ASSERT(capacity > 0, "Meter capacity must be greater than 0");
 }
 
 Meter::Meter(const Meter &other)
-    : DS(other.type, other.primitive, other.id), capacity(other.capacity),
-      rate(other.rate), burst(other.burst), keys(other.keys) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), rate(other.rate),
+      burst(other.burst), keys(other.keys) {}
 
 DS *Meter::clone() const { return new Meter(*this); }
 

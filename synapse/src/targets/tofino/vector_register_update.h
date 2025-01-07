@@ -14,12 +14,10 @@ private:
   std::vector<mod_t> modifications;
 
 public:
-  VectorRegisterUpdate(const Node *node, const std::unordered_set<DS_ID> &_rids,
-                       addr_t _obj, klee::ref<klee::Expr> _index,
-                       klee::ref<klee::Expr> _read_value,
+  VectorRegisterUpdate(const Node *node, const std::unordered_set<DS_ID> &_rids, addr_t _obj,
+                       klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _read_value,
                        const std::vector<mod_t> &_modifications)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate",
-                     node),
+      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate", node),
         rids(_rids), obj(_obj), index(_index), read_value(_read_value),
         modifications(_modifications) {}
 
@@ -29,8 +27,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new VectorRegisterUpdate(node, rids, obj, index, read_value, modifications);
+    Module *cloned = new VectorRegisterUpdate(node, rids, obj, index, read_value, modifications);
     return cloned;
   }
 
@@ -46,14 +43,14 @@ public:
 class VectorRegisterUpdateFactory : public TofinoModuleFactory {
 public:
   VectorRegisterUpdateFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterUpdate,
-                            "VectorRegisterUpdate") {}
+      : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

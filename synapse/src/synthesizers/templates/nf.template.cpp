@@ -31,13 +31,13 @@ extern "C" {
 
 #include <stdbool.h>
 
-#define NF_INFO(text, ...)                                                     \
-  printf(text "\n", ##__VA_ARGS__);                                            \
+#define NF_INFO(text, ...)                                                                         \
+  printf(text "\n", ##__VA_ARGS__);                                                                \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                    \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                         \
+#define NF_DEBUG(text, ...)                                                                        \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                             \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
@@ -55,8 +55,7 @@ static const uint16_t TX_QUEUE_SIZE = 1024;
 static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
 
 bool nf_init();
-int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
-               time_ns_t now);
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now);
 
 // Send the given packet to all devices except the packet's own
 void flood(struct rte_mbuf *packet, uint16_t nb_devices, uint16_t queue_id) {
@@ -91,15 +90,14 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
   }
 
   // Allocate and set up a TX queue (NULL == default config)
-  retval = rte_eth_tx_queue_setup(device, 0, TX_QUEUE_SIZE,
-                                  rte_eth_dev_socket_id(device), NULL);
+  retval = rte_eth_tx_queue_setup(device, 0, TX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL);
   if (retval != 0) {
     return retval;
   }
 
   // Allocate and set up RX queues (NULL == default config)
-  retval = rte_eth_rx_queue_setup(
-      device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL, mbuf_pool);
+  retval = rte_eth_rx_queue_setup(device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL,
+                                  mbuf_pool);
   if (retval != 0) {
     return retval;
   }
@@ -141,8 +139,7 @@ static void worker_main(void) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
         time_ns_t now = current_time();
-        uint16_t dst_device =
-            nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now);
+        uint16_t dst_device = nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now);
 
         if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);
@@ -155,8 +152,7 @@ static void worker_main(void) {
         }
       }
 
-      uint16_t sent_count =
-          rte_eth_tx_burst(1 - dev, 0, mbufs_to_send, tx_count);
+      uint16_t sent_count = rte_eth_tx_burst(1 - dev, 0, mbufs_to_send, tx_count);
       for (uint16_t n = sent_count; n < tx_count; n++) {
         rte_pktmbuf_free(mbufs[n]); // should not happen, but we're in
                                     // the unverified case anyway
@@ -174,14 +170,14 @@ int main(int argc, char **argv) {
   argv += ret;
 
   unsigned nb_devices = rte_eth_dev_count_avail();
-  struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create(
-      "MEMPOOL",                         // name
-      MEMPOOL_BUFFER_COUNT * nb_devices, // #elements
-      0, // cache size (per-core, not useful in a single-threaded app)
-      0, // application private area size
-      RTE_MBUF_DEFAULT_BUF_SIZE, // data buffer size
-      rte_socket_id()            // socket ID
-  );
+  struct rte_mempool *mbuf_pool =
+      rte_pktmbuf_pool_create("MEMPOOL",                         // name
+                              MEMPOOL_BUFFER_COUNT * nb_devices, // #elements
+                              0, // cache size (per-core, not useful in a single-threaded app)
+                              0, // application private area size
+                              RTE_MBUF_DEFAULT_BUF_SIZE, // data buffer size
+                              rte_socket_id()            // socket ID
+      );
   if (mbuf_pool == NULL) {
     rte_exit(EXIT_FAILURE, "Cannot create pool: %s\n", rte_strerror(rte_errno));
   }

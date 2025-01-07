@@ -5,16 +5,8 @@
 namespace synapse {
 namespace tofino {
 namespace {
-EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols,
-                    int recirc_port, const std::vector<int> &past_recirculations) {
-  EP *new_ep = new EP(*ep);
-
-  Module *module = new Recirculate(node, symbols, recirc_port);
-  EPNode *ep_node = new EPNode(module);
-
-  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
-  hit_rate_t recirc_fraction = ep->get_active_leaf_hit_rate();
-
+EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols, int recirc_port,
+                    const std::vector<int> &past_recirculations) {
   int port_recirculations = 1;
   for (int p : past_recirculations) {
     if (p == recirc_port) {
@@ -22,8 +14,12 @@ EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols,
     }
   }
 
+  EP *new_ep = new EP(*ep);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(
       recirc_port, get_node_egress(ep, ep->get_active_leaf().node));
+
+  Module *module = new Recirculate(node, symbols, recirc_port);
+  EPNode *ep_node = new EPNode(module);
 
   // Note that we don't point to the next BDD node, as it was not actually
   // implemented.
@@ -66,8 +62,8 @@ std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const Nod
   return std::nullopt;
 }
 
-std::vector<impl_t> RecirculateFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
@@ -87,8 +83,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep,
                   !forwarding_decision_already_made(ep->get_active_leaf().node)),
                  "TODO");
 
-  int total_recirc_ports =
-      get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
+  int total_recirc_ports = get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
   std::vector<int> past_recirc = get_past_recirculations(active_leaf.node);
 
   symbols_t symbols = get_dataplane_state(ep, node);

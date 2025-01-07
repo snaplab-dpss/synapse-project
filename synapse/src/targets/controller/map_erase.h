@@ -14,8 +14,8 @@ private:
 public:
   MapErase(const Node *node, addr_t _map_addr, klee::ref<klee::Expr> _key,
            klee::ref<klee::Expr> _trash)
-      : ControllerModule(ModuleType::Controller_MapErase, "MapErase", node),
-        map_addr(_map_addr), key(_key), trash(_trash) {}
+      : ControllerModule(ModuleType::Controller_MapErase, "MapErase", node), map_addr(_map_addr),
+        key(_key), trash(_trash) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -34,14 +34,14 @@ public:
 
 class MapEraseFactory : public ControllerModuleFactory {
 public:
-  MapEraseFactory()
-      : ControllerModuleFactory(ModuleType::Controller_MapErase, "MapErase") {}
+  MapEraseFactory() : ControllerModuleFactory(ModuleType::Controller_MapErase, "MapErase") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

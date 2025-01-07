@@ -65,9 +65,8 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node, addr_
 }
 } // namespace
 
-std::optional<spec_impl_t>
-VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
-                                       const Context &ctx) const {
+std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
+                                                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -83,8 +82,7 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  vector_register_data_t vector_register_data =
-      get_vector_register_data(ep, vector_borrow);
+  vector_register_data_t vector_register_data = get_vector_register_data(ep, vector_borrow);
 
   if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return std::nullopt;
@@ -108,8 +106,8 @@ VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
-                                                              const Node *node) const {
+std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const Node *node,
+                                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -129,8 +127,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
 
   vector_register_data_t vector_register_data = get_vector_register_data(ep, call_node);
 
-  if (!ep->get_ctx().can_impl_ds(vector_register_data.obj,
-                                 DSImpl::Tofino_VectorRegister)) {
+  if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return impls;
   }
 
@@ -146,9 +143,8 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep,
     rids.insert(reg->id);
   }
 
-  Module *module =
-      new VectorRegisterLookup(node, rids, vector_register_data.obj,
-                               vector_register_data.index, vector_register_data.value);
+  Module *module = new VectorRegisterLookup(node, rids, vector_register_data.obj,
+                                            vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -6,8 +6,7 @@ namespace ctrl {
 using tofino::Table;
 
 namespace {
-void get_tb_data(const Call *tb_trace, addr_t &obj,
-                 std::vector<klee::ref<klee::Expr>> &keys,
+void get_tb_data(const Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
                  klee::ref<klee::Expr> &success) {
   const call_t &call = tb_trace->get_call();
 
@@ -44,8 +43,8 @@ std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

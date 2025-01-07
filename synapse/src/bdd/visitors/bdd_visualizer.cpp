@@ -174,8 +174,7 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
         }
 
         if (!arg.out.isNull() &&
-            (arg.in.isNull() ||
-             !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
+            (arg.in.isNull() || !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
           ss << " -> ";
           ss << pretty_print_expr(arg.out, false);
         }
@@ -197,7 +196,7 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
     ss << " -> " << pretty_print_expr(call.ret);
   }
 
-  const symbols_t &symbols = node->get_locally_generated_symbols();
+  const symbols_t &symbols = node->get_local_symbols();
   if (symbols.size()) {
     ss << "\\l=>{";
     bool first = true;
@@ -207,7 +206,7 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
       } else {
         first = false;
       }
-      ss << s.array->name;
+      ss << s.name;
     }
     ss << "}";
   }

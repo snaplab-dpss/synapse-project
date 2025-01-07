@@ -4,11 +4,8 @@
 #include "../../exprs/retriever.h"
 #include "../../log.h"
 
-#define POPULATE_SYNTHESIZER(FNAME)                                                      \
-  {                                                                                      \
-    #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1,               \
-                      std::placeholders::_2)                                             \
-  }
+#define POPULATE_SYNTHESIZER(FNAME)                                                                \
+  { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
 
 namespace synapse {
 namespace {
@@ -250,9 +247,6 @@ void BDDSynthesizer::synthesize(const Node *node) {
     } break;
     case NodeType::Call: {
       const Call *call_node = dynamic_cast<const Call *>(node);
-      // const call_t &call = call_node->get_call();
-      // symbols_t generated_symbols =
-      // call_node->get_locally_generated_symbols();
       synthesize_process(coder, call_node);
     } break;
     case NodeType::Route: {
@@ -284,8 +278,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
 void BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
   if (this->init_synthesizers.find(call.function_name) == this->init_synthesizers.end()) {
-    SYNAPSE_PANIC("No init synthesizer found for function: %s\n",
-                  call.function_name.c_str());
+    SYNAPSE_PANIC("No init synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
   (this->init_synthesizers[call.function_name])(coder, call);
@@ -294,10 +287,8 @@ void BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
 void BDDSynthesizer::synthesize_process(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  if (this->process_synthesizers.find(call.function_name) ==
-      this->process_synthesizers.end()) {
-    SYNAPSE_PANIC("No process synthesizer found for function: %s\n",
-                  call.function_name.c_str());
+  if (this->process_synthesizers.find(call.function_name) == this->process_synthesizers.end()) {
+    SYNAPSE_PANIC("No process synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
   (this->process_synthesizers[call.function_name])(coder, call_node);
@@ -356,17 +347,12 @@ void BDDSynthesizer::packet_return_chunk(coder_t &coder, const Call *call_node) 
   coder << ";\n";
 }
 
-void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder,
-                                                     const Call *call_node) {
+void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> ip_header = call.args.at("ip_header").expr;
   klee::ref<klee::Expr> tcpudp_header = call.args.at("l4_header").expr;
-
-  symbol_t checksum;
-  bool found = get_symbol(generated_symbols, "checksum", checksum);
-  SYNAPSE_ASSERT(found, "Symbol checksum not found");
+  symbol_t checksum = call_node->get_local_symbol("checksum");
 
   var_t c = build_var("checksum", checksum.expr);
 
@@ -385,17 +371,13 @@ void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder,
 
 void BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
   klee::ref<klee::Expr> vector = call.args.at("vector").expr;
   klee::ref<klee::Expr> map = call.args.at("map").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
-  symbol_t number_of_freed_flows;
-  bool found =
-      get_symbol(generated_symbols, "number_of_freed_flows", number_of_freed_flows);
-  SYNAPSE_ASSERT(found, "Symbol number_of_freed_flows not found");
+  symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
 
   var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
 
@@ -412,15 +394,29 @@ void BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_no
   stack_add(nfreed);
 }
 
-void BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder,
-                                                         const Call *call_node) {
+void BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
+  klee::ref<klee::Expr> vector = call.args.at("vector").expr;
+  klee::ref<klee::Expr> map = call.args.at("map").expr;
+  klee::ref<klee::Expr> start = call.args.at("start").expr;
+  klee::ref<klee::Expr> n_elems = call.args.at("n_elems").expr;
+
+  symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
+
+  var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
+
   coder.indent();
-  coder << "// expire_items_single_map_iteratively";
+  coder << "int " << nfreed.name << " = ";
+  coder << "expire_items_single_map_iteratively(";
+  coder << stack_get(vector).name << ", ";
+  coder << stack_get(map).name << ", ";
+  coder << transpiler.transpile(start) << ", ";
+  coder << transpiler.transpile(n_elems);
+  coder << ")";
   coder << ";\n";
 
-  SYNAPSE_ASSERT(false, "Not implemented");
+  stack_add(nfreed);
 }
 
 void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
@@ -447,8 +443,7 @@ void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
 
 BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name,
                                                     klee::ref<klee::Expr> addr,
-                                                    klee::ref<klee::Expr> value,
-                                                    coder_t &coder,
+                                                    klee::ref<klee::Expr> value, coder_t &coder,
                                                     bool &found_in_stack) {
   bytes_t size = value->getWidth() / 8;
 
@@ -484,8 +479,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
     var.expr = stack_value.expr;
   } else {
     for (bytes_t b = 0; b < size; b++) {
-      klee::ref<klee::Expr> byte =
-          solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
+      klee::ref<klee::Expr> byte = solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
       coder.indent();
       coder << var.name << "[" << b << "] = ";
       coder << transpiler.transpile(byte);
@@ -498,7 +492,6 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
 
 void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
   klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
@@ -506,9 +499,7 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> value_out_addr = call.args.at("value_out").expr;
   klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
 
-  symbol_t map_has_this_key;
-  bool found = get_symbol(generated_symbols, "map_has_this_key", map_has_this_key);
-  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
+  symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   var_t r = build_var("map_hit", map_has_this_key.expr);
   var_t v = build_var("value", value_out);
@@ -684,7 +675,6 @@ void BDDSynthesizer::vector_borrow(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> value = call.extra_vars.at("borrowed_cell").second;
 
   var_t v = build_var("vector_value_out", value, value_addr);
-  bytes_t value_size = value->getWidth() / 8;
 
   coder.indent();
   coder << "uint8_t* " << v.name << " = 0;\n";
@@ -763,7 +753,6 @@ void BDDSynthesizer::vector_clear(coder_t &coder, const Call *call_node) {
 
 void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
   klee::ref<klee::Expr> samples = call.args.at("samples").expr;
@@ -773,12 +762,9 @@ void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
   klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
 
   bool threshold_in_stack;
-  var_t t =
-      build_var_ptr("threshold", threshold_addr, threshold, coder, threshold_in_stack);
+  var_t t = build_var_ptr("threshold", threshold_addr, threshold, coder, threshold_in_stack);
 
-  symbol_t found_sample;
-  bool found = get_symbol(generated_symbols, "found_sample", found_sample);
-  SYNAPSE_ASSERT(found, "Symbol found_sample not found");
+  symbol_t found_sample = call_node->get_local_symbol("found_sample");
 
   var_t f = build_var("found_sample", found_sample.expr);
   var_t i = build_var("sample_index", index_out);
@@ -828,14 +814,12 @@ void BDDSynthesizer::dchain_allocate(coder_t &coder, const call_t &call) {
 
 void BDDSynthesizer::dchain_allocate_new_index(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
   klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
 
-  symbol_t out_of_space;
-  bool found = get_symbol(generated_symbols, "out_of_space", out_of_space);
+  symbol_t out_of_space = call_node->get_local_symbol("out_of_space");
 
   var_t oos = build_var("out_of_space", out_of_space.expr);
   var_t i = build_var("index", index_out);
@@ -876,25 +860,22 @@ void BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder, const Call *call_no
 }
 
 void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
-  const call_t &call = call_node->get_call();
+  // const call_t &call = call_node->get_call();
 
-  coder.indent();
-  coder << "// dchain_expire_one";
-  coder << ";\n";
+  // coder.indent();
+  // coder << "// dchain_expire_one";
+  // coder << ";\n";
 
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
 }
 
 void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
 
-  symbol_t is_allocated;
-  bool found = get_symbol(generated_symbols, "dchain_is_index_allocated", is_allocated);
-  SYNAPSE_ASSERT(found, "Symbol dchain_is_index_allocated not found");
+  symbol_t is_allocated = call_node->get_local_symbol("dchain_is_index_allocated");
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
 
@@ -1005,14 +986,11 @@ void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
 
 void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  symbols_t generated_symbols = call_node->get_locally_generated_symbols();
 
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> time = call.args.at("time").expr;
 
-  symbol_t cleanup_success;
-  bool found = get_symbol(generated_symbols, "cleanup_success", cleanup_success);
-  SYNAPSE_ASSERT(found, "Symbol success not found");
+  symbol_t cleanup_success = call_node->get_local_symbol("cleanup_success");
 
   var_t cs = build_var("cleanup_success", cleanup_success.expr);
 
@@ -1284,8 +1262,7 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
 
 void BDDSynthesizer::stack_add(const var_t &var) {
   if (var.expr.isNull()) {
-    SYNAPSE_PANIC("Trying to add a variable with a null expression: %s\n",
-                  var.name.c_str());
+    SYNAPSE_PANIC("Trying to add a variable with a null expression: %s\n", var.name.c_str());
   }
 
   stack_frame_t &frame = stack.back();
@@ -1315,8 +1292,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,
   return build_var(name, expr, nullptr);
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,
-                                                klee::ref<klee::Expr> expr,
+BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr,
                                                 klee::ref<klee::Expr> addr) {
   if (reserved_var_names.find(name) == reserved_var_names.end()) {
     reserved_var_names[name] = 1;

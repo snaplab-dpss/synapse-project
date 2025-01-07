@@ -12,8 +12,16 @@ namespace synapse {
 
 struct symbol_t {
   std::string base;
-  const klee::Array *array;
+  std::string name;
   klee::ref<klee::Expr> expr;
+
+  symbol_t() = default;
+  symbol_t(const symbol_t &) = default;
+  symbol_t(symbol_t &&) = default;
+  symbol_t &operator=(const symbol_t &) = default;
+
+  symbol_t(klee::ref<klee::Expr> expr);
+  symbol_t(const std::string &base, const std::string &name, klee::ref<klee::Expr> expr);
 };
 
 struct symbol_hash_t {
@@ -26,9 +34,5 @@ struct symbol_equal_t {
 
 typedef std::unordered_set<symbol_t, symbol_hash_t, symbol_equal_t> symbols_t;
 
-symbol_t build_symbol(const klee::Array *array);
-symbol_t create_symbol(const std::string &label, bits_t size);
-
-bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol);
-
+std::ostream &operator<<(std::ostream &os, const symbol_t &symbol);
 } // namespace synapse

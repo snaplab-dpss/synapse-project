@@ -55,11 +55,11 @@ public:
     return expr->rebuild(new_kids);
   }
 
-#define VISIT_BINARY_CMP_OP(T)                                                           \
-  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                           \
-    auto expr = const_cast<klee::T##Expr *>(&e);                                         \
-    auto new_expr = visit_binary_expr(expr);                                             \
-    return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);        \
+#define VISIT_BINARY_CMP_OP(T)                                                                     \
+  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                                     \
+    auto expr = const_cast<klee::T##Expr *>(&e);                                                   \
+    auto new_expr = visit_binary_expr(expr);                                                       \
+    return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);                  \
   }
 
   VISIT_BINARY_CMP_OP(Eq)

@@ -17,8 +17,8 @@ public:
   TBUpdateAndCheck(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _index,
                    klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
                    klee::ref<klee::Expr> _pass)
-      : x86Module(ModuleType::x86_TBUpdateAndCheck, "TBUpdateAndCheck", node),
-        tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
+      : x86Module(ModuleType::x86_TBUpdateAndCheck, "TBUpdateAndCheck", node), tb_addr(_tb_addr),
+        index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -46,7 +46,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

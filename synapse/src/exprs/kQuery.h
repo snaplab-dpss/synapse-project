@@ -1,6 +1,6 @@
 #pragma once
 
-#include "array_manager.h"
+#include "symbol_manager.h"
 
 #include <vector>
 #include <memory>
@@ -14,16 +14,16 @@ struct kQuery_t {
   std::vector<klee::ref<klee::Expr>> values;
   std::vector<klee::ref<klee::Expr>> constraints;
 
-  std::string dump(const ArrayManager *manager) const;
+  std::string dump(const SymbolManager *manager) const;
 };
 
 class kQueryParser {
 private:
-  ArrayManager *manager;
+  SymbolManager *manager;
   std::unique_ptr<klee::ExprBuilder> builder;
 
 public:
-  kQueryParser(ArrayManager *_manager);
+  kQueryParser(SymbolManager *_manager);
 
   kQuery_t parse(const std::string &kQueryStr);
   klee::ref<klee::Expr> parse_expr(const std::string &expr_str);

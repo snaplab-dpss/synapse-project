@@ -48,9 +48,7 @@ public:
     return true;
   }
 
-  inline bool operator>(const Score &other) {
-    return !((*this) < other) && !((*this) == other);
-  }
+  inline bool operator>(const Score &other) { return !((*this) < other) && !((*this) == other); }
 
   inline bool operator<=(const Score &other) { return !((*this) > other); }
   inline bool operator>=(const Score &other) { return !((*this) < other); }

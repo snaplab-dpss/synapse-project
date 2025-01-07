@@ -11,8 +11,7 @@ private:
 
 public:
   Forward(const Node *node, int _dst_device)
-      : TofinoModule(ModuleType::Tofino_Forward, "Forward", node),
-        dst_device(_dst_device) {}
+      : TofinoModule(ModuleType::Tofino_Forward, "Forward", node), dst_device(_dst_device) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -35,7 +34,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

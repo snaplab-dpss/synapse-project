@@ -8,8 +8,7 @@ const ctrl::ControllerContext *Context::get_target_ctx<ctrl::ControllerContext>(
   return dynamic_cast<const ctrl::ControllerContext *>(target_ctxs.at(type));
 }
 
-template <>
-ctrl::ControllerContext *Context::get_mutable_target_ctx<ctrl::ControllerContext>() {
+template <> ctrl::ControllerContext *Context::get_mutable_target_ctx<ctrl::ControllerContext>() {
   TargetType type = TargetType::Controller;
   SYNAPSE_ASSERT(target_ctxs.find(type) != target_ctxs.end(), "No context for target");
   return dynamic_cast<ctrl::ControllerContext *>(target_ctxs.at(type));

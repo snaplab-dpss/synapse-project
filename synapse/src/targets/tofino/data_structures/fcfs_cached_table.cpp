@@ -17,25 +17,23 @@ std::string build_table_name(DS_ID id, u32 table_num) {
   return id + "_table_" + std::to_string(table_num);
 }
 
-Register build_cache_expirator(const TNAProperties &properties, DS_ID id,
-                               u32 cache_capacity) {
+Register build_cache_expirator(const TNAProperties &properties, DS_ID id, u32 cache_capacity) {
   bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
   bits_t timestamp_size = 32;
-  return Register(properties, id + "_reg_expirator", cache_capacity, hash_size,
-                  timestamp_size, {RegisterAction::WRITE});
+  return Register(properties, id + "_reg_expirator", cache_capacity, hash_size, timestamp_size,
+                  {RegisterAction::WRITE});
 }
 
 std::vector<Register> build_cache_keys(const TNAProperties &properties, DS_ID id,
-                                       const std::vector<bits_t> &keys_sizes,
-                                       u32 cache_capacity) {
+                                       const std::vector<bits_t> &keys_sizes, u32 cache_capacity) {
   std::vector<Register> cache_keys;
 
   bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
 
   int i = 0;
   for (bits_t key_size : keys_sizes) {
-    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), cache_capacity,
-                       hash_size, key_size, {RegisterAction::READ, RegisterAction::SWAP});
+    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), cache_capacity, hash_size,
+                       key_size, {RegisterAction::READ, RegisterAction::SWAP});
     i++;
     cache_keys.push_back(cache_key);
   }

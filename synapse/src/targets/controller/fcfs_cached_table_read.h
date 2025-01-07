@@ -17,10 +17,9 @@ private:
 
 public:
   FCFSCachedTableRead(const Node *node, DS_ID _id, addr_t _obj,
-                      const std::vector<klee::ref<klee::Expr>> &_keys,
-                      klee::ref<klee::Expr> _value, const std::optional<symbol_t> &_found)
-      : ControllerModule(ModuleType::Controller_FCFSCachedTableRead,
-                         "FCFSCachedTableRead", node),
+                      const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value,
+                      const std::optional<symbol_t> &_found)
+      : ControllerModule(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead", node),
         id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -43,14 +42,15 @@ public:
 class FCFSCachedTableReadFactory : public ControllerModuleFactory {
 public:
   FCFSCachedTableReadFactory()
-      : ControllerModuleFactory(ModuleType::Controller_FCFSCachedTableRead,
-                                "FCFSCachedTableRead") {}
+      : ControllerModuleFactory(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead") {
+  }
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

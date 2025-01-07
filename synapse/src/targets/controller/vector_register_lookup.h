@@ -14,8 +14,7 @@ private:
 public:
   VectorRegisterLookup(const Node *node, addr_t _obj, klee::ref<klee::Expr> _index,
                        klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_VectorRegisterLookup,
-                         "VectorRegisterLookup", node),
+      : ControllerModule(ModuleType::Controller_VectorRegisterLookup, "VectorRegisterLookup", node),
         obj(_obj), index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -43,7 +42,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

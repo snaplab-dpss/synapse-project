@@ -12,8 +12,8 @@ private:
   symbol_t is_allocated;
 
 public:
-  DchainIsIndexAllocated(const Node *node, addr_t _dchain_addr,
-                         klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
+  DchainIsIndexAllocated(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                         const symbol_t &_is_allocated)
       : x86Module(ModuleType::x86_DchainIsIndexAllocated, "DchainIsIndexAllocated", node),
         dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
 
@@ -35,14 +35,14 @@ public:
 class DchainIsIndexAllocatedFactory : public x86ModuleFactory {
 public:
   DchainIsIndexAllocatedFactory()
-      : x86ModuleFactory(ModuleType::x86_DchainIsIndexAllocated,
-                         "DchainIsIndexAllocated") {}
+      : x86ModuleFactory(ModuleType::x86_DchainIsIndexAllocated, "DchainIsIndexAllocated") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

@@ -30,11 +30,9 @@ void expire_entries(time_ns_t time) {
   assert(time >= 0); // we don't support the past
   assert(sizeof(time_ns_t) <= sizeof(uint64_t));
   uint64_t time_u = (uint64_t)time; // OK because of the two asserts
-  uint64_t expiration_time_ns =
-      ((uint64_t)config.expiration_time) * 1000; // us to ns
+  uint64_t expiration_time_ns = ((uint64_t)config.expiration_time) * 1000; // us to ns
   time_ns_t last_time = time_u - expiration_time_ns;
-  expire_items_single_map(state->allocator, state->srcs_key, state->srcs,
-                          last_time);
+  expire_items_single_map(state->allocator, state->srcs_key, state->srcs, last_time);
 }
 
 int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
@@ -49,8 +47,8 @@ int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
     return false;
   }
 
-  NF_DEBUG("Allocating %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff,
-           (src >> 16) & 0xff, (src >> 24) & 0xff);
+  NF_DEBUG("Allocating %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff,
+           (src >> 24) & 0xff);
 
   uint32_t *src_key = NULL;
   uint32_t *counter = NULL;
@@ -60,13 +58,11 @@ int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
   vector_borrow(state->touched_ports_counter, index, (void **)&counter);
 
   // Cleanup previous state first.
-  expire_items_single_map_iteratively(state->ports_key, state->ports, index,
-                                      *((int *)counter));
+  expire_items_single_map_iteratively(state->ports_key, state->ports, index, *((int *)counter));
 
   // Now save the source and add the first port.
   port_index = 0;
-  vector_borrow(state->ports_key, state->max_ports * index + port_index,
-                (void **)&touched_port);
+  vector_borrow(state->ports_key, state->max_ports * index + port_index, (void **)&touched_port);
 
   *src_key = src;
   *counter = 1;
@@ -78,8 +74,7 @@ int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
 
   vector_return(state->srcs_key, index, src_key);
   vector_return(state->touched_ports_counter, index, counter);
-  vector_return(state->ports_key, state->max_ports * index + port_index,
-                touched_port);
+  vector_return(state->ports_key, state->max_ports * index + port_index, touched_port);
 
   return true;
 }
@@ -91,8 +86,8 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
   int present = map_get(state->srcs, &src, &index);
 
   if (!present) {
-    NF_DEBUG("Allocating %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff,
-             (src >> 16) & 0xff, (src >> 24) & 0xff);
+    NF_DEBUG("Allocating %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff,
+             (src >> 24) & 0xff);
 
     bool allocated = allocate(src, target_port, time);
 
@@ -114,8 +109,8 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
   present = map_get(state->ports, &touched_port, &port_index);
 
   if (!present && *counter >= state->max_ports) {
-    NF_DEBUG("Dropping   %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff,
-             (src >> 16) & 0xff, (src >> 24) & 0xff);
+    NF_DEBUG("Dropping   %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff,
+             (src >> 24) & 0xff);
     vector_return(state->touched_ports_counter, index, counter);
     return true;
   }
@@ -133,8 +128,7 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
 
     map_put(state->ports, new_touched_port, port_index + 1);
 
-    vector_return(state->ports_key, state->max_ports * index + (port_index + 1),
-                  new_touched_port);
+    vector_return(state->ports_key, state->max_ports * index + (port_index + 1), new_touched_port);
   }
 
   vector_return(state->touched_ports_counter, index, counter);
@@ -142,31 +136,28 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
   return false;
 }
 
-int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               time_ns_t now, struct rte_mbuf *mbuf) {
+int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now,
+               struct rte_mbuf *mbuf) {
+  expire_entries(now);
+
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
-  struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_ipv4_header(rte_ether_header, buffer);
+  struct rte_ipv4_hdr *rte_ipv4_header = nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     return DROP;
   }
 
-  struct tcpudp_hdr *tcpudp_header =
-      nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
+  struct tcpudp_hdr *tcpudp_header = nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
     return DROP;
   }
-
-  expire_entries(now);
 
   if (device == config.lan_device) {
     // Simply forward outgoing packets.
     NF_DEBUG("Outgoing packet. Not checking for port scanning attempts.");
     return config.wan_device;
   } else if (device == config.wan_device) {
-    int detected = detect_port_scanning(rte_ipv4_header->src_addr,
-                                        tcpudp_header->dst_port, now);
+    int detected = detect_port_scanning(rte_ipv4_header->src_addr, tcpudp_header->dst_port, now);
 
     if (detected) {
       // Drop packet.

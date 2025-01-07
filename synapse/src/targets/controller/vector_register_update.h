@@ -15,10 +15,8 @@ private:
 public:
   VectorRegisterUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _index,
                        addr_t _value_addr, const std::vector<mod_t> &_modifications)
-      : ControllerModule(ModuleType::Controller_VectorRegisterUpdate,
-                         "VectorRegisterUpdate", node),
-        obj(_obj), index(_index), value_addr(_value_addr), modifications(_modifications) {
-  }
+      : ControllerModule(ModuleType::Controller_VectorRegisterUpdate, "VectorRegisterUpdate", node),
+        obj(_obj), index(_index), value_addr(_value_addr), modifications(_modifications) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -26,8 +24,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new VectorRegisterUpdate(node, obj, index, value_addr, modifications);
+    Module *cloned = new VectorRegisterUpdate(node, obj, index, value_addr, modifications);
     return cloned;
   }
 
@@ -48,7 +45,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

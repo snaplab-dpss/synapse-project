@@ -17,8 +17,7 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const Node *node
   }
 
   Context new_ctx = ctx;
-  new_ctx.get_mutable_perf_oracle().add_dropped_traffic(
-      new_ctx.get_profiler().get_hr(node));
+  new_ctx.get_mutable_perf_oracle().add_dropped_traffic(new_ctx.get_profiler().get_hr(node));
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -38,7 +37,8 @@ bool is_parser_reject(const EP *ep) {
   return (type == ModuleType::Tofino_ParserCondition);
 }
 
-std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node,
+                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {

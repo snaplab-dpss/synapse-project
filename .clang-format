@@ -2,4 +2,4 @@
 BasedOnStyle: LLVM
 Standard: Cpp11
 SortIncludes: false
-ColumnLimit: 90
+ColumnLimit: 100

@@ -3,9 +3,8 @@
 namespace synapse {
 namespace ctrl {
 
-std::optional<spec_impl_t>
-DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
-                                         const Context &ctx) const {
+std::optional<spec_impl_t> DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
+                                                                    const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -27,8 +26,9 @@ DchainAllocateNewIndexFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep,
-                                                                const Node *node) const {
+std::vector<impl_t>
+DchainAllocateNewIndexFactory::process_node(const EP *ep, const Node *node,
+                                            SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -52,12 +52,9 @@ std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep,
     return impls;
   }
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-  symbol_t out_of_space;
-  bool found = get_symbol(symbols, "out_of_space", out_of_space);
-
   Module *module;
-  if (found) {
+  if (call_node->has_local_symbol("out_of_space")) {
+    symbol_t out_of_space = call_node->get_local_symbol("out_of_space");
     module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, out_of_space);
   } else {
     module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);

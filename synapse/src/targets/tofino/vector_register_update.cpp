@@ -35,8 +35,7 @@ vector_register_data_t get_vector_register_data(const EP *ep, const Call *vector
 }
 
 std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
-                                                 const Node *vector_return,
-                                                 const Node *&new_next) {
+                                                 const Node *vector_return, const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -49,8 +48,7 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
   }
 
   bool replace_next = (vector_return == next);
-  Node *replacement =
-      delete_non_branch_node_from_bdd(new_bdd.get(), vector_return->get_id());
+  Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), vector_return->get_id());
 
   if (replace_next) {
     new_next = replacement;
@@ -60,9 +58,8 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
-                                       const Context &ctx) const {
+std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
+                                                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -96,8 +93,7 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
     return std::nullopt;
   }
 
-  bool can_place_ds =
-      can_build_or_reuse_vector_registers(ep, vector_borrow, vector_register_data);
+  bool can_place_ds = can_build_or_reuse_vector_registers(ep, vector_borrow, vector_register_data);
 
   if (!can_place_ds) {
     return std::nullopt;
@@ -112,8 +108,8 @@ VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
-                                                              const Node *node) const {
+std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -145,8 +141,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
     return impls;
   }
 
-  if (!ep->get_ctx().can_impl_ds(vector_register_data.obj,
-                                 DSImpl::Tofino_VectorRegister)) {
+  if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return impls;
   }
 
@@ -162,17 +157,16 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep,
     rids.insert(reg->id);
   }
 
-  Module *module = new VectorRegisterUpdate(node, rids, vector_register_data.obj,
-                                            vector_register_data.index,
-                                            vector_register_data.value, changes);
+  Module *module =
+      new VectorRegisterUpdate(node, rids, vector_register_data.obj, vector_register_data.index,
+                               vector_register_data.value, changes);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  std::unique_ptr<BDD> new_bdd =
-      delete_future_vector_return(new_ep, node, vector_return, new_next);
+  std::unique_ptr<BDD> new_bdd = delete_future_vector_return(new_ep, node, vector_return, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);

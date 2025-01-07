@@ -18,9 +18,8 @@ public:
   void add_node(Node *node) { nodes.emplace_back(node); }
 
   void free_node(Node *node) {
-    auto it =
-        std::find_if(nodes.begin(), nodes.end(),
-                     [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
+    auto it = std::find_if(nodes.begin(), nodes.end(),
+                           [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
 
     if (it != nodes.end()) {
       SYNAPSE_ASSERT((*it)->get_id() == node->get_id(), "Invalid node id");

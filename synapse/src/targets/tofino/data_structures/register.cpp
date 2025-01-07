@@ -4,18 +4,17 @@
 namespace synapse {
 namespace tofino {
 
-Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries,
-                   bits_t _index, bits_t _value,
-                   const std::unordered_set<RegisterAction> &_actions)
-    : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index),
-      value(_value), actions(_actions) {
+Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries, bits_t _index,
+                   bits_t _value, const std::unordered_set<RegisterAction> &_actions)
+    : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index), value(_value),
+      actions(_actions) {
   SYNAPSE_ASSERT(_num_entries > 0, "Register entries must be greater than 0");
   SYNAPSE_ASSERT(value <= properties.max_salu_size, "Register value exceeds SALU size");
 }
 
 Register::Register(const Register &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries),
-      index(other.index), value(other.value), actions(other.actions) {}
+    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), index(other.index),
+      value(other.value), actions(other.actions) {}
 
 DS *Register::clone() const { return new Register(*this); }
 
@@ -63,8 +62,8 @@ void Register::debug() const {
   Log::dbg() << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>>
-Register::partition_value(const TNAProperties &properties, klee::ref<klee::Expr> value) {
+std::vector<klee::ref<klee::Expr>> Register::partition_value(const TNAProperties &properties,
+                                                             klee::ref<klee::Expr> value) {
   std::vector<klee::ref<klee::Expr>> partitions;
 
   bits_t value_width = value->getWidth();

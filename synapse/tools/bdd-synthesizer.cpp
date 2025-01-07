@@ -5,6 +5,7 @@
 
 #include "../src/bdd/bdd.h"
 #include "../src/synthesizers/bdd/synthesizer.h"
+#include "../src/exprs/symbol_manager.h"
 
 using namespace synapse;
 
@@ -20,8 +21,7 @@ int main(int argc, char **argv) {
   std::filesystem::path output_file;
   BDDSynthesizerTarget target;
 
-  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
-      ->required();
+  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
   app.add_option("--out", output_file,
                  "Output C++ file of the syntethized code. If omited, code "
                  "will be dumped to stdout.");
@@ -31,19 +31,20 @@ int main(int argc, char **argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  BDD *bdd = new BDD(input_bdd_file);
+  SymbolManager symbol_manager;
+  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
 
   if (output_file.empty()) {
     std::ostream os(std::cout.rdbuf());
     BDDSynthesizer synthesizer(target, os);
-    synthesizer.synthesize(bdd);
+    synthesizer.synthesize(bdd.get());
   } else {
     if (output_file.has_parent_path()) {
       std::filesystem::create_directories(output_file.parent_path());
     }
     std::ofstream os(output_file);
     BDDSynthesizer synthesizer(target, os);
-    synthesizer.synthesize(bdd);
+    synthesizer.synthesize(bdd.get());
     std::cerr << "Output written to " << output_file << ".\n";
   }
 

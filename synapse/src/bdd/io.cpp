@@ -1,12 +1,6 @@
 #include <fstream>
 #include <iostream>
 
-#include <expr/Parser.h>
-#include <klee/ExprBuilder.h>
-
-#include <llvm/Support/MemoryBuffer.h>
-
-#include "io.h"
 #include "bdd.h"
 
 #include "nodes/call.h"
@@ -15,131 +9,22 @@
 #include "../exprs/retriever.h"
 #include "../exprs/exprs.h"
 #include "../log.h"
+#include "../exprs/kQuery.h"
 
 namespace synapse {
 namespace {
-struct kQuery_t {
-  std::vector<const klee::Array *> arrays;
-  std::vector<std::string> exprs;
-
-  std::string serialize() {
-    std::stringstream stream;
-
-    for (const klee::Array *array : arrays) {
-      stream << "array";
-      stream << " ";
-      stream << array->getName();
-      stream << "[" << array->getSize() << "]";
-      stream << " : ";
-      stream << "w" << array->getDomain();
-      stream << " -> ";
-      stream << "w" << array->getRange();
-      stream << " = ";
-      stream << "symbolic";
-      stream << "\n";
-    }
-
-    stream << "(query [] false [\n";
-    for (const std::string &expr : exprs) {
-      stream << "       ";
-      stream << expr;
-      stream << "\n";
-    }
-    stream << "   ])\n";
-
-    return stream.str();
-  }
-};
-
-void fill_arrays(klee::ref<klee::Expr> expr, std::vector<const klee::Array *> &arrays) {
-  std::vector<klee::ref<klee::ReadExpr>> reads = get_reads(expr);
-
-  for (klee::ref<klee::ReadExpr> read : reads) {
-    klee::UpdateList updates = read->updates;
-    const klee::Array *root = updates.root;
-
-    SYNAPSE_ASSERT(root->isSymbolicArray(), "Array is not symbolic");
-    auto found_it =
-        std::find_if(arrays.begin(), arrays.end(), [&](const klee::Array *array) {
-          return array->getName() == root->getName();
-        });
-
-    if (found_it == arrays.end()) {
-      arrays.push_back(root);
-    }
-  }
-}
+constexpr const char *const MAGIC_SIGNATURE = "===== BDD =====";
+constexpr const char *const KQUERY_DELIMITER = ";;-- kQuery --";
+constexpr const char *const SYMBOLS_DELIMITER = ";;-- Symbols --";
+constexpr const char *const INIT_DELIMITER = ";;-- Init --";
+constexpr const char *const NODES_DELIMITER = ";; -- Nodes --";
+constexpr const char *const EDGES_DELIMITER = ";; -- Edges --";
+constexpr const char *const ROOT_DELIMITER = ";; -- Root --";
 
 std::string serialize_expr(klee::ref<klee::Expr> expr, kQuery_t &kQuery) {
   SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
-  fill_arrays(expr, kQuery.arrays);
-
   auto expr_str = expr_to_string(expr);
-
-  while (1) {
-    size_t delim = expr_str.find(":");
-
-    if (delim == std::string::npos) {
-      break;
-    }
-
-    auto start = delim;
-    auto end = delim;
-
-    while (expr_str[--start] != 'N') {
-      SYNAPSE_ASSERT(start > 0 && start < expr_str.size(), "Invalid start");
-    }
-
-    auto pre = expr_str.substr(0, start);
-    auto post = expr_str.substr(end + 1);
-
-    auto label_name = expr_str.substr(start, end - start);
-    auto label_expr = std::string();
-
-    expr_str = pre + post;
-
-    auto parenthesis_lvl = 0;
-
-    for (auto c : post) {
-      if (c == '(') {
-        parenthesis_lvl++;
-      } else if (c == ')') {
-        parenthesis_lvl--;
-      }
-
-      label_expr += c;
-
-      if (parenthesis_lvl == 0) {
-        break;
-      }
-    }
-
-    while (1) {
-      delim = expr_str.find(label_name);
-
-      if (delim == std::string::npos) {
-        break;
-      }
-
-      auto label_sz = label_name.size();
-
-      if (delim + label_sz < expr_str.size() && expr_str[delim + label_sz] == ':') {
-        pre = expr_str.substr(0, delim);
-        post = expr_str.substr(delim + label_sz + 1);
-
-        expr_str = pre + post;
-        continue;
-      }
-
-      pre = expr_str.substr(0, delim);
-      post = expr_str.substr(delim + label_sz);
-
-      expr_str = pre + label_expr + post;
-    }
-  }
-
-  kQuery.exprs.push_back(expr_str);
-
+  kQuery.values.push_back(expr);
   return expr_str;
 }
 
@@ -282,6 +167,8 @@ std::string serialize_symbols(const symbols_t &symbols, kQuery_t &kQuery) {
 
     symbols_stream << "{";
     symbols_stream << symbol.base;
+    symbols_stream << ":";
+    symbols_stream << symbol.name;
     symbols_stream << ":";
     symbols_stream << serialize_expr(symbol.expr, kQuery);
     symbols_stream << "}";
@@ -426,9 +313,8 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
   return std::make_pair(arg_name, arg);
 }
 
-std::pair<std::string, extra_var_t>
-parse_extra_var(std::string serialized_extra_var,
-                std::vector<klee::ref<klee::Expr>> &exprs) {
+std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra_var,
+                                                    std::vector<klee::ref<klee::Expr>> &exprs) {
   std::string extra_var_name;
   klee::ref<klee::Expr> in;
   klee::ref<klee::Expr> out;
@@ -469,12 +355,11 @@ parse_extra_var(std::string serialized_extra_var,
   return std::make_pair(extra_var_name, std::make_pair(in, out));
 }
 
-call_t parse_call(std::string serialized_call,
-                  std::vector<klee::ref<klee::Expr>> &exprs) {
+call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>> &exprs) {
 
   call_t call;
 
-  // cleanup by removing duplicated spaces
+  // Cleanup by removing duplicated spaces
   auto new_end = std::unique(serialized_call.begin(), serialized_call.end(),
                              [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
   serialized_call.erase(new_end, serialized_call.end());
@@ -572,13 +457,16 @@ symbol_t parse_call_symbol(std::string serialized_symbol,
   std::string base = serialized_symbol.substr(0, delim);
   serialized_symbol = serialized_symbol.substr(delim + 1);
 
+  delim = serialized_symbol.find(":");
+  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid symbol");
+
+  std::string name = serialized_symbol.substr(0, delim);
+  serialized_symbol = serialized_symbol.substr(delim + 1);
+
   klee::ref<klee::Expr> expr = pop_expr(exprs);
+  symbol_t symbol(expr);
 
-  std::vector<const klee::Array *> arrays;
-  fill_arrays(expr, arrays);
-  SYNAPSE_ASSERT(arrays.size() == 1, "Invalid symbol");
-
-  return symbol_t{base, arrays[0], expr};
+  return symbol;
 }
 
 symbols_t parse_call_symbols(std::string serialized_symbols,
@@ -715,55 +603,15 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
 
   return node;
 }
-
-void parse_kQuery(std::string kQuery, std::vector<klee::ref<klee::Expr>> &exprs,
-                  std::vector<const klee::Array *> &arrays) {
-  llvm::MemoryBuffer *MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
-  klee::ExprBuilder *Builder = klee::createDefaultExprBuilder();
-  klee::expr::Parser *P = klee::expr::Parser::Create("", MB, Builder, false);
-
-  while (klee::expr::Decl *D = P->ParseTopLevelDecl()) {
-    SYNAPSE_ASSERT(!P->GetNumErrors(), "Error parsing kquery in BDD file.");
-
-    if (klee::expr::ArrayDecl *AD = dyn_cast<klee::expr::ArrayDecl>(D)) {
-      arrays.push_back(AD->Root);
-      continue;
-    } else if (klee::expr::QueryCommand *QC = dyn_cast<klee::expr::QueryCommand>(D)) {
-      exprs = QC->Values;
-      break;
-    }
-  }
-}
-
-void parse_bdd_symbol(const std::string &name,
-                      const std::vector<const klee::Array *> &arrays,
-                      std::vector<klee::ref<klee::Expr>> &exprs, symbol_t &symbol) {
-  symbol.base = name;
-  symbol.expr = pop_expr(exprs);
-
-  bool found = false;
-  for (const klee::Array *array : arrays) {
-    if (array->name == name) {
-      symbol.array = array;
-      found = true;
-      break;
-    }
-  }
-
-  SYNAPSE_ASSERT(found, "Symbol not found in BDD file.");
-}
 } // namespace
 
-void BDD::serialize(const std::string &out_file) const {
-  std::ofstream out(out_file);
+void BDD::serialize(const std::filesystem::path &fpath) const {
+  std::ofstream out(fpath.string());
 
   SYNAPSE_ASSERT(out, "Could not open file");
   SYNAPSE_ASSERT(out.is_open(), "File is not open");
 
   kQuery_t kQuery;
-
-  std::stringstream kQuery_stream;
-  std::stringstream kQuery_cp_constraints_stream;
 
   std::stringstream symbols_stream;
   std::stringstream init_stream;
@@ -788,12 +636,12 @@ void BDD::serialize(const std::string &out_file) const {
     nodes_stream << node->get_id();
     nodes_stream << ":(";
 
-    const klee::ConstraintManager &manager = node->get_constraints();
+    const klee::ConstraintManager &constraints = node->get_constraints();
 
-    nodes_stream << manager.size();
+    nodes_stream << constraints.size();
     nodes_stream << " ";
 
-    for (klee::ref<klee::Expr> constraint : manager) {
+    for (klee::ref<klee::Expr> constraint : constraints) {
       serialize_expr(constraint, kQuery);
     }
 
@@ -801,7 +649,7 @@ void BDD::serialize(const std::string &out_file) const {
     case NodeType::Call: {
       const Call *call_node = dynamic_cast<const Call *>(node);
       const Node *next = node->get_next();
-      const symbols_t &symbols = call_node->get_locally_generated_symbols();
+      const symbols_t &symbols = call_node->get_local_symbols();
 
       nodes_stream << "CALL";
       nodes_stream << " ";
@@ -888,7 +736,7 @@ void BDD::serialize(const std::string &out_file) const {
   out << MAGIC_SIGNATURE << "\n";
 
   out << KQUERY_DELIMITER << "\n";
-  out << kQuery.serialize();
+  out << kQuery.dump(symbol_manager);
 
   out << SYMBOLS_DELIMITER << "\n";
   out << symbols_stream.str();
@@ -967,14 +815,9 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
   }
 }
 
-void BDD::deserialize(const std::string &file_path) {
-  bool magic_check = false;
-
-  std::ifstream bdd_file(file_path);
-
-  if (!bdd_file.is_open()) {
-    SYNAPSE_PANIC("Unable to open BDD file \"%s\".", file_path.c_str());
-  }
+void BDD::deserialize(const std::filesystem::path &fpath) {
+  std::ifstream bdd_file(fpath.string());
+  SYNAPSE_ASSERT(bdd_file.is_open(), "Unable to open BDD file \"%s\"", fpath.c_str());
 
   enum class state_t {
     STATE_START,
@@ -986,7 +829,7 @@ void BDD::deserialize(const std::string &file_path) {
     STATE_ROOT,
   } state = state_t::STATE_START;
 
-  auto get_next_state = [&](std::string line) {
+  auto get_next_state = [](state_t state, const std::string &line) {
     if (line == KQUERY_DELIMITER)
       return state_t::STATE_KQUERY;
     if (line == SYMBOLS_DELIMITER)
@@ -1002,53 +845,60 @@ void BDD::deserialize(const std::string &file_path) {
     return state;
   };
 
-  std::string kQuery;
-
+  std::string kQueryStr;
   std::vector<klee::ref<klee::Expr>> exprs;
   std::map<node_id_t, Node *> nodes;
-  std::vector<const klee::Array *> arrays;
-
-  int parenthesis_level = 0;
   std::string current_node;
-  std::string current_call_path;
+
+  bool magic_check = false;
+  int parenthesis_level = 0;
 
   while (!bdd_file.eof()) {
     std::string line;
     std::getline(bdd_file, line);
 
-    if (line.size() == 0)
+    if (line.empty()) {
       continue;
+    }
 
     switch (state) {
     case state_t::STATE_START: {
-      if (line == MAGIC_SIGNATURE)
-        magic_check = true;
+      magic_check |= line == MAGIC_SIGNATURE;
+      SYNAPSE_ASSERT(magic_check, "\"%s\" is not a BDD file (missing magic signature)",
+                     fpath.c_str());
     } break;
 
     case state_t::STATE_KQUERY: {
-      kQuery += line + "\n";
+      kQueryStr += line + "\n";
 
-      if (get_next_state(line) != state)
-        parse_kQuery(kQuery, exprs, arrays);
+      if (get_next_state(state, line) != state) {
+        kQueryParser parser(symbol_manager);
+        kQuery_t kQuery = parser.parse(kQueryStr);
+        SYNAPSE_ASSERT(kQuery.constraints.size() == 0, "Invalid kQuery");
+        exprs = kQuery.values;
+      }
     } break;
 
     case state_t::STATE_SYMBOLS: {
-      if (get_next_state(line) != state)
+      if (get_next_state(state, line) != state)
         break;
 
-      parse_bdd_symbol("DEVICE", arrays, exprs, device);
+      device = symbol_manager->get_symbol("DEVICE");
+      pop_expr(exprs);
       std::getline(bdd_file, line);
 
-      parse_bdd_symbol("pkt_len", arrays, exprs, packet_len);
+      packet_len = symbol_manager->get_symbol("pkt_len");
+      pop_expr(exprs);
       std::getline(bdd_file, line);
 
-      parse_bdd_symbol("next_time", arrays, exprs, time);
+      time = symbol_manager->get_symbol("next_time");
+      pop_expr(exprs);
       std::getline(bdd_file, line);
 
     } break;
 
     case state_t::STATE_INIT: {
-      if (get_next_state(line) != state)
+      if (get_next_state(state, line) != state)
         break;
 
       call_t call = parse_call(line, exprs);
@@ -1056,7 +906,7 @@ void BDD::deserialize(const std::string &file_path) {
     } break;
 
     case state_t::STATE_NODES: {
-      if (get_next_state(line) != state)
+      if (get_next_state(state, line) != state)
         break;
 
       current_node += line;
@@ -1083,13 +933,13 @@ void BDD::deserialize(const std::string &file_path) {
     } break;
 
     case state_t::STATE_EDGES: {
-      if (get_next_state(line) != state)
+      if (get_next_state(state, line) != state)
         break;
       process_edge(line, nodes);
     } break;
 
     case state_t::STATE_ROOT: {
-      if (get_next_state(line) != state)
+      if (get_next_state(state, line) != state)
         break;
 
       node_id_t root_id = std::stoll(line);
@@ -1099,14 +949,7 @@ void BDD::deserialize(const std::string &file_path) {
     } break;
     }
 
-    if (state == state_t::STATE_START && get_next_state(line) != state && !magic_check) {
-      SYNAPSE_PANIC("\"%s\" is not a BDD file (missing magic signature)",
-                    file_path.c_str());
-    }
-
-    state = get_next_state(line);
+    state = get_next_state(state, line);
   }
-
-  SYNAPSE_ASSERT(magic_check, "Not a BDD file (missing magic signature)");
 }
 } // namespace synapse

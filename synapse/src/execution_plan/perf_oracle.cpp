@@ -39,8 +39,7 @@ std::vector<bps_t> parse_recirculation_ports(const toml::table &config) {
 
 // Coefficients are in increasing order: x^0, x^1, x^2, ...
 // min and max are inclusive
-hit_rate_t newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 min,
-                              u64 max) {
+hit_rate_t newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 min, u64 max) {
   hit_rate_t x = (min + max) / 2.0;
   int it = 0;
 
@@ -178,8 +177,7 @@ PerfOracle::PerfOracle(const PerfOracle &other)
       controller_capacity(other.controller_capacity), avg_pkt_bytes(other.avg_pkt_bytes),
       unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
       recirc_ports_ingress(other.recirc_ports_ingress),
-      controller_ingress(other.controller_ingress),
-      dropped_ingress(other.dropped_ingress) {}
+      controller_ingress(other.controller_ingress), dropped_ingress(other.dropped_ingress) {}
 
 PerfOracle::PerfOracle(PerfOracle &&other)
     : front_panel_ports_capacities(std::move(other.front_panel_ports_capacities)),
@@ -243,22 +241,19 @@ void PerfOracle::add_controller_traffic(hit_rate_t hr) {
 
 void PerfOracle::add_recirculated_traffic(int port, const port_ingress_t &ingress) {
   SYNAPSE_ASSERT(port >= 0, "Invalid port (%d)", port);
-  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
-                 port);
+  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)", port);
   recirc_ports_ingress[port] += ingress;
 }
 
 void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
   SYNAPSE_ASSERT(port >= 0, "Invalid port (%d)", port);
-  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)",
-                 port);
+  SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port (%d)", port);
   port_ingress_t ingress;
   ingress.global = hr;
   add_recirculated_traffic(port, ingress);
 }
 
-std::vector<pps_t> PerfOracle::get_recirculated_egress(int port,
-                                                       pps_t global_ingress) const {
+std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_ingress) const {
   SYNAPSE_ASSERT(port < (int)recirculation_ports_capacities.size(), "Invalid port");
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
@@ -343,9 +338,7 @@ bps_t PerfOracle::get_max_input_bps() const {
   return Tin_max;
 }
 
-pps_t PerfOracle::get_max_input_pps() const {
-  return bps2pps(get_max_input_bps(), avg_pkt_bytes);
-}
+pps_t PerfOracle::get_max_input_pps() const { return bps2pps(get_max_input_bps(), avg_pkt_bytes); }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // 1. First we calculate the recirculation egress for each recirculation
@@ -365,8 +358,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     int depth = port_depth_pair.second;
     SYNAPSE_ASSERT(rport >= 0, "Invalid recirculation port");
     SYNAPSE_ASSERT(depth > 0, "Invalid recirculation depth");
-    SYNAPSE_ASSERT(depth <= (int)recirc_egress[rport].size(),
-                   "Invalid recirculation depth");
+    SYNAPSE_ASSERT(depth <= (int)recirc_egress[rport].size(), "Invalid recirculation depth");
     controller_tput += recirc_egress[rport][depth - 1] * hr;
   }
   controller_tput = std::min(controller_tput, controller_capacity);
@@ -391,8 +383,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
       int depth = port_depth_pair.second;
       SYNAPSE_ASSERT(rport >= 0, "Invalid recirculation port");
       SYNAPSE_ASSERT(depth > 0, "Invalid recirculation depth");
-      SYNAPSE_ASSERT(depth <= (int)recirc_egress[rport].size(),
-                     "Invalid recirculation depth");
+      SYNAPSE_ASSERT(depth <= (int)recirc_egress[rport].size(), "Invalid recirculation depth");
       port_tput += recirc_egress[rport][depth - 1] * hr;
     }
 

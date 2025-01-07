@@ -35,17 +35,13 @@ public:
     return klee::ExprVisitor::Action::doChildren();
   }
 
-  const std::vector<klee::ref<klee::ReadExpr>> &get_retrieved() {
-    return retrieved_reads;
-  }
+  const std::vector<klee::ref<klee::ReadExpr>> &get_retrieved() { return retrieved_reads; }
 
   const std::vector<klee::ref<klee::ReadExpr>> &get_retrieved_packet_chunks() {
     return retrieved_reads_packet_chunks;
   }
 
-  const std::unordered_set<std::string> &get_retrieved_strings() {
-    return retrieved_strings;
-  }
+  const std::unordered_set<std::string> &get_retrieved_strings() { return retrieved_strings; }
 
   const std::unordered_map<std::string, klee::UpdateList> &get_retrieved_roots_updates() {
     return roots_updates;
@@ -86,8 +82,7 @@ std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
 }
 
 std::vector<byte_read_t> get_bytes_read(klee::ref<klee::Expr> expr) {
-  static std::unordered_map<unsigned,
-                            std::pair<klee::ref<klee::Expr>, std::vector<byte_read_t>>>
+  static std::unordered_map<unsigned, std::pair<klee::ref<klee::Expr>, std::vector<byte_read_t>>>
       cache;
 
   auto cache_found_it = cache.find(expr->hash());
@@ -170,14 +165,12 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
       groups.back().offset = byte;
       groups.back().expr = concat_lsb(groups.back().expr, read_expr);
     } else {
-      groups.emplace_back(
-          expr_group_t{true, symbol, byte, read_expr->getWidth() / 8, read_expr});
+      groups.emplace_back(expr_group_t{true, symbol, byte, read_expr->getWidth() / 8, read_expr});
     }
   };
 
   auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
-    SYNAPSE_ASSERT(not_read_expr->getKind() != klee::Expr::Read,
-                   "Non read is actually a read");
+    SYNAPSE_ASSERT(not_read_expr->getKind() != klee::Expr::Read, "Non read is actually a read");
     unsigned size = not_read_expr->getWidth();
     SYNAPSE_ASSERT(size % 8 == 0, "Size not multiple of 8");
     groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
@@ -220,8 +213,8 @@ void print_groups(const std::vector<expr_group_t> &groups) {
   for (const auto &group : groups) {
     if (group.has_symbol) {
       std::cerr << "Group:" << " symbol=" << group.symbol << " offset=" << group.offset
-                << " n_bytes=" << group.n_bytes
-                << " expr=" << expr_to_string(group.expr, true) << "\n";
+                << " n_bytes=" << group.n_bytes << " expr=" << expr_to_string(group.expr, true)
+                << "\n";
     } else {
       std::cerr << "Group: offset=" << group.offset << " n_bytes=" << group.n_bytes
                 << " expr=" << expr_to_string(group.expr, true) << "\n";

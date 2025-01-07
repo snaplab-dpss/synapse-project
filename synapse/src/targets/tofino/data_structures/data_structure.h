@@ -27,8 +27,7 @@ struct DS {
   bool primitive;
   DS_ID id;
 
-  DS(DSType _type, bool _primitive, DS_ID _id)
-      : type(_type), primitive(_primitive), id(_id) {}
+  DS(DSType _type, bool _primitive, DS_ID _id) : type(_type), primitive(_primitive), id(_id) {}
 
   virtual ~DS() {}
   virtual DS *clone() const = 0;

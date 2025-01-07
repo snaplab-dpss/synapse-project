@@ -120,8 +120,7 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_e
       klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
   };
 
-  auto is_cond =
-      std::find(cond_ops.begin(), cond_ops.end(), kid->getKind()) != cond_ops.end();
+  auto is_cond = std::find(cond_ops.begin(), cond_ops.end(), kid->getKind()) != cond_ops.end();
 
   if (is_cond) {
     cond_expr = kid;
@@ -275,7 +274,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return solver_toolbox.exprBuilder->Not(expr);
   } break;
   default:
-    SYNAPSE_ASSERT(false, "TODO");
+    SYNAPSE_PANIC("TODO");
   }
 
   return expr;

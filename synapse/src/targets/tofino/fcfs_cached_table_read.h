@@ -38,22 +38,20 @@ public:
   klee::ref<klee::Expr> get_value() const { return value; }
   const symbol_t &get_map_has_this_key() const { return map_has_this_key; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override {
-    return {cached_table_id};
-  }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cached_table_id}; }
 };
 
 class FCFSCachedTableReadFactory : public TofinoModuleFactory {
 public:
   FCFSCachedTableReadFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableRead,
-                            "FCFSCachedTableRead") {}
+      : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableRead, "FCFSCachedTableRead") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

@@ -12,10 +12,10 @@ private:
   symbol_t is_allocated;
 
 public:
-  IntegerAllocatorIsAllocated(const Node *node, addr_t _dchain_addr,
-                              klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
-      : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated,
-                     "IntegerAllocatorIsAllocated", node),
+  IntegerAllocatorIsAllocated(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                              const symbol_t &_is_allocated)
+      : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated",
+                     node),
         dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -24,8 +24,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new IntegerAllocatorIsAllocated(node, dchain_addr, index, is_allocated);
+    Module *cloned = new IntegerAllocatorIsAllocated(node, dchain_addr, index, is_allocated);
     return cloned;
   }
 
@@ -50,7 +49,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

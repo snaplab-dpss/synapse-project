@@ -12,8 +12,8 @@ private:
 
 public:
   TBExpire(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : ControllerModule(ModuleType::Controller_TBExpire, "TBExpire", node),
-        tb_addr(_tb_addr), time(_time) {}
+      : ControllerModule(ModuleType::Controller_TBExpire, "TBExpire", node), tb_addr(_tb_addr),
+        time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -31,14 +31,14 @@ public:
 
 class TBExpireFactory : public ControllerModuleFactory {
 public:
-  TBExpireFactory()
-      : ControllerModuleFactory(ModuleType::Controller_TBExpire, "TBExpire") {}
+  TBExpireFactory() : ControllerModuleFactory(ModuleType::Controller_TBExpire, "TBExpire") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

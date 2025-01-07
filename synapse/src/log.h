@@ -49,7 +49,5 @@ template <typename T> Log &operator<<(Log &log, T &&t) {
   return log;
 }
 
-template <typename T> Log &operator<<(Log &&log, T &&t) {
-  return log << std::forward<T>(t);
-}
+template <typename T> Log &operator<<(Log &&log, T &&t) { return log << std::forward<T>(t); }
 } // namespace synapse

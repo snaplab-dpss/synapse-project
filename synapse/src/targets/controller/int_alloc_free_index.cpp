@@ -3,9 +3,9 @@
 namespace synapse {
 namespace ctrl {
 
-std::optional<spec_impl_t>
-IntegerAllocatorFreeIndexFactory::speculate(const EP *ep, const Node *node,
-                                            const Context &ctx) const {
+std::optional<spec_impl_t> IntegerAllocatorFreeIndexFactory::speculate(const EP *ep,
+                                                                       const Node *node,
+                                                                       const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -28,7 +28,8 @@ IntegerAllocatorFreeIndexFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-IntegerAllocatorFreeIndexFactory::process_node(const EP *ep, const Node *node) const {
+IntegerAllocatorFreeIndexFactory::process_node(const EP *ep, const Node *node,
+                                               SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

@@ -18,8 +18,7 @@ struct Meter : public DS {
   bytes_t burst;
   std::vector<bits_t> keys;
 
-  Meter(DS_ID id, u32 capacity, Bps_t rate, bytes_t burst,
-        const std::vector<bits_t> &keys);
+  Meter(DS_ID id, u32 capacity, Bps_t rate, bytes_t burst, const std::vector<bits_t> &keys);
 
   Meter(const Meter &other);
 

@@ -7,8 +7,7 @@ namespace tofino {
 
 class Broadcast : public TofinoModule {
 public:
-  Broadcast(const Node *node)
-      : TofinoModule(ModuleType::Tofino_Broadcast, "Broadcast", node) {}
+  Broadcast(const Node *node) : TofinoModule(ModuleType::Tofino_Broadcast, "Broadcast", node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -29,7 +28,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

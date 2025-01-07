@@ -6,16 +6,13 @@
 #include "targets.h"
 
 namespace synapse {
-TargetView::TargetView(TargetType _type,
-                       std::vector<const ModuleFactory *> _module_factories,
+TargetView::TargetView(TargetType _type, std::vector<const ModuleFactory *> _module_factories,
                        const TargetContext *_base_ctx)
     : type(_type), module_factories(_module_factories), base_ctx(_base_ctx) {}
 
-Target::Target(TargetType _type,
-               std::vector<std::unique_ptr<ModuleFactory>> _module_factories,
+Target::Target(TargetType _type, std::vector<std::unique_ptr<ModuleFactory>> _module_factories,
                std::unique_ptr<TargetContext> _base_ctx)
-    : type(_type), module_factories(std::move(_module_factories)),
-      base_ctx(std::move(_base_ctx)) {}
+    : type(_type), module_factories(std::move(_module_factories)), base_ctx(std::move(_base_ctx)) {}
 
 TargetView Target::get_view() const {
   std::vector<const ModuleFactory *> factories;
@@ -46,8 +43,7 @@ std::string to_string(TargetType target) {
   return ss.str();
 }
 
-TargetsView::TargetsView(const std::array<TargetView, 3> &_elements)
-    : elements(_elements) {}
+TargetsView::TargetsView(const std::array<TargetView, 3> &_elements) : elements(_elements) {}
 
 TargetView TargetsView::get_initial_target() const {
   SYNAPSE_ASSERT(!elements.empty(), "No targets to get the initial target from.");

@@ -10,21 +10,21 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino/tofino.h"
 
-#define SHOW_MODULE_NAME(M)                                                              \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());      \
-    return EPVisitor::Action::doChildren;                                                \
+#define SHOW_MODULE_NAME(M)                                                                        \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {             \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                \
+    return EPVisitor::Action::doChildren;                                                          \
   }
 
-#define VISIT_BRANCH(M)                                                                  \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());             \
-    return EPVisitor::Action::doChildren;                                                \
+#define VISIT_BRANCH(M)                                                                            \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {             \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                       \
+    return EPVisitor::Action::doChildren;                                                          \
   }
 
-#define IGNORE_MODULE(M)                                                                 \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {   \
-    return EPVisitor::Action::doChildren;                                                \
+#define IGNORE_MODULE(M)                                                                           \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {             \
+    return EPVisitor::Action::doChildren;                                                          \
   }
 
 namespace synapse {
@@ -33,8 +33,7 @@ using namespace tofino;
 
 IGNORE_MODULE(tofino::Ignore)
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::If *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::If *node) {
   std::stringstream label_builder;
 
   for (klee::ref<klee::Expr> condition : node->get_conditions()) {
@@ -74,8 +73,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::Forward *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::Forward *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -333,8 +331,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   TargetType target = node->get_target();
   addr_t obj = node->get_obj();
 
-  const DS *ds = ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds_from_id(
-      node->get_hh_table_id());
+  const DS *ds =
+      ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds_from_id(node->get_hh_table_id());
 
   SYNAPSE_ASSERT(ds->type == DSType::HH_TABLE, "Invalid DS type");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);

@@ -22,8 +22,7 @@ struct map_register_data_t {
 std::vector<const Node *>
 get_future_related_nodes(const EP *ep, const Node *node,
                          const map_coalescing_objs_t &map_coalescing_objs) {
-  std::vector<const Call *> ops =
-      get_future_functions(node, {"dchain_free_index", "map_erase"});
+  std::vector<const Call *> ops = get_future_functions(node, {"dchain_free_index", "map_erase"});
 
   std::vector<const Node *> related_ops;
   for (const Call *op : ops) {
@@ -51,10 +50,9 @@ get_future_related_nodes(const EP *ep, const Node *node,
   return related_ops;
 }
 
-std::unique_ptr<BDD>
-delete_future_related_nodes(const EP *ep, const Node *map_erase,
-                            const map_coalescing_objs_t &map_coalescing_objs,
-                            const Node *&new_next) {
+std::unique_ptr<BDD> delete_future_related_nodes(const EP *ep, const Node *map_erase,
+                                                 const map_coalescing_objs_t &map_coalescing_objs,
+                                                 const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -66,8 +64,7 @@ delete_future_related_nodes(const EP *ep, const Node *map_erase,
     new_next = nullptr;
   }
 
-  std::vector<const Node *> future_nodes =
-      get_future_related_nodes(ep, next, map_coalescing_objs);
+  std::vector<const Node *> future_nodes = get_future_related_nodes(ep, next, map_coalescing_objs);
 
   for (const Node *node : future_nodes) {
     bool replace = (node == next);
@@ -83,8 +80,7 @@ delete_future_related_nodes(const EP *ep, const Node *map_erase,
 }
 } // namespace
 
-std::optional<spec_impl_t> MapRegisterDeleteFactory::speculate(const EP *ep,
-                                                               const Node *node,
+std::optional<spec_impl_t> MapRegisterDeleteFactory::speculate(const EP *ep, const Node *node,
                                                                const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
@@ -109,8 +105,7 @@ std::optional<spec_impl_t> MapRegisterDeleteFactory::speculate(const EP *ep,
 
   map_register_data_t map_register_data(ep, map_erase);
 
-  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj,
-                                       map_register_data.key,
+  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
                                        map_register_data.num_entries)) {
     return std::nullopt;
   }
@@ -130,8 +125,8 @@ std::optional<spec_impl_t> MapRegisterDeleteFactory::speculate(const EP *ep,
   return spec_impl;
 }
 
-std::vector<impl_t> MapRegisterDeleteFactory::process_node(const EP *ep,
-                                                           const Node *node) const {
+std::vector<impl_t> MapRegisterDeleteFactory::process_node(const EP *ep, const Node *node,
+                                                           SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -157,24 +152,22 @@ std::vector<impl_t> MapRegisterDeleteFactory::process_node(const EP *ep,
 
   map_register_data_t map_register_data(ep, map_erase);
 
-  MapRegister *map_register =
-      build_or_reuse_map_register(ep, map_erase, map_register_data.obj,
-                                  map_register_data.key, map_register_data.num_entries);
+  MapRegister *map_register = build_or_reuse_map_register(
+      ep, map_erase, map_register_data.obj, map_register_data.key, map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  Module *module = new MapRegisterDelete(map_erase, map_register->id,
-                                         map_register_data.obj, map_register_data.key);
+  Module *module = new MapRegisterDelete(map_erase, map_register->id, map_register_data.obj,
+                                         map_register_data.key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  std::unique_ptr<BDD> new_bdd =
-      delete_future_related_nodes(new_ep, map_erase, map_objs, new_next);
+  std::unique_ptr<BDD> new_bdd = delete_future_related_nodes(new_ep, map_erase, map_objs, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);

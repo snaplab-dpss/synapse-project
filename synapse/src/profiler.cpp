@@ -9,9 +9,7 @@
 
 namespace synapse {
 namespace {
-hit_rate_t clamp_fraction(hit_rate_t fraction) {
-  return std::min(1.0, std::max(0.0, fraction));
-}
+hit_rate_t clamp_fraction(hit_rate_t fraction) { return std::min(1.0, std::max(0.0, fraction)); }
 
 ProfilerNode *build_profiler_tree(const Node *node, const bdd_profile_t *bdd_profile,
                                   u64 max_count) {
@@ -76,15 +74,13 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts = 100'000;
-  bdd_profile.meta.bytes =
-      bdd_profile.meta.pkts * std::max(64, RandomEngine::generate() % 1500);
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(64, RandomEngine::generate() % 1500);
 
   const Node *root = bdd->get_root();
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
 
   root->visit_nodes([&bdd_profile](const Node *node) {
-    SYNAPSE_ASSERT(bdd_profile.counters.find(node->get_id()) !=
-                       bdd_profile.counters.end(),
+    SYNAPSE_ASSERT(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end(),
                    "Node counter not found");
     u64 current_counter = bdd_profile.counters[node->get_id()];
 
@@ -122,8 +118,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
           map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
         }
 
-        bdd_profile.stats_per_map[expr_addr_to_obj_addr(map_addr)].nodes.push_back(
-            map_stats);
+        bdd_profile.stats_per_map[expr_addr_to_obj_addr(map_addr)].nodes.push_back(map_stats);
       }
 
       if (node->get_next()) {
@@ -158,10 +153,8 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
   SYNAPSE_ASSERT(parent_new_fraction <= 1.0, "Invalid parent new fraction");
 
   hit_rate_t old_fraction = clamp_fraction(node->fraction);
-  hit_rate_t new_fraction =
-      clamp_fraction(parent_old_fraction != 0
-                         ? (parent_new_fraction / parent_old_fraction) * node->fraction
-                         : 0);
+  hit_rate_t new_fraction = clamp_fraction(
+      parent_old_fraction != 0 ? (parent_new_fraction / parent_old_fraction) * node->fraction : 0);
 
   node->fraction = new_fraction;
 
@@ -176,8 +169,8 @@ ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fracti
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction,
                            node_id_t _node_id)
-    : constraint(_constraint), fraction(_fraction), bdd_node_id(_node_id),
-      on_true(nullptr), on_false(nullptr), prev(nullptr) {}
+    : constraint(_constraint), fraction(_fraction), bdd_node_id(_node_id), on_true(nullptr),
+      on_false(nullptr), prev(nullptr) {}
 
 ProfilerNode::~ProfilerNode() {
   if (on_true) {
@@ -276,13 +269,11 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
       avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const Node *bdd_root = bdd->get_root();
 
-  SYNAPSE_ASSERT(bdd_profile->counters.find(bdd_root->get_id()) !=
-                     bdd_profile->counters.end(),
+  SYNAPSE_ASSERT(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end(),
                  "Root node not found");
   u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
 
-  root = std::shared_ptr<ProfilerNode>(
-      build_profiler_tree(bdd_root, bdd_profile.get(), max_count));
+  root = std::shared_ptr<ProfilerNode>(build_profiler_tree(bdd_root, bdd_profile.get(), max_count));
 
   for (const auto &[map_addr, map_stats] : bdd_profile->stats_per_map) {
     for (const auto &node_map_stats : map_stats.nodes) {
@@ -401,8 +392,7 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fractio
   recursive_update_fractions(new_node->on_false, new_node->fraction, fraction_on_false);
 }
 
-void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint,
-                      hit_rate_t fraction) {
+void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint, hit_rate_t fraction) {
   ProfilerNode *parent = node->prev;
 
   if (!parent) {
@@ -444,8 +434,8 @@ Profiler::family_t Profiler::get_family(ProfilerNode *node) const {
 
   if (family.parent) {
     family.grandparent = family.parent->prev;
-    family.sibling = (family.parent->on_true == node) ? family.parent->on_false
-                                                      : family.parent->on_true;
+    family.sibling =
+        (family.parent->on_true == node) ? family.parent->on_false : family.parent->on_true;
   }
 
   return family;
@@ -494,8 +484,7 @@ void Profiler::remove(const constraints_t &constraints) {
   remove(node);
 }
 
-void Profiler::insert_relative(const constraints_t &constraints,
-                               klee::ref<klee::Expr> constraint,
+void Profiler::insert_relative(const constraints_t &constraints, klee::ref<klee::Expr> constraint,
                                hit_rate_t rel_fraction_on_true) {
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);

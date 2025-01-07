@@ -3,9 +3,7 @@
 #include "../log.h"
 
 namespace synapse {
-i64 MaxTputCfg::get_tput_speculation(const EP *ep) const {
-  return ep->speculate_tput_pps();
-}
+i64 MaxTputCfg::get_tput_speculation(const EP *ep) const { return ep->speculate_tput_pps(); }
 
 i64 MaxTputCfg::get_switch_progression_nodes(const EP *ep) const {
   i64 tofino_decisions = 0;

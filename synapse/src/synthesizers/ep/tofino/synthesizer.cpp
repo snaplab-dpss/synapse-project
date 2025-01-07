@@ -94,9 +94,7 @@ void EPSynthesizer::visit(const EP *ep) {
   Synthesizer::dump();
 }
 
-void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
-  EPVisitor::visit(ep, ep_node);
-}
+void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node) { EPVisitor::visit(ep, ep_node); }
 
 void EPSynthesizer::transpile_parser(const Parser &parser) {
   coder_t &ingress_parser = get(MARKER_INGRESS_PARSER);
@@ -162,8 +160,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 
       ingress_parser.inc();
       ingress_parser.indent();
-      ingress_parser << "transition select (" << transpiler.transpile(select->field)
-                     << ") {\n";
+      ingress_parser << "transition select (" << transpiler.transpile(select->field) << ") {\n";
 
       ingress_parser.inc();
 
@@ -190,8 +187,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
       states.push_back(select->on_false);
     } break;
     case ParserStateType::TERMINATE: {
-      const ParserStateTerminate *terminate =
-          dynamic_cast<const ParserStateTerminate *>(state);
+      const ParserStateTerminate *terminate = dynamic_cast<const ParserStateTerminate *>(state);
 
       code_t state_name = get_parser_state_name(state, state_init);
 
@@ -362,7 +358,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Recirculate *node) {
   // TODO:
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -509,7 +505,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Broadcast *node) {
   // TODO:
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 
@@ -550,8 +546,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   parser_vars[node->get_node()->get_id()] = get_squashed_vars();
   parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
 
-  SYNAPSE_ASSERT(ep_node->get_children().size() == 1,
-                 "ParserExtraction must have 1 child");
+  SYNAPSE_ASSERT(ep_node->get_children().size() == 1, "ParserExtraction must have 1 child");
   visit(ep, ep_node->get_children()[0]);
 
   var_stacks.pop_back();
@@ -626,21 +621,21 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::VectorRegisterLookup *node) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  // coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const std::unordered_set<DS_ID> &rids = node->get_rids();
-  klee::ref<klee::Expr> index = node->get_index();
-  klee::ref<klee::Expr> value = node->get_value();
+  // const std::unordered_set<DS_ID> &rids = node->get_rids();
+  // klee::ref<klee::Expr> index = node->get_index();
+  // klee::ref<klee::Expr> value = node->get_value();
 
-  for (DS_ID rid : rids) {
-    const DS *ds = get_tofino_ds(ep, rid);
-    const Register *reg = dynamic_cast<const Register *>(ds);
-    transpile_register(ingress, reg, index, value);
-  }
+  // for (DS_ID rid : rids) {
+  //   const DS *ds = get_tofino_ds(ep, rid);
+  //   const Register *reg = dynamic_cast<const Register *>(ds);
+  //   transpile_register(ingress, reg, index, value);
+  // }
 
   dbg();
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
 
   return EPVisitor::Action::doChildren;
 }
@@ -648,48 +643,48 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::VectorRegisterUpdate *node) {
   // TODO:
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableRead *node) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  // coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  DS_ID cached_table_id = node->get_cached_table_id();
-  klee::ref<klee::Expr> key = node->get_key();
-  klee::ref<klee::Expr> value = node->get_value();
-  const symbol_t &map_has_this_key = node->get_map_has_this_key();
+  // DS_ID cached_table_id = node->get_cached_table_id();
+  // klee::ref<klee::Expr> key = node->get_key();
+  // klee::ref<klee::Expr> value = node->get_value();
+  // const symbol_t &map_has_this_key = node->get_map_has_this_key();
 
-  const DS *ds = get_tofino_ds(ep, cached_table_id);
-  const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
+  // const DS *ds = get_tofino_ds(ep, cached_table_id);
+  // const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
-  transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
-  dbg();
+  // transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
+  // dbg();
 
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableReadOrWrite *node) {
   // TODO:
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableWrite *node) {
   // TODO:
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableDelete *node) {
   // TODO:
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return EPVisitor::Action::doChildren;
 }
 

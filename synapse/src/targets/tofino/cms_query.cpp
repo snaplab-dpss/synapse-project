@@ -38,7 +38,8 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const Node *
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node,
+                                                  SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -56,11 +57,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node
   klee::ref<klee::Expr> key = call.args.at("key").in;
 
   addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
-
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-  symbol_t min_estimate;
-  bool found = get_symbol(symbols, "min_estimate", min_estimate);
-  SYNAPSE_ASSERT(found, "Symbol min_estimate not found");
+  symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::Tofino_CountMinSketch)) {
     return impls;
@@ -69,8 +66,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const Node *node
   const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_addr);
   std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
 
-  CountMinSketch *cms =
-      build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height);
+  CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height);
 
   if (!cms) {
     return impls;

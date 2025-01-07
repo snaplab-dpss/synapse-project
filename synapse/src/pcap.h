@@ -27,8 +27,8 @@ struct flow_t {
   flow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
 
   flow_t(const flow_t &flow)
-      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
-        dst_port(flow.dst_port) {}
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {
+  }
 
   flow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
       : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
@@ -38,15 +38,14 @@ struct flow_t {
   flow_t invert() const { return flow_t(dst_ip, src_ip, dst_port, src_port); }
 
   bool operator==(const flow_t &other) const {
-    return src_ip == other.src_ip && dst_ip == other.dst_ip &&
-           src_port == other.src_port && dst_port == other.dst_port;
+    return src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port &&
+           dst_port == other.dst_port;
   }
 
   struct flow_hash_t {
     std::size_t operator()(const flow_t &flow) const {
       return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
-             std::hash<in_port_t>()(flow.src_port) ^
-             std::hash<in_port_t>()(flow.dst_port);
+             std::hash<in_port_t>()(flow.src_port) ^ std::hash<in_port_t>()(flow.dst_port);
     }
   };
 };
@@ -61,28 +60,27 @@ struct sflow_t {
   sflow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
 
   sflow_t(const flow_t &flow)
-      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
-        dst_port(flow.dst_port) {}
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {
+  }
 
   sflow_t(const sflow_t &flow)
-      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port),
-        dst_port(flow.dst_port) {}
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {
+  }
 
   sflow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
       : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
 
   bool operator==(const sflow_t &other) const {
-    return (src_ip == other.src_ip && dst_ip == other.dst_ip &&
-            src_port == other.src_port && dst_port == other.dst_port) ||
-           (src_ip == other.dst_ip && dst_ip == other.src_ip &&
-            src_port == other.dst_port && dst_port == other.src_port);
+    return (src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port &&
+            dst_port == other.dst_port) ||
+           (src_ip == other.dst_ip && dst_ip == other.src_ip && src_port == other.dst_port &&
+            dst_port == other.src_port);
   }
 
   struct flow_hash_t {
     std::size_t operator()(const sflow_t &flow) const {
       return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
-             std::hash<in_port_t>()(flow.src_port) ^
-             std::hash<in_port_t>()(flow.dst_port);
+             std::hash<in_port_t>()(flow.src_port) ^ std::hash<in_port_t>()(flow.dst_port);
     }
   };
 };
@@ -129,8 +127,8 @@ inline std::string fmt_time_hh(time_ns_t ns) {
   std::time_t time = std::chrono::system_clock::to_time_t(time_point);
   std::tm utc_tm = *std::gmtime(&time);
 
-  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6)
-     << std::setfill('0') << microseconds << " UTC";
+  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6) << std::setfill('0')
+     << microseconds << " UTC";
 
   return ss.str();
 }
@@ -171,8 +169,7 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
     ss << minutes.count() << " min ";
   }
 
-  ss << seconds.count() + (static_cast<double>(microseconds.count()) / MILLION)
-     << " sec ";
+  ss << seconds.count() + (static_cast<double>(microseconds.count()) / MILLION) << " sec ";
 
   return ss.str();
 }
@@ -388,7 +385,7 @@ public:
 
     pkt = data;
     hdrs_len = 0;
-    total_len = header->len + 4; // Add 4 bytes for FCS
+    total_len = header->len + CRC_SIZE_BYTES;
     ts = header->ts.tv_sec * 1'000'000'000 + header->ts.tv_usec * 1'000;
 
     if (assume_ip) {
@@ -405,8 +402,7 @@ public:
         // so we need to rollback.
         data = reinterpret_cast<const u_char *>(&ether_hdr->ether_type);
 
-        // Parse the VLAN header and advance the data pointer.
-        const vlan_hdr_t *vlan_hdr = reinterpret_cast<const vlan_hdr_t *>(data);
+        // Ignore the VLAN header and advance the data pointer.
         data += sizeof(vlan_hdr_t);
 
         // Grab the encapsulated ethertype and offset the data pointer.
@@ -429,13 +425,11 @@ public:
       return true;
     }
 
-    u16 size_hint = ntohs(ip_hdr->total_length) + sizeof(ether_hdr_t);
-
     u32 src = ntohl(ip_hdr->src_addr);
     u32 dst = ntohl(ip_hdr->dst_addr);
 
-    u16 sport;
-    u16 dport;
+    u16 sport = 0;
+    u16 dport = 0;
 
     // We only support TCP/UDP
     switch (ip_hdr->next_proto_id) {
@@ -562,8 +556,8 @@ public:
     double tolerance = 0.01;
     double x = (double)N / 2.0;
 
-    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) +
-                    s - pow(N, -1.0 - s) * s);
+    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) + s -
+                    pow(N, -1.0 - s) * s);
 
     while (true) {
       double m = pow(x, -2 - s);

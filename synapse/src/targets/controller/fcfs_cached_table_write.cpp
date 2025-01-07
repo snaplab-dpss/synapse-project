@@ -13,13 +13,12 @@ DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
   const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   SYNAPSE_ASSERT(data_structures.size() == 1, "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
-  SYNAPSE_ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE,
-                 "Not a FCFS cached table");
+  SYNAPSE_ASSERT(ds->type == tofino::DSType::FCFS_CACHED_TABLE, "Not a FCFS cached table");
   return ds->id;
 }
 
-void get_data(const Call *call_node, addr_t &obj,
-              std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value) {
+void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+              klee::ref<klee::Expr> &value) {
   const call_t &call = call_node->get_call();
   SYNAPSE_ASSERT(call.function_name == "map_put", "Not a map_put call");
 
@@ -33,9 +32,8 @@ void get_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
-                                       const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
+                                                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -57,8 +55,8 @@ FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep,
-                                                              const Node *node) const {
+std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, const Node *node,
+                                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

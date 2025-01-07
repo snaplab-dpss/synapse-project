@@ -12,11 +12,10 @@ private:
   klee::ref<klee::Expr> success;
 
 public:
-  MeterInsert(const Node *node, addr_t _obj,
-              const std::vector<klee::ref<klee::Expr>> &_keys,
+  MeterInsert(const Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
               klee::ref<klee::Expr> _success)
-      : ControllerModule(ModuleType::Controller_MeterInsert, "MeterInsert", node),
-        obj(_obj), keys(_keys), success(_success) {}
+      : ControllerModule(ModuleType::Controller_MeterInsert, "MeterInsert", node), obj(_obj),
+        keys(_keys), success(_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -42,7 +41,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

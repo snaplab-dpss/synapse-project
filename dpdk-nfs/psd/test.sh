@@ -18,7 +18,7 @@ function test_psd {
 
   python3 psd.py --output psd.pcap
 
-  sudo ./build/app/nf \
+  sudo ./build/nf \
         --vdev "net_tap0,iface=test_wan" \
         --vdev "net_tap1,iface=test_lan" \
         --lcores 0 \

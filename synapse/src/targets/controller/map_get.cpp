@@ -26,7 +26,8 @@ std::optional<spec_impl_t> MapGetFactory::speculate(const EP *ep, const Node *no
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const Node *node,
+                                                SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -46,11 +47,7 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const Node *node) 
   klee::ref<klee::Expr> success = call.ret;
   klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-
-  symbol_t map_has_this_key;
-  bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
+  symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
   addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
@@ -59,8 +56,7 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const Node *node) 
     return impls;
   }
 
-  Module *module =
-      new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  Module *module = new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

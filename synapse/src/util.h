@@ -27,8 +27,7 @@ bps_t pps2bps(pps_t pps, bytes_t pkt_size);
 
 bool check_same_obj(const Call *call0, const Call *call1, const std::string &obj_name);
 
-std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
-                                              const Call *vector_return);
+std::vector<mod_t> build_vector_modifications(const Call *vector_borrow, const Call *vector_return);
 std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
                                            const Call *packet_return_chunk);
 
@@ -38,10 +37,9 @@ bool query_contains_map_has_key(const Branch *node);
 
 const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk);
 
-std::vector<const Call *>
-get_prev_functions(const EP *ep, const Node *node,
-                   const std::vector<std::string> &functions_names,
-                   bool ignore_targets = false);
+std::vector<const Call *> get_prev_functions(const EP *ep, const Node *node,
+                                             const std::vector<std::string> &functions_names,
+                                             bool ignore_targets = false);
 
 std::vector<const Call *> get_future_functions(const Node *root,
                                                const std::vector<std::string> &functions,
@@ -63,8 +61,7 @@ std::unordered_set<std::string> get_symbols(const Node *node);
 //   - Only looks at the packet
 bool is_parser_condition(const Branch *node);
 
-std::vector<const Module *> get_prev_modules(const EP *ep,
-                                             const std::vector<ModuleType> &types);
+std::vector<const Module *> get_prev_modules(const EP *ep, const std::vector<ModuleType> &types);
 
 bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr);
 
@@ -86,10 +83,9 @@ counter_data_t is_counter(const EP *ep, addr_t obj);
 // When we encounter a vector_return operation and want to retrieve its
 // vector_borrow value counterpart. This is useful to compare changes to the
 // value expression and retrieve the performed modifications (if any).
-klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
-                                                addr_t target_addr);
-klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node,
-                                                addr_t target_addr, const Node *&source);
+klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node, addr_t target_addr);
+klee::ref<klee::Expr> get_original_vector_value(const EP *ep, const Node *node, addr_t target_addr,
+                                                const Node *&source);
 
 bool is_vector_return_without_modifications(const EP *ep, const Node *node);
 bool is_vector_read(const Call *vector_borrow);
@@ -136,16 +132,15 @@ struct map_coalescing_objs_t {
   -> vector_borrow(vector_n, index, value_n)
   -> vector_return(vector_n, index, value_n)
 */
-bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj,
-                                      map_coalescing_objs_t &data);
+bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj, map_coalescing_objs_t &data);
 bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
                                             map_coalescing_objs_t &map_objs);
 bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
                                          map_coalescing_objs_t &map_objs);
 
-std::vector<const Call *>
-get_coalescing_nodes_from_key(const BDD *bdd, const Node *node, klee::ref<klee::Expr> key,
-                              const map_coalescing_objs_t &data);
+std::vector<const Call *> get_coalescing_nodes_from_key(const BDD *bdd, const Node *node,
+                                                        klee::ref<klee::Expr> key,
+                                                        const map_coalescing_objs_t &data);
 
 klee::ref<klee::Expr> get_chunk_from_borrow(const Node *node);
 bool borrow_has_var_len(const Node *node);
@@ -210,8 +205,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
 bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
                                std::vector<const Call *> &map_puts);
 
-bool is_index_alloc_on_unsuccessful_map_get(const EP *ep,
-                                            const Call *dchain_allocate_new_index);
+bool is_index_alloc_on_unsuccessful_map_get(const EP *ep, const Call *dchain_allocate_new_index);
 
 // Tries to find the pattern of a map_get followed by map_erases, but only when
 // the map_get is successful (i.e. the key is found).
@@ -243,8 +237,8 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd);
 
 branch_direction_t find_branch_checking_index_alloc(const EP *ep, const Node *node,
                                                     const symbol_t &out_of_space);
-branch_direction_t
-find_branch_checking_index_alloc(const EP *ep, const Node *dchain_allocate_new_index);
+branch_direction_t find_branch_checking_index_alloc(const EP *ep,
+                                                    const Node *dchain_allocate_new_index);
 
 bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
                                                     const Call *&tb_update_and_check);

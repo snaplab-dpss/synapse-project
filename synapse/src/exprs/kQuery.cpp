@@ -80,7 +80,7 @@ public:
 
 } // namespace
 
-std::string kQuery_t::dump(const ArrayManager *manager) const {
+std::string kQuery_t::dump(const SymbolManager *manager) const {
   std::stringstream kQuery_builder;
 
   for (const klee::Array *array : manager->get_arrays()) {
@@ -108,21 +108,21 @@ std::string kQuery_t::dump(const ArrayManager *manager) const {
     kQuery_builder << "    " << expr_to_string(value) << "\n";
   }
   kQuery_builder << "])";
+  kQuery_builder << "\n";
 
   return kQuery_builder.str();
 }
 
-kQueryParser::kQueryParser(ArrayManager *_manager)
+kQueryParser::kQueryParser(SymbolManager *_manager)
     : manager(_manager), builder(klee::createDefaultExprBuilder()) {
-  SYNAPSE_ASSERT(manager, "ArrayManager is null");
+  SYNAPSE_ASSERT(manager, "SymbolManager is null");
 }
 
 kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
   kQuery_t kQuery;
   std::vector<std::unique_ptr<klee::expr::Decl>> decls;
 
-  std::unique_ptr<MemoryBufferMem> mb =
-      std::make_unique<MemoryBufferMem>(kQueryStr, false);
+  std::unique_ptr<MemoryBufferMem> mb = std::make_unique<MemoryBufferMem>(kQueryStr, false);
   std::unique_ptr<klee::expr::Parser> parser = std::unique_ptr<klee::expr::Parser>(
       klee::expr::Parser::Create("kQueryParser", mb.get(), builder.get(), false));
 
@@ -131,7 +131,7 @@ kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
     decls.emplace_back(decl);
 
     if (klee::expr::ArrayDecl *array_decl = dyn_cast<klee::expr::ArrayDecl>(decl)) {
-      manager->save_clone(array_decl->Root);
+      manager->store_clone(array_decl->Root);
     } else if (klee::expr::QueryCommand *qc = dyn_cast<klee::expr::QueryCommand>(decl)) {
       for (klee::ref<klee::Expr> expr : qc->Constraints)
         kQuery.constraints.push_back(expr);

@@ -12,8 +12,8 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  DchainRejuvenateIndex(const Node *node, addr_t _dchain_addr,
-                        klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
+  DchainRejuvenateIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                        klee::ref<klee::Expr> _time)
       : x86Module(ModuleType::x86_DchainRejuvenateIndex, "DchainRejuvenate", node),
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
@@ -35,14 +35,14 @@ public:
 class DchainRejuvenateIndexFactory : public x86ModuleFactory {
 public:
   DchainRejuvenateIndexFactory()
-      : x86ModuleFactory(ModuleType::x86_DchainRejuvenateIndex, "DchainRejuvenateIndex") {
-  }
+      : x86ModuleFactory(ModuleType::x86_DchainRejuvenateIndex, "DchainRejuvenateIndex") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

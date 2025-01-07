@@ -21,10 +21,10 @@ struct map_register_data_t {
   }
 };
 
-std::vector<const Node *>
-get_nodes_to_speculatively_ignore(const EP *ep, const Call *dchain_allocate_new_index,
-                                  const map_coalescing_objs_t &map_objs,
-                                  klee::ref<klee::Expr> key) {
+std::vector<const Node *> get_nodes_to_speculatively_ignore(const EP *ep,
+                                                            const Call *dchain_allocate_new_index,
+                                                            const map_coalescing_objs_t &map_objs,
+                                                            klee::ref<klee::Expr> key) {
   std::vector<const Node *> nodes_to_ignore;
 
   const BDD *bdd = ep->get_bdd();
@@ -41,9 +41,8 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Call *dchain_allocate_new_
   if (index_alloc_check.branch) {
     nodes_to_ignore.push_back(index_alloc_check.branch);
 
-    const Node *next = index_alloc_check.direction
-                           ? index_alloc_check.branch->get_on_false()
-                           : index_alloc_check.branch->get_on_true();
+    const Node *next = index_alloc_check.direction ? index_alloc_check.branch->get_on_false()
+                                                   : index_alloc_check.branch->get_on_true();
 
     next->visit_nodes([&nodes_to_ignore](const Node *node) {
       nodes_to_ignore.push_back(node);
@@ -55,9 +54,8 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Call *dchain_allocate_new_
 }
 
 std::unique_ptr<BDD>
-delete_coalescing_nodes(const EP *ep, const Node *node,
-                        const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
-                        const Node *&new_next,
+delete_coalescing_nodes(const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
+                        klee::ref<klee::Expr> key, const Node *&new_next,
                         std::optional<constraints_t> &deleted_branch_constraints) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
@@ -78,22 +76,16 @@ delete_coalescing_nodes(const EP *ep, const Node *node,
     const call_t &call = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space;
-      bool found = get_symbol(call_target->get_locally_generated_symbols(),
-                              "out_of_space", out_of_space);
-      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
-
+      symbol_t out_of_space = call_target->get_local_symbol("out_of_space");
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, node, out_of_space);
 
       if (index_alloc_check.branch) {
         SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
                        "Multiple branch checking index allocation detected");
-        deleted_branch_constraints =
-            index_alloc_check.branch->get_ordered_branch_constraints();
+        deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
 
-        klee::ref<klee::Expr> extra_constraint =
-            index_alloc_check.branch->get_condition();
+        klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
 
         // If we want to keep the direction on true, we must remove the on
         // false.
@@ -104,9 +96,8 @@ delete_coalescing_nodes(const EP *ep, const Node *node,
         deleted_branch_constraints->push_back(extra_constraint);
 
         bool replace_next = (index_alloc_check.branch == next);
-        Node *replacement =
-            delete_branch_node_from_bdd(new_bdd.get(), index_alloc_check.branch->get_id(),
-                                        index_alloc_check.direction);
+        Node *replacement = delete_branch_node_from_bdd(
+            new_bdd.get(), index_alloc_check.branch->get_id(), index_alloc_check.direction);
         if (replace_next) {
           new_next = replacement;
         }
@@ -124,8 +115,7 @@ delete_coalescing_nodes(const EP *ep, const Node *node,
 }
 } // namespace
 
-std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep,
-                                                              const Node *node,
+std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep, const Node *node,
                                                               const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
@@ -153,8 +143,7 @@ std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep,
 
   map_register_data_t map_register_data(ep, future_map_puts);
 
-  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj,
-                                       map_register_data.key,
+  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
                                        map_register_data.num_entries)) {
     return std::nullopt;
   }
@@ -175,8 +164,8 @@ std::optional<spec_impl_t> MapRegisterWriteFactory::speculate(const EP *ep,
   return spec_impl;
 }
 
-std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
-                                                          const Node *node) const {
+std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep, const Node *node,
+                                                          SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -205,17 +194,15 @@ std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
 
   map_register_data_t map_register_data(ep, future_map_puts);
 
-  MapRegister *map_register =
-      build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
-                                  map_register_data.num_entries);
+  MapRegister *map_register = build_or_reuse_map_register(
+      ep, node, map_register_data.obj, map_register_data.key, map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  Module *module =
-      new MapRegisterWrite(node, map_register->id, map_register_data.obj,
-                           map_register_data.key, map_register_data.write_value);
+  Module *module = new MapRegisterWrite(node, map_register->id, map_register_data.obj,
+                                        map_register_data.key, map_register_data.write_value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -223,9 +210,8 @@ std::vector<impl_t> MapRegisterWriteFactory::process_node(const EP *ep,
 
   const Node *new_next;
   std::optional<constraints_t> deleted_branch_constraints;
-  std::unique_ptr<BDD> new_bdd =
-      delete_coalescing_nodes(new_ep, node, map_objs, map_register_data.key, new_next,
-                              deleted_branch_constraints);
+  std::unique_ptr<BDD> new_bdd = delete_coalescing_nodes(
+      new_ep, node, map_objs, map_register_data.key, new_next, deleted_branch_constraints);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_MapRegister);

@@ -6,13 +6,13 @@
 #include "../src/exprs/exprs.h"
 
 using synapse::arg_t;
-using synapse::ArrayManager;
 using synapse::call_path_t;
 using synapse::call_paths_t;
 using synapse::call_t;
 using synapse::expr_to_string;
 using synapse::extra_var_t;
 using synapse::meta_t;
+using synapse::SymbolManager;
 
 int main(int argc, char **argv, char **envp) {
   CLI::App app{"Load call paths"};
@@ -26,17 +26,17 @@ int main(int argc, char **argv, char **envp) {
     std::cout << "Loading: " << file << "\n";
   }
 
-  ArrayManager manager;
+  SymbolManager manager;
   call_paths_t call_paths(input_call_path_files, &manager);
 
-  for (size_t i = 0; i < call_paths.cps.size(); i++) {
+  for (size_t i = 0; i < call_paths.data.size(); i++) {
     std::cout << "Call Path " << i << "\n";
     std::cout << "  Assuming: ";
-    for (auto constraint : call_paths.cps[i]->constraints) {
+    for (auto constraint : call_paths.data[i]->constraints) {
       std::cout << expr_to_string(constraint) << "\n";
     }
     std::cout << "  Calls:" << "\n";
-    for (auto call : call_paths.cps[i]->calls) {
+    for (auto call : call_paths.data[i]->calls) {
       std::cout << "    Function: " << call.function_name << "\n";
       if (!call.args.empty()) {
         std::cout << "      With Args:" << "\n";
@@ -55,8 +55,7 @@ int main(int argc, char **argv, char **envp) {
           if (arg.second.meta.size()) {
             std::cout << "            Meta: \n";
             for (auto meta : arg.second.meta) {
-              std::cout << "                  " << meta.symbol << " (" << meta.size
-                        << " bits)\n";
+              std::cout << "                  " << meta.symbol << " (" << meta.size << " bits)\n";
             }
           }
 
@@ -70,12 +69,10 @@ int main(int argc, char **argv, char **envp) {
         for (auto extra_var : call.extra_vars) {
           std::cout << "        " << extra_var.first << "\n";
           if (!extra_var.second.first.isNull()) {
-            std::cout << "            Before: " << expr_to_string(extra_var.second.first)
-                      << "\n";
+            std::cout << "            Before: " << expr_to_string(extra_var.second.first) << "\n";
           }
           if (!extra_var.second.second.isNull()) {
-            std::cout << "            After: " << expr_to_string(extra_var.second.second)
-                      << "\n";
+            std::cout << "            After: " << expr_to_string(extra_var.second.second) << "\n";
           }
         }
       }

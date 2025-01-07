@@ -16,8 +16,8 @@ private:
 public:
   FCFSCachedTableDelete(const Node *node, DS_ID _id, addr_t _obj,
                         const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(ModuleType::Controller_FCFSCachedTableDelete,
-                         "FCFSCachedTableDelete", node),
+      : ControllerModule(ModuleType::Controller_FCFSCachedTableDelete, "FCFSCachedTableDelete",
+                         node),
         id(_id), obj(_obj), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
@@ -45,7 +45,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

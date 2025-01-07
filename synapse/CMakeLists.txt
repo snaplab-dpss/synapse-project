@@ -36,7 +36,6 @@ add_compile_options(
     -Wextra
     -Werror
     -Wfatal-errors
-    -Wno-unused-variable
     -Wno-unused-parameter
     -Wnon-virtual-dtor
     -pedantic
@@ -46,12 +45,12 @@ add_compile_options(
     -Wduplicated-branches
     -Wlogical-op
     -Wdouble-promotion
-
     -fno-omit-frame-pointer
-    -fsanitize=address
 )
 
-add_link_options(-fsanitize=address)
+# Uncomment the following lines to enable AddressSanitizer
+# add_compile_options(-fsanitize=address)
+# add_link_options(-fsanitize=address)
 
 ###############################################################################
 # Setting output targets

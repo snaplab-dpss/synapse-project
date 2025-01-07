@@ -3,16 +3,12 @@
 #include <iostream>
 #include <optional>
 
-#include "io.h"
 #include "bdd.h"
-
 #include "call_paths_groups.h"
 #include "visitor.h"
-
 #include "nodes/branch.h"
 #include "nodes/call.h"
 #include "nodes/route.h"
-
 #include "../exprs/exprs.h"
 #include "../exprs/retriever.h"
 #include "../exprs/simplifier.h"
@@ -20,7 +16,7 @@
 
 namespace synapse {
 namespace {
-std::vector<std::string> ignored_functions{
+const std::vector<std::string> ignored_functions{
     "start_time",
     "current_time",
     "loop_invariant_consume",
@@ -31,30 +27,24 @@ std::vector<std::string> ignored_functions{
     "vector_reset",
 };
 
-std::vector<std::string> init_functions{
+const std::vector<std::string> init_functions{
     "map_allocate", "vector_allocate", "dchain_allocate",
     "cms_allocate", "cht_fill_cht",    "tb_allocate",
 };
 
-std::vector<std::string> symbols_in_skippable_conditions{
+const std::vector<std::string> symbols_in_skippable_conditions{
     "received_a_packet",        "loop_termination",        "map_allocation_succeeded",
     "vector_alloc_success",     "is_dchain_allocated",     "cht_fill_cht_successful",
     "cms_allocation_succeeded", "tb_allocation_succeeded",
 };
 
-std::vector<std::string> rounting_functions{
+const std::vector<std::string> rounting_functions{
     "packet_send",
     "packet_free",
     "packet_broadcast",
 };
 
-std::unordered_set<std::string> bdd_symbols{
-    "DEVICE",
-    "pkt_len",
-    "next_time",
-};
-
-std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call = {
+const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call{
     {
         "rte_lcore_count",
         {"lcores"},
@@ -141,33 +131,26 @@ std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_ca
     },
 };
 
-typedef symbols_t (*SymbolsExtractor)(const call_t &call, const symbols_t &all_symbols);
+typedef symbols_t (*SymbolsExtractor)(const call_t &call, const SymbolManager *manager);
 
-symbols_t packet_chunks_symbol_extractor(const call_t &call,
-                                         const symbols_t &all_symbols) {
+symbols_t packet_chunks_symbol_extractor(const call_t &call, const SymbolManager *manager) {
   SYNAPSE_ASSERT(call.function_name == "packet_borrow_next_chunk", "Unexpected function");
 
   const extra_var_t &extra_var = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
 
-  symbol_t symbol;
-  bool found = get_symbol(all_symbols, "packet_chunks", symbol);
-  SYNAPSE_ASSERT(found, "Symbol not found");
-
+  symbol_t symbol = manager->get_symbol("packet_chunks");
   symbol.expr = packet_chunk;
+
   return {symbol};
 }
 
-std::unordered_map<std::string, SymbolsExtractor> special_symbols_extractors = {
+const std::unordered_map<std::string, SymbolsExtractor> special_symbols_extractors{
     {
         "packet_borrow_next_chunk",
         packet_chunks_symbol_extractor,
     },
 };
-
-bool is_bdd_symbol(const std::string &symbol) {
-  return bdd_symbols.find(symbol) != bdd_symbols.end();
-}
 
 bool is_init_function(const call_t &call) {
   return std::find(init_functions.begin(), init_functions.end(), call.function_name) !=
@@ -175,13 +158,13 @@ bool is_init_function(const call_t &call) {
 }
 
 bool is_skip_function(const call_t &call) {
-  return std::find(ignored_functions.begin(), ignored_functions.end(),
-                   call.function_name) != ignored_functions.end();
+  return std::find(ignored_functions.begin(), ignored_functions.end(), call.function_name) !=
+         ignored_functions.end();
 }
 
 bool is_routing_function(const call_t &call) {
-  return std::find(rounting_functions.begin(), rounting_functions.end(),
-                   call.function_name) != rounting_functions.end();
+  return std::find(rounting_functions.begin(), rounting_functions.end(), call.function_name) !=
+         rounting_functions.end();
 }
 
 bool is_skip_condition(klee::ref<klee::Expr> condition) {
@@ -192,9 +175,8 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
       return symbol.find(s) != std::string::npos;
     };
 
-    auto found_it =
-        std::find_if(symbols_in_skippable_conditions.begin(),
-                     symbols_in_skippable_conditions.end(), base_symbol_comparator);
+    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(),
+                                 symbols_in_skippable_conditions.end(), base_symbol_comparator);
 
     if (found_it != symbols_in_skippable_conditions.end())
       return true;
@@ -203,8 +185,8 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call,
-                            const klee::ConstraintManager &constraints, node_id_t id) {
+Route *route_node_from_call(const call_t &call, const klee::ConstraintManager &constraints,
+                            node_id_t id) {
   SYNAPSE_ASSERT(is_routing_function(call), "Unexpected function");
 
   if (call.function_name == "packet_free") {
@@ -225,7 +207,7 @@ Route *route_node_from_call(const call_t &call,
 }
 
 call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
-  SYNAPSE_ASSERT(call_paths.size(), "No call paths");
+  SYNAPSE_ASSERT(!call_paths.empty(), "No call paths");
 
   for (call_path_t *cp : call_paths) {
     SYNAPSE_ASSERT(cp->calls.size(), "No calls");
@@ -234,8 +216,7 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
     if (call.ret.isNull())
       return call;
 
-    klee::ref<klee::Expr> zero =
-        solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
+    klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
     klee::ref<klee::Expr> eq_zero = solver_toolbox.exprBuilder->Eq(call.ret, zero);
     bool is_ret_success = solver_toolbox.is_expr_always_false(eq_zero);
 
@@ -244,6 +225,7 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
   }
 
   // No function with successful return.
+  SYNAPSE_ASSERT(!call_paths[0]->calls.empty(), "No calls in first call path");
   return call_paths[0]->calls[0];
 }
 
@@ -278,27 +260,26 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
 }
 
 std::optional<symbol_t>
-get_generated_symbol(const symbols_t &symbols, const std::string &base_symbol,
+get_generated_symbol(const SymbolManager *manager, const std::string &base,
                      std::unordered_map<std::string, size_t> &base_symbols_generated) {
-  std::vector<symbol_t> filtered;
+  std::vector<symbol_t> filtered = manager->get_symbols_with_base(base);
 
-  for (const symbol_t &symbol : symbols) {
-    if (symbol.base == base_symbol)
-      filtered.push_back(symbol);
-  }
+  auto symbol_cmp = [base](const symbol_t &a, const symbol_t &b) {
+    SYNAPSE_ASSERT(a.base == b.base, "Different base symbols");
 
-  auto symbol_cmp = [base_symbol](const symbol_t &a, const symbol_t &b) {
-    size_t base_a_pos = a.array->name.find(base_symbol);
-    size_t base_b_pos = b.array->name.find(base_symbol);
+    size_t base_a_pos = a.name.find(base);
+    size_t base_b_pos = b.name.find(base);
 
-    std::string a_suffix = a.array->name.substr(base_a_pos + base_symbol.size());
-    std::string b_suffix = b.array->name.substr(base_b_pos + base_symbol.size());
+    std::string a_suffix = a.name.substr(base_a_pos + base.size());
+    std::string b_suffix = b.name.substr(base_b_pos + base.size());
 
-    if (a_suffix.size() == 0)
+    if (a_suffix.size() == 0) {
       return true;
+    }
 
-    if (b_suffix.size() == 0)
+    if (b_suffix.size() == 0) {
       return false;
+    }
 
     SYNAPSE_ASSERT(a_suffix[0] == '_', "Invalid suffix");
     SYNAPSE_ASSERT(b_suffix[0] == '_', "Invalid suffix");
@@ -312,11 +293,10 @@ get_generated_symbol(const symbols_t &symbols, const std::string &base_symbol,
   std::sort(filtered.begin(), filtered.end(), symbol_cmp);
 
   size_t total_base_symbols_generated = 0;
-
-  if (base_symbols_generated.find(base_symbol) != base_symbols_generated.end()) {
-    total_base_symbols_generated = base_symbols_generated[base_symbol];
+  if (base_symbols_generated.find(base) != base_symbols_generated.end()) {
+    total_base_symbols_generated = base_symbols_generated[base];
   } else {
-    base_symbols_generated[base_symbol] = 0;
+    base_symbols_generated[base] = 0;
   }
 
   if (total_base_symbols_generated >= filtered.size()) {
@@ -324,104 +304,80 @@ get_generated_symbol(const symbols_t &symbols, const std::string &base_symbol,
     return std::nullopt;
   }
 
+  base_symbols_generated[base]++;
+
   return filtered[total_base_symbols_generated];
 }
 
-symbols_t
-get_generated_symbols(const call_t &call,
-                      std::unordered_map<std::string, size_t> &base_symbols_generated,
-                      const symbols_t &symbols) {
-  symbols_t generated_symbols;
+symbols_t get_call_symbols(const call_t &call, const SymbolManager *manager,
+                           std::unordered_map<std::string, size_t> &base_symbols_generated) {
+  symbols_t symbols;
 
-  if (special_symbols_extractors.find(call.function_name) !=
-      special_symbols_extractors.end()) {
-    return special_symbols_extractors[call.function_name](call, symbols);
+  auto extractor_it = special_symbols_extractors.find(call.function_name);
+  if (extractor_it != special_symbols_extractors.end()) {
+    return extractor_it->second(call, manager);
   }
 
-  auto found_it = symbols_from_call.find(call.function_name);
-  if (found_it == symbols_from_call.end())
-    return generated_symbols;
+  auto base_symbols_it = symbols_from_call.find(call.function_name);
+  if (base_symbols_it == symbols_from_call.end()) {
+    return symbols;
+  }
 
-  const std::unordered_set<std::string> &call_symbols = found_it->second;
-
-  for (const std::string &base_symbol : call_symbols) {
-    std::optional<symbol_t> new_symbol =
-        get_generated_symbol(symbols, base_symbol, base_symbols_generated);
-
-    if (new_symbol) {
-      generated_symbols.insert(*new_symbol);
-      base_symbols_generated[base_symbol]++;
+  for (const std::string &base : base_symbols_it->second) {
+    std::optional<symbol_t> symbol = get_generated_symbol(manager, base, base_symbols_generated);
+    if (symbol.has_value()) {
+      symbols.insert(symbol.value());
     }
   }
 
-  return generated_symbols;
+  return symbols;
 }
 
 void pop_call_paths(call_paths_view_t &call_paths_view) {
-  for (call_path_t *cp : call_paths_view) {
+  for (call_path_t *cp : call_paths_view.data) {
     SYNAPSE_ASSERT(cp->calls.size(), "No calls");
     cp->calls.erase(cp->calls.begin());
   }
 }
 
-void build_bdd_symbols(const symbols_t &symbols, symbols_t &bdd_symbols) {
-  for (const symbol_t &symbol : symbols) {
-    if (is_bdd_symbol(symbol.base)) {
-      bdd_symbols.insert(symbol);
-    }
-  }
-}
-
-symbols_t get_symbols_from_call_path_view(const call_paths_view_t &call_paths_view) {
-  symbols_t symbols;
-  for (const call_path_t *cp : call_paths_view) {
-    symbols.insert(cp->symbols.begin(), cp->symbols.end());
-  }
-  return symbols;
-}
-
-Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manager,
-                          std::vector<call_t> &init, node_id_t &id,
-                          symbols_t &bdd_symbols,
+Node *bdd_from_call_paths(call_paths_view_t call_paths_view, const SymbolManager *symbol_manager,
+                          NodeManager &node_manager, std::vector<call_t> &init, node_id_t &id,
                           klee::ConstraintManager constraints = klee::ConstraintManager(),
                           std::unordered_map<std::string, size_t> base_symbols_generated =
                               std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
   Node *leaf = nullptr;
 
-  if (call_paths_view[0]->calls.size() == 0)
+  SYNAPSE_ASSERT(!call_paths_view.data.empty(), "No call paths");
+  if (call_paths_view.data[0]->calls.size() == 0) {
     return root;
+  }
 
-  symbols_t symbols = get_symbols_from_call_path_view(call_paths_view);
-
-  while (call_paths_view.size()) {
+  while (!call_paths_view.data.empty()) {
     CallPathsGroup group(call_paths_view);
 
     const call_paths_view_t &on_true = group.get_on_true();
     const call_paths_view_t &on_false = group.get_on_false();
 
-    if (on_true[0]->calls.size() == 0) {
+    SYNAPSE_ASSERT(!on_true.data.empty(), "No call paths");
+    if (on_true.data[0]->calls.size() == 0) {
       break;
     }
 
-    if (on_true.size() == call_paths_view.size()) {
-      SYNAPSE_ASSERT(on_false.size() == 0, "Unexpected call paths");
+    if (on_true.data.size() == call_paths_view.data.size()) {
+      SYNAPSE_ASSERT(on_false.data.empty(), "Unexpected call paths");
 
-      call_t call = get_successful_call(call_paths_view);
-
-      symbols_t generated_symbols =
-          get_generated_symbols(call, base_symbols_generated, symbols);
-
-      build_bdd_symbols(generated_symbols, bdd_symbols);
+      call_t call = get_successful_call(call_paths_view.data);
+      symbols_t call_symbols = get_call_symbols(call, symbol_manager, base_symbols_generated);
 
       std::cerr << "\n";
       std::cerr << "==================================\n";
       std::cerr << "Call: " << call << "\n";
       std::cerr << "Call paths:\n";
-      for (const call_path_t *cp : call_paths_view)
+      for (const call_path_t *cp : call_paths_view.data)
         std::cerr << "  " << cp->file_name << "\n";
-      std::cerr << "Generated symbols (" << generated_symbols.size() << "):\n";
-      for (const symbol_t &symbol : generated_symbols)
+      std::cerr << "Generated symbols (" << call_symbols.size() << "):\n";
+      for (const symbol_t &symbol : call_symbols)
         std::cerr << "  " << expr_to_string(symbol.expr, true) << "\n";
       std::cerr << "Constraints (" << constraints.size() << "):\n";
       for (const klee::ref<klee::Expr> &constraint : constraints)
@@ -436,10 +392,10 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manage
         if (is_routing_function(call)) {
           node = route_node_from_call(call, constraints, id);
         } else {
-          node = new Call(id, constraints, call, generated_symbols);
+          node = new Call(id, constraints, call, call_symbols);
         }
 
-        manager.add_node(node);
+        node_manager.add_node(node);
         id++;
 
         if (root == nullptr) {
@@ -454,8 +410,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manage
 
       pop_call_paths(call_paths_view);
     } else {
-      klee::ref<klee::Expr> discriminating_constraint =
-          group.get_discriminating_constraint();
+      klee::ref<klee::Expr> discriminating_constraint = group.get_discriminating_constraint();
 
       klee::ref<klee::Expr> condition = simplify_constraint(discriminating_constraint);
       klee::ref<klee::Expr> not_condition =
@@ -471,17 +426,17 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manage
       std::cerr << "==================================\n";
       std::cerr << "Condition: " << expr_to_string(condition, true) << "\n";
       std::cerr << "On true call paths:\n";
-      for (const call_path_t *cp : on_true)
+      for (const call_path_t *cp : on_true.data)
         std::cerr << "  " << cp->file_name << "\n";
       std::cerr << "On False call paths:\n";
-      for (const call_path_t *cp : on_false)
+      for (const call_path_t *cp : on_false.data)
         std::cerr << "  " << cp->file_name << "\n";
       std::cerr << "==================================\n";
 
       if (is_skip_condition(condition)) {
         // Assumes the right path is the one with the most call paths (or the on
-        // true path, somehwat arbitrarily...)
-        if (on_true.size() >= on_false.size()) {
+        // true path, somewhat arbitrarily...)
+        if (on_true.data.size() >= on_false.data.size()) {
           call_paths_view = on_true;
         } else {
           call_paths_view = on_false;
@@ -491,14 +446,12 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manage
 
       Branch *node = new Branch(id, constraints, condition);
       id++;
-      manager.add_node(node);
+      node_manager.add_node(node);
 
-      Node *on_true_root =
-          bdd_from_call_paths(on_true, manager, init, id, bdd_symbols,
-                              on_true_constraints, base_symbols_generated);
-      Node *on_false_root =
-          bdd_from_call_paths(on_false, manager, init, id, bdd_symbols,
-                              on_false_constraints, base_symbols_generated);
+      Node *on_true_root = bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id,
+                                               on_true_constraints, base_symbols_generated);
+      Node *on_false_root = bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id,
+                                                on_false_constraints, base_symbols_generated);
 
       SYNAPSE_ASSERT(on_true_root && on_false_root, "Invalid BDD");
 
@@ -524,15 +477,15 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, NodeManager &manage
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
-const Node *BDD::get_node_by_id(node_id_t _id) const {
-  return root ? root->get_node_by_id(_id) : nullptr;
+const Node *BDD::get_node_by_id(node_id_t node_id) const {
+  return root ? root->get_node_by_id(node_id) : nullptr;
 }
 
-Node *BDD::get_mutable_node_by_id(node_id_t _id) {
-  return root ? root->get_mutable_node_by_id(_id) : nullptr;
+Node *BDD::get_mutable_node_by_id(node_id_t node_id) {
+  return root ? root->get_mutable_node_by_id(node_id) : nullptr;
 }
 
-int BDD::get_node_depth(node_id_t _id) const {
+int BDD::get_node_depth(node_id_t node_id) const {
   int depth = -1;
 
   if (!root) {
@@ -543,19 +496,18 @@ int BDD::get_node_depth(node_id_t _id) const {
     int depth;
 
     depth_tracker_t() : depth(0) {}
+    depth_tracker_t(int _depth) : depth(_depth) {}
 
-    cookie_t *clone() const override {
-      depth_tracker_t *new_cookie = new depth_tracker_t();
-      new_cookie->depth = depth;
-      return new_cookie;
+    std::unique_ptr<cookie_t> clone() const override {
+      return std::make_unique<depth_tracker_t>(depth);
     }
   };
 
   root->visit_nodes(
-      [_id, &depth](const Node *node, cookie_t *cookie) {
+      [node_id, &depth](const Node *node, cookie_t *cookie) {
         depth_tracker_t *depth_tracker = dynamic_cast<depth_tracker_t *>(cookie);
 
-        if (node->get_id() == _id) {
+        if (node->get_id() == node_id) {
           depth = depth_tracker->depth;
           return NodeVisitAction::Stop;
         }
@@ -574,7 +526,7 @@ symbols_t BDD::get_generated_symbols(const Node *node) const {
   while (node) {
     if (node->get_type() == NodeType::Call) {
       const Call *call_node = dynamic_cast<const Call *>(node);
-      symbols_t more_symbols = call_node->get_locally_generated_symbols();
+      const symbols_t &more_symbols = call_node->get_local_symbols();
       symbols.insert(more_symbols.begin(), more_symbols.end());
     }
 
@@ -584,30 +536,27 @@ symbols_t BDD::get_generated_symbols(const Node *node) const {
   return symbols;
 }
 
-BDD::BDD(const call_paths_view_t &call_paths_view) : id(0) {
-  symbols_t bdd_symbols;
-  root = bdd_from_call_paths(call_paths_view, manager, init, id, bdd_symbols);
+BDD::BDD() : id(0), root(nullptr) {}
 
-  for (const symbol_t &symbol : bdd_symbols) {
-    if (symbol.base == "DEVICE") {
-      device = symbol;
-    } else if (symbol.base == "pkt_len") {
-      packet_len = symbol;
-    } else if (symbol.base == "next_time") {
-      time = symbol;
-    } else {
-      SYNAPSE_ASSERT(false, "Unknown BDD symbol");
-    }
-  }
+BDD::BDD(const call_paths_view_t &call_paths_view)
+    : id(0), symbol_manager(call_paths_view.manager) {
+  root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id);
 
-  // Some NFs don't care about the device, so it doesn't show up on the call
-  // paths.
-  if (device.expr.isNull()) {
-    device.expr = solver_toolbox.create_new_symbol("DEVICE", 32);
+  packet_len = symbol_manager->get_symbol("pkt_len");
+  time = symbol_manager->get_symbol("next_time");
+
+  // Some NFs don't care about the device, so it doesn't show up on the callpaths.
+  if (symbol_manager->has_symbol("DEVICE")) {
+    device = call_paths_view.manager->get_symbol("DEVICE");
+  } else {
+    device = call_paths_view.manager->create_symbol("DEVICE", 32);
   }
 }
 
-BDD::BDD(const std::string &file_path) : id(0) { deserialize(file_path); }
+BDD::BDD(const std::filesystem::path &fpath, SymbolManager *_symbol_manager)
+    : id(0), symbol_manager(_symbol_manager) {
+  deserialize(fpath);
+}
 
 void BDD::assert_integrity() const {
   SYNAPSE_ASSERT(root, "No root node");
@@ -637,14 +586,14 @@ void BDD::assert_integrity() const {
 
 BDD::BDD(const BDD &other)
     : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time),
-      init(other.init) {
+      init(other.init), symbol_manager(other.symbol_manager) {
   root = other.root->clone(manager, true);
 }
 
 BDD::BDD(BDD &&other)
-    : id(other.id), device(std::move(other.device)),
-      packet_len(std::move(other.packet_len)), time(std::move(other.time)),
-      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)) {
+    : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)),
+      time(std::move(other.time)), init(std::move(other.init)), root(other.root),
+      manager(std::move(other.manager)), symbol_manager(std::move(other.symbol_manager)) {
   other.root = nullptr;
 }
 
@@ -657,6 +606,7 @@ BDD &BDD::operator=(const BDD &other) {
   time = other.time;
   init = other.init;
   root = other.root->clone(manager, true);
+  symbol_manager = other.symbol_manager;
   return *this;
 }
 } // namespace synapse

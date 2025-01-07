@@ -17,9 +17,8 @@ DS_ID get_map_register(const EP *ep, addr_t obj) {
   return ds->id;
 }
 
-void get_data(const Call *call_node, addr_t &obj,
-              std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value,
-              std::optional<symbol_t> &hit) {
+void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+              klee::ref<klee::Expr> &value, std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
   SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
 
@@ -27,11 +26,7 @@ void get_data(const Call *call_node, addr_t &obj,
   klee::ref<klee::Expr> key = call.args.at("key").in;
   klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-
-  symbol_t map_has_this_key;
-  bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
+  symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   obj = expr_addr_to_obj_addr(map_addr_expr);
   keys = Table::build_keys(key);
@@ -40,8 +35,7 @@ void get_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep,
-                                                             const Node *node,
+std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep, const Node *node,
                                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
@@ -64,8 +58,8 @@ std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep,
-                                                         const Node *node) const {
+std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep, const Node *node,
+                                                         SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

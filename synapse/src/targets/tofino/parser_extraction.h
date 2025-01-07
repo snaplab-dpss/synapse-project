@@ -12,8 +12,7 @@ private:
   bytes_t length;
 
 public:
-  ParserExtraction(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr,
-                   bytes_t _length)
+  ParserExtraction(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length)
       : TofinoModule(ModuleType::Tofino_ParserExtraction, "ParserExtraction", node),
         hdr_addr(_hdr_addr), hdr(_hdr), length(_length) {}
 
@@ -41,7 +40,8 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

@@ -26,8 +26,8 @@ std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const No
   return std::nullopt;
 }
 
-std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep,
-                                                      const Node *node) const {
+std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const Node *node,
+                                                      SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -48,8 +48,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep,
   klee::ref<klee::Expr> hdr = call.args.at("the_chunk").expr;
   addr_t hdr_addr = expr_addr_to_obj_addr(hdr);
 
-  std::vector<mod_t> changes =
-      build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
+  std::vector<mod_t> changes = build_hdr_modifications(packet_borrow_chunk, packet_return_chunk);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

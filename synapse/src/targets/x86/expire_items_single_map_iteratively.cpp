@@ -28,8 +28,8 @@ ExpireItemsSingleMapIterativelyFactory::speculate(const EP *ep, const Node *node
 }
 
 std::vector<impl_t>
-ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -47,8 +47,7 @@ ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep,
   addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
   addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
 
-  Module *module =
-      new ExpireItemsSingleMapIteratively(node, map_addr, vector_addr, start, n_elems);
+  Module *module = new ExpireItemsSingleMapIteratively(node, map_addr, vector_addr, start, n_elems);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -84,8 +84,7 @@ pkt_hdr_t build_pkt_template() {
   pkt.ip_hdr.version = 4;
   pkt.ip_hdr.ihl = 5;
   pkt.ip_hdr.type_of_service = 0;
-  pkt.ip_hdr.total_length =
-      htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
+  pkt.ip_hdr.total_length = htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
   pkt.ip_hdr.packet_id = 0;
   pkt.ip_hdr.fragment_offset = 0;
   pkt.ip_hdr.time_to_live = 64;
@@ -212,9 +211,9 @@ public:
       : config(_config), keys(_base_keys), warmup_writer(get_warmup_pcap_fname(_config)),
         writer(get_pcap_fname(_config)),
         uniform_rand(_config.random_seed, 0, _config.total_keys - 1),
-        zipf_rand(_config.random_seed, _config.traffic_zipf_param, _config.total_keys),
-        pd(NULL), pdumper(NULL), packet_template(build_pkt_template()), counters(0),
-        keys_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
+        zipf_rand(_config.random_seed, _config.traffic_zipf_param, _config.total_keys), pd(NULL),
+        pdumper(NULL), packet_template(build_pkt_template()), counters(0), keys_swapped(0),
+        current_time(0), alarm_tick(0), next_alarm(-1) {
     for (const kv_key_t &key : keys) {
       counters[key] = 0;
     }
@@ -243,8 +242,7 @@ public:
       randomize_value(value);
       memcpy(pkt.kvs_hdr.value, value.data(), VALUE_SIZE_BYTES);
 
-      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t),
-                          current_time);
+      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
 
       counter++;
       int current_progress = (counter * 100) / goal;
@@ -299,8 +297,7 @@ public:
       }
 
       counters[key]++;
-      writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t),
-                   current_time);
+      writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
 
       tick();
 
@@ -375,8 +372,7 @@ private:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-    constexpr int bytes =
-        PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
+    constexpr int bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     current_time += (bytes * 8) / RATE_GBIT;
   }
 };
@@ -388,18 +384,15 @@ int main(int argc, char *argv[]) {
 
   app.add_option("--packets", config.total_packets, "Total packets.")
       ->default_val(DEFAULT_TOTAL_PACKETS);
-  app.add_option("--flows", config.total_keys, "Total keys.")
-      ->default_val(DEFAULT_TOTAL_KEYS);
+  app.add_option("--flows", config.total_keys, "Total keys.")->default_val(DEFAULT_TOTAL_KEYS);
   app.add_option("--churn", config.churn_fpm, "Total churn (fpm).")
       ->default_val(DEFAULT_TOTAL_CHURN_FPM);
   app.add_flag("--uniform", config.traffic_uniform, "Uniform traffic.")
       ->default_val(DEFAULT_TRAFFIC_UNIFORM);
-  app.add_flag("--zipf", config.traffic_zipf, "Zipf traffic.")
-      ->default_val(DEFAULT_TRAFFIC_ZIPF);
+  app.add_flag("--zipf", config.traffic_zipf, "Zipf traffic.")->default_val(DEFAULT_TRAFFIC_ZIPF);
   app.add_option("--zipf-param", config.traffic_zipf_param, "Zipf parameter.")
       ->default_val(DEFAULT_TRAFFIC_ZIPF_PARAMETER);
-  app.add_option("--seed", config.random_seed, "Random seed.")
-      ->default_val(std::random_device()());
+  app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
 
   CLI11_PARSE(app, argc, argv);
 

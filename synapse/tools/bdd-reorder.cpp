@@ -3,8 +3,23 @@
 
 #include "../src/bdd/bdd.h"
 #include "../src/exprs/exprs.h"
+#include "../src/exprs/symbol_manager.h"
 
-using namespace synapse;
+using synapse::anchor_info_t;
+using synapse::BDD;
+using synapse::BDDViz;
+using synapse::candidate_info_t;
+using synapse::estimate_reorder;
+using synapse::expr_to_string;
+using synapse::get_reorder_ops;
+using synapse::Node;
+using synapse::node_id_t;
+using synapse::NodeManager;
+using synapse::reorder_op_t;
+using synapse::reordered_bdd_t;
+using synapse::ReorderingCandidateStatus;
+using synapse::SymbolManager;
+using synapse::try_reorder;
 
 void print(const BDD *bdd, const reorder_op_t &op) {
   const anchor_info_t &anchor_info = op.anchor_info;
@@ -35,8 +50,7 @@ void print(const BDD *bdd, const reorder_op_t &op) {
   }
 
   if (!candidate_info.condition.isNull()) {
-    std::cerr << "* Condition: " << expr_to_string(candidate_info.condition, true)
-              << "\n";
+    std::cerr << "* Condition: " << expr_to_string(candidate_info.condition, true) << "\n";
   }
 
   std::cerr << "==================================\n";
@@ -65,8 +79,7 @@ void apply_reordering_ops(const BDD *bdd,
     reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
 
     if (reordered_bdd.op.candidate_info.status != ReorderingCandidateStatus::Valid) {
-      std::cerr << "Reordering failed: " << reordered_bdd.op.candidate_info.status
-                << "\n";
+      std::cerr << "Reordering failed: " << reordered_bdd.op.candidate_info.status << "\n";
       break;
     } else {
       assert(reordered_bdd.bdd);
@@ -82,8 +95,7 @@ void apply_all_candidates(const BDD *bdd, node_id_t anchor_id) {
 
   auto end = std::chrono::steady_clock::now();
   auto elapsed = end - start;
-  auto elapsed_seconds =
-      std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+  auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
   std::cerr << "Total: " << bdds.size() << "\n";
   std::cerr << "Elapsed: " << elapsed_seconds << " seconds\n";
@@ -107,8 +119,7 @@ void estimate(const BDD *bdd) {
 
   auto end = std::chrono::steady_clock::now();
   auto elapsed = end - start;
-  auto elapsed_seconds =
-      std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+  auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
   std::cerr << "Approximately " << approximation << " BDDs generated\n";
   std::cerr << "Elapsed: " << elapsed_seconds << " seconds\n";
@@ -119,19 +130,19 @@ int main(int argc, char **argv) {
 
   std::filesystem::path input_bdd_file;
 
-  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")
-      ->required();
+  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
 
   CLI11_PARSE(app, argc, argv);
 
-  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file);
+  SymbolManager symbol_manager;
+  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
 
-  // list_candidates(bdd, {20, true});
-  apply_reordering_ops(bdd.get(), {
-                                      {{2, false}, 8},
-                                  });
-  // test_reorder(bdd, 3);
-  // estimate(bdd);
+  list_candidates(bdd.get(), {2, true});
+  // apply_reordering_ops(bdd.get(), {
+  //                                     {{2, false}, 11},
+  //                                 });
+  // test_reorder(bdd.get(), 3);
+  // estimate(bdd.get());
 
   return 0;
 }

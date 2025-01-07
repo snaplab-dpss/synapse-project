@@ -28,47 +28,30 @@ struct fcfs_cached_table_data_t {
     key = get_call.args.at("key").in;
     read_value = get_call.args.at("value_out").out;
     write_value = put_call.args.at("value").expr;
-
-    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
-                            map_has_this_key);
-    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
-
+    map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 
-klee::ref<klee::Expr>
-build_cache_write_success_condition(const symbol_t &cache_write_failed) {
+klee::ref<klee::Expr> build_cache_write_success_condition(const symbol_t &cache_write_failed) {
   klee::ref<klee::Expr> zero =
       solver_toolbox.exprBuilder->Constant(0, cache_write_failed.expr->getWidth());
   return solver_toolbox.exprBuilder->Eq(cache_write_failed.expr, zero);
 }
 
 hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node,
-                                            klee::ref<klee::Expr> key,
-                                            u32 cache_capacity) {
+                                            klee::ref<klee::Expr> key, u32 cache_capacity) {
   hit_rate_t hr = ep->get_ctx().get_profiler().get_hr(node);
   rw_fractions_t rw_hr = get_cond_map_put_rw_profile_fractions(ep, node);
 
-  hit_rate_t failed_writes = rw_hr.write_attempt - rw_hr.write;
-
   hit_rate_t rp = rw_hr.read / hr;
   hit_rate_t wp = rw_hr.write / hr;
-  hit_rate_t fwp = failed_writes / hr;
+  // hit_rate_t failed_writes = rw_hr.write_attempt - rw_hr.write;
 
-  hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(
-      ep->get_ctx(), node, key, cache_capacity);
+  hit_rate_t cache_hit_rate =
+      TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
 
   hit_rate_t probability = rp + wp * cache_hit_rate;
-
-  // if (node->get_id() == 14) {
-  //   std::cerr << "rp: " << rp << std::endl;
-  //   std::cerr << "wp: " << wp << std::endl;
-  //   std::cerr << "fwp: " << fwp << std::endl;
-  //   std::cerr << "cache_hit_rate: " << cache_hit_rate << std::endl;
-  //   std::cerr << "success_probability: " << probability << std::endl;
-  //   dbg_pause();
-  // }
 
   return probability;
 }
@@ -81,8 +64,8 @@ void add_map_get_clone_on_cache_write_failed(const EP *ep, BDD *bdd, const Node 
   Node *map_get_on_cache_write_failed = map_get->clone(manager, false);
   map_get_on_cache_write_failed->recursive_update_ids(id);
 
-  new_on_cache_write_failed = add_non_branch_nodes_to_bdd(
-      bdd, cache_write_branch->get_on_false(), {map_get_on_cache_write_failed});
+  new_on_cache_write_failed = add_non_branch_nodes_to_bdd(bdd, cache_write_branch->get_on_false(),
+                                                          {map_get_on_cache_write_failed});
 }
 
 void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd,
@@ -106,10 +89,9 @@ void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd,
       add_non_branch_nodes_to_bdd(bdd, on_cache_write_failed, non_branch_nodes_to_add);
 }
 
-std::vector<const Node *>
-get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
-                                  const map_coalescing_objs_t &map_objs,
-                                  klee::ref<klee::Expr> key) {
+std::vector<const Node *> get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
+                                                            const map_coalescing_objs_t &map_objs,
+                                                            klee::ref<klee::Expr> key) {
   std::vector<const Node *> nodes_to_ignore;
 
   const BDD *bdd = ep->get_bdd();
@@ -122,11 +104,7 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
     const call_t &call = coalescing_node->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space;
-      bool found = get_symbol(coalescing_node->get_locally_generated_symbols(),
-                              "out_of_space", out_of_space);
-      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
-
+      symbol_t out_of_space = coalescing_node->get_local_symbol("out_of_space");
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
@@ -137,9 +115,8 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
       if (index_alloc_check.branch) {
         nodes_to_ignore.push_back(index_alloc_check.branch);
 
-        const Node *next = index_alloc_check.direction
-                               ? index_alloc_check.branch->get_on_false()
-                               : index_alloc_check.branch->get_on_true();
+        const Node *next = index_alloc_check.direction ? index_alloc_check.branch->get_on_false()
+                                                       : index_alloc_check.branch->get_on_true();
 
         next->visit_nodes([&nodes_to_ignore](const Node *node) {
           nodes_to_ignore.push_back(node);
@@ -152,9 +129,10 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
   return nodes_to_ignore;
 }
 
-void delete_coalescing_nodes_on_success(
-    const EP *ep, BDD *bdd, Node *on_success, const map_coalescing_objs_t &map_objs,
-    klee::ref<klee::Expr> key, std::optional<constraints_t> &deleted_branch_constraints) {
+void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, Node *on_success,
+                                        const map_coalescing_objs_t &map_objs,
+                                        klee::ref<klee::Expr> key,
+                                        std::optional<constraints_t> &deleted_branch_constraints) {
   const std::vector<const Call *> targets =
       get_coalescing_nodes_from_key(bdd, on_success, key, map_objs);
 
@@ -163,22 +141,16 @@ void delete_coalescing_nodes_on_success(
     const call_t &call = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space;
-      bool found = get_symbol(call_target->get_locally_generated_symbols(),
-                              "out_of_space", out_of_space);
-      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
-
+      symbol_t out_of_space = call_target->get_local_symbol("out_of_space");
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
       if (index_alloc_check.branch) {
         SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
                        "Multiple branch checking index allocation detected");
-        deleted_branch_constraints =
-            index_alloc_check.branch->get_ordered_branch_constraints();
+        deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
 
-        klee::ref<klee::Expr> extra_constraint =
-            index_alloc_check.branch->get_condition();
+        klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
 
         // If we want to keep the direction on true, we must remove the on
         // false.
@@ -188,21 +160,19 @@ void delete_coalescing_nodes_on_success(
 
         deleted_branch_constraints->push_back(extra_constraint);
 
-        Node *trash = delete_branch_node_from_bdd(bdd, index_alloc_check.branch->get_id(),
-                                                  index_alloc_check.direction);
+        delete_branch_node_from_bdd(bdd, index_alloc_check.branch->get_id(),
+                                    index_alloc_check.direction);
       }
     }
 
-    Node *trash = delete_non_branch_node_from_bdd(bdd, target->get_id());
+    delete_non_branch_node_from_bdd(bdd, target->get_id());
   }
 }
 
 std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
-    const EP *ep, const Node *map_get,
-    const fcfs_cached_table_data_t &fcfs_cached_table_data,
-    klee::ref<klee::Expr> cache_write_success_condition,
-    const map_coalescing_objs_t &map_objs, Node *&on_cache_write_success,
-    Node *&on_cache_write_failed,
+    const EP *ep, const Node *map_get, const fcfs_cached_table_data_t &fcfs_cached_table_data,
+    klee::ref<klee::Expr> cache_write_success_condition, const map_coalescing_objs_t &map_objs,
+    Node *&on_cache_write_success, Node *&on_cache_write_failed,
     std::optional<constraints_t> &deleted_branch_constraints) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
@@ -221,16 +191,15 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
                                                   on_cache_write_failed);
 
   delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, map_objs,
-                                     fcfs_cached_table_data.key,
-                                     deleted_branch_constraints);
+                                     fcfs_cached_table_data.key, deleted_branch_constraints);
 
   return new_bdd;
 }
 
-EP *concretize_cached_table_cond_write(
-    const EP *ep, const Node *node, const map_coalescing_objs_t &map_objs,
-    const fcfs_cached_table_data_t &fcfs_cached_table_data,
-    const symbol_t &cache_write_failed, u32 cache_capacity) {
+EP *concretize_cached_table_cond_write(const EP *ep, const Node *node,
+                                       const map_coalescing_objs_t &map_objs,
+                                       const fcfs_cached_table_data_t &fcfs_cached_table_data,
+                                       const symbol_t &cache_write_failed, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
       ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.key,
       fcfs_cached_table_data.num_entries, cache_capacity);
@@ -260,12 +229,10 @@ EP *concretize_cached_table_cond_write(
 
   symbols_t symbols = TofinoModuleFactory::get_dataplane_state(ep, node);
 
-  Module *if_module =
-      new If(node, cache_write_success_condition, {cache_write_success_condition});
+  Module *if_module = new If(node, cache_write_success_condition, {cache_write_success_condition});
   Module *then_module = new Then(node);
   Module *else_module = new Else(node);
-  Module *send_to_controller_module =
-      new SendToController(on_cache_write_failed, symbols);
+  Module *send_to_controller_module = new SendToController(on_cache_write_failed, symbols);
 
   EPNode *if_node = new EPNode(if_module);
   EPNode *then_node = new EPNode(then_module);
@@ -285,8 +252,8 @@ EP *concretize_cached_table_cond_write(
 
   send_to_controller_node->set_prev(else_node);
 
-  hit_rate_t cache_success_probability = get_cache_op_success_probability(
-      ep, node, fcfs_cached_table_data.key, cache_capacity);
+  hit_rate_t cache_success_probability =
+      get_cache_op_success_probability(ep, node, fcfs_cached_table_data.key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(
       new_ep->get_active_leaf().node->get_constraints(), cache_write_success_condition,
@@ -318,9 +285,9 @@ EP *concretize_cached_table_cond_write(
 }
 } // namespace
 
-std::optional<spec_impl_t>
-FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
-                                             const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep,
+                                                                        const Node *node,
+                                                                        const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -345,8 +312,7 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
 
   fcfs_cached_table_data_t cached_table_data(ep, map_get, future_map_puts);
 
-  std::vector<u32> allowed_cache_capacities =
-      enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   hit_rate_t chosen_success_probability = 0;
   u32 chosen_cache_capacity = 0;
@@ -358,9 +324,8 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
     hit_rate_t success_probability =
         get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(
-            ep, node, cached_table_data.obj, cached_table_data.key,
-            cached_table_data.num_entries, cache_capacity)) {
+    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key,
+                                            cached_table_data.num_entries, cache_capacity)) {
       break;
     }
 
@@ -390,8 +355,7 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_hr);
 
   spec_impl_t spec_impl(
-      decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}),
-      new_ctx);
+      decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
   std::vector<const Node *> ignore_nodes =
       get_nodes_to_speculatively_ignore(ep, map_get, map_objs, cached_table_data.key);
@@ -404,7 +368,8 @@ FCFSCachedTableReadOrWriteFactory::speculate(const EP *ep, const Node *node,
 }
 
 std::vector<impl_t>
-FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep, const Node *node) const {
+FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep, const Node *node,
+                                                SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -429,20 +394,21 @@ FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep, const Node *node) 
     return impls;
   }
 
-  symbol_t cache_write_failed = create_symbol("cache_write_failed", 32);
+  // FIXME:
+  // symbol_t cache_write_failed = create_symbol("cache_write_failed", 32);
+  symbol_t cache_write_failed;
 
   fcfs_cached_table_data_t cached_table_data(ep, map_get, future_map_puts);
 
-  std::vector<u32> allowed_cache_capacities =
-      enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
     EP *new_ep = concretize_cached_table_cond_write(ep, node, map_objs, cached_table_data,
                                                     cache_write_failed, cache_capacity);
 
     if (new_ep) {
-      impl_t impl = implement(ep, node, new_ep,
-                              {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
+      impl_t impl =
+          implement(ep, node, new_ep, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(impl);
     }
   }

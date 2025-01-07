@@ -13,18 +13,16 @@ private:
   std::optional<symbol_t> out_of_space;
 
 public:
-  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr,
-                         klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
-                         const symbol_t &_out_of_space)
+  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+                         klee::ref<klee::Expr> _index_out, const symbol_t &_out_of_space)
       : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", node),
-        dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
-        out_of_space(_out_of_space) {}
+        dchain_addr(_dchain_addr), time(_time), index_out(_index_out), out_of_space(_out_of_space) {
+  }
 
-  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr,
-                         klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+                         klee::ref<klee::Expr> _index_out)
       : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", node),
-        dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
-        out_of_space(std::nullopt) {}
+        dchain_addr(_dchain_addr), time(_time), index_out(_index_out), out_of_space(std::nullopt) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -35,8 +33,7 @@ public:
     Module *cloned;
 
     if (out_of_space.has_value()) {
-      cloned =
-          new DchainAllocateNewIndex(node, dchain_addr, time, index_out, *out_of_space);
+      cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, *out_of_space);
     } else {
       cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
     }
@@ -54,14 +51,14 @@ public:
 class DchainAllocateNewIndexFactory : public x86ModuleFactory {
 public:
   DchainAllocateNewIndexFactory()
-      : x86ModuleFactory(ModuleType::x86_DchainAllocateNewIndex,
-                         "DchainAllocateNewIndex") {}
+      : x86ModuleFactory(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocateNewIndex") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

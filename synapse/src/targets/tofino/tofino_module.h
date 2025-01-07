@@ -12,8 +12,7 @@ public:
   TofinoModule(ModuleType _type, const std::string &_name, const Node *node)
       : Module(_type, TargetType::Tofino, _name, node) {}
 
-  TofinoModule(ModuleType _type, TargetType _next_type, const std::string &_name,
-               const Node *node)
+  TofinoModule(ModuleType _type, TargetType _next_type, const std::string &_name, const Node *node)
       : Module(_type, TargetType::Tofino, _next_type, _name, node) {}
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const { return {}; }
@@ -73,20 +72,16 @@ public:
   //  FCFS Cached Table
   // ======================================================================
 
-  static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const Node *node,
-                                                addr_t obj);
+  static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj);
   static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const Node *node,
-                                                           addr_t obj,
-                                                           klee::ref<klee::Expr> key,
-                                                           u32 num_entries,
-                                                           u32 cache_capacity);
-  static bool can_get_or_build_fcfs_cached_table(const EP *ep, const Node *node,
-                                                 addr_t obj, klee::ref<klee::Expr> key,
-                                                 u32 num_entries, u32 cache_capacity);
+                                                           addr_t obj, klee::ref<klee::Expr> key,
+                                                           u32 num_entries, u32 cache_capacity);
+  static bool can_get_or_build_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj,
+                                                 klee::ref<klee::Expr> key, u32 num_entries,
+                                                 u32 cache_capacity);
   static std::vector<u32> enum_fcfs_cache_cap(u32 num_entries);
   static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const Node *node,
-                                                klee::ref<klee::Expr> key,
-                                                u32 cache_capacity);
+                                                klee::ref<klee::Expr> key, u32 cache_capacity);
 
   // ======================================================================
   //  Map Register
@@ -94,9 +89,8 @@ public:
 
   static bool can_build_or_reuse_map_register(const EP *ep, const Node *node, addr_t obj,
                                               klee::ref<klee::Expr> key, u32 num_entries);
-  static MapRegister *build_or_reuse_map_register(const EP *ep, const Node *node,
-                                                  addr_t obj, klee::ref<klee::Expr> key,
-                                                  u32 num_entries);
+  static MapRegister *build_or_reuse_map_register(const EP *ep, const Node *node, addr_t obj,
+                                                  klee::ref<klee::Expr> key, u32 num_entries);
 
   // ======================================================================
   //  Heavy Hitter Table
@@ -109,20 +103,18 @@ public:
                                           const std::vector<klee::ref<klee::Expr>> &keys,
                                           u32 num_entries, u32 cms_width, u32 cms_height);
   static hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const Node *node,
-                                                  klee::ref<klee::Expr> key,
-                                                  u32 capacity);
+                                                  klee::ref<klee::Expr> key, u32 capacity);
 
   // ======================================================================
   //  Count Min Sketch
   // ======================================================================
 
   static bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
-                                     const std::vector<klee::ref<klee::Expr>> &keys,
-                                     u32 width, u32 height);
-  static CountMinSketch *
-  build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
-                     const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
-                     u32 height);
+                                     const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
+                                     u32 height);
+  static CountMinSketch *build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                                            const std::vector<klee::ref<klee::Expr>> &keys,
+                                            u32 width, u32 height);
 };
 
 } // namespace tofino

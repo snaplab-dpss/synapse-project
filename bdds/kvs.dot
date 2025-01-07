@@ -90,9 +90,9 @@ digraph mygraph {
 	57 -> 58;
 	56 [label="56:vector_return(\l  vector:1073938976,\l  index:allocated_index,\l  value:1073951376[vector_data_reset_1])", fillcolor="cornflowerblue"];
 	56 -> 57;
-	55 [label="55:vector_borrow(\l  vector:1073938976,\l  index:allocated_index,\l  val_out:1074078792[ -> 1073951376])\l=>{vector_data_reset_1}", fillcolor="cornflowerblue"];
+	55 [label="55:vector_borrow(\l  vector:1073938976,\l  index:allocated_index,\l  val_out:1074078792[ -> 1073951376])\l=>{vector_data_reset}", fillcolor="cornflowerblue"];
 	55 -> 56;
-	41 [shape=Mdiamond, label="41:!!packet_chunks[441]", fillcolor="yellow"];
+	41 [shape=Mdiamond, label="41:packet_chunks[441]", fillcolor="yellow"];
 	41 -> 42 [label="True"];
 	41 -> 55 [label="False"];
 	68 [label="68:fwd(0)", fillcolor="chartreuse2"];
@@ -106,7 +106,7 @@ digraph mygraph {
 	64 -> 65;
 	63 [label="63:vector_return(\l  vector:1073938976,\l  index:allocated_index,\l  value:1073951376[packet_chunks[458:586]])", fillcolor="cornflowerblue"];
 	63 -> 64;
-	62 [label="62:vector_borrow(\l  vector:1073938976,\l  index:allocated_index,\l  val_out:1074078824[ -> 1073951376])\l=>{vector_data_reset_1}", fillcolor="cornflowerblue"];
+	62 [label="62:vector_borrow(\l  vector:1073938976,\l  index:allocated_index,\l  val_out:1074078824[ -> 1073951376])\l=>{vector_data_reset}", fillcolor="cornflowerblue"];
 	62 -> 63;
 	40 [shape=Mdiamond, label="40:!(1 == packet_chunks[441])", fillcolor="yellow"];
 	40 -> 41 [label="True"];
@@ -118,7 +118,7 @@ digraph mygraph {
 	15 -> 39 [label="False"];
 	14 [label="14:map_get(\l  map:1073912440,\l  key:1073764970[packet_chunks[442:458]],\l  value_out:1074075472[2880154539 -> allocated_index]) -> 1\l=>{allocated_index,map_has_this_key}", fillcolor="cornflowerblue"];
 	14 -> 15;
-	8 [shape=Mdiamond, label="8:!!DEVICE", fillcolor="yellow"];
+	8 [shape=Mdiamond, label="8:DEVICE", fillcolor="yellow"];
 	8 -> 9 [label="True"];
 	8 -> 14 [label="False"];
 	7 [label="7:packet_borrow_next_chunk(\l  p:1074049224,\l  length:146,\l  chunk:1074062120[ -> 1073764969])\l=>{packet_chunks}", fillcolor="cornflowerblue"];

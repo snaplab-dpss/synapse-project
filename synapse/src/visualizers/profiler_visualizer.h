@@ -55,8 +55,8 @@ private:
     return annocations_per_node;
   }
 
-  static std::unordered_map<node_id_t, std::string> get_colors_per_node(
-      const std::unordered_map<node_id_t, hit_rate_t> &fraction_per_node) {
+  static std::unordered_map<node_id_t, std::string>
+  get_colors_per_node(const std::unordered_map<node_id_t, hit_rate_t> &fraction_per_node) {
     std::unordered_map<node_id_t, std::string> colors_per_node;
 
     for (const auto &[node, fraction] : fraction_per_node) {

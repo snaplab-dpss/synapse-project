@@ -51,8 +51,8 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
 
 public:
-  EP(std::shared_ptr<const BDD> bdd, const TargetsView &targets,
-     const toml::table &config, const Profiler &profiler);
+  EP(std::shared_ptr<const BDD> bdd, const TargetsView &targets, const toml::table &config,
+     const Profiler &profiler);
 
   EP(const EP &other, bool is_ancestor = true);
 
@@ -85,8 +85,7 @@ public:
 
   std::vector<const EPNode *> get_prev_nodes() const;
   std::vector<const EPNode *> get_prev_nodes_of_current_target() const;
-  std::vector<const EPNode *>
-  get_nodes_by_type(const std::unordered_set<ModuleType> &types) const;
+  std::vector<const EPNode *> get_nodes_by_type(const std::unordered_set<ModuleType> &types) const;
 
   bool has_target(TargetType type) const;
   const Node *get_next_node() const;
@@ -118,13 +117,10 @@ private:
 
   spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
                                                 const Node *anchor, nodes_t future_nodes,
-                                                TargetType current_target,
-                                                pps_t ingress) const;
-  spec_impl_t get_best_speculation(const Node *node, TargetType current_target,
-                                   const Context &ctx, const nodes_t &skip,
-                                   pps_t ingress) const;
-  bool is_better_speculation(const spec_impl_t &old_speculation,
-                             const spec_impl_t &new_speculation, const Node *node,
-                             TargetType current_target, pps_t ingress) const;
+                                                TargetType current_target, pps_t ingress) const;
+  spec_impl_t get_best_speculation(const Node *node, TargetType current_target, const Context &ctx,
+                                   const nodes_t &skip, pps_t ingress) const;
+  bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
+                             const Node *node, TargetType current_target, pps_t ingress) const;
 };
 } // namespace synapse

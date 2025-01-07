@@ -11,8 +11,7 @@ bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_
   SYNAPSE_ASSERT(call_is_tracing.function_name == "tb_is_tracing", "Unexpected function");
 
   const call_t &call_update = tb_update_and_check->get_call();
-  SYNAPSE_ASSERT(call_update.function_name == "tb_update_and_check",
-                 "Unexpected function");
+  SYNAPSE_ASSERT(call_update.function_name == "tb_update_and_check", "Unexpected function");
 
   klee::ref<klee::Expr> tb_addr_expr = call_is_tracing.args.at("tb").expr;
   klee::ref<klee::Expr> key = call_is_tracing.args.at("key").in;
@@ -65,8 +64,7 @@ std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node,
   }
 
   bool replace_next = (tb_update_and_check == next);
-  Node *replacement =
-      delete_non_branch_node_from_bdd(new_bdd.get(), tb_update_and_check->get_id());
+  Node *replacement = delete_non_branch_node_from_bdd(new_bdd.get(), tb_update_and_check->get_id());
 
   if (replace_next) {
     new_next = replacement;
@@ -83,11 +81,9 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Nod
   }
 
   const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
-  const call_t &call = tb_is_tracing->get_call();
 
   const Call *tb_update_and_check;
-  if (!is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing,
-                                                      tb_update_and_check)) {
+  if (!is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing, tb_update_and_check)) {
     return std::nullopt;
   }
 
@@ -99,8 +95,8 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Nod
   klee::ref<klee::Expr> pass;
   DS_ID id;
 
-  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit,
-                   pass, id)) {
+  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass,
+                   id)) {
     return std::nullopt;
   }
 
@@ -125,8 +121,8 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Nod
   return spec_impl;
 }
 
-std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -134,11 +130,9 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep,
   }
 
   const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
-  const call_t &call = tb_is_tracing->get_call();
 
   const Call *tb_update_and_check;
-  if (!is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing,
-                                                      tb_update_and_check)) {
+  if (!is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing, tb_update_and_check)) {
     return impls;
   }
 
@@ -150,8 +144,8 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep,
   klee::ref<klee::Expr> pass;
   DS_ID id;
 
-  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit,
-                   pass, id)) {
+  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass,
+                   id)) {
     return impls;
   }
 

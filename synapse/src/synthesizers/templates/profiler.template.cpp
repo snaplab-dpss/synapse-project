@@ -43,13 +43,13 @@ extern "C" {
 
 using json = nlohmann::json;
 
-#define NF_INFO(text, ...)                                                     \
-  printf(text "\n", ##__VA_ARGS__);                                            \
+#define NF_INFO(text, ...)                                                                         \
+  printf(text "\n", ##__VA_ARGS__);                                                                \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                    \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                         \
+#define NF_DEBUG(text, ...)                                                                        \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                             \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
@@ -66,21 +66,19 @@ using json = nlohmann::json;
 
 #define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
-#define PARSE_ERROR(argv, format, ...)                                         \
-  nf_config_usage(argv);                                                       \
-  fprintf(stderr, format, ##__VA_ARGS__);                                      \
+#define PARSE_ERROR(argv, format, ...)                                                             \
+  nf_config_usage(argv);                                                                           \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                          \
   exit(EXIT_FAILURE);
 
-#define PARSER_ASSERT(cond, fmt, ...)                                          \
-  if (!(cond))                                                                 \
+#define PARSER_ASSERT(cond, fmt, ...)                                                              \
+  if (!(cond))                                                                                     \
     rte_exit(EXIT_FAILURE, fmt, ##__VA_ARGS__);
 
 bool nf_init(void);
-int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
-               time_ns_t now);
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now);
 
-uintmax_t nf_util_parse_int(const char *str, const char *name, int base,
-                            char next) {
+uintmax_t nf_util_parse_int(const char *str, const char *name, int base, char next) {
   char *temp;
   intmax_t result = strtoimax(str, &temp, base);
 
@@ -93,9 +91,8 @@ uintmax_t nf_util_parse_int(const char *str, const char *name, int base,
 }
 
 bool nf_parse_etheraddr(const char *str, struct rte_ether_addr *addr) {
-  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX",
-                addr->addr_bytes + 0, addr->addr_bytes + 1,
-                addr->addr_bytes + 2, addr->addr_bytes + 3,
+  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0,
+                addr->addr_bytes + 1, addr->addr_bytes + 2, addr->addr_bytes + 3,
                 addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
@@ -268,8 +265,7 @@ private:
 
       struct rte_ipv4_hdr *ip_hdr = (struct rte_ipv4_hdr *)(data);
 
-      uint16_t len =
-          rte_bswap16(ip_hdr->total_length) + sizeof(struct rte_ether_hdr);
+      uint16_t len = rte_bswap16(ip_hdr->total_length) + sizeof(struct rte_ether_hdr);
 
       total_bytes += len;
     }
@@ -291,26 +287,19 @@ private:
   }
 };
 
-void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet,
-                uint16_t packet_length) {
+void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet, uint16_t packet_length) {
   struct rte_ether_hdr *rte_ether_header = (struct rte_ether_hdr *)(packet);
   struct rte_ipv4_hdr *rte_ipv4_header =
       (struct rte_ipv4_hdr *)(packet + sizeof(struct rte_ether_hdr));
   struct tcpudp_hdr *tcpudp_header =
-      (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) +
-                            sizeof(struct rte_ipv4_hdr));
+      (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
 
   NF_DEBUG("[%lu:%u] %u.%u.%u.%u:%u -> %u.%u.%u.%u:%u", time, device,
-           (rte_ipv4_header->src_addr >> 0) & 0xff,
-           (rte_ipv4_header->src_addr >> 8) & 0xff,
-           (rte_ipv4_header->src_addr >> 16) & 0xff,
-           (rte_ipv4_header->src_addr >> 24) & 0xff,
-           rte_bswap16(tcpudp_header->src_port),
-           (rte_ipv4_header->dst_addr >> 0) & 0xff,
-           (rte_ipv4_header->dst_addr >> 8) & 0xff,
-           (rte_ipv4_header->dst_addr >> 16) & 0xff,
-           (rte_ipv4_header->dst_addr >> 24) & 0xff,
-           rte_bswap16(tcpudp_header->dst_port));
+           (rte_ipv4_header->src_addr >> 0) & 0xff, (rte_ipv4_header->src_addr >> 8) & 0xff,
+           (rte_ipv4_header->src_addr >> 16) & 0xff, (rte_ipv4_header->src_addr >> 24) & 0xff,
+           rte_bswap16(tcpudp_header->src_port), (rte_ipv4_header->dst_addr >> 0) & 0xff,
+           (rte_ipv4_header->dst_addr >> 8) & 0xff, (rte_ipv4_header->dst_addr >> 16) & 0xff,
+           (rte_ipv4_header->dst_addr >> 24) & 0xff, rte_bswap16(tcpudp_header->dst_port));
 }
 
 void nf_config_usage(char **argv) {
@@ -323,8 +312,8 @@ void nf_config_print(void) {
   NF_INFO("----- Config -----");
   NF_INFO("report: %s", config.report_fname.c_str());
   for (const auto &dev_pcap : config.pcaps) {
-    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device,
-            dev_pcap.pcap.filename().c_str(), dev_pcap.warmup ? "yes" : "no");
+    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device, dev_pcap.pcap.filename().c_str(),
+            dev_pcap.warmup ? "yes" : "no");
   }
   NF_INFO("--- ---------- ---");
 }
@@ -392,9 +381,7 @@ struct Stats {
   };
 
   struct KeyHasher {
-    std::size_t operator()(const key_t &key) const {
-      return hash_obj((void *)key.data, key.len);
-    }
+    std::size_t operator()(const key_t &key) const { return hash_obj((void *)key.data, key.len); }
   };
 
   std::unordered_map<key_t, uint64_t, KeyHasher> key_counter;
@@ -431,8 +418,7 @@ struct MapStats {
     time_ns_t end;
     bool warmup;
 
-    epoch_t(time_ns_t _start, bool _warmup)
-        : start(_start), end(-1), warmup(_warmup) {}
+    epoch_t(time_ns_t _start, bool _warmup) : start(_start), end(-1), warmup(_warmup) {}
   };
 
   std::unordered_map<int, Stats> stats_per_node;
@@ -512,8 +498,7 @@ void generate_report() {
 
       map_op_stats_json["crc32_hashes_per_mask"] = json::object();
       for (const auto &[mask, crc32_hashes] : stats.mask_to_crc32) {
-        map_op_stats_json["crc32_hashes_per_mask"][std::to_string(mask)] =
-            crc32_hashes.size();
+        map_op_stats_json["crc32_hashes_per_mask"][std::to_string(mask)] = crc32_hashes.size();
       }
 
       auto build_pkts_per_flow = [&stats] {

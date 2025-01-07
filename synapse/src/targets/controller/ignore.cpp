@@ -37,8 +37,7 @@ bool ds_ignore_logic(const Context &ctx, const call_t &call) {
       call.function_name == "dchain_allocate_new_index" ||
       call.function_name == "dchain_free_index") {
     obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
-  } else if (call.function_name == "vector_borrow" ||
-             call.function_name == "vector_return") {
+  } else if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
     obj = expr_addr_to_obj_addr(call.args.at("vector").expr);
   } else {
     return false;
@@ -67,8 +66,7 @@ bool should_ignore(const EP *ep, const Node *node) {
       "cms_periodic_cleanup",
   };
 
-  if (functions_to_always_ignore.find(call.function_name) !=
-      functions_to_always_ignore.end()) {
+  if (functions_to_always_ignore.find(call.function_name) != functions_to_always_ignore.end()) {
     return true;
   }
 
@@ -103,7 +101,8 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *no
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node,
+                                                SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, node)) {

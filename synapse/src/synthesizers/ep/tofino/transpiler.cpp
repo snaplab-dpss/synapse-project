@@ -80,17 +80,17 @@ klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
   Log::dbg() << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -108,22 +108,22 @@ klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
   Log::dbg() << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitZExt(const klee::ZExtExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSExt(const klee::SExtExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -154,32 +154,32 @@ klee::ExprVisitor::Action Transpiler::visitSub(const klee::SubExpr &e) {
 }
 
 klee::ExprVisitor::Action Transpiler::visitMul(const klee::MulExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUDiv(const klee::UDivExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSDiv(const klee::SDivExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitURem(const klee::URemExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSRem(const klee::SRemExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNot(const klee::NotExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -210,22 +210,22 @@ klee::ExprVisitor::Action Transpiler::visitOr(const klee::OrExpr &e) {
 }
 
 klee::ExprVisitor::Action Transpiler::visitXor(const klee::XorExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitShl(const klee::ShlExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitLShr(const klee::LShrExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitAShr(const klee::AShrExpr &e) {
-  SYNAPSE_ASSERT(false, "TODO");
+  SYNAPSE_PANIC("TODO");
   return klee::ExprVisitor::Action::skipChildren();
 }
 

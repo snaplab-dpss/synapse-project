@@ -10,8 +10,7 @@ void EPMeta::process_node(const Node *node, TargetType target) {
   }
 }
 
-void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node,
-                    bool should_process_node) {
+void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node, bool should_process_node) {
   ep_node_id_t node_id = new_node->get_id();
   if (visited_ep_nodes.find(node_id) != visited_ep_nodes.end()) {
     return;

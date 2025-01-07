@@ -55,19 +55,29 @@ std::string Call::dump(bool one_liner, bool id_name_only) const {
   return ss.str();
 }
 
-symbols_t
-Call::get_locally_generated_symbols(std::vector<std::string> base_filters) const {
-  if (base_filters.empty()) {
-    return generated_symbols;
-  }
+const symbols_t &Call::get_local_symbols() const { return generated_symbols; }
 
-  symbols_t result;
+symbol_t Call::get_local_symbol(const std::string &base) const {
+  SYNAPSE_ASSERT(!base.empty(), "Empty base");
+  SYNAPSE_ASSERT(!generated_symbols.empty(), "No symbols");
+
   for (const symbol_t &symbol : generated_symbols) {
-    auto found_it = std::find(base_filters.begin(), base_filters.end(), symbol.base);
-    if (found_it != base_filters.end()) {
-      result.insert(symbol);
+    if (symbol.base == base) {
+      return symbol;
     }
   }
-  return result;
+
+  SYNAPSE_PANIC("Symbol %s not found", base.c_str());
 }
+
+bool Call::has_local_symbol(const std::string &base) const {
+  for (const symbol_t &symbol : generated_symbols) {
+    if (symbol.base == base) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 } // namespace synapse

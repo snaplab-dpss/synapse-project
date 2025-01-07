@@ -3,14 +3,17 @@
 #include <CLI/CLI.hpp>
 
 #include "../src/bdd/bdd.h"
+#include "../src/bdd/visitors/bdd_visualizer.h"
+#include "../src/exprs/symbol_manager.h"
 
-using synapse::ArrayManager;
 using synapse::BDD;
 using synapse::Branch;
 using synapse::call_paths_t;
 using synapse::Node;
 using synapse::NodeType;
+using synapse::NodeVisitAction;
 using synapse::PrinterDebug;
+using synapse::SymbolManager;
 
 void assert_bdd(const BDD &bdd) {
   std::cout << "Asserting BDD...\n";
@@ -80,20 +83,25 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  ArrayManager manager;
-  call_paths_t call_paths(input_call_path_files, &manager);
+  SymbolManager manager;
 
-  BDD bdd = input_bdd_file.empty() ? BDD(call_paths.get_view()) : BDD(input_bdd_file);
-  assert_bdd(bdd);
+  std::unique_ptr<BDD> bdd;
+  if (input_bdd_file.empty()) {
+    call_paths_t call_paths(input_call_path_files, &manager);
+    bdd = std::make_unique<BDD>(call_paths.get_view());
+  } else {
+    bdd = std::make_unique<BDD>(input_bdd_file, &manager);
+  }
+  assert_bdd(*bdd);
 
   PrinterDebug printer;
-  bdd.visit(printer);
+  bdd->visit(printer);
 
   if (!output_bdd_file.empty()) {
-    bdd.serialize(output_bdd_file);
+    bdd->serialize(output_bdd_file);
   }
 
-  std::cout << "BDD size: " << bdd.size() << "\n";
+  std::cout << "BDD size: " << bdd->size() << "\n";
 
   return 0;
 }

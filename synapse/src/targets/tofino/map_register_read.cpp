@@ -16,19 +16,14 @@ struct map_register_data_t {
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
     read_value = call.args.at("value_out").out;
-
-    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
-                            map_has_this_key);
-    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
-
+    map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 
 } // namespace
 
-std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep,
-                                                             const Node *node,
+std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep, const Node *node,
                                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
@@ -53,8 +48,7 @@ std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep,
 
   map_register_data_t map_register_data(ep, map_get);
 
-  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj,
-                                       map_register_data.key,
+  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
                                        map_register_data.num_entries)) {
     return std::nullopt;
   }
@@ -66,8 +60,8 @@ std::optional<spec_impl_t> MapRegisterReadFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep,
-                                                         const Node *node) const {
+std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep, const Node *node,
+                                                         SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -93,17 +87,16 @@ std::vector<impl_t> MapRegisterReadFactory::process_node(const EP *ep,
 
   map_register_data_t map_register_data(ep, map_get);
 
-  MapRegister *map_register =
-      build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
-                                  map_register_data.num_entries);
+  MapRegister *map_register = build_or_reuse_map_register(
+      ep, node, map_register_data.obj, map_register_data.key, map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  Module *module = new MapRegisterRead(
-      node, map_register->id, map_register_data.obj, map_register_data.key,
-      map_register_data.read_value, map_register_data.map_has_this_key);
+  Module *module =
+      new MapRegisterRead(node, map_register->id, map_register_data.obj, map_register_data.key,
+                          map_register_data.read_value, map_register_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

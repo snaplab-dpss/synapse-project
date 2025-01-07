@@ -25,7 +25,7 @@ struct table_data_t {
   }
 };
 
-klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
+symbol_t get_min_estimate(const EP *ep) {
   EPLeaf leaf = ep->get_active_leaf();
   const EPNode *node = leaf.node;
 
@@ -42,7 +42,7 @@ klee::ref<klee::Expr> get_min_estimate(const EP *ep) {
     node = node->get_prev();
   }
 
-  return nullptr;
+  SYNAPSE_PANIC("TODO: HHTableRead not found, so we should query the CMS for the min estimate");
 }
 } // namespace
 
@@ -71,8 +71,8 @@ std::optional<spec_impl_t> HHTableUpdateFactory::speculate(const EP *ep, const N
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
-                                                       const Node *node) const {
+std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                       SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -93,14 +93,11 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep,
     return impls;
   }
 
-  klee::ref<klee::Expr> min_estimate = get_min_estimate(ep);
-  SYNAPSE_ASSERT(!min_estimate.isNull(), "TODO: HHTableRead not found, so we should "
-                                         "query the CMS for the min estimate");
-
+  symbol_t min_estimate = get_min_estimate(ep);
   table_data_t table_data(map_put);
 
-  Module *module = new HHTableUpdate(node, table_data.obj, table_data.table_keys,
-                                     table_data.value, min_estimate);
+  Module *module = new HHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value,
+                                     min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

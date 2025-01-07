@@ -16,26 +16,18 @@ struct table_data_t {
   klee::ref<klee::Expr> key;
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> read_value;
-  klee::ref<klee::Expr> map_has_this_key;
-  klee::ref<klee::Expr> min_estimate;
+  symbol_t map_has_this_key;
   int num_entries;
 
   table_data_t(const EP *ep, const Call *map_get) {
     const call_t &call = map_get->get_call();
     SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
 
-    symbol_t map_has_this_key_symbol;
-    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
-                            map_has_this_key_symbol);
-    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
-
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
     table_keys = Table::build_keys(key);
     read_value = call.args.at("value_out").out;
-    map_has_this_key = map_has_this_key_symbol.expr;
-    min_estimate = solver_toolbox.create_new_symbol(
-        "min_estimate_" + std::to_string(map_get->get_id()), 32);
+    map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
@@ -67,8 +59,8 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -93,10 +85,12 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep,
   }
 
   table_data_t table_data(ep, map_get);
+  symbol_t min_estimate =
+      symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
 
   Module *module =
       new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value,
-                      table_data.map_has_this_key, table_data.min_estimate);
+                      table_data.map_has_this_key, min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

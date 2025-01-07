@@ -33,14 +33,13 @@ std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const No
   }
 
   Context new_ctx = ctx;
-  new_ctx.get_mutable_perf_oracle().add_dropped_traffic(
-      new_ctx.get_profiler().get_hr(node));
+  new_ctx.get_mutable_perf_oracle().add_dropped_traffic(new_ctx.get_profiler().get_hr(node));
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep,
-                                                      const Node *node) const {
+std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const Node *node,
+                                                      SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {

@@ -58,16 +58,16 @@ public:
     return klee::ref<klee::Expr>();
   }
 
-#define REPLACE_BINARY_OP_WITH_ALLOWED_CHILD(T)                                          \
-  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                           \
-    if (e.getNumKids() != 2)                                                             \
-      return Action::doChildren();                                                       \
-    auto lhs = e.getKid(0);                                                              \
-    auto rhs = e.getKid(1);                                                              \
-    auto new_expr = pick_filtered_expression(lhs, rhs);                                  \
-    if (new_expr.isNull())                                                               \
-      return Action::doChildren();                                                       \
-    return Action::changeTo(new_expr);                                                   \
+#define REPLACE_BINARY_OP_WITH_ALLOWED_CHILD(T)                                                    \
+  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                                     \
+    if (e.getNumKids() != 2)                                                                       \
+      return Action::doChildren();                                                                 \
+    auto lhs = e.getKid(0);                                                                        \
+    auto rhs = e.getKid(1);                                                                        \
+    auto new_expr = pick_filtered_expression(lhs, rhs);                                            \
+    if (new_expr.isNull())                                                                         \
+      return Action::doChildren();                                                                 \
+    return Action::changeTo(new_expr);                                                             \
   }
 
   REPLACE_BINARY_OP_WITH_ALLOWED_CHILD(And)

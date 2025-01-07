@@ -64,18 +64,14 @@ private:
 
   PlacementStatus find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps,
                                   std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_table(const Table *table,
-                                        const std::unordered_set<DS_ID> &deps,
+  PlacementStatus find_placements_table(const Table *table, const std::unordered_set<DS_ID> &deps,
                                         std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_reg(const Register *reg,
-                                      const std::unordered_set<DS_ID> &deps,
+  PlacementStatus find_placements_reg(const Register *reg, const std::unordered_set<DS_ID> &deps,
                                       std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_meter(const Meter *table,
-                                        const std::unordered_set<DS_ID> &deps,
+  PlacementStatus find_placements_meter(const Meter *table, const std::unordered_set<DS_ID> &deps,
                                         std::vector<placement_t> &placements) const;
 
-  PlacementStatus find_placements_hash(const Hash *hash,
-                                       const std::unordered_set<DS_ID> &deps,
+  PlacementStatus find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps,
                                        std::vector<placement_t> &placements) const;
 
   void concretize_placement(Stage &stage, const placement_t &placement);

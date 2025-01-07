@@ -11,12 +11,7 @@ table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
   klee::ref<klee::Expr> key = call.args.at("key").in;
   klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-
-  symbol_t map_has_this_key;
-  bool found = get_symbol(symbols, "map_has_this_key", map_has_this_key);
-  SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
-
+  symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
   addr_t obj = expr_addr_to_obj_addr(map_addr_expr);
 
   const Context &ctx = ep->get_ctx();
@@ -80,12 +75,7 @@ table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
   };
 
   if (call.function_name == "dchain_is_index_allocated") {
-    symbols_t symbols = call_node->get_locally_generated_symbols();
-    symbol_t is_allocated;
-    bool found = get_symbol(symbols, "dchain_is_index_allocated", is_allocated);
-    SYNAPSE_ASSERT(found, "Symbol dchain_is_index_allocated not found");
-
-    table_data.hit = is_allocated;
+    table_data.hit = call_node->get_local_symbol("dchain_is_index_allocated");
   }
 
   return table_data;
@@ -147,8 +137,8 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> TableLookupFactory::process_node(const EP *ep,
-                                                     const Node *node) const {
+std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

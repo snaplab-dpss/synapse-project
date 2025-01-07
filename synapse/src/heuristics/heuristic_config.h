@@ -7,7 +7,7 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/module_factory.h"
 
-#define BUILD_METRIC(cls, name, obj)                                                     \
+#define BUILD_METRIC(cls, name, obj)                                                               \
   { std::bind(&cls::name, this, std::placeholders::_1), Metric::Objective::obj }
 
 namespace synapse {
@@ -41,9 +41,7 @@ public:
     return Score(values);
   }
 
-  virtual bool operator()(const EP *e1, const EP *e2) const {
-    return score(e1) > score(e2);
-  }
+  virtual bool operator()(const EP *e1, const EP *e2) const { return score(e1) > score(e2); }
 
   virtual bool mutates(const EP *ep) const { return false; }
 };

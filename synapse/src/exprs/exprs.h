@@ -21,8 +21,7 @@ bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
-bool manager_contains(const klee::ConstraintManager &constraints,
-                      klee::ref<klee::Expr> expr);
+bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
 klee::ConstraintManager join_managers(const klee::ConstraintManager &m1,
                                       const klee::ConstraintManager &m2);
 addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr);
@@ -43,7 +42,6 @@ struct mod_t {
   mod_t(const mod_t &mod) : offset(mod.offset), width(mod.width), expr(mod.expr) {}
 };
 
-std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before,
-                                   klee::ref<klee::Expr> after);
+std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
 std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr);
 } // namespace synapse

@@ -28,8 +28,8 @@ bool should_highlight(const SSNode *ssnode, const std::set<ep_id_t> &highlight) 
 
 std::string bold(const std::string &str) { return "<b>" + str + "</b>"; }
 
-void visit_definitions(std::stringstream &ss, const SearchSpace *search_space,
-                       const SSNode *ssnode, const std::set<ep_id_t> &highlight) {
+void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, const SSNode *ssnode,
+                       const std::set<ep_id_t> &highlight) {
   const std::string &target_color = node_colors.at(ssnode->target);
 
   auto indent = [&ss](int lvl) { ss << std::string(lvl, '\t'); };
@@ -257,8 +257,7 @@ void SSVisualizer::visualize(const SearchSpace *search_space, bool interrupt) {
   visualizer.show(interrupt);
 }
 
-void SSVisualizer::visualize(const SearchSpace *search_space, const EP *highlight,
-                             bool interrupt) {
+void SSVisualizer::visualize(const SearchSpace *search_space, const EP *highlight, bool interrupt) {
   SYNAPSE_ASSERT(search_space, "Search space is null");
   SSVisualizer visualizer(highlight);
   visualizer.visit(search_space);

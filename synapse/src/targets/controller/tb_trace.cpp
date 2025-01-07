@@ -26,7 +26,8 @@ std::optional<spec_impl_t> TBTraceFactory::speculate(const EP *ep, const Node *n
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TBTraceFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> TBTraceFactory::process_node(const EP *ep, const Node *node,
+                                                 SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -53,8 +54,7 @@ std::vector<impl_t> TBTraceFactory::process_node(const EP *ep, const Node *node)
     return impls;
   }
 
-  Module *module =
-      new TBTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  Module *module = new TBTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

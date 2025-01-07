@@ -9,8 +9,7 @@ namespace {
 ep_node_id_t ep_node_id_counter = 0;
 }
 
-EPNode::EPNode(Module *_module)
-    : id(ep_node_id_counter++), module(_module), prev(nullptr) {}
+EPNode::EPNode(Module *_module) : id(ep_node_id_counter++), module(_module), prev(nullptr) {}
 
 EPNode::~EPNode() {
   if (module) {
@@ -28,9 +27,7 @@ EPNode::~EPNode() {
 
 void EPNode::set_children(EPNode *next) { children = {next}; }
 
-void EPNode::set_children(EPNode *on_true, EPNode *on_false) {
-  children = {on_true, on_false};
-}
+void EPNode::set_children(EPNode *on_true, EPNode *on_false) { children = {on_true, on_false}; }
 
 void EPNode::set_prev(EPNode *_prev) { prev = _prev; }
 
@@ -73,9 +70,7 @@ EPNode *EPNode::get_mutable_node_by_id(ep_node_id_t target_id) {
 
 klee::ref<klee::Expr> EPNode::get_constraint() const { return constraint; }
 
-void EPNode::set_constraint(klee::ref<klee::Expr> _constraint) {
-  constraint = _constraint;
-}
+void EPNode::set_constraint(klee::ref<klee::Expr> _constraint) { constraint = _constraint; }
 
 constraints_t EPNode::get_constraints() const {
   constraints_t constraints;

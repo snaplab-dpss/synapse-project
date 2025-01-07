@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "nodes/node.h"
 #include "nodes/manager.h"
 #include "visitor.h"
@@ -20,12 +22,13 @@ private:
   Node *root;
 
   NodeManager manager;
+  SymbolManager *symbol_manager;
 
 public:
-  BDD() : id(0), root(nullptr) {}
+  BDD();
 
   BDD(const call_paths_view_t &call_paths);
-  BDD(const std::string &file_path);
+  BDD(const std::filesystem::path &bdd_file, SymbolManager *symbol_manager);
 
   BDD(const BDD &other);
   BDD(BDD &&other);
@@ -47,14 +50,18 @@ public:
 
   symbols_t get_generated_symbols(const Node *node) const;
   void visit(BDDVisitor &visitor) const;
-  void serialize(const std::string &file_path) const;
-  void deserialize(const std::string &file_path);
+  void serialize(const std::filesystem::path &fpath) const;
+  void deserialize(const std::filesystem::path &fpath);
   void assert_integrity() const;
 
-  const Node *get_node_by_id(node_id_t _id) const;
-  Node *get_mutable_node_by_id(node_id_t _id);
-  int get_node_depth(node_id_t _id) const;
+  const Node *get_node_by_id(node_id_t id) const;
+  Node *get_mutable_node_by_id(node_id_t id);
+  int get_node_depth(node_id_t id) const;
 
   NodeManager &get_mutable_manager() { return manager; }
+  const NodeManager &get_manager() const { return manager; }
+
+  SymbolManager *get_mutable_symbol_manager() { return symbol_manager; }
+  const SymbolManager *get_symbol_manager() const { return symbol_manager; }
 };
 } // namespace synapse

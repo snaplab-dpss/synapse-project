@@ -102,8 +102,7 @@ void EPSynthesizer::transpile_table(coder_t &coder, const Table *table,
 }
 
 void EPSynthesizer::transpile_register(coder_t &coder, const Register *reg,
-                                       klee::ref<klee::Expr> index,
-                                       klee::ref<klee::Expr> value) {
+                                       klee::ref<klee::Expr> index, klee::ref<klee::Expr> value) {
   coder.indent();
   coder << "Register<";
   coder << transpiler.type_from_size(reg->index);
@@ -147,8 +146,8 @@ void EPSynthesizer::transpile_fcfs_cached_table(coder_t &coder,
                                                 const FCFSCachedTable *fcfs_cached_table,
                                                 klee::ref<klee::Expr> key,
                                                 klee::ref<klee::Expr> value) {
-  for (const Table &table : fcfs_cached_table->tables) {
-  }
+  // for (const Table &table : fcfs_cached_table->tables) {
+  // }
 }
 
 } // namespace tofino

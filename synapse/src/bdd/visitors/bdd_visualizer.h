@@ -52,8 +52,6 @@ public:
   BDDVisitor::Action visit(const Route *node) override final;
 
 private:
-  std::string get_gv_name(const Node *node) const {
-    return std::to_string(node->get_id());
-  }
+  std::string get_gv_name(const Node *node) const { return std::to_string(node->get_id()); }
 };
 } // namespace synapse

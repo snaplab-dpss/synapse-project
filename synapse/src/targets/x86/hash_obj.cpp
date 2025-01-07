@@ -26,7 +26,8 @@ std::optional<spec_impl_t> HashObjFactory::speculate(const EP *ep, const Node *n
   return std::nullopt;
 }
 
-std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const Node *node,
+                                                 SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

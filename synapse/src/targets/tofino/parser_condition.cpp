@@ -34,15 +34,13 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
 
     SYNAPSE_ASSERT(solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target),
                    "Not implemented");
-    SYNAPSE_ASSERT(selection.target.isNull() || solver_toolbox.are_exprs_always_equal(
-                                                    lhs_sel.target, selection.target),
+    SYNAPSE_ASSERT(selection.target.isNull() ||
+                       solver_toolbox.are_exprs_always_equal(lhs_sel.target, selection.target),
                    "Not implemented");
 
     selection.target = lhs_sel.target;
-    selection.values.insert(selection.values.end(), lhs_sel.values.begin(),
-                            lhs_sel.values.end());
-    selection.values.insert(selection.values.end(), rhs_sel.values.begin(),
-                            rhs_sel.values.end());
+    selection.values.insert(selection.values.end(), lhs_sel.values.begin(), lhs_sel.values.end());
+    selection.values.insert(selection.values.end(), rhs_sel.values.begin(), rhs_sel.values.end());
   } break;
   case klee::Expr::Kind::Ne:
     selection.negated = true;
@@ -70,8 +68,7 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
     SYNAPSE_ASSERT(lhs_is_target || rhs_is_target, "Not implemented");
 
     klee::ref<klee::Expr> value_expr = lhs_is_target ? rhs : lhs;
-    SYNAPSE_ASSERT(value_expr->getKind() == klee::Expr::Kind::Constant,
-                   "Not implemented");
+    SYNAPSE_ASSERT(value_expr->getKind() == klee::Expr::Kind::Constant, "Not implemented");
 
     selection.values.push_back(solver_toolbox.value_from_expr(value_expr));
   } break;
@@ -89,8 +86,7 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep,
-                                                             const Node *node,
+std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const Node *node,
                                                              const Context &ctx) const {
   if (node->get_type() != NodeType::Branch) {
     return std::nullopt;
@@ -105,8 +101,8 @@ std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep,
-                                                         const Node *node) const {
+std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Node *node,
+                                                         SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Branch) {
@@ -135,13 +131,11 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep,
 
   // We are working under the assumption that before parsing a header we
   // always perform some kind of checking.
-  SYNAPSE_ASSERT(on_true_borrows.size() > 0 || on_false_borrows.size() > 0,
-                 "Not implemented");
+  SYNAPSE_ASSERT(on_true_borrows.size() > 0 || on_false_borrows.size() > 0, "Not implemented");
 
   if (on_true_borrows.size() != on_false_borrows.size()) {
-    const Node *conditional_borrow = on_true_borrows.size() > on_false_borrows.size()
-                                         ? on_true_borrows[0]
-                                         : on_false_borrows[0];
+    const Node *conditional_borrow =
+        on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
     const Node *not_conditional_path =
         on_true_borrows.size() > on_false_borrows.size() ? on_false : on_true;
 
@@ -180,8 +174,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep,
   new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_select(ep, node, selection.target, selection.values,
-                            selection.negated);
+  tofino_ctx->parser_select(ep, node, selection.target, selection.values, selection.negated);
 
   return impls;
 }

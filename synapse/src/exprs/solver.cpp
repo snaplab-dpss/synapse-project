@@ -9,67 +9,11 @@
 namespace synapse {
 solver_toolbox_t solver_toolbox;
 
-klee::ref<klee::Expr>
-solver_toolbox_t::create_new_symbol(const klee::Array *array) const {
-  klee::Expr::Width size = array->size;
-
-  // For some bizarre reason, the array size sometimes is in bits, and sometimes
-  // in bytes. It has no relation whatsoever with the domain and range values in
-  // the array.
-  // A good rule of thumb is to check if the value is greater than 8. If it is,
-  // it's probably in bits.
-
-  if (size <= 8) {
-    size *= 8;
-  }
-
-  return solver_toolbox.create_new_symbol(array->name, size);
-}
-
-klee::ref<klee::Expr> solver_toolbox_t::create_new_symbol(const std::string &name,
-                                                          klee::Expr::Width width) const {
-  auto domain = klee::Expr::Int32;
-  auto range = klee::Expr::Int8;
-  const klee::Array *array = solver_toolbox.arr_cache.CreateArray(
-      name, width / 8, nullptr, nullptr, domain, range);
-  return create_new_symbol(name, width, array);
-}
-
-const klee::Array *solver_toolbox_t::clone_array(const klee::Array *array) const {
-  const klee::Array *new_array = solver_toolbox.arr_cache.CreateArray(
-      array->name, array->size, nullptr, nullptr, array->domain, array->range);
-  return new_array;
-}
-
-klee::ref<klee::Expr>
-solver_toolbox_t::create_new_symbol(const std::string &symbol_name,
-                                    klee::Expr::Width width,
-                                    const klee::Array *&array) const {
-  SYNAPSE_ASSERT(symbol_name.size(), "Empty symbol name");
-  SYNAPSE_ASSERT(width >= 8, "Invalid width");
-
-  auto domain = klee::Expr::Int32;
-  auto range = klee::Expr::Int8;
-
-  array = solver_toolbox.arr_cache.CreateArray(symbol_name, width / 8, nullptr, nullptr,
-                                               domain, range);
-
-  auto updates = klee::UpdateList(array, nullptr);
-  auto read_entire_symbol = klee::ref<klee::Expr>();
-
-  for (auto i = 0u; i < width / 8; i++) {
-    auto index = exprBuilder->Constant(i, domain);
-
-    if (read_entire_symbol.isNull()) {
-      read_entire_symbol = solver_toolbox.exprBuilder->Read(updates, index);
-      continue;
-    }
-
-    read_entire_symbol = exprBuilder->Concat(
-        solver_toolbox.exprBuilder->Read(updates, index), read_entire_symbol);
-  }
-
-  return read_entire_symbol;
+solver_toolbox_t::solver_toolbox_t()
+    : solver(createCexCachingSolver(klee::createCoreSolver(klee::Z3_SOLVER))),
+      exprBuilder(klee::createDefaultExprBuilder()) {
+  SYNAPSE_ASSERT(solver, "Failed to create solver");
+  SYNAPSE_ASSERT(exprBuilder, "Failed to create exprBuilder");
 }
 
 bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
@@ -102,45 +46,6 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
   return result;
 }
 
-bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints,
-                                           klee::ref<klee::Expr> expr,
-                                           bool force_symbol_merge) const {
-  if (!force_symbol_merge) {
-    return is_expr_always_true(constraints, expr);
-  }
-
-  auto new_constraints = merge_symbols(constraints, expr);
-  return is_expr_always_true(new_constraints, expr);
-}
-
-klee::ConstraintManager
-solver_toolbox_t::merge_symbols(const klee::ConstraintManager &constraints,
-                                klee::ref<klee::Expr> expr) const {
-  if (expr.isNull()) {
-    return constraints;
-  }
-
-  klee::ConstraintManager renamed_constraints;
-  std::vector<klee::ref<klee::ReadExpr>> reads = get_reads(expr);
-
-  for (klee::ref<klee::Expr> c : constraints) {
-    klee::ref<klee::Expr> renamed_constraint = replace_symbols(c, reads);
-    renamed_constraints.addConstraint(renamed_constraint);
-  }
-
-  return renamed_constraints;
-}
-
-klee::ref<klee::Expr> solver_toolbox_t::merge_symbols(klee::ref<klee::Expr> expr1,
-                                                      klee::ref<klee::Expr> expr2) const {
-  if (expr2.isNull() || expr1.isNull()) {
-    return expr2;
-  }
-
-  std::vector<klee::ref<klee::ReadExpr>> reads = get_reads(expr1);
-  return replace_symbols(expr2, reads);
-}
-
 bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constraints,
                                           klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
@@ -163,8 +68,7 @@ bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constr
   return result;
 }
 
-bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1,
-                                              klee::ref<klee::Expr> e2,
+bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2,
                                               klee::ConstraintManager c1,
                                               klee::ConstraintManager c2) const {
   auto eq_expr = exprBuilder->Eq(e1, e2);
@@ -196,10 +100,8 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1,
   bool not_eq_in_e1_ctx;
   bool not_eq_in_e2_ctx;
 
-  bool not_eq_in_e1_ctx_success =
-      solver->mustBeFalse(eq_in_e1_ctx_sat_query, not_eq_in_e1_ctx);
-  bool not_eq_in_e2_ctx_success =
-      solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx);
+  bool not_eq_in_e1_ctx_success = solver->mustBeFalse(eq_in_e1_ctx_sat_query, not_eq_in_e1_ctx);
+  bool not_eq_in_e2_ctx_success = solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx);
 
   SYNAPSE_ASSERT(not_eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
   SYNAPSE_ASSERT(not_eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
@@ -237,17 +139,6 @@ bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &const
   return result;
 }
 
-bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints,
-                                            klee::ref<klee::Expr> expr,
-                                            bool force_symbol_merge) const {
-  if (!force_symbol_merge) {
-    return is_expr_always_false(constraints, expr);
-  }
-
-  auto new_constraints = merge_symbols(constraints, expr);
-  return is_expr_always_false(new_constraints, expr);
-}
-
 bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
                                               klee::ref<klee::Expr> expr2) const {
   if (expr1.isNull() != expr2.isNull()) {
@@ -264,17 +155,6 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
 
   auto eq = exprBuilder->Eq(expr1, expr2);
   return is_expr_always_true(eq);
-}
-
-bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
-                                              klee::ref<klee::Expr> expr2,
-                                              bool force_symbol_merge) const {
-  if (!force_symbol_merge) {
-    return are_exprs_always_equal(expr1, expr2);
-  }
-
-  auto new_expr_2 = merge_symbols(expr1, expr2);
-  return are_exprs_always_equal(expr1, new_expr_2);
 }
 
 bool solver_toolbox_t::are_exprs_values_always_equal(klee::ref<klee::Expr> expr1,
@@ -407,32 +287,8 @@ bool solver_toolbox_t::are_calls_equal(call_t c1, call_t c2) const {
   return true;
 }
 
-solver_toolbox_t::contains_result_t
-solver_toolbox_t::contains(klee::ref<klee::Expr> expr1,
-                           klee::ref<klee::Expr> expr2) const {
-  auto expr1_size_bits = expr1->getWidth();
-  auto expr2_size_bits = expr2->getWidth();
-
-  if (expr1_size_bits < expr2_size_bits) {
-    return contains_result_t();
-  }
-
-  for (auto offset_bits = 0u; offset_bits + expr2_size_bits <= expr1_size_bits;
-       offset_bits += 8) {
-    auto expr1_extracted =
-        solver_toolbox.exprBuilder->Extract(expr1, offset_bits, expr2_size_bits);
-    SYNAPSE_ASSERT(expr1_extracted->getWidth() == expr2->getWidth(), "Invalid width");
-
-    if (are_exprs_always_equal(expr1_extracted, expr2)) {
-      return contains_result_t(offset_bits, expr1_extracted);
-    }
-  }
-
-  return contains_result_t();
-}
-
-int64_t solver_toolbox_t::signed_value_from_expr(
-    klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
+int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr,
+                                                 const klee::ConstraintManager &constraints) const {
   auto width = expr->getWidth();
   auto value = solver_toolbox.value_from_expr(expr, constraints);
 

@@ -130,8 +130,7 @@ std::string SearchSpace::build_meta_tput_speculation(const EP *ep) {
   return ss.str();
 }
 
-void SearchSpace::add_to_active_leaf(const EP *ep, const Node *node,
-                                     const ModuleFactory *modgen,
+void SearchSpace::add_to_active_leaf(const EP *ep, const Node *node, const ModuleFactory *modgen,
                                      const std::vector<impl_t> &implementations) {
   SYNAPSE_ASSERT(active_leaf, "Active leaf not set");
 

@@ -1,9 +1,30 @@
 #include "symbol.h"
 #include "solver.h"
 #include "../system.h"
+#include "../exprs/exprs.h"
+
+#include <klee/util/ExprVisitor.h>
 
 namespace synapse {
 namespace {
+class SymbolNamesRetriever : public klee::ExprVisitor::ExprVisitor {
+private:
+  std::unordered_set<std::string> names;
+
+public:
+  SymbolNamesRetriever() {}
+
+  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
+    klee::ref<klee::ReadExpr> expr = const_cast<klee::ReadExpr *>(&e);
+    const klee::UpdateList &ul = e.updates;
+    const klee::Array *root = ul.root;
+    names.insert(root->name);
+    return klee::ExprVisitor::Action::doChildren();
+  }
+
+  const std::unordered_set<std::string> &get_names() const { return names; }
+};
+
 std::string base_from_name(const std::string &name) {
   SYNAPSE_ASSERT(name.size(), "Empty name");
 
@@ -19,6 +40,19 @@ std::string base_from_name(const std::string &name) {
 }
 } // namespace
 
+symbol_t::symbol_t(const std::string &_base, const std::string &_name, klee::ref<klee::Expr> _expr)
+    : base(_base), name(_name), expr(_expr) {}
+
+symbol_t::symbol_t(klee::ref<klee::Expr> _expr) : expr(_expr) {
+  SymbolNamesRetriever retriever;
+  retriever.visit(expr);
+  const std::unordered_set<std::string> &names = retriever.get_names();
+  SYNAPSE_ASSERT(names.size() == 1, "Invalid number of symbols in expr: %s",
+                 expr_to_string(expr).c_str());
+  name = *names.begin();
+  base = base_from_name(name);
+}
+
 bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol) {
   for (const symbol_t &s : symbols) {
     if (s.base == base) {
@@ -29,31 +63,20 @@ bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &sym
   return false;
 }
 
-symbol_t build_symbol(const klee::Array *array) {
-  std::string base = base_from_name(array->name);
-  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(array);
-  return symbol_t({base, array, expr});
-}
-
-symbol_t create_symbol(const std::string &label, bits_t size) {
-  const klee::Array *array;
-
-  klee::ref<klee::Expr> expr = solver_toolbox.create_new_symbol(label, size, array);
-
-  symbol_t new_symbol = {
-      .base = label,
-      .array = array,
-      .expr = expr,
-  };
-
-  return new_symbol;
-}
-
 std::size_t symbol_hash_t::operator()(const symbol_t &s) const noexcept {
-  return s.array->hash();
+  std::hash<std::string> hash_fn;
+  return hash_fn(s.name);
 }
 
 bool symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept {
-  return solver_toolbox.are_exprs_always_equal(a.expr, b.expr);
+  return a.name == b.name;
+}
+
+std::ostream &operator<<(std::ostream &os, const symbol_t &symbol) {
+  os << "symbol{";
+  os << "base=" << symbol.base << ", ";
+  os << "name=" << symbol.name << ", ";
+  os << "expr=" << expr_to_string(symbol.expr, true) << "}";
+  return os;
 }
 } // namespace synapse

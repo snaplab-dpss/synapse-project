@@ -8,6 +8,8 @@
 #include "../log.h"
 
 namespace synapse {
+
+namespace {
 class ExprPrettyPrinter : public klee::ExprVisitor::ExprVisitor {
 private:
   std::string result;
@@ -377,8 +379,7 @@ public:
     auto p1 = std::regex(R"(!(.+))");
     std::smatch m;
 
-    if (left == "0" &&
-        (std::regex_match(right, m, p0) || std::regex_match(right, m, p1))) {
+    if (left == "0" && (std::regex_match(right, m, p0) || std::regex_match(right, m, p1))) {
       ss << m.str(1);
     } else if (left == "0") {
       ss << "!" << right;
@@ -499,6 +500,71 @@ public:
   }
 };
 
+void remove_expr_str_labels(std::string &expr_str) {
+  while (1) {
+    size_t delim = expr_str.find(":");
+
+    if (delim == std::string::npos) {
+      break;
+    }
+
+    auto start = delim;
+    auto end = delim;
+
+    while (expr_str[--start] != 'N') {
+      SYNAPSE_ASSERT(start > 0 && start < expr_str.size(), "Invalid start");
+    }
+
+    auto pre = expr_str.substr(0, start);
+    auto post = expr_str.substr(end + 1);
+
+    auto label_name = expr_str.substr(start, end - start);
+    auto label_expr = std::string();
+
+    expr_str = pre + post;
+
+    auto parenthesis_lvl = 0;
+
+    for (auto c : post) {
+      if (c == '(') {
+        parenthesis_lvl++;
+      } else if (c == ')') {
+        parenthesis_lvl--;
+      }
+
+      label_expr += c;
+
+      if (parenthesis_lvl == 0) {
+        break;
+      }
+    }
+
+    while (1) {
+      delim = expr_str.find(label_name);
+
+      if (delim == std::string::npos) {
+        break;
+      }
+
+      auto label_sz = label_name.size();
+
+      if (delim + label_sz < expr_str.size() && expr_str[delim + label_sz] == ':') {
+        pre = expr_str.substr(0, delim);
+        post = expr_str.substr(delim + label_sz + 1);
+
+        expr_str = pre + post;
+        continue;
+      }
+
+      pre = expr_str.substr(0, delim);
+      post = expr_str.substr(delim + label_sz);
+
+      expr_str = pre + label_expr + post;
+    }
+  }
+}
+} // namespace
+
 std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed) {
   return ExprPrettyPrinter::print(expr, use_signed);
 }
@@ -511,16 +577,15 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
   expr->print(os);
   os.str();
 
+  remove_expr_str_labels(expr_str);
+
   if (one_liner) {
     // remove new lines
     expr_str.erase(std::remove(expr_str.begin(), expr_str.end(), '\n'), expr_str.end());
 
     // remove duplicated whitespaces
-    auto bothAreSpaces = [](char lhs, char rhs) -> bool {
-      return (lhs == rhs) && (lhs == ' ');
-    };
-    std::string::iterator new_end =
-        std::unique(expr_str.begin(), expr_str.end(), bothAreSpaces);
+    auto bothAreSpaces = [](char lhs, char rhs) -> bool { return (lhs == rhs) && (lhs == ' '); };
+    std::string::iterator new_end = std::unique(expr_str.begin(), expr_str.end(), bothAreSpaces);
     expr_str.erase(new_end, expr_str.end());
   }
 

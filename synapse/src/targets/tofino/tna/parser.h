@@ -86,8 +86,7 @@ struct ParserStateTerminate : public ParserState {
       return false;
     }
 
-    const ParserStateTerminate *other_terminate =
-        dynamic_cast<const ParserStateTerminate *>(other);
+    const ParserStateTerminate *other_terminate = dynamic_cast<const ParserStateTerminate *>(other);
     return other_terminate->accept == accept;
   }
 };
@@ -99,10 +98,10 @@ struct ParserStateSelect : public ParserState {
   ParserState *on_false;
   bool negate;
 
-  ParserStateSelect(node_id_t _id, klee::ref<klee::Expr> _field,
-                    const std::vector<int> &_values, bool _negate)
-      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values),
-        on_true(nullptr), on_false(nullptr), negate(_negate) {}
+  ParserStateSelect(node_id_t _id, klee::ref<klee::Expr> _field, const std::vector<int> &_values,
+                    bool _negate)
+      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values), on_true(nullptr),
+        on_false(nullptr), negate(_negate) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -150,8 +149,7 @@ struct ParserStateSelect : public ParserState {
       return false;
     }
 
-    const ParserStateSelect *other_select =
-        dynamic_cast<const ParserStateSelect *>(other);
+    const ParserStateSelect *other_select = dynamic_cast<const ParserStateSelect *>(other);
 
     if (!solver_toolbox.are_exprs_always_equal(field, other_select->field)) {
       return false;
@@ -212,8 +210,7 @@ struct ParserStateExtract : public ParserState {
       return false;
     }
 
-    const ParserStateExtract *other_extract =
-        dynamic_cast<const ParserStateExtract *>(other);
+    const ParserStateExtract *other_extract = dynamic_cast<const ParserStateExtract *>(other);
 
     return solver_toolbox.are_exprs_always_equal(hdr, other_extract->hdr);
   }
@@ -266,14 +263,13 @@ public:
   }
 
   void add_select(node_id_t leaf_id, node_id_t id, klee::ref<klee::Expr> field,
-                  const std::vector<int> &values, std::optional<bool> direction,
-                  bool negate) {
+                  const std::vector<int> &values, std::optional<bool> direction, bool negate) {
     ParserStateSelect *new_state = new ParserStateSelect(id, field, values, negate);
     add_state(leaf_id, new_state, direction);
   }
 
-  void add_select(node_id_t id, klee::ref<klee::Expr> field,
-                  const std::vector<int> &values, bool negate) {
+  void add_select(node_id_t id, klee::ref<klee::Expr> field, const std::vector<int> &values,
+                  bool negate) {
     ParserState *new_state = new ParserStateSelect(id, field, values, negate);
     add_state(new_state);
   }
@@ -328,8 +324,7 @@ private:
     }
 
     SYNAPSE_ASSERT(initial_state->type == ParserStateType::TERMINATE, "Invalid parser");
-    SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(initial_state)->accept ==
-                       accepted,
+    SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted,
                    "Invalid parser");
 
     return true;
@@ -351,8 +346,7 @@ private:
         return false;
       }
 
-      SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept ==
-                         accepted,
+      SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted,
                      "Invalid parser");
     } break;
     case ParserStateType::SELECT: {
@@ -392,8 +386,7 @@ private:
       SYNAPSE_ASSERT(new_state->ids.size() == 1, "Invalid parser");
 
       node_id_t new_id = *new_state->ids.begin();
-      SYNAPSE_ASSERT(next_state->ids.find(new_id) == next_state->ids.end(),
-                     "Invalid parser");
+      SYNAPSE_ASSERT(next_state->ids.find(new_id) == next_state->ids.end(), "Invalid parser");
 
       next_state->ids.insert(new_id);
 
@@ -434,8 +427,7 @@ private:
     }
   }
 
-  void add_state(node_id_t leaf_id, ParserState *new_state,
-                 std::optional<bool> direction) {
+  void add_state(node_id_t leaf_id, ParserState *new_state, std::optional<bool> direction) {
     SYNAPSE_ASSERT(initial_state, "Invalid parser");
     SYNAPSE_ASSERT(states.find(leaf_id) != states.end(), "Invalid parser");
     SYNAPSE_ASSERT(!new_state->ids.empty(), "Invalid parser");

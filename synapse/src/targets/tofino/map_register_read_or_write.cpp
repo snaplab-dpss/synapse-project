@@ -24,19 +24,14 @@ struct map_register_data_t {
     key = get_call.args.at("key").in;
     read_value = get_call.args.at("value_out").out;
     write_value = put_call.args.at("value").expr;
-
-    bool found = get_symbol(map_get->get_locally_generated_symbols(), "map_has_this_key",
-                            map_has_this_key);
-    SYNAPSE_ASSERT(found, "Symbol map_has_this_key not found");
-
+    map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 
-std::vector<const Node *>
-get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
-                                  const map_coalescing_objs_t &map_objs,
-                                  klee::ref<klee::Expr> key) {
+std::vector<const Node *> get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
+                                                            const map_coalescing_objs_t &map_objs,
+                                                            klee::ref<klee::Expr> key) {
   std::vector<const Node *> nodes_to_ignore;
 
   const BDD *bdd = ep->get_bdd();
@@ -49,11 +44,7 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
     const call_t &call = coalescing_node->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      symbol_t out_of_space;
-      bool found = get_symbol(coalescing_node->get_locally_generated_symbols(),
-                              "out_of_space", out_of_space);
-      SYNAPSE_ASSERT(found, "Symbol out_of_space not found");
-
+      symbol_t out_of_space = coalescing_node->get_local_symbol("out_of_space");
       branch_direction_t index_alloc_check =
           find_branch_checking_index_alloc(ep, on_success, out_of_space);
 
@@ -64,9 +55,8 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
       if (index_alloc_check.branch) {
         nodes_to_ignore.push_back(index_alloc_check.branch);
 
-        const Node *next = index_alloc_check.direction
-                               ? index_alloc_check.branch->get_on_false()
-                               : index_alloc_check.branch->get_on_true();
+        const Node *next = index_alloc_check.direction ? index_alloc_check.branch->get_on_false()
+                                                       : index_alloc_check.branch->get_on_true();
 
         next->visit_nodes([&nodes_to_ignore](const Node *node) {
           nodes_to_ignore.push_back(node);
@@ -79,8 +69,7 @@ get_nodes_to_speculatively_ignore(const EP *ep, const Node *on_success,
   return nodes_to_ignore;
 }
 
-void update_profiler(const BDD *bdd, Profiler &profiler,
-                     const map_rw_pattern_t &map_rw_pattern) {
+void update_profiler(const BDD *bdd, Profiler &profiler, const map_rw_pattern_t &map_rw_pattern) {
   hit_rate_t on_index_alloc_success_hr =
       profiler.get_hr(map_rw_pattern.index_alloc_check.direction
                           ? map_rw_pattern.index_alloc_check.branch->get_on_true()
@@ -99,10 +88,9 @@ void update_profiler(const BDD *bdd, Profiler &profiler,
       index_alloc_check->get_condition());
 
   if (map_rw_pattern.map_put_extra_condition.branch) {
-    const Node *to_be_removed =
-        map_rw_pattern.map_put_extra_condition.direction
-            ? map_rw_pattern.map_put_extra_condition.branch->get_on_false()
-            : map_rw_pattern.map_put_extra_condition.branch->get_on_true();
+    const Node *to_be_removed = map_rw_pattern.map_put_extra_condition.direction
+                                    ? map_rw_pattern.map_put_extra_condition.branch->get_on_false()
+                                    : map_rw_pattern.map_put_extra_condition.branch->get_on_true();
 
     hit_rate_t removed_hr = profiler.get_hr(to_be_removed);
 
@@ -127,8 +115,7 @@ void update_profiler(const BDD *bdd, Profiler &profiler,
 
 std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
                                  const map_rw_pattern_t &map_rw_pattern,
-                                 const symbol_t &map_reg_successful_write,
-                                 const Node *&new_next) {
+                                 const symbol_t &map_reg_successful_write, const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -150,13 +137,11 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
   if (map_rw_pattern.index_alloc_check.direction) {
     index_alloc_check_node->set_condition(solver_toolbox.exprBuilder->Ne(
         map_reg_successful_write.expr,
-        solver_toolbox.exprBuilder->Constant(0,
-                                             map_reg_successful_write.expr->getWidth())));
+        solver_toolbox.exprBuilder->Constant(0, map_reg_successful_write.expr->getWidth())));
   } else {
     index_alloc_check_node->set_condition(solver_toolbox.exprBuilder->Eq(
         map_reg_successful_write.expr,
-        solver_toolbox.exprBuilder->Constant(0,
-                                             map_reg_successful_write.expr->getWidth())));
+        solver_toolbox.exprBuilder->Constant(0, map_reg_successful_write.expr->getWidth())));
   }
 
   delete_non_branch_node_from_bdd(new_bdd.get(), map_rw_pattern.map_put->get_id());
@@ -165,9 +150,8 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *node,
 }
 } // namespace
 
-std::optional<spec_impl_t>
-MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
-                                         const Context &ctx) const {
+std::optional<spec_impl_t> MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
+                                                                    const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -192,8 +176,7 @@ MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
 
   map_register_data_t map_register_data(ep, map_get, future_map_puts[0]);
 
-  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj,
-                                       map_register_data.key,
+  if (!can_build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
                                        map_register_data.num_entries)) {
     return std::nullopt;
   }
@@ -215,8 +198,9 @@ MapRegisterReadOrWriteFactory::speculate(const EP *ep, const Node *node,
   return spec_impl;
 }
 
-std::vector<impl_t> MapRegisterReadOrWriteFactory::process_node(const EP *ep,
-                                                                const Node *node) const {
+std::vector<impl_t>
+MapRegisterReadOrWriteFactory::process_node(const EP *ep, const Node *node,
+                                            SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -242,15 +226,16 @@ std::vector<impl_t> MapRegisterReadOrWriteFactory::process_node(const EP *ep,
 
   map_register_data_t map_register_data(ep, map_get, map_rw_pattern.map_put);
 
-  MapRegister *map_register =
-      build_or_reuse_map_register(ep, node, map_register_data.obj, map_register_data.key,
-                                  map_register_data.num_entries);
+  MapRegister *map_register = build_or_reuse_map_register(
+      ep, node, map_register_data.obj, map_register_data.key, map_register_data.num_entries);
 
   if (!map_register) {
     return impls;
   }
 
-  symbol_t map_reg_successful_write = create_symbol("map_reg_successful_write", 32);
+  // FIXME:
+  // symbol_t map_reg_successful_write = create_symbol("map_reg_successful_write", 32);
+  symbol_t map_reg_successful_write;
 
   Module *module = new MapRegisterReadOrWrite(
       node, map_register->id, map_register_data.obj, map_register_data.key,

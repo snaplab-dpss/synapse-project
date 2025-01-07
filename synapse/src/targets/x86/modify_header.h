@@ -12,8 +12,8 @@ private:
 
 public:
   ModifyHeader(const Node *node, addr_t _chunk_addr, const std::vector<mod_t> &_changes)
-      : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", node),
-        chunk_addr(_chunk_addr), changes(_changes) {}
+      : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", node), chunk_addr(_chunk_addr),
+        changes(_changes) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
                                   const EPNode *ep_node) const override {
@@ -31,14 +31,14 @@ public:
 
 class ModifyHeaderFactory : public x86ModuleFactory {
 public:
-  ModifyHeaderFactory()
-      : x86ModuleFactory(ModuleType::x86_ModifyHeader, "ModifyHeader") {}
+  ModifyHeaderFactory() : x86ModuleFactory(ModuleType::x86_ModifyHeader, "ModifyHeader") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
                                                const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

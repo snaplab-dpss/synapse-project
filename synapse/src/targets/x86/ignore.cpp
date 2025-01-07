@@ -24,7 +24,8 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *no
   return std::nullopt;
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node,
+                                                SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, node)) {

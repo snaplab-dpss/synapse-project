@@ -3,8 +3,7 @@
 namespace synapse {
 namespace ctrl {
 
-std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep,
-                                                            const Node *node,
+std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep, const Node *node,
                                                             const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
@@ -27,8 +26,8 @@ std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
-                                                        const Node *node) const {
+std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const Node *node,
+                                                        SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -52,17 +51,14 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
   addr_t cht_addr = expr_addr_to_obj_addr(cht);
   addr_t backends_addr = expr_addr_to_obj_addr(backends);
 
-  symbols_t symbols = call_node->get_locally_generated_symbols();
-  symbol_t backend_found;
-  bool found = get_symbol(symbols, "prefered_backend_found", backend_found);
-  SYNAPSE_ASSERT(found, "Symbol prefered_backend_found not found");
+  symbol_t backend_found = call_node->get_local_symbol("prefered_backend_found");
 
   if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::Controller_ConsistentHashTable)) {
     return impls;
   }
 
-  Module *module = new ChtFindBackend(node, cht_addr, backends_addr, hash, height,
-                                      capacity, backend, backend_found);
+  Module *module = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity,
+                                      backend, backend_found);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -71,8 +67,7 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep,
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(cht_addr,
-                                         DSImpl::Controller_ConsistentHashTable);
+  new_ep->get_mutable_ctx().save_ds_impl(cht_addr, DSImpl::Controller_ConsistentHashTable);
 
   return impls;
 }

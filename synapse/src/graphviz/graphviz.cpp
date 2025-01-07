@@ -87,8 +87,7 @@ void Graphviz::show(bool interrupt) const {
 }
 
 void Graphviz::find_and_replace(
-    std::string &str,
-    const std::vector<std::pair<std::string, std::string>> &replacements) {
+    std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements) {
   for (const std::pair<std::string, std::string> &replacement : replacements) {
     const std::string &before = replacement.first;
     const std::string &after = replacement.second;
@@ -102,18 +101,17 @@ void Graphviz::find_and_replace(
 }
 
 void Graphviz::sanitize_html_label(std::string &label) {
-  find_and_replace(label,
-                   {
-                       {"&", "&amp;"}, // Careful, this needs to be the first
-                                       // one, otherwise we mess everything up. Notice
-                                       // that all the others use ampersands.
-                       {"{", "&#123;"},
-                       {"}", "&#125;"},
-                       {"[", "&#91;"},
-                       {"]", "&#93;"},
-                       {"<", "&lt;"},
-                       {">", "&gt;"},
-                       {"\n", "<br/>"},
-                   });
+  find_and_replace(label, {
+                              {"&", "&amp;"}, // Careful, this needs to be the first
+                                              // one, otherwise we mess everything up. Notice
+                                              // that all the others use ampersands.
+                              {"{", "&#123;"},
+                              {"}", "&#125;"},
+                              {"[", "&#91;"},
+                              {"]", "&#93;"},
+                              {"<", "&lt;"},
+                              {">", "&gt;"},
+                              {"\n", "<br/>"},
+                          });
 }
 } // namespace synapse
