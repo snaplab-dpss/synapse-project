@@ -66,7 +66,7 @@ header ethernet_t {
 
 header app_t {
 	bit<8> op;
-	bit<128> key;
+	bit<96> key;
 	bit<8> success;
 	bit<8> tid; // debug
 	@padding hash_pad_t hash_pad; // debug
@@ -78,7 +78,7 @@ header app_t {
 };
 
 header recirc_h {
-	bit<128> key;
+	bit<96> key;
 	time_t swap_time;
 };
 
@@ -87,7 +87,7 @@ struct empty_metadata_t {}
 
 struct my_ingress_metadata_t {
 	time_t now;
-	bit<128> key;
+	bit<96> key;
 	time_t swap_time;
 }
 
@@ -200,7 +200,7 @@ control Ingress(
 	Register<time_t, _>(CUCKOO_CAPACITY, 0) expirator_t0;
 	Register<time_t, _>(CUCKOO_CAPACITY, 0) expirator_t1;
 
-	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0_action = {
+	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0 = {
 		void apply(inout time_t alarm, out bool alive) {
 			if (meta.now < alarm) {
 				alive = true;
@@ -210,11 +210,7 @@ control Ingress(
 		}
 	};
 
-	action expirator_read_t0() {
-		expirator_valid_t0 = expirator_read_t0_action.execute(h0);
-	}
-
-	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_read_t1_action = {
+	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_read_t1 = {
 		void apply(inout time_t alarm, out bool alive) {
 			if (meta.now < alarm) {
 				alive = true;
@@ -224,11 +220,7 @@ control Ingress(
 		}
 	};
 
-	action expirator_read_t1() {
-		expirator_valid_t1 = expirator_read_t1_action.execute(h1);
-	}
-
-	RegisterAction<time_t, hash_t, time_t>(expirator_t0) expirator_swap_t0_action = {
+	RegisterAction<time_t, hash_t, time_t>(expirator_t0) expirator_swap_t0 = {
 		void apply(inout time_t alarm, out time_t out_time) {
 			if (meta.now >= alarm) {
 				out_time = 0;
@@ -239,11 +231,7 @@ control Ingress(
 		}
 	};
 
-	action expirator_swap_t0() {
-		meta.swap_time = expirator_swap_t0_action.execute(h0);
-	}
-
-	RegisterAction<time_t, hash_t, time_t>(expirator_t1) expirator_swap_t1_action = {
+	RegisterAction<time_t, hash_t, time_t>(expirator_t1) expirator_swap_t1 = {
 		void apply(inout time_t alarm, out time_t out_time) {
 			if (meta.now >= alarm) {
 				out_time = 0;
@@ -254,49 +242,32 @@ control Ingress(
 		}
 	};
 
-	action expirator_swap_t1() {
-		meta.swap_time = expirator_swap_t1_action.execute(h1);
-	}
-
-	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_delete_t0_action = {
+	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_delete_t0 = {
 		void apply(inout time_t alarm, out bool alive) {
 			alive = false;
 			alarm = 0;
 		}
 	};
 
-	action expirator_delete_t0() {
-		expirator_valid_t0 = expirator_delete_t0_action.execute(h0);
-	}
-
-	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_delete_t1_action = {
+	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_delete_t1 = {
 		void apply(inout time_t alarm, out bool alive) {
 			alive = false;
 			alarm = 0;
 		}
 	};
-
-	action expirator_delete_t1() {
-		expirator_valid_t1 = expirator_delete_t1_action.execute(h1);
-	}
 
 	// ============================== Cuckoo Hash ==============================
 
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k0_31;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k32_63;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k64_95;
-	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k96_127;
 
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k0_31;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k32_63;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k64_95;
-	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k96_127;
-
-	bit<8> t0_eq_count = 0;
-	bit<8> t1_eq_count = 0;
 
 	#define CUCKOO_READ(num, msb, lsb) \
-		RegisterAction<bit<32>, hash_t, bit<8>>(t##num##_k##lsb##_##msb) read_t##num##_k##lsb##_##msb##_action = { \
+		RegisterAction<bit<32>, hash_t, bit<8>>(t##num##_k##lsb##_##msb) read_t##num##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> value, out bit<8> result) { \
 				if (value == meta.key[msb:lsb]) { \
 					result = 1; \
@@ -304,41 +275,31 @@ control Ingress(
 					result = 0; \
 				} \
 			} \
-		}; \
-		action read_t##num##_k##lsb##_##msb() { \
-			t##num##_eq_count = t##num##_eq_count + read_t##num##_k##lsb##_##msb##_action.execute(h##num); \
-		}
+		};
 	
 	#define CUCKOO_SWAP(num, msb, lsb) \
-		RegisterAction<bit<32>, hash_t, bit<32>>(t##num##_k##lsb##_##msb) swap_t##num##_k##lsb##_##msb##_action = { \
+		RegisterAction<bit<32>, hash_t, bit<32>>(t##num##_k##lsb##_##msb) swap_t##num##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> value, out bit<32> out_value) { \
 				out_value = value; \
 				value = meta.key[msb:lsb]; \
 			} \
-		}; \
-		action swap_t##num##_k##lsb##_##msb() { \
-			meta.key[msb:lsb] = swap_t##num##_k##lsb##_##msb##_action.execute(h##num); \
-		}
+		};
 
 	CUCKOO_READ(0, 31, 0)
 	CUCKOO_READ(0, 63, 32)
 	CUCKOO_READ(0, 95, 64)
-	CUCKOO_READ(0, 127, 96)
 
 	CUCKOO_SWAP(0, 31, 0)
 	CUCKOO_SWAP(0, 63, 32)
 	CUCKOO_SWAP(0, 95, 64)
-	CUCKOO_SWAP(0, 127, 96)
 
 	CUCKOO_READ(1, 31, 0)
 	CUCKOO_READ(1, 63, 32)
 	CUCKOO_READ(1, 95, 64)
-	CUCKOO_READ(1, 127, 96)
 
 	CUCKOO_SWAP(1, 31, 0)
 	CUCKOO_SWAP(1, 63, 32)
 	CUCKOO_SWAP(1, 95, 64)
-	CUCKOO_SWAP(1, 127, 96)
 
 	action forward(port_t port) {
 		ig_tm_md.ucast_egress_port = port;
@@ -362,12 +323,11 @@ control Ingress(
 
 			calc_hash0();
 
-			swap_t0_k0_31();
-			swap_t0_k32_63();
-			swap_t0_k64_95();
-			swap_t0_k96_127();
+			meta.key[31:0] = swap_t0_k0_31.execute(h0);
+			meta.key[63:32] = swap_t0_k32_63.execute(h0);
+			meta.key[95:64] = swap_t0_k64_95.execute(h0);
 
-			expirator_swap_t0();
+			meta.swap_time = expirator_swap_t0.execute(h0);
 
 			hdr.app.tid = 0;
 			hdr.app.hash = h0;
@@ -379,22 +339,19 @@ control Ingress(
 				
 				calc_hash1();
 
-				swap_t1_k0_31();
-				swap_t1_k32_63();
-				swap_t1_k64_95();
-				swap_t1_k96_127();
+				meta.key[31:0] = swap_t1_k0_31.execute(h1);
+				meta.key[63:32] = swap_t1_k32_63.execute(h1);
+				meta.key[95:64] = swap_t1_k64_95.execute(h1);
 
-				expirator_swap_t1();
+				meta.swap_time = expirator_swap_t1.execute(h1);
 
-				bool is_original_key = false;
-				if (meta.key[31:0] == hdr.app.key[31:0]) {
-					if (meta.key[63:32] == hdr.app.key[63:32]) {
-						if (meta.key[95:64] == hdr.app.key[95:64]) {
-							if (meta.key[127:96] == hdr.app.key[127:96]) {
-								is_original_key = true;
-							}
-						}
-					}
+				bool is_original_key = true;
+				if (meta.key[31:0] != hdr.app.key[31:0]) {
+					is_original_key = false;
+				} else if (meta.key[63:32] != hdr.app.key[63:32]) {
+					is_original_key = false;
+				} else if (meta.key[95:64] != hdr.app.key[95:64]) {
+					is_original_key = false;
 				}
 
 				if (meta.swap_time == 0) {
@@ -416,20 +373,37 @@ control Ingress(
 			calc_hash0();
 			calc_hash1();
 
-			expirator_read_t0();
-			expirator_read_t1();
+			expirator_valid_t0 = expirator_read_t0.execute(h0);
+			
+			bit<8> t0_k0_31_entry = read_t0_k0_31.execute(h0);
+			bit<8> t0_k32_63_entry = read_t0_k32_63.execute(h0);
+			bit<8> t0_k64_95_entry = read_t0_k64_95.execute(h0);
 
-			read_t0_k0_31();
-			read_t0_k32_63();
-			read_t0_k64_95();
-			read_t0_k96_127();
+			bool match0 = true;
+			if (t0_k0_31_entry == 0) {
+				match0 = false;
+			} else if (t0_k32_63_entry == 0) {
+				match0 = false;
+			} else if (t0_k64_95_entry == 0) {
+				match0 = false;
+			}
 
-			read_t1_k0_31();
-			read_t1_k32_63();
-			read_t1_k64_95();
-			read_t1_k96_127();
+			expirator_valid_t1 = expirator_read_t1.execute(h1);
 
-			if (expirator_valid_t0 && t0_eq_count == 4) {
+			bit<8> t1_k0_31_entry = read_t1_k0_31.execute(h1);
+			bit<8> t1_k32_63_entry = read_t1_k32_63.execute(h1);
+			bit<8> t1_k64_95_entry = read_t1_k64_95.execute(h1);
+
+			bool match1 = true;
+			if (t1_k0_31_entry == 0) {
+				match1 = false;
+			} else if (t1_k32_63_entry == 0) {
+				match1 = false;
+			} else if (t1_k64_95_entry == 0) {
+				match1 = false;
+			}
+
+			if (expirator_valid_t0 && match0) {
 				// Key is found in table 0
 				hdr.app.tid = 0;
 				hdr.app.hash = h0;
@@ -441,7 +415,7 @@ control Ingress(
 					hdr.app.success = 0;
 					hdr.app.duplicate = 1;
 				}
-			} else if (expirator_valid_t1 && t1_eq_count == 4) {
+			} else if (expirator_valid_t1 && match1) {
 				// Key is not found in table 0 but found in table 1
 				hdr.app.tid = 1;
 				hdr.app.hash = h1;

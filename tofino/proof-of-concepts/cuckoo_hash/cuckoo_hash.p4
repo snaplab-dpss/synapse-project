@@ -69,12 +69,12 @@ header ethernet_t {
 
 header app_t {
 	cuckoo_op_t op;
-	bit<128> key;
+	bit<96> key;
 };
 
 header recirc_h {
 	bit<32> times;
-	bit<128> key;
+	bit<96> key;
 	time_t swap_time;
 };
 
@@ -83,15 +83,19 @@ struct empty_metadata_t {}
 
 struct my_ingress_metadata_t {
 	bit<32> recirc_times;
-	bit<128> key;
+	bit<96> key;
 	time_t swap_time;
 	time_t now;
 	hash_t h0;
 	hash_t h1;
 	bool expirator_valid_t0;
 	bool expirator_valid_t1;
-	bit<8> t0_match;
-	bit<8> t1_match;
+	bit<8> t0_k0_31_entry;
+	bit<8> t0_k32_63_entry;
+	bit<8> t0_k64_95_entry;
+	bit<8> t1_k0_31_entry;
+	bit<8> t1_k32_63_entry;
+	bit<8> t1_k64_95_entry;
 	bit<8> tid;
 	bit<8> success;
 }
@@ -148,8 +152,12 @@ parser IngressParser(
 		meta.h1 = 0;
 		meta.expirator_valid_t0 = false;
 		meta.expirator_valid_t1 = false;
-		meta.t0_match = 0;
-		meta.t1_match = 0;
+		meta.t0_k0_31_entry = 0;
+		meta.t0_k32_63_entry = 0;
+		meta.t0_k64_95_entry = 0;
+		meta.t1_k0_31_entry = 0;
+		meta.t1_k32_63_entry = 0;
+		meta.t1_k64_95_entry = 0;
 		meta.tid = 0;
 		meta.success = 0;
 
@@ -208,7 +216,7 @@ control Ingress(
 	Register<time_t, _>(CUCKOO_CAPACITY, 0) expirator_t0;
 	Register<time_t, _>(CUCKOO_CAPACITY, 0) expirator_t1;
 
-	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0_action = {
+	RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0 = {
 		void apply(inout time_t alarm, out bool alive) {
 			if (meta.now < alarm) {
 				alive = true;
@@ -218,11 +226,7 @@ control Ingress(
 		}
 	};
 
-	action expirator_read_t0() {
-		meta.expirator_valid_t0 = expirator_read_t0_action.execute(meta.h0);
-	}
-
-	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_read_t1_action = {
+	RegisterAction<time_t, hash_t, bool>(expirator_t1) expirator_read_t1 = {
 		void apply(inout time_t alarm, out bool alive) {
 			if (meta.now < alarm) {
 				alive = true;
@@ -232,11 +236,7 @@ control Ingress(
 		}
 	};
 
-	action expirator_read_t1() {
-		meta.expirator_valid_t1 = expirator_read_t1_action.execute(meta.h1);
-	}
-
-	RegisterAction<time_t, hash_t, time_t>(expirator_t0) expirator_swap_t0_action = {
+	RegisterAction<time_t, hash_t, time_t>(expirator_t0) expirator_swap_t0 = {
 		void apply(inout time_t alarm, out time_t out_time) {
 			if (meta.now >= alarm) {
 				out_time = 0;
@@ -247,11 +247,7 @@ control Ingress(
 		}
 	};
 
-	action expirator_swap_t0() {
-		meta.swap_time = expirator_swap_t0_action.execute(meta.h0);
-	}
-
-	RegisterAction<time_t, hash_t, time_t>(expirator_t1) expirator_swap_t1_action = {
+	RegisterAction<time_t, hash_t, time_t>(expirator_t1) expirator_swap_t1 = {
 		void apply(inout time_t alarm, out time_t out_time) {
 			if (meta.now >= alarm) {
 				out_time = 0;
@@ -261,25 +257,19 @@ control Ingress(
 			alarm = meta.swap_time;
 		}
 	};
-
-	action expirator_swap_t1() {
-		meta.swap_time = expirator_swap_t1_action.execute(meta.h1);
-	}
 
 	// ============================== Cuckoo Hash ==============================
 
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k0_31;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k32_63;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k64_95;
-	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t0_k96_127;
 
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k0_31;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k32_63;
 	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k64_95;
-	Register<bit<32>, _>(CUCKOO_CAPACITY, 0) t1_k96_127;
 
 	#define CUCKOO_READ(num, msb, lsb) \
-		RegisterAction<bit<32>, hash_t, bit<8>>(t##num##_k##lsb##_##msb) read_t##num##_k##lsb##_##msb##_action = { \
+		RegisterAction<bit<32>, hash_t, bit<8>>(t##num##_k##lsb##_##msb) read_t##num##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> value, out bit<8> result) { \
 				if (value == meta.key[msb:lsb]) { \
 					result = 1; \
@@ -287,41 +277,31 @@ control Ingress(
 					result = 0; \
 				} \
 			} \
-		}; \
-		action read_t##num##_k##lsb##_##msb() { \
-			meta.t##num##_match = meta.t##num##_match + read_t##num##_k##lsb##_##msb##_action.execute(meta.h##num); \
-		}
+		};
 	
 	#define CUCKOO_SWAP(num, msb, lsb) \
-		RegisterAction<bit<32>, hash_t, bit<32>>(t##num##_k##lsb##_##msb) swap_t##num##_k##lsb##_##msb##_action = { \
+		RegisterAction<bit<32>, hash_t, bit<32>>(t##num##_k##lsb##_##msb) swap_t##num##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> value, out bit<32> out_value) { \
 				out_value = value; \
 				value = meta.key[msb:lsb]; \
 			} \
-		}; \
-		action swap_t##num##_k##lsb##_##msb() { \
-			meta.key[msb:lsb] = swap_t##num##_k##lsb##_##msb##_action.execute(meta.h##num); \
-		}
+		};
 
 	CUCKOO_READ(0, 31, 0)
 	CUCKOO_READ(0, 63, 32)
 	CUCKOO_READ(0, 95, 64)
-	CUCKOO_READ(0, 127, 96)
 
 	CUCKOO_SWAP(0, 31, 0)
 	CUCKOO_SWAP(0, 63, 32)
 	CUCKOO_SWAP(0, 95, 64)
-	CUCKOO_SWAP(0, 127, 96)
 
 	CUCKOO_READ(1, 31, 0)
 	CUCKOO_READ(1, 63, 32)
 	CUCKOO_READ(1, 95, 64)
-	CUCKOO_READ(1, 127, 96)
 
 	CUCKOO_SWAP(1, 31, 0)
 	CUCKOO_SWAP(1, 63, 32)
 	CUCKOO_SWAP(1, 95, 64)
-	CUCKOO_SWAP(1, 127, 96)
 
 	action forward(port_t port) {
 		ig_tm_md.ucast_egress_port = port;
@@ -346,27 +326,32 @@ control Ingress(
 
 			calc_hash0();
 
-			expirator_swap_t0();
-			swap_t0_k0_31();
-			swap_t0_k32_63();
-			swap_t0_k64_95();
-			swap_t0_k96_127();
+			meta.swap_time = expirator_swap_t0.execute(meta.h0);
+
+			meta.key[31:0] = swap_t0_k0_31.execute(meta.h0);
+			meta.key[63:32] = swap_t0_k32_63.execute(meta.h0);
+			meta.key[95:64] = swap_t0_k64_95.execute(meta.h0);
 
 			if (meta.swap_time != 0) {
 				calc_hash1();
 
-				expirator_swap_t1();
-				swap_t1_k0_31();
-				swap_t1_k32_63();
-				swap_t1_k64_95();
-				swap_t1_k96_127();
+				meta.swap_time = expirator_swap_t1.execute(meta.h1);
+				
+				meta.key[31:0] = swap_t1_k0_31.execute(meta.h1);
+				meta.key[63:32] = swap_t1_k32_63.execute(meta.h1);
+				meta.key[95:64] = swap_t1_k64_95.execute(meta.h1);
+
+				bool is_original_key = true;
+				if (meta.key[31:0] != hdr.app.key[31:0]) {
+					is_original_key = false;
+				} else if (meta.key[63:32] != hdr.app.key[63:32]) {
+					is_original_key = false;
+				} else if (meta.key[95:64] != hdr.app.key[95:64]) {
+					is_original_key = false;
+				}
 
 				if (meta.swap_time != 0) {
-					// Different from the tested version for simplicity.
-					// This version does not perform loop detection, and may evict
-					// other key in the cuckoo hash table in those cases
-					// (instead of failing to insert the requested new key).
-					if (meta.recirc_times == 4) {
+					if (meta.recirc_times == 1 || !is_original_key) {
 						trigger_recirculation = true;
 					}
 				} else {
@@ -380,24 +365,42 @@ control Ingress(
 			calc_hash0();
 			calc_hash1();
 
-			expirator_read_t0();
-			read_t0_k0_31();
-			read_t0_k32_63();
-			read_t0_k64_95();
-			read_t0_k96_127();
+			meta.expirator_valid_t0 = expirator_read_t0.execute(meta.h0);
 
-			expirator_read_t1();
-			read_t1_k0_31();
-			read_t1_k32_63();
-			read_t1_k64_95();
-			read_t1_k96_127();
+			meta.t0_k0_31_entry = read_t0_k0_31.execute(meta.h0);
+			meta.t0_k32_63_entry = read_t0_k32_63.execute(meta.h0);
+			meta.t0_k64_95_entry = read_t0_k64_95.execute(meta.h0);
 
-			if (meta.expirator_valid_t0 && meta.t0_match == 4) {
+			bool match0 = true;
+			if (meta.t0_k0_31_entry == 0) {
+				match0 = false;
+			} else if (meta.t0_k32_63_entry == 0) {
+				match0 = false;
+			} else if (meta.t0_k64_95_entry == 0) {
+				match0 = false;
+			}
+
+			meta.expirator_valid_t1 = expirator_read_t1.execute(meta.h1);
+
+			meta.t1_k0_31_entry = read_t1_k0_31.execute(meta.h1);
+			meta.t1_k32_63_entry = read_t1_k32_63.execute(meta.h1);
+			meta.t1_k64_95_entry = read_t1_k64_95.execute(meta.h1);
+
+			bool match1 = true;
+			if (meta.t1_k0_31_entry == 0) {
+				match1 = false;
+			} else if (meta.t1_k32_63_entry == 0) {
+				match1 = false;
+			} else if (meta.t1_k64_95_entry == 0) {
+				match1 = false;
+			}
+
+			if (meta.expirator_valid_t0 && match0) {
 				if (hdr.app.op == cuckoo_op_t.LOOKUP) {
 					meta.tid = 0;
 					meta.success = 1;
 				}
-			} else if (meta.expirator_valid_t1 && meta.t1_match == 4) {
+			} else if (meta.expirator_valid_t1 && match1) {
 				meta.tid = 1;
 				meta.success = 1;
 			} else if (hdr.app.op == cuckoo_op_t.INSERT) {

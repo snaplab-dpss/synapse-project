@@ -17,7 +17,7 @@ PROGRAM = "cuckoo_hash"
 CUCKOO_HASH_CAPACITY = 1024
 HASH_SIZE_BITS = 10 # 2^10 = 1024
 HASH_SIZE_BITS_BYTE_ALIGN = 6 # 10 + 6 = 16 bits = 2 bytes
-KEY_SIZE_BITS = 128
+KEY_SIZE_BITS = 96
 SALT0 = 0x7f4a7c13
 SALT1 = 0x97c29b3a
 
@@ -230,16 +230,14 @@ class CuckooHash:
 		self.t0_k0_31 = Register(bfrt_info, target, "Ingress.t0_k0_31")
 		self.t0_k32_63 = Register(bfrt_info, target, "Ingress.t0_k32_63")
 		self.t0_k64_95 = Register(bfrt_info, target, "Ingress.t0_k64_95")
-		self.t0_k96_127 = Register(bfrt_info, target, "Ingress.t0_k96_127")
 
 		self.t1_k0_31 = Register(bfrt_info, target, "Ingress.t1_k0_31")
 		self.t1_k32_63 = Register(bfrt_info, target, "Ingress.t1_k32_63")
 		self.t1_k64_95 = Register(bfrt_info, target, "Ingress.t1_k64_95")
-		self.t1_k96_127 = Register(bfrt_info, target, "Ingress.t1_k96_127")
 
 		self.ts = [
-			[self.t0_k0_31, self.t0_k32_63, self.t0_k64_95, self.t0_k96_127],
-			[self.t1_k0_31, self.t1_k32_63, self.t1_k64_95, self.t1_k96_127],
+			[self.t0_k0_31, self.t0_k32_63, self.t0_k64_95],
+			[self.t1_k0_31, self.t1_k32_63, self.t1_k64_95],
 		]
 
 		self.clear()
@@ -269,9 +267,8 @@ class CuckooHash:
 		k0_31   = self.ts[tid][0].read(index)
 		k32_63  = self.ts[tid][1].read(index)
 		k64_95  = self.ts[tid][2].read(index)
-		k96_127 = self.ts[tid][3].read(index)
 
-		value = (k96_127 << 96) | (k64_95 << 64) | (k32_63 << 32) | k0_31
+		value = (k64_95 << 64) | (k32_63 << 32) | k0_31
 		return value
 
 	def write(self, tid, index, value):
@@ -280,12 +277,10 @@ class CuckooHash:
 		k0_31   = value & ((1 << 32) - 1)
 		k32_63  = (value >> 32) & ((1 << 32) - 1)
 		k64_95  = (value >> 64) & ((1 << 32) - 1)
-		k96_127 = (value >> 96) & ((1 << 32) - 1)
 
 		self.ts[tid][0].write(index, k0_31)
 		self.ts[tid][1].write(index, k32_63)
 		self.ts[tid][2].write(index, k64_95)
-		self.ts[tid][3].write(index, k96_127)
 	
 	def delete(self, tid, index):
 		assert tid in [0, 1]
@@ -304,12 +299,10 @@ class CuckooHash:
 		self.t0_k0_31.clear()
 		self.t0_k32_63.clear()
 		self.t0_k64_95.clear()
-		self.t0_k96_127.clear()
 
 		self.t1_k0_31.clear()
 		self.t1_k32_63.clear()
 		self.t1_k64_95.clear()
-		self.t1_k96_127.clear()
 
 def custom_random(min_bits, max_bits, forbidden=[]):
 	assert min_bits >= 1
@@ -324,7 +317,7 @@ class App(scapy.packet.Packet):
 	name = "App"
 	fields_desc = [
 		scapy.fields.BitField("op", 0, 8),
-		scapy.fields.BitField("key", 0, 128),
+		scapy.fields.BitField("key", 0, KEY_SIZE_BITS),
 		scapy.fields.BitField("success", 0, 8),
 		scapy.fields.BitField("tid", 0, 8),
 		scapy.fields.BitField("hash_pad", 0, HASH_SIZE_BITS_BYTE_ALIGN),
