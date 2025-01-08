@@ -5,7 +5,7 @@ namespace tofino {
 namespace {
 table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "map_get", "Unexpected function");
+  assert(call.function_name == "map_get" && "Unexpected function");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -30,7 +30,7 @@ table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
 
 table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "vector_borrow", "Unexpected function");
+  assert(call.function_name == "vector_borrow" && "Unexpected function");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -54,9 +54,9 @@ table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
 
 table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "dchain_is_index_allocated" ||
-                     call.function_name == "dchain_rejuvenate_index",
-                 "Unexpected function");
+  assert((call.function_name == "dchain_is_index_allocated" ||
+          call.function_name == "dchain_rejuvenate_index") &&
+         "Unexpected function");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;

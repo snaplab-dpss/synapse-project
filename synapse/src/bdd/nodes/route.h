@@ -20,8 +20,7 @@ public:
   Route(node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager,
         RouteOp _operation)
       : Node(_id, NodeType::Route, _constraints, _symbol_manager), operation(_operation) {
-    SYNAPSE_ASSERT(operation == RouteOp::Drop || operation == RouteOp::Broadcast,
-                   "Invalid operation");
+    assert((operation == RouteOp::Drop || operation == RouteOp::Broadcast) && "Invalid operation");
   }
 
   Route(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints,

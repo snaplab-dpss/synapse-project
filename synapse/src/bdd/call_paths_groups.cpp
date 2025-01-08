@@ -5,7 +5,7 @@
 
 namespace synapse {
 void CallPathsGroup::group_call_paths() {
-  SYNAPSE_ASSERT(call_paths.data.size(), "No call paths to group");
+  assert(call_paths.data.size() && "No call paths to group");
 
   for (call_path_t *cp : call_paths.data) {
     on_true.data.clear();
@@ -62,7 +62,7 @@ void CallPathsGroup::group_call_paths() {
       return;
   }
 
-  SYNAPSE_ASSERT(false, "Could not group call paths");
+  panic("Could not group call paths");
 }
 
 bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
@@ -94,7 +94,7 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
 }
 
 klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
-  SYNAPSE_ASSERT(on_true.data.size(), "No call paths on true");
+  assert(on_true.data.size() && "No call paths on true");
 
   auto possible_discriminating_constraints = get_possible_discriminating_constraints();
 
@@ -108,7 +108,7 @@ klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
 
 std::vector<klee::ref<klee::Expr>> CallPathsGroup::get_possible_discriminating_constraints() const {
   std::vector<klee::ref<klee::Expr>> possible_discriminating_constraints;
-  SYNAPSE_ASSERT(on_true.data.size(), "No call paths on true");
+  assert(on_true.data.size() && "No call paths on true");
 
   for (auto constraint : on_true.data[0]->constraints) {
     if (satisfies_constraint(on_true.data, constraint))
@@ -149,8 +149,8 @@ bool CallPathsGroup::satisfies_not_constraint(call_path_t *call_path,
 }
 
 bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> constraint) {
-  SYNAPSE_ASSERT(on_true.data.size(), "No call paths on true");
-  SYNAPSE_ASSERT(on_false.data.size(), "No call paths on false");
+  assert(on_true.data.size() && "No call paths on true");
+  assert(on_false.data.size() && "No call paths on false");
 
   call_paths_view_t _on_true = on_true;
   call_paths_view_t _on_false;

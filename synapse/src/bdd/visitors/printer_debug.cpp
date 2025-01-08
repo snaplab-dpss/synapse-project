@@ -12,7 +12,7 @@ void PrinterDebug::debug(const Node *node) {
 
 void PrinterDebug::visit(const BDD *bdd) {
   const Node *root = bdd->get_root();
-  SYNAPSE_ASSERT(root, "No root node");
+  assert(root && "No root node");
 
   klee::ref<klee::Expr> device = bdd->get_device().expr;
   klee::ref<klee::Expr> packet_len = bdd->get_packet_len().expr;

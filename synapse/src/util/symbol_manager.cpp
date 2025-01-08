@@ -82,14 +82,14 @@ public:
 };
 
 std::string base_from_name(const std::string &name) {
-  SYNAPSE_ASSERT(name.size(), "Empty name");
+  assert(name.size() && "Empty name");
 
   if (!std::isdigit(name.back())) {
     return name;
   }
 
   size_t delim = name.rfind("_");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid name");
+  assert(delim != std::string::npos && "Invalid name");
 
   std::string base = name.substr(0, delim);
   return base;
@@ -111,7 +111,7 @@ const std::unordered_map<std::string, const klee::Array *> &SymbolManager::get_n
 
 const klee::Array *SymbolManager::get_array(const std::string &name) const {
   auto names_it = names.find(name);
-  SYNAPSE_ASSERT(names_it != names.end(), "Array \"%s\" not found", name.c_str());
+  assert(names_it != names.end() && "Array not found");
   return names_it->second;
 }
 
@@ -121,7 +121,7 @@ bool SymbolManager::has_symbol(const std::string &name) const {
 
 symbol_t SymbolManager::get_symbol(const std::string &name) const {
   auto symbols_it = symbols.find(name);
-  SYNAPSE_ASSERT(symbols_it != symbols.end(), "Symbol \"%s\" not found", name.c_str());
+  assert(symbols_it != symbols.end() && "Symbol not found");
   return symbols_it->second;
 }
 
@@ -144,14 +144,12 @@ symbols_t SymbolManager::get_symbols_with_base(const std::string &base) const {
 }
 
 symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
-  SYNAPSE_ASSERT(!name.empty(), "Empty name");
+  assert(!name.empty() && "Empty name");
   auto symbols_it = symbols.find(name);
 
   if (symbols_it != symbols.end()) {
     const symbol_t &symbol = symbols_it->second;
-    SYNAPSE_ASSERT(symbol.expr->getWidth() == size,
-                   "Size mismatch (expr=%s, size=%u, requested=%u)",
-                   expr_to_string(symbol.expr, true).c_str(), symbol.expr->getWidth(), size);
+    assert(symbol.expr->getWidth() == size && "Size mismatch");
     return symbol;
   }
 

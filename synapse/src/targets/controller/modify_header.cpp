@@ -35,8 +35,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const Node *
   }
 
   const Call *packet_borrow_chunk = packet_borrow_from_return(ep, packet_return_chunk);
-  SYNAPSE_ASSERT(packet_borrow_chunk,
-                 "Failed to find packet_borrow_next_chunk from packet_return_chunk");
+  assert(packet_borrow_chunk && "Failed to find packet_borrow_next_chunk from packet_return_chunk");
 
   klee::ref<klee::Expr> hdr = call.args.at("the_chunk").expr;
   addr_t hdr_addr = expr_addr_to_obj_addr(hdr);

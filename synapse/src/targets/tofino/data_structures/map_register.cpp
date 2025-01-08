@@ -8,7 +8,7 @@ namespace {
 bits_t index_size_from_total_entries(u32 capacity) {
   // Log base 2 of the capacity
   // Assert capacity is a power of 2
-  SYNAPSE_ASSERT((capacity & (capacity - 1)) == 0, "Capacity must be a power of 2");
+  assert((capacity & (capacity - 1)) == 0 && "Capacity must be a power of 2");
   return bits_t(log2(capacity));
 }
 
@@ -42,7 +42,7 @@ MapRegister::MapRegister(const TNAProperties &properties, DS_ID _id, u32 _num_en
     : DS(DSType::MAP_REGISTER, false, _id), num_entries(_num_entries),
       expirator(build_expirator(properties, _id, _num_entries)),
       keys(build_keys(properties, id, _keys_sizes, _num_entries)) {
-  SYNAPSE_ASSERT(num_entries > 0, "Number of entries must be greater than 0");
+  assert(num_entries > 0 && "Number of entries must be greater than 0");
 }
 
 MapRegister::MapRegister(const MapRegister &other)

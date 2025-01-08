@@ -133,7 +133,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
 typedef symbols_t (*SymbolsExtractor)(const call_t &call, const SymbolManager *manager);
 
 symbols_t packet_chunks_symbol_extractor(const call_t &call, const SymbolManager *manager) {
-  SYNAPSE_ASSERT(call.function_name == "packet_borrow_next_chunk", "Unexpected function");
+  assert(call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
 
   const extra_var_t &extra_var = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
@@ -187,7 +187,7 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
 Route *route_node_from_call(const call_t &call, node_id_t id,
                             const klee::ConstraintManager &constraints,
                             SymbolManager *symbol_manager) {
-  SYNAPSE_ASSERT(is_routing_function(call), "Unexpected function");
+  assert(is_routing_function(call) && "Unexpected function");
 
   if (call.function_name == "packet_free") {
     return new Route(id, constraints, symbol_manager, RouteOp::Drop);
@@ -197,20 +197,20 @@ Route *route_node_from_call(const call_t &call, node_id_t id,
     return new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
   }
 
-  SYNAPSE_ASSERT(call.function_name == "packet_send", "Unexpected function");
+  assert(call.function_name == "packet_send" && "Unexpected function");
 
   klee::ref<klee::Expr> dst_device = call.args.at("dst_device").expr;
-  SYNAPSE_ASSERT(!dst_device.isNull(), "Null dst_device");
+  assert(!dst_device.isNull() && "Null dst_device");
 
   int value = solver_toolbox.value_from_expr(dst_device);
   return new Route(id, constraints, symbol_manager, RouteOp::Forward, value);
 }
 
 call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
-  SYNAPSE_ASSERT(!call_paths.empty(), "No call paths");
+  assert(!call_paths.empty() && "No call paths");
 
   for (call_path_t *cp : call_paths) {
-    SYNAPSE_ASSERT(cp->calls.size(), "No calls");
+    assert(cp->calls.size() && "No calls");
     const call_t &call = cp->calls[0];
 
     if (call.ret.isNull())
@@ -225,12 +225,12 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
   }
 
   // No function with successful return.
-  SYNAPSE_ASSERT(!call_paths[0]->calls.empty(), "No calls in first call path");
+  assert(!call_paths[0]->calls.empty() && "No calls in first call path");
   return call_paths[0]->calls[0];
 }
 
 klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
-  SYNAPSE_ASSERT(!constraint.isNull(), "Null constraint");
+  assert(!constraint.isNull() && "Null constraint");
 
   klee::ref<klee::Expr> simplified = simplify(constraint);
 
@@ -245,7 +245,7 @@ klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
 }
 
 klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
-  SYNAPSE_ASSERT(!constraint.isNull(), "Null constraint");
+  assert(!constraint.isNull() && "Null constraint");
 
   klee::ref<klee::Expr> simplified = simplify(constraint);
 
@@ -265,7 +265,7 @@ get_generated_symbol(const SymbolManager *manager, const std::string &base,
   symbols_t symbols = manager->get_symbols_with_base(base);
 
   auto symbol_cmp = [base](const symbol_t &a, const symbol_t &b) {
-    SYNAPSE_ASSERT(a.base == b.base, "Different base symbols");
+    assert(a.base == b.base && "Different base symbols");
 
     size_t base_a_pos = a.name.find(base);
     size_t base_b_pos = b.name.find(base);
@@ -281,8 +281,8 @@ get_generated_symbol(const SymbolManager *manager, const std::string &base,
       return false;
     }
 
-    SYNAPSE_ASSERT(a_suffix[0] == '_', "Invalid suffix");
-    SYNAPSE_ASSERT(b_suffix[0] == '_', "Invalid suffix");
+    assert(a_suffix[0] == '_' && "Invalid suffix");
+    assert(b_suffix[0] == '_' && "Invalid suffix");
 
     int a_suffix_num = std::stoi(a_suffix.substr(1));
     int b_suffix_num = std::stoi(b_suffix.substr(1));
@@ -337,7 +337,7 @@ symbols_t get_call_symbols(const call_t &call, const SymbolManager *manager,
 
 void pop_call_paths(call_paths_view_t &call_paths_view) {
   for (call_path_t *cp : call_paths_view.data) {
-    SYNAPSE_ASSERT(cp->calls.size(), "No calls");
+    assert(cp->calls.size() && "No calls");
     cp->calls.erase(cp->calls.begin());
   }
 }
@@ -350,7 +350,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
   Node *root = nullptr;
   Node *leaf = nullptr;
 
-  SYNAPSE_ASSERT(!call_paths_view.data.empty(), "No call paths");
+  assert(!call_paths_view.data.empty() && "No call paths");
   if (call_paths_view.data[0]->calls.size() == 0) {
     return root;
   }
@@ -361,13 +361,13 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
     const call_paths_view_t &on_true = group.get_on_true();
     const call_paths_view_t &on_false = group.get_on_false();
 
-    SYNAPSE_ASSERT(!on_true.data.empty(), "No call paths");
+    assert(!on_true.data.empty() && "No call paths");
     if (on_true.data[0]->calls.size() == 0) {
       break;
     }
 
     if (on_true.data.size() == call_paths_view.data.size()) {
-      SYNAPSE_ASSERT(on_false.data.empty(), "Unexpected call paths");
+      assert(on_false.data.empty() && "Unexpected call paths");
 
       call_t call = get_successful_call(call_paths_view.data);
       symbols_t call_symbols = get_call_symbols(call, symbol_manager, base_symbols_generated);
@@ -455,7 +455,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
       Node *on_false_root = bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id,
                                                 on_false_constraints, base_symbols_generated);
 
-      SYNAPSE_ASSERT(on_true_root && on_false_root, "Invalid BDD");
+      assert((on_true_root && on_false_root) && "Invalid BDD");
 
       node->set_on_true(on_true_root);
       node->set_on_false(on_false_root);
@@ -570,24 +570,24 @@ BDD::BDD(const std::filesystem::path &fpath, SymbolManager *_symbol_manager)
 }
 
 void BDD::assert_integrity() const {
-  SYNAPSE_ASSERT(root, "No root node");
+  assert(root && "No root node");
   root->visit_nodes([](const Node *node) {
-    SYNAPSE_ASSERT(node, "Null node");
+    assert(node && "Null node");
     switch (node->get_type()) {
     case NodeType::Branch: {
       const Branch *branch = dynamic_cast<const Branch *>(node);
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
-      SYNAPSE_ASSERT(on_true, "No on true node");
-      SYNAPSE_ASSERT(on_false, "No on false node");
-      SYNAPSE_ASSERT(on_true->get_prev() == node, "Invalid on true node");
-      SYNAPSE_ASSERT(on_false->get_prev() == node, "Invalid on false node");
+      assert(on_true && "No on true node");
+      assert(on_false && "No on false node");
+      assert(on_true->get_prev() == node && "Invalid on true node");
+      assert(on_false->get_prev() == node && "Invalid on false node");
       break;
     } break;
     case NodeType::Call:
     case NodeType::Route: {
       if (node->get_next()) {
-        SYNAPSE_ASSERT(node->get_next()->get_prev() == node, "Invalid next node");
+        assert(node->get_next()->get_prev() == node && "Invalid next node");
       }
     } break;
     }
@@ -623,11 +623,11 @@ BDD &BDD::operator=(const BDD &other) {
 
 Node *BDD::delete_non_branch(node_id_t target_id) {
   Node *anchor_next = get_mutable_node_by_id(target_id);
-  SYNAPSE_ASSERT(anchor_next, "Node not found");
-  SYNAPSE_ASSERT(anchor_next->get_type() != NodeType::Branch, "Unexpected branch node");
+  assert(anchor_next && "Node not found");
+  assert(anchor_next->get_type() != NodeType::Branch && "Unexpected branch node");
 
   Node *anchor = anchor_next->get_mutable_prev();
-  SYNAPSE_ASSERT(anchor, "No previous node");
+  assert(anchor && "No previous node");
 
   Node *new_current = anchor_next->get_mutable_next();
 
@@ -642,7 +642,7 @@ Node *BDD::delete_non_branch(node_id_t target_id) {
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_current);
@@ -661,11 +661,11 @@ Node *BDD::delete_non_branch(node_id_t target_id) {
 
 Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
   Node *target = get_mutable_node_by_id(target_id);
-  SYNAPSE_ASSERT(target, "Node not found");
-  SYNAPSE_ASSERT(target->get_type() == NodeType::Branch, "Unexpected branch node");
+  assert(target && "Node not found");
+  assert(target->get_type() == NodeType::Branch && "Unexpected branch node");
 
   Node *anchor = target->get_mutable_prev();
-  SYNAPSE_ASSERT(anchor, "No previous node");
+  assert(anchor && "No previous node");
 
   Branch *anchor_next = dynamic_cast<Branch *>(target);
 
@@ -695,7 +695,7 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection");
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_current);
@@ -721,7 +721,7 @@ Node *BDD::clone_and_add_non_branches(const Node *current,
   }
 
   const Node *prev = current->get_prev();
-  SYNAPSE_ASSERT(prev, "No previous node");
+  assert(prev && "No previous node");
 
   node_id_t anchor_id = prev->get_id();
   Node *anchor = get_mutable_node_by_id(anchor_id);
@@ -730,7 +730,7 @@ Node *BDD::clone_and_add_non_branches(const Node *current,
   bool set_new_current = false;
 
   for (const Node *new_node : new_nodes) {
-    SYNAPSE_ASSERT(new_node->get_type() != NodeType::Branch, "Unexpected branch node");
+    assert(new_node->get_type() != NodeType::Branch && "Unexpected branch node");
 
     Node *clone = new_node->clone(manager, false);
     clone->recursive_update_ids(id);
@@ -751,7 +751,7 @@ Node *BDD::clone_and_add_non_branches(const Node *current,
       const Node *on_true = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
-      SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
+      assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
 
       if (on_true == anchor_next) {
         branch->set_on_true(clone);
@@ -773,7 +773,7 @@ Node *BDD::clone_and_add_non_branches(const Node *current,
 
 Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> condition) {
   const Node *prev = current->get_prev();
-  SYNAPSE_ASSERT(prev, "No previous node");
+  assert(prev && "No previous node");
 
   node_id_t anchor_id = prev->get_id();
   Node *anchor = get_mutable_node_by_id(anchor_id);
@@ -807,7 +807,7 @@ Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> con
     const Node *on_true = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    SYNAPSE_ASSERT(on_true == anchor_next || on_false == anchor_next, "No connection found");
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_branch);

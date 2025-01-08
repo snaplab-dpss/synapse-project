@@ -5,6 +5,7 @@
 #include <csignal>
 #include <iostream>
 #include <limits>
+#include <assert.h>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_BLACK "\033[30m"
@@ -18,7 +19,7 @@
 #define COLOR_WHITE ""
 #define COLOR_BOLD "\033[1m"
 
-#define SYNAPSE_PANIC(fmt, ...)                                                                    \
+#define panic(fmt, ...)                                                                            \
   {                                                                                                \
     fprintf(stderr, COLOR_RED_BRIGHT "\n");                                                        \
     fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                                            \
@@ -26,22 +27,6 @@
     fflush(stderr);                                                                                \
     dbg_breakpoint();                                                                              \
     exit(1);                                                                                       \
-  }
-
-#define SYNAPSE_ASSERT(stmt, ...)                                                                  \
-  {                                                                                                \
-    if (!(stmt)) {                                                                                 \
-      fprintf(stderr, COLOR_RED_BRIGHT "\n");                                                      \
-      fprintf(stderr, "ASSERTION FAILED: ");                                                       \
-      fprintf(stderr, ##__VA_ARGS__);                                                              \
-      fprintf(stderr, "\n");                                                                       \
-      fprintf(stderr, "Backtrace:\n");                                                             \
-      backtrace();                                                                                 \
-      fprintf(stderr, COLOR_RESET);                                                                \
-      fflush(stderr);                                                                              \
-      dbg_breakpoint();                                                                            \
-      exit(1);                                                                                     \
-    }                                                                                              \
   }
 
 namespace synapse {

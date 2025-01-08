@@ -323,34 +323,34 @@ private:
       return false;
     }
 
-    SYNAPSE_ASSERT(initial_state->type == ParserStateType::TERMINATE, "Invalid parser");
-    SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted,
-                   "Invalid parser");
+    assert(initial_state->type == ParserStateType::TERMINATE && "Invalid parser");
+    assert(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted &&
+           "Invalid parser");
 
     return true;
   }
 
   bool already_terminated(node_id_t leaf_id, node_id_t id, std::optional<bool> direction,
                           bool accepted) {
-    SYNAPSE_ASSERT(initial_state, "Invalid parser");
-    SYNAPSE_ASSERT(states.find(leaf_id) != states.end(), "Invalid parser");
+    assert(initial_state && "Invalid parser");
+    assert(states.find(leaf_id) != states.end() && "Invalid parser");
 
     ParserState *leaf = states[leaf_id];
 
     switch (leaf->type) {
     case ParserStateType::EXTRACT: {
-      SYNAPSE_ASSERT(!direction.has_value(), "Invalid parser");
+      assert(!direction.has_value() && "Invalid parser");
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
 
       if (!extractor->next || extractor->next->type != ParserStateType::TERMINATE) {
         return false;
       }
 
-      SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted,
-                     "Invalid parser");
+      assert(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted &&
+             "Invalid parser");
     } break;
     case ParserStateType::SELECT: {
-      SYNAPSE_ASSERT(direction.has_value(), "Invalid parser");
+      assert(direction.has_value() && "Invalid parser");
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(leaf);
 
       if ((*direction && !condition->on_true) || (!*direction && !condition->on_false)) {
@@ -364,8 +364,7 @@ private:
       }
     } break;
     case ParserStateType::TERMINATE: {
-      SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(leaf)->accept == accepted,
-                     "Invalid parser");
+      assert(dynamic_cast<ParserStateTerminate *>(leaf)->accept == accepted && "Invalid parser");
     } break;
     }
 
@@ -373,9 +372,9 @@ private:
   }
 
   void add_state(ParserState *new_state) {
-    SYNAPSE_ASSERT(!initial_state, "Invalid parser");
-    SYNAPSE_ASSERT(states.empty(), "Invalid parser");
-    SYNAPSE_ASSERT(!new_state->ids.empty(), "Invalid parser");
+    assert(!initial_state && "Invalid parser");
+    assert(states.empty() && "Invalid parser");
+    assert(!new_state->ids.empty() && "Invalid parser");
 
     initial_state = new_state;
     states[*new_state->ids.begin()] = new_state;
@@ -383,10 +382,10 @@ private:
 
   void set_next(ParserState *&next_state, ParserState *new_state) {
     if (next_state && next_state->equals(new_state)) {
-      SYNAPSE_ASSERT(new_state->ids.size() == 1, "Invalid parser");
+      assert(new_state->ids.size() == 1 && "Invalid parser");
 
       node_id_t new_id = *new_state->ids.begin();
-      SYNAPSE_ASSERT(next_state->ids.find(new_id) == next_state->ids.end(), "Invalid parser");
+      assert(next_state->ids.find(new_id) == next_state->ids.end() && "Invalid parser");
 
       next_state->ids.insert(new_id);
 
@@ -404,35 +403,35 @@ private:
       return;
     }
 
-    SYNAPSE_ASSERT(old_next_state->type == ParserStateType::TERMINATE, "Invalid parser");
-    SYNAPSE_ASSERT(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true,
-                   "Invalid parser");
+    assert(old_next_state->type == ParserStateType::TERMINATE && "Invalid parser");
+    assert(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true &&
+           "Invalid parser");
 
     switch (new_state->type) {
     case ParserStateType::EXTRACT: {
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(new_state);
-      SYNAPSE_ASSERT(!extractor->next, "Invalid parser");
+      assert(!extractor->next && "Invalid parser");
       extractor->next = old_next_state;
     } break;
     case ParserStateType::SELECT: {
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(new_state);
-      SYNAPSE_ASSERT(!condition->on_true, "Invalid parser");
-      SYNAPSE_ASSERT(!condition->on_false, "Invalid parser");
+      assert(!condition->on_true && "Invalid parser");
+      assert(!condition->on_false && "Invalid parser");
       condition->on_true = next_state;
       condition->on_false = next_state;
     } break;
     case ParserStateType::TERMINATE: {
-      SYNAPSE_ASSERT(false, "Cannot add state to terminating state");
+      panic("Cannot add state to terminating state");
     } break;
     }
   }
 
   void add_state(node_id_t leaf_id, ParserState *new_state, std::optional<bool> direction) {
-    SYNAPSE_ASSERT(initial_state, "Invalid parser");
-    SYNAPSE_ASSERT(states.find(leaf_id) != states.end(), "Invalid parser");
-    SYNAPSE_ASSERT(!new_state->ids.empty(), "Invalid parser");
+    assert(initial_state && "Invalid parser");
+    assert(states.find(leaf_id) != states.end() && "Invalid parser");
+    assert(!new_state->ids.empty() && "Invalid parser");
     for (node_id_t id : new_state->ids) {
-      SYNAPSE_ASSERT(states.find(id) == states.end(), "Invalid parser");
+      assert(states.find(id) == states.end() && "Invalid parser");
     }
 
     states[*new_state->ids.begin()] = new_state;
@@ -441,12 +440,12 @@ private:
 
     switch (leaf->type) {
     case ParserStateType::EXTRACT: {
-      SYNAPSE_ASSERT(!direction.has_value(), "Invalid parser");
+      assert(!direction.has_value() && "Invalid parser");
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
       set_next(extractor->next, new_state);
     } break;
     case ParserStateType::SELECT: {
-      SYNAPSE_ASSERT(direction.has_value(), "Invalid parser");
+      assert(direction.has_value() && "Invalid parser");
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(leaf);
       if (*direction) {
         set_next(condition->on_true, new_state);
@@ -455,7 +454,7 @@ private:
       }
     } break;
     case ParserStateType::TERMINATE: {
-      SYNAPSE_PANIC("Cannot add state to terminating state");
+      panic("Cannot add state to terminating state");
     } break;
     }
   }

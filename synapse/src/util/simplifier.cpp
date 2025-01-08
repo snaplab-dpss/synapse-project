@@ -37,8 +37,8 @@ bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> 
     }
   }
 
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
-  SYNAPSE_ASSERT(size <= expr->getWidth(), "Size too big");
+  assert(!expr.isNull() && "Null expr");
+  assert(size <= expr->getWidth() && "Size too big");
 
   if (offset == 0 && size == expr->getWidth()) {
     out = expr;
@@ -52,7 +52,7 @@ bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> 
 }
 
 bool is_cmp_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &not_const_kid) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
 
   if (expr->getNumKids() != 2) {
     return false;
@@ -94,7 +94,7 @@ bool is_cmp_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &not_const_kid) 
 //   (ZExt w8
 //      (Eq (w32 0) (ReadLSB w32 (w32 0) out_of_space__64))))
 bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_expr) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
 
   if (expr->getKind() != klee::Expr::Extract) {
     return false;
@@ -112,7 +112,7 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_e
     kid = kid->getKid(0);
   }
 
-  SYNAPSE_ASSERT(kid->getKind() != klee::Expr::ZExt, "Invalid expr");
+  assert(kid->getKind() != klee::Expr::ZExt && "Invalid expr");
 
   auto cond_ops = std::vector<klee::Expr::Kind>{
       klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
@@ -147,7 +147,7 @@ bool can_be_negated(klee::ref<klee::Expr> expr) {
   };
 
   if (transparent.find(expr->getKind()) != transparent.end()) {
-    SYNAPSE_ASSERT(expr->getNumKids() == 1, "Invalid expr");
+    assert(expr->getNumKids() == 1 && "Invalid expr");
     auto kid = expr->getKid(0);
     return can_be_negated(kid);
   }
@@ -162,7 +162,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return other;
   }
 
-  auto negate_map = std::unordered_map<klee::Expr::Kind, klee::Expr::Kind>{
+  const std::unordered_map<klee::Expr::Kind, klee::Expr::Kind> negate_map{
       {klee::Expr::Or, klee::Expr::And},    {klee::Expr::And, klee::Expr::Or},
       {klee::Expr::Eq, klee::Expr::Ne},     {klee::Expr::Ne, klee::Expr::Eq},
       {klee::Expr::Ult, klee::Expr::Uge},   {klee::Expr::Uge, klee::Expr::Ult},
@@ -174,7 +174,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
 
   auto kind = expr->getKind();
   auto found_it = negate_map.find(kind);
-  SYNAPSE_ASSERT(found_it != negate_map.end(), "Invalid kind");
+  assert(found_it != negate_map.end() && "Invalid kind");
 
   switch (found_it->second) {
   case klee::Expr::Or: {
@@ -274,7 +274,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return solver_toolbox.exprBuilder->Not(expr);
   } break;
   default:
-    SYNAPSE_PANIC("TODO");
+    panic("TODO");
   }
 
   return expr;
@@ -327,17 +327,17 @@ bool simplify_not_eq(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
     return false;
   }
 
-  SYNAPSE_ASSERT(expr->getNumKids() == 1, "Invalid expr");
+  assert(expr->getNumKids() == 1 && "Invalid expr");
   expr = expr->getKid(0);
 
   if (expr->getKind() != klee::Expr::Eq) {
     return false;
   }
 
-  SYNAPSE_ASSERT(expr->getNumKids() == 2, "Invalid expr");
+  assert(expr->getNumKids() == 2 && "Invalid expr");
 
-  auto lhs = expr->getKid(0);
-  auto rhs = expr->getKid(1);
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
 
   out = solver_toolbox.exprBuilder->Ne(lhs, rhs);
   return true;
@@ -356,7 +356,7 @@ bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
     return false;
   }
 
-  SYNAPSE_ASSERT(expr->getNumKids() == 2, "Invalid expr");
+  assert(expr->getNumKids() == 2 && "Invalid expr");
 
   auto lhs = expr->getKid(0);
   auto rhs = expr->getKid(1);
@@ -426,7 +426,7 @@ bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> e
       simplified_kid = solver_toolbox.exprBuilder->ZExt(simplified_kid, max_kid_width);
     }
 
-    SYNAPSE_ASSERT(simplified_kid->getWidth() == max_kid_width, "Invalid width");
+    assert(simplified_kid->getWidth() == max_kid_width && "Invalid width");
     new_kids[i] = simplified_kid;
   }
 
@@ -435,7 +435,7 @@ bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> e
 }
 
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
 
   if (expr->getKind() == klee::Expr::Constant) {
     return expr;
@@ -452,7 +452,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
     auto simplified = expr;
 
     apply_simplifiers(simplifiers, expr, simplified);
-    SYNAPSE_ASSERT(!simplified.isNull(), "Null expr");
+    assert(!simplified.isNull() && "Null expr");
 
     for (auto prev : prev_exprs) {
       if (!simplified->compare(*prev.get())) {

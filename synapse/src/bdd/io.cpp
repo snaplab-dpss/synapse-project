@@ -21,7 +21,7 @@ constexpr const char *const EDGES_DELIMITER = ";; -- Edges --";
 constexpr const char *const ROOT_DELIMITER = ";; -- Root --";
 
 std::string serialize_expr(klee::ref<klee::Expr> expr, kQuery_t &kQuery) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
   auto expr_str = expr_to_string(expr);
   kQuery.values.push_back(expr);
   return expr_str;
@@ -243,7 +243,7 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
   arg_t arg;
 
   size_t delim = serialized_arg.find(":");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid arg");
+  assert(delim != std::string::npos && "Invalid arg");
 
   arg_name = serialized_arg.substr(0, delim);
   serialized_arg = serialized_arg.substr(delim + 1);
@@ -270,14 +270,14 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
       serialized_arg = serialized_arg.substr(delim + 1);
 
       delim = serialized_arg.find("->");
-      SYNAPSE_ASSERT(delim != std::string::npos, "Invalid arg");
+      assert(delim != std::string::npos && "Invalid arg");
 
       in_str = serialized_arg.substr(0, delim);
 
       serialized_arg = serialized_arg.substr(delim + 2);
 
       delim = serialized_arg.find("]");
-      SYNAPSE_ASSERT(delim != std::string::npos, "Invalid arg");
+      assert(delim != std::string::npos && "Invalid arg");
 
       out_str = serialized_arg.substr(0, delim);
       meta_str = serialized_arg.substr(delim + 1);
@@ -285,8 +285,8 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
       auto meta_start = meta_str.find("[");
       auto meta_end = meta_str.find("]");
 
-      SYNAPSE_ASSERT(meta_start != std::string::npos, "Invalid arg");
-      SYNAPSE_ASSERT(meta_end != std::string::npos, "Invalid arg");
+      assert(meta_start != std::string::npos && "Invalid arg");
+      assert(meta_end != std::string::npos && "Invalid arg");
 
       meta_str = meta_str.substr(meta_start + 1, meta_end - 1);
       arg.meta = parse_meta(meta_str);
@@ -319,7 +319,7 @@ std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra
   klee::ref<klee::Expr> out;
 
   size_t delim = serialized_extra_var.find(":");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid extra var");
+  assert(delim != std::string::npos && "Invalid extra var");
 
   extra_var_name = serialized_extra_var.substr(0, delim);
   serialized_extra_var = serialized_extra_var.substr(delim + 1);
@@ -328,18 +328,18 @@ std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra
   std::string out_str;
 
   delim = serialized_extra_var.find("[");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid extra var");
+  assert(delim != std::string::npos && "Invalid extra var");
 
   serialized_extra_var = serialized_extra_var.substr(delim + 1);
 
   delim = serialized_extra_var.find("->");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid extra var");
+  assert(delim != std::string::npos && "Invalid extra var");
 
   in_str = serialized_extra_var.substr(0, delim);
   out_str = serialized_extra_var.substr(delim + 2);
 
   delim = out_str.find("]");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid extra var");
+  assert(delim != std::string::npos && "Invalid extra var");
 
   out_str = out_str.substr(0, delim);
 
@@ -364,7 +364,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   serialized_call.erase(new_end, serialized_call.end());
 
   size_t delim = serialized_call.find("(");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+  assert(delim != std::string::npos && "Invalid call");
 
   call.function_name = serialized_call.substr(0, delim);
   serialized_call = serialized_call.substr(delim + 1);
@@ -410,7 +410,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
     serialized_call = serialized_call.substr(2);
 
     delim = serialized_call.find("}*");
-    SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+    assert(delim != std::string::npos && "Invalid call");
 
     std::string extra_vars_str = serialized_call.substr(0, delim);
     serialized_call = serialized_call.substr(delim + 2);
@@ -437,7 +437,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   }
 
   delim = serialized_call.find("->");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+  assert(delim != std::string::npos && "Invalid call");
 
   serialized_call = serialized_call.substr(delim + 2);
 
@@ -451,13 +451,13 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
 symbol_t parse_call_symbol(std::string serialized_symbol,
                            std::vector<klee::ref<klee::Expr>> &exprs) {
   size_t delim = serialized_symbol.find(":");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid symbol");
+  assert(delim != std::string::npos && "Invalid symbol");
 
   std::string base = serialized_symbol.substr(0, delim);
   serialized_symbol = serialized_symbol.substr(delim + 1);
 
   delim = serialized_symbol.find(":");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid symbol");
+  assert(delim != std::string::npos && "Invalid symbol");
 
   std::string name = serialized_symbol.substr(0, delim);
   serialized_symbol = serialized_symbol.substr(delim + 1);
@@ -472,7 +472,7 @@ symbols_t parse_call_symbols(std::string serialized_symbols,
                              std::vector<klee::ref<klee::Expr>> &exprs) {
   symbols_t symbols;
 
-  SYNAPSE_ASSERT(serialized_symbols[0] == '<', "Invalid symbols");
+  assert(serialized_symbols[0] == '<' && "Invalid symbols");
 
   if (serialized_symbols == "<>") {
     return symbols;
@@ -501,7 +501,7 @@ Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
                       SymbolManager *symbol_manager, std::string serialized,
                       std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find("=>");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+  assert(delim != std::string::npos && "Invalid call");
 
   std::string call_str = serialized.substr(0, delim);
   std::string symbols_str = serialized.substr(delim + 2);
@@ -527,7 +527,7 @@ Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
                        SymbolManager *symbol_manager, std::string serialized,
                        std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find(" ");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid route");
+  assert(delim != std::string::npos && "Invalid route");
 
   auto route_operation_str = serialized.substr(0, delim);
   auto dst_device_str = serialized.substr(delim + 1);
@@ -542,7 +542,7 @@ Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
   } else if (route_operation_str == "BCAST") {
     route_node = new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
   } else {
-    SYNAPSE_ASSERT(false, "Unknown route operation");
+    panic("Unknown route operation");
   }
 
   manager.add_node(route_node);
@@ -555,21 +555,21 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
   Node *node;
 
   size_t delim = serialized_node.find(":");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid node");
+  assert(delim != std::string::npos && "Invalid node");
 
   node_id_t id = std::stoull(serialized_node.substr(0, delim));
   serialized_node = serialized_node.substr(delim + 1);
 
-  SYNAPSE_ASSERT(serialized_node[0] == '(', "Invalid node");
+  assert(serialized_node[0] == '(' && "Invalid node");
   serialized_node = serialized_node.substr(1);
 
   delim = serialized_node.find(" ");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid node");
+  assert(delim != std::string::npos && "Invalid node");
 
   std::string serialized_constraints_num = serialized_node.substr(0, delim);
   serialized_node = serialized_node.substr(delim + 1);
   int constraints_num = std::atoi(serialized_constraints_num.c_str());
-  SYNAPSE_ASSERT(constraints_num >= 0, "Invalid node");
+  assert(constraints_num >= 0 && "Invalid node");
 
   klee::ConstraintManager constraints;
   for (int i = 0; i < constraints_num; i++) {
@@ -578,7 +578,7 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
   }
 
   delim = serialized_node.find(" ");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid node");
+  assert(delim != std::string::npos && "Invalid node");
 
   std::string node_type_str = serialized_node.substr(0, delim);
 
@@ -592,10 +592,10 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
   } else if (node_type_str == "ROUTE") {
     node = parse_node_route(id, constraints, symbol_manager, serialized_node, exprs, manager);
   } else {
-    SYNAPSE_PANIC("Unknown node type");
+    panic("Unknown node type");
   }
 
-  SYNAPSE_ASSERT(node, "Invalid node");
+  assert(node && "Invalid node");
 
   return node;
 }
@@ -604,8 +604,8 @@ Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>>
 void BDD::serialize(const std::filesystem::path &fpath) const {
   std::ofstream out(fpath.string());
 
-  SYNAPSE_ASSERT(out, "Could not open file");
-  SYNAPSE_ASSERT(out.is_open(), "File is not open");
+  assert(out && "Could not open file");
+  assert(out.is_open() && "File is not open");
 
   kQuery_t kQuery;
 
@@ -669,7 +669,7 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
       const Node *on_true = branch_node->get_on_true();
       const Node *on_false = branch_node->get_on_false();
 
-      SYNAPSE_ASSERT(!condition.isNull(), "Null condition");
+      assert(!condition.isNull() && "Null condition");
 
       nodes_stream << "BRANCH";
       nodes_stream << " ";
@@ -754,22 +754,22 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
 
 void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &nodes) {
   size_t delim = serialized_edge.find("(");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid edge");
+  assert(delim != std::string::npos && "Invalid edge");
 
   serialized_edge = serialized_edge.substr(delim + 1);
 
   delim = serialized_edge.find(")");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid edge");
+  assert(delim != std::string::npos && "Invalid edge");
 
   serialized_edge = serialized_edge.substr(0, delim);
 
   delim = serialized_edge.find("->");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid edge");
+  assert(delim != std::string::npos && "Invalid edge");
 
   std::string prev_id_str = serialized_edge.substr(0, delim);
   node_id_t prev_id = std::stoi(prev_id_str);
 
-  SYNAPSE_ASSERT(nodes.find(prev_id) != nodes.end(), "Invalid edge");
+  assert(nodes.find(prev_id) != nodes.end() && "Invalid edge");
   Node *prev = nodes[prev_id];
 
   serialized_edge = serialized_edge.substr(delim + 2);
@@ -777,7 +777,7 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
   delim = serialized_edge.find("->");
 
   if (delim != std::string::npos) {
-    SYNAPSE_ASSERT(prev->get_type() == NodeType::Branch, "Invalid edge");
+    assert(prev->get_type() == NodeType::Branch && "Invalid edge");
 
     std::string on_true_id_str = serialized_edge.substr(0, delim);
     std::string on_false_id_str = serialized_edge.substr(delim + 2);
@@ -786,7 +786,7 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
 
     if (on_true_id_str.size()) {
       node_id_t on_true_id = std::stoi(on_true_id_str);
-      SYNAPSE_ASSERT(nodes.find(on_true_id) != nodes.end(), "Invalid edge");
+      assert(nodes.find(on_true_id) != nodes.end() && "Invalid edge");
       Node *on_true = nodes[on_true_id];
       branch_node->set_on_true(on_true);
       on_true->set_prev(prev);
@@ -794,7 +794,7 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
 
     if (on_false_id_str.size()) {
       node_id_t on_false_id = std::stoi(on_false_id_str);
-      SYNAPSE_ASSERT(nodes.find(on_false_id) != nodes.end(), "Invalid edge");
+      assert(nodes.find(on_false_id) != nodes.end() && "Invalid edge");
       Node *on_false = nodes[on_false_id];
       branch_node->set_on_false(on_false);
       on_false->set_prev(prev);
@@ -803,7 +803,7 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
     std::string next_id_str = serialized_edge;
     node_id_t next_id = std::stoi(next_id_str);
 
-    SYNAPSE_ASSERT(nodes.find(next_id) != nodes.end(), "Invalid edge");
+    assert(nodes.find(next_id) != nodes.end() && "Invalid edge");
     Node *next = nodes[next_id];
 
     prev->set_next(next);
@@ -813,7 +813,10 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
 
 void BDD::deserialize(const std::filesystem::path &fpath) {
   std::ifstream bdd_file(fpath.string());
-  SYNAPSE_ASSERT(bdd_file.is_open(), "Unable to open BDD file \"%s\"", fpath.c_str());
+
+  if (!bdd_file) {
+    panic("Unable to open BDD file \"%s\"", fpath.c_str());
+  }
 
   enum class state_t {
     STATE_START,
@@ -860,8 +863,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
     switch (state) {
     case state_t::STATE_START: {
       magic_check |= line == MAGIC_SIGNATURE;
-      SYNAPSE_ASSERT(magic_check, "\"%s\" is not a BDD file (missing magic signature)",
-                     fpath.c_str());
+      assert(magic_check && "Not a BDD file (missing magic signature)");
     } break;
 
     case state_t::STATE_KQUERY: {
@@ -870,7 +872,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       if (get_next_state(state, line) != state) {
         kQueryParser parser(symbol_manager);
         kQuery_t kQuery = parser.parse(kQueryStr);
-        SYNAPSE_ASSERT(kQuery.constraints.size() == 0, "Invalid kQuery");
+        assert(kQuery.constraints.empty() && "Invalid kQuery");
         exprs = kQuery.values;
       }
     } break;
@@ -918,8 +920,8 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       if (parenthesis_level == 0) {
         Node *node = parse_node(current_node, exprs, manager, symbol_manager);
 
-        SYNAPSE_ASSERT(node, "Invalid node");
-        SYNAPSE_ASSERT(nodes.find(node->get_id()) == nodes.end(), "Duplicate node");
+        assert(node && "Invalid node");
+        assert(nodes.find(node->get_id()) == nodes.end() && "Duplicate node");
 
         id = std::max(id, node->get_id()) + 1;
 
@@ -939,7 +941,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
         break;
 
       node_id_t root_id = std::stoll(line);
-      SYNAPSE_ASSERT(nodes.find(root_id) != nodes.end(), "Invalid root node");
+      assert(nodes.find(root_id) != nodes.end() && "Invalid root node");
 
       root = nodes[root_id];
     } break;

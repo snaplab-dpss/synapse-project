@@ -8,8 +8,8 @@ Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries,
                    bits_t _value, const std::unordered_set<RegisterAction> &_actions)
     : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index), value(_value),
       actions(_actions) {
-  SYNAPSE_ASSERT(_num_entries > 0, "Register entries must be greater than 0");
-  SYNAPSE_ASSERT(value <= properties.max_salu_size, "Register value exceeds SALU size");
+  assert(_num_entries > 0 && "Register entries must be greater than 0");
+  assert(value <= properties.max_salu_size && "Register value exceeds SALU size");
 }
 
 Register::Register(const Register &other)

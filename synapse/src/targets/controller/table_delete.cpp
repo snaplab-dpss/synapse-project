@@ -6,7 +6,7 @@ namespace {
 void table_delete_data_from_map_op(const Call *call_node, addr_t &obj,
                                    std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "map_erase", "Not a map_erase call");
+  assert(call.function_name == "map_erase" && "Not a map_erase call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -18,7 +18,7 @@ void table_delete_data_from_map_op(const Call *call_node, addr_t &obj,
 void table_delete_data_from_dchain_op(const Call *call_node, addr_t &obj,
                                       std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "dchain_free_index", "Not a dchain call");
+  assert(call.function_name == "dchain_free_index" && "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;

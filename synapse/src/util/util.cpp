@@ -161,7 +161,7 @@ std::vector<const Call *> get_unfiltered_coalescing_nodes(const Node *node,
   std::vector<const Call *> unfiltered_nodes = node->get_future_functions(target_functions);
 
   auto filter_map_objs = [&data](const Node *node) {
-    SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+    assert(node->get_type() == NodeType::Call && "Unexpected node type");
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
@@ -270,16 +270,16 @@ addr_t get_vector_map_key(const BDD *bdd, const map_coalescing_objs_t &map_coale
     addr_t ret_vector_obj = expr_addr_to_obj_addr(vector_expr);
     addr_t ret_value_addr = expr_addr_to_obj_addr(value_addr_expr);
 
-    SYNAPSE_ASSERT(ret_vector_obj == vector_obj, "Vector objects don't match");
+    assert(ret_vector_obj == vector_obj && "Vector objects don't match");
 
     // vector_borrow operation deemed this vector as a key vector, but the
     // vector_return contradicts this information.
-    SYNAPSE_ASSERT(ret_value_addr == value_addr, "Value addresses don't match");
+    assert(ret_value_addr == value_addr && "Value addresses don't match");
 
     return vector_obj;
   }
 
-  SYNAPSE_PANIC("Vector key not found");
+  panic("Vector key not found");
 }
 
 void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
@@ -357,8 +357,8 @@ std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
   const call_t &vb_call = vector_borrow->get_call();
   const call_t &vr_call = vector_return->get_call();
 
-  SYNAPSE_ASSERT(vb_call.function_name == "vector_borrow", "Unexpected function");
-  SYNAPSE_ASSERT(vr_call.function_name == "vector_return", "Unexpected function");
+  assert(vb_call.function_name == "vector_borrow" && "Unexpected function");
+  assert(vr_call.function_name == "vector_return" && "Unexpected function");
 
   klee::ref<klee::Expr> original_value = vb_call.extra_vars.at("borrowed_cell").second;
   klee::ref<klee::Expr> value = vr_call.args.at("value").in;
@@ -380,14 +380,14 @@ std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
   }
 
   const call_t &ret_call = packet_return_chunk->get_call();
-  SYNAPSE_ASSERT(ret_call.function_name == "packet_return_chunk", "Unexpected function");
+  assert(ret_call.function_name == "packet_return_chunk" && "Unexpected function");
 
   const call_t &bor_call = packet_borrow_next_chunk->get_call();
-  SYNAPSE_ASSERT(bor_call.function_name == "packet_borrow_next_chunk", "Unexpected function");
+  assert(bor_call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
 
   klee::ref<klee::Expr> borrowed = bor_call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned = ret_call.args.at("the_chunk").in;
-  SYNAPSE_ASSERT(borrowed->getWidth() == returned->getWidth(), "Different widths");
+  assert(borrowed->getWidth() == returned->getWidth() && "Different widths");
 
   std::vector<mod_t> changes = build_expr_mods(borrowed, returned);
 
@@ -421,7 +421,7 @@ std::vector<mod_t> ignore_checksum_modifications(const std::vector<mod_t> &modif
 
 const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk) {
   const call_t &call = packet_return_chunk->get_call();
-  SYNAPSE_ASSERT(call.function_name == "packet_return_chunk", "Unexpected function");
+  assert(call.function_name == "packet_return_chunk" && "Unexpected function");
 
   klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
 
@@ -430,8 +430,8 @@ const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_ch
   std::vector<const Call *> prev_returns = packet_return_chunk->get_prev_functions(
       {"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
-  SYNAPSE_ASSERT(prev_borrows.size(), "No previous borrows");
-  SYNAPSE_ASSERT(prev_borrows.size() > prev_returns.size(), "No previous borrow");
+  assert(prev_borrows.size() && "No previous borrows");
+  assert(prev_borrows.size() > prev_returns.size() && "No previous borrow");
 
   return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
 }
@@ -452,8 +452,8 @@ bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj, map_coalescing
     return false;
   }
 
-  SYNAPSE_ASSERT(candidates.maps.size() == 1, "Expecting a single map");
-  SYNAPSE_ASSERT(candidates.dchains.size() == 1, "Expecting a single dchain");
+  assert(candidates.maps.size() == 1 && "Expecting a single map");
+  assert(candidates.dchains.size() == 1 && "Expecting a single dchain");
 
   data.map = candidates.maps.begin()->obj;
   data.dchain = candidates.dchains.begin()->obj;
@@ -469,11 +469,11 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   const Context &ctx = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
 
-  SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+  assert(node->get_type() == NodeType::Call && "Unexpected node type");
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   const call_t &mg_call = map_get->get_call();
-  SYNAPSE_ASSERT(mg_call.function_name == "map_get", "Unexpected function");
+  assert(mg_call.function_name == "map_get" && "Unexpected function");
 
   klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
   klee::ref<klee::Expr> key = mg_call.args.at("key").in;
@@ -481,7 +481,7 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
 
   branch_direction_t success_check = map_get->get_map_get_success_check();
-  SYNAPSE_ASSERT(success_check.branch, "Map get success check not found");
+  assert(success_check.branch && "Map get success check not found");
 
   const Node *read = success_check.direction ? success_check.branch->get_on_true()
                                              : success_check.branch->get_on_false();
@@ -489,12 +489,12 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
                                                       : success_check.branch->get_on_true();
 
   std::vector<const Call *> future_map_puts = write_attempt->get_future_functions({"map_put"});
-  SYNAPSE_ASSERT(future_map_puts.size() >= 1, "map_put not found");
+  assert(future_map_puts.size() >= 1 && "map_put not found");
 
   const Node *write = nullptr;
   for (const Call *map_put : future_map_puts) {
     const call_t &mp_call = map_put->get_call();
-    SYNAPSE_ASSERT(mp_call.function_name == "map_put", "Unexpected function");
+    assert(mp_call.function_name == "map_put" && "Unexpected function");
 
     klee::ref<klee::Expr> o = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> k = mp_call.args.at("key").in;
@@ -506,7 +506,7 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
     }
   }
 
-  SYNAPSE_ASSERT(write, "map_put not found");
+  assert(write && "map_put not found");
 
   rw_fractions_t fractions;
   fractions.read = profiler.get_hr(read);
@@ -871,7 +871,7 @@ bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_ind
 
   for (const Call *map_put : future_map_puts) {
     const call_t &mp_call = map_put->get_call();
-    SYNAPSE_ASSERT(mp_call.function_name == "map_put", "Unexpected function");
+    assert(mp_call.function_name == "map_put" && "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> mp_key = mp_call.args.at("key").in;
@@ -984,7 +984,7 @@ bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get,
 
   for (const Call *map_erase : future_map_erases) {
     const call_t &me_call = map_erase->get_call();
-    SYNAPSE_ASSERT(me_call.function_name == "map_erase", "Unexpected function");
+    assert(me_call.function_name == "map_erase" && "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = me_call.args.at("map").expr;
     klee::ref<klee::Expr> me_key = me_call.args.at("key").in;
@@ -1027,7 +1027,7 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node,
   klee::ref<klee::Expr> index;
 
   auto filter_map_nodes_and_retrieve_index = [&target_key, &index](const Node *node) {
-    SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+    assert(node->get_type() == NodeType::Call && "Unexpected node type");
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
@@ -1055,7 +1055,7 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node,
                        filtered_nodes.end());
 
   auto filter_vectors_nodes = [&index](const Node *node) {
-    SYNAPSE_ASSERT(node->get_type() == NodeType::Call, "Unexpected node type");
+    assert(node->get_type() == NodeType::Call && "Unexpected node type");
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
@@ -1064,7 +1064,7 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node,
       return false;
     }
 
-    SYNAPSE_ASSERT(!index.isNull(), "Index is null");
+    assert(!index.isNull() && "Index is null");
 
     klee::ref<klee::Expr> value = call.args.at("index").expr;
     return !solver_toolbox.are_exprs_always_equal(index, value);
@@ -1122,7 +1122,7 @@ bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
                                             map_coalescing_objs_t &map_objs) {
   const call_t &call = dchain_op->get_call();
 
-  SYNAPSE_ASSERT(call.args.find("chain") != call.args.end(), "No chain argument");
+  assert(call.args.find("chain") != call.args.end() && "No chain argument");
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
 
   addr_t obj = expr_addr_to_obj_addr(obj_expr);
@@ -1142,7 +1142,7 @@ bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
                                          map_coalescing_objs_t &map_objs) {
   const call_t &call = map_op->get_call();
 
-  SYNAPSE_ASSERT(call.args.find("map") != call.args.end(), "No map argument");
+  assert(call.args.find("map") != call.args.end() && "No map argument");
   klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
 
   addr_t obj = expr_addr_to_obj_addr(obj_expr);

@@ -18,7 +18,7 @@ struct hh_table_data_t {
 
   hh_table_data_t(const Call *map_put) {
     const call_t &call = map_put->get_call();
-    SYNAPSE_ASSERT(call.function_name == "map_put", "Not a map_put call");
+    assert(call.function_name == "map_put" && "Not a map_put call");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -39,17 +39,17 @@ symbol_t get_min_estimate(const EP *ep) {
     node = node->get_prev();
   }
 
-  SYNAPSE_PANIC("TODO: HHTableRead not found, so we should "
-                "query the CMS for the min estimate");
+  panic("TODO: HHTableRead not found, so we should "
+        "query the CMS for the min estimate");
 }
 
 klee::ref<klee::Expr> build_min_estimate_check_cond(const EP *ep, const symbol_t &min_estimate,
                                                     addr_t map) {
   const std::unordered_set<DS *> &data_structures =
       ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds(map);
-  SYNAPSE_ASSERT(data_structures.size() == 1, "Multiple data structures found");
+  assert(data_structures.size() == 1 && "Multiple data structures found");
   const DS *ds = *data_structures.begin();
-  SYNAPSE_ASSERT(ds->type == DSType::HH_TABLE, "Not a heavy hitter table");
+  assert(ds->type == DSType::HH_TABLE && "Not a heavy hitter table");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);
 
   u32 topk = hh_table->num_entries;
@@ -124,12 +124,12 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
       on_hh = bdd->delete_non_branch(on_hh->get_id());
       targets.erase(found_it);
     } else {
-      SYNAPSE_ASSERT(on_hh->get_type() != NodeType::Branch, "Unexpected branch");
+      assert(on_hh->get_type() != NodeType::Branch && "Unexpected branch");
       on_hh = on_hh->get_mutable_next();
     }
   }
 
-  SYNAPSE_ASSERT(targets.empty(), "Not all coalescing nodes removed");
+  assert(targets.empty() && "Not all coalescing nodes removed");
 
   return bdd;
 }
@@ -161,7 +161,7 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   }
 
   const Call *map_put = get_future_map_put(node, map_objs.map);
-  SYNAPSE_ASSERT(map_put, "map_put not found");
+  assert(map_put && "map_put not found");
 
   hh_table_data_t table_data(map_put);
 
@@ -185,7 +185,7 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   // Get all nodes executed on a successful index allocation.
   branch_direction_t index_alloc_check =
       dchain_allocate_new_index->find_branch_checking_index_alloc();
-  SYNAPSE_ASSERT(index_alloc_check.direction, "Branch checking index allocation not found");
+  assert(index_alloc_check.direction && "Branch checking index allocation not found");
 
   const Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true()
                                                   : index_alloc_check.branch->get_on_false();
@@ -245,7 +245,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
   symbol_t min_estimate = get_min_estimate(ep);
 
   const Call *map_put = get_future_map_put(node, map_objs.map);
-  SYNAPSE_ASSERT(map_put, "map_put not found");
+  assert(map_put && "map_put not found");
 
   hh_table_data_t table_data(map_put);
 

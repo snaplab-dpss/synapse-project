@@ -15,8 +15,7 @@ struct fcfs_cached_table_data_t {
 
   fcfs_cached_table_data_t(const EP *ep, const Call *map_erase) {
     const call_t &call = map_erase->get_call();
-    SYNAPSE_ASSERT(call.function_name == "map_erase", "Expected map_erase but got \"%s\"",
-                   call.function_name.c_str());
+    assert(call.function_name == "map_erase" && "Expected map_erase");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -90,7 +89,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_erase->get_next();
-  SYNAPSE_ASSERT(next, "Next node is null");
+  assert(next && "Next node is null");
 
   Branch *cache_delete_branch = new_bdd->clone_and_add_branch(next, cache_delete_success_condition);
 

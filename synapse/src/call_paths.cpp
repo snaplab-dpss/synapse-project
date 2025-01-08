@@ -25,7 +25,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
   kQueryParser parser(manager);
 
   std::ifstream call_path_file(fpath.string());
-  SYNAPSE_ASSERT(call_path_file.is_open(), "Unable to open call path file.");
+  assert(call_path_file.is_open() && "Unable to open call path file.");
 
   std::unique_ptr<call_path_t> call_path = std::make_unique<call_path_t>();
   call_path->file_name = fpath.filename();
@@ -95,11 +95,11 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 
     case state_t::STATE_CALLS: {
       if (line == ";;-- Constraints --") {
-        SYNAPSE_ASSERT(values.empty(), "Too many expressions in kQuery.");
+        assert(values.empty() && "Too many expressions in kQuery.");
         state = state_t::STATE_DONE;
       } else {
         size_t delim = line.find(":");
-        SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+        assert(delim != std::string::npos && "Invalid call");
         std::string preamble = line.substr(0, delim);
         line = line.substr(delim + 1);
 
@@ -112,18 +112,18 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
           }
 
           delim = line.find("&");
-          SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+          assert(delim != std::string::npos && "Invalid call");
           current_extra_var = line.substr(0, delim);
           line = line.substr(delim + 1);
 
           delim = line.find("[");
-          SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+          assert(delim != std::string::npos && "Invalid call");
           line = line.substr(delim + 1);
         } else {
           call_path->calls.emplace_back();
 
           delim = line.find("(");
-          SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+          assert(delim != std::string::npos && "Invalid call");
           call_path->calls.back().function_name = line.substr(0, delim);
         }
 
@@ -136,7 +136,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
             parenthesis_level++;
           } else if (c == ')') {
             parenthesis_level--;
-            SYNAPSE_ASSERT(parenthesis_level >= 0, "Invalid call");
+            assert(parenthesis_level >= 0 && "Invalid call");
 
             if (parenthesis_level == 0) {
               current_exprs_str.push_back(current_expr_str);
@@ -162,15 +162,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
           state = state_t::STATE_CALLS_MULTILINE;
         } else {
           if (!current_extra_var.empty()) {
-            SYNAPSE_ASSERT(current_exprs_str.size() == 2, "Too many expression in extra variable.");
+            assert(current_exprs_str.size() == 2 && "Too many expression in extra variable.");
             if (current_exprs_str[0] != "(...)") {
-              SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+              assert(values.size() >= 1 && "Not enough expression in kQuery.");
               call_path->calls.back().extra_vars[current_extra_var].first = values[0];
               values.erase(values.begin());
               current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
             }
             if (current_exprs_str[1] != "(...)") {
-              SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+              assert(values.size() >= 1 && "Not enough expression in kQuery.");
               call_path->calls.back().extra_vars[current_extra_var].second = values[0];
               values.erase(values.begin());
               current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
@@ -190,13 +190,13 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
                 current_arg = current_arg.substr(1);
               current_exprs_str[0] = current_exprs_str[0].substr(delim + 1);
               delim = current_arg.find(":");
-              SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+              assert(delim != std::string::npos && "Invalid call");
               current_arg_name = current_arg.substr(0, delim);
               current_arg = current_arg.substr(delim + 1);
 
               delim = current_arg.find("&");
               if (delim == std::string::npos) {
-                SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                assert(values.size() >= 1 && "Not enough expression in kQuery.");
                 call_path->calls.back().args[current_arg_name].expr = values[0];
                 values.erase(values.begin(), values.begin() + 1);
               } else {
@@ -216,22 +216,22 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
                 current_arg = current_arg.substr(delim + 2);
 
                 delim = current_arg.find("]");
-                SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+                assert(delim != std::string::npos && "Invalid call");
 
                 auto current_arg_meta = current_arg.substr(delim + 1);
                 current_arg = current_arg.substr(0, delim);
 
                 delim = current_arg.find("->");
-                SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+                assert(delim != std::string::npos && "Invalid call");
 
                 if (current_arg.substr(0, delim).size()) {
-                  SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                  assert(values.size() >= 1 && "Not enough expression in kQuery.");
                   call_path->calls.back().args[current_arg_name].in = values[0];
                   values.erase(values.begin(), values.begin() + 1);
                 }
 
                 if (current_arg.substr(delim + 2).size()) {
-                  SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                  assert(values.size() >= 1 && "Not enough expression in kQuery.");
                   call_path->calls.back().args[current_arg_name].out = values[0];
                   values.erase(values.begin(), values.begin() + 1);
                 }
@@ -243,11 +243,11 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
                     auto start_delim = current_arg_meta.find("[");
                     auto end_delim = current_arg_meta.find("]");
 
-                    SYNAPSE_ASSERT(start_delim != std::string::npos, "Invalid call");
-                    SYNAPSE_ASSERT(end_delim != std::string::npos, "Invalid call");
+                    assert(start_delim != std::string::npos && "Invalid call");
+                    assert(end_delim != std::string::npos && "Invalid call");
 
                     auto size = end_delim - start_delim - 1;
-                    SYNAPSE_ASSERT(size > 0, "Invalid call");
+                    assert(size > 0 && "Invalid call");
 
                     auto part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
                     current_arg_meta = current_arg_meta.substr(end_delim + 1);
@@ -259,15 +259,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 
                   for (auto part : expr_parts) {
                     delim = part.find("->");
-                    SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+                    assert(delim != std::string::npos && "Invalid call");
 
                     part = part.substr(0, delim);
 
                     auto open_delim = part.find("(");
                     auto close_delim = part.find(")");
 
-                    SYNAPSE_ASSERT(open_delim != std::string::npos, "Invalid call");
-                    SYNAPSE_ASSERT(close_delim != std::string::npos, "Invalid call");
+                    assert(open_delim != std::string::npos && "Invalid call");
+                    assert(close_delim != std::string::npos && "Invalid call");
 
                     auto symbol = part.substr(0, open_delim);
                     auto meta_expr_str = part.substr(open_delim + 1);
@@ -306,7 +306,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
           parenthesis_level++;
         } else if (c == ')') {
           parenthesis_level--;
-          SYNAPSE_ASSERT(parenthesis_level >= 0, "Invalid call");
+          assert(parenthesis_level >= 0 && "Invalid call");
 
           if (parenthesis_level == 0) {
             current_exprs_str.push_back(current_expr_str);
@@ -330,15 +330,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 
       if (parenthesis_level == 0) {
         if (!current_extra_var.empty()) {
-          SYNAPSE_ASSERT(current_exprs_str.size() == 2, "Too many expression in extra variable.");
+          assert(current_exprs_str.size() == 2 && "Too many expression in extra variable.");
           if (current_exprs_str[0] != "(...)") {
-            SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+            assert(values.size() >= 1 && "Not enough expression in kQuery.");
             call_path->calls.back().extra_vars[current_extra_var].first = values[0];
             values.erase(values.begin());
             current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
           }
           if (current_exprs_str[1] != "(...)") {
-            SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+            assert(values.size() >= 1 && "Not enough expression in kQuery.");
             call_path->calls.back().extra_vars[current_extra_var].second = values[0];
             values.erase(values.begin());
             current_exprs_str.erase(current_exprs_str.begin(), current_exprs_str.begin() + 2);
@@ -360,13 +360,13 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
               current_arg = current_arg.substr(1);
             current_exprs_str[0] = current_exprs_str[0].substr(delim + 1);
             delim = current_arg.find(":");
-            SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+            assert(delim != std::string::npos && "Invalid call");
             current_arg_name = current_arg.substr(0, delim);
             current_arg = current_arg.substr(delim + 1);
 
             delim = current_arg.find("&");
             if (delim == std::string::npos) {
-              SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+              assert(values.size() >= 1 && "Not enough expression in kQuery.");
               call_path->calls.back().args[current_arg_name].expr = values[0];
               values.erase(values.begin(), values.begin() + 1);
             } else {
@@ -386,22 +386,22 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
               current_arg = current_arg.substr(delim + 2);
 
               delim = current_arg.find("]");
-              SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+              assert(delim != std::string::npos && "Invalid call");
 
               auto current_arg_meta = current_arg.substr(delim + 1);
               current_arg = current_arg.substr(0, delim);
 
               delim = current_arg.find("->");
-              SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+              assert(delim != std::string::npos && "Invalid call");
 
               if (current_arg.substr(0, delim).size()) {
-                SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                assert(values.size() >= 1 && "Not enough expression in kQuery.");
                 call_path->calls.back().args[current_arg_name].in = values[0];
                 values.erase(values.begin(), values.begin() + 1);
               }
 
               if (current_arg.substr(delim + 2).size()) {
-                SYNAPSE_ASSERT(values.size() >= 1, "Not enough expression in kQuery.");
+                assert(values.size() >= 1 && "Not enough expression in kQuery.");
                 call_path->calls.back().args[current_arg_name].out = values[0];
                 values.erase(values.begin(), values.begin() + 1);
               }
@@ -413,11 +413,11 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
                   auto start_delim = current_arg_meta.find("[");
                   auto end_delim = current_arg_meta.find("]");
 
-                  SYNAPSE_ASSERT(start_delim != std::string::npos, "Invalid call");
-                  SYNAPSE_ASSERT(end_delim != std::string::npos, "Invalid call");
+                  assert(start_delim != std::string::npos && "Invalid call");
+                  assert(end_delim != std::string::npos && "Invalid call");
 
                   auto size = end_delim - start_delim - 1;
-                  SYNAPSE_ASSERT(size > 0, "Invalid call");
+                  assert(size > 0 && "Invalid call");
 
                   auto part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
                   current_arg_meta = current_arg_meta.substr(end_delim + 1);
@@ -429,15 +429,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 
                 for (auto part : expr_parts) {
                   delim = part.find("->");
-                  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid call");
+                  assert(delim != std::string::npos && "Invalid call");
 
                   part = part.substr(0, delim);
 
                   auto open_delim = part.find("(");
                   auto close_delim = part.find(")");
 
-                  SYNAPSE_ASSERT(open_delim != std::string::npos, "Invalid call");
-                  SYNAPSE_ASSERT(close_delim != std::string::npos, "Invalid call");
+                  assert(open_delim != std::string::npos && "Invalid call");
+                  assert(close_delim != std::string::npos && "Invalid call");
 
                   auto symbol = part.substr(0, open_delim);
                   auto meta_expr_str = part.substr(open_delim + 1);
@@ -474,7 +474,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
     } break;
 
     default: {
-      SYNAPSE_PANIC("Invalid call path file.");
+      panic("Invalid call path file.");
     } break;
     }
   }

@@ -36,7 +36,7 @@ toml::table parse_targets_config(const std::filesystem::path &targets_config_fil
   try {
     targets_config = toml::parse_file(targets_config_file.string());
   } catch (const toml::parse_error &err) {
-    SYNAPSE_PANIC("Parsing failed: %s\n", err.what());
+    panic("Parsing failed: %s\n", err.what());
   }
   return targets_config;
 }

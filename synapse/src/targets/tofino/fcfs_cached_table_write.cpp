@@ -15,7 +15,7 @@ struct fcfs_cached_table_data_t {
   u32 num_entries;
 
   fcfs_cached_table_data_t(const EP *ep, std::vector<const Call *> future_map_puts) {
-    SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
+    assert(!future_map_puts.empty() && "No future map puts");
     const Call *map_put = future_map_puts.front();
 
     const call_t &put_call = map_put->get_call();
@@ -120,8 +120,8 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, Node *on_success
       branch_direction_t index_alloc_check = call_target->find_branch_checking_index_alloc();
 
       if (index_alloc_check.branch) {
-        SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
-                       "Multiple branch checking index allocation detected");
+        assert(!deleted_branch_constraints.has_value() &&
+               "Multiple branch checking index allocation detected");
         deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
 
         klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
@@ -153,7 +153,7 @@ branch_bdd_on_cache_write_success(const EP *ep, const Node *dchain_allocate_new_
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = dchain_allocate_new_index->get_next();
-  SYNAPSE_ASSERT(next, "No next node");
+  assert(next && "No next node");
 
   Branch *cache_write_branch = new_bdd->clone_and_add_branch(next, cache_write_success_condition);
   on_cache_write_success = cache_write_branch->get_mutable_on_true();
@@ -272,7 +272,7 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
+  assert(!future_map_puts.empty() && "No future map puts");
 
   map_coalescing_objs_t map_objs;
   if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {
@@ -359,7 +359,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts");
+  assert(!future_map_puts.empty() && "No future map puts");
 
   map_coalescing_objs_t map_objs;
   if (!get_map_coalescing_objs_from_dchain_op(ep, dchain_allocate_new_index, map_objs)) {

@@ -11,16 +11,16 @@ DS_ID get_map_register(const EP *ep, addr_t obj) {
   const Context &ctx = ep->get_ctx();
   const tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<tofino::TofinoContext>();
   const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
-  SYNAPSE_ASSERT(data_structures.size() == 1, "Multiple data structures found");
+  assert(data_structures.size() == 1 && "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
-  SYNAPSE_ASSERT(ds->type == tofino::DSType::MAP_REGISTER, "Invalid data structure");
+  assert(ds->type == tofino::DSType::MAP_REGISTER && "Invalid data structure");
   return ds->id;
 }
 
 void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
               klee::ref<klee::Expr> &value, std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
+  assert(call.function_name == "map_get" && "Not a map_get call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;

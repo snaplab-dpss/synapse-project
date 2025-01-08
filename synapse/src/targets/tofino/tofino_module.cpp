@@ -44,14 +44,14 @@ std::unordered_set<Register *> get_vector_registers(const EP *ep, const Node *no
   }
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
-  SYNAPSE_ASSERT(!ds.empty(), "No vector registers found");
+  assert(!ds.empty() && "No vector registers found");
 
   if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
     return regs;
   }
 
   for (DS *reg : ds) {
-    SYNAPSE_ASSERT(reg->type == DSType::REGISTER, "Unexpected type");
+    assert(reg->type == DSType::REGISTER && "Unexpected type");
     regs.insert(dynamic_cast<Register *>(reg));
   }
 
@@ -94,8 +94,8 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const Node *node, addr_t 
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-  SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-  SYNAPSE_ASSERT((*ds.begin())->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
+  assert(ds.size() == 1 && "Invalid number of DS");
+  assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
 
   FCFSCachedTable *cached_table = dynamic_cast<FCFSCachedTable *>(*ds.begin());
 
@@ -148,8 +148,8 @@ HHTable *reuse_hh_table(const EP *ep, const Node *node, addr_t obj) {
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-  SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-  SYNAPSE_ASSERT((*ds.begin())->type == DSType::HH_TABLE, "Invalid DS type");
+  assert(ds.size() == 1 && "Invalid number of DS");
+  assert((*ds.begin())->type == DSType::HH_TABLE && "Invalid DS type");
 
   HHTable *hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
@@ -192,8 +192,8 @@ CountMinSketch *reuse_cms(const EP *ep, const Node *node, addr_t obj) {
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-  SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-  SYNAPSE_ASSERT((*ds.begin())->type == DSType::COUNT_MIN_SKETCH, "Invalid DS type");
+  assert(ds.size() == 1 && "Invalid number of DS");
+  assert((*ds.begin())->type == DSType::COUNT_MIN_SKETCH && "Invalid DS type");
 
   CountMinSketch *cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
@@ -214,8 +214,8 @@ MapRegister *reuse_map_register(const EP *ep, const Node *node, addr_t obj) {
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-  SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-  SYNAPSE_ASSERT((*ds.begin())->type == DSType::MAP_REGISTER, "Invalid DS type");
+  assert(ds.size() == 1 && "Invalid number of DS");
+  assert((*ds.begin())->type == DSType::MAP_REGISTER && "Invalid DS type");
 
   MapRegister *map_register = dynamic_cast<MapRegister *>(*ds.begin());
 
@@ -374,8 +374,8 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-  SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-  SYNAPSE_ASSERT((*ds.begin())->type == DSType::FCFS_CACHED_TABLE, "Invalid DS type");
+  assert(ds.size() == 1 && "Invalid number of DS");
+  assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
 
   FCFSCachedTable *cached_table = dynamic_cast<FCFSCachedTable *>(*ds.begin());
 
@@ -428,7 +428,7 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 num_entries) {
     cache_capacity *= 2;
 
     // Overflow check
-    SYNAPSE_ASSERT(capacities.empty() || capacities.back() < cache_capacity, "Overflow");
+    assert((capacities.empty() || capacities.back() < cache_capacity) && "Overflow");
   }
 
   return capacities;
@@ -481,8 +481,8 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(
     const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
     const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-    SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-    SYNAPSE_ASSERT((*ds.begin())->type == DSType::HH_TABLE, "Invalid DS type");
+    assert(ds.size() == 1 && "Invalid number of DS");
+    assert((*ds.begin())->type == DSType::HH_TABLE && "Invalid DS type");
 
     hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
@@ -519,7 +519,7 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx
     top_k += flow_stats.pkts_per_flow[k];
   }
 
-  SYNAPSE_ASSERT(top_k <= flow_stats.pkts, "Invalid top_k");
+  assert(top_k <= flow_stats.pkts && "Invalid top_k");
   hit_rate_t hit_rate = top_k / static_cast<hit_rate_t>(flow_stats.pkts);
 
   return hit_rate;
@@ -537,8 +537,8 @@ bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const Node *node,
     const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
     const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-    SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-    SYNAPSE_ASSERT((*ds.begin())->type == DSType::COUNT_MIN_SKETCH, "Invalid DS type");
+    assert(ds.size() == 1 && "Invalid number of DS");
+    assert((*ds.begin())->type == DSType::COUNT_MIN_SKETCH && "Invalid DS type");
 
     cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
@@ -591,8 +591,8 @@ bool TofinoModuleFactory::can_build_or_reuse_map_register(const EP *ep, const No
     const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
     const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
-    SYNAPSE_ASSERT(ds.size() == 1, "Invalid number of DS");
-    SYNAPSE_ASSERT((*ds.begin())->type == DSType::MAP_REGISTER, "Invalid DS type");
+    assert(ds.size() == 1 && "Invalid number of DS");
+    assert((*ds.begin())->type == DSType::MAP_REGISTER && "Invalid DS type");
 
     map_register = dynamic_cast<MapRegister *>(*ds.begin());
 

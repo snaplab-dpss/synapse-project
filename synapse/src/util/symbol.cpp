@@ -26,14 +26,14 @@ public:
 };
 
 std::string base_from_name(const std::string &name) {
-  SYNAPSE_ASSERT(name.size(), "Empty name");
+  assert(name.size() && "Empty name");
 
   if (!std::isdigit(name.back())) {
     return name;
   }
 
   size_t delim = name.rfind("_");
-  SYNAPSE_ASSERT(delim != std::string::npos, "Invalid name");
+  assert(delim != std::string::npos && "Invalid name");
 
   std::string base = name.substr(0, delim);
   return base;
@@ -47,8 +47,7 @@ symbol_t::symbol_t(klee::ref<klee::Expr> _expr) : expr(_expr) {
   SymbolNamesRetriever retriever;
   retriever.visit(expr);
   const std::unordered_set<std::string> &names = retriever.get_names();
-  SYNAPSE_ASSERT(names.size() == 1, "Invalid number of symbols in expr: %s",
-                 expr_to_string(expr).c_str());
+  assert(names.size() == 1 && "Invalid number of symbols");
   name = *names.begin();
   base = base_from_name(name);
 }

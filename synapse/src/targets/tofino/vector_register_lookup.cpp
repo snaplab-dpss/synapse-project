@@ -44,7 +44,7 @@ std::unique_ptr<BDD> delete_future_vector_return(EP *ep, const Node *node, addr_
 
   for (const Call *op : ops) {
     const call_t &call = op->get_call();
-    SYNAPSE_ASSERT(call.function_name == "vector_return", "Unexpected function");
+    assert(call.function_name == "vector_return" && "Unexpected function");
 
     klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
     addr_t obj = expr_addr_to_obj_addr(obj_expr);

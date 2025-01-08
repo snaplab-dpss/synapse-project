@@ -10,9 +10,9 @@ public:
   SwapPacketEndianness() : klee::ExprVisitor::ExprVisitor(true) {}
 
   klee::ref<klee::Expr> swap_const_endianness(klee::ref<klee::Expr> expr) {
-    SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
-    SYNAPSE_ASSERT(expr->getKind() == klee::Expr::Constant, "Not a constant");
-    SYNAPSE_ASSERT(expr->getWidth() <= klee::Expr::Int64, "Unsupported width");
+    assert(!expr.isNull() && "Null expr");
+    assert(expr->getKind() == klee::Expr::Constant && "Not a constant");
+    assert(expr->getWidth() <= 64 && "Unsupported width");
 
     auto constant = dynamic_cast<const klee::ConstantExpr *>(expr.get());
     auto width = constant->getWidth();
@@ -28,8 +28,8 @@ public:
   }
 
   klee::ref<klee::Expr> visit_binary_expr(klee::ref<klee::Expr> expr) {
-    SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
-    SYNAPSE_ASSERT(expr->getNumKids() == 2, "Not a binary expr");
+    assert(!expr.isNull() && "Null expr");
+    assert(expr->getNumKids() == 2 && "Not a binary expr");
 
     auto lhs = expr->getKid(0);
     auto rhs = expr->getKid(1);
@@ -47,7 +47,7 @@ public:
     auto not_pkt_read = lhs_is_pkt_read ? rhs : lhs;
 
     // TODO: we should consider the other types
-    SYNAPSE_ASSERT(not_pkt_read->getKind() == klee::Expr::Constant, "Not a constant");
+    assert(not_pkt_read->getKind() == klee::Expr::Constant && "Not a constant");
 
     auto new_constant = swap_const_endianness(not_pkt_read);
 

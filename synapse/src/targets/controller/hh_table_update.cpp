@@ -16,7 +16,7 @@ struct table_data_t {
 
   table_data_t(const Call *map_put) {
     const call_t &call = map_put->get_call();
-    SYNAPSE_ASSERT(call.function_name == "map_put", "Not a map_put call");
+    assert(call.function_name == "map_put" && "Not a map_put call");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;
@@ -42,7 +42,7 @@ symbol_t get_min_estimate(const EP *ep) {
     node = node->get_prev();
   }
 
-  SYNAPSE_PANIC("TODO: HHTableRead not found, so we should query the CMS for the min estimate");
+  panic("TODO: HHTableRead not found, so we should query the CMS for the min estimate");
 }
 } // namespace
 

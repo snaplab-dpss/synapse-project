@@ -14,7 +14,7 @@ struct hh_table_data_t {
 
   hh_table_data_t(const EP *ep, const Call *map_get) {
     const call_t &call = map_get->get_call();
-    SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
+    assert(call.function_name == "map_get" && "Not a map_get call");
 
     symbol_t map_has_this_key_symbol = map_get->get_local_symbol("map_has_this_key");
 
@@ -32,7 +32,7 @@ void update_map_get_success_hit_rate(Context &ctx, const Node *map_get, klee::re
   hit_rate_t success_rate =
       TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
 
-  SYNAPSE_ASSERT(mgsc.branch, "No branch checking map_get success");
+  assert(mgsc.branch && "No branch checking map_get success");
   const Node *on_success =
       mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
   const Node *on_failure =

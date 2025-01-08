@@ -43,7 +43,7 @@ public:
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) override final {
     klee::UpdateList updates = e.updates;
-    SYNAPSE_ASSERT(updates.getSize() == 0, "TODO: handle updates");
+    assert(updates.getSize() == 0 && "TODO: handle updates");
 
     auto name_to_array_it = name_to_array.find(updates.root->name);
 
@@ -115,7 +115,7 @@ std::string kQuery_t::dump(const SymbolManager *manager) const {
 
 kQueryParser::kQueryParser(SymbolManager *_manager)
     : manager(_manager), builder(klee::createDefaultExprBuilder()) {
-  SYNAPSE_ASSERT(manager, "SymbolManager is null");
+  assert(manager && "SymbolManager is null");
 }
 
 kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
@@ -127,7 +127,7 @@ kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
       klee::expr::Parser::Create("kQueryParser", mb.get(), builder.get(), false));
 
   while (klee::expr::Decl *decl = parser->ParseTopLevelDecl()) {
-    SYNAPSE_ASSERT(!parser->GetNumErrors(), "Error parsing kquery in call path file.");
+    assert(!parser->GetNumErrors() && "Error parsing kquery in call path file.");
     decls.emplace_back(decl);
 
     if (klee::expr::ArrayDecl *array_decl = dyn_cast<klee::expr::ArrayDecl>(decl)) {
@@ -175,7 +175,7 @@ klee::ref<klee::Expr> kQueryParser::parse_expr(const std::string &expr_str) {
 
   std::string kQueryStr = kQuery_builder.str();
   kQuery_t query = parse(kQueryStr);
-  SYNAPSE_ASSERT(query.values.size() == 1, "Error parsing expr");
+  assert(query.values.size() == 1 && "Error parsing expr");
 
   return query.values[0];
 }

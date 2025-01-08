@@ -43,7 +43,7 @@ public:
   }
 
   static int generate() {
-    SYNAPSE_ASSERT(engine, "RandomEngine not seeded");
+    assert(engine && "RandomEngine not seeded");
     return engine->generate_number();
   }
 };

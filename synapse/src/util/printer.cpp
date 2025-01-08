@@ -20,7 +20,7 @@ public:
   ExprPrettyPrinter() : ExprPrettyPrinter(false) {}
 
   static std::string print(klee::ref<klee::Expr> expr, bool use_signed = true) {
-    SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+    assert(!expr.isNull() && "Null expr");
 
     if (expr->getKind() != klee::Expr::Kind::Constant) {
       ExprPrettyPrinter printer(use_signed);
@@ -78,14 +78,13 @@ public:
   const std::string &get_result() const { return result; }
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
-    auto ul = e.updates;
-    auto root = ul.root;
-    auto index = e.index;
+    klee::UpdateList ul = e.updates;
+    const klee::Array *root = ul.root;
+    klee::ref<klee::Expr> index = e.index;
 
-    SYNAPSE_ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
-
+    assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-    auto i = index_const->getZExtValue();
+    u64 i = index_const->getZExtValue();
 
     std::stringstream ss;
     ss << root->name;
@@ -487,7 +486,7 @@ void remove_expr_str_labels(std::string &expr_str) {
     size_t end = delim;
 
     while (expr_str[--start] != 'N') {
-      SYNAPSE_ASSERT(start > 0 && start < expr_str.size(), "Invalid start");
+      assert(start > 0 && start < expr_str.size() && "Invalid start");
     }
 
     std::string pre = expr_str.substr(0, start);

@@ -60,8 +60,8 @@ std::string Call::dump(bool one_liner, bool id_name_only) const {
 const symbols_t &Call::get_local_symbols() const { return generated_symbols; }
 
 symbol_t Call::get_local_symbol(const std::string &base) const {
-  SYNAPSE_ASSERT(!base.empty(), "Empty base");
-  SYNAPSE_ASSERT(!generated_symbols.empty(), "No symbols");
+  assert(!base.empty() && "Empty base");
+  assert(!generated_symbols.empty() && "No symbols");
 
   for (const symbol_t &symbol : generated_symbols) {
     if (symbol.base == base) {
@@ -69,7 +69,7 @@ symbol_t Call::get_local_symbol(const std::string &base) const {
     }
   }
 
-  SYNAPSE_PANIC("Symbol %s not found", base.c_str());
+  panic("Symbol %s not found", base.c_str());
 }
 
 bool Call::has_local_symbol(const std::string &base) const {
@@ -96,7 +96,7 @@ bool Call::is_vector_read() const {
     return false;
   }
 
-  SYNAPSE_ASSERT(vector_borrow, "Vector borrow not found");
+  assert(vector_borrow && "Vector borrow not found");
 
   if (!vector_return) {
     return true;
@@ -201,7 +201,7 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
 
   symbol_t out_of_space = get_local_symbol("out_of_space");
   symbols_t freed_flows_symbols = symbol_manager->get_symbols_with_base("number_of_freed_flows");
-  SYNAPSE_ASSERT(freed_flows_symbols.size() <= 1, "Multiple number_of_freed_flows symbols");
+  assert(freed_flows_symbols.size() <= 1 && "Multiple number_of_freed_flows symbols");
 
   std::unordered_set<std::string> target_names;
   target_names.insert(out_of_space.name);
@@ -240,8 +240,8 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
               freed_flows, solver_toolbox.exprBuilder->Constant(0, freed_flows->getWidth())));
     }
 
-    SYNAPSE_ASSERT(index_alloc_check.branch->get_on_true(), "No on_true");
-    SYNAPSE_ASSERT(index_alloc_check.branch->get_on_false(), "No on_false");
+    assert(index_alloc_check.branch->get_on_true() && "No on_true");
+    assert(index_alloc_check.branch->get_on_false() && "No on_false");
 
     const Node *on_true = index_alloc_check.branch->get_on_true();
     const Node *on_false = index_alloc_check.branch->get_on_false();
@@ -251,9 +251,9 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     bool success_on_false =
         solver_toolbox.is_expr_always_true(on_false->get_constraints(), success_condition);
 
-    SYNAPSE_ASSERT((success_on_true || success_on_false), "No branch side is successful");
-    SYNAPSE_ASSERT((success_on_true ^ success_on_false),
-                   "Both branch sides have the same success condition");
+    assert((success_on_true || success_on_false) && "No branch side is successful");
+    assert((success_on_true ^ success_on_false) &&
+           "Both branch sides have the same success condition");
 
     index_alloc_check.direction = success_on_true;
   }
@@ -359,7 +359,7 @@ bool Call::is_map_get_followed_by_map_puts_on_miss(std::vector<const Call *> &ma
   klee::ref<klee::Expr> value;
   for (const Call *map_put : future_map_puts) {
     const call_t &mp_call = map_put->get_call();
-    SYNAPSE_ASSERT(mp_call.function_name == "map_put", "Unexpected function");
+    assert(mp_call.function_name == "map_put" && "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> mp_key = mp_call.args.at("key").in;

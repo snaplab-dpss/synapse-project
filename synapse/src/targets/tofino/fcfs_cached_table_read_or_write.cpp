@@ -18,7 +18,7 @@ struct fcfs_cached_table_data_t {
 
   fcfs_cached_table_data_t(const EP *ep, const Call *map_get,
                            std::vector<const Call *> future_map_puts) {
-    SYNAPSE_ASSERT(!future_map_puts.empty(), "No future map puts found");
+    assert(!future_map_puts.empty() && "No future map puts found");
     const Call *map_put = future_map_puts.front();
 
     const call_t &get_call = map_get->get_call();
@@ -140,8 +140,8 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, Node *on_success
       branch_direction_t index_alloc_check = call_target->find_branch_checking_index_alloc();
 
       if (index_alloc_check.branch) {
-        SYNAPSE_ASSERT(!deleted_branch_constraints.has_value(),
-                       "Multiple branch checking index allocation detected");
+        assert(!deleted_branch_constraints.has_value() &&
+               "Multiple branch checking index allocation detected");
         deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
 
         klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
@@ -171,7 +171,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_get->get_next();
-  SYNAPSE_ASSERT(next, "map_get node has no next node");
+  assert(next && "map_get node has no next node");
 
   Branch *cache_write_branch = new_bdd->clone_and_add_branch(next, cache_write_success_condition);
 

@@ -79,9 +79,9 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *n
 
   // TODO: How do we recalculate the estimated throughput after a forwarding
   // decision is made?
-  SYNAPSE_ASSERT((!ep->get_active_leaf().node ||
-                  !forwarding_decision_already_made(ep->get_active_leaf().node)),
-                 "TODO");
+  assert((!ep->get_active_leaf().node ||
+          !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
+         "TODO");
 
   int total_recirc_ports = get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
   std::vector<int> past_recirc = get_past_recirculations(active_leaf.node);

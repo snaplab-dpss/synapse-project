@@ -10,7 +10,7 @@ void table_update_data_from_map_op(const Call *call_node, addr_t &obj,
                                    std::vector<klee::ref<klee::Expr>> &keys,
                                    std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "map_put", "Not a map_put call");
+  assert(call.function_name == "map_put" && "Not a map_put call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key = call.args.at("key").in;
@@ -25,7 +25,7 @@ void table_update_data_from_vector_op(const Call *call_node, addr_t &obj,
                                       std::vector<klee::ref<klee::Expr>> &keys,
                                       std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "vector_return", "Not a vector_return call");
+  assert(call.function_name == "vector_return" && "Not a vector_return call");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -40,7 +40,7 @@ void table_data_from_dchain_op(const Call *call_node, addr_t &obj,
                                std::vector<klee::ref<klee::Expr>> &keys,
                                std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
-  SYNAPSE_ASSERT(call.function_name == "dchain_allocate_new_index", "Not a dchain call");
+  assert(call.function_name == "dchain_allocate_new_index" && "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index_out = call.args.at("index_out").out;

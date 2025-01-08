@@ -10,8 +10,8 @@ solver_toolbox_t solver_toolbox;
 solver_toolbox_t::solver_toolbox_t()
     : solver(createCexCachingSolver(klee::createCoreSolver(klee::Z3_SOLVER))),
       exprBuilder(klee::createDefaultExprBuilder()) {
-  SYNAPSE_ASSERT(solver, "Failed to create solver");
-  SYNAPSE_ASSERT(exprBuilder, "Failed to create exprBuilder");
+  assert(solver && "Failed to create solver");
+  assert(exprBuilder && "Failed to create exprBuilder");
 }
 
 bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
@@ -36,7 +36,7 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
 
   bool result = false;
   bool success = solver->mustBeTrue(sat_query, result);
-  SYNAPSE_ASSERT(success, "Failed to check if expr is always true");
+  assert(success && "Failed to check if expr is always true");
 
   return result;
 }
@@ -47,7 +47,7 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
 
   bool result;
   bool success = solver->mayBeTrue(sat_query, result);
-  SYNAPSE_ASSERT(success, "Failed to check if expr is maybe true");
+  assert(success && "Failed to check if expr is maybe true");
 
   return result;
 }
@@ -58,7 +58,7 @@ bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constr
 
   bool result = false;
   bool success = solver->mayBeFalse(sat_query, result);
-  SYNAPSE_ASSERT(success, "Failed to check if expr is maybe false");
+  assert(success && "Failed to check if expr is maybe false");
 
   return result;
 }
@@ -77,8 +77,8 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::re
   bool eq_in_e1_ctx_success = solver->mustBeTrue(eq_in_e1_ctx_sat_query, eq_in_e1_ctx);
   bool eq_in_e2_ctx_success = solver->mustBeTrue(eq_in_e2_ctx_sat_query, eq_in_e2_ctx);
 
-  SYNAPSE_ASSERT(eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
-  SYNAPSE_ASSERT(eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
+  assert(eq_in_e1_ctx_success && "Failed to check if exprs are always equal");
+  assert(eq_in_e2_ctx_success && "Failed to check if exprs are always equal");
 
   return eq_in_e1_ctx && eq_in_e2_ctx;
 }
@@ -98,8 +98,8 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1,
   bool not_eq_in_e1_ctx_success = solver->mustBeFalse(eq_in_e1_ctx_sat_query, not_eq_in_e1_ctx);
   bool not_eq_in_e2_ctx_success = solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx);
 
-  SYNAPSE_ASSERT(not_eq_in_e1_ctx_success, "Failed to check if exprs are always equal");
-  SYNAPSE_ASSERT(not_eq_in_e2_ctx_success, "Failed to check if exprs are always equal");
+  assert(not_eq_in_e1_ctx_success && "Failed to check if exprs are always equal");
+  assert(not_eq_in_e2_ctx_success && "Failed to check if exprs are always equal");
 
   return not_eq_in_e1_ctx && not_eq_in_e2_ctx;
 }
@@ -126,7 +126,7 @@ bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &const
 
   bool result = false;
   bool success = solver->mustBeFalse(sat_query, result);
-  SYNAPSE_ASSERT(success, "Failed to check if expr is always false");
+  assert(success && "Failed to check if expr is always false");
 
   return result;
 }
@@ -173,14 +173,14 @@ bool solver_toolbox_t::are_exprs_values_always_equal(klee::ref<klee::Expr> expr1
     std::cerr << "are_exprs_values_always_equal error\n";
     std::cerr << "expr1 not always = " << expr_to_string(v1_const) << "\n";
     std::cerr << "expr1: " << expr_to_string(expr1) << "\n";
-    SYNAPSE_PANIC("are_exprs_values_always_equal error");
+    panic("are_exprs_values_always_equal error");
   }
 
   if (!always_v2) {
     std::cerr << "are_exprs_values_always_equal error\n";
     std::cerr << "expr2 not always = " << expr_to_string(v2_const) << "\n";
     std::cerr << "expr2: " << expr_to_string(expr2) << "\n";
-    SYNAPSE_PANIC("are_exprs_values_always_equal error");
+    panic("are_exprs_values_always_equal error");
   }
 
   return v1 == v2;
@@ -207,7 +207,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
 
   klee::ref<klee::ConstantExpr> value_expr;
   bool success = solver->getValue(sat_query, value_expr);
-  SYNAPSE_ASSERT(success, "Failed to get value from expr");
+  assert(success && "Failed to get value from expr");
 
   u64 res = value_expr->getZExtValue();
   cache[expr] = res;
@@ -226,7 +226,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr,
 
   klee::ref<klee::ConstantExpr> value_expr;
   bool success = solver->getValue(sat_query, value_expr);
-  SYNAPSE_ASSERT(success, "Failed to get value from expr");
+  assert(success && "Failed to get value from expr");
 
   return value_expr->getZExtValue();
 }

@@ -15,7 +15,7 @@ namespace {
 std::filesystem::path random_dot() {
   char filename[] = "/tmp/XXXXXX";
   int fd = mkstemp(filename);
-  SYNAPSE_ASSERT(fd != -1, "Failed to create temporary file");
+  assert(fd != -1 && "Failed to create temporary file");
   std::string fpath(filename);
   fpath += ".dot";
   return fpath;
@@ -60,7 +60,7 @@ Graphviz::Graphviz() : fpath(random_dot()) {}
 
 void Graphviz::write() const {
   std::ofstream file(fpath);
-  SYNAPSE_ASSERT(file.is_open(), "Unable to open file");
+  assert(file.is_open() && "Unable to open file");
   file << ss.str();
   file.close();
 }
@@ -76,8 +76,7 @@ void Graphviz::show(bool interrupt) const {
 
   int status = system(cmd_builder.str().c_str());
   if (status < 0) {
-    std::cout << "Error: " << std::strerror(errno) << "\n";
-    SYNAPSE_ASSERT(false, "Failed to open graph.");
+    panic("Failed to open graph: %s\n", std::strerror(errno));
   }
 
   if (interrupt) {

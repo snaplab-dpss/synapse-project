@@ -46,7 +46,7 @@ std::string to_string(TargetType target) {
 TargetsView::TargetsView(const std::array<TargetView, 3> &_elements) : elements(_elements) {}
 
 TargetView TargetsView::get_initial_target() const {
-  SYNAPSE_ASSERT(!elements.empty(), "No targets to get the initial target from.");
+  assert(!elements.empty() && "No targets to get the initial target from.");
   return elements[0];
 }
 

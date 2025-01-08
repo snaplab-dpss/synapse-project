@@ -26,8 +26,8 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node,
 
   klee::ref<klee::Expr> condition = branch_node->get_condition();
 
-  SYNAPSE_ASSERT(branch_node->get_on_true(), "Branch node has no on_true");
-  SYNAPSE_ASSERT(branch_node->get_on_false(), "Branch node has no on_false");
+  assert(branch_node->get_on_true() && "Branch node has no on_true");
+  assert(branch_node->get_on_false() && "Branch node has no on_false");
 
   Module *if_module = new If(node, condition);
   Module *then_module = new Then(node);

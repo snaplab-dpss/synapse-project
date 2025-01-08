@@ -90,7 +90,9 @@ void from_json(const json &j, bdd_profile_t &report) {
 bdd_profile_t parse_bdd_profile(const std::string &filename) {
   std::ifstream file(filename);
 
-  SYNAPSE_ASSERT(file.is_open(), "Failed to open file: %s", filename.c_str());
+  if (!file.is_open()) {
+    panic("Failed to open file: %s", filename.c_str());
+  }
 
   json j = json::parse(file);
   bdd_profile_t report = j.get<bdd_profile_t>();

@@ -11,8 +11,8 @@ public:
                                 }) {}
 
   GalliumCfg &operator=(const GalliumCfg &other) {
-    SYNAPSE_ASSERT(other.name == name, "Mismatched names");
-    SYNAPSE_ASSERT(other.metrics.size() == metrics.size(), "Mismatched metrics");
+    assert(other.name == name && "Mismatched names");
+    assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;
   }
 

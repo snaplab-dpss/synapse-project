@@ -30,8 +30,7 @@ void assert_markers_in_template(const std::filesystem::path &template_file,
   for (const auto &kv : coders) {
     const marker_t &marker = TEMPLATE_MARKER_AFFIX + kv.first + TEMPLATE_MARKER_SUFFIX;
     if (template_str.find(marker) == std::string::npos) {
-      SYNAPSE_PANIC("Marker \"%s\" not found in template: %s\n", marker.c_str(),
-                    template_file.c_str());
+      panic("Marker \"%s\" not found in template: %s\n", marker.c_str(), template_file.c_str());
     }
   }
 }
@@ -41,7 +40,7 @@ Synthesizer::Synthesizer(std::string _template_fname,
                          std::unordered_map<marker_t, indent_t> _markers, std::ostream &_out)
     : template_file(get_template_path(_template_fname)), coders(get_builders(_markers)), out(_out) {
   if (!std::filesystem::exists(template_file)) {
-    SYNAPSE_PANIC("Template file not found: %s\n", template_file.c_str());
+    panic("Template file not found: %s\n", template_file.c_str());
   }
 
   assert_markers_in_template(template_file, coders);
@@ -71,7 +70,7 @@ coder_t &coder_t::operator<<(i64 n) {
 
 coder_t &Synthesizer::get(const std::string &marker) {
   auto it = coders.find(marker);
-  SYNAPSE_ASSERT(it != coders.end(), "Marker not found.");
+  assert(it != coders.end() && "Marker not found");
   return it->second;
 }
 
@@ -88,7 +87,7 @@ void Synthesizer::dump() const {
     code_t code = coder.stream.str();
 
     size_t pos = template_str.find(marker);
-    SYNAPSE_ASSERT(pos != std::string::npos, "Marker not found in template.");
+    assert(pos != std::string::npos && "Marker not found in template.");
 
     template_str.replace(pos, marker.size(), code);
   }

@@ -7,7 +7,7 @@
 
 #define TODO(expr)                                                                                 \
   synthesizer->stack_dbg();                                                                        \
-  SYNAPSE_PANIC("TODO: %s\n", expr_to_string(expr).c_str());
+  panic("TODO: %s\n", expr_to_string(expr).c_str());
 
 namespace synapse {
 BDDTranspiler::BDDTranspiler(BDDSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
@@ -17,7 +17,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   coder_t &coder = coders.top();
 
   if (is_constant(expr)) {
-    SYNAPSE_ASSERT(expr->getWidth() <= 64, "Unsupported constant width: %u", expr->getWidth());
+    assert(expr->getWidth() <= 64 && "Unsupported constant width");
     u64 value = solver_toolbox.value_from_expr(expr);
     coder << value;
     if (value > (1ull << 31)) {
@@ -37,7 +37,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   code_t code = coder.dump();
   coders.pop();
 
-  SYNAPSE_ASSERT(!code.empty(), "Empty code");
+  assert(!code.empty() && "Empty code");
   return code;
 }
 
@@ -61,7 +61,7 @@ code_t BDDTranspiler::type_from_size(bits_t size) {
     type = "uint64_t";
     break;
   default:
-    SYNAPSE_PANIC("Unknown type (size=%u)\n", size);
+    panic("Unknown type (size=%u)\n", size);
   }
 
   return type;

@@ -265,7 +265,7 @@ inline uintmax_t parse_int(const char *str, const char *name, int base, char nex
 
   // There's also a weird failure case with overflows, but let's not care
   if (temp == str || *temp != next) {
-    SYNAPSE_PANIC("Error while parsing '%s': %s\n", name, str);
+    panic("Error while parsing '%s': %s\n", name, str);
   }
 
   return result;
@@ -344,7 +344,7 @@ public:
     pd = pcap_open_offline(input_fname.c_str(), errbuf);
 
     if (pd == nullptr) {
-      SYNAPSE_PANIC("Unable to open file %s: %s\n", input_fname.c_str(), errbuf);
+      panic("Unable to open file %s: %s\n", input_fname.c_str(), errbuf);
     }
 
     int link_hdr_type = pcap_datalink(pd);
@@ -358,12 +358,12 @@ public:
       assume_ip = true;
       break;
     default: {
-      SYNAPSE_PANIC("Unknown header type (%d)\n", link_hdr_type);
+      panic("Unknown header type (%d)\n", link_hdr_type);
     }
     }
 
     FILE *pcap_fptr = pcap_file(pd);
-    SYNAPSE_ASSERT(pcap_fptr, "Invalid pcap file pointer");
+    assert(pcap_fptr && "Invalid pcap file pointer");
     pcap_start = ftell(pcap_fptr);
 
     run_preamble();
@@ -510,7 +510,7 @@ public:
     pdumper = pcap_dump_open(pd, _output_fname.c_str());
 
     if (pdumper == nullptr) {
-      SYNAPSE_PANIC("Unable to open file %s for writing\n", _output_fname.c_str());
+      panic("Unable to open file %s for writing\n", _output_fname.c_str());
     }
   }
 
@@ -548,7 +548,7 @@ public:
   // https://github.com/nal-epfl/castan/blob/master/scripts/pcap_tools/create_zipfian_distribution_pcap.py
   u64 generate() {
     double probability = rand.generate();
-    SYNAPSE_ASSERT(probability >= 0 && probability <= 1, "Invalid probability");
+    assert(probability >= 0 && probability <= 1 && "Invalid probability");
 
     double p = probability;
     u64 N = range + 1;
@@ -571,7 +571,7 @@ public:
 
       if (std::abs(newx - x) <= tolerance) {
         u64 i = newx - 1;
-        SYNAPSE_ASSERT(i < range, "Invalid index");
+        assert(i < range && "Invalid index");
         return i;
       }
 

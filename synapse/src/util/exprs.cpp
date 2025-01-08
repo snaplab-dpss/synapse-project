@@ -92,7 +92,7 @@ public:
   SymbolicReadsRetriever(std::optional<std::string> _filter) : filter(_filter) {}
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
-    SYNAPSE_ASSERT(e.index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
+    assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
 
     const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
     const bytes_t byte = index_const->getZExtValue();
@@ -126,7 +126,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
 }
 
 bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
 
   if (expr->getKind() == klee::Expr::Read) {
     return true;
@@ -143,14 +143,14 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   }
 
   const expr_group_t &group = groups[0];
-  SYNAPSE_ASSERT(group.has_symbol, "Group has no symbol");
+  assert(group.has_symbol && "Group has no symbol");
   symbol = group.symbol;
 
   return true;
 }
 
 bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &size) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
 
   if (expr->getKind() == klee::Expr::Read) {
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
@@ -180,7 +180,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &siz
   }
 
   const expr_group_t &group = groups[0];
-  SYNAPSE_ASSERT(group.has_symbol, "Group has no symbol");
+  assert(group.has_symbol && "Group has no symbol");
 
   if (group.symbol != "packet_chunks") {
     return false;
@@ -199,7 +199,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr) {
 }
 
 bool is_bool(klee::ref<klee::Expr> expr) {
-  SYNAPSE_ASSERT(!expr.isNull(), "Null expr");
+  assert(!expr.isNull() && "Null expr");
 
   if (expr->getWidth() == 1) {
     return true;
@@ -240,7 +240,7 @@ bool is_constant_signed(klee::ref<klee::Expr> expr) {
     return false;
   }
 
-  SYNAPSE_ASSERT(size <= 64, "Size too big");
+  assert(size <= 64 && "Size too big");
 
   auto value = solver_toolbox.value_from_expr(expr);
   auto sign_bit = value >> (size - 1);
@@ -258,7 +258,7 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
     auto constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
-    SYNAPSE_ASSERT(width <= 64, "Width too big");
+    assert(width <= 64 && "Width too big");
     value = constant->getZExtValue(width);
   } else {
     value = solver_toolbox.value_from_expr(expr);
@@ -298,8 +298,8 @@ klee::ConstraintManager join_managers(const klee::ConstraintManager &m1,
 }
 
 addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr) {
-  SYNAPSE_ASSERT(!obj_addr.isNull(), "Null obj_addr");
-  SYNAPSE_ASSERT(is_constant(obj_addr), "Non-constant obj_addr");
+  assert(!obj_addr.isNull() && "Null obj_addr");
+  assert(is_constant(obj_addr) && "Non-constant obj_addr");
   return solver_toolbox.value_from_expr(obj_addr);
 }
 
@@ -350,7 +350,7 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
         expr, solver_toolbox.exprBuilder->Constant(0, expr->getWidth()));
     break;
   default:
-    SYNAPSE_PANIC("TODO");
+    panic("TODO");
   }
 
   return constraint;
@@ -366,13 +366,13 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
   }
 
   klee::ref<klee::Expr> filtered = filter.visit(expr);
-  SYNAPSE_ASSERT(filter.check_symbols(filtered).has_not_allowed == 0, "Invalid filter");
+  assert(filter.check_symbols(filtered).has_not_allowed == 0 && "Invalid filter");
 
   return filtered;
 }
 
 std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
-  SYNAPSE_ASSERT(before->getWidth() == after->getWidth(), "Different widths");
+  assert(before->getWidth() == after->getWidth() && "Different widths");
 
   if (after->getKind() == klee::Expr::Concat) {
     bits_t msb_width = after->getKid(0)->getWidth();
@@ -416,16 +416,14 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   std::vector<expr_group_t> groups;
 
   auto process_read = [&](klee::ref<klee::Expr> read_expr) {
-    SYNAPSE_ASSERT(read_expr->getKind() == klee::Expr::Read, "Not a read");
+    assert(read_expr->getKind() == klee::Expr::Read && "Not a read");
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
 
     klee::ref<klee::Expr> index = read->index;
     const std::string symbol = read->updates.root->name;
 
-    SYNAPSE_ASSERT(index->getKind() == klee::Expr::Kind::Constant, "Non-constant index");
-
+    assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-
     unsigned byte = index_const->getZExtValue();
 
     if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol &&
@@ -439,9 +437,9 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   };
 
   auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
-    SYNAPSE_ASSERT(not_read_expr->getKind() != klee::Expr::Read, "Non read is actually a read");
+    assert(not_read_expr->getKind() != klee::Expr::Read && "Non read is actually a read");
     unsigned size = not_read_expr->getWidth();
-    SYNAPSE_ASSERT(size % 8 == 0, "Size not multiple of 8");
+    assert(size % 8 == 0 && "Size not multiple of 8");
     groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
   };
 
@@ -457,7 +455,7 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ref<klee::Expr> lhs = expr->getKid(0);
     klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-    SYNAPSE_ASSERT(lhs->getKind() != klee::Expr::Concat, "Nested concats");
+    assert(lhs->getKind() != klee::Expr::Concat && "Nested concats");
 
     if (lhs->getKind() == klee::Expr::Read) {
       process_read(lhs);

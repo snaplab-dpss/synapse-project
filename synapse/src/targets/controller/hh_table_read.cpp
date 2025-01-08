@@ -21,7 +21,7 @@ struct table_data_t {
 
   table_data_t(const EP *ep, const Call *map_get) {
     const call_t &call = map_get->get_call();
-    SYNAPSE_ASSERT(call.function_name == "map_get", "Not a map_get call");
+    assert(call.function_name == "map_get" && "Not a map_get call");
 
     obj = expr_addr_to_obj_addr(call.args.at("map").expr);
     key = call.args.at("key").in;

@@ -277,7 +277,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
 void BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
   if (this->init_synthesizers.find(call.function_name) == this->init_synthesizers.end()) {
-    SYNAPSE_PANIC("No init synthesizer found for function: %s\n", call.function_name.c_str());
+    panic("No init synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
   (this->init_synthesizers[call.function_name])(coder, call);
@@ -287,7 +287,7 @@ void BDDSynthesizer::synthesize_process(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   if (this->process_synthesizers.find(call.function_name) == this->process_synthesizers.end()) {
-    SYNAPSE_PANIC("No process synthesizer found for function: %s\n", call.function_name.c_str());
+    panic("No process synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
   (this->process_synthesizers[call.function_name])(coder, call_node);
@@ -459,7 +459,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
   if (stack_find(value, stack_value)) {
     if (stack_value.addr.isNull()) {
       bits_t width = stack_value.expr->getWidth();
-      SYNAPSE_ASSERT(width <= klee::Expr::Int64, "Invalid width");
+      assert(width <= klee::Expr::Int64 && "Invalid width");
       coder.indent();
       coder << "*(" << BDDTranspiler::type_from_size(width) << "*)";
       coder << var.name;
@@ -720,7 +720,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   for (const mod_t &mod : changes) {
     coder.indent();
 
-    SYNAPSE_ASSERT(mod.width <= 64, "Vector element size is too large");
+    assert(mod.width <= 64 && "Vector element size is too large");
 
     if (mod.width == 8) {
       coder << v.name;
@@ -865,7 +865,7 @@ void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   // coder << "// dchain_expire_one";
   // coder << ";\n";
 
-  SYNAPSE_PANIC("TODO");
+  panic("TODO");
 }
 
 void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {
@@ -1177,7 +1177,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(const std::string &name) const {
   }
 
   stack_dbg();
-  SYNAPSE_PANIC("Variable not found in stack: %s\n", name.c_str());
+  panic("Variable not found in stack: %s\n", name.c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
@@ -1187,11 +1187,11 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
   }
 
   stack_dbg();
-  SYNAPSE_PANIC("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
+  panic("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
 }
 
 code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset, bits_t size) const {
-  SYNAPSE_ASSERT(offset + size <= var.expr->getWidth(), "Out of bounds");
+  assert(offset + size <= var.expr->getWidth() && "Out of bounds");
 
   coder_t coder;
 
@@ -1261,7 +1261,7 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
 
 void BDDSynthesizer::stack_add(const var_t &var) {
   if (var.expr.isNull()) {
-    SYNAPSE_PANIC("Trying to add a variable with a null expression: %s\n", var.name.c_str());
+    panic("Trying to add a variable with a null expression: %s\n", var.name.c_str());
   }
 
   stack_frame_t &frame = stack.back();
@@ -1274,7 +1274,7 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
     for (var_t &v : frame.vars) {
       if (v.name == var.name) {
         klee::ref<klee::Expr> old_expr = v.expr;
-        SYNAPSE_ASSERT(old_expr->getWidth() == new_expr->getWidth(), "Width mismatch");
+        assert(old_expr->getWidth() == new_expr->getWidth() && "Width mismatch");
         v.expr = new_expr;
         return;
       }
@@ -1282,8 +1282,8 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
   }
 
   stack_dbg();
-  SYNAPSE_PANIC("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(),
-                expr_to_string(new_expr).c_str());
+  panic("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(),
+        expr_to_string(new_expr).c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,
