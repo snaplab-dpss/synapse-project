@@ -3,9 +3,30 @@
 namespace synapse {
 namespace tofino {
 
-void EPSynthesizer::transpile_table(coder_t &coder, const Table *table,
-                                    const std::vector<klee::ref<klee::Expr>> &keys,
-                                    const std::vector<klee::ref<klee::Expr>> &values) {
+code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Register *reg,
+                                                 RegisterActionType action) const {
+  coder_t coder;
+  coder << reg->id;
+  coder << "_";
+  switch (action) {
+  case RegisterActionType::READ:
+    coder << "read";
+    break;
+  case RegisterActionType::WRITE:
+    coder << "write";
+    break;
+  case RegisterActionType::SWAP:
+    coder << "update";
+    break;
+  }
+  coder << "_";
+  coder << node->get_id();
+  return coder.dump();
+}
+
+void EPSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
+                                         const std::vector<klee::ref<klee::Expr>> &keys,
+                                         const std::vector<klee::ref<klee::Expr>> &values) {
   code_t action_name = table->id + "_get_value";
 
   std::vector<code_t> action_params;
@@ -101,53 +122,108 @@ void EPSynthesizer::transpile_table(coder_t &coder, const Table *table,
   coder << "\n";
 }
 
-void EPSynthesizer::transpile_register(coder_t &coder, const Register *reg,
-                                       klee::ref<klee::Expr> index, klee::ref<klee::Expr> value) {
+void EPSynthesizer::transpile_register_decl(coder_t &coder, const Register *reg,
+                                            klee::ref<klee::Expr> index,
+                                            klee::ref<klee::Expr> value) {
+  // * Template:
+  // Register<{VALUE_WIDTH}, _>({CAPACITY}, {INIT_VALUE}) {NAME};
+  // * Example:
+  // Register<bit<32>, _>(1024, 0) my_register;
+
+  const u64 init_value = 0;
+
   coder.indent();
   coder << "Register<";
   coder << transpiler.type_from_size(reg->index);
   coder << ",_>";
-  coder << "(" << reg->num_entries << ",0) ";
+
+  coder << "(";
+  coder << reg->num_entries;
+  coder << ",";
+  coder << init_value;
+  coder << ")";
+
+  coder << " ";
+
   coder << reg->id;
   coder << ";\n";
-
-  for (RegisterAction action : reg->actions) {
-    coder.indent();
-    coder << "RegisterAction ";
-    coder << reg->id;
-    coder << "_";
-
-    switch (action) {
-    case RegisterAction::READ:
-      coder << "read";
-      break;
-    case RegisterAction::WRITE:
-      coder << "write";
-      break;
-    case RegisterAction::SWAP:
-      coder << "update";
-      break;
-    }
-
-    coder << transpiler.type_from_size(reg->index);
-    coder << " _index, ";
-    coder << transpiler.type_from_expr(value);
-    coder << " _value) {\n";
-
-    coder.inc();
-
-    coder.indent();
-    coder << "}\n";
-  }
-  coder.indent();
 }
 
-void EPSynthesizer::transpile_fcfs_cached_table(coder_t &coder,
-                                                const FCFSCachedTable *fcfs_cached_table,
-                                                klee::ref<klee::Expr> key,
-                                                klee::ref<klee::Expr> value) {
+void EPSynthesizer::transpile_register_action_decl(coder_t &coder, const Register *reg,
+                                                   tofino::RegisterActionType type,
+                                                   const code_t &name,
+                                                   klee::ref<klee::Expr> write_value) {
+  // * Example:
+  // RegisterAction<time_t, hash_t, bool>(expirator_t0) expirator_read_t0 = {
+  // 		void apply(inout time_t alarm, out bool alive) {
+  // 			if (meta.now < alarm) {
+  // 				alive = true;
+  // 			} else {
+  // 				alive = false;
+  // 			}
+  // 		}
+  // 	};
+
+  code_t value_type = transpiler.type_from_size(reg->value);
+  code_t index_type = transpiler.type_from_size(reg->index);
+
+  coder.indent();
+  coder << "RegisterAction<";
+  coder << value_type;
+  coder << ",";
+  coder << index_type;
+  coder << ",";
+  coder << value_type;
+  coder << ">";
+
+  coder << "(";
+  coder << reg->id;
+  coder << ")";
+
+  coder << " ";
+  coder << name;
+  coder << " = {\n";
+
+  coder.inc();
+
+  switch (type) {
+  case RegisterActionType::READ: {
+    panic("TODO: RegisterActionType::READ");
+  } break;
+  case RegisterActionType::WRITE: {
+    coder.indent();
+    coder << "void apply(inout ";
+    coder << value_type;
+    coder << " value, out ";
+    coder << value_type;
+    coder << " out_value) {\n";
+
+    coder.inc();
+    coder.indent();
+    coder << "value = ";
+    coder << transpiler.transpile(write_value);
+    coder << ";\n";
+
+    coder.dec();
+    coder.indent();
+    coder << "}\n";
+  } break;
+  case RegisterActionType::SWAP: {
+    panic("TODO: RegisterActionType::SWAP");
+  } break;
+  }
+
+  coder.indent();
+  coder << "};\n";
+}
+
+void EPSynthesizer::transpile_fcfs_cached_table_decl(coder_t &coder,
+                                                     const FCFSCachedTable *fcfs_cached_table,
+                                                     const klee::ref<klee::Expr> key,
+                                                     const klee::ref<klee::Expr> value) {
   // for (const Table &table : fcfs_cached_table->tables) {
   // }
+  panic("TODO: transpile_fcfs_cached_table_decl")
 }
 
 } // namespace tofino

@@ -131,7 +131,8 @@ kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
     decls.emplace_back(decl);
 
     if (klee::expr::ArrayDecl *array_decl = dyn_cast<klee::expr::ArrayDecl>(decl)) {
-      manager->store_clone(array_decl->Root);
+      symbol_t symbol = manager->store_clone(array_decl->Root);
+      kQuery.symbols.add(symbol);
     } else if (klee::expr::QueryCommand *qc = dyn_cast<klee::expr::QueryCommand>(decl)) {
       for (klee::ref<klee::Expr> expr : qc->Constraints)
         kQuery.constraints.push_back(expr);

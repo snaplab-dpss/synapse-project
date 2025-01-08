@@ -20,7 +20,6 @@ enum class DSImpl {
   Tofino_Table,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
-  Tofino_MapRegister,
   Tofino_Meter,
   Tofino_HeavyHitterTable,
   Tofino_IntegerAllocator,

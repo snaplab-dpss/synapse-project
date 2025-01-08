@@ -246,13 +246,10 @@ void Node::recursive_translate_symbol(SymbolManager *symbol_manager, const symbo
         rename_call_symbols(symbol_manager, call, {{old_symbol.name, new_symbol.name}});
     call_node->set_call(new_call);
 
-    symbols_t generated_symbols = call_node->get_local_symbols();
-
-    auto same_symbol = [old_symbol](const symbol_t &s) { return s.base == old_symbol.base; };
-
-    size_t removed = std::erase_if(generated_symbols, same_symbol);
-    if (removed > 0) {
-      generated_symbols.insert(new_symbol);
+    Symbols generated_symbols = call_node->get_local_symbols();
+    if (generated_symbols.has(old_symbol.name)) {
+      generated_symbols.remove(old_symbol.name);
+      generated_symbols.add(new_symbol);
       call_node->set_locally_generated_symbols(generated_symbols);
     }
 
@@ -414,8 +411,8 @@ void Node::recursive_free_children(NodeManager &manager) {
   }
 }
 
-symbols_t Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
-  symbols_t symbols;
+Symbols Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
+  Symbols symbols;
   const Node *node = get_prev();
 
   const std::unordered_set<std::string> ignoring_symbols{
@@ -430,14 +427,14 @@ symbols_t Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
 
     if (node->get_type() == NodeType::Call) {
       const Call *call_node = dynamic_cast<const Call *>(node);
-      const symbols_t &local_symbols = call_node->get_local_symbols();
+      const Symbols &local_symbols = call_node->get_local_symbols();
 
-      for (const symbol_t &symbol : local_symbols) {
+      for (const symbol_t &symbol : local_symbols.get()) {
         if (ignoring_symbols.find(symbol.base) != ignoring_symbols.end()) {
           continue;
         }
 
-        symbols.insert(symbol);
+        symbols.add(symbol);
       }
     }
 
@@ -496,8 +493,8 @@ std::vector<const Call *> Node::get_future_functions(const std::vector<std::stri
   return functions;
 }
 
-symbols_t Node::get_used_symbols() const {
-  symbols_t symbols;
+Symbols Node::get_used_symbols() const {
+  Symbols symbols;
 
   switch (type) {
   case NodeType::Branch: {
@@ -505,7 +502,7 @@ symbols_t Node::get_used_symbols() const {
     klee::ref<klee::Expr> expr = branch_node->get_condition();
     std::unordered_set<std::string> names = symbol_t::get_symbols_names(expr);
     for (const std::string &name : names) {
-      symbols.insert(symbol_manager->get_symbol(name));
+      symbols.add(symbol_manager->get_symbol(name));
     }
   } break;
   case NodeType::Call: {
@@ -516,21 +513,21 @@ symbols_t Node::get_used_symbols() const {
       if (!arg.expr.isNull()) {
         std::unordered_set<std::string> names = symbol_t::get_symbols_names(arg.expr);
         for (const std::string &name : names) {
-          symbols.insert(symbol_manager->get_symbol(name));
+          symbols.add(symbol_manager->get_symbol(name));
         }
       }
 
       if (!arg.in.isNull()) {
         std::unordered_set<std::string> names = symbol_t::get_symbols_names(arg.in);
         for (const std::string &name : names) {
-          symbols.insert(symbol_manager->get_symbol(name));
+          symbols.add(symbol_manager->get_symbol(name));
         }
       }
 
       if (!arg.out.isNull()) {
         std::unordered_set<std::string> names = symbol_t::get_symbols_names(arg.out);
         for (const std::string &name : names) {
-          symbols.insert(symbol_manager->get_symbol(name));
+          symbols.add(symbol_manager->get_symbol(name));
         }
       }
     }
@@ -539,14 +536,14 @@ symbols_t Node::get_used_symbols() const {
       if (!extra_var.first.isNull()) {
         std::unordered_set<std::string> names = symbol_t::get_symbols_names(extra_var.first);
         for (const std::string &name : names) {
-          symbols.insert(symbol_manager->get_symbol(name));
+          symbols.add(symbol_manager->get_symbol(name));
         }
       }
 
       if (!extra_var.second.isNull()) {
         std::unordered_set<std::string> names = symbol_t::get_symbols_names(extra_var.second);
         for (const std::string &name : names) {
-          symbols.insert(symbol_manager->get_symbol(name));
+          symbols.add(symbol_manager->get_symbol(name));
         }
       }
     }

@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "exprs.h"
 #include "solver.h"
 #include "../log.h"
@@ -45,7 +43,7 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
                                           klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result;
+  bool result = false;
   bool success = solver->mayBeTrue(sat_query, result);
   assert(success && "Failed to check if expr is maybe true");
 
@@ -71,8 +69,8 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::re
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
   klee::Query eq_in_e2_ctx_sat_query(c2, eq_expr);
 
-  bool eq_in_e1_ctx;
-  bool eq_in_e2_ctx;
+  bool eq_in_e1_ctx = false;
+  bool eq_in_e2_ctx = false;
 
   bool eq_in_e1_ctx_success = solver->mustBeTrue(eq_in_e1_ctx_sat_query, eq_in_e1_ctx);
   bool eq_in_e2_ctx_success = solver->mustBeTrue(eq_in_e2_ctx_sat_query, eq_in_e2_ctx);
@@ -92,8 +90,8 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1,
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
   klee::Query eq_in_e2_ctx_sat_query(c2, eq_expr);
 
-  bool not_eq_in_e1_ctx;
-  bool not_eq_in_e2_ctx;
+  bool not_eq_in_e1_ctx = false;
+  bool not_eq_in_e2_ctx = false;
 
   bool not_eq_in_e1_ctx_success = solver->mustBeFalse(eq_in_e1_ctx_sat_query, not_eq_in_e1_ctx);
   bool not_eq_in_e2_ctx_success = solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx);
@@ -150,43 +148,9 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
   return is_expr_always_true(eq);
 }
 
-bool solver_toolbox_t::are_exprs_values_always_equal(klee::ref<klee::Expr> expr1,
-                                                     klee::ref<klee::Expr> expr2) const {
-  if (expr1.isNull() != expr2.isNull()) {
-    return false;
-  }
-
-  if (expr1.isNull()) {
-    return true;
-  }
-
-  u64 v1 = value_from_expr(expr1);
-  u64 v2 = value_from_expr(expr2);
-
-  klee::ref<klee::Expr> v1_const = exprBuilder->Constant(v1, expr1->getWidth());
-  klee::ref<klee::Expr> v2_const = exprBuilder->Constant(v2, expr2->getWidth());
-
-  bool always_v1 = are_exprs_always_equal(v1_const, expr1);
-  bool always_v2 = are_exprs_always_equal(v2_const, expr2);
-
-  if (!always_v1) {
-    std::cerr << "are_exprs_values_always_equal error\n";
-    std::cerr << "expr1 not always = " << expr_to_string(v1_const) << "\n";
-    std::cerr << "expr1: " << expr_to_string(expr1) << "\n";
-    panic("are_exprs_values_always_equal error");
-  }
-
-  if (!always_v2) {
-    std::cerr << "are_exprs_values_always_equal error\n";
-    std::cerr << "expr2 not always = " << expr_to_string(v2_const) << "\n";
-    std::cerr << "expr2: " << expr_to_string(expr2) << "\n";
-    panic("are_exprs_values_always_equal error");
-  }
-
-  return v1 == v2;
-}
-
 u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
+  assert(expr->getWidth() <= 64 && "Width too big");
+
   if (expr->getKind() == klee::Expr::Kind::Constant) {
     auto constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
     return constant_expr->getZExtValue();

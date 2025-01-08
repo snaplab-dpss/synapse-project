@@ -218,7 +218,8 @@ std::pair<hit_rate_t, std::string> n2hr(u64 n) {
   return {n / 1e12, "T"};
 }
 
-addr_t get_vector_map_key(const BDD *bdd, const map_coalescing_objs_t &map_coalescing_objs) {
+addr_t get_vector_obj_storing_map_key(const BDD *bdd,
+                                      const map_coalescing_objs_t &map_coalescing_objs) {
   std::vector<const Call *> vector_borrows =
       bdd->get_root()->get_future_functions({"vector_borrow"});
 
@@ -261,21 +262,6 @@ addr_t get_vector_map_key(const BDD *bdd, const map_coalescing_objs_t &map_coale
       continue;
     }
 
-    const Call *vector_return = vector_borrow->get_vector_return_from_borrow();
-    const call_t &vr = vector_return->get_call();
-
-    klee::ref<klee::Expr> ret_vector_expr = vr.args.at("vector").expr;
-    klee::ref<klee::Expr> ret_value_addr_expr = vr.args.at("value").expr;
-
-    addr_t ret_vector_obj = expr_addr_to_obj_addr(vector_expr);
-    addr_t ret_value_addr = expr_addr_to_obj_addr(value_addr_expr);
-
-    assert(ret_vector_obj == vector_obj && "Vector objects don't match");
-
-    // vector_borrow operation deemed this vector as a key vector, but the
-    // vector_return contradicts this information.
-    assert(ret_value_addr == value_addr && "Value addresses don't match");
-
     return vector_obj;
   }
 
@@ -288,7 +274,7 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
     return;
   }
 
-  addr_t vector_key = get_vector_map_key(bdd, map_coalescing_data);
+  addr_t vector_key = get_vector_obj_storing_map_key(bdd, map_coalescing_data);
   std::unordered_set<const Node *> candidates;
 
   bdd->get_root()->visit_nodes([map_coalescing_data, vector_key, &candidates](const Node *node) {
@@ -342,33 +328,6 @@ struct pair_hash {
     return h1 ^ h2;
   }
 };
-
-std::vector<mod_t> build_vector_modifications(const Call *vector_borrow,
-                                              const Call *vector_return) {
-  using vectors_pair = std::pair<node_id_t, node_id_t>;
-  using cache_t = std::unordered_map<vectors_pair, std::vector<mod_t>, pair_hash>;
-  static cache_t cache;
-
-  auto cache_found_it = cache.find({vector_borrow->get_id(), vector_return->get_id()});
-  if (cache_found_it != cache.end()) {
-    return cache_found_it->second;
-  }
-
-  const call_t &vb_call = vector_borrow->get_call();
-  const call_t &vr_call = vector_return->get_call();
-
-  assert(vb_call.function_name == "vector_borrow" && "Unexpected function");
-  assert(vr_call.function_name == "vector_return" && "Unexpected function");
-
-  klee::ref<klee::Expr> original_value = vb_call.extra_vars.at("borrowed_cell").second;
-  klee::ref<klee::Expr> value = vr_call.args.at("value").in;
-
-  std::vector<mod_t> changes = build_expr_mods(original_value, value);
-
-  cache[{vector_borrow->get_id(), vector_return->get_id()}] = changes;
-
-  return changes;
-}
 
 std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
                                            const Call *packet_return_chunk) {

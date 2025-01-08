@@ -51,11 +51,6 @@ enum class ModuleType {
   Tofino_FCFSCachedTableWrite,
   Tofino_FCFSCachedTableDelete,
 
-  Tofino_MapRegisterRead,
-  Tofino_MapRegisterReadOrWrite,
-  Tofino_MapRegisterWrite,
-  Tofino_MapRegisterDelete,
-
   Tofino_MeterUpdate,
 
   Tofino_HHTableRead,
@@ -93,10 +88,6 @@ enum class ModuleType {
   Controller_FCFSCachedTableRead,
   Controller_FCFSCachedTableWrite,
   Controller_FCFSCachedTableDelete,
-
-  Controller_MapRegisterRead,
-  Controller_MapRegisterWrite,
-  Controller_MapRegisterDelete,
 
   Controller_HHTableRead,
   Controller_HHTableConditionalUpdate,
@@ -245,18 +236,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_FCFSCachedTableDelete:
     os << "Tofino_FCFSCachedTableDelete";
     break;
-  case ModuleType::Tofino_MapRegisterRead:
-    os << "Tofino_MapRegisterRead";
-    break;
-  case ModuleType::Tofino_MapRegisterReadOrWrite:
-    os << "Tofino_MapRegisterReadOrWrite";
-    break;
-  case ModuleType::Tofino_MapRegisterWrite:
-    os << "Tofino_MapRegisterWrite";
-    break;
-  case ModuleType::Tofino_MapRegisterDelete:
-    os << "Tofino_MapRegisterDelete";
-    break;
   case ModuleType::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
@@ -334,15 +313,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_FCFSCachedTableDelete:
     os << "Controller_FCFSCachedTableDelete";
-    break;
-  case ModuleType::Controller_MapRegisterRead:
-    os << "Controller_MapRegisterRead";
-    break;
-  case ModuleType::Controller_MapRegisterWrite:
-    os << "Controller_MapRegisterWrite";
-    break;
-  case ModuleType::Controller_MapRegisterDelete:
-    os << "Controller_MapRegisterDelete";
     break;
   case ModuleType::Controller_HHTableRead:
     os << "Controller_HHTableRead";

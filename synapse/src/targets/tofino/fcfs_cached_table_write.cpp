@@ -200,7 +200,7 @@ EP *concretize_cached_table_write(const EP *ep, const Node *node,
       new_ep, node, cached_table_data, cache_write_success_condition, map_objs,
       on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);
 
-  symbols_t symbols = TofinoModuleFactory::get_dataplane_state(ep, node);
+  Symbols symbols = TofinoModuleFactory::get_dataplane_state(ep, node);
 
   Module *if_module = new If(node, cache_write_success_condition, {cache_write_success_condition});
   Module *then_module = new Then(node);
@@ -371,12 +371,8 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  // FIXME:
-  // symbol_t cache_write_failed = create_symbol("cache_write_failed", 32);
-  symbol_t cache_write_failed;
-
+  symbol_t cache_write_failed = symbol_manager->create_symbol("cache_write_failed", 32);
   fcfs_cached_table_data_t cached_table_data(ep, future_map_puts);
-
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {

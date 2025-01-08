@@ -545,8 +545,10 @@ std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed) {
 
 std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
   std::string expr_str;
-  if (expr.isNull())
+  if (expr.isNull()) {
+    expr_str = "(null)";
     return expr_str;
+  }
   llvm::raw_string_ostream os(expr_str);
   expr->print(os);
   os.str();

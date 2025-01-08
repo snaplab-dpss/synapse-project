@@ -36,6 +36,7 @@ private:
   std::vector<vars_t> var_stacks;
   std::vector<vars_t> hdrs_stacks;
 
+  std::unordered_set<DS_ID> declared_ds;
   std::unordered_map<node_id_t, vars_t> parser_vars;
   std::unordered_map<node_id_t, vars_t> parser_hdrs;
 
@@ -94,15 +95,19 @@ private:
   vars_t get_squashed_hdrs() const;
 
   bool get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr, var_t &out_var) const;
-
+  code_t build_register_action_name(const EPNode *node, const Register *reg,
+                                    RegisterActionType action) const;
   void transpile_parser(const Parser &parser);
-  void transpile_table(coder_t &coder, const Table *table,
-                       const std::vector<klee::ref<klee::Expr>> &keys,
-                       const std::vector<klee::ref<klee::Expr>> &values);
-  void transpile_register(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index,
-                          klee::ref<klee::Expr> value);
-  void transpile_fcfs_cached_table(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
-                                   klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
+  void transpile_table_decl(coder_t &coder, const Table *table,
+                            const std::vector<klee::ref<klee::Expr>> &keys,
+                            const std::vector<klee::ref<klee::Expr>> &values);
+  void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index,
+                               klee::ref<klee::Expr> value);
+  void transpile_register_action_decl(coder_t &coder, const Register *reg,
+                                      tofino::RegisterActionType type, const code_t &name,
+                                      klee::ref<klee::Expr> write_value = nullptr);
+  void transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
+                                        klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
 
   void dbg_vars() const;
 

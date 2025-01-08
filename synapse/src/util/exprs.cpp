@@ -226,15 +226,21 @@ bool is_constant(klee::ref<klee::Expr> expr) {
     return true;
   }
 
-  auto value = solver_toolbox.value_from_expr(expr);
-  auto const_value = solver_toolbox.exprBuilder->Constant(value, expr->getWidth());
-  auto is_always_eq = solver_toolbox.are_exprs_always_equal(const_value, expr);
+  std::unordered_set<std::string> symbols_names = symbol_t::get_symbols_names(expr);
+  if (!symbols_names.empty()) {
+    return false;
+  }
+
+  u64 value = solver_toolbox.value_from_expr(expr);
+  bits_t width = expr->getWidth();
+  klee::ref<klee::Expr> const_value = solver_toolbox.exprBuilder->Constant(value, width);
+  bool is_always_eq = solver_toolbox.are_exprs_always_equal(const_value, expr);
 
   return is_always_eq;
 }
 
 bool is_constant_signed(klee::ref<klee::Expr> expr) {
-  auto size = expr->getWidth();
+  bits_t size = expr->getWidth();
 
   if (!is_constant(expr)) {
     return false;
@@ -242,8 +248,8 @@ bool is_constant_signed(klee::ref<klee::Expr> expr) {
 
   assert(size <= 64 && "Size too big");
 
-  auto value = solver_toolbox.value_from_expr(expr);
-  auto sign_bit = value >> (size - 1);
+  u64 value = solver_toolbox.value_from_expr(expr);
+  u64 sign_bit = value >> (size - 1);
 
   return sign_bit == 1;
 }
@@ -253,11 +259,11 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
     return false;
   }
 
-  u64 value;
-  auto width = expr->getWidth();
+  u64 value = 0;
+  bits_t width = expr->getWidth();
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    auto constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
     assert(width <= 64 && "Width too big");
     value = constant->getZExtValue(width);
   } else {
@@ -374,6 +380,10 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
 std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
   assert(before->getWidth() == after->getWidth() && "Different widths");
 
+  if (solver_toolbox.are_exprs_always_equal(before, after)) {
+    return {};
+  }
+
   if (after->getKind() == klee::Expr::Concat) {
     bits_t msb_width = after->getKid(0)->getWidth();
     bits_t lsb_width = after->getWidth() - msb_width;
@@ -384,18 +394,13 @@ std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee:
     std::vector<mod_t> lsb_groups = build_expr_mods(
         solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
 
-    std::vector<mod_t> groups = lsb_groups;
+    std::vector<mod_t> &groups = lsb_groups;
 
-    for (mod_t group : msb_groups) {
-      group.offset += lsb_width / 8;
-      groups.push_back(group);
+    for (const mod_t &group : msb_groups) {
+      groups.emplace_back(lsb_width / 8, group.width, group.expr);
     }
 
     return groups;
-  }
-
-  if (solver_toolbox.are_exprs_always_equal(before, after)) {
-    return {};
   }
 
   return {mod_t(0, after->getWidth(), after)};

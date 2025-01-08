@@ -30,11 +30,11 @@ public:
 
   bool has_symbol(const std::string &name) const;
   symbol_t get_symbol(const std::string &name) const;
-  symbols_t get_symbols() const;
-  symbols_t get_symbols_with_base(const std::string &base) const;
+  Symbols get_symbols() const;
+  Symbols get_symbols_with_base(const std::string &base) const;
   bool manages(klee::ref<klee::Expr> expr) const;
 
-  void store_clone(const klee::Array *array);
+  symbol_t store_clone(const klee::Array *array);
   symbol_t create_symbol(const std::string &name, bits_t size);
   klee::ref<klee::Expr> translate(klee::ref<klee::Expr> expr,
                                   std::unordered_map<std::string, std::string> translations);

@@ -20,12 +20,12 @@ constexpr const char *const MARKER_EGRESS_METADATA = "EGRESS_METADATA";
 
 constexpr const char *const TEMPLATE_FILENAME = "tofino.template.p4";
 
-const DS *get_tofino_ds(const EP *ep, DS_ID id) {
+template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const DS *ds = tofino_ctx->get_ds_from_id(id);
   assert(ds && "DS not found");
-  return ds;
+  return dynamic_cast<const T *>(ds);
 }
 
 const Parser &get_tofino_parser(const EP *ep) {
@@ -319,9 +319,9 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
 
-  const symbols_t &symbols = node->get_symbols();
+  const Symbols &symbols = node->get_symbols();
 
-  for (const symbol_t &symbol : symbols) {
+  for (const symbol_t &symbol : symbols.get()) {
     var_t var;
     bool found = get_var(symbol.expr, var);
     assert(found && "Symbol not found");
@@ -356,8 +356,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Recirculate *node) {
-  // TODO:
-  panic("TODO");
+  panic("TODO: Recirculate");
   return EPVisitor::Action::doChildren;
 }
 
@@ -433,7 +432,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   ingress.indent();
   ingress << "if (";
   ingress << cond_val;
-  // TODO: condition
+  panic("TODO: condition");
   ingress << ") {\n";
 
   ingress.inc();
@@ -503,8 +502,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::Broadcast *node) {
-  // TODO:
-  panic("TODO");
+  panic("TODO: Broadcast");
   return EPVisitor::Action::doChildren;
 }
 
@@ -591,14 +589,14 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   DS_ID table_id = node->get_table_id();
-  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
-  const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
-  const std::optional<symbol_t> &hit = node->get_hit();
+  std::optional<symbol_t> hit = node->get_hit();
 
-  const DS *ds = get_tofino_ds(ep, table_id);
-  const Table *table = dynamic_cast<const Table *>(ds);
+  const Table *table = get_tofino_ds<Table>(ep, table_id);
 
-  transpile_table(ingress, table, keys, values);
+  if (declared_ds.find(table_id) == declared_ds.end()) {
+    transpile_table_decl(ingress, table, node->get_keys(), node->get_values());
+    declared_ds.insert(table_id);
+  }
 
   ingress_apply.indent();
 
@@ -628,21 +626,36 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   // klee::ref<klee::Expr> value = node->get_value();
 
   // for (DS_ID rid : rids) {
-  //   const DS *ds = get_tofino_ds(ep, rid);
-  //   const Register *reg = dynamic_cast<const Register *>(ds);
+  //   const Register *reg = get_tofino_ds<Register>(ep, rid);
   //   transpile_register(ingress, reg, index, value);
   // }
 
-  dbg();
-  panic("TODO");
+  panic("TODO: VectorRegisterLookup");
 
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::VectorRegisterUpdate *node) {
-  // TODO:
-  panic("TODO");
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const std::unordered_set<DS_ID> &rids = node->get_rids();
+  klee::ref<klee::Expr> index = node->get_index();
+  klee::ref<klee::Expr> value = node->get_read_value();
+
+  for (DS_ID rid : rids) {
+    const Register *reg = get_tofino_ds<Register>(ep, rid);
+    if (declared_ds.find(rid) == declared_ds.end()) {
+      transpile_register_decl(ingress, reg, index, value);
+      declared_ds.insert(rid);
+    }
+  }
+
+  dbg_code();
+  dbg_pause();
+
+  panic("TODO: VectorRegisterUpdate");
   return EPVisitor::Action::doChildren;
 }
 
@@ -662,28 +675,25 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   // transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   // dbg();
 
-  panic("TODO");
+  panic("TODO: FCFSCachedTableRead");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableReadOrWrite *node) {
-  // TODO:
-  panic("TODO");
+  panic("TODO: FCFSCachedTableReadOrWrite");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableWrite *node) {
-  // TODO:
-  panic("TODO");
+  panic("TODO: FCFSCachedTableWrite");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                        const tofino::FCFSCachedTableDelete *node) {
-  // TODO:
-  panic("TODO");
+  panic("TODO: FCFSCachedTableDelete");
   return EPVisitor::Action::doChildren;
 }
 

@@ -5,7 +5,7 @@
 namespace synapse {
 namespace tofino {
 namespace {
-EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols, int recirc_port,
+EP *generate_new_ep(const EP *ep, const Node *node, const Symbols &symbols, int recirc_port,
                     const std::vector<int> &past_recirculations) {
   int port_recirculations = 1;
   for (int p : past_recirculations) {
@@ -31,7 +31,7 @@ EP *generate_new_ep(const EP *ep, const Node *node, const symbols_t &symbols, in
 
 EP *concretize_single_port_recirc(const EP *ep, const Node *node,
                                   const std::vector<int> &past_recirc, int rport,
-                                  const symbols_t &symbols) {
+                                  const Symbols &symbols) {
   bool marked = false;
   bool returning_recirc = false;
 
@@ -86,7 +86,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *n
   int total_recirc_ports = get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
   std::vector<int> past_recirc = get_past_recirculations(active_leaf.node);
 
-  symbols_t symbols = get_dataplane_state(ep, node);
+  Symbols symbols = get_dataplane_state(ep, node);
 
   for (int rport = 0; rport < total_recirc_ports; rport++) {
     EP *new_ep = concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);

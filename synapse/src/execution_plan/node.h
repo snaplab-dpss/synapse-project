@@ -7,7 +7,6 @@
 
 namespace synapse {
 class Module;
-class EPVisitor;
 class EP;
 enum class ModuleType;
 

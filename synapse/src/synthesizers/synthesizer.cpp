@@ -96,7 +96,7 @@ void Synthesizer::dump() const {
   out.flush();
 }
 
-void Synthesizer::dbg() const {
+void Synthesizer::dbg_code() const {
   for (const auto &[marker_label, coder] : coders) {
     marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
     code_t code = coder.stream.str();

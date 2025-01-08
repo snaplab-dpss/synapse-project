@@ -42,6 +42,6 @@ public:
 protected:
   coder_t &get(const marker_t &marker);
   void dump() const;
-  void dbg() const;
+  void dbg_code() const;
 };
 } // namespace synapse

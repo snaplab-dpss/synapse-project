@@ -11,6 +11,7 @@
 namespace synapse {
 
 struct kQuery_t {
+  Symbols symbols;
   std::vector<klee::ref<klee::Expr>> values;
   std::vector<klee::ref<klee::Expr>> constraints;
 

@@ -57,66 +57,142 @@ std::string Call::dump(bool one_liner, bool id_name_only) const {
   return ss.str();
 }
 
-const symbols_t &Call::get_local_symbols() const { return generated_symbols; }
+const Symbols &Call::get_local_symbols() const { return generated_symbols; }
 
 symbol_t Call::get_local_symbol(const std::string &base) const {
   assert(!base.empty() && "Empty base");
   assert(!generated_symbols.empty() && "No symbols");
 
-  for (const symbol_t &symbol : generated_symbols) {
-    if (symbol.base == base) {
-      return symbol;
-    }
-  }
+  Symbols filtered = generated_symbols.filter_by_base(base);
 
-  panic("Symbol %s not found", base.c_str());
+  assert(!filtered.empty() && "Symbol not found");
+  assert(filtered.size() == 1 && "Multiple symbols found");
+
+  return filtered.get().front();
 }
 
 bool Call::has_local_symbol(const std::string &base) const {
-  for (const symbol_t &symbol : generated_symbols) {
-    if (symbol.base == base) {
-      return true;
-    }
-  }
-
-  return false;
+  return !generated_symbols.filter_by_base(base).empty();
 }
 
 bool Call::is_vector_read() const {
   const Call *vector_borrow = nullptr;
-  const Call *vector_return = nullptr;
+  std::vector<const Call *> vector_returns;
 
   if (call.function_name == "vector_borrow") {
     vector_borrow = this;
-    vector_return = get_vector_return_from_borrow();
+    vector_returns = get_vector_returns_from_borrow();
   } else if (call.function_name == "vector_return") {
     vector_borrow = get_vector_borrow_from_return();
-    vector_return = this;
+    vector_returns = {this};
   } else {
     return false;
   }
 
   assert(vector_borrow && "Vector borrow not found");
 
-  if (!vector_return) {
+  if (vector_returns.empty()) {
     return true;
   }
 
-  const call_t &vb = vector_borrow->get_call();
-  const call_t &vr = vector_return->get_call();
+  for (const Call *vector_return : vector_returns) {
+    const call_t &vb = vector_borrow->get_call();
+    const call_t &vr = vector_return->get_call();
 
-  klee::ref<klee::Expr> vb_value = vb.extra_vars.at("borrowed_cell").second;
-  klee::ref<klee::Expr> vr_value = vr.args.at("value").in;
+    klee::ref<klee::Expr> vb_value = vb.extra_vars.at("borrowed_cell").second;
+    klee::ref<klee::Expr> vr_value = vr.args.at("value").in;
 
-  return solver_toolbox.are_exprs_always_equal(vb_value, vr_value);
+    if (!solver_toolbox.are_exprs_always_equal(vb_value, vr_value)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool Call::is_vector_write() const {
-  return (call.function_name == "vector_borrow" || call.function_name == "vector_return") &&
-         !is_vector_read();
+  const Call *vector_borrow = nullptr;
+  std::vector<const Call *> vector_returns;
+
+  if (call.function_name == "vector_borrow") {
+    vector_borrow = this;
+    vector_returns = get_vector_returns_from_borrow();
+  } else if (call.function_name == "vector_return") {
+    vector_borrow = get_vector_borrow_from_return();
+    vector_returns = {this};
+  } else {
+    return false;
+  }
+
+  assert(vector_borrow && "Vector borrow not found");
+
+  if (vector_returns.empty()) {
+    return true;
+  }
+
+  for (const Call *vector_return : vector_returns) {
+    const call_t &vb = vector_borrow->get_call();
+    const call_t &vr = vector_return->get_call();
+
+    klee::ref<klee::Expr> vb_value = vb.extra_vars.at("borrowed_cell").second;
+    klee::ref<klee::Expr> vr_value = vr.args.at("value").in;
+
+    if (solver_toolbox.are_exprs_always_equal(vb_value, vr_value)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
-bool Call::is_vector_borrow_ignored() const {
+std::vector<const Call *> Call::get_vector_returns_from_borrow() const {
+  std::vector<const Call *> vector_returns;
+
+  if (call.function_name != "vector_borrow") {
+    return vector_returns;
+  }
+
+  addr_t vector = expr_addr_to_obj_addr(call.args.at("vector").expr);
+  klee::ref<klee::Expr> index = call.args.at("index").expr;
+
+  for (const Call *vector_return : get_future_functions({"vector_return"})) {
+    const call_t &vr = vector_return->get_call();
+    addr_t vr_vector = expr_addr_to_obj_addr(vr.args.at("vector").expr);
+    klee::ref<klee::Expr> vr_index = vr.args.at("index").expr;
+
+    if (vr_vector == vector && solver_toolbox.are_exprs_always_equal(vr_index, index)) {
+      vector_returns.push_back(vector_return);
+    }
+  }
+
+  return vector_returns;
+}
+
+const Call *Call::get_vector_borrow_from_return() const {
+  if (call.function_name != "vector_return") {
+    return nullptr;
+  }
+
+  addr_t vector = expr_addr_to_obj_addr(call.args.at("vector").expr);
+  klee::ref<klee::Expr> index = call.args.at("index").expr;
+
+  const Call *target_vector_borrow = nullptr;
+
+  for (const Call *vector_borrow : get_prev_functions({"vector_borrow"})) {
+    const call_t &vb = vector_borrow->get_call();
+    addr_t vb_vector = expr_addr_to_obj_addr(vb.args.at("vector").expr);
+    klee::ref<klee::Expr> vb_index = vb.args.at("index").expr;
+
+    if (vb_vector == vector && solver_toolbox.are_exprs_always_equal(vb_index, index)) {
+      assert(!target_vector_borrow && "Multiple vector_borrows for the same vector_return");
+      target_vector_borrow = vector_borrow;
+    }
+  }
+
+  return target_vector_borrow;
+}
+
+bool Call::is_vector_borrow_value_ignored() const {
   if (call.function_name != "vector_borrow") {
     return false;
   }
@@ -133,7 +209,7 @@ bool Call::is_vector_borrow_ignored() const {
   bool used = false;
 
   next->visit_nodes([&value, &used](const Node *node) {
-    for (const symbol_t &symbol : node->get_used_symbols()) {
+    for (const symbol_t &symbol : node->get_used_symbols().get()) {
       if (symbol.name == value.name) {
         used = true;
         return NodeVisitAction::Stop;
@@ -144,48 +220,6 @@ bool Call::is_vector_borrow_ignored() const {
   });
 
   return !used;
-}
-
-const Call *Call::get_vector_return_from_borrow() const {
-  if (call.function_name != "vector_borrow") {
-    return nullptr;
-  }
-
-  addr_t vector = expr_addr_to_obj_addr(call.args.at("vector").expr);
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-
-  for (const Call *vector_return : get_future_functions({"vector_return"})) {
-    const call_t &vr = vector_return->get_call();
-    addr_t vr_vector = expr_addr_to_obj_addr(vr.args.at("vector").expr);
-    klee::ref<klee::Expr> vr_index = vr.args.at("index").expr;
-
-    if (vr_vector == vector && solver_toolbox.are_exprs_always_equal(vr_index, index)) {
-      return vector_return;
-    }
-  }
-
-  return nullptr;
-}
-
-const Call *Call::get_vector_borrow_from_return() const {
-  if (call.function_name != "vector_return") {
-    return nullptr;
-  }
-
-  addr_t vector = expr_addr_to_obj_addr(call.args.at("vector").expr);
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-
-  for (const Call *vector_borrow : get_prev_functions({"vector_borrow"})) {
-    const call_t &vb = vector_borrow->get_call();
-    addr_t vb_vector = expr_addr_to_obj_addr(vb.args.at("vector").expr);
-    klee::ref<klee::Expr> vb_index = vb.args.at("index").expr;
-
-    if (vb_vector == vector && solver_toolbox.are_exprs_always_equal(vb_index, index)) {
-      return vector_borrow;
-    }
-  }
-
-  return nullptr;
 }
 
 bool Call::is_vector_return_without_modifications() const {
@@ -200,12 +234,12 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
   }
 
   symbol_t out_of_space = get_local_symbol("out_of_space");
-  symbols_t freed_flows_symbols = symbol_manager->get_symbols_with_base("number_of_freed_flows");
+  Symbols freed_flows_symbols = symbol_manager->get_symbols_with_base("number_of_freed_flows");
   assert(freed_flows_symbols.size() <= 1 && "Multiple number_of_freed_flows symbols");
 
   std::unordered_set<std::string> target_names;
   target_names.insert(out_of_space.name);
-  for (const symbol_t &symbol : freed_flows_symbols) {
+  for (const symbol_t &symbol : freed_flows_symbols.get()) {
     target_names.insert(symbol.name);
   }
 
@@ -233,7 +267,7 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
         out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, out_of_space.expr->getWidth()));
 
     if (!freed_flows_symbols.empty()) {
-      klee::ref<klee::Expr> freed_flows = freed_flows_symbols.begin()->expr;
+      klee::ref<klee::Expr> freed_flows = freed_flows_symbols.get().begin()->expr;
       success_condition = solver_toolbox.exprBuilder->Or(
           success_condition,
           solver_toolbox.exprBuilder->Ne(

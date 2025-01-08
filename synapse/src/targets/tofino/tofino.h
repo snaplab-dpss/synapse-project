@@ -24,10 +24,6 @@
 #include "fcfs_cached_table_read_or_write.h"
 #include "fcfs_cached_table_write.h"
 #include "fcfs_cached_table_delete.h"
-#include "map_register_read.h"
-#include "map_register_read_or_write.h"
-#include "map_register_write.h"
-#include "map_register_delete.h"
 #include "meter_update.h"
 #include "hh_table_read.h"
 #include "hh_table_conditional_update.h"
@@ -70,10 +66,6 @@ struct TofinoTarget : public Target {
               // f.push_back(std::make_unique<FCFSCachedTableReadOrWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
-              // f.push_back(std::make_unique<MapRegisterReadFactory>());
-              // f.push_back(std::make_unique<MapRegisterReadOrWriteFactory>());
-              // f.push_back(std::make_unique<MapRegisterWriteFactory>());
-              // f.push_back(std::make_unique<MapRegisterDeleteFactory>());
               f.push_back(std::make_unique<MeterUpdateFactory>());
               // f.push_back(std::make_unique<HHTableReadFactory>());
               // f.push_back(std::make_unique<HHTableConditionalUpdateFactory>());

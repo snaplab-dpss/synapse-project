@@ -12,7 +12,6 @@
 #include "../targets/target.h"
 
 namespace synapse {
-class EPVisitor;
 class Profiler;
 struct spec_impl_t;
 

@@ -96,6 +96,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
 
   // FIXME: assuming index allocation is successful on true.
   Node *on_hh = bdd->delete_branch(min_estimate_cond_branch->get_mutable_on_true()->get_id(), true);
+  panic("TODO");
   // Node *on_not_hh = bdd->delete_branch(
   //     min_estimate_cond_branch->get_mutable_on_false()->get_id(), false);
 
@@ -252,7 +253,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
   klee::ref<klee::Expr> min_estimate_cond =
       build_min_estimate_check_cond(ep, min_estimate, map_objs.map);
 
-  symbols_t symbols = get_dataplane_state(ep, node);
+  Symbols symbols = get_dataplane_state(ep, node);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

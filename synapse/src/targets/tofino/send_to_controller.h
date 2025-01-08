@@ -7,10 +7,10 @@ namespace tofino {
 
 class SendToController : public TofinoModule {
 private:
-  symbols_t symbols;
+  Symbols symbols;
 
 public:
-  SendToController(const Node *node, symbols_t _symbols)
+  SendToController(const Node *node, Symbols _symbols)
       : TofinoModule(ModuleType::Tofino_SendToController, TargetType::Controller,
                      "SendToController", node),
         symbols(_symbols) {}
@@ -25,7 +25,7 @@ public:
     return cloned;
   }
 
-  const symbols_t &get_symbols() const { return symbols; }
+  const Symbols &get_symbols() const { return symbols; }
 };
 
 class SendToControllerFactory : public TofinoModuleFactory {

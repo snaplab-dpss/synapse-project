@@ -130,18 +130,21 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     },
 };
 
-typedef symbols_t (*SymbolsExtractor)(const call_t &call, const SymbolManager *manager);
+typedef Symbols (*SymbolsExtractor)(const call_t &call, const Symbols &symbols);
 
-symbols_t packet_chunks_symbol_extractor(const call_t &call, const SymbolManager *manager) {
+Symbols packet_chunks_symbol_extractor(const call_t &call, const Symbols &symbols) {
   assert(call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
 
   const extra_var_t &extra_var = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
 
-  symbol_t symbol = manager->get_symbol("packet_chunks");
+  symbol_t symbol = symbols.get("packet_chunks");
   symbol.expr = packet_chunk;
 
-  return {symbol};
+  Symbols extracted_symbols;
+  extracted_symbols.add(symbol);
+
+  return extracted_symbols;
 }
 
 const std::unordered_map<std::string, SymbolsExtractor> special_symbols_extractors{
@@ -260,10 +263,8 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
 }
 
 std::optional<symbol_t>
-get_generated_symbol(const SymbolManager *manager, const std::string &base,
+get_generated_symbol(const Symbols &symbols, const std::string &base,
                      std::unordered_map<std::string, size_t> &base_symbols_generated) {
-  symbols_t symbols = manager->get_symbols_with_base(base);
-
   auto symbol_cmp = [base](const symbol_t &a, const symbol_t &b) {
     assert(a.base == b.base && "Different base symbols");
 
@@ -290,8 +291,7 @@ get_generated_symbol(const SymbolManager *manager, const std::string &base,
     return a_suffix_num < b_suffix_num;
   };
 
-  std::vector<symbol_t> filtered;
-  filtered.insert(filtered.end(), symbols.begin(), symbols.end());
+  std::vector<symbol_t> filtered = symbols.filter_by_base(base).get();
   std::sort(filtered.begin(), filtered.end(), symbol_cmp);
 
   size_t total_base_symbols_generated = 0;
@@ -311,28 +311,29 @@ get_generated_symbol(const SymbolManager *manager, const std::string &base,
   return filtered[total_base_symbols_generated];
 }
 
-symbols_t get_call_symbols(const call_t &call, const SymbolManager *manager,
-                           std::unordered_map<std::string, size_t> &base_symbols_generated) {
-  symbols_t symbols;
+Symbols get_generated_symbols(const call_t &call, Symbols &symbols,
+                              std::unordered_map<std::string, size_t> &base_symbols_generated) {
+  Symbols generated_symbols;
 
   auto extractor_it = special_symbols_extractors.find(call.function_name);
   if (extractor_it != special_symbols_extractors.end()) {
-    return extractor_it->second(call, manager);
+    return extractor_it->second(call, symbols);
   }
 
   auto base_symbols_it = symbols_from_call.find(call.function_name);
   if (base_symbols_it == symbols_from_call.end()) {
-    return symbols;
+    return generated_symbols;
   }
 
   for (const std::string &base : base_symbols_it->second) {
-    std::optional<symbol_t> symbol = get_generated_symbol(manager, base, base_symbols_generated);
+    std::optional<symbol_t> symbol = get_generated_symbol(symbols, base, base_symbols_generated);
     if (symbol.has_value()) {
-      symbols.insert(symbol.value());
+      generated_symbols.add(symbol.value());
+      base_symbols_generated[symbol->base]++;
     }
   }
 
-  return symbols;
+  return generated_symbols;
 }
 
 void pop_call_paths(call_paths_view_t &call_paths_view) {
@@ -355,6 +356,8 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
     return root;
   }
 
+  Symbols symbols = call_paths_view.get_symbols();
+
   while (!call_paths_view.data.empty()) {
     CallPathsGroup group(call_paths_view);
 
@@ -370,7 +373,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
       assert(on_false.data.empty() && "Unexpected call paths");
 
       call_t call = get_successful_call(call_paths_view.data);
-      symbols_t call_symbols = get_call_symbols(call, symbol_manager, base_symbols_generated);
+      Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
 
       std::cerr << "\n";
       std::cerr << "==================================\n";
@@ -378,8 +381,8 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
       std::cerr << "Call paths:\n";
       for (const call_path_t *cp : call_paths_view.data)
         std::cerr << "  " << cp->file_name << "\n";
-      std::cerr << "Generated symbols (" << call_symbols.size() << "):\n";
-      for (const symbol_t &symbol : call_symbols)
+      std::cerr << "Generated symbols (" << generated_symbols.size() << "):\n";
+      for (const symbol_t &symbol : generated_symbols.get())
         std::cerr << "  " << expr_to_string(symbol.expr, true) << "\n";
       std::cerr << "Constraints (" << constraints.size() << "):\n";
       for (const klee::ref<klee::Expr> &constraint : constraints)
@@ -394,7 +397,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
         if (is_routing_function(call)) {
           node = route_node_from_call(call, id, constraints, symbol_manager);
         } else {
-          node = new Call(id, constraints, symbol_manager, call, call_symbols);
+          node = new Call(id, constraints, symbol_manager, call, generated_symbols);
         }
 
         node_manager.add_node(node);
@@ -531,14 +534,17 @@ int BDD::get_node_depth(node_id_t node_id) const {
   return depth;
 }
 
-symbols_t BDD::get_generated_symbols(const Node *node) const {
-  symbols_t symbols{device, packet_len, time};
+Symbols BDD::get_generated_symbols(const Node *node) const {
+  Symbols symbols;
+  symbols.add(device);
+  symbols.add(packet_len);
+  symbols.add(time);
 
   while (node) {
     if (node->get_type() == NodeType::Call) {
       const Call *call_node = dynamic_cast<const Call *>(node);
-      const symbols_t &more_symbols = call_node->get_local_symbols();
-      symbols.insert(more_symbols.begin(), more_symbols.end());
+      const Symbols &more_symbols = call_node->get_local_symbols();
+      symbols.add(more_symbols);
     }
 
     node = node->get_prev();

@@ -23,9 +23,9 @@
 #define SRC_IP "10.10.0.1"
 #define DST_IP "10.10.0.2"
 #define SRC_PORT 10000
-#define DST_PORT 670
+#define DST_PORT 670 // KVSTORE_PORT
 
-#define KEY_SIZE_BYTES 16
+#define KEY_SIZE_BYTES 12
 #define VALUE_SIZE_BYTES 128
 
 #define DEFAULT_TOTAL_PACKETS 1'000'000lu

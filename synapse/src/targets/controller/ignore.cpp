@@ -21,7 +21,6 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
   }
 
   if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
-      !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_MapRegister) &&
       !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
       !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
@@ -43,8 +42,7 @@ bool ds_ignore_logic(const Context &ctx, const call_t &call) {
     return false;
   }
 
-  if (ctx.check_ds_impl(obj, DSImpl::Tofino_MapRegister) ||
-      ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
+  if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
       ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return true;
   }
@@ -76,7 +74,7 @@ bool should_ignore(const EP *ep, const Node *node) {
     return can_ignore_dchain_op(ctx, call);
   }
 
-  if (call_node->is_vector_borrow_ignored()) {
+  if (call_node->is_vector_borrow_value_ignored()) {
     return true;
   }
 

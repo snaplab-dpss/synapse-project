@@ -31,7 +31,8 @@ struct vector_register_data_t {
   u32 num_entries;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value;
-  std::unordered_set<RegisterAction> actions;
+  klee::ref<klee::Expr> write_value;
+  std::unordered_set<RegisterActionType> actions;
 };
 
 class TofinoModuleFactory : public ModuleFactory {
@@ -49,7 +50,7 @@ public:
   static const TNA &get_tna(const EP *ep);
   static TNA &get_mutable_tna(EP *ep);
 
-  static symbols_t get_dataplane_state(const EP *ep, const Node *node);
+  static Symbols get_dataplane_state(const EP *ep, const Node *node);
 
   // ======================================================================
   //  Simple Tables
@@ -82,15 +83,6 @@ public:
   static std::vector<u32> enum_fcfs_cache_cap(u32 num_entries);
   static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const Node *node,
                                                 klee::ref<klee::Expr> key, u32 cache_capacity);
-
-  // ======================================================================
-  //  Map Register
-  // ======================================================================
-
-  static bool can_build_or_reuse_map_register(const EP *ep, const Node *node, addr_t obj,
-                                              klee::ref<klee::Expr> key, u32 num_entries);
-  static MapRegister *build_or_reuse_map_register(const EP *ep, const Node *node, addr_t obj,
-                                                  klee::ref<klee::Expr> key, u32 num_entries);
 
   // ======================================================================
   //  Heavy Hitter Table

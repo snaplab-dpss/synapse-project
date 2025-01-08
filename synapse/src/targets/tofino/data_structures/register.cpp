@@ -5,7 +5,7 @@ namespace synapse {
 namespace tofino {
 
 Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries, bits_t _index,
-                   bits_t _value, const std::unordered_set<RegisterAction> &_actions)
+                   bits_t _value, const std::unordered_set<RegisterActionType> &_actions)
     : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index), value(_value),
       actions(_actions) {
   assert(_num_entries > 0 && "Register entries must be greater than 0");
@@ -36,18 +36,18 @@ void Register::debug() const {
 
   ss << "Actions:  [";
   bool first = true;
-  for (RegisterAction action : actions) {
+  for (RegisterActionType action : actions) {
     if (!first) {
       ss << ", ";
     }
     switch (action) {
-    case RegisterAction::READ:
+    case RegisterActionType::READ:
       ss << "READ";
       break;
-    case RegisterAction::WRITE:
+    case RegisterActionType::WRITE:
       ss << "WRITE";
       break;
-    case RegisterAction::SWAP:
+    case RegisterActionType::SWAP:
       ss << "SWAP";
       break;
     }

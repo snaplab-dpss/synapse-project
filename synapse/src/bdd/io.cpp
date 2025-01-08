@@ -150,14 +150,14 @@ std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
   return call_stream.str();
 }
 
-std::string serialize_symbols(const symbols_t &symbols, kQuery_t &kQuery) {
+std::string serialize_symbols(const Symbols &symbols, kQuery_t &kQuery) {
   std::stringstream symbols_stream;
 
   symbols_stream << "=>";
   symbols_stream << "<";
 
   bool first = true;
-  for (const symbol_t &symbol : symbols) {
+  for (const symbol_t &symbol : symbols.get()) {
     if (!first) {
       symbols_stream << ",";
     } else {
@@ -468,9 +468,9 @@ symbol_t parse_call_symbol(std::string serialized_symbol,
   return symbol;
 }
 
-symbols_t parse_call_symbols(std::string serialized_symbols,
-                             std::vector<klee::ref<klee::Expr>> &exprs) {
-  symbols_t symbols;
+Symbols parse_call_symbols(std::string serialized_symbols,
+                           std::vector<klee::ref<klee::Expr>> &exprs) {
+  Symbols symbols;
 
   assert(serialized_symbols[0] == '<' && "Invalid symbols");
 
@@ -486,7 +486,7 @@ symbols_t parse_call_symbols(std::string serialized_symbols,
       symbol_str.clear();
     } else if (c == '}' && symbol_str.size()) {
       symbol_t symbol = parse_call_symbol(symbol_str, exprs);
-      symbols.insert(symbol);
+      symbols.add(symbol);
     } else if (c == '>') {
       break;
     } else {
@@ -507,7 +507,7 @@ Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
   std::string symbols_str = serialized.substr(delim + 2);
 
   call_t call = parse_call(call_str, exprs);
-  symbols_t symbols = parse_call_symbols(symbols_str, exprs);
+  Symbols symbols = parse_call_symbols(symbols_str, exprs);
 
   Call *call_node = new Call(id, constraints, symbol_manager, call, symbols);
   manager.add_node(call_node);
@@ -645,7 +645,7 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
     case NodeType::Call: {
       const Call *call_node = dynamic_cast<const Call *>(node);
       const Node *next = node->get_next();
-      const symbols_t &symbols = call_node->get_local_symbols();
+      const Symbols &symbols = call_node->get_local_symbols();
 
       nodes_stream << "CALL";
       nodes_stream << " ";

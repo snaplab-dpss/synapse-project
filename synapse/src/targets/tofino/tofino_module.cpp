@@ -204,52 +204,6 @@ CountMinSketch *reuse_cms(const EP *ep, const Node *node, addr_t obj) {
   return cms;
 }
 
-MapRegister *reuse_map_register(const EP *ep, const Node *node, addr_t obj) {
-  const Context &ctx = ep->get_ctx();
-  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-
-  if (!tofino_ctx->has_ds(obj)) {
-    return nullptr;
-  }
-
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
-
-  assert(ds.size() == 1 && "Invalid number of DS");
-  assert((*ds.begin())->type == DSType::MAP_REGISTER && "Invalid DS type");
-
-  MapRegister *map_register = dynamic_cast<MapRegister *>(*ds.begin());
-
-  if (!tofino_ctx->check_placement(ep, node, map_register)) {
-    map_register = nullptr;
-  }
-
-  return map_register;
-}
-
-MapRegister *build_map_register(const EP *ep, const Node *node, addr_t obj,
-                                klee::ref<klee::Expr> key, u32 num_entries) {
-  const Context &ctx = ep->get_ctx();
-  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const TNA &tna = tofino_ctx->get_tna();
-  const TNAProperties &properties = tna.get_properties();
-
-  DS_ID id = "map_register_" + std::to_string(obj);
-
-  std::vector<klee::ref<klee::Expr>> keys = Register::partition_value(properties, key);
-  std::vector<bits_t> keys_sizes;
-  for (klee::ref<klee::Expr> key : keys) {
-    keys_sizes.push_back(key->getWidth());
-  }
-
-  MapRegister *map_register = new MapRegister(properties, id, num_entries, keys_sizes);
-
-  if (!tofino_ctx->check_placement(ep, node, map_register)) {
-    delete map_register;
-    map_register = nullptr;
-  }
-
-  return map_register;
-}
 } // namespace
 
 TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep) {
@@ -414,7 +368,7 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
   return true;
 }
 
-symbols_t TofinoModuleFactory::get_dataplane_state(const EP *ep, const Node *node) {
+Symbols TofinoModuleFactory::get_dataplane_state(const EP *ep, const Node *node) {
   const node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
   return node->get_prev_symbols(roots);
 }
@@ -577,55 +531,6 @@ TofinoModuleFactory::build_or_reuse_cms(const EP *ep, const Node *node, addr_t o
   }
 
   return cms;
-}
-
-bool TofinoModuleFactory::can_build_or_reuse_map_register(const EP *ep, const Node *node,
-                                                          addr_t obj, klee::ref<klee::Expr> key,
-                                                          u32 num_entries) {
-  MapRegister *map_register = nullptr;
-
-  const Context &ctx = ep->get_ctx();
-  bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_MapRegister);
-
-  if (already_placed) {
-    const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-    const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
-
-    assert(ds.size() == 1 && "Invalid number of DS");
-    assert((*ds.begin())->type == DSType::MAP_REGISTER && "Invalid DS type");
-
-    map_register = dynamic_cast<MapRegister *>(*ds.begin());
-
-    if (!tofino_ctx->check_placement(ep, node, map_register)) {
-      map_register = nullptr;
-      return false;
-    }
-
-    return true;
-  }
-
-  map_register = build_map_register(ep, node, obj, key, num_entries);
-
-  if (!map_register) {
-    return false;
-  }
-
-  delete map_register;
-  return true;
-}
-
-MapRegister *TofinoModuleFactory::build_or_reuse_map_register(const EP *ep, const Node *node,
-                                                              addr_t obj, klee::ref<klee::Expr> key,
-                                                              u32 num_entries) {
-  MapRegister *map_register = nullptr;
-
-  if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_CountMinSketch)) {
-    map_register = reuse_map_register(ep, node, obj);
-  } else {
-    map_register = build_map_register(ep, node, obj, key, num_entries);
-  }
-
-  return map_register;
 }
 
 } // namespace tofino

@@ -35,9 +35,6 @@ struct solver_toolbox_t {
 
   bool are_exprs_always_equal(klee::ref<klee::Expr> expr1, klee::ref<klee::Expr> expr2) const;
 
-  bool are_exprs_values_always_equal(klee::ref<klee::Expr> expr1,
-                                     klee::ref<klee::Expr> expr2) const;
-
   u64 value_from_expr(klee::ref<klee::Expr> expr) const;
   u64 value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const;
   i64 signed_value_from_expr(klee::ref<klee::Expr> expr,

@@ -5,6 +5,27 @@
 namespace synapse {
 namespace tofino {
 namespace {
+
+bool can_ignore_vector_register_op(const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  // Write operations are made on vector_return, not vector_borrow.
+  if (call.function_name == "vector_borrow" && call_node->is_vector_write()) {
+    return true;
+  }
+
+  // Read operations are made on vector_borrow, not vector_return.
+  if (call.function_name == "vector_return" && call_node->is_vector_read()) {
+    return true;
+  }
+
+  if (call_node->is_vector_borrow_value_ignored()) {
+    return true;
+  }
+
+  return false;
+}
+
 bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
   if (call.function_name != "dchain_free_index" &&
       call.function_name != "dchain_allocate_new_index") {
@@ -15,22 +36,6 @@ bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
 
   if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_FCFSCachedTable)) {
-    return false;
-  }
-
-  return true;
-}
-
-bool can_ignore_map_register_op(const Context &ctx, const call_t &call) {
-  if (call.function_name != "dchain_free_index" &&
-      call.function_name != "dchain_allocate_new_index") {
-    return false;
-  }
-
-  klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
-  addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
-
-  if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_MapRegister)) {
     return false;
   }
 
@@ -50,7 +55,6 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const call_t &call) {
 
   // These are the data structures that can perform rejuvenations.
   if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) &&
-      !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_MapRegister) &&
       !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
       !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
@@ -67,7 +71,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call = call_node->get_call();
 
-  std::unordered_set<std::string> functions_to_always_ignore{
+  const std::unordered_set<std::string> functions_to_always_ignore{
       "expire_items_single_map",
       "expire_items_single_map_iteratively",
       "tb_expire",
@@ -79,10 +83,6 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
     return true;
   }
 
-  if (can_ignore_map_register_op(ctx, call)) {
-    return true;
-  }
-
   if (can_ignore_fcfs_cached_table_op(ctx, call)) {
     return true;
   }
@@ -91,11 +91,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
     return true;
   }
 
-  if (call_node->is_vector_borrow_ignored()) {
-    return true;
-  }
-
-  if (call_node->is_vector_return_without_modifications()) {
+  if (can_ignore_vector_register_op(call_node)) {
     return true;
   }
 

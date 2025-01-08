@@ -41,6 +41,7 @@ struct call_path_t {
   std::string file_name;
   klee::ConstraintManager constraints;
   calls_t calls;
+  Symbols symbols;
 };
 
 std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
@@ -49,6 +50,8 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 struct call_paths_view_t {
   std::vector<call_path_t *> data;
   SymbolManager *manager;
+
+  Symbols get_symbols() const;
 };
 
 struct call_paths_t {

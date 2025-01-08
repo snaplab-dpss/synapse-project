@@ -14,20 +14,20 @@ namespace tofino {
 
 struct TNAProperties;
 
-enum class RegisterAction {
+enum class RegisterActionType {
   READ,  // No modification
   WRITE, // Overwrites the current value
-  SWAP,  // Returns the old value
+  SWAP,  // Overwrites the current value and returns the old one
 };
 
 struct Register : public DS {
   u32 num_entries;
   bits_t index;
   bits_t value;
-  std::unordered_set<RegisterAction> actions;
+  std::unordered_set<RegisterActionType> actions;
 
   Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index, bits_t value,
-           const std::unordered_set<RegisterAction> &actions);
+           const std::unordered_set<RegisterActionType> &actions);
 
   Register(const Register &other);
 

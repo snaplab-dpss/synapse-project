@@ -196,11 +196,11 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
     ss << " -> " << pretty_print_expr(call.ret);
   }
 
-  const symbols_t &symbols = node->get_local_symbols();
+  const Symbols &symbols = node->get_local_symbols();
   if (symbols.size()) {
     ss << "\\l=>{";
     bool first = true;
-    for (const symbol_t &s : symbols) {
+    for (const symbol_t &s : symbols.get()) {
       if (!first) {
         ss << ",";
       } else {

@@ -18,7 +18,7 @@ digraph mygraph {
 	15 -> 16;
 	14 [label="14:vector_return(\l  vector:1073992888,\l  index:allocated_index,\l  value:1074005288[vector_data_reset_1])", fillcolor="cornflowerblue"];
 	14 -> 15;
-	13 [label="13:vector_borrow(\l  vector:1073992888,\l  index:allocated_index,\l  val_out:1074097064[ -> 1074005288])\l=>{vector_data_reset}", fillcolor="cornflowerblue"];
+	13 [label="13:vector_borrow(\l  vector:1073992888,\l  index:allocated_index,\l  val_out:1074097064[ -> 1074005288])\l=>{vector_data_reset_1}", fillcolor="cornflowerblue"];
 	13 -> 14;
 	8 [shape=Mdiamond, label="8:!map_has_this_key", fillcolor="yellow"];
 	8 -> 9 [label="True"];
@@ -34,7 +34,7 @@ digraph mygraph {
 	29 -> 30;
 	28 [label="28:vector_return(\l  vector:1073992888,\l  index:new_index,\l  value:1074005288[0])", fillcolor="cornflowerblue"];
 	28 -> 29;
-	27 [label="27:vector_borrow(\l  vector:1073992888,\l  index:new_index,\l  val_out:1074113984[ -> 1074005288])\l=>{vector_data_reset_1}", fillcolor="cornflowerblue"];
+	27 [label="27:vector_borrow(\l  vector:1073992888,\l  index:new_index,\l  val_out:1074113984[ -> 1074005288])", fillcolor="cornflowerblue"];
 	27 -> 28;
 	26 [label="26:vector_return(\l  vector:1073980160,\l  index:new_index,\l  value:1073992560[packet_chunks[156]++packet_chunks[159:167]++packet_chunks[294:298]])", fillcolor="cornflowerblue"];
 	26 -> 27;

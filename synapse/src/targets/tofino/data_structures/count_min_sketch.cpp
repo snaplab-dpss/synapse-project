@@ -27,7 +27,7 @@ std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 
 
   for (size_t i = 0; i < height; i++) {
     Register row(properties, id + "_row_" + std::to_string(i), width, hash_size, counter_size,
-                 {RegisterAction::WRITE, RegisterAction::READ});
+                 {RegisterActionType::WRITE, RegisterActionType::READ});
     rows.push_back(row);
   }
 

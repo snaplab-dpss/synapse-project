@@ -88,8 +88,8 @@ public:
   std::string hash(bool recursive) const;
   size_t count_children(bool recursive) const;
   size_t count_code_paths() const;
-  symbols_t get_used_symbols() const;
-  symbols_t get_prev_symbols(const node_ids_t &stop_nodes = node_ids_t()) const;
+  Symbols get_used_symbols() const;
+  Symbols get_prev_symbols(const node_ids_t &stop_nodes = node_ids_t()) const;
   std::vector<const Call *> get_prev_functions(const std::vector<std::string> &functions_names,
                                                const node_ids_t &stop_nodes = node_ids_t()) const;
   std::vector<const Call *> get_future_functions(const std::vector<std::string> &functions,

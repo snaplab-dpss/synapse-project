@@ -27,10 +27,6 @@ class FCFSCachedTableRead;
 class FCFSCachedTableReadOrWrite;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
-class MapRegisterRead;
-class MapRegisterReadOrWrite;
-class MapRegisterWrite;
-class MapRegisterDelete;
 class MeterUpdate;
 class HHTableRead;
 class HHTableConditionalUpdate;
@@ -72,9 +68,6 @@ class VectorRegisterUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
-class MapRegisterRead;
-class MapRegisterWrite;
-class MapRegisterDelete;
 class HHTableRead;
 class HHTableConditionalUpdate;
 class HHTableUpdate;
@@ -218,23 +211,6 @@ public:
 
   virtual Action visit(const EP *ep, const EPNode *ep_node,
                        const tofino::FCFSCachedTableDelete *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::MapRegisterRead *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node,
-                       const tofino::MapRegisterReadOrWrite *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::MapRegisterWrite *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::MapRegisterDelete *m) {
     return Action::doChildren;
   }
 
@@ -395,18 +371,6 @@ public:
   }
 
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::FCFSCachedTableDelete *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::MapRegisterRead *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::MapRegisterWrite *m) {
-    return Action::doChildren;
-  }
-
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::MapRegisterDelete *m) {
     return Action::doChildren;
   }
 

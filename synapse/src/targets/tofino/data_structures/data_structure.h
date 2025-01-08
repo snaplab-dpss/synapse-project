@@ -18,7 +18,6 @@ enum class DSType {
   HASH,
   FCFS_CACHED_TABLE,
   HH_TABLE,
-  MAP_REGISTER,
   COUNT_MIN_SKETCH,
 };
 

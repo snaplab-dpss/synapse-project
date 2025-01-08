@@ -7,11 +7,11 @@ namespace tofino {
 
 class Recirculate : public TofinoModule {
 private:
-  symbols_t symbols;
+  Symbols symbols;
   int recirc_port;
 
 public:
-  Recirculate(const Node *node, symbols_t _symbols, int _recirc_port)
+  Recirculate(const Node *node, Symbols _symbols, int _recirc_port)
       : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", node), symbols(_symbols),
         recirc_port(_recirc_port) {}
 
@@ -25,7 +25,7 @@ public:
     return cloned;
   }
 
-  symbols_t get_symbols() const { return symbols; }
+  const Symbols &get_symbols() const { return symbols; }
   int get_recirc_port() const { return recirc_port; }
 };
 

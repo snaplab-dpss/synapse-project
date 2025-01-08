@@ -43,13 +43,13 @@ extern "C" {
 
 using json = nlohmann::json;
 
-#define NF_INFO(text, ...)                                                     \
-  printf(text "\n", ##__VA_ARGS__);                                            \
+#define NF_INFO(text, ...)                                                                         \
+  printf(text "\n", ##__VA_ARGS__);                                                                \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                    \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                         \
+#define NF_DEBUG(text, ...)                                                                        \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                             \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
@@ -66,21 +66,19 @@ using json = nlohmann::json;
 
 #define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
-#define PARSE_ERROR(argv, format, ...)                                         \
-  nf_config_usage(argv);                                                       \
-  fprintf(stderr, format, ##__VA_ARGS__);                                      \
+#define PARSE_ERROR(argv, format, ...)                                                             \
+  nf_config_usage(argv);                                                                           \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                          \
   exit(EXIT_FAILURE);
 
-#define PARSER_ASSERT(cond, fmt, ...)                                          \
-  if (!(cond))                                                                 \
+#define PARSER_ASSERT(cond, fmt, ...)                                                              \
+  if (!(cond))                                                                                     \
     rte_exit(EXIT_FAILURE, fmt, ##__VA_ARGS__);
 
 bool nf_init(void);
-int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length,
-               time_ns_t now);
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now);
 
-uintmax_t nf_util_parse_int(const char *str, const char *name, int base,
-                            char next) {
+uintmax_t nf_util_parse_int(const char *str, const char *name, int base, char next) {
   char *temp;
   intmax_t result = strtoimax(str, &temp, base);
 
@@ -93,9 +91,8 @@ uintmax_t nf_util_parse_int(const char *str, const char *name, int base,
 }
 
 bool nf_parse_etheraddr(const char *str, struct rte_ether_addr *addr) {
-  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX",
-                addr->addr_bytes + 0, addr->addr_bytes + 1,
-                addr->addr_bytes + 2, addr->addr_bytes + 3,
+  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0,
+                addr->addr_bytes + 1, addr->addr_bytes + 2, addr->addr_bytes + 3,
                 addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
@@ -268,8 +265,7 @@ private:
 
       struct rte_ipv4_hdr *ip_hdr = (struct rte_ipv4_hdr *)(data);
 
-      uint16_t len =
-          rte_bswap16(ip_hdr->total_length) + sizeof(struct rte_ether_hdr);
+      uint16_t len = rte_bswap16(ip_hdr->total_length) + sizeof(struct rte_ether_hdr);
 
       total_bytes += len;
     }
@@ -291,26 +287,19 @@ private:
   }
 };
 
-void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet,
-                uint16_t packet_length) {
+void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet, uint16_t packet_length) {
   struct rte_ether_hdr *rte_ether_header = (struct rte_ether_hdr *)(packet);
   struct rte_ipv4_hdr *rte_ipv4_header =
       (struct rte_ipv4_hdr *)(packet + sizeof(struct rte_ether_hdr));
   struct tcpudp_hdr *tcpudp_header =
-      (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) +
-                            sizeof(struct rte_ipv4_hdr));
+      (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
 
   NF_DEBUG("[%lu:%u] %u.%u.%u.%u:%u -> %u.%u.%u.%u:%u", time, device,
-           (rte_ipv4_header->src_addr >> 0) & 0xff,
-           (rte_ipv4_header->src_addr >> 8) & 0xff,
-           (rte_ipv4_header->src_addr >> 16) & 0xff,
-           (rte_ipv4_header->src_addr >> 24) & 0xff,
-           rte_bswap16(tcpudp_header->src_port),
-           (rte_ipv4_header->dst_addr >> 0) & 0xff,
-           (rte_ipv4_header->dst_addr >> 8) & 0xff,
-           (rte_ipv4_header->dst_addr >> 16) & 0xff,
-           (rte_ipv4_header->dst_addr >> 24) & 0xff,
-           rte_bswap16(tcpudp_header->dst_port));
+           (rte_ipv4_header->src_addr >> 0) & 0xff, (rte_ipv4_header->src_addr >> 8) & 0xff,
+           (rte_ipv4_header->src_addr >> 16) & 0xff, (rte_ipv4_header->src_addr >> 24) & 0xff,
+           rte_bswap16(tcpudp_header->src_port), (rte_ipv4_header->dst_addr >> 0) & 0xff,
+           (rte_ipv4_header->dst_addr >> 8) & 0xff, (rte_ipv4_header->dst_addr >> 16) & 0xff,
+           (rte_ipv4_header->dst_addr >> 24) & 0xff, rte_bswap16(tcpudp_header->dst_port));
 }
 
 void nf_config_usage(char **argv) {
@@ -323,8 +312,8 @@ void nf_config_print(void) {
   NF_INFO("----- Config -----");
   NF_INFO("report: %s", config.report_fname.c_str());
   for (const auto &dev_pcap : config.pcaps) {
-    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device,
-            dev_pcap.pcap.filename().c_str(), dev_pcap.warmup ? "yes" : "no");
+    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device, dev_pcap.pcap.filename().c_str(),
+            dev_pcap.warmup ? "yes" : "no");
   }
   NF_INFO("--- ---------- ---");
 }
@@ -392,9 +381,7 @@ struct Stats {
   };
 
   struct KeyHasher {
-    std::size_t operator()(const key_t &key) const {
-      return hash_obj((void *)key.data, key.len);
-    }
+    std::size_t operator()(const key_t &key) const { return hash_obj((void *)key.data, key.len); }
   };
 
   std::unordered_map<key_t, uint64_t, KeyHasher> key_counter;
@@ -431,8 +418,7 @@ struct MapStats {
     time_ns_t end;
     bool warmup;
 
-    epoch_t(time_ns_t _start, bool _warmup)
-        : start(_start), end(-1), warmup(_warmup) {}
+    epoch_t(time_ns_t _start, bool _warmup) : start(_start), end(-1), warmup(_warmup) {}
   };
 
   std::unordered_map<int, Stats> stats_per_node;
@@ -512,8 +498,7 @@ void generate_report() {
 
       map_op_stats_json["crc32_hashes_per_mask"] = json::object();
       for (const auto &[mask, crc32_hashes] : stats.mask_to_crc32) {
-        map_op_stats_json["crc32_hashes_per_mask"][std::to_string(mask)] =
-            crc32_hashes.size();
+        map_op_stats_json["crc32_hashes_per_mask"][std::to_string(mask)] = crc32_hashes.size();
       }
 
       auto build_pkts_per_flow = [&stats] {
@@ -645,10 +630,10 @@ uint64_t path_profiler_counter[78];
 
 
 bool nf_init() {
-  if (!map_allocate(8192, 16, &map)) {
+  if (!map_allocate(8192, 12, &map)) {
     return false;
   }
-  if (!vector_allocate(16, 8192, &vector)) {
+  if (!vector_allocate(12, 8192, &vector)) {
     return false;
   }
   if (!vector_allocate(128, 8192, &vector2)) {
@@ -691,14 +676,14 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       packet_borrow_next_chunk(buffer, 8, (void**)&hdr3);
       // Node 6
       inc_path_counter(6);
-      if (((40450) == (*(uint16_t*)(uint16_t*)(hdr3+2))) & ((146) <= ((uint16_t)((uint32_t)((4294967254LL) + ((uint16_t)(packet_length & 65535))))))) {
+      if (((40450) == (*(uint16_t*)(uint16_t*)(hdr3+2))) & ((142) <= ((uint16_t)((uint32_t)((4294967254LL) + ((uint16_t)(packet_length & 65535))))))) {
         // Node 7
         inc_path_counter(7);
         uint8_t* hdr4;
-        packet_borrow_next_chunk(buffer, 146, (void**)&hdr4);
+        packet_borrow_next_chunk(buffer, 142, (void**)&hdr4);
         // Node 8
         inc_path_counter(8);
-        if (!((0) == (device & 65535))) {
+        if ((0) != (device & 65535)) {
           // Node 9
           inc_path_counter(9);
           packet_return_chunk(buffer, hdr4);
@@ -717,11 +702,11 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         } else {
           // Node 14
           inc_path_counter(14);
-          uint8_t key[16];
-          memcpy((void*)key, (void*)(hdr4+1), 16);
+          uint8_t key[12];
+          memcpy((void*)key, (void*)(hdr4+1), 12);
           int value;
           int map_hit = map_get(map, key, &value);
-          stats_per_map[1073912440].update(14, key, 16, now);
+          stats_per_map[1073912440].update(14, key, 12, now);
           // Node 15
           inc_path_counter(15);
           if ((0) == (map_hit)) {
@@ -734,16 +719,16 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               int out_of_space = !dchain_allocate_new_index(dchain, &index, now);
               // Node 18
               inc_path_counter(18);
-              if ((0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)(!((0) == (out_of_space))))) & ((0) == (freed_flows)))))) {
+              if ((0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) & ((0) == (freed_flows)))))) {
                 // Node 19
                 inc_path_counter(19);
                 uint8_t* vector_value_out = 0;
                 vector_borrow(vector, index, (void**)&vector_value_out);
                 // Node 20
                 inc_path_counter(20);
-                memcpy((void*)vector_value_out, (void*)key, 16);
+                memcpy((void*)vector_value_out, (void*)key, 12);
                 map_put(map, vector_value_out, index);
-                stats_per_map[1073912440].update(20, vector_value_out, 16, now);
+                stats_per_map[1073912440].update(20, vector_value_out, 12, now);
                 // Node 21
                 inc_path_counter(21);
                 // Node 22
@@ -752,7 +737,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 vector_borrow(vector2, index, (void**)&vector_value_out2);
                 // Node 23
                 inc_path_counter(23);
-                memcpy((void*)vector_value_out2, (void*)(hdr4+17), 128);
+                memcpy((void*)vector_value_out2, (void*)(hdr4+13), 128);
                 // Node 24
                 inc_path_counter(24);
                 packet_return_chunk(buffer, hdr4);
@@ -808,7 +793,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 // Node 33
                 inc_path_counter(33);
                 return 1;
-              } // (0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)(!((0) == (out_of_space))))) & ((0) == (freed_flows)))))
+              } // (0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) & ((0) == (freed_flows)))))
             } else {
               // Node 34
               inc_path_counter(34);
@@ -832,13 +817,13 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             dchain_rejuvenate_index(dchain, value, now);
             // Node 40
             inc_path_counter(40);
-            if (!((1) == (*(hdr4+0)))) {
+            if ((1) != (*(hdr4+0))) {
               // Node 41
               inc_path_counter(41);
-              if (!((0) == (*(hdr4+0)))) {
+              if ((0) != (*(hdr4+0))) {
                 // Node 42
                 inc_path_counter(42);
-                if (!((2) == (*(hdr4+0)))) {
+                if ((2) != (*(hdr4+0))) {
                   // Node 43
                   inc_path_counter(43);
                   packet_return_chunk(buffer, hdr4);
@@ -883,7 +868,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   inc_path_counter(48);
                   void* trash;
                   map_erase(map, key, &trash);
-                  stats_per_map[1073912440].update(48, key, 16, now);
+                  stats_per_map[1073912440].update(48, key, 12, now);
                   // Node 49
                   inc_path_counter(49);
                   dchain_free_index(dchain, value);
@@ -926,7 +911,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   // Node 54
                   inc_path_counter(54);
                   return 0;
-                } // !((2) == (*(hdr4+0)))
+                } // (2) != (*(hdr4+0))
               } else {
                 // Node 55
                 inc_path_counter(55);
@@ -936,134 +921,134 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 inc_path_counter(56);
                 // Node 57
                 inc_path_counter(57);
-                hdr4[17] = *(vector_value_out3+0);
-                hdr4[18] = *(vector_value_out3+1);
-                hdr4[19] = *(vector_value_out3+2);
-                hdr4[20] = *(vector_value_out3+3);
-                hdr4[21] = *(vector_value_out3+4);
-                hdr4[22] = *(vector_value_out3+5);
-                hdr4[23] = *(vector_value_out3+6);
-                hdr4[24] = *(vector_value_out3+7);
-                hdr4[25] = *(vector_value_out3+8);
-                hdr4[26] = *(vector_value_out3+9);
-                hdr4[27] = *(vector_value_out3+10);
-                hdr4[28] = *(vector_value_out3+11);
-                hdr4[29] = *(vector_value_out3+12);
-                hdr4[30] = *(vector_value_out3+13);
-                hdr4[31] = *(vector_value_out3+14);
-                hdr4[32] = *(vector_value_out3+15);
-                hdr4[33] = *(vector_value_out3+16);
-                hdr4[34] = *(vector_value_out3+17);
-                hdr4[35] = *(vector_value_out3+18);
-                hdr4[36] = *(vector_value_out3+19);
-                hdr4[37] = *(vector_value_out3+20);
-                hdr4[38] = *(vector_value_out3+21);
-                hdr4[39] = *(vector_value_out3+22);
-                hdr4[40] = *(vector_value_out3+23);
-                hdr4[41] = *(vector_value_out3+24);
-                hdr4[42] = *(vector_value_out3+25);
-                hdr4[43] = *(vector_value_out3+26);
-                hdr4[44] = *(vector_value_out3+27);
-                hdr4[45] = *(vector_value_out3+28);
-                hdr4[46] = *(vector_value_out3+29);
-                hdr4[47] = *(vector_value_out3+30);
-                hdr4[48] = *(vector_value_out3+31);
-                hdr4[49] = *(vector_value_out3+32);
-                hdr4[50] = *(vector_value_out3+33);
-                hdr4[51] = *(vector_value_out3+34);
-                hdr4[52] = *(vector_value_out3+35);
-                hdr4[53] = *(vector_value_out3+36);
-                hdr4[54] = *(vector_value_out3+37);
-                hdr4[55] = *(vector_value_out3+38);
-                hdr4[56] = *(vector_value_out3+39);
-                hdr4[57] = *(vector_value_out3+40);
-                hdr4[58] = *(vector_value_out3+41);
-                hdr4[59] = *(vector_value_out3+42);
-                hdr4[60] = *(vector_value_out3+43);
-                hdr4[61] = *(vector_value_out3+44);
-                hdr4[62] = *(vector_value_out3+45);
-                hdr4[63] = *(vector_value_out3+46);
-                hdr4[64] = *(vector_value_out3+47);
-                hdr4[65] = *(vector_value_out3+48);
-                hdr4[66] = *(vector_value_out3+49);
-                hdr4[67] = *(vector_value_out3+50);
-                hdr4[68] = *(vector_value_out3+51);
-                hdr4[69] = *(vector_value_out3+52);
-                hdr4[70] = *(vector_value_out3+53);
-                hdr4[71] = *(vector_value_out3+54);
-                hdr4[72] = *(vector_value_out3+55);
-                hdr4[73] = *(vector_value_out3+56);
-                hdr4[74] = *(vector_value_out3+57);
-                hdr4[75] = *(vector_value_out3+58);
-                hdr4[76] = *(vector_value_out3+59);
-                hdr4[77] = *(vector_value_out3+60);
-                hdr4[78] = *(vector_value_out3+61);
-                hdr4[79] = *(vector_value_out3+62);
-                hdr4[80] = *(vector_value_out3+63);
-                hdr4[81] = *(vector_value_out3+64);
-                hdr4[82] = *(vector_value_out3+65);
-                hdr4[83] = *(vector_value_out3+66);
-                hdr4[84] = *(vector_value_out3+67);
-                hdr4[85] = *(vector_value_out3+68);
-                hdr4[86] = *(vector_value_out3+69);
-                hdr4[87] = *(vector_value_out3+70);
-                hdr4[88] = *(vector_value_out3+71);
-                hdr4[89] = *(vector_value_out3+72);
-                hdr4[90] = *(vector_value_out3+73);
-                hdr4[91] = *(vector_value_out3+74);
-                hdr4[92] = *(vector_value_out3+75);
-                hdr4[93] = *(vector_value_out3+76);
-                hdr4[94] = *(vector_value_out3+77);
-                hdr4[95] = *(vector_value_out3+78);
-                hdr4[96] = *(vector_value_out3+79);
-                hdr4[97] = *(vector_value_out3+80);
-                hdr4[98] = *(vector_value_out3+81);
-                hdr4[99] = *(vector_value_out3+82);
-                hdr4[100] = *(vector_value_out3+83);
-                hdr4[101] = *(vector_value_out3+84);
-                hdr4[102] = *(vector_value_out3+85);
-                hdr4[103] = *(vector_value_out3+86);
-                hdr4[104] = *(vector_value_out3+87);
-                hdr4[105] = *(vector_value_out3+88);
-                hdr4[106] = *(vector_value_out3+89);
-                hdr4[107] = *(vector_value_out3+90);
-                hdr4[108] = *(vector_value_out3+91);
-                hdr4[109] = *(vector_value_out3+92);
-                hdr4[110] = *(vector_value_out3+93);
-                hdr4[111] = *(vector_value_out3+94);
-                hdr4[112] = *(vector_value_out3+95);
-                hdr4[113] = *(vector_value_out3+96);
-                hdr4[114] = *(vector_value_out3+97);
-                hdr4[115] = *(vector_value_out3+98);
-                hdr4[116] = *(vector_value_out3+99);
-                hdr4[117] = *(vector_value_out3+100);
-                hdr4[118] = *(vector_value_out3+101);
-                hdr4[119] = *(vector_value_out3+102);
-                hdr4[120] = *(vector_value_out3+103);
-                hdr4[121] = *(vector_value_out3+104);
-                hdr4[122] = *(vector_value_out3+105);
-                hdr4[123] = *(vector_value_out3+106);
-                hdr4[124] = *(vector_value_out3+107);
-                hdr4[125] = *(vector_value_out3+108);
-                hdr4[126] = *(vector_value_out3+109);
-                hdr4[127] = *(vector_value_out3+110);
-                hdr4[128] = *(vector_value_out3+111);
-                hdr4[129] = *(vector_value_out3+112);
-                hdr4[130] = *(vector_value_out3+113);
-                hdr4[131] = *(vector_value_out3+114);
-                hdr4[132] = *(vector_value_out3+115);
-                hdr4[133] = *(vector_value_out3+116);
-                hdr4[134] = *(vector_value_out3+117);
-                hdr4[135] = *(vector_value_out3+118);
-                hdr4[136] = *(vector_value_out3+119);
-                hdr4[137] = *(vector_value_out3+120);
-                hdr4[138] = *(vector_value_out3+121);
-                hdr4[139] = *(vector_value_out3+122);
-                hdr4[140] = *(vector_value_out3+123);
-                hdr4[141] = *(vector_value_out3+124);
-                hdr4[142] = *(vector_value_out3+125);
-                hdr4[143] = *(vector_value_out3+126);
-                hdr4[144] = *(vector_value_out3+127);
+                hdr4[13] = *(vector_value_out3+0);
+                hdr4[14] = *(vector_value_out3+1);
+                hdr4[15] = *(vector_value_out3+2);
+                hdr4[16] = *(vector_value_out3+3);
+                hdr4[17] = *(vector_value_out3+4);
+                hdr4[18] = *(vector_value_out3+5);
+                hdr4[19] = *(vector_value_out3+6);
+                hdr4[20] = *(vector_value_out3+7);
+                hdr4[21] = *(vector_value_out3+8);
+                hdr4[22] = *(vector_value_out3+9);
+                hdr4[23] = *(vector_value_out3+10);
+                hdr4[24] = *(vector_value_out3+11);
+                hdr4[25] = *(vector_value_out3+12);
+                hdr4[26] = *(vector_value_out3+13);
+                hdr4[27] = *(vector_value_out3+14);
+                hdr4[28] = *(vector_value_out3+15);
+                hdr4[29] = *(vector_value_out3+16);
+                hdr4[30] = *(vector_value_out3+17);
+                hdr4[31] = *(vector_value_out3+18);
+                hdr4[32] = *(vector_value_out3+19);
+                hdr4[33] = *(vector_value_out3+20);
+                hdr4[34] = *(vector_value_out3+21);
+                hdr4[35] = *(vector_value_out3+22);
+                hdr4[36] = *(vector_value_out3+23);
+                hdr4[37] = *(vector_value_out3+24);
+                hdr4[38] = *(vector_value_out3+25);
+                hdr4[39] = *(vector_value_out3+26);
+                hdr4[40] = *(vector_value_out3+27);
+                hdr4[41] = *(vector_value_out3+28);
+                hdr4[42] = *(vector_value_out3+29);
+                hdr4[43] = *(vector_value_out3+30);
+                hdr4[44] = *(vector_value_out3+31);
+                hdr4[45] = *(vector_value_out3+32);
+                hdr4[46] = *(vector_value_out3+33);
+                hdr4[47] = *(vector_value_out3+34);
+                hdr4[48] = *(vector_value_out3+35);
+                hdr4[49] = *(vector_value_out3+36);
+                hdr4[50] = *(vector_value_out3+37);
+                hdr4[51] = *(vector_value_out3+38);
+                hdr4[52] = *(vector_value_out3+39);
+                hdr4[53] = *(vector_value_out3+40);
+                hdr4[54] = *(vector_value_out3+41);
+                hdr4[55] = *(vector_value_out3+42);
+                hdr4[56] = *(vector_value_out3+43);
+                hdr4[57] = *(vector_value_out3+44);
+                hdr4[58] = *(vector_value_out3+45);
+                hdr4[59] = *(vector_value_out3+46);
+                hdr4[60] = *(vector_value_out3+47);
+                hdr4[61] = *(vector_value_out3+48);
+                hdr4[62] = *(vector_value_out3+49);
+                hdr4[63] = *(vector_value_out3+50);
+                hdr4[64] = *(vector_value_out3+51);
+                hdr4[65] = *(vector_value_out3+52);
+                hdr4[66] = *(vector_value_out3+53);
+                hdr4[67] = *(vector_value_out3+54);
+                hdr4[68] = *(vector_value_out3+55);
+                hdr4[69] = *(vector_value_out3+56);
+                hdr4[70] = *(vector_value_out3+57);
+                hdr4[71] = *(vector_value_out3+58);
+                hdr4[72] = *(vector_value_out3+59);
+                hdr4[73] = *(vector_value_out3+60);
+                hdr4[74] = *(vector_value_out3+61);
+                hdr4[75] = *(vector_value_out3+62);
+                hdr4[76] = *(vector_value_out3+63);
+                hdr4[77] = *(vector_value_out3+64);
+                hdr4[78] = *(vector_value_out3+65);
+                hdr4[79] = *(vector_value_out3+66);
+                hdr4[80] = *(vector_value_out3+67);
+                hdr4[81] = *(vector_value_out3+68);
+                hdr4[82] = *(vector_value_out3+69);
+                hdr4[83] = *(vector_value_out3+70);
+                hdr4[84] = *(vector_value_out3+71);
+                hdr4[85] = *(vector_value_out3+72);
+                hdr4[86] = *(vector_value_out3+73);
+                hdr4[87] = *(vector_value_out3+74);
+                hdr4[88] = *(vector_value_out3+75);
+                hdr4[89] = *(vector_value_out3+76);
+                hdr4[90] = *(vector_value_out3+77);
+                hdr4[91] = *(vector_value_out3+78);
+                hdr4[92] = *(vector_value_out3+79);
+                hdr4[93] = *(vector_value_out3+80);
+                hdr4[94] = *(vector_value_out3+81);
+                hdr4[95] = *(vector_value_out3+82);
+                hdr4[96] = *(vector_value_out3+83);
+                hdr4[97] = *(vector_value_out3+84);
+                hdr4[98] = *(vector_value_out3+85);
+                hdr4[99] = *(vector_value_out3+86);
+                hdr4[100] = *(vector_value_out3+87);
+                hdr4[101] = *(vector_value_out3+88);
+                hdr4[102] = *(vector_value_out3+89);
+                hdr4[103] = *(vector_value_out3+90);
+                hdr4[104] = *(vector_value_out3+91);
+                hdr4[105] = *(vector_value_out3+92);
+                hdr4[106] = *(vector_value_out3+93);
+                hdr4[107] = *(vector_value_out3+94);
+                hdr4[108] = *(vector_value_out3+95);
+                hdr4[109] = *(vector_value_out3+96);
+                hdr4[110] = *(vector_value_out3+97);
+                hdr4[111] = *(vector_value_out3+98);
+                hdr4[112] = *(vector_value_out3+99);
+                hdr4[113] = *(vector_value_out3+100);
+                hdr4[114] = *(vector_value_out3+101);
+                hdr4[115] = *(vector_value_out3+102);
+                hdr4[116] = *(vector_value_out3+103);
+                hdr4[117] = *(vector_value_out3+104);
+                hdr4[118] = *(vector_value_out3+105);
+                hdr4[119] = *(vector_value_out3+106);
+                hdr4[120] = *(vector_value_out3+107);
+                hdr4[121] = *(vector_value_out3+108);
+                hdr4[122] = *(vector_value_out3+109);
+                hdr4[123] = *(vector_value_out3+110);
+                hdr4[124] = *(vector_value_out3+111);
+                hdr4[125] = *(vector_value_out3+112);
+                hdr4[126] = *(vector_value_out3+113);
+                hdr4[127] = *(vector_value_out3+114);
+                hdr4[128] = *(vector_value_out3+115);
+                hdr4[129] = *(vector_value_out3+116);
+                hdr4[130] = *(vector_value_out3+117);
+                hdr4[131] = *(vector_value_out3+118);
+                hdr4[132] = *(vector_value_out3+119);
+                hdr4[133] = *(vector_value_out3+120);
+                hdr4[134] = *(vector_value_out3+121);
+                hdr4[135] = *(vector_value_out3+122);
+                hdr4[136] = *(vector_value_out3+123);
+                hdr4[137] = *(vector_value_out3+124);
+                hdr4[138] = *(vector_value_out3+125);
+                hdr4[139] = *(vector_value_out3+126);
+                hdr4[140] = *(vector_value_out3+127);
                 packet_return_chunk(buffer, hdr4);
                 // Node 58
                 inc_path_counter(58);
@@ -1101,7 +1086,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 // Node 61
                 inc_path_counter(61);
                 return 0;
-              } // !((0) == (*(hdr4+0)))
+              } // (0) != (*(hdr4+0))
             } else {
               // Node 62
               inc_path_counter(62);
@@ -1109,7 +1094,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               vector_borrow(vector2, value, (void**)&vector_value_out4);
               // Node 63
               inc_path_counter(63);
-              memcpy((void*)vector_value_out4, (void*)(hdr4+17), 128);
+              memcpy((void*)vector_value_out4, (void*)(hdr4+13), 128);
               // Node 64
               inc_path_counter(64);
               packet_return_chunk(buffer, hdr4);
@@ -1149,9 +1134,9 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               // Node 68
               inc_path_counter(68);
               return 0;
-            } // !((1) == (*(hdr4+0)))
+            } // (1) != (*(hdr4+0))
           } // (0) == (map_hit)
-        } // !((0) == (device & 65535))
+        } // (0) != (device & 65535)
       } else {
         // Node 69
         inc_path_counter(69);
@@ -1165,7 +1150,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         // Node 72
         inc_path_counter(72);
         return DROP;
-      } // ((40450) == (*(uint16_t*)(uint16_t*)(hdr3+2))) & ((146) <= ((uint16_t)((uint32_t)((4294967254LL) + ((uint16_t)(packet_length & 65535))))))
+      } // ((40450) == (*(uint16_t*)(uint16_t*)(hdr3+2))) & ((142) <= ((uint16_t)((uint32_t)((4294967254LL) + ((uint16_t)(packet_length & 65535))))))
     } else {
       // Node 73
       inc_path_counter(73);

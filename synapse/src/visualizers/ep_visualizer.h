@@ -52,14 +52,6 @@ public:
                const tofino::FCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node,
                const tofino::FCFSCachedTableDelete *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::MapRegisterRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::MapRegisterReadOrWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::MapRegisterWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::MapRegisterDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::MeterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node,
@@ -120,12 +112,6 @@ public:
                const ctrl::FCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node,
                const ctrl::FCFSCachedTableDelete *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const ctrl::MapRegisterRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const ctrl::MapRegisterWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const ctrl::MapRegisterDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const ctrl::HHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node,
                const ctrl::HHTableConditionalUpdate *node) override final;

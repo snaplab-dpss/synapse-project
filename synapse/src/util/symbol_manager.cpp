@@ -96,11 +96,15 @@ std::string base_from_name(const std::string &name) {
 }
 } // namespace
 
-void SymbolManager::store_clone(const klee::Array *array) {
-  if (names.find(array->name) == names.end()) {
+symbol_t SymbolManager::store_clone(const klee::Array *array) {
+  auto symbols_it = symbols.find(array->name);
+
+  if (symbols_it == symbols.end()) {
     bits_t size = array->size * 8;
-    create_symbol(array->name, size);
+    return create_symbol(array->name, size);
   }
+
+  return symbols_it->second;
 }
 
 const std::vector<const klee::Array *> &SymbolManager::get_arrays() const { return arrays; }
@@ -125,22 +129,16 @@ symbol_t SymbolManager::get_symbol(const std::string &name) const {
   return symbols_it->second;
 }
 
-symbols_t SymbolManager::get_symbols() const {
-  symbols_t result;
+Symbols SymbolManager::get_symbols() const {
+  Symbols result;
   for (const auto &symbol : symbols) {
-    result.insert(symbol.second);
+    result.add(symbol.second);
   }
   return result;
 }
 
-symbols_t SymbolManager::get_symbols_with_base(const std::string &base) const {
-  symbols_t result;
-  for (const auto &symbol : symbols) {
-    if (symbol.second.base == base) {
-      result.insert(symbol.second);
-    }
-  }
-  return result;
+Symbols SymbolManager::get_symbols_with_base(const std::string &base) const {
+  return get_symbols().filter_by_base(base);
 }
 
 symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {

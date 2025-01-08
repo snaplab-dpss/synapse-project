@@ -120,7 +120,7 @@ bool read_in_chunk(const symbolic_read_t &read, klee::ref<klee::Expr> chunk) {
   return found_it != known_chunk_bytes.end();
 }
 
-bool are_all_symbols_known(klee::ref<klee::Expr> expr, const symbols_t &known_symbols) {
+bool are_all_symbols_known(klee::ref<klee::Expr> expr, const Symbols &known_symbols) {
   std::unordered_set<std::string> dependencies = symbol_t::get_symbols_names(expr);
 
   if (dependencies.empty()) {
@@ -129,10 +129,7 @@ bool are_all_symbols_known(klee::ref<klee::Expr> expr, const symbols_t &known_sy
 
   bool has_packet_dependencies = false;
   for (const std::string &dependency : dependencies) {
-    auto is_dependency = [dependency](const symbol_t &s) { return s.name == dependency; };
-    auto found_it = std::find_if(known_symbols.begin(), known_symbols.end(), is_dependency);
-
-    if (found_it == known_symbols.end()) {
+    if (!known_symbols.has(dependency)) {
       return false;
     }
 
@@ -149,7 +146,7 @@ bool are_all_symbols_known(klee::ref<klee::Expr> expr, const symbols_t &known_sy
 
   for (const symbolic_read_t &dependency : packet_dependencies) {
     bool filled = false;
-    for (const symbol_t &known : known_symbols) {
+    for (const symbol_t &known : known_symbols.get()) {
       if (known.name == "packet_chunks" && read_in_chunk(dependency, known.expr)) {
         filled = true;
         break;
@@ -259,7 +256,7 @@ bool get_siblings(const vector_t &anchor, const Node *target, bool find_in_all_b
   return true;
 }
 
-bool io_check(const Node *node, const symbols_t &anchor_symbols) {
+bool io_check(const Node *node, const Symbols &anchor_symbols) {
   bool met = true;
 
   switch (node->get_type()) {
@@ -295,7 +292,7 @@ bool io_check(const Node *node, const symbols_t &anchor_symbols) {
   return met;
 }
 
-bool io_check(klee::ref<klee::Expr> expr, const symbols_t &anchor_symbols) {
+bool io_check(klee::ref<klee::Expr> expr, const Symbols &anchor_symbols) {
   return are_all_symbols_known(expr, anchor_symbols);
 }
 
@@ -391,7 +388,7 @@ bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, co
   condition =
       solver_toolbox.exprBuilder->Not(solver_toolbox.exprBuilder->Eq(between_key, candidate_key));
 
-  symbols_t anchor_symbols = bdd->get_generated_symbols(anchor);
+  Symbols anchor_symbols = bdd->get_generated_symbols(anchor);
   return io_check(condition, anchor_symbols);
 }
 
@@ -458,7 +455,7 @@ bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between,
   condition = solver_toolbox.exprBuilder->Not(
       solver_toolbox.exprBuilder->Eq(between_index, candidate_index));
 
-  symbols_t anchor_symbols = bdd->get_generated_symbols(anchor);
+  Symbols anchor_symbols = bdd->get_generated_symbols(anchor);
   return io_check(condition, anchor_symbols);
 }
 
@@ -967,16 +964,14 @@ void pull_branch(BDD *bdd, const mutable_vector_t &anchor, Branch *candidate,
 
 symbol_t get_collision_free_symbol(const symbol_t &candidate_symbol,
                                    SymbolManager *symbol_manager) {
-  symbols_t used_symbols = symbol_manager->get_symbols();
+  Symbols used_symbols = symbol_manager->get_symbols();
 
   std::string name;
   int suffix = 1;
   while (true) {
     name = candidate_symbol.base + "_r" + std::to_string(suffix);
-    auto found_it = std::find_if(used_symbols.begin(), used_symbols.end(),
-                                 [name](const symbol_t &s) { return s.name == name; });
 
-    if (found_it == used_symbols.end()) {
+    if (!used_symbols.has(name)) {
       break;
     }
 
@@ -991,9 +986,9 @@ void translate_symbols(BDD *bdd, const mutable_vector_t &anchor, Node *candidate
     return;
 
   Call *candidate_call = dynamic_cast<Call *>(candidate);
-  const symbols_t &candidate_symbols = candidate_call->get_local_symbols();
+  const Symbols &candidate_symbols = candidate_call->get_local_symbols();
 
-  for (const symbol_t &candidate_symbol : candidate_symbols) {
+  for (const symbol_t &candidate_symbol : candidate_symbols.get()) {
     symbol_t new_symbol =
         get_collision_free_symbol(candidate_symbol, bdd->get_mutable_symbol_manager());
     candidate->recursive_translate_symbol(bdd->get_mutable_symbol_manager(), candidate_symbol,
@@ -1124,7 +1119,7 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
     return candidate_info;
   }
 
-  symbols_t anchor_symbols = bdd->get_generated_symbols(anchor.node);
+  Symbols anchor_symbols = bdd->get_generated_symbols(anchor.node);
 
   assert(anchor.node && "Anchor node not found");
   assert(proposed_candidate && "Proposed candidate node not found");

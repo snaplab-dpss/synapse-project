@@ -47,7 +47,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const No
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  symbols_t symbols = get_dataplane_state(ep, node);
+  Symbols symbols = get_dataplane_state(ep, node);
 
   Module *module = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);

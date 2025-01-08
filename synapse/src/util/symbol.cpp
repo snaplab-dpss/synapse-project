@@ -63,24 +63,56 @@ std::unordered_set<std::string> symbol_t::get_symbols_names(klee::ref<klee::Expr
   retriever.visit(expr);
   return retriever.get_names();
 }
-
-bool get_symbol(const symbols_t &symbols, const std::string &base, symbol_t &symbol) {
-  for (const symbol_t &s : symbols) {
-    if (s.base == base) {
-      symbol = s;
-      return true;
-    }
-  }
-  return false;
-}
-
-std::size_t symbol_hash_t::operator()(const symbol_t &s) const noexcept {
+std::size_t Symbols::symbol_hash_t::operator()(const symbol_t &s) const noexcept {
   std::hash<std::string> hash_fn;
   return hash_fn(s.name);
 }
 
-bool symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept {
+bool Symbols::symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept {
   return a.name == b.name;
+}
+
+void Symbols::add(const symbol_t &symbol) { data.insert(symbol); }
+
+void Symbols::add(const Symbols &symbols) { data.insert(symbols.data.begin(), symbols.data.end()); }
+
+std::vector<symbol_t> Symbols::get() const {
+  std::vector<symbol_t> result;
+  result.insert(result.end(), data.begin(), data.end());
+  return result;
+}
+
+bool Symbols::has(const std::string &name) const {
+  auto is_target = [name](const symbol_t &s) { return s.name == name; };
+  return std::find_if(data.begin(), data.end(), is_target) != data.end();
+}
+
+size_t Symbols::size() const { return data.size(); }
+
+bool Symbols::empty() const { return data.empty(); }
+
+symbol_t Symbols::get(const std::string &name) const {
+  for (const symbol_t &symbol : data) {
+    if (symbol.name == name) {
+      return symbol;
+    }
+  }
+  panic("Symbol not found");
+}
+
+bool Symbols::remove(const std::string &name) {
+  auto is_target = [name](const symbol_t &s) { return s.name == name; };
+  return std::erase_if(data, is_target) > 0;
+}
+
+Symbols Symbols::filter_by_base(const std::string &base) const {
+  Symbols result;
+  for (const symbol_t &symbol : data) {
+    if (symbol.base == base) {
+      result.data.insert(symbol);
+    }
+  }
+  return result;
 }
 
 std::ostream &operator<<(std::ostream &os, const symbol_t &symbol) {
@@ -88,6 +120,15 @@ std::ostream &operator<<(std::ostream &os, const symbol_t &symbol) {
   os << "base=" << symbol.base << ", ";
   os << "name=" << symbol.name << ", ";
   os << "expr=" << expr_to_string(symbol.expr, true) << "}";
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Symbols &symbols) {
+  os << "Symbols:";
+  for (const symbol_t &symbol : symbols.data) {
+    os << "  " << symbol << "\n";
+  }
+  os << "\n";
   return os;
 }
 } // namespace synapse

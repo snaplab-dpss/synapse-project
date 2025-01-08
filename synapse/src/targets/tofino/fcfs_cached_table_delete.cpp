@@ -137,7 +137,7 @@ EP *concretize_cached_table_delete(const EP *ep, const Call *map_erase,
       new_ep, map_erase, cached_table_data, cache_delete_success_condition, on_cache_delete_success,
       on_cache_delete_failed, deleted_branch_constraints);
 
-  symbols_t symbols = TofinoModuleFactory::get_dataplane_state(ep, map_erase);
+  Symbols symbols = TofinoModuleFactory::get_dataplane_state(ep, map_erase);
 
   Module *if_module =
       new If(map_erase, cache_delete_success_condition, {cache_delete_success_condition});
@@ -304,11 +304,7 @@ FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node,
   }
 
   fcfs_cached_table_data_t cached_table_data(ep, map_erase);
-
-  // FIXME:
-  // symbol_t cache_delete_failed = create_symbol("cache_delete_failed", 32);
-  symbol_t cache_delete_failed;
-
+  symbol_t cache_delete_failed = symbol_manager->create_symbol("cache_delete_failed", 32);
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {

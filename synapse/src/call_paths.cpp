@@ -75,6 +75,8 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
 
         kQuery_t kQuery = parser.parse(query_str);
 
+        call_path->symbols = kQuery.symbols;
+
         for (klee::ref<klee::Expr> constraint : kQuery.constraints) {
           call_path->constraints.addConstraint(constraint);
         }
@@ -480,6 +482,14 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
   }
 
   return call_path;
+}
+
+Symbols call_paths_view_t::get_symbols() const {
+  Symbols symbols;
+  for (const call_path_t *cp : data) {
+    symbols.add(cp->symbols);
+  }
+  return symbols;
 }
 
 call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files,
