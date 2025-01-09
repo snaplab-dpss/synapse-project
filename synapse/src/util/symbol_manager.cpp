@@ -1,9 +1,8 @@
 #include "symbol_manager.h"
+#include "solver.h"
+#include "exprs.h"
 #include "../system.h"
-#include "../util/solver.h"
-#include "../util/exprs.h"
 
-#include <klee/ExprBuilder.h>
 #include <klee/util/ExprVisitor.h>
 #include <klee/Constraints.h>
 
@@ -141,26 +140,25 @@ symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
     return symbol;
   }
 
-  klee::Expr::Width domain = klee::Expr::Int32;
-  klee::Expr::Width range = klee::Expr::Int8;
+  const klee::Expr::Width domain = klee::Expr::Int32;
+  const klee::Expr::Width range = klee::Expr::Int8;
   const klee::Array *array = cache.CreateArray(name, size / 8, nullptr, nullptr, domain, range);
 
-  std::unique_ptr<klee::ExprBuilder> builder = std::unique_ptr<klee::ExprBuilder>(klee::createDefaultExprBuilder());
-  klee::UpdateList updates(array, nullptr);
-  bytes_t width = array->size;
+  const klee::UpdateList updates(array, nullptr);
+  const bytes_t width = array->size;
 
   klee::ref<klee::Expr> expr;
-  for (size_t i = 0; i < width; i++) {
-    klee::ref<klee::Expr> index = builder->Constant(i, array->domain);
+  for (bits_t i = 0; i < width; i++) {
+    klee::ref<klee::Expr> index = solver_toolbox.exprBuilder->Constant(i, array->domain);
     if (expr.isNull()) {
-      expr = builder->Read(updates, index);
+      expr = solver_toolbox.exprBuilder->Read(updates, index);
       continue;
     }
-    expr = builder->Concat(builder->Read(updates, index), expr);
+    expr = solver_toolbox.exprBuilder->Concat(solver_toolbox.exprBuilder->Read(updates, index), expr);
   }
 
-  std::string base = base_from_name(name);
-  symbol_t symbol(base, name, expr);
+  const std::string base = base_from_name(name);
+  const symbol_t symbol(base, name, expr);
 
   arrays.push_back(array);
   names.insert({name, array});

@@ -30,17 +30,26 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr);
 
 klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::string> &allowed_symbols);
 
-struct mod_t {
-  bytes_t offset;
+struct expr_mod_t {
+  bits_t offset;
   bits_t width;
   klee::ref<klee::Expr> expr;
 
-  mod_t(u32 _offset, bits_t _width, klee::ref<klee::Expr> _expr) : offset(_offset), width(_width), expr(_expr) {}
-  mod_t(const mod_t &mod) : offset(mod.offset), width(mod.width), expr(mod.expr) {}
+  expr_mod_t(bits_t _offset, bits_t _width, klee::ref<klee::Expr> _expr) : offset(_offset), width(_width), expr(_expr) {}
+  expr_mod_t(const expr_mod_t &mod) = default;
+  expr_mod_t(expr_mod_t &&mod) = default;
+  expr_mod_t &operator=(const expr_mod_t &mod) = default;
 };
 
-std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
+std::vector<expr_mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
 std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr);
+
+struct expr_byte_swap_t {
+  bytes_t byte0;
+  bytes_t byte1;
+};
+
+std::vector<expr_byte_swap_t> get_expr_byte_swaps(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
 
 struct expr_group_t {
   bool has_symbol;
@@ -53,7 +62,7 @@ struct expr_group_t {
 std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr);
 
 struct symbolic_read_t {
-  bytes_t offset;
+  bytes_t byte;
   std::string symbol;
 };
 
@@ -68,4 +77,5 @@ struct symbolic_read_equal_t {
 typedef std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t> symbolic_reads_t;
 
 symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter = std::nullopt);
+
 } // namespace synapse

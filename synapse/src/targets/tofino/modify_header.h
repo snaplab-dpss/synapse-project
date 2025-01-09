@@ -9,24 +9,28 @@ class ModifyHeader : public TofinoModule {
 private:
   addr_t hdr_addr;
   klee::ref<klee::Expr> hdr;
-  std::vector<mod_t> changes;
+  std::vector<expr_mod_t> changes;
+  std::vector<expr_byte_swap_t> swaps;
 
 public:
-  ModifyHeader(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, const std::vector<mod_t> &_changes)
-      : TofinoModule(ModuleType::Tofino_ModifyHeader, "ModifyHeader", node), hdr_addr(_hdr_addr), hdr(_hdr), changes(_changes) {}
+  ModifyHeader(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, const std::vector<expr_mod_t> &_changes,
+               const std::vector<expr_byte_swap_t> &_swaps)
+      : TofinoModule(ModuleType::Tofino_ModifyHeader, "ModifyHeader", node), hdr_addr(_hdr_addr), hdr(_hdr), changes(_changes),
+        swaps(_swaps) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {
-    ModifyHeader *cloned = new ModifyHeader(node, hdr_addr, hdr, changes);
+    ModifyHeader *cloned = new ModifyHeader(node, hdr_addr, hdr, changes, swaps);
     return cloned;
   }
 
   addr_t get_hdr_addr() const { return hdr_addr; }
   klee::ref<klee::Expr> get_hdr() const { return hdr; }
-  const std::vector<mod_t> &get_changes() const { return changes; }
+  const std::vector<expr_mod_t> &get_changes() const { return changes; }
+  const std::vector<expr_byte_swap_t> &get_swaps() const { return swaps; }
 };
 
 class ModifyHeaderFactory : public TofinoModuleFactory {

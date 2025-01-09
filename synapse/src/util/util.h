@@ -34,8 +34,7 @@ bps_t pps2bps(pps_t pps, bytes_t pkt_size);
 std::string int2hr(u64 value);
 std::string tput2str(u64 thpt, const std::string &units, bool human_readable = false);
 
-std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk, const Call *packet_return_chunk);
-std::vector<mod_t> ignore_checksum_modifications(const std::vector<mod_t> &modifications);
+std::vector<expr_mod_t> ignore_checksum_modifications(const std::vector<expr_mod_t> &modifications);
 
 const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk);
 

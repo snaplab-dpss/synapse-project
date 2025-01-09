@@ -579,15 +579,48 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   bool found = get_var(hdr, hdr_var);
   assert(found && "Header not found");
 
-  const std::vector<mod_t> &changes = node->get_changes();
-  for (const mod_t &mod : changes) {
+  const std::vector<expr_mod_t> &changes = node->get_changes();
+  const std::vector<expr_byte_swap_t> &swaps = node->get_swaps();
+
+  for (const expr_byte_swap_t &byte_swap : swaps) {
+    bits_t hi_offset = std::max(byte_swap.byte0, byte_swap.byte1) * 8;
+    bits_t lo_offset = std::min(byte_swap.byte0, byte_swap.byte1) * 8;
+
+    ingress_apply.indent();
+    ingress_apply << "swap(";
+    ingress_apply << hdr_var.name;
+    ingress_apply << "[";
+    ingress_apply << hi_offset + 7;
+    ingress_apply << ":";
+    ingress_apply << hi_offset;
+    ingress_apply << "]";
+    ingress_apply << ", ";
+    ingress_apply << hdr_var.name;
+    ingress_apply << "[";
+    ingress_apply << lo_offset + 7;
+    ingress_apply << ":";
+    ingress_apply << lo_offset;
+    ingress_apply << "]";
+    ingress_apply << ");\n";
+  }
+
+  for (const expr_mod_t &mod : changes) {
+    auto swapped = [&mod](const expr_byte_swap_t &byte_swap) -> bool {
+      assert(mod.width == 8 && "TODO: deal with non-byte modifications with swaps");
+      return mod.offset == byte_swap.byte0 * 8 || mod.offset == byte_swap.byte1 * 8;
+    };
+
+    if (std::any_of(swaps.begin(), swaps.end(), swapped)) {
+      continue;
+    }
+
     klee::ref<klee::Expr> expr = mod.expr;
     ingress_apply.indent();
     ingress_apply << hdr_var.name;
     ingress_apply << "[";
-    ingress_apply << mod.offset * 8 + mod.width - 1;
+    ingress_apply << mod.offset + mod.width - 1;
     ingress_apply << ":";
-    ingress_apply << mod.offset * 8;
+    ingress_apply << mod.offset;
     ingress_apply << "]";
     ingress_apply << " = ";
     ingress_apply << transpiler.transpile(expr);

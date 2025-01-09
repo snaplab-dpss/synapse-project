@@ -111,9 +111,7 @@ bool fn_can_be_reordered(const std::string &fn) {
 
 bool read_in_chunk(const symbolic_read_t &read, klee::ref<klee::Expr> chunk) {
   const symbolic_reads_t known_chunk_bytes = get_unique_symbolic_reads(chunk);
-
   auto is_byte_read = [read](const symbolic_read_t &chunk_read) { return symbolic_read_equal_t{}(read, chunk_read); };
-
   auto found_it = std::find_if(known_chunk_bytes.begin(), known_chunk_bytes.end(), is_byte_read);
   return found_it != known_chunk_bytes.end();
 }

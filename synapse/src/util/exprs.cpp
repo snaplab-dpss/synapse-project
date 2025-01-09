@@ -99,6 +99,7 @@ public:
     if (!filter.has_value() || name == filter.value()) {
       symbolic_reads.insert({byte, name});
     }
+
     return klee::ExprVisitor::Action::doChildren();
   }
 
@@ -159,10 +160,8 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &siz
     klee::ref<klee::Expr> index = read->index;
     if (index->getKind() == klee::Expr::Constant) {
       klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-
       offset = index_const->getZExtValue();
       size = read->getWidth() / 8;
-
       return true;
     }
   }
@@ -367,7 +366,7 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::
   return filtered;
 }
 
-std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
+std::vector<expr_mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
   assert(before->getWidth() == after->getWidth() && "Different widths");
 
   if (solver_toolbox.are_exprs_always_equal(before, after)) {
@@ -378,20 +377,102 @@ std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee:
     bits_t msb_width = after->getKid(0)->getWidth();
     bits_t lsb_width = after->getWidth() - msb_width;
 
-    std::vector<mod_t> msb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
+    std::vector<expr_mod_t> msb_groups =
+        build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
+    std::vector<expr_mod_t> lsb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
+    std::vector<expr_mod_t> &groups = lsb_groups;
 
-    std::vector<mod_t> lsb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
-
-    std::vector<mod_t> &groups = lsb_groups;
-
-    for (const mod_t &group : msb_groups) {
-      groups.emplace_back(lsb_width / 8, group.width, group.expr);
+    for (const expr_mod_t &group : msb_groups) {
+      expr_mod_t mod(group.offset + lsb_width, group.width, group.expr);
+      groups.push_back(mod);
     }
 
     return groups;
   }
 
-  return {mod_t(0, after->getWidth(), after)};
+  return {expr_mod_t(0, after->getWidth(), after)};
+}
+
+std::vector<std::optional<symbolic_read_t>> break_expr_by_reads(klee::ref<klee::Expr> expr) {
+  std::vector<std::optional<symbolic_read_t>> groups;
+
+  if (expr->getKind() == klee::Expr::Concat) {
+    std::vector<std::optional<symbolic_read_t>> msb_bytes = break_expr_by_reads(expr->getKid(0));
+    std::vector<std::optional<symbolic_read_t>> lsb_bytes = break_expr_by_reads(expr->getKid(1));
+
+    groups.insert(groups.end(), lsb_bytes.begin(), lsb_bytes.end());
+    groups.insert(groups.end(), msb_bytes.begin(), msb_bytes.end());
+  } else if (expr->getKind() == klee::Expr::Read) {
+    const klee::ReadExpr *read = dynamic_cast<const klee::ReadExpr *>(expr.get());
+    const std::string name = read->updates.root->name;
+    const klee::ref<klee::Expr> index = read->index;
+
+    assert(index->getKind() == klee::Expr::Constant && "Non-constant index");
+    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    bytes_t offset = index_const->getZExtValue();
+
+    symbolic_read_t symbolic_read{offset, name};
+    groups.push_back(symbolic_read);
+  } else {
+    for (bytes_t i = 0; i < expr->getWidth() / 8; i++) {
+      groups.emplace_back();
+    }
+  }
+
+  return groups;
+}
+
+std::vector<expr_byte_swap_t> get_expr_byte_swaps(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
+  // If you're asking yourself why we didn't use the solver to check for this instead of using this clunky method, the answer is that we
+  // did, but it was painfully slow.
+
+  assert(before->getWidth() == after->getWidth() && "Different widths");
+
+  std::vector<std::optional<symbolic_read_t>> lhs_bytes = break_expr_by_reads(before);
+  std::vector<std::optional<symbolic_read_t>> rhs_bytes = break_expr_by_reads(after);
+
+  assert(lhs_bytes.size() == rhs_bytes.size() && "Different number of groups");
+
+  std::vector<expr_byte_swap_t> byte_swaps;
+  std::unordered_set<bytes_t> matched;
+
+  for (bytes_t i = 0; i < lhs_bytes.size(); i++) {
+    const std::optional<symbolic_read_t> &lhs = lhs_bytes[i];
+
+    if (!lhs.has_value()) {
+      continue;
+    }
+
+    for (bytes_t j = 0; j < rhs_bytes.size(); j++) {
+      if (j == i || matched.count(j)) {
+        continue;
+      }
+
+      const std::optional<symbolic_read_t> &rhs = rhs_bytes[j];
+
+      if (!rhs.has_value() || lhs->symbol != rhs->symbol || lhs->byte != rhs->byte) {
+        continue;
+      }
+
+      const std::optional<symbolic_read_t> &lhs_swapped = lhs_bytes[j];
+      const std::optional<symbolic_read_t> &rhs_swapped = rhs_bytes[i];
+
+      if (!lhs_swapped.has_value() || !rhs_swapped.has_value()) {
+        continue;
+      }
+
+      if (lhs_swapped->symbol != rhs_swapped->symbol || lhs_swapped->byte != rhs_swapped->byte) {
+        continue;
+      }
+
+      expr_byte_swap_t byte_swap{i, j};
+      matched.insert(i);
+      matched.insert(j);
+      byte_swaps.push_back(byte_swap);
+    }
+  }
+
+  return byte_swaps;
 }
 
 std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr) {
@@ -469,11 +550,11 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
 
 std::size_t symbolic_read_hash_t::operator()(const symbolic_read_t &s) const noexcept {
   std::hash<std::string> hash_fn;
-  return hash_fn(s.symbol + std::to_string(s.offset));
+  return hash_fn(s.symbol + std::to_string(s.byte));
 }
 
 bool symbolic_read_equal_t::operator()(const symbolic_read_t &a, const symbolic_read_t &b) const noexcept {
-  return a.symbol == b.symbol && a.offset == b.offset;
+  return a.symbol == b.symbol && a.byte == b.byte;
 }
 
 symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter) {

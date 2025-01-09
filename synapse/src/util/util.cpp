@@ -320,37 +320,12 @@ struct pair_hash {
   }
 };
 
-std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk, const Call *packet_return_chunk) {
-  static std::unordered_map<node_id_t, std::vector<mod_t>> cache;
-
-  auto cache_found_it = cache.find(packet_return_chunk->get_id());
-  if (cache_found_it != cache.end()) {
-    return cache_found_it->second;
-  }
-
-  const call_t &ret_call = packet_return_chunk->get_call();
-  assert(ret_call.function_name == "packet_return_chunk" && "Unexpected function");
-
-  const call_t &bor_call = packet_borrow_next_chunk->get_call();
-  assert(bor_call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
-
-  klee::ref<klee::Expr> borrowed = bor_call.extra_vars.at("the_chunk").second;
-  klee::ref<klee::Expr> returned = ret_call.args.at("the_chunk").in;
-  assert(borrowed->getWidth() == returned->getWidth() && "Different widths");
-
-  std::vector<mod_t> changes = build_expr_mods(borrowed, returned);
-
-  cache[packet_return_chunk->get_id()] = changes;
-
-  return changes;
-}
-
 // This is somewhat of a hack... We assume that checksum expressions will only
 // be used to modify checksum fields of a packet, not other packet fields.
-std::vector<mod_t> ignore_checksum_modifications(const std::vector<mod_t> &modifications) {
-  std::vector<mod_t> filtered;
+std::vector<expr_mod_t> ignore_checksum_modifications(const std::vector<expr_mod_t> &modifications) {
+  std::vector<expr_mod_t> filtered;
 
-  for (const mod_t &mod : modifications) {
+  for (const expr_mod_t &mod : modifications) {
     klee::ref<klee::Expr> simplified = simplify(mod.expr);
     std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(simplified);
 

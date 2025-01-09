@@ -55,7 +55,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
   assert(vector_borrow && "Vector return without borrow");
 
   klee::ref<klee::Expr> original_value = vector_borrow->get_call().extra_vars.at("borrowed_cell").second;
-  std::vector<mod_t> changes = build_expr_mods(original_value, value);
+  std::vector<expr_mod_t> changes = build_expr_mods(original_value, value);
 
   // Check the Ignore module.
   if (changes.empty()) {

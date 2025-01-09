@@ -740,32 +740,20 @@ control Ingress(
                     if (8w02 != hdr.hdr_3.data[7:0]) {
                       // Node 1629
                       // Node 2712
-                      hdr.hdr_2.data[7:0] = hdr.hdr_2.data[23:16];
-                      hdr.hdr_2.data[15:8] = hdr.hdr_2.data[31:24];
-                      hdr.hdr_2.data[23:16] = hdr.hdr_2.data[7:0];
-                      hdr.hdr_2.data[31:24] = hdr.hdr_2.data[15:8];
+                      swap(hdr.hdr_2.data[23:16], hdr.hdr_2.data[7:0]);
+                      swap(hdr.hdr_2.data[31:24], hdr.hdr_2.data[15:8]);
                       // Node 3111
-                      hdr.hdr_1.data[103:96] = hdr.hdr_1.data[135:128];
-                      hdr.hdr_1.data[111:104] = hdr.hdr_1.data[143:136];
-                      hdr.hdr_1.data[119:112] = hdr.hdr_1.data[151:144];
-                      hdr.hdr_1.data[127:120] = hdr.hdr_1.data[159:152];
-                      hdr.hdr_1.data[135:128] = hdr.hdr_1.data[103:96];
-                      hdr.hdr_1.data[143:136] = hdr.hdr_1.data[111:104];
-                      hdr.hdr_1.data[151:144] = hdr.hdr_1.data[119:112];
-                      hdr.hdr_1.data[159:152] = hdr.hdr_1.data[127:120];
+                      swap(hdr.hdr_1.data[135:128], hdr.hdr_1.data[103:96]);
+                      swap(hdr.hdr_1.data[143:136], hdr.hdr_1.data[111:104]);
+                      swap(hdr.hdr_1.data[151:144], hdr.hdr_1.data[119:112]);
+                      swap(hdr.hdr_1.data[159:152], hdr.hdr_1.data[127:120]);
                       // Node 3429
-                      hdr.hdr_0.data[7:0] = hdr.hdr_0.data[55:48];
-                      hdr.hdr_0.data[15:8] = hdr.hdr_0.data[63:56];
-                      hdr.hdr_0.data[23:16] = hdr.hdr_0.data[71:64];
-                      hdr.hdr_0.data[31:24] = hdr.hdr_0.data[79:72];
-                      hdr.hdr_0.data[39:32] = hdr.hdr_0.data[87:80];
-                      hdr.hdr_0.data[47:40] = hdr.hdr_0.data[95:88];
-                      hdr.hdr_0.data[55:48] = hdr.hdr_0.data[7:0];
-                      hdr.hdr_0.data[63:56] = hdr.hdr_0.data[15:8];
-                      hdr.hdr_0.data[71:64] = hdr.hdr_0.data[23:16];
-                      hdr.hdr_0.data[79:72] = hdr.hdr_0.data[31:24];
-                      hdr.hdr_0.data[87:80] = hdr.hdr_0.data[39:32];
-                      hdr.hdr_0.data[95:88] = hdr.hdr_0.data[47:40];
+                      swap(hdr.hdr_0.data[55:48], hdr.hdr_0.data[7:0]);
+                      swap(hdr.hdr_0.data[63:56], hdr.hdr_0.data[15:8]);
+                      swap(hdr.hdr_0.data[71:64], hdr.hdr_0.data[23:16]);
+                      swap(hdr.hdr_0.data[79:72], hdr.hdr_0.data[31:24]);
+                      swap(hdr.hdr_0.data[87:80], hdr.hdr_0.data[39:32]);
+                      swap(hdr.hdr_0.data[95:88], hdr.hdr_0.data[47:40]);
                       // Node 3651
                       fwd(0);
                     } else {
@@ -951,32 +939,20 @@ control Ingress(
                     hdr.hdr_3.data[1119:1112] = vector_reg_entry_31_0[23:16];
                     hdr.hdr_3.data[1127:1120] = vector_reg_entry_31_0[31:24];
                     // Node 3215
-                    hdr.hdr_2.data[7:0] = hdr.hdr_2.data[23:16];
-                    hdr.hdr_2.data[15:8] = hdr.hdr_2.data[31:24];
-                    hdr.hdr_2.data[23:16] = hdr.hdr_2.data[7:0];
-                    hdr.hdr_2.data[31:24] = hdr.hdr_2.data[15:8];
+                    swap(hdr.hdr_2.data[23:16], hdr.hdr_2.data[7:0]);
+                    swap(hdr.hdr_2.data[31:24], hdr.hdr_2.data[15:8]);
                     // Node 3539
-                    hdr.hdr_1.data[103:96] = hdr.hdr_1.data[135:128];
-                    hdr.hdr_1.data[111:104] = hdr.hdr_1.data[143:136];
-                    hdr.hdr_1.data[119:112] = hdr.hdr_1.data[151:144];
-                    hdr.hdr_1.data[127:120] = hdr.hdr_1.data[159:152];
-                    hdr.hdr_1.data[135:128] = hdr.hdr_1.data[103:96];
-                    hdr.hdr_1.data[143:136] = hdr.hdr_1.data[111:104];
-                    hdr.hdr_1.data[151:144] = hdr.hdr_1.data[119:112];
-                    hdr.hdr_1.data[159:152] = hdr.hdr_1.data[127:120];
+                    swap(hdr.hdr_1.data[135:128], hdr.hdr_1.data[103:96]);
+                    swap(hdr.hdr_1.data[143:136], hdr.hdr_1.data[111:104]);
+                    swap(hdr.hdr_1.data[151:144], hdr.hdr_1.data[119:112]);
+                    swap(hdr.hdr_1.data[159:152], hdr.hdr_1.data[127:120]);
                     // Node 3765
-                    hdr.hdr_0.data[7:0] = hdr.hdr_0.data[55:48];
-                    hdr.hdr_0.data[15:8] = hdr.hdr_0.data[63:56];
-                    hdr.hdr_0.data[23:16] = hdr.hdr_0.data[71:64];
-                    hdr.hdr_0.data[31:24] = hdr.hdr_0.data[79:72];
-                    hdr.hdr_0.data[39:32] = hdr.hdr_0.data[87:80];
-                    hdr.hdr_0.data[47:40] = hdr.hdr_0.data[95:88];
-                    hdr.hdr_0.data[55:48] = hdr.hdr_0.data[7:0];
-                    hdr.hdr_0.data[63:56] = hdr.hdr_0.data[15:8];
-                    hdr.hdr_0.data[71:64] = hdr.hdr_0.data[23:16];
-                    hdr.hdr_0.data[79:72] = hdr.hdr_0.data[31:24];
-                    hdr.hdr_0.data[87:80] = hdr.hdr_0.data[39:32];
-                    hdr.hdr_0.data[95:88] = hdr.hdr_0.data[47:40];
+                    swap(hdr.hdr_0.data[55:48], hdr.hdr_0.data[7:0]);
+                    swap(hdr.hdr_0.data[63:56], hdr.hdr_0.data[15:8]);
+                    swap(hdr.hdr_0.data[71:64], hdr.hdr_0.data[23:16]);
+                    swap(hdr.hdr_0.data[79:72], hdr.hdr_0.data[31:24]);
+                    swap(hdr.hdr_0.data[87:80], hdr.hdr_0.data[39:32]);
+                    swap(hdr.hdr_0.data[95:88], hdr.hdr_0.data[47:40]);
                     // Node 3881
                     fwd(0);
                   }
@@ -1049,32 +1025,20 @@ control Ingress(
                   vector_reg_entry_31_1 = hdr.hdr_3.data[1127:1096];
                   vector_reg_1073938944_31_write_419.execute(table_1073912440_14_value_0);
                   // Node 556
-                  hdr.hdr_2.data[7:0] = hdr.hdr_2.data[23:16];
-                  hdr.hdr_2.data[15:8] = hdr.hdr_2.data[31:24];
-                  hdr.hdr_2.data[23:16] = hdr.hdr_2.data[7:0];
-                  hdr.hdr_2.data[31:24] = hdr.hdr_2.data[15:8];
+                  swap(hdr.hdr_2.data[23:16], hdr.hdr_2.data[7:0]);
+                  swap(hdr.hdr_2.data[31:24], hdr.hdr_2.data[15:8]);
                   // Node 614
-                  hdr.hdr_1.data[103:96] = hdr.hdr_1.data[135:128];
-                  hdr.hdr_1.data[111:104] = hdr.hdr_1.data[143:136];
-                  hdr.hdr_1.data[119:112] = hdr.hdr_1.data[151:144];
-                  hdr.hdr_1.data[127:120] = hdr.hdr_1.data[159:152];
-                  hdr.hdr_1.data[135:128] = hdr.hdr_1.data[103:96];
-                  hdr.hdr_1.data[143:136] = hdr.hdr_1.data[111:104];
-                  hdr.hdr_1.data[151:144] = hdr.hdr_1.data[119:112];
-                  hdr.hdr_1.data[159:152] = hdr.hdr_1.data[127:120];
+                  swap(hdr.hdr_1.data[135:128], hdr.hdr_1.data[103:96]);
+                  swap(hdr.hdr_1.data[143:136], hdr.hdr_1.data[111:104]);
+                  swap(hdr.hdr_1.data[151:144], hdr.hdr_1.data[119:112]);
+                  swap(hdr.hdr_1.data[159:152], hdr.hdr_1.data[127:120]);
                   // Node 674
-                  hdr.hdr_0.data[7:0] = hdr.hdr_0.data[55:48];
-                  hdr.hdr_0.data[15:8] = hdr.hdr_0.data[63:56];
-                  hdr.hdr_0.data[23:16] = hdr.hdr_0.data[71:64];
-                  hdr.hdr_0.data[31:24] = hdr.hdr_0.data[79:72];
-                  hdr.hdr_0.data[39:32] = hdr.hdr_0.data[87:80];
-                  hdr.hdr_0.data[47:40] = hdr.hdr_0.data[95:88];
-                  hdr.hdr_0.data[55:48] = hdr.hdr_0.data[7:0];
-                  hdr.hdr_0.data[63:56] = hdr.hdr_0.data[15:8];
-                  hdr.hdr_0.data[71:64] = hdr.hdr_0.data[23:16];
-                  hdr.hdr_0.data[79:72] = hdr.hdr_0.data[31:24];
-                  hdr.hdr_0.data[87:80] = hdr.hdr_0.data[39:32];
-                  hdr.hdr_0.data[95:88] = hdr.hdr_0.data[47:40];
+                  swap(hdr.hdr_0.data[55:48], hdr.hdr_0.data[7:0]);
+                  swap(hdr.hdr_0.data[63:56], hdr.hdr_0.data[15:8]);
+                  swap(hdr.hdr_0.data[71:64], hdr.hdr_0.data[23:16]);
+                  swap(hdr.hdr_0.data[79:72], hdr.hdr_0.data[31:24]);
+                  swap(hdr.hdr_0.data[87:80], hdr.hdr_0.data[39:32]);
+                  swap(hdr.hdr_0.data[95:88], hdr.hdr_0.data[47:40]);
                   // Node 736
                   fwd(0);
                 }

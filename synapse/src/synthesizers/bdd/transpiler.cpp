@@ -16,6 +16,8 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
   coders.emplace();
   coder_t &coder = coders.top();
 
+  expr = simplify(expr);
+
   if (is_constant(expr)) {
     assert(expr->getWidth() <= 64 && "Unsupported constant width");
     u64 value = solver_toolbox.value_from_expr(expr);
@@ -27,7 +29,7 @@ code_t BDDTranspiler::transpile(klee::ref<klee::Expr> expr) {
       coder << "LL";
     }
   } else {
-    visit(simplify(expr));
+    visit(expr);
 
     // HACK: clear the visited map so we force the transpiler to revisit all
     // expressions.
@@ -121,7 +123,7 @@ klee::ExprVisitor::Action BDDTranspiler::visitConcat(const klee::ConcatExpr &e) 
 klee::ExprVisitor::Action BDDTranspiler::visitExtract(const klee::ExtractExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
 
-  klee::Expr::Width width = e.width;
+  bits_t width = e.width;
   bits_t offset = e.offset;
   klee::ref<klee::Expr> arg = e.expr;
 
@@ -560,4 +562,5 @@ klee::ExprVisitor::Action BDDTranspiler::visitSge(const klee::SgeExpr &e) {
 
   return klee::ExprVisitor::Action::skipChildren();
 }
+
 } // namespace synapse

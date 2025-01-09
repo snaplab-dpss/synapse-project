@@ -323,15 +323,15 @@ void BDDSynthesizer::packet_return_chunk(coder_t &coder, const Call *call_node) 
   klee::ref<klee::Expr> chunk = call.args.at("the_chunk").in;
 
   var_t hdr = stack_get(chunk_addr);
-  std::vector<mod_t> changes = build_expr_mods(hdr.expr, chunk);
+  std::vector<expr_mod_t> changes = build_expr_mods(hdr.expr, chunk);
 
-  for (const mod_t &mod : changes) {
+  for (const expr_mod_t &mod : changes) {
     std::vector<klee::ref<klee::Expr>> bytes = bytes_in_expr(mod.expr);
     for (size_t i = 0; i < bytes.size(); i++) {
       coder.indent();
       coder << hdr.name;
       coder << "[";
-      coder << mod.offset + i;
+      coder << (mod.offset / 8) + i;
       coder << "] = ";
       coder << transpiler.transpile(bytes[i]);
       coder << ";\n";
@@ -714,8 +714,8 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     return;
   }
 
-  std::vector<mod_t> changes = build_expr_mods(v.expr, value);
-  for (const mod_t &mod : changes) {
+  std::vector<expr_mod_t> changes = build_expr_mods(v.expr, value);
+  for (const expr_mod_t &mod : changes) {
     coder.indent();
 
     assert(mod.width <= 64 && "Vector element size is too large");
@@ -723,7 +723,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     if (mod.width == 8) {
       coder << v.name;
       coder << "[";
-      coder << mod.offset;
+      coder << mod.offset / 8;
       coder << "]";
     } else {
       coder << "*(" << BDDTranspiler::type_from_size(mod.width) << "*)";
