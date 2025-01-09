@@ -7,7 +7,7 @@
 #include "nodes/branch.h"
 #include "nodes/route.h"
 #include "../util/exprs.h"
-#include "../log.h"
+#include "../system.h"
 #include "../util/kQuery.h"
 
 namespace synapse {

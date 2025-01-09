@@ -10,7 +10,7 @@
 #include "table.h"
 
 #include "../../../types.h"
-#include "../../../log.h"
+#include "../../../system.h"
 
 namespace synapse {
 namespace tofino {

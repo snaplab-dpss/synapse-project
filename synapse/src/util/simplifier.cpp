@@ -3,7 +3,7 @@
 #include "simplifier.h"
 #include "exprs.h"
 #include "solver.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
@@ -274,7 +274,7 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return solver_toolbox.exprBuilder->Not(expr);
   } break;
   default:
-    panic("TODO");
+    panic("TODO: Negate expression");
   }
 
   return expr;

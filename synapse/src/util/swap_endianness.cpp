@@ -2,7 +2,7 @@
 
 #include "exprs.h"
 #include "solver.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 class SwapPacketEndianness : public klee::ExprVisitor::ExprVisitor {

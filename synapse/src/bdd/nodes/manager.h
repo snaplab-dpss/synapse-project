@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "node.h"
-#include "../../log.h"
+#include "../../system.h"
 
 namespace synapse {
 class NodeManager {

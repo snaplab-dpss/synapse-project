@@ -4,7 +4,7 @@
 #include <klee/util/ExprVisitor.h>
 
 #include "exprs.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 

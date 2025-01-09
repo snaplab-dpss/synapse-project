@@ -63,11 +63,11 @@ FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
 void FCFSCachedTable::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "======== FCFS CACHED TABLE ========\n";
-  Log::dbg() << "ID:      " << id << "\n";
-  Log::dbg() << "Entries: " << num_entries << "\n";
-  Log::dbg() << "Cache:   " << cache_capacity << "\n";
+  std::cerr << "\n";
+  std::cerr << "======== FCFS CACHED TABLE ========\n";
+  std::cerr << "ID:      " << id << "\n";
+  std::cerr << "Entries: " << num_entries << "\n";
+  std::cerr << "Cache:   " << cache_capacity << "\n";
   for (const Table &table : tables) {
     table.debug();
   }
@@ -75,7 +75,7 @@ void FCFSCachedTable::debug() const {
   for (const Register &cache_key : cache_keys) {
     cache_key.debug();
   }
-  Log::dbg() << "==============================\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() const {

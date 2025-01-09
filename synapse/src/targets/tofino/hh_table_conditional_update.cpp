@@ -96,7 +96,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
 
   // FIXME: assuming index allocation is successful on true.
   Node *on_hh = bdd->delete_branch(min_estimate_cond_branch->get_mutable_on_true()->get_id(), true);
-  panic("TODO");
+  panic("TODO: hh_table_conditional_update::rebuild_bdd");
   // Node *on_not_hh = bdd->delete_branch(
   //     min_estimate_cond_branch->get_mutable_on_false()->get_id(), false);
 

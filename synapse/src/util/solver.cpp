@@ -1,6 +1,6 @@
 #include "exprs.h"
 #include "solver.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 solver_toolbox_t solver_toolbox;
@@ -13,19 +13,8 @@ solver_toolbox_t::solver_toolbox_t()
 }
 
 bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
-  static std::unordered_map<unsigned, bool> cache;
-
   klee::ConstraintManager no_constraints;
-
-  auto it = cache.find(expr->hash());
-  if (it != cache.end()) {
-    return it->second;
-  }
-
-  bool res = is_expr_always_true(no_constraints, expr);
-  cache[expr->hash()] = res;
-
-  return res;
+  return is_expr_always_true(no_constraints, expr);
 }
 
 bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints,
@@ -103,19 +92,8 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1,
 }
 
 bool solver_toolbox_t::is_expr_always_false(klee::ref<klee::Expr> expr) const {
-  static std::unordered_map<unsigned, bool> cache;
-
   klee::ConstraintManager no_constraints;
-
-  auto it = cache.find(expr->hash());
-  if (it != cache.end()) {
-    return it->second;
-  }
-
-  bool res = is_expr_always_false(no_constraints, expr);
-  cache[expr->hash()] = res;
-
-  return res;
+  return is_expr_always_false(no_constraints, expr);
 }
 
 bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints,
@@ -160,12 +138,6 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
     std::size_t operator()(klee::ref<klee::Expr> expr) const { return expr->hash(); }
   };
 
-  static std::unordered_map<klee::ref<klee::Expr>, u64, expr_hash_t> cache;
-  auto it = cache.find(expr);
-  if (it != cache.end()) {
-    return it->second;
-  }
-
   klee::ConstraintManager no_constraints;
   klee::Query sat_query(no_constraints, expr);
 
@@ -174,8 +146,6 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
   assert(success && "Failed to get value from expr");
 
   u64 res = value_expr->getZExtValue();
-  cache[expr] = res;
-
   return res;
 }
 

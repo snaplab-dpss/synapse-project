@@ -3,7 +3,7 @@
 #include "../../util/exprs.h"
 #include "../../util/solver.h"
 #include "../../util/simplifier.h"
-#include "../../log.h"
+#include "../../system.h"
 
 #define TODO(expr)                                                                                 \
   synthesizer->stack_dbg();                                                                        \

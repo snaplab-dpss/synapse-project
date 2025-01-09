@@ -32,7 +32,7 @@ code_t transpile_constant(klee::ref<klee::Expr> expr) {
 Transpiler::Transpiler(const EPSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
 code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
-  Log::dbg() << "Transpile: " << expr_to_string(expr, false) << "\n";
+  std::cerr << "Transpiling " << expr_to_string(expr, false) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
@@ -77,26 +77,25 @@ klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  Log::dbg() << expr_to_string(expr) << "\n";
+  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO");
+  panic("TODO: visitRead");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
-  panic("TODO");
+  panic("TODO: visitNotOptimized");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &e) {
-  panic("TODO");
+  panic("TODO: visitSelect");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
-
   coder_t &coder = coders.top();
 
   EPSynthesizer::var_t var;
@@ -105,25 +104,35 @@ klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  Log::dbg() << expr_to_string(expr) << "\n";
+  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO");
+  panic("TODO: visitConcat");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
-  panic("TODO");
+  klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
+  coder_t &coder = coders.top();
+
+  EPSynthesizer::var_t var;
+  if (synthesizer->get_var(expr, var)) {
+    coder << var.name;
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  synthesizer->dbg_vars();
+  panic("TODO: visitExtract");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitZExt(const klee::ZExtExpr &e) {
-  panic("TODO");
+  panic("TODO: visitZExt");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSExt(const klee::SExtExpr &e) {
-  panic("TODO");
+  panic("TODO: visitSExt");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -154,32 +163,32 @@ klee::ExprVisitor::Action Transpiler::visitSub(const klee::SubExpr &e) {
 }
 
 klee::ExprVisitor::Action Transpiler::visitMul(const klee::MulExpr &e) {
-  panic("TODO");
+  panic("TODO: visitMul");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUDiv(const klee::UDivExpr &e) {
-  panic("TODO");
+  panic("TODO: visitUDiv");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSDiv(const klee::SDivExpr &e) {
-  panic("TODO");
+  panic("TODO: visitSDiv");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitURem(const klee::URemExpr &e) {
-  panic("TODO");
+  panic("TODO: visitURem");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSRem(const klee::SRemExpr &e) {
-  panic("TODO");
+  panic("TODO: visitSRem");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNot(const klee::NotExpr &e) {
-  panic("TODO");
+  panic("TODO: visitNot");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
@@ -210,22 +219,22 @@ klee::ExprVisitor::Action Transpiler::visitOr(const klee::OrExpr &e) {
 }
 
 klee::ExprVisitor::Action Transpiler::visitXor(const klee::XorExpr &e) {
-  panic("TODO");
+  panic("TODO: visitXor");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitShl(const klee::ShlExpr &e) {
-  panic("TODO");
+  panic("TODO: visitShl");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitLShr(const klee::LShrExpr &e) {
-  panic("TODO");
+  panic("TODO: visitLShr");
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitAShr(const klee::AShrExpr &e) {
-  panic("TODO");
+  panic("TODO: visitAShr");
   return klee::ExprVisitor::Action::skipChildren();
 }
 

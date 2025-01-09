@@ -8,7 +8,7 @@
 #include "../visualizers/profiler_visualizer.h"
 #include "../execution_plan/visitor.h"
 #include "../util/util.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 class EP;

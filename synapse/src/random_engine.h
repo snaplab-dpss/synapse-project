@@ -3,8 +3,7 @@
 #include <functional>
 #include <random>
 #include <memory>
-
-#include "log.h"
+#include <assert.h>
 
 namespace synapse {
 class RandomEngine {

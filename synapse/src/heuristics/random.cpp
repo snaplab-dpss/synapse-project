@@ -1,6 +1,6 @@
 #include "random.h"
 #include "../targets/module.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 i64 RandomCfg::get_random(const EP *ep) const {

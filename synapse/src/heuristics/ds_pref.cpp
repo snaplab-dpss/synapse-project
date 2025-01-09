@@ -1,6 +1,6 @@
 #include "ds_pref.h"
 #include "../targets/module.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 i64 DSPrefCfg::get_bdd_progress(const EP *ep) const {

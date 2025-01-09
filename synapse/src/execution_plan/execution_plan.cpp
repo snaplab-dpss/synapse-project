@@ -4,7 +4,7 @@
 #include "../targets/targets.h"
 #include "../util/solver.h"
 #include "../profiler.h"
-#include "../log.h"
+#include "../system.h"
 #include "../constants.h"
 
 namespace synapse {
@@ -342,12 +342,12 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translator_t &next_node
 }
 
 void EP::debug() const {
-  Log::dbg() << "ID: " << id << "\n";
-  Log::dbg() << "Ancestors:";
+  std::cerr << "ID: " << id << "\n";
+  std::cerr << "Ancestors:";
   for (ep_id_t ancestor : ancestors) {
-    Log::dbg() << "  " << ancestor;
+    std::cerr << "  " << ancestor;
   }
-  Log::dbg() << "\n";
+  std::cerr << "\n";
   debug_hit_rate();
   debug_placements();
   debug_active_leaves();
@@ -355,10 +355,10 @@ void EP::debug() const {
 }
 
 void EP::debug_placements() const {
-  Log::dbg() << "Implementations:\n";
+  std::cerr << "Implementations:\n";
   const std::unordered_map<addr_t, DSImpl> &impls = ctx.get_ds_impls();
   for (const auto &[obj, impl] : impls) {
-    Log::dbg() << "  " << obj << " -> " << impl << "\n";
+    std::cerr << "  " << obj << " -> " << impl << "\n";
   }
 }
 
@@ -369,22 +369,18 @@ void EP::debug_hit_rate() const {
 
 void EP::debug_active_leaves() const {
   const Profiler &profiler = ctx.get_profiler();
-  Log::dbg() << "Active leaves:\n";
+  std::cerr << "Active leaves:\n";
   for (const EPLeaf &leaf : active_leaves) {
     assert(leaf.next && "Active leaf without a next node");
-    Log::dbg() << "  " << leaf.next->dump(true, true);
+    std::cerr << "  " << leaf.next->dump(true, true);
     if (leaf.node) {
-      Log::dbg() << " | " << leaf.node->dump();
-      Log::dbg() << " | HR=" << profiler.get_hr(leaf.node) << "\n";
+      std::cerr << " | " << leaf.node->dump();
+      std::cerr << " | HR=" << profiler.get_hr(leaf.node) << "\n";
     }
   }
 }
 
 void EP::assert_integrity() const {
-  if (!Log::is_dbg_active()) {
-    return;
-  }
-
   std::vector<const EPNode *> nodes{root};
 
   while (nodes.size()) {
@@ -698,7 +694,7 @@ pps_t EP::speculate_tput_pps() const {
   cached_tput_speculation = egress;
 
   // if (id == 0) {
-  //   Log::dbg() << speculations2str(this, speculations);
+  //   std::cerr << speculations2str(this, speculations);
   //   spec_ctx.debug();
   //   std::cerr << "Ingress: "
   //             << tput2str(

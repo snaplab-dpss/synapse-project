@@ -213,11 +213,11 @@ void visit_links(std::stringstream &ss, const SSNode *ssnode) {
 void log_visualization(const SearchSpace *search_space, const std::string &fname,
                        const EP *ep = nullptr) {
   assert(search_space && "Search space is null");
-  Log::log() << "Visualizing SS";
-  Log::log() << " file=" << fname;
+  std::cerr << "Visualizing SS";
+  std::cerr << " file=" << fname;
   if (ep)
-    Log::log() << " highlight=" << ep->get_id();
-  Log::log() << "\n";
+    std::cerr << " highlight=" << ep->get_id();
+  std::cerr << "\n";
 }
 } // namespace
 

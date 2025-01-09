@@ -1,7 +1,7 @@
 #pragma once
 
 #include "node.h"
-#include "../../log.h"
+#include "../../system.h"
 
 namespace synapse {
 enum class RouteOp { Forward, Drop, Broadcast };

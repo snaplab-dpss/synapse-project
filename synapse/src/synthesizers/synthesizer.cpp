@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "synthesizer.h"
-#include "../log.h"
+#include "../system.h"
 #include "../constants.h"
 
 namespace synapse {
@@ -101,10 +101,10 @@ void Synthesizer::dbg_code() const {
     marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
     code_t code = coder.stream.str();
 
-    Log::dbg() << "\n====================\n";
-    Log::dbg() << "Marker: " << marker << "\n";
-    Log::dbg() << "Code:\n" << code << "\n";
-    Log::dbg() << "====================\n";
+    std::cerr << "\n====================\n";
+    std::cerr << "Marker: " << marker << "\n";
+    std::cerr << "Code:\n" << code << "\n";
+    std::cerr << "====================\n";
   }
 }
 } // namespace synapse

@@ -1,7 +1,7 @@
 #include "visitor.h"
 #include "bdd.h"
 #include "nodes/nodes.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 void BDDVisitor::visit(const Node *node) {

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../log.h"
+#include "../../../system.h"
 
 namespace synapse {
 namespace tofino {

@@ -34,14 +34,14 @@ bits_t Table::get_consumed_sram() const {
 }
 
 void Table::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "=========== TABLE ============\n";
-  Log::dbg() << "ID:        " << id << "\n";
-  Log::dbg() << "Primitive: " << primitive << "\n";
-  Log::dbg() << "Entries:   " << num_entries << "\n";
-  Log::dbg() << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
-  Log::dbg() << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
-  Log::dbg() << "==============================\n";
+  std::cerr << "\n";
+  std::cerr << "=========== TABLE ============\n";
+  std::cerr << "ID:        " << id << "\n";
+  std::cerr << "Primitive: " << primitive << "\n";
+  std::cerr << "Entries:   " << num_entries << "\n";
+  std::cerr << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
+  std::cerr << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key) {

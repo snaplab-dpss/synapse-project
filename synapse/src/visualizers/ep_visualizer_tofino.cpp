@@ -6,7 +6,7 @@
 
 #include "ep_visualizer.h"
 
-#include "../log.h"
+#include "../system.h"
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino/tofino.h"
 
@@ -354,7 +354,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
                                const tofino::HHTableConditionalUpdate *node) {
-  panic("TODO");
+  panic("TODO: HHTableConditionalUpdate");
 }
 
 SHOW_MODULE_NAME(tofino::IntegerAllocatorRejuvenate)

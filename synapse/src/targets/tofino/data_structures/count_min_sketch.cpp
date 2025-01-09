@@ -48,12 +48,12 @@ CountMinSketch::CountMinSketch(const CountMinSketch &other)
 DS *CountMinSketch::clone() const { return new CountMinSketch(*this); }
 
 void CountMinSketch::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "======== COUNT MIN SKETCH ========\n";
-  Log::dbg() << "ID:     " << id << "\n";
-  Log::dbg() << "Width:  " << width << "\n";
-  Log::dbg() << "Height: " << height << "\n";
-  Log::dbg() << "==============================\n";
+  std::cerr << "\n";
+  std::cerr << "======== COUNT MIN SKETCH ========\n";
+  std::cerr << "ID:     " << id << "\n";
+  std::cerr << "Width:  " << width << "\n";
+  std::cerr << "Height: " << height << "\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<std::unordered_set<const DS *>> CountMinSketch::get_internal() const {

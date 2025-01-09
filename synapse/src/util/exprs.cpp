@@ -3,7 +3,7 @@
 #include "exprs.h"
 #include "simplifier.h"
 #include "solver.h"
-#include "../log.h"
+#include "../system.h"
 
 #include <klee/util/ExprVisitor.h>
 
@@ -356,7 +356,7 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
         expr, solver_toolbox.exprBuilder->Constant(0, expr->getWidth()));
     break;
   default:
-    panic("TODO");
+    panic("TODO: Constraint from expr");
   }
 
   return constraint;

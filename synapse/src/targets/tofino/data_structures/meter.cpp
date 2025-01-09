@@ -32,16 +32,16 @@ bits_t Meter::get_consumed_sram() const {
 }
 
 void Meter::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "=========== METER ============\n";
-  Log::dbg() << "ID:        " << id << "\n";
-  Log::dbg() << "Primitive: " << primitive << "\n";
-  Log::dbg() << "Entries:   " << capacity << "\n";
-  Log::dbg() << "Rate:      " << rate << " Bps\n";
-  Log::dbg() << "Burst:     " << burst << " B\n";
-  Log::dbg() << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
-  Log::dbg() << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
-  Log::dbg() << "==============================\n";
+  std::cerr << "\n";
+  std::cerr << "=========== METER ============\n";
+  std::cerr << "ID:        " << id << "\n";
+  std::cerr << "Primitive: " << primitive << "\n";
+  std::cerr << "Entries:   " << capacity << "\n";
+  std::cerr << "Rate:      " << rate << " Bps\n";
+  std::cerr << "Burst:     " << burst << " B\n";
+  std::cerr << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
+  std::cerr << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<klee::ref<klee::Expr>> Meter::build_keys(klee::ref<klee::Expr> key) {

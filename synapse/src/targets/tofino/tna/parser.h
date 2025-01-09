@@ -9,7 +9,7 @@
 #include "../../../bdd/bdd.h"
 #include "../../../util/exprs.h"
 #include "../../../util/solver.h"
-#include "../../../log.h"
+#include "../../../system.h"
 
 namespace synapse {
 namespace tofino {
@@ -311,10 +311,10 @@ public:
   }
 
   void debug() const {
-    Log::dbg() << "******  Parser ******\n";
+    std::cerr << "******  Parser ******\n";
     if (initial_state)
-      Log::dbg() << initial_state->dump();
-    Log::dbg() << "************************\n";
+      std::cerr << initial_state->dump();
+    std::cerr << "************************\n";
   }
 
 private:

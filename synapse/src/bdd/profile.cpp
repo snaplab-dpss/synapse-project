@@ -2,7 +2,7 @@
 #include <nlohmann/json.hpp>
 
 #include "profile.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 using json = nlohmann::json;

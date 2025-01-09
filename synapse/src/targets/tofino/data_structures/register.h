@@ -7,7 +7,7 @@
 
 #include "data_structure.h"
 #include "../../../types.h"
-#include "../../../log.h"
+#include "../../../system.h"
 
 namespace synapse {
 namespace tofino {
@@ -22,12 +22,12 @@ enum class RegisterActionType {
 
 struct Register : public DS {
   u32 num_entries;
-  bits_t index;
-  bits_t value;
+  bits_t index_size;
+  bits_t value_size;
   std::unordered_set<RegisterActionType> actions;
 
-  Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index, bits_t value,
-           const std::unordered_set<RegisterActionType> &actions);
+  Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index_size,
+           bits_t value_size, const std::unordered_set<RegisterActionType> &actions);
 
   Register(const Register &other);
 

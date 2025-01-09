@@ -174,7 +174,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TBExpire *node) override final;
 
 protected:
-  virtual void log(const EPNode *ep_node) const override;
+  void log(const EPNode *ep_node) const override final;
 
 private:
   void function_call(const EPNode *ep_node, const Node *node, TargetType target,

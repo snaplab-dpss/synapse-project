@@ -7,7 +7,7 @@
 namespace synapse {
 namespace {
 void log_bdd_pre_processing(const std::vector<map_coalescing_objs_t> &coalescing_candidates) {
-  Log::dbg() << "***** BDD pre-processing: *****\n";
+  std::cerr << "***** BDD pre-processing: *****\n";
   for (const map_coalescing_objs_t &candidate : coalescing_candidates) {
     std::stringstream ss;
     ss << "Coalescing candidate:";
@@ -26,9 +26,9 @@ void log_bdd_pre_processing(const std::vector<map_coalescing_objs_t> &coalescing
     }
 
     ss << "]\n";
-    Log::dbg() << ss.str();
+    std::cerr << ss.str();
   }
-  Log::dbg() << "*******************************\n";
+  std::cerr << "*******************************\n";
 }
 
 time_ns_t exp_time_from_expire_items_single_map_time(const BDD *bdd, klee::ref<klee::Expr> time) {
@@ -352,12 +352,12 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
 }
 
 void Context::debug() const {
-  Log::dbg() << "~~~~~~~~~~~~~~~~~~~~~~~~ Context ~~~~~~~~~~~~~~~~~~~~~~~~\n";
-  Log::dbg() << "Implementations: [\n";
+  std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~ Context ~~~~~~~~~~~~~~~~~~~~~~~~\n";
+  std::cerr << "Implementations: [\n";
   for (const auto &[obj, impl] : ds_impls) {
-    Log::dbg() << "    " << obj << ": " << impl << "\n";
+    std::cerr << "    " << obj << ": " << impl << "\n";
   }
-  Log::dbg() << "]\n";
+  std::cerr << "]\n";
 
   for (const auto &[target, ctx] : target_ctxs) {
     ctx->debug();
@@ -365,7 +365,7 @@ void Context::debug() const {
 
   perf_oracle.debug();
 
-  Log::dbg() << "\n";
-  Log::dbg() << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+  std::cerr << "\n";
+  std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 }
 } // namespace synapse

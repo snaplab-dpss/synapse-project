@@ -1,8 +1,8 @@
 #include <chrono>
 #include <iomanip>
 #include <cmath>
+
 #include "search.h"
-#include "log.h"
 #include "targets/targets.h"
 #include "heuristics/heuristics.h"
 #include "visualizers/ss_visualizer.h"
@@ -41,21 +41,20 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   TargetType platform = report.chosen->get_active_target();
   const EPMeta &meta = report.chosen->get_meta();
 
-  Log::dbg() << "\n";
-  Log::dbg() << "==========================================================\n";
-
-  Log::dbg() << "EP ID:      " << report.chosen->get_id() << "\n";
-  Log::dbg() << "Target:     " << platform << "\n";
+  std::cerr << "\n";
+  std::cerr << "==========================================================\n";
+  std::cerr << "EP ID:      " << report.chosen->get_id() << "\n";
+  std::cerr << "Target:     " << platform << "\n";
 
   if (report.chosen->has_active_leaf()) {
     EPLeaf leaf = report.chosen->get_active_leaf();
     if (leaf.node) {
       const Module *module = leaf.node->get_module();
-      Log::dbg() << "Leaf:       " << module->get_name() << "\n";
+      std::cerr << "Leaf:       " << module->get_name() << "\n";
     }
   }
 
-  Log::dbg() << "Node:       " << report.current->dump(true) << "\n";
+  std::cerr << "Node:       " << report.current->dump(true) << "\n";
 
   assert((report.targets.size() == report.name.size() &&
           report.targets.size() == report.gen_ep_ids.size()) &&
@@ -73,38 +72,38 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     }
     ep_ids << "]";
 
-    Log::dbg() << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> "
-               << report.gen_ep_ids[i].size() << " (" << ep_ids.str() << ") EPs\n";
+    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> "
+              << report.gen_ep_ids[i].size() << " (" << ep_ids.str() << ") EPs\n";
   }
 
-  Log::dbg() << "------------------------------------------\n";
-  Log::dbg() << "Progress:         " << std::fixed << std::setprecision(2)
-             << 100 * meta.get_bdd_progress() << " %\n";
-  Log::dbg() << "Elapsed:          " << search_meta.elapsed_time << " s\n";
-  Log::dbg() << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
-  Log::dbg() << "Branching factor: " << search_meta.branching_factor << "\n";
-  Log::dbg() << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size) << "\n";
-  Log::dbg() << "SS size (est):    " << int2hr(search_meta.total_ss_size_estimation) << "\n";
-  Log::dbg() << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
-  Log::dbg() << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
-  Log::dbg() << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
-  Log::dbg() << "Finished EPs:     " << int2hr(search_meta.finished_eps) << "\n";
+  std::cerr << "------------------------------------------\n";
+  std::cerr << "Progress:         " << std::fixed << std::setprecision(2)
+            << 100 * meta.get_bdd_progress() << " %\n";
+  std::cerr << "Elapsed:          " << search_meta.elapsed_time << " s\n";
+  std::cerr << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
+  std::cerr << "Branching factor: " << search_meta.branching_factor << "\n";
+  std::cerr << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size) << "\n";
+  std::cerr << "SS size (est):    " << int2hr(search_meta.total_ss_size_estimation) << "\n";
+  std::cerr << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
+  std::cerr << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
+  std::cerr << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
+  std::cerr << "Finished EPs:     " << int2hr(search_meta.finished_eps) << "\n";
 
   if (report.targets.size() == 0) {
-    Log::dbg() << "\n";
-    Log::dbg() << "**DEAD END**: No module can handle this BDD node"
-                  " in the current context.\n";
-    Log::dbg() << "Deleting solution from search space.\n";
+    std::cerr << "\n";
+    std::cerr << "**DEAD END**: No module can handle this BDD node"
+                 " in the current context.\n";
+    std::cerr << "Deleting solution from search space.\n";
   }
 
-  Log::dbg() << "==========================================================\n";
+  std::cerr << "==========================================================\n";
 }
 
 void peek_search_space(const std::vector<impl_t> &new_implementations,
                        const std::vector<ep_id_t> &peek, SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
     if (std::find(peek.begin(), peek.end(), impl.result->get_id()) != peek.end()) {
-      Log::dbg() << "\n";
+      std::cerr << "\n";
       impl.result->debug();
       BDDViz::visualize(impl.result->get_bdd(), false);
       EPViz::visualize(impl.result, false);
@@ -115,7 +114,7 @@ void peek_search_space(const std::vector<impl_t> &new_implementations,
 
 void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show_on_backtrack) {
   if (pause_and_show_on_backtrack) {
-    Log::dbg() << "Backtracked to " << ep->get_id() << "\n";
+    std::cerr << "Backtracked to " << ep->get_id() << "\n";
     BDDViz::visualize(ep->get_bdd(), false);
     // EPViz::visualize(ep, false);
     SSVisualizer::visualize(search_space, ep, true);

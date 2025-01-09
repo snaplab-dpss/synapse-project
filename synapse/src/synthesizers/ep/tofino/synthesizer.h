@@ -27,6 +27,10 @@ private:
 
     var_t(const code_t &name, klee::ref<klee::Expr> expr, bool _is_bool = false)
         : name(name), expr(expr), is_bool(_is_bool) {}
+
+    var_t(const var_t &other) = default;
+    var_t(var_t &&other) = default;
+    var_t &operator=(const var_t &other) = default;
   };
 
   typedef std::vector<var_t> vars_t;
@@ -43,14 +47,10 @@ private:
   Transpiler transpiler;
 
 public:
-  EPSynthesizer(std::ostream &_out, const BDD *bdd);
+  EPSynthesizer(std::ostream &out, const BDD *bdd);
 
-  virtual void log(const EPNode *ep_node) const override {
-    // Don't log anything.
-  }
-
-  void visit(const EP *ep) override;
-  void visit(const EP *ep, const EPNode *ep_node) override;
+  void visit(const EP *ep) override final;
+  void visit(const EP *ep, const EPNode *ep_node) override final;
 
   Action visit(const EP *ep, const EPNode *ep_node,
                const tofino::SendToController *node) override final;
@@ -88,7 +88,7 @@ private:
   code_t slice_var(const var_t &var, unsigned offset, bits_t size) const;
   code_t type_from_var(const var_t &var) const;
 
-  code_t get_unique_var_name(const code_t &prefix);
+  code_t get_unique_name(const code_t &prefix);
   bool get_var(klee::ref<klee::Expr> expr, var_t &out_var) const;
 
   vars_t get_squashed_vars() const;
@@ -98,16 +98,16 @@ private:
   code_t build_register_action_name(const EPNode *node, const Register *reg,
                                     RegisterActionType action) const;
   void transpile_parser(const Parser &parser);
-  void transpile_table_decl(coder_t &coder, const Table *table,
-                            const std::vector<klee::ref<klee::Expr>> &keys,
-                            const std::vector<klee::ref<klee::Expr>> &values);
-  void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index,
-                               klee::ref<klee::Expr> value);
-  void transpile_register_action_decl(coder_t &coder, const Register *reg,
-                                      tofino::RegisterActionType type, const code_t &name,
-                                      klee::ref<klee::Expr> write_value = nullptr);
-  void transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
-                                        klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
+  code_t transpile_table_decl(indent_t lvl, const Table *table,
+                              const std::vector<klee::ref<klee::Expr>> &keys,
+                              const std::vector<klee::ref<klee::Expr>> &values);
+  code_t transpile_register_decl(indent_t lvl, const Register *reg, klee::ref<klee::Expr> index,
+                                 klee::ref<klee::Expr> value);
+  code_t transpile_register_read_action_decl(indent_t lvl, const Register *reg, const code_t &name);
+  code_t transpile_register_write_action_decl(indent_t lvl, const Register *reg, const code_t &name,
+                                              const var_t &write_value);
+  code_t transpile_fcfs_cached_table_decl(indent_t lvl, const FCFSCachedTable *fcfs_cached_table,
+                                          klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
 
   void dbg_vars() const;
 

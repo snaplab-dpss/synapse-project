@@ -3,7 +3,7 @@
 #include "profiler.h"
 #include "execution_plan/execution_plan.h"
 #include "random_engine.h"
-#include "log.h"
+#include "system.h"
 #include "util/exprs.h"
 #include "util/solver.h"
 
@@ -226,17 +226,17 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
 }
 
 void ProfilerNode::debug(int lvl) const {
-  Log::dbg() << *this;
-  Log::dbg() << "\n";
+  std::cerr << *this;
+  std::cerr << "\n";
 
   if (on_true) {
     lvl++;
 
-    // Log::dbg() << std::string(2 * lvl, '|');
+    // std::cerr << std::string(2 * lvl, '|');
     for (int i = 0; i < 2 * lvl; i++)
-      Log::dbg() << ((i % 2 != 0) ? "|" : " ");
+      std::cerr << ((i % 2 != 0) ? "|" : " ");
 
-    Log::dbg() << "[T] ";
+    std::cerr << "[T] ";
     on_true->debug(lvl);
     lvl--;
   }
@@ -245,10 +245,10 @@ void ProfilerNode::debug(int lvl) const {
     lvl++;
 
     for (int i = 0; i < 2 * lvl; i++)
-      Log::dbg() << ((i % 2 != 0) ? "|" : " ");
-    // Log::dbg() << std::string(2 * lvl, '|');
+      std::cerr << ((i % 2 != 0) ? "|" : " ");
+    // std::cerr << std::string(2 * lvl, '|');
 
-    Log::dbg() << "[F] ";
+    std::cerr << "[F] ";
     on_false->debug(lvl);
     lvl--;
   }
@@ -571,11 +571,11 @@ void Profiler::clear_cache() const {
 }
 
 void Profiler::debug() const {
-  Log::dbg() << "\n============== Hit Rate Tree ==============\n";
+  std::cerr << "\n============== Hit Rate Tree ==============\n";
   if (root) {
     root->debug();
   }
-  Log::dbg() << "===========================================\n\n";
+  std::cerr << "===========================================\n\n";
 }
 
 FlowStats Profiler::get_flow_stats(const constraints_t &constraints,

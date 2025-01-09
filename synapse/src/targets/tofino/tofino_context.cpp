@@ -287,7 +287,7 @@ bool TofinoContext::check_placement(const EP *ep, const Node *node, const DS *ds
 
   // if (status != PlacementStatus::SUCCESS) {
   //   TargetType target = ep->get_active_target();
-  //   Log::dbg() << "[" << target << "] Cannot place ds " << ds->id << " ("
+  //   std::cerr << "[" << target << "] Cannot place ds " << ds->id << " ("
   //              << status << ")\n";
   // }
 
@@ -303,15 +303,15 @@ bool TofinoContext::check_many_placements(const EP *ep, const Node *node,
 
   // if (status != PlacementStatus::SUCCESS) {
   //   TargetType target = ep->get_active_target();
-  //   Log::dbg() << "[" << target << "] Cannot place objs (" << status <<
-  //   ")\n"; Log::dbg() << "  DS:\n"; for (const auto &ds_list : ds) {
+  //   std::cerr << "[" << target << "] Cannot place objs (" << status <<
+  //   ")\n"; std::cerr << "  DS:\n"; for (const auto &ds_list : ds) {
   //     for (const DS *ds : ds_list) {
-  //       Log::dbg() << "   * " << ds->id << "\n";
+  //       std::cerr << "   * " << ds->id << "\n";
   //     }
   //   }
-  //   Log::dbg() << "  Deps:\n";
+  //   std::cerr << "  Deps:\n";
   //   for (DS_ID dep : deps) {
-  //     Log::dbg() << "   * " << dep << "\n";
+  //     std::cerr << "   * " << dep << "\n";
   //   }
   // }
 
@@ -319,15 +319,15 @@ bool TofinoContext::check_many_placements(const EP *ep, const Node *node,
 }
 
 void TofinoContext::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "****** Placements ******\n";
+  std::cerr << "\n";
+  std::cerr << "****** Placements ******\n";
   for (const auto &[addr, ds_set] : obj_to_ds) {
-    Log::dbg() << "Object " << addr << ":\n";
+    std::cerr << "Object " << addr << ":\n";
     for (const DS *ds : ds_set) {
-      Log::dbg() << "  * " << ds->id << "\n";
+      std::cerr << "  * " << ds->id << "\n";
     }
   }
-  Log::dbg() << "************************\n";
+  std::cerr << "************************\n";
 
   tna.debug();
 }

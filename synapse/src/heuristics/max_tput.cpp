@@ -1,6 +1,6 @@
 #include "max_tput.h"
 #include "../targets/module.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 i64 MaxTputCfg::get_tput_speculation(const EP *ep) const { return ep->speculate_tput_pps(); }

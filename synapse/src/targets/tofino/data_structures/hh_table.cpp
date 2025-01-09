@@ -29,13 +29,13 @@ HHTable::HHTable(const HHTable &other)
 DS *HHTable::clone() const { return new HHTable(*this); }
 
 void HHTable::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "=========== HH TABLE ============\n";
-  Log::dbg() << "ID:        " << id << "\n";
-  Log::dbg() << "Primitive: " << primitive << "\n";
-  Log::dbg() << "Entries:   " << num_entries << "\n";
-  Log::dbg() << "CMS:       " << cms_width << "x" << cms_height << "\n";
-  Log::dbg() << "=================================\n";
+  std::cerr << "\n";
+  std::cerr << "=========== HH TABLE ============\n";
+  std::cerr << "ID:        " << id << "\n";
+  std::cerr << "Primitive: " << primitive << "\n";
+  std::cerr << "Entries:   " << num_entries << "\n";
+  std::cerr << "CMS:       " << cms_width << "x" << cms_height << "\n";
+  std::cerr << "=================================\n";
 }
 
 std::vector<std::unordered_set<const DS *>> HHTable::get_internal() const {

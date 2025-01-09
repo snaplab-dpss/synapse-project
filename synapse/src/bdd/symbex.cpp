@@ -2,7 +2,7 @@
 #include "bdd.h"
 #include "../util/exprs.h"
 #include "../util/solver.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 std::optional<addr_t> get_obj_from_call(const Call *node_call) {

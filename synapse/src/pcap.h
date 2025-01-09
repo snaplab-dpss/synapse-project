@@ -15,7 +15,7 @@
 
 #include "types.h"
 #include "constants.h"
-#include "log.h"
+#include "system.h"
 
 namespace synapse {
 struct flow_t {

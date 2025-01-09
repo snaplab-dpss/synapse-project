@@ -6,7 +6,7 @@
 
 #include "ep_visualizer.h"
 
-#include "../log.h"
+#include "../system.h"
 #include "../execution_plan/execution_plan.h"
 #include "../targets/controller/controller.h"
 

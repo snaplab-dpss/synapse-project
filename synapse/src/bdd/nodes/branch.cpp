@@ -2,7 +2,7 @@
 #include "manager.h"
 #include "../bdd.h"
 #include "../../util/exprs.h"
-#include "../../log.h"
+#include "../../system.h"
 
 namespace synapse {
 Node *Branch::clone(NodeManager &manager, bool recursive) const {

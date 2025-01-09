@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #include "graphviz.h"
-#include "../log.h"
+#include "../system.h"
 
 namespace synapse {
 namespace {

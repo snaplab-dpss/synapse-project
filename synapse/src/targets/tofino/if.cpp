@@ -21,7 +21,7 @@ std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> conditi
     conditions.insert(conditions.end(), rhs_conds.begin(), rhs_conds.end());
   } break;
   case klee::Expr::Kind::Or: {
-    panic("TODO");
+    panic("TODO: Splitting if condition on an OR");
   } break;
   default: {
     conditions.push_back(condition);

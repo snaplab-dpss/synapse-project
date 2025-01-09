@@ -1,7 +1,7 @@
 #include "node.h"
 #include "visitor.h"
 #include "../targets/module.h"
-#include "../log.h"
+#include "../system.h"
 #include "../util/solver.h"
 
 namespace synapse {

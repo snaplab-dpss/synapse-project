@@ -1,7 +1,7 @@
 #include "simple_placer.h"
 #include "tna.h"
 
-#include "../../../log.h"
+#include "../../../system.h"
 
 namespace synapse {
 namespace tofino {
@@ -256,7 +256,7 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg,
 
   bits_t requested_sram = align_to_byte(reg->get_consumed_sram());
   bits_t requested_map_ram = align_to_byte(requested_sram);
-  bits_t requested_xbar = align_to_byte(reg->index);
+  bits_t requested_xbar = align_to_byte(reg->index_size);
   int requested_logical_ids = reg->get_num_logical_ids();
 
   int total_stages = stages.size();
@@ -597,8 +597,8 @@ void SimplePlacer::replace_placement_request(const DS *ds, const std::unordered_
 }
 
 void SimplePlacer::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "====================== SimplePlacer ======================\n";
+  std::cerr << "\n";
+  std::cerr << "====================== SimplePlacer ======================\n";
 
   for (const Stage &stage : stages) {
     if (stage.tables.empty()) {
@@ -672,10 +672,10 @@ void SimplePlacer::debug() const {
 
     ss << "-------------------------------------\n";
 
-    Log::dbg() << ss.str();
+    std::cerr << ss.str();
   }
 
-  Log::dbg() << "==========================================================\n";
+  std::cerr << "==========================================================\n";
 }
 
 } // namespace tofino

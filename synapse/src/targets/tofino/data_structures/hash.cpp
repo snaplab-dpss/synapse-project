@@ -18,12 +18,12 @@ bits_t Hash::get_match_xbar_consume() const {
 }
 
 void Hash::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "=========== Hash ============\n";
-  Log::dbg() << "ID:        " << id << "\n";
-  Log::dbg() << "Primitive: " << primitive << "\n";
-  Log::dbg() << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
-  Log::dbg() << "==============================\n";
+  std::cerr << "\n";
+  std::cerr << "=========== Hash ============\n";
+  std::cerr << "ID:        " << id << "\n";
+  std::cerr << "Primitive: " << primitive << "\n";
+  std::cerr << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
+  std::cerr << "==============================\n";
 }
 
 } // namespace tofino

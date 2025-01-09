@@ -1,7 +1,7 @@
 #include "synthesizer.h"
 #include "../../util/exprs.h"
 #include "../../util/solver.h"
-#include "../../log.h"
+#include "../../system.h"
 
 #define POPULATE_SYNTHESIZER(FNAME)                                                                \
   { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
@@ -865,7 +865,7 @@ void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   // coder << "// dchain_expire_one";
   // coder << ";\n";
 
-  panic("TODO");
+  panic("TODO: dchain_expire_one");
 }
 
 void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {

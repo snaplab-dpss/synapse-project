@@ -2,10 +2,8 @@
 #include <fstream>
 #include <CLI/CLI.hpp>
 #include <toml++/toml.hpp>
-#include <variant>
 
 #include "../src/bdd/bdd.h"
-#include "../src/log.h"
 #include "../src/visualizers/ep_visualizer.h"
 #include "../src/visualizers/ss_visualizer.h"
 #include "../src/visualizers/profiler_visualizer.h"
@@ -55,7 +53,6 @@ int main(int argc, char **argv) {
   bool show_ep = false;
   bool show_ss = false;
   bool show_bdd = false;
-  bool verbose = false;
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
   app.add_option("--config", targets_config_file, "Configuration file.")->required();
@@ -73,15 +70,8 @@ int main(int argc, char **argv) {
   app.add_flag("--show-bdd", show_bdd, "Show the BDD's solution.");
   app.add_flag("--backtrack", search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
   app.add_flag("--not-greedy", search_config.not_greedy, "Don't stop on first solution.");
-  app.add_flag("-v", verbose, "Verbose mode.");
 
   CLI11_PARSE(app, argc, argv);
-
-  if (verbose) {
-    Log::min_log_level = Log::Level::DEBUG;
-  } else {
-    Log::min_log_level = Log::Level::LOG;
-  }
 
   RandomEngine::seed(seed);
   SymbolManager symbol_manager;
@@ -114,24 +104,23 @@ int main(int argc, char **argv) {
 
   report.ep->get_ctx().debug();
 
-  Log::log() << "\n";
-  Log::log() << "Params:\n";
-  Log::log() << "  Heuristic:        " << report.heuristic << "\n";
-  Log::log() << "  Random seed:      " << seed << "\n";
-  Log::log() << "Search:\n";
-  Log::log() << "  Search time:      " << report.meta.elapsed_time << " s\n";
-  Log::log() << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
-  Log::log() << "  Steps:            " << int2hr(report.meta.steps) << "\n";
-  Log::log() << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
-  Log::log() << "  Branching factor: " << report.meta.branching_factor << "\n";
-  Log::log() << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
-  Log::log() << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
-  Log::log() << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
-  Log::log() << "Winner EP:\n";
-  Log::log() << "  Winner:           " << report.score << "\n";
-  Log::log() << "  Throughput:       " << report.tput_estimation << "\n";
-  Log::log() << "  Speculation:      " << report.tput_speculation << "\n";
-  Log::log() << "\n";
+  std::cout << "Params:\n";
+  std::cout << "  Heuristic:        " << report.heuristic << "\n";
+  std::cout << "  Random seed:      " << seed << "\n";
+  std::cout << "Search:\n";
+  std::cout << "  Search time:      " << report.meta.elapsed_time << " s\n";
+  std::cout << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
+  std::cout << "  Steps:            " << int2hr(report.meta.steps) << "\n";
+  std::cout << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
+  std::cout << "  Branching factor: " << report.meta.branching_factor << "\n";
+  std::cout << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
+  std::cout << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
+  std::cout << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
+  std::cout << "Winner EP:\n";
+  std::cout << "  Winner:           " << report.score << "\n";
+  std::cout << "  Throughput:       " << report.tput_estimation << "\n";
+  std::cout << "  Speculation:      " << report.tput_speculation << "\n";
+  std::cout << "\n";
 
   if (!out_dir.empty()) {
     synthesize(report.ep.get(), out_dir);

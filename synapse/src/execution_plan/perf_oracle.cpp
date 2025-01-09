@@ -1,7 +1,8 @@
 #include <cmath>
+#include <iomanip>
 
 #include "perf_oracle.h"
-#include "../log.h"
+#include "../system.h"
 #include "../util/util.h"
 #include "../constants.h"
 
@@ -424,30 +425,26 @@ std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress) {
 }
 
 void PerfOracle::debug() const {
-  std::stringstream ss;
-
-  ss << "======================= PerfOracle =======================\n";
-  ss << "Ports:\n";
+  std::cerr << "======================= PerfOracle =======================\n";
+  std::cerr << "Ports:\n";
   for (const auto &[port, ingress] : ports_ingress) {
-    ss << "  ";
-    ss << std::setw(2) << std::right << port;
-    ss << ": ";
-    ss << ingress;
-    ss << "\n";
+    std::cerr << "  ";
+    std::cerr << std::setw(2) << std::right << port;
+    std::cerr << ": ";
+    std::cerr << ingress;
+    std::cerr << "\n";
   }
-  ss << "Dropped ingress: " << dropped_ingress << "\n";
-  ss << "Unaccounted ingress: " << unaccounted_ingress << "\n";
-  ss << "Controller: " << controller_ingress << "\n";
-  ss << "Recirculation ports:\n";
+  std::cerr << "Dropped ingress: " << dropped_ingress << "\n";
+  std::cerr << "Unaccounted ingress: " << unaccounted_ingress << "\n";
+  std::cerr << "Controller: " << controller_ingress << "\n";
+  std::cerr << "Recirculation ports:\n";
   for (const auto &[port, ingress] : recirc_ports_ingress) {
-    ss << "  ";
-    ss << std::setw(2) << std::right << port;
-    ss << ": ";
-    ss << ingress;
-    ss << "\n";
+    std::cerr << "  ";
+    std::cerr << std::setw(2) << std::right << port;
+    std::cerr << ": ";
+    std::cerr << ingress;
+    std::cerr << "\n";
   }
-  ss << "==========================================================\n";
-
-  Log::dbg() << ss.str();
+  std::cerr << "==========================================================\n";
 }
 } // namespace synapse

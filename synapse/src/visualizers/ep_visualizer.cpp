@@ -6,7 +6,7 @@
 
 #include "ep_visualizer.h"
 
-#include "../log.h"
+#include "../system.h"
 #include "../execution_plan/execution_plan.h"
 #include "../targets/targets.h"
 
@@ -45,20 +45,20 @@ bool should_ignore_node(const EPNode *node) {
 
 void log_visualization(const EP *ep, const std::string &fname) {
   assert(ep && "Invalid EP");
-  Log::log() << "Visualizing EP";
-  Log::log() << " id=" << ep->get_id();
-  Log::log() << " file=" << fname;
-  Log::log() << " ancestors=[";
+  std::cerr << "Visualizing EP";
+  std::cerr << " id=" << ep->get_id();
+  std::cerr << " file=" << fname;
+  std::cerr << " ancestors=[";
   bool first = true;
   for (ep_id_t ancestor : ep->get_ancestors()) {
     if (!first) {
-      Log::log() << " ";
+      std::cerr << " ";
     }
-    Log::log() << ancestor;
+    std::cerr << ancestor;
     first = false;
   }
-  Log::log() << "]";
-  Log::log() << "\n";
+  std::cerr << "]";
+  std::cerr << "\n";
 }
 } // namespace
 

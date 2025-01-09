@@ -4,33 +4,33 @@
 namespace synapse {
 namespace tofino {
 
-Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries, bits_t _index,
-                   bits_t _value, const std::unordered_set<RegisterActionType> &_actions)
-    : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index(_index), value(_value),
-      actions(_actions) {
+Register::Register(const TNAProperties &properties, DS_ID _id, u32 _num_entries, bits_t _index_size,
+                   bits_t _value_size, const std::unordered_set<RegisterActionType> &_actions)
+    : DS(DSType::REGISTER, true, _id), num_entries(_num_entries), index_size(_index_size),
+      value_size(_value_size), actions(_actions) {
   assert(_num_entries > 0 && "Register entries must be greater than 0");
-  assert(value <= properties.max_salu_size && "Register value exceeds SALU size");
+  assert(value_size <= properties.max_salu_size && "Register value exceeds SALU size");
 }
 
 Register::Register(const Register &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), index(other.index),
-      value(other.value), actions(other.actions) {}
+    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries),
+      index_size(other.index_size), value_size(other.value_size), actions(other.actions) {}
 
 DS *Register::clone() const { return new Register(*this); }
 
 bits_t Register::get_consumed_sram() const {
   bits_t index_sram_block = 1024 * 128;
-  return value * num_entries + index_sram_block;
+  return value_size * num_entries + index_sram_block;
 }
 
 u32 Register::get_num_logical_ids() const { return (u32)actions.size(); }
 
 void Register::debug() const {
-  Log::dbg() << "\n";
-  Log::dbg() << "========== REGISTER ==========\n";
-  Log::dbg() << "ID:        " << id << "\n";
-  Log::dbg() << "Primitive: " << primitive << "\n";
-  Log::dbg() << "Entries:   " << num_entries << "\n";
+  std::cerr << "\n";
+  std::cerr << "========== REGISTER ==========\n";
+  std::cerr << "ID:        " << id << "\n";
+  std::cerr << "Primitive: " << primitive << "\n";
+  std::cerr << "Entries:   " << num_entries << "\n";
 
   std::stringstream ss;
 
@@ -55,11 +55,11 @@ void Register::debug() const {
   }
   ss << "]\n";
 
-  Log::dbg() << ss.str();
-  Log::dbg() << "Index sz:  " << index << "b\n";
-  Log::dbg() << "Value sz:  " << value << "b\n";
-  Log::dbg() << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
-  Log::dbg() << "==============================\n";
+  std::cerr << ss.str();
+  std::cerr << "Index sz:  " << index_size << "b\n";
+  std::cerr << "Value sz:  " << value_size << "b\n";
+  std::cerr << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<klee::ref<klee::Expr>> Register::partition_value(const TNAProperties &properties,
