@@ -10,6 +10,8 @@ project(
     LANGUAGES C CXX
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 ###############################################################################
 # Configuring C/C++ standard versions
 ###############################################################################
@@ -41,9 +43,6 @@ add_compile_options(
     -pedantic
     -Wcast-align
     -Wmisleading-indentation
-    -Wduplicated-cond
-    -Wduplicated-branches
-    -Wlogical-op
     -Wdouble-promotion
     -fno-omit-frame-pointer
 )
@@ -52,6 +51,8 @@ if (ENABLE_ADDRESS_SANITIZER)
     add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
     add_link_options(-fsanitize=address)
 endif()
+
+add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 
 ###############################################################################
 # Setting output targets

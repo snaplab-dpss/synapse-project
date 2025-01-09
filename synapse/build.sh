@@ -11,7 +11,6 @@ build() {
 
   cmake \
     -G Ninja \
-    -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" \
     -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
     $PROJECT_DIR
 
