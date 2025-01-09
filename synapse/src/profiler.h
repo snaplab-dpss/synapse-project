@@ -69,8 +69,7 @@ public:
   // E.g. if the parent node has a hit rate of 0.5, and the estimation_rel is
   // 0.1, the hit rate of the current node will be 0.05.
   // WARNING: this should be called before processing the leaf.
-  void insert_relative(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr,
-                       hit_rate_t rel_hr_on_true);
+  void insert_relative(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr, hit_rate_t rel_hr_on_true);
 
   void replace_constraint(const constraints_t &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const constraints_t &constraints);

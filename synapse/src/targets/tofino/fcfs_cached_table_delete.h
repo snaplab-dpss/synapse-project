@@ -13,20 +13,17 @@ private:
   symbol_t cached_delete_failed;
 
 public:
-  FCFSCachedTableDelete(const Node *node, DS_ID _cached_table_id, addr_t _obj,
-                        klee::ref<klee::Expr> _key, const symbol_t &_cached_delete_failed)
-      : TofinoModule(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete", node),
-        cached_table_id(_cached_table_id), obj(_obj), key(_key),
-        cached_delete_failed(_cached_delete_failed) {}
+  FCFSCachedTableDelete(const Node *node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
+                        const symbol_t &_cached_delete_failed)
+      : TofinoModule(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete", node), cached_table_id(_cached_table_id), obj(_obj),
+        key(_key), cached_delete_failed(_cached_delete_failed) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new FCFSCachedTableDelete(node, cached_table_id, obj, key, cached_delete_failed);
+    Module *cloned = new FCFSCachedTableDelete(node, cached_table_id, obj, key, cached_delete_failed);
     return cloned;
   }
 
@@ -40,15 +37,12 @@ public:
 
 class FCFSCachedTableDeleteFactory : public TofinoModuleFactory {
 public:
-  FCFSCachedTableDeleteFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete") {}
+  FCFSCachedTableDeleteFactory() : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

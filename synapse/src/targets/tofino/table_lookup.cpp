@@ -54,9 +54,7 @@ table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
 
 table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  assert((call.function_name == "dchain_is_index_allocated" ||
-          call.function_name == "dchain_rejuvenate_index") &&
-         "Unexpected function");
+  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Unexpected function");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -96,8 +94,7 @@ std::optional<table_data_t> get_table_data(const EP *ep, const Call *call_node) 
     return table_data_from_vector_op(ep, call_node);
   }
 
-  if (call.function_name == "dchain_is_index_allocated" ||
-      call.function_name == "dchain_rejuvenate_index") {
+  if (call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") {
     return table_data_from_dchain_op(ep, call_node);
   }
 
@@ -105,8 +102,7 @@ std::optional<table_data_t> get_table_data(const EP *ep, const Call *call_node) 
 }
 } // namespace
 
-std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -137,8 +133,7 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -167,8 +162,7 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  Module *module = new TableLookup(node, table->id, table_data->obj, table_data->keys,
-                                   table_data->values, table_data->hit);
+  Module *module = new TableLookup(node, table->id, table_data->obj, table_data->keys, table_data->values, table_data->hit);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

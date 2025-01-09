@@ -17,8 +17,7 @@ struct Table : public DS {
   std::vector<bits_t> keys;
   std::vector<bits_t> params;
 
-  Table(DS_ID id, u32 num_entries, const std::vector<bits_t> &keys,
-        const std::vector<bits_t> &params);
+  Table(DS_ID id, u32 num_entries, const std::vector<bits_t> &keys, const std::vector<bits_t> &params);
 
   Table(const Table &other);
 

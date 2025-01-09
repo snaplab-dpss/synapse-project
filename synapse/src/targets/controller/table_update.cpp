@@ -6,8 +6,7 @@ namespace ctrl {
 using tofino::Table;
 
 namespace {
-void table_update_data_from_map_op(const Call *call_node, addr_t &obj,
-                                   std::vector<klee::ref<klee::Expr>> &keys,
+void table_update_data_from_map_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
                                    std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_put" && "Not a map_put call");
@@ -21,8 +20,7 @@ void table_update_data_from_map_op(const Call *call_node, addr_t &obj,
   values = {value};
 }
 
-void table_update_data_from_vector_op(const Call *call_node, addr_t &obj,
-                                      std::vector<klee::ref<klee::Expr>> &keys,
+void table_update_data_from_vector_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
                                       std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "vector_return" && "Not a vector_return call");
@@ -36,8 +34,7 @@ void table_update_data_from_vector_op(const Call *call_node, addr_t &obj,
   values = {value};
 }
 
-void table_data_from_dchain_op(const Call *call_node, addr_t &obj,
-                               std::vector<klee::ref<klee::Expr>> &keys,
+void table_data_from_dchain_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
                                std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "dchain_allocate_new_index" && "Not a dchain call");
@@ -52,8 +49,7 @@ void table_data_from_dchain_op(const Call *call_node, addr_t &obj,
   // No value, the index is actually the table key
 }
 
-bool get_table_update_data(const Call *call_node, addr_t &obj,
-                           std::vector<klee::ref<klee::Expr>> &keys,
+bool get_table_update_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
                            std::vector<klee::ref<klee::Expr>> &values) {
   const call_t &call = call_node->get_call();
 
@@ -71,8 +67,7 @@ bool get_table_update_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t> TableUpdateFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> TableUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -97,8 +92,7 @@ std::optional<spec_impl_t> TableUpdateFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

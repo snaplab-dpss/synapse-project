@@ -11,16 +11,12 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  Branch(node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager,
-         klee::ref<klee::Expr> _condition)
-      : Node(_id, NodeType::Branch, _constraints, _symbol_manager), on_false(nullptr),
-        condition(_condition) {}
+  Branch(node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, klee::ref<klee::Expr> _condition)
+      : Node(_id, NodeType::Branch, _constraints, _symbol_manager), on_false(nullptr), condition(_condition) {}
 
-  Branch(node_id_t _id, Node *_prev, const klee::ConstraintManager &_constraints,
-         SymbolManager *_symbol_manager, Node *_on_true, Node *_on_false,
-         klee::ref<klee::Expr> _condition)
-      : Node(_id, NodeType::Branch, _on_true, _prev, _constraints, _symbol_manager),
-        on_false(_on_false), condition(_condition) {}
+  Branch(node_id_t _id, Node *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, Node *_on_true,
+         Node *_on_false, klee::ref<klee::Expr> _condition)
+      : Node(_id, NodeType::Branch, _on_true, _prev, _constraints, _symbol_manager), on_false(_on_false), condition(_condition) {}
 
   klee::ref<klee::Expr> get_condition() const { return condition; }
 

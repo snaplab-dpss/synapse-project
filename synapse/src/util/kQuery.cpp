@@ -113,8 +113,7 @@ std::string kQuery_t::dump(const SymbolManager *manager) const {
   return kQuery_builder.str();
 }
 
-kQueryParser::kQueryParser(SymbolManager *_manager)
-    : manager(_manager), builder(klee::createDefaultExprBuilder()) {
+kQueryParser::kQueryParser(SymbolManager *_manager) : manager(_manager), builder(klee::createDefaultExprBuilder()) {
   assert(manager && "SymbolManager is null");
 }
 
@@ -123,8 +122,8 @@ kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
   std::vector<std::unique_ptr<klee::expr::Decl>> decls;
 
   std::unique_ptr<MemoryBufferMem> mb = std::make_unique<MemoryBufferMem>(kQueryStr, false);
-  std::unique_ptr<klee::expr::Parser> parser = std::unique_ptr<klee::expr::Parser>(
-      klee::expr::Parser::Create("kQueryParser", mb.get(), builder.get(), false));
+  std::unique_ptr<klee::expr::Parser> parser =
+      std::unique_ptr<klee::expr::Parser>(klee::expr::Parser::Create("kQueryParser", mb.get(), builder.get(), false));
 
   while (klee::expr::Decl *decl = parser->ParseTopLevelDecl()) {
     assert(!parser->GetNumErrors() && "Error parsing kquery in call path file.");

@@ -17,8 +17,7 @@ DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
   return ds->id;
 }
 
-void get_map_erase_data(const Call *call_node, addr_t &obj,
-                        std::vector<klee::ref<klee::Expr>> &keys) {
+void get_map_erase_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
@@ -30,8 +29,7 @@ void get_map_erase_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node,
-                                                                   const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -53,9 +51,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t>
-FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

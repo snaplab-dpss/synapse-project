@@ -32,11 +32,8 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
     selection_t lhs_sel = build_parser_select(lhs);
     selection_t rhs_sel = build_parser_select(rhs);
 
-    assert(solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target) &&
-           "Not implemented");
-    assert((selection.target.isNull() ||
-            solver_toolbox.are_exprs_always_equal(lhs_sel.target, selection.target)) &&
-           "Not implemented");
+    assert(solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target) && "Not implemented");
+    assert((selection.target.isNull() || solver_toolbox.are_exprs_always_equal(lhs_sel.target, selection.target)) && "Not implemented");
 
     selection.target = lhs_sel.target;
     selection.values.insert(selection.values.end(), lhs_sel.values.begin(), lhs_sel.values.end());
@@ -56,9 +53,7 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
     assert((lhs_is_readLSB != rhs_is_readLSB) && "Not implemented");
 
     klee::ref<klee::Expr> target = lhs_is_readLSB ? lhs : rhs;
-    assert((selection.target.isNull() ||
-            solver_toolbox.are_exprs_always_equal(selection.target, target)) &&
-           "Not implemented");
+    assert((selection.target.isNull() || solver_toolbox.are_exprs_always_equal(selection.target, target)) && "Not implemented");
     if (selection.target.isNull()) {
       selection.target = target;
     }
@@ -86,8 +81,7 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const Node *node,
-                                                             const Context &ctx) const {
+std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Branch) {
     return std::nullopt;
   }
@@ -101,8 +95,7 @@ std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Node *node,
-                                                         SymbolManager *symbol_manager) const {
+std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Branch) {
@@ -124,20 +117,16 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Nod
   assert(on_true && "Branch node without on_true");
   assert(on_false && "Branch node without on_false");
 
-  std::vector<const Call *> on_true_borrows =
-      on_true->get_future_functions({"packet_borrow_next_chunk"}, true);
-  std::vector<const Call *> on_false_borrows =
-      on_false->get_future_functions({"packet_borrow_next_chunk"}, true);
+  std::vector<const Call *> on_true_borrows = on_true->get_future_functions({"packet_borrow_next_chunk"}, true);
+  std::vector<const Call *> on_false_borrows = on_false->get_future_functions({"packet_borrow_next_chunk"}, true);
 
   // We are working under the assumption that before parsing a header we
   // always perform some kind of checking.
   assert((on_true_borrows.size() > 0 || on_false_borrows.size() > 0) && "Not implemented");
 
   if (on_true_borrows.size() != on_false_borrows.size()) {
-    const Node *conditional_borrow =
-        on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
-    const Node *not_conditional_path =
-        on_true_borrows.size() > on_false_borrows.size() ? on_false : on_true;
+    const Node *conditional_borrow = on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
+    const Node *not_conditional_path = on_true_borrows.size() > on_false_borrows.size() ? on_false : on_true;
 
     // Missing implementation of discriminating parsing between multiple
     // headers.

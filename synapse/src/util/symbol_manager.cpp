@@ -16,8 +16,7 @@ private:
   bool found_unknown_array;
 
 public:
-  ArrayChecker(const SymbolManager *manager)
-      : names(manager->get_names()), found_unknown_array(false) {}
+  ArrayChecker(const SymbolManager *manager) : names(manager->get_names()), found_unknown_array(false) {}
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) override final {
     klee::UpdateList updates = e.updates;
@@ -42,8 +41,7 @@ private:
   std::unordered_map<std::string, const klee::Array *> translations;
 
 public:
-  SymbolRenamer(SymbolManager *manager,
-                const std::unordered_map<std::string, std::string> &_translations)
+  SymbolRenamer(SymbolManager *manager, const std::unordered_map<std::string, std::string> &_translations)
       : klee::ExprVisitor::ExprVisitor(true) {
     for (const auto &[old_name, new_name] : _translations) {
       const symbol_t &old = manager->get_symbol(old_name);
@@ -53,9 +51,7 @@ public:
     }
   }
 
-  klee::ref<klee::Expr> rename(klee::ref<klee::Expr> expr) {
-    return expr.isNull() ? expr : visit(expr);
-  }
+  klee::ref<klee::Expr> rename(klee::ref<klee::Expr> expr) { return expr.isNull() ? expr : visit(expr); }
 
   klee::ConstraintManager rename(const klee::ConstraintManager &constraints) {
     klee::ConstraintManager renamed_constraints;
@@ -109,9 +105,7 @@ symbol_t SymbolManager::store_clone(const klee::Array *array) {
 
 const std::vector<const klee::Array *> &SymbolManager::get_arrays() const { return arrays; }
 
-const std::unordered_map<std::string, const klee::Array *> &SymbolManager::get_names() const {
-  return names;
-}
+const std::unordered_map<std::string, const klee::Array *> &SymbolManager::get_names() const { return names; }
 
 const klee::Array *SymbolManager::get_array(const std::string &name) const {
   auto names_it = names.find(name);
@@ -119,9 +113,7 @@ const klee::Array *SymbolManager::get_array(const std::string &name) const {
   return names_it->second;
 }
 
-bool SymbolManager::has_symbol(const std::string &name) const {
-  return symbols.find(name) != symbols.end();
-}
+bool SymbolManager::has_symbol(const std::string &name) const { return symbols.find(name) != symbols.end(); }
 
 symbol_t SymbolManager::get_symbol(const std::string &name) const {
   auto symbols_it = symbols.find(name);
@@ -137,9 +129,7 @@ Symbols SymbolManager::get_symbols() const {
   return result;
 }
 
-Symbols SymbolManager::get_symbols_with_base(const std::string &base) const {
-  return get_symbols().filter_by_base(base);
-}
+Symbols SymbolManager::get_symbols_with_base(const std::string &base) const { return get_symbols().filter_by_base(base); }
 
 symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
   assert(!name.empty() && "Empty name");
@@ -155,8 +145,7 @@ symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
   klee::Expr::Width range = klee::Expr::Int8;
   const klee::Array *array = cache.CreateArray(name, size / 8, nullptr, nullptr, domain, range);
 
-  std::unique_ptr<klee::ExprBuilder> builder =
-      std::unique_ptr<klee::ExprBuilder>(klee::createDefaultExprBuilder());
+  std::unique_ptr<klee::ExprBuilder> builder = std::unique_ptr<klee::ExprBuilder>(klee::createDefaultExprBuilder());
   klee::UpdateList updates(array, nullptr);
   bytes_t width = array->size;
 
@@ -191,9 +180,7 @@ bool SymbolManager::manages(klee::ref<klee::Expr> expr) const {
   return !array_checker.has_unknown_arrays();
 }
 
-klee::ref<klee::Expr>
-SymbolManager::translate(klee::ref<klee::Expr> expr,
-                         std::unordered_map<std::string, std::string> translations) {
+klee::ref<klee::Expr> SymbolManager::translate(klee::ref<klee::Expr> expr, std::unordered_map<std::string, std::string> translations) {
   SymbolRenamer renamer(this, translations);
   return renamer.rename(expr);
 }

@@ -3,8 +3,7 @@
 namespace synapse {
 namespace tofino {
 
-std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const Node *node,
-                                                          const Context &ctx) const {
+std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -19,8 +18,7 @@ std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const No
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const Node *node,
-                                                      SymbolManager *symbol_manager) const {
+std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

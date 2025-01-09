@@ -687,7 +687,7 @@ control Ingress(
           // Node 100
           if(hdr.hdr_3.isValid()) {
             // Node 129
-            if (0w == 16w0000 == ig_intr_md.ingress_port) {
+            if (16w0000 != ig_intr_md.ingress_port) {
               // Node 130
               // Node 3009
               fwd(0);
@@ -731,13 +731,13 @@ control Ingress(
                 // Node 244
                 table_1073952504_39.apply();
                 // Node 289
-                if (0w == 8w01 == hdr.hdr_3.data[7:0]) {
+                if (8w01 != hdr.hdr_3.data[7:0]) {
                   // Node 290
                   // Node 1158
-                  if (0w == 8w00 == hdr.hdr_3.data[7:0]) {
+                  if (8w00 != hdr.hdr_3.data[7:0]) {
                     // Node 1159
                     // Node 1628
-                    if (0w == 8w02 == hdr.hdr_3.data[7:0]) {
+                    if (8w02 != hdr.hdr_3.data[7:0]) {
                       // Node 1629
                       // Node 2712
                       hdr.hdr_2.data[7:0] = hdr.hdr_2.data[23:16];

@@ -1,7 +1,7 @@
 #include "if.h"
-
 #include "else.h"
 #include "then.h"
+#include "../../util/simplifier.h"
 
 namespace synapse {
 namespace tofino {
@@ -32,8 +32,7 @@ std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> conditi
 }
 } // namespace
 
-std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node,
-                                                const Context &ctx) const {
+std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Branch) {
     return std::nullopt;
   }
@@ -47,8 +46,7 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const Node *node,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node,
-                                            SymbolManager *symbol_manager) const {
+std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Branch) {
@@ -62,13 +60,16 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const Node *node,
   }
 
   klee::ref<klee::Expr> condition = branch_node->get_condition();
-  std::vector<klee::ref<klee::Expr>> conditions = split_condition(condition);
 
-  for (klee::ref<klee::Expr> sub_condition : conditions) {
+  std::vector<klee::ref<klee::Expr>> conditions;
+  for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
     if (!get_tna(ep).condition_meets_phv_limit(sub_condition)) {
       panic("TODO: deal with this");
       return impls;
     }
+
+    klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
+    conditions.push_back(simplified);
   }
 
   assert(branch_node->get_on_true() && "Branch node without on_true");

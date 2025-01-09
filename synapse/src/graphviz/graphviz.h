@@ -34,9 +34,7 @@ public:
   void write() const;
   void show(bool interrupt) const;
 
-  static void
-  find_and_replace(std::string &str,
-                   const std::vector<std::pair<std::string, std::string>> &replacements);
+  static void find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements);
   static void sanitize_html_label(std::string &label);
 };
 } // namespace synapse

@@ -105,8 +105,7 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
   symbol_t time = bdd->get_time();
 
   // Hack
-  var_stacks.back().emplace_back("ig_intr_md.ingress_port",
-                                 solver_toolbox.exprBuilder->Extract(device.expr, 0, 16));
+  var_stacks.back().emplace_back("ig_intr_md.ingress_port", solver_toolbox.exprBuilder->Extract(device.expr, 0, 16));
 
   var_stacks.back().emplace_back("ig_intr_md.ingress_mac_tstamp[47:16]", time);
 }
@@ -280,8 +279,7 @@ bool EPSynthesizer::get_var(klee::ref<klee::Expr> expr, var_t &out_var) const {
       }
 
       for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
-        klee::ref<klee::Expr> var_slice =
-            solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
+        klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
         if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
           out_var = var;
@@ -315,8 +313,7 @@ EPSynthesizer::vars_t EPSynthesizer::get_squashed_hdrs() const {
   return vars;
 }
 
-bool EPSynthesizer::get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr,
-                                var_t &out_var) const {
+bool EPSynthesizer::get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr, var_t &out_var) const {
   for (const var_t &var : parser_hdrs.at(node_id)) {
     if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       out_var = var;
@@ -331,8 +328,7 @@ bool EPSynthesizer::get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr,
     }
 
     for (bits_t offset = 0; offset <= var_size - expr_size; offset += 8) {
-      klee::ref<klee::Expr> var_slice =
-          solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
+      klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
       if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         out_var = var;
@@ -345,8 +341,7 @@ bool EPSynthesizer::get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr,
   return false;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::SendToController *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::SendToController *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
 
@@ -385,19 +380,16 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Recirculate *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Recirculate *node) {
   panic("TODO: Recirculate");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Ignore *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Ignore *node) {
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::If *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::If *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const std::vector<klee::ref<klee::Expr>> &conditions = node->get_conditions();
@@ -487,25 +479,21 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::skipChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::ParserCondition *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ParserCondition *node) {
   parser_vars[node->get_node()->get_id()] = get_squashed_vars();
   parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Then *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Then *node) {
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Else *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Else *node) {
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Forward *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Forward *node) {
   int dst_device = node->get_dst_device();
 
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
@@ -518,27 +506,23 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Drop *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Drop *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
   ingress.indent();
   ingress << "drop();\n";
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::ParserReject *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ParserReject *node) {
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::Broadcast *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Broadcast *node) {
   panic("TODO: Broadcast");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::ParserExtraction *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ParserExtraction *node) {
   klee::ref<klee::Expr> hdr = node->get_hdr();
   code_t hdr_name = get_unique_name("hdr");
 
@@ -586,8 +570,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::skipChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::ModifyHeader *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ModifyHeader *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   klee::ref<klee::Expr> hdr = node->get_hdr();
@@ -614,8 +597,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::TableLookup *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::TableLookup *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -648,8 +630,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::VectorRegisterLookup *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterLookup *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -658,10 +639,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   klee::ref<klee::Expr> value = node->get_value();
 
   std::vector<const Register *> regs;
-  std::for_each(rids.begin(), rids.end(),
-                [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
-  std::sort(regs.begin(), regs.end(),
-            [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
+  std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
+  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
@@ -679,8 +658,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   std::vector<var_t> read_vars;
   for (const Register *reg : regs) {
     code_t entry_name = get_unique_name("vector_reg_entry_" + std::to_string(i));
-    klee::ref<klee::Expr> entry_expr =
-        solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
+    klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
     var_t entry_var(entry_name, entry_expr);
     read_vars.push_back(entry_var);
 
@@ -705,8 +683,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::VectorRegisterUpdate *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterUpdate *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -716,10 +693,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   klee::ref<klee::Expr> write_value = node->get_write_value();
 
   std::vector<const Register *> regs;
-  std::for_each(rids.begin(), rids.end(),
-                [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
-  std::sort(regs.begin(), regs.end(),
-            [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
+  std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
+  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
@@ -737,8 +712,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   std::vector<var_t> write_vars;
   for (const Register *reg : regs) {
     code_t reg_write_name = get_unique_name("vector_reg_entry_" + std::to_string(i));
-    klee::ref<klee::Expr> reg_write_expr =
-        solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
+    klee::ref<klee::Expr> reg_write_expr = solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
     var_t reg_write_var(reg_write_name, reg_write_expr);
     write_vars.push_back(reg_write_var);
 
@@ -764,8 +738,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::FCFSCachedTableRead *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableRead *node) {
   // coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -784,20 +757,17 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::FCFSCachedTableReadOrWrite *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableReadOrWrite *node) {
   panic("TODO: FCFSCachedTableReadOrWrite");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::FCFSCachedTableWrite *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableWrite *node) {
   panic("TODO: FCFSCachedTableWrite");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
-                                       const tofino::FCFSCachedTableDelete *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableDelete *node) {
   panic("TODO: FCFSCachedTableDelete");
   return EPVisitor::Action::doChildren;
 }

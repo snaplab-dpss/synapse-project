@@ -14,20 +14,17 @@ private:
   klee::ref<klee::Expr> total_freed;
 
 public:
-  ExpireItemsSingleMap(const Node *node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr,
-                       klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed)
-      : x86Module(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap", node),
-        dchain_addr(_dchain_addr), vector_addr(_vector_addr), map_addr(_map_addr), time(_time),
-        total_freed(_total_freed) {}
+  ExpireItemsSingleMap(const Node *node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr, klee::ref<klee::Expr> _time,
+                       klee::ref<klee::Expr> _total_freed)
+      : x86Module(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap", node), dchain_addr(_dchain_addr), vector_addr(_vector_addr),
+        map_addr(_map_addr), time(_time), total_freed(_total_freed) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {
-    ExpireItemsSingleMap *cloned =
-        new ExpireItemsSingleMap(node, dchain_addr, map_addr, vector_addr, time, total_freed);
+    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(node, dchain_addr, map_addr, vector_addr, time, total_freed);
     return cloned;
   }
 
@@ -40,15 +37,12 @@ public:
 
 class ExpireItemsSingleMapFactory : public x86ModuleFactory {
 public:
-  ExpireItemsSingleMapFactory()
-      : x86ModuleFactory(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap") {}
+  ExpireItemsSingleMapFactory() : x86ModuleFactory(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

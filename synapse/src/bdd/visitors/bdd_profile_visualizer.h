@@ -41,8 +41,7 @@ private:
     return total_counter;
   }
 
-  static std::unordered_map<node_id_t, std::string>
-  get_annocations_per_node(const bdd_profile_t &profile) {
+  static std::unordered_map<node_id_t, std::string> get_annocations_per_node(const bdd_profile_t &profile) {
 
     u64 total_counter = get_total_counter(profile.counters);
     std::unordered_map<node_id_t, std::string> annocations_per_node;
@@ -72,8 +71,7 @@ private:
     return annocations_per_node;
   }
 
-  static std::unordered_map<node_id_t, std::string>
-  get_colors_per_node(const std::unordered_map<node_id_t, u64> &counters) {
+  static std::unordered_map<node_id_t, std::string> get_colors_per_node(const std::unordered_map<node_id_t, u64> &counters) {
     u64 total_counter = get_total_counter(counters);
     std::unordered_map<node_id_t, std::string> colors_per_node;
 

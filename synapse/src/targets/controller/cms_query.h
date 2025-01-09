@@ -12,13 +12,10 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSQuery(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key,
-           klee::ref<klee::Expr> _min_estimate)
-      : ControllerModule(ModuleType::Controller_CMSQuery, "CMSQuery", node), cms_addr(_cms_addr),
-        key(_key), min_estimate(_min_estimate) {}
+  CMSQuery(const Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
+      : ControllerModule(ModuleType::Controller_CMSQuery, "CMSQuery", node), cms_addr(_cms_addr), key(_key), min_estimate(_min_estimate) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -37,11 +34,9 @@ public:
   CMSQueryFactory() : ControllerModuleFactory(ModuleType::Controller_CMSQuery, "CMSQuery") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

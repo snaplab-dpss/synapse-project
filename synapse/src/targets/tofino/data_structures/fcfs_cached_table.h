@@ -23,8 +23,8 @@ struct FCFSCachedTable : public DS {
   Register cache_expirator;
   std::vector<Register> cache_keys;
 
-  FCFSCachedTable(const TNAProperties &properties, DS_ID id, u32 op, u32 cache_capacity,
-                  u32 num_entries, const std::vector<bits_t> &keys_sizes);
+  FCFSCachedTable(const TNAProperties &properties, DS_ID id, u32 op, u32 cache_capacity, u32 num_entries,
+                  const std::vector<bits_t> &keys_sizes);
 
   FCFSCachedTable(const FCFSCachedTable &other);
 

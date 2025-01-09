@@ -22,23 +22,20 @@ bool is_constant_signed(klee::ref<klee::Expr> expr);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
-klee::ConstraintManager join_managers(const klee::ConstraintManager &m1,
-                                      const klee::ConstraintManager &m2);
+klee::ConstraintManager join_managers(const klee::ConstraintManager &m1, const klee::ConstraintManager &m2);
 addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr);
 
 klee::ref<klee::Expr> swap_packet_endianness(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr);
 
-klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
-                             const std::vector<std::string> &allowed_symbols);
+klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::string> &allowed_symbols);
 
 struct mod_t {
   bytes_t offset;
   bits_t width;
   klee::ref<klee::Expr> expr;
 
-  mod_t(u32 _offset, bits_t _width, klee::ref<klee::Expr> _expr)
-      : offset(_offset), width(_width), expr(_expr) {}
+  mod_t(u32 _offset, bits_t _width, klee::ref<klee::Expr> _expr) : offset(_offset), width(_width), expr(_expr) {}
   mod_t(const mod_t &mod) : offset(mod.offset), width(mod.width), expr(mod.expr) {}
 };
 
@@ -68,9 +65,7 @@ struct symbolic_read_equal_t {
   bool operator()(const symbolic_read_t &a, const symbolic_read_t &b) const noexcept;
 };
 
-typedef std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t>
-    symbolic_reads_t;
+typedef std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t> symbolic_reads_t;
 
-symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr,
-                                           std::optional<std::string> symbol_filter = std::nullopt);
+symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter = std::nullopt);
 } // namespace synapse

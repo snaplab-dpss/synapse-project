@@ -6,10 +6,8 @@ namespace ctrl {
 using tofino::Table;
 
 namespace {
-void table_data_from_map_op(const Call *call_node, addr_t &obj,
-                            std::vector<klee::ref<klee::Expr>> &keys,
-                            std::vector<klee::ref<klee::Expr>> &values,
-                            std::optional<symbol_t> &hit) {
+void table_data_from_map_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+                            std::vector<klee::ref<klee::Expr>> &values, std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_get" && "Not a map_get call");
 
@@ -25,10 +23,8 @@ void table_data_from_map_op(const Call *call_node, addr_t &obj,
   hit = map_has_this_key;
 }
 
-void table_data_from_vector_op(const Call *call_node, addr_t &obj,
-                               std::vector<klee::ref<klee::Expr>> &keys,
-                               std::vector<klee::ref<klee::Expr>> &values,
-                               std::optional<symbol_t> &hit) {
+void table_data_from_vector_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+                               std::vector<klee::ref<klee::Expr>> &values, std::optional<symbol_t> &hit) {
   // We can implement even if we later update the vector's contents!
 
   const call_t &call = call_node->get_call();
@@ -43,14 +39,10 @@ void table_data_from_vector_op(const Call *call_node, addr_t &obj,
   values = {cell};
 }
 
-void table_data_from_dchain_op(const Call *call_node, addr_t &obj,
-                               std::vector<klee::ref<klee::Expr>> &keys,
-                               std::vector<klee::ref<klee::Expr>> &values,
-                               std::optional<symbol_t> &hit) {
+void table_data_from_dchain_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+                               std::vector<klee::ref<klee::Expr>> &values, std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
-  assert((call.function_name == "dchain_is_index_allocated" ||
-          call.function_name == "dchain_rejuvenate_index") &&
-         "Not a dchain call");
+  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index = call.args.at("index").expr;
@@ -65,18 +57,15 @@ void table_data_from_dchain_op(const Call *call_node, addr_t &obj,
   }
 }
 
-bool get_table_lookup_data(const Call *call_node, addr_t &obj,
-                           std::vector<klee::ref<klee::Expr>> &keys,
-                           std::vector<klee::ref<klee::Expr>> &values,
-                           std::optional<symbol_t> &hit) {
+bool get_table_lookup_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+                           std::vector<klee::ref<klee::Expr>> &values, std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
 
   if (call.function_name == "map_get") {
     table_data_from_map_op(call_node, obj, keys, values, hit);
   } else if (call.function_name == "vector_borrow") {
     table_data_from_vector_op(call_node, obj, keys, values, hit);
-  } else if (call.function_name == "dchain_is_index_allocated" ||
-             call.function_name == "dchain_rejuvenate_index") {
+  } else if (call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") {
     table_data_from_dchain_op(call_node, obj, keys, values, hit);
   } else {
     return false;
@@ -86,8 +75,7 @@ bool get_table_lookup_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -109,8 +97,7 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

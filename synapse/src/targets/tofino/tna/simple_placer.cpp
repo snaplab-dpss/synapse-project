@@ -6,8 +6,7 @@
 namespace synapse {
 namespace tofino {
 namespace {
-int get_soonest_available_stage(const std::vector<Stage> &stages,
-                                const std::unordered_set<DS_ID> &deps) {
+int get_soonest_available_stage(const std::vector<Stage> &stages, const std::unordered_set<DS_ID> &deps) {
   const Stage *soonest_stage = nullptr;
 
   for (auto it = stages.rbegin(); it != stages.rend(); it++) {
@@ -84,11 +83,9 @@ std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   return os;
 }
 
-SimplePlacer::SimplePlacer(const TNAProperties *_properties)
-    : properties(_properties), stages(create_stages(_properties)) {}
+SimplePlacer::SimplePlacer(const TNAProperties *_properties) : properties(_properties), stages(create_stages(_properties)) {}
 
-SimplePlacer::SimplePlacer(const SimplePlacer &other)
-    : properties(other.properties), stages(other.stages) {
+SimplePlacer::SimplePlacer(const SimplePlacer &other) : properties(other.properties), stages(other.stages) {
   for (const PlacementRequest &req : other.placement_requests) {
     placement_requests.push_back({req.ds->clone(), req.deps});
   }
@@ -133,8 +130,7 @@ bool SimplePlacer::is_placed(DS_ID ds_id) const {
   return false;
 }
 
-PlacementStatus SimplePlacer::is_consistent(DS_ID ds_id,
-                                            const std::unordered_set<DS_ID> &deps) const {
+PlacementStatus SimplePlacer::is_consistent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const {
   int soonest_stage_id = get_soonest_available_stage(stages, deps);
 
   int total_stages = stages.size();
@@ -149,9 +145,7 @@ PlacementStatus SimplePlacer::is_consistent(DS_ID ds_id,
   return PlacementStatus::INCONSISTENT_PLACEMENT;
 }
 
-bool SimplePlacer::is_self_dependent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const {
-  return deps.find(ds_id) != deps.end();
-}
+bool SimplePlacer::is_self_dependent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const { return deps.find(ds_id) != deps.end(); }
 
 PlacementStatus SimplePlacer::find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps,
                                               std::vector<placement_t> &placements) const {
@@ -176,8 +170,7 @@ PlacementStatus SimplePlacer::find_placements(const DS *ds, const std::unordered
   return status;
 }
 
-PlacementStatus SimplePlacer::find_placements_table(const Table *table,
-                                                    const std::unordered_set<DS_ID> &deps,
+PlacementStatus SimplePlacer::find_placements_table(const Table *table, const std::unordered_set<DS_ID> &deps,
                                                     std::vector<placement_t> &placements) const {
   assert(!is_placed(table->id) && "Table already placed");
 
@@ -242,8 +235,7 @@ PlacementStatus SimplePlacer::find_placements_table(const Table *table,
   return PlacementStatus::SUCCESS;
 }
 
-PlacementStatus SimplePlacer::find_placements_reg(const Register *reg,
-                                                  const std::unordered_set<DS_ID> &deps,
+PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std::unordered_set<DS_ID> &deps,
                                                   std::vector<placement_t> &placements) const {
   assert(!is_placed(reg->id) && "Register already placed");
 
@@ -303,8 +295,7 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg,
   return PlacementStatus::SUCCESS;
 }
 
-PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter,
-                                                    const std::unordered_set<DS_ID> &deps,
+PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter, const std::unordered_set<DS_ID> &deps,
                                                     std::vector<placement_t> &placements) const {
   assert(!is_placed(meter->id) && "Meter already placed");
 
@@ -369,8 +360,7 @@ PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter,
   return PlacementStatus::SUCCESS;
 }
 
-PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash,
-                                                   const std::unordered_set<DS_ID> &deps,
+PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps,
                                                    std::vector<placement_t> &placements) const {
   assert(!is_placed(hash->id) && "Hash already placed");
 
@@ -580,8 +570,7 @@ void SimplePlacer::save_placement_request(const DS *ds, const std::unordered_set
   placement_requests.push_back({ds->clone(), deps});
 }
 
-void SimplePlacer::replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps,
-                                             const std::vector<Stage> &new_stages) {
+void SimplePlacer::replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps, const std::vector<Stage> &new_stages) {
   stages = new_stages;
 
   for (PlacementRequest &req : placement_requests) {
@@ -613,14 +602,11 @@ void SimplePlacer::debug() const {
     double tcam_usage = 100.0 - (stage.available_tcam * 100.0) / properties->tcam_per_stage;
     bits_t tcam_consumed = properties->tcam_per_stage - stage.available_tcam;
 
-    double map_ram_usage =
-        100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
+    double map_ram_usage = 100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
     bits_t map_ram_consumed = properties->map_ram_per_stage - stage.available_map_ram;
 
-    double xbar_usage =
-        100.0 - (stage.available_exact_match_xbar * 100.0) / properties->exact_match_xbar_per_stage;
-    bits_t xbar_consumed =
-        properties->exact_match_xbar_per_stage - stage.available_exact_match_xbar;
+    double xbar_usage = 100.0 - (stage.available_exact_match_xbar * 100.0) / properties->exact_match_xbar_per_stage;
+    bits_t xbar_consumed = properties->exact_match_xbar_per_stage - stage.available_exact_match_xbar;
 
     ss << "-------------------------------------\n";
     ss << "Stage " << stage.stage_id;

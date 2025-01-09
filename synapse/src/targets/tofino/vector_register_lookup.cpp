@@ -29,8 +29,7 @@ vector_register_data_t get_vector_register_data(const EP *ep, const Call *node) 
 }
 } // namespace
 
-std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node,
-                                                                  const Context &ctx) const {
+std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -59,8 +58,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
   return spec_impl;
 }
 
-std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const Node *node,
-                                                              SymbolManager *symbol_manager) const {
+std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -80,8 +78,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  std::unordered_set<Register *> regs =
-      build_or_reuse_vector_registers(ep, call_node, vector_register_data);
+  std::unordered_set<Register *> regs = build_or_reuse_vector_registers(ep, call_node, vector_register_data);
 
   if (regs.empty()) {
     return impls;
@@ -92,8 +89,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     rids.insert(reg->id);
   }
 
-  Module *module = new VectorRegisterLookup(node, rids, vector_register_data.obj,
-                                            vector_register_data.index, vector_register_data.value);
+  Module *module = new VectorRegisterLookup(node, rids, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

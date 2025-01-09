@@ -13,19 +13,16 @@ private:
   std::optional<symbol_t> out_of_space;
 
 public:
-  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
-                         klee::ref<klee::Expr> _index_out, const symbol_t &_out_of_space)
-      : ControllerModule(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocate", node),
-        dchain_addr(_dchain_addr), time(_time), index_out(_index_out), out_of_space(_out_of_space) {
-  }
+  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
+                         const symbol_t &_out_of_space)
+      : ControllerModule(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocate", node), dchain_addr(_dchain_addr), time(_time),
+        index_out(_index_out), out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
-                         klee::ref<klee::Expr> _index_out)
-      : ControllerModule(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocate", node),
-        dchain_addr(_dchain_addr), time(_time), index_out(_index_out), out_of_space(std::nullopt) {}
+  DchainAllocateNewIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+      : ControllerModule(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocate", node), dchain_addr(_dchain_addr), time(_time),
+        index_out(_index_out), out_of_space(std::nullopt) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -50,16 +47,12 @@ public:
 
 class DchainAllocateNewIndexFactory : public ControllerModuleFactory {
 public:
-  DchainAllocateNewIndexFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DchainAllocateNewIndex,
-                                "DchainAllocateNewIndex") {}
+  DchainAllocateNewIndexFactory() : ControllerModuleFactory(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocateNewIndex") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <unordered_set>
 
 #include "simplifier.h"
 #include "exprs.h"
@@ -6,6 +7,14 @@
 #include "../system.h"
 
 namespace synapse {
+
+namespace {
+const std::unordered_set<klee::Expr::Kind> conditional_expr_kinds{
+    klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,  klee::Expr::Ult, klee::Expr::Ule,
+    klee::Expr::Ugt, klee::Expr::Uge, klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
+};
+}
+
 bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
   if (extract_expr->getKind() != klee::Expr::Extract) {
     return false;
@@ -71,10 +80,9 @@ bool is_cmp_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &not_const_kid) 
   auto constant = lhs_is_constant ? lhs : rhs;
   auto other = lhs_is_constant ? rhs : lhs;
 
-  auto allowed_exprs = std::vector<klee::Expr::Kind>{
-      klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
-      klee::Expr::Ult, klee::Expr::Ule, klee::Expr::Ugt, klee::Expr::Uge,
-      klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
+  const std::vector<klee::Expr::Kind> allowed_exprs{
+      klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,  klee::Expr::Ult, klee::Expr::Ule,
+      klee::Expr::Ugt, klee::Expr::Uge, klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
   };
 
   auto found_it = std::find(allowed_exprs.begin(), allowed_exprs.end(), other->getKind());
@@ -114,13 +122,7 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_e
 
   assert(kid->getKind() != klee::Expr::ZExt && "Invalid expr");
 
-  auto cond_ops = std::vector<klee::Expr::Kind>{
-      klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
-      klee::Expr::Ult, klee::Expr::Ule, klee::Expr::Ugt, klee::Expr::Uge,
-      klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
-  };
-
-  auto is_cond = std::find(cond_ops.begin(), cond_ops.end(), kid->getKind()) != cond_ops.end();
+  auto is_cond = std::find(conditional_expr_kinds.begin(), conditional_expr_kinds.end(), kid->getKind()) != conditional_expr_kinds.end();
 
   if (is_cond) {
     cond_expr = kid;
@@ -131,24 +133,18 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_e
 }
 
 bool can_be_negated(klee::ref<klee::Expr> expr) {
-  auto allowed = std::unordered_set<klee::Expr::Kind>{
-      {klee::Expr::Eq},  {klee::Expr::Ne},  {klee::Expr::Ult}, {klee::Expr::Uge},
-      {klee::Expr::Ule}, {klee::Expr::Ugt}, {klee::Expr::Slt}, {klee::Expr::Sge},
-      {klee::Expr::Sle}, {klee::Expr::Sgt}, {klee::Expr::Or},  {klee::Expr::And},
-  };
-
-  if (allowed.find(expr->getKind()) != allowed.end()) {
+  if (conditional_expr_kinds.find(expr->getKind()) != conditional_expr_kinds.end()) {
     return true;
   }
 
-  auto transparent = std::unordered_set<klee::Expr::Kind>{
+  const std::unordered_set<klee::Expr::Kind> transparent{
       {klee::Expr::ZExt},
       {klee::Expr::SExt},
   };
 
   if (transparent.find(expr->getKind()) != transparent.end()) {
     assert(expr->getNumKids() == 1 && "Invalid expr");
-    auto kid = expr->getKid(0);
+    klee::ref<klee::Expr> kid = expr->getKid(0);
     return can_be_negated(kid);
   }
 
@@ -163,12 +159,10 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
   }
 
   const std::unordered_map<klee::Expr::Kind, klee::Expr::Kind> negate_map{
-      {klee::Expr::Or, klee::Expr::And},    {klee::Expr::And, klee::Expr::Or},
-      {klee::Expr::Eq, klee::Expr::Ne},     {klee::Expr::Ne, klee::Expr::Eq},
-      {klee::Expr::Ult, klee::Expr::Uge},   {klee::Expr::Uge, klee::Expr::Ult},
-      {klee::Expr::Ule, klee::Expr::Ugt},   {klee::Expr::Ugt, klee::Expr::Ule},
-      {klee::Expr::Slt, klee::Expr::Sge},   {klee::Expr::Sge, klee::Expr::Slt},
-      {klee::Expr::Sle, klee::Expr::Sgt},   {klee::Expr::Sgt, klee::Expr::Sle},
+      {klee::Expr::Or, klee::Expr::And},    {klee::Expr::And, klee::Expr::Or},    {klee::Expr::Eq, klee::Expr::Ne},
+      {klee::Expr::Ne, klee::Expr::Eq},     {klee::Expr::Ult, klee::Expr::Uge},   {klee::Expr::Uge, klee::Expr::Ult},
+      {klee::Expr::Ule, klee::Expr::Ugt},   {klee::Expr::Ugt, klee::Expr::Ule},   {klee::Expr::Slt, klee::Expr::Sge},
+      {klee::Expr::Sge, klee::Expr::Slt},   {klee::Expr::Sle, klee::Expr::Sgt},   {klee::Expr::Sgt, klee::Expr::Sle},
       {klee::Expr::ZExt, klee::Expr::ZExt}, {klee::Expr::SExt, klee::Expr::SExt},
   };
 
@@ -345,9 +339,8 @@ bool simplify_not_eq(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
 
 bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
   auto cmp_ops = std::vector<klee::Expr::Kind>{
-      klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
-      klee::Expr::Ult, klee::Expr::Ule, klee::Expr::Ugt, klee::Expr::Uge,
-      klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
+      klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,  klee::Expr::Ult, klee::Expr::Ule,
+      klee::Expr::Ugt, klee::Expr::Uge, klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
   };
 
   auto found_it = std::find(cmp_ops.begin(), cmp_ops.end(), expr->getKind());
@@ -391,8 +384,7 @@ typedef bool (*simplifier_op)(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> 
 
 typedef std::vector<simplifier_op> simplifiers_t;
 
-bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr,
-                       klee::ref<klee::Expr> &simplified_expr) {
+bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &simplified_expr) {
   simplified_expr = expr;
 
   for (auto op : simplifiers) {
@@ -441,20 +433,51 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
     return expr;
   }
 
-  auto simplifiers = simplifiers_t{
-      simplify_extract, simplify_cmp_eq_0, simplify_cmp_zext_eq_size,
-      simplify_not_eq,  simplify_cmp_ne_0,
+  const simplifiers_t simplifiers{
+      simplify_extract, simplify_cmp_eq_0, simplify_cmp_zext_eq_size, simplify_not_eq, simplify_cmp_ne_0,
   };
 
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
 
   while (true) {
-    auto simplified = expr;
+    klee::ref<klee::Expr> simplified = expr;
 
     apply_simplifiers(simplifiers, expr, simplified);
     assert(!simplified.isNull() && "Null expr");
 
-    for (auto prev : prev_exprs) {
+    for (klee::ref<klee::Expr> prev : prev_exprs) {
+      if (!simplified->compare(*prev.get())) {
+        return expr;
+      }
+    }
+
+    prev_exprs.push_back(simplified);
+    expr = simplified;
+  }
+
+  return expr;
+}
+
+klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
+  assert(!expr.isNull() && "Null condition");
+
+  if (conditional_expr_kinds.find(expr->getKind()) == conditional_expr_kinds.end()) {
+    return expr;
+  }
+
+  const simplifiers_t simplifiers{
+      simplify_extract, simplify_cmp_eq_0, simplify_cmp_zext_eq_size, simplify_not_eq, simplify_cmp_ne_0,
+  };
+
+  std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
+
+  while (true) {
+    klee::ref<klee::Expr> simplified = expr;
+
+    apply_simplifiers(simplifiers, expr, simplified);
+    assert(!simplified.isNull() && "Null expr");
+
+    for (klee::ref<klee::Expr> prev : prev_exprs) {
       if (!simplified->compare(*prev.get())) {
         return expr;
       }

@@ -14,15 +14,12 @@ private:
   std::optional<symbol_t> hit;
 
 public:
-  TableLookup(const Node *node, DS_ID _table_id, addr_t _obj,
-              const std::vector<klee::ref<klee::Expr>> &_keys,
-              const std::vector<klee::ref<klee::Expr>> &_values,
-              const std::optional<symbol_t> &_hit)
-      : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node), table_id(_table_id),
-        obj(_obj), keys(_keys), values(_values), hit(_hit) {}
+  TableLookup(const Node *node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+              const std::vector<klee::ref<klee::Expr>> &_values, const std::optional<symbol_t> &_hit)
+      : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node), table_id(_table_id), obj(_obj), keys(_keys), values(_values),
+        hit(_hit) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -45,11 +42,9 @@ public:
   TableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_TableLookup, "TableLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

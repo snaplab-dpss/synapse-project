@@ -51,8 +51,7 @@ void from_json(const json &j, bdd_profile_t::map_stats_t::epoch_t &epoch) {
   j.at("pkts_per_persistent_flow").get_to(epoch.pkts_per_persistent_flow);
   j.at("pkts_per_new_flow").get_to(epoch.pkts_per_new_flow);
 
-  std::sort(epoch.pkts_per_persistent_flow.begin(), epoch.pkts_per_persistent_flow.end(),
-            std::greater<u64>());
+  std::sort(epoch.pkts_per_persistent_flow.begin(), epoch.pkts_per_persistent_flow.end(), std::greater<u64>());
   std::sort(epoch.pkts_per_new_flow.begin(), epoch.pkts_per_new_flow.end(), std::greater<u64>());
 }
 
@@ -114,8 +113,7 @@ fpm_t bdd_profile_t::churn_top_k_flows(u64 map, u32 k) const {
     size_t i = 0;
     size_t j = 0;
     size_t top_k_new_flows = 0;
-    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() &&
-           i + j < k) {
+    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() && i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
         i++;
       } else {
@@ -151,8 +149,7 @@ hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
     size_t i = 0;
     size_t j = 0;
     size_t top_k_new_flows = 0;
-    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() &&
-           i + j < k) {
+    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() && i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
         i++;
       } else {
@@ -181,8 +178,7 @@ u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
 
     size_t i = 0;
     size_t j = 0;
-    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() &&
-           i + j < k) {
+    while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() && i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
         threshold = std::min(threshold, epoch.pkts_per_persistent_flow[i]);
         i++;

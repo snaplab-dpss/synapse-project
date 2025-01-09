@@ -3,9 +3,8 @@
 namespace synapse {
 namespace tofino {
 namespace {
-bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_and_check,
-                 addr_t &obj, tb_config_t &cfg, std::vector<klee::ref<klee::Expr>> &keys,
-                 klee::ref<klee::Expr> pkt_len, klee::ref<klee::Expr> &hit,
+bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_and_check, addr_t &obj, tb_config_t &cfg,
+                 std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> pkt_len, klee::ref<klee::Expr> &hit,
                  klee::ref<klee::Expr> pass, DS_ID &id) {
   const call_t &call_is_tracing = tb_is_tracing->get_call();
   assert(call_is_tracing.function_name == "tb_is_tracing" && "Unexpected function");
@@ -31,8 +30,7 @@ bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_
   return true;
 }
 
-Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &cfg,
-                   const std::vector<klee::ref<klee::Expr>> &keys) {
+Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &cfg, const std::vector<klee::ref<klee::Expr>> &keys) {
   std::vector<bits_t> keys_size;
   for (klee::ref<klee::Expr> key : keys) {
     keys_size.push_back(key->getWidth());
@@ -49,9 +47,7 @@ Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &
   return meter;
 }
 
-std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node,
-                                             const Call *tb_update_and_check,
-                                             const Node *&new_next) {
+std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node, const Call *tb_update_and_check, const Node *&new_next) {
   const BDD *old_bdd = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -74,8 +70,7 @@ std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node,
 }
 } // namespace
 
-std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -95,8 +90,7 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Nod
   klee::ref<klee::Expr> pass;
   DS_ID id;
 
-  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass,
-                   id)) {
+  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
     return std::nullopt;
   }
 
@@ -121,8 +115,7 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Nod
   return spec_impl;
 }
 
-std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -144,8 +137,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *n
   klee::ref<klee::Expr> pass;
   DS_ID id;
 
-  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass,
-                   id)) {
+  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
     return impls;
   }
 
@@ -166,8 +158,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *n
   impls.push_back(implement(ep, node, new_ep));
 
   const Node *new_next;
-  std::unique_ptr<BDD> new_bdd =
-      delete_future_tb_update(new_ep, node, tb_update_and_check, new_next);
+  std::unique_ptr<BDD> new_bdd = delete_future_tb_update(new_ep, node, tb_update_and_check, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(obj, DSImpl::Tofino_Meter);

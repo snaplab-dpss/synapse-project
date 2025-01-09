@@ -15,8 +15,7 @@ code_t transpile_constant(klee::ref<klee::Expr> expr) {
   code << width * 8 << "w";
 
   for (size_t byte = 0; byte < width; byte++) {
-    klee::ref<klee::Expr> extract =
-        solver_toolbox.exprBuilder->Extract(expr, (width - byte - 1) * 8, 8);
+    klee::ref<klee::Expr> extract = solver_toolbox.exprBuilder->Extract(expr, (width - byte - 1) * 8, 8);
     u64 byte_value = solver_toolbox.value_from_expr(extract);
 
     std::stringstream ss;

@@ -71,10 +71,9 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 }
 } // namespace
 
-EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml::table &_config,
-       const Profiler &_profiler)
-    : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets),
-      ctx(bdd.get(), _targets, _config, _profiler), meta(bdd.get(), targets) {
+EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml::table &_config, const Profiler &_profiler)
+    : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _config, _profiler),
+      meta(bdd.get(), targets) {
   TargetType initial_target = targets.get_initial_target().type;
   targets_roots[initial_target] = node_ids_t({bdd->get_root()->get_id()});
 
@@ -89,9 +88,8 @@ EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml:
 }
 
 EP::EP(const EP &other, bool is_ancestor)
-    : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr),
-      targets(other.targets), ancestors(update_ancestors(other, is_ancestor)),
-      targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
+    : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -170,8 +168,7 @@ std::vector<const EPNode *> EP::get_prev_nodes_of_current_target() const {
   return prev_nodes;
 }
 
-std::vector<const EPNode *>
-EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
+std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
   std::vector<const EPNode *> found;
 
   if (!root) {
@@ -193,8 +190,8 @@ EP::get_nodes_by_type(const std::unordered_set<ModuleType> &types) const {
 }
 
 bool EP::has_target(TargetType type) const {
-  auto found_it = std::find_if(targets.elements.begin(), targets.elements.end(),
-                               [type](const TargetView &target) { return target.type == type; });
+  auto found_it =
+      std::find_if(targets.elements.begin(), targets.elements.end(), [type](const TargetView &target) { return target.type == type; });
 
   return found_it != targets.elements.end();
 }
@@ -438,19 +435,16 @@ hit_rate_t EP::get_active_leaf_hit_rate() const {
 void EP::sort_leaves() {
   TargetType initial_target = targets.get_initial_target().type;
 
-  auto prioritize_switch_and_hot_paths = [this, initial_target](const EPLeaf &l1,
-                                                                const EPLeaf &l2) {
+  auto prioritize_switch_and_hot_paths = [this, initial_target](const EPLeaf &l1, const EPLeaf &l2) {
     // Only the first leaf may have no EPNode.
     assert(l1.node && "Leaf without a node");
     assert(l2.node && "Leaf without a node");
 
-    if (l1.node->get_module()->get_next_target() != initial_target &&
-        l2.node->get_module()->get_next_target() == initial_target) {
+    if (l1.node->get_module()->get_next_target() != initial_target && l2.node->get_module()->get_next_target() == initial_target) {
       return false;
     }
 
-    if (l1.node->get_module()->get_next_target() == initial_target &&
-        l2.node->get_module()->get_next_target() != initial_target) {
+    if (l1.node->get_module()->get_next_target() == initial_target && l2.node->get_module()->get_next_target() != initial_target) {
       return true;
     }
 
@@ -491,16 +485,14 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
   return ss.str();
 }
 
-spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
-                                                  const Node *anchor, node_ids_t future_nodes,
+spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor, node_ids_t future_nodes,
                                                   TargetType current_target, pps_t ingress) const {
   future_nodes.erase(anchor->get_id());
 
   spec_impl_t speculation = base_speculation;
   std::vector<spec_impl_t> speculations;
 
-  anchor->visit_nodes([this, &speculation, &speculations, current_target, ingress,
-                       &future_nodes](const Node *node) {
+  anchor->visit_nodes([this, &speculation, &speculations, current_target, ingress, &future_nodes](const Node *node) {
     if (future_nodes.empty()) {
       return NodeVisitAction::Stop;
     }
@@ -511,8 +503,7 @@ spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_specul
 
     future_nodes.erase(node->get_id());
 
-    speculation =
-        get_best_speculation(node, current_target, speculation.ctx, speculation.skip, ingress);
+    speculation = get_best_speculation(node, current_target, speculation.ctx, speculation.skip, ingress);
     speculations.push_back(speculation);
 
     if (speculation.next_target.has_value() && speculation.next_target != current_target) {
@@ -527,17 +518,14 @@ spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_specul
 
 // Compare the performance of an old speculation if it were subjected to the
 // nodes ignored by the new speculation, and vise versa.
-bool EP::is_better_speculation(const spec_impl_t &old_speculation,
-                               const spec_impl_t &new_speculation, const Node *node,
+bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const Node *node,
                                TargetType current_target, pps_t ingress) const {
   node_ids_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
   node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
 
-  spec_impl_t peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes,
-                                                           current_target, ingress);
+  spec_impl_t peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
 
-  spec_impl_t peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes,
-                                                           current_target, ingress);
+  spec_impl_t peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
 
   pps_t old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
   pps_t new_pps = peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
@@ -565,11 +553,9 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation,
     }
   }
 
-  peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes,
-                                               current_target, ingress);
+  peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
 
-  peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes,
-                                               current_target, ingress);
+  peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
 
   old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
   new_pps = peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
@@ -577,8 +563,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation,
   return new_pps > old_pps;
 }
 
-spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target,
-                                     const Context &ctx, const node_ids_t &skip,
+spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target, const Context &ctx, const node_ids_t &skip,
                                      pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
@@ -659,8 +644,7 @@ pps_t EP::speculate_tput_pps() const {
     }
 
     assert(leaf.next && "Active leaf without a next node");
-    leaf.next->visit_nodes([this, &speculations, initial_target, &spec_ctx, &skip,
-                            ingress](const Node *node) {
+    leaf.next->visit_nodes([this, &speculations, initial_target, &spec_ctx, &skip, ingress](const Node *node) {
       if (skip.find(node->get_id()) != skip.end()) {
         return NodeVisitAction::Continue;
       }
@@ -686,9 +670,7 @@ pps_t EP::speculate_tput_pps() const {
     });
   }
 
-  auto egress_from_ingress = [spec_ctx](pps_t ingress) {
-    return spec_ctx.get_perf_oracle().estimate_tput(ingress);
-  };
+  auto egress_from_ingress = [spec_ctx](pps_t ingress) { return spec_ctx.get_perf_oracle().estimate_tput(ingress); };
 
   pps_t egress = find_stable_tput(ingress, egress_from_ingress);
   cached_tput_speculation = egress;
@@ -728,9 +710,7 @@ pps_t EP::estimate_tput_pps() const {
 
   pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
 
-  auto egress_from_ingress = [this](pps_t ingress) {
-    return ctx.get_perf_oracle().estimate_tput(ingress);
-  };
+  auto egress_from_ingress = [this](pps_t ingress) { return ctx.get_perf_oracle().estimate_tput(ingress); };
 
   pps_t egress = find_stable_tput(max_ingress, egress_from_ingress);
   cached_tput_estimation = egress;

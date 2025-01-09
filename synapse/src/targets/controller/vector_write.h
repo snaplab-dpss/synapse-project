@@ -13,14 +13,12 @@ private:
   std::vector<mod_t> modifications;
 
 public:
-  VectorWrite(const Node *node, addr_t _vector_addr, klee::ref<klee::Expr> _index,
-              addr_t _value_addr, const std::vector<mod_t> &_modifications)
-      : ControllerModule(ModuleType::Controller_VectorWrite, "VectorWrite", node),
-        vector_addr(_vector_addr), index(_index), value_addr(_value_addr),
-        modifications(_modifications) {}
+  VectorWrite(const Node *node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
+              const std::vector<mod_t> &_modifications)
+      : ControllerModule(ModuleType::Controller_VectorWrite, "VectorWrite", node), vector_addr(_vector_addr), index(_index),
+        value_addr(_value_addr), modifications(_modifications) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -38,15 +36,12 @@ public:
 
 class VectorWriteFactory : public ControllerModuleFactory {
 public:
-  VectorWriteFactory()
-      : ControllerModuleFactory(ModuleType::Controller_VectorWrite, "VectorWrite") {}
+  VectorWriteFactory() : ControllerModuleFactory(ModuleType::Controller_VectorWrite, "VectorWrite") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

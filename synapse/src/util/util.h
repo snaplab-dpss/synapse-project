@@ -34,8 +34,7 @@ bps_t pps2bps(pps_t pps, bytes_t pkt_size);
 std::string int2hr(u64 value);
 std::string tput2str(u64 thpt, const std::string &units, bool human_readable = false);
 
-std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
-                                           const Call *packet_return_chunk);
+std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk, const Call *packet_return_chunk);
 std::vector<mod_t> ignore_checksum_modifications(const std::vector<mod_t> &modifications);
 
 const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_chunk);
@@ -76,13 +75,10 @@ struct map_coalescing_objs_t {
   -> vector_return(vector_n, index, value_n)
 */
 bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj, map_coalescing_objs_t &data);
-bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
-                                            map_coalescing_objs_t &map_objs);
-bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
-                                         map_coalescing_objs_t &map_objs);
+bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op, map_coalescing_objs_t &map_objs);
+bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op, map_coalescing_objs_t &map_objs);
 
-std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::ref<klee::Expr> key,
-                                                        const map_coalescing_objs_t &data);
+std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::ref<klee::Expr> key, const map_coalescing_objs_t &data);
 
 struct rw_fractions_t {
   hit_rate_t read;
@@ -104,15 +100,13 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *m
 // (5) If there is an extra branch condition for map writes, then the node paths
 // on both the failed extra branch condition and the failed index allocation are
 // the same.
-bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get,
-                                                    map_rw_pattern_t &map_rw_pattern);
+bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern);
 
 // (1) Has at least 1 future map_put
 // (2) All map_put happen if the dchain_allocate_new_index was successful
 // (3) All map_puts with the target obj also have the same key as the map_get
 // (4) All map_puts with the target obj update with the same value
-bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
-                               std::vector<const Call *> &map_puts);
+bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts);
 
 bool is_index_alloc_on_unsuccessful_map_get(const EP *ep, const Call *dchain_allocate_new_index);
 
@@ -122,14 +116,12 @@ bool is_index_alloc_on_unsuccessful_map_get(const EP *ep, const Call *dchain_all
 // (1) Has at least 1 future map_erase
 // (2) All map_erase happen if the map_get was successful
 // (3) All map_erases with the target obj also have the same key as the map_get
-bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get,
-                                              std::vector<const Call *> &map_erases);
+bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get, std::vector<const Call *> &map_erases);
 
 // Deletes all vector operations solely responsible for map key management.
 void delete_all_vector_key_operations_from_bdd(BDD *bdd);
 
-bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
-                                                    const Call *&tb_update_and_check);
+bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check);
 
 // Vector of past recirculations, from the most recent to the oldest.
 // Elements of the return vector are recirculation ports, and indexes are the

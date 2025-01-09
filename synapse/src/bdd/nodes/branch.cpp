@@ -14,8 +14,7 @@ Node *Branch::clone(NodeManager &manager, bool recursive) const {
   if (recursive) {
     Node *on_true_clone = on_true ? on_true->clone(manager, true) : nullptr;
     Node *on_false_clone = on_false ? on_false->clone(manager, true) : nullptr;
-    clone = new Branch(id, nullptr, constraints, symbol_manager, on_true_clone, on_false_clone,
-                       condition);
+    clone = new Branch(id, nullptr, constraints, symbol_manager, on_true_clone, on_false_clone, condition);
     if (on_true_clone)
       on_true_clone->set_prev(clone);
     if (on_false_clone)

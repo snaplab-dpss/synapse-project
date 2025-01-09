@@ -3,8 +3,7 @@
 namespace synapse {
 namespace tofino {
 
-code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Register *reg,
-                                                 RegisterActionType action) const {
+code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const {
   coder_t coder;
   coder << reg->id;
   coder << "_";
@@ -24,8 +23,7 @@ code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Regis
   return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table,
-                                           const std::vector<klee::ref<klee::Expr>> &keys,
+code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
                                            const std::vector<klee::ref<klee::Expr>> &values) {
   coder_t coder(lvl);
   std::vector<code_t> action_params;
@@ -123,9 +121,7 @@ code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table,
   return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_register_decl(indent_t lvl, const Register *reg,
-                                              klee::ref<klee::Expr> index,
-                                              klee::ref<klee::Expr> value) {
+code_t EPSynthesizer::transpile_register_decl(indent_t lvl, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value) {
   // * Template:
   // Register<{VALUE_WIDTH}, _>({CAPACITY}, {INIT_VALUE}) {NAME};
   // * Example:
@@ -153,8 +149,7 @@ code_t EPSynthesizer::transpile_register_decl(indent_t lvl, const Register *reg,
   return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_register_read_action_decl(indent_t lvl, const Register *reg,
-                                                          const code_t &name) {
+code_t EPSynthesizer::transpile_register_read_action_decl(indent_t lvl, const Register *reg, const code_t &name) {
   // * Example:
   // RegisterAction<value_t, hash_t, bool>(reg) reg_read = {
   // 		void apply(inout value_t value, out value_t out_value) {
@@ -207,8 +202,7 @@ code_t EPSynthesizer::transpile_register_read_action_decl(indent_t lvl, const Re
   return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_register_write_action_decl(indent_t lvl, const Register *reg,
-                                                           const code_t &name,
+code_t EPSynthesizer::transpile_register_write_action_decl(indent_t lvl, const Register *reg, const code_t &name,
                                                            const var_t &write_value) {
   // * Example:
   // RegisterAction<value_t, hash_t, void>(reg) reg_write = {
@@ -264,10 +258,8 @@ code_t EPSynthesizer::transpile_register_write_action_decl(indent_t lvl, const R
   return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_fcfs_cached_table_decl(indent_t lvl,
-                                                       const FCFSCachedTable *fcfs_cached_table,
-                                                       const klee::ref<klee::Expr> key,
-                                                       const klee::ref<klee::Expr> value) {
+code_t EPSynthesizer::transpile_fcfs_cached_table_decl(indent_t lvl, const FCFSCachedTable *fcfs_cached_table,
+                                                       const klee::ref<klee::Expr> key, const klee::ref<klee::Expr> value) {
   // for (const Table &table : fcfs_cached_table->tables) {
   // }
   panic("TODO: transpile_fcfs_cached_table_decl");

@@ -3,8 +3,7 @@
 namespace synapse {
 namespace ctrl {
 
-std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -26,8 +25,7 @@ std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -58,8 +56,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const Node *n
   const Call *vector_borrow = call_node->get_vector_borrow_from_return();
   assert(vector_borrow && "Vector return without borrow");
 
-  klee::ref<klee::Expr> original_value =
-      vector_borrow->get_call().extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> original_value = vector_borrow->get_call().extra_vars.at("borrowed_cell").second;
   std::vector<mod_t> changes = build_expr_mods(original_value, value);
 
   // Check the Ignore module.

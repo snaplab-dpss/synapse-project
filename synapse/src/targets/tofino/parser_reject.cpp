@@ -19,8 +19,7 @@ bool is_parser_reject(const EP *ep) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const Node *node,
-                                                          const Context &ctx) const {
+std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Route) {
     return std::nullopt;
   }
@@ -38,8 +37,7 @@ std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const No
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const Node *node,
-                                                      SymbolManager *symbol_manager) const {
+std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Route) {

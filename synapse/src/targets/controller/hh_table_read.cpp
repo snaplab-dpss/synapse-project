@@ -33,8 +33,7 @@ struct table_data_t {
 };
 } // namespace
 
-std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -59,8 +58,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -85,12 +83,10 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
   }
 
   table_data_t table_data(ep, map_get);
-  symbol_t min_estimate =
-      symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
+  symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
 
   Module *module =
-      new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value,
-                      table_data.map_has_this_key, min_estimate);
+      new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key, min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

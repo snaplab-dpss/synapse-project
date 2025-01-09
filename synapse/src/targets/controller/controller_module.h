@@ -11,8 +11,7 @@ namespace ctrl {
 
 class ControllerModule : public Module {
 public:
-  ControllerModule(ModuleType _type, const std::string &_name, const Node *node)
-      : Module(_type, TargetType::Controller, _name, node) {}
+  ControllerModule(ModuleType _type, const std::string &_name, const Node *node) : Module(_type, TargetType::Controller, _name, node) {}
 };
 
 class ControllerModuleFactory : public ModuleFactory {
@@ -21,8 +20,7 @@ protected:
   TargetType target;
 
 public:
-  ControllerModuleFactory(ModuleType _type, const std::string &_name)
-      : ModuleFactory(_type, TargetType::Controller, _name) {}
+  ControllerModuleFactory(ModuleType _type, const std::string &_name) : ModuleFactory(_type, TargetType::Controller, _name) {}
 
 protected:
   const tofino::TofinoContext *get_tofino_ctx(const EP *ep) const;

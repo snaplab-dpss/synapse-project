@@ -10,17 +10,17 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/targets.h"
 
-#define SHOW_MODULE_NAME(M)                                                                        \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                          \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                \
+#define SHOW_MODULE_NAME(M)                                                                                                                \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                                  \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                        \
   }
 
-#define VISIT_BRANCH(M)                                                                            \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                          \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                       \
+#define VISIT_BRANCH(M)                                                                                                                    \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                                  \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                               \
   }
 
-#define IGNORE_MODULE(M)                                                                           \
+#define IGNORE_MODULE(M)                                                                                                                   \
   void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
 
 namespace synapse {
@@ -68,8 +68,7 @@ void EPViz::log(const EPNode *ep_node) const {
   // Don't log anything.
 }
 
-void EPViz::function_call(const EPNode *ep_node, const Node *node, TargetType target,
-                          const std::string &label) {
+void EPViz::function_call(const EPNode *ep_node, const Node *node, TargetType target, const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
@@ -90,8 +89,7 @@ void EPViz::function_call(const EPNode *ep_node, const Node *node, TargetType ta
   ss << "\n";
 }
 
-void EPViz::branch(const EPNode *ep_node, const Node *node, TargetType target,
-                   const std::string &label) {
+void EPViz::branch(const EPNode *ep_node, const Node *node, TargetType target, const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 

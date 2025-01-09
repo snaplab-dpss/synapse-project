@@ -53,8 +53,7 @@ std::string rgb_t::to_gv_repr() const {
   return ss.str();
 }
 
-Graphviz::Graphviz(const std::filesystem::path &_fpath)
-    : fpath(_fpath.empty() ? random_dot() : _fpath) {}
+Graphviz::Graphviz(const std::filesystem::path &_fpath) : fpath(_fpath.empty() ? random_dot() : _fpath) {}
 
 Graphviz::Graphviz() : fpath(random_dot()) {}
 
@@ -85,8 +84,7 @@ void Graphviz::show(bool interrupt) const {
   }
 }
 
-void Graphviz::find_and_replace(
-    std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements) {
+void Graphviz::find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements) {
   for (const std::pair<std::string, std::string> &replacement : replacements) {
     const std::string &before = replacement.first;
     const std::string &after = replacement.second;

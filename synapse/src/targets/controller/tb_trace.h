@@ -15,15 +15,12 @@ private:
   klee::ref<klee::Expr> successfuly_tracing;
 
 public:
-  TBTrace(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key,
-          klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
+  TBTrace(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
           klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
-      : ControllerModule(ModuleType::Controller_TBTrace, "TBTrace", node), tb_addr(_tb_addr),
-        key(_key), pkt_len(_pkt_len), time(_time), index_out(_index_out),
-        successfuly_tracing(_is_tracing) {}
+      : ControllerModule(ModuleType::Controller_TBTrace, "TBTrace", node), tb_addr(_tb_addr), key(_key), pkt_len(_pkt_len), time(_time),
+        index_out(_index_out), successfuly_tracing(_is_tracing) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -45,11 +42,9 @@ public:
   TBTraceFactory() : ControllerModuleFactory(ModuleType::Controller_TBTrace, "TBTrace") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

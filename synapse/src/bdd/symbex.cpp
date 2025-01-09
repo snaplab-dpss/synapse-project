@@ -23,8 +23,7 @@ std::optional<addr_t> get_obj_from_call(const Call *node_call) {
     assert(!obj.isNull() && "Invalid map object");
   }
 
-  else if (call.function_name == "dchain_allocate_new_index" ||
-           call.function_name == "dchain_is_index_allocated" ||
+  else if (call.function_name == "dchain_allocate_new_index" || call.function_name == "dchain_is_index_allocated" ||
            call.function_name == "dchain_rejuvenate_index") {
     obj = call.args.at("chain").expr;
     assert(!obj.isNull() && "Invalid dchain object");

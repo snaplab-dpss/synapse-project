@@ -143,8 +143,7 @@ next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators, a
   return candidates;
 }
 
-std::vector<const Call *> get_unfiltered_coalescing_nodes(const Node *node,
-                                                          const map_coalescing_objs_t &data) {
+std::vector<const Call *> get_unfiltered_coalescing_nodes(const Node *node, const map_coalescing_objs_t &data) {
   const std::vector<std::string> target_functions{
       "map_get",
       "map_put",
@@ -191,9 +190,7 @@ std::vector<const Call *> get_unfiltered_coalescing_nodes(const Node *node,
     return false;
   };
 
-  unfiltered_nodes.erase(
-      std::remove_if(unfiltered_nodes.begin(), unfiltered_nodes.end(), filter_map_objs),
-      unfiltered_nodes.end());
+  unfiltered_nodes.erase(std::remove_if(unfiltered_nodes.begin(), unfiltered_nodes.end(), filter_map_objs), unfiltered_nodes.end());
 
   return unfiltered_nodes;
 }
@@ -218,10 +215,8 @@ std::pair<hit_rate_t, std::string> n2hr(u64 n) {
   return {n / 1e12, "T"};
 }
 
-addr_t get_vector_obj_storing_map_key(const BDD *bdd,
-                                      const map_coalescing_objs_t &map_coalescing_objs) {
-  std::vector<const Call *> vector_borrows =
-      bdd->get_root()->get_future_functions({"vector_borrow"});
+addr_t get_vector_obj_storing_map_key(const BDD *bdd, const map_coalescing_objs_t &map_coalescing_objs) {
+  std::vector<const Call *> vector_borrows = bdd->get_root()->get_future_functions({"vector_borrow"});
 
   for (const Call *vector_borrow : vector_borrows) {
     const call_t &vb = vector_borrow->get_call();
@@ -308,13 +303,9 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd, addr_t map) {
 
 } // namespace
 
-pps_t bps2pps(bps_t bps, bytes_t pkt_size) {
-  return bps / ((PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8);
-}
+pps_t bps2pps(bps_t bps, bytes_t pkt_size) { return bps / ((PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8); }
 
-bps_t pps2bps(pps_t pps, bytes_t pkt_size) {
-  return pps * (PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8;
-}
+bps_t pps2bps(pps_t pps, bytes_t pkt_size) { return pps * (PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8; }
 
 // Only for pairs of std::hash-able types for simplicity.
 // You can of course template this struct to allow other hash functions
@@ -329,8 +320,7 @@ struct pair_hash {
   }
 };
 
-std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk,
-                                           const Call *packet_return_chunk) {
+std::vector<mod_t> build_hdr_modifications(const Call *packet_borrow_next_chunk, const Call *packet_return_chunk) {
   static std::unordered_map<node_id_t, std::vector<mod_t>> cache;
 
   auto cache_found_it = cache.find(packet_return_chunk->get_id());
@@ -384,10 +374,10 @@ const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_ch
 
   klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
 
-  std::vector<const Call *> prev_borrows = packet_return_chunk->get_prev_functions(
-      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const Call *> prev_returns = packet_return_chunk->get_prev_functions(
-      {"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_borrows =
+      packet_return_chunk->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns =
+      packet_return_chunk->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   assert(prev_borrows.size() && "No previous borrows");
   assert(prev_borrows.size() > prev_returns.size() && "No previous borrow");
@@ -398,8 +388,7 @@ const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_ch
 bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj, map_coalescing_objs_t &data) {
   const Node *root = bdd->get_root();
 
-  std::vector<const Call *> index_allocators =
-      root->get_future_functions({"dchain_allocate_new_index"});
+  std::vector<const Call *> index_allocators = root->get_future_functions({"dchain_allocate_new_index"});
 
   if (index_allocators.empty()) {
     return false;
@@ -442,10 +431,8 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   branch_direction_t success_check = map_get->get_map_get_success_check();
   assert(success_check.branch && "Map get success check not found");
 
-  const Node *read = success_check.direction ? success_check.branch->get_on_true()
-                                             : success_check.branch->get_on_false();
-  const Node *write_attempt = success_check.direction ? success_check.branch->get_on_false()
-                                                      : success_check.branch->get_on_true();
+  const Node *read = success_check.direction ? success_check.branch->get_on_true() : success_check.branch->get_on_false();
+  const Node *write_attempt = success_check.direction ? success_check.branch->get_on_false() : success_check.branch->get_on_true();
 
   std::vector<const Call *> future_map_puts = write_attempt->get_future_functions({"map_put"});
   assert(future_map_puts.size() >= 1 && "map_put not found");
@@ -458,8 +445,7 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
     klee::ref<klee::Expr> o = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> k = mp_call.args.at("key").in;
 
-    if (solver_toolbox.are_exprs_always_equal(o, obj) &&
-        solver_toolbox.are_exprs_always_equal(k, key)) {
+    if (solver_toolbox.are_exprs_always_equal(o, obj) && solver_toolbox.are_exprs_always_equal(k, key)) {
       write = map_put;
       break;
     }
@@ -519,8 +505,7 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
         return false;
       }
 
-      if (call0_arg.fn_ptr_name.first &&
-          call0_arg.fn_ptr_name.second != call1_arg.fn_ptr_name.second) {
+      if (call0_arg.fn_ptr_name.first && call0_arg.fn_ptr_name.second != call1_arg.fn_ptr_name.second) {
         return false;
       }
     }
@@ -549,8 +534,7 @@ bool are_nodes_equivalent(const Node *node0, const Node *node1) {
     const Branch *branch0 = dynamic_cast<const Branch *>(node0);
     const Branch *branch1 = dynamic_cast<const Branch *>(node1);
 
-    if (!solver_toolbox.are_exprs_always_equal(branch0->get_condition(),
-                                               branch1->get_condition())) {
+    if (!solver_toolbox.are_exprs_always_equal(branch0->get_condition(), branch1->get_condition())) {
       return false;
     }
   } break;
@@ -611,8 +595,7 @@ bool are_node_paths_equivalent(const Node *node0, const Node *node1) {
   return true;
 }
 
-bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get,
-                                                    map_rw_pattern_t &map_rw_pattern) {
+bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern) {
   static std::unordered_map<const Call *, std::optional<map_rw_pattern_t>> cache;
 
   if (cache.find(map_get) != cache.end()) {
@@ -635,8 +618,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
   map_rw_pattern.map_get = map_get;
   map_rw_pattern.map_get_success_check = map_get->get_map_get_success_check();
 
-  if (!map_rw_pattern.map_get_success_check.branch ||
-      map_get->get_next() != map_rw_pattern.map_get_success_check.branch) {
+  if (!map_rw_pattern.map_get_success_check.branch || map_get->get_next() != map_rw_pattern.map_get_success_check.branch) {
     cache[map_get] = std::nullopt;
     return false;
   }
@@ -679,8 +661,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
 
   map_rw_pattern.dchain_allocate_new_index = dynamic_cast<const Call *>(on_failed_map_get);
 
-  const call_t &dchain_allocate_new_index_call =
-      map_rw_pattern.dchain_allocate_new_index->get_call();
+  const call_t &dchain_allocate_new_index_call = map_rw_pattern.dchain_allocate_new_index->get_call();
 
   if (dchain_allocate_new_index_call.function_name != "dchain_allocate_new_index") {
     cache[map_get] = std::nullopt;
@@ -693,18 +674,15 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
     return false;
   }
 
-  if (expr_addr_to_obj_addr(dchain_allocate_new_index_call.args.at("chain").expr) !=
-      map_objs.dchain) {
+  if (expr_addr_to_obj_addr(dchain_allocate_new_index_call.args.at("chain").expr) != map_objs.dchain) {
     cache[map_get] = std::nullopt;
     return false;
   }
 
-  map_rw_pattern.index_alloc_check =
-      map_rw_pattern.dchain_allocate_new_index->find_branch_checking_index_alloc();
+  map_rw_pattern.index_alloc_check = map_rw_pattern.dchain_allocate_new_index->find_branch_checking_index_alloc();
 
   if (!map_rw_pattern.index_alloc_check.branch ||
-      map_rw_pattern.dchain_allocate_new_index->get_next() !=
-          map_rw_pattern.index_alloc_check.branch) {
+      map_rw_pattern.dchain_allocate_new_index->get_next() != map_rw_pattern.index_alloc_check.branch) {
     cache[map_get] = std::nullopt;
     return false;
   }
@@ -712,15 +690,12 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
   // 4. If there are extra conditions, check that the node path on failed extra
   // conditions and failed index allocation is the same.
   if (map_rw_pattern.map_put_extra_condition.branch) {
-    const Node *on_failed_extra_condition =
-        map_rw_pattern.map_put_extra_condition.direction
-            ? map_rw_pattern.map_put_extra_condition.branch->get_on_false()
-            : map_rw_pattern.map_put_extra_condition.branch->get_on_true();
+    const Node *on_failed_extra_condition = map_rw_pattern.map_put_extra_condition.direction
+                                                ? map_rw_pattern.map_put_extra_condition.branch->get_on_false()
+                                                : map_rw_pattern.map_put_extra_condition.branch->get_on_true();
 
-    const Node *on_failed_index_alloc =
-        map_rw_pattern.index_alloc_check.direction
-            ? map_rw_pattern.index_alloc_check.branch->get_on_false()
-            : map_rw_pattern.index_alloc_check.branch->get_on_true();
+    const Node *on_failed_index_alloc = map_rw_pattern.index_alloc_check.direction ? map_rw_pattern.index_alloc_check.branch->get_on_false()
+                                                                                   : map_rw_pattern.index_alloc_check.branch->get_on_true();
 
     if (!are_node_paths_equivalent(on_failed_extra_condition, on_failed_index_alloc)) {
       cache[map_get] = std::nullopt;
@@ -730,12 +705,10 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
 
   // 5. Check for map_put operations with the allocated index.
 
-  const Node *on_index_alloc = map_rw_pattern.index_alloc_check.direction
-                                   ? map_rw_pattern.index_alloc_check.branch->get_on_true()
-                                   : map_rw_pattern.index_alloc_check.branch->get_on_false();
-  const Node *on_failed_index_alloc = map_rw_pattern.index_alloc_check.direction
-                                          ? map_rw_pattern.index_alloc_check.branch->get_on_false()
-                                          : map_rw_pattern.index_alloc_check.branch->get_on_true();
+  const Node *on_index_alloc = map_rw_pattern.index_alloc_check.direction ? map_rw_pattern.index_alloc_check.branch->get_on_true()
+                                                                          : map_rw_pattern.index_alloc_check.branch->get_on_false();
+  const Node *on_failed_index_alloc = map_rw_pattern.index_alloc_check.direction ? map_rw_pattern.index_alloc_check.branch->get_on_false()
+                                                                                 : map_rw_pattern.index_alloc_check.branch->get_on_true();
 
   map_rw_pattern.map_put = nullptr;
 
@@ -765,8 +738,7 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
   return true;
 }
 
-bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
-                                                    const Call *&tb_update_and_check) {
+bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) {
   const call_t &is_tracing_call = tb_is_tracing->get_call();
 
   if (is_tracing_call.function_name != "tb_is_tracing") {
@@ -774,12 +746,10 @@ bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
   }
 
   klee::ref<klee::Expr> tb = is_tracing_call.args.at("tb").expr;
-  klee::ref<klee::Expr> is_tracing_condition = solver_toolbox.exprBuilder->Ne(
-      is_tracing_call.ret,
-      solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
+  klee::ref<klee::Expr> is_tracing_condition =
+      solver_toolbox.exprBuilder->Ne(is_tracing_call.ret, solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
 
-  std::vector<const Call *> tb_update_and_checks =
-      tb_is_tracing->get_future_functions({"tb_update_and_check"});
+  std::vector<const Call *> tb_update_and_checks = tb_is_tracing->get_future_functions({"tb_update_and_check"});
 
   tb_update_and_check = nullptr;
   for (const Call *candidate : tb_update_and_checks) {
@@ -800,8 +770,7 @@ bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing,
   return tb_update_and_check != nullptr;
 }
 
-bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
-                               std::vector<const Call *> &map_puts) {
+bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) {
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -813,8 +782,7 @@ bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_ind
     return false;
   }
 
-  branch_direction_t index_alloc_check =
-      dchain_allocate_new_index->find_branch_checking_index_alloc();
+  branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
 
   if (!index_alloc_check.branch) {
     return false;
@@ -822,8 +790,7 @@ bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_ind
 
   klee::ref<klee::Expr> condition = index_alloc_check.branch->get_condition();
 
-  std::vector<const Call *> future_map_puts =
-      dchain_allocate_new_index->get_future_functions({"map_put"});
+  std::vector<const Call *> future_map_puts = dchain_allocate_new_index->get_future_functions({"map_put"});
 
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
@@ -909,20 +876,17 @@ bool is_index_alloc_on_unsuccessful_map_get(const EP *ep, const Call *dchain_all
     return false;
   }
 
-  symbol_t map_has_this_key =
-      dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
+  symbol_t map_has_this_key = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
 
   klee::ConstraintManager constraints = dchain_allocate_new_index->get_constraints();
 
-  klee::ref<klee::Expr> found_key = solver_toolbox.exprBuilder->Ne(
-      map_has_this_key.expr,
-      solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+  klee::ref<klee::Expr> found_key =
+      solver_toolbox.exprBuilder->Ne(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   return solver_toolbox.is_expr_always_false(constraints, found_key);
 }
 
-bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get,
-                                              std::vector<const Call *> &map_erases) {
+bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get, std::vector<const Call *> &map_erases) {
   const call_t &mg_call = map_get->get_call();
 
   if (mg_call.function_name != "map_get") {
@@ -935,9 +899,8 @@ bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get,
   addr_t obj = expr_addr_to_obj_addr(obj_expr);
   symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
 
-  klee::ref<klee::Expr> successful_map_get = solver_toolbox.exprBuilder->Ne(
-      map_has_this_key.expr,
-      solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+  klee::ref<klee::Expr> successful_map_get =
+      solver_toolbox.exprBuilder->Ne(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   std::vector<const Call *> future_map_erases = map_get->get_future_functions({"map_erase"});
 
@@ -974,8 +937,7 @@ bool is_map_get_followed_by_map_erases_on_hit(const Call *map_get,
   return true;
 }
 
-std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node,
-                                                        klee::ref<klee::Expr> target_key,
+std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::ref<klee::Expr> target_key,
                                                         const map_coalescing_objs_t &data) {
   std::vector<const Call *> filtered_nodes = get_unfiltered_coalescing_nodes(node, data);
 
@@ -1009,8 +971,7 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node,
     return !same_key;
   };
 
-  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(),
-                                      filter_map_nodes_and_retrieve_index),
+  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_map_nodes_and_retrieve_index),
                        filtered_nodes.end());
 
   auto filter_vectors_nodes = [&index](const Node *node) {
@@ -1029,9 +990,7 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node,
     return !solver_toolbox.are_exprs_always_equal(index, value);
   };
 
-  filtered_nodes.erase(
-      std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_vectors_nodes),
-      filtered_nodes.end());
+  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_vectors_nodes), filtered_nodes.end());
 
   return filtered_nodes;
 }
@@ -1077,8 +1036,7 @@ std::string tput2str(u64 thpt, const std::string &units, bool human_readable) {
   return ss.str();
 }
 
-bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
-                                            map_coalescing_objs_t &map_objs) {
+bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op, map_coalescing_objs_t &map_objs) {
   const call_t &call = dchain_op->get_call();
 
   assert(call.args.find("chain") != call.args.end() && "No chain argument");
@@ -1097,8 +1055,7 @@ bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op,
   return true;
 }
 
-bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op,
-                                         map_coalescing_objs_t &map_objs) {
+bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op, map_coalescing_objs_t &map_objs) {
   const call_t &call = map_op->get_call();
 
   assert(call.args.find("map") != call.args.end() && "No map argument");
@@ -1144,8 +1101,7 @@ bool forwarding_decision_already_made(const EPNode *node) {
       continue;
     }
 
-    if (module->get_type() == ModuleType::Tofino_Forward ||
-        module->get_type() == ModuleType::Tofino_Drop ||
+    if (module->get_type() == ModuleType::Tofino_Forward || module->get_type() == ModuleType::Tofino_Drop ||
         module->get_type() == ModuleType::Tofino_Broadcast) {
       return true;
     }
@@ -1201,8 +1157,7 @@ void delete_all_vector_key_operations_from_bdd(BDD *bdd) {
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call = call_node->get_call();
 
-    if (call.function_name != "map_get" && call.function_name != "map_put" &&
-        call.function_name != "map_erase") {
+    if (call.function_name != "map_get" && call.function_name != "map_put" && call.function_name != "map_erase") {
       return NodeVisitAction::Continue;
     }
 

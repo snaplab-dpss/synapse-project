@@ -19,15 +19,13 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ExpireItemsSingleMapFactory::speculate(const EP *ep, const Node *node,
-                                                                  const Context &ctx) const {
+std::optional<spec_impl_t> ExpireItemsSingleMapFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return std::nullopt;
 }
 
-std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, const Node *node,
-                                                              SymbolManager *symbol_manager) const {
+std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -47,8 +45,7 @@ std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, cons
   addr_t vector_addr = expr_addr_to_obj_addr(vector);
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
 
-  Module *module =
-      new ExpireItemsSingleMap(node, dchain_addr, vector_addr, map_addr, time, total_freed);
+  Module *module = new ExpireItemsSingleMap(node, dchain_addr, vector_addr, map_addr, time, total_freed);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -36,8 +36,7 @@ public:
 
   void parser_transition(const EP *ep, const Node *node, klee::ref<klee::Expr> hdr);
 
-  void parser_select(const EP *ep, const Node *node, klee::ref<klee::Expr> field,
-                     const std::vector<int> &values, bool negate);
+  void parser_select(const EP *ep, const Node *node, klee::ref<klee::Expr> field, const std::vector<int> &values, bool negate);
 
   void parser_accept(const EP *ep, const Node *node);
   void parser_reject(const EP *ep, const Node *node);
@@ -47,8 +46,7 @@ public:
   void place(EP *ep, const Node *node, addr_t obj, DS *ds);
 
   bool check_placement(const EP *ep, const Node *node, const DS *ds) const;
-  bool check_many_placements(const EP *ep, const Node *node,
-                             const std::vector<std::unordered_set<DS *>> &ds) const;
+  bool check_many_placements(const EP *ep, const Node *node, const std::vector<std::unordered_set<DS *>> &ds) const;
 
   void debug() const override;
 };

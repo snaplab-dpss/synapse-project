@@ -18,12 +18,10 @@ private:
   Generator generator;
 
   RandomEngine(unsigned _rand_seed, int _min, int _max)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max),
-        generator(std::bind(random_dist, gen)) {}
+      : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max), generator(std::bind(random_dist, gen)) {}
 
   RandomEngine(unsigned _rand_seed)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, INT32_MAX),
-        generator(std::bind(random_dist, gen)) {}
+      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, INT32_MAX), generator(std::bind(random_dist, gen)) {}
 
   RandomEngine(const RandomEngine &) = delete;
   RandomEngine(RandomEngine &&) = delete;
@@ -37,9 +35,7 @@ private:
   static std::unique_ptr<RandomEngine> engine;
 
 public:
-  static void seed(unsigned rand_seed) {
-    engine = std::unique_ptr<RandomEngine>(new RandomEngine(rand_seed));
-  }
+  static void seed(unsigned rand_seed) { engine = std::unique_ptr<RandomEngine>(new RandomEngine(rand_seed)); }
 
   static int generate() {
     assert(engine && "RandomEngine not seeded");

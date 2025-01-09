@@ -18,8 +18,7 @@ struct search_step_report_t {
   std::vector<std::string> name;
   std::vector<std::vector<ep_id_t>> gen_ep_ids;
 
-  search_step_report_t(const EP *_chosen, const Node *_current)
-      : chosen(_chosen), current(_current) {}
+  search_step_report_t(const EP *_chosen, const Node *_current) : chosen(_chosen), current(_current) {}
 
   void save(const ModuleFactory *modgen, const std::vector<impl_t> &implementations) {
     if (implementations.empty()) {
@@ -56,8 +55,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
 
   std::cerr << "Node:       " << report.current->dump(true) << "\n";
 
-  assert((report.targets.size() == report.name.size() &&
-          report.targets.size() == report.gen_ep_ids.size()) &&
+  assert((report.targets.size() == report.name.size() && report.targets.size() == report.gen_ep_ids.size()) &&
          "Mismatch in the number of targets");
 
   for (size_t i = 0; i < report.targets.size(); i++) {
@@ -72,13 +70,12 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     }
     ep_ids << "]";
 
-    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> "
-              << report.gen_ep_ids[i].size() << " (" << ep_ids.str() << ") EPs\n";
+    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> " << report.gen_ep_ids[i].size() << " ("
+              << ep_ids.str() << ") EPs\n";
   }
 
   std::cerr << "------------------------------------------\n";
-  std::cerr << "Progress:         " << std::fixed << std::setprecision(2)
-            << 100 * meta.get_bdd_progress() << " %\n";
+  std::cerr << "Progress:         " << std::fixed << std::setprecision(2) << 100 * meta.get_bdd_progress() << " %\n";
   std::cerr << "Elapsed:          " << search_meta.elapsed_time << " s\n";
   std::cerr << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
   std::cerr << "Branching factor: " << search_meta.branching_factor << "\n";
@@ -99,8 +96,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "==========================================================\n";
 }
 
-void peek_search_space(const std::vector<impl_t> &new_implementations,
-                       const std::vector<ep_id_t> &peek, SearchSpace *search_space) {
+void peek_search_space(const std::vector<impl_t> &new_implementations, const std::vector<ep_id_t> &peek, SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
     if (std::find(peek.begin(), peek.end(), impl.result->get_id()) != peek.end()) {
       std::cerr << "\n";
@@ -121,10 +117,8 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
   }
 }
 
-std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy,
-                                           std::shared_ptr<BDD> bdd, const Targets &targets,
-                                           const toml::table &targets_config,
-                                           const Profiler &profiler) {
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, std::shared_ptr<BDD> bdd, const Targets &targets,
+                                           const toml::table &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
 
   switch (hopt) {
@@ -151,23 +145,18 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
     break;
   }
 
-  std::unique_ptr<EP> starting_ep =
-      std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
+  std::unique_ptr<EP> starting_ep = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
 
-  std::unique_ptr<Heuristic> heuristic =
-      std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
+  std::unique_ptr<Heuristic> heuristic = std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
 
   return heuristic;
 }
 } // namespace
 
-SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler,
-                           const toml::table &_targets_config,
+SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler, const toml::table &_targets_config,
                            const search_config_t &_search_config)
-    : targets_config(_targets_config), search_config(_search_config),
-      bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)), profiler(_profiler),
-      heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config,
-                                profiler)) {}
+    : targets_config(_targets_config), search_config(_search_config), bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)),
+      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
   auto start_search = std::chrono::steady_clock::now();
@@ -186,9 +175,7 @@ search_report_t SearchEngine::search() {
   });
 
   while (!heuristic->is_finished()) {
-    meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
-                            std::chrono::steady_clock::now() - start_search)
-                            .count();
+    meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_search).count();
 
     std::unique_ptr<EP> ep = heuristic->pop_next_unfinished();
     search_space->activate_leaf(ep.get());
@@ -214,13 +201,12 @@ search_report_t SearchEngine::search() {
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
-        const std::vector<impl_t> implementations = modgen->generate(
-            ep.get(), node, bdd->get_mutable_symbol_manager(), !search_config.no_reorder);
+        const std::vector<impl_t> implementations =
+            modgen->generate(ep.get(), node, bdd->get_mutable_symbol_manager(), !search_config.no_reorder);
 
         search_space->add_to_active_leaf(ep.get(), node, modgen.get(), implementations);
         report.save(modgen.get(), implementations);
-        new_implementations.insert(new_implementations.end(), implementations.begin(),
-                                   implementations.end());
+        new_implementations.insert(new_implementations.end(), implementations.begin(), implementations.end());
 
         if (target->type == TargetType::Tofino) {
           children += implementations.size();
@@ -265,13 +251,7 @@ search_report_t SearchEngine::search() {
   std::string tput_speculation = SearchSpace::build_meta_tput_speculation(winner.get());
 
   search_report_t report{
-      heuristic->get_cfg()->name,
-      std::move(winner),
-      std::move(search_space),
-      score,
-      tput_estimation,
-      tput_speculation,
-      meta,
+      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, tput_estimation, tput_speculation, meta,
   };
 
   return report;

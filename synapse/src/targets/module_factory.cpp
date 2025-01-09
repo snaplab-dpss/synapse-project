@@ -10,8 +10,7 @@ bool can_process_platform(const EP *ep, TargetType target) {
   return current_target == target;
 }
 
-void build_node_translations(translator_t &next_nodes_translator,
-                             translator_t &processed_nodes_translator, const BDD *old_bdd,
+void build_node_translations(translator_t &next_nodes_translator, translator_t &processed_nodes_translator, const BDD *old_bdd,
                              const reorder_op_t &op) {
   next_nodes_translator[op.evicted_id] = op.candidate_info.id;
 
@@ -96,18 +95,15 @@ std::vector<EP *> get_reordered(const EP *ep) {
 }
 } // namespace
 
-decision_t ModuleFactory::decide(const EP *ep, const Node *node,
-                                 std::unordered_map<std::string, i32> params) const {
+decision_t ModuleFactory::decide(const EP *ep, const Node *node, std::unordered_map<std::string, i32> params) const {
   return decision_t(ep, node->get_id(), type, params);
 }
 
-impl_t ModuleFactory::implement(const EP *ep, const Node *node, EP *result,
-                                std::unordered_map<std::string, i32> params) const {
+impl_t ModuleFactory::implement(const EP *ep, const Node *node, EP *result, std::unordered_map<std::string, i32> params) const {
   return impl_t(decide(ep, node, params), result, false);
 }
 
-std::vector<impl_t> ModuleFactory::generate(const EP *ep, const Node *node,
-                                            SymbolManager *symbol_manager, bool reorder_bdd) const {
+std::vector<impl_t> ModuleFactory::generate(const EP *ep, const Node *node, SymbolManager *symbol_manager, bool reorder_bdd) const {
   std::vector<impl_t> implementations;
 
   if (!can_process_platform(ep, target)) {

@@ -62,8 +62,7 @@ private:
   bool is_self_dependent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const;
   PlacementStatus is_consistent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const;
 
-  PlacementStatus find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps,
-                                  std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_table(const Table *table, const std::unordered_set<DS_ID> &deps,
                                         std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_reg(const Register *reg, const std::unordered_set<DS_ID> &deps,
@@ -71,14 +70,12 @@ private:
   PlacementStatus find_placements_meter(const Meter *table, const std::unordered_set<DS_ID> &deps,
                                         std::vector<placement_t> &placements) const;
 
-  PlacementStatus find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps,
-                                       std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
 
   void concretize_placement(Stage &stage, const placement_t &placement);
 
   void save_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps);
-  void replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps,
-                                 const std::vector<Stage> &new_stages);
+  void replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps, const std::vector<Stage> &new_stages);
 };
 
 } // namespace tofino

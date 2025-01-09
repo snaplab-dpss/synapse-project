@@ -13,13 +13,12 @@ private:
   std::vector<mod_t> modifications;
 
 public:
-  VectorRegisterUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _index,
-                       addr_t _value_addr, const std::vector<mod_t> &_modifications)
-      : ControllerModule(ModuleType::Controller_VectorRegisterUpdate, "VectorRegisterUpdate", node),
-        obj(_obj), index(_index), value_addr(_value_addr), modifications(_modifications) {}
+  VectorRegisterUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
+                       const std::vector<mod_t> &_modifications)
+      : ControllerModule(ModuleType::Controller_VectorRegisterUpdate, "VectorRegisterUpdate", node), obj(_obj), index(_index),
+        value_addr(_value_addr), modifications(_modifications) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -37,16 +36,12 @@ public:
 
 class VectorRegisterUpdateFactory : public ControllerModuleFactory {
 public:
-  VectorRegisterUpdateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_VectorRegisterUpdate,
-                                "VectorRegisterUpdate") {}
+  VectorRegisterUpdateFactory() : ControllerModuleFactory(ModuleType::Controller_VectorRegisterUpdate, "VectorRegisterUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

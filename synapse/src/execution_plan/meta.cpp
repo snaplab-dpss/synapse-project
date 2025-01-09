@@ -38,9 +38,7 @@ void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node, bool should_proc
   nodes++;
 }
 
-double EPMeta::get_bdd_progress() const {
-  return processed_nodes.size() / static_cast<double>(total_bdd_nodes);
-}
+double EPMeta::get_bdd_progress() const { return processed_nodes.size() / static_cast<double>(total_bdd_nodes); }
 
 void EPMeta::update_total_bdd_nodes(const BDD *bdd) { total_bdd_nodes = bdd->size(); }
 } // namespace synapse

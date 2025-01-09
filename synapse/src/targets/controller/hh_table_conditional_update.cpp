@@ -54,8 +54,7 @@ struct table_data_t {
 hit_rate_t get_new_hh_probability(const EP *ep, const Node *node, addr_t map) {
   hit_rate_t node_hr = ep->get_ctx().get_profiler().get_hr(node);
   int capacity = ep->get_ctx().get_map_config(map).capacity;
-  hit_rate_t churn_hr =
-      ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map, capacity);
+  hit_rate_t churn_hr = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map, capacity);
   return node_hr * churn_hr;
 }
 
@@ -73,9 +72,7 @@ hit_rate_t get_new_hh_probability(const EP *ep, const Node *node, addr_t map) {
 // }
 } // namespace
 
-std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *ep,
-                                                                      const Node *node,
-                                                                      const Context &ctx) const {
+std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -110,14 +107,12 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
   // Get all nodes executed on a successful index allocation.
-  branch_direction_t index_alloc_check =
-      dchain_allocate_new_index->find_branch_checking_index_alloc();
+  branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
 
   spec_impl.skip.insert(index_alloc_check.branch->get_id());
 
-  const Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true()
-                                                  : index_alloc_check.branch->get_on_false();
+  const Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
 
   on_hh->visit_nodes([&spec_impl](const Node *node) {
     spec_impl.skip.insert(node->get_id());
@@ -127,9 +122,7 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   return spec_impl;
 }
 
-std::vector<impl_t>
-HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
-                                              SymbolManager *symbol_manager) const {
+std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -152,8 +145,7 @@ HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
     return impls;
   }
 
-  branch_direction_t index_alloc_check =
-      dchain_allocate_new_index->find_branch_checking_index_alloc();
+  branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
   if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
     return impls;
   }

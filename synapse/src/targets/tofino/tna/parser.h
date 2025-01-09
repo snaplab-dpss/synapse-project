@@ -68,8 +68,7 @@ struct ParserState {
 struct ParserStateTerminate : public ParserState {
   bool accept;
 
-  ParserStateTerminate(node_id_t _id, bool _accept)
-      : ParserState(_id, ParserStateType::TERMINATE), accept(_accept) {}
+  ParserStateTerminate(node_id_t _id, bool _accept) : ParserState(_id, ParserStateType::TERMINATE), accept(_accept) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -98,10 +97,8 @@ struct ParserStateSelect : public ParserState {
   ParserState *on_false;
   bool negate;
 
-  ParserStateSelect(node_id_t _id, klee::ref<klee::Expr> _field, const std::vector<int> &_values,
-                    bool _negate)
-      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values), on_true(nullptr),
-        on_false(nullptr), negate(_negate) {}
+  ParserStateSelect(node_id_t _id, klee::ref<klee::Expr> _field, const std::vector<int> &_values, bool _negate)
+      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values), on_true(nullptr), on_false(nullptr), negate(_negate) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -181,8 +178,7 @@ struct ParserStateExtract : public ParserState {
   klee::ref<klee::Expr> hdr;
   ParserState *next;
 
-  ParserStateExtract(node_id_t _id, klee::ref<klee::Expr> _hdr)
-      : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
+  ParserStateExtract(node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -251,8 +247,7 @@ public:
 
   const ParserState *get_initial_state() const { return initial_state; }
 
-  void add_extract(node_id_t leaf_id, node_id_t id, klee::ref<klee::Expr> hdr,
-                   std::optional<bool> direction) {
+  void add_extract(node_id_t leaf_id, node_id_t id, klee::ref<klee::Expr> hdr, std::optional<bool> direction) {
     ParserState *new_state = new ParserStateExtract(id, hdr);
     add_state(leaf_id, new_state, direction);
   }
@@ -262,14 +257,13 @@ public:
     add_state(new_state);
   }
 
-  void add_select(node_id_t leaf_id, node_id_t id, klee::ref<klee::Expr> field,
-                  const std::vector<int> &values, std::optional<bool> direction, bool negate) {
+  void add_select(node_id_t leaf_id, node_id_t id, klee::ref<klee::Expr> field, const std::vector<int> &values,
+                  std::optional<bool> direction, bool negate) {
     ParserStateSelect *new_state = new ParserStateSelect(id, field, values, negate);
     add_state(leaf_id, new_state, direction);
   }
 
-  void add_select(node_id_t id, klee::ref<klee::Expr> field, const std::vector<int> &values,
-                  bool negate) {
+  void add_select(node_id_t id, klee::ref<klee::Expr> field, const std::vector<int> &values, bool negate) {
     ParserState *new_state = new ParserStateSelect(id, field, values, negate);
     add_state(new_state);
   }
@@ -324,14 +318,12 @@ private:
     }
 
     assert(initial_state->type == ParserStateType::TERMINATE && "Invalid parser");
-    assert(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted &&
-           "Invalid parser");
+    assert(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted && "Invalid parser");
 
     return true;
   }
 
-  bool already_terminated(node_id_t leaf_id, node_id_t id, std::optional<bool> direction,
-                          bool accepted) {
+  bool already_terminated(node_id_t leaf_id, node_id_t id, std::optional<bool> direction, bool accepted) {
     assert(initial_state && "Invalid parser");
     assert(states.find(leaf_id) != states.end() && "Invalid parser");
 
@@ -346,8 +338,7 @@ private:
         return false;
       }
 
-      assert(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted &&
-             "Invalid parser");
+      assert(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted && "Invalid parser");
     } break;
     case ParserStateType::SELECT: {
       assert(direction.has_value() && "Invalid parser");
@@ -404,8 +395,7 @@ private:
     }
 
     assert(old_next_state->type == ParserStateType::TERMINATE && "Invalid parser");
-    assert(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true &&
-           "Invalid parser");
+    assert(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true && "Invalid parser");
 
     switch (new_state->type) {
     case ParserStateType::EXTRACT: {

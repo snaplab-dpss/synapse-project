@@ -31,13 +31,13 @@ extern "C" {
 
 #include <stdbool.h>
 
-#define NF_INFO(text, ...)                                                                         \
-  printf(text "\n", ##__VA_ARGS__);                                                                \
+#define NF_INFO(text, ...)                                                                                                                 \
+  printf(text "\n", ##__VA_ARGS__);                                                                                                        \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                                        \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                             \
+#define NF_DEBUG(text, ...)                                                                                                                \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                                     \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
@@ -96,8 +96,7 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
   }
 
   // Allocate and set up RX queues (NULL == default config)
-  retval = rte_eth_rx_queue_setup(device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL,
-                                  mbuf_pool);
+  retval = rte_eth_rx_queue_setup(device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL, mbuf_pool);
   if (retval != 0) {
     return retval;
   }
@@ -170,14 +169,13 @@ int main(int argc, char **argv) {
   argv += ret;
 
   unsigned nb_devices = rte_eth_dev_count_avail();
-  struct rte_mempool *mbuf_pool =
-      rte_pktmbuf_pool_create("MEMPOOL",                         // name
-                              MEMPOOL_BUFFER_COUNT * nb_devices, // #elements
-                              0, // cache size (per-core, not useful in a single-threaded app)
-                              0, // application private area size
-                              RTE_MBUF_DEFAULT_BUF_SIZE, // data buffer size
-                              rte_socket_id()            // socket ID
-      );
+  struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("MEMPOOL",                         // name
+                                                          MEMPOOL_BUFFER_COUNT * nb_devices, // #elements
+                                                          0, // cache size (per-core, not useful in a single-threaded app)
+                                                          0, // application private area size
+                                                          RTE_MBUF_DEFAULT_BUF_SIZE, // data buffer size
+                                                          rte_socket_id()            // socket ID
+  );
   if (mbuf_pool == NULL) {
     rte_exit(EXIT_FAILURE, "Cannot create pool: %s\n", rte_strerror(rte_errno));
   }

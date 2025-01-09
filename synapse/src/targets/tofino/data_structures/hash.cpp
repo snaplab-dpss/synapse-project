@@ -3,8 +3,7 @@
 namespace synapse {
 namespace tofino {
 
-Hash::Hash(DS_ID _id, const std::vector<bits_t> &_keys)
-    : DS(DSType::HASH, true, _id), keys(_keys) {}
+Hash::Hash(DS_ID _id, const std::vector<bits_t> &_keys) : DS(DSType::HASH, true, _id), keys(_keys) {}
 
 Hash::Hash(const Hash &other) : DS(other.type, other.primitive, other.id), keys(other.keys) {}
 

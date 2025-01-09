@@ -154,8 +154,8 @@ const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
   return it->second;
 }
 
-void TofinoContext::parser_select(const EP *ep, const Node *node, klee::ref<klee::Expr> field,
-                                  const std::vector<int> &values, bool negate) {
+void TofinoContext::parser_select(const EP *ep, const Node *node, klee::ref<klee::Expr> field, const std::vector<int> &values,
+                                  bool negate) {
   node_id_t id = node->get_id();
 
   std::optional<bool> direction;
@@ -274,14 +274,12 @@ void TofinoContext::place(EP *ep, const Node *node, addr_t obj, DS *ds) {
 
   save_ds(obj, ds);
 
-  std::unordered_set<DS_ID> deps =
-      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+  std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
   tna.place(ds, deps);
 }
 
 bool TofinoContext::check_placement(const EP *ep, const Node *node, const DS *ds) const {
-  std::unordered_set<DS_ID> deps =
-      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+  std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
 
   PlacementStatus status = tna.can_place(ds, deps);
 
@@ -294,10 +292,8 @@ bool TofinoContext::check_placement(const EP *ep, const Node *node, const DS *ds
   return status == PlacementStatus::SUCCESS;
 }
 
-bool TofinoContext::check_many_placements(const EP *ep, const Node *node,
-                                          const std::vector<std::unordered_set<DS *>> &ds) const {
-  std::unordered_set<DS_ID> deps =
-      ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+bool TofinoContext::check_many_placements(const EP *ep, const Node *node, const std::vector<std::unordered_set<DS *>> &ds) const {
+  std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
 
   PlacementStatus status = tna.can_place_many(ds, deps);
 

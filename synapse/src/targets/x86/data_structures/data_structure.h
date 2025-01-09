@@ -22,8 +22,7 @@ struct ds_t {
   addr_t addr;
   node_id_t node_id;
 
-  ds_t(ds_type_t _type, addr_t _addr, node_id_t _node_id)
-      : type(_type), addr(_addr), node_id(_node_id) {}
+  ds_t(ds_type_t _type, addr_t _addr, node_id_t _node_id) : type(_type), addr(_addr), node_id(_node_id) {}
 
   bool matches(ds_type_t _type, addr_t _addr) const {
     if (type != _type) {

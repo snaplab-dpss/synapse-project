@@ -27,28 +27,22 @@ struct hh_table_data_t {
   }
 };
 
-void update_map_get_success_hit_rate(Context &ctx, const Node *map_get, klee::ref<klee::Expr> key,
-                                     u32 capacity, const branch_direction_t &mgsc) {
-  hit_rate_t success_rate =
-      TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
+void update_map_get_success_hit_rate(Context &ctx, const Node *map_get, klee::ref<klee::Expr> key, u32 capacity,
+                                     const branch_direction_t &mgsc) {
+  hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
-  const Node *on_success =
-      mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
-  const Node *on_failure =
-      mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
+  const Node *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
+  const Node *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
 
   hit_rate_t branch_hr = ctx.get_profiler().get_hr(mgsc.branch);
 
-  ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(),
-                                 branch_hr * success_rate);
-  ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(),
-                                 branch_hr * (1 - success_rate));
+  ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), branch_hr * success_rate);
+  ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), branch_hr * (1 - success_rate));
 }
 } // namespace
 
-std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -77,8 +71,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
 
   hh_table_data_t table_data(ep, map_get);
 
-  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys,
-                                   table_data.num_entries, CMS_WIDTH, CMS_HEIGHT)) {
+  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT)) {
     return std::nullopt;
   }
 
@@ -91,8 +84,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -123,18 +115,16 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
 
   hh_table_data_t table_data(ep, map_get);
 
-  HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys,
-                                              table_data.num_entries, CMS_WIDTH, CMS_HEIGHT);
+  HHTable *hh_table =
+      build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT);
 
   if (!hh_table) {
     return impls;
   }
 
-  symbol_t min_estimate =
-      symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
-  Module *module =
-      new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys,
-                      table_data.read_value, table_data.map_has_this_key, min_estimate);
+  symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
+  Module *module = new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
+                                   table_data.map_has_this_key, min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -146,8 +136,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, hh_table);
 
-  update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get, table_data.key,
-                                  table_data.num_entries, mpsc);
+  update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get, table_data.key, table_data.num_entries, mpsc);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

@@ -28,26 +28,22 @@ struct EPMeta {
   i64 random_number;
 
   EPMeta(const BDD *bdd, const TargetsView &targets)
-      : total_bdd_nodes(bdd->size()), depth(0), nodes(0), reordered_nodes(0),
-        random_number(RandomEngine::generate()) {
+      : total_bdd_nodes(bdd->size()), depth(0), nodes(0), reordered_nodes(0), random_number(RandomEngine::generate()) {
     for (const TargetView &target : targets.elements) {
       steps_per_target[target.type] = 0;
     }
   }
 
   EPMeta(const EPMeta &other)
-      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes),
-        reordered_nodes(other.reordered_nodes), steps_per_target(other.steps_per_target),
-        processed_leaves(other.processed_leaves), visited_ep_nodes(other.visited_ep_nodes),
+      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes), reordered_nodes(other.reordered_nodes),
+        steps_per_target(other.steps_per_target), processed_leaves(other.processed_leaves), visited_ep_nodes(other.visited_ep_nodes),
         processed_nodes(other.processed_nodes), random_number(RandomEngine::generate()) {}
 
   EPMeta(EPMeta &&other)
-      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes),
-        reordered_nodes(other.reordered_nodes), steps_per_target(std::move(other.steps_per_target)),
-        processed_leaves(std::move(other.processed_leaves)),
-        visited_ep_nodes(std::move(other.visited_ep_nodes)),
-        processed_nodes(std::move(other.processed_nodes)), random_number(RandomEngine::generate()) {
-  }
+      : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes), reordered_nodes(other.reordered_nodes),
+        steps_per_target(std::move(other.steps_per_target)), processed_leaves(std::move(other.processed_leaves)),
+        visited_ep_nodes(std::move(other.visited_ep_nodes)), processed_nodes(std::move(other.processed_nodes)),
+        random_number(RandomEngine::generate()) {}
 
   EPMeta &operator=(const EPMeta &other) {
     if (this == &other) {

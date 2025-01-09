@@ -10,22 +10,20 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino/tofino.h"
 
-#define SHOW_MODULE_NAME(M)                                                                        \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {             \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                \
-    return EPVisitor::Action::doChildren;                                                          \
+#define SHOW_MODULE_NAME(M)                                                                                                                \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                     \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                        \
+    return EPVisitor::Action::doChildren;                                                                                                  \
   }
 
-#define VISIT_BRANCH(M)                                                                            \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {             \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                       \
-    return EPVisitor::Action::doChildren;                                                          \
+#define VISIT_BRANCH(M)                                                                                                                    \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                     \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                               \
+    return EPVisitor::Action::doChildren;                                                                                                  \
   }
 
-#define IGNORE_MODULE(M)                                                                           \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {             \
-    return EPVisitor::Action::doChildren;                                                          \
-  }
+#define IGNORE_MODULE(M)                                                                                                                   \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) { return EPVisitor::Action::doChildren; }
 
 namespace synapse {
 
@@ -56,8 +54,7 @@ SHOW_MODULE_NAME(tofino::ModifyHeader)
 SHOW_MODULE_NAME(tofino::Then)
 SHOW_MODULE_NAME(tofino::Else)
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::Recirculate *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::Recirculate *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -89,8 +86,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::TableLookup *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::TableLookup *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -111,8 +107,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::VectorRegisterLookup *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterLookup *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -145,8 +140,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::VectorRegisterUpdate *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterUpdate *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -178,8 +172,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::FCFSCachedTableRead *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableRead *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -206,8 +199,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::FCFSCachedTableReadOrWrite *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableReadOrWrite *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -234,8 +226,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::FCFSCachedTableWrite *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableWrite *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -262,8 +253,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::FCFSCachedTableDelete *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableDelete *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -290,8 +280,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::ParserExtraction *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::ParserExtraction *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -308,8 +297,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::MeterUpdate *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::MeterUpdate *node) {
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
@@ -325,14 +313,12 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::HHTableRead *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableRead *node) {
   const Node *bdd_node = node->get_node();
   TargetType target = node->get_target();
   addr_t obj = node->get_obj();
 
-  const DS *ds =
-      ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds_from_id(node->get_hh_table_id());
+  const DS *ds = ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds_from_id(node->get_hh_table_id());
 
   assert(ds->type == DSType::HH_TABLE && "Invalid DS type");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);
@@ -352,8 +338,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node,
-                               const tofino::HHTableConditionalUpdate *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableConditionalUpdate *node) {
   panic("TODO: HHTableConditionalUpdate");
 }
 

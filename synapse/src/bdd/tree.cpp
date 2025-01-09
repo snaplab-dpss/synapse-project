@@ -27,14 +27,12 @@ const std::vector<std::string> ignored_functions{
 };
 
 const std::vector<std::string> init_functions{
-    "map_allocate", "vector_allocate", "dchain_allocate",
-    "cms_allocate", "cht_fill_cht",    "tb_allocate",
+    "map_allocate", "vector_allocate", "dchain_allocate", "cms_allocate", "cht_fill_cht", "tb_allocate",
 };
 
 const std::vector<std::string> symbols_in_skippable_conditions{
-    "received_a_packet",        "loop_termination",        "map_allocation_succeeded",
-    "vector_alloc_success",     "is_dchain_allocated",     "cht_fill_cht_successful",
-    "cms_allocation_succeeded", "tb_allocation_succeeded",
+    "received_a_packet",   "loop_termination",        "map_allocation_succeeded", "vector_alloc_success",
+    "is_dchain_allocated", "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",
 };
 
 const std::vector<std::string> rounting_functions{
@@ -155,30 +153,24 @@ const std::unordered_map<std::string, SymbolsExtractor> special_symbols_extracto
 };
 
 bool is_init_function(const call_t &call) {
-  return std::find(init_functions.begin(), init_functions.end(), call.function_name) !=
-         init_functions.end();
+  return std::find(init_functions.begin(), init_functions.end(), call.function_name) != init_functions.end();
 }
 
 bool is_skip_function(const call_t &call) {
-  return std::find(ignored_functions.begin(), ignored_functions.end(), call.function_name) !=
-         ignored_functions.end();
+  return std::find(ignored_functions.begin(), ignored_functions.end(), call.function_name) != ignored_functions.end();
 }
 
 bool is_routing_function(const call_t &call) {
-  return std::find(rounting_functions.begin(), rounting_functions.end(), call.function_name) !=
-         rounting_functions.end();
+  return std::find(rounting_functions.begin(), rounting_functions.end(), call.function_name) != rounting_functions.end();
 }
 
 bool is_skip_condition(klee::ref<klee::Expr> condition) {
   std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(condition);
 
   for (const std::string &symbol : symbols) {
-    auto base_symbol_comparator = [symbol](const std::string &s) {
-      return symbol.find(s) != std::string::npos;
-    };
+    auto base_symbol_comparator = [symbol](const std::string &s) { return symbol.find(s) != std::string::npos; };
 
-    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(),
-                                 symbols_in_skippable_conditions.end(), base_symbol_comparator);
+    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(), symbols_in_skippable_conditions.end(), base_symbol_comparator);
 
     if (found_it != symbols_in_skippable_conditions.end())
       return true;
@@ -187,9 +179,7 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call, node_id_t id,
-                            const klee::ConstraintManager &constraints,
-                            SymbolManager *symbol_manager) {
+Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager) {
   assert(is_routing_function(call) && "Unexpected function");
 
   if (call.function_name == "packet_free") {
@@ -262,9 +252,8 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
   return is_zero;
 }
 
-std::optional<symbol_t>
-get_generated_symbol(const Symbols &symbols, const std::string &base,
-                     std::unordered_map<std::string, size_t> &base_symbols_generated) {
+std::optional<symbol_t> get_generated_symbol(const Symbols &symbols, const std::string &base,
+                                             std::unordered_map<std::string, size_t> &base_symbols_generated) {
   auto symbol_cmp = [base](const symbol_t &a, const symbol_t &b) {
     assert(a.base == b.base && "Different base symbols");
 
@@ -311,8 +300,7 @@ get_generated_symbol(const Symbols &symbols, const std::string &base,
   return filtered[total_base_symbols_generated];
 }
 
-Symbols get_generated_symbols(const call_t &call, Symbols &symbols,
-                              std::unordered_map<std::string, size_t> &base_symbols_generated) {
+Symbols get_generated_symbols(const call_t &call, Symbols &symbols, std::unordered_map<std::string, size_t> &base_symbols_generated) {
   Symbols generated_symbols;
 
   auto extractor_it = special_symbols_extractors.find(call.function_name);
@@ -343,11 +331,9 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
   }
 }
 
-Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager,
-                          NodeManager &node_manager, std::vector<call_t> &init, node_id_t &id,
-                          klee::ConstraintManager constraints = klee::ConstraintManager(),
-                          std::unordered_map<std::string, size_t> base_symbols_generated =
-                              std::unordered_map<std::string, size_t>()) {
+Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, NodeManager &node_manager,
+                          std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
+                          std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
   Node *leaf = nullptr;
 
@@ -418,8 +404,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
       klee::ref<klee::Expr> discriminating_constraint = group.get_discriminating_constraint();
 
       klee::ref<klee::Expr> condition = simplify_constraint(discriminating_constraint);
-      klee::ref<klee::Expr> not_condition =
-          negate_and_simplify_constraint(discriminating_constraint);
+      klee::ref<klee::Expr> not_condition = negate_and_simplify_constraint(discriminating_constraint);
 
       klee::ConstraintManager on_true_constraints = constraints;
       klee::ConstraintManager on_false_constraints = constraints;
@@ -453,10 +438,10 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
       id++;
       node_manager.add_node(node);
 
-      Node *on_true_root = bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id,
-                                               on_true_constraints, base_symbols_generated);
-      Node *on_false_root = bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id,
-                                                on_false_constraints, base_symbols_generated);
+      Node *on_true_root =
+          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, on_true_constraints, base_symbols_generated);
+      Node *on_false_root =
+          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, on_false_constraints, base_symbols_generated);
 
       assert((on_true_root && on_false_root) && "Invalid BDD");
 
@@ -491,13 +476,9 @@ Branch *create_new_branch(BDD *bdd, const Node *current, klee::ref<klee::Expr> c
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
-const Node *BDD::get_node_by_id(node_id_t node_id) const {
-  return root ? root->get_node_by_id(node_id) : nullptr;
-}
+const Node *BDD::get_node_by_id(node_id_t node_id) const { return root ? root->get_node_by_id(node_id) : nullptr; }
 
-Node *BDD::get_mutable_node_by_id(node_id_t node_id) {
-  return root ? root->get_mutable_node_by_id(node_id) : nullptr;
-}
+Node *BDD::get_mutable_node_by_id(node_id_t node_id) { return root ? root->get_mutable_node_by_id(node_id) : nullptr; }
 
 int BDD::get_node_depth(node_id_t node_id) const {
   int depth = -1;
@@ -512,9 +493,7 @@ int BDD::get_node_depth(node_id_t node_id) const {
     depth_tracker_t() : depth(0) {}
     depth_tracker_t(int _depth) : depth(_depth) {}
 
-    std::unique_ptr<cookie_t> clone() const override {
-      return std::make_unique<depth_tracker_t>(depth);
-    }
+    std::unique_ptr<cookie_t> clone() const override { return std::make_unique<depth_tracker_t>(depth); }
   };
 
   root->visit_nodes(
@@ -555,8 +534,7 @@ Symbols BDD::get_generated_symbols(const Node *node) const {
 
 BDD::BDD() : id(0), root(nullptr) {}
 
-BDD::BDD(const call_paths_view_t &call_paths_view)
-    : id(0), symbol_manager(call_paths_view.manager) {
+BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_paths_view.manager) {
   root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id);
 
   packet_len = symbol_manager->get_symbol("pkt_len");
@@ -570,8 +548,7 @@ BDD::BDD(const call_paths_view_t &call_paths_view)
   }
 }
 
-BDD::BDD(const std::filesystem::path &fpath, SymbolManager *_symbol_manager)
-    : id(0), symbol_manager(_symbol_manager) {
+BDD::BDD(const std::filesystem::path &fpath, SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) {
   deserialize(fpath);
 }
 
@@ -602,15 +579,14 @@ void BDD::assert_integrity() const {
 }
 
 BDD::BDD(const BDD &other)
-    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time),
-      init(other.init), symbol_manager(other.symbol_manager) {
+    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), init(other.init),
+      symbol_manager(other.symbol_manager) {
   root = other.root->clone(manager, true);
 }
 
 BDD::BDD(BDD &&other)
-    : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)),
-      time(std::move(other.time)), init(std::move(other.init)), root(other.root),
-      manager(std::move(other.manager)), symbol_manager(std::move(other.symbol_manager)) {
+    : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)), time(std::move(other.time)),
+      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)), symbol_manager(std::move(other.symbol_manager)) {
   other.root = nullptr;
 }
 
@@ -718,8 +694,7 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
   return new_current;
 }
 
-Node *BDD::clone_and_add_non_branches(const Node *current,
-                                      const std::vector<const Node *> &new_nodes) {
+Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<const Node *> &new_nodes) {
   Node *new_current = nullptr;
 
   if (new_nodes.empty()) {

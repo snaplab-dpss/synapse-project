@@ -177,8 +177,7 @@ std::string serialize_symbols(const Symbols &symbols, kQuery_t &kQuery) {
   return symbols_stream.str();
 }
 
-void serialize_init(const std::vector<call_t> &calls, std::stringstream &init_stream,
-                    kQuery_t &kQuery) {
+void serialize_init(const std::vector<call_t> &calls, std::stringstream &init_stream, kQuery_t &kQuery) {
   for (const call_t &call : calls) {
     init_stream << serialize_call(call, kQuery);
     init_stream << "\n";
@@ -237,8 +236,7 @@ std::vector<meta_t> parse_meta(const std::string &meta_str) {
   return meta;
 }
 
-std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
-                                        std::vector<klee::ref<klee::Expr>> &exprs) {
+std::pair<std::string, arg_t> parse_arg(std::string serialized_arg, std::vector<klee::ref<klee::Expr>> &exprs) {
   std::string arg_name;
   arg_t arg;
 
@@ -312,8 +310,7 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg,
   return std::make_pair(arg_name, arg);
 }
 
-std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra_var,
-                                                    std::vector<klee::ref<klee::Expr>> &exprs) {
+std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra_var, std::vector<klee::ref<klee::Expr>> &exprs) {
   std::string extra_var_name;
   klee::ref<klee::Expr> in;
   klee::ref<klee::Expr> out;
@@ -359,8 +356,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   call_t call;
 
   // Cleanup by removing duplicated spaces
-  auto new_end = std::unique(serialized_call.begin(), serialized_call.end(),
-                             [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
+  auto new_end = std::unique(serialized_call.begin(), serialized_call.end(), [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
   serialized_call.erase(new_end, serialized_call.end());
 
   size_t delim = serialized_call.find("(");
@@ -448,8 +444,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   return call;
 }
 
-symbol_t parse_call_symbol(std::string serialized_symbol,
-                           std::vector<klee::ref<klee::Expr>> &exprs) {
+symbol_t parse_call_symbol(std::string serialized_symbol, std::vector<klee::ref<klee::Expr>> &exprs) {
   size_t delim = serialized_symbol.find(":");
   assert(delim != std::string::npos && "Invalid symbol");
 
@@ -468,8 +463,7 @@ symbol_t parse_call_symbol(std::string serialized_symbol,
   return symbol;
 }
 
-Symbols parse_call_symbols(std::string serialized_symbols,
-                           std::vector<klee::ref<klee::Expr>> &exprs) {
+Symbols parse_call_symbols(std::string serialized_symbols, std::vector<klee::ref<klee::Expr>> &exprs) {
   Symbols symbols;
 
   assert(serialized_symbols[0] == '<' && "Invalid symbols");
@@ -497,8 +491,7 @@ Symbols parse_call_symbols(std::string serialized_symbols,
   return symbols;
 }
 
-Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
-                      SymbolManager *symbol_manager, std::string serialized,
+Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
                       std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find("=>");
   assert(delim != std::string::npos && "Invalid call");
@@ -514,8 +507,7 @@ Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints,
   return call_node;
 }
 
-Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints,
-                        SymbolManager *symbol_manager, std::string serialized,
+Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
                         std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   klee::ref<klee::Expr> condition = pop_expr(exprs);
   Branch *branch_node = new Branch(id, constraints, symbol_manager, condition);
@@ -523,8 +515,7 @@ Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints
   return branch_node;
 }
 
-Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
-                       SymbolManager *symbol_manager, std::string serialized,
+Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
                        std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find(" ");
   assert(delim != std::string::npos && "Invalid route");
@@ -550,8 +541,8 @@ Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
   return route_node;
 }
 
-Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>> &exprs,
-                 NodeManager &manager, SymbolManager *symbol_manager) {
+Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager,
+                 SymbolManager *symbol_manager) {
   Node *node;
 
   size_t delim = serialized_node.find(":");

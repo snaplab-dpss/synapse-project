@@ -12,14 +12,11 @@ private:
   symbol_t is_allocated;
 
 public:
-  IntegerAllocatorIsAllocated(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
-                              const symbol_t &_is_allocated)
-      : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated",
-                     node),
-        dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
+  IntegerAllocatorIsAllocated(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
+      : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated", node), dchain_addr(_dchain_addr),
+        index(_index), is_allocated(_is_allocated) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -42,15 +39,12 @@ public:
 class IntegerAllocatorIsAllocatedFactory : public TofinoModuleFactory {
 public:
   IntegerAllocatorIsAllocatedFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorIsAllocated,
-                            "IntegerAllocatorIsAllocated") {}
+      : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

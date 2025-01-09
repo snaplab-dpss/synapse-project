@@ -172,8 +172,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const Node *node, const Modul
         {"Spec", build_meta_tput_speculation(impl.result)},
     };
 
-    SSNode *new_node = new SSNode(id, ep_id, score, target, module_data, bdd_node_data,
-                                  next_bdd_node_data, metadata);
+    SSNode *new_node = new SSNode(id, ep_id, score, target, module_data, bdd_node_data, next_bdd_node_data, metadata);
 
     active_leaf->children.push_back(new_node);
     leaves.push_back(new_node);

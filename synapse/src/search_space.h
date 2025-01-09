@@ -36,19 +36,16 @@ struct SSNode {
   std::vector<std::pair<std::string, std::string>> metadata;
   std::vector<SSNode *> children;
 
-  SSNode(ss_node_id_t _node_id, ep_id_t _ep_id, const Score &_score, TargetType _target,
-         const module_data_t &_module_data, const bdd_node_data_t &_bdd_node_data,
-         const std::optional<bdd_node_data_t> &_next_bdd_node_data,
+  SSNode(ss_node_id_t _node_id, ep_id_t _ep_id, const Score &_score, TargetType _target, const module_data_t &_module_data,
+         const bdd_node_data_t &_bdd_node_data, const std::optional<bdd_node_data_t> &_next_bdd_node_data,
          const std::vector<std::pair<std::string, std::string>> &_metadata)
-      : node_id(_node_id), ep_id(_ep_id), score(_score), target(_target), module_data(_module_data),
-        bdd_node_data(_bdd_node_data), next_bdd_node_data(_next_bdd_node_data),
-        metadata(_metadata) {}
+      : node_id(_node_id), ep_id(_ep_id), score(_score), target(_target), module_data(_module_data), bdd_node_data(_bdd_node_data),
+        next_bdd_node_data(_next_bdd_node_data), metadata(_metadata) {}
 
-  SSNode(ss_node_id_t _node_id, ep_id_t _ep_id, const Score &_score, TargetType _target,
-         const bdd_node_data_t &_next_bdd_node_data,
+  SSNode(ss_node_id_t _node_id, ep_id_t _ep_id, const Score &_score, TargetType _target, const bdd_node_data_t &_next_bdd_node_data,
          const std::vector<std::pair<std::string, std::string>> &_metadata)
-      : node_id(_node_id), ep_id(_ep_id), score(_score), target(_target), module_data(std::nullopt),
-        bdd_node_data(std::nullopt), next_bdd_node_data(_next_bdd_node_data), metadata(_metadata) {}
+      : node_id(_node_id), ep_id(_ep_id), score(_score), target(_target), module_data(std::nullopt), bdd_node_data(std::nullopt),
+        next_bdd_node_data(_next_bdd_node_data), metadata(_metadata) {}
 
   ~SSNode() {
     for (SSNode *child : children) {
@@ -72,8 +69,7 @@ private:
   bool backtrack;
 
 public:
-  SearchSpace(const HeuristicCfg *_hcfg)
-      : root(nullptr), active_leaf(nullptr), size(0), hcfg(_hcfg), backtrack(false) {}
+  SearchSpace(const HeuristicCfg *_hcfg) : root(nullptr), active_leaf(nullptr), size(0), hcfg(_hcfg), backtrack(false) {}
 
   SearchSpace(const SearchSpace &) = delete;
   SearchSpace(SearchSpace &&) = delete;
@@ -83,8 +79,7 @@ public:
   ~SearchSpace() { delete root; }
 
   void activate_leaf(const EP *ep);
-  void add_to_active_leaf(const EP *ep, const Node *node, const ModuleFactory *mogden,
-                          const std::vector<impl_t> &implementations);
+  void add_to_active_leaf(const EP *ep, const Node *node, const ModuleFactory *mogden, const std::vector<impl_t> &implementations);
 
   SSNode *get_root() const;
   size_t get_size() const;

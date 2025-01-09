@@ -3,8 +3,7 @@
 namespace synapse {
 namespace ctrl {
 namespace {
-void table_delete_data_from_map_op(const Call *call_node, addr_t &obj,
-                                   std::vector<klee::ref<klee::Expr>> &keys) {
+void table_delete_data_from_map_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
@@ -15,8 +14,7 @@ void table_delete_data_from_map_op(const Call *call_node, addr_t &obj,
   keys = Table::build_keys(key);
 }
 
-void table_delete_data_from_dchain_op(const Call *call_node, addr_t &obj,
-                                      std::vector<klee::ref<klee::Expr>> &keys) {
+void table_delete_data_from_dchain_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "dchain_free_index" && "Not a dchain call");
 
@@ -29,8 +27,7 @@ void table_delete_data_from_dchain_op(const Call *call_node, addr_t &obj,
   keys.push_back(index);
 }
 
-bool get_table_delete_data(const Call *call_node, addr_t &obj,
-                           std::vector<klee::ref<klee::Expr>> &keys) {
+bool get_table_delete_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
 
   if (call.function_name == "map_erase") {
@@ -45,8 +42,7 @@ bool get_table_delete_data(const Call *call_node, addr_t &obj,
 }
 } // namespace
 
-std::optional<spec_impl_t> TableDeleteFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> TableDeleteFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -66,8 +62,7 @@ std::optional<spec_impl_t> TableDeleteFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TableDeleteFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> TableDeleteFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

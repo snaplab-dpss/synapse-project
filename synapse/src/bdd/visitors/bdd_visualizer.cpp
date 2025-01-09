@@ -173,8 +173,7 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
           ss << pretty_print_expr(arg.in, false);
         }
 
-        if (!arg.out.isNull() &&
-            (arg.in.isNull() || !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
+        if (!arg.out.isNull() && (arg.in.isNull() || !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
           ss << " -> ";
           ss << pretty_print_expr(arg.out, false);
         }

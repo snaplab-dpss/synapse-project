@@ -112,8 +112,7 @@ public:
 
     std::vector<expr_group_t> groups = get_expr_groups(eref);
 
-    if (groups.size() == 1 && groups[0].has_symbol && groups[0].offset == 0 &&
-        groups[0].size == (eref->getWidth() / 8)) {
+    if (groups.size() == 1 && groups[0].has_symbol && groups[0].offset == 0 && groups[0].size == (eref->getWidth() / 8)) {
       result = groups[0].symbol;
       return klee::ExprVisitor::Action::skipChildren();
     }
@@ -539,9 +538,7 @@ void remove_expr_str_labels(std::string &expr_str) {
 }
 } // namespace
 
-std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed) {
-  return ExprPrettyPrinter::print(expr, use_signed);
-}
+std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed) { return ExprPrettyPrinter::print(expr, use_signed); }
 
 std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
   std::string expr_str;

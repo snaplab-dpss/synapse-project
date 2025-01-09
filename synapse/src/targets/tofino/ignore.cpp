@@ -27,8 +27,7 @@ bool can_ignore_vector_register_op(const Call *call_node) {
 }
 
 bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
-  if (call.function_name != "dchain_free_index" &&
-      call.function_name != "dchain_allocate_new_index") {
+  if (call.function_name != "dchain_free_index" && call.function_name != "dchain_allocate_new_index") {
     return false;
   }
 
@@ -54,8 +53,7 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const call_t &call) {
   addr_t chain_addr = expr_addr_to_obj_addr(chain);
 
   // These are the data structures that can perform rejuvenations.
-  if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) &&
-      !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
+  if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) && !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
       !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
   }
@@ -72,10 +70,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
   const call_t &call = call_node->get_call();
 
   const std::unordered_set<std::string> functions_to_always_ignore{
-      "expire_items_single_map",
-      "expire_items_single_map_iteratively",
-      "tb_expire",
-      "nf_set_rte_ipv4_udptcp_checksum",
+      "expire_items_single_map", "expire_items_single_map_iteratively", "tb_expire", "nf_set_rte_ipv4_udptcp_checksum",
       "cms_periodic_cleanup",
   };
 
@@ -99,8 +94,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node,
-                                                    const Context &ctx) const {
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (!should_ignore(ep, ctx, node)) {
     return std::nullopt;
   }
@@ -108,8 +102,7 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *no
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node,
-                                                SymbolManager *symbol_manager) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, ep->get_ctx(), node)) {

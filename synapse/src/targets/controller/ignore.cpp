@@ -20,8 +20,7 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
     return false;
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
-      !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) && !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
       !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
   }
@@ -32,8 +31,7 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
 bool ds_ignore_logic(const Context &ctx, const call_t &call) {
   addr_t obj;
 
-  if (call.function_name == "dchain_rejuvenate_index" ||
-      call.function_name == "dchain_allocate_new_index" ||
+  if (call.function_name == "dchain_rejuvenate_index" || call.function_name == "dchain_allocate_new_index" ||
       call.function_name == "dchain_free_index") {
     obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
   } else if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
@@ -42,8 +40,7 @@ bool ds_ignore_logic(const Context &ctx, const call_t &call) {
     return false;
   }
 
-  if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) ||
-      ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
+  if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) || ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return true;
   }
 
@@ -90,8 +87,7 @@ bool should_ignore(const EP *ep, const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node,
-                                                    const Context &ctx) const {
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (!should_ignore(ep, node)) {
     return std::nullopt;
   }
@@ -99,8 +95,7 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *no
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node,
-                                                SymbolManager *symbol_manager) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!should_ignore(ep, node)) {

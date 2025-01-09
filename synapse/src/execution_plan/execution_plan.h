@@ -50,8 +50,7 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
 
 public:
-  EP(std::shared_ptr<const BDD> bdd, const TargetsView &targets, const toml::table &config,
-     const Profiler &profiler);
+  EP(std::shared_ptr<const BDD> bdd, const TargetsView &targets, const toml::table &config, const Profiler &profiler);
 
   EP(const EP &other, bool is_ancestor = true);
 
@@ -60,12 +59,10 @@ public:
   EP(EP &&other) = delete;
   EP &operator=(const EP *other) = delete;
 
-  void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves,
-                    bool process_node = true);
+  void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node = true);
   void process_leaf(const Node *next_node);
 
-  void replace_bdd(std::unique_ptr<BDD> new_bdd,
-                   const translator_t &next_nodes_translator = translator_t(),
+  void replace_bdd(std::unique_ptr<BDD> new_bdd, const translator_t &next_nodes_translator = translator_t(),
                    const translator_t &processed_nodes_translator = translator_t());
 
   ep_id_t get_id() const;
@@ -110,12 +107,11 @@ public:
 
 private:
   void sort_leaves();
-  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation,
-                                                const Node *anchor, node_ids_t future_nodes,
+  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor, node_ids_t future_nodes,
                                                 TargetType current_target, pps_t ingress) const;
-  spec_impl_t get_best_speculation(const Node *node, TargetType current_target, const Context &ctx,
-                                   const node_ids_t &skip, pps_t ingress) const;
-  bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
-                             const Node *node, TargetType current_target, pps_t ingress) const;
+  spec_impl_t get_best_speculation(const Node *node, TargetType current_target, const Context &ctx, const node_ids_t &skip,
+                                   pps_t ingress) const;
+  bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const Node *node,
+                             TargetType current_target, pps_t ingress) const;
 };
 } // namespace synapse

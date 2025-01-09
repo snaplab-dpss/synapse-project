@@ -3,8 +3,7 @@
 namespace synapse {
 namespace ctrl {
 
-std::optional<spec_impl_t> CMSCountMinFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> CMSCountMinFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -29,8 +28,7 @@ std::optional<spec_impl_t> CMSCountMinFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

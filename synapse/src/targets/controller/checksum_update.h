@@ -13,11 +13,10 @@ private:
 
 public:
   ChecksumUpdate(const Node *node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
-      : ControllerModule(ModuleType::Controller_ChecksumUpdate, "SetIpChecksum", node),
-        ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
+      : ControllerModule(ModuleType::Controller_ChecksumUpdate, "SetIpChecksum", node), ip_hdr_addr(_ip_hdr_addr),
+        l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -33,15 +32,12 @@ public:
 
 class ChecksumUpdateFactory : public ControllerModuleFactory {
 public:
-  ChecksumUpdateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_ChecksumUpdate, "ChecksumUpdate") {}
+  ChecksumUpdateFactory() : ControllerModuleFactory(ModuleType::Controller_ChecksumUpdate, "ChecksumUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

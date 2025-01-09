@@ -84,10 +84,8 @@ std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 }
 } // namespace
 
-Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &config,
-                 const Profiler &_profiler)
-    : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()),
-      expiration_data(build_expiration_data(bdd)) {
+Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &config, const Profiler &_profiler)
+    : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
   for (const TargetView &target : targets.elements) {
     target_ctxs[target.type] = target.base_ctx->clone();
   }
@@ -156,24 +154,20 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &
 }
 
 Context::Context(const Context &other)
-    : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs),
-      vector_configs(other.vector_configs), dchain_configs(other.dchain_configs),
-      cms_configs(other.cms_configs), cht_configs(other.cht_configs), tb_configs(other.tb_configs),
-      coalescing_candidates(other.coalescing_candidates), expiration_data(other.expiration_data),
-      ds_impls(other.ds_impls) {
+    : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
+      dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), cht_configs(other.cht_configs), tb_configs(other.tb_configs),
+      coalescing_candidates(other.coalescing_candidates), expiration_data(other.expiration_data), ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
 }
 
 Context::Context(Context &&other)
-    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)),
-      map_configs(std::move(other.map_configs)), vector_configs(std::move(other.vector_configs)),
-      dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
-      cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
-      coalescing_candidates(std::move(other.coalescing_candidates)),
-      expiration_data(std::move(other.expiration_data)), ds_impls(std::move(other.ds_impls)),
-      target_ctxs(std::move(other.target_ctxs)) {}
+    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
+      vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)),
+      cms_configs(std::move(other.cms_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
+      coalescing_candidates(std::move(other.coalescing_candidates)), expiration_data(std::move(other.expiration_data)),
+      ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -253,8 +247,7 @@ const tb_config_t &Context::get_tb_config(addr_t addr) const {
 
 std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj) const {
   for (const map_coalescing_objs_t &candidate : coalescing_candidates) {
-    if (candidate.map == obj || candidate.dchain == obj ||
-        candidate.vectors.find(obj) != candidate.vectors.end()) {
+    if (candidate.map == obj || candidate.dchain == obj || candidate.vectors.find(obj) != candidate.vectors.end()) {
       return candidate;
     }
   }
@@ -262,9 +255,7 @@ std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj
   return std::nullopt;
 }
 
-const std::optional<expiration_data_t> &Context::get_expiration_data() const {
-  return expiration_data;
-}
+const std::optional<expiration_data_t> &Context::get_expiration_data() const { return expiration_data; }
 
 void Context::save_ds_impl(addr_t obj, DSImpl impl) {
   assert(can_impl_ds(obj, impl) && "Incompatible implementation");

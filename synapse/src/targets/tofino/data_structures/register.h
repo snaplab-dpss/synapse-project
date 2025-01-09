@@ -26,8 +26,8 @@ struct Register : public DS {
   bits_t value_size;
   std::unordered_set<RegisterActionType> actions;
 
-  Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index_size,
-           bits_t value_size, const std::unordered_set<RegisterActionType> &actions);
+  Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index_size, bits_t value_size,
+           const std::unordered_set<RegisterActionType> &actions);
 
   Register(const Register &other);
 
@@ -37,8 +37,7 @@ struct Register : public DS {
   bits_t get_consumed_sram() const;
   u32 get_num_logical_ids() const;
 
-  static std::vector<klee::ref<klee::Expr>> partition_value(const TNAProperties &properties,
-                                                            klee::ref<klee::Expr> value);
+  static std::vector<klee::ref<klee::Expr>> partition_value(const TNAProperties &properties, klee::ref<klee::Expr> value);
 };
 
 } // namespace tofino

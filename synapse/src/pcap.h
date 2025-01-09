@@ -26,9 +26,7 @@ struct flow_t {
 
   flow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
 
-  flow_t(const flow_t &flow)
-      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {
-  }
+  flow_t(const flow_t &flow) : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
 
   flow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
       : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
@@ -38,14 +36,13 @@ struct flow_t {
   flow_t invert() const { return flow_t(dst_ip, src_ip, dst_port, src_port); }
 
   bool operator==(const flow_t &other) const {
-    return src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port &&
-           dst_port == other.dst_port;
+    return src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port && dst_port == other.dst_port;
   }
 
   struct flow_hash_t {
     std::size_t operator()(const flow_t &flow) const {
-      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
-             std::hash<in_port_t>()(flow.src_port) ^ std::hash<in_port_t>()(flow.dst_port);
+      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^ std::hash<in_port_t>()(flow.src_port) ^
+             std::hash<in_port_t>()(flow.dst_port);
     }
   };
 };
@@ -59,28 +56,22 @@ struct sflow_t {
 
   sflow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
 
-  sflow_t(const flow_t &flow)
-      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {
-  }
+  sflow_t(const flow_t &flow) : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
 
-  sflow_t(const sflow_t &flow)
-      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {
-  }
+  sflow_t(const sflow_t &flow) : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
 
   sflow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
       : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
 
   bool operator==(const sflow_t &other) const {
-    return (src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port &&
-            dst_port == other.dst_port) ||
-           (src_ip == other.dst_ip && dst_ip == other.src_ip && src_port == other.dst_port &&
-            dst_port == other.src_port);
+    return (src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port && dst_port == other.dst_port) ||
+           (src_ip == other.dst_ip && dst_ip == other.src_ip && src_port == other.dst_port && dst_port == other.src_port);
   }
 
   struct flow_hash_t {
     std::size_t operator()(const sflow_t &flow) const {
-      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
-             std::hash<in_port_t>()(flow.src_port) ^ std::hash<in_port_t>()(flow.dst_port);
+      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^ std::hash<in_port_t>()(flow.src_port) ^
+             std::hash<in_port_t>()(flow.dst_port);
     }
   };
 };
@@ -121,14 +112,12 @@ inline std::string fmt_time_hh(time_ns_t ns) {
   std::chrono::seconds sec(seconds);
   std::chrono::microseconds microsec(microseconds);
 
-  std::chrono::system_clock::time_point time_point =
-      std::chrono::system_clock::time_point(sec) + microsec;
+  std::chrono::system_clock::time_point time_point = std::chrono::system_clock::time_point(sec) + microsec;
 
   std::time_t time = std::chrono::system_clock::to_time_t(time_point);
   std::tm utc_tm = *std::gmtime(&time);
 
-  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6) << std::setfill('0')
-     << microseconds << " UTC";
+  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6) << std::setfill('0') << microseconds << " UTC";
 
   return ss.str();
 }
@@ -143,12 +132,10 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
   time_us_t end_microseconds = (end % BILLION) / THOUSAND;
 
   std::chrono::system_clock::time_point start_time =
-      std::chrono::system_clock::time_point(std::chrono::seconds(start_seconds)) +
-      std::chrono::microseconds(start_microseconds);
+      std::chrono::system_clock::time_point(std::chrono::seconds(start_seconds)) + std::chrono::microseconds(start_microseconds);
 
   std::chrono::system_clock::time_point end_time =
-      std::chrono::system_clock::time_point(std::chrono::seconds(end_seconds)) +
-      std::chrono::microseconds(end_microseconds);
+      std::chrono::system_clock::time_point(std::chrono::seconds(end_seconds)) + std::chrono::microseconds(end_microseconds);
 
   auto duration = end_time - start_time;
 
@@ -245,9 +232,8 @@ inline void compute_udp_checksum(ipv4_hdr_t *ip_hdr, u16 *ipPayload) {
 }
 
 inline bool parse_etheraddr(const char *str, struct ether_addr_t *addr) {
-  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0,
-                addr->addr_bytes + 1, addr->addr_bytes + 2, addr->addr_bytes + 3,
-                addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
+  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0, addr->addr_bytes + 1, addr->addr_bytes + 2,
+                addr->addr_bytes + 3, addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
 inline bool parse_ipv4addr(const char *str, u32 *addr) {
@@ -284,12 +270,10 @@ private:
 
 public:
   RandomEngine(unsigned _rand_seed, int _min, int _max)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max),
-        generator(std::bind(random_dist, gen)) {}
+      : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max), generator(std::bind(random_dist, gen)) {}
 
   RandomEngine(unsigned _rand_seed)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX),
-        generator(std::bind(random_dist, gen)) {}
+      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX), generator(std::bind(random_dist, gen)) {}
 
   RandomEngine(const RandomEngine &) = delete;
   RandomEngine(RandomEngine &&) = delete;
@@ -313,12 +297,10 @@ private:
 
 public:
   RandomRealEngine(unsigned _rand_seed, double _min, double _max)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max),
-        generator(std::bind(random_dist, gen)) {}
+      : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max), generator(std::bind(random_dist, gen)) {}
 
   RandomRealEngine(unsigned _rand_seed)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX),
-        generator(std::bind(random_dist, gen)) {}
+      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX), generator(std::bind(random_dist, gen)) {}
 
   RandomRealEngine(const RandomRealEngine &) = delete;
   RandomRealEngine(RandomRealEngine &&) = delete;
@@ -374,8 +356,7 @@ public:
   time_ns_t get_start() const { return start; }
   time_ns_t get_end() const { return end; }
 
-  bool read(const u_char *&pkt, u16 &hdrs_len, u16 &total_len, time_ns_t &ts,
-            std::optional<flow_t> &flow) {
+  bool read(const u_char *&pkt, u16 &hdrs_len, u16 &total_len, time_ns_t &ts, std::optional<flow_t> &flow) {
     const u_char *data;
     struct pcap_pkthdr *header;
 
@@ -499,8 +480,7 @@ private:
 
 public:
   PcapWriter(const std::string &_output_fname, bool _assume_ip, bool _compact)
-      : output_fname(_output_fname), pd(NULL), pdumper(NULL), assume_ip(_assume_ip),
-        compact(_compact) {
+      : output_fname(_output_fname), pd(NULL), pdumper(NULL), assume_ip(_assume_ip), compact(_compact) {
     if (assume_ip) {
       pd = pcap_open_dead(DLT_RAW, 65535 /* snaplen */);
     } else {
@@ -556,8 +536,7 @@ public:
     double tolerance = 0.01;
     double x = (double)N / 2.0;
 
-    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) + s -
-                    pow(N, -1.0 - s) * s);
+    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
 
     while (true) {
       double m = pow(x, -2 - s);

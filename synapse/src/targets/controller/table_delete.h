@@ -17,11 +17,9 @@ private:
 
 public:
   TableDelete(const Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(ModuleType::Controller_TableDelete, "TableDelete", node), obj(_obj),
-        keys(_keys) {}
+      : ControllerModule(ModuleType::Controller_TableDelete, "TableDelete", node), obj(_obj), keys(_keys) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -36,15 +34,12 @@ public:
 
 class TableDeleteFactory : public ControllerModuleFactory {
 public:
-  TableDeleteFactory()
-      : ControllerModuleFactory(ModuleType::Controller_TableDelete, "TableDelete") {}
+  TableDeleteFactory() : ControllerModuleFactory(ModuleType::Controller_TableDelete, "TableDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

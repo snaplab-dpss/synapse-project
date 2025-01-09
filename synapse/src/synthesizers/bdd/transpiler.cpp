@@ -5,8 +5,8 @@
 #include "../../util/simplifier.h"
 #include "../../system.h"
 
-#define TODO(expr)                                                                                 \
-  synthesizer->stack_dbg();                                                                        \
+#define TODO(expr)                                                                                                                         \
+  synthesizer->stack_dbg();                                                                                                                \
   panic("TODO: %s\n", expr_to_string(expr).c_str());
 
 namespace synapse {
@@ -67,9 +67,7 @@ code_t BDDTranspiler::type_from_size(bits_t size) {
   return type;
 }
 
-code_t BDDTranspiler::type_from_expr(klee::ref<klee::Expr> expr) {
-  return type_from_size(expr->getWidth());
-}
+code_t BDDTranspiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
 
 klee::ExprVisitor::Action BDDTranspiler::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ReadExpr *>(&e);

@@ -507,8 +507,7 @@ protected:
   Module(ModuleType _type, TargetType _target, const std::string &_name, const Node *_node)
       : type(_type), target(_target), next_target(_target), name(_name), node(_node) {}
 
-  Module(ModuleType _type, TargetType _target, TargetType _next_target, const std::string &_name,
-         const Node *_node)
+  Module(ModuleType _type, TargetType _target, TargetType _next_target, const std::string &_name, const Node *_node)
       : type(_type), target(_target), next_target(_next_target), name(_name), node(_node) {}
 
 public:
@@ -527,8 +526,7 @@ public:
 
   void set_node(const Node *new_node) { node = new_node; }
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const = 0;
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const = 0;
   virtual Module *clone() const = 0;
 };
 } // namespace synapse

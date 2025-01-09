@@ -5,15 +5,13 @@
 namespace synapse {
 namespace tofino {
 
-Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys,
-             const std::vector<bits_t> &_params)
+Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params)
     : DS(DSType::TABLE, true, _id), num_entries(_num_entries), keys(_keys), params(_params) {
   assert(_num_entries > 0 && "Table entries must be greater than 0");
 }
 
 Table::Table(const Table &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys(other.keys),
-      params(other.params) {}
+    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys(other.keys), params(other.params) {}
 
 DS *Table::clone() const { return new Table(*this); }
 

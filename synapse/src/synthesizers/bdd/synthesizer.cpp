@@ -3,7 +3,7 @@
 #include "../../util/solver.h"
 #include "../../system.h"
 
-#define POPULATE_SYNTHESIZER(FNAME)                                                                \
+#define POPULATE_SYNTHESIZER(FNAME)                                                                                                        \
   { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
 
 namespace synapse {
@@ -440,10 +440,8 @@ void BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
   stack_add(map_out_var);
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name,
-                                                    klee::ref<klee::Expr> addr,
-                                                    klee::ref<klee::Expr> value, coder_t &coder,
-                                                    bool &found_in_stack) {
+BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> value,
+                                                    coder_t &coder, bool &found_in_stack) {
   bytes_t size = value->getWidth() / 8;
 
   var_t var;
@@ -1229,8 +1227,7 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
     stack_frame_t &frame = *it;
 
     for (const var_t &v : frame.vars) {
-      if (solver_toolbox.are_exprs_always_equal(v.expr, expr) ||
-          solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(v.expr, expr) || solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
         out_var = v;
         return true;
       }
@@ -1243,8 +1240,7 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
       }
 
       for (bits_t offset = 0; offset <= var_bits - expr_bits; offset += 8) {
-        klee::ref<klee::Expr> var_slice =
-            solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
+        klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
 
         if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
           out_var = v;
@@ -1282,17 +1278,14 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
   }
 
   stack_dbg();
-  panic("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(),
-        expr_to_string(new_expr).c_str());
+  panic("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(), expr_to_string(new_expr).c_str());
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name,
-                                                klee::ref<klee::Expr> expr) {
+BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr) {
   return build_var(name, expr, nullptr);
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr,
-                                                klee::ref<klee::Expr> addr) {
+BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr) {
   if (reserved_var_names.find(name) == reserved_var_names.end()) {
     reserved_var_names[name] = 1;
     return var_t(name, expr, addr);

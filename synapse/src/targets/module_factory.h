@@ -19,15 +19,12 @@ struct decision_t {
 
   decision_t() : ep(nullptr), node(0), module(ModuleType::InvalidModule) {}
 
-  decision_t(const EP *_ep, node_id_t _node, ModuleType _module)
-      : ep(_ep), node(_node), module(_module) {}
+  decision_t(const EP *_ep, node_id_t _node, ModuleType _module) : ep(_ep), node(_node), module(_module) {}
 
-  decision_t(const EP *_ep, node_id_t _node, ModuleType _module,
-             const std::unordered_map<std::string, i32> &_params)
+  decision_t(const EP *_ep, node_id_t _node, ModuleType _module, const std::unordered_map<std::string, i32> &_params)
       : ep(_ep), node(_node), module(_module), params(_params) {}
 
-  decision_t(const decision_t &other)
-      : ep(other.ep), node(other.node), module(other.module), params(other.params) {}
+  decision_t(const decision_t &other) : ep(other.ep), node(other.node), module(other.module), params(other.params) {}
 
   decision_t &operator=(const decision_t &other) {
     ep = other.ep;
@@ -65,29 +62,23 @@ protected:
   std::string name;
 
 public:
-  ModuleFactory(ModuleType _type, TargetType _target, const std::string &_name)
-      : type(_type), target(_target), name(_name) {}
+  ModuleFactory(ModuleType _type, TargetType _target, const std::string &_name) : type(_type), target(_target), name(_name) {}
 
   virtual ~ModuleFactory() {}
 
-  std::vector<impl_t> generate(const EP *ep, const Node *node, SymbolManager *symbol_manager,
-                               bool reorder_bdd) const;
+  std::vector<impl_t> generate(const EP *ep, const Node *node, SymbolManager *symbol_manager, bool reorder_bdd) const;
 
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const = 0;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const = 0;
 
   ModuleType get_type() const { return type; }
   TargetType get_target() const { return target; }
   const std::string &get_name() const { return name; }
 
 protected:
-  decision_t decide(const EP *ep, const Node *node,
-                    std::unordered_map<std::string, i32> params = {}) const;
+  decision_t decide(const EP *ep, const Node *node, std::unordered_map<std::string, i32> params = {}) const;
 
-  impl_t implement(const EP *ep, const Node *node, EP *result,
-                   std::unordered_map<std::string, i32> params = {}) const;
+  impl_t implement(const EP *ep, const Node *node, EP *result, std::unordered_map<std::string, i32> params = {}) const;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const = 0;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const = 0;
 };
 } // namespace synapse

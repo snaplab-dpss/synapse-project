@@ -15,21 +15,17 @@ private:
   symbol_t min_estimate;
 
 public:
-  HHTableRead(const Node *node, DS_ID _hh_table_id, addr_t _obj,
-              const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value,
-              const symbol_t &_map_has_this_key, const symbol_t &_min_estimate)
-      : TofinoModule(ModuleType::Tofino_HHTableRead, "HHTableRead", node),
-        hh_table_id(_hh_table_id), obj(_obj), keys(_keys), value(_value),
+  HHTableRead(const Node *node, DS_ID _hh_table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+              klee::ref<klee::Expr> _value, const symbol_t &_map_has_this_key, const symbol_t &_min_estimate)
+      : TofinoModule(ModuleType::Tofino_HHTableRead, "HHTableRead", node), hh_table_id(_hh_table_id), obj(_obj), keys(_keys), value(_value),
         map_has_this_key(_map_has_this_key), min_estimate(_min_estimate) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned =
-        new HHTableRead(node, hh_table_id, obj, keys, value, map_has_this_key, min_estimate);
+    Module *cloned = new HHTableRead(node, hh_table_id, obj, keys, value, map_has_this_key, min_estimate);
     return cloned;
   }
 
@@ -48,11 +44,9 @@ public:
   HHTableReadFactory() : TofinoModuleFactory(ModuleType::Tofino_HHTableRead, "HHTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

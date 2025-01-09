@@ -12,13 +12,10 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const Node *node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk,
-              klee::ref<klee::Expr> _length)
-      : x86Module(ModuleType::x86_ParseHeader, "ParseHeader", node), chunk_addr(_chunk_addr),
-        chunk(_chunk), length(_length) {}
+  ParseHeader(const Node *node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+      : x86Module(ModuleType::x86_ParseHeader, "ParseHeader", node), chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -37,11 +34,9 @@ public:
   ParseHeaderFactory() : x86ModuleFactory(ModuleType::x86_ParseHeader, "ParseHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

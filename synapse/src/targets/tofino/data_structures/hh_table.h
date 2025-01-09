@@ -24,8 +24,8 @@ struct HHTable : public DS {
   u32 cms_height;
   CountMinSketch cms;
 
-  HHTable(const TNAProperties &properties, DS_ID id, u32 op, u32 num_entries,
-          const std::vector<bits_t> &keys_sizes, u32 cms_width, u32 cms_height);
+  HHTable(const TNAProperties &properties, DS_ID id, u32 op, u32 num_entries, const std::vector<bits_t> &keys_sizes, u32 cms_width,
+          u32 cms_height);
 
   HHTable(const HHTable &other);
 

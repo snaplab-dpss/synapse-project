@@ -15,14 +15,12 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  FCFSCachedTableWrite(const Node *node, DS_ID _id, addr_t _obj,
-                       const std::vector<klee::ref<klee::Expr>> &_keys,
+  FCFSCachedTableWrite(const Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
                        klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_FCFSCachedTableWrite, "FCFSCachedTableWrite", node),
-        id(_id), obj(_obj), keys(_keys), value(_value) {}
+      : ControllerModule(ModuleType::Controller_FCFSCachedTableWrite, "FCFSCachedTableWrite", node), id(_id), obj(_obj), keys(_keys),
+        value(_value) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -39,16 +37,12 @@ public:
 
 class FCFSCachedTableWriteFactory : public ControllerModuleFactory {
 public:
-  FCFSCachedTableWriteFactory()
-      : ControllerModuleFactory(ModuleType::Controller_FCFSCachedTableWrite,
-                                "FCFSCachedTableWrite") {}
+  FCFSCachedTableWriteFactory() : ControllerModuleFactory(ModuleType::Controller_FCFSCachedTableWrite, "FCFSCachedTableWrite") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

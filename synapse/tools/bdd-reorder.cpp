@@ -65,8 +65,7 @@ void list_candidates(const BDD *bdd, const anchor_info_t &anchor_info) {
   }
 }
 
-void apply_reordering_ops(const BDD *bdd,
-                          const std::vector<std::pair<anchor_info_t, node_id_t>> &ops) {
+void apply_reordering_ops(const BDD *bdd, const std::vector<std::pair<anchor_info_t, node_id_t>> &ops) {
   for (const std::pair<anchor_info_t, node_id_t> &op : ops) {
     anchor_info_t anchor_info = op.first;
     node_id_t candidate_id = op.second;

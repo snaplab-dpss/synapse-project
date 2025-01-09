@@ -44,8 +44,7 @@ struct call_path_t {
   Symbols symbols;
 };
 
-std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath,
-                                            SymbolManager *manager);
+std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, SymbolManager *manager);
 
 struct call_paths_view_t {
   std::vector<call_path_t *> data;

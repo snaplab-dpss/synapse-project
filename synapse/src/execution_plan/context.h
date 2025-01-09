@@ -85,8 +85,7 @@ private:
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
-  Context(const BDD *bdd, const TargetsView &targets, const toml::table &config,
-          const Profiler &profiler);
+  Context(const BDD *bdd, const TargetsView &targets, const toml::table &config, const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 
@@ -122,9 +121,9 @@ public:
 };
 } // namespace synapse
 
-#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                               \
-  namespace NAMESPACE {                                                                            \
-  class TARGET_CTX;                                                                                \
-  }                                                                                                \
-  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const; \
+#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                                       \
+  namespace NAMESPACE {                                                                                                                    \
+  class TARGET_CTX;                                                                                                                        \
+  }                                                                                                                                        \
+  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                                         \
   template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();

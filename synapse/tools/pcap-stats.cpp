@@ -199,27 +199,22 @@ void print_report(const report_t &report) {
   printf("End:                      %s\n", fmt_time_hh(report.end).c_str());
   printf("Duration:                 %s\n", fmt_time_duration_hh(report.start, report.end).c_str());
   printf("Total packets:            %s\n", fmt(report.total_pkts).c_str());
-  printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(),
-         (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
-  printf("Pkt sizes:                %.2f ± %.2f B\n", report.pkt_sizes_cdf.get_avg(),
-         report.pkt_sizes_cdf.get_stdev());
+  printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(), (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
+  printf("Pkt sizes:                %.2f ± %.2f B\n", report.pkt_sizes_cdf.get_avg(), report.pkt_sizes_cdf.get_stdev());
   printf("Pkt sizes CDF:\n");
   for (const auto &[size, prob] : report.pkt_sizes_cdf.get_cdf()) {
     printf("             %11lu: %.2lf\n", size, prob);
   }
   printf("Total flows:              %s\n", fmt(report.total_flows).c_str());
   printf("Total symmetric flows:    %s\n", fmt(report.total_symm_flows).c_str());
-  printf("Concurrent flows/epoch:   %s ± %s\n",
-         fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
+  printf("Concurrent flows/epoch:   %s ± %s\n", fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
          fmt(report.concurrent_flows_per_epoch.get_stdev()).c_str());
-  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(),
-         report.pkts_per_flow_cdf.get_stdev());
+  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(), report.pkts_per_flow_cdf.get_stdev());
   printf("Pkts/flow CDF:\n");
   for (const auto &[pkts, prob] : report.pkts_per_flow_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", pkts, prob);
   }
-  printf("Flow duration:            %s ± %s us\n",
-         fmt(report.flow_duration_us_cdf.get_avg()).c_str(),
+  printf("Flow duration:            %s ± %s us\n", fmt(report.flow_duration_us_cdf.get_avg()).c_str(),
          fmt(report.flow_duration_us_cdf.get_stdev()).c_str());
   printf("Flow duration CDF (us):\n");
   for (const auto &[duration, prob] : report.flow_duration_us_cdf.get_cdf()) {

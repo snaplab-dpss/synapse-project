@@ -6,8 +6,7 @@ namespace ctrl {
 using tofino::Table;
 
 namespace {
-void get_tb_data(const Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
-                 klee::ref<klee::Expr> &success) {
+void get_tb_data(const Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &success) {
   const call_t &call = tb_trace->get_call();
 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
@@ -20,8 +19,7 @@ void get_tb_data(const Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::
 }
 } // namespace
 
-std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const Node *node,
-                                                         const Context &ctx) const {
+std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -43,8 +41,7 @@ std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const Node *node,
-                                                     SymbolManager *symbol_manager) const {
+std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

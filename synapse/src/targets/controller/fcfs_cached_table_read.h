@@ -16,14 +16,12 @@ private:
   std::optional<symbol_t> found;
 
 public:
-  FCFSCachedTableRead(const Node *node, DS_ID _id, addr_t _obj,
-                      const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value,
-                      const std::optional<symbol_t> &_found)
-      : ControllerModule(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead", node),
-        id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
+  FCFSCachedTableRead(const Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+                      klee::ref<klee::Expr> _value, const std::optional<symbol_t> &_found)
+      : ControllerModule(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead", node), id(_id), obj(_obj), keys(_keys),
+        value(_value), found(_found) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -41,16 +39,12 @@ public:
 
 class FCFSCachedTableReadFactory : public ControllerModuleFactory {
 public:
-  FCFSCachedTableReadFactory()
-      : ControllerModuleFactory(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead") {
-  }
+  FCFSCachedTableReadFactory() : ControllerModuleFactory(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

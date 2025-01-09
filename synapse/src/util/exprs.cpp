@@ -20,8 +20,7 @@ private:
   std::vector<std::string> allowed_symbols;
 
 public:
-  ExpressionFilter(const std::vector<std::string> &_allowed_symbols)
-      : ExprVisitor(true), allowed_symbols(_allowed_symbols) {}
+  ExpressionFilter(const std::vector<std::string> &_allowed_symbols) : ExprVisitor(true), allowed_symbols(_allowed_symbols) {}
 
   expr_info_t check_symbols(klee::ref<klee::Expr> expr) const {
     expr_info_t info{false, false};
@@ -43,8 +42,7 @@ public:
 
   // Acts only if either lhs or rhs has **only** allowed symbols, while the
   // other has not allowed symbols. Returns the expression with allowed symbols.
-  klee::ref<klee::Expr> pick_filtered_expression(klee::ref<klee::Expr> lhs,
-                                                 klee::ref<klee::Expr> rhs) const {
+  klee::ref<klee::Expr> pick_filtered_expression(klee::ref<klee::Expr> lhs, klee::ref<klee::Expr> rhs) const {
     expr_info_t lhs_info = check_symbols(lhs);
     expr_info_t rhs_info = check_symbols(rhs);
 
@@ -205,8 +203,7 @@ bool is_bool(klee::ref<klee::Expr> expr) {
     return true;
   }
 
-  if (expr->getKind() == klee::Expr::ZExt || expr->getKind() == klee::Expr::SExt ||
-      expr->getKind() == klee::Expr::Not) {
+  if (expr->getKind() == klee::Expr::ZExt || expr->getKind() == klee::Expr::SExt || expr->getKind() == klee::Expr::Not) {
     return is_bool(expr->getKid(0));
   }
 
@@ -214,11 +211,9 @@ bool is_bool(klee::ref<klee::Expr> expr) {
     return is_bool(expr->getKid(0)) && is_bool(expr->getKid(1));
   }
 
-  return expr->getKind() == klee::Expr::Eq || expr->getKind() == klee::Expr::Uge ||
-         expr->getKind() == klee::Expr::Ugt || expr->getKind() == klee::Expr::Ule ||
-         expr->getKind() == klee::Expr::Ult || expr->getKind() == klee::Expr::Sge ||
-         expr->getKind() == klee::Expr::Sgt || expr->getKind() == klee::Expr::Sle ||
-         expr->getKind() == klee::Expr::Slt;
+  return expr->getKind() == klee::Expr::Eq || expr->getKind() == klee::Expr::Uge || expr->getKind() == klee::Expr::Ugt ||
+         expr->getKind() == klee::Expr::Ule || expr->getKind() == klee::Expr::Ult || expr->getKind() == klee::Expr::Sge ||
+         expr->getKind() == klee::Expr::Sgt || expr->getKind() == klee::Expr::Sle || expr->getKind() == klee::Expr::Slt;
 }
 
 bool is_constant(klee::ref<klee::Expr> expr) {
@@ -280,15 +275,12 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
 }
 
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) {
-  auto found_it =
-      std::find_if(constraints.begin(), constraints.end(), [&](klee::ref<klee::Expr> e) {
-        return solver_toolbox.are_exprs_always_equal(e, expr);
-      });
+  auto found_it = std::find_if(constraints.begin(), constraints.end(),
+                               [&](klee::ref<klee::Expr> e) { return solver_toolbox.are_exprs_always_equal(e, expr); });
   return found_it != constraints.end();
 }
 
-klee::ConstraintManager join_managers(const klee::ConstraintManager &m1,
-                                      const klee::ConstraintManager &m2) {
+klee::ConstraintManager join_managers(const klee::ConstraintManager &m1, const klee::ConstraintManager &m2) {
   klee::ConstraintManager m;
 
   for (klee::ref<klee::Expr> c : m1) {
@@ -352,8 +344,7 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
   case klee::Expr::SDiv:
   case klee::Expr::URem:
   case klee::Expr::SRem:
-    constraint = solver_toolbox.exprBuilder->Ne(
-        expr, solver_toolbox.exprBuilder->Constant(0, expr->getWidth()));
+    constraint = solver_toolbox.exprBuilder->Ne(expr, solver_toolbox.exprBuilder->Constant(0, expr->getWidth()));
     break;
   default:
     panic("TODO: Constraint from expr");
@@ -362,8 +353,7 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr) {
   return constraint;
 }
 
-klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr,
-                             const std::vector<std::string> &allowed_symbols) {
+klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::string> &allowed_symbols) {
   ExpressionFilter filter(allowed_symbols);
 
   expr_info_t data = filter.check_symbols(expr);
@@ -388,11 +378,9 @@ std::vector<mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee:
     bits_t msb_width = after->getKid(0)->getWidth();
     bits_t lsb_width = after->getWidth() - msb_width;
 
-    std::vector<mod_t> msb_groups = build_expr_mods(
-        solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
+    std::vector<mod_t> msb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
 
-    std::vector<mod_t> lsb_groups = build_expr_mods(
-        solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
+    std::vector<mod_t> lsb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
 
     std::vector<mod_t> &groups = lsb_groups;
 
@@ -431,8 +419,7 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
     unsigned byte = index_const->getZExtValue();
 
-    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol &&
-        groups.back().offset - 1 == byte) {
+    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol && groups.back().offset - 1 == byte) {
       groups.back().size++;
       groups.back().offset = byte;
       groups.back().expr = concat_lsb(groups.back().expr, read_expr);
@@ -485,13 +472,11 @@ std::size_t symbolic_read_hash_t::operator()(const symbolic_read_t &s) const noe
   return hash_fn(s.symbol + std::to_string(s.offset));
 }
 
-bool symbolic_read_equal_t::operator()(const symbolic_read_t &a,
-                                       const symbolic_read_t &b) const noexcept {
+bool symbolic_read_equal_t::operator()(const symbolic_read_t &a, const symbolic_read_t &b) const noexcept {
   return a.symbol == b.symbol && a.offset == b.offset;
 }
 
-symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr,
-                                           std::optional<std::string> symbol_filter) {
+symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter) {
   SymbolicReadsRetriever retriever(symbol_filter);
   retriever.visit(expr);
   return retriever.get_symbolic_reads();

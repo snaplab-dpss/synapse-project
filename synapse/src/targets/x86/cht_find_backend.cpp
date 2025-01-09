@@ -19,8 +19,7 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep, const Node *node,
-                                                            const Context &ctx) const {
+std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return std::nullopt;
   }
@@ -38,8 +37,7 @@ std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep, const 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const Node *node,
-                                                        SymbolManager *symbol_manager) const {
+std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -64,8 +62,7 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const Node
   }
 
   symbol_t backend_found = call_node->get_local_symbol("prefered_backend_found");
-  Module *module = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity,
-                                      backend, backend_found);
+  Module *module = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

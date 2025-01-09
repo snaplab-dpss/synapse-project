@@ -25,8 +25,7 @@ private:
     var_t(const code_t &name, const symbol_t &symbol, bool _is_bool = false)
         : name(name), expr(symbol.expr), symbol(symbol), is_bool(_is_bool) {}
 
-    var_t(const code_t &name, klee::ref<klee::Expr> expr, bool _is_bool = false)
-        : name(name), expr(expr), is_bool(_is_bool) {}
+    var_t(const code_t &name, klee::ref<klee::Expr> expr, bool _is_bool = false) : name(name), expr(expr), is_bool(_is_bool) {}
 
     var_t(const var_t &other) = default;
     var_t(var_t &&other) = default;
@@ -52,8 +51,7 @@ public:
   void visit(const EP *ep) override final;
   void visit(const EP *ep, const EPNode *ep_node) override final;
 
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::SendToController *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::SendToController *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::Recirculate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::If *node) override final;
@@ -62,27 +60,17 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::Forward *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::Drop *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::Broadcast *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::ParserCondition *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::ParserExtraction *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::ParserReject *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::ParserCondition *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::ParserExtraction *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::ParserReject *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::ModifyHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const tofino::TableLookup *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::VectorRegisterLookup *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::VectorRegisterUpdate *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::FCFSCachedTableRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::FCFSCachedTableReadOrWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::FCFSCachedTableWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node,
-               const tofino::FCFSCachedTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableReadOrWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableDelete *node) override final;
 
 private:
   code_t slice_var(const var_t &var, unsigned offset, bits_t size) const;
@@ -95,19 +83,15 @@ private:
   vars_t get_squashed_hdrs() const;
 
   bool get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr, var_t &out_var) const;
-  code_t build_register_action_name(const EPNode *node, const Register *reg,
-                                    RegisterActionType action) const;
+  code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
   void transpile_parser(const Parser &parser);
-  code_t transpile_table_decl(indent_t lvl, const Table *table,
-                              const std::vector<klee::ref<klee::Expr>> &keys,
+  code_t transpile_table_decl(indent_t lvl, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
                               const std::vector<klee::ref<klee::Expr>> &values);
-  code_t transpile_register_decl(indent_t lvl, const Register *reg, klee::ref<klee::Expr> index,
-                                 klee::ref<klee::Expr> value);
+  code_t transpile_register_decl(indent_t lvl, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
   code_t transpile_register_read_action_decl(indent_t lvl, const Register *reg, const code_t &name);
-  code_t transpile_register_write_action_decl(indent_t lvl, const Register *reg, const code_t &name,
-                                              const var_t &write_value);
-  code_t transpile_fcfs_cached_table_decl(indent_t lvl, const FCFSCachedTable *fcfs_cached_table,
-                                          klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
+  code_t transpile_register_write_action_decl(indent_t lvl, const Register *reg, const code_t &name, const var_t &write_value);
+  code_t transpile_fcfs_cached_table_decl(indent_t lvl, const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key,
+                                          klee::ref<klee::Expr> value);
 
   void dbg_vars() const;
 

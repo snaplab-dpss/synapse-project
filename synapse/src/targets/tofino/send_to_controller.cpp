@@ -4,10 +4,9 @@ namespace synapse {
 namespace tofino {
 namespace {
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, const Node *&next) {
-  std::vector<const Call *> prev_borrows = node->get_prev_functions(
-      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const Call *> prev_returns = node->get_prev_functions(
-      {"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_borrows =
+      node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const Node *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
@@ -26,8 +25,7 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, c
 }
 } // namespace
 
-std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const Node *node,
-                                                              const Context &ctx) const {
+std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   Context new_ctx = ctx;
 
   hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
@@ -39,8 +37,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
   return spec_impl;
 }
 
-std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Node *node,
-                                                          SymbolManager *symbol_manager) const {
+std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   // We can always send to the controller, at any point in time.
@@ -71,12 +68,9 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const No
 
   // TODO: How do we recalculate the estimated throughput after a forwarding
   // decision is made?
-  assert((!ep->get_active_leaf().node ||
-          !forwarding_decision_already_made(ep->get_active_leaf().node)) &&
-         "TODO");
+  assert((!ep->get_active_leaf().node || !forwarding_decision_already_made(ep->get_active_leaf().node)) && "TODO");
 
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
-      get_node_egress(new_ep, s2c_node));
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(get_node_egress(new_ep, s2c_node));
 
   // FIXME: missing custom packet parsing for the SyNAPSE header.
 

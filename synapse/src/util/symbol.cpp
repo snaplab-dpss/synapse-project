@@ -68,9 +68,7 @@ std::size_t Symbols::symbol_hash_t::operator()(const symbol_t &s) const noexcept
   return hash_fn(s.name);
 }
 
-bool Symbols::symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept {
-  return a.name == b.name;
-}
+bool Symbols::symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept { return a.name == b.name; }
 
 void Symbols::add(const symbol_t &symbol) { data.insert(symbol); }
 

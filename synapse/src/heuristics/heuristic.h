@@ -17,8 +17,7 @@ private:
   bool stop_on_first_solution;
 
 public:
-  Heuristic(std::unique_ptr<HeuristicCfg> config, std::unique_ptr<EP> starting_ep,
-            bool stop_on_first_solution);
+  Heuristic(std::unique_ptr<HeuristicCfg> config, std::unique_ptr<EP> starting_ep, bool stop_on_first_solution);
   ~Heuristic();
 
   bool is_finished();

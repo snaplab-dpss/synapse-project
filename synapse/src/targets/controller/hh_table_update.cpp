@@ -31,12 +31,10 @@ symbol_t get_min_estimate(const EP *ep) {
 
   while (node) {
     if (node->get_module()->get_type() == ModuleType::Tofino_HHTableRead) {
-      const tofino::HHTableRead *hh_table_read =
-          dynamic_cast<const tofino::HHTableRead *>(node->get_module());
+      const tofino::HHTableRead *hh_table_read = dynamic_cast<const tofino::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
     } else if (node->get_module()->get_type() == ModuleType::Controller_HHTableRead) {
-      const ctrl::HHTableRead *hh_table_read =
-          dynamic_cast<const ctrl::HHTableRead *>(node->get_module());
+      const ctrl::HHTableRead *hh_table_read = dynamic_cast<const ctrl::HHTableRead *>(node->get_module());
       return hh_table_read->get_min_estimate();
     }
     node = node->get_prev();
@@ -48,8 +46,7 @@ symbol_t get_min_estimate(const EP *ep) {
 
 using tofino::Table;
 
-std::optional<spec_impl_t> HHTableUpdateFactory::speculate(const EP *ep, const Node *node,
-                                                           const Context &ctx) const {
+std::optional<spec_impl_t> HHTableUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -71,8 +68,7 @@ std::optional<spec_impl_t> HHTableUpdateFactory::speculate(const EP *ep, const N
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const Node *node,
-                                                       SymbolManager *symbol_manager) const {
+std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -96,8 +92,7 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const Node 
   symbol_t min_estimate = get_min_estimate(ep);
   table_data_t table_data(map_put);
 
-  Module *module = new HHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value,
-                                     min_estimate);
+  Module *module = new HHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value, min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -16,9 +16,8 @@
 using namespace synapse;
 
 const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
-    {"bfs", HeuristicOption::BFS},         {"dfs", HeuristicOption::DFS},
-    {"random", HeuristicOption::RANDOM},   {"gallium", HeuristicOption::GALLIUM},
-    {"greedy", HeuristicOption::GREEDY},   {"max-tput", HeuristicOption::MAX_TPUT},
+    {"bfs", HeuristicOption::BFS},         {"dfs", HeuristicOption::DFS},       {"random", HeuristicOption::RANDOM},
+    {"gallium", HeuristicOption::GALLIUM}, {"greedy", HeuristicOption::GREEDY}, {"max-tput", HeuristicOption::MAX_TPUT},
     {"ds-pref", HeuristicOption::DS_PREF},
 };
 
@@ -77,8 +76,7 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
   toml::table targets_config = parse_targets_config(targets_config_file);
-  Profiler profiler =
-      profile_file.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), profile_file);
+  Profiler profiler = profile_file.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), profile_file);
 
   if (show_prof) {
     profiler.debug();

@@ -13,13 +13,12 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRegisterLookup(const Node *node, const std::unordered_set<DS_ID> &_rids, addr_t _obj,
-                       klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node),
-        rids(_rids), obj(_obj), index(_index), value(_value) {}
+  VectorRegisterLookup(const Node *node, const std::unordered_set<DS_ID> &_rids, addr_t _obj, klee::ref<klee::Expr> _index,
+                       klee::ref<klee::Expr> _value)
+      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), rids(_rids), obj(_obj), index(_index),
+        value(_value) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep,
-                                  const EPNode *ep_node) const override {
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
@@ -38,15 +37,12 @@ public:
 
 class VectorRegisterLookupFactory : public TofinoModuleFactory {
 public:
-  VectorRegisterLookupFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup") {}
+  VectorRegisterLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node,
-                                               const Context &ctx) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
-                                           SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino
