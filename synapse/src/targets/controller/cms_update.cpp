@@ -9,14 +9,14 @@ std::optional<spec_impl_t> CMSUpdateFactory::speculate(const EP *ep, const Node 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
+  addr_t cms_addr                     = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
     return std::nullopt;
@@ -33,14 +33,14 @@ std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const Node *nod
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
     return impls;
   }
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
@@ -48,7 +48,7 @@ std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const Node *nod
     return impls;
   }
 
-  Module *module = new CMSUpdate(node, cms_addr, key);
+  Module *module  = new CMSUpdate(node, cms_addr, key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "nf_set_rte_ipv4_udptcp_checksum") {
     return false;
@@ -33,20 +33,20 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> ip_hdr_addr_expr = call.args.at("ip_header").expr;
   klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
-  klee::ref<klee::Expr> p = call.args.at("packet").expr;
+  klee::ref<klee::Expr> p                = call.args.at("packet").expr;
 
-  symbol_t checksum = call_node->get_local_symbol("checksum");
+  symbol_t checksum  = call_node->get_local_symbol("checksum");
   addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
   addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
+  Module *module  = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

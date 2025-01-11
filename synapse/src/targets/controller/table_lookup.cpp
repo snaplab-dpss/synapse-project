@@ -12,15 +12,15 @@ void table_data_from_map_op(const Call *call_node, addr_t &obj, std::vector<klee
   assert(call.function_name == "map_get" && "Not a map_get call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
 
   symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
-  obj = expr_addr_to_obj_addr(map_addr_expr);
-  keys = Table::build_keys(key);
+  obj    = expr_addr_to_obj_addr(map_addr_expr);
+  keys   = Table::build_keys(key);
   values = {value_out};
-  hit = map_has_this_key;
+  hit    = map_has_this_key;
 }
 
 void table_data_from_vector_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
@@ -31,25 +31,26 @@ void table_data_from_vector_op(const Call *call_node, addr_t &obj, std::vector<k
   assert(call.function_name == "vector_borrow" && "Not a vector_borrow call");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> cell = call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  klee::ref<klee::Expr> cell             = call.extra_vars.at("borrowed_cell").second;
 
-  obj = expr_addr_to_obj_addr(vector_addr_expr);
-  keys = {index};
+  obj    = expr_addr_to_obj_addr(vector_addr_expr);
+  keys   = {index};
   values = {cell};
 }
 
 void table_data_from_dchain_op(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
                                std::vector<klee::ref<klee::Expr>> &values, std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
-  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Not a dchain call");
+  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") &&
+         "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-  obj = dchain_addr;
+  obj  = dchain_addr;
   keys = {index};
 
   if (call.function_name == "dchain_is_index_allocated") {
@@ -118,7 +119,7 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  Module *module = new TableLookup(node, obj, keys, values, found);
+  Module *module  = new TableLookup(node, obj, keys, values, found);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -42,9 +42,9 @@ std::vector<bps_t> parse_recirculation_ports(const toml::table &config) {
 // min and max are inclusive
 hit_rate_t newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 min, u64 max) {
   hit_rate_t x = (min + max) / 2.0;
-  int it = 0;
+  int it       = 0;
 
-  hit_rate_t f = 0;
+  hit_rate_t f     = 0;
   hit_rate_t df_dx = 0;
 
   while (it < NEWTON_MAX_ITERATIONS) {
@@ -74,7 +74,8 @@ hit_rate_t newton_root_finder(const std::vector<hit_rate_t> &coefficients, u64 m
 
 port_ingress_t::port_ingress_t() : global(0), controller(0) {}
 
-port_ingress_t::port_ingress_t(const port_ingress_t &other) : global(other.global), controller(other.controller), recirc(other.recirc) {}
+port_ingress_t::port_ingress_t(const port_ingress_t &other)
+    : global(other.global), controller(other.controller), recirc(other.recirc) {}
 
 port_ingress_t::port_ingress_t(port_ingress_t &&other)
     : global(std::move(other.global)), controller(std::move(other.controller)), recirc(std::move(other.recirc)) {}
@@ -84,9 +85,9 @@ port_ingress_t &port_ingress_t::operator=(const port_ingress_t &other) {
     return *this;
   }
 
-  global = other.global;
+  global     = other.global;
   controller = other.controller;
-  recirc = other.recirc;
+  recirc     = other.recirc;
 
   return *this;
 }
@@ -157,9 +158,10 @@ hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
 }
 
 PerfOracle::PerfOracle(const toml::table &config, int _avg_pkt_bytes)
-    : front_panel_ports_capacities(parse_front_panel_ports(config)), recirculation_ports_capacities(parse_recirculation_ports(config)),
-      controller_capacity(*config["controller"]["capacity_pps"].value<pps_t>()), avg_pkt_bytes(_avg_pkt_bytes), unaccounted_ingress(1),
-      dropped_ingress(0) {
+    : front_panel_ports_capacities(parse_front_panel_ports(config)),
+      recirculation_ports_capacities(parse_recirculation_ports(config)),
+      controller_capacity(*config["controller"]["capacity_pps"].value<pps_t>()), avg_pkt_bytes(_avg_pkt_bytes),
+      unaccounted_ingress(1), dropped_ingress(0) {
   for (size_t port = 0; port < front_panel_ports_capacities.size(); port++) {
     ports_ingress[port] = port_ingress_t();
   }
@@ -189,15 +191,15 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
     return *this;
   }
 
-  front_panel_ports_capacities = other.front_panel_ports_capacities;
+  front_panel_ports_capacities   = other.front_panel_ports_capacities;
   recirculation_ports_capacities = other.recirculation_ports_capacities;
-  controller_capacity = other.controller_capacity;
-  avg_pkt_bytes = other.avg_pkt_bytes;
-  unaccounted_ingress = other.unaccounted_ingress;
-  ports_ingress = other.ports_ingress;
-  recirc_ports_ingress = other.recirc_ports_ingress;
-  controller_ingress = other.controller_ingress;
-  dropped_ingress = other.dropped_ingress;
+  controller_capacity            = other.controller_capacity;
+  avg_pkt_bytes                  = other.avg_pkt_bytes;
+  unaccounted_ingress            = other.unaccounted_ingress;
+  ports_ingress                  = other.ports_ingress;
+  recirc_ports_ingress           = other.recirc_ports_ingress;
+  controller_ingress             = other.controller_ingress;
+  dropped_ingress                = other.dropped_ingress;
 
   return *this;
 }
@@ -250,7 +252,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_in
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
   bps_t Tin = pps2bps(global_ingress * usage.global, avg_pkt_bytes);
-  bps_t Cr = recirculation_ports_capacities[port];
+  bps_t Cr  = recirculation_ports_capacities[port];
 
   if (Tin == 0) {
     return {0};
@@ -274,7 +276,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_in
     // s is relative to the first recirculation.
 
     hit_rate_t s = usage.get_hr_at_recirc_depth(1) / usage.global;
-    pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2;
+    pps_t Ts     = (-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2;
 
     Tout[0] = (Tin / (hit_rate_t)(Tin + Ts)) * Cr * (1.0 - s);
     Tout[1] = (Ts / (hit_rate_t)(Tin + Ts)) * Cr;
@@ -303,8 +305,8 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_in
     hit_rate_t d = -1.0 * Tin * Cr * s0;
 
     std::vector<hit_rate_t> Ts0_coefficients = {d, c, b, a};
-    hit_rate_t Ts0 = newton_root_finder(Ts0_coefficients, 0, Cr);
-    hit_rate_t Ts1 = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
+    hit_rate_t Ts0                           = newton_root_finder(Ts0_coefficients, 0, Cr);
+    hit_rate_t Ts1                           = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
 
     Tout[0] = (Tin / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
     Tout[1] = (Ts0 / (hit_rate_t)(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
@@ -359,7 +361,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   pps_t tput = 0;
 
   hit_rate_t unaccounted_controller_hr = controller_ingress.get_total_hr();
-  hit_rate_t total_controller_hr = controller_ingress.get_total_hr();
+  hit_rate_t total_controller_hr       = controller_ingress.get_total_hr();
 
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
     pps_t port_tput = ingress * port_ingress.global;

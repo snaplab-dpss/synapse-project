@@ -16,8 +16,8 @@ private:
 public:
   FCFSCachedTableWrite(const Node *node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
                        klee::ref<klee::Expr> _write_value, const symbol_t &_cache_write_failed)
-      : TofinoModule(ModuleType::Tofino_FCFSCachedTableWrite, "FCFSCachedTableWrite", node), cached_table_id(_cached_table_id), obj(_obj),
-        key(_key), write_value(_write_value), cache_write_failed(_cache_write_failed) {}
+      : TofinoModule(ModuleType::Tofino_FCFSCachedTableWrite, "FCFSCachedTableWrite", node), cached_table_id(_cached_table_id),
+        obj(_obj), key(_key), write_value(_write_value), cache_write_failed(_cache_write_failed) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

@@ -9,7 +9,7 @@ std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const Node 
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Broadcast) {
     return std::nullopt;
@@ -26,13 +26,13 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const Node *nod
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Broadcast) {
     return impls;
   }
 
-  Module *module = new Broadcast(node);
+  Module *module  = new Broadcast(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

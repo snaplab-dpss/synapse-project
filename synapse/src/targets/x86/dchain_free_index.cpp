@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_free_index") {
     return false;
@@ -25,10 +25,10 @@ std::optional<spec_impl_t> DchainFreeIndexFactory::speculate(const EP *ep, const
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+  addr_t dchain_addr                     = expr_addr_to_obj_addr(dchain_addr_expr);
 
   if (!ctx.can_impl_ds(dchain_addr, DSImpl::x86_DoubleChain)) {
     return std::nullopt;
@@ -45,10 +45,10 @@ std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep, const Nod
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
@@ -56,7 +56,7 @@ std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep, const Nod
     return impls;
   }
 
-  Module *module = new DchainFreeIndex(node, dchain_addr, index);
+  Module *module  = new DchainFreeIndex(node, dchain_addr, index);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

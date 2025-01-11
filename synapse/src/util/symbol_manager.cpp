@@ -21,7 +21,7 @@ public:
     klee::UpdateList updates = e.updates;
     const klee::Array *array = updates.root;
 
-    auto names_it = names.find(updates.root->name);
+    auto names_it   = names.find(updates.root->name);
     bool is_unknown = (names_it == names.end() || names_it->second != array);
     found_unknown_array &= is_unknown;
 
@@ -44,7 +44,7 @@ public:
       : klee::ExprVisitor::ExprVisitor(true) {
     for (const auto &[old_name, new_name] : _translations) {
       const symbol_t &old = manager->get_symbol(old_name);
-      bits_t size = old.expr->getWidth();
+      bits_t size         = old.expr->getWidth();
       manager->create_symbol(new_name, size);
       translations.insert({old_name, manager->get_array(new_name)});
     }
@@ -62,8 +62,8 @@ public:
   }
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
-    klee::UpdateList ul = e.updates;
-    const klee::Array *root = ul.root;
+    klee::UpdateList ul       = e.updates;
+    const klee::Array *root   = ul.root;
     auto found_translation_it = translations.find(root->name);
 
     if (found_translation_it != translations.end()) {
@@ -141,8 +141,8 @@ symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
   }
 
   const klee::Expr::Width domain = klee::Expr::Int32;
-  const klee::Expr::Width range = klee::Expr::Int8;
-  const klee::Array *array = cache.CreateArray(name, size / 8, nullptr, nullptr, domain, range);
+  const klee::Expr::Width range  = klee::Expr::Int8;
+  const klee::Array *array       = cache.CreateArray(name, size / 8, nullptr, nullptr, domain, range);
 
   const klee::UpdateList updates(array, nullptr);
   const bytes_t width = array->size;
@@ -178,7 +178,8 @@ bool SymbolManager::manages(klee::ref<klee::Expr> expr) const {
   return !array_checker.has_unknown_arrays();
 }
 
-klee::ref<klee::Expr> SymbolManager::translate(klee::ref<klee::Expr> expr, std::unordered_map<std::string, std::string> translations) {
+klee::ref<klee::Expr> SymbolManager::translate(klee::ref<klee::Expr> expr,
+                                               std::unordered_map<std::string, std::string> translations) {
   SymbolRenamer renamer(this, translations);
   return renamer.rename(expr);
 }

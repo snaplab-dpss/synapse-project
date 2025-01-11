@@ -17,8 +17,8 @@ private:
 public:
   MeterUpdate(const Node *node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
               klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _hit, klee::ref<klee::Expr> _pass)
-      : TofinoModule(ModuleType::Tofino_MeterUpdate, "MeterUpdate", node), table_id(_table_id), obj(_obj), keys(_keys), pkt_len(_pkt_len),
-        hit(_hit), pass(_pass) {}
+      : TofinoModule(ModuleType::Tofino_MeterUpdate, "MeterUpdate", node), table_id(_table_id), obj(_obj), keys(_keys),
+        pkt_len(_pkt_len), hit(_hit), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

@@ -16,8 +16,8 @@ public:
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
     klee::ref<klee::ReadExpr> expr = const_cast<klee::ReadExpr *>(&e);
-    const klee::UpdateList &ul = e.updates;
-    const klee::Array *root = ul.root;
+    const klee::UpdateList &ul     = e.updates;
+    const klee::Array *root        = ul.root;
     names.insert(root->name);
     return klee::ExprVisitor::Action::doChildren();
   }

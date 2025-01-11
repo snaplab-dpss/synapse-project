@@ -119,10 +119,10 @@ class TBExpire;
 
 class EPVisitor {
 public:
-  EPVisitor() = default;
+  EPVisitor()                  = default;
   EPVisitor(const EPVisitor &) = default;
-  EPVisitor(EPVisitor &&) = default;
-  virtual ~EPVisitor() = default;
+  EPVisitor(EPVisitor &&)      = default;
+  virtual ~EPVisitor()         = default;
 
   enum class Action { skipChildren, doChildren };
   virtual void visit(const EP *);
@@ -149,15 +149,25 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableReadOrWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableReadOrWrite *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::MeterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableConditionalUpdate *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::IntegerAllocatorRejuvenate *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::IntegerAllocatorAllocate *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::IntegerAllocatorIsAllocated *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableConditionalUpdate *m) {
+    return Action::doChildren;
+  }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::IntegerAllocatorRejuvenate *m) {
+    return Action::doChildren;
+  }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::IntegerAllocatorAllocate *m) {
+    return Action::doChildren;
+  }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::IntegerAllocatorIsAllocated *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::CMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const tofino::CMSIncAndQuery *m) { return Action::doChildren; }
@@ -196,7 +206,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::FCFSCachedTableWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::FCFSCachedTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::HHTableRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::HHTableConditionalUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::HHTableConditionalUpdate *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::HHTableUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::HHTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::TBIsTracing *m) { return Action::doChildren; }
@@ -204,7 +216,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::TBUpdateAndCheck *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::TBExpire *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::MeterInsert *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::IntegerAllocatorFreeIndex *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::IntegerAllocatorFreeIndex *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::CMSUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::CMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const ctrl::CMSIncrement *m) { return Action::doChildren; }
@@ -225,7 +239,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ModifyHeader *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMap *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMapIteratively *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMapIteratively *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainRejuvenateIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorWrite *m) { return Action::doChildren; }

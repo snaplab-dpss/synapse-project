@@ -22,11 +22,14 @@ std::string stringify_score(const Score &score) {
   return score_str;
 }
 
-bool should_highlight(const SSNode *ssnode, const std::set<ep_id_t> &highlight) { return highlight.find(ssnode->ep_id) != highlight.end(); }
+bool should_highlight(const SSNode *ssnode, const std::set<ep_id_t> &highlight) {
+  return highlight.find(ssnode->ep_id) != highlight.end();
+}
 
 std::string bold(const std::string &str) { return "<b>" + str + "</b>"; }
 
-void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, const SSNode *ssnode, const std::set<ep_id_t> &highlight) {
+void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, const SSNode *ssnode,
+                       const std::set<ep_id_t> &highlight) {
   const std::string &target_color = node_colors.at(ssnode->target);
 
   auto indent = [&ss](int lvl) { ss << std::string(lvl, '\t'); };
@@ -192,7 +195,7 @@ void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, c
 }
 
 void visit_links(std::stringstream &ss, const SSNode *ssnode) {
-  ss_node_id_t node_id = ssnode->node_id;
+  ss_node_id_t node_id                  = ssnode->node_id;
   const std::vector<SSNode *> &children = ssnode->children;
 
   for (const SSNode *child : children) {

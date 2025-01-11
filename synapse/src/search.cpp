@@ -38,7 +38,7 @@ struct search_step_report_t {
 
 void log_search_iteration(const search_step_report_t &report, const search_meta_t &search_meta) {
   TargetType platform = report.chosen->get_active_target();
-  const EPMeta &meta = report.chosen->get_meta();
+  const EPMeta &meta  = report.chosen->get_meta();
 
   std::cerr << "\n";
   std::cerr << "==========================================================\n";
@@ -96,7 +96,8 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "==========================================================\n";
 }
 
-void peek_search_space(const std::vector<impl_t> &new_implementations, const std::vector<ep_id_t> &peek, SearchSpace *search_space) {
+void peek_search_space(const std::vector<impl_t> &new_implementations, const std::vector<ep_id_t> &peek,
+                       SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
     if (std::find(peek.begin(), peek.end(), impl.result->get_id()) != peek.end()) {
       std::cerr << "\n";
@@ -117,8 +118,8 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
   }
 }
 
-std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, std::shared_ptr<BDD> bdd, const Targets &targets,
-                                           const toml::table &targets_config, const Profiler &profiler) {
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, std::shared_ptr<BDD> bdd,
+                                           const Targets &targets, const toml::table &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
 
   switch (hopt) {
@@ -155,8 +156,9 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 
 SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler, const toml::table &_targets_config,
                            const search_config_t &_search_config)
-    : targets_config(_targets_config), search_config(_search_config), bdd(std::make_shared<BDD>(*_bdd)), targets(Targets(_targets_config)),
-      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
+    : targets_config(_targets_config), search_config(_search_config), bdd(std::make_shared<BDD>(*_bdd)),
+      targets(Targets(_targets_config)), profiler(_profiler),
+      heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
   auto start_search = std::chrono::steady_clock::now();
@@ -167,10 +169,10 @@ search_report_t SearchEngine::search() {
   std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   bdd->get_root()->visit_nodes([this, &meta, &node_depth](const Node *node) {
-    node_id_t id = node->get_id();
+    node_id_t id                   = node->get_id();
     meta.avg_children_per_node[id] = 0;
-    meta.visits_per_node[id] = 0;
-    node_depth[id] = this->bdd->get_node_depth(id);
+    meta.visits_per_node[id]       = 0;
+    node_depth[id]                 = this->bdd->get_node_depth(id);
     return NodeVisitAction::Continue;
   });
 
@@ -194,7 +196,7 @@ search_report_t SearchEngine::search() {
     search_step_report_t report(ep.get(), node);
 
     double &avg_node_children = meta.avg_children_per_node[node->get_id()];
-    int &node_visits = meta.visits_per_node[node->get_id()];
+    int &node_visits          = meta.visits_per_node[node->get_id()];
 
     std::vector<impl_t> new_implementations;
 
@@ -231,9 +233,9 @@ search_report_t SearchEngine::search() {
       }
     }
 
-    meta.ss_size = search_space->get_size();
+    meta.ss_size        = search_space->get_size();
     meta.unfinished_eps = heuristic->unfinished_size();
-    meta.finished_eps = heuristic->finished_size();
+    meta.finished_eps   = heuristic->finished_size();
 
     log_search_iteration(report, meta);
     peek_search_space(new_implementations, search_config.peek, search_space.get());
@@ -241,14 +243,14 @@ search_report_t SearchEngine::search() {
     heuristic->add(std::move(new_implementations));
   }
 
-  meta.ss_size = search_space->get_size();
+  meta.ss_size        = search_space->get_size();
   meta.unfinished_eps = heuristic->unfinished_size();
-  meta.finished_eps = heuristic->finished_size();
+  meta.finished_eps   = heuristic->finished_size();
 
   std::unique_ptr<const EP> winner = heuristic->pop_best_finished();
-  Score score = heuristic->get_score(winner.get());
-  std::string tput_estimation = SearchSpace::build_meta_tput_estimate(winner.get());
-  std::string tput_speculation = SearchSpace::build_meta_tput_speculation(winner.get());
+  Score score                      = heuristic->get_score(winner.get());
+  std::string tput_estimation      = SearchSpace::build_meta_tput_estimate(winner.get());
+  std::string tput_speculation     = SearchSpace::build_meta_tput_speculation(winner.get());
 
   search_report_t report{
       heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, tput_estimation, tput_speculation, meta,

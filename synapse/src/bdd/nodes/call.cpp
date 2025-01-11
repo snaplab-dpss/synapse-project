@@ -11,7 +11,7 @@ Node *Call::clone(NodeManager &manager, bool recursive) const {
 
   if (recursive && next) {
     Node *next_clone = next->clone(manager, true);
-    clone = new Call(id, next_clone, nullptr, constraints, symbol_manager, call, generated_symbols);
+    clone            = new Call(id, next_clone, nullptr, constraints, symbol_manager, call, generated_symbols);
     next_clone->set_prev(clone);
   } else {
     clone = new Call(id, constraints, symbol_manager, call, generated_symbols);
@@ -78,10 +78,10 @@ bool Call::is_vector_read() const {
   std::vector<const Call *> vector_returns;
 
   if (call.function_name == "vector_borrow") {
-    vector_borrow = this;
+    vector_borrow  = this;
     vector_returns = get_vector_returns_from_borrow();
   } else if (call.function_name == "vector_return") {
-    vector_borrow = get_vector_borrow_from_return();
+    vector_borrow  = get_vector_borrow_from_return();
     vector_returns = {this};
   } else {
     return false;
@@ -113,10 +113,10 @@ bool Call::is_vector_write() const {
   std::vector<const Call *> vector_returns;
 
   if (call.function_name == "vector_borrow") {
-    vector_borrow = this;
+    vector_borrow  = this;
     vector_returns = get_vector_returns_from_borrow();
   } else if (call.function_name == "vector_return") {
-    vector_borrow = get_vector_borrow_from_return();
+    vector_borrow  = get_vector_borrow_from_return();
     vector_returns = {this};
   } else {
     return false;
@@ -150,12 +150,12 @@ std::vector<const Call *> Call::get_vector_returns_from_borrow() const {
     return vector_returns;
   }
 
-  addr_t vector = expr_addr_to_obj_addr(call.args.at("vector").expr);
+  addr_t vector               = expr_addr_to_obj_addr(call.args.at("vector").expr);
   klee::ref<klee::Expr> index = call.args.at("index").expr;
 
   for (const Call *vector_return : get_future_functions({"vector_return"})) {
-    const call_t &vr = vector_return->get_call();
-    addr_t vr_vector = expr_addr_to_obj_addr(vr.args.at("vector").expr);
+    const call_t &vr               = vector_return->get_call();
+    addr_t vr_vector               = expr_addr_to_obj_addr(vr.args.at("vector").expr);
     klee::ref<klee::Expr> vr_index = vr.args.at("index").expr;
 
     if (vr_vector == vector && solver_toolbox.are_exprs_always_equal(vr_index, index)) {
@@ -171,14 +171,14 @@ const Call *Call::get_vector_borrow_from_return() const {
     return nullptr;
   }
 
-  addr_t vector = expr_addr_to_obj_addr(call.args.at("vector").expr);
+  addr_t vector               = expr_addr_to_obj_addr(call.args.at("vector").expr);
   klee::ref<klee::Expr> index = call.args.at("index").expr;
 
   const Call *target_vector_borrow = nullptr;
 
   for (const Call *vector_borrow : get_prev_functions({"vector_borrow"})) {
-    const call_t &vb = vector_borrow->get_call();
-    addr_t vb_vector = expr_addr_to_obj_addr(vb.args.at("vector").expr);
+    const call_t &vb               = vector_borrow->get_call();
+    addr_t vb_vector               = expr_addr_to_obj_addr(vb.args.at("vector").expr);
     klee::ref<klee::Expr> vb_index = vb.args.at("index").expr;
 
     if (vb_vector == vector && solver_toolbox.are_exprs_always_equal(vb_index, index)) {
@@ -204,7 +204,7 @@ bool Call::is_vector_borrow_value_ignored() const {
   }
 
   symbol_t value = get_local_symbol("vector_data_reset");
-  bool used = false;
+  bool used      = false;
 
   next->visit_nodes([&value, &used](const Node *node) {
     for (const symbol_t &symbol : node->get_used_symbols().get()) {
@@ -229,7 +229,7 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     return index_alloc_check;
   }
 
-  symbol_t out_of_space = get_local_symbol("out_of_space");
+  symbol_t out_of_space       = get_local_symbol("out_of_space");
   Symbols freed_flows_symbols = symbol_manager->get_symbols_with_base("number_of_freed_flows");
   assert(freed_flows_symbols.size() <= 1 && "Multiple number_of_freed_flows symbols");
 
@@ -244,8 +244,8 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
       return NodeVisitAction::Continue;
     }
 
-    const Branch *branch = dynamic_cast<const Branch *>(node);
-    const klee::ref<klee::Expr> condition = branch->get_condition();
+    const Branch *branch                       = dynamic_cast<const Branch *>(node);
+    const klee::ref<klee::Expr> condition      = branch->get_condition();
     const std::unordered_set<std::string> used = symbol_t::get_symbols_names(condition);
 
     for (const std::string &name : used) {
@@ -264,17 +264,18 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
 
     if (!freed_flows_symbols.empty()) {
       klee::ref<klee::Expr> freed_flows = freed_flows_symbols.get().begin()->expr;
-      success_condition = solver_toolbox.exprBuilder->Or(
-          success_condition, solver_toolbox.exprBuilder->Ne(freed_flows, solver_toolbox.exprBuilder->Constant(0, freed_flows->getWidth())));
+      success_condition                 = solver_toolbox.exprBuilder->Or(
+          success_condition,
+          solver_toolbox.exprBuilder->Ne(freed_flows, solver_toolbox.exprBuilder->Constant(0, freed_flows->getWidth())));
     }
 
     assert(index_alloc_check.branch->get_on_true() && "No on_true");
     assert(index_alloc_check.branch->get_on_false() && "No on_false");
 
-    const Node *on_true = index_alloc_check.branch->get_on_true();
+    const Node *on_true  = index_alloc_check.branch->get_on_true();
     const Node *on_false = index_alloc_check.branch->get_on_false();
 
-    bool success_on_true = solver_toolbox.is_expr_always_true(on_true->get_constraints(), success_condition);
+    bool success_on_true  = solver_toolbox.is_expr_always_true(on_true->get_constraints(), success_condition);
     bool success_on_false = solver_toolbox.is_expr_always_true(on_false->get_constraints(), success_condition);
 
     assert((success_on_true || success_on_false) && "No branch side is successful");
@@ -293,27 +294,28 @@ branch_direction_t Call::get_map_get_success_check() const {
     return success_check;
   }
 
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  symbol_t map_has_this_key = get_local_symbol("map_has_this_key");
-  klee::ref<klee::Expr> key_not_found_cond =
-      solver_toolbox.exprBuilder->Eq(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+  klee::ref<klee::Expr> key                = call.args.at("key").in;
+  symbol_t map_has_this_key                = get_local_symbol("map_has_this_key");
+  klee::ref<klee::Expr> key_not_found_cond = solver_toolbox.exprBuilder->Eq(
+      map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   visit_nodes([&success_check, key_not_found_cond](const Node *node) {
     if (node->get_type() != NodeType::Branch) {
       return NodeVisitAction::Continue;
     }
 
-    const Branch *branch = dynamic_cast<const Branch *>(node);
+    const Branch *branch            = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch->get_condition();
 
     bool is_key_not_found_cond = solver_toolbox.are_exprs_always_equal(condition, key_not_found_cond);
-    bool is_not_key_not_found_cond = solver_toolbox.are_exprs_always_equal(solver_toolbox.exprBuilder->Not(condition), key_not_found_cond);
+    bool is_not_key_not_found_cond =
+        solver_toolbox.are_exprs_always_equal(solver_toolbox.exprBuilder->Not(condition), key_not_found_cond);
 
     if (!is_key_not_found_cond && !is_not_key_not_found_cond) {
       return NodeVisitAction::SkipChildren;
     }
 
-    success_check.branch = branch;
+    success_check.branch    = branch;
     success_check.direction = !is_key_not_found_cond;
 
     return NodeVisitAction::Stop;
@@ -367,13 +369,13 @@ bool Call::is_map_get_followed_by_map_puts_on_miss(std::vector<const Call *> &ma
   }
 
   klee::ref<klee::Expr> obj_expr = mg_call.args.at("map").expr;
-  klee::ref<klee::Expr> key = mg_call.args.at("key").in;
+  klee::ref<klee::Expr> key      = mg_call.args.at("key").in;
 
-  addr_t obj = expr_addr_to_obj_addr(obj_expr);
+  addr_t obj                = expr_addr_to_obj_addr(obj_expr);
   symbol_t map_has_this_key = get_local_symbol("map_has_this_key");
 
-  klee::ref<klee::Expr> failed_map_get =
-      solver_toolbox.exprBuilder->Eq(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+  klee::ref<klee::Expr> failed_map_get = solver_toolbox.exprBuilder->Eq(
+      map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
   std::vector<const Call *> future_map_puts = get_future_functions({"map_put"});
 
@@ -383,7 +385,7 @@ bool Call::is_map_get_followed_by_map_puts_on_miss(std::vector<const Call *> &ma
     assert(mp_call.function_name == "map_put" && "Unexpected function");
 
     klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
-    klee::ref<klee::Expr> mp_key = mp_call.args.at("key").in;
+    klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
     klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
 
     addr_t map = expr_addr_to_obj_addr(map_expr);

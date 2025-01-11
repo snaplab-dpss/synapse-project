@@ -10,7 +10,8 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If(const Node *node, klee::ref<klee::Expr> _condition) : ControllerModule(ModuleType::Controller_If, "If", node), condition(_condition) {}
+  If(const Node *node, klee::ref<klee::Expr> _condition)
+      : ControllerModule(ModuleType::Controller_If, "If", node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

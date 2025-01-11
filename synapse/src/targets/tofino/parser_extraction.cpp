@@ -9,7 +9,7 @@ std::optional<spec_impl_t> ParserExtractionFactory::speculate(const EP *ep, cons
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
     return std::nullopt;
@@ -26,15 +26,15 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const No
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
     return impls;
   }
 
   klee::ref<klee::Expr> hdr_addr_expr = call.args.at("chunk").out;
-  klee::ref<klee::Expr> hdr = call.extra_vars.at("the_chunk").second;
-  klee::ref<klee::Expr> length_expr = call.args.at("length").expr;
+  klee::ref<klee::Expr> hdr           = call.extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> length_expr   = call.args.at("length").expr;
 
   // Relevant for IPv4 options, but left for future work.
   assert(!call_node->is_hdr_parse_with_var_len() && "Not implemented");
@@ -42,7 +42,7 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const No
 
   addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);
 
-  Module *module = new ParserExtraction(node, hdr_addr, hdr, length);
+  Module *module  = new ParserExtraction(node, hdr_addr, hdr, length);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

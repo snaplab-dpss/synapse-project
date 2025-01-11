@@ -9,7 +9,7 @@ std::optional<spec_impl_t> ChecksumUpdateFactory::speculate(const EP *ep, const 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "nf_set_rte_ipv4_udptcp_checksum") {
     return std::nullopt;
@@ -26,7 +26,7 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "nf_set_rte_ipv4_udptcp_checksum") {
     return impls;
@@ -34,7 +34,7 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node
 
   klee::ref<klee::Expr> ip_hdr_addr_expr = call.args.at("ip_header").expr;
   klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
-  klee::ref<klee::Expr> p = call.args.at("packet").expr;
+  klee::ref<klee::Expr> p                = call.args.at("packet").expr;
 
   symbol_t checksum = call_node->get_local_symbol("checksum");
 
@@ -44,7 +44,7 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
+  Module *module  = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

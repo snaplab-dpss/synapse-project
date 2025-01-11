@@ -106,7 +106,7 @@ inline std::string fmt(double d) {
 inline std::string fmt_time_hh(time_ns_t ns) {
   std::stringstream ss;
 
-  time_s_t seconds = ns / BILLION;
+  time_s_t seconds       = ns / BILLION;
   time_us_t microseconds = (ns % BILLION) / THOUSAND;
 
   std::chrono::seconds sec(seconds);
@@ -115,7 +115,7 @@ inline std::string fmt_time_hh(time_ns_t ns) {
   std::chrono::system_clock::time_point time_point = std::chrono::system_clock::time_point(sec) + microsec;
 
   std::time_t time = std::chrono::system_clock::to_time_t(time_point);
-  std::tm utc_tm = *std::gmtime(&time);
+  std::tm utc_tm   = *std::gmtime(&time);
 
   ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6) << std::setfill('0') << microseconds << " UTC";
 
@@ -125,10 +125,10 @@ inline std::string fmt_time_hh(time_ns_t ns) {
 inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
   std::stringstream ss;
 
-  time_s_t start_seconds = start / BILLION;
+  time_s_t start_seconds       = start / BILLION;
   time_us_t start_microseconds = (start % BILLION) / THOUSAND;
 
-  time_s_t end_seconds = end / BILLION;
+  time_s_t end_seconds       = end / BILLION;
   time_us_t end_microseconds = (end % BILLION) / THOUSAND;
 
   std::chrono::system_clock::time_point start_time =
@@ -190,9 +190,9 @@ inline void compute_ip_checksum(ipv4_hdr_t *ip_hdr) {
 
 /* set tcp checksum: given IP header and UDP datagram */
 inline void compute_udp_checksum(ipv4_hdr_t *ip_hdr, u16 *ipPayload) {
-  unsigned long sum = 0;
+  unsigned long sum  = 0;
   udp_hdr_t *udp_hdr = (udp_hdr_t *)(ipPayload);
-  u16 udpLen = htons(udp_hdr->len);
+  u16 udpLen         = htons(udp_hdr->len);
   // printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~udp len=%dn", udpLen);
   // add the pseudo header
   // printf("add pseudo headern");
@@ -232,8 +232,8 @@ inline void compute_udp_checksum(ipv4_hdr_t *ip_hdr, u16 *ipPayload) {
 }
 
 inline bool parse_etheraddr(const char *str, struct ether_addr_t *addr) {
-  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0, addr->addr_bytes + 1, addr->addr_bytes + 2,
-                addr->addr_bytes + 3, addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
+  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0, addr->addr_bytes + 1,
+                addr->addr_bytes + 2, addr->addr_bytes + 3, addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
 inline bool parse_ipv4addr(const char *str, u32 *addr) {
@@ -276,7 +276,7 @@ public:
       : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX), generator(std::bind(random_dist, gen)) {}
 
   RandomEngine(const RandomEngine &) = delete;
-  RandomEngine(RandomEngine &&) = delete;
+  RandomEngine(RandomEngine &&)      = delete;
 
   RandomEngine &operator=(const RandomEngine &) = delete;
 
@@ -303,7 +303,7 @@ public:
       : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX), generator(std::bind(random_dist, gen)) {}
 
   RandomRealEngine(const RandomRealEngine &) = delete;
-  RandomRealEngine(RandomRealEngine &&) = delete;
+  RandomRealEngine(RandomRealEngine &&)      = delete;
 
   RandomRealEngine &operator=(const RandomRealEngine &) = delete;
 
@@ -364,10 +364,10 @@ public:
       return false;
     }
 
-    pkt = data;
-    hdrs_len = 0;
+    pkt       = data;
+    hdrs_len  = 0;
     total_len = header->len + CRC_SIZE_BYTES;
-    ts = header->ts.tv_sec * 1'000'000'000 + header->ts.tv_usec * 1'000;
+    ts        = header->ts.tv_sec * 1'000'000'000 + header->ts.tv_usec * 1'000;
 
     if (assume_ip) {
       total_len += sizeof(ether_hdr_t);
@@ -459,7 +459,7 @@ private:
       total_pkts++;
 
       if (!set_start) {
-        start = ts;
+        start     = ts;
         set_start = true;
       }
 
@@ -499,7 +499,7 @@ public:
   const std::string &get_output_fname() const { return output_fname; }
 
   void write(const u_char *pkt, u16 hdrs_len, u16 total_len, time_ns_t ts) {
-    time_s_t sec = ts / 1'000'000'000;
+    time_s_t sec   = ts / 1'000'000'000;
     time_us_t usec = (ts % 1'000'000'000) / 1'000;
     pcap_pkthdr pcap_hdr{{sec, usec}, hdrs_len, total_len};
     pcap_dump((u_char *)pdumper, &pcap_hdr, pkt);
@@ -530,22 +530,22 @@ public:
     double probability = rand.generate();
     assert(probability >= 0 && probability <= 1 && "Invalid probability");
 
-    double p = probability;
-    u64 N = range + 1;
-    double s = zipf_param;
+    double p         = probability;
+    u64 N            = range + 1;
+    double s         = zipf_param;
     double tolerance = 0.01;
-    double x = (double)N / 2.0;
+    double x         = (double)N / 2.0;
 
     double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
 
     while (true) {
-      double m = pow(x, -2 - s);
-      double mx = m * x;
-      double mxx = mx * x;
+      double m    = pow(x, -2 - s);
+      double mx   = m * x;
+      double mxx  = mx * x;
       double mxxx = mxx * x;
 
-      double a = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) + (s - (mx * s)) - D;
-      double b = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
+      double a    = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) + (s - (mx * s)) - D;
+      double b    = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
       double newx = std::max(1.0, x - a / b);
 
       if (std::abs(newx - x) <= tolerance) {

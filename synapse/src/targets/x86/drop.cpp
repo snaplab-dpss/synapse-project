@@ -10,7 +10,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return false;
@@ -33,7 +33,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node, Sy
     return impls;
   }
 
-  Module *module = new Drop(node);
+  Module *module  = new Drop(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

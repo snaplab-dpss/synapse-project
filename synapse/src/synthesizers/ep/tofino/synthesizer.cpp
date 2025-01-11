@@ -1,37 +1,38 @@
 #include "synthesizer.h"
+#include "transpiler.h"
 #include "../../../targets/module.h"
 
 namespace synapse {
 namespace tofino {
 namespace {
 
-constexpr const char *const MARKER_CPU_HEADER = "CPU_HEADER";
+constexpr const char *const MARKER_CPU_HEADER     = "CPU_HEADER";
 constexpr const char *const MARKER_CUSTOM_HEADERS = "CUSTOM_HEADERS";
 
-constexpr const char *const MARKER_INGRESS_HEADERS = "INGRESS_HEADERS";
-constexpr const char *const MARKER_INGRESS_METADATA = "INGRESS_METADATA";
-constexpr const char *const MARKER_INGRESS_PARSER = "INGRESS_PARSER";
-constexpr const char *const MARKER_INGRESS_CONTROL = "INGRESS_CONTROL";
+constexpr const char *const MARKER_INGRESS_HEADERS       = "INGRESS_HEADERS";
+constexpr const char *const MARKER_INGRESS_METADATA      = "INGRESS_METADATA";
+constexpr const char *const MARKER_INGRESS_PARSER        = "INGRESS_PARSER";
+constexpr const char *const MARKER_INGRESS_CONTROL       = "INGRESS_CONTROL";
 constexpr const char *const MARKER_INGRESS_CONTROL_APPLY = "INGRESS_CONTROL_APPLY";
-constexpr const char *const MARKER_INGRESS_DEPARSER = "INGRESS_DEPARSER";
+constexpr const char *const MARKER_INGRESS_DEPARSER      = "INGRESS_DEPARSER";
 
-constexpr const char *const MARKER_EGRESS_HEADERS = "EGRESS_HEADERS";
+constexpr const char *const MARKER_EGRESS_HEADERS  = "EGRESS_HEADERS";
 constexpr const char *const MARKER_EGRESS_METADATA = "EGRESS_METADATA";
 
 constexpr const char *const TEMPLATE_FILENAME = "tofino.template.p4";
 
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const DS *ds = tofino_ctx->get_ds_from_id(id);
+  const DS *ds                    = tofino_ctx->get_ds_from_id(id);
   assert(ds && "DS not found");
   return dynamic_cast<const T *>(ds);
 }
 
 const Parser &get_tofino_parser(const EP *ep) {
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const TNA &tna = tofino_ctx->get_tna();
+  const TNA &tna                  = tofino_ctx->get_tna();
   return tna.parser;
 }
 
@@ -85,6 +86,131 @@ bool naturalCompare(const std::string &a, const std::string &b) {
 }
 } // namespace
 
+code_t EPSynthesizer::var_t::get_type() const { return force_bool ? "bool" : Transpiler::type_from_expr(expr); }
+
+bool EPSynthesizer::var_t::is_bool() const { return force_bool || is_conditional(expr); }
+
+void EPSynthesizer::var_t::declare(coder_t &coder, std::optional<code_t> assignment) const {
+  coder.indent();
+  coder << get_type();
+  coder << " ";
+  coder << name;
+  if (assignment.has_value()) {
+    coder << " = ";
+    coder << *assignment;
+  }
+  coder << ";\n";
+}
+
+EPSynthesizer::var_t EPSynthesizer::var_t::get_slice(bits_t offset, bits_t size) const {
+  assert(offset + size <= expr->getWidth() && "Invalid slice");
+
+  const bits_t lo                  = offset;
+  const bits_t hi                  = offset + size - 1;
+  const code_t slice_name          = name + "[" + std::to_string(hi) + ":" + std::to_string(lo) + "]";
+  klee::ref<klee::Expr> slice_expr = solver_toolbox.exprBuilder->Extract(expr, offset, size);
+
+  return var_t(slice_name, slice_expr, force_bool);
+}
+
+code_t EPSynthesizer::var_t::get_stem() const {
+  size_t pos = name.find_last_of('.');
+  if (pos == std::string::npos) {
+    return name;
+  }
+  return name.substr(pos + 1);
+}
+
+void EPSynthesizer::Stack::push(const var_t &var) {
+  if (names.find(var.name) == names.end()) {
+    vars.push_back(var);
+    names.insert(var.name);
+  }
+}
+
+void EPSynthesizer::Stack::push(const Stack &stack) {
+  for (const var_t &var : stack.vars) {
+    push(var);
+  }
+}
+
+std::optional<EPSynthesizer::var_t> EPSynthesizer::Stack::get_exact(klee::ref<klee::Expr> expr) const {
+  for (auto var_it = vars.rbegin(); var_it != vars.rend(); var_it++) {
+    const var_t &var = *var_it;
+    if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
+      return var;
+    }
+  }
+
+  return std::nullopt;
+}
+
+std::optional<EPSynthesizer::var_t> EPSynthesizer::Stack::get(klee::ref<klee::Expr> expr) const {
+  if (std::optional<var_t> var = get_exact(expr)) {
+    return var;
+  }
+
+  for (auto var_it = vars.rbegin(); var_it != vars.rend(); var_it++) {
+    const var_t &var = *var_it;
+
+    bits_t expr_size = expr->getWidth();
+    bits_t var_size  = var.expr->getWidth();
+
+    if (expr_size > var_size) {
+      continue;
+    }
+
+    for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
+      klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
+
+      if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+        return var.get_slice(offset, expr_size);
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+const std::vector<EPSynthesizer::var_t> &EPSynthesizer::Stack::get_all() const { return vars; }
+
+EPSynthesizer::Stacks::Stacks() : stacks(1) {}
+
+void EPSynthesizer::Stacks::push() { stacks.emplace_back(); }
+
+void EPSynthesizer::Stacks::pop() { stacks.pop_back(); }
+
+void EPSynthesizer::Stacks::insert_front(const var_t &var) { stacks.front().push(var); }
+void EPSynthesizer::Stacks::insert_front(const Stack &stack) { stacks.front().push(stack); }
+
+void EPSynthesizer::Stacks::insert_back(const var_t &var) { stacks.back().push(var); }
+void EPSynthesizer::Stacks::insert_back(const Stack &stack) { stacks.back().push(stack); }
+
+EPSynthesizer::Stack EPSynthesizer::Stacks::squash() const {
+  Stack squashed;
+  for (const Stack &stack : stacks) {
+    squashed.push(stack);
+  }
+  return squashed;
+}
+
+std::optional<EPSynthesizer::var_t> EPSynthesizer::Stacks::get(klee::ref<klee::Expr> expr) const {
+  for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
+    if (std::optional<var_t> var = stack_it->get_exact(expr)) {
+      return var;
+    }
+  }
+
+  for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
+    if (std::optional<var_t> var = stack_it->get(expr)) {
+      return var;
+    }
+  }
+
+  return std::nullopt;
+}
+
+const std::vector<EPSynthesizer::Stack> &EPSynthesizer::Stacks::get_all() const { return stacks; }
+
 EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
     : Synthesizer(TEMPLATE_FILENAME,
                   {
@@ -100,14 +226,12 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
                       {MARKER_EGRESS_METADATA, 1},
                   },
                   _out),
-      var_stacks(1), transpiler(this) {
+      transpiler(this) {
   symbol_t device = bdd->get_device();
-  symbol_t time = bdd->get_time();
+  symbol_t time   = bdd->get_time();
 
-  // Hack
-  var_stacks.back().emplace_back("ig_intr_md.ingress_port", solver_toolbox.exprBuilder->Extract(device.expr, 0, 16));
-
-  var_stacks.back().emplace_back("ig_intr_md.ingress_mac_tstamp[47:16]", time);
+  alloc_var("meta.port", solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
+  alloc_var("meta.time", time.expr, GLOBAL | EXACT_NAME);
 }
 
 void EPSynthesizer::visit(const EP *ep) {
@@ -116,6 +240,22 @@ void EPSynthesizer::visit(const EP *ep) {
   // Transpile the parser after the whole EP has been visited so we have all the
   // headers available.
   transpile_parser(get_tofino_parser(ep));
+
+  coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
+  for (const var_t &var : cpu_hdr_vars.get_all()) {
+    bits_t pad = (var.get_type() == "bool") ? 7 : 8 - (var.expr->getWidth() % 8);
+
+    if (pad > 0) {
+      cpu_hdr.indent();
+      cpu_hdr << "@padding bit<";
+      cpu_hdr << pad;
+      cpu_hdr << "> pad_";
+      cpu_hdr << var.name;
+      cpu_hdr << ";\n";
+    }
+
+    var.declare(cpu_hdr);
+  }
 
   Synthesizer::dump();
 }
@@ -137,40 +277,38 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     const ParserState *state = states.front();
     states.erase(states.begin());
 
-    var_stacks.emplace_back();
-    hdrs_stacks.emplace_back();
+    ingress_vars.push();
+    hdrs_stacks.push();
 
     for (node_id_t id : state->ids) {
       if (parser_vars.find(id) != parser_vars.end()) {
-        const vars_t &vars = parser_vars.at(id);
-        var_stacks.back().insert(var_stacks.back().end(), vars.begin(), vars.end());
+        const Stack &vars = parser_vars.at(id);
+        ingress_vars.insert_back(vars);
       }
 
       if (parser_hdrs.find(id) != parser_hdrs.end()) {
-        const vars_t &vars = parser_hdrs.at(id);
-        hdrs_stacks.back().insert(hdrs_stacks.back().end(), vars.begin(), vars.end());
+        const Stack &vars = parser_hdrs.at(id);
+        hdrs_stacks.insert_back(vars);
       }
     }
 
     switch (state->type) {
     case ParserStateType::EXTRACT: {
       const ParserStateExtract *extract = dynamic_cast<const ParserStateExtract *>(state);
+      const code_t state_name           = get_parser_state_name(state, state_init);
 
-      code_t state_name = get_parser_state_name(state, state_init);
-
-      var_t hdr_var;
-      bool hdr_found = get_hdr_var(*extract->ids.begin(), extract->hdr, hdr_var);
-      assert(hdr_found && "Header not found");
+      std::optional<var_t> hdr_var = parser_hdrs.at(*extract->ids.begin()).get(extract->hdr);
+      assert(hdr_var && "Header not found");
 
       assert(extract->next && "Next state not found");
-      code_t next_state = get_parser_state_name(extract->next, false);
+      const code_t next_state = get_parser_state_name(extract->next, false);
 
       ingress_parser.indent();
       ingress_parser << "state " << state_name << " {\n";
 
       ingress_parser.inc();
       ingress_parser.indent();
-      ingress_parser << "pkt.extract(" << hdr_var.name << ");\n";
+      ingress_parser << "pkt.extract(" << hdr_var->name << ");\n";
 
       ingress_parser.indent();
       ingress_parser << "transition " << next_state << ";\n";
@@ -183,8 +321,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     } break;
     case ParserStateType::SELECT: {
       const ParserStateSelect *select = dynamic_cast<const ParserStateSelect *>(state);
-
-      code_t state_name = get_parser_state_name(state, state_init);
+      const code_t state_name         = get_parser_state_name(state, state_init);
 
       ingress_parser.indent();
       ingress_parser << "state " << state_name << " {\n";
@@ -195,8 +332,8 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
 
       ingress_parser.inc();
 
-      code_t next_true = get_parser_state_name(select->on_true, false);
-      code_t next_false = get_parser_state_name(select->on_false, false);
+      const code_t next_true  = get_parser_state_name(select->on_true, false);
+      const code_t next_false = get_parser_state_name(select->on_false, false);
 
       for (int value : select->values) {
         ingress_parser.indent();
@@ -219,8 +356,7 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     } break;
     case ParserStateType::TERMINATE: {
       const ParserStateTerminate *terminate = dynamic_cast<const ParserStateTerminate *>(state);
-
-      code_t state_name = get_parser_state_name(state, state_init);
+      const code_t state_name               = get_parser_state_name(state, state_init);
 
       ingress_parser.indent();
       ingress_parser << "state " << state_name << " {\n";
@@ -241,135 +377,48 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
     } break;
     }
 
-    var_stacks.pop_back();
-    hdrs_stacks.pop_back();
+    ingress_vars.pop();
+    hdrs_stacks.pop();
 
     state_init = false;
   }
 }
 
-code_t EPSynthesizer::slice_var(const var_t &var, unsigned offset, bits_t size) const {
-  assert(offset + size <= var.expr->getWidth() && "Invalid slice");
-  coder_t coder;
-  coder << var.name << "[" << offset + size - 1 << ":" << offset << "]";
-  return coder.dump();
-}
+EPSynthesizer::var_t EPSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, alloc_opt_t option) {
+  assert(option & (LOCAL | GLOBAL) && "Neither LOCAL nor GLOBAL specified");
 
-code_t EPSynthesizer::type_from_var(const var_t &var) const {
-  if (var.is_bool) {
-    return "bool";
-  }
+  const code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
+  const var_t var(name, expr, option & FORCE_BOOL);
 
-  return transpiler.type_from_expr(var.expr);
-}
-
-bool EPSynthesizer::get_var(klee::ref<klee::Expr> expr, var_t &out_var) const {
-  for (auto vars_it = var_stacks.rbegin(); vars_it != var_stacks.rend(); ++vars_it) {
-    for (const var_t &var : *vars_it) {
-      if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
-        out_var = var;
-        return true;
-      }
-
-      bits_t expr_size = expr->getWidth();
-      bits_t var_size = var.expr->getWidth();
-
-      if (expr_size > var_size) {
-        continue;
-      }
-
-      for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
-        klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
-
-        if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
-          out_var = var;
-          out_var.name = slice_var(var, offset, expr_size);
-          return true;
-        }
-      }
+  if (option & HEADER) {
+    hdrs_stacks.insert_back(var);
+  } else {
+    if (option & LOCAL) {
+      ingress_vars.insert_back(var);
+    } else {
+      ingress_vars.insert_front(var);
     }
   }
 
-  return false;
-}
-
-EPSynthesizer::vars_t EPSynthesizer::get_squashed_vars() const {
-  vars_t vars;
-
-  for (const vars_t &stack : var_stacks) {
-    vars.insert(vars.end(), stack.begin(), stack.end());
-  }
-
-  return vars;
-}
-
-EPSynthesizer::vars_t EPSynthesizer::get_squashed_hdrs() const {
-  vars_t vars;
-
-  for (const vars_t &stack : hdrs_stacks) {
-    vars.insert(vars.end(), stack.begin(), stack.end());
-  }
-
-  return vars;
-}
-
-bool EPSynthesizer::get_hdr_var(node_id_t node_id, klee::ref<klee::Expr> expr, var_t &out_var) const {
-  for (const var_t &var : parser_hdrs.at(node_id)) {
-    if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
-      out_var = var;
-      return true;
-    }
-
-    bits_t expr_size = expr->getWidth();
-    bits_t var_size = var.expr->getWidth();
-
-    if (expr_size > var_size) {
-      continue;
-    }
-
-    for (bits_t offset = 0; offset <= var_size - expr_size; offset += 8) {
-      klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
-
-      if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
-        out_var = var;
-        out_var.name = slice_var(var, offset, expr_size);
-        return true;
-      }
-    }
-  }
-
-  return false;
+  return var;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::SendToController *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-  coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
-
   const Symbols &symbols = node->get_symbols();
 
   for (const symbol_t &symbol : symbols.get()) {
-    var_t var;
-    bool found = get_var(symbol.expr, var);
-    assert(found && "Symbol not found");
+    std::optional<var_t> var = ingress_vars.get(symbol.expr);
+    assert(var && "Symbol not found");
+
+    cpu_hdr_vars.push(*var);
 
     ingress_apply.indent();
     ingress_apply << "hdr.cpu.";
-    ingress_apply << var.name;
+    ingress_apply << var->name;
     ingress_apply << " = ";
-    ingress_apply << var.name;
+    ingress_apply << var->name;
     ingress_apply << ";\n";
-
-    if (var.is_bool) {
-      cpu_hdr.indent();
-      cpu_hdr << "@padding bit<7> pad_";
-      cpu_hdr << var.name;
-      cpu_hdr << ";\n";
-    }
-
-    cpu_hdr.indent();
-    cpu_hdr << type_from_var(var);
-    cpu_hdr << " ";
-    cpu_hdr << var.name << ";\n";
   }
 
   ingress_apply.indent();
@@ -393,15 +442,14 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const std::vector<klee::ref<klee::Expr>> &conditions = node->get_conditions();
-
-  const std::vector<EPNode *> &children = ep_node->get_children();
+  const std::vector<EPNode *> &children                = ep_node->get_children();
   assert(children.size() == 2 && "If node must have 2 children");
 
   const EPNode *then_node = children[0];
   const EPNode *else_node = children[1];
 
   if (conditions.size() == 1) {
-    klee::ref<klee::Expr> condition = conditions[0];
+    const klee::ref<klee::Expr> condition = conditions[0];
 
     ingress.indent();
     ingress << "if (";
@@ -409,18 +457,18 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
     ingress << ") {\n";
 
     ingress.inc();
-    var_stacks.emplace_back();
+    ingress_vars.push();
     visit(ep, then_node);
-    var_stacks.pop_back();
+    ingress_vars.pop();
     ingress.dec();
 
     ingress.indent();
     ingress.stream << "} else {\n";
 
     ingress.inc();
-    var_stacks.emplace_back();
+    ingress_vars.push();
     visit(ep, else_node);
-    var_stacks.pop_back();
+    ingress_vars.pop();
     ingress.dec();
 
     ingress.indent();
@@ -429,10 +477,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
     return EPVisitor::Action::skipChildren;
   }
 
-  code_t cond_val = get_unique_name("cond");
-
-  ingress.indent();
-  ingress << "bool " << cond_val << " = false;\n";
+  const var_t cond_var = alloc_var("cond", solver_toolbox.exprBuilder->True(), LOCAL | FORCE_BOOL);
+  cond_var.declare(ingress, "false");
 
   for (klee::ref<klee::Expr> condition : conditions) {
     ingress.indent();
@@ -444,7 +490,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   }
 
   ingress.indent();
-  ingress << cond_val << " = true;\n";
+  ingress << cond_var.name << " = true;\n";
 
   for (size_t i = 0; i < conditions.size(); i++) {
     ingress.dec();
@@ -454,23 +500,23 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   ingress.indent();
   ingress << "if (";
-  ingress << cond_val;
+  ingress << cond_var.name;
   panic("TODO: condition");
   ingress << ") {\n";
 
   ingress.inc();
-  var_stacks.emplace_back();
+  ingress_vars.push();
   visit(ep, then_node);
-  var_stacks.pop_back();
+  ingress_vars.pop();
   ingress.dec();
 
   ingress.indent();
   ingress << "} else {\n";
 
   ingress.inc();
-  var_stacks.emplace_back();
+  ingress_vars.push();
   visit(ep, else_node);
-  var_stacks.pop_back();
+  ingress_vars.pop();
   ingress.dec();
 
   ingress.indent();
@@ -480,8 +526,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ParserCondition *node) {
-  parser_vars[node->get_node()->get_id()] = get_squashed_vars();
-  parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
+  parser_vars[node->get_node()->get_id()] = ingress_vars.squash();
+  parser_hdrs[node->get_node()->get_id()] = hdrs_stacks.squash();
   return EPVisitor::Action::doChildren;
 }
 
@@ -494,22 +540,21 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Forward *node) {
-  int dst_device = node->get_dst_device();
-
+  int dst_device   = node->get_dst_device();
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "fwd(";
-  ingress << dst_device;
-  ingress << ");\n";
+  ingress << "fwd(" << dst_device << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Drop *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
+
   ingress.indent();
   ingress << "drop();\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -523,8 +568,15 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ParserExtraction *node) {
-  klee::ref<klee::Expr> hdr = node->get_hdr();
-  code_t hdr_name = get_unique_name("hdr");
+  const klee::ref<klee::Expr> expr = node->get_hdr();
+
+  // On header valid only.
+  ingress_vars.push();
+  hdrs_stacks.push();
+
+  const code_t hdr_name = create_unique_name("hdr");
+  const var_t hdr       = alloc_var("hdr." + hdr_name, expr, LOCAL | EXACT_NAME | HEADER);
+  const var_t hdr_data  = alloc_var("hdr." + hdr_name + ".data", expr, LOCAL | EXACT_NAME);
 
   coder_t &custom_hdrs = get(MARKER_CUSTOM_HEADERS);
   custom_hdrs.indent();
@@ -532,7 +584,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   custom_hdrs.inc();
   custom_hdrs.indent();
-  custom_hdrs << transpiler.type_from_expr(hdr) << " data;\n";
+  custom_hdrs << Transpiler::type_from_expr(expr) << " " << hdr_data.get_stem() << ";\n";
 
   custom_hdrs.dec();
   custom_hdrs.indent();
@@ -544,28 +596,23 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   ingress_apply.indent();
-  ingress_apply << "if(hdr." << hdr_name << ".isValid()) {\n";
+  ingress_apply << "if(" << hdr.name << ".isValid()) {\n";
 
   ingress_apply.inc();
 
-  // On header valid only.
-  var_stacks.emplace_back();
-  hdrs_stacks.emplace_back();
-
-  var_stacks.back().emplace_back("hdr." + hdr_name + ".data", hdr);
-  hdrs_stacks.back().emplace_back("hdr." + hdr_name, hdr);
-
-  parser_vars[node->get_node()->get_id()] = get_squashed_vars();
-  parser_hdrs[node->get_node()->get_id()] = get_squashed_hdrs();
+  parser_vars[node->get_node()->get_id()] = ingress_vars.squash();
+  parser_hdrs[node->get_node()->get_id()] = hdrs_stacks.squash();
 
   assert(ep_node->get_children().size() == 1 && "ParserExtraction must have 1 child");
   visit(ep, ep_node->get_children()[0]);
 
-  var_stacks.pop_back();
   ingress_apply.dec();
 
   ingress_apply.indent();
   ingress_apply << "}\n";
+
+  ingress_vars.pop();
+  hdrs_stacks.pop();
 
   return EPVisitor::Action::skipChildren;
 }
@@ -573,13 +620,11 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::ModifyHeader *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  klee::ref<klee::Expr> hdr = node->get_hdr();
+  klee::ref<klee::Expr> hdr    = node->get_hdr();
+  std::optional<var_t> hdr_var = ingress_vars.get(hdr);
+  assert(hdr_var && "Header not found");
 
-  var_t hdr_var;
-  bool found = get_var(hdr, hdr_var);
-  assert(found && "Header not found");
-
-  const std::vector<expr_mod_t> &changes = node->get_changes();
+  const std::vector<expr_mod_t> &changes     = node->get_changes();
   const std::vector<expr_byte_swap_t> &swaps = node->get_swaps();
 
   for (const expr_byte_swap_t &byte_swap : swaps) {
@@ -588,14 +633,14 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
     ingress_apply.indent();
     ingress_apply << "swap(";
-    ingress_apply << hdr_var.name;
+    ingress_apply << hdr_var->name;
     ingress_apply << "[";
     ingress_apply << hi_offset + 7;
     ingress_apply << ":";
     ingress_apply << hi_offset;
     ingress_apply << "]";
     ingress_apply << ", ";
-    ingress_apply << hdr_var.name;
+    ingress_apply << hdr_var->name;
     ingress_apply << "[";
     ingress_apply << lo_offset + 7;
     ingress_apply << ":";
@@ -616,7 +661,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
     klee::ref<klee::Expr> expr = mod.expr;
     ingress_apply.indent();
-    ingress_apply << hdr_var.name;
+    ingress_apply << hdr_var->name;
     ingress_apply << "[";
     ingress_apply << mod.offset + mod.width - 1;
     ingress_apply << ":";
@@ -631,45 +676,55 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::TableLookup *node) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  DS_ID table_id = node->get_table_id();
-  std::optional<symbol_t> hit = node->get_hit();
+  DS_ID table_id                          = node->get_table_id();
+  std::vector<klee::ref<klee::Expr>> keys = node->get_keys();
+  std::optional<symbol_t> hit             = node->get_hit();
 
   const Table *table = get_tofino_ds<Table>(ep, table_id);
 
+  std::vector<code_t> transpiled_keys;
+  for (klee::ref<klee::Expr> key : keys) {
+    transpiled_keys.push_back(transpiler.transpile(key));
+  }
+
   if (declared_ds.find(table_id) == declared_ds.end()) {
-    ingress << transpile_table_decl(ingress.lvl, table, node->get_keys(), node->get_values());
+    transpile_table_decl(ingress, table, keys, node->get_values());
     ingress << "\n";
     declared_ds.insert(table_id);
   }
 
-  ingress_apply.indent();
+  for (size_t i = 0; i < transpiled_keys.size(); i++) {
+    klee::ref<klee::Expr> key    = keys[i];
+    const code_t &transpiled_key = transpiled_keys[i];
 
-  if (hit) {
-    code_t hit_var_name = get_unique_name("hit_" + table_id);
-    var_stacks.back().emplace_back(hit_var_name, hit.value(), true);
-    ingress_apply << "bool " << hit_var_name << " = ";
+    std::optional<var_t> key_var = ingress_vars.get(key);
+    assert(key_var && "Key is not a variable");
+
+    ingress_apply.indent();
+    ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
   }
 
-  ingress_apply << table_id << ".apply()";
   if (hit) {
-    ingress_apply << ".hit";
+    var_t hit_var = alloc_var("hit", hit->expr, LOCAL | FORCE_BOOL);
+    hit_var.declare(ingress_apply, table_id + ".apply().hit");
+  } else {
+    ingress_apply.indent();
+    ingress_apply << table_id << ".apply();\n";
   }
-  ingress_apply << ";";
-  ingress_apply << "\n";
 
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterLookup *node) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const std::unordered_set<DS_ID> &rids = node->get_rids();
-  klee::ref<klee::Expr> index = node->get_index();
-  klee::ref<klee::Expr> value = node->get_value();
+  const klee::ref<klee::Expr> index     = node->get_index();
+  const klee::ref<klee::Expr> value     = node->get_value();
 
   std::vector<const Register *> regs;
   std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
@@ -677,7 +732,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
-      ingress << transpile_register_decl(ingress.lvl, reg, index, value);
+      transpile_register_decl(ingress, reg, index, value);
       declared_ds.insert(reg->id);
     }
   }
@@ -686,44 +741,34 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
     ingress << "\n";
   }
 
-  int i = 0;
+  int i         = 0;
   bits_t offset = 0;
-  std::vector<var_t> read_vars;
   for (const Register *reg : regs) {
-    code_t entry_name = get_unique_name("vector_reg_entry_" + std::to_string(i));
-    klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
-    var_t entry_var(entry_name, entry_expr);
-    read_vars.push_back(entry_var);
+    const std::string entry_prefix_name    = "vector_reg_entry_" + std::to_string(i);
+    const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
 
-    code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::READ);
-    ingress << transpile_register_read_action_decl(ingress.lvl, reg, action_name);
+    const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::READ);
+    transpile_register_read_action_decl(ingress, reg, action_name);
     ingress << "\n";
 
-    ingress_apply.indent();
-    ingress_apply << transpiler.type_from_size(reg->value_size) << " " << entry_name;
-    ingress_apply << " = ";
-    ingress_apply << action_name;
-    ingress_apply << ".execute(" << transpiler.transpile(index) << ");\n";
+    var_t entry_var = alloc_var(entry_prefix_name, entry_expr, LOCAL);
+    entry_var.declare(ingress_apply, action_name + ".execute(" + transpiler.transpile(index) + ")");
 
     offset += reg->value_size;
     i++;
-  }
-
-  for (const var_t &read_var : read_vars) {
-    var_stacks.back().push_back(read_var);
   }
 
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterUpdate *node) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const std::unordered_set<DS_ID> &rids = node->get_rids();
-  klee::ref<klee::Expr> index = node->get_index();
-  klee::ref<klee::Expr> value = node->get_read_value();
-  klee::ref<klee::Expr> write_value = node->get_write_value();
+  klee::ref<klee::Expr> index           = node->get_index();
+  klee::ref<klee::Expr> value           = node->get_read_value();
+  klee::ref<klee::Expr> write_value     = node->get_write_value();
 
   std::vector<const Register *> regs;
   std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
@@ -731,7 +776,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
-      ingress << transpile_register_decl(ingress.lvl, reg, index, value);
+      transpile_register_decl(ingress, reg, index, value);
       declared_ds.insert(reg->id);
     }
   }
@@ -740,21 +785,16 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
     ingress << "\n";
   }
 
-  int i = 0;
+  int i         = 0;
   bits_t offset = 0;
-  std::vector<var_t> write_vars;
   for (const Register *reg : regs) {
-    code_t reg_write_name = get_unique_name("vector_reg_entry_" + std::to_string(i));
-    klee::ref<klee::Expr> reg_write_expr = solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
-    var_t reg_write_var(reg_write_name, reg_write_expr);
-    write_vars.push_back(reg_write_var);
+    const klee::ref<klee::Expr> reg_write_expr = solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
+    std::optional<var_t> reg_write_var         = ingress_vars.get(reg_write_expr);
+    assert(reg_write_var && "Register write value is not a variable");
 
-    code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::WRITE);
-    ingress << transpile_register_write_action_decl(ingress.lvl, reg, action_name, reg_write_var);
+    const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::WRITE);
+    transpile_register_write_action_decl(ingress, reg, action_name, *reg_write_var);
     ingress << "\n";
-
-    ingress_apply.indent();
-    ingress_apply << reg_write_var.name << " = " << transpiler.transpile(reg_write_expr) << ";\n";
 
     ingress_apply.indent();
     ingress_apply << action_name;
@@ -762,10 +802,6 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
     i++;
     offset += reg->value_size;
-  }
-
-  for (const var_t &write_var : write_vars) {
-    var_stacks.back().push_back(write_var);
   }
 
   return EPVisitor::Action::doChildren;
@@ -805,7 +841,7 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   return EPVisitor::Action::doChildren;
 }
 
-code_t EPSynthesizer::get_unique_name(const code_t &prefix) {
+code_t EPSynthesizer::create_unique_name(const code_t &prefix) {
   if (var_prefix_usage.find(prefix) == var_prefix_usage.end()) {
     var_prefix_usage[prefix] = 0;
   }
@@ -822,9 +858,9 @@ code_t EPSynthesizer::get_unique_name(const code_t &prefix) {
 
 void EPSynthesizer::dbg_vars() const {
   std::cerr << "================= Vars ================= \n";
-  for (const vars_t &vars : var_stacks) {
+  for (const Stack &stack : ingress_vars.get_all()) {
     std::cerr << "------------------------------------------\n";
-    for (const var_t &var : vars) {
+    for (const var_t &var : stack.get_all()) {
       std::cerr << var.name << ": ";
       std::cerr << expr_to_string(var.expr, false) << "\n";
     }

@@ -9,14 +9,14 @@ std::optional<spec_impl_t> IntegerAllocatorAllocateFactory::speculate(const EP *
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+  addr_t dchain_addr                     = expr_addr_to_obj_addr(dchain_addr_expr);
 
   if (!ctx.can_impl_ds(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
     return std::nullopt;
@@ -28,7 +28,8 @@ std::optional<spec_impl_t> IntegerAllocatorAllocateFactory::speculate(const EP *
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> IntegerAllocatorAllocateFactory::process_node(const EP *ep, const Node *node,
+                                                                  SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -36,15 +37,15 @@ std::vector<impl_t> IntegerAllocatorAllocateFactory::process_node(const EP *ep, 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
     return impls;
   }
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
-  klee::ref<klee::Expr> index_out = call.args.at("index_out").out;
+  klee::ref<klee::Expr> time             = call.args.at("time").expr;
+  klee::ref<klee::Expr> index_out        = call.args.at("index_out").out;
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
@@ -56,7 +57,7 @@ std::vector<impl_t> IntegerAllocatorAllocateFactory::process_node(const EP *ep, 
 
   // TODO: implement the actual data structure.
 
-  Module *module = new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, out_of_space);
+  Module *module  = new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, out_of_space);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

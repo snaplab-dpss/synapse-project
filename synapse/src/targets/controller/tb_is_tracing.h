@@ -15,8 +15,8 @@ private:
 public:
   TBIsTracing(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _index_out,
               klee::ref<klee::Expr> _is_tracing)
-      : ControllerModule(ModuleType::Controller_TBIsTracing, "TBIsTracing", node), tb_addr(_tb_addr), key(_key), index_out(_index_out),
-        is_tracing(_is_tracing) {}
+      : ControllerModule(ModuleType::Controller_TBIsTracing, "TBIsTracing", node), tb_addr(_tb_addr), key(_key),
+        index_out(_index_out), is_tracing(_is_tracing) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

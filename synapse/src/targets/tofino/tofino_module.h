@@ -61,7 +61,8 @@ public:
   //  Vector Registers
   // ======================================================================
 
-  static std::unordered_set<Register *> build_or_reuse_vector_registers(const EP *ep, const Node *node, const vector_register_data_t &data);
+  static std::unordered_set<Register *> build_or_reuse_vector_registers(const EP *ep, const Node *node,
+                                                                        const vector_register_data_t &data);
   static bool can_build_or_reuse_vector_registers(const EP *ep, const Node *node, const vector_register_data_t &data);
 
   // ======================================================================
@@ -71,29 +72,32 @@ public:
   static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj);
   static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key,
                                                            u32 num_entries, u32 cache_capacity);
-  static bool can_get_or_build_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 num_entries,
-                                                 u32 cache_capacity);
+  static bool can_get_or_build_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key,
+                                                 u32 num_entries, u32 cache_capacity);
   static std::vector<u32> enum_fcfs_cache_cap(u32 num_entries);
-  static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const Node *node, klee::ref<klee::Expr> key, u32 cache_capacity);
+  static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const Node *node, klee::ref<klee::Expr> key,
+                                                u32 cache_capacity);
 
   // ======================================================================
   //  Heavy Hitter Table
   // ======================================================================
 
-  static bool can_build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
-                                          u32 num_entries, u32 cms_width, u32 cms_height);
-  static HHTable *build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
-                                          u32 num_entries, u32 cms_width, u32 cms_height);
+  static bool can_build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width,
+                                          u32 cms_height);
+  static HHTable *build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width,
+                                          u32 cms_height);
   static hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const Node *node, klee::ref<klee::Expr> key, u32 capacity);
 
   // ======================================================================
   //  Count Min Sketch
   // ======================================================================
 
-  static bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
-                                     u32 height);
-  static CountMinSketch *build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
-                                            u32 width, u32 height);
+  static bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
+                                     u32 width, u32 height);
+  static CountMinSketch *build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                                            const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height);
 };
 
 } // namespace tofino

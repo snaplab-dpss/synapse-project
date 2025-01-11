@@ -10,19 +10,19 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino/tofino.h"
 
-#define SHOW_MODULE_NAME(M)                                                                                                                \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                     \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                        \
-    return EPVisitor::Action::doChildren;                                                                                                  \
+#define SHOW_MODULE_NAME(M)                                                                                                      \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                           \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                              \
+    return EPVisitor::Action::doChildren;                                                                                        \
   }
 
-#define VISIT_BRANCH(M)                                                                                                                    \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                     \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                               \
-    return EPVisitor::Action::doChildren;                                                                                                  \
+#define VISIT_BRANCH(M)                                                                                                          \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                           \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                     \
+    return EPVisitor::Action::doChildren;                                                                                        \
   }
 
-#define IGNORE_MODULE(M)                                                                                                                   \
+#define IGNORE_MODULE(M)                                                                                                         \
   EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) { return EPVisitor::Action::doChildren; }
 
 namespace synapse {
@@ -58,8 +58,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  int port = node->get_recirc_port();
+  TargetType target    = node->get_target();
+  int port             = node->get_recirc_port();
 
   label_builder << "Recirculate (";
   label_builder << port;
@@ -74,8 +74,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  int dst_device = node->get_dst_device();
+  TargetType target    = node->get_target();
+  int dst_device       = node->get_dst_device();
 
   label_builder << "Forward (";
   label_builder << dst_device;
@@ -90,9 +90,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  DS_ID tid = node->get_table_id();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  DS_ID tid            = node->get_table_id();
+  addr_t obj           = node->get_obj();
 
   label_builder << "Table Lookup\n";
   label_builder << "(";
@@ -110,10 +110,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterLookup *node) {
   std::stringstream label_builder;
 
-  const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
+  const Node *bdd_node                  = node->get_node();
+  TargetType target                     = node->get_target();
   const std::unordered_set<DS_ID> &rids = node->get_rids();
-  addr_t obj = node->get_obj();
+  addr_t obj                            = node->get_obj();
 
   label_builder << "Register Lookup\n";
   label_builder << "(";
@@ -143,10 +143,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::VectorRegisterUpdate *node) {
   std::stringstream label_builder;
 
-  const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
+  const Node *bdd_node                  = node->get_node();
+  TargetType target                     = node->get_target();
   const std::unordered_set<DS_ID> &rids = node->get_rids();
-  addr_t obj = node->get_obj();
+  addr_t obj                            = node->get_obj();
 
   label_builder << "Register Update\n";
 
@@ -176,13 +176,13 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  addr_t obj           = node->get_obj();
 
-  tofino::DS_ID id = node->get_cached_table_id();
-  const Context &ctx = ep->get_ctx();
+  tofino::DS_ID id                = node->get_cached_table_id();
+  const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const DS *ds = tofino_ctx->get_ds_from_id(id);
+  const DS *ds                    = tofino_ctx->get_ds_from_id(id);
   assert(ds->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
   const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
@@ -203,13 +203,13 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  addr_t obj           = node->get_obj();
 
-  tofino::DS_ID id = node->get_cached_table_id();
-  const Context &ctx = ep->get_ctx();
+  tofino::DS_ID id                = node->get_cached_table_id();
+  const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const DS *ds = tofino_ctx->get_ds_from_id(id);
+  const DS *ds                    = tofino_ctx->get_ds_from_id(id);
   assert(ds->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
   const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
@@ -230,13 +230,13 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  addr_t obj           = node->get_obj();
 
-  tofino::DS_ID id = node->get_cached_table_id();
-  const Context &ctx = ep->get_ctx();
+  tofino::DS_ID id                = node->get_cached_table_id();
+  const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const DS *ds = tofino_ctx->get_ds_from_id(id);
+  const DS *ds                    = tofino_ctx->get_ds_from_id(id);
   assert(ds->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
   const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
@@ -257,13 +257,13 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  addr_t obj           = node->get_obj();
 
-  tofino::DS_ID id = node->get_cached_table_id();
-  const Context &ctx = ep->get_ctx();
+  tofino::DS_ID id                = node->get_cached_table_id();
+  const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const DS *ds = tofino_ctx->get_ds_from_id(id);
+  const DS *ds                    = tofino_ctx->get_ds_from_id(id);
   assert(ds->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
   const FCFSCachedTable *cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
 
@@ -284,8 +284,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  bytes_t size = node->get_length();
+  TargetType target    = node->get_target();
+  bytes_t size         = node->get_length();
 
   label_builder << "Parse Header (";
 
@@ -301,8 +301,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
   std::stringstream label_builder;
 
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  addr_t obj           = node->get_obj();
 
   label_builder << "Meter Update\n";
   label_builder << "obj=";
@@ -315,8 +315,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const tofino::HHTableRead *node) {
   const Node *bdd_node = node->get_node();
-  TargetType target = node->get_target();
-  addr_t obj = node->get_obj();
+  TargetType target    = node->get_target();
+  addr_t obj           = node->get_obj();
 
   const DS *ds = ep->get_ctx().get_target_ctx<TofinoContext>()->get_ds_from_id(node->get_hh_table_id());
 

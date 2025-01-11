@@ -19,14 +19,12 @@
 #define COLOR_WHITE ""
 #define COLOR_BOLD "\033[1m"
 
-#define panic(fmt, ...)                                                                                                                    \
-  {                                                                                                                                        \
-    fprintf(stderr, COLOR_RED_BRIGHT "\n");                                                                                                \
-    fprintf(stderr, "PANIC: " fmt "\n", ##__VA_ARGS__);                                                                                    \
-    fprintf(stderr, COLOR_RESET "\n");                                                                                                     \
-    fflush(stderr);                                                                                                                        \
-    dbg_breakpoint();                                                                                                                      \
-    exit(1);                                                                                                                               \
+#define panic(fmt, ...)                                                                                                          \
+  {                                                                                                                              \
+    fprintf(stderr, COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                                       \
+    fflush(stderr);                                                                                                              \
+    dbg_breakpoint();                                                                                                            \
+    exit(1);                                                                                                                     \
   }
 
 namespace synapse {

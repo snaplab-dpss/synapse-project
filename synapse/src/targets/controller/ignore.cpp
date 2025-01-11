@@ -12,7 +12,7 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
   assert(call.function_name == "dchain_rejuvenate_index" && "Not a dchain call");
 
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
-  addr_t chain_addr = expr_addr_to_obj_addr(chain);
+  addr_t chain_addr           = expr_addr_to_obj_addr(chain);
 
   std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(chain_addr);
 
@@ -20,7 +20,8 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
     return false;
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) && !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) &&
+      !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
       !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
   }
@@ -53,7 +54,7 @@ bool should_ignore(const EP *ep, const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   const std::unordered_set<std::string> functions_to_always_ignore{
       "expire_items_single_map",
@@ -102,7 +103,7 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node, 
     return impls;
   }
 
-  Module *module = new Ignore(node);
+  Module *module  = new Ignore(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

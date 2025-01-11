@@ -18,7 +18,7 @@ void EPVisitor::visit(const EP *ep) {
 void EPVisitor::visit(const EP *ep, const EPNode *node) {
   log(node);
 
-  const Module *module = node->get_module();
+  const Module *module     = node->get_module();
   EPVisitor::Action action = module->visit(*this, ep, node);
 
   if (action == EPVisitor::Action::skipChildren) {
@@ -31,9 +31,9 @@ void EPVisitor::visit(const EP *ep, const EPNode *node) {
 }
 
 void EPVisitor::log(const EPNode *node) const {
-  const Module *module = node->get_module();
+  const Module *module    = node->get_module();
   const std::string &name = module->get_name();
-  TargetType target = module->get_target();
+  TargetType target       = module->get_target();
   std::cerr << "Visiting";
   std::cerr << " EPNode=" << node->get_id();
   std::cerr << " Target=" << target;

@@ -13,24 +13,25 @@ bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_
   assert(call_update.function_name == "tb_update_and_check" && "Unexpected function");
 
   klee::ref<klee::Expr> tb_addr_expr = call_is_tracing.args.at("tb").expr;
-  klee::ref<klee::Expr> key = call_is_tracing.args.at("key").in;
-  klee::ref<klee::Expr> index_out = call_is_tracing.args.at("index_out").out;
-  klee::ref<klee::Expr> is_tracing = call_is_tracing.ret;
+  klee::ref<klee::Expr> key          = call_is_tracing.args.at("key").in;
+  klee::ref<klee::Expr> index_out    = call_is_tracing.args.at("index_out").out;
+  klee::ref<klee::Expr> is_tracing   = call_is_tracing.ret;
 
-  obj = expr_addr_to_obj_addr(tb_addr_expr);
-  keys = Table::build_keys(key);
+  obj     = expr_addr_to_obj_addr(tb_addr_expr);
+  keys    = Table::build_keys(key);
   pkt_len = call_update.args.at("pkt_len").expr;
-  hit = is_tracing;
-  pass = call_update.ret;
-  id = "tb_" + std::to_string(tb_is_tracing->get_id());
+  hit     = is_tracing;
+  pass    = call_update.ret;
+  id      = "tb_" + std::to_string(tb_is_tracing->get_id());
 
   const Context &ctx = ep->get_ctx();
-  cfg = ctx.get_tb_config(obj);
+  cfg                = ctx.get_tb_config(obj);
 
   return true;
 }
 
-Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &cfg, const std::vector<klee::ref<klee::Expr>> &keys) {
+Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &cfg,
+                   const std::vector<klee::ref<klee::Expr>> &keys) {
   std::vector<bits_t> keys_size;
   for (klee::ref<klee::Expr> key : keys) {
     keys_size.push_back(key->getWidth());
@@ -48,7 +49,7 @@ Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &
 }
 
 std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node, const Call *tb_update_and_check, const Node *&new_next) {
-  const BDD *old_bdd = ep->get_bdd();
+  const BDD *old_bdd           = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = node->get_next();
@@ -151,7 +152,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  Module *module = new MeterUpdate(node, id, obj, keys, pkt_len, hit, pass);
+  Module *module  = new MeterUpdate(node, id, obj, keys, pkt_len, hit, pass);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

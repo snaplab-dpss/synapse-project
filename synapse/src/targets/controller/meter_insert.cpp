@@ -9,12 +9,12 @@ namespace {
 void get_tb_data(const Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &success) {
   const call_t &call = tb_trace->get_call();
 
-  klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
+  klee::ref<klee::Expr> tb_addr_expr        = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key                 = call.args.at("key").in;
   klee::ref<klee::Expr> successfuly_tracing = call.ret;
 
-  obj = expr_addr_to_obj_addr(tb_addr_expr);
-  keys = Table::build_keys(key);
+  obj     = expr_addr_to_obj_addr(tb_addr_expr);
+  keys    = Table::build_keys(key);
   success = successfuly_tracing;
 }
 } // namespace
@@ -25,14 +25,14 @@ std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const Nod
   }
 
   const Call *tb_trace = dynamic_cast<const Call *>(node);
-  const call_t &call = tb_trace->get_call();
+  const call_t &call   = tb_trace->get_call();
 
   if (call.function_name != "tb_trace") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+  addr_t tb_addr                     = expr_addr_to_obj_addr(tb_addr_expr);
 
   if (!ctx.can_impl_ds(tb_addr, DSImpl::Tofino_Meter)) {
     return std::nullopt;
@@ -49,7 +49,7 @@ std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const Node *n
   }
 
   const Call *tb_trace = dynamic_cast<const Call *>(node);
-  const call_t &call = tb_trace->get_call();
+  const call_t &call   = tb_trace->get_call();
 
   if (call.function_name != "tb_trace") {
     return impls;
@@ -64,7 +64,7 @@ std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  Module *module = new MeterInsert(node, obj, keys, success);
+  Module *module  = new MeterInsert(node, obj, keys, success);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -24,7 +24,7 @@ private:
       : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, INT32_MAX), generator(std::bind(random_dist, gen)) {}
 
   RandomEngine(const RandomEngine &) = delete;
-  RandomEngine(RandomEngine &&) = delete;
+  RandomEngine(RandomEngine &&)      = delete;
 
   RandomEngine &operator=(const RandomEngine &) = delete;
 

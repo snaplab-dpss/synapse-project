@@ -43,7 +43,7 @@ time_ns_t exp_time_from_expire_items_single_map_time(const BDD *bdd, klee::ref<k
   assert(solver_toolbox.are_exprs_always_equal(rhs, time_symbol.expr) && "Invalid time expression");
 
   u64 unsigned_exp_time = solver_toolbox.value_from_expr(lhs);
-  time_ns_t exp_time = ~unsigned_exp_time + 1;
+  time_ns_t exp_time    = ~unsigned_exp_time + 1;
 
   return exp_time;
 }
@@ -59,19 +59,19 @@ std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
     }
 
     const Call *call_node = dynamic_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
+    const call_t &call    = call_node->get_call();
 
     if (call.function_name != "expire_items_single_map") {
       return NodeVisitAction::Continue;
     }
 
     klee::ref<klee::Expr> time = call.args.at("time").expr;
-    time_ns_t exp_time = exp_time_from_expire_items_single_map_time(bdd, time);
+    time_ns_t exp_time         = exp_time_from_expire_items_single_map_time(bdd, time);
 
     symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
 
     expiration_data_t data = {
-        .expiration_time = exp_time,
+        .expiration_time       = exp_time,
         .number_of_freed_flows = number_of_freed_flows,
     };
 
@@ -95,9 +95,9 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &
   for (const call_t &call : init_calls) {
     if (call.function_name == "map_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("map_out").out;
-      addr_t addr = expr_addr_to_obj_addr(obj);
-      map_config_t cfg = get_map_config_from_bdd(*bdd, addr);
-      map_configs[addr] = cfg;
+      addr_t addr               = expr_addr_to_obj_addr(obj);
+      map_config_t cfg          = get_map_config_from_bdd(*bdd, addr);
+      map_configs[addr]         = cfg;
 
       map_coalescing_objs_t candidate;
       if (get_map_coalescing_objs_from_bdd(bdd, addr, candidate)) {
@@ -109,41 +109,41 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &
 
     if (call.function_name == "vector_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("vector_out").out;
-      addr_t addr = expr_addr_to_obj_addr(obj);
-      vector_config_t cfg = get_vector_config_from_bdd(*bdd, addr);
-      vector_configs[addr] = cfg;
+      addr_t addr               = expr_addr_to_obj_addr(obj);
+      vector_config_t cfg       = get_vector_config_from_bdd(*bdd, addr);
+      vector_configs[addr]      = cfg;
       continue;
     }
 
     if (call.function_name == "dchain_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("chain_out").out;
-      addr_t addr = expr_addr_to_obj_addr(obj);
-      dchain_config_t cfg = get_dchain_config_from_bdd(*bdd, addr);
-      dchain_configs[addr] = cfg;
+      addr_t addr               = expr_addr_to_obj_addr(obj);
+      dchain_config_t cfg       = get_dchain_config_from_bdd(*bdd, addr);
+      dchain_configs[addr]      = cfg;
       continue;
     }
 
     if (call.function_name == "cms_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("cms_out").out;
-      addr_t addr = expr_addr_to_obj_addr(obj);
-      cms_config_t cfg = get_cms_config_from_bdd(*bdd, addr);
-      cms_configs[addr] = cfg;
+      addr_t addr               = expr_addr_to_obj_addr(obj);
+      cms_config_t cfg          = get_cms_config_from_bdd(*bdd, addr);
+      cms_configs[addr]         = cfg;
       continue;
     }
 
     if (call.function_name == "cht_fill_cht") {
       klee::ref<klee::Expr> obj = call.args.at("cht").expr;
-      addr_t addr = expr_addr_to_obj_addr(obj);
-      cht_config_t cfg = get_cht_config_from_bdd(*bdd, addr);
-      cht_configs[addr] = cfg;
+      addr_t addr               = expr_addr_to_obj_addr(obj);
+      cht_config_t cfg          = get_cht_config_from_bdd(*bdd, addr);
+      cht_configs[addr]         = cfg;
       continue;
     }
 
     if (call.function_name == "tb_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("tb_out").out;
-      addr_t addr = expr_addr_to_obj_addr(obj);
-      tb_config_t cfg = get_tb_config_from_bdd(*bdd, addr);
-      tb_configs[addr] = cfg;
+      addr_t addr               = expr_addr_to_obj_addr(obj);
+      tb_config_t cfg           = get_tb_config_from_bdd(*bdd, addr);
+      tb_configs[addr]          = cfg;
       continue;
     }
 
@@ -154,9 +154,10 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &
 }
 
 Context::Context(const Context &other)
-    : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
-      dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), cht_configs(other.cht_configs), tb_configs(other.tb_configs),
-      coalescing_candidates(other.coalescing_candidates), expiration_data(other.expiration_data), ds_impls(other.ds_impls) {
+    : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs),
+      vector_configs(other.vector_configs), dchain_configs(other.dchain_configs), cms_configs(other.cms_configs),
+      cht_configs(other.cht_configs), tb_configs(other.tb_configs), coalescing_candidates(other.coalescing_candidates),
+      expiration_data(other.expiration_data), ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
@@ -165,9 +166,10 @@ Context::Context(const Context &other)
 Context::Context(Context &&other)
     : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)),
-      cms_configs(std::move(other.cms_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
-      coalescing_candidates(std::move(other.coalescing_candidates)), expiration_data(std::move(other.expiration_data)),
-      ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
+      cms_configs(std::move(other.cms_configs)), cht_configs(std::move(other.cht_configs)),
+      tb_configs(std::move(other.tb_configs)), coalescing_candidates(std::move(other.coalescing_candidates)),
+      expiration_data(std::move(other.expiration_data)), ds_impls(std::move(other.ds_impls)),
+      target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -190,17 +192,17 @@ Context &Context::operator=(const Context &other) {
     }
   }
 
-  profiler = other.profiler;
-  perf_oracle = other.perf_oracle;
-  map_configs = other.map_configs;
-  vector_configs = other.vector_configs;
-  dchain_configs = other.dchain_configs;
-  cms_configs = other.cms_configs;
-  cht_configs = other.cht_configs;
-  tb_configs = other.tb_configs;
+  profiler              = other.profiler;
+  perf_oracle           = other.perf_oracle;
+  map_configs           = other.map_configs;
+  vector_configs        = other.vector_configs;
+  dchain_configs        = other.dchain_configs;
+  cms_configs           = other.cms_configs;
+  cht_configs           = other.cht_configs;
+  tb_configs            = other.tb_configs;
   coalescing_candidates = other.coalescing_candidates;
-  expiration_data = other.expiration_data;
-  ds_impls = other.ds_impls;
+  expiration_data       = other.expiration_data;
+  ds_impls              = other.ds_impls;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();

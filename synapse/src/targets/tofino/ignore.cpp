@@ -32,7 +32,7 @@ bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
   }
 
   klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
-  addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
+  addr_t dchain_addr           = expr_addr_to_obj_addr(dchain);
 
   if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_FCFSCachedTable)) {
     return false;
@@ -50,7 +50,7 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const call_t &call) {
   }
 
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
-  addr_t chain_addr = expr_addr_to_obj_addr(chain);
+  addr_t chain_addr           = expr_addr_to_obj_addr(chain);
 
   // These are the data structures that can perform rejuvenations.
   if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) && !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
@@ -67,7 +67,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   const std::unordered_set<std::string> functions_to_always_ignore{
       "expire_items_single_map", "expire_items_single_map_iteratively", "tb_expire", "nf_set_rte_ipv4_udptcp_checksum",
@@ -109,7 +109,7 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node, 
     return impls;
   }
 
-  Module *module = new Ignore(node);
+  Module *module  = new Ignore(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -8,21 +8,21 @@ vector_register_data_t get_vector_register_data(const EP *ep, const Call *node) 
   const call_t &call = node->get_call();
 
   klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> value = call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> index    = call.args.at("index").expr;
+  klee::ref<klee::Expr> value    = call.extra_vars.at("borrowed_cell").second;
 
   addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx         = ep->get_ctx();
   const vector_config_t &cfg = ctx.get_vector_config(obj);
 
   vector_register_data_t vector_register_data = {
-      .obj = obj,
+      .obj         = obj,
       .num_entries = static_cast<u32>(cfg.capacity),
-      .index = index,
-      .value = value,
+      .index       = index,
+      .value       = value,
       .write_value = nullptr,
-      .actions = {RegisterActionType::READ, RegisterActionType::SWAP},
+      .actions     = {RegisterActionType::READ, RegisterActionType::SWAP},
   };
 
   return vector_register_data;
@@ -35,7 +35,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
   }
 
   const Call *vector_borrow = dynamic_cast<const Call *>(node);
-  const call_t &call = vector_borrow->get_call();
+  const call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
     return std::nullopt;
@@ -58,7 +58,8 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
   return spec_impl;
 }
 
-std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const Node *node,
+                                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -66,7 +67,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
     return impls;
@@ -89,7 +90,8 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     rids.insert(reg->id);
   }
 
-  Module *module = new VectorRegisterLookup(node, rids, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
+  Module *module =
+      new VectorRegisterLookup(node, rids, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

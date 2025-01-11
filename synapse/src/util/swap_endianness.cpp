@@ -14,9 +14,9 @@ public:
     assert(expr->getKind() == klee::Expr::Constant && "Not a constant");
     assert(expr->getWidth() <= 64 && "Unsupported width");
 
-    auto constant = dynamic_cast<const klee::ConstantExpr *>(expr.get());
-    auto width = constant->getWidth();
-    auto value = constant->getZExtValue();
+    auto constant  = dynamic_cast<const klee::ConstantExpr *>(expr.get());
+    auto width     = constant->getWidth();
+    auto value     = constant->getZExtValue();
     auto new_value = 0;
 
     for (auto i = 0u; i < width; i += 8) {
@@ -43,7 +43,7 @@ public:
       return nullptr;
     }
 
-    auto pkt_read = lhs_is_pkt_read ? lhs : rhs;
+    auto pkt_read     = lhs_is_pkt_read ? lhs : rhs;
     auto not_pkt_read = lhs_is_pkt_read ? rhs : lhs;
 
     // TODO: we should consider the other types
@@ -55,11 +55,11 @@ public:
     return expr->rebuild(new_kids);
   }
 
-#define VISIT_BINARY_CMP_OP(T)                                                                                                             \
-  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                                                                             \
-    auto expr = const_cast<klee::T##Expr *>(&e);                                                                                           \
-    auto new_expr = visit_binary_expr(expr);                                                                                               \
-    return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);                                                          \
+#define VISIT_BINARY_CMP_OP(T)                                                                                                   \
+  klee::ExprVisitor::Action visit##T(const klee::T##Expr &e) {                                                                   \
+    auto expr     = const_cast<klee::T##Expr *>(&e);                                                                             \
+    auto new_expr = visit_binary_expr(expr);                                                                                     \
+    return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);                                                \
   }
 
   VISIT_BINARY_CMP_OP(Eq)

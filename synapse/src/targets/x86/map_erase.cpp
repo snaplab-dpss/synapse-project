@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return false;
@@ -25,10 +25,10 @@ std::optional<spec_impl_t> MapEraseFactory::speculate(const EP *ep, const Node *
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return std::nullopt;
@@ -45,11 +45,11 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const Node *node
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  klee::ref<klee::Expr> trash = call.args.at("trash").out;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> trash         = call.args.at("trash").out;
 
   addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
 
@@ -57,7 +57,7 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const Node *node
     return impls;
   }
 
-  Module *module = new MapErase(node, map_addr, key, trash);
+  Module *module  = new MapErase(node, map_addr, key, trash);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

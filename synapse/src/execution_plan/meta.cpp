@@ -19,7 +19,7 @@ void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node, bool should_proc
   visited_ep_nodes.insert(node_id);
 
   const Module *module = new_node->get_module();
-  TargetType target = module->get_target();
+  TargetType target    = module->get_target();
 
   if (leaf.node) {
     ep_node_id_t leaf_id = leaf.node->get_id();

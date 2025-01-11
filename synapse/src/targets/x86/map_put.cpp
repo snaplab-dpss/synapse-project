@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_put") {
     return false;
@@ -25,10 +25,10 @@ std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep, const Node *no
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return std::nullopt;
@@ -45,12 +45,12 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const Node *node, 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  klee::ref<klee::Expr> value = call.args.at("value").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> value         = call.args.at("value").expr;
 
   addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
   addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
@@ -59,7 +59,7 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const Node *node, 
     return impls;
   }
 
-  Module *module = new MapPut(node, map_addr, key_addr, key, value);
+  Module *module  = new MapPut(node, map_addr, key_addr, key, value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

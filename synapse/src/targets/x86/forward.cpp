@@ -12,7 +12,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Forward) {
     return false;
@@ -38,12 +38,12 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node,
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  int dst_device = route_node->get_dst_device();
+  int dst_device          = route_node->get_dst_device();
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module = new Forward(node, dst_device);
+  Module *module  = new Forward(node, dst_device);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

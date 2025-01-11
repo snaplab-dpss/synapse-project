@@ -15,8 +15,8 @@ private:
 public:
   ExpireItemsSingleMapIteratively(const Node *node, addr_t _vector_addr, addr_t _map_addr, klee::ref<klee::Expr> _start,
                                   klee::ref<klee::Expr> _n_elems)
-      : x86Module(ModuleType::x86_ExpireItemsSingleMapIteratively, "ExpireItemsSingleMapIteratively", node), vector_addr(_vector_addr),
-        map_addr(_map_addr), start(_start), n_elems(_n_elems) {}
+      : x86Module(ModuleType::x86_ExpireItemsSingleMapIteratively, "ExpireItemsSingleMapIteratively", node),
+        vector_addr(_vector_addr), map_addr(_map_addr), start(_start), n_elems(_n_elems) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

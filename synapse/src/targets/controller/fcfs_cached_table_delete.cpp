@@ -8,8 +8,8 @@ using tofino::Table;
 
 namespace {
 DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
-  const Context &ctx = ep->get_ctx();
-  const tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<tofino::TofinoContext>();
+  const Context &ctx                                      = ep->get_ctx();
+  const tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<tofino::TofinoContext>();
   const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
@@ -22,9 +22,9 @@ void get_map_erase_data(const Call *call_node, addr_t &obj, std::vector<klee::re
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-  obj = expr_addr_to_obj_addr(map_addr_expr);
+  obj  = expr_addr_to_obj_addr(map_addr_expr);
   keys = Table::build_keys(key);
 }
 } // namespace
@@ -35,14 +35,14 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
@@ -51,7 +51,8 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node,
+                                                               SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -59,7 +60,7 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return impls;
@@ -75,7 +76,7 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
 
   DS_ID id = get_cached_table_id(ep, obj);
 
-  Module *module = new FCFSCachedTableDelete(node, id, obj, keys);
+  Module *module  = new FCFSCachedTableDelete(node, id, obj, keys);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

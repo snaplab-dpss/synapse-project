@@ -14,18 +14,18 @@ class BDDProfileVisualizer : public BDDViz {
 public:
   BDDProfileVisualizer(const std::string &fname, const bdd_profile_t &profile)
       : BDDViz(bdd_visualizer_opts_t{
-            .fname = fname,
-            .colors_per_node = get_colors_per_node(profile.counters),
-            .default_color = {true, hit_rate_to_color(0)},
+            .fname                = fname,
+            .colors_per_node      = get_colors_per_node(profile.counters),
+            .default_color        = {true, hit_rate_to_color(0)},
             .annotations_per_node = get_annocations_per_node(profile),
-            .processed = processed_t(),
+            .processed            = processed_t(),
         }) {}
 
   static void visualize(const BDD *bdd, const bdd_profile_t &profile, bool interrupt) {
     bdd_visualizer_opts_t opts;
 
-    opts.colors_per_node = get_colors_per_node(profile.counters);
-    opts.default_color.first = true;
+    opts.colors_per_node      = get_colors_per_node(profile.counters);
+    opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(profile);
     opts.default_color.second = hit_rate_to_color(0);
 
@@ -47,8 +47,8 @@ private:
     std::unordered_map<node_id_t, std::string> annocations_per_node;
 
     for (auto it = profile.counters.begin(); it != profile.counters.end(); it++) {
-      node_id_t node = it->first;
-      u64 counter = it->second;
+      node_id_t node           = it->first;
+      u64 counter              = it->second;
       hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
 
       std::stringstream ss;
@@ -76,10 +76,10 @@ private:
     std::unordered_map<node_id_t, std::string> colors_per_node;
 
     for (auto it = counters.begin(); it != counters.end(); it++) {
-      node_id_t node = it->first;
-      u64 counter = it->second;
+      node_id_t node           = it->first;
+      u64 counter              = it->second;
       hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
-      std::string color = hit_rate_to_color(node_hit_rate);
+      std::string color        = hit_rate_to_color(node_hit_rate);
 
       colors_per_node[node] = color;
     }
@@ -104,9 +104,9 @@ private:
     std::vector<rgb_t> palette{blue, cyan, green, yellow, red};
 
     double value = node_hit_rate * (palette.size() - 1);
-    int idx1 = (int)std::floor(value);
-    int idx2 = (int)idx1 + 1;
-    double frac = value - idx1;
+    int idx1     = (int)std::floor(value);
+    int idx2     = (int)idx1 + 1;
+    double frac  = value - idx1;
 
     u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
     u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);

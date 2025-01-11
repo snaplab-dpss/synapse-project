@@ -7,7 +7,8 @@ namespace tofino {
 
 class HHTableConditionalUpdateFactory : public TofinoModuleFactory {
 public:
-  HHTableConditionalUpdateFactory() : TofinoModuleFactory(ModuleType::Tofino_HHTableConditionalUpdate, "HHTableConditionalUpdate") {}
+  HHTableConditionalUpdateFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_HHTableConditionalUpdate, "HHTableConditionalUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;

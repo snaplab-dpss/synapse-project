@@ -17,8 +17,8 @@ struct fcfs_cached_table_data_t {
     const call_t &call = map_erase->get_call();
     assert(call.function_name == "map_erase" && "Expected map_erase");
 
-    obj = expr_addr_to_obj_addr(call.args.at("map").expr);
-    key = call.args.at("key").in;
+    obj         = expr_addr_to_obj_addr(call.args.at("map").expr);
+    key         = call.args.at("key").in;
     num_entries = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
@@ -28,7 +28,8 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const Node *node, klee
   return cache_hit_rate;
 }
 
-std::vector<const Node *> get_future_related_nodes(const EP *ep, const Node *node, const map_coalescing_objs_t &cached_table_data) {
+std::vector<const Node *> get_future_related_nodes(const EP *ep, const Node *node,
+                                                   const map_coalescing_objs_t &cached_table_data) {
   std::vector<const Call *> ops = node->get_future_functions({"dchain_free_index", "map_erase"});
 
   std::vector<const Node *> related_ops;
@@ -37,14 +38,14 @@ std::vector<const Node *> get_future_related_nodes(const EP *ep, const Node *nod
 
     if (call.function_name == "dchain_free_index") {
       klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
-      addr_t obj = expr_addr_to_obj_addr(obj_expr);
+      addr_t obj                     = expr_addr_to_obj_addr(obj_expr);
 
       if (obj != cached_table_data.dchain) {
         continue;
       }
     } else if (call.function_name == "map_erase") {
       klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-      addr_t obj = expr_addr_to_obj_addr(obj_expr);
+      addr_t obj                     = expr_addr_to_obj_addr(obj_expr);
 
       if (obj != cached_table_data.map) {
         continue;
@@ -81,7 +82,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(const EP *ep, const Node
                                                         klee::ref<klee::Expr> cache_delete_success_condition,
                                                         Node *&on_cache_delete_success, Node *&on_cache_delete_failed,
                                                         std::optional<constraints_t> &deleted_branch_constraints) {
-  const BDD *old_bdd = ep->get_bdd();
+  const BDD *old_bdd           = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
   const Node *next = map_erase->get_next();
@@ -90,7 +91,7 @@ std::unique_ptr<BDD> branch_bdd_on_cache_delete_success(const EP *ep, const Node
   Branch *cache_delete_branch = new_bdd->clone_and_add_branch(next, cache_delete_success_condition);
 
   on_cache_delete_success = cache_delete_branch->get_mutable_on_true();
-  on_cache_delete_failed = cache_delete_branch->get_mutable_on_false();
+  on_cache_delete_failed  = cache_delete_branch->get_mutable_on_false();
 
   replicate_hdr_parsing_ops_on_cache_delete_failed(ep, new_bdd.get(), cache_delete_branch, on_cache_delete_failed);
 
@@ -125,19 +126,19 @@ EP *concretize_cached_table_delete(const EP *ep, const Call *map_erase, const ma
   std::optional<constraints_t> deleted_branch_constraints;
 
   std::unique_ptr<BDD> new_bdd =
-      branch_bdd_on_cache_delete_success(new_ep, map_erase, cached_table_data, cache_delete_success_condition, on_cache_delete_success,
-                                         on_cache_delete_failed, deleted_branch_constraints);
+      branch_bdd_on_cache_delete_success(new_ep, map_erase, cached_table_data, cache_delete_success_condition,
+                                         on_cache_delete_success, on_cache_delete_failed, deleted_branch_constraints);
 
   Symbols symbols = TofinoModuleFactory::get_dataplane_state(ep, map_erase);
 
-  Module *if_module = new If(map_erase, cache_delete_success_condition, {cache_delete_success_condition});
-  Module *then_module = new Then(map_erase);
-  Module *else_module = new Else(map_erase);
+  Module *if_module                 = new If(map_erase, cache_delete_success_condition, {cache_delete_success_condition});
+  Module *then_module               = new Then(map_erase);
+  Module *else_module               = new Else(map_erase);
   Module *send_to_controller_module = new SendToController(on_cache_delete_failed, symbols);
 
-  EPNode *if_node = new EPNode(if_module);
-  EPNode *then_node = new EPNode(then_module);
-  EPNode *else_node = new EPNode(else_module);
+  EPNode *if_node                 = new EPNode(if_module);
+  EPNode *then_node               = new EPNode(then_module);
+  EPNode *else_node               = new EPNode(else_module);
   EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
 
   cached_table_delete_node->set_children(if_node);
@@ -188,7 +189,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   }
 
   const Call *map_erase = dynamic_cast<const Call *>(node);
-  const call_t &call = map_erase->get_call();
+  const call_t &call    = map_erase->get_call();
 
   if (call.function_name != "map_erase") {
     return std::nullopt;
@@ -199,7 +200,8 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
   }
 
@@ -208,8 +210,8 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   hit_rate_t chosen_cache_success_probability = 0;
-  u32 chosen_cache_capacity = 0;
-  bool successfully_placed = false;
+  u32 chosen_cache_capacity                   = 0;
+  bool successfully_placed                    = false;
 
   // We can use a different method for picking the right estimation depending
   // on the time it takes to find a solution.
@@ -223,7 +225,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
 
     if (cache_success_probability > chosen_cache_success_probability) {
       chosen_cache_success_probability = cache_success_probability;
-      chosen_cache_capacity = cache_capacity;
+      chosen_cache_capacity            = cache_capacity;
     }
 
     successfully_placed = true;
@@ -233,10 +235,10 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
     return std::nullopt;
   }
 
-  Context new_ctx = ctx;
+  Context new_ctx          = ctx;
   const Profiler &profiler = new_ctx.get_profiler();
 
-  hit_rate_t fraction = profiler.get_hr(node);
+  hit_rate_t fraction         = profiler.get_hr(node);
   hit_rate_t on_fail_fraction = fraction * (1 - chosen_cache_success_probability);
 
   // FIXME: not using profiler cache.
@@ -259,7 +261,8 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   return spec_impl;
 }
 
-std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const Node *node,
+                                                               SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -267,7 +270,7 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
   }
 
   const Call *map_erase = dynamic_cast<const Call *>(node);
-  const call_t &call = map_erase->get_call();
+  const call_t &call    = map_erase->get_call();
 
   if (call.function_name != "map_erase") {
     return impls;
@@ -284,7 +287,7 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
   }
 
   fcfs_cached_table_data_t cached_table_data(ep, map_erase);
-  symbol_t cache_delete_failed = symbol_manager->create_symbol("cache_delete_failed", 32);
+  symbol_t cache_delete_failed              = symbol_manager->create_symbol("cache_delete_failed", 32);
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {

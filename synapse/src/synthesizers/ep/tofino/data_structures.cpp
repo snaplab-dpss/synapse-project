@@ -23,51 +23,52 @@ code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Regis
   return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                                           const std::vector<klee::ref<klee::Expr>> &values) {
-  coder_t coder(lvl);
-  std::vector<code_t> action_params;
+void EPSynthesizer::transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
+                                         const std::vector<klee::ref<klee::Expr>> &values) {
+  std::vector<var_t> keys_vars;
+  std::vector<var_t> params_vars;
+
+  for (klee::ref<klee::Expr> key : keys) {
+    const std::string key_name = table->id + "_key";
+    const var_t key_var        = alloc_var(key_name, key, GLOBAL);
+    keys_vars.push_back(key_var);
+  }
+
+  for (klee::ref<klee::Expr> value : values) {
+    const std::string param_name = table->id + "_value";
+    const var_t param_value_var  = alloc_var(param_name, value, GLOBAL);
+
+    params_vars.push_back(param_value_var);
+    param_value_var.declare(coder, Transpiler::transpile_literal(0, value->getWidth()));
+  }
 
   const code_t action_name = table->id + "_get_value";
-
-  for (size_t i = 0; i < values.size(); i++) {
-    klee::ref<klee::Expr> value = values[i];
-    code_t param = table->id + "_value_" + std::to_string(i);
-    action_params.push_back(param);
-    var_stacks.back().emplace_back(param, value);
-
-    coder.indent();
-    coder << transpiler.type_from_expr(value);
-    coder << " ";
-    coder << param;
-    coder << ";\n";
-  }
 
   if (!values.empty()) {
     coder.indent();
     coder << "action " << action_name << "(";
 
     for (size_t i = 0; i < values.size(); i++) {
-      klee::ref<klee::Expr> value = values[i];
+      const klee::ref<klee::Expr> value = values[i];
 
       if (i != 0) {
         coder << ", ";
       }
 
-      coder << transpiler.type_from_expr(value);
+      coder << Transpiler::type_from_expr(value);
       coder << " ";
-      coder << "_" << action_params[i];
+      coder << "_" << params_vars[i].name;
     }
 
     coder << ") {\n";
 
     coder.inc();
 
-    for (const code_t &param : action_params) {
+    for (const var_t &param : params_vars) {
       coder.indent();
-      coder << param;
+      coder << param.name;
       coder << " = ";
-      coder << "_" << param;
+      coder << "_" << param.name;
       coder << ";\n";
     }
 
@@ -78,6 +79,10 @@ code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table, con
     coder << "\n";
   }
 
+  for (const var_t &key : keys_vars) {
+    key.declare(coder, Transpiler::transpile_literal(0, key.expr->getWidth()));
+  }
+
   coder.indent();
   coder << "table " << table->id << " {\n";
   coder.inc();
@@ -86,9 +91,9 @@ code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table, con
   coder << "key = {\n";
   coder.inc();
 
-  for (klee::ref<klee::Expr> key : keys) {
+  for (const var_t &key : keys_vars) {
     coder.indent();
-    coder << transpiler.transpile(key) << ": exact;\n";
+    coder << key.name << ": exact;\n";
   }
 
   coder.dec();
@@ -117,22 +122,20 @@ code_t EPSynthesizer::transpile_table_decl(indent_t lvl, const Table *table, con
   coder.dec();
   coder.indent();
   coder << "}\n";
-
-  return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_register_decl(indent_t lvl, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value) {
+void EPSynthesizer::transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index,
+                                            klee::ref<klee::Expr> value) {
   // * Template:
   // Register<{VALUE_WIDTH}, _>({CAPACITY}, {INIT_VALUE}) {NAME};
   // * Example:
   // Register<bit<32>, _>(1024, 0) my_register;
 
-  coder_t coder(lvl);
   const u64 init_value = 0;
 
   coder.indent();
   coder << "Register<";
-  coder << transpiler.type_from_size(reg->index_size);
+  coder << Transpiler::type_from_size(reg->index_size);
   coder << ",_>";
 
   coder << "(";
@@ -145,11 +148,9 @@ code_t EPSynthesizer::transpile_register_decl(indent_t lvl, const Register *reg,
 
   coder << reg->id;
   coder << ";\n";
-
-  return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_register_read_action_decl(indent_t lvl, const Register *reg, const code_t &name) {
+void EPSynthesizer::transpile_register_read_action_decl(coder_t &coder, const Register *reg, const code_t &name) {
   // * Example:
   // RegisterAction<value_t, hash_t, bool>(reg) reg_read = {
   // 		void apply(inout value_t value, out value_t out_value) {
@@ -157,10 +158,8 @@ code_t EPSynthesizer::transpile_register_read_action_decl(indent_t lvl, const Re
   // 		}
   // 	};
 
-  coder_t coder(lvl);
-
-  code_t value_type = transpiler.type_from_size(reg->value_size);
-  code_t index_type = transpiler.type_from_size(reg->index_size);
+  code_t value_type = Transpiler::type_from_size(reg->value_size);
+  code_t index_type = Transpiler::type_from_size(reg->index_size);
 
   coder.indent();
   coder << "RegisterAction<";
@@ -198,12 +197,10 @@ code_t EPSynthesizer::transpile_register_read_action_decl(indent_t lvl, const Re
   coder.dec();
   coder.indent();
   coder << "};\n";
-
-  return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_register_write_action_decl(indent_t lvl, const Register *reg, const code_t &name,
-                                                           const var_t &write_value) {
+void EPSynthesizer::transpile_register_write_action_decl(coder_t &coder, const Register *reg, const code_t &name,
+                                                         const var_t &write_value) {
   // * Example:
   // RegisterAction<value_t, hash_t, void>(reg) reg_write = {
   // 		void apply(inout value_t value) {
@@ -211,13 +208,8 @@ code_t EPSynthesizer::transpile_register_write_action_decl(indent_t lvl, const R
   // 		}
   // 	};
 
-  coder_t coder(lvl);
-
-  code_t value_type = transpiler.type_from_size(reg->value_size);
-  code_t index_type = transpiler.type_from_size(reg->index_size);
-
-  coder.indent();
-  coder << type_from_var(write_value) << " " << write_value.name << ";\n";
+  code_t value_type = Transpiler::type_from_size(reg->value_size);
+  code_t index_type = Transpiler::type_from_size(reg->index_size);
 
   coder.indent();
   coder << "RegisterAction<";
@@ -254,17 +246,13 @@ code_t EPSynthesizer::transpile_register_write_action_decl(indent_t lvl, const R
   coder.dec();
   coder.indent();
   coder << "};\n";
-
-  return coder.dump();
 }
 
-code_t EPSynthesizer::transpile_fcfs_cached_table_decl(indent_t lvl, const FCFSCachedTable *fcfs_cached_table,
-                                                       const klee::ref<klee::Expr> key, const klee::ref<klee::Expr> value) {
+void EPSynthesizer::transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
+                                                     const klee::ref<klee::Expr> key, const klee::ref<klee::Expr> value) {
   // for (const Table &table : fcfs_cached_table->tables) {
   // }
   panic("TODO: transpile_fcfs_cached_table_decl");
-  coder_t coder;
-  return coder.dump();
 }
 
 } // namespace tofino

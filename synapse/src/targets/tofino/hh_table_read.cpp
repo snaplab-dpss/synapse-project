@@ -18,12 +18,12 @@ struct hh_table_data_t {
 
     symbol_t map_has_this_key_symbol = map_get->get_local_symbol("map_has_this_key");
 
-    obj = expr_addr_to_obj_addr(call.args.at("map").expr);
-    key = call.args.at("key").in;
-    table_keys = Table::build_keys(key);
-    read_value = call.args.at("value_out").out;
+    obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
+    key              = call.args.at("key").in;
+    table_keys       = Table::build_keys(key);
+    read_value       = call.args.at("value_out").out;
     map_has_this_key = map_has_this_key_symbol;
-    num_entries = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries      = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 
@@ -48,7 +48,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
   }
 
   const Call *map_get = dynamic_cast<const Call *>(node);
-  const call_t &call = map_get->get_call();
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return std::nullopt;
@@ -71,7 +71,8 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
 
   hh_table_data_t table_data(ep, map_get);
 
-  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT)) {
+  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH,
+                                   CMS_HEIGHT)) {
     return std::nullopt;
   }
 
@@ -92,7 +93,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
   }
 
   const Call *map_get = dynamic_cast<const Call *>(node);
-  const call_t &call = map_get->get_call();
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return impls;
@@ -123,9 +124,9 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
   }
 
   symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
-  Module *module = new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
-                                   table_data.map_has_this_key, min_estimate);
-  EPNode *ep_node = new EPNode(module);
+  Module *module        = new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
+                                          table_data.map_has_this_key, min_estimate);
+  EPNode *ep_node       = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

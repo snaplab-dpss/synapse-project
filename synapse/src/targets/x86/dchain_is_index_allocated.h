@@ -13,8 +13,8 @@ private:
 
 public:
   DchainIsIndexAllocated(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
-      : x86Module(ModuleType::x86_DchainIsIndexAllocated, "DchainIsIndexAllocated", node), dchain_addr(_dchain_addr), index(_index),
-        is_allocated(_is_allocated) {}
+      : x86Module(ModuleType::x86_DchainIsIndexAllocated, "DchainIsIndexAllocated", node), dchain_addr(_dchain_addr),
+        index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

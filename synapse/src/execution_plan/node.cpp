@@ -113,7 +113,7 @@ EPNode *EPNode::clone(bool recursive) const {
 
     for (const EPNode *child : children) {
       EPNode *cloned_children = child->clone(true);
-      cloned_children->prev = cloned_node;
+      cloned_children->prev   = cloned_node;
       children_clones.push_back(cloned_children);
     }
 

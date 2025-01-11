@@ -13,9 +13,9 @@ struct symbol_t {
   std::string name;
   klee::ref<klee::Expr> expr;
 
-  symbol_t() = default;
-  symbol_t(const symbol_t &) = default;
-  symbol_t(symbol_t &&) = default;
+  symbol_t()                            = default;
+  symbol_t(const symbol_t &)            = default;
+  symbol_t(symbol_t &&)                 = default;
   symbol_t &operator=(const symbol_t &) = default;
 
   symbol_t(klee::ref<klee::Expr> expr);
@@ -40,9 +40,9 @@ private:
   std::unordered_set<symbol_t, symbol_hash_t, symbol_equal_t> data;
 
 public:
-  Symbols() = default;
-  Symbols(const Symbols &) = default;
-  Symbols(Symbols &&) = default;
+  Symbols()                           = default;
+  Symbols(const Symbols &)            = default;
+  Symbols(Symbols &&)                 = default;
   Symbols &operator=(const Symbols &) = default;
 
   void add(const symbol_t &symbol);

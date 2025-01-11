@@ -19,9 +19,9 @@ private:
   klee::ArrayCache cache;
 
 public:
-  SymbolManager() = default;
-  SymbolManager(const SymbolManager &other) = delete;
-  SymbolManager(SymbolManager &&other) = default;
+  SymbolManager()                                      = default;
+  SymbolManager(const SymbolManager &other)            = delete;
+  SymbolManager(SymbolManager &&other)                 = default;
   SymbolManager &operator=(const SymbolManager &other) = delete;
 
   const std::vector<const klee::Array *> &get_arrays() const;

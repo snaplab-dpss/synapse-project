@@ -30,13 +30,13 @@ void assert_bdd(const BDD &bdd) {
     if (node->get_type() == NodeType::Branch) {
       const Branch *branch = static_cast<const Branch *>(node);
 
-      const Node *on_true = branch->get_on_true();
+      const Node *on_true  = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
       assert(on_true);
       assert(on_false);
 
-      const Node *on_true_prev = on_true->get_prev();
+      const Node *on_true_prev  = on_true->get_prev();
       const Node *on_false_prev = on_false->get_prev();
 
       assert(on_true_prev);

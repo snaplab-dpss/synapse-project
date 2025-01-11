@@ -9,7 +9,7 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const Node *n
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Forward) {
     return std::nullopt;
@@ -31,7 +31,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node,
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Forward) {
     return impls;
@@ -42,7 +42,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const Node *node,
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module = new Forward(node, dst_device);
+  Module *module   = new Forward(node, dst_device);
   EPNode *fwd_node = new EPNode(module);
 
   EPLeaf leaf(fwd_node, node->get_next());

@@ -19,6 +19,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes
 bool is_bool(klee::ref<klee::Expr> expr);
 bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
+bool is_conditional(klee::ref<klee::Expr> expr);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
@@ -36,8 +37,8 @@ struct expr_mod_t {
   klee::ref<klee::Expr> expr;
 
   expr_mod_t(bits_t _offset, bits_t _width, klee::ref<klee::Expr> _expr) : offset(_offset), width(_width), expr(_expr) {}
-  expr_mod_t(const expr_mod_t &mod) = default;
-  expr_mod_t(expr_mod_t &&mod) = default;
+  expr_mod_t(const expr_mod_t &mod)            = default;
+  expr_mod_t(expr_mod_t &&mod)                 = default;
   expr_mod_t &operator=(const expr_mod_t &mod) = default;
 };
 

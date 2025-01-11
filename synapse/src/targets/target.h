@@ -26,7 +26,7 @@ struct TargetView {
 
   TargetView(TargetType type, std::vector<const ModuleFactory *> module_factories, const TargetContext *base_ctx);
   TargetView(const TargetView &other) = default;
-  TargetView(TargetView &&other) = default;
+  TargetView(TargetView &&other)      = default;
 };
 
 struct Target {
@@ -36,8 +36,8 @@ struct Target {
 
   Target(TargetType type, std::vector<std::unique_ptr<ModuleFactory>> module_factories, std::unique_ptr<TargetContext> base_ctx);
   Target(const Target &other) = delete;
-  Target(Target &&other) = delete;
-  virtual ~Target() = default;
+  Target(Target &&other)      = delete;
+  virtual ~Target()           = default;
 
   TargetView get_view() const;
 };
@@ -47,7 +47,7 @@ struct TargetsView {
 
   TargetsView(const std::array<TargetView, 3> &elements);
   TargetsView(const TargetsView &other) = default;
-  TargetsView(TargetsView &&other) = default;
+  TargetsView(TargetsView &&other)      = default;
 
   TargetView get_initial_target() const;
 };
@@ -57,7 +57,7 @@ struct Targets {
 
   Targets(const toml::table &config);
   Targets(const Targets &other) = delete;
-  Targets(Targets &&other) = delete;
+  Targets(Targets &&other)      = delete;
 
   TargetsView get_view() const;
 };

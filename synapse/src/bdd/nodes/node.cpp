@@ -17,15 +17,15 @@ call_t rename_call_symbols(SymbolManager *symbol_manager, const call_t &call,
 
   for (auto &arg_pair : renamed_call.args) {
     arg_t &arg = renamed_call.args[arg_pair.first];
-    arg.expr = symbol_manager->translate(arg.expr, translations);
-    arg.in = symbol_manager->translate(arg.in, translations);
-    arg.out = symbol_manager->translate(arg.out, translations);
+    arg.expr   = symbol_manager->translate(arg.expr, translations);
+    arg.in     = symbol_manager->translate(arg.in, translations);
+    arg.out    = symbol_manager->translate(arg.out, translations);
   }
 
   for (auto &extra_var_pair : renamed_call.extra_vars) {
     extra_var_t &extra_var = renamed_call.extra_vars[extra_var_pair.first];
-    extra_var.first = symbol_manager->translate(extra_var.first, translations);
-    extra_var.second = symbol_manager->translate(extra_var.second, translations);
+    extra_var.first        = symbol_manager->translate(extra_var.first, translations);
+    extra_var.second       = symbol_manager->translate(extra_var.second, translations);
   }
 
   renamed_call.ret = symbol_manager->translate(renamed_call.ret, translations);
@@ -68,7 +68,7 @@ bool Node::is_reachable(node_id_t id) const {
 
 size_t Node::count_children(bool recursive) const {
   NodeVisitAction action = recursive ? NodeVisitAction::Continue : NodeVisitAction::SkipChildren;
-  const Node *self = this;
+  const Node *self       = this;
 
   size_t total = 0;
   visit_nodes([&total, action, self](const Node *node) -> NodeVisitAction {
@@ -90,8 +90,8 @@ size_t Node::count_code_paths() const {
     switch (node->get_type()) {
     case NodeType::Branch: {
       const Branch *branch_node = dynamic_cast<const Branch *>(node);
-      const Node *on_true = branch_node->get_on_true();
-      const Node *on_false = branch_node->get_on_false();
+      const Node *on_true       = branch_node->get_on_true();
+      const Node *on_false      = branch_node->get_on_false();
       if (!on_true)
         paths++;
       if (!on_false)
@@ -122,7 +122,7 @@ constraints_t Node::get_ordered_branch_constraints() const {
       continue;
     }
 
-    const Branch *branch = dynamic_cast<const Branch *>(prev);
+    const Branch *branch            = dynamic_cast<const Branch *>(prev);
     klee::ref<klee::Expr> condition = branch->get_condition();
 
     if (branch->get_on_false() == node) {
@@ -145,8 +145,8 @@ std::string Node::recursive_dump(int lvl) const {
   switch (type) {
   case NodeType::Branch: {
     const Branch *branch_node = dynamic_cast<const Branch *>(this);
-    const Node *on_true = branch_node->get_on_true();
-    const Node *on_false = branch_node->get_on_false();
+    const Node *on_true       = branch_node->get_on_true();
+    const Node *on_false      = branch_node->get_on_false();
     if (on_true)
       result << on_true->recursive_dump(lvl + 1);
     if (on_false)
@@ -190,8 +190,8 @@ void Node::recursive_update_ids(node_id_t &new_id) {
   switch (type) {
   case NodeType::Branch: {
     Branch *branch_node = dynamic_cast<Branch *>(this);
-    Node *on_true = branch_node->get_mutable_on_true();
-    Node *on_false = branch_node->get_mutable_on_false();
+    Node *on_true       = branch_node->get_mutable_on_true();
+    Node *on_false      = branch_node->get_mutable_on_false();
     if (on_true)
       on_true->recursive_update_ids(new_id);
     if (on_false)
@@ -241,7 +241,7 @@ void Node::recursive_translate_symbol(SymbolManager *symbol_manager, const symbo
     Call *call_node = dynamic_cast<Call *>(node);
 
     const call_t &call = call_node->get_call();
-    call_t new_call = rename_call_symbols(symbol_manager, call, {{old_symbol.name, new_symbol.name}});
+    call_t new_call    = rename_call_symbols(symbol_manager, call, {{old_symbol.name, new_symbol.name}});
     call_node->set_call(new_call);
 
     Symbols generated_symbols = call_node->get_local_symbols();
@@ -269,7 +269,7 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> 
   nodes.push_back({this, std::move(cookie)});
 
   while (nodes.size()) {
-    const Node *node = nodes[0].first;
+    const Node *node                      = nodes[0].first;
     std::unique_ptr<cookie_t> node_cookie = std::move(nodes[0].second);
     nodes.erase(nodes.begin());
 
@@ -282,8 +282,8 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> 
     switch (node->get_type()) {
     case NodeType::Branch: {
       const Branch *branch_node = dynamic_cast<const Branch *>(node);
-      const Node *on_true = branch_node->get_on_true();
-      const Node *on_false = branch_node->get_on_false();
+      const Node *on_true       = branch_node->get_on_true();
+      const Node *on_false      = branch_node->get_on_false();
 
       if (on_true && action != NodeVisitAction::SkipChildren) {
         std::unique_ptr<cookie_t> new_cookie;
@@ -325,7 +325,7 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)
   nodes.push_back({this, std::move(cookie)});
 
   while (nodes.size()) {
-    Node *node = nodes[0].first;
+    Node *node                            = nodes[0].first;
     std::unique_ptr<cookie_t> node_cookie = std::move(nodes[0].second);
     nodes.erase(nodes.begin());
 
@@ -338,8 +338,8 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)
     switch (node->get_type()) {
     case NodeType::Branch: {
       Branch *branch_node = dynamic_cast<Branch *>(node);
-      Node *on_true = branch_node->get_mutable_on_true();
-      Node *on_false = branch_node->get_mutable_on_false();
+      Node *on_true       = branch_node->get_mutable_on_true();
+      Node *on_false      = branch_node->get_mutable_on_false();
 
       if (on_true && action != NodeVisitAction::SkipChildren) {
         std::unique_ptr<cookie_t> new_cookie;
@@ -381,7 +381,7 @@ void Node::recursive_free_children(NodeManager &manager) {
   case NodeType::Branch: {
     Branch *branch_node = dynamic_cast<Branch *>(this);
 
-    Node *on_true = branch_node->get_mutable_on_true();
+    Node *on_true  = branch_node->get_mutable_on_true();
     Node *on_false = branch_node->get_mutable_on_false();
 
     if (on_true) {
@@ -422,7 +422,7 @@ Symbols Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
     }
 
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = dynamic_cast<const Call *>(node);
+      const Call *call_node        = dynamic_cast<const Call *>(node);
       const Symbols &local_symbols = call_node->get_local_symbols();
 
       for (const symbol_t &symbol : local_symbols.get()) {
@@ -446,8 +446,8 @@ std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string
   const Node *node = this;
   while ((node = node->get_prev())) {
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = dynamic_cast<const Call *>(node);
-      const call_t &call = call_node->get_call();
+      const Call *call_node    = dynamic_cast<const Call *>(node);
+      const call_t &call       = call_node->get_call();
       const std::string &fname = call.function_name;
 
       auto found_it = std::find(wanted.begin(), wanted.end(), fname);
@@ -473,7 +473,7 @@ std::vector<const Call *> Node::get_future_functions(const std::vector<std::stri
     }
 
     const Call *call_node = dynamic_cast<const Call *>(node);
-    const call_t &call = call_node->get_call();
+    const call_t &call    = call_node->get_call();
 
     auto found_it = std::find(wanted.begin(), wanted.end(), call.function_name);
 
@@ -492,8 +492,8 @@ Symbols Node::get_used_symbols() const {
 
   switch (type) {
   case NodeType::Branch: {
-    const Branch *branch_node = dynamic_cast<const Branch *>(this);
-    klee::ref<klee::Expr> expr = branch_node->get_condition();
+    const Branch *branch_node             = dynamic_cast<const Branch *>(this);
+    klee::ref<klee::Expr> expr            = branch_node->get_condition();
     std::unordered_set<std::string> names = symbol_t::get_symbols_names(expr);
     for (const std::string &name : names) {
       symbols.add(symbol_manager->get_symbol(name));
@@ -501,7 +501,7 @@ Symbols Node::get_used_symbols() const {
   } break;
   case NodeType::Call: {
     const Call *call_node = dynamic_cast<const Call *>(this);
-    const call_t &call = call_node->get_call();
+    const call_t &call    = call_node->get_call();
 
     for (const auto &[arg_name, arg] : call.args) {
       if (!arg.expr.isNull()) {
@@ -562,7 +562,7 @@ bool Node::is_packet_drop_code_path() const {
     }
 
     const Route *route_node = dynamic_cast<const Route *>(node);
-    RouteOp op = route_node->get_operation();
+    RouteOp op              = route_node->get_operation();
 
     found_drop |= (op == RouteOp::Drop);
     return NodeVisitAction::Stop;

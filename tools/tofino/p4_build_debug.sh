@@ -17,4 +17,4 @@ P4_DEBUG_FLAGS="-g --verbose 2 --create-graphs"
 BUILD_DIR="./build"
 
 mkdir -p $BUILD_DIR
-$P4C $P4_DEBUG_FLAGS -o $BUILD_DIR $1
+$P4C --target tofino2 --arch t2na $P4_DEBUG_FLAGS -o $BUILD_DIR $1

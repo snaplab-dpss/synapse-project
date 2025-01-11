@@ -56,7 +56,7 @@ public:
 
   ~EP();
 
-  EP(EP &&other) = delete;
+  EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;
 
   void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node = true);

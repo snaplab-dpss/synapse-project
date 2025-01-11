@@ -12,15 +12,15 @@ std::string build_cms_name(DS_ID id) { return id + "_cms"; }
 
 HHTable::HHTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _num_entries, const std::vector<bits_t> &_keys_sizes,
                  u32 _cms_width, u32 _cms_height)
-    : DS(DSType::HH_TABLE, false, _id), num_entries(_num_entries), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
-      cms(properties, build_cms_name(id), keys_sizes, cms_width, cms_height) {
+    : DS(DSType::HH_TABLE, false, _id), num_entries(_num_entries), keys_sizes(_keys_sizes), cms_width(_cms_width),
+      cms_height(_cms_height), cms(properties, build_cms_name(id), keys_sizes, cms_width, cms_height) {
   assert(num_entries > 0 && "HH Table entries must be greater than 0");
   add_table(_op);
 }
 
 HHTable::HHTable(const HHTable &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys_sizes(other.keys_sizes), tables(other.tables),
-      cms_width(other.cms_width), cms_height(other.cms_height), cms(other.cms) {}
+    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys_sizes(other.keys_sizes),
+      tables(other.tables), cms_width(other.cms_width), cms_height(other.cms_height), cms(other.cms) {}
 
 DS *HHTable::clone() const { return new HHTable(*this); }
 

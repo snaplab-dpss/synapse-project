@@ -16,8 +16,8 @@ private:
 public:
   TableLookup(const Node *node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
               const std::vector<klee::ref<klee::Expr>> &_values, const std::optional<symbol_t> &_hit)
-      : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node), table_id(_table_id), obj(_obj), keys(_keys), values(_values),
-        hit(_hit) {}
+      : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node), table_id(_table_id), obj(_obj), keys(_keys),
+        values(_values), hit(_hit) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

@@ -13,7 +13,8 @@ private:
 
 public:
   DchainRejuvenateIndex(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
-      : x86Module(ModuleType::x86_DchainRejuvenateIndex, "DchainRejuvenate", node), dchain_addr(_dchain_addr), index(_index), time(_time) {}
+      : x86Module(ModuleType::x86_DchainRejuvenateIndex, "DchainRejuvenate", node), dchain_addr(_dchain_addr), index(_index),
+        time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

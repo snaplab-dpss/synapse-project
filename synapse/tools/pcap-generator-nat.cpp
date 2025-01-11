@@ -50,21 +50,21 @@ pkt_hdr_t build_pkt_template() {
   parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
   parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
 
-  pkt.ip_hdr.version = 4;
-  pkt.ip_hdr.ihl = 5;
+  pkt.ip_hdr.version         = 4;
+  pkt.ip_hdr.ihl             = 5;
   pkt.ip_hdr.type_of_service = 0;
-  pkt.ip_hdr.total_length = htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.payload));
-  pkt.ip_hdr.packet_id = 0;
+  pkt.ip_hdr.total_length    = htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.payload));
+  pkt.ip_hdr.packet_id       = 0;
   pkt.ip_hdr.fragment_offset = 0;
-  pkt.ip_hdr.time_to_live = 64;
-  pkt.ip_hdr.next_proto_id = IPPROTO_UDP;
-  pkt.ip_hdr.hdr_checksum = 0;
-  pkt.ip_hdr.src_addr = 0;
-  pkt.ip_hdr.dst_addr = 0;
+  pkt.ip_hdr.time_to_live    = 64;
+  pkt.ip_hdr.next_proto_id   = IPPROTO_UDP;
+  pkt.ip_hdr.hdr_checksum    = 0;
+  pkt.ip_hdr.src_addr        = 0;
+  pkt.ip_hdr.dst_addr        = 0;
 
   pkt.udp_hdr.src_port = 0;
   pkt.udp_hdr.dst_port = 0;
-  pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.payload));
+  pkt.udp_hdr.len      = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.payload));
   pkt.udp_hdr.checksum = 0;
 
   memset(pkt.payload, 0x42, sizeof(pkt.payload));
@@ -74,8 +74,8 @@ pkt_hdr_t build_pkt_template() {
 
 flow_t random_flow() {
   flow_t flow;
-  flow.src_ip = random_addr();
-  flow.dst_ip = random_addr();
+  flow.src_ip   = random_addr();
+  flow.dst_ip   = random_addr();
   flow.src_port = random_port();
   flow.dst_port = random_port();
   return flow;
@@ -83,8 +83,8 @@ flow_t random_flow() {
 
 flow_t invert_flow(const flow_t &flow) {
   flow_t inverted_flow;
-  inverted_flow.src_ip = flow.dst_ip;
-  inverted_flow.dst_ip = flow.src_ip;
+  inverted_flow.src_ip   = flow.dst_ip;
+  inverted_flow.dst_ip   = flow.src_ip;
   inverted_flow.src_port = flow.dst_port;
   inverted_flow.dst_port = flow.src_port;
   return inverted_flow;
@@ -246,9 +246,9 @@ public:
     }
 
     for (const flow_t &flow : flows) {
-      flows_dev_turn[flow] = Dev::LAN;
+      flows_dev_turn[flow]   = Dev::LAN;
       flows_to_lan_dev[flow] = current_lan_dev;
-      counters[flow] = 0;
+      counters[flow]         = 0;
       advance_lan_dev();
     }
 
@@ -259,8 +259,8 @@ public:
   }
 
   void dump_warmup() {
-    u64 counter = 0;
-    u64 goal = flows.size();
+    u64 counter  = 0;
+    u64 goal     = flows.size();
     int progress = -1;
 
     printf("Warmup: %s\n", warmup_writer.get_output_fname().c_str());
@@ -268,8 +268,8 @@ public:
     for (const flow_t &flow : flows) {
       pkt_hdr_t pkt = packet_template;
 
-      pkt.ip_hdr.src_addr = flow.src_ip;
-      pkt.ip_hdr.dst_addr = flow.dst_ip;
+      pkt.ip_hdr.src_addr  = flow.src_ip;
+      pkt.ip_hdr.dst_addr  = flow.dst_ip;
       pkt.udp_hdr.src_port = flow.src_port;
       pkt.udp_hdr.dst_port = flow.dst_port;
 
@@ -292,8 +292,8 @@ public:
   }
 
   void dump() {
-    u64 counter = 0;
-    u64 goal = config.total_packets;
+    u64 counter  = 0;
+    u64 goal     = config.total_packets;
     int progress = -1;
 
     printf("Traffic: %s\n", wan_writer.get_output_fname().c_str());
@@ -306,11 +306,11 @@ public:
 
       if (next_alarm >= 0 && current_time >= next_alarm) {
         u64 chosen_swap_flow_idx = uniform_rand.generate();
-        flow_t old_flow = random_swap_flow(chosen_swap_flow_idx);
+        flow_t old_flow          = random_swap_flow(chosen_swap_flow_idx);
         next_alarm += alarm_tick;
 
-        const flow_t &new_flow = flows[chosen_swap_flow_idx];
-        flows_dev_turn[new_flow] = Dev::WAN;
+        const flow_t &new_flow     = flows[chosen_swap_flow_idx];
+        flows_dev_turn[new_flow]   = Dev::WAN;
         flows_to_lan_dev[new_flow] = current_lan_dev;
         advance_lan_dev();
         counters[new_flow] = 0;
@@ -327,7 +327,7 @@ public:
       assert(flow_idx < flows.size());
 
       const flow_t &flow = flows[flow_idx];
-      bool new_flow = allocated_flows.find(flow) == allocated_flows.end();
+      bool new_flow      = allocated_flows.find(flow) == allocated_flows.end();
 
       if (new_flow) {
         flows_to_lan_dev[flow] = current_lan_dev;
@@ -338,8 +338,8 @@ public:
       u16 allocated_port = port_allocator.get(flow);
 
       if (new_flow || flows_dev_turn[flow] == Dev::LAN) {
-        pkt.ip_hdr.src_addr = flow.src_ip;
-        pkt.ip_hdr.dst_addr = flow.dst_ip;
+        pkt.ip_hdr.src_addr  = flow.src_ip;
+        pkt.ip_hdr.dst_addr  = flow.dst_ip;
         pkt.udp_hdr.src_port = flow.src_port;
         pkt.udp_hdr.dst_port = flow.dst_port;
 
@@ -351,14 +351,14 @@ public:
         flow_t inverted_flow = invert_flow(flow);
 
         u32 public_ipv4_addr = 0;
-        bool success = parse_ipv4addr(PUBLIC_IP, &public_ipv4_addr);
+        bool success         = parse_ipv4addr(PUBLIC_IP, &public_ipv4_addr);
         assert(success && "Invalid IPv4 format");
 
-        pkt.ip_hdr.src_addr = inverted_flow.src_ip;
+        pkt.ip_hdr.src_addr  = inverted_flow.src_ip;
         pkt.udp_hdr.src_port = inverted_flow.src_port;
 
         // No ntohs, the original NAT doesn't care.
-        pkt.ip_hdr.dst_addr = public_ipv4_addr;
+        pkt.ip_hdr.dst_addr  = public_ipv4_addr;
         pkt.udp_hdr.dst_port = allocated_port;
 
         flows_dev_turn[flow] = Dev::LAN;
@@ -399,7 +399,7 @@ private:
 
     u64 total_flows = counters.size();
 
-    u64 hh = 0;
+    u64 hh         = 0;
     u64 hh_packets = 0;
     for (size_t i = 0; i < total_flows; i++) {
       hh++;
@@ -432,7 +432,7 @@ private:
     flow_t new_flow = random_flow();
 
     counters[new_flow] = 0;
-    flows[flow_idx] = new_flow;
+    flows[flow_idx]    = new_flow;
 
     flows_swapped++;
 

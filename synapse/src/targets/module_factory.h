@@ -27,8 +27,8 @@ struct decision_t {
   decision_t(const decision_t &other) : ep(other.ep), node(other.node), module(other.module), params(other.params) {}
 
   decision_t &operator=(const decision_t &other) {
-    ep = other.ep;
-    node = other.node;
+    ep     = other.ep;
+    node   = other.node;
     module = other.module;
     params = other.params;
     return *this;

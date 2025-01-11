@@ -13,7 +13,8 @@ private:
 
 public:
   ParserExtraction(const Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length)
-      : TofinoModule(ModuleType::Tofino_ParserExtraction, "ParserExtraction", node), hdr_addr(_hdr_addr), hdr(_hdr), length(_length) {}
+      : TofinoModule(ModuleType::Tofino_ParserExtraction, "ParserExtraction", node), hdr_addr(_hdr_addr), hdr(_hdr),
+        length(_length) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

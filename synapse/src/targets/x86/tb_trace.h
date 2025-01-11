@@ -15,8 +15,8 @@ private:
   klee::ref<klee::Expr> successfuly_tracing;
 
 public:
-  TBTrace(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
-          klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
+  TBTrace(const Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len,
+          klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
       : x86Module(ModuleType::x86_TBTrace, "TBTrace", node), tb_addr(_tb_addr), key(_key), pkt_len(_pkt_len), time(_time),
         index_out(_index_out), successfuly_tracing(_is_tracing) {}
 

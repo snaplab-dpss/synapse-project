@@ -13,7 +13,8 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSIncAndQuery(const Node *node, DS_ID _cms_id, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
+  CMSIncAndQuery(const Node *node, DS_ID _cms_id, addr_t _cms_addr, klee::ref<klee::Expr> _key,
+                 klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType::Tofino_CMSIncAndQuery, "CMSIncAndQuery", node), cms_id(_cms_id), cms_addr(_cms_addr), key(_key),
         min_estimate(_min_estimate) {}
 

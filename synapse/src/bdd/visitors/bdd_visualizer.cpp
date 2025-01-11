@@ -8,11 +8,11 @@
 namespace synapse {
 namespace {
 constexpr const char *const COLOR_PROCESSED = "gray";
-constexpr const char *const COLOR_NEXT = "cyan";
-constexpr const char *const COLOR_CALL = "cornflowerblue";
-constexpr const char *const COLOR_BRANCH = "yellow";
-constexpr const char *const COLOR_FORWARD = "chartreuse2";
-constexpr const char *const COLOR_DROP = "brown1";
+constexpr const char *const COLOR_NEXT      = "cyan";
+constexpr const char *const COLOR_CALL      = "cornflowerblue";
+constexpr const char *const COLOR_BRANCH    = "yellow";
+constexpr const char *const COLOR_FORWARD   = "chartreuse2";
+constexpr const char *const COLOR_DROP      = "brown1";
 constexpr const char *const COLOR_BROADCAST = "purple";
 
 void log_visualization(const BDD *bdd, const std::string &fname) {
@@ -58,7 +58,7 @@ std::string BDDViz::get_color(const Node *node) const {
   } break;
   case NodeType::Route: {
     const Route *route = dynamic_cast<const Route *>(node);
-    RouteOp operation = route->get_operation();
+    RouteOp operation  = route->get_operation();
     switch (operation) {
     case RouteOp::Forward:
       color = COLOR_FORWARD;
@@ -93,7 +93,7 @@ void BDDViz::visit(const BDD *bdd) {
 }
 
 BDDVisitor::Action BDDViz::visit(const Branch *node) {
-  const Node *on_true = node->get_on_true();
+  const Node *on_true  = node->get_on_true();
   const Node *on_false = node->get_on_false();
 
   klee::ref<klee::Expr> condition = node->get_condition();
@@ -138,8 +138,8 @@ BDDVisitor::Action BDDViz::visit(const Branch *node) {
 
 BDDVisitor::Action BDDViz::visit(const Call *node) {
   const call_t &call = node->get_call();
-  node_id_t id = node->get_id();
-  const Node *next = node->get_next();
+  node_id_t id       = node->get_id();
+  const Node *next   = node->get_next();
 
   if (next) {
     next->visit(*this);
@@ -231,10 +231,10 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
 }
 
 BDDVisitor::Action BDDViz::visit(const Route *node) {
-  node_id_t id = node->get_id();
-  int dst_device = node->get_dst_device();
+  node_id_t id      = node->get_id();
+  int dst_device    = node->get_dst_device();
   RouteOp operation = node->get_operation();
-  const Node *next = node->get_next();
+  const Node *next  = node->get_next();
 
   if (next) {
     next->visit(*this);

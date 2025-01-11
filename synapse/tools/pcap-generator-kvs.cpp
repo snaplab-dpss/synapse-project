@@ -81,21 +81,21 @@ pkt_hdr_t build_pkt_template() {
   parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
   parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
 
-  pkt.ip_hdr.version = 4;
-  pkt.ip_hdr.ihl = 5;
+  pkt.ip_hdr.version         = 4;
+  pkt.ip_hdr.ihl             = 5;
   pkt.ip_hdr.type_of_service = 0;
-  pkt.ip_hdr.total_length = htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
-  pkt.ip_hdr.packet_id = 0;
+  pkt.ip_hdr.total_length    = htons(sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
+  pkt.ip_hdr.packet_id       = 0;
   pkt.ip_hdr.fragment_offset = 0;
-  pkt.ip_hdr.time_to_live = 64;
-  pkt.ip_hdr.next_proto_id = IPPROTO_UDP;
-  pkt.ip_hdr.hdr_checksum = 0;
-  pkt.ip_hdr.src_addr = inet_addr(SRC_IP);
-  pkt.ip_hdr.dst_addr = inet_addr(DST_IP);
+  pkt.ip_hdr.time_to_live    = 64;
+  pkt.ip_hdr.next_proto_id   = IPPROTO_UDP;
+  pkt.ip_hdr.hdr_checksum    = 0;
+  pkt.ip_hdr.src_addr        = inet_addr(SRC_IP);
+  pkt.ip_hdr.dst_addr        = inet_addr(DST_IP);
 
   pkt.udp_hdr.src_port = htons(SRC_PORT);
   pkt.udp_hdr.dst_port = htons(DST_PORT);
-  pkt.udp_hdr.len = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
+  pkt.udp_hdr.len      = htons(sizeof(pkt.udp_hdr) + sizeof(pkt.kvs_hdr));
   pkt.udp_hdr.checksum = 0;
 
   memset(&pkt.kvs_hdr, 0xff, sizeof(kvs_hdr_t));
@@ -223,8 +223,8 @@ public:
   }
 
   void dump_warmup() {
-    u64 counter = 0;
-    u64 goal = keys.size();
+    u64 counter  = 0;
+    u64 goal     = keys.size();
     int progress = -1;
 
     printf("Warmup: %s\n", warmup_writer.get_output_fname().c_str());
@@ -256,8 +256,8 @@ public:
   }
 
   void dump() {
-    u64 counter = 0;
-    u64 goal = config.total_packets;
+    u64 counter  = 0;
+    u64 goal     = config.total_packets;
     int progress = -1;
 
     printf("Traffic: %s\n", writer.get_output_fname().c_str());
@@ -325,7 +325,7 @@ private:
 
     u64 total_keys = counters.size();
 
-    u64 hh = 0;
+    u64 hh         = 0;
     u64 hh_packets = 0;
     for (size_t i = 0; i < total_keys; i++) {
       hh++;
@@ -356,7 +356,7 @@ private:
     randomize_key(new_key);
 
     counters[new_key] = 0;
-    keys[key_idx] = new_key;
+    keys[key_idx]     = new_key;
 
     keys_swapped++;
   }

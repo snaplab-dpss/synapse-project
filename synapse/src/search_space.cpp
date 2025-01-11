@@ -18,7 +18,7 @@ std::string get_bdd_node_description(const Node *node) {
     description << call_node->get_call().function_name;
   } break;
   case NodeType::Branch: {
-    const Branch *branch_node = dynamic_cast<const Branch *>(node);
+    const Branch *branch_node       = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch_node->get_condition();
     description << "if (";
     description << pretty_print_expr(condition);
@@ -26,7 +26,7 @@ std::string get_bdd_node_description(const Node *node) {
   } break;
   case NodeType::Route: {
     const Route *route = dynamic_cast<const Route *>(node);
-    RouteOp op = route->get_operation();
+    RouteOp op         = route->get_operation();
 
     switch (op) {
     case RouteOp::Broadcast: {
@@ -62,13 +62,13 @@ void SearchSpace::activate_leaf(const EP *ep) {
   ep_id_t ep_id = ep->get_id();
 
   if (!root) {
-    ss_node_id_t id = node_id_counter++;
-    Score score = hcfg->score(ep);
-    EPLeaf leaf = ep->get_active_leaf();
+    ss_node_id_t id   = node_id_counter++;
+    Score score       = hcfg->score(ep);
+    EPLeaf leaf       = ep->get_active_leaf();
     TargetType target = ep->get_active_target();
 
     bdd_node_data_t next_bdd_node_data = {
-        .id = leaf.next->get_id(),
+        .id          = leaf.next->get_id(),
         .description = get_bdd_node_description(leaf.next),
     };
 
@@ -77,7 +77,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
         {"Spec", build_meta_tput_speculation(ep)},
     };
 
-    root = new SSNode(id, ep_id, score, target, next_bdd_node_data, metadata);
+    root        = new SSNode(id, ep_id, score, target, next_bdd_node_data, metadata);
     active_leaf = root;
     return;
   }
@@ -95,9 +95,9 @@ void SearchSpace::activate_leaf(const EP *ep) {
 }
 
 std::string SearchSpace::build_meta_tput_estimate(const EP *ep) {
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx       = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
-  bytes_t avg_pkt_size = profiler.get_avg_pkt_bytes();
+  bytes_t avg_pkt_size     = profiler.get_avg_pkt_bytes();
 
   pps_t estimate_pps = ep->estimate_tput_pps();
   bps_t estimate_bps = pps2bps(estimate_pps, avg_pkt_size);
@@ -113,9 +113,9 @@ std::string SearchSpace::build_meta_tput_estimate(const EP *ep) {
 }
 
 std::string SearchSpace::build_meta_tput_speculation(const EP *ep) {
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx       = ep->get_ctx();
   const Profiler &profiler = ctx.get_profiler();
-  bytes_t avg_pkt_size = profiler.get_avg_pkt_bytes();
+  bytes_t avg_pkt_size     = profiler.get_avg_pkt_bytes();
 
   pps_t speculation_pps = ep->speculate_tput_pps();
   bps_t speculation_bps = pps2bps(speculation_pps, avg_pkt_size);
@@ -135,11 +135,11 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const Node *node, const Modul
   assert(active_leaf && "Active leaf not set");
 
   for (const impl_t &impl : implementations) {
-    ss_node_id_t id = node_id_counter++;
-    ep_id_t ep_id = impl.result->get_id();
-    Score score = hcfg->score(impl.result);
+    ss_node_id_t id   = node_id_counter++;
+    ep_id_t ep_id     = impl.result->get_id();
+    Score score       = hcfg->score(impl.result);
     TargetType target = modgen->get_target();
-    const Node *next = impl.result->get_next_node();
+    const Node *next  = impl.result->get_next_node();
 
     std::stringstream description_ss;
     for (const auto &[key, value] : impl.decision.params) {
@@ -147,22 +147,22 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const Node *node, const Modul
     }
 
     module_data_t module_data = {
-        .type = modgen->get_type(),
-        .name = modgen->get_name(),
-        .description = description_ss.str(),
+        .type          = modgen->get_type(),
+        .name          = modgen->get_name(),
+        .description   = description_ss.str(),
         .bdd_reordered = impl.bdd_reordered,
-        .hit_rate = ep->get_active_leaf_hit_rate(),
+        .hit_rate      = ep->get_active_leaf_hit_rate(),
     };
 
     bdd_node_data_t bdd_node_data = {
-        .id = node->get_id(),
+        .id          = node->get_id(),
         .description = get_bdd_node_description(node),
     };
 
     std::optional<bdd_node_data_t> next_bdd_node_data;
     if (next) {
       next_bdd_node_data = {
-          .id = next->get_id(),
+          .id          = next->get_id(),
           .description = get_bdd_node_description(next),
       };
     }

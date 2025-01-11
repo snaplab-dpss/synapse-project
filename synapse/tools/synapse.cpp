@@ -23,8 +23,8 @@ const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
 
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
-  nf_name = nf_name.substr(nf_name.find_last_of("/") + 1);
-  nf_name = nf_name.substr(0, nf_name.find_last_of("."));
+  nf_name             = nf_name.substr(nf_name.find_last_of("/") + 1);
+  nf_name             = nf_name.substr(0, nf_name.find_last_of("."));
   return nf_name;
 }
 
@@ -47,11 +47,11 @@ int main(int argc, char **argv) {
   HeuristicOption heuristic_opt;
   std::filesystem::path profile_file;
   search_config_t search_config;
-  u32 seed = 0;
+  u32 seed       = 0;
   bool show_prof = false;
-  bool show_ep = false;
-  bool show_ss = false;
-  bool show_bdd = false;
+  bool show_ep   = false;
+  bool show_ss   = false;
+  bool show_bdd  = false;
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
   app.add_option("--config", targets_config_file, "Configuration file.")->required();
@@ -74,9 +74,9 @@ int main(int argc, char **argv) {
 
   RandomEngine::seed(seed);
   SymbolManager symbol_manager;
-  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
+  std::unique_ptr<BDD> bdd   = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
   toml::table targets_config = parse_targets_config(targets_config_file);
-  Profiler profiler = profile_file.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), profile_file);
+  Profiler profiler          = profile_file.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), profile_file);
 
   if (show_prof) {
     profiler.debug();

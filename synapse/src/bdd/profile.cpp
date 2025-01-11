@@ -24,8 +24,8 @@ void from_json(const json &j, bdd_profile_t::meta_t &meta) {
 
 void from_json(const json &j, std::unordered_map<u32, u32> &crc32_hashes_per_mask) {
   for (const auto &kv : j.items()) {
-    u32 mask = std::stoul(kv.key());
-    u32 count = kv.value();
+    u32 mask                    = std::stoul(kv.key());
+    u32 count                   = kv.value();
     crc32_hashes_per_mask[mask] = count;
   }
 }
@@ -62,16 +62,16 @@ void from_json(const json &j, bdd_profile_t::map_stats_t &map_stats) {
 
 void from_json(const json &j, std::unordered_map<u64, bdd_profile_t::map_stats_t> &stats_per_map) {
   for (const auto &kv : j.items()) {
-    u64 map_addr = std::stoull(kv.key());
+    u64 map_addr                         = std::stoull(kv.key());
     bdd_profile_t::map_stats_t map_stats = kv.value();
-    stats_per_map[map_addr] = map_stats;
+    stats_per_map[map_addr]              = map_stats;
   }
 }
 
 void from_json(const json &j, std::unordered_map<node_id_t, u64> &counters) {
   for (const auto &kv : j.items()) {
     node_id_t node_id = std::stoull(kv.key());
-    u64 count = kv.value();
+    u64 count         = kv.value();
     counters[node_id] = count;
   }
 }
@@ -93,14 +93,14 @@ bdd_profile_t parse_bdd_profile(const std::string &filename) {
     panic("Failed to open file: %s", filename.c_str());
   }
 
-  json j = json::parse(file);
+  json j               = json::parse(file);
   bdd_profile_t report = j.get<bdd_profile_t>();
 
   return report;
 }
 
 fpm_t bdd_profile_t::churn_top_k_flows(u64 map, u32 k) const {
-  fpm_t avg_churn = 0;
+  fpm_t avg_churn     = 0;
   size_t total_epochs = 0;
 
   for (const auto &epoch : stats_per_map.at(map).epochs) {
@@ -110,8 +110,8 @@ fpm_t bdd_profile_t::churn_top_k_flows(u64 map, u32 k) const {
 
     total_epochs++;
 
-    size_t i = 0;
-    size_t j = 0;
+    size_t i               = 0;
+    size_t j               = 0;
     size_t top_k_new_flows = 0;
     while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() && i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {
@@ -137,7 +137,7 @@ fpm_t bdd_profile_t::churn_top_k_flows(u64 map, u32 k) const {
 
 hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
   hit_rate_t avg_churn_hr = 0;
-  size_t total_epochs = 0;
+  size_t total_epochs     = 0;
 
   for (const auto &epoch : stats_per_map.at(map).epochs) {
     if (epoch.warmup) {
@@ -146,8 +146,8 @@ hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
 
     total_epochs++;
 
-    size_t i = 0;
-    size_t j = 0;
+    size_t i               = 0;
+    size_t j               = 0;
     size_t top_k_new_flows = 0;
     while (i < epoch.pkts_per_persistent_flow.size() && j < epoch.pkts_per_new_flow.size() && i + j < k) {
       if (epoch.pkts_per_persistent_flow[i] > epoch.pkts_per_new_flow[j]) {

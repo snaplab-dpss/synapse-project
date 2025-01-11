@@ -37,13 +37,13 @@ std::vector<Stage> create_stages(const TNAProperties *properties) {
 
   for (int stage_id = 0; stage_id < properties->stages; stage_id++) {
     Stage s = {
-        .stage_id = stage_id,
-        .available_sram = properties->sram_per_stage,
-        .available_tcam = properties->tcam_per_stage,
-        .available_map_ram = properties->map_ram_per_stage,
+        .stage_id                   = stage_id,
+        .available_sram             = properties->sram_per_stage,
+        .available_tcam             = properties->tcam_per_stage,
+        .available_map_ram          = properties->map_ram_per_stage,
         .available_exact_match_xbar = properties->exact_match_xbar_per_stage,
-        .available_logical_ids = properties->max_logical_sram_and_tcam_tables_per_stage,
-        .tables = {},
+        .available_logical_ids      = properties->max_logical_sram_and_tcam_tables_per_stage,
+        .tables                     = {},
     };
 
     stages.push_back(s);
@@ -145,7 +145,9 @@ PlacementStatus SimplePlacer::is_consistent(DS_ID ds_id, const std::unordered_se
   return PlacementStatus::INCONSISTENT_PLACEMENT;
 }
 
-bool SimplePlacer::is_self_dependent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const { return deps.find(ds_id) != deps.end(); }
+bool SimplePlacer::is_self_dependent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const {
+  return deps.find(ds_id) != deps.end();
+}
 
 PlacementStatus SimplePlacer::find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps,
                                               std::vector<placement_t> &placements) const {
@@ -212,12 +214,12 @@ PlacementStatus SimplePlacer::find_placements_table(const Table *table, const st
     bits_t amount_placed = std::min(requested_sram, stage.available_sram);
 
     placement_t placement = {
-        .stage_id = stage_id,
-        .sram = amount_placed,
-        .map_ram = 0,
-        .xbar = requested_xbar,
+        .stage_id    = stage_id,
+        .sram        = amount_placed,
+        .map_ram     = 0,
+        .xbar        = requested_xbar,
         .logical_ids = 1,
-        .obj = table->id,
+        .obj         = table->id,
     };
 
     requested_sram -= amount_placed;
@@ -246,9 +248,9 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std
     return PlacementStatus::NO_AVAILABLE_STAGE;
   }
 
-  bits_t requested_sram = align_to_byte(reg->get_consumed_sram());
-  bits_t requested_map_ram = align_to_byte(requested_sram);
-  bits_t requested_xbar = align_to_byte(reg->index_size);
+  bits_t requested_sram     = align_to_byte(reg->get_consumed_sram());
+  bits_t requested_map_ram  = align_to_byte(requested_sram);
+  bits_t requested_xbar     = align_to_byte(reg->index_size);
   int requested_logical_ids = reg->get_num_logical_ids();
 
   int total_stages = stages.size();
@@ -274,12 +276,12 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std
     }
 
     placement_t placement = {
-        .stage_id = stage_id,
-        .sram = requested_sram,
-        .map_ram = requested_map_ram,
-        .xbar = requested_xbar,
+        .stage_id    = stage_id,
+        .sram        = requested_sram,
+        .map_ram     = requested_map_ram,
+        .xbar        = requested_xbar,
         .logical_ids = requested_logical_ids,
-        .obj = reg->id,
+        .obj         = reg->id,
     };
 
     requested_sram = 0;
@@ -337,12 +339,12 @@ PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter, const st
     bits_t amount_placed = std::min(requested_sram, stage.available_sram);
 
     placement_t placement = {
-        .stage_id = stage_id,
-        .sram = amount_placed,
-        .map_ram = 0,
-        .xbar = requested_xbar,
+        .stage_id    = stage_id,
+        .sram        = amount_placed,
+        .map_ram     = 0,
+        .xbar        = requested_xbar,
         .logical_ids = 1,
-        .obj = meter->id,
+        .obj         = meter->id,
     };
 
     requested_sram -= amount_placed;
@@ -394,12 +396,12 @@ PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::
     }
 
     placement_t placement = {
-        .stage_id = stage_id,
-        .sram = 0,
-        .map_ram = 0,
-        .xbar = requested_xbar,
+        .stage_id    = stage_id,
+        .sram        = 0,
+        .map_ram     = 0,
+        .xbar        = requested_xbar,
         .logical_ids = 1,
-        .obj = hash->id,
+        .obj         = hash->id,
     };
 
     placements.push_back(placement);
@@ -570,7 +572,8 @@ void SimplePlacer::save_placement_request(const DS *ds, const std::unordered_set
   placement_requests.push_back({ds->clone(), deps});
 }
 
-void SimplePlacer::replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps, const std::vector<Stage> &new_stages) {
+void SimplePlacer::replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps,
+                                             const std::vector<Stage> &new_stages) {
   stages = new_stages;
 
   for (PlacementRequest &req : placement_requests) {
@@ -596,16 +599,16 @@ void SimplePlacer::debug() const {
 
     std::stringstream ss;
 
-    double sram_usage = 100.0 - (stage.available_sram * 100.0) / properties->sram_per_stage;
+    double sram_usage    = 100.0 - (stage.available_sram * 100.0) / properties->sram_per_stage;
     bits_t sram_consumed = properties->sram_per_stage - stage.available_sram;
 
-    double tcam_usage = 100.0 - (stage.available_tcam * 100.0) / properties->tcam_per_stage;
+    double tcam_usage    = 100.0 - (stage.available_tcam * 100.0) / properties->tcam_per_stage;
     bits_t tcam_consumed = properties->tcam_per_stage - stage.available_tcam;
 
-    double map_ram_usage = 100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
+    double map_ram_usage    = 100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
     bits_t map_ram_consumed = properties->map_ram_per_stage - stage.available_map_ram;
 
-    double xbar_usage = 100.0 - (stage.available_exact_match_xbar * 100.0) / properties->exact_match_xbar_per_stage;
+    double xbar_usage    = 100.0 - (stage.available_exact_match_xbar * 100.0) / properties->exact_match_xbar_per_stage;
     bits_t xbar_consumed = properties->exact_match_xbar_per_stage - stage.available_exact_match_xbar;
 
     ss << "-------------------------------------\n";

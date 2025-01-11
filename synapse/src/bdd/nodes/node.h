@@ -42,7 +42,8 @@ public:
   Node(node_id_t _id, NodeType _type, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager)
       : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints), symbol_manager(_symbol_manager) {}
 
-  Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager)
+  Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints,
+       SymbolManager *_symbol_manager)
       : id(_id), type(_type), next(_next), prev(_prev), constraints(_constraints), symbol_manager(_symbol_manager) {}
 
   const Node *get_next() const { return next; }
@@ -90,7 +91,7 @@ public:
 
   virtual std::vector<node_id_t> get_leaves() const;
   virtual std::vector<const Node *> get_children(bool recursive = false) const;
-  virtual Node *clone(NodeManager &manager, bool recursive = false) const = 0;
+  virtual Node *clone(NodeManager &manager, bool recursive = false) const           = 0;
   virtual std::string dump(bool one_liner = false, bool id_name_only = false) const = 0;
 
   virtual ~Node() = default;

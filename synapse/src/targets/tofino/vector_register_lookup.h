@@ -15,8 +15,8 @@ private:
 public:
   VectorRegisterLookup(const Node *node, const std::unordered_set<DS_ID> &_rids, addr_t _obj, klee::ref<klee::Expr> _index,
                        klee::ref<klee::Expr> _value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), rids(_rids), obj(_obj), index(_index),
-        value(_value) {}
+      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), rids(_rids), obj(_obj),
+        index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
