@@ -1,7 +1,7 @@
 FROM --platform=${BUILDPLATFORM} ubuntu:24.10
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG GCC_VERSION=11
+ARG GCC_VERSION=14
 
 ENV TZ=Europe/Lisbon
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

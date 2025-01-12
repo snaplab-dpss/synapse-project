@@ -50,12 +50,22 @@ struct call_paths_view_t {
   std::vector<call_path_t *> data;
   SymbolManager *manager;
 
+  call_paths_view_t() : manager(nullptr) {}
+  call_paths_view_t(const call_paths_view_t &)            = default;
+  call_paths_view_t(call_paths_view_t &&)                 = default;
+  call_paths_view_t &operator=(const call_paths_view_t &) = default;
+
   Symbols get_symbols() const;
 };
 
 struct call_paths_t {
   std::vector<std::unique_ptr<call_path_t>> data;
   SymbolManager *manager;
+
+  call_paths_t() : manager(nullptr) {}
+  call_paths_t(const call_paths_t &)            = default;
+  call_paths_t(call_paths_t &&)                 = default;
+  call_paths_t &operator=(const call_paths_t &) = default;
 
   call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *manager);
 

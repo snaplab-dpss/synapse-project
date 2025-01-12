@@ -237,20 +237,26 @@ build_synapse() {
 	echo "Done."
 }
 
-# Clean dependencies
-clean_dpdk
-clean_z3
-clean_llvm
-clean_klee_uclibc
-clean_klee
-clean_json
+install() {
+	source_install_dpdk
+	source_install_z3
+	source_install_llvm
+	source_install_klee_uclibc
+	source_install_klee
+	source_install_json
+	build_libnf
+	build_synapse
+}
 
-# Install dependencies
-source_install_dpdk
-source_install_z3
-source_install_llvm
-source_install_klee_uclibc
-source_install_klee
-source_install_json
-build_libnf
-build_synapse
+reinstall() {
+	clean_dpdk
+	clean_z3
+	clean_llvm
+	clean_klee_uclibc
+	clean_klee
+	clean_json
+	install
+}
+
+# reinstall
+install

@@ -631,13 +631,11 @@ pps_t EP::speculate_tput_pps() const {
     return *cached_tput_speculation;
   }
 
-  pps_t ingress = estimate_tput_pps();
-
   std::vector<spec_impl_t> speculations;
-  Context spec_ctx = ctx;
   node_ids_t skip;
 
-  Context other             = std::move(Context(spec_ctx));
+  pps_t ingress             = estimate_tput_pps();
+  Context spec_ctx          = ctx;
   TargetType initial_target = targets.get_initial_target().type;
 
   for (const EPLeaf &leaf : active_leaves) {

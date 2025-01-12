@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <optional>
-#include <map>
+#include <unordered_map>
 #include <toml++/toml.hpp>
 
 #include "../types.h"

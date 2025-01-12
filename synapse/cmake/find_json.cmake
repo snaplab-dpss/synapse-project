@@ -6,8 +6,8 @@ include(FetchContent)
 
 FetchContent_Declare(
     json
-    URL
-    https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    GIT_TAG        v3.11.3
 )
 
 FetchContent_MakeAvailable(json)

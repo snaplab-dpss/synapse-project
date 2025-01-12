@@ -1,16 +1,21 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#define UNW_LOCAL_ONLY
+
 #include "system.h"
 
+#include <array>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <cstdio>
+#include <limits.h>
 #include <memory>
 #include <stdexcept>
 #include <unistd.h>
-#include <limits.h>
 #include <execinfo.h>
-
-#define UNW_LOCAL_ONLY
 #include <libunwind.h>
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -63,8 +68,8 @@ std::string exec_cmd(const std::string &cmd) {
 }
 
 std::string resolve_line_info(const char *executable, uintptr_t address) {
-  char buffer[PATH_MAX];
-  const char *resolved_path = realpath(executable, buffer);
+  std::array<char, PATH_MAX> buffer;
+  const char *resolved_path = realpath(executable, buffer.data());
 
   std::ostringstream cmd;
   cmd << "addr2line -e " << resolved_path << " " << std::hex << address;
