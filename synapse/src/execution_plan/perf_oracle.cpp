@@ -102,7 +102,7 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
   controller += other.controller;
   clamp_fraction(controller);
 
-  for (const auto [rport_depth_pair, hr] : other.recirc) {
+  for (const auto &[rport_depth_pair, hr] : other.recirc) {
     int rport = rport_depth_pair.first;
     int depth = rport_depth_pair.second;
 

@@ -152,14 +152,13 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
   ss << "(";
 
   size_t i = 0;
-  for (const std::pair<std::string, arg_t> &pair : call.args) {
+  for (const auto &[name, arg] : call.args) {
     if (call.args.size() > 1) {
       ss << "\\l";
       ss << std::string(2, ' ');
     }
 
-    ss << pair.first << ":";
-    const arg_t &arg = pair.second;
+    ss << name << ":";
 
     if (arg.fn_ptr_name.first) {
       ss << arg.fn_ptr_name.second;

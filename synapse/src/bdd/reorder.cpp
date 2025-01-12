@@ -263,9 +263,7 @@ bool io_check(const Node *node, const Symbols &anchor_symbols) {
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call    = call_node->get_call();
 
-    for (const std::pair<std::string, arg_t> &arg_pair : call.args) {
-      const arg_t &arg = arg_pair.second;
-
+    for (const auto &[name, arg] : call.args) {
       klee::ref<klee::Expr> expr = arg.expr;
       klee::ref<klee::Expr> in   = arg.in;
 
@@ -771,10 +769,7 @@ typedef std::vector<dangling_node_t> dangling_t;
 dangling_t disconnect(Branch *main_candidate, const std::unordered_map<Branch *, directions_t> &candidates) {
   dangling_t dangling_nodes;
 
-  for (const std::pair<Branch *, directions_t> &pair : candidates) {
-    Branch *candidate       = pair.first;
-    directions_t directions = pair.second;
-
+  for (auto [candidate, directions] : candidates) {
     Node *on_true  = candidate->get_mutable_on_true();
     Node *on_false = candidate->get_mutable_on_false();
 
@@ -799,9 +794,7 @@ typedef std::vector<mutable_vector_t> leaves_t;
 leaves_t get_leaves_from_candidates(const std::unordered_map<Branch *, directions_t> &candidates) {
   std::vector<mutable_vector_t> leaves;
 
-  for (const std::pair<Branch *, directions_t> &pair : candidates) {
-    Branch *candidate = pair.first;
-
+  for (const auto &[candidate, directions] : candidates) {
     Node *prev = candidate->get_mutable_prev();
     assert(prev && "Candidate has no previous node");
 
@@ -845,22 +838,22 @@ Node *clone_and_update_nodes(BDD *bdd, Node *candidate, const std::unordered_set
     // We are only interested in updating the directions.
     directions_t new_directions;
 
-    for (const std::pair<Branch *, bool> &direction : dangling_node.directions) {
+    for (const auto &[branch, direction] : dangling_node.directions) {
       bool is_candidate = false;
-      is_candidate |= direction.first == candidate;
-      is_candidate |= std::find(siblings.begin(), siblings.end(), direction.first) != siblings.end();
+      is_candidate |= branch == candidate;
+      is_candidate |= std::find(siblings.begin(), siblings.end(), branch) != siblings.end();
       // We don't clone the candidate.
       if (is_candidate) {
-        new_directions[direction.first] = direction.second;
+        new_directions[branch] = direction;
         continue;
       }
 
-      node_id_t branch_id = direction.first->get_id();
+      node_id_t branch_id = branch->get_id();
       Node *node_clone    = clone->get_mutable_node_by_id(branch_id);
       assert(node_clone && "Branch node not found in clone");
 
       Branch *branch_clone         = dynamic_cast<Branch *>(node_clone);
-      new_directions[branch_clone] = direction.second;
+      new_directions[branch_clone] = branch;
     }
 
     dangling_node.directions = new_directions;
