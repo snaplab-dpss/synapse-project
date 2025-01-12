@@ -9,7 +9,6 @@ ROOT_DIR=$SCRIPT_DIR/..
 DPDK_NFS_DIR="$ROOT_DIR/dpdk-nfs"
 DEPS_DIR="$ROOT_DIR/deps"
 PATHSFILE="$ROOT_DIR/paths.sh"
-BUILDING_CORES=8
 
 # Dependencies
 DPDK_DIR="$DEPS_DIR/dpdk"
@@ -53,13 +52,6 @@ add_multiline_var_to_paths_file() {
 	fi
 }
 
-sync_submodules() {
-	# Sync submodules only if the DPDK directory exists but is empty.
-	if [ ! "$(ls -A $DPDK_DIR)" ]; then
-		git submodule update --init --recursive
-	fi
-}
-
 clean_dpdk() {
 	rm -rf "$DPDK_BUILD_DIR"
 }
@@ -94,7 +86,7 @@ source_install_z3() {
 		python3 scripts/mk_make.py -p "$Z3_BUILD_DIR"
 
 		pushd "$Z3_BUILD_DIR"
-			make -kj$BUILDING_CORES || make
+			make -j$(nproc) || make
 			make install
 			add_var_to_paths_file "Z3_DIR" "$Z3_DIR"
 		popd
@@ -131,7 +123,7 @@ source_install_llvm() {
 
 		# Painfully slow, but allowing the compilation to use many cores
 		# consumes a lot of memory, and crashes some systems.
-		make -j$BUILDING_CORES
+		make -j8
 	popd
 
 	add_var_to_paths_file "LLVM_DIR" "$LLVM_DIR"
@@ -178,7 +170,7 @@ source_install_klee_uclibc() {
 		cp "$ROOT_DIR/setup/klee-uclibc.config" '.config'
 		
 		make clean
-		make -kj$BUILDING_CORES
+		make -j$(nproc)
 	popd
 
 	echo "Done."
@@ -216,7 +208,7 @@ source_install_json() {
 	mkdir -p $JSON_BUILD_DIR
 	pushd $JSON_BUILD_DIR
 		cmake $JSON_DIR -DCMAKE_INSTALL_PREFIX=$JSON_BUILD_DIR
-		make -j$BUILDING_CORES
+		make -j$(nproc)
 	popd
 
 	add_multiline_var_to_paths_file "PKG_CONFIG_PATH" "$JSON_BUILD_DIR:\$PKG_CONFIG_PATH"
@@ -244,9 +236,6 @@ build_synapse() {
 	add_multiline_var_to_paths_file "PATH" "$SYNAPSE_BUILD_DIR/bin:\$PATH"
 	echo "Done."
 }
-
-# Pull every submodule if needed
-sync_submodules
 
 # Clean dependencies
 clean_dpdk
