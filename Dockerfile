@@ -26,7 +26,7 @@ WORKDIR /home/docker
 # RUN ./setup_system.sh
 
 RUN sudo apt-get update -qq && sudo apt-get install -yqq \
-    man build-essential wget curl git vim tzdata tmux zsh \
+    man build-essential wget curl git vim tzdata tmux zsh time \
     iputils-ping iproute2 net-tools tcpreplay iperf \
     psmisc htop gdb xdg-utils \
     python3-pip python3-venv python3-scapy python-is-python3 xdot \
@@ -34,7 +34,7 @@ RUN sudo apt-get update -qq && sudo apt-get install -yqq \
     bison flex zlib1g-dev libncurses5-dev libpcap-dev \
     opam m4 libgmp-dev \
     gcc-$GCC_VERSION g++-$GCC_VERSION cmake \
-    linux-headers-generic
+    linux-headers-generic libnuma-dev
 
 RUN sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$GCC_VERSION 100
 RUN sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-$GCC_VERSION 100
@@ -62,12 +62,7 @@ RUN python3 -m venv env
 RUN echo "source ~/env/bin/activate" >> /home/docker/.zshrc
 RUN . ~/env/bin/activate && pip install setuptools wheel
 
-###########################
-#     Additional tools    #
-###########################
-
-# If you want to install additional packages or augment the container in any other way,
-# do it here so that you don't have to rebuild everything from scratch.
+RUN echo "source ~/workspace/paths.sh 2>/dev/null || true" >> /home/docker/.zshrc
 
 WORKDIR workspace
 

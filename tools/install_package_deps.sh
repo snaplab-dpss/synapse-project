@@ -24,6 +24,7 @@ install_system_deps() {
 		htop \
 		gdb \
 		xdg-utils \
+		time \
 		libcanberra-gtk-module libcanberra-gtk3-module \
 		zsh \
 		python3-pip python3-venv python3-scapy python-is-python3 xdot \
@@ -31,7 +32,7 @@ install_system_deps() {
 		bison flex zlib1g-dev libncurses5-dev libpcap-dev \
 		opam m4 libgmp-dev \
 		gcc-$GCC_VERSION g++-$GCC_VERSION \
-		linux-headers-generic
+		linux-headers-generic libnuma-dev
 }
 
 set_gcc_version() {

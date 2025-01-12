@@ -249,7 +249,7 @@ build_synapse() {
 sync_submodules
 
 # Clean dependencies
-# clean_dpdk
+clean_dpdk
 clean_z3
 clean_llvm
 clean_klee_uclibc
@@ -257,7 +257,7 @@ clean_klee
 clean_json
 
 # Install dependencies
-# source_install_dpdk
+source_install_dpdk
 source_install_z3
 source_install_llvm
 source_install_klee_uclibc

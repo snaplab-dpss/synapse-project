@@ -6,6 +6,7 @@ SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 ROOT_DIR=$SCRIPT_DIR/..
 CONTAINER_NAME="synapse"
 PLATFORM=linux/amd64
+DISPLAY=host.docker.internal:0
 
 build() {
    docker build \
