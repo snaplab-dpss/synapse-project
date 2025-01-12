@@ -25,6 +25,7 @@ install_system_deps() {
 		gdb \
 		xdg-utils \
 		time \
+		parallel \
 		libcanberra-gtk-module libcanberra-gtk3-module \
 		zsh \
 		python3-pip python3-venv python3-scapy python-is-python3 xdot \

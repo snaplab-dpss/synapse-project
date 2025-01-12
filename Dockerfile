@@ -1,20 +1,12 @@
 FROM --platform=${BUILDPLATFORM} ubuntu:24.10
 
-# https://stackoverflow.com/questions/51023312/docker-having-issues-installing-apt-utils
 ARG DEBIAN_FRONTEND=noninteractive
+ARG GCC_VERSION=11
 
 ENV TZ=Europe/Lisbon
-ENV GCC_VERSION=11
-ENV PERL5LIB=''
-ENV MANPATH=''
-ENV PROMPT_COMMAND=''
-
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# The install scripts require sudo (no need to clean apt cache, the setup script will install stuff)
 RUN apt-get update && apt-get install -y sudo adduser
-
-# Create a user with passwordless sudo
 RUN adduser --disabled-password --gecos '' docker
 RUN adduser docker sudo
 RUN echo '%docker ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -22,11 +14,8 @@ RUN echo '%docker ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER docker
 WORKDIR /home/docker
 
-# COPY setup_system.sh .
-# RUN ./setup_system.sh
-
 RUN sudo apt-get update -qq && sudo apt-get install -yqq \
-    man build-essential wget curl git vim tzdata tmux zsh time \
+    man build-essential wget curl git vim tzdata tmux zsh time parallel \
     iputils-ping iproute2 net-tools tcpreplay iperf \
     psmisc htop gdb xdg-utils \
     python3-pip python3-venv python3-scapy python-is-python3 xdot \
