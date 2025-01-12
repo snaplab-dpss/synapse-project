@@ -14,9 +14,9 @@ void PrinterDebug::visit(const BDD *bdd) {
   const Node *root = bdd->get_root();
   assert(root && "No root node");
 
-  klee::ref<klee::Expr> device = bdd->get_device().expr;
+  klee::ref<klee::Expr> device     = bdd->get_device().expr;
   klee::ref<klee::Expr> packet_len = bdd->get_packet_len().expr;
-  klee::ref<klee::Expr> time = bdd->get_time().expr;
+  klee::ref<klee::Expr> time       = bdd->get_time().expr;
 
   std::cerr << "===========================================\n";
   std::cerr << "Init calls:\n";
@@ -38,13 +38,13 @@ void PrinterDebug::visit(const BDD *bdd) {
 void PrinterDebug::visitRoot(const Node *root) { root->visit(*this); }
 
 BDDVisitor::Action PrinterDebug::visit(const Branch *node) {
-  node_id_t id = node->get_id();
+  node_id_t id                    = node->get_id();
   klee::ref<klee::Expr> condition = node->get_condition();
 
-  const Node *on_true = node->get_on_true();
+  const Node *on_true  = node->get_on_true();
   const Node *on_false = node->get_on_false();
 
-  std::string on_true_id = on_true ? std::to_string(on_true->get_id()) : "X";
+  std::string on_true_id  = on_true ? std::to_string(on_true->get_id()) : "X";
   std::string on_false_id = on_false ? std::to_string(on_false->get_id()) : "X";
 
   std::cerr << "===========================================\n";
@@ -61,9 +61,9 @@ BDDVisitor::Action PrinterDebug::visit(const Branch *node) {
 }
 
 BDDVisitor::Action PrinterDebug::visit(const Call *node) {
-  node_id_t id = node->get_id();
+  node_id_t id       = node->get_id();
   const call_t &call = node->get_call();
-  const Node *next = node->get_next();
+  const Node *next   = node->get_next();
 
   std::cerr << "===========================================\n";
   std::cerr << "node:      " << id << "\n";
@@ -95,10 +95,10 @@ BDDVisitor::Action PrinterDebug::visit(const Call *node) {
 }
 
 BDDVisitor::Action PrinterDebug::visit(const Route *node) {
-  node_id_t id = node->get_id();
-  u64 dst_device = node->get_dst_device();
+  node_id_t id      = node->get_id();
+  u64 dst_device    = node->get_dst_device();
   RouteOp operation = node->get_operation();
-  const Node *next = node->get_next();
+  const Node *next  = node->get_next();
 
   std::cerr << "===========================================\n";
   std::cerr << "node:      " << id << "\n";

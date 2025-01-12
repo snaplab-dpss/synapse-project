@@ -6,7 +6,8 @@ namespace {
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, const Node *&next) {
   std::vector<const Call *> prev_borrows =
       node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns =
+      node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const Node *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
@@ -19,7 +20,7 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, c
   const BDD *old_bdd = ep->get_bdd();
 
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
-  next = new_bdd->clone_and_add_non_branches(node, hdr_parsing_ops);
+  next                         = new_bdd->clone_and_add_non_branches(node, hdr_parsing_ops);
 
   return new_bdd;
 }
@@ -46,11 +47,11 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const No
 
   Symbols symbols = get_dataplane_state(ep, node);
 
-  Module *module = new SendToController(node, symbols);
+  Module *module   = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);
 
   // Now we need to replicate the parsing operations that were done before.
-  const Node *next = node;
+  const Node *next             = node;
   std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
   // Note that we don't point to the next BDD node, as it was not actually

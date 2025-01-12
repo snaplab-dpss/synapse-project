@@ -5,7 +5,8 @@
 namespace synapse {
 namespace tofino {
 namespace {
-EP *generate_new_ep(const EP *ep, const Node *node, const Symbols &symbols, int recirc_port, const std::vector<int> &past_recirculations) {
+EP *generate_new_ep(const EP *ep, const Node *node, const Symbols &symbols, int recirc_port,
+                    const std::vector<int> &past_recirculations) {
   int port_recirculations = 1;
   for (int p : past_recirculations) {
     if (p == recirc_port) {
@@ -17,7 +18,7 @@ EP *generate_new_ep(const EP *ep, const Node *node, const Symbols &symbols, int 
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port,
                                                                                get_node_egress(ep, ep->get_active_leaf().node));
 
-  Module *module = new Recirculate(node, symbols, recirc_port);
+  Module *module  = new Recirculate(node, symbols, recirc_port);
   EPNode *ep_node = new EPNode(module);
 
   // Note that we don't point to the next BDD node, as it was not actually
@@ -28,8 +29,9 @@ EP *generate_new_ep(const EP *ep, const Node *node, const Symbols &symbols, int 
   return new_ep;
 }
 
-EP *concretize_single_port_recirc(const EP *ep, const Node *node, const std::vector<int> &past_recirc, int rport, const Symbols &symbols) {
-  bool marked = false;
+EP *concretize_single_port_recirc(const EP *ep, const Node *node, const std::vector<int> &past_recirc, int rport,
+                                  const Symbols &symbols) {
+  bool marked           = false;
   bool returning_recirc = false;
 
   for (int past_rport : past_recirc) {
@@ -62,7 +64,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *n
   std::vector<impl_t> impls;
 
   const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
-  std::unordered_set<DS_ID> deps = tofino_ctx->get_stateful_deps(ep, node);
+  std::unordered_set<DS_ID> deps  = tofino_ctx->get_stateful_deps(ep, node);
 
   // We can only recirculate if a stateful operation was implemented since the
   // last recirculation.
@@ -76,7 +78,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *n
   // decision is made?
   assert((!ep->get_active_leaf().node || !forwarding_decision_already_made(ep->get_active_leaf().node)) && "TODO");
 
-  int total_recirc_ports = get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
+  int total_recirc_ports       = get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
   std::vector<int> past_recirc = get_past_recirculations(active_leaf.node);
 
   Symbols symbols = get_dataplane_state(ep, node);

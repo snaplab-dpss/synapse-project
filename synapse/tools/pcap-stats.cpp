@@ -29,10 +29,10 @@ public:
     bool sound_alarm = false;
 
     if (!on) {
-      on = true;
+      on    = true;
       alarm = now + interval;
     } else if (now >= alarm) {
-      alarm = now + interval;
+      alarm       = now + interval;
       sound_alarm = true;
     }
 
@@ -63,7 +63,7 @@ public:
     u64 accounted = 0;
 
     double next_p = 0;
-    double step = 0.05;
+    double step   = 0.05;
 
     for (const auto &[value, count] : values) {
       accounted += count;
@@ -96,7 +96,7 @@ public:
   }
 
   double get_stdev() const {
-    double avg = get_avg();
+    double avg   = get_avg();
     double stdev = 0;
     for (const auto &[value, count] : values) {
       stdev += (value - avg) * (value - avg) * count;
@@ -129,57 +129,57 @@ struct report_t {
 
 void dump_report(const std::filesystem::path &output_report, const report_t &report) {
   json j;
-  j["start_utc_ns"] = report.start;
-  j["end_utc_ns"] = report.end;
-  j["total_pkts"] = report.total_pkts;
-  j["tcpudp_pkts"] = report.tcpudp_pkts;
-  j["pkt_bytes_avg"] = report.pkt_sizes_cdf.get_avg();
-  j["pkt_bytes_stdev"] = report.pkt_sizes_cdf.get_stdev();
-  j["pkt_bytes_cdf"] = json();
-  j["pkt_bytes_cdf"]["values"] = json::array();
+  j["start_utc_ns"]                   = report.start;
+  j["end_utc_ns"]                     = report.end;
+  j["total_pkts"]                     = report.total_pkts;
+  j["tcpudp_pkts"]                    = report.tcpudp_pkts;
+  j["pkt_bytes_avg"]                  = report.pkt_sizes_cdf.get_avg();
+  j["pkt_bytes_stdev"]                = report.pkt_sizes_cdf.get_stdev();
+  j["pkt_bytes_cdf"]                  = json();
+  j["pkt_bytes_cdf"]["values"]        = json::array();
   j["pkt_bytes_cdf"]["probabilities"] = json::array();
   for (const auto &[v, p] : report.pkt_sizes_cdf.get_cdf()) {
     j["pkt_bytes_cdf"]["values"].push_back(v);
     j["pkt_bytes_cdf"]["probabilities"].push_back(p);
   }
-  j["total_flows"] = report.total_flows;
-  j["total_symm_flows"] = report.total_symm_flows;
-  j["pkts_per_flow_avg"] = report.pkts_per_flow_cdf.get_avg();
-  j["pkts_per_flow_stdev"] = report.pkts_per_flow_cdf.get_stdev();
-  j["pkts_per_flow_cdf"] = json();
-  j["pkts_per_flow_cdf"]["values"] = json::array();
+  j["total_flows"]                        = report.total_flows;
+  j["total_symm_flows"]                   = report.total_symm_flows;
+  j["pkts_per_flow_avg"]                  = report.pkts_per_flow_cdf.get_avg();
+  j["pkts_per_flow_stdev"]                = report.pkts_per_flow_cdf.get_stdev();
+  j["pkts_per_flow_cdf"]                  = json();
+  j["pkts_per_flow_cdf"]["values"]        = json::array();
   j["pkts_per_flow_cdf"]["probabilities"] = json::array();
   for (const auto &[v, p] : report.pkts_per_flow_cdf.get_cdf()) {
     j["pkts_per_flow_cdf"]["values"].push_back(v);
     j["pkts_per_flow_cdf"]["probabilities"].push_back(p);
   }
-  j["flow_duration_us_avg"] = report.flow_duration_us_cdf.get_avg();
-  j["flow_duration_us_stdev"] = report.flow_duration_us_cdf.get_stdev();
-  j["flow_duration_us_cdf"] = json();
-  j["flow_duration_us_cdf"]["values"] = json::array();
+  j["flow_duration_us_avg"]                  = report.flow_duration_us_cdf.get_avg();
+  j["flow_duration_us_stdev"]                = report.flow_duration_us_cdf.get_stdev();
+  j["flow_duration_us_cdf"]                  = json();
+  j["flow_duration_us_cdf"]["values"]        = json::array();
   j["flow_duration_us_cdf"]["probabilities"] = json::array();
   for (const auto &[v, p] : report.flow_duration_us_cdf.get_cdf()) {
     j["flow_duration_us_cdf"]["values"].push_back(v);
     j["flow_duration_us_cdf"]["probabilities"].push_back(p);
   }
-  j["flow_dts_us_avg"] = report.flow_dts_us_cdf.get_avg();
-  j["flow_dts_us_stdev"] = report.flow_dts_us_cdf.get_stdev();
-  j["flow_dts_us_cdf"] = json();
-  j["flow_dts_us_cdf"]["values"] = json::array();
+  j["flow_dts_us_avg"]                  = report.flow_dts_us_cdf.get_avg();
+  j["flow_dts_us_stdev"]                = report.flow_dts_us_cdf.get_stdev();
+  j["flow_dts_us_cdf"]                  = json();
+  j["flow_dts_us_cdf"]["values"]        = json::array();
   j["flow_dts_us_cdf"]["probabilities"] = json::array();
   for (const auto &[v, p] : report.flow_dts_us_cdf.get_cdf()) {
     j["flow_dts_us_cdf"]["values"].push_back(v);
     j["flow_dts_us_cdf"]["probabilities"].push_back(p);
   }
-  j["top_k_flows_cdf"] = json();
-  j["top_k_flows_cdf"]["values"] = json::array();
+  j["top_k_flows_cdf"]                  = json();
+  j["top_k_flows_cdf"]["values"]        = json::array();
   j["top_k_flows_cdf"]["probabilities"] = json::array();
   for (const auto &[v, p] : report.top_k_flows_cdf.get_cdf()) {
     j["top_k_flows_cdf"]["values"].push_back(v);
     j["top_k_flows_cdf"]["probabilities"].push_back(p);
   }
-  j["top_k_flows_bytes_cdf"] = json();
-  j["top_k_flows_bytes_cdf"]["values"] = json::array();
+  j["top_k_flows_bytes_cdf"]                  = json();
+  j["top_k_flows_bytes_cdf"]["values"]        = json::array();
   j["top_k_flows_bytes_cdf"]["probabilities"] = json::array();
   for (const auto &[v, p] : report.top_k_flows_bytes_cdf.get_cdf()) {
     j["top_k_flows_bytes_cdf"]["values"].push_back(v);
@@ -199,7 +199,8 @@ void print_report(const report_t &report) {
   printf("End:                      %s\n", fmt_time_hh(report.end).c_str());
   printf("Duration:                 %s\n", fmt_time_duration_hh(report.start, report.end).c_str());
   printf("Total packets:            %s\n", fmt(report.total_pkts).c_str());
-  printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(), (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
+  printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(),
+         (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
   printf("Pkt sizes:                %.2f ± %.2f B\n", report.pkt_sizes_cdf.get_avg(), report.pkt_sizes_cdf.get_stdev());
   printf("Pkt sizes CDF:\n");
   for (const auto &[size, prob] : report.pkt_sizes_cdf.get_cdf()) {
@@ -265,12 +266,12 @@ int main(int argc, char *argv[]) {
 
   report_t report;
 
-  report.total_pkts = pcap_reader.get_total_pkts();
+  report.total_pkts  = pcap_reader.get_total_pkts();
   report.tcpudp_pkts = 0;
   concurrent_flows_per_epoch.emplace_back();
 
   u64 pkt_count = 0;
-  int progress = -1;
+  int progress  = -1;
 
   const u_char *pkt;
   u16 hdrs_len;
@@ -311,20 +312,20 @@ int main(int argc, char *argv[]) {
     if (flow_times_it == flow_times.end()) {
       flow_times[flow.value()] = {
           .first = ts,
-          .last = ts,
-          .dts = {},
+          .last  = ts,
+          .dts   = {},
       };
     } else {
       flow_ts &fts = flow_times_it->second;
       time_ns_t dt = ts - fts.last;
-      fts.last = ts;
+      fts.last     = ts;
       fts.dts.push_back(dt);
     }
   }
 
-  report.start = pcap_reader.get_start();
-  report.end = pcap_reader.get_end();
-  report.total_flows = flows.size();
+  report.start            = pcap_reader.get_start();
+  report.end              = pcap_reader.get_end();
+  report.total_flows      = flows.size();
   report.total_symm_flows = symm_flows.size();
 
   for (const auto &flows : concurrent_flows_per_epoch) {

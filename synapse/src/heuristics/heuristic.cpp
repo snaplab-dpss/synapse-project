@@ -34,7 +34,7 @@ bool Heuristic::is_finished() {
 
 std::unique_ptr<EP> Heuristic::pop_best_finished() {
   ep_it_t best_finished_it = finished_eps.begin();
-  EP *best = *best_finished_it;
+  EP *best                 = *best_finished_it;
   finished_eps.erase(best_finished_it);
   return std::unique_ptr<EP>(best);
 }
@@ -93,7 +93,7 @@ Score Heuristic::get_score(const EP *e) const { return config->score(e); }
 Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
   assert(!unfinished_eps.empty() && "No execution plans to pick");
 
-  ep_it_t it = unfinished_eps.begin();
+  ep_it_t it       = unfinished_eps.begin();
   Score best_score = get_score(*it);
 
   while (1) {

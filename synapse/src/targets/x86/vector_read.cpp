@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
     return false;
@@ -25,10 +25,10 @@ std::optional<spec_impl_t> VectorReadFactory::speculate(const EP *ep, const Node
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
-  addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
+  addr_t vector_addr                     = expr_addr_to_obj_addr(vector_addr_expr);
 
   if (!ctx.can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
     return std::nullopt;
@@ -45,21 +45,21 @@ std::vector<impl_t> VectorReadFactory::process_node(const EP *ep, const Node *no
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> value_addr_expr = call.args.at("val_out").out;
-  klee::ref<klee::Expr> value = call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  klee::ref<klee::Expr> value_addr_expr  = call.args.at("val_out").out;
+  klee::ref<klee::Expr> value            = call.extra_vars.at("borrowed_cell").second;
 
   addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-  addr_t value_addr = expr_addr_to_obj_addr(value_addr_expr);
+  addr_t value_addr  = expr_addr_to_obj_addr(value_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
     return impls;
   }
 
-  Module *module = new VectorRead(node, vector_addr, index, value_addr, value);
+  Module *module  = new VectorRead(node, vector_addr, index, value_addr, value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

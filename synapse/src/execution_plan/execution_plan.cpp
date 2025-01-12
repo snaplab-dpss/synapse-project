@@ -25,18 +25,18 @@ pps_t find_stable_tput(pps_t ingress, std::function<pps_t(pps_t)> estimator) {
   pps_t egress = 0;
 
   pps_t smallest_unstable = ingress;
-  pps_t prev_ingress = ingress;
-  pps_t diff = smallest_unstable;
+  pps_t prev_ingress      = ingress;
+  pps_t diff              = smallest_unstable;
 
   // Algorithm for converging to a stable throughput (basically a binary
   // search). This hopefully doesn't take many iterations...
   while (diff > STABLE_TPUT_PRECISION) {
     prev_ingress = ingress;
-    egress = estimator(ingress);
+    egress       = estimator(ingress);
 
     if (egress < ingress) {
       smallest_unstable = ingress;
-      ingress = (ingress + egress) / 2;
+      ingress           = (ingress + egress) / 2;
     } else {
       ingress = (ingress + smallest_unstable) / 2;
     }
@@ -72,9 +72,9 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 } // namespace
 
 EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml::table &_config, const Profiler &_profiler)
-    : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _config, _profiler),
-      meta(bdd.get(), targets) {
-  TargetType initial_target = targets.get_initial_target().type;
+    : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets),
+      ctx(bdd.get(), _targets, _config, _profiler), meta(bdd.get(), targets) {
+  TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = node_ids_t({bdd->get_root()->get_id()});
 
   // TargetType initial_target = targets.
@@ -136,7 +136,7 @@ const BDD *EP::get_bdd() const { return bdd.get(); }
 std::vector<const EPNode *> EP::get_prev_nodes() const {
   std::vector<const EPNode *> prev_nodes;
 
-  EPLeaf current = get_active_leaf();
+  EPLeaf current     = get_active_leaf();
   const EPNode *node = current.node;
 
   while (node) {
@@ -150,8 +150,8 @@ std::vector<const EPNode *> EP::get_prev_nodes() const {
 std::vector<const EPNode *> EP::get_prev_nodes_of_current_target() const {
   std::vector<const EPNode *> prev_nodes;
 
-  TargetType target = get_active_target();
-  EPLeaf current = get_active_leaf();
+  TargetType target  = get_active_target();
+  EPLeaf current     = get_active_leaf();
   const EPNode *node = current.node;
 
   while (node) {
@@ -190,8 +190,8 @@ std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<Modul
 }
 
 bool EP::has_target(TargetType type) const {
-  auto found_it =
-      std::find_if(targets.elements.begin(), targets.elements.end(), [type](const TargetView &target) { return target.type == type; });
+  auto found_it = std::find_if(targets.elements.begin(), targets.elements.end(),
+                               [type](const TargetView &target) { return target.type == type; });
 
   return found_it != targets.elements.end();
 }
@@ -234,7 +234,7 @@ TargetType EP::get_active_target() const {
 
 void EP::process_leaf(const Node *next_node) {
   TargetType current_target = get_active_target();
-  EPLeaf active_leaf = pop_active_leaf();
+  EPLeaf active_leaf        = pop_active_leaf();
 
   meta.process_node(active_leaf.next, current_target);
 
@@ -246,7 +246,7 @@ void EP::process_leaf(const Node *next_node) {
 
 void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node) {
   TargetType current_target = get_active_target();
-  EPLeaf active_leaf = pop_active_leaf();
+  EPLeaf active_leaf        = pop_active_leaf();
 
   if (!root) {
     root = new_node;
@@ -268,7 +268,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
       meta.update(active_leaf, new_leaf.node, process_node);
     }
 
-    const Module *module = new_leaf.node->get_module();
+    const Module *module   = new_leaf.node->get_module();
     TargetType next_target = module->get_next_target();
     node_id_t next_node_id = new_leaf.next->get_id();
 
@@ -301,7 +301,7 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translator_t &next_node
   for (EPLeaf &leaf : active_leaves) {
     assert(leaf.next && "Active leaf without a next node");
 
-    node_id_t new_id = translate_next_node(leaf.next->get_id());
+    node_id_t new_id     = translate_next_node(leaf.next->get_id());
     const Node *new_node = new_bdd->get_node_by_id(new_id);
     assert(new_node && "New node not found in the new BDD.");
 
@@ -316,7 +316,7 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translator_t &next_node
     Module *module = node->get_mutable_module();
 
     const Node *node_bdd = module->get_node();
-    node_id_t target_id = translate_processed_node(node_bdd->get_id());
+    node_id_t target_id  = translate_processed_node(node_bdd->get_id());
 
     const Node *new_node = new_bdd->get_node_by_id(target_id);
     assert(new_node && "Node not found in the new BDD");
@@ -440,11 +440,13 @@ void EP::sort_leaves() {
     assert(l1.node && "Leaf without a node");
     assert(l2.node && "Leaf without a node");
 
-    if (l1.node->get_module()->get_next_target() != initial_target && l2.node->get_module()->get_next_target() == initial_target) {
+    if (l1.node->get_module()->get_next_target() != initial_target &&
+        l2.node->get_module()->get_next_target() == initial_target) {
       return false;
     }
 
-    if (l1.node->get_module()->get_next_target() == initial_target && l2.node->get_module()->get_next_target() != initial_target) {
+    if (l1.node->get_module()->get_next_target() == initial_target &&
+        l2.node->get_module()->get_next_target() != initial_target) {
       return true;
     }
 
@@ -485,8 +487,8 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
   return ss.str();
 }
 
-spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor, node_ids_t future_nodes,
-                                                  TargetType current_target, pps_t ingress) const {
+spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor,
+                                                  node_ids_t future_nodes, TargetType current_target, pps_t ingress) const {
   future_nodes.erase(anchor->get_id());
 
   spec_impl_t speculation = base_speculation;
@@ -635,7 +637,7 @@ pps_t EP::speculate_tput_pps() const {
   Context spec_ctx = ctx;
   node_ids_t skip;
 
-  Context other = std::move(Context(spec_ctx));
+  Context other             = std::move(Context(spec_ctx));
   TargetType initial_target = targets.get_initial_target().type;
 
   for (const EPLeaf &leaf : active_leaves) {
@@ -658,7 +660,7 @@ pps_t EP::speculate_tput_pps() const {
       speculations.push_back(speculation);
 
       spec_ctx = speculation.ctx;
-      skip = speculation.skip;
+      skip     = speculation.skip;
 
       if (speculation.next_target.has_value()) {
         // Just ignore if we change the target, we only care about the
@@ -672,7 +674,7 @@ pps_t EP::speculate_tput_pps() const {
 
   auto egress_from_ingress = [spec_ctx](pps_t ingress) { return spec_ctx.get_perf_oracle().estimate_tput(ingress); };
 
-  pps_t egress = find_stable_tput(ingress, egress_from_ingress);
+  pps_t egress            = find_stable_tput(ingress, egress_from_ingress);
   cached_tput_speculation = egress;
 
   // if (id == 0) {
@@ -712,7 +714,7 @@ pps_t EP::estimate_tput_pps() const {
 
   auto egress_from_ingress = [this](pps_t ingress) { return ctx.get_perf_oracle().estimate_tput(ingress); };
 
-  pps_t egress = find_stable_tput(max_ingress, egress_from_ingress);
+  pps_t egress           = find_stable_tput(max_ingress, egress_from_ingress);
   cached_tput_estimation = egress;
 
   return egress;

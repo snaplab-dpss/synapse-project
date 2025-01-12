@@ -15,7 +15,7 @@ bits_t index_size_from_cache_capacity(u32 cache_capacity) {
 std::string build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
 Register build_cache_expirator(const TNAProperties &properties, DS_ID id, u32 cache_capacity) {
-  bits_t hash_size = index_size_from_cache_capacity(cache_capacity);
+  bits_t hash_size      = index_size_from_cache_capacity(cache_capacity);
   bits_t timestamp_size = 32;
   return Register(properties, id + "_reg_expirator", cache_capacity, hash_size, timestamp_size, {RegisterActionType::WRITE});
 }
@@ -40,8 +40,8 @@ std::vector<Register> build_cache_keys(const TNAProperties &properties, DS_ID id
 
 FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _num_entries,
                                  const std::vector<bits_t> &_keys_sizes)
-    : DS(DSType::FCFS_CACHED_TABLE, false, _id), cache_capacity(_cache_capacity), num_entries(_num_entries), keys_sizes(_keys_sizes),
-      cache_expirator(build_cache_expirator(properties, id, cache_capacity)),
+    : DS(DSType::FCFS_CACHED_TABLE, false, _id), cache_capacity(_cache_capacity), num_entries(_num_entries),
+      keys_sizes(_keys_sizes), cache_expirator(build_cache_expirator(properties, id, cache_capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
   assert(cache_capacity > 0 && "Cache capacity must be greater than 0");
   assert(num_entries > 0 && "Number of entries must be greater than 0");

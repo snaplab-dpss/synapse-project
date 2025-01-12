@@ -9,7 +9,7 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const Node *node
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return std::nullopt;
@@ -28,8 +28,8 @@ bool is_parser_reject(const EP *ep) {
     return false;
   }
 
-  const EPNode *node = leaf.node;
-  const EPNode *prev = node->get_prev();
+  const EPNode *node   = leaf.node;
+  const EPNode *prev   = node->get_prev();
   const Module *module = prev->get_module();
 
   ModuleType type = module->get_type();
@@ -44,7 +44,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node, Sy
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return impls;
@@ -57,7 +57,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node, Sy
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module = new Drop(node);
+  Module *module  = new Drop(node);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

@@ -72,12 +72,12 @@ std::vector<EP *> get_reordered(const EP *ep) {
 
   anchor_info_t anchor_info = get_anchor_info(ep);
 
-  const BDD *bdd = ep->get_bdd();
+  const BDD *bdd                = ep->get_bdd();
   bool allow_shape_altering_ops = false;
 
   for (reordered_bdd_t &new_bdd : reorder(bdd, anchor_info, allow_shape_altering_ops)) {
     bool is_ancestor = false;
-    EP *new_ep = new EP(*ep, is_ancestor);
+    EP *new_ep       = new EP(*ep, is_ancestor);
 
     translator_t next_nodes_translator;
     translator_t processed_nodes_translator;
@@ -103,7 +103,8 @@ impl_t ModuleFactory::implement(const EP *ep, const Node *node, EP *result, std:
   return impl_t(decide(ep, node, params), result, false);
 }
 
-std::vector<impl_t> ModuleFactory::generate(const EP *ep, const Node *node, SymbolManager *symbol_manager, bool reorder_bdd) const {
+std::vector<impl_t> ModuleFactory::generate(const EP *ep, const Node *node, SymbolManager *symbol_manager,
+                                            bool reorder_bdd) const {
   std::vector<impl_t> implementations;
 
   if (!can_process_platform(ep, target)) {

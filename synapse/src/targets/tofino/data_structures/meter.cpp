@@ -11,7 +11,8 @@ Meter::Meter(DS_ID _id, u32 _capacity, Bps_t _rate, bytes_t _burst, const std::v
 }
 
 Meter::Meter(const Meter &other)
-    : DS(other.type, other.primitive, other.id), capacity(other.capacity), rate(other.rate), burst(other.burst), keys(other.keys) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), rate(other.rate), burst(other.burst),
+      keys(other.keys) {}
 
 DS *Meter::clone() const { return new Meter(*this); }
 

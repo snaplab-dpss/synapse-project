@@ -20,15 +20,15 @@ struct hh_table_data_t {
     const call_t &call = map_put->get_call();
     assert(call.function_name == "map_put" && "Not a map_put call");
 
-    obj = expr_addr_to_obj_addr(call.args.at("map").expr);
-    key = call.args.at("key").in;
+    obj        = expr_addr_to_obj_addr(call.args.at("map").expr);
+    key        = call.args.at("key").in;
     table_keys = Table::build_keys(key);
-    value = call.args.at("value").expr;
+    value      = call.args.at("value").expr;
   }
 };
 
 symbol_t get_min_estimate(const EP *ep) {
-  EPLeaf leaf = ep->get_active_leaf();
+  EPLeaf leaf        = ep->get_active_leaf();
   const EPNode *node = leaf.node;
 
   while (node) {
@@ -50,10 +50,10 @@ klee::ref<klee::Expr> build_min_estimate_check_cond(const EP *ep, const symbol_t
   assert(ds->type == DSType::HH_TABLE && "Not a heavy hitter table");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);
 
-  u32 topk = hh_table->num_entries;
-  u64 threshold = ep->get_ctx().get_profiler().get_bdd_profile()->threshold_top_k_flows(map, topk);
+  u32 topk                             = hh_table->num_entries;
+  u64 threshold                        = ep->get_ctx().get_profiler().get_bdd_profile()->threshold_top_k_flows(map, topk);
   klee::ref<klee::Expr> threshold_expr = solver_toolbox.exprBuilder->Constant(threshold, 32);
-  klee::ref<klee::Expr> condition = solver_toolbox.exprBuilder->Ugt(min_estimate.expr, threshold_expr);
+  klee::ref<klee::Expr> condition      = solver_toolbox.exprBuilder->Ugt(min_estimate.expr, threshold_expr);
   return condition;
 }
 
@@ -69,7 +69,7 @@ klee::ref<klee::Expr> build_min_estimate_check_cond(const EP *ep, const symbol_t
 
 const Call *get_future_map_put(const Node *node, addr_t map) {
   for (const Call *map_put : node->get_future_functions({"map_put"})) {
-    const call_t &call = map_put->get_call();
+    const call_t &call             = map_put->get_call();
     klee::ref<klee::Expr> map_expr = call.args.at("map").expr;
 
     if (expr_addr_to_obj_addr(map_expr) == map) {
@@ -81,8 +81,9 @@ const Call *get_future_map_put(const Node *node, addr_t map) {
 }
 
 std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index, const map_coalescing_objs_t &map_objs,
-                                 klee::ref<klee::Expr> key, klee::ref<klee::Expr> min_estimate_cond, Branch *&min_estimate_cond_branch) {
-  const BDD *old_bdd = ep->get_bdd();
+                                 klee::ref<klee::Expr> key, klee::ref<klee::Expr> min_estimate_cond,
+                                 Branch *&min_estimate_cond_branch) {
+  const BDD *old_bdd       = ep->get_bdd();
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
   Node *node = bdd->delete_non_branch(dchain_allocate_new_index->get_id());
@@ -112,8 +113,8 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
   std::vector<const Call *> targets = get_coalescing_nodes_from_key(on_hh, key, map_objs);
 
   while (on_hh && !targets.empty()) {
-    auto found_it =
-        std::find_if(targets.begin(), targets.end(), [&on_hh](const Call *target) { return target->get_id() == on_hh->get_id(); });
+    auto found_it = std::find_if(targets.begin(), targets.end(),
+                                 [&on_hh](const Call *target) { return target->get_id() == on_hh->get_id(); });
 
     if (found_it != targets.end()) {
       on_hh = bdd->delete_non_branch(on_hh->get_id());
@@ -164,8 +165,9 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   }
 
   hit_rate_t node_hr = ep->get_ctx().get_profiler().get_hr(node);
-  u32 capacity = ep->get_ctx().get_map_config(map_objs.map).capacity;
-  hit_rate_t new_hh_probability = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
+  u32 capacity       = ep->get_ctx().get_map_config(map_objs.map).capacity;
+  hit_rate_t new_hh_probability =
+      ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
   hit_rate_t new_hh_hr = node_hr * new_hh_probability;
 
   Context new_ctx = ctx;
@@ -177,7 +179,8 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
   assert(index_alloc_check.direction && "Branch checking index allocation not found");
 
-  const Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
+  const Node *on_hh =
+      index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
 
   std::vector<const Call *> targets = get_coalescing_nodes_from_key(on_hh, table_data.key, map_objs);
 
@@ -190,7 +193,8 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   return spec_impl;
 }
 
-std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                                  SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -245,18 +249,18 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   std::unique_ptr<BDD> new_bdd =
       rebuild_bdd(new_ep, dchain_allocate_new_index, map_objs, table_data.key, min_estimate_cond, min_estimate_cond_branch);
 
-  Module *if_module = new If(min_estimate_cond_branch, min_estimate_cond, {min_estimate_cond});
-  Module *then_module = new Then(min_estimate_cond_branch);
-  Module *else_module = new Else(min_estimate_cond_branch);
+  Module *if_module                 = new If(min_estimate_cond_branch, min_estimate_cond, {min_estimate_cond});
+  Module *then_module               = new Then(min_estimate_cond_branch);
+  Module *else_module               = new Else(min_estimate_cond_branch);
   Module *send_to_controller_module = new SendToController(min_estimate_cond_branch->get_on_true(), symbols);
-  Module *hh_table_update_module =
-      new HHTableUpdate(min_estimate_cond_branch->get_on_true(), table_data.obj, table_data.table_keys, table_data.value, min_estimate);
+  Module *hh_table_update_module    = new HHTableUpdate(min_estimate_cond_branch->get_on_true(), table_data.obj,
+                                                        table_data.table_keys, table_data.value, min_estimate);
 
-  EPNode *if_node = new EPNode(if_module);
-  EPNode *then_node = new EPNode(then_module);
-  EPNode *else_node = new EPNode(else_module);
+  EPNode *if_node                 = new EPNode(if_module);
+  EPNode *then_node               = new EPNode(then_module);
+  EPNode *else_node               = new EPNode(else_module);
   EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
-  EPNode *hh_table_update_node = new EPNode(hh_table_update_module);
+  EPNode *hh_table_update_node    = new EPNode(hh_table_update_module);
 
   if_node->set_constraint(min_estimate_cond);
   if_node->set_children(then_node, else_node);
@@ -272,10 +276,11 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   hh_table_update_node->set_prev(send_to_controller_node);
 
   u32 capacity = ep->get_ctx().get_map_config(map_objs.map).capacity;
-  hit_rate_t new_hh_probability = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
+  hit_rate_t new_hh_probability =
+      ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
 
-  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), min_estimate_cond,
-                                                                   new_hh_probability);
+  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(),
+                                                                   min_estimate_cond, new_hh_probability);
 
   constraints_t lhs_cnstrs = node->get_ordered_branch_constraints();
   lhs_cnstrs.push_back(min_estimate_cond);

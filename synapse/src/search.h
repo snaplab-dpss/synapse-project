@@ -29,7 +29,7 @@ struct search_meta_t {
         unfinished_eps(0), finished_eps(0) {}
 
   search_meta_t(const search_meta_t &other) = default;
-  search_meta_t(search_meta_t &&other) = default;
+  search_meta_t(search_meta_t &&other)      = default;
 };
 
 struct search_report_t {
@@ -65,10 +65,10 @@ public:
   SearchEngine(const BDD *bdd, HeuristicOption hopt, const Profiler &profiler, const toml::table &targets_config,
                const search_config_t &search_config);
 
-  SearchEngine(const SearchEngine &) = delete;
-  SearchEngine(SearchEngine &&) = delete;
+  SearchEngine(const SearchEngine &)            = delete;
+  SearchEngine(SearchEngine &&)                 = delete;
   SearchEngine &operator=(const SearchEngine &) = delete;
-  ~SearchEngine() = default;
+  ~SearchEngine()                               = default;
 
   search_report_t search();
 };

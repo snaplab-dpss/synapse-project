@@ -27,7 +27,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
   assert(call_path_file.is_open() && "Unable to open call path file.");
 
   std::unique_ptr<call_path_t> call_path = std::make_unique<call_path_t>();
-  call_path->file_name = fpath.filename();
+  call_path->file_name                   = fpath.filename();
 
   enum class state_t { STATE_INIT, STATE_KQUERY, STATE_CALLS, STATE_CALLS_MULTILINE, STATE_DONE } state = state_t::STATE_INIT;
 
@@ -96,7 +96,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
         size_t delim = line.find(":");
         assert(delim != std::string::npos && "Invalid call");
         std::string preamble = line.substr(0, delim);
-        line = line.substr(delim + 1);
+        line                 = line.substr(delim + 1);
 
         current_extra_var.clear();
         current_exprs_str.clear();
@@ -109,7 +109,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
           delim = line.find("&");
           assert(delim != std::string::npos && "Invalid call");
           current_extra_var = line.substr(0, delim);
-          line = line.substr(delim + 1);
+          line              = line.substr(delim + 1);
 
           delim = line.find("[");
           assert(delim != std::string::npos && "Invalid call");
@@ -144,9 +144,9 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
           if (line.size() < last_store.size())
             last_store = last_store.substr(last_store.size() - line.size());
           auto remainder_delim = line.find(last_store);
-          auto remainder = line.substr(remainder_delim + last_store.size());
-          auto ret_symbol = std::string("-> ");
-          auto ret_delim = remainder.find(ret_symbol);
+          auto remainder       = line.substr(remainder_delim + last_store.size());
+          auto ret_symbol      = std::string("-> ");
+          auto ret_delim       = remainder.find(ret_symbol);
           if (ret_delim != std::string::npos && remainder.substr(ret_symbol.size() + 1) != "[]") {
             auto ret = remainder.substr(ret_symbol.size() + 1);
             current_exprs_str.push_back(ret);
@@ -177,17 +177,17 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                 break;
               delim = current_exprs_str[0].find(",");
               if (delim == std::string::npos) {
-                delim = current_exprs_str[0].size() - 1;
+                delim           = current_exprs_str[0].size() - 1;
                 parsed_last_arg = true;
               }
               current_arg = current_exprs_str[0].substr(0, delim);
               if (current_arg[0] == '(')
                 current_arg = current_arg.substr(1);
               current_exprs_str[0] = current_exprs_str[0].substr(delim + 1);
-              delim = current_arg.find(":");
+              delim                = current_arg.find(":");
               assert(delim != std::string::npos && "Invalid call");
               current_arg_name = current_arg.substr(0, delim);
-              current_arg = current_arg.substr(delim + 1);
+              current_arg      = current_arg.substr(delim + 1);
 
               delim = current_arg.find("&");
               if (delim == std::string::npos) {
@@ -203,7 +203,8 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                 }
 
                 if (current_arg.substr(delim + 1)[0] != '[') {
-                  call_path->calls.back().args[current_arg_name].fn_ptr_name = std::make_pair(true, current_arg.substr(delim + 1));
+                  call_path->calls.back().args[current_arg_name].fn_ptr_name =
+                      std::make_pair(true, current_arg.substr(delim + 1));
                   continue;
                 }
 
@@ -213,7 +214,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                 assert(delim != std::string::npos && "Invalid call");
 
                 auto current_arg_meta = current_arg.substr(delim + 1);
-                current_arg = current_arg.substr(0, delim);
+                current_arg           = current_arg.substr(0, delim);
 
                 delim = current_arg.find("->");
                 assert(delim != std::string::npos && "Invalid call");
@@ -235,7 +236,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
 
                   while (current_arg_meta.size()) {
                     auto start_delim = current_arg_meta.find("[");
-                    auto end_delim = current_arg_meta.find("]");
+                    auto end_delim   = current_arg_meta.find("]");
 
                     assert(start_delim != std::string::npos && "Invalid call");
                     assert(end_delim != std::string::npos && "Invalid call");
@@ -243,7 +244,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                     auto size = end_delim - start_delim - 1;
                     assert(size > 0 && "Invalid call");
 
-                    auto part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                    auto part        = current_arg_meta.substr(start_delim + 1, end_delim - 1);
                     current_arg_meta = current_arg_meta.substr(end_delim + 1);
 
                     expr_parts.push_back(part);
@@ -257,19 +258,19 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
 
                     part = part.substr(0, delim);
 
-                    auto open_delim = part.find("(");
+                    auto open_delim  = part.find("(");
                     auto close_delim = part.find(")");
 
                     assert(open_delim != std::string::npos && "Invalid call");
                     assert(close_delim != std::string::npos && "Invalid call");
 
-                    auto symbol = part.substr(0, open_delim);
+                    auto symbol        = part.substr(0, open_delim);
                     auto meta_expr_str = part.substr(open_delim + 1);
-                    meta_expr_str = meta_expr_str.substr(0, meta_expr_str.size() - 1);
+                    meta_expr_str      = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
                     auto meta_expr = parser.parse_expr(meta_expr_str);
                     auto meta_size = meta_expr->getWidth();
-                    auto meta = meta_t{symbol, offset, meta_size};
+                    auto meta      = meta_t{symbol, offset, meta_size};
 
                     offset += meta_size;
 
@@ -313,9 +314,9 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
         if (line.size() < last_store.size())
           last_store = last_store.substr(last_store.size() - line.size());
         auto remainder_delim = line.find(last_store);
-        auto remainder = line.substr(remainder_delim + last_store.size());
-        auto ret_symbol = std::string("-> ");
-        auto ret_delim = remainder.find(ret_symbol);
+        auto remainder       = line.substr(remainder_delim + last_store.size());
+        auto ret_symbol      = std::string("-> ");
+        auto ret_delim       = remainder.find(ret_symbol);
         if (ret_delim != std::string::npos && remainder.substr(ret_symbol.size() + 1) != "[]") {
           auto ret = remainder.substr(ret_symbol.size() + 1);
           current_exprs_str.push_back(ret);
@@ -346,17 +347,17 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
               break;
             delim = current_exprs_str[0].find(",");
             if (delim == std::string::npos) {
-              delim = current_exprs_str[0].size() - 1;
+              delim           = current_exprs_str[0].size() - 1;
               parsed_last_arg = true;
             }
             current_arg = current_exprs_str[0].substr(0, delim);
             if (current_arg[0] == '(')
               current_arg = current_arg.substr(1);
             current_exprs_str[0] = current_exprs_str[0].substr(delim + 1);
-            delim = current_arg.find(":");
+            delim                = current_arg.find(":");
             assert(delim != std::string::npos && "Invalid call");
             current_arg_name = current_arg.substr(0, delim);
-            current_arg = current_arg.substr(delim + 1);
+            current_arg      = current_arg.substr(delim + 1);
 
             delim = current_arg.find("&");
             if (delim == std::string::npos) {
@@ -382,7 +383,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
               assert(delim != std::string::npos && "Invalid call");
 
               auto current_arg_meta = current_arg.substr(delim + 1);
-              current_arg = current_arg.substr(0, delim);
+              current_arg           = current_arg.substr(0, delim);
 
               delim = current_arg.find("->");
               assert(delim != std::string::npos && "Invalid call");
@@ -404,7 +405,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
 
                 while (current_arg_meta.size()) {
                   auto start_delim = current_arg_meta.find("[");
-                  auto end_delim = current_arg_meta.find("]");
+                  auto end_delim   = current_arg_meta.find("]");
 
                   assert(start_delim != std::string::npos && "Invalid call");
                   assert(end_delim != std::string::npos && "Invalid call");
@@ -412,7 +413,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                   auto size = end_delim - start_delim - 1;
                   assert(size > 0 && "Invalid call");
 
-                  auto part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                  auto part        = current_arg_meta.substr(start_delim + 1, end_delim - 1);
                   current_arg_meta = current_arg_meta.substr(end_delim + 1);
 
                   expr_parts.push_back(part);
@@ -426,19 +427,19 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
 
                   part = part.substr(0, delim);
 
-                  auto open_delim = part.find("(");
+                  auto open_delim  = part.find("(");
                   auto close_delim = part.find(")");
 
                   assert(open_delim != std::string::npos && "Invalid call");
                   assert(close_delim != std::string::npos && "Invalid call");
 
-                  auto symbol = part.substr(0, open_delim);
+                  auto symbol        = part.substr(0, open_delim);
                   auto meta_expr_str = part.substr(open_delim + 1);
-                  meta_expr_str = meta_expr_str.substr(0, meta_expr_str.size() - 1);
+                  meta_expr_str      = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
                   auto meta_expr = parser.parse_expr(meta_expr_str);
                   auto meta_size = meta_expr->getWidth();
-                  auto meta = meta_t{symbol, offset, meta_size};
+                  auto meta      = meta_t{symbol, offset, meta_size};
 
                   offset += meta_size;
 
@@ -483,7 +484,8 @@ Symbols call_paths_view_t::get_symbols() const {
   return symbols;
 }
 
-call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *_manager) : manager(_manager) {
+call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *_manager)
+    : manager(_manager) {
   for (const std::filesystem::path &fpath : call_path_files) {
     data.push_back(load_call_path(fpath, manager));
   }
@@ -550,7 +552,7 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
   bool first = true;
   for (auto arg_pair : call.args) {
     auto label = arg_pair.first;
-    auto arg = arg_pair.second;
+    auto arg   = arg_pair.second;
 
     if (!first) {
       os << ",";

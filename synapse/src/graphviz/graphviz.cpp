@@ -14,7 +14,7 @@ namespace synapse {
 namespace {
 std::filesystem::path random_dot() {
   char filename[] = "/tmp/XXXXXX";
-  int fd = mkstemp(filename);
+  int fd          = mkstemp(filename);
   assert(fd != -1 && "Failed to create temporary file");
   std::string fpath(filename);
   fpath += ".dot";
@@ -87,7 +87,7 @@ void Graphviz::show(bool interrupt) const {
 void Graphviz::find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements) {
   for (const std::pair<std::string, std::string> &replacement : replacements) {
     const std::string &before = replacement.first;
-    const std::string &after = replacement.second;
+    const std::string &after  = replacement.second;
 
     std::string::size_type n = 0;
     while ((n = str.find(before, n)) != std::string::npos) {

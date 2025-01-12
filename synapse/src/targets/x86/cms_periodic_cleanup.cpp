@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_periodic_cleanup") {
     return false;
@@ -25,10 +25,10 @@ std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, co
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
+  addr_t cms_addr                     = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return std::nullopt;
@@ -45,7 +45,7 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
 
@@ -55,7 +55,7 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
     return impls;
   }
 
-  Module *module = new CMSPeriodicCleanup(node, cms_addr);
+  Module *module  = new CMSPeriodicCleanup(node, cms_addr);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

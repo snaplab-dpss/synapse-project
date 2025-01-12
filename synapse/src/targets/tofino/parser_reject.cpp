@@ -10,8 +10,8 @@ bool is_parser_reject(const EP *ep) {
     return false;
   }
 
-  const EPNode *node = leaf.node;
-  const EPNode *prev = node->get_prev();
+  const EPNode *node   = leaf.node;
+  const EPNode *prev   = node->get_prev();
   const Module *module = prev->get_module();
 
   ModuleType type = module->get_type();
@@ -25,7 +25,7 @@ std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const No
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return std::nullopt;
@@ -45,7 +45,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const Node *
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return impls;
@@ -58,7 +58,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const Node *
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module = new ParserReject(node);
+  Module *module  = new ParserReject(node);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());

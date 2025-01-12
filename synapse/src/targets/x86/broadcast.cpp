@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Broadcast) {
     return false;
@@ -32,7 +32,7 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const Node *nod
     return impls;
   }
 
-  Module *module = new Broadcast(node);
+  Module *module  = new Broadcast(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

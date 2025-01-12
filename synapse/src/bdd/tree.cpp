@@ -133,11 +133,11 @@ typedef Symbols (*SymbolsExtractor)(const call_t &call, const Symbols &symbols);
 Symbols packet_chunks_symbol_extractor(const call_t &call, const Symbols &symbols) {
   assert(call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
 
-  const extra_var_t &extra_var = call.extra_vars.at("the_chunk");
+  const extra_var_t &extra_var       = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
 
   symbol_t symbol = symbols.get("packet_chunks");
-  symbol.expr = packet_chunk;
+  symbol.expr     = packet_chunk;
 
   Symbols extracted_symbols;
   extracted_symbols.add(symbol);
@@ -170,7 +170,8 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   for (const std::string &symbol : symbols) {
     auto base_symbol_comparator = [symbol](const std::string &s) { return symbol.find(s) != std::string::npos; };
 
-    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(), symbols_in_skippable_conditions.end(), base_symbol_comparator);
+    auto found_it =
+        std::find_if(symbols_in_skippable_conditions.begin(), symbols_in_skippable_conditions.end(), base_symbol_comparator);
 
     if (found_it != symbols_in_skippable_conditions.end())
       return true;
@@ -179,7 +180,8 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager) {
+Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints,
+                            SymbolManager *symbol_manager) {
   assert(is_routing_function(call) && "Unexpected function");
 
   if (call.function_name == "packet_free") {
@@ -209,9 +211,9 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
     if (call.ret.isNull())
       return call;
 
-    klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
+    klee::ref<klee::Expr> zero    = solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
     klee::ref<klee::Expr> eq_zero = solver_toolbox.exprBuilder->Eq(call.ret, zero);
-    bool is_ret_success = solver_toolbox.is_expr_always_false(eq_zero);
+    bool is_ret_success           = solver_toolbox.is_expr_always_false(eq_zero);
 
     if (is_ret_success)
       return call;
@@ -230,8 +232,8 @@ klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
   if (is_bool(simplified))
     return simplified;
 
-  klee::Expr::Width width = simplified->getWidth();
-  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, width);
+  klee::Expr::Width width           = simplified->getWidth();
+  klee::ref<klee::Expr> zero        = solver_toolbox.exprBuilder->Constant(0, width);
   klee::ref<klee::Expr> is_not_zero = solver_toolbox.exprBuilder->Ne(simplified, zero);
 
   return is_not_zero;
@@ -245,8 +247,8 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
   if (is_bool(simplified))
     return solver_toolbox.exprBuilder->Not(simplified);
 
-  klee::Expr::Width width = simplified->getWidth();
-  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, width);
+  klee::Expr::Width width       = simplified->getWidth();
+  klee::ref<klee::Expr> zero    = solver_toolbox.exprBuilder->Constant(0, width);
   klee::ref<klee::Expr> is_zero = solver_toolbox.exprBuilder->Eq(simplified, zero);
 
   return is_zero;
@@ -300,7 +302,8 @@ std::optional<symbol_t> get_generated_symbol(const Symbols &symbols, const std::
   return filtered[total_base_symbols_generated];
 }
 
-Symbols get_generated_symbols(const call_t &call, Symbols &symbols, std::unordered_map<std::string, size_t> &base_symbols_generated) {
+Symbols get_generated_symbols(const call_t &call, Symbols &symbols,
+                              std::unordered_map<std::string, size_t> &base_symbols_generated) {
   Symbols generated_symbols;
 
   auto extractor_it = special_symbols_extractors.find(call.function_name);
@@ -331,9 +334,10 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
   }
 }
 
-Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, NodeManager &node_manager,
-                          std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
-                          std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
+Node *
+bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, NodeManager &node_manager,
+                    std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
+                    std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
   Node *leaf = nullptr;
 
@@ -347,7 +351,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
   while (!call_paths_view.data.empty()) {
     CallPathsGroup group(call_paths_view);
 
-    const call_paths_view_t &on_true = group.get_on_true();
+    const call_paths_view_t &on_true  = group.get_on_true();
     const call_paths_view_t &on_false = group.get_on_false();
 
     assert(!on_true.data.empty() && "No call paths");
@@ -358,7 +362,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
     if (on_true.data.size() == call_paths_view.data.size()) {
       assert(on_false.data.empty() && "Unexpected call paths");
 
-      call_t call = get_successful_call(call_paths_view.data);
+      call_t call               = get_successful_call(call_paths_view.data);
       Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
 
       std::cerr << "\n";
@@ -403,10 +407,10 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
     } else {
       klee::ref<klee::Expr> discriminating_constraint = group.get_discriminating_constraint();
 
-      klee::ref<klee::Expr> condition = simplify_constraint(discriminating_constraint);
+      klee::ref<klee::Expr> condition     = simplify_constraint(discriminating_constraint);
       klee::ref<klee::Expr> not_condition = negate_and_simplify_constraint(discriminating_constraint);
 
-      klee::ConstraintManager on_true_constraints = constraints;
+      klee::ConstraintManager on_true_constraints  = constraints;
       klee::ConstraintManager on_false_constraints = constraints;
 
       on_true_constraints.addConstraint(condition);
@@ -465,10 +469,10 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symb
 }
 
 Branch *create_new_branch(BDD *bdd, const Node *current, klee::ref<klee::Expr> condition) {
-  node_id_t &id = bdd->get_mutable_id();
-  NodeManager &manager = bdd->get_mutable_manager();
+  node_id_t &id                       = bdd->get_mutable_id();
+  NodeManager &manager                = bdd->get_mutable_manager();
   klee::ConstraintManager constraints = current->get_constraints();
-  Branch *new_branch = new Branch(id++, constraints, bdd->get_mutable_symbol_manager(), condition);
+  Branch *new_branch                  = new Branch(id++, constraints, bdd->get_mutable_symbol_manager(), condition);
   manager.add_node(new_branch);
   return new_branch;
 }
@@ -521,7 +525,7 @@ Symbols BDD::get_generated_symbols(const Node *node) const {
 
   while (node) {
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = dynamic_cast<const Call *>(node);
+      const Call *call_node       = dynamic_cast<const Call *>(node);
       const Symbols &more_symbols = call_node->get_local_symbols();
       symbols.add(more_symbols);
     }
@@ -538,7 +542,7 @@ BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_
   root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id);
 
   packet_len = symbol_manager->get_symbol("pkt_len");
-  time = symbol_manager->get_symbol("next_time");
+  time       = symbol_manager->get_symbol("next_time");
 
   // Some NFs don't care about the device, so it doesn't show up on the callpaths.
   if (symbol_manager->has_symbol("DEVICE")) {
@@ -559,7 +563,7 @@ void BDD::assert_integrity() const {
     switch (node->get_type()) {
     case NodeType::Branch: {
       const Branch *branch = dynamic_cast<const Branch *>(node);
-      const Node *on_true = branch->get_on_true();
+      const Node *on_true  = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
       assert(on_true && "No on true node");
       assert(on_false && "No on false node");
@@ -586,19 +590,20 @@ BDD::BDD(const BDD &other)
 
 BDD::BDD(BDD &&other)
     : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)), time(std::move(other.time)),
-      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)), symbol_manager(std::move(other.symbol_manager)) {
+      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)),
+      symbol_manager(std::move(other.symbol_manager)) {
   other.root = nullptr;
 }
 
 BDD &BDD::operator=(const BDD &other) {
   if (this == &other)
     return *this;
-  id = other.id;
-  device = other.device;
-  packet_len = other.packet_len;
-  time = other.time;
-  init = other.init;
-  root = other.root->clone(manager, true);
+  id             = other.id;
+  device         = other.device;
+  packet_len     = other.packet_len;
+  time           = other.time;
+  init           = other.init;
+  root           = other.root->clone(manager, true);
   symbol_manager = other.symbol_manager;
   return *this;
 }
@@ -621,7 +626,7 @@ Node *BDD::delete_non_branch(node_id_t target_id) {
   case NodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true = branch->get_on_true();
+    const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
     assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
@@ -651,7 +656,7 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
 
   Branch *anchor_next = dynamic_cast<Branch *>(target);
 
-  Node *target_on_true = anchor_next->get_mutable_on_true();
+  Node *target_on_true  = anchor_next->get_mutable_on_true();
   Node *target_on_false = anchor_next->get_mutable_on_false();
 
   Node *new_current;
@@ -674,7 +679,7 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
   case NodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true = branch->get_on_true();
+    const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
     assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
@@ -705,8 +710,8 @@ Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<con
   assert(prev && "No previous node");
 
   node_id_t anchor_id = prev->get_id();
-  Node *anchor = get_mutable_node_by_id(anchor_id);
-  Node *anchor_next = get_mutable_node_by_id(current->get_id());
+  Node *anchor        = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
 
   bool set_new_current = false;
 
@@ -717,7 +722,7 @@ Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<con
     clone->recursive_update_ids(id);
 
     if (!set_new_current) {
-      new_current = clone;
+      new_current     = clone;
       set_new_current = true;
     }
 
@@ -729,7 +734,7 @@ Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<con
     case NodeType::Branch: {
       Branch *branch = dynamic_cast<Branch *>(anchor);
 
-      const Node *on_true = branch->get_on_true();
+      const Node *on_true  = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
       assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
@@ -757,12 +762,12 @@ Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> con
   assert(prev && "No previous node");
 
   node_id_t anchor_id = prev->get_id();
-  Node *anchor = get_mutable_node_by_id(anchor_id);
-  Node *anchor_next = get_mutable_node_by_id(current->get_id());
+  Node *anchor        = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
 
   klee::ref<klee::Expr> constraint = constraint_from_expr(condition);
 
-  Node *on_true_cond = anchor_next;
+  Node *on_true_cond  = anchor_next;
   Node *on_false_cond = anchor_next->clone(manager, true);
   on_false_cond->recursive_update_ids(id);
 
@@ -785,7 +790,7 @@ Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> con
   case NodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true = branch->get_on_true();
+    const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
     assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");

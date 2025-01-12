@@ -10,6 +10,11 @@
 namespace synapse {
 
 namespace {
+const std::unordered_set<klee::Expr::Kind> conditional_expr_kinds{
+    klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,  klee::Expr::Ult, klee::Expr::Ule,
+    klee::Expr::Ugt, klee::Expr::Uge, klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
+};
+
 struct expr_info_t {
   bool has_allowed;
   bool has_not_allowed;
@@ -60,8 +65,8 @@ public:
   klee::ExprVisitor::Action visitAnd(const klee::AndExpr &e) {
     if (e.getNumKids() != 2)
       return Action::doChildren();
-    klee::ref<klee::Expr> lhs = e.getKid(0);
-    klee::ref<klee::Expr> rhs = e.getKid(1);
+    klee::ref<klee::Expr> lhs      = e.getKid(0);
+    klee::ref<klee::Expr> rhs      = e.getKid(1);
     klee::ref<klee::Expr> new_expr = pick_filtered_expression(lhs, rhs);
     if (new_expr.isNull())
       return Action::doChildren();
@@ -71,8 +76,8 @@ public:
   klee::ExprVisitor::Action visitAnd(const klee::OrExpr &e) {
     if (e.getNumKids() != 2)
       return Action::doChildren();
-    klee::ref<klee::Expr> lhs = e.getKid(0);
-    klee::ref<klee::Expr> rhs = e.getKid(1);
+    klee::ref<klee::Expr> lhs      = e.getKid(0);
+    klee::ref<klee::Expr> rhs      = e.getKid(1);
     klee::ref<klee::Expr> new_expr = pick_filtered_expression(lhs, rhs);
     if (new_expr.isNull())
       return Action::doChildren();
@@ -93,8 +98,8 @@ public:
     assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
 
     const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
-    const bytes_t byte = index_const->getZExtValue();
-    const std::string name = e.updates.root->name;
+    const bytes_t byte                    = index_const->getZExtValue();
+    const std::string name                = e.updates.root->name;
 
     if (!filter.has_value() || name == filter.value()) {
       symbolic_reads.insert({byte, name});
@@ -160,8 +165,8 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &siz
     klee::ref<klee::Expr> index = read->index;
     if (index->getKind() == klee::Expr::Constant) {
       klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-      offset = index_const->getZExtValue();
-      size = read->getWidth() / 8;
+      offset                          = index_const->getZExtValue();
+      size                            = read->getWidth() / 8;
       return true;
     }
   }
@@ -184,7 +189,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &siz
   }
 
   offset = group.offset;
-  size = group.size;
+  size   = group.size;
 
   return true;
 }
@@ -225,10 +230,10 @@ bool is_constant(klee::ref<klee::Expr> expr) {
     return false;
   }
 
-  u64 value = solver_toolbox.value_from_expr(expr);
-  bits_t width = expr->getWidth();
+  u64 value                         = solver_toolbox.value_from_expr(expr);
+  bits_t width                      = expr->getWidth();
   klee::ref<klee::Expr> const_value = solver_toolbox.exprBuilder->Constant(value, width);
-  bool is_always_eq = solver_toolbox.are_exprs_always_equal(const_value, expr);
+  bool is_always_eq                 = solver_toolbox.are_exprs_always_equal(const_value, expr);
 
   return is_always_eq;
 }
@@ -242,10 +247,14 @@ bool is_constant_signed(klee::ref<klee::Expr> expr) {
 
   assert(size <= 64 && "Size too big");
 
-  u64 value = solver_toolbox.value_from_expr(expr);
+  u64 value    = solver_toolbox.value_from_expr(expr);
   u64 sign_bit = value >> (size - 1);
 
   return sign_bit == 1;
+}
+
+bool is_conditional(klee::ref<klee::Expr> expr) {
+  return conditional_expr_kinds.find(expr->getKind()) != conditional_expr_kinds.end();
 }
 
 int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
@@ -253,7 +262,7 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
     return false;
   }
 
-  u64 value = 0;
+  u64 value    = 0;
   bits_t width = expr->getWidth();
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
@@ -379,7 +388,8 @@ std::vector<expr_mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<
 
     std::vector<expr_mod_t> msb_groups =
         build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
-    std::vector<expr_mod_t> lsb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
+    std::vector<expr_mod_t> lsb_groups =
+        build_expr_mods(solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
     std::vector<expr_mod_t> &groups = lsb_groups;
 
     for (const expr_mod_t &group : msb_groups) {
@@ -403,13 +413,13 @@ std::vector<std::optional<symbolic_read_t>> break_expr_by_reads(klee::ref<klee::
     groups.insert(groups.end(), lsb_bytes.begin(), lsb_bytes.end());
     groups.insert(groups.end(), msb_bytes.begin(), msb_bytes.end());
   } else if (expr->getKind() == klee::Expr::Read) {
-    const klee::ReadExpr *read = dynamic_cast<const klee::ReadExpr *>(expr.get());
-    const std::string name = read->updates.root->name;
+    const klee::ReadExpr *read        = dynamic_cast<const klee::ReadExpr *>(expr.get());
+    const std::string name            = read->updates.root->name;
     const klee::ref<klee::Expr> index = read->index;
 
     assert(index->getKind() == klee::Expr::Constant && "Non-constant index");
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-    bytes_t offset = index_const->getZExtValue();
+    bytes_t offset                  = index_const->getZExtValue();
 
     symbolic_read_t symbolic_read{offset, name};
     groups.push_back(symbolic_read);
@@ -423,8 +433,8 @@ std::vector<std::optional<symbolic_read_t>> break_expr_by_reads(klee::ref<klee::
 }
 
 std::vector<expr_byte_swap_t> get_expr_byte_swaps(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
-  // If you're asking yourself why we didn't use the solver to check for this instead of using this clunky method, the answer is that we
-  // did, but it was painfully slow.
+  // If you're asking yourself why we didn't use the solver to check for this instead of using this clunky method, the answer is
+  // that we did, but it was painfully slow.
 
   assert(before->getWidth() == after->getWidth() && "Different widths");
 
@@ -494,16 +504,16 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
 
     klee::ref<klee::Expr> index = read->index;
-    const std::string symbol = read->updates.root->name;
+    const std::string symbol    = read->updates.root->name;
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-    unsigned byte = index_const->getZExtValue();
+    unsigned byte                   = index_const->getZExtValue();
 
     if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol && groups.back().offset - 1 == byte) {
       groups.back().size++;
       groups.back().offset = byte;
-      groups.back().expr = concat_lsb(groups.back().expr, read_expr);
+      groups.back().expr   = concat_lsb(groups.back().expr, read_expr);
     } else {
       groups.emplace_back(true, symbol, byte, read_expr->getWidth() / 8, read_expr);
     }

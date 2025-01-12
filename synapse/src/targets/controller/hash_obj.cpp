@@ -9,7 +9,7 @@ std::optional<spec_impl_t> HashObjFactory::speculate(const EP *ep, const Node *n
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "hash_obj") {
     return std::nullopt;
@@ -26,19 +26,19 @@ std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const Node *node,
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "hash_obj") {
     return impls;
   }
 
   klee::ref<klee::Expr> obj_addr_expr = call.args.at("obj").expr;
-  klee::ref<klee::Expr> size = call.args.at("size").expr;
-  klee::ref<klee::Expr> hash = call.ret;
+  klee::ref<klee::Expr> size          = call.args.at("size").expr;
+  klee::ref<klee::Expr> hash          = call.ret;
 
   addr_t obj_addr = expr_addr_to_obj_addr(obj_addr_expr);
 
-  Module *module = new HashObj(node, obj_addr, size, hash);
+  Module *module  = new HashObj(node, obj_addr, size, hash);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -77,7 +77,8 @@ bool get_map_coalescing_objs_from_bdd(const BDD *bdd, addr_t obj, map_coalescing
 bool get_map_coalescing_objs_from_dchain_op(const EP *ep, const Call *dchain_op, map_coalescing_objs_t &map_objs);
 bool get_map_coalescing_objs_from_map_op(const EP *ep, const Call *map_op, map_coalescing_objs_t &map_objs);
 
-std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::ref<klee::Expr> key, const map_coalescing_objs_t &data);
+std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::ref<klee::Expr> key,
+                                                        const map_coalescing_objs_t &data);
 
 struct rw_fractions_t {
   hit_rate_t read;

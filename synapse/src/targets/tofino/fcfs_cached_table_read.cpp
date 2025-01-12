@@ -13,11 +13,11 @@ struct fcfs_cached_table_data_t {
   fcfs_cached_table_data_t(const EP *ep, const Call *map_get) {
     const call_t &call = map_get->get_call();
 
-    obj = expr_addr_to_obj_addr(call.args.at("map").expr);
-    key = call.args.at("key").in;
-    read_value = call.args.at("value_out").out;
+    obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
+    key              = call.args.at("key").in;
+    read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    num_entries = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries      = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 
@@ -30,8 +30,8 @@ EP *concretize_cached_table_read(const EP *ep, const Node *node, const map_coale
     return nullptr;
   }
 
-  Module *module = new FCFSCachedTableRead(node, cached_table->id, cached_table_data.obj, cached_table_data.key,
-                                           cached_table_data.read_value, cached_table_data.map_has_this_key);
+  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table_data.obj, cached_table_data.key,
+                                            cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -56,7 +56,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   }
 
   const Call *map_get = dynamic_cast<const Call *>(node);
-  const call_t &call = map_get->get_call();
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return std::nullopt;
@@ -67,7 +67,8 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
   }
 
@@ -88,7 +89,8 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   return spec_impl;
 }
 
-std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const Node *node,
+                                                             SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -96,7 +98,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
   }
 
   const Call *map_get = dynamic_cast<const Call *>(node);
-  const call_t &call = map_get->get_call();
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return impls;

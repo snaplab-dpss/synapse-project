@@ -6,13 +6,13 @@ namespace synapse {
 namespace ctrl {
 
 const tofino::TofinoContext *ControllerModuleFactory::get_tofino_ctx(const EP *ep) const {
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx                      = ep->get_ctx();
   const tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<tofino::TofinoContext>();
   return tofino_ctx;
 }
 
 tofino::TofinoContext *ControllerModuleFactory::get_mutable_tofino_ctx(EP *ep) const {
-  Context &ctx = ep->get_mutable_ctx();
+  Context &ctx                      = ep->get_mutable_ctx();
   tofino::TofinoContext *tofino_ctx = ctx.get_mutable_target_ctx<tofino::TofinoContext>();
   return tofino_ctx;
 }

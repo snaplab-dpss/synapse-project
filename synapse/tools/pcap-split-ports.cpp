@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
   std::unordered_set<flow_t, flow_t::flow_hash_t> wan_flows;
 
   u64 total_pkts = pcap_reader.get_total_pkts();
-  u64 pkt_count = 0;
-  int progress = -1;
+  u64 pkt_count  = 0;
+  int progress   = -1;
 
   const u_char *pkt;
   u16 hdrs_len;

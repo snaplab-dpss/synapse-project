@@ -23,8 +23,8 @@ private:
 public:
   EPNode(Module *module);
 
-  EPNode(const EPNode &other) = delete;
-  EPNode(EPNode &&other) = delete;
+  EPNode(const EPNode &other)            = delete;
+  EPNode(EPNode &&other)                 = delete;
   EPNode &operator=(const EPNode &other) = delete;
 
   ~EPNode();

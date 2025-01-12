@@ -14,8 +14,8 @@ struct branch_direction_t {
   bool direction;
 
   branch_direction_t() : branch(nullptr), direction(false) {}
-  branch_direction_t(const branch_direction_t &other) = default;
-  branch_direction_t(branch_direction_t &&other) = default;
+  branch_direction_t(const branch_direction_t &other)            = default;
+  branch_direction_t(branch_direction_t &&other)                 = default;
   branch_direction_t &operator=(const branch_direction_t &other) = default;
 };
 

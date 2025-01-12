@@ -19,7 +19,7 @@ bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
 bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result = false;
+  bool result  = false;
   bool success = solver->mustBeTrue(sat_query, result);
   assert(success && "Failed to check if expr is always true");
 
@@ -29,7 +29,7 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
 bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result = false;
+  bool result  = false;
   bool success = solver->mayBeTrue(sat_query, result);
   assert(success && "Failed to check if expr is maybe true");
 
@@ -39,7 +39,7 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
 bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result = false;
+  bool result  = false;
   bool success = solver->mayBeFalse(sat_query, result);
   assert(success && "Failed to check if expr is maybe false");
 
@@ -92,7 +92,7 @@ bool solver_toolbox_t::is_expr_always_false(klee::ref<klee::Expr> expr) const {
 bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result = false;
+  bool result  = false;
   bool success = solver->mustBeFalse(sat_query, result);
   assert(success && "Failed to check if expr is always false");
 
@@ -204,7 +204,7 @@ bool solver_toolbox_t::are_calls_equal(call_t c1, call_t c2) const {
 
 int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
   klee::Expr::Width width = expr->getWidth();
-  u64 value = solver_toolbox.value_from_expr(expr, constraints);
+  u64 value               = solver_toolbox.value_from_expr(expr, constraints);
 
   u64 mask = 0;
   for (u64 i = 0u; i < width; i++) {

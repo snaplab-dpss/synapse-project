@@ -43,13 +43,13 @@ extern "C" {
 
 using json = nlohmann::json;
 
-#define NF_INFO(text, ...)                                                                                                                 \
-  printf(text "\n", ##__VA_ARGS__);                                                                                                        \
+#define NF_INFO(text, ...)                                                                                                       \
+  printf(text "\n", ##__VA_ARGS__);                                                                                              \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                                                                                \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                                     \
+#define NF_DEBUG(text, ...)                                                                                                      \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                           \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
@@ -66,13 +66,13 @@ using json = nlohmann::json;
 
 #define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
-#define PARSE_ERROR(argv, format, ...)                                                                                                     \
-  nf_config_usage(argv);                                                                                                                   \
-  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                  \
+#define PARSE_ERROR(argv, format, ...)                                                                                           \
+  nf_config_usage(argv);                                                                                                         \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                                                        \
   exit(EXIT_FAILURE);
 
-#define PARSER_ASSERT(cond, fmt, ...)                                                                                                      \
-  if (!(cond))                                                                                                                             \
+#define PARSER_ASSERT(cond, fmt, ...)                                                                                            \
+  if (!(cond))                                                                                                                   \
     rte_exit(EXIT_FAILURE, fmt, ##__VA_ARGS__);
 
 bool nf_init(void);
@@ -91,8 +91,8 @@ uintmax_t nf_util_parse_int(const char *str, const char *name, int base, char ne
 }
 
 bool nf_parse_etheraddr(const char *str, struct rte_ether_addr *addr) {
-  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0, addr->addr_bytes + 1, addr->addr_bytes + 2,
-                addr->addr_bytes + 3, addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
+  return sscanf(str, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", addr->addr_bytes + 0, addr->addr_bytes + 1,
+                addr->addr_bytes + 2, addr->addr_bytes + 3, addr->addr_bytes + 4, addr->addr_bytes + 5) == 6;
 }
 
 struct pkt_t {
@@ -137,9 +137,9 @@ public:
   uint64_t get_total_bytes() { return total_bytes; }
 
   void setup(const std::vector<dev_pcap_t> &_pcaps) {
-    total_packets = 0;
-    total_bytes = 0;
-    processed_packets = 0;
+    total_packets          = 0;
+    total_bytes            = 0;
+    processed_packets      = 0;
     last_percentage_report = -1;
 
     for (const auto &dev_pcap : _pcaps) {
@@ -231,7 +231,7 @@ private:
 
     memcpy(pkt_data, data, hdr->len);
     pkt.len = hdr->len;
-    pkt.ts = hdr->ts.tv_sec * 1e9 + hdr->ts.tv_usec * 1e3;
+    pkt.ts  = hdr->ts.tv_sec * 1e9 + hdr->ts.tv_usec * 1e3;
 
     return true;
   }
@@ -239,7 +239,7 @@ private:
   // WARNING: this does not work on windows!
   // https://winpcap-users.winpcap.narkive.com/scCKD3x2/packet-random-access-using-file-seek
   void rewind(uint16_t dev) {
-    pcap_t *pd = pcaps[dev];
+    pcap_t *pd      = pcaps[dev];
     long pcap_start = pcaps_start[dev];
     FILE *pcap_fptr = pcap_file(pd);
     fseek(pcap_fptr, pcap_start, SEEK_SET);
@@ -288,13 +288,14 @@ private:
 
 void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet, uint16_t packet_length) {
   struct rte_ether_hdr *rte_ether_header = (struct rte_ether_hdr *)(packet);
-  struct rte_ipv4_hdr *rte_ipv4_header = (struct rte_ipv4_hdr *)(packet + sizeof(struct rte_ether_hdr));
+  struct rte_ipv4_hdr *rte_ipv4_header   = (struct rte_ipv4_hdr *)(packet + sizeof(struct rte_ether_hdr));
   struct tcpudp_hdr *tcpudp_header = (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
 
-  NF_DEBUG("[%lu:%u] %u.%u.%u.%u:%u -> %u.%u.%u.%u:%u", time, device, (rte_ipv4_header->src_addr >> 0) & 0xff,
-           (rte_ipv4_header->src_addr >> 8) & 0xff, (rte_ipv4_header->src_addr >> 16) & 0xff, (rte_ipv4_header->src_addr >> 24) & 0xff,
-           rte_bswap16(tcpudp_header->src_port), (rte_ipv4_header->dst_addr >> 0) & 0xff, (rte_ipv4_header->dst_addr >> 8) & 0xff,
-           (rte_ipv4_header->dst_addr >> 16) & 0xff, (rte_ipv4_header->dst_addr >> 24) & 0xff, rte_bswap16(tcpudp_header->dst_port));
+  NF_DEBUG(
+      "[%lu:%u] %u.%u.%u.%u:%u -> %u.%u.%u.%u:%u", time, device, (rte_ipv4_header->src_addr >> 0) & 0xff,
+      (rte_ipv4_header->src_addr >> 8) & 0xff, (rte_ipv4_header->src_addr >> 16) & 0xff, (rte_ipv4_header->src_addr >> 24) & 0xff,
+      rte_bswap16(tcpudp_header->src_port), (rte_ipv4_header->dst_addr >> 0) & 0xff, (rte_ipv4_header->dst_addr >> 8) & 0xff,
+      (rte_ipv4_header->dst_addr >> 16) & 0xff, (rte_ipv4_header->dst_addr >> 24) & 0xff, rte_bswap16(tcpudp_header->dst_port));
 }
 
 void nf_config_usage(char **argv) {
@@ -307,7 +308,8 @@ void nf_config_print(void) {
   NF_INFO("----- Config -----");
   NF_INFO("report: %s", config.report_fname.c_str());
   for (const auto &dev_pcap : config.pcaps) {
-    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device, dev_pcap.pcap.filename().c_str(), dev_pcap.warmup ? "yes" : "no");
+    NF_INFO("device: %u | pcap: %s | warmup: %s", dev_pcap.device, dev_pcap.pcap.filename().c_str(),
+            dev_pcap.warmup ? "yes" : "no");
   }
   NF_INFO("--- ---------- ---");
 }
@@ -331,7 +333,7 @@ void nf_config_init(int argc, char **argv) {
     }
 
     char *device_str = strtok(arg, ":");
-    char *pcap_str = strtok(NULL, ":");
+    char *pcap_str   = strtok(NULL, ":");
 
     if (!device_str || !pcap_str) {
       PARSE_ERROR(argv, "Invalid argument format: %s\n", arg);
@@ -339,7 +341,7 @@ void nf_config_init(int argc, char **argv) {
 
     dev_pcap_t dev_pcap;
     dev_pcap.device = nf_util_parse_int(device_str, "device", 10, '\0');
-    dev_pcap.pcap = pcap_str;
+    dev_pcap.pcap   = pcap_str;
     dev_pcap.warmup = incoming_warmup;
 
     config.pcaps.push_back(dev_pcap);
@@ -383,7 +385,7 @@ struct Stats {
   Stats() : total_count(0) {
     uint32_t mask = 0;
     while (1) {
-      mask = (mask << 1) | 1;
+      mask                = (mask << 1) | 1;
       mask_to_crc32[mask] = {};
       if (mask == 0xffffffff) {
         break;
@@ -455,12 +457,12 @@ void inc_path_counter(int i) {
 void generate_report() {
   json report;
 
-  report["config"] = json::object();
+  report["config"]          = json::object();
   report["config"]["pcaps"] = json::array();
   for (const auto &dev_pcap : config.pcaps) {
     json dev_pcap_elem;
     dev_pcap_elem["device"] = dev_pcap.device;
-    dev_pcap_elem["pcap"] = dev_pcap.pcap.filename().stem().string();
+    dev_pcap_elem["pcap"]   = dev_pcap.pcap.filename().stem().string();
     dev_pcap_elem["warmup"] = dev_pcap.warmup;
     report["config"]["pcaps"].push_back(dev_pcap_elem);
   }
@@ -470,10 +472,10 @@ void generate_report() {
     report["counters"][std::to_string(i)] = path_profiler_counter_ptr[i];
   }
 
-  report["meta"] = json::object();
+  report["meta"]            = json::object();
   report["meta"]["elapsed"] = elapsed_time;
-  report["meta"]["pkts"] = reader.get_total_packets();
-  report["meta"]["bytes"] = reader.get_total_bytes();
+  report["meta"]["pkts"]    = reader.get_total_packets();
+  report["meta"]["bytes"]   = reader.get_total_bytes();
 
   report["stats_per_map"] = json::object();
 
@@ -483,9 +485,9 @@ void generate_report() {
     map_stats_json["nodes"] = json::array();
     for (const auto &[map_op, stats] : map_stats.stats_per_node) {
       json map_op_stats_json;
-      map_op_stats_json["node"] = map_op;
+      map_op_stats_json["node"]          = map_op;
       map_op_stats_json["pkts_per_flow"] = json::array();
-      map_op_stats_json["flows"] = stats.key_counter.size();
+      map_op_stats_json["flows"]         = stats.key_counter.size();
 
       map_op_stats_json["crc32_hashes_per_mask"] = json::object();
       for (const auto &[mask, crc32_hashes] : stats.mask_to_crc32) {
@@ -506,7 +508,7 @@ void generate_report() {
       };
 
       map_op_stats_json["pkts_per_flow"] = build_pkts_per_flow();
-      map_op_stats_json["pkts"] = stats.total_count;
+      map_op_stats_json["pkts"]          = stats.total_count;
 
       map_stats_json["nodes"].push_back(map_op_stats_json);
     }
@@ -516,12 +518,12 @@ void generate_report() {
       const auto &epoch = map_stats.epochs[i];
 
       json epoch_json;
-      epoch_json["dt_ns"] = epoch.end - epoch.start;
-      epoch_json["warmup"] = epoch.warmup;
-      epoch_json["pkts"] = epoch.stats.total_count;
-      epoch_json["flows"] = epoch.stats.key_counter.size();
+      epoch_json["dt_ns"]                    = epoch.end - epoch.start;
+      epoch_json["warmup"]                   = epoch.warmup;
+      epoch_json["pkts"]                     = epoch.stats.total_count;
+      epoch_json["flows"]                    = epoch.stats.key_counter.size();
       epoch_json["pkts_per_persistent_flow"] = json::array();
-      epoch_json["pkts_per_new_flow"] = json::array();
+      epoch_json["pkts_per_new_flow"]        = json::array();
 
       std::vector<uint64_t> pf;
       std::vector<uint64_t> nf;
@@ -592,7 +594,7 @@ static void worker_main() {
   assert(success && "Failed to generate the first packet");
 
   time_ns_t start_time = pkt.ts;
-  time_ns_t last_time = 0;
+  time_ns_t last_time  = 0;
 
   do {
     // Ignore destination device, we don't forward anywhere

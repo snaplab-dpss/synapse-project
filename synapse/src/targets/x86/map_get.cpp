@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_get") {
     return false;
@@ -25,10 +25,10 @@ std::optional<spec_impl_t> MapGetFactory::speculate(const EP *ep, const Node *no
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return std::nullopt;
@@ -45,23 +45,23 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const Node *node, 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  klee::ref<klee::Expr> success = call.ret;
-  klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> success       = call.ret;
+  klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
 
   symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
-  addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
+  addr_t map_addr           = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t key_addr           = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return impls;
   }
 
-  Module *module = new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  Module *module  = new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

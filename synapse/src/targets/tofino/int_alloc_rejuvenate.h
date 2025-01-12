@@ -13,8 +13,8 @@ private:
 
 public:
   IntegerAllocatorRejuvenate(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
-      : TofinoModule(ModuleType::Tofino_IntegerAllocatorRejuvenate, "IntegerAllocatorRejuvenate", node), dchain_addr(_dchain_addr),
-        index(_index), time(_time) {}
+      : TofinoModule(ModuleType::Tofino_IntegerAllocatorRejuvenate, "IntegerAllocatorRejuvenate", node),
+        dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -38,7 +38,8 @@ public:
 
 class IntegerAllocatorRejuvenateFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorRejuvenateFactory() : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorRejuvenate, "IntegerAllocatorRejuvenate") {}
+  IntegerAllocatorRejuvenateFactory()
+      : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorRejuvenate, "IntegerAllocatorRejuvenate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;

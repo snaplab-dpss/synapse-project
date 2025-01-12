@@ -31,13 +31,13 @@ extern "C" {
 
 #include <stdbool.h>
 
-#define NF_INFO(text, ...)                                                                                                                 \
-  printf(text "\n", ##__VA_ARGS__);                                                                                                        \
+#define NF_INFO(text, ...)                                                                                                       \
+  printf(text "\n", ##__VA_ARGS__);                                                                                              \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                                                                                \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                                     \
+#define NF_DEBUG(text, ...)                                                                                                      \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                           \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
@@ -60,7 +60,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
 // Send the given packet to all devices except the packet's own
 void flood(struct rte_mbuf *packet, uint16_t nb_devices, uint16_t queue_id) {
   rte_mbuf_refcnt_set(packet, nb_devices - 1);
-  int total_sent = 0;
+  int total_sent       = 0;
   uint16_t skip_device = packet->port;
   for (uint16_t device = 0; device < nb_devices; device++) {
     if (device != skip_device) {
@@ -137,7 +137,7 @@ static void worker_main(void) {
       for (uint16_t n = 0; n < rx_count; n++) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
-        time_ns_t now = current_time();
+        time_ns_t now       = current_time();
         uint16_t dst_device = nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now);
 
         if (dst_device == DROP) {
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
   argc -= ret;
   argv += ret;
 
-  unsigned nb_devices = rte_eth_dev_count_avail();
+  unsigned nb_devices           = rte_eth_dev_count_avail();
   struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("MEMPOOL",                         // name
                                                           MEMPOOL_BUFFER_COUNT * nb_devices, // #elements
                                                           0, // cache size (per-core, not useful in a single-threaded app)

@@ -9,14 +9,14 @@ std::optional<spec_impl_t> TBUpdateAndCheckFactory::speculate(const EP *ep, cons
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "tb_update_and_check") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+  addr_t tb_addr                     = expr_addr_to_obj_addr(tb_addr_expr);
 
   if (!ctx.can_impl_ds(tb_addr, DSImpl::Controller_TokenBucket)) {
     return std::nullopt;
@@ -33,17 +33,17 @@ std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep, const No
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "tb_update_and_check") {
     return impls;
   }
 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> pkt_len = call.args.at("pkt_len").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
-  klee::ref<klee::Expr> pass = call.ret;
+  klee::ref<klee::Expr> index        = call.args.at("index").expr;
+  klee::ref<klee::Expr> pkt_len      = call.args.at("pkt_len").expr;
+  klee::ref<klee::Expr> time         = call.args.at("time").expr;
+  klee::ref<klee::Expr> pass         = call.ret;
 
   addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
 
@@ -51,7 +51,7 @@ std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep, const No
     return impls;
   }
 
-  Module *module = new TBUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
+  Module *module  = new TBUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

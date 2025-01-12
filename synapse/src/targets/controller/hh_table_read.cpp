@@ -23,12 +23,12 @@ struct table_data_t {
     const call_t &call = map_get->get_call();
     assert(call.function_name == "map_get" && "Not a map_get call");
 
-    obj = expr_addr_to_obj_addr(call.args.at("map").expr);
-    key = call.args.at("key").in;
-    table_keys = Table::build_keys(key);
-    read_value = call.args.at("value_out").out;
+    obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
+    key              = call.args.at("key").in;
+    table_keys       = Table::build_keys(key);
+    read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    num_entries = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries      = ep->get_ctx().get_map_config(obj).capacity;
   }
 };
 } // namespace
@@ -39,7 +39,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
   }
 
   const Call *map_get = dynamic_cast<const Call *>(node);
-  const call_t &call = map_get->get_call();
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return std::nullopt;
@@ -66,7 +66,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
   }
 
   const Call *map_get = dynamic_cast<const Call *>(node);
-  const call_t &call = map_get->get_call();
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return impls;
@@ -85,8 +85,8 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
   table_data_t table_data(ep, map_get);
   symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
 
-  Module *module =
-      new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key, min_estimate);
+  Module *module  = new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value,
+                                    table_data.map_has_this_key, min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

@@ -3,20 +3,21 @@
 namespace synapse {
 namespace tofino {
 
-std::optional<spec_impl_t> IntegerAllocatorRejuvenateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> IntegerAllocatorRejuvenateFactory::speculate(const EP *ep, const Node *node,
+                                                                        const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_rejuvenate_index") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+  addr_t dchain_addr                     = expr_addr_to_obj_addr(dchain_addr_expr);
 
   if (!ctx.can_impl_ds(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
     return std::nullopt;
@@ -28,7 +29,8 @@ std::optional<spec_impl_t> IntegerAllocatorRejuvenateFactory::speculate(const EP
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> IntegerAllocatorRejuvenateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> IntegerAllocatorRejuvenateFactory::process_node(const EP *ep, const Node *node,
+                                                                    SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -36,15 +38,15 @@ std::vector<impl_t> IntegerAllocatorRejuvenateFactory::process_node(const EP *ep
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_rejuvenate_index") {
     return impls;
   }
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  klee::ref<klee::Expr> time             = call.args.at("time").expr;
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
@@ -52,7 +54,7 @@ std::vector<impl_t> IntegerAllocatorRejuvenateFactory::process_node(const EP *ep
     return impls;
   }
 
-  Module *module = new IntegerAllocatorRejuvenate(node, dchain_addr, index, time);
+  Module *module  = new IntegerAllocatorRejuvenate(node, dchain_addr, index, time);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

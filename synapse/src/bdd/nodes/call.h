@@ -17,9 +17,10 @@ public:
        const Symbols &_generated_symbols)
       : Node(_id, NodeType::Call, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
 
-  Call(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, call_t _call,
-       const Symbols &_generated_symbols)
-      : Node(_id, NodeType::Call, _next, _prev, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
+  Call(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager,
+       call_t _call, const Symbols &_generated_symbols)
+      : Node(_id, NodeType::Call, _next, _prev, _constraints, _symbol_manager), call(_call),
+        generated_symbols(_generated_symbols) {}
 
   const call_t &get_call() const { return call; }
   void set_call(const call_t &new_call) { call = new_call; }

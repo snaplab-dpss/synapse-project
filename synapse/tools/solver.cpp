@@ -9,6 +9,7 @@ using synapse::expr_byte_swap_t;
 using synapse::expr_mod_t;
 using synapse::expr_to_string;
 using synapse::get_expr_byte_swaps;
+using synapse::is_conditional;
 using synapse::solver_toolbox;
 using synapse::symbol_t;
 using synapse::SymbolManager;
@@ -61,9 +62,9 @@ int main() {
   const klee::Array *A_array = symbol_manager.get_array("A");
   const klee::Array *B_array = symbol_manager.get_array("B");
 
-  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, 32);
-  klee::ref<klee::Expr> one = solver_toolbox.exprBuilder->Constant(1, 32);
-  klee::ref<klee::Expr> two = solver_toolbox.exprBuilder->Constant(2, 32);
+  klee::ref<klee::Expr> zero  = solver_toolbox.exprBuilder->Constant(0, 32);
+  klee::ref<klee::Expr> one   = solver_toolbox.exprBuilder->Constant(1, 32);
+  klee::ref<klee::Expr> two   = solver_toolbox.exprBuilder->Constant(2, 32);
   klee::ref<klee::Expr> three = solver_toolbox.exprBuilder->Constant(3, 32);
 
   klee::ref<klee::Expr> zbyte = solver_toolbox.exprBuilder->Constant(0, 8);
@@ -89,9 +90,11 @@ int main() {
   klee::ref<klee::Expr> b3 = solver_toolbox.exprBuilder->Read(b3_ul, three);
 
   klee::ref<klee::Expr> e0 = solver_toolbox.exprBuilder->Concat(
-      a0, solver_toolbox.exprBuilder->Concat(b1, solver_toolbox.exprBuilder->Concat(zbyte, solver_toolbox.exprBuilder->Concat(a2, b3))));
+      a0, solver_toolbox.exprBuilder->Concat(
+              b1, solver_toolbox.exprBuilder->Concat(zbyte, solver_toolbox.exprBuilder->Concat(a2, b3))));
   klee::ref<klee::Expr> e1 = solver_toolbox.exprBuilder->Concat(
-      b3, solver_toolbox.exprBuilder->Concat(a2, solver_toolbox.exprBuilder->Concat(zbyte, solver_toolbox.exprBuilder->Concat(b1, a0))));
+      b3, solver_toolbox.exprBuilder->Concat(
+              a2, solver_toolbox.exprBuilder->Concat(zbyte, solver_toolbox.exprBuilder->Concat(b1, a0))));
 
   for (const expr_mod_t &g : build_expr_mods(e0, e1)) {
     std::cout << "offset: " << g.offset << "\n";
@@ -106,6 +109,15 @@ int main() {
     std::cout << "offset1: " << byte_swap.byte1 << "\n";
     std::cout << "\n";
   }
+
+  std::cout << "\n";
+  klee::ref<klee::Expr> true_expr  = solver_toolbox.exprBuilder->True();
+  klee::ref<klee::Expr> false_expr = solver_toolbox.exprBuilder->False();
+
+  std::cout << "True:  " << expr_to_string(true_expr) << "\n";
+  std::cout << "Conditional? " << is_conditional(true_expr) << "\n";
+  std::cout << "False: " << expr_to_string(false_expr) << "\n";
+  std::cout << "Conditional? " << is_conditional(false_expr) << "\n";
 
   return 0;
 }

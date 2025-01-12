@@ -73,7 +73,7 @@ std::string resolve_line_info(const char *executable, uintptr_t address) {
   result.erase(result.find_last_not_of("\n") + 1);
 
   const std::string discriminator_marker = " (discriminator";
-  size_t marker_pos = result.find(discriminator_marker);
+  size_t marker_pos                      = result.find(discriminator_marker);
   if (marker_pos != std::string::npos) {
     result = result.substr(0, marker_pos);
   }
@@ -109,7 +109,7 @@ void backtrace() {
     }
 
     if (unw_get_proc_name(&cursor, fname.data(), sizeof(fname), &offset) == 0) {
-      int demangle_status = 0;
+      int demangle_status  = 0;
       char *demangled_name = abi::__cxa_demangle(fname.data(), nullptr, nullptr, &demangle_status);
       fprintf(stderr, "  -> %s ", (demangle_status == 0 ? demangled_name : fname.data()));
       if (demangle_status == 0) {
@@ -121,8 +121,8 @@ void backtrace() {
 
     Dl_info info;
     if (dladdr((void *)pc, &info) && info.dli_fname) {
-      uintptr_t load_base = reinterpret_cast<uintptr_t>(info.dli_fbase);
-      uintptr_t relative_pc = pc - load_base;
+      uintptr_t load_base         = reinterpret_cast<uintptr_t>(info.dli_fbase);
+      uintptr_t relative_pc       = pc - load_base;
       const std::string line_info = resolve_line_info(info.dli_fname, relative_pc);
       fprintf(stderr, " (in %s %s)\n", info.dli_fname, line_info.c_str());
     }

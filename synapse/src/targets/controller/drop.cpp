@@ -9,7 +9,7 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const Node *node
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return std::nullopt;
@@ -29,13 +29,13 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node, Sy
   }
 
   const Route *route_node = dynamic_cast<const Route *>(node);
-  RouteOp op = route_node->get_operation();
+  RouteOp op              = route_node->get_operation();
 
   if (op != RouteOp::Drop) {
     return impls;
   }
 
-  Module *module = new Drop(node);
+  Module *module  = new Drop(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

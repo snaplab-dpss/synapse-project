@@ -8,21 +8,21 @@ table_data_t table_data_from_map_op(const EP *ep, const Call *call_node) {
   assert(call.function_name == "map_get" && "Unexpected function");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
 
   symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
-  addr_t obj = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t obj                = expr_addr_to_obj_addr(map_addr_expr);
 
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx      = ep->get_ctx();
   const map_config_t &cfg = ctx.get_map_config(obj);
 
   table_data_t table_data = {
-      .obj = expr_addr_to_obj_addr(map_addr_expr),
+      .obj         = expr_addr_to_obj_addr(map_addr_expr),
       .num_entries = static_cast<u32>(cfg.capacity),
-      .keys = Table::build_keys(key),
-      .values = {value_out},
-      .hit = map_has_this_key,
+      .keys        = Table::build_keys(key),
+      .values      = {value_out},
+      .hit         = map_has_this_key,
   };
 
   return table_data;
@@ -33,20 +33,20 @@ table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
   assert(call.function_name == "vector_borrow" && "Unexpected function");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> cell = call.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  klee::ref<klee::Expr> cell             = call.extra_vars.at("borrowed_cell").second;
 
   addr_t obj = expr_addr_to_obj_addr(vector_addr_expr);
 
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx         = ep->get_ctx();
   const vector_config_t &cfg = ctx.get_vector_config(obj);
 
   table_data_t table_data = {
-      .obj = obj,
+      .obj         = obj,
       .num_entries = static_cast<u32>(cfg.capacity),
-      .keys = {index},
-      .values = {cell},
-      .hit = std::nullopt,
+      .keys        = {index},
+      .values      = {cell},
+      .hit         = std::nullopt,
   };
 
   return table_data;
@@ -54,22 +54,23 @@ table_data_t table_data_from_vector_op(const EP *ep, const Call *call_node) {
 
 table_data_t table_data_from_dchain_op(const EP *ep, const Call *call_node) {
   const call_t &call = call_node->get_call();
-  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Unexpected function");
+  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") &&
+         "Unexpected function");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-  const Context &ctx = ep->get_ctx();
+  const Context &ctx         = ep->get_ctx();
   const dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
 
   table_data_t table_data = {
-      .obj = dchain_addr,
+      .obj         = dchain_addr,
       .num_entries = static_cast<u32>(cfg.index_range),
-      .keys = {index},
-      .values = {},
-      .hit = std::nullopt,
+      .keys        = {index},
+      .values      = {},
+      .hit         = std::nullopt,
   };
 
   if (call.function_name == "dchain_is_index_allocated") {
@@ -162,7 +163,7 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  Module *module = new TableLookup(node, table->id, table_data->obj, table_data->keys, table_data->values, table_data->hit);
+  Module *module  = new TableLookup(node, table->id, table_data->obj, table_data->keys, table_data->values, table_data->hit);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

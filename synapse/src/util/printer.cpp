@@ -78,13 +78,13 @@ public:
   const std::string &get_result() const { return result; }
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
-    klee::UpdateList ul = e.updates;
-    const klee::Array *root = ul.root;
+    klee::UpdateList ul         = e.updates;
+    const klee::Array *root     = ul.root;
     klee::ref<klee::Expr> index = e.index;
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-    u64 i = index_const->getZExtValue();
+    u64 i                           = index_const->getZExtValue();
 
     std::stringstream ss;
     ss << root->name;
@@ -97,8 +97,8 @@ public:
   klee::ExprVisitor::Action visitSelect(const klee::SelectExpr &e) {
     std::stringstream ss;
 
-    auto cond = ExprPrettyPrinter::print(e.getKid(0), use_signed);
-    auto first = ExprPrettyPrinter::print(e.getKid(1), use_signed);
+    auto cond   = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto first  = ExprPrettyPrinter::print(e.getKid(1), use_signed);
     auto second = ExprPrettyPrinter::print(e.getKid(2), use_signed);
 
     ss << cond << " ? " << first << " : " << second;
@@ -148,7 +148,7 @@ public:
   }
 
   klee::ExprVisitor::Action visitExtract(const klee::ExtractExpr &e) {
-    auto expr = e.getKid(0);
+    auto expr         = e.getKid(0);
     auto offset_value = e.offset;
 
     auto arg = ExprPrettyPrinter::print(expr, use_signed);
@@ -178,7 +178,7 @@ public:
   klee::ExprVisitor::Action visitAdd(const klee::AddExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " + " << right << ")";
@@ -190,7 +190,7 @@ public:
   klee::ExprVisitor::Action visitSub(const klee::SubExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " - " << right << ")";
@@ -202,7 +202,7 @@ public:
   klee::ExprVisitor::Action visitMul(const klee::MulExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " * " << right << ")";
@@ -214,7 +214,7 @@ public:
   klee::ExprVisitor::Action visitUDiv(const klee::UDivExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " / " << right << ")";
@@ -226,7 +226,7 @@ public:
   klee::ExprVisitor::Action visitSDiv(const klee::SDivExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " + " << right << ")";
@@ -238,7 +238,7 @@ public:
   klee::ExprVisitor::Action visitURem(const klee::URemExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " % " << right << ")";
@@ -250,7 +250,7 @@ public:
   klee::ExprVisitor::Action visitSRem(const klee::SRemExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " % " << right << ")";
@@ -273,7 +273,7 @@ public:
   klee::ExprVisitor::Action visitAnd(const klee::AndExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " & " << right << ")";
@@ -285,7 +285,7 @@ public:
   klee::ExprVisitor::Action visitOr(const klee::OrExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " | " << right << ")";
@@ -297,7 +297,7 @@ public:
   klee::ExprVisitor::Action visitXor(const klee::XorExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " ^ " << right << ")";
@@ -309,7 +309,7 @@ public:
   klee::ExprVisitor::Action visitShl(const klee::ShlExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " << " << right << ")";
@@ -321,7 +321,7 @@ public:
   klee::ExprVisitor::Action visitLShr(const klee::LShrExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " >> " << right << ")";
@@ -333,7 +333,7 @@ public:
   klee::ExprVisitor::Action visitAShr(const klee::AShrExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " >> " << right << ")";
@@ -345,7 +345,7 @@ public:
   klee::ExprVisitor::Action visitEq(const klee::EqExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     auto p0 = std::regex(R"(\(0 == (.+)\))");
@@ -367,7 +367,7 @@ public:
   klee::ExprVisitor::Action visitNe(const klee::NeExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " != " << right << ")";
@@ -379,7 +379,7 @@ public:
   klee::ExprVisitor::Action visitUlt(const klee::UltExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " < " << right << ")";
@@ -391,7 +391,7 @@ public:
   klee::ExprVisitor::Action visitUle(const klee::UleExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " <= " << right << ")";
@@ -403,7 +403,7 @@ public:
   klee::ExprVisitor::Action visitUgt(const klee::UgtExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " > " << right << ")";
@@ -415,7 +415,7 @@ public:
   klee::ExprVisitor::Action visitUge(const klee::UgeExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), use_signed);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), use_signed);
     auto right = ExprPrettyPrinter::print(e.getKid(1), use_signed);
 
     ss << "(" << left << " >= " << right << ")";
@@ -427,7 +427,7 @@ public:
   klee::ExprVisitor::Action visitSlt(const klee::SltExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " < " << right << ")";
@@ -439,7 +439,7 @@ public:
   klee::ExprVisitor::Action visitSle(const klee::SleExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " <= " << right << ")";
@@ -451,7 +451,7 @@ public:
   klee::ExprVisitor::Action visitSgt(const klee::SgtExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " > " << right << ")";
@@ -463,7 +463,7 @@ public:
   klee::ExprVisitor::Action visitSge(const klee::SgeExpr &e) {
     std::stringstream ss;
 
-    auto left = ExprPrettyPrinter::print(e.getKid(0), true);
+    auto left  = ExprPrettyPrinter::print(e.getKid(0), true);
     auto right = ExprPrettyPrinter::print(e.getKid(1), true);
 
     ss << "(" << left << " >= " << right << ")";
@@ -482,13 +482,13 @@ void remove_expr_str_labels(std::string &expr_str) {
     }
 
     size_t start = delim;
-    size_t end = delim;
+    size_t end   = delim;
 
     while (expr_str[--start] != 'N') {
       assert(start > 0 && start < expr_str.size() && "Invalid start");
     }
 
-    std::string pre = expr_str.substr(0, start);
+    std::string pre  = expr_str.substr(0, start);
     std::string post = expr_str.substr(end + 1);
 
     std::string label_name = expr_str.substr(start, end - start);
@@ -522,14 +522,14 @@ void remove_expr_str_labels(std::string &expr_str) {
       size_t label_sz = label_name.size();
 
       if (delim + label_sz < expr_str.size() && expr_str[delim + label_sz] == ':') {
-        pre = expr_str.substr(0, delim);
+        pre  = expr_str.substr(0, delim);
         post = expr_str.substr(delim + label_sz + 1);
 
         expr_str = pre + post;
         continue;
       }
 
-      pre = expr_str.substr(0, delim);
+      pre  = expr_str.substr(0, delim);
       post = expr_str.substr(delim + label_sz);
 
       expr_str = pre + label_expr + post;
@@ -557,7 +557,7 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
     expr_str.erase(std::remove(expr_str.begin(), expr_str.end(), '\n'), expr_str.end());
 
     // remove duplicated whitespaces
-    auto bothAreSpaces = [](char lhs, char rhs) -> bool { return (lhs == rhs) && (lhs == ' '); };
+    auto bothAreSpaces            = [](char lhs, char rhs) -> bool { return (lhs == rhs) && (lhs == ' '); };
     std::string::iterator new_end = std::unique(expr_str.begin(), expr_str.end(), bothAreSpaces);
     expr_str.erase(new_end, expr_str.end());
   }

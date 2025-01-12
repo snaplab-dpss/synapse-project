@@ -174,7 +174,7 @@ klee::ref<klee::Expr> kQueryParser::parse_expr(const std::string &expr_str) {
   kQuery_builder << "])";
 
   std::string kQueryStr = kQuery_builder.str();
-  kQuery_t query = parse(kQueryStr);
+  kQuery_t query        = parse(kQueryStr);
   assert(query.values.size() == 1 && "Error parsing expr");
 
   return query.values[0];

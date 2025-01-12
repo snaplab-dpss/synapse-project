@@ -8,8 +8,8 @@ using tofino::Table;
 
 namespace {
 DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
-  const Context &ctx = ep->get_ctx();
-  const tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<tofino::TofinoContext>();
+  const Context &ctx                                      = ep->get_ctx();
+  const tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<tofino::TofinoContext>();
   const std::unordered_set<tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
   tofino::DS *ds = *data_structures.begin();
@@ -22,11 +22,11 @@ void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Ex
   assert(call.function_name == "map_put" && "Not a map_put call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  value = call.args.at("value").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  value                               = call.args.at("value").expr;
 
-  obj = expr_addr_to_obj_addr(map_addr_expr);
-  keys = Table::build_keys(key);
+  obj   = expr_addr_to_obj_addr(map_addr_expr);
+  keys  = Table::build_keys(key);
   value = value;
 }
 } // namespace
@@ -37,14 +37,14 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_put") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ctx.check_ds_impl(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
@@ -53,7 +53,8 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, const Node *node,
+                                                              SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -61,7 +62,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_put") {
     return impls;
@@ -78,7 +79,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
 
   DS_ID id = get_cached_table_id(ep, obj);
 
-  Module *module = new FCFSCachedTableWrite(node, id, obj, keys, value);
+  Module *module  = new FCFSCachedTableWrite(node, id, obj, keys, value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

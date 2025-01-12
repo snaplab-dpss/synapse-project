@@ -9,7 +9,7 @@ namespace synapse {
 class Heuristic {
 private:
   using ep_cmp_t = std::function<bool(EP *, EP *)>;
-  using ep_it_t = typename std::set<EP *, HeuristicCfg>::iterator;
+  using ep_it_t  = typename std::set<EP *, HeuristicCfg>::iterator;
 
   std::unique_ptr<HeuristicCfg> config;
   std::multiset<EP *, ep_cmp_t> unfinished_eps;

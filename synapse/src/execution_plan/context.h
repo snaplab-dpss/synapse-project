@@ -121,9 +121,9 @@ public:
 };
 } // namespace synapse
 
-#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                                       \
-  namespace NAMESPACE {                                                                                                                    \
-  class TARGET_CTX;                                                                                                                        \
-  }                                                                                                                                        \
-  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                                         \
+#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                             \
+  namespace NAMESPACE {                                                                                                          \
+  class TARGET_CTX;                                                                                                              \
+  }                                                                                                                              \
+  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                               \
   template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();

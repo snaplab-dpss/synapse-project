@@ -29,7 +29,7 @@ struct DS {
   DS(DSType _type, bool _primitive, DS_ID _id) : type(_type), primitive(_primitive), id(_id) {}
 
   virtual ~DS() {}
-  virtual DS *clone() const = 0;
+  virtual DS *clone() const  = 0;
   virtual void debug() const = 0;
 
   virtual std::vector<std::unordered_set<const DS *>> get_internal() const {

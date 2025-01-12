@@ -9,14 +9,14 @@ std::optional<spec_impl_t> TBExpireFactory::speculate(const EP *ep, const Node *
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "tb_expire") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
+  addr_t tb_addr                     = expr_addr_to_obj_addr(tb_addr_expr);
 
   if (!ctx.can_impl_ds(tb_addr, DSImpl::x86_TokenBucket)) {
     return std::nullopt;
@@ -33,14 +33,14 @@ std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const Node *node
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "tb_expire") {
     return impls;
   }
 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
+  klee::ref<klee::Expr> time         = call.args.at("time").expr;
 
   addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
 
@@ -48,7 +48,7 @@ std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const Node *node
     return impls;
   }
 
-  Module *module = new TBExpire(node, tb_addr, time);
+  Module *module  = new TBExpire(node, tb_addr, time);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

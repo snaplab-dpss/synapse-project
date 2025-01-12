@@ -5,6 +5,7 @@
 
 namespace synapse {
 namespace tofino {
+
 namespace {
 code_t transpile_constant(klee::ref<klee::Expr> expr) {
   assert(is_constant(expr) && "Expected a constant expression");
@@ -16,7 +17,7 @@ code_t transpile_constant(klee::ref<klee::Expr> expr) {
 
   for (size_t byte = 0; byte < width; byte++) {
     klee::ref<klee::Expr> extract = solver_toolbox.exprBuilder->Extract(expr, (width - byte - 1) * 8, 8);
-    u64 byte_value = solver_toolbox.value_from_expr(extract);
+    u64 byte_value                = solver_toolbox.value_from_expr(extract);
 
     std::stringstream ss;
     ss << std::hex << std::setw(2) << std::setfill('0') << byte_value;
@@ -53,16 +54,27 @@ code_t Transpiler::transpile(klee::ref<klee::Expr> expr) {
   return code;
 }
 
-code_t Transpiler::type_from_size(bits_t size) const {
+code_t Transpiler::type_from_size(bits_t size) {
   coder_t coder;
   coder << "bit<" << size << ">";
   return coder.dump();
 }
 
-code_t Transpiler::type_from_expr(klee::ref<klee::Expr> expr) const {
+code_t Transpiler::type_from_expr(klee::ref<klee::Expr> expr) {
   klee::Expr::Width width = expr->getWidth();
   assert(width != klee::Expr::InvalidWidth && "Invalid width");
+
+  if (is_conditional(expr)) {
+    return "bool";
+  }
+
   return type_from_size(width);
+}
+
+code_t Transpiler::transpile_literal(u64 value, bits_t size) {
+  coder_t coder;
+  coder << size << "w" << value;
+  return coder.dump();
 }
 
 klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
@@ -70,9 +82,8 @@ klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
 
   coder_t &coder = coders.top();
 
-  EPSynthesizer::var_t var;
-  if (synthesizer->get_var(expr, var)) {
-    coder << var.name;
+  if (std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(expr)) {
+    coder << var->name;
     return klee::ExprVisitor::Action::skipChildren();
   }
 
@@ -95,11 +106,10 @@ klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &e) {
 
 klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
-  coder_t &coder = coders.top();
+  coder_t &coder             = coders.top();
 
-  EPSynthesizer::var_t var;
-  if (synthesizer->get_var(expr, var)) {
-    coder << var.name;
+  if (std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(expr)) {
+    coder << var->name;
     return klee::ExprVisitor::Action::skipChildren();
   }
 
@@ -112,11 +122,10 @@ klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
 
 klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
-  coder_t &coder = coders.top();
+  coder_t &coder             = coders.top();
 
-  EPSynthesizer::var_t var;
-  if (synthesizer->get_var(expr, var)) {
-    coder << var.name;
+  if (std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(expr)) {
+    coder << var->name;
     return klee::ExprVisitor::Action::skipChildren();
   }
 
@@ -243,28 +252,27 @@ klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  // Kind of a hack, but we need to handle the case where we have a comparison
-  // with booleans.
-  EPSynthesizer::var_t var;
-
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
   if (is_constant(lhs)) {
     const_expr = lhs;
-    var_expr = rhs;
+    var_expr   = rhs;
   } else {
     const_expr = rhs;
-    var_expr = lhs;
+    var_expr   = lhs;
   }
 
-  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) && var.is_bool) {
-    u64 value = solver_toolbox.value_from_expr(const_expr);
-    if (value == 0) {
-      coder << "!";
+  if (is_constant(const_expr)) {
+    std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(var_expr);
+    if (var && var->is_bool()) {
+      u64 value = solver_toolbox.value_from_expr(const_expr);
+      if (value == 0) {
+        coder << "!";
+      }
+      coder << var->name;
+      return klee::ExprVisitor::Action::skipChildren();
     }
-    coder << var.name;
-    return klee::ExprVisitor::Action::skipChildren();
   }
 
   coder << transpile(lhs);
@@ -280,28 +288,27 @@ klee::ExprVisitor::Action Transpiler::visitNe(const klee::NeExpr &e) {
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  // Kind of a hack, but we need to handle the case where we have a comparison
-  // with booleans.
-  EPSynthesizer::var_t var;
-
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
   if (is_constant(lhs)) {
     const_expr = lhs;
-    var_expr = rhs;
+    var_expr   = rhs;
   } else {
     const_expr = rhs;
-    var_expr = lhs;
+    var_expr   = lhs;
   }
 
-  if (is_constant(const_expr) && synthesizer->get_var(var_expr, var) && var.is_bool) {
-    u64 value = solver_toolbox.value_from_expr(const_expr);
-    if (value != 0) {
-      coder << "!";
+  if (is_constant(const_expr)) {
+    std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(var_expr);
+    if (var && var->is_bool()) {
+      u64 value = solver_toolbox.value_from_expr(const_expr);
+      if (value != 0) {
+        coder << "!";
+      }
+      coder << var->name;
+      return klee::ExprVisitor::Action::skipChildren();
     }
-    coder << var.name;
-    return klee::ExprVisitor::Action::skipChildren();
   }
 
   coder << transpile(lhs);

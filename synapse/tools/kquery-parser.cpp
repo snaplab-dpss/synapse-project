@@ -31,8 +31,8 @@ int main() {
 
   std::cerr << "Arrays:\n";
   for (const klee::Array *array : manager.get_arrays()) {
-    std::cerr << "->" << array->getName() << "[" << array->getSize() << "] : w" << array->getDomain() << " -> w" << array->getRange()
-              << " = ";
+    std::cerr << "->" << array->getName() << "[" << array->getSize() << "] : w" << array->getDomain() << " -> w"
+              << array->getRange() << " = ";
     if (array->isSymbolicArray()) {
       std::cerr << "symbolic\n";
     } else {

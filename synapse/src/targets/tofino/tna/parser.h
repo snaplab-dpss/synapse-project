@@ -98,7 +98,8 @@ struct ParserStateSelect : public ParserState {
   bool negate;
 
   ParserStateSelect(node_id_t _id, klee::ref<klee::Expr> _field, const std::vector<int> &_values, bool _negate)
-      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values), on_true(nullptr), on_false(nullptr), negate(_negate) {}
+      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values), on_true(nullptr), on_false(nullptr),
+        negate(_negate) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -136,8 +137,8 @@ struct ParserStateSelect : public ParserState {
 
   ParserState *clone() const {
     ParserStateSelect *clone = new ParserStateSelect(*this);
-    clone->on_true = on_true ? on_true->clone() : nullptr;
-    clone->on_false = on_false ? on_false->clone() : nullptr;
+    clone->on_true           = on_true ? on_true->clone() : nullptr;
+    clone->on_false          = on_false ? on_false->clone() : nullptr;
     return clone;
   }
 
@@ -178,7 +179,8 @@ struct ParserStateExtract : public ParserState {
   klee::ref<klee::Expr> hdr;
   ParserState *next;
 
-  ParserStateExtract(node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
+  ParserStateExtract(node_id_t _id, klee::ref<klee::Expr> _hdr)
+      : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -197,7 +199,7 @@ struct ParserStateExtract : public ParserState {
 
   ParserState *clone() const {
     ParserStateExtract *clone = new ParserStateExtract(*this);
-    clone->next = next ? next->clone() : nullptr;
+    clone->next               = next ? next->clone() : nullptr;
     return clone;
   }
 
@@ -367,7 +369,7 @@ private:
     assert(states.empty() && "Invalid parser");
     assert(!new_state->ids.empty() && "Invalid parser");
 
-    initial_state = new_state;
+    initial_state                   = new_state;
     states[*new_state->ids.begin()] = new_state;
   }
 
@@ -388,7 +390,7 @@ private:
     }
 
     ParserState *old_next_state = next_state;
-    next_state = new_state;
+    next_state                  = new_state;
 
     if (!old_next_state) {
       return;
@@ -407,7 +409,7 @@ private:
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(new_state);
       assert(!condition->on_true && "Invalid parser");
       assert(!condition->on_false && "Invalid parser");
-      condition->on_true = next_state;
+      condition->on_true  = next_state;
       condition->on_false = next_state;
     } break;
     case ParserStateType::TERMINATE: {

@@ -9,14 +9,14 @@ std::optional<spec_impl_t> DchainRejuvenateIndexFactory::speculate(const EP *ep,
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_rejuvenate_index") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
+  addr_t dchain_addr                     = expr_addr_to_obj_addr(dchain_addr_expr);
 
   if (!ctx.can_impl_ds(dchain_addr, DSImpl::Controller_DoubleChain)) {
     return std::nullopt;
@@ -25,7 +25,8 @@ std::optional<spec_impl_t> DchainRejuvenateIndexFactory::speculate(const EP *ep,
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep, const Node *node,
+                                                               SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -33,15 +34,15 @@ std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep, con
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_rejuvenate_index") {
     return impls;
   }
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> index = call.args.at("index").expr;
-  klee::ref<klee::Expr> time = call.args.at("time").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  klee::ref<klee::Expr> time             = call.args.at("time").expr;
 
   addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
@@ -49,7 +50,7 @@ std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep, con
     return impls;
   }
 
-  Module *module = new DchainRejuvenateIndex(node, dchain_addr, index, time);
+  Module *module  = new DchainRejuvenateIndex(node, dchain_addr, index, time);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

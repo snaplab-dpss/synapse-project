@@ -9,7 +9,7 @@ bool should_ignore(const EP *ep, const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name == "vector_return") {
     return call_node->is_vector_return_without_modifications();
@@ -19,7 +19,9 @@ bool should_ignore(const EP *ep, const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const { return std::nullopt; }
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+  return std::nullopt;
+}
 
 std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
@@ -28,7 +30,7 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const Node *node, 
     return impls;
   }
 
-  Module *module = new Ignore(node);
+  Module *module  = new Ignore(node);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

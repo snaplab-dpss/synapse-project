@@ -22,11 +22,11 @@ using synapse::SymbolManager;
 using synapse::try_reorder;
 
 void print(const BDD *bdd, const reorder_op_t &op) {
-  const anchor_info_t &anchor_info = op.anchor_info;
+  const anchor_info_t &anchor_info       = op.anchor_info;
   const candidate_info_t &candidate_info = op.candidate_info;
 
-  const Node *anchor = bdd->get_node_by_id(anchor_info.id);
-  const Node *evicted = bdd->get_node_by_id(op.evicted_id);
+  const Node *anchor    = bdd->get_node_by_id(anchor_info.id);
+  const Node *evicted   = bdd->get_node_by_id(op.evicted_id);
   const Node *candidate = bdd->get_node_by_id(candidate_info.id);
 
   assert(anchor && "Anchor node not found");
@@ -68,7 +68,7 @@ void list_candidates(const BDD *bdd, const anchor_info_t &anchor_info) {
 void apply_reordering_ops(const BDD *bdd, const std::vector<std::pair<anchor_info_t, node_id_t>> &ops) {
   for (const std::pair<anchor_info_t, node_id_t> &op : ops) {
     anchor_info_t anchor_info = op.first;
-    node_id_t candidate_id = op.second;
+    node_id_t candidate_id    = op.second;
 
     std::cerr << "-> Reordering op:";
     std::cerr << " anchor=" << anchor_info.id;
@@ -92,8 +92,8 @@ void apply_all_candidates(const BDD *bdd, node_id_t anchor_id) {
 
   std::vector<reordered_bdd_t> bdds = reorder(bdd, anchor_id);
 
-  auto end = std::chrono::steady_clock::now();
-  auto elapsed = end - start;
+  auto end             = std::chrono::steady_clock::now();
+  auto elapsed         = end - start;
   auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
   std::cerr << "Total: " << bdds.size() << "\n";
@@ -116,8 +116,8 @@ void estimate(const BDD *bdd) {
 
   double approximation = estimate_reorder(bdd);
 
-  auto end = std::chrono::steady_clock::now();
-  auto elapsed = end - start;
+  auto end             = std::chrono::steady_clock::now();
+  auto elapsed         = end - start;
   auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
   std::cerr << "Approximately " << approximation << " BDDs generated\n";

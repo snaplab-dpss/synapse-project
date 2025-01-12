@@ -12,7 +12,8 @@ private:
   int dst_device;
 
 public:
-  Route(node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, RouteOp _operation, int _dst_device)
+  Route(node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, RouteOp _operation,
+        int _dst_device)
       : Node(_id, NodeType::Route, _constraints, _symbol_manager), operation(_operation), dst_device(_dst_device) {}
 
   Route(node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, RouteOp _operation)

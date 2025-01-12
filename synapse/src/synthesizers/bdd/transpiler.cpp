@@ -5,8 +5,8 @@
 #include "../../util/simplifier.h"
 #include "../../system.h"
 
-#define TODO(expr)                                                                                                                         \
-  synthesizer->stack_dbg();                                                                                                                \
+#define TODO(expr)                                                                                                               \
+  synthesizer->stack_dbg();                                                                                                      \
   panic("TODO: %s\n", expr_to_string(expr).c_str());
 
 namespace synapse {
@@ -123,8 +123,8 @@ klee::ExprVisitor::Action BDDTranspiler::visitConcat(const klee::ConcatExpr &e) 
 klee::ExprVisitor::Action BDDTranspiler::visitExtract(const klee::ExtractExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
 
-  bits_t width = e.width;
-  bits_t offset = e.offset;
+  bits_t width              = e.width;
+  bits_t offset             = e.offset;
   klee::ref<klee::Expr> arg = e.expr;
 
   coder_t &coder = coders.top();
@@ -382,10 +382,10 @@ klee::ExprVisitor::Action BDDTranspiler::visitEq(const klee::EqExpr &e) {
 
   if (is_constant(lhs)) {
     const_expr = lhs;
-    var_expr = rhs;
+    var_expr   = rhs;
   } else {
     const_expr = rhs;
-    var_expr = lhs;
+    var_expr   = lhs;
   }
 
   coder << "(";
@@ -410,10 +410,10 @@ klee::ExprVisitor::Action BDDTranspiler::visitNe(const klee::NeExpr &e) {
 
   if (is_constant(lhs)) {
     const_expr = lhs;
-    var_expr = rhs;
+    var_expr   = rhs;
   } else {
     const_expr = rhs;
-    var_expr = lhs;
+    var_expr   = lhs;
   }
 
   coder << "(";

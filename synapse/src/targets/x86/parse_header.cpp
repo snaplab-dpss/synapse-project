@@ -9,7 +9,7 @@ bool bdd_node_match_pattern(const Node *node) {
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
     return false;
@@ -33,15 +33,15 @@ std::vector<impl_t> ParseHeaderFactory::process_node(const EP *ep, const Node *n
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> chunk = call.args.at("chunk").out;
+  klee::ref<klee::Expr> chunk     = call.args.at("chunk").out;
   klee::ref<klee::Expr> out_chunk = call.extra_vars.at("the_chunk").second;
-  klee::ref<klee::Expr> length = call.args.at("length").expr;
+  klee::ref<klee::Expr> length    = call.args.at("length").expr;
 
   addr_t chunk_addr = expr_addr_to_obj_addr(chunk);
 
-  Module *module = new ParseHeader(node, chunk_addr, out_chunk, length);
+  Module *module  = new ParseHeader(node, chunk_addr, out_chunk, length);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

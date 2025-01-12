@@ -13,9 +13,10 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRead(const Node *node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr, klee::ref<klee::Expr> _value)
-      : x86Module(ModuleType::x86_VectorRead, "VectorRead", node), vector_addr(_vector_addr), index(_index), value_addr(_value_addr),
-        value(_value) {}
+  VectorRead(const Node *node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
+             klee::ref<klee::Expr> _value)
+      : x86Module(ModuleType::x86_VectorRead, "VectorRead", node), vector_addr(_vector_addr), index(_index),
+        value_addr(_value_addr), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);

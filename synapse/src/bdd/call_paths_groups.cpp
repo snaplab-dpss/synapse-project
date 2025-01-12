@@ -160,7 +160,7 @@ bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> const
   }
 
   if (_on_false.data.size() && satisfies_not_constraint(_on_false.data, constraint)) {
-    on_true = _on_true;
+    on_true  = _on_true;
     on_false = _on_false;
     return true;
   }

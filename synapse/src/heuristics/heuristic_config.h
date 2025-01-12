@@ -7,7 +7,7 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/module_factory.h"
 
-#define BUILD_METRIC(cls, name, obj)                                                                                                       \
+#define BUILD_METRIC(cls, name, obj)                                                                                             \
   { std::bind(&cls::name, this, std::placeholders::_1), Metric::Objective::obj }
 
 namespace synapse {

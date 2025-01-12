@@ -10,7 +10,7 @@ void get_map_erase_data(const Call *call_node, addr_t &obj, std::vector<klee::re
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
-  obj = expr_addr_to_obj_addr(call.args.at("map").expr);
+  obj  = expr_addr_to_obj_addr(call.args.at("map").expr);
   keys = Table::build_keys(call.args.at("key").in);
 }
 } // namespace
@@ -21,14 +21,14 @@ std::optional<spec_impl_t> HHTableDeleteFactory::speculate(const EP *ep, const N
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return std::nullopt;
   }
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
@@ -45,7 +45,7 @@ std::vector<impl_t> HHTableDeleteFactory::process_node(const EP *ep, const Node 
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call = call_node->get_call();
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return impls;
@@ -59,7 +59,7 @@ std::vector<impl_t> HHTableDeleteFactory::process_node(const EP *ep, const Node 
     return impls;
   }
 
-  Module *module = new HHTableDelete(node, obj, keys);
+  Module *module  = new HHTableDelete(node, obj, keys);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
