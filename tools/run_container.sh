@@ -23,6 +23,7 @@ run() {
       --network host \
       --platform=$PLATFORM \
       -v $HOME/.ssh:/home/docker/.ssh:ro \
+      -v $HOME/.gitconfig:/home/docker/.gitconfig:ro \
       -v $ROOT_DIR:/home/docker/workspace \
       -e DISPLAY=$DISPLAY \
       -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket \
