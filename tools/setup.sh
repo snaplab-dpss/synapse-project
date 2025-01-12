@@ -241,6 +241,11 @@ source_install_llvm() {
 
 	add_multiline_var_to_paths_file "PATH" "$LLVM_RELEASE_DIR/bin:\$PATH"
 
+	# Get the latest config guess and sub files
+	wget -O $LLVM_DIR/config.guess https://git.savannah.gnu.org/cgit/config.git/plain/config.guess
+	chmod +x $LLVM_DIR/config.guess
+	build_target=$($LLVM_DIR/config.guess)
+
 	pushd "$LLVM_DIR"
 		CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" \
 		CC=cc \
@@ -249,7 +254,8 @@ source_install_llvm() {
 					--enable-optimized \
 					--disable-assertions \
 					--enable-targets=host \
-					--with-python=$(which python3)
+					--with-python=$(which python3) \
+					--build=$build_target
 		
 		make clean || true
 
@@ -405,12 +411,15 @@ package_install \
 	wget \
 	git \
 	wget \
+	autoconf \
+    automake \
+    libtool \
 	libgoogle-perftools-dev \
 	python3 \
 	python3-pip \
 	python3-venv \
+	python-is-python3 \
 	parallel \
-	gcc-multilib \
 	graphviz \
 	libpcap-dev \
 	libnuma-dev \
