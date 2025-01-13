@@ -16,15 +16,11 @@ std::optional<addr_t> get_obj_from_call(const Call *node_call) {
   if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
     obj = call.args.at("vector").expr;
     assert(!obj.isNull() && "Invalid vector object");
-  }
-
-  else if (call.function_name == "map_get" || call.function_name == "map_put") {
+  } else if (call.function_name == "map_get" || call.function_name == "map_put") {
     obj = call.args.at("map").expr;
     assert(!obj.isNull() && "Invalid map object");
-  }
-
-  else if (call.function_name == "dchain_allocate_new_index" || call.function_name == "dchain_is_index_allocated" ||
-           call.function_name == "dchain_rejuvenate_index") {
+  } else if (call.function_name == "dchain_allocate_new_index" || call.function_name == "dchain_is_index_allocated" ||
+             call.function_name == "dchain_rejuvenate_index") {
     obj = call.args.at("chain").expr;
     assert(!obj.isNull() && "Invalid dchain object");
   }

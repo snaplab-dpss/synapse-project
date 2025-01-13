@@ -220,7 +220,9 @@ bool Call::is_vector_borrow_value_ignored() const {
   return !used;
 }
 
-bool Call::is_vector_return_without_modifications() const { return call.function_name == "vector_return" && is_vector_read(); }
+bool Call::is_vector_return_without_modifications() const {
+  return call.function_name == "vector_return" && is_vector_read();
+}
 
 branch_direction_t Call::find_branch_checking_index_alloc() const {
   branch_direction_t index_alloc_check;
@@ -259,14 +261,14 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
   });
 
   if (index_alloc_check.branch) {
-    klee::ref<klee::Expr> success_condition =
-        solver_toolbox.exprBuilder->Eq(out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, out_of_space.expr->getWidth()));
+    klee::ref<klee::Expr> success_condition = solver_toolbox.exprBuilder->Eq(
+        out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, out_of_space.expr->getWidth()));
 
     if (!freed_flows_symbols.empty()) {
       klee::ref<klee::Expr> freed_flows = freed_flows_symbols.get().begin()->expr;
       success_condition                 = solver_toolbox.exprBuilder->Or(
-          success_condition,
-          solver_toolbox.exprBuilder->Ne(freed_flows, solver_toolbox.exprBuilder->Constant(0, freed_flows->getWidth())));
+          success_condition, solver_toolbox.exprBuilder->Ne(
+                                 freed_flows, solver_toolbox.exprBuilder->Constant(0, freed_flows->getWidth())));
     }
 
     assert(index_alloc_check.branch->get_on_true() && "No on_true");

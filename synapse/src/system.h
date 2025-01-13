@@ -6,6 +6,7 @@
 #include <iostream>
 #include <limits>
 #include <assert.h>
+#include <filesystem>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_BLACK "\033[30m"
@@ -19,12 +20,12 @@
 #define COLOR_WHITE ""
 #define COLOR_BOLD "\033[1m"
 
-#define panic(fmt, ...)                                                                                                          \
-  {                                                                                                                              \
-    fprintf(stderr, COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                                       \
-    fflush(stderr);                                                                                                              \
-    dbg_breakpoint();                                                                                                            \
-    exit(1);                                                                                                                     \
+#define panic(fmt, ...)                                                                                                \
+  {                                                                                                                    \
+    fprintf(stderr, COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                             \
+    fflush(stderr);                                                                                                    \
+    dbg_breakpoint();                                                                                                  \
+    exit(1);                                                                                                           \
   }
 
 namespace synapse {
@@ -41,5 +42,6 @@ std::string get_exec_path();
 std::string exec_cmd(const std::string &cmd);
 void backtrace();
 long get_file_size(const char *fname);
+std::filesystem::path create_random_file(const std::string &extension);
 
 } // namespace synapse

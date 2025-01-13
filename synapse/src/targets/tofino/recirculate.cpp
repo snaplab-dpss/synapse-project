@@ -15,8 +15,8 @@ EP *generate_new_ep(const EP *ep, const Node *node, const Symbols &symbols, int 
   }
 
   EP *new_ep = new EP(*ep);
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port,
-                                                                               get_node_egress(ep, ep->get_active_leaf().node));
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(
+      recirc_port, get_node_egress(ep, ep->get_active_leaf().node));
 
   Module *module  = new Recirculate(node, symbols, recirc_port);
   EPNode *ep_node = new EPNode(module);
@@ -60,7 +60,8 @@ std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const Nod
   return std::nullopt;
 }
 
-std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   const TofinoContext *tofino_ctx = get_tofino_ctx(ep);

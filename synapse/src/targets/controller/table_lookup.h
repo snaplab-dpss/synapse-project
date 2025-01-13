@@ -15,8 +15,8 @@ private:
 public:
   TableLookup(const Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
               const std::vector<klee::ref<klee::Expr>> &_values, const std::optional<symbol_t> &_found)
-      : ControllerModule(ModuleType::Controller_TableLookup, "TableLookup", node), obj(_obj), keys(_keys), values(_values),
-        found(_found) {}
+      : ControllerModule(ModuleType::Controller_TableLookup, "TableLookup", node), obj(_obj), keys(_keys),
+        values(_values), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -40,7 +40,8 @@ public:
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

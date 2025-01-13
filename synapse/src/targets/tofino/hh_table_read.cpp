@@ -85,7 +85,8 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -116,17 +117,17 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const Node *n
 
   hh_table_data_t table_data(ep, map_get);
 
-  HHTable *hh_table =
-      build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT);
+  HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries,
+                                              CMS_WIDTH, CMS_HEIGHT);
 
   if (!hh_table) {
     return impls;
   }
 
   symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
-  Module *module        = new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
-                                          table_data.map_has_this_key, min_estimate);
-  EPNode *ep_node       = new EPNode(module);
+  Module *module  = new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
+                                    table_data.map_has_this_key, min_estimate);
+  EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

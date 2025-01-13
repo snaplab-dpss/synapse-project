@@ -62,7 +62,8 @@ void Register::debug() const {
   std::cerr << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>> Register::partition_value(const TNAProperties &properties, klee::ref<klee::Expr> value) {
+std::vector<klee::ref<klee::Expr>> Register::partition_value(const TNAProperties &properties,
+                                                             klee::ref<klee::Expr> value) {
   std::vector<klee::ref<klee::Expr>> partitions;
 
   bits_t value_width     = value->getWidth();

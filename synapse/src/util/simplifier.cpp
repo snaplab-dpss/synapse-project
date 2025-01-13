@@ -374,7 +374,8 @@ typedef bool (*simplifier_op)(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> 
 
 typedef std::vector<simplifier_op> simplifiers_t;
 
-bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &simplified_expr) {
+bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr,
+                       klee::ref<klee::Expr> &simplified_expr) {
   simplified_expr = expr;
 
   for (auto op : simplifiers) {

@@ -84,24 +84,24 @@ klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &e) {
 
   if (std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(expr)) {
     coder << var->name;
-    return klee::ExprVisitor::Action::skipChildren();
+    return Action::skipChildren();
   }
 
   std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
   panic("TODO: visitRead");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
   panic("TODO: visitNotOptimized");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &e) {
   panic("TODO: visitSelect");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
@@ -110,14 +110,14 @@ klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
 
   if (std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(expr)) {
     coder << var->name;
-    return klee::ExprVisitor::Action::skipChildren();
+    return Action::skipChildren();
   }
 
   std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
   panic("TODO: visitConcat");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
@@ -126,22 +126,22 @@ klee::ExprVisitor::Action Transpiler::visitExtract(const klee::ExtractExpr &e) {
 
   if (std::optional<EPSynthesizer::var_t> var = synthesizer->ingress_vars.get(expr)) {
     coder << var->name;
-    return klee::ExprVisitor::Action::skipChildren();
+    return Action::skipChildren();
   }
 
   synthesizer->dbg_vars();
   panic("TODO: visitExtract");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitZExt(const klee::ZExtExpr &e) {
   panic("TODO: visitZExt");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSExt(const klee::SExtExpr &e) {
   panic("TODO: visitSExt");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitAdd(const klee::AddExpr &e) {
@@ -154,7 +154,7 @@ klee::ExprVisitor::Action Transpiler::visitAdd(const klee::AddExpr &e) {
   coder << " + ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSub(const klee::SubExpr &e) {
@@ -167,37 +167,37 @@ klee::ExprVisitor::Action Transpiler::visitSub(const klee::SubExpr &e) {
   coder << " - ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitMul(const klee::MulExpr &e) {
   panic("TODO: visitMul");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUDiv(const klee::UDivExpr &e) {
   panic("TODO: visitUDiv");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSDiv(const klee::SDivExpr &e) {
   panic("TODO: visitSDiv");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitURem(const klee::URemExpr &e) {
   panic("TODO: visitURem");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSRem(const klee::SRemExpr &e) {
   panic("TODO: visitSRem");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNot(const klee::NotExpr &e) {
   panic("TODO: visitNot");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitAnd(const klee::AndExpr &e) {
@@ -210,7 +210,7 @@ klee::ExprVisitor::Action Transpiler::visitAnd(const klee::AndExpr &e) {
   coder << " & ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitOr(const klee::OrExpr &e) {
@@ -223,27 +223,27 @@ klee::ExprVisitor::Action Transpiler::visitOr(const klee::OrExpr &e) {
   coder << " | ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitXor(const klee::XorExpr &e) {
   panic("TODO: visitXor");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitShl(const klee::ShlExpr &e) {
   panic("TODO: visitShl");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitLShr(const klee::LShrExpr &e) {
   panic("TODO: visitLShr");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitAShr(const klee::AShrExpr &e) {
   panic("TODO: visitAShr");
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
@@ -271,7 +271,7 @@ klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
         coder << "!";
       }
       coder << var->name;
-      return klee::ExprVisitor::Action::skipChildren();
+      return Action::skipChildren();
     }
   }
 
@@ -279,7 +279,7 @@ klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
   coder << " == ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitNe(const klee::NeExpr &e) {
@@ -307,7 +307,7 @@ klee::ExprVisitor::Action Transpiler::visitNe(const klee::NeExpr &e) {
         coder << "!";
       }
       coder << var->name;
-      return klee::ExprVisitor::Action::skipChildren();
+      return Action::skipChildren();
     }
   }
 
@@ -315,7 +315,7 @@ klee::ExprVisitor::Action Transpiler::visitNe(const klee::NeExpr &e) {
   coder << " != ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUlt(const klee::UltExpr &e) {
@@ -328,7 +328,7 @@ klee::ExprVisitor::Action Transpiler::visitUlt(const klee::UltExpr &e) {
   coder << " < ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUle(const klee::UleExpr &e) {
@@ -341,7 +341,7 @@ klee::ExprVisitor::Action Transpiler::visitUle(const klee::UleExpr &e) {
   coder << " <= ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUgt(const klee::UgtExpr &e) {
@@ -354,7 +354,7 @@ klee::ExprVisitor::Action Transpiler::visitUgt(const klee::UgtExpr &e) {
   coder << " > ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitUge(const klee::UgeExpr &e) {
@@ -367,7 +367,7 @@ klee::ExprVisitor::Action Transpiler::visitUge(const klee::UgeExpr &e) {
   coder << " >= ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSlt(const klee::SltExpr &e) {
@@ -380,7 +380,7 @@ klee::ExprVisitor::Action Transpiler::visitSlt(const klee::SltExpr &e) {
   coder << " < ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSle(const klee::SleExpr &e) {
@@ -393,7 +393,7 @@ klee::ExprVisitor::Action Transpiler::visitSle(const klee::SleExpr &e) {
   coder << " <= ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSgt(const klee::SgtExpr &e) {
@@ -406,7 +406,7 @@ klee::ExprVisitor::Action Transpiler::visitSgt(const klee::SgtExpr &e) {
   coder << " > ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action Transpiler::visitSge(const klee::SgeExpr &e) {
@@ -419,7 +419,7 @@ klee::ExprVisitor::Action Transpiler::visitSge(const klee::SgeExpr &e) {
   coder << " >= ";
   coder << transpile(rhs);
 
-  return klee::ExprVisitor::Action::skipChildren();
+  return Action::skipChildren();
 }
 
 } // namespace tofino

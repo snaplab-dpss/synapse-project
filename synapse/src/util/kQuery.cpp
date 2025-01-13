@@ -41,7 +41,7 @@ public:
     }
   }
 
-  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) override final {
+  Action visitRead(const klee::ReadExpr &e) override final {
     klee::UpdateList updates = e.updates;
     assert(updates.getSize() == 0 && "TODO: handle updates");
 

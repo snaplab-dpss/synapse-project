@@ -148,4 +148,13 @@ long get_file_size(const char *fname) {
 
   return res;
 }
+
+std::filesystem::path create_random_file(const std::string &extension) {
+  char filename[] = "/tmp/XXXXXX";
+  int fd          = mkstemp(filename);
+  assert(fd != -1 && "Failed to create temporary file");
+  const std::string fpath = std::string(filename) + extension;
+  return fpath;
+}
+
 } // namespace synapse

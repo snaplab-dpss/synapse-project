@@ -161,7 +161,8 @@ ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fracti
     : constraint(_constraint), fraction(_fraction), on_true(nullptr), on_false(nullptr), prev(nullptr) {}
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction, node_id_t _node_id)
-    : constraint(_constraint), fraction(_fraction), bdd_node_id(_node_id), on_true(nullptr), on_false(nullptr), prev(nullptr) {}
+    : constraint(_constraint), fraction(_fraction), bdd_node_id(_node_id), on_true(nullptr), on_false(nullptr),
+      prev(nullptr) {}
 
 ProfilerNode::~ProfilerNode() {
   if (on_true) {
@@ -256,8 +257,8 @@ FlowStats ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
 }
 
 Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
-    : bdd_profile(new bdd_profile_t(_bdd_profile)), root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts),
-      cache() {
+    : bdd_profile(new bdd_profile_t(_bdd_profile)), root(nullptr),
+      avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const Node *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
@@ -278,8 +279,9 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
       const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call    = call_node->get_call();
 
-      assert((call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase") &&
-             "Invalid call");
+      assert(
+          (call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase") &&
+          "Invalid call");
 
       assert(call.args.find("key") != call.args.end() && "Key not found");
       klee::ref<klee::Expr> flow_id = call.args.at("key").in;
@@ -298,7 +300,8 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile)
 
 Profiler::Profiler(const BDD *bdd) : Profiler(bdd, build_random_bdd_profile(bdd)) {}
 
-Profiler::Profiler(const BDD *bdd, const std::string &bdd_profile_fname) : Profiler(bdd, parse_bdd_profile(bdd_profile_fname)) {}
+Profiler::Profiler(const BDD *bdd, const std::string &bdd_profile_fname)
+    : Profiler(bdd, parse_bdd_profile(bdd_profile_fname)) {}
 
 Profiler::Profiler(const Profiler &other)
     : bdd_profile(other.bdd_profile), root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}

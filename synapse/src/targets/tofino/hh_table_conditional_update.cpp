@@ -50,8 +50,8 @@ klee::ref<klee::Expr> build_min_estimate_check_cond(const EP *ep, const symbol_t
   assert(ds->type == DSType::HH_TABLE && "Not a heavy hitter table");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);
 
-  u32 topk                             = hh_table->num_entries;
-  u64 threshold                        = ep->get_ctx().get_profiler().get_bdd_profile()->threshold_top_k_flows(map, topk);
+  u32 topk      = hh_table->num_entries;
+  u64 threshold = ep->get_ctx().get_profiler().get_bdd_profile()->threshold_top_k_flows(map, topk);
   klee::ref<klee::Expr> threshold_expr = solver_toolbox.exprBuilder->Constant(threshold, 32);
   klee::ref<klee::Expr> condition      = solver_toolbox.exprBuilder->Ugt(min_estimate.expr, threshold_expr);
   return condition;
@@ -80,9 +80,9 @@ const Call *get_future_map_put(const Node *node, addr_t map) {
   return nullptr;
 }
 
-std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index, const map_coalescing_objs_t &map_objs,
-                                 klee::ref<klee::Expr> key, klee::ref<klee::Expr> min_estimate_cond,
-                                 Branch *&min_estimate_cond_branch) {
+std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_index,
+                                 const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
+                                 klee::ref<klee::Expr> min_estimate_cond, Branch *&min_estimate_cond_branch) {
   const BDD *old_bdd       = ep->get_bdd();
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -133,7 +133,8 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Node *dchain_allocate_new_i
 
 using ctrl::HHTableUpdate;
 
-std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
+                                                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -246,8 +247,8 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   impls.push_back(implement(ep, node, new_ep));
 
   Branch *min_estimate_cond_branch;
-  std::unique_ptr<BDD> new_bdd =
-      rebuild_bdd(new_ep, dchain_allocate_new_index, map_objs, table_data.key, min_estimate_cond, min_estimate_cond_branch);
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep, dchain_allocate_new_index, map_objs, table_data.key,
+                                             min_estimate_cond, min_estimate_cond_branch);
 
   Module *if_module                 = new If(min_estimate_cond_branch, min_estimate_cond, {min_estimate_cond});
   Module *then_module               = new Then(min_estimate_cond_branch);
@@ -300,7 +301,8 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(get_node_egress(new_ep, send_to_controller_node));
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(
+      get_node_egress(new_ep, send_to_controller_node));
 
   return impls;
 }

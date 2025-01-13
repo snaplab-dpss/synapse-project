@@ -62,7 +62,8 @@ protected:
   std::string name;
 
 public:
-  ModuleFactory(ModuleType _type, TargetType _target, const std::string &_name) : type(_type), target(_target), name(_name) {}
+  ModuleFactory(ModuleType _type, TargetType _target, const std::string &_name)
+      : type(_type), target(_target), name(_name) {}
 
   virtual ~ModuleFactory() {}
 

@@ -83,7 +83,8 @@ std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   return os;
 }
 
-SimplePlacer::SimplePlacer(const TNAProperties *_properties) : properties(_properties), stages(create_stages(_properties)) {}
+SimplePlacer::SimplePlacer(const TNAProperties *_properties)
+    : properties(_properties), stages(create_stages(_properties)) {}
 
 SimplePlacer::SimplePlacer(const SimplePlacer &other) : properties(other.properties), stages(other.stages) {
   for (const PlacementRequest &req : other.placement_requests) {

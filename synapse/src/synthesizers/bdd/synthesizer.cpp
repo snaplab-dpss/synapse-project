@@ -3,8 +3,8 @@
 #include "../../util/solver.h"
 #include "../../system.h"
 
-#define POPULATE_SYNTHESIZER(FNAME)                                                                                              \
-  { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
+#define POPULATE_SYNTHESIZER(FNAME)                                                                                    \
+  {#FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2)}
 
 namespace synapse {
 namespace {
@@ -1285,7 +1285,8 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::r
   return build_var(name, expr, nullptr);
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr) {
+BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr,
+                                                klee::ref<klee::Expr> addr) {
   if (reserved_var_names.find(name) == reserved_var_names.end()) {
     reserved_var_names[name] = 1;
     return var_t(name, expr, addr);

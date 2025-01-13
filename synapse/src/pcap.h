@@ -26,7 +26,8 @@ struct flow_t {
 
   flow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
 
-  flow_t(const flow_t &flow) : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
+  flow_t(const flow_t &flow)
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
 
   flow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
       : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
@@ -41,8 +42,8 @@ struct flow_t {
 
   struct flow_hash_t {
     std::size_t operator()(const flow_t &flow) const {
-      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^ std::hash<in_port_t>()(flow.src_port) ^
-             std::hash<in_port_t>()(flow.dst_port);
+      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
+             std::hash<in_port_t>()(flow.src_port) ^ std::hash<in_port_t>()(flow.dst_port);
     }
   };
 };
@@ -56,22 +57,26 @@ struct sflow_t {
 
   sflow_t() : src_ip(0), dst_ip(0), src_port(0), dst_port(0) {}
 
-  sflow_t(const flow_t &flow) : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
+  sflow_t(const flow_t &flow)
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
 
-  sflow_t(const sflow_t &flow) : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
+  sflow_t(const sflow_t &flow)
+      : src_ip(flow.src_ip), dst_ip(flow.dst_ip), src_port(flow.src_port), dst_port(flow.dst_port) {}
 
   sflow_t(in_addr_t _src_ip, in_addr_t _dst_ip, in_port_t _src_port, in_port_t _dst_port)
       : src_ip(_src_ip), dst_ip(_dst_ip), src_port(_src_port), dst_port(_dst_port) {}
 
   bool operator==(const sflow_t &other) const {
-    return (src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port && dst_port == other.dst_port) ||
-           (src_ip == other.dst_ip && dst_ip == other.src_ip && src_port == other.dst_port && dst_port == other.src_port);
+    return (src_ip == other.src_ip && dst_ip == other.dst_ip && src_port == other.src_port &&
+            dst_port == other.dst_port) ||
+           (src_ip == other.dst_ip && dst_ip == other.src_ip && src_port == other.dst_port &&
+            dst_port == other.src_port);
   }
 
   struct flow_hash_t {
     std::size_t operator()(const sflow_t &flow) const {
-      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^ std::hash<in_port_t>()(flow.src_port) ^
-             std::hash<in_port_t>()(flow.dst_port);
+      return std::hash<in_addr_t>()(flow.src_ip) ^ std::hash<in_addr_t>()(flow.dst_ip) ^
+             std::hash<in_port_t>()(flow.src_port) ^ std::hash<in_port_t>()(flow.dst_port);
     }
   };
 };
@@ -117,7 +122,8 @@ inline std::string fmt_time_hh(time_ns_t ns) {
   std::time_t time = std::chrono::system_clock::to_time_t(time_point);
   std::tm utc_tm   = *std::gmtime(&time);
 
-  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6) << std::setfill('0') << microseconds << " UTC";
+  ss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << "." << std::setw(6) << std::setfill('0') << microseconds
+     << " UTC";
 
   return ss.str();
 }
@@ -132,10 +138,12 @@ inline std::string fmt_time_duration_hh(time_ns_t start, time_ns_t end) {
   time_us_t end_microseconds = (end % BILLION) / THOUSAND;
 
   std::chrono::system_clock::time_point start_time =
-      std::chrono::system_clock::time_point(std::chrono::seconds(start_seconds)) + std::chrono::microseconds(start_microseconds);
+      std::chrono::system_clock::time_point(std::chrono::seconds(start_seconds)) +
+      std::chrono::microseconds(start_microseconds);
 
   std::chrono::system_clock::time_point end_time =
-      std::chrono::system_clock::time_point(std::chrono::seconds(end_seconds)) + std::chrono::microseconds(end_microseconds);
+      std::chrono::system_clock::time_point(std::chrono::seconds(end_seconds)) +
+      std::chrono::microseconds(end_microseconds);
 
   auto duration = end_time - start_time;
 
@@ -356,8 +364,8 @@ public:
   time_ns_t get_start() const { return start; }
   time_ns_t get_end() const { return end; }
 
-  bool read(const u_char *&pkt, u16 &hdrs_len, u16 &total_len, time_ns_t &ts, std::optional<flow_t> &flow) {
-    const u_char *data;
+  bool read(const u8 *&pkt, u16 &hdrs_len, u16 &total_len, time_ns_t &ts, std::optional<flow_t> &flow) {
+    const u8 *data;
     struct pcap_pkthdr *header;
 
     if (pcap_next_ex(pd, &header, &data) != 1) {
@@ -381,7 +389,7 @@ public:
       if (ether_type == ETHERTYPE_VLAN) {
         // The VLAN header starts at the Ethernet ethertype field,
         // so we need to rollback.
-        data = reinterpret_cast<const u_char *>(&ether_hdr->ether_type);
+        data = reinterpret_cast<const u8 *>(&ether_hdr->ether_type);
 
         // Ignore the VLAN header and advance the data pointer.
         data += sizeof(vlan_hdr_t);
@@ -448,7 +456,7 @@ private:
   void run_preamble() {
     total_pkts = 0;
 
-    const u_char *pkt;
+    const u8 *pkt;
     u16 hdrs_len;
     u16 sz;
     time_ns_t ts;
@@ -498,11 +506,11 @@ public:
 
   const std::string &get_output_fname() const { return output_fname; }
 
-  void write(const u_char *pkt, u16 hdrs_len, u16 total_len, time_ns_t ts) {
+  void write(const u8 *pkt, u16 hdrs_len, u16 total_len, time_ns_t ts) {
     time_s_t sec   = ts / 1'000'000'000;
     time_us_t usec = (ts % 1'000'000'000) / 1'000;
     pcap_pkthdr pcap_hdr{{sec, usec}, hdrs_len, total_len};
-    pcap_dump((u_char *)pdumper, &pcap_hdr, pkt);
+    pcap_dump((u8 *)pdumper, &pcap_hdr, pkt);
   }
 
   ~PcapWriter() {

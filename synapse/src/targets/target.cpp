@@ -6,7 +6,8 @@
 #include "targets.h"
 
 namespace synapse {
-TargetView::TargetView(TargetType _type, std::vector<const ModuleFactory *> _module_factories, const TargetContext *_base_ctx)
+TargetView::TargetView(TargetType _type, std::vector<const ModuleFactory *> _module_factories,
+                       const TargetContext *_base_ctx)
     : type(_type), module_factories(_module_factories), base_ctx(_base_ctx) {}
 
 Target::Target(TargetType _type, std::vector<std::unique_ptr<ModuleFactory>> _module_factories,

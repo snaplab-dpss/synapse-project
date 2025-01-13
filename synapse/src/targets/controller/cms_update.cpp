@@ -25,7 +25,8 @@ std::optional<spec_impl_t> CMSUpdateFactory::speculate(const EP *ep, const Node 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                   SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

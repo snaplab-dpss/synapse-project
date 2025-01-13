@@ -85,7 +85,8 @@ std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
 } // namespace
 
 Context::Context(const BDD *bdd, const TargetsView &targets, const toml::table &config, const Profiler &_profiler)
-    : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
+    : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()),
+      expiration_data(build_expiration_data(bdd)) {
   for (const TargetView &target : targets.elements) {
     target_ctxs[target.type] = target.base_ctx->clone();
   }
@@ -164,12 +165,12 @@ Context::Context(const Context &other)
 }
 
 Context::Context(Context &&other)
-    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
-      vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)),
-      cms_configs(std::move(other.cms_configs)), cht_configs(std::move(other.cht_configs)),
-      tb_configs(std::move(other.tb_configs)), coalescing_candidates(std::move(other.coalescing_candidates)),
-      expiration_data(std::move(other.expiration_data)), ds_impls(std::move(other.ds_impls)),
-      target_ctxs(std::move(other.target_ctxs)) {}
+    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)),
+      map_configs(std::move(other.map_configs)), vector_configs(std::move(other.vector_configs)),
+      dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
+      cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
+      coalescing_candidates(std::move(other.coalescing_candidates)), expiration_data(std::move(other.expiration_data)),
+      ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {

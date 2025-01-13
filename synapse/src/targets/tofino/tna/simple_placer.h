@@ -77,7 +77,8 @@ private:
   void concretize_placement(Stage &stage, const placement_t &placement);
 
   void save_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps);
-  void replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps, const std::vector<Stage> &new_stages);
+  void replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps,
+                                 const std::vector<Stage> &new_stages);
 };
 
 } // namespace tofino

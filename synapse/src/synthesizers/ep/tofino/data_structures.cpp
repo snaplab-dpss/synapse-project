@@ -3,7 +3,8 @@
 namespace synapse {
 namespace tofino {
 
-code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const {
+code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Register *reg,
+                                                 RegisterActionType action) const {
   coder_t coder;
   coder << reg->id;
   coder << "_";
@@ -23,7 +24,8 @@ code_t EPSynthesizer::build_register_action_name(const EPNode *node, const Regis
   return coder.dump();
 }
 
-void EPSynthesizer::transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
+void EPSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
+                                         const std::vector<klee::ref<klee::Expr>> &keys,
                                          const std::vector<klee::ref<klee::Expr>> &values) {
   std::vector<var_t> keys_vars;
   std::vector<var_t> params_vars;
@@ -249,7 +251,8 @@ void EPSynthesizer::transpile_register_write_action_decl(coder_t &coder, const R
 }
 
 void EPSynthesizer::transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
-                                                     const klee::ref<klee::Expr> key, const klee::ref<klee::Expr> value) {
+                                                     const klee::ref<klee::Expr> key,
+                                                     const klee::ref<klee::Expr> value) {
   // for (const Table &table : fcfs_cached_table->tables) {
   // }
   panic("TODO: transpile_fcfs_cached_table_decl");

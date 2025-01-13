@@ -233,7 +233,8 @@ Node *Node::get_mutable_node_by_id(node_id_t node_id) {
   return target;
 }
 
-void Node::recursive_translate_symbol(SymbolManager *symbol_manager, const symbol_t &old_symbol, const symbol_t &new_symbol) {
+void Node::recursive_translate_symbol(SymbolManager *symbol_manager, const symbol_t &old_symbol,
+                                      const symbol_t &new_symbol) {
   visit_mutable_nodes([symbol_manager, old_symbol, new_symbol](Node *node) -> NodeVisitAction {
     if (node->get_type() != NodeType::Call)
       return NodeVisitAction::Continue;
@@ -264,7 +265,8 @@ void Node::recursive_add_constraint(klee::ref<klee::Expr> constraint) {
 
 void Node::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
-void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> fn, std::unique_ptr<cookie_t> cookie) const {
+void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> fn,
+                       std::unique_ptr<cookie_t> cookie) const {
   std::vector<std::pair<const Node *, std::unique_ptr<cookie_t>>> nodes;
   nodes.push_back({this, std::move(cookie)});
 
@@ -320,7 +322,8 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *)> fn) const {
   visit_nodes([fn](const Node *node, void *) { return fn(node); }, nullptr);
 }
 
-void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn, std::unique_ptr<cookie_t> cookie) {
+void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn,
+                               std::unique_ptr<cookie_t> cookie) {
   std::vector<std::pair<Node *, std::unique_ptr<cookie_t>>> nodes;
   nodes.push_back({this, std::move(cookie)});
 
@@ -440,7 +443,8 @@ Symbols Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
   return symbols;
 }
 
-std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string> &wanted, const node_ids_t &stop_nodes) const {
+std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string> &wanted,
+                                                   const node_ids_t &stop_nodes) const {
   std::vector<const Call *> prev_functions;
 
   const Node *node = this;
@@ -464,7 +468,8 @@ std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string
   return prev_functions;
 }
 
-std::vector<const Call *> Node::get_future_functions(const std::vector<std::string> &wanted, bool stop_on_branches) const {
+std::vector<const Call *> Node::get_future_functions(const std::vector<std::string> &wanted,
+                                                     bool stop_on_branches) const {
   std::vector<const Call *> functions;
 
   visit_nodes([&functions, &wanted](const Node *node) {

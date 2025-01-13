@@ -17,7 +17,7 @@ private:
 public:
   ArrayChecker(const SymbolManager *manager) : names(manager->get_names()), found_unknown_array(false) {}
 
-  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) override final {
+  Action visitRead(const klee::ReadExpr &e) override final {
     klee::UpdateList updates = e.updates;
     const klee::Array *array = updates.root;
 
@@ -61,7 +61,7 @@ public:
     return renamed_constraints;
   }
 
-  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
+  Action visitRead(const klee::ReadExpr &e) {
     klee::UpdateList ul       = e.updates;
     const klee::Array *root   = ul.root;
     auto found_translation_it = translations.find(root->name);
@@ -128,7 +128,9 @@ Symbols SymbolManager::get_symbols() const {
   return result;
 }
 
-Symbols SymbolManager::get_symbols_with_base(const std::string &base) const { return get_symbols().filter_by_base(base); }
+Symbols SymbolManager::get_symbols_with_base(const std::string &base) const {
+  return get_symbols().filter_by_base(base);
+}
 
 symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
   assert(!name.empty() && "Empty name");

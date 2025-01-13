@@ -10,20 +10,22 @@
 #include "../execution_plan/execution_plan.h"
 #include "../targets/tofino/tofino.h"
 
-#define SHOW_MODULE_NAME(M)                                                                                                      \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                           \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                              \
-    return EPVisitor::Action::doChildren;                                                                                        \
+#define SHOW_MODULE_NAME(M)                                                                                            \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                 \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                    \
+    return EPVisitor::Action::doChildren;                                                                              \
   }
 
-#define VISIT_BRANCH(M)                                                                                                          \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                           \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                     \
-    return EPVisitor::Action::doChildren;                                                                                        \
+#define VISIT_BRANCH(M)                                                                                                \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                 \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                           \
+    return EPVisitor::Action::doChildren;                                                                              \
   }
 
-#define IGNORE_MODULE(M)                                                                                                         \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) { return EPVisitor::Action::doChildren; }
+#define IGNORE_MODULE(M)                                                                                               \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                 \
+    return EPVisitor::Action::doChildren;                                                                              \
+  }
 
 namespace synapse {
 

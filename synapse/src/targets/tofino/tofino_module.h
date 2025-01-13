@@ -9,7 +9,8 @@ namespace tofino {
 
 class TofinoModule : public Module {
 public:
-  TofinoModule(ModuleType _type, const std::string &_name, const Node *node) : Module(_type, TargetType::Tofino, _name, node) {}
+  TofinoModule(ModuleType _type, const std::string &_name, const Node *node)
+      : Module(_type, TargetType::Tofino, _name, node) {}
 
   TofinoModule(ModuleType _type, TargetType _next_type, const std::string &_name, const Node *node)
       : Module(_type, TargetType::Tofino, _next_type, _name, node) {}
@@ -49,6 +50,7 @@ public:
   static TNA &get_mutable_tna(EP *ep);
 
   static Symbols get_dataplane_state(const EP *ep, const Node *node);
+  static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
 
   // ======================================================================
   //  Simple Tables
@@ -70,8 +72,9 @@ public:
   // ======================================================================
 
   static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj);
-  static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                           u32 num_entries, u32 cache_capacity);
+  static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj,
+                                                           klee::ref<klee::Expr> key, u32 num_entries,
+                                                           u32 cache_capacity);
   static bool can_get_or_build_fcfs_cached_table(const EP *ep, const Node *node, addr_t obj, klee::ref<klee::Expr> key,
                                                  u32 num_entries, u32 cache_capacity);
   static std::vector<u32> enum_fcfs_cache_cap(u32 num_entries);
@@ -83,19 +86,20 @@ public:
   // ======================================================================
 
   static bool can_build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
-                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width,
-                                          u32 cms_height);
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries,
+                                          u32 cms_width, u32 cms_height);
   static HHTable *build_or_reuse_hh_table(const EP *ep, const Node *node, addr_t obj,
-                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width,
-                                          u32 cms_height);
-  static hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const Node *node, klee::ref<klee::Expr> key, u32 capacity);
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries,
+                                          u32 cms_width, u32 cms_height);
+  static hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const Node *node, klee::ref<klee::Expr> key,
+                                                  u32 capacity);
 
   // ======================================================================
   //  Count Min Sketch
   // ======================================================================
 
-  static bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
-                                     u32 width, u32 height);
+  static bool can_build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
+                                     const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height);
   static CountMinSketch *build_or_reuse_cms(const EP *ep, const Node *node, addr_t obj,
                                             const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height);
 };

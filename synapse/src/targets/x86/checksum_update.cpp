@@ -25,7 +25,8 @@ std::optional<spec_impl_t> ChecksumUpdateFactory::speculate(const EP *ep, const 
   return std::nullopt;
 }
 
-std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                        SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

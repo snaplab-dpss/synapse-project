@@ -2,5 +2,5 @@
 BasedOnStyle: LLVM
 Standard: Cpp11
 SortIncludes: false
-ColumnLimit: 130
+ColumnLimit: 120
 AlignConsecutiveAssignments: true

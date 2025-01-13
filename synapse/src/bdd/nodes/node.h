@@ -40,7 +40,8 @@ protected:
 
 public:
   Node(node_id_t _id, NodeType _type, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager)
-      : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints), symbol_manager(_symbol_manager) {}
+      : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints), symbol_manager(_symbol_manager) {
+  }
 
   Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints,
        SymbolManager *_symbol_manager)
@@ -73,7 +74,8 @@ public:
   void visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn, std::unique_ptr<cookie_t> cookie);
 
   void recursive_update_ids(node_id_t &new_id);
-  void recursive_translate_symbol(SymbolManager *symbol_manager, const symbol_t &old_symbol, const symbol_t &new_symbol);
+  void recursive_translate_symbol(SymbolManager *symbol_manager, const symbol_t &old_symbol,
+                                  const symbol_t &new_symbol);
   void recursive_add_constraint(klee::ref<klee::Expr> constraint);
   void recursive_free_children(NodeManager &manager);
   std::string recursive_dump(int lvl = 0) const;
@@ -86,7 +88,8 @@ public:
   Symbols get_prev_symbols(const node_ids_t &stop_nodes = node_ids_t()) const;
   std::vector<const Call *> get_prev_functions(const std::vector<std::string> &functions_names,
                                                const node_ids_t &stop_nodes = node_ids_t()) const;
-  std::vector<const Call *> get_future_functions(const std::vector<std::string> &functions, bool stop_on_branches = false) const;
+  std::vector<const Call *> get_future_functions(const std::vector<std::string> &functions,
+                                                 bool stop_on_branches = false) const;
   bool is_packet_drop_code_path() const;
 
   virtual std::vector<node_id_t> get_leaves() const;

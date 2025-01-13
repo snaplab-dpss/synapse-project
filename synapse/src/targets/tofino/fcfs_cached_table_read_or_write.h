@@ -28,8 +28,8 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableReadOrWrite(node, cached_table_id, obj, key, read_value, write_value, map_has_this_key,
-                                                    cache_write_failed);
+    Module *cloned = new FCFSCachedTableReadOrWrite(node, cached_table_id, obj, key, read_value, write_value,
+                                                    map_has_this_key, cache_write_failed);
     return cloned;
   }
 
@@ -52,7 +52,8 @@ public:
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

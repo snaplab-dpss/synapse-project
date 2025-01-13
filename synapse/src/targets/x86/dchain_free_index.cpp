@@ -37,7 +37,8 @@ std::optional<spec_impl_t> DchainFreeIndexFactory::speculate(const EP *ep, const
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep, const Node *node,
+                                                         SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

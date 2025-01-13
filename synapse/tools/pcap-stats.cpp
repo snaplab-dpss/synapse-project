@@ -210,7 +210,8 @@ void print_report(const report_t &report) {
   printf("Total symmetric flows:    %s\n", fmt(report.total_symm_flows).c_str());
   printf("Concurrent flows/epoch:   %s ± %s\n", fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
          fmt(report.concurrent_flows_per_epoch.get_stdev()).c_str());
-  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(), report.pkts_per_flow_cdf.get_stdev());
+  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(),
+         report.pkts_per_flow_cdf.get_stdev());
   printf("Pkts/flow CDF:\n");
   for (const auto &[pkts, prob] : report.pkts_per_flow_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", pkts, prob);
@@ -273,7 +274,7 @@ int main(int argc, char *argv[]) {
   u64 pkt_count = 0;
   int progress  = -1;
 
-  const u_char *pkt;
+  const u8 *pkt;
   u16 hdrs_len;
   u16 sz;
   time_ns_t ts;

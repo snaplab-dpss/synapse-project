@@ -134,7 +134,8 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Nod
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {
@@ -163,7 +164,8 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const Node *n
     return impls;
   }
 
-  Module *module  = new TableLookup(node, table->id, table_data->obj, table_data->keys, table_data->values, table_data->hit);
+  Module *module =
+      new TableLookup(node, table->id, table_data->obj, table_data->keys, table_data->values, table_data->hit);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

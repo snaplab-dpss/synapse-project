@@ -37,8 +37,8 @@ std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 
 
 CountMinSketch::CountMinSketch(const TNAProperties &properties, DS_ID _id, const std::vector<bits_t> &_keys, u32 _width,
                                u32 _height)
-    : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height), hashes(build_hashes(_id, _height, _keys)),
-      rows(build_rows(properties, _id, _width, _height)) {}
+    : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height),
+      hashes(build_hashes(_id, _height, _keys)), rows(build_rows(properties, _id, _width, _height)) {}
 
 CountMinSketch::CountMinSketch(const CountMinSketch &other)
     : DS(other.type, other.primitive, other.id), width(other.width), height(other.height), hashes(other.hashes),

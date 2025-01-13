@@ -36,7 +36,8 @@ struct expr_mod_t {
   bits_t width;
   klee::ref<klee::Expr> expr;
 
-  expr_mod_t(bits_t _offset, bits_t _width, klee::ref<klee::Expr> _expr) : offset(_offset), width(_width), expr(_expr) {}
+  expr_mod_t(bits_t _offset, bits_t _width, klee::ref<klee::Expr> _expr)
+      : offset(_offset), width(_width), expr(_expr) {}
   expr_mod_t(const expr_mod_t &mod)            = default;
   expr_mod_t(expr_mod_t &&mod)                 = default;
   expr_mod_t &operator=(const expr_mod_t &mod) = default;
@@ -77,6 +78,7 @@ struct symbolic_read_equal_t {
 
 typedef std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t> symbolic_reads_t;
 
-symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter = std::nullopt);
+symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr,
+                                           std::optional<std::string> symbol_filter = std::nullopt);
 
 } // namespace synapse

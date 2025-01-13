@@ -384,7 +384,8 @@ void EPSynthesizer::transpile_parser(const Parser &parser) {
   }
 }
 
-EPSynthesizer::var_t EPSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, alloc_opt_t option) {
+EPSynthesizer::var_t EPSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr,
+                                              alloc_opt_t option) {
   assert(option & (LOCAL | GLOBAL) && "Neither LOCAL nor GLOBAL specified");
 
   const code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
@@ -409,7 +410,11 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   for (const symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
-    assert(var && "Symbol not found");
+
+    if (!var) {
+      // This can happen when the symbol is not used and synapse optimized it away.
+      continue;
+    }
 
     cpu_hdr_vars.push(*var);
 
@@ -728,7 +733,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   std::vector<const Register *> regs;
   std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
-  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
+  std::sort(regs.begin(), regs.end(),
+            [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
@@ -772,7 +778,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 
   std::vector<const Register *> regs;
   std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
-  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
+  std::sort(regs.begin(), regs.end(),
+            [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
@@ -788,8 +795,9 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   int i         = 0;
   bits_t offset = 0;
   for (const Register *reg : regs) {
-    const klee::ref<klee::Expr> reg_write_expr = solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
-    std::optional<var_t> reg_write_var         = ingress_vars.get(reg_write_expr);
+    const klee::ref<klee::Expr> reg_write_expr =
+        solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
+    std::optional<var_t> reg_write_var = ingress_vars.get(reg_write_expr);
     assert(reg_write_var && "Register write value is not a variable");
 
     const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::WRITE);
@@ -826,7 +834,8 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::FCFSCachedTableReadOrWrite *node) {
+EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                       const tofino::FCFSCachedTableReadOrWrite *node) {
   panic("TODO: FCFSCachedTableReadOrWrite");
   return EPVisitor::Action::doChildren;
 }

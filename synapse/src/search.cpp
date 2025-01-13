@@ -70,8 +70,8 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     }
     ep_ids << "]";
 
-    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> " << report.gen_ep_ids[i].size() << " ("
-              << ep_ids.str() << ") EPs\n";
+    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> " << report.gen_ep_ids[i].size()
+              << " (" << ep_ids.str() << ") EPs\n";
   }
 
   std::cerr << "------------------------------------------\n";
@@ -119,7 +119,8 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
 }
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, std::shared_ptr<BDD> bdd,
-                                           const Targets &targets, const toml::table &targets_config, const Profiler &profiler) {
+                                           const Targets &targets, const toml::table &targets_config,
+                                           const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
 
   switch (hopt) {
@@ -148,14 +149,15 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 
   std::unique_ptr<EP> starting_ep = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
 
-  std::unique_ptr<Heuristic> heuristic = std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
+  std::unique_ptr<Heuristic> heuristic =
+      std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
 
   return heuristic;
 }
 } // namespace
 
-SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler, const toml::table &_targets_config,
-                           const search_config_t &_search_config)
+SearchEngine::SearchEngine(const BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler,
+                           const toml::table &_targets_config, const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config), bdd(std::make_shared<BDD>(*_bdd)),
       targets(Targets(_targets_config)), profiler(_profiler),
       heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
@@ -177,7 +179,8 @@ search_report_t SearchEngine::search() {
   });
 
   while (!heuristic->is_finished()) {
-    meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_search).count();
+    meta.elapsed_time =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_search).count();
 
     std::unique_ptr<EP> ep = heuristic->pop_next_unfinished();
     search_space->activate_leaf(ep.get());
@@ -253,7 +256,13 @@ search_report_t SearchEngine::search() {
   std::string tput_speculation     = SearchSpace::build_meta_tput_speculation(winner.get());
 
   search_report_t report{
-      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, tput_estimation, tput_speculation, meta,
+      heuristic->get_cfg()->name,
+      std::move(winner),
+      std::move(search_space),
+      score,
+      tput_estimation,
+      tput_speculation,
+      meta,
   };
 
   return report;

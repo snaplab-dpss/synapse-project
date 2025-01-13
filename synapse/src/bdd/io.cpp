@@ -223,9 +223,7 @@ std::vector<meta_t> parse_meta(const std::string &meta_str) {
 
       curr_el = 0;
       continue;
-    }
-
-    else if (c == ',') {
+    } else if (c == ',') {
       curr_el++;
       continue;
     }
@@ -310,7 +308,8 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg, std::vector<
   return std::make_pair(arg_name, arg);
 }
 
-std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra_var, std::vector<klee::ref<klee::Expr>> &exprs) {
+std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra_var,
+                                                    std::vector<klee::ref<klee::Expr>> &exprs) {
   std::string extra_var_name;
   klee::ref<klee::Expr> in;
   klee::ref<klee::Expr> out;
@@ -356,8 +355,8 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   call_t call;
 
   // Cleanup by removing duplicated spaces
-  auto new_end =
-      std::unique(serialized_call.begin(), serialized_call.end(), [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
+  auto new_end = std::unique(serialized_call.begin(), serialized_call.end(),
+                             [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
   serialized_call.erase(new_end, serialized_call.end());
 
   size_t delim = serialized_call.find("(");

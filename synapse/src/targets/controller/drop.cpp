@@ -44,7 +44,8 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const Node *node, Sy
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_dropped_traffic(new_ep->get_mutable_ctx().get_profiler().get_hr(node));
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_dropped_traffic(
+      new_ep->get_mutable_ctx().get_profiler().get_hr(node));
 
   return impls;
 }

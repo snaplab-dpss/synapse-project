@@ -3,7 +3,8 @@
 #include "../random_engine.h"
 
 namespace synapse {
-Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, std::unique_ptr<EP> starting_ep, bool _stop_on_first_solution)
+Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, std::unique_ptr<EP> starting_ep,
+                     bool _stop_on_first_solution)
     : config(std::move(_config)), stop_on_first_solution(_stop_on_first_solution) {
   EP *ep = starting_ep.release();
   assert(ep && "Invalid execution plan");

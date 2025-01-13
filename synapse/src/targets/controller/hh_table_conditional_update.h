@@ -13,10 +13,10 @@ private:
   symbol_t cache_write_failed;
 
 public:
-  HHTableConditionalUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _write_value,
-                           const symbol_t &_cache_write_failed)
-      : ControllerModule(ModuleType::Controller_HHTableConditionalUpdate, "HHTableConditionalUpdate", node), obj(_obj), key(_key),
-        write_value(_write_value), cache_write_failed(_cache_write_failed) {}
+  HHTableConditionalUpdate(const Node *node, addr_t _obj, klee::ref<klee::Expr> _key,
+                           klee::ref<klee::Expr> _write_value, const symbol_t &_cache_write_failed)
+      : ControllerModule(ModuleType::Controller_HHTableConditionalUpdate, "HHTableConditionalUpdate", node), obj(_obj),
+        key(_key), write_value(_write_value), cache_write_failed(_cache_write_failed) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -41,7 +41,8 @@ public:
 protected:
   std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace ctrl

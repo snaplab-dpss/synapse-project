@@ -29,7 +29,13 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
   std::unique_ptr<call_path_t> call_path = std::make_unique<call_path_t>();
   call_path->file_name                   = fpath.filename();
 
-  enum class state_t { STATE_INIT, STATE_KQUERY, STATE_CALLS, STATE_CALLS_MULTILINE, STATE_DONE } state = state_t::STATE_INIT;
+  enum class state_t {
+    STATE_INIT,
+    STATE_KQUERY,
+    STATE_CALLS,
+    STATE_CALLS_MULTILINE,
+    STATE_DONE
+  } state = state_t::STATE_INIT;
 
   std::vector<klee::ref<klee::Expr>> values;
   std::set<std::string> declared_arrays;
@@ -373,7 +379,8 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
               }
 
               if (current_arg.substr(delim + 1)[0] != '[') {
-                call_path->calls.back().args[current_arg_name].fn_ptr_name = std::make_pair(true, current_arg.substr(delim + 1));
+                call_path->calls.back().args[current_arg_name].fn_ptr_name =
+                    std::make_pair(true, current_arg.substr(delim + 1));
                 continue;
               }
 

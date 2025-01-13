@@ -34,7 +34,8 @@ struct Target {
   std::vector<std::unique_ptr<ModuleFactory>> module_factories;
   std::unique_ptr<TargetContext> base_ctx;
 
-  Target(TargetType type, std::vector<std::unique_ptr<ModuleFactory>> module_factories, std::unique_ptr<TargetContext> base_ctx);
+  Target(TargetType type, std::vector<std::unique_ptr<ModuleFactory>> module_factories,
+         std::unique_ptr<TargetContext> base_ctx);
   Target(const Target &other) = delete;
   Target(Target &&other)      = delete;
   virtual ~Target()           = default;

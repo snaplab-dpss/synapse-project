@@ -40,7 +40,8 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string>
-  get_annocations_per_node(const BDD *bdd, const Profiler &profiler, const std::unordered_map<node_id_t, hit_rate_t> &hrpn) {
+  get_annocations_per_node(const BDD *bdd, const Profiler &profiler,
+                           const std::unordered_map<node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<node_id_t, std::string> annocations_per_node;
 
     for (const auto &[node, fraction] : hrpn) {

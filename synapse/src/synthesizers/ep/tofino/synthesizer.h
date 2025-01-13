@@ -125,11 +125,13 @@ private:
   void transpile_parser(const Parser &parser);
   void transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
                             const std::vector<klee::ref<klee::Expr>> &values);
-  void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
+  void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index,
+                               klee::ref<klee::Expr> value);
   void transpile_register_read_action_decl(coder_t &coder, const Register *reg, const code_t &name);
-  void transpile_register_write_action_decl(coder_t &coder, const Register *reg, const code_t &name, const var_t &write_value);
-  void transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key,
-                                        klee::ref<klee::Expr> value);
+  void transpile_register_write_action_decl(coder_t &coder, const Register *reg, const code_t &name,
+                                            const var_t &write_value);
+  void transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
+                                        klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
 
   void dbg_vars() const;
 

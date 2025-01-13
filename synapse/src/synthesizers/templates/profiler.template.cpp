@@ -43,20 +43,20 @@ extern "C" {
 
 using json = nlohmann::json;
 
-#define NF_INFO(text, ...)                                                                                                       \
-  printf(text "\n", ##__VA_ARGS__);                                                                                              \
+#define NF_INFO(text, ...)                                                                                             \
+  printf(text "\n", ##__VA_ARGS__);                                                                                    \
   fflush(stdout);
 
 #ifdef ENABLE_LOG
-#define NF_DEBUG(text, ...)                                                                                                      \
-  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                           \
+#define NF_DEBUG(text, ...)                                                                                            \
+  fprintf(stderr, "DEBUG: " text "\n", ##__VA_ARGS__);                                                                 \
   fflush(stderr);
 #else // ENABLE_LOG
 #define NF_DEBUG(...)
 #endif // ENABLE_LOG
 
-#define DROP ((uint16_t) - 1)
-#define FLOOD ((uint16_t) - 2)
+#define DROP ((uint16_t)-1)
+#define FLOOD ((uint16_t)-2)
 
 #define MIN_PKT_SIZE 64   // With CRC
 #define MAX_PKT_SIZE 1518 // With CRC
@@ -64,15 +64,15 @@ using json = nlohmann::json;
 #define DEFAULT_SRC_MAC "90:e2:ba:8e:4f:6c"
 #define DEFAULT_DST_MAC "90:e2:ba:8e:4f:6d"
 
-#define EPOCH_DURATION_NS 1'000'000'000 // 1 second
+#define EPOCH_DURATION_NS 1 '000' 000'000 // 1 second
 
-#define PARSE_ERROR(argv, format, ...)                                                                                           \
-  nf_config_usage(argv);                                                                                                         \
-  fprintf(stderr, format, ##__VA_ARGS__);                                                                                        \
+#define PARSE_ERROR(argv, format, ...)                                                                                 \
+  nf_config_usage(argv);                                                                                               \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                                              \
   exit(EXIT_FAILURE);
 
-#define PARSER_ASSERT(cond, fmt, ...)                                                                                            \
-  if (!(cond))                                                                                                                   \
+#define PARSER_ASSERT(cond, fmt, ...)                                                                                  \
+  if (!(cond))                                                                                                         \
     rte_exit(EXIT_FAILURE, fmt, ##__VA_ARGS__);
 
 bool nf_init(void);
@@ -113,7 +113,7 @@ struct config_t {
 } config;
 
 struct pcap_data_t {
-  const u_char *data;
+  const u8 *data;
   const struct pcap_pkthdr *header;
 };
 
@@ -211,7 +211,7 @@ private:
   bool read(uint16_t dev, pkt_t &pkt) {
     pcap_t *pd = pcaps[dev];
 
-    const u_char *data;
+    const u8 *data;
     struct pcap_pkthdr *hdr;
 
     if (pcap_next_ex(pd, &hdr, &data) != 1) {
@@ -219,7 +219,7 @@ private:
       return false;
     }
 
-    u_char *pkt_data = pkt.data;
+    u8 *pkt_data = pkt.data;
 
     if (assume_ip[dev]) {
       struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)pkt_data;
@@ -289,13 +289,15 @@ private:
 void nf_log_pkt(time_ns_t time, uint16_t device, uint8_t *packet, uint16_t packet_length) {
   struct rte_ether_hdr *rte_ether_header = (struct rte_ether_hdr *)(packet);
   struct rte_ipv4_hdr *rte_ipv4_header   = (struct rte_ipv4_hdr *)(packet + sizeof(struct rte_ether_hdr));
-  struct tcpudp_hdr *tcpudp_header = (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
+  struct tcpudp_hdr *tcpudp_header =
+      (struct tcpudp_hdr *)(packet + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
 
-  NF_DEBUG(
-      "[%lu:%u] %u.%u.%u.%u:%u -> %u.%u.%u.%u:%u", time, device, (rte_ipv4_header->src_addr >> 0) & 0xff,
-      (rte_ipv4_header->src_addr >> 8) & 0xff, (rte_ipv4_header->src_addr >> 16) & 0xff, (rte_ipv4_header->src_addr >> 24) & 0xff,
-      rte_bswap16(tcpudp_header->src_port), (rte_ipv4_header->dst_addr >> 0) & 0xff, (rte_ipv4_header->dst_addr >> 8) & 0xff,
-      (rte_ipv4_header->dst_addr >> 16) & 0xff, (rte_ipv4_header->dst_addr >> 24) & 0xff, rte_bswap16(tcpudp_header->dst_port));
+  NF_DEBUG("[%lu:%u] %u.%u.%u.%u:%u -> %u.%u.%u.%u:%u", time, device, (rte_ipv4_header->src_addr >> 0) & 0xff,
+           (rte_ipv4_header->src_addr >> 8) & 0xff, (rte_ipv4_header->src_addr >> 16) & 0xff,
+           (rte_ipv4_header->src_addr >> 24) & 0xff, rte_bswap16(tcpudp_header->src_port),
+           (rte_ipv4_header->dst_addr >> 0) & 0xff, (rte_ipv4_header->dst_addr >> 8) & 0xff,
+           (rte_ipv4_header->dst_addr >> 16) & 0xff, (rte_ipv4_header->dst_addr >> 24) & 0xff,
+           rte_bswap16(tcpudp_header->dst_port));
 }
 
 void nf_config_usage(char **argv) {
@@ -528,7 +530,8 @@ void generate_report() {
       std::vector<uint64_t> pf;
       std::vector<uint64_t> nf;
       for (const auto &[key, pkts] : epoch.stats.key_counter) {
-        if (i == 0 || (map_stats.epochs[i - 1].stats.key_counter.find(key) == map_stats.epochs[i - 1].stats.key_counter.end())) {
+        if (i == 0 ||
+            (map_stats.epochs[i - 1].stats.key_counter.find(key) == map_stats.epochs[i - 1].stats.key_counter.end())) {
           nf.push_back(pkts);
         } else {
           pf.push_back(pkts);

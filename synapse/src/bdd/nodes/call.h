@@ -17,8 +17,8 @@ public:
        const Symbols &_generated_symbols)
       : Node(_id, NodeType::Call, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
 
-  Call(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager,
-       call_t _call, const Symbols &_generated_symbols)
+  Call(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints,
+       SymbolManager *_symbol_manager, call_t _call, const Symbols &_generated_symbols)
       : Node(_id, NodeType::Call, _next, _prev, _constraints, _symbol_manager), call(_call),
         generated_symbols(_generated_symbols) {}
 
@@ -29,7 +29,9 @@ public:
   const Symbols &get_local_symbols() const;
   bool has_local_symbol(const std::string &base) const;
 
-  void set_locally_generated_symbols(const Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
+  void set_locally_generated_symbols(const Symbols &new_generated_symbols) {
+    generated_symbols = new_generated_symbols;
+  }
 
   Node *clone(NodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;

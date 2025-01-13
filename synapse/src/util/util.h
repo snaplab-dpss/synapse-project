@@ -100,13 +100,15 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *m
 // (5) If there is an extra branch condition for map writes, then the node paths
 // on both the failed extra branch condition and the failed index allocation are
 // the same.
-bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern);
+bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get,
+                                                    map_rw_pattern_t &map_rw_pattern);
 
 // (1) Has at least 1 future map_put
 // (2) All map_put happen if the dchain_allocate_new_index was successful
 // (3) All map_puts with the target obj also have the same key as the map_get
 // (4) All map_puts with the target obj update with the same value
-bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts);
+bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
+                               std::vector<const Call *> &map_puts);
 
 bool is_index_alloc_on_unsuccessful_map_get(const EP *ep, const Call *dchain_allocate_new_index);
 

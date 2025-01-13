@@ -10,7 +10,8 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If(const Node *node, klee::ref<klee::Expr> _condition) : x86Module(ModuleType::x86_If, "If", node), condition(_condition) {}
+  If(const Node *node, klee::ref<klee::Expr> _condition)
+      : x86Module(ModuleType::x86_If, "If", node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -31,7 +32,8 @@ public:
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

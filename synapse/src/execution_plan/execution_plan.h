@@ -107,10 +107,11 @@ public:
 
 private:
   void sort_leaves();
-  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor, node_ids_t future_nodes,
-                                                TargetType current_target, pps_t ingress) const;
-  spec_impl_t get_best_speculation(const Node *node, TargetType current_target, const Context &ctx, const node_ids_t &skip,
-                                   pps_t ingress) const;
+  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor,
+                                                node_ids_t future_nodes, TargetType current_target,
+                                                pps_t ingress) const;
+  spec_impl_t get_best_speculation(const Node *node, TargetType current_target, const Context &ctx,
+                                   const node_ids_t &skip, pps_t ingress) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const Node *node,
                              TargetType current_target, pps_t ingress) const;
 };

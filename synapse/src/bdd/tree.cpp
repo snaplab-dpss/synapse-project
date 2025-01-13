@@ -161,7 +161,8 @@ bool is_skip_function(const call_t &call) {
 }
 
 bool is_routing_function(const call_t &call) {
-  return std::find(rounting_functions.begin(), rounting_functions.end(), call.function_name) != rounting_functions.end();
+  return std::find(rounting_functions.begin(), rounting_functions.end(), call.function_name) !=
+         rounting_functions.end();
 }
 
 bool is_skip_condition(klee::ref<klee::Expr> condition) {
@@ -170,8 +171,8 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   for (const std::string &symbol : symbols) {
     auto base_symbol_comparator = [symbol](const std::string &s) { return symbol.find(s) != std::string::npos; };
 
-    auto found_it =
-        std::find_if(symbols_in_skippable_conditions.begin(), symbols_in_skippable_conditions.end(), base_symbol_comparator);
+    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(), symbols_in_skippable_conditions.end(),
+                                 base_symbol_comparator);
 
     if (found_it != symbols_in_skippable_conditions.end())
       return true;
@@ -334,10 +335,10 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
   }
 }
 
-Node *
-bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, NodeManager &node_manager,
-                    std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
-                    std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
+Node *bdd_from_call_paths(
+    call_paths_view_t call_paths_view, SymbolManager *symbol_manager, NodeManager &node_manager,
+    std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
+    std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
   Node *leaf = nullptr;
 
@@ -442,10 +443,10 @@ bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_man
       id++;
       node_manager.add_node(node);
 
-      Node *on_true_root =
-          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, on_true_constraints, base_symbols_generated);
-      Node *on_false_root =
-          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, on_false_constraints, base_symbols_generated);
+      Node *on_true_root  = bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, on_true_constraints,
+                                                base_symbols_generated);
+      Node *on_false_root = bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, on_false_constraints,
+                                                base_symbols_generated);
 
       assert((on_true_root && on_false_root) && "Invalid BDD");
 
@@ -589,8 +590,8 @@ BDD::BDD(const BDD &other)
 }
 
 BDD::BDD(BDD &&other)
-    : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)), time(std::move(other.time)),
-      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)),
+    : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)),
+      time(std::move(other.time)), init(std::move(other.init)), root(other.root), manager(std::move(other.manager)),
       symbol_manager(std::move(other.symbol_manager)) {
   other.root = nullptr;
 }

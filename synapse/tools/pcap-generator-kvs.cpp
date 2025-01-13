@@ -208,10 +208,11 @@ private:
 
 public:
   TrafficGenerator(const config_t &_config, const std::vector<kv_key_t> &_base_keys)
-      : config(_config), keys(_base_keys), warmup_writer(get_warmup_pcap_fname(_config)), writer(get_pcap_fname(_config)),
-        uniform_rand(_config.random_seed, 0, _config.total_keys - 1),
+      : config(_config), keys(_base_keys), warmup_writer(get_warmup_pcap_fname(_config)),
+        writer(get_pcap_fname(_config)), uniform_rand(_config.random_seed, 0, _config.total_keys - 1),
         zipf_rand(_config.random_seed, _config.traffic_zipf_param, _config.total_keys), pd(NULL), pdumper(NULL),
-        packet_template(build_pkt_template()), counters(0), keys_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
+        packet_template(build_pkt_template()), counters(0), keys_swapped(0), current_time(0), alarm_tick(0),
+        next_alarm(-1) {
     for (const kv_key_t &key : keys) {
       counters[key] = 0;
     }
@@ -240,7 +241,7 @@ public:
       randomize_value(value);
       memcpy(pkt.kvs_hdr.value, value.data(), VALUE_SIZE_BYTES);
 
-      warmup_writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
+      warmup_writer.write((const u8 *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
 
       counter++;
       int current_progress = (counter * 100) / goal;
@@ -295,7 +296,7 @@ public:
       }
 
       counters[key]++;
-      writer.write((const u_char *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
+      writer.write((const u8 *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
 
       tick();
 
@@ -339,7 +340,8 @@ private:
     printf("Base keys: %ld\n", keys.size());
     printf("Total keys: %ld\n", total_keys);
     printf("Swapped keys: %ld\n", keys_swapped);
-    printf("HH: %ld keys (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / total_keys, 100.0 * hh_packets / config.total_packets);
+    printf("HH: %ld keys (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / total_keys,
+           100.0 * hh_packets / config.total_packets);
     printf("Top 10 keys:\n");
     for (size_t i = 0; i < config.total_keys; i++) {
       printf("  key %ld: %ld\n", i, counters_values[i]);
@@ -384,7 +386,8 @@ int main(int argc, char *argv[]) {
   app.add_option("--churn", config.churn_fpm, "Total churn (fpm).")->default_val(DEFAULT_TOTAL_CHURN_FPM);
   app.add_flag("--uniform", config.traffic_uniform, "Uniform traffic.")->default_val(DEFAULT_TRAFFIC_UNIFORM);
   app.add_flag("--zipf", config.traffic_zipf, "Zipf traffic.")->default_val(DEFAULT_TRAFFIC_ZIPF);
-  app.add_option("--zipf-param", config.traffic_zipf_param, "Zipf parameter.")->default_val(DEFAULT_TRAFFIC_ZIPF_PARAMETER);
+  app.add_option("--zipf-param", config.traffic_zipf_param, "Zipf parameter.")
+      ->default_val(DEFAULT_TRAFFIC_ZIPF_PARAMETER);
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
 
   CLI11_PARSE(app, argc, argv);

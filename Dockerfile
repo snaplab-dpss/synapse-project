@@ -17,7 +17,7 @@ WORKDIR /home/docker
 RUN sudo apt-get update -qq && sudo apt-get install -yqq \
     man build-essential wget curl git vim tzdata tmux zsh time parallel \
     iputils-ping iproute2 net-tools tcpreplay iperf \
-    psmisc htop gdb xdg-utils \
+    psmisc htop gdb xdg-utils clang-format \
     python3-pip python3-venv python3-scapy python-is-python3 xdot \
     gperf libgoogle-perftools-dev libpcap-dev meson pkg-config \
     bison flex zlib1g-dev libncurses5-dev libpcap-dev \

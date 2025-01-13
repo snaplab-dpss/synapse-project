@@ -284,7 +284,9 @@ bool io_check(const Node *node, const Symbols &anchor_symbols) {
   return met;
 }
 
-bool io_check(klee::ref<klee::Expr> expr, const Symbols &anchor_symbols) { return are_all_symbols_known(expr, anchor_symbols); }
+bool io_check(klee::ref<klee::Expr> expr, const Symbols &anchor_symbols) {
+  return are_all_symbols_known(expr, anchor_symbols);
+}
 
 bool check_no_side_effects(const Node *node) {
   NodeType type = node->get_type();
@@ -361,7 +363,8 @@ bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, co
   klee::ref<klee::Expr> between_key   = between_key_it->second.in;
   klee::ref<klee::Expr> candidate_key = candidate_key_it->second.in;
 
-  bool always_eq = solver_toolbox.are_exprs_always_equal(between_key, candidate_key, between_constraints, candidate_constraints);
+  bool always_eq =
+      solver_toolbox.are_exprs_always_equal(between_key, candidate_key, between_constraints, candidate_constraints);
 
   bool always_diff =
       solver_toolbox.are_exprs_always_not_equal(between_key, candidate_key, between_constraints, candidate_constraints);
@@ -429,8 +432,8 @@ bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between,
   bool always_eq =
       solver_toolbox.are_exprs_always_equal(between_index, candidate_index, between_constraints, candidate_constraints);
 
-  bool always_diff =
-      solver_toolbox.are_exprs_always_not_equal(between_index, candidate_index, between_constraints, candidate_constraints);
+  bool always_diff = solver_toolbox.are_exprs_always_not_equal(between_index, candidate_index, between_constraints,
+                                                               candidate_constraints);
 
   if (always_eq) {
     return false;
@@ -461,8 +464,8 @@ bool tb_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, con
   return !check_obj(between, candidate, "tb");
 }
 
-using can_reorder_stateful_op_fn = bool (*)(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate,
-                                            klee::ref<klee::Expr> &condition);
+using can_reorder_stateful_op_fn = bool (*)(const BDD *bdd, const Node *anchor, const Node *between,
+                                            const Node *candidate, klee::ref<klee::Expr> &condition);
 
 const std::unordered_map<std::string, can_reorder_stateful_op_fn> can_reorder_handlers{
     {"vector_borrow", vector_can_reorder},
@@ -557,27 +560,28 @@ bool condition_check(const vector_t &anchor, const Node *candidate, const std::u
   klee::ref<klee::Expr> not_condition = solver_toolbox.exprBuilder->Not(condition);
 
   const Node *anchor_next = get_vector_next(anchor);
-  anchor_next->visit_nodes([&compatible, condition, not_condition, candidate, siblings](const Node *node) -> NodeVisitAction {
-    klee::ConstraintManager constraints = node->get_constraints();
+  anchor_next->visit_nodes(
+      [&compatible, condition, not_condition, candidate, siblings](const Node *node) -> NodeVisitAction {
+        klee::ConstraintManager constraints = node->get_constraints();
 
-    bool pos_always_false = solver_toolbox.is_expr_always_false(constraints, condition);
-    bool neg_always_false = solver_toolbox.is_expr_always_false(constraints, not_condition);
+        bool pos_always_false = solver_toolbox.is_expr_always_false(constraints, condition);
+        bool neg_always_false = solver_toolbox.is_expr_always_false(constraints, not_condition);
 
-    if (pos_always_false || neg_always_false) {
-      compatible = false;
-      return NodeVisitAction::Stop;
-    }
+        if (pos_always_false || neg_always_false) {
+          compatible = false;
+          return NodeVisitAction::Stop;
+        }
 
-    bool is_candidate = false;
-    is_candidate |= (node == candidate);
-    is_candidate |= (siblings.find(node->get_id()) != siblings.end());
+        bool is_candidate = false;
+        is_candidate |= (node == candidate);
+        is_candidate |= (siblings.find(node->get_id()) != siblings.end());
 
-    if (node == candidate) {
-      return NodeVisitAction::SkipChildren;
-    }
+        if (node == candidate) {
+          return NodeVisitAction::SkipChildren;
+        }
 
-    return NodeVisitAction::Continue;
-  });
+        return NodeVisitAction::Continue;
+      });
 
   return compatible;
 }
@@ -816,8 +820,8 @@ leaves_t get_leaves_from_candidates(const std::unordered_map<Branch *, direction
   return leaves;
 }
 
-Node *clone_and_update_nodes(BDD *bdd, Node *candidate, const std::unordered_set<Node *> &siblings, Node *anchor_old_next,
-                             dangling_t &dangling, leaves_t &leaves) {
+Node *clone_and_update_nodes(BDD *bdd, Node *candidate, const std::unordered_set<Node *> &siblings,
+                             Node *anchor_old_next, dangling_t &dangling, leaves_t &leaves) {
   NodeManager &manager = bdd->get_mutable_manager();
   node_id_t &id        = bdd->get_mutable_id();
 
@@ -913,7 +917,8 @@ void stitch_dangling(BDD *bdd, Node *node, dangling_t dangling, const leaves_t &
   }
 }
 
-void pull_branch(BDD *bdd, const mutable_vector_t &anchor, Branch *candidate, const std::unordered_set<Node *> &siblings) {
+void pull_branch(BDD *bdd, const mutable_vector_t &anchor, Branch *candidate,
+                 const std::unordered_set<Node *> &siblings) {
   std::unordered_map<Branch *, directions_t> branch_candidates = get_branch_candidates(anchor, candidate, siblings);
 
   leaves_t leaves     = get_leaves_from_candidates(branch_candidates);
@@ -950,7 +955,7 @@ symbol_t get_collision_free_symbol(const symbol_t &candidate_symbol, SymbolManag
   return symbol_manager->create_symbol(name, candidate_symbol.expr->getWidth());
 }
 
-void translate_symbols(BDD *bdd, const mutable_vector_t &anchor, Node *candidate) {
+void translate_symbols(BDD *bdd, Node *candidate) {
   if (candidate->get_type() != NodeType::Call)
     return;
 
@@ -963,12 +968,8 @@ void translate_symbols(BDD *bdd, const mutable_vector_t &anchor, Node *candidate
   }
 }
 
-void pull_non_branch(BDD *bdd, const mutable_vector_t &anchor, Node *candidate, const std::unordered_set<Node *> &siblings) {
-  // Symbols generated by the candidate might collide with the symbols generated
-  // until the anchor, or on future branches. We need to translate the candidate
-  // symbols to avoid collisions.
-  translate_symbols(bdd, anchor, candidate);
-
+void pull_non_branch(BDD *bdd, const mutable_vector_t &anchor, Node *candidate,
+                     const std::unordered_set<Node *> &siblings) {
   // Remove candidate from the BDD, linking its parent with its child.
   disconnect_and_link_non_branch(candidate);
 
@@ -982,9 +983,15 @@ void pull_non_branch(BDD *bdd, const mutable_vector_t &anchor, Node *candidate, 
       continue;
     disconnect_and_link_non_branch(sibling);
   }
+
+  // Symbols generated by the candidate might collide with the symbols generated
+  // until the anchor, or on future branches. We need to translate the candidate
+  // symbols to avoid collisions.
+  translate_symbols(bdd, candidate);
 }
 
-void pull_candidate(BDD *bdd, const mutable_vector_t &anchor, Node *candidate, const std::unordered_set<Node *> &siblings) {
+void pull_candidate(BDD *bdd, const mutable_vector_t &anchor, Node *candidate,
+                    const std::unordered_set<Node *> &siblings) {
   switch (candidate->get_type()) {
   case NodeType::Branch:
     pull_branch(bdd, anchor, dynamic_cast<Branch *>(candidate), siblings);
@@ -1056,7 +1063,8 @@ hit_rate_t estimate_reorder(const BDD *bdd, const Node *anchor) {
 }
 } // namespace
 
-candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor, node_id_t proposed_candidate_id) {
+candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor,
+                                                 node_id_t proposed_candidate_id) {
   candidate_info_t candidate_info;
 
   const Node *proposed_candidate = bdd->get_node_by_id(proposed_candidate_id);
@@ -1137,7 +1145,8 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
   return candidate_info;
 }
 
-std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &anchor_info, bool allow_shape_altering_ops) {
+std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &anchor_info,
+                                          bool allow_shape_altering_ops) {
   std::vector<reorder_op_t> ops;
 
   const Node *anchor_node = bdd->get_node_by_id(anchor_info.id);
@@ -1213,7 +1222,8 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op) {
 
     Node *after_anchor_clone = after_anchor->clone(manager, true);
 
-    Branch *extra_branch = new Branch(id, anchor_constraints, bdd->get_mutable_symbol_manager(), candidate_info.condition);
+    Branch *extra_branch =
+        new Branch(id, anchor_constraints, bdd->get_mutable_symbol_manager(), candidate_info.condition);
     manager.add_node(extra_branch);
     id++;
 

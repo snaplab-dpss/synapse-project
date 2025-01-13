@@ -3,9 +3,9 @@
 namespace synapse {
 namespace tofino {
 namespace {
-bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_and_check, addr_t &obj, tb_config_t &cfg,
-                 std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> pkt_len, klee::ref<klee::Expr> &hit,
-                 klee::ref<klee::Expr> pass, DS_ID &id) {
+bool get_tb_data(const EP *ep, const Call *tb_is_tracing, const Call *tb_update_and_check, addr_t &obj,
+                 tb_config_t &cfg, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> pkt_len,
+                 klee::ref<klee::Expr> &hit, klee::ref<klee::Expr> pass, DS_ID &id) {
   const call_t &call_is_tracing = tb_is_tracing->get_call();
   assert(call_is_tracing.function_name == "tb_is_tracing" && "Unexpected function");
 
@@ -48,7 +48,8 @@ Meter *build_meter(const EP *ep, const Node *node, DS_ID id, const tb_config_t &
   return meter;
 }
 
-std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node, const Call *tb_update_and_check, const Node *&new_next) {
+std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const Node *node, const Call *tb_update_and_check,
+                                             const Node *&new_next) {
   const BDD *old_bdd           = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -116,7 +117,8 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Nod
   return spec_impl;
 }
 
-std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                     SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

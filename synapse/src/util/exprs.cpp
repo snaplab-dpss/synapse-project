@@ -25,7 +25,8 @@ private:
   std::vector<std::string> allowed_symbols;
 
 public:
-  ExpressionFilter(const std::vector<std::string> &_allowed_symbols) : ExprVisitor(true), allowed_symbols(_allowed_symbols) {}
+  ExpressionFilter(const std::vector<std::string> &_allowed_symbols)
+      : ExprVisitor(true), allowed_symbols(_allowed_symbols) {}
 
   expr_info_t check_symbols(klee::ref<klee::Expr> expr) const {
     expr_info_t info{false, false};
@@ -62,7 +63,7 @@ public:
     return klee::ref<klee::Expr>();
   }
 
-  klee::ExprVisitor::Action visitAnd(const klee::AndExpr &e) {
+  Action visitAnd(const klee::AndExpr &e) {
     if (e.getNumKids() != 2)
       return Action::doChildren();
     klee::ref<klee::Expr> lhs      = e.getKid(0);
@@ -73,7 +74,7 @@ public:
     return Action::changeTo(new_expr);
   }
 
-  klee::ExprVisitor::Action visitAnd(const klee::OrExpr &e) {
+  Action visitAnd(const klee::OrExpr &e) {
     if (e.getNumKids() != 2)
       return Action::doChildren();
     klee::ref<klee::Expr> lhs      = e.getKid(0);
@@ -94,7 +95,7 @@ public:
   SymbolicReadsRetriever() {}
   SymbolicReadsRetriever(std::optional<std::string> _filter) : filter(_filter) {}
 
-  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
+  Action visitRead(const klee::ReadExpr &e) {
     assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
 
     const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
@@ -105,7 +106,7 @@ public:
       symbolic_reads.insert({byte, name});
     }
 
-    return klee::ExprVisitor::Action::doChildren();
+    return Action::doChildren();
   }
 
   const symbolic_reads_t &get_symbolic_reads() const { return symbolic_reads; }
@@ -207,7 +208,8 @@ bool is_bool(klee::ref<klee::Expr> expr) {
     return true;
   }
 
-  if (expr->getKind() == klee::Expr::ZExt || expr->getKind() == klee::Expr::SExt || expr->getKind() == klee::Expr::Not) {
+  if (expr->getKind() == klee::Expr::ZExt || expr->getKind() == klee::Expr::SExt ||
+      expr->getKind() == klee::Expr::Not) {
     return is_bool(expr->getKid(0));
   }
 
@@ -215,8 +217,9 @@ bool is_bool(klee::ref<klee::Expr> expr) {
     return is_bool(expr->getKid(0)) && is_bool(expr->getKid(1));
   }
 
-  return expr->getKind() == klee::Expr::Eq || expr->getKind() == klee::Expr::Uge || expr->getKind() == klee::Expr::Ugt ||
-         expr->getKind() == klee::Expr::Ule || expr->getKind() == klee::Expr::Ult || expr->getKind() == klee::Expr::Sge ||
+  return expr->getKind() == klee::Expr::Eq || expr->getKind() == klee::Expr::Uge ||
+         expr->getKind() == klee::Expr::Ugt || expr->getKind() == klee::Expr::Ule ||
+         expr->getKind() == klee::Expr::Ult || expr->getKind() == klee::Expr::Sge ||
          expr->getKind() == klee::Expr::Sgt || expr->getKind() == klee::Expr::Sle || expr->getKind() == klee::Expr::Slt;
 }
 
@@ -433,8 +436,8 @@ std::vector<std::optional<symbolic_read_t>> break_expr_by_reads(klee::ref<klee::
 }
 
 std::vector<expr_byte_swap_t> get_expr_byte_swaps(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {
-  // If you're asking yourself why we didn't use the solver to check for this instead of using this clunky method, the answer is
-  // that we did, but it was painfully slow.
+  // If you're asking yourself why we didn't use the solver to check for this instead of using this clunky method, the
+  // answer is that we did, but it was painfully slow.
 
   assert(before->getWidth() == after->getWidth() && "Different widths");
 
@@ -510,7 +513,8 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
     unsigned byte                   = index_const->getZExtValue();
 
-    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol && groups.back().offset - 1 == byte) {
+    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol &&
+        groups.back().offset - 1 == byte) {
       groups.back().size++;
       groups.back().offset = byte;
       groups.back().expr   = concat_lsb(groups.back().expr, read_expr);

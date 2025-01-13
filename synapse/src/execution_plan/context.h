@@ -16,7 +16,6 @@ enum class DSImpl {
   // ========================================
   // Tofino
   // ========================================
-
   Tofino_Table,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
@@ -29,7 +28,6 @@ enum class DSImpl {
   // ========================================
   // Tofino CPU
   // ========================================
-
   Controller_Map,
   Controller_Vector,
   Controller_DoubleChain,
@@ -40,7 +38,6 @@ enum class DSImpl {
   // ========================================
   // x86
   // ========================================
-
   x86_Map,
   x86_Vector,
   x86_DoubleChain,
@@ -121,9 +118,9 @@ public:
 };
 } // namespace synapse
 
-#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                             \
-  namespace NAMESPACE {                                                                                                          \
-  class TARGET_CTX;                                                                                                              \
-  }                                                                                                                              \
-  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                               \
+#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                   \
+  namespace NAMESPACE {                                                                                                \
+  class TARGET_CTX;                                                                                                    \
+  }                                                                                                                    \
+  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                     \
   template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();

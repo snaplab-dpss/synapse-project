@@ -11,19 +11,7 @@
 #include "../system.h"
 
 namespace synapse {
-namespace {
-std::filesystem::path random_dot() {
-  char filename[] = "/tmp/XXXXXX";
-  int fd          = mkstemp(filename);
-  assert(fd != -1 && "Failed to create temporary file");
-  std::string fpath(filename);
-  fpath += ".dot";
-  return fpath;
-}
-} // namespace
-
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b, u8 _o) : r(_r), g(_g), b(_b), o(_o) {}
-
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b) : rgb_t(_r, _g, _b, 0xff) {}
 
 std::string rgb_t::to_gv_repr() const {
@@ -53,9 +41,9 @@ std::string rgb_t::to_gv_repr() const {
   return ss.str();
 }
 
-Graphviz::Graphviz(const std::filesystem::path &_fpath) : fpath(_fpath.empty() ? random_dot() : _fpath) {}
+Graphviz::Graphviz(const std::filesystem::path &_fpath) : fpath(_fpath.empty() ? create_random_file(".dot") : _fpath) {}
 
-Graphviz::Graphviz() : fpath(random_dot()) {}
+Graphviz::Graphviz() : fpath(create_random_file(".dot")) {}
 
 void Graphviz::write() const {
   std::ofstream file(fpath);
@@ -65,15 +53,11 @@ void Graphviz::write() const {
 }
 
 void Graphviz::show(bool interrupt) const {
-  // Flush first.
   write();
 
-  std::stringstream cmd_builder;
-  cmd_builder << "xdot ";
-  cmd_builder << fpath << " ";
-  cmd_builder << "2>/dev/null &";
+  const std::string cmd = "xdot " + fpath.string() + " 2>/dev/null &";
+  const int status      = system(cmd.c_str());
 
-  int status = system(cmd_builder.str().c_str());
   if (status < 0) {
     panic("Failed to open graph: %s\n", std::strerror(errno));
   }
@@ -84,7 +68,8 @@ void Graphviz::show(bool interrupt) const {
   }
 }
 
-void Graphviz::find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements) {
+void Graphviz::find_and_replace(std::string &str,
+                                const std::vector<std::pair<std::string, std::string>> &replacements) {
   for (const std::pair<std::string, std::string> &replacement : replacements) {
     const std::string &before = replacement.first;
     const std::string &after  = replacement.second;

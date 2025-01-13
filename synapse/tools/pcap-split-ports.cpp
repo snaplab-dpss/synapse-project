@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   u64 pkt_count  = 0;
   int progress   = -1;
 
-  const u_char *pkt;
+  const u8 *pkt;
   u16 hdrs_len;
   u16 sz;
   time_ns_t ts;

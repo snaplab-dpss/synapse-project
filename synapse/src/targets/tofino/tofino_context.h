@@ -36,7 +36,8 @@ public:
 
   void parser_transition(const EP *ep, const Node *node, klee::ref<klee::Expr> hdr);
 
-  void parser_select(const EP *ep, const Node *node, klee::ref<klee::Expr> field, const std::vector<int> &values, bool negate);
+  void parser_select(const EP *ep, const Node *node, klee::ref<klee::Expr> field, const std::vector<int> &values,
+                     bool negate);
 
   void parser_accept(const EP *ep, const Node *node);
   void parser_reject(const EP *ep, const Node *node);

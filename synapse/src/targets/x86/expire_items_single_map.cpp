@@ -19,7 +19,8 @@ bool bdd_node_match_pattern(const Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ExpireItemsSingleMapFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> ExpireItemsSingleMapFactory::speculate(const EP *ep, const Node *node,
+                                                                  const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return std::nullopt;

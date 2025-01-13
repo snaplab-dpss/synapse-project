@@ -72,7 +72,8 @@ hit_rate_t get_new_hh_probability(const EP *ep, const Node *node, addr_t map) {
 // }
 } // namespace
 
-std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *ep, const Node *node,
+                                                                      const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }

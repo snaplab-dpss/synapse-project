@@ -38,11 +38,13 @@ int main() {
 
   klee::ref<klee::Expr> expr1 = solver_toolbox.exprBuilder->Concat(
       solver_toolbox.exprBuilder->Add(A1.expr, solver_toolbox.exprBuilder->Constant(1, 32)),
-      solver_toolbox.exprBuilder->Add(symbol_manager.create_symbol("B", 32).expr, solver_toolbox.exprBuilder->Constant(1, 32)));
+      solver_toolbox.exprBuilder->Add(symbol_manager.create_symbol("B", 32).expr,
+                                      solver_toolbox.exprBuilder->Constant(1, 32)));
 
   klee::ref<klee::Expr> expr2 = solver_toolbox.exprBuilder->Concat(
       solver_toolbox.exprBuilder->Add(A1.expr, solver_toolbox.exprBuilder->Constant(1, 32)),
-      solver_toolbox.exprBuilder->Add(symbol_manager.create_symbol("B", 32).expr, solver_toolbox.exprBuilder->Constant(12, 32)));
+      solver_toolbox.exprBuilder->Add(symbol_manager.create_symbol("B", 32).expr,
+                                      solver_toolbox.exprBuilder->Constant(12, 32)));
 
   std::cout << "expr1 " << expr_to_string(expr1) << "\n";
   std::cout << "expr2 " << expr_to_string(expr2) << "\n";

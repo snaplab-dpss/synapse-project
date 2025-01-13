@@ -17,7 +17,8 @@ DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
   return ds->id;
 }
 
-void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value) {
+void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+              klee::ref<klee::Expr> &value) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_put" && "Not a map_put call");
 
@@ -31,7 +32,8 @@ void get_data(const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Ex
 }
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, const Node *node,
+                                                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }

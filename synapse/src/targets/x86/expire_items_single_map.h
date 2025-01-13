@@ -14,8 +14,8 @@ private:
   klee::ref<klee::Expr> total_freed;
 
 public:
-  ExpireItemsSingleMap(const Node *node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr, klee::ref<klee::Expr> _time,
-                       klee::ref<klee::Expr> _total_freed)
+  ExpireItemsSingleMap(const Node *node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr,
+                       klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed)
       : x86Module(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap", node), dchain_addr(_dchain_addr),
         vector_addr(_vector_addr), map_addr(_map_addr), time(_time), total_freed(_total_freed) {}
 
@@ -24,7 +24,8 @@ public:
   }
 
   virtual Module *clone() const {
-    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(node, dchain_addr, map_addr, vector_addr, time, total_freed);
+    ExpireItemsSingleMap *cloned =
+        new ExpireItemsSingleMap(node, dchain_addr, map_addr, vector_addr, time, total_freed);
     return cloned;
   }
 
@@ -42,7 +43,8 @@ public:
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace x86

@@ -18,7 +18,8 @@ std::optional<spec_impl_t> ChecksumUpdateFactory::speculate(const EP *ep, const 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const Node *node,
+                                                        SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != NodeType::Call) {

@@ -26,7 +26,8 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const Node *node, c
 }
 } // namespace
 
-std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const Node *node,
+                                                              const Context &ctx) const {
   Context new_ctx = ctx;
 
   hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
@@ -38,7 +39,8 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
   return spec_impl;
 }
 
-std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Node *node,
+                                                          SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   // We can always send to the controller, at any point in time.

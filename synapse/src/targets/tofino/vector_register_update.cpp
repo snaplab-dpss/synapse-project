@@ -24,7 +24,8 @@ vector_register_data_t get_vector_register_data(const EP *ep, const Call *vector
 
 } // namespace
 
-std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, const Node *node,
+                                                                  const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -45,6 +46,10 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
   vector_register_data_t vector_register_data = get_vector_register_data(ep, vector_borrow, vector_return);
 
   if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
+    return std::nullopt;
+  }
+
+  if (!expr_fits_in_action(vector_register_data.write_value)) {
     return std::nullopt;
   }
 
@@ -87,7 +92,9 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  // panic("TODO: check if the write values are simple enough (e.g. read operations)");
+  if (!expr_fits_in_action(vector_register_data.write_value)) {
+    return impls;
+  }
 
   std::unordered_set<Register *> regs = build_or_reuse_vector_registers(ep, vector_borrow, vector_register_data);
 

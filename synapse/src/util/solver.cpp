@@ -6,7 +6,8 @@ namespace synapse {
 solver_toolbox_t solver_toolbox;
 
 solver_toolbox_t::solver_toolbox_t()
-    : solver(createCexCachingSolver(klee::createCoreSolver(klee::Z3_SOLVER))), exprBuilder(klee::createDefaultExprBuilder()) {
+    : solver(createCexCachingSolver(klee::createCoreSolver(klee::Z3_SOLVER))),
+      exprBuilder(klee::createDefaultExprBuilder()) {
   assert(solver && "Failed to create solver");
   assert(exprBuilder && "Failed to create exprBuilder");
 }
@@ -16,7 +17,8 @@ bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
   return is_expr_always_true(no_constraints, expr);
 }
 
-bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints,
+                                           klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result  = false;
@@ -26,7 +28,8 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
   return result;
 }
 
-bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constraints,
+                                          klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result  = false;
@@ -36,7 +39,8 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
   return result;
 }
 
-bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constraints,
+                                           klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result  = false;
@@ -46,8 +50,8 @@ bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constr
   return result;
 }
 
-bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2, klee::ConstraintManager c1,
-                                              klee::ConstraintManager c2) const {
+bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2,
+                                              klee::ConstraintManager c1, klee::ConstraintManager c2) const {
   klee::ref<klee::Expr> eq_expr = exprBuilder->Eq(e1, e2);
 
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
@@ -65,8 +69,8 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::re
   return eq_in_e1_ctx && eq_in_e2_ctx;
 }
 
-bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2, klee::ConstraintManager c1,
-                                                  klee::ConstraintManager c2) const {
+bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2,
+                                                  klee::ConstraintManager c1, klee::ConstraintManager c2) const {
   klee::ref<klee::Expr> eq_expr = exprBuilder->Eq(e1, e2);
 
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
@@ -89,7 +93,8 @@ bool solver_toolbox_t::is_expr_always_false(klee::ref<klee::Expr> expr) const {
   return is_expr_always_false(no_constraints, expr);
 }
 
-bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints,
+                                            klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result  = false;
@@ -202,7 +207,8 @@ bool solver_toolbox_t::are_calls_equal(call_t c1, call_t c2) const {
   return true;
 }
 
-int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
+int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr,
+                                                 const klee::ConstraintManager &constraints) const {
   klee::Expr::Width width = expr->getWidth();
   u64 value               = solver_toolbox.value_from_expr(expr, constraints);
 

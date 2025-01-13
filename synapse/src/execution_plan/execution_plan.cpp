@@ -71,7 +71,8 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 }
 } // namespace
 
-EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml::table &_config, const Profiler &_profiler)
+EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml::table &_config,
+       const Profiler &_profiler)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets),
       ctx(bdd.get(), _targets, _config, _profiler), meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
@@ -89,7 +90,8 @@ EP::EP(std::shared_ptr<const BDD> _bdd, const TargetsView &_targets, const toml:
 
 EP::EP(const EP &other, bool is_ancestor)
     : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
-      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx),
+      meta(other.meta) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -488,7 +490,8 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 }
 
 spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const Node *anchor,
-                                                  node_ids_t future_nodes, TargetType current_target, pps_t ingress) const {
+                                                  node_ids_t future_nodes, TargetType current_target,
+                                                  pps_t ingress) const {
   future_nodes.erase(anchor->get_id());
 
   spec_impl_t speculation = base_speculation;
@@ -525,9 +528,11 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   node_ids_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
   node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
 
-  spec_impl_t peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
+  spec_impl_t peek_old =
+      peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
 
-  spec_impl_t peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
+  spec_impl_t peek_new =
+      peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
 
   pps_t old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
   pps_t new_pps = peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
@@ -565,8 +570,8 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   return new_pps > old_pps;
 }
 
-spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target, const Context &ctx, const node_ids_t &skip,
-                                     pps_t ingress) const {
+spec_impl_t EP::get_best_speculation(const Node *node, TargetType current_target, const Context &ctx,
+                                     const node_ids_t &skip, pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
   for (const TargetView &target : targets.elements) {

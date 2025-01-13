@@ -12,7 +12,8 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  IntegerAllocatorRejuvenate(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
+  IntegerAllocatorRejuvenate(const Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                             klee::ref<klee::Expr> _time)
       : TofinoModule(ModuleType::Tofino_IntegerAllocatorRejuvenate, "IntegerAllocatorRejuvenate", node),
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
@@ -44,7 +45,8 @@ public:
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

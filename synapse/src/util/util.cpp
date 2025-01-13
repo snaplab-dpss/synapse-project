@@ -86,9 +86,7 @@ next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) 
       if (same_index) {
         candidates.maps.insert({map_addr, call_node});
       }
-    }
-
-    else if (call.function_name == "vector_borrow") {
+    } else if (call.function_name == "vector_borrow") {
       klee::ref<klee::Expr> vector = call.args.at("vector").expr;
       klee::ref<klee::Expr> value  = call.args.at("index").expr;
 
@@ -354,8 +352,8 @@ const Call *packet_borrow_from_return(const EP *ep, const Call *packet_return_ch
 
   klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
 
-  std::vector<const Call *> prev_borrows =
-      packet_return_chunk->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_borrows = packet_return_chunk->get_prev_functions(
+      {"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
   std::vector<const Call *> prev_returns =
       packet_return_chunk->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
@@ -411,7 +409,8 @@ rw_fractions_t get_cond_map_put_rw_profile_fractions(const EP *ep, const Node *n
   branch_direction_t success_check = map_get->get_map_get_success_check();
   assert(success_check.branch && "Map get success check not found");
 
-  const Node *read = success_check.direction ? success_check.branch->get_on_true() : success_check.branch->get_on_false();
+  const Node *read =
+      success_check.direction ? success_check.branch->get_on_true() : success_check.branch->get_on_false();
   const Node *write_attempt =
       success_check.direction ? success_check.branch->get_on_false() : success_check.branch->get_on_true();
 
@@ -576,7 +575,8 @@ bool are_node_paths_equivalent(const Node *node0, const Node *node1) {
   return true;
 }
 
-bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get, map_rw_pattern_t &map_rw_pattern) {
+bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *map_get,
+                                                    map_rw_pattern_t &map_rw_pattern) {
   static std::unordered_map<const Call *, std::optional<map_rw_pattern_t>> cache;
 
   if (cache.find(map_get) != cache.end()) {
@@ -599,7 +599,8 @@ bool is_compact_map_get_followed_by_map_put_on_miss(const EP *ep, const Call *ma
   map_rw_pattern.map_get               = map_get;
   map_rw_pattern.map_get_success_check = map_get->get_map_get_success_check();
 
-  if (!map_rw_pattern.map_get_success_check.branch || map_get->get_next() != map_rw_pattern.map_get_success_check.branch) {
+  if (!map_rw_pattern.map_get_success_check.branch ||
+      map_get->get_next() != map_rw_pattern.map_get_success_check.branch) {
     cache[map_get] = std::nullopt;
     return false;
   }
@@ -754,7 +755,8 @@ bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, c
   return tb_update_and_check != nullptr;
 }
 
-bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) {
+bool is_map_update_with_dchain(const EP *ep, const Call *dchain_allocate_new_index,
+                               std::vector<const Call *> &map_puts) {
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -955,8 +957,9 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::
     return !same_key;
   };
 
-  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_map_nodes_and_retrieve_index),
-                       filtered_nodes.end());
+  filtered_nodes.erase(
+      std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_map_nodes_and_retrieve_index),
+      filtered_nodes.end());
 
   auto filter_vectors_nodes = [&index](const Node *node) {
     assert(node->get_type() == NodeType::Call && "Unexpected node type");
@@ -974,7 +977,8 @@ std::vector<const Call *> get_coalescing_nodes_from_key(const Node *node, klee::
     return !solver_toolbox.are_exprs_always_equal(index, value);
   };
 
-  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_vectors_nodes), filtered_nodes.end());
+  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_vectors_nodes),
+                       filtered_nodes.end());
 
   return filtered_nodes;
 }

@@ -25,8 +25,8 @@ struct search_meta_t {
   int finished_eps;
 
   search_meta_t()
-      : ss_size(0), elapsed_time(0), steps(0), backtracks(0), avg_bdd_size(0), branching_factor(0), total_ss_size_estimation(0),
-        unfinished_eps(0), finished_eps(0) {}
+      : ss_size(0), elapsed_time(0), steps(0), backtracks(0), avg_bdd_size(0), branching_factor(0),
+        total_ss_size_estimation(0), unfinished_eps(0), finished_eps(0) {}
 
   search_meta_t(const search_meta_t &other) = default;
   search_meta_t(search_meta_t &&other)      = default;

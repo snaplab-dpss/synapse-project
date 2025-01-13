@@ -173,8 +173,9 @@ PerfOracle::PerfOracle(const toml::table &config, int _avg_pkt_bytes)
 
 PerfOracle::PerfOracle(const PerfOracle &other)
     : front_panel_ports_capacities(other.front_panel_ports_capacities),
-      recirculation_ports_capacities(other.recirculation_ports_capacities), controller_capacity(other.controller_capacity),
-      avg_pkt_bytes(other.avg_pkt_bytes), unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
+      recirculation_ports_capacities(other.recirculation_ports_capacities),
+      controller_capacity(other.controller_capacity), avg_pkt_bytes(other.avg_pkt_bytes),
+      unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
       recirc_ports_ingress(other.recirc_ports_ingress), controller_ingress(other.controller_ingress),
       dropped_ingress(other.dropped_ingress) {}
 
@@ -183,8 +184,8 @@ PerfOracle::PerfOracle(PerfOracle &&other)
       recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)),
       controller_capacity(std::move(other.controller_capacity)), avg_pkt_bytes(std::move(other.avg_pkt_bytes)),
       unaccounted_ingress(std::move(other.unaccounted_ingress)), ports_ingress(std::move(other.ports_ingress)),
-      recirc_ports_ingress(std::move(other.recirc_ports_ingress)), controller_ingress(std::move(other.controller_ingress)),
-      dropped_ingress(std::move(other.dropped_ingress)) {}
+      recirc_ports_ingress(std::move(other.recirc_ports_ingress)),
+      controller_ingress(std::move(other.controller_ingress)), dropped_ingress(std::move(other.dropped_ingress)) {}
 
 PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   if (this == &other) {

@@ -136,10 +136,10 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
 
-  list_candidates(bdd.get(), {2, true});
-  // apply_reordering_ops(bdd.get(), {
-  //                                     {{2, false}, 11},
-  //                                 });
+  // list_candidates(bdd.get(), {2, true});
+  apply_reordering_ops(bdd.get(), {
+                                      {{39, false}, 62},
+                                  });
   // test_reorder(bdd.get(), 3);
   // estimate(bdd.get());
 

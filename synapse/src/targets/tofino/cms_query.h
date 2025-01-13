@@ -13,7 +13,8 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSQuery(const Node *node, DS_ID _cms_id, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
+  CMSQuery(const Node *node, DS_ID _cms_id, addr_t _cms_addr, klee::ref<klee::Expr> _key,
+           klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType::Tofino_CMSQuery, "CMSQuery", node), cms_id(_cms_id), cms_addr(_cms_addr), key(_key),
         min_estimate(_min_estimate) {}
 
@@ -38,7 +39,8 @@ public:
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const Node *node, const Context &ctx) const override;
 
-  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node, SymbolManager *symbol_manager) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const Node *node,
+                                           SymbolManager *symbol_manager) const override;
 };
 
 } // namespace tofino

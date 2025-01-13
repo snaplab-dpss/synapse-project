@@ -36,7 +36,8 @@ public:
 
   symbol_t store_clone(const klee::Array *array);
   symbol_t create_symbol(const std::string &name, bits_t size);
-  klee::ref<klee::Expr> translate(klee::ref<klee::Expr> expr, std::unordered_map<std::string, std::string> translations);
+  klee::ref<klee::Expr> translate(klee::ref<klee::Expr> expr,
+                                  std::unordered_map<std::string, std::string> translations);
 };
 
 } // namespace synapse

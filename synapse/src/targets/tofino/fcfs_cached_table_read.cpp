@@ -50,7 +50,8 @@ EP *concretize_cached_table_read(const EP *ep, const Node *node, const map_coale
 }
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const Node *node,
+                                                                 const Context &ctx) const {
   if (node->get_type() != NodeType::Call) {
     return std::nullopt;
   }
@@ -84,7 +85,8 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}), new_ctx);
+  spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}),
+                        new_ctx);
 
   return spec_impl;
 }
