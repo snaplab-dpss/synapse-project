@@ -1,4 +1,4 @@
-#include "count_min_sketch.h"
+#include "count_min_sketch.hpp"
 
 namespace synapse {
 namespace tofino {

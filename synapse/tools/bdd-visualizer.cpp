@@ -2,7 +2,7 @@
 #include <fstream>
 #include <CLI/CLI.hpp>
 
-#include "../src/bdd/bdd.h"
+#include "../src/bdd/bdd.hpp"
 
 using namespace synapse;
 

@@ -1,11 +1,11 @@
-#include "hh_table_conditional_update.h"
+#include "hh_table_conditional_update.hpp"
 
-#include "if.h"
-#include "then.h"
-#include "else.h"
-#include "send_to_controller.h"
-#include "hh_table_read.h"
-#include "../controller/hh_table_update.h"
+#include "if.hpp"
+#include "then.hpp"
+#include "else.hpp"
+#include "send_to_controller.hpp"
+#include "hh_table_read.hpp"
+#include "../controller/hh_table_update.hpp"
 
 namespace synapse {
 namespace tofino {

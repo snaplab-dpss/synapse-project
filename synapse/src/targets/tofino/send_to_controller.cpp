@@ -1,4 +1,4 @@
-#include "send_to_controller.h"
+#include "send_to_controller.hpp"
 
 namespace synapse {
 namespace tofino {

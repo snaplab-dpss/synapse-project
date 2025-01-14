@@ -1,6 +1,6 @@
-#include "synthesizer.h"
-#include "transpiler.h"
-#include "../../../targets/module.h"
+#include "synthesizer.hpp"
+#include "transpiler.hpp"
+#include "../../../targets/module.hpp"
 
 namespace synapse {
 namespace tofino {

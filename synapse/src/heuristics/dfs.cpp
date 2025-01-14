@@ -1,6 +1,6 @@
-#include "dfs.h"
-#include "../targets/module.h"
-#include "../system.h"
+#include "dfs.hpp"
+#include "../targets/module.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 i64 DFSCfg::get_depth(const EP *ep) const {

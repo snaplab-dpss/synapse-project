@@ -1,4 +1,4 @@
-#include "forward.h"
+#include "forward.hpp"
 
 namespace synapse {
 namespace tofino {

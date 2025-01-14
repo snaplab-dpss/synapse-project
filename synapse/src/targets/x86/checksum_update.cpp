@@ -1,4 +1,4 @@
-#include "checksum_update.h"
+#include "checksum_update.hpp"
 
 namespace synapse {
 namespace x86 {

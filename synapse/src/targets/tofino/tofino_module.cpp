@@ -1,5 +1,5 @@
-#include "tofino_module.h"
-#include "../../execution_plan/execution_plan.h"
+#include "tofino_module.hpp"
+#include "../../execution_plan/execution_plan.hpp"
 
 #include <unordered_set>
 #include <klee/util/ExprVisitor.h>

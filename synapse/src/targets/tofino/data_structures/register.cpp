@@ -1,5 +1,5 @@
-#include "register.h"
-#include "../tna/tna.h"
+#include "register.hpp"
+#include "../tna/tna.hpp"
 
 namespace synapse {
 namespace tofino {

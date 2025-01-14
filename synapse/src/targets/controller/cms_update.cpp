@@ -1,4 +1,4 @@
-#include "cms_update.h"
+#include "cms_update.hpp"
 
 namespace synapse {
 namespace ctrl {

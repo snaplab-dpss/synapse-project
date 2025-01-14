@@ -1,8 +1,8 @@
-#include "symbex.h"
-#include "bdd.h"
-#include "../util/exprs.h"
-#include "../util/solver.h"
-#include "../system.h"
+#include "symbex.hpp"
+#include "bdd.hpp"
+#include "../util/exprs.hpp"
+#include "../util/solver.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 std::optional<addr_t> get_obj_from_call(const Call *node_call) {

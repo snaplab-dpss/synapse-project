@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <CLI/CLI.hpp>
 
-#include "../src/pcap.h"
+#include "../src/pcap.hpp"
 
 #define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 

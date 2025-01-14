@@ -1,6 +1,6 @@
-#include "exprs.h"
-#include "solver.h"
-#include "../system.h"
+#include "exprs.hpp"
+#include "solver.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 solver_toolbox_t solver_toolbox;

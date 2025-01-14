@@ -3,9 +3,9 @@
 #include <iostream>
 #include <CLI/CLI.hpp>
 
-#include "../src/bdd/bdd.h"
-#include "../src/synthesizers/bdd/synthesizer.h"
-#include "../src/util/symbol_manager.h"
+#include "../src/bdd/bdd.hpp"
+#include "../src/synthesizers/bdd/synthesizer.hpp"
+#include "../src/util/symbol_manager.hpp"
 
 using namespace synapse;
 

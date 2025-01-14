@@ -1,8 +1,8 @@
 #include <klee/util/ExprVisitor.h>
 
-#include "exprs.h"
-#include "solver.h"
-#include "../system.h"
+#include "exprs.hpp"
+#include "solver.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 class SwapPacketEndianness : public klee::ExprVisitor::ExprVisitor {

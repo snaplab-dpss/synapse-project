@@ -1,4 +1,4 @@
-#include "cms_count_min.h"
+#include "cms_count_min.hpp"
 
 namespace synapse {
 namespace x86 {

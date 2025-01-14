@@ -1,7 +1,7 @@
-#include "simple_placer.h"
-#include "tna.h"
+#include "simple_placer.hpp"
+#include "tna.hpp"
 
-#include "../../../system.h"
+#include "../../../system.hpp"
 
 namespace synapse {
 namespace tofino {

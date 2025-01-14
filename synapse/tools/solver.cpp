@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "../src/util/solver.h"
-#include "../src/util/exprs.h"
-#include "../src/util/symbol_manager.h"
+#include "../src/util/solver.hpp"
+#include "../src/util/exprs.hpp"
+#include "../src/util/symbol_manager.hpp"
 
 using synapse::build_expr_mods;
 using synapse::expr_byte_swap_t;

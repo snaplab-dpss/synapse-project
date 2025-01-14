@@ -7,8 +7,8 @@
 #include <limits>
 #include <unistd.h>
 
-#include "graphviz.h"
-#include "../system.h"
+#include "graphviz.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 rgb_t::rgb_t(u8 _r, u8 _g, u8 _b, u8 _o) : r(_r), g(_g), b(_b), o(_o) {}

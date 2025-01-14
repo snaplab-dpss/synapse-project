@@ -1,4 +1,4 @@
-#include "vector_register_update.h"
+#include "vector_register_update.hpp"
 
 namespace synapse {
 namespace ctrl {

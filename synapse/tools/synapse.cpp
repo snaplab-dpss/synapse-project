@@ -3,15 +3,15 @@
 #include <CLI/CLI.hpp>
 #include <toml++/toml.hpp>
 
-#include "../src/bdd/bdd.h"
-#include "../src/visualizers/ep_visualizer.h"
-#include "../src/visualizers/ss_visualizer.h"
-#include "../src/visualizers/profiler_visualizer.h"
-#include "../src/heuristics/heuristics.h"
-#include "../src/search.h"
-#include "../src/synthesizers/ep/synthesizers.h"
-#include "../src/targets/targets.h"
-#include "../src/util/symbol_manager.h"
+#include "../src/bdd/bdd.hpp"
+#include "../src/visualizers/ep_visualizer.hpp"
+#include "../src/visualizers/ss_visualizer.hpp"
+#include "../src/visualizers/profiler_visualizer.hpp"
+#include "../src/heuristics/heuristics.hpp"
+#include "../src/search.hpp"
+#include "../src/synthesizers/ep/synthesizers.hpp"
+#include "../src/targets/targets.hpp"
+#include "../src/util/symbol_manager.hpp"
 
 using namespace synapse;
 

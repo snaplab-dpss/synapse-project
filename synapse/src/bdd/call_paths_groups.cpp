@@ -1,7 +1,7 @@
-#include "call_paths_groups.h"
-#include "../util/exprs.h"
-#include "../util/solver.h"
-#include "../system.h"
+#include "call_paths_groups.hpp"
+#include "../util/exprs.hpp"
+#include "../util/solver.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 void CallPathsGroup::group_call_paths() {

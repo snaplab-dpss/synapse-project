@@ -1,4 +1,4 @@
-#include "ignore.h"
+#include "ignore.hpp"
 
 namespace synapse {
 namespace x86 {

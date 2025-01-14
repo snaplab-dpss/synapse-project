@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "fcfs_cached_table.h"
+#include "fcfs_cached_table.hpp"
 
 namespace synapse {
 namespace tofino {

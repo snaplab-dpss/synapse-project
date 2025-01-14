@@ -1,4 +1,4 @@
-#include "parser_reject.h"
+#include "parser_reject.hpp"
 
 namespace synapse {
 namespace tofino {

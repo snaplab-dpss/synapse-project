@@ -1,4 +1,4 @@
-#include "map_put.h"
+#include "map_put.hpp"
 
 namespace synapse {
 namespace ctrl {

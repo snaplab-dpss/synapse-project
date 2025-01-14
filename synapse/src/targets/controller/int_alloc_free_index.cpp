@@ -1,4 +1,4 @@
-#include "int_alloc_free_index.h"
+#include "int_alloc_free_index.hpp"
 
 namespace synapse {
 namespace ctrl {

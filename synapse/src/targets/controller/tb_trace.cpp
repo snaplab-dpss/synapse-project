@@ -1,4 +1,4 @@
-#include "tb_trace.h"
+#include "tb_trace.hpp"
 
 namespace synapse {
 namespace ctrl {

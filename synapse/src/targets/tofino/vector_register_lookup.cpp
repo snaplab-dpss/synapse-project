@@ -1,4 +1,4 @@
-#include "vector_register_lookup.h"
+#include "vector_register_lookup.hpp"
 
 namespace synapse {
 namespace tofino {

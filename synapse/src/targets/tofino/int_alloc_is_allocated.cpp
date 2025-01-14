@@ -1,4 +1,4 @@
-#include "int_alloc_is_allocated.h"
+#include "int_alloc_is_allocated.hpp"
 
 namespace synapse {
 namespace tofino {

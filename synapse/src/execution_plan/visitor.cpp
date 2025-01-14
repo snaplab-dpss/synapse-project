@@ -1,10 +1,10 @@
 #include <vector>
 
-#include "visitor.h"
-#include "execution_plan.h"
-#include "node.h"
-#include "../targets/module.h"
-#include "../system.h"
+#include "visitor.hpp"
+#include "execution_plan.hpp"
+#include "node.hpp"
+#include "../targets/module.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 void EPVisitor::visit(const EP *ep) {

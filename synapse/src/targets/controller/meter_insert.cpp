@@ -1,4 +1,4 @@
-#include "meter_insert.h"
+#include "meter_insert.hpp"
 
 namespace synapse {
 namespace ctrl {

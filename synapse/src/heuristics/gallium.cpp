@@ -1,6 +1,6 @@
-#include "gallium.h"
-#include "../targets/module.h"
-#include "../system.h"
+#include "gallium.hpp"
+#include "../targets/module.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 i64 GalliumCfg::get_switch_progression_nodes(const EP *ep) const {

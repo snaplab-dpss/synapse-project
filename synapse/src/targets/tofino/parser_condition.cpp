@@ -1,10 +1,10 @@
-#include "parser_condition.h"
+#include "parser_condition.hpp"
 
-#include "if.h"
-#include "then.h"
-#include "else.h"
+#include "if.hpp"
+#include "then.hpp"
+#include "else.hpp"
 
-#include "../../util/simplifier.h"
+#include "../../util/simplifier.hpp"
 
 namespace synapse {
 namespace tofino {

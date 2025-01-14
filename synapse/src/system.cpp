@@ -4,7 +4,7 @@
 
 #define UNW_LOCAL_ONLY
 
-#include "system.h"
+#include "system.hpp"
 
 #include <array>
 #include <iostream>

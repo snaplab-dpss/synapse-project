@@ -2,9 +2,9 @@
 #include <assert.h>
 #include <vector>
 
-#include "../src/util/solver.h"
-#include "../src/util/symbol_manager.h"
-#include "../src/util/kQuery.h"
+#include "../src/util/solver.hpp"
+#include "../src/util/symbol_manager.hpp"
+#include "../src/util/kQuery.hpp"
 
 using synapse::kQuery_t;
 using synapse::kQueryParser;

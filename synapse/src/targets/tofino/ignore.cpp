@@ -1,4 +1,4 @@
-#include "ignore.h"
+#include "ignore.hpp"
 
 #include <unordered_set>
 

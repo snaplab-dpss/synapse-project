@@ -1,4 +1,4 @@
-#include "drop.h"
+#include "drop.hpp"
 
 namespace synapse {
 namespace tofino {

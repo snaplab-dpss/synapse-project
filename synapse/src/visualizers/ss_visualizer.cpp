@@ -1,6 +1,6 @@
 #include <unordered_map>
 
-#include "ss_visualizer.h"
+#include "ss_visualizer.hpp"
 
 namespace synapse {
 namespace {

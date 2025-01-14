@@ -1,4 +1,4 @@
-#include "hash.h"
+#include "hash.hpp"
 
 namespace synapse {
 namespace tofino {

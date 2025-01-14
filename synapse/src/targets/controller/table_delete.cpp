@@ -1,4 +1,4 @@
-#include "table_delete.h"
+#include "table_delete.hpp"
 
 namespace synapse {
 namespace ctrl {

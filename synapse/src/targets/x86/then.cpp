@@ -1,4 +1,4 @@
-#include "then.h"
+#include "then.hpp"
 
 namespace synapse {
 namespace x86 {

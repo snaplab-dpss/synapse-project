@@ -1,9 +1,9 @@
-#include "transpiler.h"
-#include "synthesizer.h"
-#include "../../util/exprs.h"
-#include "../../util/solver.h"
-#include "../../util/simplifier.h"
-#include "../../system.h"
+#include "transpiler.hpp"
+#include "synthesizer.hpp"
+#include "../../util/exprs.hpp"
+#include "../../util/solver.hpp"
+#include "../../util/simplifier.hpp"
+#include "../../system.hpp"
 
 #define TODO(expr)                                                                                                     \
   synthesizer->stack_dbg();                                                                                            \

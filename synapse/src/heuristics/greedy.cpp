@@ -1,6 +1,6 @@
-#include "greedy.h"
-#include "../targets/module.h"
-#include "../system.h"
+#include "greedy.hpp"
+#include "../targets/module.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 i64 GreedyCfg::get_switch_progression_nodes(const EP *ep) const {

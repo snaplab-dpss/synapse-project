@@ -1,4 +1,4 @@
-#include "hh_table_read.h"
+#include "hh_table_read.hpp"
 
 namespace synapse {
 namespace tofino {

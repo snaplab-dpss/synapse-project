@@ -1,4 +1,4 @@
-#include "parser_extraction.h"
+#include "parser_extraction.hpp"
 
 namespace synapse {
 namespace tofino {

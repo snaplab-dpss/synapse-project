@@ -1,10 +1,10 @@
-#include "tofino.h"
-#include "tofino_context.h"
+#include "tofino.hpp"
+#include "tofino_context.hpp"
 
-#include "../../execution_plan/execution_plan.h"
-#include "../module.h"
+#include "../../execution_plan/execution_plan.hpp"
+#include "../module.hpp"
 
-#include "../../visualizers/ep_visualizer.h"
+#include "../../visualizers/ep_visualizer.hpp"
 
 #include <algorithm>
 

@@ -1,4 +1,4 @@
-#include "cms_inc_and_query.h"
+#include "cms_inc_and_query.hpp"
 
 namespace synapse {
 namespace tofino {

@@ -1,11 +1,11 @@
 #include <iomanip>
 
-#include "profiler.h"
-#include "execution_plan/execution_plan.h"
-#include "random_engine.h"
-#include "system.h"
-#include "util/exprs.h"
-#include "util/solver.h"
+#include "profiler.hpp"
+#include "execution_plan/execution_plan.hpp"
+#include "random_engine.hpp"
+#include "system.hpp"
+#include "util/exprs.hpp"
+#include "util/solver.hpp"
 
 namespace synapse {
 namespace {

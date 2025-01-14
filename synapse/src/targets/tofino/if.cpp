@@ -1,7 +1,7 @@
-#include "if.h"
-#include "else.h"
-#include "then.h"
-#include "../../util/simplifier.h"
+#include "if.hpp"
+#include "else.hpp"
+#include "then.hpp"
+#include "../../util/simplifier.hpp"
 
 namespace synapse {
 namespace tofino {

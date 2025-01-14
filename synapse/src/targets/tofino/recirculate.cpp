@@ -1,4 +1,4 @@
-#include "recirculate.h"
+#include "recirculate.hpp"
 
 #define RECIRCULATION_PORT_PARAM "recirc_port"
 

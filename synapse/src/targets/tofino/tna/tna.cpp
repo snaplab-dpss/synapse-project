@@ -1,6 +1,6 @@
-#include "tna.h"
+#include "tna.hpp"
 
-#include "../../../util/exprs.h"
+#include "../../../util/exprs.hpp"
 
 namespace synapse {
 namespace tofino {

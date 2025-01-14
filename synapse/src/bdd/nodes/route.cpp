@@ -1,6 +1,6 @@
-#include "route.h"
-#include "manager.h"
-#include "../bdd.h"
+#include "route.hpp"
+#include "manager.hpp"
+#include "../bdd.hpp"
 
 namespace synapse {
 Node *Route::clone(NodeManager &manager, bool recursive) const {

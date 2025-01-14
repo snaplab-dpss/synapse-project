@@ -1,8 +1,8 @@
-#include "node.h"
-#include "visitor.h"
-#include "../targets/module.h"
-#include "../system.h"
-#include "../util/solver.h"
+#include "node.hpp"
+#include "visitor.hpp"
+#include "../targets/module.hpp"
+#include "../system.hpp"
+#include "../util/solver.hpp"
 
 namespace synapse {
 namespace {

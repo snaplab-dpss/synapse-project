@@ -1,4 +1,4 @@
-#include "cms_increment.h"
+#include "cms_increment.hpp"
 
 namespace synapse {
 namespace x86 {

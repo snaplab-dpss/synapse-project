@@ -2,9 +2,9 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
-#include "../src/bdd/bdd.h"
-#include "../src/bdd/visitors/bdd_visualizer.h"
-#include "../src/util/symbol_manager.h"
+#include "../src/bdd/bdd.hpp"
+#include "../src/bdd/visitors/bdd_visualizer.hpp"
+#include "../src/util/symbol_manager.hpp"
 
 using synapse::BDD;
 using synapse::Branch;

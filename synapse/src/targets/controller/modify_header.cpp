@@ -1,4 +1,4 @@
-#include "modify_header.h"
+#include "modify_header.hpp"
 
 namespace synapse {
 namespace ctrl {

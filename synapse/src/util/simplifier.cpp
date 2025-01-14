@@ -1,10 +1,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "simplifier.h"
-#include "exprs.h"
-#include "solver.h"
-#include "../system.h"
+#include "simplifier.hpp"
+#include "exprs.hpp"
+#include "solver.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {

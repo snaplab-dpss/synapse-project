@@ -1,4 +1,4 @@
-#include "dchain_rejuvenate_index.h"
+#include "dchain_rejuvenate_index.hpp"
 
 namespace synapse {
 namespace ctrl {

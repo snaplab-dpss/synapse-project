@@ -1,6 +1,6 @@
-#include "hh_table.h"
+#include "hh_table.hpp"
 
-#include "../../../util/exprs.h"
+#include "../../../util/exprs.hpp"
 
 namespace synapse {
 namespace tofino {

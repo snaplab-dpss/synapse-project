@@ -1,4 +1,4 @@
-#include "int_alloc_rejuvenate.h"
+#include "int_alloc_rejuvenate.hpp"
 
 namespace synapse {
 namespace tofino {

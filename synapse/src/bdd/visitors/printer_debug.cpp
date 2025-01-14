@@ -1,8 +1,8 @@
-#include "printer_debug.h"
+#include "printer_debug.hpp"
 
-#include "../tree.h"
-#include "../nodes/nodes.h"
-#include "../../util/exprs.h"
+#include "../tree.hpp"
+#include "../nodes/nodes.hpp"
+#include "../../util/exprs.hpp"
 
 namespace synapse {
 void PrinterDebug::debug(const Node *node) {

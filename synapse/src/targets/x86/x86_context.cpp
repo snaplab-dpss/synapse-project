@@ -1,4 +1,4 @@
-#include "x86_context.h"
+#include "x86_context.hpp"
 
 namespace synapse {
 template <> const x86::x86Context *Context::get_target_ctx<x86::x86Context>() const {

@@ -1,9 +1,9 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
-#include "../src/bdd/bdd.h"
-#include "../src/util/exprs.h"
-#include "../src/util/symbol_manager.h"
+#include "../src/bdd/bdd.hpp"
+#include "../src/util/exprs.hpp"
+#include "../src/util/symbol_manager.hpp"
 
 using synapse::anchor_info_t;
 using synapse::BDD;

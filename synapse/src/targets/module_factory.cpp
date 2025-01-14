@@ -1,7 +1,7 @@
-#include "module_factory.h"
+#include "module_factory.hpp"
 
-#include "../execution_plan/execution_plan.h"
-#include "../system.h"
+#include "../execution_plan/execution_plan.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 namespace {

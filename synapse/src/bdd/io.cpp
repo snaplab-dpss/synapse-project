@@ -1,14 +1,14 @@
 #include <fstream>
 #include <iostream>
 
-#include "bdd.h"
+#include "bdd.hpp"
 
-#include "nodes/call.h"
-#include "nodes/branch.h"
-#include "nodes/route.h"
-#include "../util/exprs.h"
-#include "../system.h"
-#include "../util/kQuery.h"
+#include "nodes/call.hpp"
+#include "nodes/branch.hpp"
+#include "nodes/route.hpp"
+#include "../util/exprs.hpp"
+#include "../system.hpp"
+#include "../util/kQuery.hpp"
 
 namespace synapse {
 namespace {

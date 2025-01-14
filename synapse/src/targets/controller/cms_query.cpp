@@ -1,4 +1,4 @@
-#include "cms_query.h"
+#include "cms_query.hpp"
 
 namespace synapse {
 namespace ctrl {

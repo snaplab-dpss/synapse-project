@@ -1,4 +1,4 @@
-#include "tb_update_and_check.h"
+#include "tb_update_and_check.hpp"
 
 namespace synapse {
 namespace x86 {

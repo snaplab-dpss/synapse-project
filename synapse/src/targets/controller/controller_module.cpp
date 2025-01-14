@@ -1,6 +1,6 @@
-#include "controller_module.h"
+#include "controller_module.hpp"
 
-#include "../../execution_plan/execution_plan.h"
+#include "../../execution_plan/execution_plan.hpp"
 
 namespace synapse {
 namespace ctrl {

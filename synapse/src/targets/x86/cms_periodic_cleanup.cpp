@@ -1,4 +1,4 @@
-#include "cms_periodic_cleanup.h"
+#include "cms_periodic_cleanup.hpp"
 
 namespace synapse {
 namespace x86 {

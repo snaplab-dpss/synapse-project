@@ -1,9 +1,9 @@
 #include <sstream>
 
-#include "target.h"
-#include "module.h"
-#include "module_factory.h"
-#include "targets.h"
+#include "target.hpp"
+#include "module.hpp"
+#include "module_factory.hpp"
+#include "targets.hpp"
 
 namespace synapse {
 TargetView::TargetView(TargetType _type, std::vector<const ModuleFactory *> _module_factories,

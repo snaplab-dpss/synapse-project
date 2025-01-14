@@ -1,8 +1,8 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-#include "profile.h"
-#include "../system.h"
+#include "profile.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 using json = nlohmann::json;

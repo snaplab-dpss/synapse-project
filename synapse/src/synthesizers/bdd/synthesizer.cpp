@@ -1,7 +1,7 @@
-#include "synthesizer.h"
-#include "../../util/exprs.h"
-#include "../../util/solver.h"
-#include "../../system.h"
+#include "synthesizer.hpp"
+#include "../../util/exprs.hpp"
+#include "../../util/solver.hpp"
+#include "../../system.hpp"
 
 #define POPULATE_SYNTHESIZER(FNAME)                                                                                    \
   {#FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2)}

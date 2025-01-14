@@ -1,6 +1,6 @@
-#include "search_space.h"
+#include "search_space.hpp"
 
-#include "bdd/bdd.h"
+#include "bdd/bdd.hpp"
 
 namespace synapse {
 namespace {

@@ -1,6 +1,6 @@
-#include "heuristic.h"
-#include "heuristics.h"
-#include "../random_engine.h"
+#include "heuristic.hpp"
+#include "heuristics.hpp"
+#include "../random_engine.hpp"
 
 namespace synapse {
 Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, std::unique_ptr<EP> starting_ep,

@@ -1,4 +1,4 @@
-#include "synthesizer.h"
+#include "synthesizer.hpp"
 
 namespace synapse {
 namespace tofino {

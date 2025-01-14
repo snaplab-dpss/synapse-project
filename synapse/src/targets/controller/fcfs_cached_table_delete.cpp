@@ -1,4 +1,4 @@
-#include "fcfs_cached_table_delete.h"
+#include "fcfs_cached_table_delete.hpp"
 
 namespace synapse {
 namespace ctrl {

@@ -1,8 +1,8 @@
-#include "context.h"
-#include "../targets/targets.h"
-#include "../util/exprs.h"
-#include "../util/solver.h"
-#include "../bdd/bdd.h"
+#include "context.hpp"
+#include "../targets/targets.hpp"
+#include "../util/exprs.hpp"
+#include "../util/solver.hpp"
+#include "../bdd/bdd.hpp"
 
 namespace synapse {
 namespace {

@@ -2,12 +2,12 @@
 
 #include <llvm/Support/MD5.h>
 
-#include "node.h"
-#include "branch.h"
-#include "call.h"
-#include "manager.h"
-#include "../bdd.h"
-#include "../../util/solver.h"
+#include "node.hpp"
+#include "branch.hpp"
+#include "call.hpp"
+#include "manager.hpp"
+#include "../bdd.hpp"
+#include "../../util/solver.hpp"
 
 namespace synapse {
 namespace {

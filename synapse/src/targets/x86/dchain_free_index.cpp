@@ -1,4 +1,4 @@
-#include "dchain_free_index.h"
+#include "dchain_free_index.hpp"
 
 namespace synapse {
 namespace x86 {

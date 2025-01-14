@@ -1,6 +1,6 @@
-#include "hh_table_update.h"
-#include "hh_table_read.h"
-#include "../tofino/hh_table_read.h"
+#include "hh_table_update.hpp"
+#include "hh_table_read.hpp"
+#include "../tofino/hh_table_read.hpp"
 
 namespace synapse {
 namespace ctrl {

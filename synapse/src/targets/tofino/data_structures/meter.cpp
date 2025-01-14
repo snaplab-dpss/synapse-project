@@ -1,6 +1,6 @@
-#include "meter.h"
+#include "meter.hpp"
 
-#include "../../../util/exprs.h"
+#include "../../../util/exprs.hpp"
 
 namespace synapse {
 namespace tofino {

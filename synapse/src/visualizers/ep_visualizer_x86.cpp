@@ -4,11 +4,11 @@
 #include <math.h>
 #include <unistd.h>
 
-#include "ep_visualizer.h"
+#include "ep_visualizer.hpp"
 
-#include "../system.h"
-#include "../execution_plan/execution_plan.h"
-#include "../targets/x86/x86.h"
+#include "../system.hpp"
+#include "../execution_plan/execution_plan.hpp"
+#include "../targets/x86/x86.hpp"
 
 #define SHOW_MODULE_NAME(M)                                                                                            \
   EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                 \

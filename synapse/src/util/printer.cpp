@@ -3,8 +3,8 @@
 
 #include <klee/util/ExprVisitor.h>
 
-#include "exprs.h"
-#include "../system.h"
+#include "exprs.hpp"
+#include "../system.hpp"
 
 namespace synapse {
 

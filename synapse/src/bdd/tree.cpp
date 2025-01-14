@@ -3,15 +3,15 @@
 #include <iostream>
 #include <optional>
 
-#include "bdd.h"
-#include "call_paths_groups.h"
-#include "visitor.h"
-#include "nodes/branch.h"
-#include "nodes/call.h"
-#include "nodes/route.h"
-#include "../util/exprs.h"
-#include "../util/simplifier.h"
-#include "../util/solver.h"
+#include "bdd.hpp"
+#include "call_paths_groups.hpp"
+#include "visitor.hpp"
+#include "nodes/branch.hpp"
+#include "nodes/call.hpp"
+#include "nodes/route.hpp"
+#include "../util/exprs.hpp"
+#include "../util/simplifier.hpp"
+#include "../util/solver.hpp"
 
 namespace synapse {
 namespace {

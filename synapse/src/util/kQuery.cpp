@@ -1,7 +1,7 @@
-#include "kQuery.h"
+#include "kQuery.hpp"
 
-#include "../system.h"
-#include "../util/exprs.h"
+#include "../system.hpp"
+#include "../util/exprs.hpp"
 
 #include <unordered_map>
 

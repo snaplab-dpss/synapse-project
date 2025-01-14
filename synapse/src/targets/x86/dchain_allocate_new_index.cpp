@@ -1,4 +1,4 @@
-#include "dchain_allocate_new_index.h"
+#include "dchain_allocate_new_index.hpp"
 
 namespace synapse {
 namespace x86 {

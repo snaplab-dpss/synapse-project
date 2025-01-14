@@ -1,9 +1,9 @@
-#include "fcfs_cached_table_delete.h"
+#include "fcfs_cached_table_delete.hpp"
 
-#include "if.h"
-#include "else.h"
-#include "then.h"
-#include "send_to_controller.h"
+#include "if.hpp"
+#include "else.hpp"
+#include "then.hpp"
+#include "send_to_controller.hpp"
 
 namespace synapse {
 namespace tofino {

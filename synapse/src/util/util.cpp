@@ -1,13 +1,13 @@
 #include <algorithm>
 
-#include "util.h"
-#include "simplifier.h"
-#include "solver.h"
-#include "symbol.h"
-#include "../constants.h"
-#include "../bdd/bdd.h"
-#include "../targets/targets.h"
-#include "../execution_plan/execution_plan.h"
+#include "util.hpp"
+#include "simplifier.hpp"
+#include "solver.hpp"
+#include "symbol.hpp"
+#include "../constants.hpp"
+#include "../bdd/bdd.hpp"
+#include "../targets/targets.hpp"
+#include "../execution_plan/execution_plan.hpp"
 
 namespace synapse {
 namespace {

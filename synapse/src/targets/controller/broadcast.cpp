@@ -1,4 +1,4 @@
-#include "broadcast.h"
+#include "broadcast.hpp"
 
 namespace synapse {
 namespace ctrl {

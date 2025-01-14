@@ -1,4 +1,4 @@
-#include "tb_is_tracing.h"
+#include "tb_is_tracing.hpp"
 
 namespace synapse {
 namespace ctrl {

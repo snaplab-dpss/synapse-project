@@ -1,7 +1,7 @@
-#include "symbol_manager.h"
-#include "solver.h"
-#include "exprs.h"
-#include "../system.h"
+#include "symbol_manager.hpp"
+#include "solver.hpp"
+#include "exprs.hpp"
+#include "../system.hpp"
 
 #include <klee/util/ExprVisitor.h>
 #include <klee/Constraints.h>

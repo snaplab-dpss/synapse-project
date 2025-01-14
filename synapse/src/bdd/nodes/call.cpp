@@ -1,9 +1,9 @@
-#include "call.h"
-#include "branch.h"
-#include "manager.h"
-#include "../bdd.h"
-#include "../../util/exprs.h"
-#include "../../util/solver.h"
+#include "call.hpp"
+#include "branch.hpp"
+#include "manager.hpp"
+#include "../bdd.hpp"
+#include "../../util/exprs.hpp"
+#include "../../util/solver.hpp"
 
 namespace synapse {
 Node *Call::clone(NodeManager &manager, bool recursive) const {

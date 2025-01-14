@@ -1,9 +1,9 @@
-#include "bdd_visualizer.h"
+#include "bdd_visualizer.hpp"
 
-#include "../tree.h"
-#include "../nodes/nodes.h"
-#include "../../util/exprs.h"
-#include "../../util/solver.h"
+#include "../tree.hpp"
+#include "../nodes/nodes.hpp"
+#include "../../util/exprs.hpp"
+#include "../../util/solver.hpp"
 
 namespace synapse {
 namespace {

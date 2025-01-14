@@ -1,8 +1,8 @@
 #include <fstream>
 
-#include "synthesizer.h"
-#include "../system.h"
-#include "../constants.h"
+#include "synthesizer.hpp"
+#include "../system.hpp"
+#include "../constants.hpp"
 
 namespace synapse {
 namespace {

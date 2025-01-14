@@ -1,11 +1,11 @@
-#include "hh_table_conditional_update.h"
+#include "hh_table_conditional_update.hpp"
 
-#include "if.h"
-#include "then.h"
-#include "else.h"
-#include "../tofino/hh_table_read.h"
-#include "hh_table_read.h"
-#include "hh_table_update.h"
+#include "if.hpp"
+#include "then.hpp"
+#include "else.hpp"
+#include "../tofino/hh_table_read.hpp"
+#include "hh_table_read.hpp"
+#include "hh_table_update.hpp"
 
 namespace synapse {
 namespace ctrl {

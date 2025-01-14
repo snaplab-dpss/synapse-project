@@ -1,4 +1,4 @@
-#include "fcfs_cached_table_read.h"
+#include "fcfs_cached_table_read.hpp"
 
 namespace synapse {
 namespace tofino {

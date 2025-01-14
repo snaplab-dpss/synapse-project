@@ -2,10 +2,10 @@
 #include <map>
 #include <vector>
 
-#include "visitors/bdd_visualizer.h"
-#include "reorder.h"
-#include "../util/exprs.h"
-#include "../util/solver.h"
+#include "visitors/bdd_visualizer.hpp"
+#include "reorder.hpp"
+#include "../util/exprs.hpp"
+#include "../util/solver.hpp"
 
 namespace synapse {
 namespace {

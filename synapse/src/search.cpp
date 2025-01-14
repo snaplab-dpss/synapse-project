@@ -2,11 +2,11 @@
 #include <iomanip>
 #include <cmath>
 
-#include "search.h"
-#include "targets/targets.h"
-#include "heuristics/heuristics.h"
-#include "visualizers/ss_visualizer.h"
-#include "visualizers/ep_visualizer.h"
+#include "search.hpp"
+#include "targets/targets.hpp"
+#include "heuristics/heuristics.hpp"
+#include "visualizers/ss_visualizer.hpp"
+#include "visualizers/ep_visualizer.hpp"
 
 namespace synapse {
 namespace {

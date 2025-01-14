@@ -1,4 +1,4 @@
-#include "vector_write.h"
+#include "vector_write.hpp"
 
 namespace synapse {
 namespace x86 {

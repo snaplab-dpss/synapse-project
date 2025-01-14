@@ -1,7 +1,7 @@
-#include "meta.h"
+#include "meta.hpp"
 
-#include "execution_plan.h"
-#include "../targets/module.h"
+#include "execution_plan.hpp"
+#include "../targets/module.hpp"
 
 namespace synapse {
 void EPMeta::process_node(const Node *node, TargetType target) {

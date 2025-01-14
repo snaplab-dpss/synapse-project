@@ -14,7 +14,7 @@
 
 #include <CLI/CLI.hpp>
 
-#include "../src/pcap.h"
+#include "../src/pcap.hpp"
 
 #define NF "fw"
 

@@ -1,4 +1,4 @@
-#include "dchain_is_index_allocated.h"
+#include "dchain_is_index_allocated.hpp"
 
 namespace synapse {
 namespace ctrl {

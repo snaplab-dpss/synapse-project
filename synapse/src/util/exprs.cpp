@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "exprs.h"
-#include "simplifier.h"
-#include "solver.h"
-#include "../system.h"
+#include "exprs.hpp"
+#include "simplifier.hpp"
+#include "solver.hpp"
+#include "../system.hpp"
 
 #include <klee/util/ExprVisitor.h>
 

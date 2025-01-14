@@ -1,4 +1,4 @@
-#include "controller_context.h"
+#include "controller_context.hpp"
 
 namespace synapse {
 template <> const ctrl::ControllerContext *Context::get_target_ctx<ctrl::ControllerContext>() const {

@@ -1,4 +1,4 @@
-#include "hash_obj.h"
+#include "hash_obj.hpp"
 
 namespace synapse {
 namespace ctrl {

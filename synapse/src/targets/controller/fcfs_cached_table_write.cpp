@@ -1,4 +1,4 @@
-#include "fcfs_cached_table_write.h"
+#include "fcfs_cached_table_write.hpp"
 
 namespace synapse {
 namespace ctrl {

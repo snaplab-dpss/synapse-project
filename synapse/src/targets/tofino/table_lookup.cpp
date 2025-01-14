@@ -1,4 +1,4 @@
-#include "table_lookup.h"
+#include "table_lookup.hpp"
 
 namespace synapse {
 namespace tofino {

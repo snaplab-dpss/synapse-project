@@ -1,11 +1,11 @@
-#include "execution_plan.h"
-#include "node.h"
-#include "visitor.h"
-#include "../targets/targets.h"
-#include "../util/solver.h"
-#include "../profiler.h"
-#include "../system.h"
-#include "../constants.h"
+#include "execution_plan.hpp"
+#include "node.hpp"
+#include "visitor.hpp"
+#include "../targets/targets.hpp"
+#include "../util/solver.hpp"
+#include "../profiler.hpp"
+#include "../system.hpp"
+#include "../constants.hpp"
 
 namespace synapse {
 namespace {

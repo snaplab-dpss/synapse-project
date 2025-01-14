@@ -1,4 +1,4 @@
-#include "meter_update.h"
+#include "meter_update.hpp"
 
 namespace synapse {
 namespace tofino {

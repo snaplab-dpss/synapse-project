@@ -1,8 +1,8 @@
-#include "branch.h"
-#include "manager.h"
-#include "../bdd.h"
-#include "../../util/exprs.h"
-#include "../../system.h"
+#include "branch.hpp"
+#include "manager.hpp"
+#include "../bdd.hpp"
+#include "../../util/exprs.hpp"
+#include "../../system.hpp"
 
 namespace synapse {
 Node *Branch::clone(NodeManager &manager, bool recursive) const {

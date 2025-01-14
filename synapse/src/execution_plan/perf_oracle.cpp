@@ -1,10 +1,10 @@
 #include <cmath>
 #include <iomanip>
 
-#include "perf_oracle.h"
-#include "../system.h"
-#include "../util/util.h"
-#include "../constants.h"
+#include "perf_oracle.hpp"
+#include "../system.hpp"
+#include "../util/util.hpp"
+#include "../constants.hpp"
 
 namespace synapse {
 namespace {

@@ -1,4 +1,4 @@
-#include "table_update.h"
+#include "table_update.hpp"
 
 namespace synapse {
 namespace ctrl {

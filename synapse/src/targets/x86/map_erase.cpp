@@ -1,4 +1,4 @@
-#include "map_erase.h"
+#include "map_erase.hpp"
 
 namespace synapse {
 namespace x86 {

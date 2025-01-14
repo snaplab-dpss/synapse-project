@@ -1,6 +1,6 @@
-#include "if.h"
-#include "else.h"
-#include "then.h"
+#include "if.hpp"
+#include "else.hpp"
+#include "then.hpp"
 
 namespace synapse {
 namespace ctrl {

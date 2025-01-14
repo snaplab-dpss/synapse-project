@@ -1,7 +1,7 @@
-#include "forward.h"
+#include "forward.hpp"
 
-#include "../tofino/forward.h"
-#include "../controller/forward.h"
+#include "../tofino/forward.hpp"
+#include "../controller/forward.hpp"
 
 namespace synapse {
 namespace x86 {
