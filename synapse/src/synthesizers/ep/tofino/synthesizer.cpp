@@ -270,7 +270,9 @@ void EPSynthesizer::visit(const EP *ep) {
 void EPSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   ingress_apply.indent();
-  ingress_apply << "// Node " << ep_node->get_id() << "\n";
+  ingress_apply << "// EP node  " << ep_node->get_id() << "\n";
+  ingress_apply.indent();
+  ingress_apply << "// BDD node " << ep_node->get_module()->get_node()->dump(true) << "\n";
   EPVisitor::visit(ep, ep_node);
 }
 
@@ -810,18 +812,23 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
     ingress << "\n";
   }
 
+  const std::string value_prefix_name = "vector_reg_value";
+  const var_t value_var               = alloc_var(value_prefix_name, value, LOCAL);
+  value_var.declare(ingress_apply, Transpiler::transpile_literal(0, value->getWidth()));
+
   int i         = 0;
   bits_t offset = 0;
   for (const Register *reg : regs) {
-    const std::string entry_prefix_name    = "vector_reg_entry_" + std::to_string(i);
-    const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
-
     const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::READ);
     transpile_register_read_action_decl(ingress, reg, action_name);
     ingress << "\n";
 
-    var_t entry_var = alloc_var(entry_prefix_name, entry_expr, LOCAL);
-    entry_var.declare(ingress_apply, action_name + ".execute(" + transpiler.transpile(index) + ")");
+    const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
+    std::optional<var_t> entry_var         = ingress_vars.get(entry_expr);
+    assert(entry_var && "Register entry is not a variable");
+
+    ingress_apply.indent();
+    ingress_apply << entry_var->name << " = " << action_name + ".execute(" + transpiler.transpile(index) + ");\n";
 
     offset += reg->value_size;
     i++;

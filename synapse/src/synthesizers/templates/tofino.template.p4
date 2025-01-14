@@ -28,6 +28,7 @@ header recirc_h {
 
 struct synapse_ingress_headers_t {
   cpu_h cpu;
+  recirc_h recirc;
 /*@{INGRESS_HEADERS}@*/
 }
 
@@ -98,7 +99,7 @@ parser IngressParser(
 
   state parse_recirc {
     pkt.extract(hdr.recirc);
-    transition init;
+    transition parser_init;
   }
 
 /*@{INGRESS_PARSER}@*/
