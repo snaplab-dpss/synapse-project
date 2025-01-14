@@ -37,9 +37,10 @@ private:
 
 public:
   Synthesizer(std::string template_fname, std::unordered_map<marker_t, indent_t> markers, std::ostream &_out);
+  virtual ~Synthesizer() = default;
 
 protected:
-  coder_t &get(const marker_t &marker);
+  virtual coder_t &get(const marker_t &marker);
   void dump() const;
   void dbg_code() const;
 };

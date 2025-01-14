@@ -19,6 +19,11 @@ header cpu_h {
 /*@{CPU_HEADER}@*/
 }
 
+header recirc_h {
+  bit<16> code_path;
+/*@{RECIRCULATION_HEADER}@*/
+};
+
 /*@{CUSTOM_HEADERS}@*/
 
 struct synapse_ingress_headers_t {
@@ -34,6 +39,7 @@ struct synapse_ingress_metadata_t {
 
 struct synapse_egress_headers_t {
   cpu_h cpu;
+  recirc_h recirc;
 /*@{EGRESS_HEADERS}@*/
 }
 
@@ -80,6 +86,7 @@ parser IngressParser(
 
     transition select(ig_intr_md.ingress_port) {
       CPU_PCIE_PORT: parse_cpu;
+      RECIRCULATION_PORT: parse_recirc;
       default: parser_init;
     }
   }
@@ -87,6 +94,11 @@ parser IngressParser(
   state parse_cpu {
     pkt.extract(hdr.cpu);
     transition accept;
+  }
+
+  state parse_recirc {
+    pkt.extract(hdr.recirc);
+    transition init;
   }
 
 /*@{INGRESS_PARSER}@*/
@@ -126,6 +138,8 @@ control Ingress(
     if (hdr.cpu.isValid()) {
       hdr.cpu.setInvalid();
       fwd(hdr.cpu.out_port);
+    } else if (hdr.recirc.isValid()) {
+/*@{INGRESS_CONTROL_APPLY_RECIRC}@*/      
     } else {
 /*@{INGRESS_CONTROL_APPLY}@*/
     }

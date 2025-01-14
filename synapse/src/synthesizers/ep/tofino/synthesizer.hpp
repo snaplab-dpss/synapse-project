@@ -85,11 +85,15 @@ private:
   std::unordered_set<DS_ID> declared_ds;
   std::unordered_map<node_id_t, Stack> parser_vars;
   std::unordered_map<node_id_t, Stack> parser_hdrs;
+  std::vector<coder_t> recirc_coders;
+  std::optional<code_path_t> active_recirc_code_path;
 
   Transpiler transpiler;
 
 public:
   EPSynthesizer(std::ostream &out, const BDD *bdd);
+
+  coder_t &get(const std::string &marker) override final;
 
   void visit(const EP *ep) override final;
   void visit(const EP *ep, const EPNode *ep_node) override final;
@@ -120,6 +124,7 @@ private:
 
   code_t create_unique_name(const code_t &name);
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, alloc_opt_t option);
+  code_path_t alloc_recirc_coder();
 
   code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
   void transpile_parser(const Parser &parser);

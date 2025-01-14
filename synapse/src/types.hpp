@@ -19,7 +19,7 @@ typedef int8_t i8;
 
 typedef u32 bits_t;
 typedef u32 bytes_t;
-
+typedef u16 code_path_t;
 typedef u64 addr_t;
 typedef std::unordered_set<addr_t> addrs_t;
 

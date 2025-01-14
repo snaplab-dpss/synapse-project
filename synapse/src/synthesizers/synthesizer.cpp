@@ -81,12 +81,11 @@ void Synthesizer::dump() const {
   code_t template_str = buffer.str();
 
   for (const auto &[marker_label, coder] : coders) {
-    marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
-    code_t code     = coder.stream.str();
+    const marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
+    const code_t code     = coder.stream.str();
+    const size_t pos      = template_str.find(marker);
 
-    size_t pos = template_str.find(marker);
     assert(pos != std::string::npos && "Marker not found in template.");
-
     template_str.replace(pos, marker.size(), code);
   }
 
@@ -96,8 +95,8 @@ void Synthesizer::dump() const {
 
 void Synthesizer::dbg_code() const {
   for (const auto &[marker_label, coder] : coders) {
-    marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
-    code_t code     = coder.stream.str();
+    const marker_t marker = TEMPLATE_MARKER_AFFIX + marker_label + TEMPLATE_MARKER_SUFFIX;
+    const code_t code     = coder.stream.str();
 
     std::cerr << "\n====================\n";
     std::cerr << "Marker: " << marker << "\n";

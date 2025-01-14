@@ -6,20 +6,19 @@ namespace synapse {
 namespace tofino {
 namespace {
 
-constexpr const char *const MARKER_CPU_HEADER     = "CPU_HEADER";
-constexpr const char *const MARKER_CUSTOM_HEADERS = "CUSTOM_HEADERS";
-
-constexpr const char *const MARKER_INGRESS_HEADERS       = "INGRESS_HEADERS";
-constexpr const char *const MARKER_INGRESS_METADATA      = "INGRESS_METADATA";
-constexpr const char *const MARKER_INGRESS_PARSER        = "INGRESS_PARSER";
-constexpr const char *const MARKER_INGRESS_CONTROL       = "INGRESS_CONTROL";
-constexpr const char *const MARKER_INGRESS_CONTROL_APPLY = "INGRESS_CONTROL_APPLY";
-constexpr const char *const MARKER_INGRESS_DEPARSER      = "INGRESS_DEPARSER";
-
-constexpr const char *const MARKER_EGRESS_HEADERS  = "EGRESS_HEADERS";
-constexpr const char *const MARKER_EGRESS_METADATA = "EGRESS_METADATA";
-
-constexpr const char *const TEMPLATE_FILENAME = "tofino.template.p4";
+constexpr const char *const MARKER_CPU_HEADER                   = "CPU_HEADER";
+constexpr const char *const MARKER_CUSTOM_HEADERS               = "CUSTOM_HEADERS";
+constexpr const char *const MARKER_RECIRCULATION_HEADER         = "RECIRCULATION_HEADER";
+constexpr const char *const MARKER_INGRESS_HEADERS              = "INGRESS_HEADERS";
+constexpr const char *const MARKER_INGRESS_METADATA             = "INGRESS_METADATA";
+constexpr const char *const MARKER_INGRESS_PARSER               = "INGRESS_PARSER";
+constexpr const char *const MARKER_INGRESS_CONTROL              = "INGRESS_CONTROL";
+constexpr const char *const MARKER_INGRESS_CONTROL_APPLY        = "INGRESS_CONTROL_APPLY";
+constexpr const char *const MARKER_INGRESS_CONTROL_APPLY_RECIRC = "INGRESS_CONTROL_APPLY_RECIRC";
+constexpr const char *const MARKER_INGRESS_DEPARSER             = "INGRESS_DEPARSER";
+constexpr const char *const MARKER_EGRESS_HEADERS               = "EGRESS_HEADERS";
+constexpr const char *const MARKER_EGRESS_METADATA              = "EGRESS_METADATA";
+constexpr const char *const TEMPLATE_FILENAME                   = "tofino.template.p4";
 
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx              = ep->get_ctx();
@@ -221,6 +220,7 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
                       {MARKER_INGRESS_PARSER, 1},
                       {MARKER_INGRESS_CONTROL, 1},
                       {MARKER_INGRESS_CONTROL_APPLY, 3},
+                      {MARKER_INGRESS_CONTROL_APPLY_RECIRC, 3},
                       {MARKER_INGRESS_DEPARSER, 2},
                       {MARKER_EGRESS_HEADERS, 1},
                       {MARKER_EGRESS_METADATA, 1},
@@ -232,6 +232,13 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
 
   alloc_var("meta.port", solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
   alloc_var("meta.time", time.expr, GLOBAL | EXACT_NAME);
+}
+
+coder_t &EPSynthesizer::get(const std::string &marker) {
+  if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {
+    return Synthesizer::get(MARKER_INGRESS_CONTROL_APPLY_RECIRC);
+  }
+  return Synthesizer::get(marker);
 }
 
 void EPSynthesizer::visit(const EP *ep) {
@@ -404,6 +411,12 @@ EPSynthesizer::var_t EPSynthesizer::alloc_var(const code_t &proposed_name, klee:
   return var;
 }
 
+code_path_t EPSynthesizer::alloc_recirc_coder() {
+  size_t size = recirc_coders.size();
+  recirc_coders.emplace_back();
+  return size;
+}
+
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::SendToController *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   const Symbols &symbols = node->get_symbols();
@@ -435,8 +448,58 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Recirculate *node) {
-  panic("TODO: Recirculate");
-  return EPVisitor::Action::doChildren;
+  const std::vector<EPNode *> &children = ep_node->get_children();
+  assert(children.size() == 1);
+  const EPNode *next = children[0];
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  coder_t &recirc        = get(MARKER_INGRESS_CONTROL_APPLY_RECIRC);
+
+  // 1. Allocate a new recirculation code path
+  code_path_t code_path = alloc_recirc_coder();
+
+  // 2. Build the recirculation header and populate it with the current stack
+  ingress_apply.indent();
+  ingress_apply << "hdr.recirc.setValid();\n";
+  ingress_apply << "hdr.recirc.code_path = " << code_path << "\n;";
+
+  std::vector<symbol_t> symbols = node->get_symbols().get();
+  for (const symbol_t &symbol : symbols) {
+    const code_t transpiled = transpiler.transpile(symbol.expr);
+    const var_t var         = alloc_var("hdr.recirc." + symbol.name, symbol.expr, LOCAL);
+    ingress_apply.indent();
+    ingress_apply << var.name << " = " << transpiled << ";\n";
+  }
+
+  // 3. Forward to recirculation port
+  int port = node->get_recirc_port();
+  ingress_apply.indent();
+  ingress_apply << "fwd(" << port << ");\n";
+
+  std::cerr << "\n\n\n ======== RECIRCULATION LOGIC DEBUG ========\n\n";
+  dbg_vars();
+  dbg_pause();
+
+  // 4. Replace the ingress apply coder with the recirc coder
+  active_recirc_code_path = code_path;
+
+  // 5. Clear the stack, rebuild it with hdr.recirc fields, and setup the recirculation code block
+  recirc.indent();
+  recirc << "if (hdr.recirc.code_path == " << code_path << ") {\n";
+  recirc.inc();
+
+  ingress_vars.push();
+  visit(ep, next);
+  ingress_vars.pop();
+  recirc.dec();
+
+  recirc.indent();
+  recirc << "}\n";
+
+  // 6. Revert back to the ingress apply coder
+  active_recirc_code_path.reset();
+
+  return EPVisitor::Action::skipChildren;
 }
 
 EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, const tofino::Ignore *node) {

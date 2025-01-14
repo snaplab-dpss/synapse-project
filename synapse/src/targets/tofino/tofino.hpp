@@ -47,7 +47,7 @@ struct TofinoTarget : public Target {
             []() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<SendToControllerFactory>());
-              // f.push_back(std::make_unique<RecirculateFactory>());
+              f.push_back(std::make_unique<RecirculateFactory>());
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<DropFactory>());
               f.push_back(std::make_unique<BroadcastFactory>());
