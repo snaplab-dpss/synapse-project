@@ -1,9 +1,9 @@
-#include <sycon/sycon.h>
+#include <sycon/sycon.hpp>
 
 using namespace sycon;
 
 class IpRoute : public Table {
- private:
+private:
   struct key_fields_t {
     // Key fields IDs
     bf_rt_id_t vrf;
@@ -27,7 +27,7 @@ class IpRoute : public Table {
     bf_rt_id_t nat;
   } actions;
 
- public:
+public:
   IpRoute() : Table("SwitchIngress", "ipRoute") {
     init_key({
         {"vrf", &key_fields.vrf},
@@ -55,9 +55,8 @@ class IpRoute : public Table {
     });
   }
 
- public:
-  void add_entry_nat(u16 vrf, u32 dst_addr, u32 data_src_addr,
-                     u32 data_dst_addr, u16 data_dst_port) {
+public:
+  void add_entry_nat(u16 vrf, u32 dst_addr, u32 data_src_addr, u32 data_dst_addr, u16 data_dst_port) {
     key_setup(vrf, dst_addr);
     data_setup_nat(data_src_addr, data_dst_addr, data_dst_port);
 
@@ -65,7 +64,7 @@ class IpRoute : public Table {
     ASSERT_BF_STATUS(bf_status);
   }
 
- private:
+private:
   void key_setup(u16 vrf, u32 dst_addr) {
     table->keyReset(key.get());
 
@@ -80,16 +79,13 @@ class IpRoute : public Table {
     auto bf_status = table->dataReset(actions.nat, data.get());
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status =
-        data->setValue(data_fields.nat_srcAddr, static_cast<u64>(src_addr));
+    bf_status = data->setValue(data_fields.nat_srcAddr, static_cast<u64>(src_addr));
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status =
-        data->setValue(data_fields.nat_dstAddr, static_cast<u64>(dst_addr));
+    bf_status = data->setValue(data_fields.nat_dstAddr, static_cast<u64>(dst_addr));
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status =
-        data->setValue(data_fields.nat_dst_port, static_cast<u64>(dst_port));
+    bf_status = data->setValue(data_fields.nat_dst_port, static_cast<u64>(dst_port));
     ASSERT_BF_STATUS(bf_status);
   }
 };
@@ -98,7 +94,7 @@ struct state_t {
   IpRoute ipRoute;
 };
 
-state_t* state;
+state_t *state;
 
 void sycon::nf_init() {
   state = new state_t();
@@ -111,8 +107,8 @@ void sycon::nf_exit() { delete state; }
 
 void sycon::nf_user_signal_handler() {}
 
-void sycon::nf_args(CLI::App& app) {}
+void sycon::nf_args(CLI::App &app) {}
 
-bool sycon::nf_process(time_ns_t now, byte_t* pkt, u16 size) { return true; }
+bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) { return true; }
 
-int main(int argc, char** argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }
+int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

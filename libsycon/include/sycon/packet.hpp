@@ -1,8 +1,6 @@
 #pragma once
 
-#include <arpa/inet.h>
-
-#include "util.h"
+#include "util.hpp"
 
 namespace sycon {
 
@@ -51,7 +49,6 @@ void packet_log(const tcpudp_hdr_t *tcpudp_hdr);
 
 unsigned ether_addr_hash(mac_addr_t addr);
 u16 ipv4_cksum(const ipv4_hdr_t *ipv4_hdr);
-u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
-                                 const void *l4_hdr);
+u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr, const void *l4_hdr);
 
-}  // namespace sycon
+} // namespace sycon

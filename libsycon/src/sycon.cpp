@@ -1,4 +1,8 @@
-#include "../include/sycon/sycon.h"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include "../include/sycon/sycon.hpp"
 
 #include <signal.h>
 
@@ -28,7 +32,7 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
   bf_switchd_init_sig_set(&set);
 
   tid = pthread_self();
-  s = pthread_detach(tid);
+  s   = pthread_detach(tid);
   if (s != 0) {
     ERROR("pthread_detach");
   }
@@ -41,22 +45,21 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
     }
 
     switch (signum) {
-      case SIGINT:
-      case SIGQUIT:
-      case SIGTERM:
-        DEBUG("~~~ NF exit ~~~")
-        nf_exit();
-        bf_switchd_exit_sighandler(signum);
-        exit(0);
-      case SIGUSR1:
-        LOG("~~~ Received a USR1 signal ~~~")
-        nf_user_signal_handler();
-        LOG("~~~ USR1 signal processing done ~~~")
-        break;
-      default:
-        DEBUG("~~~ Received unknown signal %d (%s) ~~~", signum,
-              strsignal(signum));
-        break;
+    case SIGINT:
+    case SIGQUIT:
+    case SIGTERM:
+      DEBUG("~~~ NF exit ~~~")
+      nf_exit();
+      bf_switchd_exit_sighandler(signum);
+      exit(0);
+    case SIGUSR1:
+      LOG("~~~ Received a USR1 signal ~~~")
+      nf_user_signal_handler();
+      LOG("~~~ USR1 signal processing done ~~~")
+      break;
+    default:
+      DEBUG("~~~ Received unknown signal %d (%s) ~~~", signum, strsignal(signum));
+      break;
     }
   }
 
@@ -98,13 +101,11 @@ void run_cli() {
   pthread_join(cfg.switchd_ctx->port_fsm_t_id, NULL);
   pthread_join(cfg.switchd_ctx->drusim_t_id, NULL);
 
-  for (size_t i = 0; i < sizeof(cfg.switchd_ctx->agent_t_id) /
-                             sizeof(cfg.switchd_ctx->agent_t_id[0]);
-       ++i) {
+  for (size_t i = 0; i < sizeof(cfg.switchd_ctx->agent_t_id) / sizeof(cfg.switchd_ctx->agent_t_id[0]); ++i) {
     if (cfg.switchd_ctx->agent_t_id[i] != 0) {
       pthread_join(cfg.switchd_ctx->agent_t_id[i], NULL);
     }
   }
 }
 
-}  // namespace sycon
+} // namespace sycon

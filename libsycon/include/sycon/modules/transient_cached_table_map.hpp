@@ -6,13 +6,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../primitives/register.h"
-#include "table_map.h"
+#include "../primitives/register.hpp"
+#include "table_map.hpp"
 
 namespace sycon {
 
-template <size_t K, size_t V>
-class TransientCachedTableMap : public TableMap<K, V> {
+template <size_t K, size_t V> class TransientCachedTableMap : public TableMap<K, V> {
   static_assert(K > 0);
   static_assert(V > 0);
 
@@ -22,7 +21,7 @@ class TransientCachedTableMap : public TableMap<K, V> {
     table_value_t<V> value;
   };
 
- private:
+private:
   Register cache_timer;
 
   std::string digest_control_name;
@@ -31,41 +30,36 @@ class TransientCachedTableMap : public TableMap<K, V> {
   const bfrt::BfRtLearn *learn_obj;
   std::vector<bf_rt_id_t> learn_obj_fields_ids;
 
- public:
-  TransientCachedTableMap(const std::string &_control_name,
-                          const std::string &_table_name, time_ms_t _timeout,
-                          const std::string &_cache_timer_name,
-                          const std::string &_digest_control_name,
+public:
+  TransientCachedTableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout,
+                          const std::string &_cache_timer_name, const std::string &_digest_control_name,
                           const std::string &_digest_name)
-      : TableMap<K, V>(_control_name, _table_name, _timeout),
-        cache_timer(_control_name, _cache_timer_name),
-        digest_control_name(_digest_control_name),
-        digest_name(_digest_name) {
+      : TableMap<K, V>(_control_name, _table_name, _timeout), cache_timer(_control_name, _cache_timer_name),
+        digest_control_name(_digest_control_name), digest_name(_digest_name) {
     init_digest();
     register_digest_callback();
   }
 
- private:
+private:
   void init_digest() {
-    bf_status_t bf_status = cfg.info->bfrtLearnFromNameGet(
-        Table::append_control(digest_control_name, digest_name), &learn_obj);
+    bf_status_t bf_status =
+        cfg.info->bfrtLearnFromNameGet(Table::append_control(digest_control_name, digest_name), &learn_obj);
     ASSERT_BF_STATUS(bf_status)
 
     bf_status = learn_obj->learnFieldIdListGet(&learn_obj_fields_ids);
     ASSERT_BF_STATUS(bf_status)
 
     if (learn_obj_fields_ids.size() != K + V + 1) {
-      ERROR(
-          "Digest learn object should be composed of a cache index value, "
-          "followed by the same keys and values stored on the table map (has "
-          "%lu total fields)",
-          learn_obj_fields_ids.size());
+      ERROR("Digest learn object should be composed of a cache index value, "
+            "followed by the same keys and values stored on the table map (has "
+            "%lu total fields)",
+            learn_obj_fields_ids.size());
     }
   }
 
   void register_digest_callback() {
-    bf_status_t bf_status = learn_obj->bfRtLearnCallbackRegister(
-        cfg.session, cfg.dev_tgt, internal_digest_callback, (void *)this);
+    bf_status_t bf_status =
+        learn_obj->bfRtLearnCallbackRegister(cfg.session, cfg.dev_tgt, internal_digest_callback, (void *)this);
     ASSERT_BF_STATUS(bf_status)
   }
 
@@ -74,7 +68,7 @@ class TransientCachedTableMap : public TableMap<K, V> {
 
     assert(1 + K + V == learn_obj_fields_ids.size());
 
-    bf_rt_id_t id = learn_obj_fields_ids[0];
+    bf_rt_id_t id         = learn_obj_fields_ids[0];
     bf_status_t bf_status = data->getValue(id, &digest.cache_index);
     ASSERT_BF_STATUS(bf_status)
 
@@ -108,11 +102,10 @@ class TransientCachedTableMap : public TableMap<K, V> {
     TableMap<K, V>::put(digest.key, digest.value);
   }
 
-  static bf_status_t internal_digest_callback(
-      const bf_rt_target_t &bf_rt_tgt,
-      const std::shared_ptr<bfrt::BfRtSession> session,
-      std::vector<std::unique_ptr<bfrt::BfRtLearnData>> data,
-      bf_rt_learn_msg_hdl *const learn_msg_hdl, const void *cookie) {
+  static bf_status_t internal_digest_callback(const bf_rt_target_t &bf_rt_tgt,
+                                              const std::shared_ptr<bfrt::BfRtSession> session,
+                                              std::vector<std::unique_ptr<bfrt::BfRtLearnData>> data,
+                                              bf_rt_learn_msg_hdl *const learn_msg_hdl, const void *cookie) {
     DEBUG("RECEIVED %lu DIGESTS!", data.size());
 
     TransientCachedTableMap *tctm = (TransientCachedTableMap *)(cookie);
@@ -125,12 +118,11 @@ class TransientCachedTableMap : public TableMap<K, V> {
 
     // Don't forget to ACK back! This tells the driver to release the allocated
     // resources.
-    bf_status_t ack_status =
-        tctm->learn_obj->bfRtLearnNotifyAck(session, learn_msg_hdl);
+    bf_status_t ack_status = tctm->learn_obj->bfRtLearnNotifyAck(session, learn_msg_hdl);
     ASSERT_BF_STATUS(ack_status)
 
     return BF_SUCCESS;
   }
 };
 
-}  // namespace sycon
+} // namespace sycon

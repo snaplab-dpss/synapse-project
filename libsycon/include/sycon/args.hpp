@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "time.h"
-#include "util.h"
+#include "time.hpp"
+#include "util.hpp"
 
 namespace sycon {
 
@@ -23,4 +23,4 @@ struct args_t {
 
 extern args_t args;
 
-}  // namespace sycon
+} // namespace sycon

@@ -5,15 +5,15 @@
 #include <limits>
 #include <string>
 
-#include "log.h"
+#include "log.hpp"
 
 #define SWAP_ENDIAN_16(v) __bswap_16((v))
 #define SWAP_ENDIAN_32(v) __bswap_32((v))
 
-#define WAIT_FOR_ENTER(msg)                                             \
-  {                                                                     \
-    LOG(msg);                                                           \
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); \
+#define WAIT_FOR_ENTER(msg)                                                                                            \
+  {                                                                                                                    \
+    LOG(msg);                                                                                                          \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                \
   }
 
 #define likely(x) __builtin_expect((x), 1)
@@ -35,8 +35,7 @@ typedef u8 byte_t;
 
 typedef u64 field_t;
 
-template <size_t N>
-struct fields_t {
+template <size_t N> struct fields_t {
   std::array<u64, N> values;
 
   fields_t() {}
@@ -47,8 +46,7 @@ struct fields_t {
   void operator=(const fields_t &other) { values = other.values; }
 };
 
-template <size_t N>
-bool operator==(const fields_t<N> &lhs, const fields_t<N> &rhs) {
+template <size_t N> bool operator==(const fields_t<N> &lhs, const fields_t<N> &rhs) {
   for (size_t i = 0; i < N; i++) {
     if (lhs.values[i] != rhs.values[i]) {
       return false;
@@ -57,8 +55,7 @@ bool operator==(const fields_t<N> &lhs, const fields_t<N> &rhs) {
   return true;
 }
 
-template <size_t N>
-struct fields_hash_t {
+template <size_t N> struct fields_hash_t {
   std::size_t operator()(const fields_t<N> &k) const {
     std::size_t hash = 0;
 
@@ -70,12 +67,10 @@ struct fields_hash_t {
   }
 };
 
-template <size_t N>
-using table_key_t = fields_t<N>;
+template <size_t N> using table_key_t = fields_t<N>;
 
-template <size_t N>
-using table_value_t = fields_t<N>;
+template <size_t N> using table_value_t = fields_t<N>;
 
 std::string read_env(const char *env_var);
 
-}  // namespace sycon
+} // namespace sycon

@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../include/sycon/args.h"
-#include "../../include/sycon/log.h"
-#include "../../include/sycon/primitives/table.h"
-#include "../../include/sycon/time.h"
-#include "../../include/sycon/util.h"
+#include "../../include/sycon/args.hpp"
+#include "../../include/sycon/log.hpp"
+#include "../../include/sycon/primitives/table.hpp"
+#include "../../include/sycon/time.hpp"
+#include "../../include/sycon/util.hpp"
 
 namespace sycon {
 
 class Device_Configuration : Table {
- private:
+private:
   // Data field ids
   bf_rt_id_t sku;
   bf_rt_id_t num_pipes;
@@ -28,9 +28,8 @@ class Device_Configuration : Table {
   bf_rt_id_t inactive_node_delete;
   bf_rt_id_t selector_member_order;
 
- public:
-  Device_Configuration()
-      : Table(TOFINO_ARCH(args.tna_version) + ".dev", "device_configuration") {
+public:
+  Device_Configuration() : Table(TOFINO_ARCH(args.tna_version) + ".dev", "device_configuration") {
     init_data({{"sku", &sku},
                {"num_pipes", &num_pipes},
                {"num_stages", &num_stages},
@@ -64,4 +63,4 @@ class Device_Configuration : Table {
   }
 };
 
-}  // namespace sycon
+} // namespace sycon

@@ -4,34 +4,31 @@
 #include <optional>
 #include <unordered_set>
 
-#include "../constants.h"
-#include "../primitives/table.h"
-#include "../time.h"
-#include "../util.h"
+#include "../constants.hpp"
+#include "../primitives/table.hpp"
+#include "../time.hpp"
+#include "../util.hpp"
 
 namespace sycon {
 
-template <size_t K, size_t V>
-class TableMap : public Table {
+template <size_t K, size_t V> class TableMap : public Table {
   static_assert(K > 0);
   static_assert(V > 0);
 
- private:
+private:
   std::unordered_map<table_key_t<K>, table_value_t<V>, fields_hash_t<K>> cache;
 
   bf_rt_id_t action_id;
   std::optional<time_ms_t> timeout;
 
- public:
-  TableMap(const std::string &_control_name, const std::string &_table_name)
-      : Table(_control_name, _table_name) {
+public:
+  TableMap(const std::string &_control_name, const std::string &_table_name) : Table(_control_name, _table_name) {
     init_key();
     init_action(&action_id);
     init_data_with_action(action_id);
   }
 
-  TableMap(const std::string &_control_name, const std::string &_table_name,
-           time_ms_t _timeout)
+  TableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout)
       : TableMap(_control_name, _table_name) {
     timeout = _timeout;
     enable_expirations();
@@ -44,8 +41,7 @@ class TableMap : public Table {
 
   void disable_expirations() {
     assert(timeout);
-    set_notify_mode(*timeout, (void *)this, internal_expiration_callback,
-                    false);
+    set_notify_mode(*timeout, (void *)this, internal_expiration_callback, false);
   }
 
   // Gets the cached version only.
@@ -78,7 +74,7 @@ class TableMap : public Table {
     cache.erase(k);
   }
 
- private:
+private:
   void key_setup(const table_key_t<K> &k) {
     auto bf_status = table->keyReset(key.get());
     ASSERT_BF_STATUS(bf_status)
@@ -99,8 +95,8 @@ class TableMap : public Table {
 
     for (size_t i = 0; i < V; i++) {
       auto param_field_value = v.values[i];
-      auto param_field = data_fields[i];
-      bf_status = data->setValue(param_field.id, param_field_value);
+      auto param_field       = data_fields[i];
+      bf_status              = data->setValue(param_field.id, param_field_value);
       ASSERT_BF_STATUS(bf_status)
     }
 
@@ -117,8 +113,7 @@ class TableMap : public Table {
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
     bf_rt_handle_t entry_handle;
-    bf_status_t bf_status = table->tableEntryHandleGet(*session, dev_tgt, flags,
-                                                       *key, &entry_handle);
+    bf_status_t bf_status = table->tableEntryHandleGet(*session, dev_tgt, flags, *key, &entry_handle);
 
     if (bf_status == BF_OBJECT_NOT_FOUND) {
       return false;
@@ -135,8 +130,7 @@ class TableMap : public Table {
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
     bf_rt_handle_t entry_handle;
-    bf_status_t bf_status = table->tableEntryHandleGet(*session, dev_tgt, flags,
-                                                       *key, &entry_handle);
+    bf_status_t bf_status = table->tableEntryHandleGet(*session, dev_tgt, flags, *key, &entry_handle);
 
     if (bf_status == BF_OBJECT_NOT_FOUND) {
       return false;
@@ -147,8 +141,7 @@ class TableMap : public Table {
     bfrt::BfRtTableKey key;
     bfrt::BfRtTableData value;
 
-    bf_status = table->tableEntryGet(*session, dev_tgt, flags, entry_handle,
-                                     &key, &value);
+    bf_status = table->tableEntryGet(*session, dev_tgt, flags, entry_handle, &key, &value);
 
     if (bf_status == BF_OBJECT_NOT_FOUND) {
       return false;
@@ -169,8 +162,7 @@ class TableMap : public Table {
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    auto bf_status =
-        table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
+    auto bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
 
     ASSERT_BF_STATUS(bf_status)
   }
@@ -184,8 +176,7 @@ class TableMap : public Table {
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    auto bf_status =
-        table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
+    auto bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
 
     ASSERT_BF_STATUS(bf_status)
   }
@@ -222,7 +213,7 @@ class TableMap : public Table {
     assert(K == key_fields.size());
 
     for (size_t i = 0; i < key_fields.size(); i++) {
-      auto field = key_fields[i];
+      auto field     = key_fields[i];
       auto bf_status = key->getValue(field.id, &k.values[i]);
       ASSERT_BF_STATUS(bf_status)
     }
@@ -236,7 +227,7 @@ class TableMap : public Table {
     assert(V == data_fields.size());
 
     for (size_t i = 0; i < data_fields.size(); i++) {
-      auto field = data_fields[i];
+      auto field     = data_fields[i];
       auto bf_status = value->getValue(field.id, &v.values[i]);
       ASSERT_BF_STATUS(bf_status)
     }
@@ -244,8 +235,7 @@ class TableMap : public Table {
     return v;
   }
 
-  void log_entry_op(const std::string &op, const table_key_t<K> &k,
-                    const table_value_t<V> *v = nullptr) const {
+  void log_entry_op(const std::string &op, const table_key_t<K> &k, const table_value_t<V> *v = nullptr) const {
     DEBUG();
     DEBUG("*********************************************");
 
@@ -257,7 +247,7 @@ class TableMap : public Table {
     DEBUG("  Key:");
     for (size_t i = 0; i < K; i++) {
       const table_field_t &key_field = key_fields[i];
-      const u64 &key_value = k.values[i];
+      const u64 &key_value           = k.values[i];
       DEBUG("     %s : 0x%02lx", key_field.name.c_str(), key_value);
     }
 
@@ -267,7 +257,7 @@ class TableMap : public Table {
       DEBUG("  Data:");
       for (size_t i = 0; i < V; i++) {
         const table_field_t &data_field = data_fields[i];
-        const u64 &data_value = v->values[i];
+        const u64 &data_value           = v->values[i];
         DEBUG("     %s : 0x%02lx", data_field.name.c_str(), data_value);
       }
 
@@ -275,10 +265,9 @@ class TableMap : public Table {
     }
   }
 
-  static bf_status_t internal_expiration_callback(const bf_rt_target_t &target,
-                                                  const bfrt::BfRtTableKey *key,
+  static bf_status_t internal_expiration_callback(const bf_rt_target_t &target, const bfrt::BfRtTableKey *key,
                                                   void *cookie) {
-    TableMap *tm = static_cast<TableMap *>(cookie);
+    TableMap *tm     = static_cast<TableMap *>(cookie);
     table_key_t<K> k = tm->build_key(key);
 
     cfg.begin_transaction();
@@ -289,4 +278,4 @@ class TableMap : public Table {
   }
 };
 
-}  // namespace sycon
+} // namespace sycon

@@ -6,7 +6,7 @@ extern "C" {
 #include <bf_switchd/bf_switchd.h>
 }
 
-#include "log.h"
+#include "log.hpp"
 
 namespace sycon {
 
@@ -15,19 +15,16 @@ typedef struct {
 } atom_t;
 
 // DPDK's implementation of an atomic 16b compare and set operation.
-static inline int atomic16_cmpset(volatile uint16_t *dst, uint16_t exp,
-                                  uint16_t src) {
+static inline int atomic16_cmpset(volatile uint16_t *dst, uint16_t exp, uint16_t src) {
   uint8_t res;
-
-  asm volatile(
-      "lock ; "
-      "cmpxchgw %[src], %[dst];"
-      "sete %[res];"
-      : [res] "=a"(res), /* output */
-        [dst] "=m"(*dst)
-      : [src] "r"(src), /* input */
-        "a"(exp), "m"(*dst)
-      : "memory"); /* no-clobber list */
+  asm volatile("lock ; "
+               "cmpxchgw %[src], %[dst];"
+               "sete %[res];"
+               : [res] "=a"(res), /* output */
+                 [dst] "=m"(*dst)
+               : [src] "r"(src), /* input */
+                 "a"(exp), "m"(*dst)
+               : "memory"); /* no-clobber list */
   return res;
 }
 
@@ -63,7 +60,7 @@ extern struct config_t {
 
   void end_transaction() {
     bool block_until_complete = true;
-    bf_status_t bf_status = session->commitTransaction(block_until_complete);
+    bf_status_t bf_status     = session->commitTransaction(block_until_complete);
     ASSERT_BF_STATUS(bf_status);
     unlock();
   }
@@ -76,4 +73,4 @@ extern struct config_t {
   }
 } cfg;
 
-}  // namespace sycon
+} // namespace sycon

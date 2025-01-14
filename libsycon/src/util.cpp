@@ -1,8 +1,7 @@
-#include "../include/sycon/util.h"
+#include "../include/sycon/util.hpp"
+#include "../include/sycon/log.hpp"
 
 #include <stdlib.h>
-
-#include "../include/sycon/log.h"
 
 namespace sycon {
 
@@ -16,4 +15,4 @@ std::string read_env(const char *env_var) {
   return std::string(value);
 }
 
-}  // namespace sycon
+} // namespace sycon

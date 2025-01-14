@@ -4,27 +4,24 @@
 #include <optional>
 #include <unordered_set>
 
-#include "../constants.h"
-#include "../primitives/table.h"
-#include "../time.h"
-#include "../util.h"
+#include "../constants.hpp"
+#include "../primitives/table.hpp"
+#include "../time.hpp"
+#include "../util.hpp"
 
 namespace sycon {
 
-template <size_t V>
-class KeylessTableMap : public Table {
+template <size_t V> class KeylessTableMap : public Table {
   static_assert(V > 0);
 
- private:
+private:
   table_value_t<V> entry;
   bf_rt_id_t action_id;
   std::optional<time_ms_t> timeout;
   std::optional<bfrt::BfRtIdleTmoExpiryCb> callback;
 
- public:
-  KeylessTableMap(const std::string &_control_name,
-                  const std::string &_table_name,
-                  const table_value_t<V> &_entry)
+public:
+  KeylessTableMap(const std::string &_control_name, const std::string &_table_name, const table_value_t<V> &_entry)
       : Table(_control_name, _table_name) {
     init_key();
     init_action(&action_id);
@@ -34,7 +31,7 @@ class KeylessTableMap : public Table {
     driver_set();
   }
 
- private:
+private:
   void data_setup(const table_value_t<V> &v) {
     auto bf_status = table->dataReset(action_id, data.get());
     ASSERT_BF_STATUS(bf_status)
@@ -43,8 +40,8 @@ class KeylessTableMap : public Table {
 
     for (size_t i = 0; i < V; i++) {
       auto param_field_value = v.values[i];
-      auto param_field = data_fields[i];
-      bf_status = data->setValue(param_field.id, param_field_value);
+      auto param_field       = data_fields[i];
+      bf_status              = data->setValue(param_field.id, param_field_value);
       ASSERT_BF_STATUS(bf_status)
     }
 
@@ -60,10 +57,9 @@ class KeylessTableMap : public Table {
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    bf_status_t bf_status =
-        table->tableDefaultEntrySet(*session, dev_tgt, *data);
+    bf_status_t bf_status = table->tableDefaultEntrySet(*session, dev_tgt, *data);
     ASSERT_BF_STATUS(bf_status)
   }
 };
 
-}  // namespace sycon
+} // namespace sycon

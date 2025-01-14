@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "util.h"
+#include "util.hpp"
 
 namespace sycon {
 
@@ -13,4 +13,4 @@ typedef u64 time_us_t;
 
 time_ns_t get_time();
 
-}  // namespace sycon
+} // namespace sycon

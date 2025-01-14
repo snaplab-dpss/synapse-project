@@ -1,4 +1,4 @@
-#include <sycon/sycon.h>
+#include <sycon/sycon.hpp>
 #include <unistd.h>
 
 using namespace sycon;
@@ -6,9 +6,7 @@ using namespace sycon;
 struct state_t {
   TableMap<4, 1> table_with_timeout;
 
-  state_t()
-      : table_with_timeout("Ingress", "table_with_timeout",
-                           args.expiration_time) {}
+  state_t() : table_with_timeout("Ingress", "table_with_timeout", args.expiration_time) {}
 };
 
 state_t *state;
@@ -25,16 +23,13 @@ void sycon::nf_user_signal_handler() {}
 void sycon::nf_args(CLI::App &app) {}
 
 bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
-  cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
-  eth_hdr_t *eth_hdr = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
-  ipv4_hdr_t *ipv4_hdr = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
-  tcpudp_hdr_t *tcpudp_hdr =
-      (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
+  cpu_hdr_t *cpu_hdr       = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
+  eth_hdr_t *eth_hdr       = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
+  ipv4_hdr_t *ipv4_hdr     = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
+  tcpudp_hdr_t *tcpudp_hdr = (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
 
-  table_key_t<4> flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip),
-                       SWAP_ENDIAN_32(ipv4_hdr->dst_ip),
-                       SWAP_ENDIAN_16(tcpudp_hdr->src_port),
-                       SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
+  table_key_t<4> flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip), SWAP_ENDIAN_32(ipv4_hdr->dst_ip),
+                       SWAP_ENDIAN_16(tcpudp_hdr->src_port), SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
 
   table_value_t<1> out_port({cfg.out_dev_port});
 

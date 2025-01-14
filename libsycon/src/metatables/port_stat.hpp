@@ -4,13 +4,13 @@
 
 #include <map>
 
-#include "../../include/sycon/log.h"
-#include "../../include/sycon/primitives/table.h"
+#include "../../include/sycon/log.hpp"
+#include "../../include/sycon/primitives/table.hpp"
 
 namespace sycon {
 
 class Port_Stat : Table {
- private:
+private:
   struct key_fields_t {
     // Key fields IDs
     bf_rt_id_t dev_port;
@@ -112,7 +112,7 @@ class Port_Stat : Table {
   key_fields_t key_fields;
   data_fields_t data_fields;
 
- public:
+public:
   Port_Stat() : Table("", "$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
@@ -121,21 +121,15 @@ class Port_Stat : Table {
     init_data({
         {"$FramesReceivedOK", &data_fields.FramesReceivedOK},
         {"$FramesReceivedAll", &data_fields.FramesReceivedAll},
-        {"$FramesReceivedwithFCSError",
-         &data_fields.FramesReceivedwithFCSError},
+        {"$FramesReceivedwithFCSError", &data_fields.FramesReceivedwithFCSError},
         {"$FrameswithanyError", &data_fields.FrameswithanyError},
-        {"$OctetsReceivedinGoodFrames",
-         &data_fields.OctetsReceivedinGoodFrames},
+        {"$OctetsReceivedinGoodFrames", &data_fields.OctetsReceivedinGoodFrames},
         {"$OctetsReceived", &data_fields.OctetsReceived},
-        {"$FramesReceivedwithUnicastAddresses",
-         &data_fields.FramesReceivedwithUnicastAddresses},
-        {"$FramesReceivedwithMulticastAddresses",
-         &data_fields.FramesReceivedwithMulticastAddresses},
-        {"$FramesReceivedwithBroadcastAddresses",
-         &data_fields.FramesReceivedwithBroadcastAddresses},
+        {"$FramesReceivedwithUnicastAddresses", &data_fields.FramesReceivedwithUnicastAddresses},
+        {"$FramesReceivedwithMulticastAddresses", &data_fields.FramesReceivedwithMulticastAddresses},
+        {"$FramesReceivedwithBroadcastAddresses", &data_fields.FramesReceivedwithBroadcastAddresses},
         {"$FramesReceivedoftypePAUSE", &data_fields.FramesReceivedoftypePAUSE},
-        {"$FramesReceivedwithLengthError",
-         &data_fields.FramesReceivedwithLengthError},
+        {"$FramesReceivedwithLengthError", &data_fields.FramesReceivedwithLengthError},
         {"$FramesReceivedUndersized", &data_fields.FramesReceivedUndersized},
         {"$FramesReceivedOversized", &data_fields.FramesReceivedOversized},
         {"$FragmentsReceived", &data_fields.FragmentsReceived},
@@ -145,68 +139,41 @@ class Port_Stat : Table {
         {"$FrameTooLong", &data_fields.FrameTooLong},
         {"$RxVLANFramesGood", &data_fields.RxVLANFramesGood},
         {"$FramesDroppedBufferFull", &data_fields.FramesDroppedBufferFull},
-        {"$FramesReceivedLength_lt_64",
-         &data_fields.FramesReceivedLength_lt_64},
-        {"$FramesReceivedLength_eq_64",
-         &data_fields.FramesReceivedLength_eq_64},
-        {"$FramesReceivedLength_65_127",
-         &data_fields.FramesReceivedLength_65_127},
-        {"$FramesReceivedLength_128_255",
-         &data_fields.FramesReceivedLength_128_255},
-        {"$FramesReceivedLength_256_511",
-         &data_fields.FramesReceivedLength_256_511},
-        {"$FramesReceivedLength_512_1023",
-         &data_fields.FramesReceivedLength_512_1023},
-        {"$FramesReceivedLength_1024_1518",
-         &data_fields.FramesReceivedLength_1024_1518},
-        {"$FramesReceivedLength_1519_2047",
-         &data_fields.FramesReceivedLength_1519_2047},
-        {"$FramesReceivedLength_2048_4095",
-         &data_fields.FramesReceivedLength_2048_4095},
-        {"$FramesReceivedLength_4096_8191",
-         &data_fields.FramesReceivedLength_4096_8191},
-        {"$FramesReceivedLength_8192_9215",
-         &data_fields.FramesReceivedLength_8192_9215},
+        {"$FramesReceivedLength_lt_64", &data_fields.FramesReceivedLength_lt_64},
+        {"$FramesReceivedLength_eq_64", &data_fields.FramesReceivedLength_eq_64},
+        {"$FramesReceivedLength_65_127", &data_fields.FramesReceivedLength_65_127},
+        {"$FramesReceivedLength_128_255", &data_fields.FramesReceivedLength_128_255},
+        {"$FramesReceivedLength_256_511", &data_fields.FramesReceivedLength_256_511},
+        {"$FramesReceivedLength_512_1023", &data_fields.FramesReceivedLength_512_1023},
+        {"$FramesReceivedLength_1024_1518", &data_fields.FramesReceivedLength_1024_1518},
+        {"$FramesReceivedLength_1519_2047", &data_fields.FramesReceivedLength_1519_2047},
+        {"$FramesReceivedLength_2048_4095", &data_fields.FramesReceivedLength_2048_4095},
+        {"$FramesReceivedLength_4096_8191", &data_fields.FramesReceivedLength_4096_8191},
+        {"$FramesReceivedLength_8192_9215", &data_fields.FramesReceivedLength_8192_9215},
         {"$FramesReceivedLength_9216", &data_fields.FramesReceivedLength_9216},
         {"$FramesTransmittedOK", &data_fields.FramesTransmittedOK},
         {"$FramesTransmittedAll", &data_fields.FramesTransmittedAll},
-        {"$FramesTransmittedwithError",
-         &data_fields.FramesTransmittedwithError},
-        {"$OctetsTransmittedwithouterror",
-         &data_fields.OctetsTransmittedwithouterror},
+        {"$FramesTransmittedwithError", &data_fields.FramesTransmittedwithError},
+        {"$OctetsTransmittedwithouterror", &data_fields.OctetsTransmittedwithouterror},
         {"$OctetsTransmittedTotal", &data_fields.OctetsTransmittedTotal},
         {"$FramesTransmittedUnicast", &data_fields.FramesTransmittedUnicast},
-        {"$FramesTransmittedMulticast",
-         &data_fields.FramesTransmittedMulticast},
-        {"$FramesTransmittedBroadcast",
-         &data_fields.FramesTransmittedBroadcast},
+        {"$FramesTransmittedMulticast", &data_fields.FramesTransmittedMulticast},
+        {"$FramesTransmittedBroadcast", &data_fields.FramesTransmittedBroadcast},
         {"$FramesTransmittedPause", &data_fields.FramesTransmittedPause},
         {"$FramesTransmittedPriPause", &data_fields.FramesTransmittedPriPause},
         {"$FramesTransmittedVLAN", &data_fields.FramesTransmittedVLAN},
-        {"$FramesTransmittedLength_lt_64",
-         &data_fields.FramesTransmittedLength_lt_64},
-        {"$FramesTransmittedLength_eq_64",
-         &data_fields.FramesTransmittedLength_eq_64},
-        {"$FramesTransmittedLength_65_127",
-         &data_fields.FramesTransmittedLength_65_127},
-        {"$FramesTransmittedLength_128_255",
-         &data_fields.FramesTransmittedLength_128_255},
-        {"$FramesTransmittedLength_256_511",
-         &data_fields.FramesTransmittedLength_256_511},
-        {"$FramesTransmittedLength_512_1023",
-         &data_fields.FramesTransmittedLength_512_1023},
-        {"$FramesTransmittedLength_1024_1518",
-         &data_fields.FramesTransmittedLength_1024_1518},
-        {"$FramesTransmittedLength_1519_2047",
-         &data_fields.FramesTransmittedLength_1519_2047},
-        {"$FramesTransmittedLength_2048_4095",
-         &data_fields.FramesTransmittedLength_2048_4095},
-        {"$FramesTransmittedLength_4096_8191",
-         &data_fields.FramesTransmittedLength_4096_8191},
-        {"$FramesTransmittedLength_8192_9215",
-         &data_fields.FramesTransmittedLength_8192_9215},
-        {"$FramesTransmittedLength_9216",
-         &data_fields.FramesTransmittedLength_9216},
+        {"$FramesTransmittedLength_lt_64", &data_fields.FramesTransmittedLength_lt_64},
+        {"$FramesTransmittedLength_eq_64", &data_fields.FramesTransmittedLength_eq_64},
+        {"$FramesTransmittedLength_65_127", &data_fields.FramesTransmittedLength_65_127},
+        {"$FramesTransmittedLength_128_255", &data_fields.FramesTransmittedLength_128_255},
+        {"$FramesTransmittedLength_256_511", &data_fields.FramesTransmittedLength_256_511},
+        {"$FramesTransmittedLength_512_1023", &data_fields.FramesTransmittedLength_512_1023},
+        {"$FramesTransmittedLength_1024_1518", &data_fields.FramesTransmittedLength_1024_1518},
+        {"$FramesTransmittedLength_1519_2047", &data_fields.FramesTransmittedLength_1519_2047},
+        {"$FramesTransmittedLength_2048_4095", &data_fields.FramesTransmittedLength_2048_4095},
+        {"$FramesTransmittedLength_4096_8191", &data_fields.FramesTransmittedLength_4096_8191},
+        {"$FramesTransmittedLength_8192_9215", &data_fields.FramesTransmittedLength_8192_9215},
+        {"$FramesTransmittedLength_9216", &data_fields.FramesTransmittedLength_9216},
         {"$Pri0FramesTransmitted", &data_fields.Pri0FramesTransmitted},
         {"$Pri1FramesTransmitted", &data_fields.Pri1FramesTransmitted},
         {"$Pri2FramesTransmitted", &data_fields.Pri2FramesTransmitted},
@@ -239,20 +206,18 @@ class Port_Stat : Table {
         {"$ReceivePri5Pause1USCount", &data_fields.ReceivePri5Pause1USCount},
         {"$ReceivePri6Pause1USCount", &data_fields.ReceivePri6Pause1USCount},
         {"$ReceivePri7Pause1USCount", &data_fields.ReceivePri7Pause1USCount},
-        {"$ReceiveStandardPause1USCount",
-         &data_fields.ReceiveStandardPause1USCount},
+        {"$ReceiveStandardPause1USCount", &data_fields.ReceiveStandardPause1USCount},
         {"$FramesTruncated", &data_fields.FramesTruncated},
     });
   }
 
   u64 get_port_rx(u16 dev_port, bool from_hw = false) {
-    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
-                          : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+    auto hwflag =
+        from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(dev_port);
 
-    auto bf_status =
-        table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     u64 value;
@@ -263,13 +228,12 @@ class Port_Stat : Table {
   }
 
   u64 get_port_tx(u16 dev_port, bool from_hw = false) {
-    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
-                          : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+    auto hwflag =
+        from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(dev_port);
 
-    auto bf_status =
-        table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     u64 value;
@@ -279,15 +243,14 @@ class Port_Stat : Table {
     return value;
   }
 
- private:
+private:
   void key_setup(u16 dev_port) {
     table->keyReset(key.get());
     assert(key);
 
-    auto bf_status =
-        key->setValue(key_fields.dev_port, static_cast<u64>(dev_port));
+    auto bf_status = key->setValue(key_fields.dev_port, static_cast<u64>(dev_port));
     ASSERT_BF_STATUS(bf_status)
   }
 };
 
-};  // namespace sycon
+}; // namespace sycon

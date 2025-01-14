@@ -1,10 +1,9 @@
-#include "../include/sycon/packet.h"
+#include "../include/sycon/packet.hpp"
+#include "../include/sycon/log.hpp"
+#include "packet.hpp"
 
 #include <iomanip>
 #include <sstream>
-
-#include "../include/sycon/log.h"
-#include "packet.h"
 
 namespace sycon {
 
@@ -14,7 +13,7 @@ static u32 packet_size;
 void packet_init(u16 size) {
   assert(size > 0);
   packet_consumed = 0;
-  packet_size = size;
+  packet_size     = size;
 }
 
 byte_t *packet_consume(byte_t *packet_base, u16 bytes) {
@@ -37,12 +36,10 @@ void packet_log(const eth_hdr_t *eth_hdr) {
   assert(eth_hdr);
 
   LOG("###[ Ethernet ]###");
-  LOG("dst  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->dst_mac[0],
-      eth_hdr->dst_mac[1], eth_hdr->dst_mac[2], eth_hdr->dst_mac[3],
-      eth_hdr->dst_mac[4], eth_hdr->dst_mac[5]);
-  LOG("src  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->src_mac[0],
-      eth_hdr->src_mac[1], eth_hdr->src_mac[2], eth_hdr->src_mac[3],
-      eth_hdr->src_mac[4], eth_hdr->src_mac[5]);
+  LOG("dst  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->dst_mac[0], eth_hdr->dst_mac[1], eth_hdr->dst_mac[2],
+      eth_hdr->dst_mac[3], eth_hdr->dst_mac[4], eth_hdr->dst_mac[5]);
+  LOG("src  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->src_mac[0], eth_hdr->src_mac[1], eth_hdr->src_mac[2],
+      eth_hdr->src_mac[3], eth_hdr->src_mac[4], eth_hdr->src_mac[5]);
   LOG("type 0x%x", eth_hdr->eth_type);
 }
 
@@ -57,12 +54,10 @@ void packet_log(const ipv4_hdr_t *ipv4_hdr) {
   LOG("ttl     %u", ipv4_hdr->ttl);
   LOG("proto   %u", ipv4_hdr->protocol);
   LOG("chksum  0x%x", SWAP_ENDIAN_16(ipv4_hdr->check));
-  LOG("src     %u.%u.%u.%u", (ipv4_hdr->src_ip >> 0) & 0xff,
-      (ipv4_hdr->src_ip >> 8) & 0xff, (ipv4_hdr->src_ip >> 16) & 0xff,
-      (ipv4_hdr->src_ip >> 24) & 0xff);
-  LOG("dst     %u.%u.%u.%u", (ipv4_hdr->dst_ip >> 0) & 0xff,
-      (ipv4_hdr->dst_ip >> 8) & 0xff, (ipv4_hdr->dst_ip >> 16) & 0xff,
-      (ipv4_hdr->dst_ip >> 24) & 0xff);
+  LOG("src     %u.%u.%u.%u", (ipv4_hdr->src_ip >> 0) & 0xff, (ipv4_hdr->src_ip >> 8) & 0xff,
+      (ipv4_hdr->src_ip >> 16) & 0xff, (ipv4_hdr->src_ip >> 24) & 0xff);
+  LOG("dst     %u.%u.%u.%u", (ipv4_hdr->dst_ip >> 0) & 0xff, (ipv4_hdr->dst_ip >> 8) & 0xff,
+      (ipv4_hdr->dst_ip >> 16) & 0xff, (ipv4_hdr->dst_ip >> 24) & 0xff);
 }
 
 void packet_log(const tcpudp_hdr_t *tcpudp_hdr) {
@@ -80,12 +75,12 @@ unsigned ether_addr_hash(mac_addr_t addr) {
   u8 addr_bytes_5 = addr[5];
 
   unsigned hash = 0;
-  hash = __builtin_ia32_crc32si(hash, addr_bytes_0);
-  hash = __builtin_ia32_crc32si(hash, addr_bytes_1);
-  hash = __builtin_ia32_crc32si(hash, addr_bytes_2);
-  hash = __builtin_ia32_crc32si(hash, addr_bytes_3);
-  hash = __builtin_ia32_crc32si(hash, addr_bytes_4);
-  hash = __builtin_ia32_crc32si(hash, addr_bytes_5);
+  hash          = __builtin_ia32_crc32si(hash, addr_bytes_0);
+  hash          = __builtin_ia32_crc32si(hash, addr_bytes_1);
+  hash          = __builtin_ia32_crc32si(hash, addr_bytes_2);
+  hash          = __builtin_ia32_crc32si(hash, addr_bytes_3);
+  hash          = __builtin_ia32_crc32si(hash, addr_bytes_4);
+  hash          = __builtin_ia32_crc32si(hash, addr_bytes_5);
   return hash;
 }
 
@@ -111,7 +106,7 @@ u32 __raw_cksum(const void *buf, size_t len, u32 sum) {
 
   /* if length is in odd bytes */
   if (len == 1) {
-    u16 left = 0;
+    u16 left     = 0;
     *(u8 *)&left = *(const u8 *)u16_buf;
     sum += left;
   }
@@ -138,13 +133,13 @@ u16 ipv4_cksum(const ipv4_hdr_t *ipv4_hdr) {
   return (u16)~cksum;
 }
 
-u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
-                                 const void *l4_hdr) {
+u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr, const void *l4_hdr) {
   u32 cksum;
   u32 l3_len, l4_len;
 
   l3_len = __bswap_16(ipv4_hdr->tot_len);
-  if (l3_len < sizeof(ipv4_hdr_t)) return 0;
+  if (l3_len < sizeof(ipv4_hdr_t))
+    return 0;
 
   l4_len = l3_len - sizeof(ipv4_hdr_t);
 
@@ -153,12 +148,11 @@ u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr,
 
   cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
   cksum = (~cksum) & 0xffff;
-  /*
-   * Per RFC 768:If the computed checksum is zero for UDP,
-   * it is transmitted as all ones
-   * (the equivalent in one's complement arithmetic).
-   */
-  if (cksum == 0 && ipv4_hdr->protocol == IPPROTO_UDP) cksum = 0xffff;
+
+  // Per RFC 768: if the computed checksum is zero for UDP, it is transmitted
+  // as all ones (the equivalent in one's complement arithmetic).
+  if (cksum == 0 && ipv4_hdr->protocol == IP_PROTO_UDP)
+    cksum = 0xffff;
 
   return (u16)cksum;
 }
@@ -184,4 +178,4 @@ void packet_hexdump(byte_t *pkt, u16 size) {
   LOG("%s", ss.str().c_str());
 }
 
-}  // namespace sycon
+} // namespace sycon

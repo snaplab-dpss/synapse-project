@@ -1,10 +1,14 @@
-#include "../include/sycon/config.h"
-#include "../include/sycon/constants.h"
-#include "../include/sycon/externs.h"
-#include "../include/sycon/log.h"
-#include "../include/sycon/packet.h"
-#include "../include/sycon/sycon.h"
-#include "packet.h"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include "../include/sycon/config.hpp"
+#include "../include/sycon/constants.hpp"
+#include "../include/sycon/externs.hpp"
+#include "../include/sycon/log.hpp"
+#include "../include/sycon/packet.hpp"
+#include "../include/sycon/sycon.hpp"
+#include "packet.hpp"
 
 extern "C" {
 #include <bf_switchd/bf_switchd.h>
@@ -20,8 +24,7 @@ namespace sycon {
 static void pcie_tx(bf_dev_id_t device, u8 *pkt, u32 packet_size) {
   bf_pkt *tx_pkt = nullptr;
 
-  auto bf_status = bf_pkt_alloc(cfg.dev_tgt.dev_id, &tx_pkt, packet_size,
-                                BF_DMA_CPU_PKT_TRANSMIT_0);
+  auto bf_status = bf_pkt_alloc(cfg.dev_tgt.dev_id, &tx_pkt, packet_size, BF_DMA_CPU_PKT_TRANSMIT_0);
   ASSERT_BF_STATUS(bf_status)
 
   bf_status = bf_pkt_data_copy(tx_pkt, pkt, packet_size);
@@ -39,21 +42,19 @@ static void pcie_tx(bf_dev_id_t device, u8 *pkt, u32 packet_size) {
   }
 }
 
-static bf_status_t txComplete(bf_dev_id_t device, bf_pkt_tx_ring_t tx_ring,
-                              u64 tx_cookie, u32 status) {
+static bf_status_t txComplete(bf_dev_id_t device, bf_pkt_tx_ring_t tx_ring, u64 tx_cookie, u32 status) {
   // Now we can free the packet.
   bf_pkt_free(device, (bf_pkt *)((uintptr_t)tx_cookie));
   return BF_SUCCESS;
 }
 
-static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
-                           bf_pkt_rx_ring_t rx_ring) {
+static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_rx_ring_t rx_ring) {
   bf_pkt *orig_pkt = nullptr;
   char in_packet[SWITCH_PACKET_MAX_BUFFER_SIZE];
-  char *pkt_buf = nullptr;
-  char *bufp = nullptr;
+  char *pkt_buf   = nullptr;
+  char *bufp      = nullptr;
   u32 packet_size = 0;
-  u16 pkt_len = 0;
+  u16 pkt_len     = 0;
 
   // save a pointer to the packet
   orig_pkt = pkt;
@@ -76,7 +77,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
     pkt = bf_pkt_get_nextseg(pkt);
   } while (pkt);
 
-  time_ns_t now = get_time();
+  time_ns_t now  = get_time();
   byte_t *packet = reinterpret_cast<byte_t *>(&in_packet);
 
   DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
@@ -99,19 +100,15 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
 
 void register_pcie_pkt_ops() {
   // register callback for TX complete
-  for (int tx_ring = BF_PKT_TX_RING_0; tx_ring < BF_PKT_TX_RING_MAX;
-       tx_ring++) {
-    bf_pkt_tx_done_notif_register(cfg.dev_tgt.dev_id, txComplete,
-                                  (bf_pkt_tx_ring_t)tx_ring);
+  for (int tx_ring = BF_PKT_TX_RING_0; tx_ring < BF_PKT_TX_RING_MAX; tx_ring++) {
+    bf_pkt_tx_done_notif_register(cfg.dev_tgt.dev_id, txComplete, (bf_pkt_tx_ring_t)tx_ring);
   }
 
   // register callback for RX
-  for (int rx_ring = BF_PKT_RX_RING_0; rx_ring < BF_PKT_RX_RING_MAX;
-       rx_ring++) {
-    auto bf_status = bf_pkt_rx_register(cfg.dev_tgt.dev_id, pcie_rx,
-                                        (bf_pkt_rx_ring_t)rx_ring, 0);
+  for (int rx_ring = BF_PKT_RX_RING_0; rx_ring < BF_PKT_RX_RING_MAX; rx_ring++) {
+    auto bf_status = bf_pkt_rx_register(cfg.dev_tgt.dev_id, pcie_rx, (bf_pkt_rx_ring_t)rx_ring, 0);
     ASSERT_BF_STATUS(bf_status)
   }
 }
 
-}  // namespace sycon
+} // namespace sycon

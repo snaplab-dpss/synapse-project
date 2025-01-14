@@ -1,11 +1,10 @@
-#include "../../include/sycon/primitives/register.h"
+#include "../../include/sycon/primitives/register.hpp"
 
-#include "../../include/sycon/log.h"
+#include "../../include/sycon/log.hpp"
 
 namespace sycon {
 
-Register::Register(const std::string &control_name,
-                   const std::string &register_name)
+Register::Register(const std::string &control_name, const std::string &register_name)
     : Table(control_name, register_name) {
   init_key({{"$REGISTER_INDEX", &index}});
   init_data({{append_control(control_name, register_name) + ".f1", &content}});
@@ -15,9 +14,8 @@ u32 Register::get(u32 i) {
   key_setup(i);
   data_reset();
 
-  auto flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
-  bf_status_t bf_status =
-      table->tableEntryGet(*session, dev_tgt, *key, flag, data.get());
+  auto flag             = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+  bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, flag, data.get());
   ASSERT_BF_STATUS(bf_status)
 
   u64 value;
@@ -64,4 +62,4 @@ void Register::data_setup(u32 value) {
 
 void Register::data_reset() { table->dataReset(data.get()); }
 
-};  // namespace sycon
+}; // namespace sycon
