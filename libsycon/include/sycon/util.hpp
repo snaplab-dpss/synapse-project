@@ -7,8 +7,8 @@
 
 #include "log.hpp"
 
-#define SWAP_ENDIAN_16(v) __bswap_16((v))
-#define SWAP_ENDIAN_32(v) __bswap_32((v))
+#define SWAP_ENDIAN_16(v) __builtin_bswap16((v))
+#define SWAP_ENDIAN_32(v) __builtin_bswap32((v))
 
 #define WAIT_FOR_ENTER(msg)                                                                                            \
   {                                                                                                                    \

@@ -123,7 +123,12 @@ control Ingress(
 
 /*@{INGRESS_CONTROL}@*/
   apply {
+    if (hdr.cpu.isValid()) {
+      hdr.cpu.setInvalid();
+      fwd(hdr.cpu.out_port);
+    } else {
 /*@{INGRESS_CONTROL_APPLY}@*/
+    }
   }
 }
 

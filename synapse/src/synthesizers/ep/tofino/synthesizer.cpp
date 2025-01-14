@@ -220,7 +220,7 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
                       {MARKER_INGRESS_METADATA, 1},
                       {MARKER_INGRESS_PARSER, 1},
                       {MARKER_INGRESS_CONTROL, 1},
-                      {MARKER_INGRESS_CONTROL_APPLY, 2},
+                      {MARKER_INGRESS_CONTROL_APPLY, 3},
                       {MARKER_INGRESS_DEPARSER, 2},
                       {MARKER_EGRESS_HEADERS, 1},
                       {MARKER_EGRESS_METADATA, 1},
