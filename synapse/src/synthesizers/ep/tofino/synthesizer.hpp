@@ -21,8 +21,8 @@ private:
     bool is_header_field;
 
     var_t() = default;
-    var_t(const code_t &name, klee::ref<klee::Expr> expr, bool _force_bool = false, bool _is_header_field = false)
-        : name(name), expr(expr), force_bool(_force_bool), is_header_field(_is_header_field) {}
+    var_t(const code_t &_name, klee::ref<klee::Expr> _expr, bool _force_bool = false, bool _is_header_field = false)
+        : name(_name), expr(_expr), force_bool(_force_bool), is_header_field(_is_header_field) {}
 
     var_t(const var_t &other)            = default;
     var_t(var_t &&other)                 = default;
@@ -52,7 +52,7 @@ private:
 
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
-    const std::vector<var_t> &get_all() const;
+    std::vector<var_t> get_all() const;
   };
 
   class Stacks {
@@ -77,7 +77,7 @@ private:
 
     Stack squash() const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
-    const std::vector<Stack> &get_all() const;
+    std::vector<Stack> get_all() const;
   };
 
   typedef u32 alloc_opt_t;

@@ -175,7 +175,7 @@ std::optional<EPSynthesizer::var_t> EPSynthesizer::Stack::get(klee::ref<klee::Ex
   return std::nullopt;
 }
 
-const std::vector<EPSynthesizer::var_t> &EPSynthesizer::Stack::get_all() const { return vars; }
+std::vector<EPSynthesizer::var_t> EPSynthesizer::Stack::get_all() const { return vars; }
 
 void EPSynthesizer::Stacks::push() { stacks.emplace_back(); }
 
@@ -213,7 +213,7 @@ std::optional<EPSynthesizer::var_t> EPSynthesizer::Stacks::get(klee::ref<klee::E
 
 void EPSynthesizer::Stacks::clear() { stacks.clear(); }
 
-const std::vector<EPSynthesizer::Stack> &EPSynthesizer::Stacks::get_all() const { return stacks; }
+std::vector<EPSynthesizer::Stack> EPSynthesizer::Stacks::get_all() const { return stacks; }
 
 EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
     : Synthesizer(TEMPLATE_FILENAME,
@@ -237,7 +237,7 @@ EPSynthesizer::EPSynthesizer(std::ostream &_out, const BDD *bdd)
   symbol_t time   = bdd->get_time();
 
   alloc_var("meta.port", solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
-  alloc_var("meta.time", time.expr, GLOBAL | EXACT_NAME);
+  alloc_var("meta.time", solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
 }
 
 coder_t &EPSynthesizer::get(const std::string &marker) {
@@ -249,6 +249,10 @@ coder_t &EPSynthesizer::get(const std::string &marker) {
 
 void EPSynthesizer::visit(const EP *ep) {
   EPVisitor::visit(ep);
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  ingress_apply.indent();
+  ingress_apply << "ig_tm_md.bypass_egress = 1;";
 
   // Transpile the parser after the whole EP has been visited so we have all the
   // headers available.
@@ -285,6 +289,10 @@ void EPSynthesizer::visit(const EP *ep) {
 
     var.declare(recirc_hdr);
   }
+
+  coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER);
+  ingress_deparser.indent();
+  ingress_deparser << "pkt.emit(hdr);";
 
   Synthesizer::dump();
 }
@@ -491,31 +499,24 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   Stacks stack_backup = ingress_vars;
 
   std::vector<var_t> recirc_vars;
-  for (const symbol_t &symbol : node->get_symbols().get()) {
-    std::optional<var_t> var = ingress_vars.get(symbol.expr);
+  for (const var_t &var : ingress_vars.squash().get_all()) {
+    var_t recirc_var = var;
 
-    if (!var) {
-      // This can happen when the symbol is not used and synapse optimized it away.
+    if (var.is_header_field) {
+      recirc_vars.push_back(recirc_var);
       continue;
     }
 
-    var_t recirc_var = *var;
-    recirc_var.name  = "hdr.recirc." + var->get_stem();
+    recirc_var.name = "hdr.recirc." + var.get_stem();
 
-    recirc_hdr_vars.push(*var);
+    recirc_hdr_vars.push(var);
     recirc_vars.push_back(recirc_var);
 
     ingress_apply.indent();
     ingress_apply << recirc_var.name;
     ingress_apply << " = ";
-    ingress_apply << var->name;
+    ingress_apply << var.name;
     ingress_apply << ";\n";
-  }
-
-  for (const var_t &var : ingress_vars.squash().get_all()) {
-    if (var.is_header_field) {
-      recirc_vars.push_back(var);
-    }
   }
 
   // 3. Forward to recirculation port
@@ -527,9 +528,6 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   active_recirc_code_path = code_path;
 
   // 5. Clear the stack, rebuild it with hdr.recirc fields, and setup the recirculation code block
-  // TODO: Both the port and time information should also be migrated, as they are only parsed during the normal control
-  // operation (not recirc or cpu).
-
   ingress_vars.clear();
   ingress_vars.push();
   for (const var_t &var : recirc_vars) {
@@ -940,13 +938,10 @@ EPVisitor::Action EPSynthesizer::visit(const EP *ep, const EPNode *ep_node, cons
   // coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  // DS_ID cached_table_id = node->get_cached_table_id();
-  // klee::ref<klee::Expr> key = node->get_key();
-  // klee::ref<klee::Expr> value = node->get_value();
-  // const symbol_t &map_has_this_key = node->get_map_has_this_key();
-
-  // const DS *ds = get_tofino_ds(ep, cached_table_id);
-  // const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(ds);
+  // const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, node->get_cached_table_id());
+  // klee::ref<klee::Expr> key                = node->get_key();
+  // klee::ref<klee::Expr> value              = node->get_value();
+  // const symbol_t &map_has_this_key         = node->get_map_has_this_key();
 
   // transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   // dbg();

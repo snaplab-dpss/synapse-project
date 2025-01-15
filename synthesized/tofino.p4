@@ -6,8 +6,8 @@
   #define RECIRCULATION_PORT 6
 #else
   #include <tna.p4>
-  #define RECIRCULATION_PORT 192
-  #define CPU_PCIE_PORT 320
+  #define CPU_PCIE_PORT 192
+  #define RECIRCULATION_PORT 320
 #endif
 
 header cpu_h {
@@ -25,9 +25,13 @@ header cpu_h {
 
 header recirc_h {
   bit<16> code_path;
+  bit<16> port;
+  bit<32> time;
+  bit<96> table_1073912440_14_key_0;
+  bit<32> table_1073912440_14_value_0;
+  bit<32> table_1073952504_39_key_0;
   @padding bit<7> pad_hit_0;
   bool hit_0;
-  bit<32> table_1073952504_39_key_0;
 
 };
 
@@ -828,8 +832,12 @@ control Ingress(
                         // BDD node 48:map_erase(map:(w64 1073912440), key:(w64 1073764970)[(ReadLSB w96 (w32 442) packet_chunks) -> (ReadLSB w96 (w32 442) packet_chunks)], trash:(w64 1074078824)[ -> (w64 12370169555311111083)])
                         hdr.recirc.setValid();
                         hdr.recirc.code_path = 0;
-                        hdr.recirc.hit_0 = hit_0;
+                        hdr.recirc.port = meta.port;
+                        hdr.recirc.time = meta.time;
+                        hdr.recirc.table_1073912440_14_key_0 = table_1073912440_14_key_0;
+                        hdr.recirc.table_1073912440_14_value_0 = table_1073912440_14_value_0;
                         hdr.recirc.table_1073952504_39_key_0 = table_1073952504_39_key_0;
+                        hdr.recirc.hit_0 = hit_0;
                         fwd(1);
                       }
                     } else {
@@ -1103,6 +1111,7 @@ control Ingress(
         // EP node  3114
         // BDD node 77:DROP
       }
+      ig_tm_md.bypass_egress = 1;
 
     }
   }
@@ -1115,6 +1124,7 @@ control IngressDeparser(
   in    ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md
 ) {
   apply {
+    pkt.emit(hdr);
 
   }
 }

@@ -439,7 +439,12 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
 
 Symbols TofinoModuleFactory::get_dataplane_state(const EP *ep, const Node *node) {
   const node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
-  return node->get_prev_symbols(roots);
+  Symbols symbols         = node->get_prev_symbols(roots);
+
+  symbols.add(ep->get_bdd()->get_device());
+  symbols.add(ep->get_bdd()->get_time());
+
+  return symbols;
 }
 
 std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 num_entries) {
