@@ -82,9 +82,10 @@ parser IngressParser(
   /* This is a mandatory state, required by Tofino Architecture */
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
+
     meta.port = 7w0 ++ ig_intr_md.ingress_port;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
-
+    
     transition select(ig_intr_md.ingress_port) {
       CPU_PCIE_PORT: parse_cpu;
       RECIRCULATION_PORT: parse_recirc;
@@ -137,8 +138,9 @@ control Ingress(
 /*@{INGRESS_CONTROL}@*/
   apply {
     if (hdr.cpu.isValid()) {
+      bit<9> out_port = hdr.cpu.out_port;
       hdr.cpu.setInvalid();
-      fwd(hdr.cpu.out_port);
+      fwd(out_port);
     } else if (hdr.recirc.isValid()) {
 /*@{INGRESS_CONTROL_APPLY_RECIRC}@*/      
     } else {

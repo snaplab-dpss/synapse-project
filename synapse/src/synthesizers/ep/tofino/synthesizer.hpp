@@ -18,10 +18,11 @@ private:
     code_t name;
     klee::ref<klee::Expr> expr;
     bool force_bool;
+    bool is_header_field;
 
     var_t() = default;
-    var_t(const code_t &name, klee::ref<klee::Expr> expr, bool _force_bool = false)
-        : name(name), expr(expr), force_bool(_force_bool) {}
+    var_t(const code_t &name, klee::ref<klee::Expr> expr, bool _force_bool = false, bool _is_header_field = false)
+        : name(name), expr(expr), force_bool(_force_bool), is_header_field(_is_header_field) {}
 
     var_t(const var_t &other)            = default;
     var_t(var_t &&other)                 = default;
@@ -40,8 +41,15 @@ private:
     std::unordered_set<code_t> names;
 
   public:
+    Stack()                              = default;
+    Stack(const Stack &other)            = default;
+    Stack(Stack &&other)                 = default;
+    Stack &operator=(const Stack &other) = default;
+
     void push(const var_t &var);
     void push(const Stack &stack);
+    void clear();
+
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
     const std::vector<var_t> &get_all() const;
@@ -52,10 +60,14 @@ private:
     std::vector<Stack> stacks;
 
   public:
-    Stacks();
+    Stacks() : stacks(1) {}
+    Stacks(const Stacks &other)            = default;
+    Stacks(Stacks &&other)                 = default;
+    Stacks &operator=(const Stacks &other) = default;
 
     void push();
     void pop();
+    void clear();
 
     void insert_front(const var_t &var);
     void insert_front(const Stack &stack);
@@ -70,17 +82,19 @@ private:
 
   typedef u32 alloc_opt_t;
 
-  static constexpr const alloc_opt_t LOCAL      = 0b00001;
-  static constexpr const alloc_opt_t GLOBAL     = 0b00010;
-  static constexpr const alloc_opt_t EXACT_NAME = 0b00100;
-  static constexpr const alloc_opt_t HEADER     = 0b01000;
-  static constexpr const alloc_opt_t FORCE_BOOL = 0b10000;
+  static constexpr const alloc_opt_t LOCAL        = 0b000001;
+  static constexpr const alloc_opt_t GLOBAL       = 0b000010;
+  static constexpr const alloc_opt_t EXACT_NAME   = 0b000100;
+  static constexpr const alloc_opt_t HEADER       = 0b001000;
+  static constexpr const alloc_opt_t HEADER_FIELD = 0b010000;
+  static constexpr const alloc_opt_t FORCE_BOOL   = 0b100000;
 
   std::unordered_map<code_t, int> var_prefix_usage;
 
   Stacks ingress_vars;
   Stacks hdrs_stacks;
   Stack cpu_hdr_vars;
+  Stack recirc_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
   std::unordered_map<node_id_t, Stack> parser_vars;
