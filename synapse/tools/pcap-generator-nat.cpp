@@ -30,9 +30,10 @@
 #define DEFAULT_TRAFFIC_ZIPF_PARAMETER 1.26 // From Castan [SIGCOMM'18]
 #define DEFAULT_LAN_DEVICES 1
 
-// Using 10Gbps as the rate because we go too fast the pcap timestamps can't
-// keep up with the actual time (pcap use us instead of ns).
-#define RATE_GBIT 10
+// Using 1Gbps as the rate because (1) if we go too fast the pcap timestamps can't keep up with the actual time (pcap
+// use us instead of ns), and (2) because we want to keep the pcaps as small as possible. We assume the traffic
+// characteristics are the same for 10Gbps and 100Gbps.
+#define RATE_GBIT 1
 
 using namespace synapse;
 
@@ -319,12 +320,7 @@ public:
         port_allocator.free(old_flow);
       }
 
-      u64 flow_idx = 0;
-      if (config.traffic_uniform) {
-        flow_idx = uniform_rand.generate();
-      } else {
-        flow_idx = zipf_rand.generate();
-      }
+      u64 flow_idx = config.traffic_uniform ? uniform_rand.generate() : zipf_rand.generate();
       assert(flow_idx < flows.size());
 
       const flow_t &flow = flows[flow_idx];
@@ -449,8 +445,13 @@ private:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-    constexpr int bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
-    current_time += (bytes * 8) / RATE_GBIT;
+    constexpr const bytes_t bytes = PREAMBLE_SIZE_BYTES + sizeof(pkt_hdr_t) + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
+    constexpr const time_ns_t dt  = (bytes * 8) / RATE_GBIT;
+    current_time += dt;
+    if (alarm_tick > 0 && alarm_tick < dt) {
+      fprintf(stderr, "Churn is too high: alarm tick (%luns) is smaller than the time step (%luns)\n", alarm_tick, dt);
+      exit(1);
+    }
   }
 };
 

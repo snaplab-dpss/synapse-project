@@ -30,8 +30,9 @@ EP *concretize_cached_table_read(const EP *ep, const Node *node, const map_coale
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table_data.obj, cached_table_data.key,
-                                            cached_table_data.read_value, cached_table_data.map_has_this_key);
+  Module *module =
+      new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj,
+                              cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);

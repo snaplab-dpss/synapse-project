@@ -3,11 +3,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
+PROJECT_DIR=$(realpath $SCRIPT_DIR/..)
 
-TOOLS_DIR=$SCRIPT_DIR
-SYNTHESIZED_DIR=$(realpath $SCRIPT_DIR/../synthesized)
-PCAPS_DIR=$(realpath $SCRIPT_DIR/../pcaps)
-BDDS_DIR=$(realpath $SCRIPT_DIR/../bdds)
+TOOLS_DIR=$PROJECT_DIR/tools
+SYNTHESIZED_DIR=$PROJECT_DIR/synthesized
+PCAPS_DIR=$PROJECT_DIR/pcaps
+BDDS_DIR=$PROJECT_DIR/bdds
+SYNAPSE_DIR=$PROJECT_DIR/synapse
 
 # Everything will be done inside the synthesized directory
 cd $SYNTHESIZED_DIR
@@ -22,7 +24,7 @@ log_and_run() {
 gen_and_build_profiler() {
     nf=$1
     
-    log_and_run bdd-synthesizer \
+    log_and_run $SYNAPSE_DIR/build/bin/bdd-synthesizer \
         --target profiler \
         --in $BDDS_DIR/$nf.bdd \
         --out $SYNTHESIZED_DIR/$nf-profiler.cpp
@@ -52,7 +54,7 @@ fw() {
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
     
-    log_and_run bdd-visualizer \
+    log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/fw.bdd \
         --profile $PCAPS_DIR/$report.json \
         --out $PCAPS_DIR/$report.dot
@@ -80,7 +82,7 @@ nat() {
         0:$PCAPS_DIR/$pcap_dev_0.pcap \
         1:$PCAPS_DIR/$pcap_dev_1.pcap \
     
-    log_and_run bdd-visualizer \
+    log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/nat.bdd \
         --profile $PCAPS_DIR/$report.json \
         --out $PCAPS_DIR/$report.dot
@@ -106,7 +108,7 @@ kvs() {
         --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
         0:$PCAPS_DIR/$pcap_dev_0.pcap
     
-    log_and_run bdd-visualizer \
+    log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/kvs.bdd \
         --profile $PCAPS_DIR/$report.json \
         --out $PCAPS_DIR/$report.dot
@@ -124,11 +126,6 @@ fw 10000 1000000 zipf 0.9
 fw 10000 1000000 zipf 0.99
 fw 10000 1000000 zipf 1.26
 
-fw 10000 100000000 unif 0
-fw 10000 100000000 zipf 0.9
-fw 10000 100000000 zipf 0.99
-fw 10000 100000000 zipf 1.26
-
 gen_and_build_profiler nat
 
 nat 10000 0 unif 0
@@ -141,11 +138,6 @@ nat 10000 1000000 zipf 0.9
 nat 10000 1000000 zipf 0.99
 nat 10000 1000000 zipf 1.26
 
-nat 10000 100000000 unif 0
-nat 10000 100000000 zipf 0.9
-nat 10000 100000000 zipf 0.99
-nat 10000 100000000 zipf 1.26
-
 gen_and_build_profiler kvs
 
 kvs 100000 0 unif 0
@@ -157,10 +149,5 @@ kvs 100000 1000000 unif 0
 kvs 100000 1000000 zipf 0.9
 kvs 100000 1000000 zipf 0.99
 kvs 100000 1000000 zipf 1.26
-
-kvs 100000 100000000 unif 0
-kvs 100000 100000000 zipf 0.9
-kvs 100000 100000000 zipf 0.99
-kvs 100000 100000000 zipf 1.26
 
 # gen_and_build_profiler pol

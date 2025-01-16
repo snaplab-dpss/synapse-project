@@ -64,7 +64,7 @@ using json = nlohmann::json;
 #define DEFAULT_SRC_MAC "90:e2:ba:8e:4f:6c"
 #define DEFAULT_DST_MAC "90:e2:ba:8e:4f:6d"
 
-#define EPOCH_DURATION_NS 1 '000' 000'000 // 1 second
+#define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
 #define PARSE_ERROR(argv, format, ...)                                                                                 \
   nf_config_usage(argv);                                                                                               \
@@ -113,7 +113,7 @@ struct config_t {
 } config;
 
 struct pcap_data_t {
-  const u8 *data;
+  const uint8_t *data;
   const struct pcap_pkthdr *header;
 };
 
@@ -211,7 +211,7 @@ private:
   bool read(uint16_t dev, pkt_t &pkt) {
     pcap_t *pd = pcaps[dev];
 
-    const u8 *data;
+    const uint8_t *data;
     struct pcap_pkthdr *hdr;
 
     if (pcap_next_ex(pd, &hdr, &data) != 1) {
@@ -219,7 +219,7 @@ private:
       return false;
     }
 
-    u8 *pkt_data = pkt.data;
+    uint8_t *pkt_data = pkt.data;
 
     if (assume_ip[dev]) {
       struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)pkt_data;

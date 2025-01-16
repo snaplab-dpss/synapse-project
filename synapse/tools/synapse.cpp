@@ -87,19 +87,6 @@ int main(int argc, char **argv) {
   SearchEngine engine(bdd.get(), heuristic_opt, profiler, targets_config, search_config);
   search_report_t report = engine.search();
 
-  if (show_ep) {
-    EPViz::visualize(report.ep.get(), false);
-  }
-
-  if (show_ss) {
-    SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
-  }
-
-  if (show_bdd) {
-    // BDDViz::visualize(report.solution.ep->get_bdd(), false);
-    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
-  }
-
   report.ep->get_ctx().debug();
 
   std::cout << "Params:\n";
@@ -119,6 +106,19 @@ int main(int argc, char **argv) {
   std::cout << "  Throughput:       " << report.tput_estimation << "\n";
   std::cout << "  Speculation:      " << report.tput_speculation << "\n";
   std::cout << "\n";
+
+  if (show_ep) {
+    EPViz::visualize(report.ep.get(), false);
+  }
+
+  if (show_ss) {
+    SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
+  }
+
+  if (show_bdd) {
+    // BDDViz::visualize(report.solution.ep->get_bdd(), false);
+    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
+  }
 
   if (!out_dir.empty()) {
     synthesize(report.ep.get(), out_dir);

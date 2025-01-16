@@ -58,7 +58,7 @@ void Graphviz::show(bool interrupt) const {
   const std::string cmd = "xdot " + fpath.string() + " 2>/dev/null &";
   const int status      = system(cmd.c_str());
 
-  if (status < 0) {
+  if (status != 0) {
     panic("Failed to open graph: %s\n", std::strerror(errno));
   }
 

@@ -192,9 +192,10 @@ EP *concretize_cached_table_cond_write(const EP *ep, const Node *node, const map
 
   klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_failed);
 
-  Module *module = new FCFSCachedTableReadOrWrite(
-      node, cached_table->id, fcfs_cached_table_data.obj, fcfs_cached_table_data.key, fcfs_cached_table_data.read_value,
-      fcfs_cached_table_data.write_value, fcfs_cached_table_data.map_has_this_key, cache_write_failed);
+  Module *module = new FCFSCachedTableReadOrWrite(node, cached_table->id, cached_table->tables.back().id,
+                                                  fcfs_cached_table_data.obj, fcfs_cached_table_data.key,
+                                                  fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
+                                                  fcfs_cached_table_data.map_has_this_key, cache_write_failed);
   EPNode *cached_table_cond_write_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -353,6 +354,7 @@ std::vector<impl_t> FCFSCachedTableReadOrWriteFactory::process_node(const EP *ep
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
+
   if (!map_get->is_map_get_followed_by_map_puts_on_miss(future_map_puts)) {
     // The cached table read should deal with these cases.
     return impls;
