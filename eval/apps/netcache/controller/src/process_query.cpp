@@ -40,7 +40,7 @@ ProcessQuery::ProcessQuery() {
 	servaddr.sin_addr.s_addr = inet_addr(SERVER_HOST);
 }
 
-void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
+void ProcessQuery::read_query(const query_t& read_query) {
 	// Sample k values from the switch's cached item counter array.
 	// k is defined in conf.kv.initial_entries.
 
@@ -77,13 +77,13 @@ void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
 	}
 
 	// If the smallest counter value < HH report counter:
-	if (sampl_cntr[smallest_idx][1] < hot_read_query.val) {
+	if (sampl_cntr[smallest_idx][1] < read_query.val) {
 		// Evict the key corresponding to the smallest.
 		Controller::controller->reg_vtable.allocate((uint32_t) sampl_cntr[smallest_idx][0], 0);
 
 		// Retrieve the updated HH report value from the server.
 
-		auto buffer = hot_read_query.serialize();
+		auto buffer = read_query.serialize();
 
 		auto sent_len =
 			sendto(sockfd, (const char*)buffer.data(), buffer.size(), MSG_CONFIRM,
@@ -118,69 +118,6 @@ void ProcessQuery::hot_read_query(const query_t& hot_read_query) {
 
 		// Update the cache lookup table to delete the corresponding key.
 		Controller::controller->cache_lookup.del_entry(reply.key);
-	}
-}
-
-void ProcessQuery::write_query(const query_t& write_query) {
-
-	auto buffer = write_query.serialize();
-
-	auto sent_len =
-		sendto(sockfd, (const char*)buffer.data(), buffer.size(), MSG_CONFIRM,
-			   (const struct sockaddr*)&servaddr, sizeof(servaddr));
-
-	if (sent_len != buffer.size()) {
-		fprintf(stderr, "Truncated packet.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	socklen_t socklen = sizeof(servaddr);
-	float write_confirm;
-
-	ssize_t recv_len = recvfrom(sockfd, &write_confirm, sizeof(write_confirm), 0,
-								(struct sockaddr*)&servaddr, &socklen);
-
-	if (recv_len > 0) {
-		if (write_confirm != -1) {
-			#ifndef NDEBUG
-			std::cout << "Value successfully updated in the server." << std::endl;
-			#endif
-		}
-	} else {
-		#ifndef NDEBUG
-		std::cerr << "Failed to receive a confirmation from the server." << std::endl;
-		#endif
-		return;
-	}
-}
-
-void ProcessQuery::del_query(const query_t& del_query) {
-
-	auto buffer = del_query.serialize();
-
-	auto sent_len =
-		sendto(sockfd, (const char*)buffer.data(), buffer.size(), MSG_CONFIRM,
-			   (const struct sockaddr*)&servaddr, sizeof(servaddr));
-
-	if (sent_len != buffer.size()) {
-		fprintf(stderr, "Truncated packet.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	struct sockaddr_in src_addr;
-	socklen_t socklen = sizeof(src_addr);
-	float del_confirm;
-
-	ssize_t recv_len = recvfrom(sockfd, &del_confirm, sizeof(del_confirm), 0,
-						   (struct sockaddr*)&src_addr, &socklen);
-
-	if (recv_len > 0) {
-		if (del_confirm != -1) {
-			std::cout << "Value successfully deleted from the server." << std::endl;
-		}
-	} else {
-		std::cerr << "Failed to receive a confirmation from the server." << std::endl;
-		return;
 	}
 }
 

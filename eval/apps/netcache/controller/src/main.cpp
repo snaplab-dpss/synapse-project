@@ -9,6 +9,12 @@
 #include <variant>
 #include <chrono>
 
+// #include <rte_eal.h>
+// #include <rte_ethdev.h>
+// #include <rte_ip.h>
+// #include <rte_tcp.h>
+// #include <rte_udp.h>
+
 #include "constants.h"
 #include "netcache.h"
 #include "listener.h"
@@ -162,6 +168,12 @@ int main(int argc, char **argv) {
 
 	args.dump();
 
+    // int ret = rte_eal_init(argc, argv);
+    // if (ret < 0) {
+    //     std::cerr << "Failed to initialize DPDK environment." << std::endl;
+    //     return 1;
+    // }
+
 	auto listener = netcache::Listener(args.iface);
 	auto process_query = netcache::ProcessQuery();
 
@@ -209,21 +221,11 @@ int main(int argc, char **argv) {
 		auto query = listener.receive_query();
 
 		if (query.valid) {
-			if (query.op == WRITE_QUERY) {
+			if (query.op == READ_QUERY) {
 				#ifndef NDEBUG
-				printf("WRITE QUERY\n");
+				printf("READ QUERY\n");
 				#endif
-				process_query.write_query(query);
-			} else if (query.op == DELETE_QUERY) {
-				#ifndef NDEBUG
-				printf("DEL QUERY\n");
-				#endif
-				process_query.del_query(query);
-			} else if (query.op == HOT_READ_QUERY) {
-				#ifndef NDEBUG
-				printf("HOT READ QUERY\n");
-				#endif
-				process_query.hot_read_query(query);
+				process_query.read_query(query);
 			} else {
 				std::cerr << "Invalid query received.";
 			}

@@ -20,7 +20,7 @@
 			"external": [ 0 ]
 		},
 		"stats": {
-			"port": 13,
+			"port": 11,
 			"capacity": 100,
 			"comment": "veth6"
 		},

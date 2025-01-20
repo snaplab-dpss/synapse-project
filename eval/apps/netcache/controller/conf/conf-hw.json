@@ -1,0 +1,42 @@
+{
+	"kv": {
+		"store_size": 8192,
+		"initial_entries": 50
+	},
+	"key_cntr": {
+		"reg_size": 8192,
+		"reset_timer": 10000000
+	},
+	"cm": {
+		"reg_size": 1024,
+		"reset_timer": 10000000
+	},
+	"bloom": {
+		"reg_size": 1024,
+		"reset_timer": 10000000
+	},
+	"topology": {
+		"pipes": {
+			"external": [ 0 ]
+		},
+		"stats": {
+			"port": 11,
+			"capacity": 100,
+			"comment": ""
+		},
+		"connections": [
+			{
+				"in": {
+					"port": 6,
+					"capacity": 100,
+					"comment": "geodude e810 port 0"
+				},
+				"out": {
+					"port": 2,
+					"capacity": 100,
+					"comment": "graveler e810 port 1"
+				}
+			}
+		]
+	}
+}

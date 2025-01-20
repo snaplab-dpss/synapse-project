@@ -6,19 +6,19 @@ control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
 	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_1;
 	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_2;
 
-	CRCPolynomial<bit<32>>(coeff    = 0x1EDC6F41,
-						   reversed = true,
-                           msb      = false,
-                           extended = false,
-                           init     = 0x00000000,
-                           xor      = 0xFFFFFFFF) crc32_c;
-
-	CRCPolynomial<bit<32>>(coeff    = 0xA833982B,
+	CRCPolynomial<bit<32>>(coeff	= 0x1EDC6F41,
 						   reversed = true,
 						   msb		= false,
 						   extended = false,
-                           init     = 0x00000000,
-                           xor      = 0xFFFFFFFF) crc32_d;
+						   init		= 0x00000000,
+						   xor		= 0xFFFFFFFF) crc32_c;
+
+	CRCPolynomial<bit<32>>(coeff	= 0xA833982B,
+						   reversed = true,
+						   msb		= false,
+						   extended = false,
+						   init		= 0x00000000,
+						   xor		= 0xFFFFFFFF) crc32_d;
 
 	Hash<bit<32>>(HashAlgorithm_t.CRC32)			hash_crc32;
 	Hash<bit<32>>(HashAlgorithm_t.CUSTOM, crc32_c)	hash_crc32_c;

@@ -15,56 +15,56 @@
 // ---------------------------------------------------------------------------
 
 parser SwitchIngressParser(
-        packet_in pkt,
-        out header_t hdr,
-        out ingress_metadata_t ig_md,
-        out ingress_intrinsic_metadata_t ig_intr_md) {
+		packet_in pkt,
+		out header_t hdr,
+		out ingress_metadata_t ig_md,
+		out ingress_intrinsic_metadata_t ig_intr_md) {
 
-    state start {
-        pkt.extract(ig_intr_md);
-        pkt.advance(PORT_METADATA_SIZE);
-        transition parse_ethernet;
-    }
+	state start {
+		pkt.extract(ig_intr_md);
+		pkt.advance(PORT_METADATA_SIZE);
+		transition parse_ethernet;
+	}
 
-    state parse_ethernet {
-        pkt.extract(hdr.ethernet);
-        transition select(hdr.ethernet.ether_type) {
-            ETHERTYPE_IPV4 : parse_ipv4;
-            default : accept;
-        }
-    }
+	state parse_ethernet {
+		pkt.extract(hdr.ethernet);
+		transition select(hdr.ethernet.ether_type) {
+			ETHERTYPE_IPV4 : parse_ipv4;
+			default : accept;
+		}
+	}
 
-    state parse_ipv4 {
-        pkt.extract(hdr.ipv4);
-        transition select(hdr.ipv4.protocol) {
-            IP_PROTO_UDP : parse_udp;
-            IP_PROTO_TCP : parse_tcp;
-            default : accept;
-        }
-    }
+	state parse_ipv4 {
+		pkt.extract(hdr.ipv4);
+		transition select(hdr.ipv4.protocol) {
+			IP_PROTO_UDP : parse_udp;
+			IP_PROTO_TCP : parse_tcp;
+			default : accept;
+		}
+	}
 
-    state parse_udp {
-        pkt.extract(hdr.udp);
-        transition select(hdr.udp.src_port, hdr.udp.dst_port) {
-            (NC_PORT, _) : parse_netcache;
-            (_, NC_PORT) : parse_netcache;
-            default : accept;
-        }
-    }
+	state parse_udp {
+		pkt.extract(hdr.udp);
+		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+			(NC_PORT, _) : parse_netcache;
+			(_, NC_PORT) : parse_netcache;
+			default : accept;
+		}
+	}
 
-    state parse_tcp {
-        pkt.extract(hdr.tcp);
-        transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
-            (NC_PORT, _) : parse_netcache;
-            (_, NC_PORT) : parse_netcache;
-            default : accept;
-        }
-    }
+	state parse_tcp {
+		pkt.extract(hdr.tcp);
+		transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
+			(NC_PORT, _) : parse_netcache;
+			(_, NC_PORT) : parse_netcache;
+			default : accept;
+		}
+	}
 
-    state parse_netcache {
-        pkt.extract(hdr.netcache);
-        transition accept;
-    }
+	state parse_netcache {
+		pkt.extract(hdr.netcache);
+		transition accept;
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -72,55 +72,75 @@ parser SwitchIngressParser(
 // ---------------------------------------------------------------------------
 
 parser SwitchEgressParser(
-        packet_in pkt,
-        out header_t hdr,
-        out egress_metadata_t eg_md,
-        out egress_intrinsic_metadata_t eg_intr_md) {
+		packet_in pkt,
+		out header_t hdr,
+		out egress_metadata_t eg_md,
+		out egress_intrinsic_metadata_t eg_intr_md) {
 
-    state start {
-        pkt.extract(eg_intr_md);
-        transition parse_ethernet;
-    }
+	state start {
+		pkt.extract(eg_intr_md);
+		transition parse_metadata;
+	}
 
-    state parse_ethernet {
-        pkt.extract(hdr.ethernet);
-        transition select(hdr.ethernet.ether_type) {
-            ETHERTYPE_IPV4 : parse_ipv4;
-            default : accept;
-        }
-    }
+	state parse_metadata {
+		mirror_h mirror_md = pkt.lookahead<mirror_h>();
+		transition select(mirror_md.pkt_type) {
+			PKT_TYPE_MIRROR : parse_mirror_md;
+			PKT_TYPE_NORMAL : parse_bridged_md;
+			default : accept;
+		}
+	}
 
-    state parse_ipv4 {
-        pkt.extract(hdr.ipv4);
-        transition select(hdr.ipv4.protocol) {
-            IP_PROTO_UDP : parse_udp;
-            IP_PROTO_TCP : parse_tcp;
-            default : accept;
-        }
-    }
+	state parse_bridged_md {
+		pkt.extract(hdr.bridged_md);
+		transition parse_ethernet;
+	}
 
-    state parse_udp {
-        pkt.extract(hdr.udp);
-        transition select(hdr.udp.src_port, hdr.udp.dst_port) {
-            (NC_PORT, _) : parse_netcache;
-            (_, NC_PORT) : parse_netcache;
-            default : accept;
-        }
-    }
+	state parse_mirror_md {
+		mirror_h mirror_md;
+		pkt.extract(mirror_md);
+		transition parse_ethernet;
+	}
 
-    state parse_tcp {
-        pkt.extract(hdr.tcp);
-        transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
-            (NC_PORT, _) : parse_netcache;
-            (_, NC_PORT) : parse_netcache;
-            default : accept;
-        }
-    }
+	state parse_ethernet {
+		pkt.extract(hdr.ethernet);
+		transition select(hdr.ethernet.ether_type) {
+			ETHERTYPE_IPV4 : parse_ipv4;
+			default : accept;
+		}
+	}
 
-    state parse_netcache {
-        pkt.extract(hdr.netcache);
-        transition accept;
-    }
+	state parse_ipv4 {
+		pkt.extract(hdr.ipv4);
+		transition select(hdr.ipv4.protocol) {
+			IP_PROTO_UDP : parse_udp;
+			IP_PROTO_TCP : parse_tcp;
+			default : accept;
+		}
+	}
+
+	state parse_udp {
+		pkt.extract(hdr.udp);
+		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+			(NC_PORT, _) : parse_netcache;
+			(_, NC_PORT) : parse_netcache;
+			default : accept;
+		}
+	}
+
+	state parse_tcp {
+		pkt.extract(hdr.tcp);
+		transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
+			(NC_PORT, _) : parse_netcache;
+			(_, NC_PORT) : parse_netcache;
+			default : accept;
+		}
+	}
+
+	state parse_netcache {
+		pkt.extract(hdr.netcache);
+		transition accept;
+	}
 }
 
 #endif

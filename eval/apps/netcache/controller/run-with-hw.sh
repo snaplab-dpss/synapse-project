@@ -11,14 +11,19 @@ if [ -z ${SDE_INSTALL+x} ]; then
 fi
 
 CONTROLLER_EXE="$SCRIPT_DIR/build/netcache-controller"
-CONTROLLER_CONF_FILE="$SCRIPT_DIR/conf.json"
+CONTROLLER_CONF_FILE="$SCRIPT_DIR/conf/conf-hw.json"
+HW_CONF_FILE="$SCRIPT_DIR/conf/AS9516-32D.conf"
 
 LD_LIBRARY_PATH="/usr/local/lib/:$SDE_INSTALL/lib/"
 
+IFACE="veth1"
+
 # Compile
-make release -j
+# make release -j
 
 # Run controller using the switch
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+	NETCACHE_HW_CONF=$HW_CONF_FILE \
 	$CONTROLLER_EXE \
-	"$CONTROLLER_CONF_FILE"
+	"$CONTROLLER_CONF_FILE" \
+	-i $IFACE

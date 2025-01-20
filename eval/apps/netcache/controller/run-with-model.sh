@@ -11,12 +11,12 @@ if [ -z ${SDE_INSTALL+x} ]; then
 fi
 
 CONTROLLER_EXE="$SCRIPT_DIR/build/netcache-controller"
-CONTROLLER_CONF_FILE="$SCRIPT_DIR/conf.json"
+CONTROLLER_CONF_FILE="$SCRIPT_DIR//conf/conf-model.json"
 TOFINO_MODEL_EXE_NAME="tofino-model"
 CONF_DIR="$SDE_INSTALL/share/p4/targets/tofino2"
 CONF_FILE="$CONF_DIR/netcache.conf"
 
-IFACE="veth2"
+IFACE="veth6"
 
 if ! ps -e | grep -q "$TOFINO_MODEL_EXE_NAME"; then
 	echo "Tofino model not running. Exiting."
