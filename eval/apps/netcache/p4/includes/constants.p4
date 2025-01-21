@@ -16,6 +16,13 @@ typedef bit<9> port_t;
 
 const port_t CPU_PORT = 255;
 
+typedef bit<8>  pkt_type_t;
+const pkt_type_t PKT_TYPE_NORMAL = 1;
+const pkt_type_t PKT_TYPE_MIRROR = 2;
+
+typedef bit<4> mirror_type_t;
+const mirror_type_t MIRROR_TYPE_E2E = 2;
+
 // NetCache
 
 const bit<16> NC_PORT = 50000;
@@ -49,6 +56,5 @@ typedef bit<NC_VTABLE_SIZE_WIDTH>	vtableIdx_t;
 const bit<8> READ_QUERY = 0x00;
 const bit<8> WRITE_QUERY = 0x01;
 const bit<8> DELETE_QUERY = 0x02;
-const bit<8> HOT_READ_QUERY = 0x03;
 
 #endif

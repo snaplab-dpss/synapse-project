@@ -112,6 +112,9 @@ public:
 			fwd.add_entry(ig_port, DELETE_QUERY, eg_port);
 		}
 
+		// Configure mirror session.
+		configure_mirroring(128, conf.topology.stats.port);
+
 		// Insert k entries in the switch's KV store, all with value 0.
 		// k is defined in conf.kv.initial_entries.
 
@@ -162,6 +165,62 @@ public:
 
 	conf_t get_conf() const { return conf; }
 	bool get_use_tofino_model() const { return use_tofino_model; }
+
+	bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eg_port) {
+		const bfrt::BfRtTable* mirror_cfg = nullptr;
+
+		bf_status_t bf_status = info->bfrtTableFromNameGet("$mirror.cfg", &mirror_cfg);
+		assert(bf_status == BF_SUCCESS);
+
+		bf_rt_id_t session_id, normal;
+		bf_status = mirror_cfg->keyFieldIdGet("$sid", &session_id);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg->actionIdGet("$normal", &normal);
+		assert(bf_status == BF_SUCCESS);
+
+		std::unique_ptr<bfrt::BfRtTableKey> mirror_cfg_key;
+		std::unique_ptr<bfrt::BfRtTableData> mirror_cfg_data;
+
+		bf_status = mirror_cfg->keyAllocate(&mirror_cfg_key);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg->dataAllocate(normal, &mirror_cfg_data);
+		assert(bf_status == BF_SUCCESS);
+
+		bf_status = mirror_cfg_key->setValue(session_id, session_id_val);
+		assert(bf_status == BF_SUCCESS);
+
+		bf_rt_id_t session_enabled, direction;
+		bf_rt_id_t ucast_egress_port, ucast_egress_port_valid, copy_to_cpu;
+
+		bf_status = mirror_cfg->dataFieldIdGet("$session_enable", &session_enabled);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg->dataFieldIdGet("$direction", &direction);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg->dataFieldIdGet("$ucast_egress_port", &ucast_egress_port);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg->dataFieldIdGet("$ucast_egress_port_valid",
+											   &ucast_egress_port_valid);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg->dataFieldIdGet("$copy_to_cpu", &copy_to_cpu);
+		assert(bf_status == BF_SUCCESS);
+
+		bf_status = mirror_cfg_data->setValue(session_enabled, true);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg_data->setValue(direction, std::string("EGRESS"));
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg_data->setValue(ucast_egress_port, eg_port);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg_data->setValue(ucast_egress_port_valid, true);
+		assert(bf_status == BF_SUCCESS);
+		bf_status = mirror_cfg_data->setValue(copy_to_cpu, false);
+		assert(bf_status == BF_SUCCESS);
+
+		bf_status = mirror_cfg->tableEntryAdd(*session, dev_tgt, 0,
+											  *mirror_cfg_key.get(), *mirror_cfg_data.get());
+		assert(bf_status == BF_SUCCESS);
+
+		return BF_SUCCESS;
+	}
 
 	static void init(const bfrt::BfRtInfo *_info,
 					 std::shared_ptr<bfrt::BfRtSession> _session,
