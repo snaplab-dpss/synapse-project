@@ -1,3 +1,5 @@
+#include <LibCore/Pcap.h>
+
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
@@ -9,11 +11,8 @@
 #include <nlohmann/json.hpp>
 #include <CLI/CLI.hpp>
 
-#include "../src/pcap.hpp"
-
 #define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
-using namespace synapse;
 using json = nlohmann::json;
 
 class Clock {
@@ -195,35 +194,34 @@ void dump_report(const std::filesystem::path &output_report, const report_t &rep
 
 void print_report(const report_t &report) {
   printf("###################### PCAP Stats ######################\n");
-  printf("Start:                    %s\n", fmt_time_hh(report.start).c_str());
-  printf("End:                      %s\n", fmt_time_hh(report.end).c_str());
-  printf("Duration:                 %s\n", fmt_time_duration_hh(report.start, report.end).c_str());
-  printf("Total packets:            %s\n", fmt(report.total_pkts).c_str());
-  printf("Total TCP/UDP packets:    %s (%d%%)\n", fmt(report.tcpudp_pkts).c_str(),
+  printf("Start:                    %s\n", LibCore::fmt_time_hh(report.start).c_str());
+  printf("End:                      %s\n", LibCore::fmt_time_hh(report.end).c_str());
+  printf("Duration:                 %s\n", LibCore::fmt_time_duration_hh(report.start, report.end).c_str());
+  printf("Total packets:            %s\n", LibCore::fmt(report.total_pkts).c_str());
+  printf("Total TCP/UDP packets:    %s (%d%%)\n", LibCore::fmt(report.tcpudp_pkts).c_str(),
          (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
   printf("Pkt sizes:                %.2f ± %.2f B\n", report.pkt_sizes_cdf.get_avg(), report.pkt_sizes_cdf.get_stdev());
   printf("Pkt sizes CDF:\n");
   for (const auto &[size, prob] : report.pkt_sizes_cdf.get_cdf()) {
     printf("             %11lu: %.2lf\n", size, prob);
   }
-  printf("Total flows:              %s\n", fmt(report.total_flows).c_str());
-  printf("Total symmetric flows:    %s\n", fmt(report.total_symm_flows).c_str());
-  printf("Concurrent flows/epoch:   %s ± %s\n", fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
-         fmt(report.concurrent_flows_per_epoch.get_stdev()).c_str());
-  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(),
-         report.pkts_per_flow_cdf.get_stdev());
+  printf("Total flows:              %s\n", LibCore::fmt(report.total_flows).c_str());
+  printf("Total symmetric flows:    %s\n", LibCore::fmt(report.total_symm_flows).c_str());
+  printf("Concurrent flows/epoch:   %s ± %s\n", LibCore::fmt(report.concurrent_flows_per_epoch.get_avg()).c_str(),
+         LibCore::fmt(report.concurrent_flows_per_epoch.get_stdev()).c_str());
+  printf("Pkts/flow:                %.2f ± %.2f\n", report.pkts_per_flow_cdf.get_avg(), report.pkts_per_flow_cdf.get_stdev());
   printf("Pkts/flow CDF:\n");
   for (const auto &[pkts, prob] : report.pkts_per_flow_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", pkts, prob);
   }
-  printf("Flow duration:            %s ± %s us\n", fmt(report.flow_duration_us_cdf.get_avg()).c_str(),
-         fmt(report.flow_duration_us_cdf.get_stdev()).c_str());
+  printf("Flow duration:            %s ± %s us\n", LibCore::fmt(report.flow_duration_us_cdf.get_avg()).c_str(),
+         LibCore::fmt(report.flow_duration_us_cdf.get_stdev()).c_str());
   printf("Flow duration CDF (us):\n");
   for (const auto &[duration, prob] : report.flow_duration_us_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", duration, prob);
   }
-  printf("Flow time inter-packets:  %s ± %s us\n", fmt(report.flow_dts_us_cdf.get_avg()).c_str(),
-         fmt(report.flow_dts_us_cdf.get_stdev()).c_str());
+  printf("Flow time inter-packets:  %s ± %s us\n", LibCore::fmt(report.flow_dts_us_cdf.get_avg()).c_str(),
+         LibCore::fmt(report.flow_dts_us_cdf.get_stdev()).c_str());
   printf("Flow time inter-packets CDF (us):\n");
   for (const auto &[gap, prob] : report.flow_dts_us_cdf.get_cdf()) {
     printf("             %11lu: %.2f\n", gap, prob);
@@ -254,16 +252,16 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  PcapReader pcap_reader(argv[1]);
+  LibCore::PcapReader pcap_reader(argv[1]);
 
   Clock clock(EPOCH_DURATION_NS);
-  std::unordered_set<flow_t, flow_t::flow_hash_t> flows;
-  std::unordered_set<sflow_t, sflow_t::flow_hash_t> symm_flows;
-  std::vector<std::unordered_set<flow_t, flow_t::flow_hash_t>> concurrent_flows_per_epoch;
+  std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> flows;
+  std::unordered_set<LibCore::sflow_t, LibCore::sflow_t::flow_hash_t> symm_flows;
+  std::vector<std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t>> concurrent_flows_per_epoch;
 
-  std::unordered_map<flow_t, u64, sflow_t::flow_hash_t> pkts_per_flow;
-  std::unordered_map<flow_t, u64, sflow_t::flow_hash_t> bytes_per_flow;
-  std::unordered_map<flow_t, flow_ts, sflow_t::flow_hash_t> flow_times;
+  std::unordered_map<LibCore::flow_t, u64, LibCore::sflow_t::flow_hash_t> pkts_per_flow;
+  std::unordered_map<LibCore::flow_t, u64, LibCore::sflow_t::flow_hash_t> bytes_per_flow;
+  std::unordered_map<LibCore::flow_t, flow_ts, LibCore::sflow_t::flow_hash_t> flow_times;
 
   report_t report;
 
@@ -278,7 +276,7 @@ int main(int argc, char *argv[]) {
   u16 hdrs_len;
   u16 sz;
   time_ns_t ts;
-  std::optional<flow_t> flow;
+  std::optional<LibCore::flow_t> flow;
 
   while (pcap_reader.read(pkt, hdrs_len, sz, ts, flow)) {
     pkt_count++;

@@ -1,0 +1,101 @@
+#include <LibSynapse/Modules/Controller/FCFSCachedTableRead.h>
+#include <LibSynapse/ExecutionPlan.h>
+
+namespace LibSynapse {
+namespace Controller {
+
+using Tofino::DS_ID;
+using Tofino::Table;
+
+namespace {
+DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
+  const Context &ctx                                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
+  assert(data_structures.size() == 1 && "Multiple data structures found");
+  Tofino::DS *ds = *data_structures.begin();
+  assert(ds->type == Tofino::DSType::FCFS_CACHED_TABLE && "Not a FCFS cached table");
+  return ds->id;
+}
+
+void get_data(const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value,
+              std::optional<LibCore::symbol_t> &hit) {
+  const LibBDD::call_t &call = call_node->get_call();
+  assert(call.function_name == "map_get" && "Not a map_get call");
+
+  klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
+
+  LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
+
+  obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  keys  = Table::build_keys(key);
+  value = value_out;
+  hit   = map_has_this_key;
+}
+} // namespace
+
+std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return std::nullopt;
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "map_get") {
+    return std::nullopt;
+  }
+
+  klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+  addr_t map_addr                     = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+
+  if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
+    return std::nullopt;
+  }
+
+  return spec_impl_t(decide(ep, node), ctx);
+}
+
+std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                             LibCore::SymbolManager *symbol_manager) const {
+  std::vector<impl_t> impls;
+
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return impls;
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "map_get") {
+    return impls;
+  }
+
+  addr_t obj;
+  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> value;
+  std::optional<LibCore::symbol_t> found;
+  get_data(call_node, obj, keys, value, found);
+
+  if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
+    return impls;
+  }
+
+  DS_ID id = get_cached_table_id(ep, obj);
+
+  Module *module  = new FCFSCachedTableRead(node, id, obj, keys, value, found);
+  EPNode *ep_node = new EPNode(module);
+
+  EP *new_ep = new EP(*ep);
+  impls.push_back(implement(ep, node, new_ep));
+
+  EPLeaf leaf(ep_node, node->get_next());
+  new_ep->process_leaf(ep_node, {leaf});
+
+  return impls;
+}
+
+} // namespace Controller
+} // namespace LibSynapse

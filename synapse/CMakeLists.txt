@@ -94,34 +94,45 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_unwind.cmake)
 
 ###############################################################################
+# Build the libraries
+###############################################################################
+
+add_subdirectory(libraries/LibCore)
+add_subdirectory(libraries/LibBDD)
+add_subdirectory(libraries/LibSynapse)
+
+###############################################################################
 # Build the synapse library
 ###############################################################################
 
-file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
-list(FILTER SOURCES EXCLUDE REGEX ".*/templates/.*$")
+# file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
+# list(FILTER SOURCES EXCLUDE REGEX ".*/templates/.*$")
+
+# add_library(synapse ${SOURCES})
+
+# target_compile_definitions(synapse PRIVATE ${LLVM_DEFINITIONS})
+# target_compile_definitions(synapse PRIVATE ${KLEE_DEFINITIONS})
+
+# target_link_libraries(synapse PUBLIC ${KLEE_LIBRARIES})
+# target_link_libraries(synapse PUBLIC ${LLVM_LIBRARIES})
+# target_link_libraries(synapse PUBLIC ${CURSES_LIBRARIES})
+# target_link_libraries(synapse PUBLIC ${Z3_LIBRARIES})
+# target_link_libraries(synapse PUBLIC ${LIBUNWIND_LIBRARIES})
+# target_link_libraries(synapse PUBLIC CLI11::CLI11)
+# target_link_libraries(synapse PUBLIC nlohmann_json::nlohmann_json)
+# target_link_libraries(synapse PUBLIC tomlplusplus::tomlplusplus)
+# target_link_libraries(synapse PUBLIC ${PCAP_LIBRARY})
+# target_link_libraries(synapse PUBLIC Threads::Threads)
+# target_link_libraries(synapse PUBLIC dl)
+
+###############################################################################
+# Build executables
+###############################################################################
 
 file(GLOB_RECURSE TOOLS ${PROJECT_SOURCE_DIR}/tools/*.cpp)
 
-add_library(synapse ${SOURCES})
-
-target_compile_definitions(synapse PRIVATE ${LLVM_DEFINITIONS})
-target_compile_definitions(synapse PRIVATE ${KLEE_DEFINITIONS})
-
-target_link_libraries(synapse PUBLIC ${KLEE_LIBRARIES})
-target_link_libraries(synapse PUBLIC ${LLVM_LIBRARIES})
-target_link_libraries(synapse PUBLIC ${CURSES_LIBRARIES})
-target_link_libraries(synapse PUBLIC ${Z3_LIBRARIES})
-target_link_libraries(synapse PUBLIC ${LIBUNWIND_LIBRARIES})
-target_link_libraries(synapse PUBLIC CLI11::CLI11)
-target_link_libraries(synapse PUBLIC nlohmann_json::nlohmann_json)
-target_link_libraries(synapse PUBLIC tomlplusplus::tomlplusplus)
-target_link_libraries(synapse PUBLIC ${PCAP_LIBRARY})
-target_link_libraries(synapse PUBLIC Threads::Threads)
-target_link_libraries(synapse PUBLIC dl)
-
-###############################################################################
-# Build executables (synapse and tools)
-###############################################################################
+# include_directories(${PCAP_INCLUDE_DIR})
+# link_directories(${PCAP_LIBRARY})
 
 foreach(TOOL ${TOOLS})
     get_filename_component(TOOL_NAME ${TOOL} NAME_WE)
@@ -132,7 +143,19 @@ foreach(TOOL ${TOOLS})
     add_executable(${TOOL_TARGET} ${TOOL_SOURCES})
     set_target_properties(${TOOL_TARGET} PROPERTIES OUTPUT_NAME "${TOOL_NAME}")
     
-    target_link_libraries(${TOOL_TARGET} PUBLIC synapse)
+    target_link_libraries(${TOOL_TARGET} PRIVATE Core)
+    target_link_libraries(${TOOL_TARGET} PRIVATE BDD)
+    target_link_libraries(${TOOL_TARGET} PRIVATE Synapse)
+
+    target_link_libraries(${TOOL_TARGET} PUBLIC CLI11::CLI11)
+    # target_link_libraries(${TOOL_TARGET} PUBLIC ${KLEE_LIBRARIES})
+    # target_link_libraries(${TOOL_TARGET} PUBLIC ${LLVM_LIBRARIES})
+    # target_link_libraries(${TOOL_TARGET} PUBLIC ${CURSES_LIBRARIES})
+    # target_link_libraries(${TOOL_TARGET} PUBLIC ${Z3_LIBRARIES})
+    # target_link_libraries(${TOOL_TARGET} PUBLIC ${LIBUNWIND_LIBRARIES})
+    # target_link_libraries(${TOOL_TARGET} PUBLIC nlohmann_json::nlohmann_json)
+    # target_link_libraries(${TOOL_TARGET} PUBLIC tomlplusplus::tomlplusplus)
+    # target_link_libraries(${TOOL_TARGET} PUBLIC ${PCAP_LIBRARY})
+    # target_link_libraries(${TOOL_TARGET} PUBLIC Threads::Threads)
+    # target_link_libraries(${TOOL_TARGET} PUBLIC dl)
 endforeach(TOOL ${TOOLS})
-
-

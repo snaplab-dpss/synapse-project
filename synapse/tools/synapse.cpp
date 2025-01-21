@@ -1,24 +1,20 @@
+#include <LibSynapse/Search.h>
+#include <LibSynapse/Synthesizers/Synthesizers.h>
+#include <LibSynapse/Visualizers/EPVisualizer.h>
+#include <LibSynapse/Visualizers/SSVisualizer.h>
+#include <LibSynapse/Visualizers/ProfilerVisualizer.h>
+#include <LibCore/Debug.h>
+
 #include <filesystem>
 #include <fstream>
 #include <CLI/CLI.hpp>
 #include <toml++/toml.hpp>
 
-#include "../src/bdd/bdd.hpp"
-#include "../src/visualizers/ep_visualizer.hpp"
-#include "../src/visualizers/ss_visualizer.hpp"
-#include "../src/visualizers/profiler_visualizer.hpp"
-#include "../src/heuristics/heuristics.hpp"
-#include "../src/search.hpp"
-#include "../src/synthesizers/ep/synthesizers.hpp"
-#include "../src/targets/targets.hpp"
-#include "../src/util/symbol_manager.hpp"
-
-using namespace synapse;
-
-const std::unordered_map<std::string, HeuristicOption> heuristic_opt_converter{
-    {"bfs", HeuristicOption::BFS},         {"dfs", HeuristicOption::DFS},       {"random", HeuristicOption::RANDOM},
-    {"gallium", HeuristicOption::GALLIUM}, {"greedy", HeuristicOption::GREEDY}, {"max-tput", HeuristicOption::MAX_TPUT},
-    {"ds-pref", HeuristicOption::DS_PREF},
+const std::unordered_map<std::string, LibSynapse::HeuristicOption> heuristic_opt_converter{
+    {"bfs", LibSynapse::HeuristicOption::BFS},         {"dfs", LibSynapse::HeuristicOption::DFS},
+    {"random", LibSynapse::HeuristicOption::RANDOM},   {"gallium", LibSynapse::HeuristicOption::GALLIUM},
+    {"greedy", LibSynapse::HeuristicOption::GREEDY},   {"max-tput", LibSynapse::HeuristicOption::MAX_TPUT},
+    {"ds-pref", LibSynapse::HeuristicOption::DS_PREF},
 };
 
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
@@ -44,9 +40,9 @@ int main(int argc, char **argv) {
   std::filesystem::path input_bdd_file;
   std::filesystem::path targets_config_file;
   std::filesystem::path out_dir;
-  HeuristicOption heuristic_opt;
+  LibSynapse::HeuristicOption heuristic_opt;
   std::filesystem::path profile_file;
-  search_config_t search_config;
+  LibSynapse::search_config_t search_config;
   u32 seed       = 0;
   bool show_prof = false;
   bool show_ep   = false;
@@ -72,20 +68,20 @@ int main(int argc, char **argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  RandomEngine::seed(seed);
-  SymbolManager symbol_manager;
-  std::unique_ptr<BDD> bdd   = std::make_unique<BDD>(input_bdd_file, &symbol_manager);
-  toml::table targets_config = parse_targets_config(targets_config_file);
-  Profiler profiler          = profile_file.empty() ? Profiler(bdd.get()) : Profiler(bdd.get(), profile_file);
+  LibCore::SingletonRandomEngine::seed(seed);
+  LibCore::SymbolManager symbol_manager;
+  std::unique_ptr<LibBDD::BDD> bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &symbol_manager);
+  toml::table targets_config       = parse_targets_config(targets_config_file);
+  LibSynapse::Profiler profiler    = profile_file.empty() ? LibSynapse::Profiler(bdd.get()) : LibSynapse::Profiler(bdd.get(), profile_file);
 
   if (show_prof) {
     profiler.debug();
-    ProfilerViz::visualize(bdd.get(), profiler, true);
+    LibSynapse::ProfilerViz::visualize(bdd.get(), profiler, true);
   }
 
   // std::string nf_name = nf_name_from_bdd(InputBDDFile);
-  SearchEngine engine(bdd.get(), heuristic_opt, profiler, targets_config, search_config);
-  search_report_t report = engine.search();
+  LibSynapse::SearchEngine engine(bdd.get(), heuristic_opt, profiler, targets_config, search_config);
+  LibSynapse::search_report_t report = engine.search();
 
   report.ep->get_ctx().debug();
 
@@ -94,13 +90,13 @@ int main(int argc, char **argv) {
   std::cout << "  Random seed:      " << seed << "\n";
   std::cout << "Search:\n";
   std::cout << "  Search time:      " << report.meta.elapsed_time << " s\n";
-  std::cout << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
-  std::cout << "  Steps:            " << int2hr(report.meta.steps) << "\n";
-  std::cout << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
+  std::cout << "  SS size:          " << LibCore::int2hr(report.meta.ss_size) << "\n";
+  std::cout << "  Steps:            " << LibCore::int2hr(report.meta.steps) << "\n";
+  std::cout << "  Backtracks:       " << LibCore::int2hr(report.meta.backtracks) << "\n";
   std::cout << "  Branching factor: " << report.meta.branching_factor << "\n";
-  std::cout << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
-  std::cout << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
-  std::cout << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
+  std::cout << "  Avg BDD size:     " << LibCore::int2hr(report.meta.avg_bdd_size) << "\n";
+  std::cout << "  Unfinished EPs:   " << LibCore::int2hr(report.meta.unfinished_eps) << "\n";
+  std::cout << "  Solutions:        " << LibCore::int2hr(report.meta.finished_eps) << "\n";
   std::cout << "Winner EP:\n";
   std::cout << "  Winner:           " << report.score << "\n";
   std::cout << "  Throughput:       " << report.tput_estimation << "\n";
@@ -108,20 +104,20 @@ int main(int argc, char **argv) {
   std::cout << "\n";
 
   if (show_ep) {
-    EPViz::visualize(report.ep.get(), false);
+    LibSynapse::EPViz::visualize(report.ep.get(), false);
   }
 
   if (show_ss) {
-    SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
+    LibSynapse::SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
   }
 
   if (show_bdd) {
     // BDDViz::visualize(report.solution.ep->get_bdd(), false);
-    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
+    LibSynapse::ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
   }
 
   if (!out_dir.empty()) {
-    synthesize(report.ep.get(), out_dir);
+    LibSynapse::synthesize(report.ep.get(), out_dir);
   }
 
   return 0;

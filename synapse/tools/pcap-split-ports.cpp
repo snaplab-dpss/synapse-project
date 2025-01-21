@@ -1,12 +1,10 @@
+#include <LibCore/Pcap.h>
+
 #include <unordered_set>
 #include <filesystem>
 #include <optional>
 
 #include <CLI/CLI.hpp>
-
-#include "../src/pcap.hpp"
-
-using namespace synapse;
 
 int main(int argc, char *argv[]) {
   CLI::App app{"Split pcap traffic into multiple ports."};
@@ -22,7 +20,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  PcapReader pcap_reader(pcap_file);
+  LibCore::PcapReader pcap_reader(pcap_file);
 
   std::filesystem::path lan_pcap_file = pcap_file.filename().stem();
   std::filesystem::path wan_pcap_file = pcap_file.filename().stem();
@@ -30,11 +28,11 @@ int main(int argc, char *argv[]) {
   lan_pcap_file += "-lan.pcap";
   wan_pcap_file += "-wan.pcap";
 
-  PcapWriter lan_writer(lan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
-  PcapWriter wan_writer(wan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
+  LibCore::PcapWriter lan_writer(lan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
+  LibCore::PcapWriter wan_writer(wan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
 
-  std::unordered_set<flow_t, flow_t::flow_hash_t> lan_flows;
-  std::unordered_set<flow_t, flow_t::flow_hash_t> wan_flows;
+  std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> lan_flows;
+  std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> wan_flows;
 
   u64 total_pkts = pcap_reader.get_total_pkts();
   u64 pkt_count  = 0;
@@ -44,7 +42,7 @@ int main(int argc, char *argv[]) {
   u16 hdrs_len;
   u16 sz;
   time_ns_t ts;
-  std::optional<flow_t> flow;
+  std::optional<LibCore::flow_t> flow;
 
   while (pcap_reader.read(pkt, hdrs_len, sz, ts, flow)) {
     pkt_count++;
@@ -67,7 +65,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (lan_flows.find(flow.value()) == lan_flows.end()) {
-      flow_t res(flow->dst_ip, flow->src_ip, flow->dst_port, flow->src_port);
+      LibCore::flow_t res(flow->dst_ip, flow->src_ip, flow->dst_port, flow->src_port);
       lan_flows.emplace(flow.value());
       wan_flows.emplace(res);
     }

@@ -1,0 +1,27 @@
+#pragma once
+
+#include <LibSynapse/Heuristics/Heuristic.h>
+
+namespace LibSynapse {
+
+class RandomCfg : public HeuristicCfg {
+public:
+  RandomCfg()
+      : HeuristicCfg("Random", {
+                                   BUILD_METRIC(RandomCfg, get_random, MAX),
+                               }) {}
+
+  RandomCfg &operator=(const RandomCfg &other) {
+    assert(other.name == name && "Mismatched names");
+    assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
+    return *this;
+  }
+
+private:
+  i64 get_random(const EP *ep) const {
+    const EPMeta &meta = ep->get_meta();
+    return meta.random_number;
+  }
+};
+
+} // namespace LibSynapse

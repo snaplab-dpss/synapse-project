@@ -1,0 +1,48 @@
+#pragma once
+
+#include <LibSynapse/Modules/x86/x86Module.h>
+
+namespace LibSynapse {
+namespace x86 {
+
+class ExpireItemsSingleMap : public x86Module {
+private:
+  addr_t dchain_addr;
+  addr_t vector_addr;
+  addr_t map_addr;
+  klee::ref<klee::Expr> time;
+  klee::ref<klee::Expr> total_freed;
+
+public:
+  ExpireItemsSingleMap(const LibBDD::Node *node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr, klee::ref<klee::Expr> _time,
+                       klee::ref<klee::Expr> _total_freed)
+      : x86Module(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap", node), dchain_addr(_dchain_addr), vector_addr(_vector_addr),
+        map_addr(_map_addr), time(_time), total_freed(_total_freed) {}
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
+    return visitor.visit(ep, ep_node, this);
+  }
+
+  virtual Module *clone() const {
+    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(node, dchain_addr, map_addr, vector_addr, time, total_freed);
+    return cloned;
+  }
+
+  addr_t get_dchain_addr() const { return dchain_addr; }
+  addr_t get_vector_addr() const { return vector_addr; }
+  addr_t get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_time() const { return time; }
+  klee::ref<klee::Expr> get_total_freed() const { return total_freed; }
+};
+
+class ExpireItemsSingleMapFactory : public x86ModuleFactory {
+public:
+  ExpireItemsSingleMapFactory() : x86ModuleFactory(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap") {}
+
+protected:
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
+};
+
+} // namespace x86
+} // namespace LibSynapse

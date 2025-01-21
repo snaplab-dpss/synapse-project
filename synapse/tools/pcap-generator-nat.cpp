@@ -1,3 +1,6 @@
+#include <LibCore/Pcap.h>
+#include <LibCore/RandomEngine.h>
+
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
@@ -13,8 +16,6 @@
 #include <optional>
 
 #include <CLI/CLI.hpp>
-
-#include "../src/pcap.hpp"
 
 #define NF "nat"
 
@@ -35,8 +36,6 @@
 // characteristics are the same for 10Gbps and 100Gbps.
 #define RATE_GBIT 1
 
-using namespace synapse;
-
 struct pkt_hdr_t {
   ether_hdr_t eth_hdr;
   ipv4_hdr_t ip_hdr;
@@ -48,8 +47,8 @@ pkt_hdr_t build_pkt_template() {
   pkt_hdr_t pkt;
 
   pkt.eth_hdr.ether_type = htons(ETHERTYPE_IP);
-  parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
-  parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
+  LibCore::parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
+  LibCore::parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
 
   pkt.ip_hdr.version         = 4;
   pkt.ip_hdr.ihl             = 5;
@@ -73,17 +72,17 @@ pkt_hdr_t build_pkt_template() {
   return pkt;
 }
 
-flow_t random_flow() {
-  flow_t flow;
-  flow.src_ip   = random_addr();
-  flow.dst_ip   = random_addr();
-  flow.src_port = random_port();
-  flow.dst_port = random_port();
+LibCore::flow_t random_flow() {
+  LibCore::flow_t flow;
+  flow.src_ip   = LibCore::random_addr();
+  flow.dst_ip   = LibCore::random_addr();
+  flow.src_port = LibCore::random_port();
+  flow.dst_port = LibCore::random_port();
   return flow;
 }
 
-flow_t invert_flow(const flow_t &flow) {
-  flow_t inverted_flow;
+LibCore::flow_t invert_flow(const LibCore::flow_t &flow) {
+  LibCore::flow_t inverted_flow;
   inverted_flow.src_ip   = flow.dst_ip;
   inverted_flow.dst_ip   = flow.src_ip;
   inverted_flow.src_port = flow.dst_port;
@@ -149,8 +148,8 @@ std::string get_pcap_fname(const config_t &config, u16 dev) {
   return ss.str();
 }
 
-std::vector<flow_t> get_base_flows(const config_t &config) {
-  std::vector<flow_t> flows;
+std::vector<LibCore::flow_t> get_base_flows(const config_t &config) {
+  std::vector<LibCore::flow_t> flows;
   flows.reserve(config.total_flows);
 
   for (size_t i = 0; i < config.total_flows; i++) {
@@ -168,7 +167,7 @@ enum class Dev {
 class PortAllocator {
 private:
   std::vector<u16> available_ports;
-  std::unordered_map<flow_t, u64, flow_t::flow_hash_t> flow_to_port;
+  std::unordered_map<LibCore::flow_t, u64, LibCore::flow_t::flow_hash_t> flow_to_port;
 
 public:
   PortAllocator() {
@@ -182,7 +181,7 @@ public:
     }
   }
 
-  void allocate(const flow_t &flow) {
+  void allocate(const LibCore::flow_t &flow) {
     assert(!available_ports.empty());
     assert(!flow_to_port.contains(flow));
     u16 port = available_ports.back();
@@ -190,9 +189,9 @@ public:
     flow_to_port[flow] = port;
   }
 
-  u16 get(const flow_t &flow) { return flow_to_port.at(flow); }
+  u16 get(const LibCore::flow_t &flow) { return flow_to_port.at(flow); }
 
-  void free(const flow_t &flow) {
+  void free(const LibCore::flow_t &flow) {
     if (!flow_to_port.contains(flow)) {
       return;
     }
@@ -206,14 +205,14 @@ public:
 class TrafficGenerator {
 private:
   config_t config;
-  std::vector<flow_t> flows;
+  std::vector<LibCore::flow_t> flows;
 
-  PcapWriter warmup_writer;
-  PcapWriter wan_writer;
-  std::vector<PcapWriter> lan_writers;
+  LibCore::PcapWriter warmup_writer;
+  LibCore::PcapWriter wan_writer;
+  std::vector<LibCore::PcapWriter> lan_writers;
 
-  RandomEngine uniform_rand;
-  RandomZipfEngine zipf_rand;
+  LibCore::RandomUniformEngine uniform_rand;
+  LibCore::RandomZipfEngine zipf_rand;
 
   pcap_t *pd;
   pcap_dumper_t *pdumper;
@@ -221,10 +220,10 @@ private:
   pkt_hdr_t packet_template;
 
   u16 current_lan_dev;
-  std::unordered_map<flow_t, Dev, flow_t::flow_hash_t> flows_dev_turn;
-  std::unordered_map<flow_t, u16, flow_t::flow_hash_t> flows_to_lan_dev;
-  std::unordered_set<flow_t, flow_t::flow_hash_t> allocated_flows;
-  std::unordered_map<flow_t, u64, flow_t::flow_hash_t> counters;
+  std::unordered_map<LibCore::flow_t, Dev, LibCore::flow_t::flow_hash_t> flows_dev_turn;
+  std::unordered_map<LibCore::flow_t, u16, LibCore::flow_t::flow_hash_t> flows_to_lan_dev;
+  std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> allocated_flows;
+  std::unordered_map<LibCore::flow_t, u64, LibCore::flow_t::flow_hash_t> counters;
   u64 flows_swapped;
   PortAllocator port_allocator;
 
@@ -233,13 +232,12 @@ private:
   time_ns_t next_alarm;
 
 public:
-  TrafficGenerator(const config_t &_config, const std::vector<flow_t> &_base_flows)
+  TrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
       : config(_config), flows(_base_flows), warmup_writer(get_warmup_pcap_fname(_config, 0)),
-        wan_writer(get_pcap_fname(_config, config.lan_devices)),
-        uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
+        wan_writer(get_pcap_fname(_config, config.lan_devices)), uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
         zipf_rand(_config.random_seed, _config.traffic_zipf_param, _config.total_flows), pd(NULL), pdumper(NULL),
-        packet_template(build_pkt_template()), current_lan_dev(0), counters(0), flows_swapped(0), current_time(0),
-        alarm_tick(0), next_alarm(-1) {
+        packet_template(build_pkt_template()), current_lan_dev(0), counters(0), flows_swapped(0), current_time(0), alarm_tick(0),
+        next_alarm(-1) {
     // Because of the port allocator.
     assert(flows.size() <= 65535);
 
@@ -247,7 +245,7 @@ public:
       lan_writers.emplace_back(get_pcap_fname(config, i));
     }
 
-    for (const flow_t &flow : flows) {
+    for (const LibCore::flow_t &flow : flows) {
       flows_dev_turn[flow]   = Dev::LAN;
       flows_to_lan_dev[flow] = current_lan_dev;
       counters[flow]         = 0;
@@ -267,7 +265,7 @@ public:
 
     printf("Warmup: %s\n", warmup_writer.get_output_fname().c_str());
 
-    for (const flow_t &flow : flows) {
+    for (const LibCore::flow_t &flow : flows) {
       pkt_hdr_t pkt = packet_template;
 
       pkt.ip_hdr.src_addr  = flow.src_ip;
@@ -308,12 +306,12 @@ public:
 
       if (next_alarm >= 0 && current_time >= next_alarm) {
         u64 chosen_swap_flow_idx = uniform_rand.generate();
-        flow_t old_flow          = random_swap_flow(chosen_swap_flow_idx);
+        LibCore::flow_t old_flow = random_swap_flow(chosen_swap_flow_idx);
         next_alarm += alarm_tick;
 
-        const flow_t &new_flow     = flows[chosen_swap_flow_idx];
-        flows_dev_turn[new_flow]   = Dev::WAN;
-        flows_to_lan_dev[new_flow] = current_lan_dev;
+        const LibCore::flow_t &new_flow = flows[chosen_swap_flow_idx];
+        flows_dev_turn[new_flow]        = Dev::WAN;
+        flows_to_lan_dev[new_flow]      = current_lan_dev;
         advance_lan_dev();
         counters[new_flow] = 0;
         allocated_flows.erase(old_flow);
@@ -323,8 +321,8 @@ public:
       u64 flow_idx = config.traffic_uniform ? uniform_rand.generate() : zipf_rand.generate();
       assert(flow_idx < flows.size());
 
-      const flow_t &flow = flows[flow_idx];
-      bool new_flow      = allocated_flows.find(flow) == allocated_flows.end();
+      const LibCore::flow_t &flow = flows[flow_idx];
+      bool new_flow               = allocated_flows.find(flow) == allocated_flows.end();
 
       if (new_flow) {
         flows_to_lan_dev[flow] = current_lan_dev;
@@ -345,10 +343,10 @@ public:
         u16 lan_dev = flows_to_lan_dev.at(flow);
         lan_writers[lan_dev].write((const u8 *)&pkt, sizeof(pkt_hdr_t), sizeof(pkt_hdr_t), current_time);
       } else {
-        flow_t inverted_flow = invert_flow(flow);
+        LibCore::flow_t inverted_flow = invert_flow(flow);
 
         u32 public_ipv4_addr = 0;
-        bool success         = parse_ipv4addr(PUBLIC_IP, &public_ipv4_addr);
+        bool success         = LibCore::parse_ipv4addr(PUBLIC_IP, &public_ipv4_addr);
         assert(success && "Invalid IPv4 format");
 
         pkt.ip_hdr.src_addr  = inverted_flow.src_ip;
@@ -410,8 +408,7 @@ private:
     printf("Base flows: %ld\n", flows.size());
     printf("Total flows: %ld\n", total_flows);
     printf("Swapped flows: %ld\n", flows_swapped);
-    printf("HH: %ld flows (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / total_flows,
-           100.0 * hh_packets / config.total_packets);
+    printf("HH: %ld flows (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / total_flows, 100.0 * hh_packets / config.total_packets);
     printf("Top 10 flows:\n");
     for (size_t i = 0; i < config.total_flows; i++) {
       printf("  flow %ld: %ld\n", i, counters_values[i]);
@@ -423,11 +420,11 @@ private:
   }
 
   // Return old flow
-  flow_t random_swap_flow(u64 flow_idx) {
+  LibCore::flow_t random_swap_flow(u64 flow_idx) {
     assert(flow_idx < flows.size());
 
-    flow_t old_flow = flows[flow_idx];
-    flow_t new_flow = random_flow();
+    LibCore::flow_t old_flow = flows[flow_idx];
+    LibCore::flow_t new_flow = random_flow();
 
     counters[new_flow] = 0;
     flows[flow_idx]    = new_flow;
@@ -465,8 +462,7 @@ int main(int argc, char *argv[]) {
   app.add_option("--churn", config.churn_fpm, "Total churn (fpm).")->default_val(DEFAULT_TOTAL_CHURN_FPM);
   app.add_flag("--uniform", config.traffic_uniform, "Uniform traffic.")->default_val(DEFAULT_TRAFFIC_UNIFORM);
   app.add_flag("--zipf", config.traffic_zipf, "Zipf traffic.")->default_val(DEFAULT_TRAFFIC_ZIPF);
-  app.add_option("--zipf-param", config.traffic_zipf_param, "Zipf parameter.")
-      ->default_val(DEFAULT_TRAFFIC_ZIPF_PARAMETER);
+  app.add_option("--zipf-param", config.traffic_zipf_param, "Zipf parameter.")->default_val(DEFAULT_TRAFFIC_ZIPF_PARAMETER);
   app.add_option("--lan-devs", config.lan_devices, "LAN devices.")->default_val(DEFAULT_LAN_DEVICES);
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
 
@@ -476,7 +472,7 @@ int main(int argc, char *argv[]) {
 
   config_print(config);
 
-  std::vector<flow_t> base_flows = get_base_flows(config);
+  std::vector<LibCore::flow_t> base_flows = get_base_flows(config);
   TrafficGenerator generator(config, base_flows);
 
   generator.dump_warmup();

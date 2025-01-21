@@ -1,43 +1,33 @@
+#include <LibBDD/BDD.h>
+#include <LibBDD/Visitors/PrinterDebug.h>
+
 #include <fstream>
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
-#include "../src/bdd/bdd.hpp"
-#include "../src/bdd/visitors/bdd_visualizer.hpp"
-#include "../src/util/symbol_manager.hpp"
-
-using synapse::BDD;
-using synapse::Branch;
-using synapse::call_paths_t;
-using synapse::Node;
-using synapse::NodeType;
-using synapse::NodeVisitAction;
-using synapse::PrinterDebug;
-using synapse::SymbolManager;
-
-void assert_bdd(const BDD &bdd) {
+void assert_bdd(const LibBDD::BDD &bdd) {
   std::cout << "Asserting BDD...\n";
 
-  const Node *root = bdd.get_root();
+  const LibBDD::Node *root = bdd.get_root();
   assert(root);
 
-  std::vector<const Node *> nodes{root};
+  std::vector<const LibBDD::Node *> nodes{root};
 
   while (nodes.size()) {
-    const Node *node = nodes[0];
+    const LibBDD::Node *node = nodes[0];
     nodes.erase(nodes.begin());
 
-    if (node->get_type() == NodeType::Branch) {
-      const Branch *branch = static_cast<const Branch *>(node);
+    if (node->get_type() == LibBDD::NodeType::Branch) {
+      const LibBDD::Branch *branch = static_cast<const LibBDD::Branch *>(node);
 
-      const Node *on_true  = branch->get_on_true();
-      const Node *on_false = branch->get_on_false();
+      const LibBDD::Node *on_true  = branch->get_on_true();
+      const LibBDD::Node *on_false = branch->get_on_false();
 
       assert(on_true);
       assert(on_false);
 
-      const Node *on_true_prev  = on_true->get_prev();
-      const Node *on_false_prev = on_false->get_prev();
+      const LibBDD::Node *on_true_prev  = on_true->get_prev();
+      const LibBDD::Node *on_false_prev = on_false->get_prev();
 
       assert(on_true_prev);
       assert(on_false_prev);
@@ -48,12 +38,12 @@ void assert_bdd(const BDD &bdd) {
       nodes.push_back(on_true);
       nodes.push_back(on_false);
     } else {
-      const Node *next = node->get_next();
+      const LibBDD::Node *next = node->get_next();
 
       if (!next)
         continue;
 
-      const Node *next_prev = next->get_prev();
+      const LibBDD::Node *next_prev = next->get_prev();
 
       assert(next_prev);
       assert(next_prev->get_id() == node->get_id());
@@ -83,18 +73,18 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  SymbolManager manager;
+  LibCore::SymbolManager manager;
 
-  std::unique_ptr<BDD> bdd;
+  std::unique_ptr<LibBDD::BDD> bdd;
   if (input_bdd_file.empty()) {
-    call_paths_t call_paths(input_call_path_files, &manager);
-    bdd = std::make_unique<BDD>(call_paths.get_view());
+    LibBDD::call_paths_t call_paths(input_call_path_files, &manager);
+    bdd = std::make_unique<LibBDD::BDD>(call_paths.get_view());
   } else {
-    bdd = std::make_unique<BDD>(input_bdd_file, &manager);
+    bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &manager);
   }
   assert_bdd(*bdd);
 
-  PrinterDebug printer;
+  LibBDD::PrinterDebug printer;
   bdd->visit(printer);
 
   if (!output_bdd_file.empty()) {

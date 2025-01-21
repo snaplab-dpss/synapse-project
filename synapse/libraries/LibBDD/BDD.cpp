@@ -1,0 +1,1096 @@
+#include <LibBDD/BDD.h>
+#include <LibBDD/CallPathsGroups.h>
+#include <LibBDD/Visitors/Visitor.h>
+#include <LibCore/Solver.h>
+#include <LibCore/Expr.h>
+
+#include <unordered_map>
+#include <set>
+#include <iostream>
+#include <optional>
+
+namespace LibBDD {
+
+namespace {
+const std::vector<std::string> ignored_functions{
+    "start_time",
+    "current_time",
+    "loop_invariant_consume",
+    "loop_invariant_produce",
+    "packet_receive",
+    "packet_state_total_length",
+    "packet_get_unread_length",
+    "vector_reset",
+};
+
+const std::vector<std::string> init_functions{
+    "map_allocate", "vector_allocate", "dchain_allocate", "cms_allocate", "cht_fill_cht", "tb_allocate",
+};
+
+const std::vector<std::string> symbols_in_skippable_conditions{
+    "received_a_packet",   "loop_termination",        "map_allocation_succeeded", "vector_alloc_success",
+    "is_dchain_allocated", "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",
+};
+
+const std::vector<std::string> rounting_functions{
+    "packet_send",
+    "packet_free",
+    "packet_broadcast",
+};
+
+const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call{
+    {
+        "rte_lcore_count",
+        {"lcores"},
+    },
+    {
+        "rte_ether_addr_hash",
+        {"rte_ether_addr_hash"},
+    },
+    {
+        "nf_set_rte_ipv4_udptcp_checksum",
+        {"checksum"},
+    },
+    {
+        "current_time",
+        {"next_time"},
+    },
+    {
+        "packet_receive",
+        {"DEVICE", "pkt_len"},
+    },
+    {
+        "expire_items_single_map",
+        {"number_of_freed_flows"},
+    },
+    {
+        "expire_items_single_map_iteratively",
+        {"number_of_freed_flows"},
+    },
+    {
+        "map_get",
+        {"map_has_this_key", "allocated_index"},
+    },
+    {
+        "map_size",
+        {"map_size"},
+    },
+    {
+        "dchain_is_index_allocated",
+        {"dchain_is_index_allocated"},
+    },
+    {
+        "dchain_allocate_new_index",
+        {"out_of_space", "new_index"},
+    },
+    {
+        "vector_borrow",
+        {"vector_data_reset"},
+    },
+    {
+        "vector_sample_lt",
+        {"found_sample", "sample_index"},
+    },
+    {
+        "cht_find_preferred_available_backend",
+        {"chosen_backend", "prefered_backend_found"},
+    },
+    {
+        "cms_count_min",
+        {"min_estimate"},
+    },
+    {
+        "cms_periodic_cleanup",
+        {"cleanup_success"},
+    },
+    {
+        "hash_obj",
+        {"hash"},
+    },
+    {
+        "tb_is_tracing",
+        {"is_tracing"},
+    },
+    {
+        "tb_trace",
+        {"index_out"},
+    },
+    {
+        "tb_update_and_check",
+        {"pass"},
+    },
+    {
+        "tb_expire",
+        {"number_of_freed_flows"},
+    },
+};
+
+typedef LibCore::Symbols (*SymbolsExtractor)(const call_t &call, const LibCore::Symbols &symbols);
+
+LibCore::Symbols packet_chunks_symbol_extractor(const call_t &call, const LibCore::Symbols &symbols) {
+  assert(call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
+
+  const extra_var_t &extra_var       = call.extra_vars.at("the_chunk");
+  klee::ref<klee::Expr> packet_chunk = extra_var.second;
+
+  LibCore::symbol_t symbol = symbols.get("packet_chunks");
+  symbol.expr              = packet_chunk;
+
+  LibCore::Symbols extracted_symbols;
+  extracted_symbols.add(symbol);
+
+  return extracted_symbols;
+}
+
+const std::unordered_map<std::string, SymbolsExtractor> special_symbols_extractors{
+    {
+        "packet_borrow_next_chunk",
+        packet_chunks_symbol_extractor,
+    },
+};
+
+bool is_init_function(const call_t &call) {
+  return std::find(init_functions.begin(), init_functions.end(), call.function_name) != init_functions.end();
+}
+
+bool is_skip_function(const call_t &call) {
+  return std::find(ignored_functions.begin(), ignored_functions.end(), call.function_name) != ignored_functions.end();
+}
+
+bool is_routing_function(const call_t &call) {
+  return std::find(rounting_functions.begin(), rounting_functions.end(), call.function_name) != rounting_functions.end();
+}
+
+bool is_skip_condition(klee::ref<klee::Expr> condition) {
+  std::unordered_set<std::string> symbols = LibCore::symbol_t::get_symbols_names(condition);
+
+  for (const std::string &symbol : symbols) {
+    auto base_symbol_comparator = [symbol](const std::string &s) { return symbol.find(s) != std::string::npos; };
+
+    auto found_it = std::find_if(symbols_in_skippable_conditions.begin(), symbols_in_skippable_conditions.end(), base_symbol_comparator);
+
+    if (found_it != symbols_in_skippable_conditions.end())
+      return true;
+  }
+
+  return false;
+}
+
+Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints,
+                            LibCore::SymbolManager *symbol_manager) {
+  assert(is_routing_function(call) && "Unexpected function");
+
+  if (call.function_name == "packet_free") {
+    return new Route(id, constraints, symbol_manager, RouteOp::Drop);
+  }
+
+  if (call.function_name == "packet_broadcast") {
+    return new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
+  }
+
+  assert(call.function_name == "packet_send" && "Unexpected function");
+
+  klee::ref<klee::Expr> dst_device = call.args.at("dst_device").expr;
+  assert(!dst_device.isNull() && "Null dst_device");
+
+  int value = LibCore::solver_toolbox.value_from_expr(dst_device);
+  return new Route(id, constraints, symbol_manager, RouteOp::Forward, value);
+}
+
+call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
+  assert(!call_paths.empty() && "No call paths");
+
+  for (call_path_t *cp : call_paths) {
+    assert(cp->calls.size() && "No calls");
+    const call_t &call = cp->calls[0];
+
+    if (call.ret.isNull())
+      return call;
+
+    klee::ref<klee::Expr> zero    = LibCore::solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
+    klee::ref<klee::Expr> eq_zero = LibCore::solver_toolbox.exprBuilder->Eq(call.ret, zero);
+    bool is_ret_success           = LibCore::solver_toolbox.is_expr_always_false(eq_zero);
+
+    if (is_ret_success)
+      return call;
+  }
+
+  // No function with successful return.
+  assert(!call_paths[0]->calls.empty() && "No calls in first call path");
+  return call_paths[0]->calls[0];
+}
+
+klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
+  assert(!constraint.isNull() && "Null constraint");
+
+  klee::ref<klee::Expr> simplified = LibCore::simplify(constraint);
+
+  if (LibCore::is_bool(simplified))
+    return simplified;
+
+  klee::Expr::Width width           = simplified->getWidth();
+  klee::ref<klee::Expr> zero        = LibCore::solver_toolbox.exprBuilder->Constant(0, width);
+  klee::ref<klee::Expr> is_not_zero = LibCore::solver_toolbox.exprBuilder->Ne(simplified, zero);
+
+  return is_not_zero;
+}
+
+klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
+  assert(!constraint.isNull() && "Null constraint");
+
+  klee::ref<klee::Expr> simplified = LibCore::simplify(constraint);
+
+  if (LibCore::is_bool(simplified))
+    return LibCore::solver_toolbox.exprBuilder->Not(simplified);
+
+  klee::Expr::Width width       = simplified->getWidth();
+  klee::ref<klee::Expr> zero    = LibCore::solver_toolbox.exprBuilder->Constant(0, width);
+  klee::ref<klee::Expr> is_zero = LibCore::solver_toolbox.exprBuilder->Eq(simplified, zero);
+
+  return is_zero;
+}
+
+std::optional<LibCore::symbol_t> get_generated_symbol(const LibCore::Symbols &symbols, const std::string &base,
+                                                      std::unordered_map<std::string, size_t> &base_symbols_generated) {
+  auto symbol_cmp = [base](const LibCore::symbol_t &a, const LibCore::symbol_t &b) {
+    assert(a.base == b.base && "Different base symbols");
+
+    size_t base_a_pos = a.name.find(base);
+    size_t base_b_pos = b.name.find(base);
+
+    std::string a_suffix = a.name.substr(base_a_pos + base.size());
+    std::string b_suffix = b.name.substr(base_b_pos + base.size());
+
+    if (a_suffix.size() == 0) {
+      return true;
+    }
+
+    if (b_suffix.size() == 0) {
+      return false;
+    }
+
+    assert(a_suffix[0] == '_' && "Invalid suffix");
+    assert(b_suffix[0] == '_' && "Invalid suffix");
+
+    int a_suffix_num = std::stoi(a_suffix.substr(1));
+    int b_suffix_num = std::stoi(b_suffix.substr(1));
+
+    return a_suffix_num < b_suffix_num;
+  };
+
+  std::vector<LibCore::symbol_t> filtered = symbols.filter_by_base(base).get();
+  std::sort(filtered.begin(), filtered.end(), symbol_cmp);
+
+  size_t total_base_symbols_generated = 0;
+  if (base_symbols_generated.find(base) != base_symbols_generated.end()) {
+    total_base_symbols_generated = base_symbols_generated[base];
+  } else {
+    base_symbols_generated[base] = 0;
+  }
+
+  if (total_base_symbols_generated >= filtered.size()) {
+    // Not enough symbols for translation
+    return std::nullopt;
+  }
+
+  base_symbols_generated[base]++;
+
+  return filtered[total_base_symbols_generated];
+}
+
+LibCore::Symbols get_generated_symbols(const call_t &call, LibCore::Symbols &symbols,
+                                       std::unordered_map<std::string, size_t> &base_symbols_generated) {
+  LibCore::Symbols generated_symbols;
+
+  auto extractor_it = special_symbols_extractors.find(call.function_name);
+  if (extractor_it != special_symbols_extractors.end()) {
+    return extractor_it->second(call, symbols);
+  }
+
+  auto base_symbols_it = symbols_from_call.find(call.function_name);
+  if (base_symbols_it == symbols_from_call.end()) {
+    return generated_symbols;
+  }
+
+  for (const std::string &base : base_symbols_it->second) {
+    std::optional<LibCore::symbol_t> symbol = get_generated_symbol(symbols, base, base_symbols_generated);
+    if (symbol.has_value()) {
+      generated_symbols.add(symbol.value());
+      base_symbols_generated[symbol->base]++;
+    }
+  }
+
+  return generated_symbols;
+}
+
+void pop_call_paths(call_paths_view_t &call_paths_view) {
+  for (call_path_t *cp : call_paths_view.data) {
+    assert(cp->calls.size() && "No calls");
+    cp->calls.erase(cp->calls.begin());
+  }
+}
+
+Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolManager *symbol_manager, NodeManager &node_manager,
+                          std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
+                          std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
+  Node *root = nullptr;
+  Node *leaf = nullptr;
+
+  assert(!call_paths_view.data.empty() && "No call paths");
+  if (call_paths_view.data[0]->calls.size() == 0) {
+    return root;
+  }
+
+  LibCore::Symbols symbols = call_paths_view.get_symbols();
+
+  while (!call_paths_view.data.empty()) {
+    CallPathsGroup group(call_paths_view);
+
+    const call_paths_view_t &on_true  = group.get_on_true();
+    const call_paths_view_t &on_false = group.get_on_false();
+
+    assert(!on_true.data.empty() && "No call paths");
+    if (on_true.data[0]->calls.size() == 0) {
+      break;
+    }
+
+    if (on_true.data.size() == call_paths_view.data.size()) {
+      assert(on_false.data.empty() && "Unexpected call paths");
+
+      call_t call                        = get_successful_call(call_paths_view.data);
+      LibCore::Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
+
+      std::cerr << "\n";
+      std::cerr << "==================================\n";
+      std::cerr << "Call: " << call << "\n";
+      std::cerr << "Call paths:\n";
+      for (const call_path_t *cp : call_paths_view.data)
+        std::cerr << "  " << cp->file_name << "\n";
+      std::cerr << "Generated symbols (" << generated_symbols.size() << "):\n";
+      for (const LibCore::symbol_t &symbol : generated_symbols.get())
+        std::cerr << "  " << LibCore::expr_to_string(symbol.expr, true) << "\n";
+      std::cerr << "Constraints (" << constraints.size() << "):\n";
+      for (const klee::ref<klee::Expr> &constraint : constraints)
+        std::cerr << "  " << LibCore::expr_to_string(constraint, true) << "\n";
+      std::cerr << "==================================\n";
+
+      if (is_init_function(call)) {
+        init.push_back(call);
+      } else if (!is_skip_function(call)) {
+        Node *node;
+
+        if (is_routing_function(call)) {
+          node = route_node_from_call(call, id, constraints, symbol_manager);
+        } else {
+          node = new Call(id, constraints, symbol_manager, call, generated_symbols);
+        }
+
+        node_manager.add_node(node);
+        id++;
+
+        if (root == nullptr) {
+          root = node;
+          leaf = node;
+        } else {
+          leaf->set_next(node);
+          node->set_prev(leaf);
+          leaf = node;
+        }
+      }
+
+      pop_call_paths(call_paths_view);
+    } else {
+      klee::ref<klee::Expr> discriminating_constraint = group.get_discriminating_constraint();
+
+      klee::ref<klee::Expr> condition     = simplify_constraint(discriminating_constraint);
+      klee::ref<klee::Expr> not_condition = negate_and_simplify_constraint(discriminating_constraint);
+
+      klee::ConstraintManager on_true_constraints  = constraints;
+      klee::ConstraintManager on_false_constraints = constraints;
+
+      on_true_constraints.addConstraint(condition);
+      on_false_constraints.addConstraint(not_condition);
+
+      std::cerr << "\n";
+      std::cerr << "==================================\n";
+      std::cerr << "Condition: " << LibCore::expr_to_string(condition, true) << "\n";
+      std::cerr << "On true call paths:\n";
+      for (const call_path_t *cp : on_true.data)
+        std::cerr << "  " << cp->file_name << "\n";
+      std::cerr << "On False call paths:\n";
+      for (const call_path_t *cp : on_false.data)
+        std::cerr << "  " << cp->file_name << "\n";
+      std::cerr << "==================================\n";
+
+      if (is_skip_condition(condition)) {
+        // Assumes the right path is the one with the most call paths (or the on
+        // true path, somewhat arbitrarily...)
+        if (on_true.data.size() >= on_false.data.size()) {
+          call_paths_view = on_true;
+        } else {
+          call_paths_view = on_false;
+        }
+        continue;
+      }
+
+      Branch *node = new Branch(id, constraints, symbol_manager, condition);
+      id++;
+      node_manager.add_node(node);
+
+      Node *on_true_root =
+          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, on_true_constraints, base_symbols_generated);
+      Node *on_false_root =
+          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, on_false_constraints, base_symbols_generated);
+
+      assert((on_true_root && on_false_root) && "Invalid BDD");
+
+      node->set_on_true(on_true_root);
+      node->set_on_false(on_false_root);
+
+      on_true_root->set_prev(node);
+      on_false_root->set_prev(node);
+
+      if (root == nullptr)
+        return node;
+
+      leaf->set_next(node);
+      node->set_prev(leaf);
+
+      return root;
+    }
+  }
+
+  return root;
+}
+
+Branch *create_new_branch(BDD *bdd, const Node *current, klee::ref<klee::Expr> condition) {
+  node_id_t &id                       = bdd->get_mutable_id();
+  NodeManager &manager                = bdd->get_mutable_manager();
+  klee::ConstraintManager constraints = current->get_constraints();
+  Branch *new_branch                  = new Branch(id++, constraints, bdd->get_mutable_symbol_manager(), condition);
+  manager.add_node(new_branch);
+  return new_branch;
+}
+
+struct next_t {
+  struct obj_op_t {
+    addr_t obj;
+    const Call *call_node;
+
+    bool operator==(const obj_op_t &other) const { return obj == other.obj; }
+  };
+
+  struct obj_op_hash_t {
+    size_t operator()(const obj_op_t &obj_op) const { return obj_op.obj; }
+  };
+
+  typedef std::unordered_set<obj_op_t, obj_op_hash_t> objs_ops_t;
+
+  objs_ops_t maps;
+  objs_ops_t vectors;
+  objs_ops_t dchains;
+
+  int size() const { return maps.size() + vectors.size(); }
+
+  void intersect(const next_t &other) {
+    auto intersector = [](objs_ops_t &a, const objs_ops_t &b) {
+      for (auto it = a.begin(); it != a.end();) {
+        if (b.find(*it) == b.end()) {
+          it = a.erase(it);
+        } else {
+          it++;
+        }
+      }
+    };
+
+    intersector(maps, other.maps);
+    intersector(vectors, other.vectors);
+    intersector(dchains, other.dchains);
+  }
+
+  bool has_obj(addr_t obj) const {
+    obj_op_t mock{obj, nullptr};
+    if (maps.find(mock) != maps.end()) {
+      return true;
+    }
+
+    if (vectors.find(mock) != vectors.end()) {
+      return true;
+    }
+
+    if (dchains.find(mock) != dchains.end()) {
+      return true;
+    }
+
+    return false;
+  }
+};
+
+next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) {
+  next_t candidates;
+
+  root->visit_nodes([&candidates, index](const Node *node) {
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call    = call_node->get_call();
+
+    if (call.function_name == "map_put") {
+      klee::ref<klee::Expr> map   = call.args.at("map").expr;
+      klee::ref<klee::Expr> value = call.args.at("value").expr;
+
+      addr_t map_addr = LibCore::expr_addr_to_obj_addr(map);
+      bool same_index = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
+
+      if (same_index) {
+        candidates.maps.insert({map_addr, call_node});
+      }
+    } else if (call.function_name == "vector_borrow") {
+      klee::ref<klee::Expr> vector = call.args.at("vector").expr;
+      klee::ref<klee::Expr> value  = call.args.at("index").expr;
+
+      addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector);
+      bool same_index    = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
+
+      if (same_index) {
+        candidates.vectors.insert({vector_addr, call_node});
+      }
+    }
+
+    return NodeVisitAction::Continue;
+  });
+
+  return candidates;
+}
+
+next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators, addr_t obj) {
+  next_t candidates;
+
+  for (const Call *allocator : index_allocators) {
+    const call_t &allocator_call = allocator->get_call();
+
+    klee::ref<klee::Expr> allocated_index = allocator_call.args.at("index_out").out;
+    klee::ref<klee::Expr> dchain          = allocator_call.args.at("chain").expr;
+    addr_t dchain_addr                    = LibCore::expr_addr_to_obj_addr(dchain);
+
+    // We expect the coalescing candidates to be the same regardless of
+    // where in the BDD we are. In case there is some discrepancy, then it
+    // should be invalid. We thus consider only the intersection of all
+    // candidates.
+
+    next_t new_candidates = get_next_maps_and_vectors(allocator, allocated_index);
+    new_candidates.dchains.insert({dchain_addr, allocator});
+
+    if (!new_candidates.has_obj(obj)) {
+      continue;
+    }
+
+    if (candidates.size() == 0) {
+      candidates = new_candidates;
+    } else {
+
+      // If we can't find the current candidates in the new candidates' list,
+      // then it is not true that we can coalesce them in every scenario of
+      // the NF.
+
+      candidates.intersect(new_candidates);
+    }
+  }
+
+  return candidates;
+}
+
+} // namespace
+
+void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
+
+const Node *BDD::get_node_by_id(node_id_t node_id) const { return root ? root->get_node_by_id(node_id) : nullptr; }
+
+Node *BDD::get_mutable_node_by_id(node_id_t node_id) { return root ? root->get_mutable_node_by_id(node_id) : nullptr; }
+
+int BDD::get_node_depth(node_id_t node_id) const {
+  int depth = -1;
+
+  if (!root) {
+    return depth;
+  }
+
+  struct depth_tracker_t : cookie_t {
+    int depth;
+
+    depth_tracker_t() : depth(0) {}
+    depth_tracker_t(int _depth) : depth(_depth) {}
+
+    std::unique_ptr<cookie_t> clone() const override { return std::make_unique<depth_tracker_t>(depth); }
+  };
+
+  root->visit_nodes(
+      [node_id, &depth](const Node *node, cookie_t *cookie) {
+        depth_tracker_t *depth_tracker = dynamic_cast<depth_tracker_t *>(cookie);
+
+        if (node->get_id() == node_id) {
+          depth = depth_tracker->depth;
+          return NodeVisitAction::Stop;
+        }
+
+        depth_tracker->depth++;
+        return NodeVisitAction::Continue;
+      },
+      std::make_unique<depth_tracker_t>());
+
+  return depth;
+}
+
+LibCore::Symbols BDD::get_generated_symbols(const Node *node) const {
+  LibCore::Symbols symbols;
+  symbols.add(device);
+  symbols.add(packet_len);
+  symbols.add(time);
+
+  while (node) {
+    if (node->get_type() == NodeType::Call) {
+      const Call *call_node                = dynamic_cast<const Call *>(node);
+      const LibCore::Symbols &more_symbols = call_node->get_local_symbols();
+      symbols.add(more_symbols);
+    }
+
+    node = node->get_prev();
+  }
+
+  return symbols;
+}
+
+BDD::BDD() : id(0), root(nullptr) {}
+
+BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_paths_view.manager) {
+  root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id);
+
+  packet_len = symbol_manager->get_symbol("pkt_len");
+  time       = symbol_manager->get_symbol("next_time");
+
+  // Some NFs don't care about the device, so it doesn't show up on the callpaths.
+  if (symbol_manager->has_symbol("DEVICE")) {
+    device = call_paths_view.manager->get_symbol("DEVICE");
+  } else {
+    device = call_paths_view.manager->create_symbol("DEVICE", 32);
+  }
+}
+
+BDD::BDD(const std::filesystem::path &fpath, LibCore::SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) {
+  deserialize(fpath);
+}
+
+void BDD::assert_integrity() const {
+  assert(root && "No root node");
+  root->visit_nodes([](const Node *node) {
+    assert(node && "Null node");
+    switch (node->get_type()) {
+    case NodeType::Branch: {
+      const Branch *branch = dynamic_cast<const Branch *>(node);
+      const Node *on_true  = branch->get_on_true();
+      const Node *on_false = branch->get_on_false();
+      assert(on_true && "No on true node");
+      assert(on_false && "No on false node");
+      assert(on_true->get_prev() == node && "Invalid on true node");
+      assert(on_false->get_prev() == node && "Invalid on false node");
+      break;
+    } break;
+    case NodeType::Call:
+    case NodeType::Route: {
+      if (node->get_next()) {
+        assert(node->get_next()->get_prev() == node && "Invalid next node");
+      }
+    } break;
+    }
+    return NodeVisitAction::Continue;
+  });
+}
+
+BDD::BDD(const BDD &other)
+    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), init(other.init),
+      symbol_manager(other.symbol_manager) {
+  root = other.root->clone(manager, true);
+}
+
+BDD::BDD(BDD &&other)
+    : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)), time(std::move(other.time)),
+      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)), symbol_manager(std::move(other.symbol_manager)) {
+  other.root = nullptr;
+}
+
+BDD &BDD::operator=(const BDD &other) {
+  if (this == &other)
+    return *this;
+  id             = other.id;
+  device         = other.device;
+  packet_len     = other.packet_len;
+  time           = other.time;
+  init           = other.init;
+  root           = other.root->clone(manager, true);
+  symbol_manager = other.symbol_manager;
+  return *this;
+}
+
+Node *BDD::delete_non_branch(node_id_t target_id) {
+  Node *anchor_next = get_mutable_node_by_id(target_id);
+  assert(anchor_next && "Node not found");
+  assert(anchor_next->get_type() != NodeType::Branch && "Unexpected branch node");
+
+  Node *anchor = anchor_next->get_mutable_prev();
+  assert(anchor && "No previous node");
+
+  Node *new_current = anchor_next->get_mutable_next();
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_current);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true  = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_current);
+    } else {
+      branch->set_on_false(new_current);
+    }
+
+  } break;
+  }
+
+  new_current->set_prev(anchor);
+  manager.free_node(anchor_next);
+
+  return new_current;
+}
+
+Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
+  Node *target = get_mutable_node_by_id(target_id);
+  assert(target && "Node not found");
+  assert(target->get_type() == NodeType::Branch && "Unexpected branch node");
+
+  Node *anchor = target->get_mutable_prev();
+  assert(anchor && "No previous node");
+
+  Branch *anchor_next = dynamic_cast<Branch *>(target);
+
+  Node *target_on_true  = anchor_next->get_mutable_on_true();
+  Node *target_on_false = anchor_next->get_mutable_on_false();
+
+  Node *new_current;
+
+  if (direction_to_keep) {
+    new_current = target_on_true;
+    target_on_false->recursive_free_children(manager);
+    manager.free_node(target_on_false);
+  } else {
+    new_current = target_on_false;
+    target_on_true->recursive_free_children(manager);
+    manager.free_node(target_on_true);
+  }
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_current);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true  = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_current);
+    } else {
+      branch->set_on_false(new_current);
+    }
+
+  } break;
+  }
+
+  new_current->set_prev(anchor);
+  manager.free_node(anchor_next);
+
+  return new_current;
+}
+
+Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<const Node *> &new_nodes) {
+  Node *new_current = nullptr;
+
+  if (new_nodes.empty()) {
+    return new_current;
+  }
+
+  const Node *prev = current->get_prev();
+  assert(prev && "No previous node");
+
+  node_id_t anchor_id = prev->get_id();
+  Node *anchor        = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
+
+  bool set_new_current = false;
+
+  for (const Node *new_node : new_nodes) {
+    assert(new_node->get_type() != NodeType::Branch && "Unexpected branch node");
+
+    Node *clone = new_node->clone(manager, false);
+    clone->recursive_update_ids(id);
+
+    if (!set_new_current) {
+      new_current     = clone;
+      set_new_current = true;
+    }
+
+    switch (anchor->get_type()) {
+    case NodeType::Call:
+    case NodeType::Route: {
+      anchor->set_next(clone);
+    } break;
+    case NodeType::Branch: {
+      Branch *branch = dynamic_cast<Branch *>(anchor);
+
+      const Node *on_true  = branch->get_on_true();
+      const Node *on_false = branch->get_on_false();
+
+      assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
+
+      if (on_true == anchor_next) {
+        branch->set_on_true(clone);
+      } else {
+        branch->set_on_false(clone);
+      }
+
+    } break;
+    }
+
+    clone->set_prev(anchor);
+    clone->set_next(anchor_next);
+    anchor_next->set_prev(clone);
+    anchor = clone;
+  }
+
+  return new_current;
+}
+
+Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> condition) {
+  const Node *prev = current->get_prev();
+  assert(prev && "No previous node");
+
+  node_id_t anchor_id = prev->get_id();
+  Node *anchor        = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
+
+  klee::ref<klee::Expr> constraint = LibCore::constraint_from_expr(condition);
+
+  Node *on_true_cond  = anchor_next;
+  Node *on_false_cond = anchor_next->clone(manager, true);
+  on_false_cond->recursive_update_ids(id);
+
+  on_true_cond->recursive_add_constraint(constraint);
+  on_false_cond->recursive_add_constraint(LibCore::solver_toolbox.exprBuilder->Not(constraint));
+
+  Branch *new_branch = create_new_branch(this, current, condition);
+
+  new_branch->set_on_true(on_true_cond);
+  new_branch->set_on_false(on_false_cond);
+
+  on_true_cond->set_prev(new_branch);
+  on_false_cond->set_prev(new_branch);
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_branch);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true  = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_branch);
+    } else {
+      branch->set_on_false(new_branch);
+    }
+
+  } break;
+  }
+
+  new_branch->set_prev(anchor);
+
+  return new_branch;
+}
+
+bool BDD::get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const {
+  std::vector<const Call *> index_allocators = root->get_future_functions({"dchain_allocate_new_index"});
+
+  if (index_allocators.empty()) {
+    return false;
+  }
+
+  next_t candidates = get_allowed_coalescing_objs(index_allocators, obj);
+
+  if (candidates.size() == 0) {
+    return false;
+  }
+
+  assert(candidates.maps.size() == 1 && "Expecting a single map");
+  assert(candidates.dchains.size() == 1 && "Expecting a single dchain");
+
+  data.map    = candidates.maps.begin()->obj;
+  data.dchain = candidates.dchains.begin()->obj;
+
+  for (const auto &vector : candidates.vectors) {
+    data.vectors.insert(vector.obj);
+  }
+
+  return true;
+}
+
+bool BDD::get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const {
+  const call_t &call = map_op->get_call();
+
+  assert(call.args.find("map") != call.args.end() && "No map argument");
+  addr_t obj = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+
+  return get_map_coalescing_objs(obj, map_objs);
+}
+
+bool BDD::get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const {
+  const call_t &call = dchain_op->get_call();
+
+  assert(call.args.find("chain") != call.args.end() && "No chain argument");
+  addr_t obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain").expr);
+
+  return get_map_coalescing_objs(obj, map_objs);
+}
+
+bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const {
+  const call_t &call = dchain_allocate_new_index->get_call();
+
+  if (call.function_name != "dchain_allocate_new_index") {
+    return false;
+  }
+
+  map_coalescing_objs_t map_objs;
+  if (!get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
+    return false;
+  }
+
+  const Node *map_get = dchain_allocate_new_index;
+  while (map_get) {
+    if (map_get->get_type() != NodeType::Call) {
+      map_get = map_get->get_prev();
+      continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(map_get);
+    const call_t &call    = call_node->get_call();
+
+    if (call.function_name != "map_get") {
+      map_get = map_get->get_prev();
+      continue;
+    }
+
+    klee::ref<klee::Expr> obj = call.args.at("map").expr;
+    if (LibCore::expr_addr_to_obj_addr(obj) != map_objs.map) {
+      map_get = map_get->get_prev();
+      continue;
+    }
+
+    break;
+  }
+
+  if (!map_get) {
+    return false;
+  }
+
+  LibCore::symbol_t map_has_this_key  = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
+  klee::ConstraintManager constraints = dchain_allocate_new_index->get_constraints();
+
+  klee::ref<klee::Expr> found_key = LibCore::solver_toolbox.exprBuilder->Ne(
+      map_has_this_key.expr, LibCore::solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+
+  return LibCore::solver_toolbox.is_expr_always_false(constraints, found_key);
+}
+
+bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const {
+  const call_t &call = dchain_allocate_new_index->get_call();
+
+  if (call.function_name != "dchain_allocate_new_index") {
+    return false;
+  }
+
+  map_coalescing_objs_t map_objs;
+  if (!get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
+    return false;
+  }
+
+  branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
+
+  if (!index_alloc_check.branch) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> condition = index_alloc_check.branch->get_condition();
+
+  std::vector<const Call *> future_map_puts = dchain_allocate_new_index->get_future_functions({"map_put"});
+
+  klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> value;
+
+  for (const Call *map_put : future_map_puts) {
+    const call_t &mp_call = map_put->get_call();
+    assert(mp_call.function_name == "map_put" && "Unexpected function");
+
+    klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
+    klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
+    klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
+
+    addr_t map = LibCore::expr_addr_to_obj_addr(map_expr);
+
+    if (map != map_objs.map) {
+      continue;
+    }
+
+    if (key.isNull()) {
+      key = mp_key;
+    } else if (!LibCore::solver_toolbox.are_exprs_always_equal(key, mp_key)) {
+      return false;
+    }
+
+    if (value.isNull()) {
+      value = mp_value;
+    } else if (!LibCore::solver_toolbox.are_exprs_always_equal(value, mp_value)) {
+      return false;
+    }
+
+    klee::ConstraintManager constraints = map_put->get_constraints();
+    if (!LibCore::solver_toolbox.is_expr_always_true(constraints, condition)) {
+      return false;
+    }
+
+    map_puts.push_back(map_put);
+  }
+
+  if (map_puts.empty()) {
+    return false;
+  }
+
+  return true;
+}
+
+} // namespace LibBDD

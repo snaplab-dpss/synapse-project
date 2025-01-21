@@ -12,9 +12,6 @@ endif()
 set(KLEE_INCLUDES ${KLEE_DIR}/include ${KLEE_DIR}/build/include)
 set(KLEE_LIB_DIR ${KLEE_DIR}/build/lib)
 
-include_directories(${KLEE_INCLUDES})
-link_directories(${KLEE_LIB_DIR})
-
 set(KLEE_LIBRARIES
     ${KLEE_LIB_DIR}/libkleeModule.a
     ${KLEE_LIB_DIR}/libkleaverSolver.a

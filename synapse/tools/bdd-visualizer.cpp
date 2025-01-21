@@ -1,10 +1,9 @@
+#include <LibBDD/BDD.h>
+#include <LibBDD/Visitors/BDDProfileVisualizer.h>
+
 #include <filesystem>
 #include <fstream>
 #include <CLI/CLI.hpp>
-
-#include "../src/bdd/bdd.hpp"
-
-using namespace synapse;
 
 int main(int argc, char **argv) {
   CLI::App app{"Visualize BDD"};
@@ -21,11 +20,11 @@ int main(int argc, char **argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  SymbolManager manager;
-  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(input_bdd_file, &manager);
+  LibCore::SymbolManager manager;
+  std::unique_ptr<LibBDD::BDD> bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &manager);
 
   if (!bdd_profile_file.empty()) {
-    bdd_profile_t profile = parse_bdd_profile(bdd_profile_file);
+    LibBDD::bdd_profile_t profile = LibBDD::parse_bdd_profile(bdd_profile_file);
 
     for (const auto &map : profile.stats_per_map) {
       std::cerr << "Map " << map.first << std::endl;
@@ -36,26 +35,26 @@ int main(int argc, char **argv) {
     }
 
     if (!output_dot_file.empty()) {
-      BDDProfileVisualizer generator(output_dot_file, profile);
+      LibBDD::BDDProfileVisualizer generator(output_dot_file, profile);
       generator.visit(bdd.get());
       generator.write();
     }
 
     if (show) {
-      BDDProfileVisualizer::visualize(bdd.get(), profile, false);
+      LibBDD::BDDProfileVisualizer::visualize(bdd.get(), profile, false);
     }
   } else {
     if (!output_dot_file.empty()) {
-      bdd_visualizer_opts_t opts;
+      LibBDD::bdd_visualizer_opts_t opts;
       opts.fname = output_dot_file.string();
 
-      BDDViz generator(opts);
+      LibBDD::BDDViz generator(opts);
       generator.visit(bdd.get());
       generator.write();
     }
 
     if (show) {
-      BDDViz::visualize(bdd.get(), false);
+      LibBDD::BDDViz::visualize(bdd.get(), false);
     }
   }
 

@@ -1,0 +1,53 @@
+#pragma once
+
+#include <LibSynapse/Modules/x86/x86Module.h>
+
+namespace LibSynapse {
+namespace x86 {
+
+class ChtFindBackend : public x86Module {
+private:
+  addr_t cht_addr;
+  addr_t backends_addr;
+  klee::ref<klee::Expr> hash;
+  klee::ref<klee::Expr> height;
+  klee::ref<klee::Expr> capacity;
+  klee::ref<klee::Expr> backend;
+  LibCore::symbol_t found;
+
+public:
+  ChtFindBackend(const LibBDD::Node *node, addr_t _cht_addr, addr_t _backends_addr, klee::ref<klee::Expr> _hash,
+                 klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _backend,
+                 const LibCore::symbol_t &_found)
+      : x86Module(ModuleType::x86_ChtFindBackend, "ChtFindBackend", node), cht_addr(_cht_addr), backends_addr(_backends_addr), hash(_hash),
+        height(_height), capacity(_capacity), backend(_backend), found(_found) {}
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
+    return visitor.visit(ep, ep_node, this);
+  }
+
+  virtual Module *clone() const override {
+    Module *cloned = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, found);
+    return cloned;
+  }
+
+  klee::ref<klee::Expr> get_hash() const { return hash; }
+  addr_t get_cht_addr() const { return cht_addr; }
+  addr_t get_backends_addr() const { return backends_addr; }
+  klee::ref<klee::Expr> get_height() const { return height; }
+  klee::ref<klee::Expr> get_capacity() const { return capacity; }
+  klee::ref<klee::Expr> get_backend() const { return backend; }
+  const LibCore::symbol_t &get_found() const { return found; }
+};
+
+class ChtFindBackendFactory : public x86ModuleFactory {
+public:
+  ChtFindBackendFactory() : x86ModuleFactory(ModuleType::x86_ChtFindBackend, "ChtFindBackend") {}
+
+protected:
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
+};
+
+} // namespace x86
+} // namespace LibSynapse
