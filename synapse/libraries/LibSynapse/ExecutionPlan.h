@@ -52,7 +52,7 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
 
 public:
-  EP(std::shared_ptr<const LibBDD::BDD> bdd, const TargetsView &targets, const toml::table &config, const Profiler &profiler);
+  EP(const LibBDD::BDD &bdd, const TargetsView &targets, const toml::table &config, const Profiler &profiler);
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;

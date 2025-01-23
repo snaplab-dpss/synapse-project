@@ -170,8 +170,8 @@ void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   }
 }
 
-LibBDD::BDD *setup_bdd(const LibBDD::BDD *bdd) {
-  LibBDD::BDD *new_bdd = new LibBDD::BDD(*bdd);
+LibBDD::BDD *setup_bdd(const LibBDD::BDD &bdd) {
+  LibBDD::BDD *new_bdd = new LibBDD::BDD(bdd);
 
   delete_all_vector_key_operations_from_bdd(new_bdd);
 
@@ -192,8 +192,8 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 }
 } // namespace
 
-EP::EP(std::shared_ptr<const LibBDD::BDD> _bdd, const TargetsView &_targets, const toml::table &_config, const Profiler &_profiler)
-    : id(ep_id_counter++), bdd(setup_bdd(_bdd.get())), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _config, _profiler),
+EP::EP(const LibBDD::BDD &_bdd, const TargetsView &_targets, const toml::table &_config, const Profiler &_profiler)
+    : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _config, _profiler),
       meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = LibBDD::node_ids_t({bdd->get_root()->get_id()});

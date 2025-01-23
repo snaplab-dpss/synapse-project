@@ -37,15 +37,13 @@ public:
 
 class SingletonRandomEngine : private RandomUniformEngine {
 private:
-  static std::unique_ptr<SingletonRandomEngine> engine;
+  static std::unique_ptr<RandomUniformEngine> engine;
 
-  SingletonRandomEngine(u32 _rand_seed) : RandomUniformEngine(_rand_seed) {}
-
-public:
   SingletonRandomEngine(const SingletonRandomEngine &)            = delete;
   SingletonRandomEngine(SingletonRandomEngine &&)                 = delete;
   SingletonRandomEngine &operator=(const SingletonRandomEngine &) = delete;
 
+public:
   static void seed(u32 rand_seed);
   static i32 generate();
 };

@@ -60,13 +60,13 @@ private:
   const toml::table targets_config;
   const search_config_t search_config;
 
-  std::shared_ptr<LibBDD::BDD> bdd;
+  LibBDD::BDD bdd;
   Targets targets;
   Profiler profiler;
   std::unique_ptr<Heuristic> heuristic;
 
 public:
-  SearchEngine(const LibBDD::BDD *bdd, HeuristicOption hopt, const Profiler &profiler, const toml::table &targets_config,
+  SearchEngine(const LibBDD::BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const toml::table &targets_config,
                const search_config_t &search_config);
 
   SearchEngine(const SearchEngine &)            = delete;

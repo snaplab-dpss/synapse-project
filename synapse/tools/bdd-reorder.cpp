@@ -120,14 +120,14 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   LibCore::SymbolManager symbol_manager;
-  std::unique_ptr<LibBDD::BDD> bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &symbol_manager);
+  LibBDD::BDD bdd(input_bdd_file, &symbol_manager);
 
-  // list_candidates(bdd.get(), {2, true});
-  apply_reordering_ops(bdd.get(), {
-                                      {{39, false}, 62},
-                                  });
-  // test_reorder(bdd.get(), 3);
-  // estimate(bdd.get());
+  // list_candidates(&bdd, {2, true});
+  apply_reordering_ops(&bdd, {
+                                 {{39, false}, 62},
+                             });
+  // test_reorder(&bdd, 3);
+  // estimate(&bdd);
 
   return 0;
 }

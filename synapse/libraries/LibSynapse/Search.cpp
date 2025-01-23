@@ -117,7 +117,7 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
   }
 }
 
-std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, std::shared_ptr<LibBDD::BDD> bdd, const Targets &targets,
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const LibBDD::BDD &bdd, const Targets &targets,
                                            const toml::table &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
 
@@ -145,33 +145,29 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
     break;
   }
 
-  std::unique_ptr<EP> starting_ep = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
-
+  std::unique_ptr<EP> starting_ep      = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
   std::unique_ptr<Heuristic> heuristic = std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
 
   return heuristic;
 }
 } // namespace
 
-SearchEngine::SearchEngine(const LibBDD::BDD *_bdd, HeuristicOption _hopt, const Profiler &_profiler, const toml::table &_targets_config,
+SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const toml::table &_targets_config,
                            const search_config_t &_search_config)
-    : targets_config(_targets_config), search_config(_search_config), bdd(std::make_shared<LibBDD::BDD>(*_bdd)),
-      targets(Targets(_targets_config)), profiler(_profiler),
+    : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config)), profiler(_profiler),
       heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
-  auto start_search = std::chrono::steady_clock::now();
+  auto start_search                         = std::chrono::steady_clock::now();
+  std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   search_meta_t meta;
   std::unordered_map<LibBDD::node_id_t, int> node_depth;
-
-  std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
-
-  bdd->get_root()->visit_nodes([this, &meta, &node_depth](const LibBDD::Node *node) {
+  bdd.get_root()->visit_nodes([this, &meta, &node_depth](const LibBDD::Node *node) {
     LibBDD::node_id_t id           = node->get_id();
     meta.avg_children_per_node[id] = 0;
     meta.visits_per_node[id]       = 0;
-    node_depth[id]                 = this->bdd->get_node_depth(id);
+    node_depth[id]                 = bdd.get_node_depth(id);
     return LibBDD::NodeVisitAction::Continue;
   });
 
@@ -203,7 +199,7 @@ search_report_t SearchEngine::search() {
     for (const std::unique_ptr<Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
         const std::vector<impl_t> implementations =
-            modgen->generate(ep.get(), node, bdd->get_mutable_symbol_manager(), !search_config.no_reorder);
+            modgen->generate(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 
         search_space->add_to_active_leaf(ep.get(), node, modgen.get(), implementations);
         report.save(modgen.get(), implementations);

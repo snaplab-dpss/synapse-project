@@ -4,9 +4,9 @@
 
 namespace LibCore {
 
-std::unique_ptr<SingletonRandomEngine> SingletonRandomEngine::engine;
+std::unique_ptr<RandomUniformEngine> SingletonRandomEngine::engine;
 
-void SingletonRandomEngine::seed(u32 rand_seed) { engine = std::unique_ptr<SingletonRandomEngine>(new SingletonRandomEngine(rand_seed)); }
+void SingletonRandomEngine::seed(u32 rand_seed) { engine = std::unique_ptr<RandomUniformEngine>(new RandomUniformEngine(rand_seed)); }
 
 i32 SingletonRandomEngine::generate() {
   assert(engine && "RandomEngine not seeded");

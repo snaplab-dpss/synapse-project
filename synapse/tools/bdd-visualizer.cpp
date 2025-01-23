@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   LibCore::SymbolManager manager;
-  std::unique_ptr<LibBDD::BDD> bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &manager);
+  LibBDD::BDD bdd(input_bdd_file, &manager);
 
   if (!bdd_profile_file.empty()) {
     LibBDD::bdd_profile_t profile = LibBDD::parse_bdd_profile(bdd_profile_file);
@@ -36,12 +36,12 @@ int main(int argc, char **argv) {
 
     if (!output_dot_file.empty()) {
       LibBDD::BDDProfileVisualizer generator(output_dot_file, profile);
-      generator.visit(bdd.get());
+      generator.visit(&bdd);
       generator.write();
     }
 
     if (show) {
-      LibBDD::BDDProfileVisualizer::visualize(bdd.get(), profile, false);
+      LibBDD::BDDProfileVisualizer::visualize(&bdd, profile, false);
     }
   } else {
     if (!output_dot_file.empty()) {
@@ -49,12 +49,12 @@ int main(int argc, char **argv) {
       opts.fname = output_dot_file.string();
 
       LibBDD::BDDViz generator(opts);
-      generator.visit(bdd.get());
+      generator.visit(&bdd);
       generator.write();
     }
 
     if (show) {
-      LibBDD::BDDViz::visualize(bdd.get(), false);
+      LibBDD::BDDViz::visualize(&bdd, false);
     }
   }
 

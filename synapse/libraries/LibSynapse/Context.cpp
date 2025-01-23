@@ -7,7 +7,7 @@ namespace LibSynapse {
 
 namespace {
 void log_bdd_pre_processing(const std::vector<LibBDD::map_coalescing_objs_t> &coalescing_candidates) {
-  std::cerr << "***** LibBDD::BDD pre-processing: *****\n";
+  std::cerr << "***** BDD pre-processing: *****\n";
   for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
     std::stringstream ss;
     ss << "Coalescing candidate:";

@@ -70,17 +70,17 @@ int main(int argc, char **argv) {
 
   LibCore::SingletonRandomEngine::seed(seed);
   LibCore::SymbolManager symbol_manager;
-  std::unique_ptr<LibBDD::BDD> bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &symbol_manager);
-  toml::table targets_config       = parse_targets_config(targets_config_file);
-  LibSynapse::Profiler profiler    = profile_file.empty() ? LibSynapse::Profiler(bdd.get()) : LibSynapse::Profiler(bdd.get(), profile_file);
+  LibBDD::BDD bdd               = LibBDD::BDD(input_bdd_file, &symbol_manager);
+  toml::table targets_config    = parse_targets_config(targets_config_file);
+  LibSynapse::Profiler profiler = profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, profile_file);
 
   if (show_prof) {
     profiler.debug();
-    LibSynapse::ProfilerViz::visualize(bdd.get(), profiler, true);
+    LibSynapse::ProfilerViz::visualize(&bdd, profiler, true);
   }
 
   // std::string nf_name = nf_name_from_bdd(InputBDDFile);
-  LibSynapse::SearchEngine engine(bdd.get(), heuristic_opt, profiler, targets_config, search_config);
+  LibSynapse::SearchEngine engine(bdd, heuristic_opt, profiler, targets_config, search_config);
   LibSynapse::search_report_t report = engine.search();
 
   report.ep->get_ctx().debug();
