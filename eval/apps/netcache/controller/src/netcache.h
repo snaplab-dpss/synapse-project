@@ -107,9 +107,13 @@ public:
 			#endif
 
 			// Fwd table entries.
-			fwd.add_entry(ig_port, READ_QUERY, eg_port);
-			fwd.add_entry(ig_port, WRITE_QUERY, eg_port);
-			fwd.add_entry(ig_port, DELETE_QUERY, eg_port);
+
+			// Read cache miss
+			fwd.add_entry(ig_port, READ_QUERY, 0, 0xFF, ig_port);
+			// Read cache hit
+			fwd.add_entry(ig_port, READ_QUERY, 1, 0xFF, eg_port);
+			// fwd.add_entry(ig_port, WRITE_QUERY, 0, 0, eg_port);
+			// fwd.add_entry(ig_port, DELETE_QUERY, 0, 0, eg_port);
 		}
 
 		// Configure mirror session.

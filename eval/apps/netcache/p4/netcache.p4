@@ -110,6 +110,7 @@ control SwitchIngress(
 		key = {
 			ig_intr_md.ingress_port : exact;
 			hdr.netcache.op         : exact;
+			hdr.meta.cache_hit      : ternary;
 		}
 		actions = {
 			set_out_port;

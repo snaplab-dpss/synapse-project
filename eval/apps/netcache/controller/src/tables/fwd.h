@@ -11,6 +11,7 @@ private:
 		// Key fields IDs
 		bf_rt_id_t ig_port;
 		bf_rt_id_t query_op;
+		bf_rt_id_t cache_hit;
 	};
 
 	struct data_fields_t {
@@ -35,6 +36,7 @@ public:
 		init_key({
 			{"ig_intr_md.ingress_port", &key_fields.ig_port},
 			{"hdr.netcache.op", &key_fields.query_op},
+			{"hdr.meta.cache_hit", &key_fields.cache_hit},
 		});
 
 		init_actions({
@@ -46,8 +48,9 @@ public:
 		});
 	}
 
-	void add_entry(uint32_t ig_port, uint8_t query_op, uint32_t eg_port) {
-		key_setup(ig_port, query_op);
+	void add_entry(uint32_t ig_port, uint8_t query_op, uint8_t cache_hit,
+				   uint8_t mask, uint32_t eg_port) {
+		key_setup(ig_port, query_op, cache_hit, mask);
 		data_setup(eg_port, actions.set_out_port);
 
 		auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
@@ -55,13 +58,18 @@ public:
 	}
 
 private:
-	void key_setup(uint32_t ig_port, uint8_t query_op) {
+	void key_setup(uint32_t ig_port, uint8_t query_op, uint8_t cache_hit, uint8_t mask) {
 		table->keyReset(key.get());
 
 		auto bf_status = key->setValue(key_fields.ig_port, static_cast<uint64_t>(ig_port));
 		assert(bf_status == BF_SUCCESS);
 
 		bf_status = key->setValue(key_fields.query_op, static_cast<uint64_t>(query_op));
+		assert(bf_status == BF_SUCCESS);
+
+		bf_status = key->setValueandMask(key_fields.cache_hit,
+										 static_cast<uint64_t>(cache_hit),
+										 static_cast<uint64_t>(mask));
 		assert(bf_status == BF_SUCCESS);
 	}
 

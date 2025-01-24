@@ -53,10 +53,9 @@ header netcache_t {
 }
 
 header meta_t {
-	bit<1>		cache_hit;
+	bit<8>		cache_hit;
 	keyIdx_t	key_idx;
 	vtableIdx_t vt_idx;
-	bit<7>		align;
 }
 
 header mirror_bridged_metadata_h {
