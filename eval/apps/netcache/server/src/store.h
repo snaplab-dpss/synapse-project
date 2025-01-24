@@ -19,7 +19,7 @@ struct Store {
 
 	Store();
 
-	void hot_read_query(const query_t& query);
+	void read_query(const query_t& query);
 	void write_query(const query_t& query);
 	void del_query(const query_t& query);
 };

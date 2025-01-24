@@ -1,0 +1,18 @@
+{
+	"query": {
+		"limit": 1000,
+		"wait": 5
+	},
+	"connections": [
+		{
+			"in": {
+				"port": 0,
+				"comment": "dpdk port"
+			},
+			"out": {
+				"port": 1,
+				"comment": "dpdk port"
+			}
+		}
+	]
+}

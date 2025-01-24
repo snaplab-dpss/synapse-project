@@ -16,6 +16,9 @@ struct query_t {
 	uint16_t key;
 	uint32_t val;
 
+	query_t() {
+		valid = false;
+	}
 	query_t(std::vector<uint8_t>& buffer, ssize_t pkt_size) {
 		valid = true;
 

@@ -18,7 +18,7 @@ namespace netcache {
 
 Store::Store() {}
 
-void Store::hot_read_query(const query_t& query) {
+void Store::read_query(const query_t& query) {
 	// Retrieve value from KV map using query.key.
 	uint32_t val;
 	auto it = kv_map.find(query.key);
