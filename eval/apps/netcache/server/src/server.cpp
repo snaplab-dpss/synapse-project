@@ -5,12 +5,13 @@
 #include <string>
 #include <vector>
 #include <signal.h>
+#include <chrono>
 
-#include <rte_eal.h>
-#include <rte_common.h>
-#include <rte_ethdev.h>
-#include <rte_log.h>
-#include <rte_mbuf.h>
+// #include <rte_eal.h>
+// #include <rte_common.h>
+// #include <rte_ethdev.h>
+// #include <rte_log.h>
+// #include <rte_mbuf.h>
 
 #include "conf.h"
 #include "constants.h"
@@ -223,12 +224,23 @@ int main(int argc, char** argv) {
 
 	auto store = netcache::Store();
 
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 	while (1) {
 		// If the received number of queries has reached a limit, wait for some
 		// time before processing additional ones.
-		if (query_cntr > conf.query.limit) {
-			sleep(conf.query.wait);
+
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+		uint32_t time_diff = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+
+		if (time_diff > conf.query.duration) {
+			std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 			query_cntr = 0;
+		} else {
+			if (query_cntr > conf.query.limit) {
+				sleep(conf.query.duration - (conf.query.duration - time_diff));
+				query_cntr = 0;
+			}
 		}
 
 		auto query = listener->receive_query();

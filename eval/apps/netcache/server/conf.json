@@ -1,7 +1,7 @@
 {
 	"query": {
 		"limit": 1000,
-		"wait": 5
+		"duration": 5
 	},
 	"connections": [
 		{

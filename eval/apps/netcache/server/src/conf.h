@@ -9,7 +9,7 @@ namespace netcache {
 
 struct conf_query_t {
 	uint32_t limit;
-	uint32_t wait;
+	uint32_t duration;
 };
 
 struct topo_port_t {

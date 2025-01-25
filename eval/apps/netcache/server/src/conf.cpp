@@ -9,7 +9,7 @@ namespace netcache {
 
 void from_json(const nlohmann::json &j, conf_query_t &query) {
 	j.at("limit").get_to(query.limit);
-	j.at("wait").get_to(query.wait);
+	j.at("duration").get_to(query.duration);
 }
 
 void from_json(const nlohmann::json &j, topo_port_t &topo_port) {
@@ -40,7 +40,7 @@ conf_t parse_conf_file(const std::string &conf_file_path) {
 
 	std::cout << "Query:\n";
 	std::cout << "  Limit			" << conf.query.limit << "\n";
-	std::cout << "  Wait			" << conf.query.wait << "\n";
+	std::cout << "  Duration		" << conf.query.duration << "\n";
 	std::cout << "Connection:\n";
 	std::cout << "  [in]  port		" << conf.connection.in.port << "\n";
 	std::cout << "  [in]  comment	" << conf.connection.in.comment << "\n";
