@@ -16,6 +16,7 @@ struct symbol_t {
   symbol_t(const symbol_t &)            = default;
   symbol_t(symbol_t &&)                 = default;
   symbol_t &operator=(const symbol_t &) = default;
+  ~symbol_t()                           = default;
 
   symbol_t(klee::ref<klee::Expr> expr);
   symbol_t(const std::string &base, const std::string &name, klee::ref<klee::Expr> expr);

@@ -15,7 +15,7 @@ private:
 
 public:
   TableLookup(const LibBDD::Node *node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-              const std::vector<klee::ref<klee::Expr>> &_values, const std::optional<LibCore::symbol_t> &_hit)
+              const std::vector<klee::ref<klee::Expr>> &_values, std::optional<LibCore::symbol_t> _hit)
       : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node), table_id(_table_id), obj(_obj), keys(_keys), values(_values),
         hit(_hit) {}
 
@@ -32,7 +32,7 @@ public:
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   const std::vector<klee::ref<klee::Expr>> &get_values() const { return values; }
-  const std::optional<LibCore::symbol_t> &get_hit() const { return hit; }
+  std::optional<LibCore::symbol_t> get_hit() const { return hit; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {table_id}; }
 };

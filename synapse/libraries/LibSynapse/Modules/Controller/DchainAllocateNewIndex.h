@@ -42,7 +42,7 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
 
-  const std::optional<LibCore::symbol_t> &get_out_of_space() const { return out_of_space; }
+  std::optional<LibCore::symbol_t> get_out_of_space() const { return out_of_space; }
 };
 
 class DchainAllocateNewIndexFactory : public ControllerModuleFactory {

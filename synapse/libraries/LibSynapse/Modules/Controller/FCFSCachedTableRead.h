@@ -17,7 +17,7 @@ private:
 
 public:
   FCFSCachedTableRead(const LibBDD::Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-                      klee::ref<klee::Expr> _value, const std::optional<LibCore::symbol_t> &_found)
+                      klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _found)
       : ControllerModule(ModuleType::Controller_FCFSCachedTableRead, "FCFSCachedTableRead", node), id(_id), obj(_obj), keys(_keys),
         value(_value), found(_found) {}
 
@@ -34,7 +34,7 @@ public:
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   klee::ref<klee::Expr> get_value() const { return value; }
-  const std::optional<LibCore::symbol_t> &get_found() const { return found; }
+  std::optional<LibCore::symbol_t> get_found() const { return found; }
 };
 
 class FCFSCachedTableReadFactory : public ControllerModuleFactory {

@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <regex>
+#include <unordered_map>
 
 #include <klee/util/ExprVisitor.h>
 

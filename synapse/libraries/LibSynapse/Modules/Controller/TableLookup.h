@@ -14,7 +14,7 @@ private:
 
 public:
   TableLookup(const LibBDD::Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-              const std::vector<klee::ref<klee::Expr>> &_values, const std::optional<LibCore::symbol_t> &_found)
+              const std::vector<klee::ref<klee::Expr>> &_values, std::optional<LibCore::symbol_t> _found)
       : ControllerModule(ModuleType::Controller_TableLookup, "TableLookup", node), obj(_obj), keys(_keys), values(_values), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
@@ -29,7 +29,7 @@ public:
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   const std::vector<klee::ref<klee::Expr>> &get_values() const { return values; }
-  const std::optional<LibCore::symbol_t> &get_found() const { return found; }
+  std::optional<LibCore::symbol_t> get_found() const { return found; }
 };
 
 class TableLookupFactory : public ControllerModuleFactory {
