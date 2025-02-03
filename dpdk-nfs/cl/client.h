@@ -3,12 +3,12 @@
 
 #include <stdbool.h>
 
-#include "lib/verified/boilerplate-util.h"
-#include "lib/verified/map.h"
-#include "lib/verified/vector.h"
-#include "lib/verified/double-chain.h"
-#include "lib/verified/vigor-time.h"
-#include "lib/verified/cms.h"
+#include "lib/util/boilerplate.h"
+#include "lib/state/map.h"
+#include "lib/state/vector.h"
+#include "lib/state/double-chain.h"
+#include "lib/util/time.h"
+#include "lib/state/cms.h"
 
 #include <stdint.h>
 

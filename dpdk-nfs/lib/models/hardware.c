@@ -13,8 +13,8 @@
 #include "rte_cycles.h"         // to include the next one cleanly
 #include "generic/rte_cycles.h" // for rte_delay_us_callback_register
 
-#include "lib/verified/packet-io.h"
-#include "lib/models/verified/packet-io-control.h"
+#include "lib/util/packet-io.h"
+#include "lib/models/util/packet-io-control.h"
 
 #include <klee/klee.h>
 

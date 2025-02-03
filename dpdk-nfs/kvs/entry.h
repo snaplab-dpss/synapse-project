@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "lib/verified/boilerplate-util.h"
-#include "lib/verified/ether.h"
+#include "lib/util/boilerplate.h"
+#include "lib/util/ether.h"
 
 #define KEY_SIZE_BYTES 12
 #define MAX_VALUE_SIZE_BYTES 128

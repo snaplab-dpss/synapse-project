@@ -25,14 +25,12 @@ int vprintf1(const char *fmt, va_list va);
 #endif
 
 int fflush(FILE *stream) {
-  klee_assert(stream == stderr || stream == stdout ||
-              (stream != NULL && stream == fopencookie_ret));
+  klee_assert(stream == stderr || stream == stdout || (stream != NULL && stream == fopencookie_ret));
   return 0;
 }
 
 int vfprintf(FILE *stream, const char *format, va_list __arg) {
-  klee_assert(stream == stderr || stream == stdout ||
-              (stream != NULL && stream == fopencookie_ret));
+  klee_assert(stream == stderr || stream == stdout || (stream != NULL && stream == fopencookie_ret));
 #if (defined NFOS) && (!defined KLEE_VERIFICATION)
   vprintf1(format, __arg);
 #endif //(defined NFOS) && (!defined KLEE_VERIFICATION)
@@ -40,8 +38,7 @@ int vfprintf(FILE *stream, const char *format, va_list __arg) {
   return 0; // OK, whatever
 }
 
-FILE *fopencookie(void *cookie, const char *mode,
-                  cookie_io_functions_t io_funcs) {
+FILE *fopencookie(void *cookie, const char *mode, cookie_io_functions_t io_funcs) {
   fopencookie_ret = (FILE *)malloc(sizeof(FILE));
   ;
   klee_forbid_access(fopencookie_ret, sizeof(FILE), "fopencookie");

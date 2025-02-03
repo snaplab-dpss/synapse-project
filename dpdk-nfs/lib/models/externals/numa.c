@@ -4,7 +4,7 @@
 
 #include <klee/klee.h>
 
-static int NUMA_AVAILABLE = 42;
+static int NUMA_AVAILABLE         = 42;
 static bool NUMA_NODEMASK_CREATED = false;
 
 int numa_available(void) {
@@ -75,8 +75,7 @@ long get_mempolicy(int *policy,
     // errno is set to indicate the error.
     return 0;
   }
-  if ((flags & MPOL_F_ADDR) == MPOL_F_ADDR &&
-      (flags & MPOL_F_NODE) == MPOL_F_NODE) {
+  if ((flags & MPOL_F_ADDR) == MPOL_F_ADDR && (flags & MPOL_F_NODE) == MPOL_F_NODE) {
     // "If flags specifies both MPOL_F_NODE and MPOL_F_ADDR, get_mempolicy()
     // will return the node ID of the node on which the address addr is
     // allocated into the location pointed to by mode. If no page has yet

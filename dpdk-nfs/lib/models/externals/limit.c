@@ -18,7 +18,7 @@ int getrlimit(__rlimit_resource_t resource, struct rlimit *rlim) {
   assert(resource == RLIMIT_NOFILE);
 #ifdef KLEE_VERIFICATION
   rlim->rlim_cur = klee_int("getrlimit_rlim_cur_ret");
-  rlim_max = klee_int("rlim_max");
+  rlim_max       = klee_int("rlim_max");
   rlim->rlim_max = rlim_max;
 #endif
   return 0;

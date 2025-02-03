@@ -12,12 +12,12 @@
 #include <rte_memory.h>
 #include <rte_ethdev.h>
 
-#include "lib/verified/packet-io.h"
+#include "lib/util/packet-io.h"
 #include "lib/models/str-descr.h"
-#include "lib/models/verified/packet-io-control.h"
-#include "lib/verified/vector.h"
+#include "lib/models/util/packet-io-control.h"
+#include "lib/state/vector.h"
 
-#include "lib/models/verified/vector-control.h"
+#include "lib/models/state/vector-control.h"
 
 #include <klee/klee.h>
 

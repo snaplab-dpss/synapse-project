@@ -3,7 +3,7 @@
 
 #include <rte_byteorder.h>
 
-#include "lib/verified/expirator.h"
+#include "lib/state/expirator.h"
 
 #include "nf.h"
 #include "nf-log.h"
@@ -12,47 +12,40 @@
 #include "hhh_config.h"
 #include "hhh_state.h"
 
-#define SWAP_ENDIANNESS_32_BIT(n)                       \
-  (((n >> 24) & 0x000000ff) | ((n >> 8) & 0x0000ff00) | \
-   ((n << 8) & 0x00ff0000) | ((n << 24) & 0xff000000))
+#define SWAP_ENDIANNESS_32_BIT(n) (((n >> 24) & 0x000000ff) | ((n >> 8) & 0x0000ff00) | ((n << 8) & 0x00ff0000) | ((n << 24) & 0xff000000))
 
 struct nf_config config;
 struct State *state;
 
 bool nf_init(void) {
   uint64_t link_capacity = config.link_capacity;
-  uint8_t threshold = config.threshold;
-  uint32_t subnets_mask = config.subnets_mask;
-  unsigned capacity = config.dyn_capacity;
-  uint32_t dev_count = rte_eth_dev_count_avail();
+  uint8_t threshold      = config.threshold;
+  uint32_t subnets_mask  = config.subnets_mask;
+  unsigned capacity      = config.dyn_capacity;
+  uint32_t dev_count     = rte_eth_dev_count_avail();
 
-  state =
-      alloc_state(link_capacity, threshold, subnets_mask, capacity, dev_count);
+  state = alloc_state(link_capacity, threshold, subnets_mask, capacity, dev_count);
 
   return state != NULL;
 }
 
 int64_t expire_entries(time_ns_t time) {
-  assert(time >= 0);  // we don't support the past
-  time_ns_t exp_time =
-      NS_TO_S_MULTIPLIER * config.burst / state->threshold_rate;
-  uint64_t time_u = (uint64_t)time;
+  assert(time >= 0); // we don't support the past
+  time_ns_t exp_time = NS_TO_S_MULTIPLIER * config.burst / state->threshold_rate;
+  uint64_t time_u    = (uint64_t)time;
   // OK because time >= config.burst / threshold_rate >= 0
   time_ns_t min_time = time_u - exp_time;
-  int64_t freed = 0;
+  int64_t freed      = 0;
   for (int i = 0; i < state->n_subnets; i++) {
-    freed += expire_items_single_map(state->allocators[i], state->subnets[i],
-                                     state->subnet_indexers[i], min_time);
+    freed += expire_items_single_map(state->allocators[i], state->subnets[i], state->subnet_indexers[i], min_time);
   }
   return freed;
 }
 
-bool allocate(uint32_t masked_src, int i_subnet, uint16_t size,
-              time_ns_t time) {
+bool allocate(uint32_t masked_src, int i_subnet, uint16_t size, time_ns_t time) {
   int index = -1;
 
-  int allocated =
-      dchain_allocate_new_index(state->allocators[i_subnet], &index, time);
+  int allocated = dchain_allocate_new_index(state->allocators[i_subnet], &index, time);
 
   if (!allocated) {
     // Nothing we can do...
@@ -60,7 +53,7 @@ bool allocate(uint32_t masked_src, int i_subnet, uint16_t size,
     return false;
   }
 
-  uint32_t *key = NULL;
+  uint32_t *key              = NULL;
   struct DynamicValue *value = NULL;
 
   vector_borrow(state->subnets[i_subnet], index, (void **)&key);
@@ -81,17 +74,16 @@ bool allocate(uint32_t masked_src, int i_subnet, uint16_t size,
 }
 
 void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
-  int index = -1;
+  int index     = -1;
   uint32_t mask = 0;
 
-  bool captured_hh = false;
-  uint32_t hh = 0;
+  bool captured_hh     = false;
+  uint32_t hh          = 0;
   uint8_t hh_subnet_sz = 0;
 
   uint32_t subnets_mask = config.subnets_mask;
 
-  for (int subnet = 0, subnet_i = -1; subnet < 32;
-       subnet++, subnets_mask >>= 1) {
+  for (int subnet = 0, subnet_i = -1; subnet < 32; subnet++, subnets_mask >>= 1) {
     mask = (mask >> 1) | (1 << 31);
 
     if (!(subnets_mask & 1)) {
@@ -100,8 +92,7 @@ void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
 
     subnet_i++;
     uint32_t masked_src = src & SWAP_ENDIANNESS_32_BIT(mask);
-    int present =
-        map_get(state->subnet_indexers[subnet_i], &masked_src, &index);
+    int present         = map_get(state->subnet_indexers[subnet_i], &masked_src, &index);
 
     if (!present) {
       // NF_DEBUG("  [psz:%02d] src    %u.%u.%u.%u", (int)i +
@@ -139,10 +130,8 @@ void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
     assert(value->bucket_time <= time_u);
     uint64_t time_diff = time_u - value->bucket_time;
 
-    if (time_diff <
-        (config.burst * NS_TO_S_MULTIPLIER) / state->threshold_rate) {
-      uint64_t added_tokens =
-          (time_diff * state->threshold_rate) / NS_TO_S_MULTIPLIER;
+    if (time_diff < (config.burst * NS_TO_S_MULTIPLIER) / state->threshold_rate) {
+      uint64_t added_tokens = (time_diff * state->threshold_rate) / NS_TO_S_MULTIPLIER;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtautological-compare"
       vigor_note(0 <= time_diff * state->threshold_rate / NS_TO_S_MULTIPLIER);
@@ -161,8 +150,8 @@ void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
     if (value->bucket_size > size) {
       value->bucket_size -= size;
     } else {
-      captured_hh = true;
-      hh = masked_src;
+      captured_hh  = true;
+      hh           = masked_src;
       hh_subnet_sz = subnet + 1;
     }
 
@@ -170,19 +159,15 @@ void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
   }
 
   if (captured_hh) {
-    NF_DEBUG("HH detected: %0u.%u.%u.%u => %u.%u.%u.%u/%d", (src >> 0) & 0xff,
-             (src >> 8) & 0xff, (src >> 16) & 0xff, (src >> 24) & 0xff,
-             (hh >> 0) & 0xff, (hh >> 8) & 0xff, (hh >> 16) & 0xff,
-             (hh >> 24) & 0xff, hh_subnet_sz);
+    NF_DEBUG("HH detected: %0u.%u.%u.%u => %u.%u.%u.%u/%d", (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff, (src >> 24) & 0xff,
+             (hh >> 0) & 0xff, (hh >> 8) & 0xff, (hh >> 16) & 0xff, (hh >> 24) & 0xff, hh_subnet_sz);
   }
 }
 
-int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               time_ns_t now, struct rte_mbuf *mbuf) {
+int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
-  struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_ipv4_header(rte_ether_header, buffer);
+  struct rte_ipv4_hdr *rte_ipv4_header = nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     return DROP;
   }

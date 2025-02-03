@@ -9,4 +9,4 @@ struct str_field_descr ip_addr_descrs[] = {
 struct nested_field_descr ip_addr_nests[] = {
 
 };
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION

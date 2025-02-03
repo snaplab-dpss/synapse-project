@@ -13,12 +13,12 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
-#include "lib/verified/packet-io.h"
-#include "lib/verified/tcpudp_hdr.h"
+#include "lib/util/packet-io.h"
+#include "lib/util/tcpudp_hdr.h"
 
 #ifdef KLEE_VERIFICATION
 #include "lib/models/str-descr.h"
-#include "lib/models/verified/packet-io-control.h"
+#include "lib/models/util/packet-io-control.h"
 #include <rte_ether.h>
 #endif // KLEE_VERIFICATION
 

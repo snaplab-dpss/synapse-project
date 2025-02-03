@@ -3,11 +3,11 @@
 
 #include "loop.h"
 
-#include "lib/models/verified/vigor-time-control.h"
-#include "lib/models/verified/double-chain-control.h"
-#include "lib/models/verified/map-control.h"
-#include "lib/models/verified/vector-control.h"
-#include "lib/models/verified/fwtbl-control.h"
+#include "lib/models/util/time-control.h"
+#include "lib/models/state/double-chain-control.h"
+#include "lib/models/state/map-control.h"
+#include "lib/models/state/vector-control.h"
+#include "lib/models/state/fwtbl-control.h"
 
 void loop_reset(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct ForwardingTable **ft,
                 unsigned int lcore_id, time_ns_t *time) {

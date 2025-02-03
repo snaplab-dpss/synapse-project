@@ -71,7 +71,8 @@ SHELL := /bin/bash -O extglob -O globstar -c
 ifneq (true,$(NF_NO_BASE))
 SRCS-y := $(shell echo $(SELF_DIR)/nf*.c)
 endif
-LIB_SRCS := $(shell echo $(SELF_DIR)/lib/verified/*.c)
+LIB_SRCS := $(shell echo $(SELF_DIR)/lib/state/*.c)
+LIB_SRCS += $(shell echo $(SELF_DIR)/lib/util/*.c)
 SRCS-y += $(LIB_SRCS)
 SRCS-y += $(NF_FILES)
 # Compiler flags
@@ -190,8 +191,9 @@ VERIF_FILES := $(SELF_DIR)/nf*.c
 # Specific NF
 VERIF_FILES += $(NF_FILES) *loop.c
 # Models
-VERIF_FILES += $(SELF_DIR)/lib/models/verified/*.c \
-			   $(SELF_DIR)/lib/models/externals/*.c
+VERIF_FILES += $(SELF_DIR)/lib/models/state/*.c \
+			   $(SELF_DIR)/lib/models/externals/*.c \
+			   $(SELF_DIR)/lib/models/util/*.c
 
 # The only thing we don't put in variables is the DPDK model headers,
 # since we don't want to use those for the other symbex targets

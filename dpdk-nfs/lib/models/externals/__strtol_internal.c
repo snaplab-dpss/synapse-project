@@ -3,8 +3,7 @@
 #include <ctype.h>
 #include <limits.h>
 
-long __strtol_internal(const char *__nptr, char **__endptr, int __base,
-                       int __group) {
+long __strtol_internal(const char *__nptr, char **__endptr, int __base, int __group) {
   // __group shall be 0 or the behavior of __strtoll_internal() is undefined
   assert(__group == 0);
 
@@ -31,7 +30,7 @@ long __isoc23_strtoimax(const char *nptr, char **endptr, int base) {
   } while (isspace((unsigned char)c));
   if (c == '-') {
     neg = 1;
-    c = *s++;
+    c   = *s++;
   } else {
     neg = 0;
     if (c == '+')

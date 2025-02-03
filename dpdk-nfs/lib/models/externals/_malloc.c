@@ -19,8 +19,7 @@ extern void *calloc(size_t num, size_t size);
 extern void free(void *ptr);
 
 void *malloc(size_t size) {
-  static char malloc_mem[MALLOC_MEM_SIZE]
-      __attribute__((aligned(alignof(max_align_t))));
+  static char malloc_mem[MALLOC_MEM_SIZE] __attribute__((aligned(alignof(max_align_t))));
   static size_t malloc_index;
 
   if (malloc_index + size >= MALLOC_MEM_SIZE) {

@@ -23,8 +23,8 @@
 
 // Globals
 static const int POS_UNOPENED = -1;
-static const int POS_EOF = -2;
-static char *ANON_MEM_NAME = "anonymous_memory";
+static const int POS_EOF      = -2;
+static char *ANON_MEM_NAME    = "anonymous_memory";
 
 enum stub_file_kind { KIND_FILE, KIND_DIRECTORY, KIND_LINK };
 
@@ -93,19 +93,17 @@ const int MSR_FD = 1337;
 int access(const char *pathname, int mode) {
   if (mode == F_OK) {
     // Other CPUs
-    const char *cpu_prefix = "/sys/devices/system/cpu/cpu";
+    const char *cpu_prefix  = "/sys/devices/system/cpu/cpu";
     const char *cpu0_prefix = "/sys/devices/sytem/cpu/cpu0";
 
-    if (pathname[strlen(cpu_prefix)] != '0' &&
-        !strncmp(pathname, cpu_prefix, strlen(cpu_prefix))) {
-      return -1;  // TODO
+    if (pathname[strlen(cpu_prefix)] != '0' && !strncmp(pathname, cpu_prefix, strlen(cpu_prefix))) {
+      return -1; // TODO
     }
 
-    const char *node_prefix = "/sys/devices/system/node/node";
+    const char *node_prefix  = "/sys/devices/system/node/node";
     const char *node0_prefix = "/sys/devices/system/node/node0/cpu0";
 
-    if (strncmp(pathname, node0_prefix, strlen(node0_prefix)) != 0 &&
-        !strncmp(pathname, node_prefix, strlen(node_prefix))) {
+    if (strncmp(pathname, node0_prefix, strlen(node0_prefix)) != 0 && !strncmp(pathname, node_prefix, strlen(node_prefix))) {
       return -1;
     }
 
@@ -136,18 +134,17 @@ int stat(const char *path, struct stat *buf) {
 }
 
 int open(const char *file, int oflag, ...) {
-  if (!strcmp(file, "/sys/module/vfio/parameters/enable_unsafe_noiommu_mode") &&
-      oflag == O_RDONLY) {
-    return -1;  // explicitly no VFIO
+  if (!strcmp(file, "/sys/module/vfio/parameters/enable_unsafe_noiommu_mode") && oflag == O_RDONLY) {
+    return -1; // explicitly no VFIO
   }
 
   if (!strcmp(file, "/proc/cpuinfo") && oflag == O_RDONLY) {
-    return -1;  // TODO
+    return -1; // TODO
   }
 
   // NUMA map, unsupported for now
   if (!strcmp(file, "/proc/self/numa_maps") && oflag == O_RDONLY) {
-    return -1;  // TODO
+    return -1; // TODO
   }
 
   if (!strcmp(file, "/dev/cpu/0/msr") && oflag == O_RDONLY) {
@@ -155,11 +152,9 @@ int open(const char *file, int oflag, ...) {
   }
 
   // Generic
-  enum stub_file_kind desired_kind =
-      ((oflag & O_DIRECTORY) == O_DIRECTORY) ? KIND_DIRECTORY : KIND_FILE;
+  enum stub_file_kind desired_kind = ((oflag & O_DIRECTORY) == O_DIRECTORY) ? KIND_DIRECTORY : KIND_FILE;
   for (int n = 0; n < sizeof(FILES) / sizeof(FILES[0]); n++) {
-    if (FILES[n].path != NULL && !strcmp(file, FILES[n].path) &&
-        FILES[n].kind == desired_kind) {
+    if (FILES[n].path != NULL && !strcmp(file, FILES[n].path) && FILES[n].kind == desired_kind) {
       if (FILES[n].content == FILE_CONTENT_NOTPRESENT) {
         return -1;
       }
@@ -174,7 +169,7 @@ int open(const char *file, int oflag, ...) {
   // Other CPUs
   const char *cpu_prefix = "/sys/devices/system/cpu/cpu";
   if (!strncmp(file, cpu_prefix, strlen(cpu_prefix)) && oflag == O_RDONLY) {
-    return -1;  // TODO
+    return -1; // TODO
   }
 
   // Not supported!
@@ -229,8 +224,7 @@ int ftruncate(int fd, off_t length) {
 
   // DPDK want to also truncate rtemap_* files which are tagged with
   // FILE_CONTENT_HUGEPAGE
-  if (FILES[fd].content == FILE_CONTENT_HPINFO ||
-      FILES[fd].content == FILE_CONTENT_HUGEPAGE) {
+  if (FILES[fd].content == FILE_CONTENT_HPINFO || FILES[fd].content == FILE_CONTENT_HUGEPAGE) {
     FILES[fd].content = (char *)malloc(length);
     memset(FILES[fd].content, 0, length);
 
@@ -276,7 +270,7 @@ ssize_t read(int fd, void *buf, size_t count) {
     // bits), and we want the PFN to be equal to the VPFN since we want VAs
     // and PAs to match
     int vpfn = FILES[fd].pos / sizeof(uint64_t);
-    klee_assert(vpfn < (((uint64_t)1) << 55));  // PFNs are stored on 55 bits
+    klee_assert(vpfn < (((uint64_t)1) << 55)); // PFNs are stored on 55 bits
 
     // TODO I think DPDK forgets to check whether the page is marked as
     // swapped,
@@ -284,7 +278,7 @@ ssize_t read(int fd, void *buf, size_t count) {
 
     memset(buf, 0, count);
 #if __BYTE_ORDER == __BIG_ENDIAN
-    klee_abort();  // TODO too lazy to do it right now
+    klee_abort(); // TODO too lazy to do it right now
 #else
     // Bits 0-54 are the PFN, bit 63 is "page present", rest can be 0
     // See https://www.kernel.org/doc/Documentation/vm/pagemap.txt
@@ -333,7 +327,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset) {
 int close(int fd) {
   klee_assert(FILES[fd].pos != POS_UNOPENED);
 
-  FILES[fd].pos = POS_UNOPENED;
+  FILES[fd].pos    = POS_UNOPENED;
   FILES[fd].locked = false;
 
   // We do not remove mmapings:
@@ -377,7 +371,7 @@ ssize_t __getdents(int fd, char *buf, size_t nbytes) {
 
   struct dirent *de = (struct dirent *)buf;
   memset(de, 0, len);
-  de->d_ino = 1;  // just needs to be non-zero
+  de->d_ino = 1; // just needs to be non-zero
 
   klee_assert(FILES[fd].kind == KIND_DIRECTORY);
   klee_assert(FILES[fd].pos >= 0);
@@ -388,11 +382,11 @@ ssize_t __getdents(int fd, char *buf, size_t nbytes) {
     return 0;
   }
 
-  int child_fd = FILES[fd].children[FILES[fd].pos];
+  int child_fd   = FILES[fd].children[FILES[fd].pos];
   char *filename = strrchr(FILES[child_fd].path, '/') + 1;
   strcpy(de->d_name, filename);
-  de->d_reclen = len;  // should bestrlen(de->d_name)
-  de->d_type = FILES[child_fd].content == NULL ? DT_DIR : 0;
+  de->d_reclen = len; // should bestrlen(de->d_name)
+  de->d_type   = FILES[child_fd].content == NULL ? DT_DIR : 0;
 
   FILES[fd].pos++;
 
@@ -404,10 +398,10 @@ int stub_add_file(char *path, char *content) {
   struct stub_file file;
   memset(&file, 0, sizeof(struct stub_file));
 
-  file.path = path;
+  file.path    = path;
   file.content = content;
-  file.pos = POS_UNOPENED;
-  file.kind = KIND_FILE;
+  file.pos     = POS_UNOPENED;
+  file.kind    = KIND_FILE;
 
   int fd = file_counter;
   file_counter++;
@@ -417,8 +411,7 @@ int stub_add_file(char *path, char *content) {
   return fd;
 }
 
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-           off_t offset) {
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
   // http://man7.org/linux/man-pages/man2/mmap.2.html
 
   // Offsets not supported
@@ -433,8 +426,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
     for (int n = 0; n < NUM_PCI_DEVICES; n++) {
       for (int i = 0; i < PCI_MAX_RESOURCE; i++) {
         if ((void *)FILES[fd].content == PCI_DEVICES[n].resources[i].start) {
-          klee_assert(length == PCI_DEVICES[n].resources[i].size &&
-                      PCI_DEVICES[n].resources[i].is_mem);
+          klee_assert(length == PCI_DEVICES[n].resources[i].size && PCI_DEVICES[n].resources[i].is_mem);
 
           return PCI_DEVICES[n].resources[i].start;
         }
@@ -457,8 +449,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
       if (FILES[fd].mmaps[m].mem_len == length) {
         if (FILES[fd].mmaps[m].refcount == 0 && FILES[fd].mmaps[m].accessible) {
           // freed mmap, need to re-allow access
-          klee_allow_access(FILES[fd].mmaps[m].actual_mem,
-                            FILES[fd].mmaps[m].actual_mem_len);
+          klee_allow_access(FILES[fd].mmaps[m].actual_mem, FILES[fd].mmaps[m].actual_mem_len);
         }
 
         FILES[fd].mmaps[m].refcount++;
@@ -467,8 +458,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
     }
 
     // don't mmap too many times
-    klee_assert(FILES[fd].mmaps_len <
-                sizeof(FILES[0].mmaps) / sizeof(FILES[0].mmaps[0]));
+    klee_assert(FILES[fd].mmaps_len < sizeof(FILES[0].mmaps) / sizeof(FILES[0].mmaps[0]));
 
   } else {
     // Create an anonymous file.
@@ -490,20 +480,20 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
   // return value to a page, since at most the offset we'll have to add to the
   // "real" VA is the page size itself.
   size_t actual_length = length + PAGE_SIZE;
-  void *actual_mem = malloc(actual_length);
+  void *actual_mem     = malloc(actual_length);
   memset(actual_mem, 0, actual_length);
 
   // note that this will result in an offset of PAGE_SIZE even if it could be
   // 0
   // - we don't care
   size_t real_offset = PAGE_SIZE - (((intptr_t)actual_mem) % PAGE_SIZE);
-  void *mem = (actual_mem + real_offset);
+  void *mem          = (actual_mem + real_offset);
 
-  int m = FILES[fd].mmaps_len;
-  FILES[fd].mmaps[m].refcount = 1;
-  FILES[fd].mmaps[m].mem = mem;
-  FILES[fd].mmaps[m].mem_len = length;
-  FILES[fd].mmaps[m].actual_mem = actual_mem;
+  int m                             = FILES[fd].mmaps_len;
+  FILES[fd].mmaps[m].refcount       = 1;
+  FILES[fd].mmaps[m].mem            = mem;
+  FILES[fd].mmaps[m].mem_len        = length;
+  FILES[fd].mmaps[m].actual_mem     = actual_mem;
   FILES[fd].mmaps[m].actual_mem_len = actual_length;
   FILES[fd].mmaps_len++;
 
@@ -528,8 +518,7 @@ int munmap(void *addr, size_t length) {
       struct nfos_pci_nic *p;
 
       if (addr == PCI_DEVICES[n].resources[i].start) {
-        klee_assert(length == PCI_DEVICES[n].resources[i].size &&
-                    PCI_DEVICES[n].resources[i].is_mem);
+        klee_assert(length == PCI_DEVICES[n].resources[i].size && PCI_DEVICES[n].resources[i].is_mem);
 
         // Do nothing - the memory still exists!
         return 0;
@@ -553,8 +542,7 @@ int munmap(void *addr, size_t length) {
         // accessed
         FILES[n].mmaps[m].refcount--;
         if (FILES[n].mmaps[m].refcount == 0 && FILES[n].mmaps[m].accessible) {
-          klee_forbid_access(FILES[n].mmaps[m].actual_mem,
-                             FILES[n].mmaps[m].actual_mem_len, "freed mmap");
+          klee_forbid_access(FILES[n].mmaps[m].actual_mem, FILES[n].mmaps[m].actual_mem_len, "freed mmap");
         }
         return 0;
       }
@@ -580,9 +568,7 @@ int madvise(void *addr, size_t length, int advice) {
   return 0;
 }
 
-int __libc_open(const char *pathname, int flags, mode_t mode) {
-  return open(pathname, flags, mode);
-}
+int __libc_open(const char *pathname, int flags, mode_t mode) { return open(pathname, flags, mode); }
 
 void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
   // Helper methods declarations
@@ -597,7 +583,7 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
 
   assert(devs != NULL);
 
-  PCI_DEVICES = devs;
+  PCI_DEVICES     = devs;
   NUM_PCI_DEVICES = n;
 
   // Files initialization
@@ -615,45 +601,35 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
     char sysfs_resource[24];
 
     snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n", devs[n].vendor_id);
-    int vendor_fd =
-        stub_add_file(stub_pci_file(dev, "vendor"), strdup(sysfs_resource));
+    int vendor_fd = stub_add_file(stub_pci_file(dev, "vendor"), strdup(sysfs_resource));
 
     snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n", devs[n].device_id);
-    int device_fd =
-        stub_add_file(stub_pci_file(dev, "device"), strdup(sysfs_resource));
+    int device_fd = stub_add_file(stub_pci_file(dev, "device"), strdup(sysfs_resource));
 
-    snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n",
-             devs[n].subsystem_vendor_id);
-    int subvendor_fd = stub_add_file(stub_pci_file(dev, "subsystem_vendor"),
-                                     strdup(sysfs_resource));
+    snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n", devs[n].subsystem_vendor_id);
+    int subvendor_fd = stub_add_file(stub_pci_file(dev, "subsystem_vendor"), strdup(sysfs_resource));
 
-    snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n",
-             devs[n].subsystem_id);
-    int subdevice_fd = stub_add_file(stub_pci_file(dev, "subsystem_device"),
-                                     strdup(sysfs_resource));
+    snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n", devs[n].subsystem_id);
+    int subdevice_fd = stub_add_file(stub_pci_file(dev, "subsystem_device"), strdup(sysfs_resource));
 
     snprintf(sysfs_resource, sizeof(sysfs_resource), "%u\n", devs[n].vendor_id);
-    int class_fd =
-        stub_add_file(stub_pci_file(dev, "class"), strdup(sysfs_resource));
+    int class_fd = stub_add_file(stub_pci_file(dev, "class"), strdup(sysfs_resource));
 
-    int maxvfs_fd = stub_add_file(stub_pci_file(dev, "max_vfs"),
-                                  "0\n");  // no virtual functions
-    int numanode_fd =
-        stub_add_file(stub_pci_file(dev, "numa_node"), "0\n");  // NUMA node 0
+    int maxvfs_fd   = stub_add_file(stub_pci_file(dev, "max_vfs"),
+                                    "0\n");                                  // no virtual functions
+    int numanode_fd = stub_add_file(stub_pci_file(dev, "numa_node"), "0\n"); // NUMA node 0
 
     // Driver symlink
-    int driver_fd =
-        stub_add_link(stub_pci_file(dev, "driver"), "/drivers/igb_uio");
+    int driver_fd = stub_add_link(stub_pci_file(dev, "driver"), "/drivers/igb_uio");
 
-    stub_add_file(stub_pci_file(dev, "iommu/intel-iommu/cap"),
-                  FILE_CONTENT_NOTPRESENT);
+    stub_add_file(stub_pci_file(dev, "iommu/intel-iommu/cap"), FILE_CONTENT_NOTPRESENT);
 
     // 'uio' folder, itself containing an empty folder 'uioN' (where N is
     // the device number)
     char uio_name[32];
     snprintf(uio_name, sizeof(uio_name), "uio/uio%d", n);
     int uio_entry_fd = stub_add_folder(stub_pci_file(dev, strdup(uio_name)), 0);
-    int uio_fd = stub_add_folder(stub_pci_file(dev, "uio"), 1, uio_entry_fd);
+    int uio_fd       = stub_add_folder(stub_pci_file(dev, "uio"), 1, uio_entry_fd);
 
     // Resources file
     // Multiple lines; each line has the format <start addr> <end addr>
@@ -664,14 +640,12 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
     // (PCI_MAX_RESOURCE)
 
     const char *resource_mem_format = "%s %s 0x0000000000000200\n";
-    const char *resource_io_format = "%s %s 0x0000000000000100\n";
+    const char *resource_io_format  = "%s %s 0x0000000000000100\n";
 
     char resource_content[1024];
     resource_content[0] = '\0';
 
-    int dev_folder_children[16] = {vendor_fd,    device_fd, subvendor_fd,
-                                   subdevice_fd, class_fd,  maxvfs_fd,
-                                   numanode_fd,  0,         uio_fd};
+    int dev_folder_children[16] = {vendor_fd, device_fd, subvendor_fd, subdevice_fd, class_fd, maxvfs_fd, numanode_fd, 0, uio_fd};
 
     int dev_folder_children_counter = 9;
 
@@ -694,45 +668,34 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
           resource_format = resource_io_format;
 
           strcat(uio_name, "/portio/port0/start");
-          snprintf(portio_start_buf, sizeof(portio_start_buf), "%" PRIuPTR "\n",
-                   (uintptr_t)devs[n].resources[i].start);
-          stub_add_file(stub_pci_file(dev, strdup(uio_name)),
-                        strdup(portio_start_buf));
+          snprintf(portio_start_buf, sizeof(portio_start_buf), "%" PRIuPTR "\n", (uintptr_t)devs[n].resources[i].start);
+          stub_add_file(stub_pci_file(dev, strdup(uio_name)), strdup(portio_start_buf));
         }
 
-        snprintf(resource_line_content, sizeof(resource_line_content),
-                 resource_format,
-                 stub_pci_addr((size_t)devs[n].resources[i].start),
-                 stub_pci_addr((size_t)devs[n].resources[i].start +
-                               devs[n].resources[i].size - 1));
+        snprintf(resource_line_content, sizeof(resource_line_content), resource_format, stub_pci_addr((size_t)devs[n].resources[i].start),
+                 stub_pci_addr((size_t)devs[n].resources[i].start + devs[n].resources[i].size - 1));
 
-        strncat(resource_content, resource_line_content,
-                sizeof(resource_content) - 1);
+        strncat(resource_content, resource_line_content, sizeof(resource_content) - 1);
 
         snprintf(resource_name, sizeof(resource_name), "resource%d", i);
 
         dev_folder_children[dev_folder_children_counter++] =
-            stub_add_file(stub_pci_file(dev, strdup(resource_name)),
-                          (char *)devs[n].resources[i].start);
+            stub_add_file(stub_pci_file(dev, strdup(resource_name)), (char *)devs[n].resources[i].start);
       }
     }
 
-    dev_folder_children[dev_folder_children_counter++] =
-        stub_add_file(stub_pci_file(dev, "resource"), strdup(resource_content));
+    dev_folder_children[dev_folder_children_counter++] = stub_add_file(stub_pci_file(dev, "resource"), strdup(resource_content));
 
-    dev_folders[n] = stub_add_folder_array(
-        stub_pci_folder(dev), dev_folder_children_counter, dev_folder_children);
+    dev_folders[n] = stub_add_folder_array(stub_pci_folder(dev), dev_folder_children_counter, dev_folder_children);
 
     // UIO stuff
     char sys_uio_path[1024];
-    snprintf(sys_uio_path, sizeof(sys_uio_path),
-             "/sys/class/uio/uio%d/device/config", n);
+    snprintf(sys_uio_path, sizeof(sys_uio_path), "/sys/class/uio/uio%d/device/config", n);
     stub_add_file(strdup(sys_uio_path), "");
 
     // Interrupts
     char interrupts_file_path[1024];
-    snprintf(interrupts_file_path, sizeof(interrupts_file_path), "/dev/uio%d",
-             n);
+    snprintf(interrupts_file_path, sizeof(interrupts_file_path), "/dev/uio%d", n);
     devs[n].interrupts_fd = stub_add_file(strdup(interrupts_file_path), "");
   }
 
@@ -740,37 +703,28 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
 
   // Hugepages properties
   char huge_free_value[1024];
-  snprintf(huge_free_value, sizeof(huge_free_value), "%d\n",
-           STUB_HUGEPAGES_COUNT);
-  int huge_res_fd =
-      stub_add_file("/sys/kernel/mm/hugepages/hugepages-2048kB/resv_hugepages",
-                    "0\n");  // number of reserved hugepages
-  int huge_free_fd =
-      stub_add_file("/sys/kernel/mm/hugepages/hugepages-2048kB/free_hugepages",
-                    strdup(huge_free_value));  // number of free hugepages
-  int huge_2048_fd =
-      stub_add_folder("/sys/kernel/mm/hugepages/hugepages-2048kB", 2,
-                      huge_res_fd, huge_free_fd);
+  snprintf(huge_free_value, sizeof(huge_free_value), "%d\n", STUB_HUGEPAGES_COUNT);
+  int huge_res_fd  = stub_add_file("/sys/kernel/mm/hugepages/hugepages-2048kB/resv_hugepages",
+                                   "0\n"); // number of reserved hugepages
+  int huge_free_fd = stub_add_file("/sys/kernel/mm/hugepages/hugepages-2048kB/free_hugepages",
+                                   strdup(huge_free_value)); // number of free hugepages
+  int huge_2048_fd = stub_add_folder("/sys/kernel/mm/hugepages/hugepages-2048kB", 2, huge_res_fd, huge_free_fd);
   stub_add_folder("/sys/kernel/mm/hugepages", 1, huge_2048_fd);
 
   // /sys stuff
   // We pretend all CPUs on NUMA node 0 exist
   stub_add_file("/sys/devices/system/cpu/cpu0/topology/core_id",
-                "0");  // CPU 0 is core ID 0
+                "0"); // CPU 0 is core ID 0
 
   stub_add_file("/sys/devices/system/node/node0/cpu0", 0);
 
-  int huge_free_node_fd = stub_add_file(
-      "/sys/devices/system/node/node0/hugepages/hugepages-2048kB/"
-      "free_hugepages",
-      strdup(huge_free_value));
+  int huge_free_node_fd = stub_add_file("/sys/devices/system/node/node0/hugepages/hugepages-2048kB/"
+                                        "free_hugepages",
+                                        strdup(huge_free_value));
 
-  int huge_2048_node_fd = stub_add_folder(
-      "/sys/devices/system/node/node0/hugepages/hugepages-2048kB", 1,
-      huge_free_node_fd);
+  int huge_2048_node_fd = stub_add_folder("/sys/devices/system/node/node0/hugepages/hugepages-2048kB", 1, huge_free_node_fd);
 
-  stub_add_folder("/sys/devices/system/node/node0/hugepages", 1,
-                  huge_2048_node_fd);
+  stub_add_folder("/sys/devices/system/node/node0/hugepages", 1, huge_2048_node_fd);
 
   // /sys/module has to be there for DPDK's modules check to not just fail;
   // but we do not have VFIO
@@ -779,23 +733,21 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
   stub_add_file("/sys/module/vfio_pci", FILE_CONTENT_NOTPRESENT);
 
   // /proc stuff
-  stub_add_file(
-      "/proc/mounts",
-      "hugetlbfs /dev/hugepages hugetlbfs rw,relatime 0 0\n");  // only
-                                                                // hugepages,
-                                                                // what DPDK
-                                                                // cares about
+  stub_add_file("/proc/mounts",
+                "hugetlbfs /dev/hugepages hugetlbfs rw,relatime 0 0\n"); // only
+                                                                         // hugepages,
+                                                                         // what DPDK
+                                                                         // cares about
   stub_add_file("/proc/meminfo",
-                "Hugepagesize:       2048 kB\n");  // only hugepages, what
-                                                   // DPDK cares about
+                "Hugepagesize:       2048 kB\n"); // only hugepages, what
+                                                  // DPDK cares about
   stub_add_file("/proc/self/pagemap", FILE_CONTENT_PAGEMAP);
 
   // Hugepages folder (empty)
-  int dot_fd = stub_add_file(
-      "./.", "");  // need a / in the name, see remark in stub_file
+  int dot_fd = stub_add_file("./.", ""); // need a / in the name, see remark in stub_file
   stub_add_folder("/dev/hugepages", 1,
-                  dot_fd);  // DPDK relies on there being at
-                            // least 1 file in there
+                  dot_fd); // DPDK relies on there being at
+                           // least 1 file in there
 
   // HACK this folder is opened as a file for locking and as a folder for
   // enumerating...
@@ -806,8 +758,7 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
   stub_add_file("/dev/hugepages/rte", FILE_CONTENT_HUGEPAGE);
   for (int n = 0; n < STUB_HUGEPAGES_COUNT; n++) {
     char hugepage_file_name[1024];
-    snprintf(hugepage_file_name, sizeof(hugepage_file_name),
-             "/dev/hugepages/rtemap_%d", n);
+    snprintf(hugepage_file_name, sizeof(hugepage_file_name), "/dev/hugepages/rtemap_%d", n);
     stub_add_file(strdup(hugepage_file_name), FILE_CONTENT_HUGEPAGE);
   }
 
@@ -815,8 +766,8 @@ void stub_stdio_files_init(struct nfos_pci_nic *devs, int n) {
   stub_add_file("/var/run/.rte_hugepage_info", FILE_CONTENT_HPINFO);
 
   // Other devices
-  stub_add_file("/dev/zero", "");  // HACK as long as it's not read, we can
-                                   // pretend it doesn't contain anything
+  stub_add_file("/dev/zero", ""); // HACK as long as it's not read, we can
+                                  // pretend it doesn't contain anything
 }
 
 #if (defined VIGOR_MODEL_HARDWARE) && !(defined NFOS)
@@ -829,14 +780,13 @@ __attribute__((constructor(150)))	// High prio, must execute after other stuff
   devs = stub_hardware_get_nics(&num_devs);
   stub_stdio_files_init(devs, num_devs);
 }
-#endif  // (defined VIGOR_MODEL_HARDWARE) && !(defined NFOS)
+#endif // (defined VIGOR_MODEL_HARDWARE) && !(defined NFOS)
 
 // Helper methods - not part of the models
 
 char *stub_pci_file(const char *device_name, const char *file_name) {
   char buffer[1024];
-  snprintf(buffer, sizeof(buffer), "/sys/bus/pci/devices/%s/%s", device_name,
-           file_name);
+  snprintf(buffer, sizeof(buffer), "/sys/bus/pci/devices/%s/%s", device_name, file_name);
   return strdup(buffer);
 }
 
@@ -848,7 +798,7 @@ char *stub_pci_folder(const char *device_name) {
 
 char *stub_pci_addr(size_t addr) {
   char *buffer = "0x0000000000000000";
-  int pos = strlen(buffer) - 1;
+  int pos      = strlen(buffer) - 1;
   while (addr > 0) {
     size_t digit = addr % 16;
     addr /= 16;
@@ -866,7 +816,7 @@ char *stub_pci_addr(size_t addr) {
 }
 
 int stub_add_link(char *path, char *content) {
-  int fd = stub_add_file(path, content);
+  int fd         = stub_add_file(path, content);
   FILES[fd].kind = KIND_LINK;
   return fd;
 }
@@ -875,11 +825,11 @@ int stub_add_folder_array(char *path, int children_len, int *children) {
   struct stub_file file;
   memset(&file, 0, sizeof(struct stub_file));
 
-  file.path = path;
-  file.children = children;
+  file.path         = path;
+  file.children     = children;
   file.children_len = children_len;
-  file.pos = POS_UNOPENED;
-  file.kind = KIND_DIRECTORY;
+  file.pos          = POS_UNOPENED;
+  file.kind         = KIND_DIRECTORY;
 
   int fd = file_counter;
   file_counter++;
@@ -902,7 +852,7 @@ int stub_add_folder(char *path, int children_len, ...) {
 }
 
 char *stub_pci_name(int index) {
-  klee_assert(index >= 0 && index < 10);  // simpler
+  klee_assert(index >= 0 && index < 10); // simpler
 
   char buffer[1024];
   snprintf(buffer, sizeof(buffer), "0000:00:00.%d", index);

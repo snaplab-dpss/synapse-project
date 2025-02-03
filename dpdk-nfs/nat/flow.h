@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "lib/verified/boilerplate-util.h"
-#include "lib/verified/ether.h"
+#include "lib/util/boilerplate.h"
+#include "lib/util/ether.h"
 
 struct FlowId {
   uint16_t src_port;
@@ -18,15 +18,15 @@ struct FlowId {
 
 #define DEFAULT_FLOWID FlowIdc(0, 0, 0, 0, 0, 0)
 
-#define LOG_FLOWID(obj, p)                                                     \
-  ;                                                                            \
-  p("{");                                                                      \
-  p("src_port: %d", (obj)->src_port);                                          \
-  p("dst_port: %d", (obj)->dst_port);                                          \
-  p("src_ip: %d", (obj)->src_ip);                                              \
-  p("dst_ip: %d", (obj)->dst_ip);                                              \
-  p("internal_device: %d", (obj)->internal_device);                            \
-  p("protocol: %d", (obj)->protocol);                                          \
+#define LOG_FLOWID(obj, p)                                                                                                                 \
+  ;                                                                                                                                        \
+  p("{");                                                                                                                                  \
+  p("src_port: %d", (obj)->src_port);                                                                                                      \
+  p("dst_port: %d", (obj)->dst_port);                                                                                                      \
+  p("src_ip: %d", (obj)->src_ip);                                                                                                          \
+  p("dst_ip: %d", (obj)->dst_ip);                                                                                                          \
+  p("internal_device: %d", (obj)->internal_device);                                                                                        \
+  p("protocol: %d", (obj)->protocol);                                                                                                      \
   p("}");
 
 #ifdef KLEE_VERIFICATION

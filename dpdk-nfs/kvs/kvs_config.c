@@ -8,9 +8,9 @@
 #include "nf-log.h"
 #include "nf-parse.h"
 
-#define PARSE_ERROR(format, ...)                                               \
-  nf_config_usage();                                                           \
-  fprintf(stderr, format, ##__VA_ARGS__);                                      \
+#define PARSE_ERROR(format, ...)                                                                                                           \
+  nf_config_usage();                                                                                                                       \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                  \
   exit(EXIT_FAILURE);
 
 void nf_config_init(int argc, char **argv) {
@@ -23,8 +23,7 @@ void nf_config_init(int argc, char **argv) {
                                   {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "i:e:c:t:", long_options, NULL)) !=
-         EOF) {
+  while ((opt = getopt_long(argc, argv, "i:e:c:t:", long_options, NULL)) != EOF) {
     unsigned device;
     switch (opt) {
     case 'i':

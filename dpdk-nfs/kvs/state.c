@@ -1,14 +1,14 @@
 #include "state.h"
 #include <stdlib.h>
 
-#include "lib/verified/boilerplate-util.h"
+#include "lib/util/boilerplate.h"
 
 #ifdef KLEE_VERIFICATION
-#include "lib/models/verified/double-chain-control.h"
-#include "lib/models/verified/ether.h"
-#include "lib/models/verified/map-control.h"
-#include "lib/models/verified/vector-control.h"
-#include "lib/models/verified/cms-control.h"
+#include "lib/models/state/double-chain-control.h"
+#include "lib/models/util/ether.h"
+#include "lib/models/state/map-control.h"
+#include "lib/models/state/vector-control.h"
+#include "lib/models/state/cms-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;
@@ -21,7 +21,7 @@ struct State *alloc_state(uint32_t capacity, uint64_t expiration_time_us) {
   if (ret == NULL)
     return NULL;
 
-  ret->capacity = capacity;
+  ret->capacity        = capacity;
   ret->expiration_time = expiration_time_us * 1000;
 
   ret->kvs = NULL;
@@ -41,8 +41,7 @@ struct State *alloc_state(uint32_t capacity, uint64_t expiration_time_us) {
     return NULL;
 
 #ifdef KLEE_VERIFICATION
-  map_set_layout(ret->kvs, kv_key_descrs,
-                 sizeof(kv_key_descrs) / sizeof(kv_key_descrs[0]), kv_key_nests,
+  map_set_layout(ret->kvs, kv_key_descrs, sizeof(kv_key_descrs) / sizeof(kv_key_descrs[0]), kv_key_nests,
                  sizeof(kv_key_nests) / sizeof(kv_key_nests[0]), "kv_key_t");
   vector_set_layout(ret->keys, NULL, 0, NULL, 0, "kv_key_t");
   vector_set_layout(ret->values, NULL, 0, NULL, 0, "kv_value_t");
@@ -54,8 +53,7 @@ struct State *alloc_state(uint32_t capacity, uint64_t expiration_time_us) {
 
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
-  loop_iteration_border(&allocated_nf_state->kvs, &allocated_nf_state->keys,
-                        &allocated_nf_state->values, &allocated_nf_state->heap,
+  loop_iteration_border(&allocated_nf_state->kvs, &allocated_nf_state->keys, &allocated_nf_state->values, &allocated_nf_state->heap,
                         allocated_nf_state->capacity, lcore_id, time);
 }
 

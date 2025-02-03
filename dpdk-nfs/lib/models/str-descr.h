@@ -26,4 +26,4 @@ struct nested_nested_field_descr {
   char *name;
 };
 
-#endif  //_STR_DESCR_H_INCLUDED_
+#endif //_STR_DESCR_H_INCLUDED_

@@ -2,9 +2,9 @@
 #define _TOUCHED_PORT_GEN_H_INCLUDED_
 
 #include <stdbool.h>
-#include "lib/verified/boilerplate-util.h"
+#include "lib/util/boilerplate.h"
 
-#include "lib/verified/ether.h"
+#include "lib/util/ether.h"
 
 #include <stdint.h>
 
@@ -19,6 +19,6 @@ struct TouchedPort {
 
 extern struct str_field_descr touched_port_descrs[2];
 extern struct nested_field_descr touched_port_nests[0];
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
-#endif  //_TOUCHED_PORT_GEN_H_INCLUDED_
+#endif //_TOUCHED_PORT_GEN_H_INCLUDED_

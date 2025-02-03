@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "lib/verified/boilerplate-util.h"
-#include "lib/verified/ether.h"
+#include "lib/util/boilerplate.h"
+#include "lib/util/ether.h"
 
 #define DEFAULT_IP_ADDR ip_addrc(0)
 
@@ -13,10 +13,10 @@ struct ip_addr {
   uint32_t addr;
 } PACKED_FOR_KLEE_VERIFICATION;
 
-#define LOG_IP_ADDR(obj, p)   \
-  ;                           \
-  p("{");                     \
-  p("addr: %d", (obj)->addr); \
+#define LOG_IP_ADDR(obj, p)                                                                                                                \
+  ;                                                                                                                                        \
+  p("{");                                                                                                                                  \
+  p("addr: %d", (obj)->addr);                                                                                                              \
   p("}");
 
 #ifdef KLEE_VERIFICATION
@@ -25,6 +25,6 @@ struct ip_addr {
 
 extern struct str_field_descr ip_addr_descrs[1];
 extern struct nested_field_descr ip_addr_nests[0];
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
-#endif  //_IP_ADDR_H_INCLUDED_
+#endif //_IP_ADDR_H_INCLUDED_

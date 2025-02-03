@@ -8,7 +8,7 @@ struct SerialPort {
 } serial_port;
 
 static const uint16_t DEFAULT_SERIAL_PORT_BASE = 0x3F8;
-static const uint8_t SERIAL_OUTPUT_EMPTY = 1 << 5;
+static const uint8_t SERIAL_OUTPUT_EMPTY       = 1 << 5;
 
 #define data_port(sp) ((sp).base)
 #define int_en_port(sp) ((sp).base + 1)
@@ -17,9 +17,7 @@ static const uint8_t SERIAL_OUTPUT_EMPTY = 1 << 5;
 #define modem_ctrl_port(sp) ((sp).base + 4)
 #define line_sts_port(sp) ((sp).base + 5)
 
-static int nfos_serial_has_output(void) {
-  return (nfos_inb(line_sts_port(serial_port)) & SERIAL_OUTPUT_EMPTY) == 0;
-}
+static int nfos_serial_has_output(void) { return (nfos_inb(line_sts_port(serial_port)) & SERIAL_OUTPUT_EMPTY) == 0; }
 
 void nfos_serial_init(void) {
   serial_port.base = DEFAULT_SERIAL_PORT_BASE;

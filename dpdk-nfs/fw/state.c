@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <rte_ethdev.h>
 
-#include "lib/verified/boilerplate-util.h"
+#include "lib/util/boilerplate.h"
 
 #ifdef KLEE_VERIFICATION
-#include "lib/models/verified/double-chain-control.h"
-#include "lib/models/verified/ether.h"
-#include "lib/models/verified/map-control.h"
-#include "lib/models/verified/vector-control.h"
-#include "lib/models/verified/lpm-dir-24-8-control.h"
-#include "lib/models/verified/fwtbl-control.h"
+#include "lib/models/state/double-chain-control.h"
+#include "lib/models/util/ether.h"
+#include "lib/models/state/map-control.h"
+#include "lib/models/state/vector-control.h"
+#include "lib/models/state/lpm-dir-24-8-control.h"
+#include "lib/models/state/fwtbl-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;

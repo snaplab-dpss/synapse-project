@@ -5,10 +5,10 @@
 #include <string.h> //for memcpy
 #include <rte_ethdev.h>
 
-#include "lib/verified/double-chain.h"
-#include "lib/verified/map.h"
-#include "lib/verified/vector.h"
-#include "lib/verified/expirator.h"
+#include "lib/state/double-chain.h"
+#include "lib/state/map.h"
+#include "lib/state/vector.h"
+#include "lib/state/expirator.h"
 
 #include "state.h"
 #include "../nf-log.h"

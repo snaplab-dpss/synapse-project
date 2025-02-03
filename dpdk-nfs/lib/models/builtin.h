@@ -24,8 +24,7 @@
 #define __builtin_constant_p(x) 1
 
 // Standard CAS (but of course we don't need atomicity)
-#define __sync_bool_compare_and_swap(ptr, oldval, newval) \
-  ((*ptr == oldval) ? (*ptr = newval, 1) : 0)
+#define __sync_bool_compare_and_swap(ptr, oldval, newval) ((*ptr == oldval) ? (*ptr = newval, 1) : 0)
 
 // DPDK only uses it as an atomic add, no fetch necessary
 // TODO make it decent anyway, we shouldn't rely on that
@@ -62,15 +61,12 @@
 //  returned and memory is affected according to failure_memorder. This memory
 //  order cannot be __ATOMIC_RELEASE nor __ATOMIC_ACQ_REL. It also cannot be a
 //  stronger order than that specified by success_memorder."
-#define __atomic_compare_exchange_n(ptr, expected, desired, weak,       \
-                                    success_memorder, failure_memorder) \
+#define __atomic_compare_exchange_n(ptr, expected, desired, weak, success_memorder, failure_memorder)                                      \
   stub_compare_exchange_n(ptr, expected, desired)
 
-static inline int stub_compare_exchange_n(volatile void *ptr,
-                                          volatile void *expected,
-                                          long desired) {
+static inline int stub_compare_exchange_n(volatile void *ptr, volatile void *expected, long desired) {
   volatile int *ptr_l = (volatile int *)ptr;
-  volatile int *ex_l = (volatile int *)expected;
+  volatile int *ex_l  = (volatile int *)expected;
   if (*ptr_l == *ex_l) {
     *ptr_l = desired;
     return 1;
@@ -84,11 +80,10 @@ static inline int stub_compare_exchange_n(volatile void *ptr,
 // into *ptr, and returns the previous contents of *ptr.
 #define __atomic_exchange_n(ptr, val, memorder) stub_atomic64_exchange(ptr, val)
 
-static inline uint64_t stub_atomic64_exchange(volatile void *dst,
-                                              uint64_t val) {
+static inline uint64_t stub_atomic64_exchange(volatile void *dst, uint64_t val) {
   volatile uint64_t *dst_i = (volatile uint64_t *)dst;
-  uint64_t prev = *dst_i;
-  *dst_i = val;
+  uint64_t prev            = *dst_i;
+  *dst_i                   = val;
   return prev;
 }
 
@@ -96,7 +91,7 @@ static inline uint64_t stub_atomic64_exchange(volatile void *dst,
 // traditional test-and-set operation, but rather an atomic exchange operation"
 static inline int32_t stub_test_and_set(volatile int32_t *ptr, int32_t value) {
   int32_t prev = *ptr;
-  *ptr = value;
+  *ptr         = value;
   return prev;
 }
 #define __sync_lock_test_and_set stub_test_and_set

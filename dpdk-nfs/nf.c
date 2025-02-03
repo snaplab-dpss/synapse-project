@@ -10,15 +10,15 @@
 #include <rte_lcore.h>
 #include <rte_mbuf.h>
 
-#include "lib/verified/boilerplate-util.h"
-#include "lib/verified/packet-io.h"
+#include "lib/util/boilerplate.h"
+#include "lib/util/packet-io.h"
 #include "nf-log.h"
 #include "nf-util.h"
 #include "nf.h"
 
 #ifdef KLEE_VERIFICATION
 #include "lib/models/hardware.h"
-#include "lib/models/verified/vigor-time-control.h"
+#include "lib/models/util/time-control.h"
 #include <klee/klee.h>
 #endif // KLEE_VERIFICATION
 

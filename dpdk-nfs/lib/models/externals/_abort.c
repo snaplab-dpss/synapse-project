@@ -10,4 +10,4 @@ void abort(void) {
   nfos_halt();
 }
 
-#endif  //! KLEE_VERIFICATION
+#endif //! KLEE_VERIFICATION

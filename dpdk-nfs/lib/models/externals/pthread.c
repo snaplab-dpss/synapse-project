@@ -16,8 +16,7 @@ static size_t css_get, css_set;
 static cpu_set_t cpuset_set;
 static int ret_get, ret_set;
 
-int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize,
-                           cpu_set_t *cpuset) {
+int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize, cpu_set_t *cpuset) {
   int ret = 0;
   if (thread == thread_get && cpusetsize == css_get) {
     ret = ret_get;
@@ -32,8 +31,8 @@ int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize,
     ret = 0;
 #endif
     thread_get = thread;
-    css_get = cpusetsize;
-    ret_get = ret;
+    css_get    = cpusetsize;
+    ret_get    = ret;
   }
 
   // However, we might be given uninitialized memory, so we need to set it
@@ -46,12 +45,10 @@ int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize,
   return ret;
 }
 
-int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize,
-                           const cpu_set_t *cpuset) {
+int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t *cpuset) {
   // Same remark as getaffinity
   int ret;
-  if (thread == thread_set && cpusetsize == css_set &&
-      CPU_EQUAL(cpuset, &cpuset_set)) {
+  if (thread == thread_set && cpusetsize == css_set && CPU_EQUAL(cpuset, &cpuset_set)) {
     ret = ret_set;
   } else {
 #ifdef KLEE_VERIFICATION
@@ -61,15 +58,14 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize,
     ret = 0;
 #endif
     thread_set = thread;
-    css_set = cpusetsize;
+    css_set    = cpusetsize;
     cpuset_set = *cpuset;
-    ret_set = ret;
+    ret_set    = ret;
   }
   return ret;
 }
 
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine)(void *), void *arg) {
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg) {
   // "On success, pthread_create() returns 0; on error, it returns an error
   // number, and the contents of *thread are undefined."
   // -- http://man7.org/linux/man-pages/man3/pthread_create.3.html
@@ -85,8 +81,7 @@ int pthread_setname_np(pthread_t thread, const char *name) {
   return 0;
 }
 
-int pthread_barrier_init(pthread_barrier_t *barrier,
-                         const pthread_barrierattr_t *attr, unsigned count) {
+int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned count) {
   // "Upon successful completion, these functions shall return zero;
   // otherwise, an error number shall be returned to indicate the error."
   // -- https://linux.die.net/man/3/pthread_barrier_init
@@ -119,12 +114,8 @@ int pthread_join(pthread_t thread, void **retval) {
 int pthread_mutex_lock(pthread_mutex_t *mutex) { return 0; }
 int pthread_mutex_unlock(pthread_mutex_t *mutex) { return 0; }
 
-int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
-  return 0;
-}
-int pthread_cond_timedwait(pthread_cond_t *restrict cond,
-                           pthread_mutex_t *restrict mutex,
-                           const struct timespec *restrict abstime) {
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) { return 0; }
+int pthread_cond_timedwait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex, const struct timespec *restrict abstime) {
   return 0;
 }
 int pthread_cond_signal(pthread_cond_t *cond) { return 0; }

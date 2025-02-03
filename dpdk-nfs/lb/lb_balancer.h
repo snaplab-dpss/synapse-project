@@ -1,10 +1,10 @@
-#ifndef _LB_BALANCER_H_INCLUDED_  // cannot use pragma once, included by
-                                  // VeriFast
+#ifndef _LB_BALANCER_H_INCLUDED_ // cannot use pragma once, included by
+                                 // VeriFast
 #define _LB_BALANCER_H_INCLUDED_
 
-#include "lib/verified/vector.h"
-#include "lib/verified/double-chain.h"
-#include "lib/verified/cht.h"
+#include "lib/state/vector.h"
+#include "lib/state/double-chain.h"
+#include "lib/state/cht.h"
 
 #include <rte_ether.h>
 
@@ -13,19 +13,12 @@
 #include "ip_addr.h"
 
 struct LoadBalancer;
-struct LoadBalancer *lb_allocate_balancer(uint32_t flow_capacity,
-                                          uint32_t backend_capacity,
-                                          uint32_t cht_height,
-                                          time_ns_t backend_expiration_time,
-                                          time_ns_t flow_expiration_time);
-struct LoadBalancedBackend lb_get_backend(struct LoadBalancer *balancer,
-                                          struct LoadBalancedFlow *flow,
-                                          time_ns_t now, uint16_t wan_device);
+struct LoadBalancer *lb_allocate_balancer(uint32_t flow_capacity, uint32_t backend_capacity, uint32_t cht_height,
+                                          time_ns_t backend_expiration_time, time_ns_t flow_expiration_time);
+struct LoadBalancedBackend lb_get_backend(struct LoadBalancer *balancer, struct LoadBalancedFlow *flow, time_ns_t now, uint16_t wan_device);
 void lb_expire_flows(struct LoadBalancer *balancer, time_ns_t now);
 void lb_expire_backends(struct LoadBalancer *balancer, time_ns_t now);
-void lb_process_heartbit(struct LoadBalancer *balancer,
-                         struct LoadBalancedFlow *flow,
-                         struct rte_ether_addr mac_addr, int nic,
+void lb_process_heartbit(struct LoadBalancer *balancer, struct LoadBalancedFlow *flow, struct rte_ether_addr mac_addr, int nic,
                          time_ns_t now);
 
-#endif  // _LB_BALANCER_H_INCLUDED_
+#endif // _LB_BALANCER_H_INCLUDED_

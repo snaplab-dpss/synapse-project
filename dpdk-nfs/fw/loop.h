@@ -1,13 +1,12 @@
 #ifndef _LOOP_H_INCLUDED_
 #define _LOOP_H_INCLUDED_
 
-#include "lib/verified/double-chain.h"
-#include "lib/verified/map.h"
-#include "lib/verified/vector.h"
-#include "lib/verified/cht.h"
-#include "lib/verified/lpm-dir-24-8.h"
-#include "lib/verified/vigor-time.h"
-#include "lib/verified/fwtbl.h"
+#include "lib/state/double-chain.h"
+#include "lib/state/map.h"
+#include "lib/state/vector.h"
+#include "lib/state/cht.h"
+#include "lib/util/time.h"
+#include "lib/state/fwtbl.h"
 
 #include "flow.h"
 

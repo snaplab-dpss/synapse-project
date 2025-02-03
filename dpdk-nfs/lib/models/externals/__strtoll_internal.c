@@ -1,8 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-long long __strtoll_internal(const char *__nptr, char **__endptr, int __base,
-                             int __group) {
+long long __strtoll_internal(const char *__nptr, char **__endptr, int __base, int __group) {
   // __group shall be 0 or the behavior of __strtoll_internal() is undefined
   assert(__group == 0);
 

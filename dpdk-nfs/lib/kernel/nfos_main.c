@@ -30,22 +30,22 @@ int main(void) {
 
 #ifndef KLEE_VERIFICATION
   nfos_serial_init();
-#endif  //! KLEE_VERIFICATION
+#endif //! KLEE_VERIFICATION
 
   int num_devs;
   struct nfos_pci_nic *devs;
 
 #ifdef VIGOR_MODEL_HARDWARE
   devs = stub_hardware_get_nics(&num_devs);
-#else   // VIGOR_MODEL_HARDWARE
+#else  // VIGOR_MODEL_HARDWARE
   devs = nfos_pci_find_nics(&num_devs);
-#endif  // VIGOR_MODEL_HARDWARE
+#endif // VIGOR_MODEL_HARDWARE
 
   stub_stdio_files_init(devs, num_devs);
 
 #ifndef KLEE_VERIFICATION
   _init();
-#endif  //! KLEE_VERIFICATION
+#endif //! KLEE_VERIFICATION
 
   printf("Calling NF...\n");
   nf_main(argc, argv);

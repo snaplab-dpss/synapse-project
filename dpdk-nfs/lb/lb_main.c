@@ -11,34 +11,30 @@ struct nf_config config;
 struct LoadBalancer *balancer;
 
 bool nf_init(void) {
-  balancer = lb_allocate_balancer(
-      config.flow_capacity, config.backend_capacity, config.cht_height,
-      config.backend_expiration_time, config.flow_expiration_time);
+  balancer = lb_allocate_balancer(config.flow_capacity, config.backend_capacity, config.cht_height, config.backend_expiration_time,
+                                  config.flow_expiration_time);
   return balancer != NULL;
 }
 
-int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               time_ns_t now, struct rte_mbuf *mbuf) {
+int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   lb_expire_flows(balancer, now);
   lb_expire_backends(balancer, now);
 
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
-  struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_ipv4_header(rte_ether_header, buffer);
+  struct rte_ipv4_hdr *rte_ipv4_header   = nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
     NF_DEBUG("Malformed IPv4, dropping");
     return DROP;
   }
 
-  struct tcpudp_hdr *tcpudp_header =
-      nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
+  struct tcpudp_hdr *tcpudp_header = nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
   if (tcpudp_header == NULL) {
     NF_DEBUG("Not TCP/UDP, dropping");
     return DROP;
   }
 
-  struct LoadBalancedFlow flow = {.src_ip = rte_ipv4_header->src_addr,
-                                  .dst_ip = rte_ipv4_header->dst_addr,
+  struct LoadBalancedFlow flow = {.src_ip   = rte_ipv4_header->src_addr,
+                                  .dst_ip   = rte_ipv4_header->dst_addr,
                                   .src_port = tcpudp_header->src_port,
                                   .dst_port = tcpudp_header->dst_port,
                                   .protocol = rte_ipv4_header->next_proto_id};
@@ -49,17 +45,15 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
     return DROP;
   }
 
-  struct LoadBalancedBackend backend =
-      lb_get_backend(balancer, &flow, now, config.wan_device);
+  struct LoadBalancedBackend backend = lb_get_backend(balancer, &flow, now, config.wan_device);
 
-  NF_DEBUG("Processing packet from %" PRIu16 " to %" PRIu16, device,
-           backend.nic);
+  NF_DEBUG("Processing packet from %" PRIu16 " to %" PRIu16, device, backend.nic);
   concretize_devices(&backend.nic, rte_eth_dev_count_avail());
 
   if (backend.nic != config.wan_device) {
     rte_ipv4_header->dst_addr = backend.ip;
-    rte_ether_header->s_addr = config.device_macs[backend.nic];
-    rte_ether_header->d_addr = backend.mac;
+    rte_ether_header->s_addr  = config.device_macs[backend.nic];
+    rte_ether_header->d_addr  = backend.mac;
 
     // Checksum
     nf_set_rte_ipv4_udptcp_checksum(rte_ipv4_header, tcpudp_header, buffer);

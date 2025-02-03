@@ -2,13 +2,13 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>  //for memcpy
+#include <string.h> //for memcpy
 #include <rte_ethdev.h>
 
-#include "lib/verified/double-chain.h"
-#include "lib/verified/map.h"
-#include "lib/verified/vector.h"
-#include "lib/verified/expirator.h"
+#include "lib/state/double-chain.h"
+#include "lib/state/map.h"
+#include "lib/state/vector.h"
+#include "lib/state/expirator.h"
 
 #include "state.h"
 
@@ -17,12 +17,9 @@ struct FlowManager {
   uint32_t expiration_time; /*nanoseconds*/
 };
 
-struct FlowManager *flow_manager_allocate(uint16_t starting_port,
-                                          uint32_t nat_ip, uint16_t nat_device,
-                                          uint32_t expiration_time,
+struct FlowManager *flow_manager_allocate(uint16_t starting_port, uint32_t nat_ip, uint16_t nat_device, uint32_t expiration_time,
                                           uint64_t max_flows) {
-  struct FlowManager *manager =
-      (struct FlowManager *)malloc(sizeof(struct FlowManager));
+  struct FlowManager *manager = (struct FlowManager *)malloc(sizeof(struct FlowManager));
   if (manager == NULL) {
     return NULL;
   }
@@ -36,8 +33,7 @@ struct FlowManager *flow_manager_allocate(uint16_t starting_port,
   return manager;
 }
 
-bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id,
-                                uint16_t internal_device, time_ns_t time,
+bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id, uint16_t internal_device, time_ns_t time,
                                 uint16_t *external_port) {
   int index;
   if (dchain_allocate_new_index(manager->state->heap, &index, time) == 0) {
@@ -55,17 +51,15 @@ bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id,
 }
 
 void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
-  assert(time >= 0);  // we don't support the past
+  assert(time >= 0); // we don't support the past
   assert(sizeof(time_ns_t) <= sizeof(uint64_t));
-  uint64_t time_u = (uint64_t)time;  // OK because of the two asserts
+  uint64_t time_u                 = (uint64_t)time; // OK because of the two asserts
   time_ns_t vigor_time_expiration = (time_ns_t)manager->expiration_time;
-  time_ns_t last_time = time_u - vigor_time_expiration * 1000;  // us to ns
-  expire_items_single_map(manager->state->heap, manager->state->fv,
-                          manager->state->fm, last_time);
+  time_ns_t last_time             = time_u - vigor_time_expiration * 1000; // us to ns
+  expire_items_single_map(manager->state->heap, manager->state->fv, manager->state->fm, last_time);
 }
 
-bool flow_manager_get_internal(struct FlowManager *manager, struct FlowId *id,
-                               time_ns_t time, uint16_t *external_port) {
+bool flow_manager_get_internal(struct FlowManager *manager, struct FlowId *id, time_ns_t time, uint16_t *external_port) {
   int index;
   if (map_get(manager->state->fm, id, &index) == 0) {
     return false;
@@ -75,9 +69,7 @@ bool flow_manager_get_internal(struct FlowManager *manager, struct FlowId *id,
   return true;
 }
 
-bool flow_manager_get_external(struct FlowManager *manager,
-                               uint16_t external_port, time_ns_t time,
-                               struct FlowId *out_flow) {
+bool flow_manager_get_external(struct FlowManager *manager, uint16_t external_port, time_ns_t time, struct FlowId *out_flow) {
   int index = external_port - manager->state->start_port;
   if (dchain_is_index_allocated(manager->state->heap, index) == 0) {
     return false;

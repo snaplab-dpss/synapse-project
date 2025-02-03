@@ -17,4 +17,4 @@ struct rte_ether_hdr {
   uint16_t ether_type;
 };
 
-#endif  // RTE_ETHER_H
+#endif // RTE_ETHER_H

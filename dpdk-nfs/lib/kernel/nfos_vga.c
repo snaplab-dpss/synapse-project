@@ -9,9 +9,8 @@ struct vga_char {
   uint8_t color_code;
 };
 
-static volatile struct vga_char (*volatile const VGA_BUFFER)[VGA_WIDTH] =
-    (volatile struct vga_char(*volatile const)[VGA_WIDTH])0xb8000;
-static int VGA_COLUMN_POS = 0;
+static volatile struct vga_char (*volatile const VGA_BUFFER)[VGA_WIDTH] = (volatile struct vga_char(*volatile const)[VGA_WIDTH])0xb8000;
+static int VGA_COLUMN_POS                                               = 0;
 
 /* Yellow foreground, black background */
 #define VGA_COLOR_CODE 14
@@ -30,7 +29,7 @@ static void nfos_vga_clear_row(int row) {
 static void nfos_vga_newline() {
   for (int i = 1; i < VGA_HEIGHT; i++) {
     for (int j = 0; j < VGA_WIDTH; j++) {
-      struct vga_char c = VGA_BUFFER[i][j];
+      struct vga_char c    = VGA_BUFFER[i][j];
       VGA_BUFFER[i - 1][j] = c;
     }
   }
@@ -79,14 +78,14 @@ void nfos_vga_write_str(const char *s) {
   }
 }
 
-#else  // KLEE_VERIFICATION defined
+#else // KLEE_VERIFICATION defined
 
 #include <stdlib.h>
 #include <klee/klee.h>
 
 void nfos_vga_write_char(char c) {
   static char *out_buf = NULL;
-  static size_t cap = 64;
+  static size_t cap    = 64;
   static size_t offset = 0;
 
   if (out_buf == NULL || offset >= cap) {
@@ -108,7 +107,7 @@ void nfos_vga_write_char(char c) {
 
 void nfos_vga_write_str(const char *s) { klee_print_expr(s, NULL); }
 
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
 /* https://groups.google.com/forum/#!topic/comp.lang.c++.moderated/ihafayWmWU8
  */
@@ -129,10 +128,10 @@ void nfos_vga_write_int(int x) {
   nfos_vga_write_str(&buf[i + 1]);
 }
 
-#else  // NFOS_DEBUG not defined, don't print anything
+#else // NFOS_DEBUG not defined, don't print anything
 
 void nfos_vga_write_char(char c) {}
 void nfos_vga_write_str(const char *s) {}
 void nfos_vga_write_int(int x) {}
 
-#endif  // NFOS_DEBUG
+#endif // NFOS_DEBUG

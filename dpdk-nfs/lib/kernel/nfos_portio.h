@@ -23,16 +23,10 @@ static inline uint32_t nfos_inl(uint16_t port) {
   return ret;
 }
 
-static inline void nfos_outb(uint8_t val, uint16_t port) {
-  asm volatile("outb %0, %1" : : "a"(val), "dN"(port));
-}
+static inline void nfos_outb(uint8_t val, uint16_t port) { asm volatile("outb %0, %1" : : "a"(val), "dN"(port)); }
 
-static inline void nfos_outw(uint16_t val, uint16_t port) {
-  asm volatile("outw %0, %1" : : "a"(val), "dN"(port));
-}
+static inline void nfos_outw(uint16_t val, uint16_t port) { asm volatile("outw %0, %1" : : "a"(val), "dN"(port)); }
 
-static inline void nfos_outl(uint32_t val, uint16_t port) {
-  asm volatile("outl %0, %1" : : "a"(val), "dN"(port));
-}
+static inline void nfos_outl(uint32_t val, uint16_t port) { asm volatile("outl %0, %1" : : "a"(val), "dN"(port)); }
 
 #endif

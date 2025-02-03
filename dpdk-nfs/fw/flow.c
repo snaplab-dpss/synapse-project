@@ -11,4 +11,4 @@ struct str_field_descr FlowId_descrs[] = {
     {offsetof(struct FlowId, protocol), sizeof(uint8_t), 0, "protocol"},
 };
 struct nested_field_descr FlowId_nests[] = {};
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION

@@ -10,4 +10,4 @@ struct str_field_descr client_descrs[] = {
     {offsetof(struct client, dst_ip), sizeof(uint32_t), 0, "dst_ip"},
 };
 struct nested_field_descr client_nests[] = {};
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION

@@ -25,8 +25,7 @@ int __printf_chk(int flag, const char *format, ...) {
   return ret;
 }
 
-int __snprintf_chk(char *str, size_t maxlen, int flag, size_t strlen,
-                   const char *format, ...) {
+int __snprintf_chk(char *str, size_t maxlen, int flag, size_t strlen, const char *format, ...) {
   /* If strlen is less than maxlen, the function shall abort and the program
    * shall exit */
   if (strlen < maxlen) {

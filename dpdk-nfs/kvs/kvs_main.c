@@ -8,7 +8,7 @@
 #include "nf-util.h"
 #include "nf.h"
 
-#include "lib/verified/expirator.h"
+#include "lib/state/expirator.h"
 
 struct nf_config config;
 
@@ -19,13 +19,12 @@ bool nf_init(void) {
   return kvs_state != NULL;
 }
 
-void invert_flow(struct rte_ether_hdr *ether_hdr, struct rte_ipv4_hdr *ipv4_hdr,
-                 struct rte_udp_hdr *udp_hdr) {
+void invert_flow(struct rte_ether_hdr *ether_hdr, struct rte_ipv4_hdr *ipv4_hdr, struct rte_udp_hdr *udp_hdr) {
   struct rte_ether_addr tmp = ether_hdr->s_addr;
-  ether_hdr->s_addr = ether_hdr->d_addr;
-  ether_hdr->d_addr = tmp;
+  ether_hdr->s_addr         = ether_hdr->d_addr;
+  ether_hdr->d_addr         = tmp;
 
-  uint32_t tmp_ip = ipv4_hdr->src_addr;
+  uint32_t tmp_ip    = ipv4_hdr->src_addr;
   ipv4_hdr->src_addr = ipv4_hdr->dst_addr;
   ipv4_hdr->dst_addr = tmp_ip;
 
@@ -37,14 +36,12 @@ void invert_flow(struct rte_ether_hdr *ether_hdr, struct rte_ipv4_hdr *ipv4_hdr,
 void kvs_expire(time_ns_t now) {
   assert(now >= 0); // we don't support the past
   assert(sizeof(time_ns_t) <= sizeof(uint64_t));
-  uint64_t time_u = (uint64_t)now; // OK because of the two asserts
+  uint64_t time_u     = (uint64_t)now; // OK because of the two asserts
   time_ns_t last_time = time_u - kvs_state->expiration_time;
-  expire_items_single_map(kvs_state->heap, kvs_state->keys, kvs_state->kvs,
-                          last_time);
+  expire_items_single_map(kvs_state->heap, kvs_state->keys, kvs_state->kvs, last_time);
 }
 
-bool kvs_cache_lookup(struct State *state, time_ns_t now, enum kvs_op op,
-                      kv_key_t key, kv_value_t value, int *index) {
+bool kvs_cache_lookup(struct State *state, time_ns_t now, enum kvs_op op, kv_key_t key, kv_value_t value, int *index) {
   if (map_get(state->kvs, key, index) == 0) {
     return false;
   }
@@ -76,8 +73,7 @@ bool kvs_cache_lookup(struct State *state, time_ns_t now, enum kvs_op op,
   return true;
 }
 
-bool kvs_on_cache_miss(struct State *state, time_ns_t now, enum kvs_op op,
-                       kv_key_t key, kv_value_t value) {
+bool kvs_on_cache_miss(struct State *state, time_ns_t now, enum kvs_op op, kv_key_t key, kv_value_t value) {
   // Only update the cache on PUT operations.
   if (op != KVS_OP_PUT) {
     return false;
@@ -103,8 +99,7 @@ bool kvs_on_cache_miss(struct State *state, time_ns_t now, enum kvs_op op,
   return true;
 }
 
-int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               time_ns_t now, struct rte_mbuf *mbuf) {
+int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   kvs_expire(now);
 
   struct rte_ether_hdr *ether_hdr = nf_then_get_ether_header(buffer);
@@ -129,16 +124,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
   }
 
   int index;
-  bool cache_hit = kvs_cache_lookup(kvs_state, now, kvs_hdr->op, kvs_hdr->key,
-                                    kvs_hdr->value, &index);
+  bool cache_hit = kvs_cache_lookup(kvs_state, now, kvs_hdr->op, kvs_hdr->key, kvs_hdr->value, &index);
 
   if (cache_hit) {
     invert_flow(ether_hdr, ipv4_hdr, udp_hdr);
     return config.client_dev;
   }
 
-  bool cache_updated = kvs_on_cache_miss(kvs_state, now, kvs_hdr->op,
-                                         kvs_hdr->key, kvs_hdr->value);
+  bool cache_updated = kvs_on_cache_miss(kvs_state, now, kvs_hdr->op, kvs_hdr->key, kvs_hdr->value);
 
   if (cache_updated) {
     invert_flow(ether_hdr, ipv4_hdr, udp_hdr);

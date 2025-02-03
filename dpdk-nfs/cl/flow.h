@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include <stdbool.h>
-#include "lib/verified/boilerplate-util.h"
+#include "lib/util/boilerplate.h"
 
 struct flow {
   uint16_t src_port;
@@ -14,14 +14,14 @@ struct flow {
   uint8_t protocol;
 } PACKED_FOR_KLEE_VERIFICATION;
 
-#define LOG_FLOW(obj, p)              \
-  ;                                   \
-  p("{");                             \
-  p("src_port: %d", (obj)->src_port); \
-  p("dst_port: %d", (obj)->dst_port); \
-  p("src_ip: %d", (obj)->src_ip);     \
-  p("dst_ip: %d", (obj)->dst_ip);     \
-  p("protocol: %d", (obj)->protocol); \
+#define LOG_FLOW(obj, p)                                                                                                                   \
+  ;                                                                                                                                        \
+  p("{");                                                                                                                                  \
+  p("src_port: %d", (obj)->src_port);                                                                                                      \
+  p("dst_port: %d", (obj)->dst_port);                                                                                                      \
+  p("src_ip: %d", (obj)->src_ip);                                                                                                          \
+  p("dst_ip: %d", (obj)->dst_ip);                                                                                                          \
+  p("protocol: %d", (obj)->protocol);                                                                                                      \
   p("}");
 
 #ifdef KLEE_VERIFICATION
@@ -30,6 +30,6 @@ struct flow {
 
 extern struct str_field_descr flow_descrs[5];
 extern struct nested_field_descr flow_nests[0];
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
-#endif  //_FLOW_H_INCLUDED_
+#endif //_FLOW_H_INCLUDED_

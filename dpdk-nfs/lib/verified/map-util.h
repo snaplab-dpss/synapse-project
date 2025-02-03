@@ -1,6 +1,0 @@
-#ifndef _MAP_UTIL_H_INCLUDED_
-#define _MAP_UTIL_H_INCLUDED_
-
-#define CAPACITY_UPPER_LIMIT 140000
-
-#endif  //_MAP_UTIL_H_INCLUDED_

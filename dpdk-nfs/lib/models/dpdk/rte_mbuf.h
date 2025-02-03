@@ -9,7 +9,7 @@
 #include <rte_mempool.h>
 #include <rte_memory.h>
 
-#include "lib/verified/packet-io.h"
+#include "lib/util/packet-io.h"
 
 // VeriFast doesn't support unions, so this is a bit messy...
 struct rte_mbuf {

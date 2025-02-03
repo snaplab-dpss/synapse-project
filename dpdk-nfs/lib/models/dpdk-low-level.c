@@ -1,7 +1,7 @@
 #ifdef VIGOR_MODEL_HARDWARE
 #include <rte_cpuflags.h>
 #include <rte_log.h>
-#include <rte_malloc.h>  // for ixgbe_rxtx
+#include <rte_malloc.h> // for ixgbe_rxtx
 
 #include <klee/klee.h>
 
@@ -10,19 +10,17 @@ uint8_t rte_rtm_supported;
 int rte_cpu_get_flag_enabled(enum rte_cpu_flag_t feature) {
   // Sentinel value - see makefile
   if (feature == (enum rte_cpu_flag_t)424242) {
-    return 1;  // klee_int("rte_cpu_get_flag_enabled_return");
+    return 1; // klee_int("rte_cpu_get_flag_enabled_return");
   }
 
   // Nope, not supported
   return 0;
 }
 
-const char *rte_cpu_get_flag_name(enum rte_cpu_flag_t feature) {
-  return "<FAKE FLAG>";
-}
+const char *rte_cpu_get_flag_name(enum rte_cpu_flag_t feature) { return "<FAKE FLAG>"; }
 
 uint64_t get_tsc_freq_arch(void) {
-  return -1;  // Not supported
+  return -1; // Not supported
 }
 
 uint64_t stub_rdtsc(void) {
@@ -61,4 +59,4 @@ __attribute__((constructor)) static void stub_rte_init(void) {
   // Use stderr for logs
   rte_openlog_stream(stderr);
 }
-#endif  // VIGOR_MODEL_HARDWARE
+#endif // VIGOR_MODEL_HARDWARE

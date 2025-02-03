@@ -7,13 +7,13 @@
 void nfos_halt(void) {
 #ifdef KLEE_VERIFICATION
 
-  exit(1);  // One does not just calls "halt" if nothing bad happened
+  exit(1); // One does not just calls "halt" if nothing bad happened
 
-#else  // KLEE_VERIFICATION
+#else // KLEE_VERIFICATION
 
   while (1) {
     asm volatile("hlt");
   }
 
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 }

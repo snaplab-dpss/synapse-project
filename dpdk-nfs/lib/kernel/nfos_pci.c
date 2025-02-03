@@ -55,14 +55,12 @@
  * Writes to a non-existent device are silently dropped, reads from a
  * non-existent device return all 1s.
  */
-static uint32_t nfos_read_pci_reg(uint32_t bus, uint32_t dev, uint32_t function,
-                                  uint32_t reg) {
+static uint32_t nfos_read_pci_reg(uint32_t bus, uint32_t dev, uint32_t function, uint32_t reg) {
   assert(bus < PCI_NUM_BUSES);
   assert(dev < PCI_DEVICES_PER_BUS);
   assert(function < PCI_FUNCTIONS_PER_DEVICE);
 
-  uint32_t addr = (bus << 16) | (dev << 11) | (function << 8) | (reg * 4) |
-                  (UINT32_C(1) << 31);
+  uint32_t addr = (bus << 16) | (dev << 11) | (function << 8) | (reg * 4) | (UINT32_C(1) << 31);
 
   nfos_outl(addr, PCI_CONFIG_ADDRESS_PORT);
   return nfos_inl(PCI_CONFIG_DATA_PORT);
@@ -72,14 +70,12 @@ static uint32_t nfos_read_pci_reg(uint32_t bus, uint32_t dev, uint32_t function,
  * In order to write to a configuration register the CPU must write the address
  * to CONFIG_ADDRESS, and subsequently write the data to CONFIG_DATA.
  */
-static void nfos_write_pci_reg(uint32_t bus, uint32_t dev, uint32_t function,
-                               uint32_t reg, uint32_t val) {
+static void nfos_write_pci_reg(uint32_t bus, uint32_t dev, uint32_t function, uint32_t reg, uint32_t val) {
   assert(bus < PCI_NUM_BUSES);
   assert(dev < PCI_DEVICES_PER_BUS);
   assert(function < PCI_FUNCTIONS_PER_DEVICE);
 
-  uint32_t addr = (bus << 16) | (dev << 11) | (function << 8) | (reg * 4) |
-                  (UINT32_C(1) << 31);
+  uint32_t addr = (bus << 16) | (dev << 11) | (function << 8) | (reg * 4) | (UINT32_C(1) << 31);
 
   nfos_outl(addr, PCI_CONFIG_ADDRESS_PORT);
   nfos_outl(val, PCI_CONFIG_DATA_PORT);
@@ -95,10 +91,8 @@ static void nfos_write_pci_reg(uint32_t bus, uint32_t dev, uint32_t function,
  * See
  * https://stackoverflow.com/questions/19006632/how-is-a-pci-pcie-bar-size-determined/39618552#39618552
  */
-static void nfos_pci_read_resource(uint32_t bus, uint32_t dev,
-                                   uint32_t function, uint32_t index,
-                                   struct nfos_pci_resource *out) {
-  uint32_t reg = index + PCI_BAR_BASE;
+static void nfos_pci_read_resource(uint32_t bus, uint32_t dev, uint32_t function, uint32_t index, struct nfos_pci_resource *out) {
+  uint32_t reg        = index + PCI_BAR_BASE;
   uint32_t orig_value = nfos_read_pci_reg(bus, dev, function, reg);
 
   nfos_write_pci_reg(bus, dev, function, reg, 0xFFFFFFFFul);
@@ -110,14 +104,14 @@ static void nfos_pci_read_resource(uint32_t bus, uint32_t dev,
 
   if ((orig_value & 1) == 0) {
     /* Memory mapped resource, ignore the lowest 4 bits */
-    out->start = (void *)(uintptr_t)(orig_value & 0xFFFFFFF0ul);
-    out->size = (size_t)(uint32_t)((~(read_value & 0xFFFFFFF0ul)) + 1);
+    out->start  = (void *)(uintptr_t)(orig_value & 0xFFFFFFF0ul);
+    out->size   = (size_t)(uint32_t)((~(read_value & 0xFFFFFFF0ul)) + 1);
     out->is_mem = true;
 
   } else {
     /* I/O mapped resource, ignore the lowest 2 bits */
-    out->start = (void *)(uintptr_t)(orig_value & 0xFFFFFFFCul);
-    out->size = (size_t)(uint32_t)((~(read_value & 0xFFFFFFFCul)) + 1);
+    out->start  = (void *)(uintptr_t)(orig_value & 0xFFFFFFFCul);
+    out->size   = (size_t)(uint32_t)((~(read_value & 0xFFFFFFFCul)) + 1);
     out->is_mem = false;
   }
 }
@@ -129,8 +123,7 @@ static void nfos_pci_read_resource(uint32_t bus, uint32_t dev,
  * identified by the (bus, device) pair. The function assumes that out points to
  * valid memory. We also assume that each PCI device has only one function.
  */
-static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function,
-                              struct nfos_pci_nic *out) {
+static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function, struct nfos_pci_nic *out) {
   /*
    * Each PCI device provides 256 bytes of configuration registers that can
    * be read and written to by the CPU. Each register is 32-bit wide.
@@ -140,10 +133,9 @@ static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function,
    * a vendor and device type and are used by DPDK drivers to recognize
    * supported devices.
    */
-  uint32_t vendor_reg =
-      nfos_read_pci_reg(bus, dev, function, PCI_VENDOR_REGISTER);
-  uint16_t vendor_id = (uint16_t)(vendor_reg & 0xFFFF);
-  uint16_t device_id = (uint16_t)(vendor_reg >> 16);
+  uint32_t vendor_reg = nfos_read_pci_reg(bus, dev, function, PCI_VENDOR_REGISTER);
+  uint16_t vendor_id  = (uint16_t)(vendor_reg & 0xFFFF);
+  uint16_t device_id  = (uint16_t)(vendor_reg >> 16);
 
   /*
    * 0xFFFF is an invalid vendor ID that will be returned when the Vendor ID
@@ -171,18 +163,16 @@ static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function,
    * Configuration register 11 contains the subsystem ID in the upper 16 bits
    * and the subsystem vendor ID in the lower 16 bits.
    */
-  uint32_t subsystem_reg =
-      nfos_read_pci_reg(bus, dev, function, PCI_SUBSYSTEM_REGISTER);
-  out->subsystem_id = (uint16_t)(subsystem_reg >> 16);
+  uint32_t subsystem_reg   = nfos_read_pci_reg(bus, dev, function, PCI_SUBSYSTEM_REGISTER);
+  out->subsystem_id        = (uint16_t)(subsystem_reg >> 16);
   out->subsystem_vendor_id = (uint16_t)(subsystem_reg & 0xFFFF);
 
   /*
    * Rgister 2 contains the device's class code (the type of function that the
    * device performs) in the top 8 bits.
    */
-  uint32_t class_code_reg =
-      nfos_read_pci_reg(bus, dev, function, PCI_CLASS_CODE_REGISTER);
-  out->class_code = class_code_reg >> 24;
+  uint32_t class_code_reg = nfos_read_pci_reg(bus, dev, function, PCI_CLASS_CODE_REGISTER);
+  out->class_code         = class_code_reg >> 24;
 
   /*
    * Each device has 6 base address registers (BARs) that hold addresses
@@ -190,8 +180,7 @@ static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function,
    * port I/O space. We read the base address, type and size of each BAR into
    * out.
    */
-  for (uint32_t i = 0; i < (sizeof(out->resources) / sizeof(out->resources[0]));
-       i++) {
+  for (uint32_t i = 0; i < (sizeof(out->resources) / sizeof(out->resources[0])); i++) {
     nfos_pci_read_resource(bus, dev, function, i, &(out->resources[i]));
   }
 
@@ -201,11 +190,9 @@ static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function,
    * properly. Enabling bus mastering for a device is done by setting bit 2 in
    * the command register (register 0x4).
    */
-  uint32_t status_command_reg =
-      nfos_read_pci_reg(bus, dev, function, PCI_STATUS_COMMAND_REGISTER);
+  uint32_t status_command_reg = nfos_read_pci_reg(bus, dev, function, PCI_STATUS_COMMAND_REGISTER);
   status_command_reg |= PCI_COMMAND_MASTER;
-  nfos_write_pci_reg(bus, dev, function, PCI_STATUS_COMMAND_REGISTER,
-                     status_command_reg);
+  nfos_write_pci_reg(bus, dev, function, PCI_STATUS_COMMAND_REGISTER, status_command_reg);
 
   // Return 1 because a device was found.
   return 1;
@@ -225,14 +212,11 @@ static int nfos_pci_probe_dev(uint32_t bus, uint32_t dev, uint32_t function,
  */
 struct nfos_pci_nic *nfos_pci_find_nics(int *n) {
   // Assert that the product will not overwlow
-  static_assert(MAX_PCI_DEVICES < MUL_NO_OVERFLOW,
-                "MAX_PCI_DEVICES is too large");
-  static_assert(sizeof(struct nfos_pci_nic) < MUL_NO_OVERFLOW,
-                "nfos_pci_nic is too large");
+  static_assert(MAX_PCI_DEVICES < MUL_NO_OVERFLOW, "MAX_PCI_DEVICES is too large");
+  static_assert(sizeof(struct nfos_pci_nic) < MUL_NO_OVERFLOW, "nfos_pci_nic is too large");
 
   // malloc() can either return NULL or a pointer to valid memory
-  struct nfos_pci_nic *devs =
-      malloc(MAX_PCI_DEVICES * sizeof(struct nfos_pci_nic));
+  struct nfos_pci_nic *devs = malloc(MAX_PCI_DEVICES * sizeof(struct nfos_pci_nic));
   assert(devs != NULL);
 
   // We have already proven that MAX_PCI_DEVICES doesn't overflow and
@@ -245,8 +229,7 @@ struct nfos_pci_nic *nfos_pci_find_nics(int *n) {
   // Because both operands are less than the square root of the maximum value
   // of uint32_t the multiplication between them cannot overflow
   static_assert(PCI_NUM_BUSES < UINT16_MAX, "PCI_NUM_BUSES is too large");
-  static_assert(PCI_DEVICES_PER_BUS < UINT16_MAX,
-                "PCI_DEVICES_PER_BUS is too large");
+  static_assert(PCI_DEVICES_PER_BUS < UINT16_MAX, "PCI_DEVICES_PER_BUS is too large");
 
   // Ensure that we don't divide by 0
   static_assert(PCI_DEVICES_PER_BUS != 0, "PCI_DEVICES_PER_BUS is zero");
@@ -255,14 +238,12 @@ struct nfos_pci_nic *nfos_pci_find_nics(int *n) {
   // terminates
 
   int num_devices = 0;
-  for (uint32_t i = 0;
-       i < PCI_NUM_BUSES * PCI_DEVICES_PER_BUS * PCI_FUNCTIONS_PER_DEVICE;
-       i++) {
+  for (uint32_t i = 0; i < PCI_NUM_BUSES * PCI_DEVICES_PER_BUS * PCI_FUNCTIONS_PER_DEVICE; i++) {
     // Division and modulo by the same number creates a one-to-one mapping
     // between i and (bus, current_dev)
     uint32_t function = i % PCI_FUNCTIONS_PER_DEVICE;
-    uint32_t device = (i / PCI_FUNCTIONS_PER_DEVICE) % PCI_DEVICES_PER_BUS;
-    uint32_t bus = (i / PCI_FUNCTIONS_PER_DEVICE) / PCI_DEVICES_PER_BUS;
+    uint32_t device   = (i / PCI_FUNCTIONS_PER_DEVICE) % PCI_DEVICES_PER_BUS;
+    uint32_t bus      = (i / PCI_FUNCTIONS_PER_DEVICE) / PCI_DEVICES_PER_BUS;
 
     /*
      * Loop invariant: num_devices is equal to the number of devices that

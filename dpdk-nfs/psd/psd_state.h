@@ -17,6 +17,5 @@ struct State {
   uint32_t dev_count;
 };
 
-struct State *alloc_state(uint32_t capacity, uint64_t max_ports,
-                          uint32_t dev_count);
-#endif  //_STATE_H_INCLUDED_
+struct State *alloc_state(uint32_t capacity, uint64_t max_ports, uint32_t dev_count);
+#endif //_STATE_H_INCLUDED_

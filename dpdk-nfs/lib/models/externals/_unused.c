@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 
-uint64_t TIME;  // from hardware models, not DPDK
+uint64_t TIME; // from hardware models, not DPDK
 
 int __fxstat() { abort(); }
 
@@ -98,4 +98,4 @@ void timerfd_settime() { abort(); }
 
 void unlinkat() { abort(); }
 
-#endif  // !KLEE_VERIFICATION
+#endif // !KLEE_VERIFICATION

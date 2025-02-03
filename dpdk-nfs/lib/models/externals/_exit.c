@@ -8,4 +8,4 @@ void _exit(int status) {
   nfos_halt();
 }
 
-#endif  //! KLEE_VERIFICATION
+#endif //! KLEE_VERIFICATION

@@ -15,19 +15,16 @@ struct nf_config config;
 struct State *state;
 
 bool nf_init(void) {
-  state = alloc_state(config.dyn_capacity, config.rate, config.burst,
-                      rte_eth_dev_count_avail());
+  state = alloc_state(config.dyn_capacity, config.rate, config.burst, rte_eth_dev_count_avail());
   return state != NULL;
 }
 
-int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
-               time_ns_t now, struct rte_mbuf *mbuf) {
+int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   tb_expire(state->tb, now);
 
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
 
-  struct rte_ipv4_hdr *rte_ipv4_header =
-      nf_then_get_ipv4_header(rte_ether_header, buffer);
+  struct rte_ipv4_hdr *rte_ipv4_header = nf_then_get_ipv4_header(rte_ether_header, buffer);
 
   if (rte_ipv4_header == NULL) {
     NF_DEBUG("Not IPv4, dropping");
@@ -39,7 +36,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
     NF_DEBUG("Outgoing packet. Not policing.");
     return config.wan_device;
   } else if (device == config.wan_device) {
-    int index = -1;
+    int index   = -1;
     int present = tb_is_tracing(state->tb, &rte_ipv4_header->dst_addr, &index);
 
     if (present) {
@@ -54,8 +51,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length,
       return DROP;
     }
 
-    int allocated = tb_trace(state->tb, &rte_ipv4_header->dst_addr,
-                             packet_length, now, &index);
+    int allocated = tb_trace(state->tb, &rte_ipv4_header->dst_addr, packet_length, now, &index);
 
     if (!allocated) {
       NF_DEBUG("No tokens. Dropping.");
