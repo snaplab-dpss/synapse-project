@@ -1,5 +1,6 @@
 #include "state.h"
 #include <stdlib.h>
+#include <rte_ethdev.h>
 
 #include "lib/verified/boilerplate-util.h"
 
@@ -9,6 +10,7 @@
 #include "lib/models/verified/map-control.h"
 #include "lib/models/verified/vector-control.h"
 #include "lib/models/verified/lpm-dir-24-8-control.h"
+#include "lib/models/verified/fwtbl-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;
@@ -35,8 +37,9 @@ struct State *alloc_state(int max_flows) {
 
   ret->max_flows = max_flows;
 
-  ret->fwd_table = NULL;
-  if (FwdTable_allocate(&(ret->fwd_table)) == 0)
+  uint16_t max_devices = rte_eth_dev_count_avail();
+  ret->fwd_table       = NULL;
+  if (fwtbl_allocate(max_devices, &(ret->fwd_table)) == 0)
     return NULL;
 
 #ifdef KLEE_VERIFICATION
@@ -44,7 +47,7 @@ struct State *alloc_state(int max_flows) {
                  sizeof(FlowId_nests) / sizeof(FlowId_nests[0]), "FlowId");
   vector_set_layout(ret->fv, FlowId_descrs, sizeof(FlowId_descrs) / sizeof(FlowId_descrs[0]), FlowId_nests,
                     sizeof(FlowId_nests) / sizeof(FlowId_nests[0]), "FlowId");
-  FwdTable_set_layout(ret->fwd_table);
+  fwtbl_set_layout(ret->fwd_table);
 #endif // KLEE_VERIFICATION
 
   allocated_nf_state = ret;

@@ -7,17 +7,17 @@
 #include "lib/verified/cht.h"
 #include "lib/verified/lpm-dir-24-8.h"
 #include "lib/verified/vigor-time.h"
+#include "lib/verified/fwtbl.h"
 
 #include "flow.h"
-#include "fwd_table.h"
 
-void loop_invariant_consume(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct FwdTable **ft,
+void loop_invariant_consume(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct ForwardingTable **ft,
                             unsigned int lcore_id, time_ns_t time);
 
-void loop_invariant_produce(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct FwdTable **ft,
+void loop_invariant_produce(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct ForwardingTable **ft,
                             unsigned int *lcore_id, time_ns_t *time);
 
-void loop_iteration_border(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct FwdTable **ft,
+void loop_iteration_border(struct Map **fm, struct Vector **fv, struct DoubleChain **heap, int max_flows, struct ForwardingTable **ft,
                            unsigned int lcore_id, time_ns_t time);
 
 #endif //_LOOP_H_INCLUDED_

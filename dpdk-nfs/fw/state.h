@@ -8,7 +8,7 @@ struct State {
   struct Vector *fv;
   struct DoubleChain *heap;
   int max_flows;
-  struct FwdTable *fwd_table;
+  struct ForwardingTable *fwd_table;
 };
 
 struct State *alloc_state(int max_flows);

@@ -1,7 +1,6 @@
 #include <stdlib.h>
 
 #include "flow.h"
-#include "fwd_table.h"
 #include "fw_config.h"
 #include "fw_flowmanager.h"
 #include "nf-log.h"
@@ -35,12 +34,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     return DROP;
   }
 
-  struct FwdEntry fwd_entry;
-  if (!flow_manager_fwd_table_lookup(flow_manager, device, &fwd_entry)) {
+  uint16_t dst_device;
+  bool is_internal;
+  struct rte_ether_addr dst_addr;
+  if (!flow_manager_fwd_table_lookup(flow_manager, device, &dst_device, &is_internal, &dst_addr)) {
     return DROP;
   }
 
-  if (!fwd_entry.is_internal) {
+  if (!is_internal) {
     // Inverse the src and dst for the "reply flow"
     struct FlowId id = {
         .src_port = tcpudp_header->dst_port,
@@ -65,8 +66,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     flow_manager_allocate_or_refresh_flow(flow_manager, &id, now);
   }
 
-  rte_ether_header->d_addr = fwd_entry.addr;
+  rte_ether_header->d_addr = dst_addr;
 
-  return fwd_entry.device;
-  return 1;
+  return dst_device;
 }

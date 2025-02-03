@@ -29,7 +29,7 @@ struct FlowManager *flow_manager_allocate(const char *devices_cfg_fname, uint32_
     return NULL;
   }
 
-  FwdTable_fill(manager->state->fwd_table, devices_cfg_fname);
+  fwtbl_fill(manager->state->fwd_table, devices_cfg_fname);
 
   manager->expiration_time = expiration_time * 1000;
 
@@ -75,6 +75,7 @@ bool flow_manager_get_refresh_flow(struct FlowManager *manager, struct FlowId *i
   return true;
 }
 
-int flow_manager_fwd_table_lookup(struct FlowManager *manager, uint16_t src_dev, struct FwdEntry *entry) {
-  return FwdTable_lookup(manager->state->fwd_table, src_dev, entry);
+int flow_manager_fwd_table_lookup(struct FlowManager *manager, uint16_t src_dev, uint16_t *dst_dev, bool *is_internal,
+                                  struct rte_ether_addr *dst_addr) {
+  return fwtbl_lookup(manager->state->fwd_table, src_dev, dst_dev, is_internal, dst_addr);
 }

@@ -216,14 +216,3 @@ static inline struct rte_udp_hdr *nf_then_get_udp_header(struct rte_ipv4_hdr *ip
   CHUNK_LAYOUT(*p, rte_udp_hdr, udp_fields);
   return (struct rte_udp_hdr *)nf_borrow_next_chunk(p, sizeof(struct rte_udp_hdr));
 }
-
-static inline uint64_t get_next_power_of_two(uint64_t n) {
-  n |= n >> 1;
-  n |= n >> 2;
-  n |= n >> 4;
-  n |= n >> 8;
-  n |= n >> 16;
-  n |= n >> 32;
-  n++;
-  return n;
-}
