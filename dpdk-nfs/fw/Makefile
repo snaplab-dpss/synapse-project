@@ -1,12 +1,12 @@
-NF_FILES := fw_main.c fw_config.c fw_flowmanager.c flow.c loop.c state.c
+NF_DEVICES := 30
+
+NF_FILES := fw_main.c fw_config.c fw_flowmanager.c flow.c fwd_table.c loop.c state.c
 
 NF_AUTOGEN_SRCS := flow.h
 
-NF_ARGS := --wan 1 \
-           --expire $(or $(EXPIRATION_TIME),1000000) \
+NF_ARGS := --expire $(or $(EXPIRATION_TIME),1000000) \
            --max-flows $(or $(CAPACITY),65536) \
-           --eth-dest 0,$(or $(TESTER_MAC_EXTERNAL),01:23:45:67:89:00) \
-           --eth-dest 1,$(or $(TESTER_MAC_INTERNAL),01:23:45:67:89:01)
+           --fwd-table $(or $(FWD_TABLE),fwd_tbl.txt)
 
 NF_LAYER := 4
 

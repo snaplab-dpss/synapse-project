@@ -2,6 +2,7 @@
 #define _FLOWMANAGER_H_INCLUDED_
 
 #include "flow.h"
+#include "fwd_table.h"
 #include "lib/verified/vigor-time.h"
 
 #include <stdbool.h>
@@ -9,17 +10,10 @@
 
 struct FlowManager;
 
-struct FlowManager *flow_manager_allocate(uint16_t fw_device,
-                                          uint32_t expiration_time,
-                                          uint64_t max_flows);
-
-void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager,
-                                           struct FlowId *id,
-                                           uint32_t internal_device,
-                                           time_ns_t time);
+struct FlowManager *flow_manager_allocate(const char *devices_cfg_fname, uint32_t expiration_time, uint64_t max_flows);
+void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time);
 void flow_manager_expire(struct FlowManager *manager, time_ns_t time);
-bool flow_manager_get_refresh_flow(struct FlowManager *manager,
-                                   struct FlowId *id, time_ns_t time,
-                                   uint32_t *internal_device);
+bool flow_manager_get_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time);
+int flow_manager_fwd_table_lookup(struct FlowManager *manager, uint16_t src_dev, struct FwdEntry *entry);
 
 #endif //_FLOWMANAGER_H_INCLUDED_

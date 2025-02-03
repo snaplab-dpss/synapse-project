@@ -4,13 +4,12 @@
 #include "loop.h"
 
 struct State {
-  struct Map* fm;
-  struct Vector* fv;
-  struct Vector* int_devices;
-  struct DoubleChain* heap;
+  struct Map *fm;
+  struct Vector *fv;
+  struct DoubleChain *heap;
   int max_flows;
-  uint32_t fw_device;
+  struct FwdTable *fwd_table;
 };
 
-struct State* alloc_state(int max_flows, uint32_t fw_device);
-#endif  //_STATE_H_INCLUDED_
+struct State *alloc_state(int max_flows);
+#endif //_STATE_H_INCLUDED_

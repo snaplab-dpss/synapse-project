@@ -50,22 +50,22 @@ struct rte_mbuf {
   uint16_t data_len;
   uint16_t vlan_tci;
   //	union {
-  uint32_t  // rss;
-            //		struct {
-            //			union {
-            //				struct {
-            //					uint16_t hash;
-            //					uint16_t id;
-            //				};
-            //				uint32_t lo;
-            //			};
-            //			uint32_t hi;
-            //		} fdir;
-            //		struct {
-            //			uint32_t lo;
-            //			uint32_t hi;
-            //		} sched;
-            //		uint32_t usr;
+  uint32_t // rss;
+           //		struct {
+           //			union {
+           //				struct {
+           //					uint16_t hash;
+           //					uint16_t id;
+           //				};
+           //				uint32_t lo;
+           //			};
+           //			uint32_t hi;
+           //		} fdir;
+           //		struct {
+           //			uint32_t lo;
+           //			uint32_t hi;
+           //		} sched;
+           //		uint32_t usr;
       /*}*/ hash;
   uint16_t vlan_tci_outer;
   uint16_t buf_len;
@@ -91,14 +91,14 @@ struct rte_mbuf {
   //	union {
   //		uint64_t tx_offload;
   //		struct {
-  uint64_t l2_len;  //: 7;
-  uint64_t l3_len;  //: 9;
-                    //			uint64_t l4_len:8;
-                    //			uint64_t tso_segsz:16;
-                    //			uint64_t outer_l3_len:9;
-                    //			uint64_t outer_l2_len:7;
-                    //		};
-                    //	};
+  uint64_t l2_len; //: 7;
+  uint64_t l3_len; //: 9;
+                   //			uint64_t l4_len:8;
+                   //			uint64_t tso_segsz:16;
+                   //			uint64_t outer_l3_len:9;
+                   //			uint64_t outer_l2_len:7;
+                   //		};
+                   //	};
   uint16_t priv_size;
   uint16_t timesync;
   uint32_t seqn;
@@ -106,8 +106,7 @@ struct rte_mbuf {
 
 #define RTE_MBUF_DEFAULT_BUF_SIZE (2048 + 128)
 
-#define rte_pktmbuf_mtod_offset(m, t, o) \
-  ((t)((char *)(m)->buf_addr + (m)->data_off + (o)))
+#define rte_pktmbuf_mtod_offset(m, t, o) ((t)((char *)(m)->buf_addr + (m)->data_off + (o)))
 #define rte_pktmbuf_mtod(m, t) rte_pktmbuf_mtod_offset(m, t, 0)
 /**
  * Offload the IP checksum in the hardware. The flag PKT_TX_IPV4 should
@@ -126,10 +125,8 @@ struct rte_mbuf {
  */
 #define PKT_TX_IPV4 (1ULL << 55)
 
-#define PKT_TX_TCP_CKSUM \
-  (1ULL << 52) /**< TCP cksum of TX pkt. computed by NIC. */
-#define PKT_TX_UDP_CKSUM \
-  (3ULL << 52) /**< UDP cksum of TX pkt. computed by NIC. */
+#define PKT_TX_TCP_CKSUM (1ULL << 52) /**< TCP cksum of TX pkt. computed by NIC. */
+#define PKT_TX_UDP_CKSUM (3ULL << 52) /**< UDP cksum of TX pkt. computed by NIC. */
 
 static void rte_mbuf_sanity_check(const struct rte_mbuf *m, int is_header) {
   assert(m != NULL);
@@ -138,18 +135,15 @@ static void rte_mbuf_sanity_check(const struct rte_mbuf *m, int is_header) {
   // TODO checks?
 }
 
-static struct rte_mempool *rte_pktmbuf_pool_create(const char *name, unsigned n,
-                                                   unsigned cache_size,
-                                                   uint16_t priv_size,
-                                                   uint16_t data_room_size,
-                                                   int socket_id) {
+static struct rte_mempool *rte_pktmbuf_pool_create(const char *name, unsigned n, unsigned cache_size, uint16_t priv_size,
+                                                   uint16_t data_room_size, int socket_id) {
   assert(name != NULL);
   assert(strlen(name) < RTE_MEMZONE_NAMESIZE);
   assert(n > 0);
   assert(cache_size >= 0);
-  assert(priv_size == 0);                               // we only support that
-  assert(data_room_size == RTE_MBUF_DEFAULT_BUF_SIZE);  // same
-  assert(socket_id == 0);                               // same
+  assert(priv_size == 0);                              // we only support that
+  assert(data_room_size == RTE_MBUF_DEFAULT_BUF_SIZE); // same
+  assert(socket_id == 0);                              // same
 
   struct rte_mempool *pool = malloc(sizeof(struct rte_mempool));
   strcpy(pool->name, name);
@@ -157,9 +151,7 @@ static struct rte_mempool *rte_pktmbuf_pool_create(const char *name, unsigned n,
   return pool;
 }
 
-static struct rte_mbuf *rte_mbuf_raw_alloc(struct rte_mempool *mp) {
-  return malloc(mp->elt_size);
-}
+static struct rte_mbuf *rte_mbuf_raw_alloc(uint16_t elt_size) { return malloc(elt_size); }
 
 // free is called by user code, raw_free by models
 static void rte_pktmbuf_free(struct rte_mbuf *m) {
@@ -170,16 +162,14 @@ static void rte_pktmbuf_free(struct rte_mbuf *m) {
 static void rte_mbuf_raw_free(struct rte_mbuf *m) { free(m); }
 
 static uint16_t rte_pktmbuf_data_room_size(struct rte_mempool *mp) {
-  return RTE_MBUF_DEFAULT_BUF_SIZE;  // see pool_create
+  return RTE_MBUF_DEFAULT_BUF_SIZE; // see pool_create
 }
 
 static uint16_t rte_pktmbuf_priv_size(struct rte_mempool *mp) {
-  return 0;  // see pool_create
+  return 0; // see pool_create
 }
 
-static void rte_mbuf_refcnt_set(struct rte_mbuf *m, uint16_t new_value) {
-  m->refcnt = new_value;
-}
+static void rte_mbuf_refcnt_set(struct rte_mbuf *m, uint16_t new_value) { m->refcnt = new_value; }
 
 static char *rte_pktmbuf_adj(struct rte_mbuf *m, uint16_t len) {
   if (len > m->data_len) {
@@ -188,7 +178,7 @@ static char *rte_pktmbuf_adj(struct rte_mbuf *m, uint16_t len) {
 
   m->data_len = (uint16_t)(m->data_len - len);
   m->data_off = (uint16_t)(m->data_off + len);
-  m->pkt_len = (m->pkt_len - len);
+  m->pkt_len  = (m->pkt_len - len);
 
   return (char *)m->buf_addr + m->data_off;
 }
@@ -200,7 +190,7 @@ static char *rte_pktmbuf_prepend(struct rte_mbuf *m, uint16_t len) {
 
   m->data_off = (uint16_t)(m->data_off - len);
   m->data_len = (uint16_t)(m->data_len + len);
-  m->pkt_len = (m->pkt_len + len);
+  m->pkt_len  = (m->pkt_len + len);
 
   return (char *)m->buf_addr + m->data_off;
 }

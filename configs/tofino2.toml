@@ -6,15 +6,195 @@ model = "AS9516-32D"
 ########################################################
 
 [[switch.front_panel_ports]]
-dev = 0
+vport = -1 # Unused
+pport = 1
+dev = 136
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-dev = 1
+vport = -1 # Unused
+pport = 2
+dev = 144
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-dev = 2
+vport = 0
+pport = 3
+dev = 152
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 1
+pport = 4
+dev = 160
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 2
+pport = 5
+dev = 168
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 3
+pport = 6
+dev = 176
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 4
+pport = 7
+dev = 184
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 5
+pport = 8
+dev = 192
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 6
+pport = 9
+dev = 320
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 7
+pport = 10
+dev = 312
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 8
+pport = 11
+dev = 304
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 9
+pport = 12
+dev = 296
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 10
+pport = 13
+dev = 288
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 11
+pport = 14
+dev = 280
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 12
+pport = 15
+dev = 272
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 13
+pport = 16
+dev = 264
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 14
+pport = 17
+dev = 400
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 15
+pport = 18
+dev = 392
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 16
+pport = 19
+dev = 416
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 17
+pport = 20
+dev = 408
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 18
+pport = 21
+dev = 432
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 19
+pport = 22
+dev = 424
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 20
+pport = 23
+dev = 448
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 21
+pport = 24
+dev = 440
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 22
+pport = 25
+dev = 56
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 23
+pport = 26
+dev = 64
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 24
+pport = 27
+dev = 40
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 25
+pport = 28
+dev = 48
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 26
+pport = 29
+dev = 24
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 27
+pport = 30
+dev = 32
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 28
+pport = 31
+dev = 8
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 29
+pport = 32
+dev = 16
 capacity_bps = 100_000_000_000 # 100G
 
 ########################################################

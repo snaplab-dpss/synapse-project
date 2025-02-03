@@ -20,7 +20,7 @@
 #include "lib/models/hardware.h"
 #include "lib/models/verified/vigor-time-control.h"
 #include <klee/klee.h>
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
 
 // Unverified support for batching, useful for performance comparisons
 #ifndef BATCH_SIZE
@@ -28,38 +28,8 @@
 #define BATCH_SIZE 1
 #else
 #define BATCH_SIZE 32
-#endif  // KLEE_VERIFICATION
-#endif  // BATCH_SIZE
-
-// More elaborate loop shape with annotations for verification
-#ifdef KLEE_VERIFICATION
-#define LOOP_BEGIN                                                 \
-  unsigned _vigor_lcore_id = 0; /* no multicore support for now */ \
-  time_ns_t _vigor_start_time = start_time();                      \
-  int _vigor_loop_termination = klee_int("loop_termination");      \
-  unsigned devices_count = rte_eth_dev_count_avail();              \
-  while (klee_induce_invariants() & _vigor_loop_termination) {     \
-    nf_loop_iteration_border(_vigor_lcore_id, _vigor_start_time);  \
-    time_ns_t NOW = current_time();                                \
-    /* concretize the device to avoid leaking symbols into DPDK */ \
-    uint16_t DEVICE = klee_range(0, devices_count, "DEVICE");      \
-    uint16_t concretized_device = DEVICE;                          \
-    concretize_devices(&concretized_device, devices_count);        \
-    stub_hardware_receive_packet(DEVICE);
-#define LOOP_END                       \
-  stub_hardware_reset_receive(DEVICE); \
-  }
-#else  // KLEE_VERIFICATION
-#define LOOP_BEGIN                                                \
-  while (1) {                                                     \
-    time_ns_t NOW = current_time();                               \
-    unsigned devices_count = rte_eth_dev_count_avail();           \
-    for (uint16_t DEVICE = 0; DEVICE < devices_count; DEVICE++) { \
-      unsigned concretized_device = DEVICE;
-#define LOOP_END \
-  }              \
-  }
-#endif  // KLEE_VERIFICATION
+#endif // KLEE_VERIFICATION
+#endif // BATCH_SIZE
 
 #if BATCH_SIZE == 1
 // Queue sizes for receiving/transmitting packets
@@ -80,7 +50,7 @@ static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
 // Send the given packet to all devices except the packet's own
 void flood(struct rte_mbuf *packet, uint16_t nb_devices) {
   rte_mbuf_refcnt_set(packet, nb_devices - 1);
-  int total_sent = 0;
+  int total_sent       = 0;
   uint16_t skip_device = packet->port;
   for (uint16_t device = 0; device < nb_devices; device++) {
     if (device != skip_device) {
@@ -110,15 +80,13 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
   }
 
   // Allocate and set up a TX queue (NULL == default config)
-  retval = rte_eth_tx_queue_setup(device, 0, TX_QUEUE_SIZE,
-                                  rte_eth_dev_socket_id(device), NULL);
+  retval = rte_eth_tx_queue_setup(device, 0, TX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL);
   if (retval != 0) {
     return retval;
   }
 
   // Allocate and set up RX queues (NULL == default config)
-  retval = rte_eth_rx_queue_setup(
-      device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL, mbuf_pool);
+  retval = rte_eth_rx_queue_setup(device, 0, RX_QUEUE_SIZE, rte_eth_dev_socket_id(device), NULL, mbuf_pool);
   if (retval != 0) {
     return retval;
   }
@@ -140,16 +108,15 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
 
 #ifdef KLEE_VERIFICATION
 static void worker_loop() {
-  unsigned lcore_id = 0; /* no multicore support for now */
-  time_ns_t start = start_time();
-  int loop_termination = klee_int("loop_termination");
+  unsigned lcore_id      = 0; /* no multicore support for now */
+  time_ns_t start        = start_time();
+  int loop_termination   = klee_int("loop_termination");
   unsigned devices_count = rte_eth_dev_count_avail();
   while (klee_induce_invariants() & loop_termination) {
     nf_loop_iteration_border(lcore_id, start);
     time_ns_t now = current_time();
     /* concretize the device to avoid leaking symbols into DPDK */
     uint16_t device = klee_range(0, devices_count, "DEVICE");
-    concretize_devices(&device, devices_count);
     stub_hardware_receive_packet(device);
 
     struct rte_mbuf *mbuf;
@@ -165,8 +132,6 @@ static void worker_loop() {
       } else if (dst_device == FLOOD) {
         packet_broadcast(&data, device);
       } else {
-        // ensure we don't leak symbols into DPDK
-        concretize_devices(&dst_device, devices_count);
         int i = rte_eth_tx_burst(dst_device, 0, &mbuf, 1);
         klee_assert(i == 1);
       }
@@ -190,27 +155,23 @@ static void worker_loop() {
       for (uint16_t n = 0; n < rx_count; n++) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
-        time_ns_t now = current_time();
-        uint16_t dst_device =
-            nf_process(mbufs[n]->port, &data, mbufs[n]->pkt_len, now, mbufs[n]);
+        time_ns_t now       = current_time();
+        uint16_t dst_device = nf_process(mbufs[n]->port, &data, mbufs[n]->pkt_len, now, mbufs[n]);
         nf_return_all_chunks(data);
 
         if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);
-        } else {  // includes flood when 2 devices, which is equivalent
-                  // to just
-                  // a
-                  // send
+        } else {
+          // Includes flood when 2 devices, which is equivalent to just a send.
           mbufs_to_send[tx_count] = mbufs[n];
           tx_count++;
         }
       }
 
-      uint16_t sent_count =
-          rte_eth_tx_burst(1 - device, 0, mbufs_to_send, tx_count);
+      uint16_t sent_count = rte_eth_tx_burst(1 - device, 0, mbufs_to_send, tx_count);
       for (uint16_t n = sent_count; n < tx_count; n++) {
-        rte_pktmbuf_free(mbufs[n]);  // should not happen, but we're in
-                                     // the unverified case anyway
+        rte_pktmbuf_free(mbufs[n]); // should not happen, but we're in
+                                    // the unverified case anyway
       }
     }
   }
@@ -241,14 +202,13 @@ int main(int argc, char **argv) {
   nf_config_print();
 
   // Create a memory pool
-  unsigned nb_devices = rte_eth_dev_count_avail();
-  struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create(
-      "MEMPOOL",                          // name
-      MEMPOOL_BUFFER_COUNT * nb_devices,  // #elements
-      0,  // cache size (per-core, not useful in a single-threaded app)
-      0,  // application private area size
-      RTE_MBUF_DEFAULT_BUF_SIZE,  // data buffer size
-      rte_socket_id()             // socket ID
+  unsigned nb_devices           = rte_eth_dev_count_avail();
+  struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("MEMPOOL",                         // name
+                                                          MEMPOOL_BUFFER_COUNT * nb_devices, // #elements
+                                                          0, // cache size (per-core, not useful in a single-threaded app)
+                                                          0, // application private area size
+                                                          RTE_MBUF_DEFAULT_BUF_SIZE, // data buffer size
+                                                          rte_socket_id()            // socket ID
   );
   if (mbuf_pool == NULL) {
     rte_exit(EXIT_FAILURE, "Cannot create pool: %s\n", rte_strerror(rte_errno));
