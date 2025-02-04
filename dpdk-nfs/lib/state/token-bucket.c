@@ -10,7 +10,7 @@
 #include "lib/state/vector.h"
 #include "lib/state/double-chain.h"
 #include "lib/util/time.h"
-#include "lib/state/expirator.h"
+#include "lib/util/expirator.h"
 
 struct TokenBucket {
   struct Map *flows;

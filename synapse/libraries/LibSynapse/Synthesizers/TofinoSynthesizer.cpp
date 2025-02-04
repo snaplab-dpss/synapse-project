@@ -753,7 +753,7 @@ void TofinoSynthesizer::transpile_fcfs_cached_table_decl(coder_t &coder, const F
   }
 
   std::cerr << coder.dump();
-  LibCore::dbg_pause();
+  dbg_pause();
 
   panic("TODO: transpile_fcfs_cached_table_decl");
 }

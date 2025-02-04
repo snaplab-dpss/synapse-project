@@ -1,7 +1,8 @@
+NF_DEVICES := 30
+
 NF_FILES := cl_main.c cl_config.c cl_state.c flow.c client.c
 
-NF_ARGS := --lan 1 \
-           --wan 0 \
+NF_ARGS := --wan 0 \
            --max-flows $(or $(CAPACITY),65536) \
            --max-clients $(or $(MAX_PORTS),64) \
            --expire $(or $(EXPIRATION_TIME),1000000) \

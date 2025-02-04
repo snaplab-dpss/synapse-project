@@ -1,24 +1,21 @@
 #include <stdlib.h>
 
 #include "flow.h"
-#include "fw_config.h"
-#include "fw_flowmanager.h"
+#include "config.h"
+#include "flowmanager.h"
 #include "nf-log.h"
 #include "nf-util.h"
 #include "nf.h"
 
 struct nf_config config;
-
 struct FlowManager *flow_manager;
 
 bool nf_init(void) {
-  flow_manager = flow_manager_allocate(config.devices_cfg_fname, config.expiration_time, config.max_flows);
+  flow_manager = flow_manager_allocate();
   return flow_manager != NULL;
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
-  NF_DEBUG("It is %" PRId64, now);
-
   flow_manager_expire(flow_manager, now);
 
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
@@ -35,13 +32,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   }
 
   uint16_t dst_device;
-  bool is_internal;
-  struct rte_ether_addr dst_addr;
-  if (!flow_manager_fwd_table_lookup(flow_manager, device, &dst_device, &is_internal, &dst_addr)) {
-    return DROP;
-  }
-
-  if (!is_internal) {
+  if (device == config.wan_device) {
     // Inverse the src and dst for the "reply flow"
     struct FlowId id = {
         .src_port = tcpudp_header->dst_port,
@@ -51,10 +42,11 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .protocol = rte_ipv4_header->next_proto_id,
     };
 
-    if (!flow_manager_get_refresh_flow(flow_manager, &id, now)) {
+    if (!flow_manager_get_refresh_flow(flow_manager, &id, now, &dst_device)) {
       NF_DEBUG("Unknown external flow, dropping");
       return DROP;
     }
+
   } else {
     struct FlowId id = {
         .src_port = tcpudp_header->src_port,
@@ -63,10 +55,10 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .dst_ip   = rte_ipv4_header->dst_addr,
         .protocol = rte_ipv4_header->next_proto_id,
     };
-    flow_manager_allocate_or_refresh_flow(flow_manager, &id, now);
-  }
 
-  rte_ether_header->d_addr = dst_addr;
+    flow_manager_allocate_or_refresh_flow(flow_manager, &id, device, now);
+    dst_device = config.wan_device;
+  }
 
   return dst_device;
 }

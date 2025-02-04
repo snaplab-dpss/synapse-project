@@ -58,6 +58,4 @@ static inline void vigor_note(int cond) { (uintptr_t) cond; }
   "error: NF_EXPORT_STATE is not implemented yet, \
    assume state names in the spec are identical to the names used in the C implementation"
 
-unsigned hash_obj(void *obj, int size_bytes);
-
 #endif // _BOILERPLATE_H_INCLUDED_

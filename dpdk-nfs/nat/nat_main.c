@@ -2,27 +2,21 @@
 
 #include "nf.h"
 #include "flow.h"
-#include "nat_flowmanager.h"
-#include "nat_config.h"
+#include "flowmanager.h"
+#include "config.h"
 #include "nf-log.h"
 #include "nf-util.h"
 
 struct nf_config config;
-
 struct FlowManager *flow_manager;
 
 bool nf_init(void) {
-  flow_manager =
-      flow_manager_allocate(config.start_port, config.external_addr, config.wan_device, config.expiration_time, config.max_flows);
-
+  flow_manager = flow_manager_allocate();
   return flow_manager != NULL;
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
-  NF_DEBUG("It is %" PRId64, now);
-
   flow_manager_expire(flow_manager, now);
-  NF_DEBUG("Flows have been expired");
 
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *rte_ipv4_header   = nf_then_get_ipv4_header(rte_ether_header, buffer);
@@ -68,16 +62,13 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
                         .protocol        = rte_ipv4_header->next_proto_id,
                         .internal_device = device};
 
-    NF_DEBUG("For id:");
-    LOG_FLOWID(&id, NF_DEBUG);
-
     NF_DEBUG("Device %" PRIu16 " is internal (not %" PRIu16 ")", device, config.wan_device);
 
     uint16_t external_port;
     if (!flow_manager_get_internal(flow_manager, &id, now, &external_port)) {
       NF_DEBUG("New flow");
 
-      if (!flow_manager_allocate_flow(flow_manager, &id, device, now, &external_port)) {
+      if (!flow_manager_allocate_flow(flow_manager, &id, now, &external_port)) {
         NF_DEBUG("No space for the flow, dropping");
         return DROP;
       }
@@ -91,11 +82,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   }
 
   nf_set_rte_ipv4_udptcp_checksum(rte_ipv4_header, tcpudp_header, buffer);
-
-  concretize_devices(&dst_device, rte_eth_dev_count_avail());
-
-  rte_ether_header->s_addr = config.device_macs[dst_device];
-  rte_ether_header->d_addr = config.endpoint_macs[dst_device];
 
   return dst_device;
 }

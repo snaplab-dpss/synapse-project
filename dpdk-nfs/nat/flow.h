@@ -2,10 +2,8 @@
 #define _FLOW_H_INCLUDED_
 
 #include <stdint.h>
-#include <stdbool.h>
 
 #include "lib/util/boilerplate.h"
-#include "lib/util/ether.h"
 
 struct FlowId {
   uint16_t src_port;

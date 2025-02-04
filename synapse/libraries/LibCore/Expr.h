@@ -32,6 +32,7 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> condition);
 bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out);
+std::string expr_to_ascii(klee::ref<klee::Expr> expr);
 
 struct expr_mod_t {
   bits_t offset;

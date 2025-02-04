@@ -114,9 +114,10 @@ static void worker_loop() {
   unsigned devices_count = rte_eth_dev_count_avail();
   while (klee_induce_invariants() & loop_termination) {
     nf_loop_iteration_border(lcore_id, start);
-    time_ns_t now = current_time();
-    /* concretize the device to avoid leaking symbols into DPDK */
+    time_ns_t now   = current_time();
     uint16_t device = klee_range(0, devices_count, "DEVICE");
+    klee_assume(device != DROP);
+    klee_assume(device != FLOOD);
     stub_hardware_receive_packet(device);
 
     struct rte_mbuf *mbuf;
@@ -132,6 +133,7 @@ static void worker_loop() {
       } else if (dst_device == FLOOD) {
         packet_broadcast(&data, device);
       } else {
+        concretize_devices(&dst_device, devices_count);
         int i = rte_eth_tx_burst(dst_device, 0, &mbuf, 1);
         klee_assert(i == 1);
       }

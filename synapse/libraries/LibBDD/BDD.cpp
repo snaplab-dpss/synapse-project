@@ -23,13 +23,11 @@ const std::vector<std::string> ignored_functions{
     "vector_reset",
 };
 
-const std::vector<std::string> init_functions{
-    "map_allocate", "vector_allocate", "dchain_allocate", "cms_allocate", "cht_fill_cht", "tb_allocate", "fwtbl_allocate",
-};
+constexpr const char *const init_to_process_trigger_function = "start_time";
 
 const std::vector<std::string> symbols_in_skippable_conditions{
-    "received_a_packet",       "loop_termination",         "map_allocation_succeeded", "vector_alloc_success",       "is_dchain_allocated",
-    "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",  "fwtbl_allocation_succeeded",
+    "received_a_packet",       "loop_termination",         "map_allocation_succeeded", "vector_alloc_success",        "is_dchain_allocated",
+    "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",  "devtbl_allocation_succeeded",
 };
 
 const std::vector<std::string> routing_functions{
@@ -124,9 +122,10 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
         {"number_of_freed_flows"},
     },
     {
-        "fwtbl_lookup",
-        {"forwarding_table_hit", "dst_dev", "is_internal", "dst_mac_addr"},
-    }};
+        "devtbl_lookup",
+        {"devices_table_hit", "dev", "mac"},
+    },
+};
 
 typedef LibCore::Symbols (*SymbolsExtractor)(const call_t &call, const LibCore::Symbols &symbols);
 
@@ -151,10 +150,6 @@ const std::unordered_map<std::string, SymbolsExtractor> special_symbols_extracto
         packet_chunks_symbol_extractor,
     },
 };
-
-bool is_init_function(const call_t &call) {
-  return std::find(init_functions.begin(), init_functions.end(), call.function_name) != init_functions.end();
-}
 
 bool is_skip_function(const call_t &call) {
   return std::find(ignored_functions.begin(), ignored_functions.end(), call.function_name) != ignored_functions.end();
@@ -334,7 +329,8 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
 }
 
 Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolManager *symbol_manager, NodeManager &node_manager,
-                          std::vector<call_t> &init, node_id_t &id, klee::ConstraintManager constraints = klee::ConstraintManager(),
+                          std::vector<call_t> &init, node_id_t &id, bool in_init_mode = true,
+                          klee::ConstraintManager constraints                            = klee::ConstraintManager(),
                           std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
   Node *leaf = nullptr;
@@ -377,7 +373,11 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
         std::cerr << "  " << LibCore::expr_to_string(constraint, true) << "\n";
       std::cerr << "==================================\n";
 
-      if (is_init_function(call)) {
+      if (call.function_name == init_to_process_trigger_function) {
+        in_init_mode = false;
+      }
+
+      if (in_init_mode) {
         init.push_back(call);
       } else if (!is_skip_function(call)) {
         Node *node;
@@ -441,9 +441,9 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
       node_manager.add_node(node);
 
       Node *on_true_root =
-          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, on_true_constraints, base_symbols_generated);
+          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, in_init_mode, on_true_constraints, base_symbols_generated);
       Node *on_false_root =
-          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, on_false_constraints, base_symbols_generated);
+          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, in_init_mode, on_false_constraints, base_symbols_generated);
 
       assert((on_true_root && on_false_root) && "Invalid BDD");
 

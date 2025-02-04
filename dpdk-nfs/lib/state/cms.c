@@ -8,6 +8,7 @@
 #include "lib/state/vector.h"
 #include "lib/util/time.h"
 #include "lib/util/hash.h"
+#include "lib/util/compute.h"
 
 struct CMS {
   struct Vector *buckets;
@@ -28,17 +29,6 @@ struct cms_bucket {
   uint64_t value;
 };
 
-static unsigned find_next_power_of_2(uint32_t d) {
-  assert(d <= 0x80000000);
-  unsigned n = 1;
-
-  while (n < d) {
-    n *= 2;
-  }
-
-  return n;
-}
-
 int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t periodic_cleanup_interval, struct CMS **cms_out) {
   assert(height > 0);
   assert(width > 0);
@@ -58,7 +48,7 @@ int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t p
 
   (*cms_out)->last_cleanup = 0;
 
-  uint32_t capacity = find_next_power_of_2(height * width);
+  uint32_t capacity = ensure_power_of_two(height * width);
 
   (*cms_out)->buckets = NULL;
   if (vector_allocate(sizeof(struct cms_bucket), capacity, &((*cms_out)->buckets)) == 0) {
@@ -70,8 +60,7 @@ int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t p
 
 void cms_increment(struct CMS *cms, void *key) {
   for (uint32_t h = 0; h < cms->height; h++) {
-    unsigned hash = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
-
+    unsigned hash   = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
     uint32_t offset = h * cms->width + (hash % cms->width);
 
     struct cms_bucket *bucket = 0;
@@ -85,8 +74,7 @@ uint64_t cms_count_min(struct CMS *cms, void *key) {
   uint64_t min_val = 0;
 
   for (uint32_t h = 0; h < cms->height; h++) {
-    unsigned hash = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
-
+    unsigned hash   = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
     uint32_t offset = h * cms->width + (hash % cms->width);
 
     struct cms_bucket *bucket = 0;

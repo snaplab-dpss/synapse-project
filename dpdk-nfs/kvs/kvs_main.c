@@ -8,10 +8,9 @@
 #include "nf-util.h"
 #include "nf.h"
 
-#include "lib/state/expirator.h"
+#include "lib/util/expirator.h"
 
 struct nf_config config;
-
 struct State *kvs_state;
 
 bool nf_init(void) {

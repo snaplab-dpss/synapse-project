@@ -603,6 +603,8 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
                                              POPULATE_SYNTHESIZER(dchain_allocate),
                                              POPULATE_SYNTHESIZER(cms_allocate),
                                              POPULATE_SYNTHESIZER(tb_allocate),
+                                             POPULATE_SYNTHESIZER(devtbl_allocate),
+                                             POPULATE_SYNTHESIZER(devtbl_fill),
                                          }),
       process_synthesizers({
           POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
@@ -630,6 +632,7 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
           POPULATE_SYNTHESIZER(tb_trace),
           POPULATE_SYNTHESIZER(tb_update_and_check),
           POPULATE_SYNTHESIZER(tb_expire),
+          POPULATE_SYNTHESIZER(devtbl_lookup),
       }) {}
 
 void BDDSynthesizer::synthesize(const BDD *bdd) {
@@ -1012,7 +1015,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
   }
 
   var_t stack_value;
-  if (stack_find(value, stack_value)) {
+  if (stack_find_or_create_tmp_slice_var(value, coder, stack_value)) {
     if (stack_value.addr.isNull()) {
       bits_t width = stack_value.expr->getWidth();
       assert(width <= klee::Expr::Int64 && "Invalid width");
@@ -1258,7 +1261,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   }
 
   var_t new_v;
-  if (value->getKind() != klee::Expr::Constant && stack_find(value, new_v)) {
+  if (value->getKind() != klee::Expr::Constant && stack_find_or_create_tmp_slice_var(value, coder, new_v)) {
     coder.indent();
     coder << "memcpy(";
     coder << "(void*)" << v.name << ", ";
@@ -1586,6 +1589,40 @@ void BDDSynthesizer::tb_allocate(coder_t &coder, const call_t &call) {
   stack_add(tb_out_var);
 }
 
+void BDDSynthesizer::devtbl_allocate(coder_t &coder, const call_t &call) {
+  klee::ref<klee::Expr> max_devices = call.args.at("max_devices").expr;
+  klee::ref<klee::Expr> devtbl_out  = call.args.at("devtbl_out").out;
+
+  var_t devtbl_out_var = build_var("devtbl", devtbl_out);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct DevicesTable *";
+  coder_nf_state << devtbl_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder << "devtbl_allocate(";
+  coder << transpiler.transpile(max_devices) << ", ";
+  coder << "&" << devtbl_out_var.name;
+  coder << ")";
+
+  stack_add(devtbl_out_var);
+}
+
+void BDDSynthesizer::devtbl_fill(coder_t &coder, const call_t &call) {
+  klee::ref<klee::Expr> devtbl_addr = call.args.at("devtbl").expr;
+  klee::ref<klee::Expr> cfg_fname   = call.args.at("cfg_fname").in;
+
+  std::string cfg_fname_str = LibCore::expr_to_ascii(cfg_fname);
+
+  coder.indent();
+  coder << "devtbl_fill(";
+  coder << stack_get(devtbl_addr).name << ", ";
+  coder << "\"" << cfg_fname_str << "\"";
+  coder << ")";
+  coder << ";\n";
+}
+
 void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
@@ -1702,6 +1739,34 @@ void BDDSynthesizer::tb_expire(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 }
 
+void BDDSynthesizer::devtbl_lookup(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> devtbl_addr = call.args.at("devtbl").expr;
+  klee::ref<klee::Expr> dev         = call.args.at("dev").expr;
+  klee::ref<klee::Expr> mac         = call.args.at("mac").out;
+
+  LibCore::symbol_t devices_table_hit = call_node->get_local_symbol("devices_table_hit");
+
+  var_t hit_var = build_var("devices_table_hit", devices_table_hit.expr);
+  var_t mac_var = build_var("mac", mac);
+
+  coder.indent();
+  coder << "struct rte_ether_addr " << mac_var.name << ";\n";
+
+  coder.indent();
+  coder << "int " << hit_var.name << " = ";
+  coder << "devtbl_lookup(";
+  coder << stack_get(devtbl_addr).name << ", ";
+  coder << transpiler.transpile(dev) << ", ";
+  coder << "&" << mac_var.name;
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(hit_var);
+  stack_add(mac_var);
+}
+
 void BDDSynthesizer::stack_dbg() const {
   std::cerr << "================= Vars ================= \n";
   for (const stack_frame_t &frame : stack) {
@@ -1804,6 +1869,45 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
           out_var      = v;
           out_var.name = slice_var(v, offset, expr_bits);
           out_var.expr = var_slice;
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+bool BDDSynthesizer::stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, coder_t &coder, var_t &out_var) {
+  for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+    stack_frame_t &frame = *it;
+
+    for (const var_t &v : frame.vars) {
+      if (LibCore::solver_toolbox.are_exprs_always_equal(v.expr, expr) || LibCore::solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
+        out_var = v;
+        return true;
+      }
+
+      klee::Expr::Width expr_bits = expr->getWidth();
+      klee::Expr::Width var_bits  = v.expr->getWidth();
+
+      if (expr_bits > var_bits) {
+        continue;
+      }
+
+      for (bits_t offset = 0; offset <= var_bits - expr_bits; offset += 8) {
+        klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
+
+        if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+          out_var = build_var(v.name + "_slice", var_slice);
+
+          coder.indent();
+          coder << transpiler.type_from_expr(out_var.expr) << " " << out_var.name;
+          coder << " = ";
+          coder << slice_var(v, offset, expr_bits);
+          coder << ";\n";
+
+          stack_add(out_var);
           return true;
         }
       }

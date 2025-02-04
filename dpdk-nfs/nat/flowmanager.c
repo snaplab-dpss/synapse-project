@@ -1,4 +1,4 @@
-#include "nat_flowmanager.h"
+#include "flowmanager.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -8,39 +8,38 @@
 #include "lib/state/double-chain.h"
 #include "lib/state/map.h"
 #include "lib/state/vector.h"
-#include "lib/state/expirator.h"
+#include "lib/util/expirator.h"
 
 #include "state.h"
+#include "config.h"
 
 struct FlowManager {
   struct State *state;
   uint32_t expiration_time; /*nanoseconds*/
 };
 
-struct FlowManager *flow_manager_allocate(uint16_t starting_port, uint32_t nat_ip, uint16_t nat_device, uint32_t expiration_time,
-                                          uint64_t max_flows) {
+struct FlowManager *flow_manager_allocate() {
   struct FlowManager *manager = (struct FlowManager *)malloc(sizeof(struct FlowManager));
   if (manager == NULL) {
     return NULL;
   }
-  manager->state = alloc_state(max_flows, starting_port, nat_ip, nat_device);
+  manager->state = alloc_state();
   if (manager->state == NULL) {
     return NULL;
   }
 
-  manager->expiration_time = expiration_time;
+  manager->expiration_time = config.expiration_time;
 
   return manager;
 }
 
-bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id, uint16_t internal_device, time_ns_t time,
-                                uint16_t *external_port) {
+bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time, uint16_t *external_port) {
   int index;
   if (dchain_allocate_new_index(manager->state->heap, &index, time) == 0) {
     return false;
   }
 
-  *external_port = manager->state->start_port + index;
+  *external_port = index;
 
   struct FlowId *key = 0;
   vector_borrow(manager->state->fv, index, (void **)&key);
@@ -64,13 +63,13 @@ bool flow_manager_get_internal(struct FlowManager *manager, struct FlowId *id, t
   if (map_get(manager->state->fm, id, &index) == 0) {
     return false;
   }
-  *external_port = index + manager->state->start_port;
+  *external_port = index;
   dchain_rejuvenate_index(manager->state->heap, index, time);
   return true;
 }
 
 bool flow_manager_get_external(struct FlowManager *manager, uint16_t external_port, time_ns_t time, struct FlowId *out_flow) {
-  int index = external_port - manager->state->start_port;
+  int index = external_port;
   if (dchain_is_index_allocated(manager->state->heap, index) == 0) {
     return false;
   }
@@ -80,7 +79,7 @@ bool flow_manager_get_external(struct FlowManager *manager, uint16_t external_po
   memcpy((void *)out_flow, (void *)key, sizeof(struct FlowId));
   vector_return(manager->state->fv, index, key);
 
-  // dchain_rejuvenate_index(manager->state->heap, index, time);
+  dchain_rejuvenate_index(manager->state->heap, index, time);
 
   return true;
 }

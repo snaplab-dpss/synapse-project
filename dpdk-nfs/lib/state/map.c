@@ -25,7 +25,6 @@ int map_allocate(unsigned capacity, unsigned key_size, struct Map **map_out) {
   if (capacity == 0 || (capacity & (capacity - 1)) != 0) {
     return 0;
   }
-//@ check_pow2_valid(capacity);
 #else
 #endif
 

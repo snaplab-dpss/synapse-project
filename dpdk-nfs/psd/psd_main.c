@@ -3,8 +3,8 @@
 
 #include <rte_byteorder.h>
 
-#include "lib/state/expirator.h"
-#include "lib/state/expirator.h"
+#include "lib/util/expirator.h"
+#include "lib/util/expirator.h"
 
 #include "nf.h"
 #include "nf-log.h"

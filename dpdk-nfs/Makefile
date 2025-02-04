@@ -51,7 +51,7 @@ OUT_DIR=build
 
 # DPDK stuff
 ifneq ($(shell pkg-config --exists libdpdk && echo 0),0)
-	@echo "Error: pkg-config could not find dpdk."
+	$(error Error: pkg-config could not find dpdk)
 	exit 1
 endif
 

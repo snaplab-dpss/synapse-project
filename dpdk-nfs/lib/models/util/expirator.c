@@ -1,6 +1,6 @@
 #include <klee/klee.h>
-#include "lib/state/expirator.h"
-#include "double-chain-control.h"
+#include "lib/util/expirator.h"
+#include "../state/double-chain-control.h"
 
 int expire_items_single_map(struct DoubleChain *chain, struct Vector *vector, struct Map *map, time_ns_t time) {
   klee_trace_ret();

@@ -1,9 +1,9 @@
 #ifndef _EXPIRATOR_H_INCLUDED_
 #define _EXPIRATOR_H_INCLUDED_
 
-#include "double-chain.h"
-#include "map.h"
-#include "vector.h"
+#include "../state/double-chain.h"
+#include "../state/map.h"
+#include "../state/vector.h"
 
 typedef void entry_extract_key(void *entry, void **key);
 typedef void entry_pack_key(void *entry, void *key);

@@ -1,4 +1,4 @@
-#include "fw_flowmanager.h"
+#include "flowmanager.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -8,9 +8,10 @@
 #include "lib/state/double-chain.h"
 #include "lib/state/map.h"
 #include "lib/state/vector.h"
-#include "lib/state/expirator.h"
+#include "lib/util/expirator.h"
 
 #include "state.h"
+#include "config.h"
 #include "../nf-log.h"
 
 struct FlowManager {
@@ -18,25 +19,23 @@ struct FlowManager {
   time_ns_t expiration_time;
 };
 
-struct FlowManager *flow_manager_allocate(const char *devices_cfg_fname, uint32_t expiration_time, uint64_t max_flows) {
+struct FlowManager *flow_manager_allocate() {
   struct FlowManager *manager = (struct FlowManager *)malloc(sizeof(struct FlowManager));
   if (manager == NULL) {
     return NULL;
   }
 
-  manager->state = alloc_state(max_flows);
+  manager->state = alloc_state();
   if (manager->state == NULL) {
     return NULL;
   }
 
-  fwtbl_fill(manager->state->fwd_table, devices_cfg_fname);
-
-  manager->expiration_time = expiration_time * 1000;
+  manager->expiration_time = config.expiration_time * 1000;
 
   return manager;
 }
 
-void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time) {
+void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct FlowId *id, uint16_t internal_device, time_ns_t time) {
   int index;
   if (map_get(manager->state->fm, id, &index)) {
     NF_DEBUG("Rejuvenated flow");
@@ -56,6 +55,11 @@ void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct F
   memcpy((void *)key, (void *)id, sizeof(struct FlowId));
   map_put(manager->state->fm, key, index);
   vector_return(manager->state->fv, index, key);
+
+  uint16_t *int_dev;
+  vector_borrow(manager->state->int_devices, index, (void **)&int_dev);
+  *int_dev = internal_device;
+  vector_return(manager->state->int_devices, index, int_dev);
 }
 
 void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
@@ -66,16 +70,17 @@ void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
   expire_items_single_map(manager->state->heap, manager->state->fv, manager->state->fm, last_time);
 }
 
-bool flow_manager_get_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time) {
+bool flow_manager_get_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time, uint16_t *internal_device) {
   int index;
   if (map_get(manager->state->fm, id, &index) == 0) {
     return false;
   }
+
+  uint32_t *int_dev;
+  vector_borrow(manager->state->int_devices, index, (void **)&int_dev);
+  *internal_device = *int_dev;
+  vector_return(manager->state->int_devices, index, int_dev);
+
   dchain_rejuvenate_index(manager->state->heap, index, time);
   return true;
-}
-
-int flow_manager_fwd_table_lookup(struct FlowManager *manager, uint16_t src_dev, uint16_t *dst_dev, bool *is_internal,
-                                  struct rte_ether_addr *dst_addr) {
-  return fwtbl_lookup(manager->state->fwd_table, src_dev, dst_dev, is_internal, dst_addr);
 }

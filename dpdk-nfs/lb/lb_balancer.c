@@ -2,7 +2,7 @@
 #include "state.h"
 
 #include "lib/state/map.h"
-#include "lib/state/expirator.h"
+#include "lib/util/expirator.h"
 #include "lib/util/hash.h"
 
 #include <rte_ethdev.h>

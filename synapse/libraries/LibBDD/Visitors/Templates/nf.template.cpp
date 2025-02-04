@@ -1,18 +1,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <lib/verified/map.h>
-#include <lib/verified/vector.h>
-#include <lib/verified/double-chain.h>
-#include <lib/verified/cht.h>
-#include <lib/verified/cms.h>
-#include <lib/verified/token-bucket.h>
+#include <lib/state/map.h>
+#include <lib/state/vector.h>
+#include <lib/state/double-chain.h>
+#include <lib/state/cht.h>
+#include <lib/state/cms.h>
+#include <lib/state/token-bucket.h>
+#include <lib/state/devices-table.h>
 
-#include <lib/verified/hash.h>
-#include <lib/verified/expirator.h>
-#include <lib/verified/packet-io.h>
-#include <lib/verified/tcpudp_hdr.h>
-#include <lib/verified/vigor-time.h>
+#include <lib/util/hash.h>
+#include <lib/util/expirator.h>
+#include <lib/util/packet-io.h>
+#include <lib/util/tcpudp_hdr.h>
+#include <lib/util/time.h>
 #ifdef __cplusplus
 }
 #endif

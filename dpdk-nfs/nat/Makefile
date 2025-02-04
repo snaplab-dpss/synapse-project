@@ -1,14 +1,13 @@
-NF_FILES := nat_main.c nat_config.c nat_flowmanager.c flow.c loop.c state.c
+NF_DEVICES := 30
+
+NF_FILES := nat_main.c config.c flowmanager.c flow.c loop.c state.c
 
 NF_AUTOGEN_SRCS := flow.h
 
-NF_ARGS := --wan 1 \
+NF_ARGS := --wan $(or $(WAN),0) \
            --expire $(or $(EXPIRATION_TIME),1000000) \
-           --starting-port 0 \
            --max-flows 65536 \
-           --extip $(or $(MB_IP_EXTERNAL),1.2.3.4) \
-           --eth-dest 0,$(or $(TESTER_MAC_EXTERNAL),01:23:45:67:89:00) \
-           --eth-dest 1,$(or $(TESTER_MAC_INTERNAL),01:23:45:67:89:01)
+           --extip $(or $(MB_IP_EXTERNAL),1.2.3.4)
 
 NF_LAYER := 4
 

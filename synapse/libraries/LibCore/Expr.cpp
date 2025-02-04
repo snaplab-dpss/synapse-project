@@ -2,6 +2,7 @@
 #include <LibCore/Symbol.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
+#include <LibCore/Types.h>
 
 #include <iostream>
 #include <regex>
@@ -1675,6 +1676,18 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
   }
 
   return expr_str;
+}
+
+std::string expr_to_ascii(klee::ref<klee::Expr> expr) {
+  assert(!expr.isNull() && "Null expr");
+
+  std::string str;
+  for (klee::ref<klee::Expr> byte_expr : bytes_in_expr(expr)) {
+    u8 value = solver_toolbox.value_from_expr(byte_expr);
+    str += static_cast<char>(value);
+  }
+
+  return str;
 }
 
 } // namespace LibCore

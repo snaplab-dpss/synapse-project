@@ -4,11 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define RTE_ETHER_ADDR_LEN 6
 #define RTE_ETHER_TYPE_IPV4 0x0800
 #define RTE_ETHER_MAX_LEN 1518
 
 struct rte_ether_addr {
-  uint8_t addr_bytes[6];
+  uint8_t addr_bytes[RTE_ETHER_ADDR_LEN];
 };
 
 struct rte_ether_hdr {

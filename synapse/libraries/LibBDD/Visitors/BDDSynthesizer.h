@@ -105,6 +105,8 @@ private:
   void dchain_allocate(coder_t &, const call_t &);
   void cms_allocate(coder_t &, const call_t &);
   void tb_allocate(coder_t &, const call_t &);
+  void devtbl_allocate(coder_t &, const call_t &);
+  void devtbl_fill(coder_t &, const call_t &);
 
   void packet_borrow_next_chunk(coder_t &, const Call *);
   void packet_return_chunk(coder_t &, const Call *);
@@ -131,6 +133,7 @@ private:
   void tb_trace(coder_t &, const Call *);
   void tb_update_and_check(coder_t &, const Call *);
   void tb_expire(coder_t &, const Call *);
+  void devtbl_lookup(coder_t &, const Call *);
 
   void stack_dbg() const;
   void stack_push();
@@ -138,6 +141,7 @@ private:
   var_t stack_get(const std::string &name) const;
   var_t stack_get(klee::ref<klee::Expr> expr);
   bool stack_find(klee::ref<klee::Expr> expr, var_t &var);
+  bool stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, coder_t &coder, var_t &var);
   void stack_add(const var_t &var);
   void stack_replace(const var_t &var, klee::ref<klee::Expr> new_expr);
 

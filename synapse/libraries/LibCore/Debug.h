@@ -8,6 +8,13 @@
 #include <assert.h>
 #include <filesystem>
 
+inline void dbg_pause() {
+  std::cout << "Press Enter to continue ";
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+inline void dbg_breakpoint() { raise(SIGTRAP); }
+
 namespace LibCore {
 
 #define COLOR_RESET "\033[0m"
@@ -26,15 +33,8 @@ namespace LibCore {
   {                                                                                                                                        \
     fprintf(stderr, COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                                                 \
     fflush(stderr);                                                                                                                        \
-    LibCore::dbg_breakpoint();                                                                                                             \
+    dbg_breakpoint();                                                                                                                      \
     exit(1);                                                                                                                               \
   }
-
-inline void dbg_pause() {
-  std::cout << "Press Enter to continue ";
-  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-}
-
-inline void dbg_breakpoint() { raise(SIGTRAP); }
 
 } // namespace LibCore

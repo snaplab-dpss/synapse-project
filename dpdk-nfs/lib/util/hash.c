@@ -2,13 +2,19 @@
 
 #include <stdint.h>
 
-unsigned hash_obj(void *obj, int size_bytes) {
-  uint8_t *bytes = (uint8_t *)obj;
-  unsigned hash  = 0;
-
-  for (int i = 0; i < size_bytes; i++) {
-    hash = __builtin_ia32_crc32si(hash, bytes[i]);
+unsigned hash_obj(void *obj, unsigned size_bytes) {
+  unsigned hash = 0;
+  while (size_bytes > 0) {
+    if (size_bytes >= sizeof(unsigned int)) {
+      hash = __builtin_ia32_crc32si(hash, *(unsigned int *)obj);
+      obj  = (unsigned int *)obj + 1;
+      size_bytes -= sizeof(unsigned int);
+    } else {
+      unsigned int c = *(unsigned char *)obj;
+      hash           = __builtin_ia32_crc32si(hash, c);
+      obj            = (unsigned char *)obj + 1;
+      size_bytes -= 1;
+    }
   }
-
   return hash;
 }

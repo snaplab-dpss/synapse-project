@@ -13,11 +13,11 @@ array restarting_time[8] : w32 -> w8 = symbolic
     (ReadLSB w32 (w32 0) DEVICE)
     (ReadLSB w32 (w32 0) pkt_len)
     (ReadLSB w64 (w32 0) next_time)
-    (Ne (w16 0)
+    (Ne (w16 1)
      (ReadLSB w16 (w32 0) DEVICE))
-    (Ne (w16 0)
+    (Ne (w16 1)
      (ReadLSB w16 (w32 0) DEVICE))
-    (Not (Ne (w16 0)
+    (Not (Ne (w16 1)
           (ReadLSB w16 (w32 0) DEVICE)))
 ])
 ;;-- Symbols --
@@ -26,10 +26,10 @@ array restarting_time[8] : w32 -> w8 = symbolic
 (ReadLSB w64 (w32 0) next_time)
 ;;-- Init --
 ;; -- Nodes --
-0:(0 BRANCH (Ne (w16 0)
+0:(0 BRANCH (Ne (w16 1)
      (ReadLSB w16 (w32 0) DEVICE)))
-1:(1 ROUTE FWD 0)
-2:(1 ROUTE FWD 1)
+1:(1 ROUTE FWD 1)
+2:(1 ROUTE FWD 0)
 ;; -- Edges --
 (0->1->2)
 ;; -- Root --
