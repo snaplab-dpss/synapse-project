@@ -8,6 +8,7 @@ extern "C" {
 #include <lib/state/cms.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/devices-table.h>
+#include <lib/state/lpm-dir-24-8.h>
 
 #include <lib/util/hash.h>
 #include <lib/util/expirator.h>
@@ -122,19 +123,19 @@ static void worker_main(void) {
 
   NF_INFO("Core %u forwarding packets.", rte_lcore_id());
 
-  if (rte_eth_dev_count_avail() != 2) {
-    rte_exit(EXIT_FAILURE, "We assume there will be exactly 2 devices for our "
-                           "simple batching implementation.");
-  }
+  struct tx_mbuf_batch {
+    struct rte_mbuf *batch[BATCH_SIZE];
+    uint16_t tx_count;
+  };
+
+  uint16_t devices_count                  = rte_eth_dev_count_avail();
+  struct tx_mbuf_batch *tx_batch_per_port = (struct tx_mbuf_batch *)calloc(devices_count, sizeof(struct tx_mbuf_batch));
 
   while (1) {
-    unsigned DEVICES_COUNT = rte_eth_dev_count_avail();
-    for (uint16_t dev = 0; dev < DEVICES_COUNT; dev++) {
+    for (uint16_t device = 0; device < devices_count; device++) {
       struct rte_mbuf *mbufs[BATCH_SIZE];
-      uint16_t rx_count = rte_eth_rx_burst(dev, 0, mbufs, BATCH_SIZE);
+      uint16_t rx_count = rte_eth_rx_burst(device, 0, mbufs, BATCH_SIZE);
 
-      struct rte_mbuf *mbufs_to_send[BATCH_SIZE];
-      uint16_t tx_count = 0;
       for (uint16_t n = 0; n < rx_count; n++) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
@@ -143,19 +144,20 @@ static void worker_main(void) {
 
         if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);
-        } else { // includes flood when 2 devices, which is equivalent
-                 // to just
-                 // a
-                 // send
-          mbufs_to_send[tx_count] = mbufs[n];
-          tx_count++;
+        } else {
+          uint16_t tx_count                             = tx_batch_per_port[dst_device].tx_count;
+          tx_batch_per_port[dst_device].batch[tx_count] = mbufs[n];
+          tx_batch_per_port[dst_device].tx_count++;
         }
       }
 
-      uint16_t sent_count = rte_eth_tx_burst(1 - dev, 0, mbufs_to_send, tx_count);
-      for (uint16_t n = sent_count; n < tx_count; n++) {
-        rte_pktmbuf_free(mbufs[n]); // should not happen, but we're in
-                                    // the unverified case anyway
+      for (uint16_t dst_device = 0; dst_device < devices_count; dst_device++) {
+        uint16_t sent_count = rte_eth_tx_burst(dst_device, 0, tx_batch_per_port[dst_device].batch, tx_batch_per_port[dst_device].tx_count);
+        for (uint16_t n = sent_count; n < tx_batch_per_port[dst_device].tx_count; n++) {
+          rte_pktmbuf_free(mbufs[n]); // should not happen, but we're in
+                                      // the unverified case anyway
+        }
+        tx_batch_per_port[dst_device].tx_count = 0;
       }
     }
   }

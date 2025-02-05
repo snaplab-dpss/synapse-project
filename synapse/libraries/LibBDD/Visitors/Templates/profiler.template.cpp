@@ -8,6 +8,7 @@ extern "C" {
 #include <lib/state/cms.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/devices-table.h>
+#include <lib/state/lpm-dir-24-8.h>
 
 #include <lib/util/hash.h>
 #include <lib/util/expirator.h>

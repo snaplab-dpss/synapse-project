@@ -49,6 +49,12 @@ Synthesizer::Synthesizer(std::filesystem::path _template_file, std::unordered_ma
 
 Synthesizer::coder_t::coder_t() : lvl(0) {}
 Synthesizer::coder_t::coder_t(indent_t _lvl) : lvl(_lvl) {}
+Synthesizer::coder_t::coder_t(const coder_t &other) : lvl(other.lvl) {}
+
+Synthesizer::coder_t &Synthesizer::coder_t::operator=(const coder_t &other) {
+  lvl = other.lvl;
+  return *this;
+}
 
 void Synthesizer::coder_t::inc() { lvl++; }
 void Synthesizer::coder_t::dec() { lvl--; }
@@ -56,6 +62,11 @@ void Synthesizer::coder_t::dec() { lvl--; }
 void Synthesizer::coder_t::indent() { stream << code_t(lvl * SYNTHESIZER_INDENTATION_MULTIPLIER, SYNTHESIZER_INDENTATION_UNIT); }
 
 Synthesizer::code_t Synthesizer::coder_t::dump() const { return stream.str(); }
+
+Synthesizer::coder_t &Synthesizer::coder_t::operator<<(const coder_t &coder) {
+  stream << coder.stream.str();
+  return *this;
+}
 
 Synthesizer::coder_t &Synthesizer::coder_t::operator<<(const code_t &code) {
   stream << code;

@@ -1,4 +1,5 @@
 #include "config.h"
+#include "nf-parse.h"
 
 #include <getopt.h>
 #include <stdlib.h>
@@ -7,7 +8,6 @@
 #include "nf.h"
 #include "nf-util.h"
 #include "nf-log.h"
-#include "nf-parse.h"
 
 #define PARSE_ERROR(format, ...)                                                                                                           \
   nf_config_usage();                                                                                                                       \

@@ -30,6 +30,14 @@ void EPVisitor::visit(const EP *ep, const EPNode *node) {
   }
 }
 
+void EPVisitor::visit_children(const EP *ep, const EPNode *node) {
+  log(node);
+
+  for (const EPNode *child : node->get_children()) {
+    visit(ep, child);
+  }
+}
+
 void EPVisitor::log(const EPNode *node) const {
   const Module *module    = node->get_module();
   const std::string &name = module->get_name();

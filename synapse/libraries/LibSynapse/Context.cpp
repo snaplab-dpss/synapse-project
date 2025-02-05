@@ -146,8 +146,6 @@ Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const toml:
       tb_configs[addr]          = cfg;
       continue;
     }
-
-    panic("Unknown init call");
   }
 
   log_bdd_pre_processing(coalescing_candidates);
@@ -301,6 +299,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
     break;
   case DSImpl::Tofino_CuckooHashTable:
     os << "Tofino::CuckooHashTable";
+    break;
+  case DSImpl::Tofino_LPM:
+    os << "Tofino::LPM";
     break;
   case DSImpl::Controller_DoubleChain:
     os << "Controller::Dchain";

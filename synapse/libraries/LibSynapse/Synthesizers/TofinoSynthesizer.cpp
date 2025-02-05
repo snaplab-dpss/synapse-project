@@ -622,6 +622,41 @@ void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
   coder << "}\n";
 }
 
+void TofinoSynthesizer::transpile_lpm_decl(coder_t &coder, const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device) {
+  const std::string key_name = "ipv4_addr";
+  const var_t key_var        = alloc_var(key_name, addr, GLOBAL);
+
+  key_var.declare(coder, TofinoSynthesizer::Transpiler::transpile_literal(0, key_var.expr->getWidth()));
+
+  coder.indent();
+  coder << "table " << lpm->id << " {\n";
+  coder.inc();
+
+  coder.indent();
+  coder << "key = {\n";
+  coder.inc();
+
+  coder.indent();
+  coder << key_var.name << ": ternary;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  coder.indent();
+  coder << "actions = { forward; drop; }\n";
+
+  coder.indent();
+  coder << "default_action = drop;\n";
+
+  coder.indent();
+  coder << "size = " << lpm->capacity << ";\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+}
+
 void TofinoSynthesizer::transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index,
                                                 klee::ref<klee::Expr> value) {
   // * Template:
@@ -891,7 +926,7 @@ void TofinoSynthesizer::Stacks::clear() { stacks.clear(); }
 std::vector<TofinoSynthesizer::Stack> TofinoSynthesizer::Stacks::get_all() const { return stacks; }
 
 TofinoSynthesizer::TofinoSynthesizer(std::ostream &_out, const LibBDD::BDD *bdd)
-    : Synthesizer(TEMPLATE_FILENAME,
+    : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                   {
                       {MARKER_CPU_HEADER, 1},
                       {MARKER_RECIRC_HEADER, 1},
@@ -1624,6 +1659,45 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // dbg();
 
   panic("TODO: FCFSCachedTableRead");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  DS_ID lpm_id                 = node->get_lpm_id();
+  klee::ref<klee::Expr> addr   = node->get_addr();
+  klee::ref<klee::Expr> device = node->get_device();
+
+  const LPM *lpm = get_tofino_ds<LPM>(ep, lpm_id);
+
+  code_t transpiled_key = transpiler.transpile(addr);
+
+  if (declared_ds.find(lpm_id) == declared_ds.end()) {
+    transpile_lpm_decl(ingress, lpm, addr, device);
+    ingress << "\n";
+    declared_ds.insert(lpm_id);
+  }
+
+  std::optional<var_t> key_var = ingress_vars.get(addr);
+  assert(key_var && "Key is not a variable");
+
+  ingress_apply.indent();
+  ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
+
+  ingress_apply.indent();
+  ingress_apply << lpm_id << ".apply();\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMForward *node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  ingress_apply.indent();
+  ingress_apply << "// LPM forwarding logic simplified.\n";
+
   return EPVisitor::Action::doChildren;
 }
 

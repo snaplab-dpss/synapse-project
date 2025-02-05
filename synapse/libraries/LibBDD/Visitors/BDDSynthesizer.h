@@ -64,7 +64,8 @@ private:
   BDDSynthesizerTarget target;
   Transpiler transpiler;
 
-  using init_synthesizer_fn = std::function<void(coder_t &, const call_t &)>;
+  enum class IsConditional { No, Yes };
+  using init_synthesizer_fn = std::function<IsConditional(coder_t &, const call_t &)>;
   std::unordered_map<std::string, init_synthesizer_fn> init_synthesizers;
 
   using process_synthesizer_fn = std::function<void(coder_t &, const Call *)>;
@@ -97,16 +98,18 @@ private:
   void init_post_process();
   void synthesize(const Node *node);
 
-  void synthesize_init(coder_t &, const call_t &);
+  IsConditional synthesize_init(coder_t &, const call_t &);
   void synthesize_process(coder_t &, const Call *);
 
-  void map_allocate(coder_t &, const call_t &);
-  void vector_allocate(coder_t &, const call_t &);
-  void dchain_allocate(coder_t &, const call_t &);
-  void cms_allocate(coder_t &, const call_t &);
-  void tb_allocate(coder_t &, const call_t &);
-  void devtbl_allocate(coder_t &, const call_t &);
-  void devtbl_fill(coder_t &, const call_t &);
+  IsConditional map_allocate(coder_t &, const call_t &);
+  IsConditional vector_allocate(coder_t &, const call_t &);
+  IsConditional dchain_allocate(coder_t &, const call_t &);
+  IsConditional cms_allocate(coder_t &, const call_t &);
+  IsConditional tb_allocate(coder_t &, const call_t &);
+  IsConditional devtbl_allocate(coder_t &, const call_t &);
+  IsConditional devtbl_fill(coder_t &, const call_t &);
+  IsConditional lpm_allocate(coder_t &, const call_t &);
+  IsConditional lpm_from_file(coder_t &, const call_t &);
 
   void packet_borrow_next_chunk(coder_t &, const Call *);
   void packet_return_chunk(coder_t &, const Call *);
@@ -134,6 +137,8 @@ private:
   void tb_update_and_check(coder_t &, const Call *);
   void tb_expire(coder_t &, const Call *);
   void devtbl_lookup(coder_t &, const Call *);
+  void lpm_lookup(coder_t &, const Call *);
+  void lpm_update(coder_t &, const Call *);
 
   void stack_dbg() const;
   void stack_push();

@@ -1,4 +1,5 @@
 #include "kvs_config.h"
+#include "nf-parse.h"
 
 #include <getopt.h>
 #include <stdlib.h>
@@ -6,7 +7,6 @@
 
 #include "nf-util.h"
 #include "nf-log.h"
-#include "nf-parse.h"
 
 #define PARSE_ERROR(format, ...)                                                                                                           \
   nf_config_usage();                                                                                                                       \
@@ -17,13 +17,13 @@ void nf_config_init(int argc, char **argv) {
   uint16_t nb_devices = rte_eth_dev_count_avail();
 
   struct option long_options[] = {{"server", required_argument, NULL, 'i'},
-                                  {"client", required_argument, NULL, 'e'},
+                                  {"lpm-config", required_argument, NULL, 'f'},
                                   {"capacity", required_argument, NULL, 'c'},
                                   {"expire", required_argument, NULL, 't'},
                                   {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "i:e:c:t:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "i:f:c:t:", long_options, NULL)) != EOF) {
     unsigned device;
     switch (opt) {
     case 'i':
@@ -33,11 +33,9 @@ void nf_config_init(int argc, char **argv) {
       }
       break;
 
-    case 'e':
-      config.client_dev = nf_util_parse_int(optarg, "client", 10, '\0');
-      if (config.client_dev >= nb_devices) {
-        PARSE_ERROR("Invalid client device.\n");
-      }
+    case 'f':
+      strncpy(config.lpm_cfg_file, optarg, LPM_CONFIG_FNAME_LEN - 1);
+      config.lpm_cfg_file[LPM_CONFIG_FNAME_LEN - 1] = '\0';
       break;
 
     case 'c':
@@ -64,8 +62,8 @@ void nf_config_init(int argc, char **argv) {
 void nf_config_usage(void) {
   NF_INFO("Usage:\n"
           "[DPDK EAL options] --\n"
-          "\t--client <device>: client device.\n"
           "\t--server <device>: server device.\n"
+          "\t--lpm-config <fname>: static lpm forwarding table configuration file.\n"
           "\t--capacity <n>: capacity.\n"
           "\t--expire <interval>: Expiration time (us).\n");
 }
@@ -73,8 +71,8 @@ void nf_config_usage(void) {
 void nf_config_print(void) {
   NF_INFO("\n--- KVS Config ---\n");
 
-  NF_INFO("Client Device: %" PRIu16, config.client_dev);
   NF_INFO("Server Device: %" PRIu16, config.server_dev);
+  NF_INFO("LPM config file: %s", config.lpm_cfg_file);
   NF_INFO("Capacity: %" PRIu32, config.capacity);
   NF_INFO("Expiration time: %" PRIu32 "us", config.expiration_time_us);
 

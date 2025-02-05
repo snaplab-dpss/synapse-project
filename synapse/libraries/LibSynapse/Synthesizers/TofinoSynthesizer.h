@@ -183,6 +183,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMForward *node) override final;
 
 private:
   code_t transpile(klee::ref<klee::Expr> expr);
@@ -200,6 +202,7 @@ private:
   void transpile_register_write_action_decl(coder_t &coder, const Register *reg, const code_t &name, const var_t &write_value);
   void transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key,
                                         klee::ref<klee::Expr> value);
+  void transpile_lpm_decl(coder_t &coder, const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
 
   void dbg_vars() const;
 

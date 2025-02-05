@@ -44,26 +44,24 @@ std::string to_string(TargetType target) {
   return ss.str();
 }
 
-TargetsView::TargetsView(const std::array<TargetView, 3> &_elements) : elements(_elements) {}
+TargetsView::TargetsView(const std::vector<TargetView> &_elements) : elements(_elements) {}
 
 TargetView TargetsView::get_initial_target() const {
   assert(!elements.empty() && "No targets to get the initial target from.");
   return elements[0];
 }
 
-Targets::Targets(const toml::table &config)
-    : elements{
-          std::make_unique<Tofino::TofinoTarget>(config),
-          std::make_unique<Controller::ControllerTarget>(),
-          std::make_unique<x86::x86Target>(),
-      } {}
+Targets::Targets(const toml::table &config) {
+  elements.push_back(std::move(std::make_unique<Tofino::TofinoTarget>(config)));
+  // elements.push_back(std::move(std::make_unique<Controller::ControllerTarget>()));
+  elements.push_back(std::move(std::make_unique<x86::x86Target>()));
+}
 
 TargetsView Targets::get_view() const {
-  std::array<TargetView, 3> views{
-      elements[0]->get_view(),
-      elements[1]->get_view(),
-      elements[2]->get_view(),
-  };
+  std::vector<TargetView> views;
+  for (const std::unique_ptr<Target> &element : elements) {
+    views.push_back(element->get_view());
+  }
   return TargetsView(views);
 }
 

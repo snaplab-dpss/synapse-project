@@ -46,6 +46,8 @@ enum class ModuleType {
   Tofino_CMSQuery,
   Tofino_CMSIncrement,
   Tofino_CMSIncAndQuery,
+  Tofino_LPMLookup,
+  Tofino_LPMForward,
 
   // ========================================
   // Tofino CPU
@@ -220,6 +222,12 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_Recirculate:
     os << "Tofino_Recirculate";
+    break;
+  case ModuleType::Tofino_LPMLookup:
+    os << "Tofino_LPMLookup";
+    break;
+  case ModuleType::Tofino_LPMForward:
+    os << "Tofino_LPMForward";
     break;
   case ModuleType::Controller_Ignore:
     os << "Controller_Ignore";

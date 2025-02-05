@@ -21,13 +21,16 @@ protected:
     indent_t lvl;
 
     coder_t();
+    coder_t(const coder_t &);
     coder_t(indent_t lvl);
+    coder_t &operator=(const coder_t &other);
 
     void inc();
     void dec();
     void indent();
     code_t dump() const;
 
+    coder_t &operator<<(const coder_t &coder);
     coder_t &operator<<(const code_t &code);
     coder_t &operator<<(i64 n);
   };

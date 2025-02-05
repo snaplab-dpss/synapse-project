@@ -70,11 +70,10 @@ private:
                                       std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_meter(const Meter *table, const std::unordered_set<DS_ID> &deps,
                                         std::vector<placement_t> &placements) const;
-
   PlacementStatus find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_lpm(const LPM *lpm, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
 
   void concretize_placement(Stage &stage, const placement_t &placement);
-
   void save_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps);
   void replace_placement_request(const DS *ds, const std::unordered_set<DS_ID> &deps, const std::vector<Stage> &new_stages);
 };

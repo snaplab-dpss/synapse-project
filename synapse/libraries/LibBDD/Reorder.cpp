@@ -36,6 +36,9 @@ const std::map<std::string, bool> fn_has_side_effects_lookup{
     {"tb_is_tracing", false},
     {"tb_trace", true},
     {"tb_update_and_check", true},
+    {"lpm_from_file", true},
+    {"lpm_lookup", false},
+    {"lpm_update", true},
     {"hash_obj", false},
 };
 

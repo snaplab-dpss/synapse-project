@@ -60,6 +60,7 @@ public:
   bool get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const;
   bool is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const;
   bool is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const;
+  bool is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const Node *> &fwd_logic) const;
 
   const Node *get_node_by_id(node_id_t id) const;
   Node *get_mutable_node_by_id(node_id_t id);

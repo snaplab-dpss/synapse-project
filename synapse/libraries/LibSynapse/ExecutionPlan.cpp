@@ -837,6 +837,29 @@ pps_t EP::estimate_tput_pps() const {
   return egress;
 }
 
+port_ingress_t EP::get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const {
+  port_ingress_t egress;
+
+  if (past_recirculations.empty()) {
+    egress.global = hr;
+  } else {
+    int rport = past_recirculations[0];
+    int depth = 1;
+
+    for (size_t i = 1; i < past_recirculations.size(); i++) {
+      if (past_recirculations[i] == rport) {
+        depth++;
+      } else {
+        break;
+      }
+    }
+
+    egress.recirc[{rport, depth}] = hr;
+  }
+
+  return egress;
+}
+
 port_ingress_t EP::get_node_egress(const EPNode *node) const {
   hit_rate_t hr = ctx.get_profiler().get_hr(node);
 

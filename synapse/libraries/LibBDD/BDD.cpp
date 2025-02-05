@@ -3,6 +3,7 @@
 #include <LibBDD/Visitors/Visitor.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Expr.h>
+#include <LibCore/Debug.h>
 
 #include <unordered_map>
 #include <set>
@@ -26,8 +27,9 @@ const std::vector<std::string> ignored_functions{
 constexpr const char *const init_to_process_trigger_function = "start_time";
 
 const std::vector<std::string> symbols_in_skippable_conditions{
-    "received_a_packet",       "loop_termination",         "map_allocation_succeeded", "vector_alloc_success",        "is_dchain_allocated",
-    "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",  "devtbl_allocation_succeeded",
+    "received_a_packet",           "loop_termination",        "map_allocation_succeeded", "vector_alloc_success",
+    "is_dchain_allocated",         "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",
+    "devtbl_allocation_succeeded", "lpm_alloc_success",       "lpm_update_elem_result",
 };
 
 const std::vector<std::string> routing_functions{
@@ -37,94 +39,30 @@ const std::vector<std::string> routing_functions{
 };
 
 const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call{
-    {
-        "rte_lcore_count",
-        {"lcores"},
-    },
-    {
-        "rte_ether_addr_hash",
-        {"rte_ether_addr_hash"},
-    },
-    {
-        "nf_set_rte_ipv4_udptcp_checksum",
-        {"checksum"},
-    },
-    {
-        "current_time",
-        {"next_time"},
-    },
-    {
-        "packet_receive",
-        {"DEVICE", "pkt_len"},
-    },
-    {
-        "expire_items_single_map",
-        {"number_of_freed_flows"},
-    },
-    {
-        "expire_items_single_map_iteratively",
-        {"number_of_freed_flows"},
-    },
-    {
-        "map_get",
-        {"map_has_this_key", "allocated_index"},
-    },
-    {
-        "map_size",
-        {"map_size"},
-    },
-    {
-        "dchain_is_index_allocated",
-        {"dchain_is_index_allocated"},
-    },
-    {
-        "dchain_allocate_new_index",
-        {"out_of_space", "new_index"},
-    },
-    {
-        "vector_borrow",
-        {"vector_data_reset"},
-    },
-    {
-        "vector_sample_lt",
-        {"found_sample", "sample_index"},
-    },
-    {
-        "cht_find_preferred_available_backend",
-        {"chosen_backend", "prefered_backend_found"},
-    },
-    {
-        "cms_count_min",
-        {"min_estimate"},
-    },
-    {
-        "cms_periodic_cleanup",
-        {"cleanup_success"},
-    },
-    {
-        "hash_obj",
-        {"hash"},
-    },
-    {
-        "tb_is_tracing",
-        {"is_tracing"},
-    },
-    {
-        "tb_trace",
-        {"index_out"},
-    },
-    {
-        "tb_update_and_check",
-        {"pass"},
-    },
-    {
-        "tb_expire",
-        {"number_of_freed_flows"},
-    },
-    {
-        "devtbl_lookup",
-        {"devices_table_hit", "dev", "mac"},
-    },
+    {"rte_lcore_count", {"lcores"}},
+    {"rte_ether_addr_hash", {"rte_ether_addr_hash"}},
+    {"nf_set_rte_ipv4_udptcp_checksum", {"checksum"}},
+    {"current_time", {"next_time"}},
+    {"packet_receive", {"DEVICE", "pkt_len"}},
+    {"expire_items_single_map", {"number_of_freed_flows"}},
+    {"expire_items_single_map_iteratively", {"number_of_freed_flows"}},
+    {"map_get", {"map_has_this_key", "allocated_index"}},
+    {"map_size", {"map_size"}},
+    {"dchain_is_index_allocated", {"dchain_is_index_allocated"}},
+    {"dchain_allocate_new_index", {"out_of_space", "new_index"}},
+    {"vector_borrow", {"vector_data_reset"}},
+    {"vector_sample_lt", {"found_sample", "sample_index"}},
+    {"cht_find_preferred_available_backend", {"chosen_backend", "prefered_backend_found"}},
+    {"cms_count_min", {"min_estimate"}},
+    {"cms_periodic_cleanup", {"cleanup_success"}},
+    {"hash_obj", {"hash"}},
+    {"tb_is_tracing", {"is_tracing"}},
+    {"tb_trace", {"index_out"}},
+    {"tb_update_and_check", {"pass"}},
+    {"tb_expire", {"number_of_freed_flows"}},
+    {"devtbl_lookup", {"devices_table_hit", "dev", "mac"}},
+    {"lpm_lookup", {"lpm_lookup_match", "lpm_lookup_result"}},
+    {"lpm_update", {"lpm_update_elem_result"}},
 };
 
 typedef LibCore::Symbols (*SymbolsExtractor)(const call_t &call, const LibCore::Symbols &symbols);
@@ -145,10 +83,7 @@ LibCore::Symbols packet_chunks_symbol_extractor(const call_t &call, const LibCor
 }
 
 const std::unordered_map<std::string, SymbolsExtractor> special_symbols_extractors{
-    {
-        "packet_borrow_next_chunk",
-        packet_chunks_symbol_extractor,
-    },
+    {"packet_borrow_next_chunk", packet_chunks_symbol_extractor},
 };
 
 bool is_skip_function(const call_t &call) {
@@ -1094,6 +1029,44 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
   }
 
   return true;
+}
+
+bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const Node *> &fwd_logic) const {
+  if (node->get_type() != NodeType::Branch) {
+    return false;
+  }
+
+  bool pattern_found = false;
+  node->visit_nodes([&fwd_logic, &pattern_found](const Node *node) {
+    switch (node->get_type()) {
+    case NodeType::Call: {
+      pattern_found = false;
+    } break;
+    case NodeType::Branch: {
+      const Branch *branch                                = dynamic_cast<const Branch *>(node);
+      const std::unordered_set<std::string> &used_symbols = branch->get_used_symbols();
+      if (used_symbols.size() == 1 && (*used_symbols.begin() == "lpm_lookup_match" || *used_symbols.begin() == "lpm_lookup_result")) {
+        pattern_found = true;
+        fwd_logic.push_back(node);
+      } else {
+        pattern_found = false;
+      }
+    } break;
+    case NodeType::Route: {
+      if (pattern_found) {
+        fwd_logic.push_back(node);
+      }
+    } break;
+    }
+
+    if (pattern_found) {
+      return NodeVisitAction::Continue;
+    } else {
+      return NodeVisitAction::Stop;
+    }
+  });
+
+  return pattern_found;
 }
 
 } // namespace LibBDD

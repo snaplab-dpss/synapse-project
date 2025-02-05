@@ -98,6 +98,13 @@ public:
                                      u32 width, u32 height);
   static CountMinSketch *build_or_reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj,
                                             const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height);
+
+  // ======================================================================
+  //  LPM
+  // ======================================================================
+
+  static LPM *build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj);
+  static bool can_build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj);
 };
 
 } // namespace Tofino

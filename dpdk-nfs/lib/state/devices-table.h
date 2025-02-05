@@ -6,7 +6,7 @@
 
 #include "lib/util/ether.h"
 
-#define CONFIG_FNAME_LEN 512
+#define DEVTBL_CONFIG_FNAME_LEN 512
 
 struct DevicesTable;
 

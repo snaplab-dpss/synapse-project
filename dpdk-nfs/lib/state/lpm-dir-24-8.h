@@ -1,25 +1,4 @@
-#include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stddef.h>
-#include <stdbool.h>
-
-#define lpm_PLEN_MAX 32
-#define BYTE_SIZE 8
-
-#define INVALID 0xFFFF
-
-#define lpm_24_FLAG_MASK 0x8000     // == 0b1000 0000 0000 0000
-#define lpm_24_MAX_ENTRIES 16777216 //= 2^24
-#define lpm_24_VAL_MASK 0x7FFF
-#define lpm_24_PLEN_MAX 24
-
-#define lpm_LONG_OFFSET_MAX 256
-#define lpm_LONG_FACTOR 256
-#define lpm_LONG_MAX_ENTRIES 65536 //= 2^16
-
-#define MAX_NEXT_HOP_VALUE 0x7FFF
 
 // http://tiny-tera.stanford.edu/~nickm/papers/Infocom98_lookup.pdf
 
@@ -34,9 +13,24 @@
 //
 // max next hop value is 2^15 - 1.
 
-struct lpm;
+struct LPM;
 
-int lpm_allocate(struct lpm **lpm_out);
-void lpm_free(struct lpm *_lpm);
-int lpm_update_elem(struct lpm *_lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value);
-int lpm_lookup_elem(struct lpm *_lpm, uint32_t prefix);
+#define LPM_CONFIG_FNAME_LEN 512
+
+int lpm_allocate(struct LPM **lpm_out);
+void lpm_free(struct LPM *lpm);
+
+// Fill the lpm data structure with the prefix entries.
+// This is parsed from a configuration file "cfg_fname".
+// The configuration file expects the following format per line: "<ipv4 addr>/<subnet size> <device>".
+// E.g.:
+// 10.0.0.0/8 0
+// 11.0.0.0/8 1
+// ...
+void lpm_from_file(struct LPM *lpm, const char *cfg_fname);
+
+// We assume that the prefix is in network byte order.
+int lpm_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value);
+
+// We assume that the address is in network byte order.
+int lpm_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out);

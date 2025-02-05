@@ -4,18 +4,13 @@
 
 #include <memory>
 #include <vector>
-#include <array>
 
 namespace LibSynapse {
 
 class ModuleFactory;
 class TargetContext;
 
-enum class TargetType {
-  x86,
-  Tofino,
-  Controller,
-};
+enum class TargetType { x86, Tofino, Controller };
 
 std::ostream &operator<<(std::ostream &os, TargetType target);
 std::string to_string(TargetType target);
@@ -44,9 +39,9 @@ struct Target {
 };
 
 struct TargetsView {
-  std::array<TargetView, 3> elements;
+  std::vector<TargetView> elements;
 
-  TargetsView(const std::array<TargetView, 3> &elements);
+  TargetsView(const std::vector<TargetView> &elements);
   TargetsView(const TargetsView &other) = default;
   TargetsView(TargetsView &&other)      = default;
 
@@ -54,7 +49,7 @@ struct TargetsView {
 };
 
 struct Targets {
-  std::array<std::unique_ptr<Target>, 3> elements;
+  std::vector<std::unique_ptr<Target>> elements;
 
   Targets(const toml::table &config);
   Targets(const Targets &other) = delete;

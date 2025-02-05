@@ -18,6 +18,7 @@ enum class DSType {
   FCFS_CACHED_TABLE,
   HH_TABLE,
   COUNT_MIN_SKETCH,
+  LPM,
 };
 
 struct DS {

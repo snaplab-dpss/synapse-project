@@ -591,5 +591,31 @@ CountMinSketch *TofinoModuleFactory::build_or_reuse_cms(const EP *ep, const LibB
   return cms;
 }
 
+LPM *TofinoModuleFactory::build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const DS_ID id                  = "lpm_" + std::to_string(obj);
+  const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
+
+  LPM *lpm = new LPM(id, properties.total_ports);
+
+  if (!tofino_ctx->check_placement(ep, node, lpm)) {
+    delete lpm;
+    lpm = nullptr;
+  }
+
+  return lpm;
+}
+
+bool TofinoModuleFactory::can_build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+  LPM *lpm = build_lpm(ep, node, obj);
+
+  if (!lpm) {
+    return false;
+  }
+
+  delete lpm;
+  return true;
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

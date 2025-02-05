@@ -26,6 +26,7 @@ enum class DSImpl {
   Tofino_IntegerAllocator,
   Tofino_CountMinSketch,
   Tofino_CuckooHashTable,
+  Tofino_LPM,
 
   // ========================================
   // Tofino CPU

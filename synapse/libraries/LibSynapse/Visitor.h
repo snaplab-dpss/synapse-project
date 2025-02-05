@@ -37,6 +37,8 @@ class IntegerAllocatorIsAllocated;
 class CMSQuery;
 class CMSIncrement;
 class CMSIncAndQuery;
+class LPMLookup;
+class LPMForward;
 } // namespace Tofino
 
 namespace Controller {
@@ -129,6 +131,7 @@ public:
 
   virtual void visit(const EP *);
   virtual void visit(const EP *, const EPNode *);
+  virtual void visit_children(const EP *, const EPNode *);
 
   // ========================================
   // Tofino
@@ -163,6 +166,8 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMForward *m) { return Action::doChildren; }
 
   // ========================================
   // Tofino CPU

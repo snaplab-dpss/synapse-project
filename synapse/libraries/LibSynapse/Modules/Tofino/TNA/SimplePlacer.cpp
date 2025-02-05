@@ -99,6 +99,7 @@ SimplePlacer::~SimplePlacer() {
 struct SimplePlacer::placement_t {
   int stage_id;
   bits_t sram;
+  bits_t tcam;
   bits_t map_ram;
   bits_t xbar;
   int logical_ids;
@@ -162,6 +163,9 @@ PlacementStatus SimplePlacer::find_placements(const DS *ds, const std::unordered
   case DSType::HASH:
     status = find_placements_hash(dynamic_cast<const Hash *>(ds), deps, placements);
     break;
+  case DSType::LPM:
+    status = find_placements_lpm(dynamic_cast<const LPM *>(ds), deps, placements);
+    break;
   default:
     panic("Unsupported DS type");
   }
@@ -213,6 +217,7 @@ PlacementStatus SimplePlacer::find_placements_table(const Table *table, const st
     placement_t placement = {
         .stage_id    = stage_id,
         .sram        = amount_placed,
+        .tcam        = 0,
         .map_ram     = 0,
         .xbar        = requested_xbar,
         .logical_ids = 1,
@@ -275,6 +280,7 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std
     placement_t placement = {
         .stage_id    = stage_id,
         .sram        = requested_sram,
+        .tcam        = 0,
         .map_ram     = requested_map_ram,
         .xbar        = requested_xbar,
         .logical_ids = requested_logical_ids,
@@ -338,6 +344,7 @@ PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter, const st
     placement_t placement = {
         .stage_id    = stage_id,
         .sram        = amount_placed,
+        .tcam        = 0,
         .map_ram     = 0,
         .xbar        = requested_xbar,
         .logical_ids = 1,
@@ -395,6 +402,7 @@ PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::
     placement_t placement = {
         .stage_id    = stage_id,
         .sram        = 0,
+        .tcam        = 0,
         .map_ram     = 0,
         .xbar        = requested_xbar,
         .logical_ids = 1,
@@ -403,6 +411,68 @@ PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::
 
     placements.push_back(placement);
     break;
+  }
+
+  return PlacementStatus::SUCCESS;
+}
+
+PlacementStatus SimplePlacer::find_placements_lpm(const LPM *lpm, const std::unordered_set<DS_ID> &deps,
+                                                  std::vector<placement_t> &placements) const {
+  assert(!is_placed(lpm->id) && "LPM already placed");
+
+  if (lpm->get_match_xbar_consume() > properties->exact_match_xbar_per_stage) {
+    return PlacementStatus::XBAR_CONSUME_EXCEEDS_LIMIT;
+  }
+
+  int soonest_stage_id = get_soonest_available_stage(stages, deps);
+  assert(soonest_stage_id < static_cast<int>(stages.size()) && "No available stage");
+
+  if (soonest_stage_id < 0) {
+    return PlacementStatus::NO_AVAILABLE_STAGE;
+  }
+
+  bits_t requested_tcam = align_to_byte(lpm->get_consumed_tcam());
+  bits_t requested_xbar = align_to_byte(lpm->get_match_xbar_consume());
+
+  int total_stages = stages.size();
+  for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
+    const Stage &stage = stages[stage_id];
+
+    if (stage.available_sram == 0) {
+      continue;
+    }
+
+    if (requested_xbar > stage.available_exact_match_xbar) {
+      continue;
+    }
+
+    if (stage.available_logical_ids == 0) {
+      continue;
+    }
+
+    // This is not actually how it happens, but this is a VERY simple placer.
+    bits_t amount_placed = std::min(requested_tcam, stage.available_tcam);
+
+    placement_t placement = {
+        .stage_id    = stage_id,
+        .sram        = 0,
+        .tcam        = amount_placed,
+        .map_ram     = 0,
+        .xbar        = requested_xbar,
+        .logical_ids = 1,
+        .obj         = lpm->id,
+    };
+
+    requested_tcam -= amount_placed;
+    placements.push_back(placement);
+
+    if (requested_tcam == 0) {
+      break;
+    }
+  }
+
+  if (requested_tcam > 0) {
+    return PlacementStatus::TOO_LARGE;
   }
 
   return PlacementStatus::SUCCESS;

@@ -14,7 +14,7 @@ struct nf_config config;
 struct State *kvs_state;
 
 bool nf_init(void) {
-  kvs_state = alloc_state(config.capacity, config.expiration_time_us);
+  kvs_state = alloc_state();
   return kvs_state != NULL;
 }
 
@@ -119,7 +119,12 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   }
 
   if (device == config.server_dev) {
-    return config.client_dev;
+    uint16_t dst_device;
+    if (!lpm_lookup(kvs_state->fwd, ipv4_hdr->dst_addr, &dst_device)) {
+      return DROP;
+    } else {
+      return dst_device;
+    }
   }
 
   int index;
@@ -127,14 +132,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
 
   if (cache_hit) {
     invert_flow(ether_hdr, ipv4_hdr, udp_hdr);
-    return config.client_dev;
+    return device;
   }
 
   bool cache_updated = kvs_on_cache_miss(kvs_state, now, kvs_hdr->op, kvs_hdr->key, kvs_hdr->value);
 
   if (cache_updated) {
     invert_flow(ether_hdr, ipv4_hdr, udp_hdr);
-    return config.client_dev;
+    return device;
   }
 
   // Cache miss and not updated, send to storage server.
