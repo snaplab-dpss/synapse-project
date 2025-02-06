@@ -8,6 +8,7 @@
 #include <vector>
 #include <variant>
 #include <chrono>
+#include <thread>
 
 #include <rte_eal.h>
 #include <rte_common.h>
@@ -20,7 +21,7 @@
 #include "listener.h"
 #include "process_query.h"
 
-#define REPORT_FILE "netcache-controller.tsv"
+volatile bool stop_reset_timer = false;
 
 struct args_t {
 	std::string conf_file_path;
@@ -53,43 +54,9 @@ struct args_t {
 	void dump() const {
 		std::cout << "\n";
 		std::cout << "Configuration:\n";
-		std::cout << "  conf (w/ topo): " << conf_file_path << "\n";
+		std::cout << "	conf (w/ topo): " << conf_file_path << "\n";
 	}
 };
-
-void signalHandler(int signum) {
-	auto conf = netcache::Controller::controller->get_conf();
-	auto use_tofino_model = netcache::Controller::controller->get_use_tofino_model();
-
-	auto ofs = std::ofstream(REPORT_FILE);
-
-	ofs << "#port\trx packets\ttx packets\n";
-
-	if (!ofs.is_open()) {
-		std::cerr << "ERROR: unable to write to \"" << REPORT_FILE << ".\n";
-		exit(1);
-	}
-
-	// Get tx/rx for all active ports.
-	for (auto connection : conf.topology.connections) {
-		auto in_port = connection.in.port;
-
-		if (!use_tofino_model) {
-			in_port = netcache::Controller::controller->get_dev_port(in_port, 0);
-		}
-
-		auto tx = netcache::Controller::controller->get_port_tx(in_port);
-		auto rx = netcache::Controller::controller->get_port_rx(in_port);
-
-		ofs << in_port << "\t" << rx << "\t" << tx << "\n";
-	}
-
-	ofs.close();
-
-	std::cout << "Report generated at \"" << REPORT_FILE << "\". Exiting.\n";
-
-	exit(signum);
-}
 
 static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 	struct rte_eth_conf port_conf;
@@ -171,11 +138,62 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 	return 0;
 }
 
-int main(int argc, char **argv) {
-	signal(SIGINT, signalHandler);
-	signal(SIGQUIT, signalHandler);
-	signal(SIGTERM, signalHandler);
+void reset_counters() {
+	auto last_ts_key	= std::chrono::steady_clock::now();
+	auto last_ts_cm		= std::chrono::steady_clock::now();
+	auto last_ts_bloom	= std::chrono::steady_clock::now();
 
+	while (!stop_reset_timer) {
+		// Check if the reset timers have elapsed.
+		// If so, reset the respective counters.
+		auto cur_ts = std::chrono::steady_clock::now();
+		auto elapsed_time_key =
+				std::chrono::duration_cast<std::chrono::seconds>(cur_ts-last_ts_key);
+		auto elapsed_time_cm =
+				std::chrono::duration_cast<std::chrono::seconds>(cur_ts-last_ts_cm);
+		auto elapsed_time_bloom =
+				std::chrono::duration_cast<std::chrono::seconds>(cur_ts-last_ts_bloom);
+
+		if (elapsed_time_key.count()
+				>= netcache::Controller::controller->conf.key_cntr.reset_timer) {
+			netcache::Controller::controller->reg_key_count.set_all_false();
+			last_ts_key = cur_ts;
+			#ifndef NDEBUG
+			std::cout << "Reset timer: data plane reg_key_count." << std::endl;
+			#endif
+		}
+
+		if (elapsed_time_key.count()
+				>= netcache::Controller::controller->conf.cm.reset_timer) {
+			netcache::Controller::controller->reg_cm_0.set_all_false();
+			netcache::Controller::controller->reg_cm_1.set_all_false();
+			netcache::Controller::controller->reg_cm_2.set_all_false();
+			netcache::Controller::controller->reg_cm_3.set_all_false();
+			last_ts_cm = cur_ts;
+			#ifndef NDEBUG
+			std::cout << "Reset timer: data plane reg_cm_0." << std::endl;
+			std::cout << "Reset timer: data plane reg_cm_1." << std::endl;
+			std::cout << "Reset timer: data plane reg_cm_2." << std::endl;
+			std::cout << "Reset timer: data plane reg_cm_3." << std::endl;
+			#endif
+		}
+
+		if (elapsed_time_bloom.count()
+				>= netcache::Controller::controller->conf.bloom.reset_timer) {
+			netcache::Controller::controller->reg_bloom_0.set_all_false();
+			netcache::Controller::controller->reg_bloom_1.set_all_false();
+			netcache::Controller::controller->reg_bloom_2.set_all_false();
+			last_ts_bloom = cur_ts;
+			#ifndef NDEBUG
+			std::cout << "Reset timer: data plane reg_bloom_0." << std::endl;
+			std::cout << "Reset timer: data plane reg_bloom_1." << std::endl;
+			std::cout << "Reset timer: data plane reg_bloom_2." << std::endl;
+			#endif
+		}
+	}
+}
+
+int main(int argc, char **argv) {
 	args_t args(argc, argv);
 	args.dump();
 
@@ -188,11 +206,11 @@ int main(int argc, char **argv) {
 	unsigned nb_ports;
 	uint16_t portid;
 
-    int ret = rte_eal_init(argc, argv);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize DPDK environment." << std::endl;
-        return 1;
-    }
+	int ret = rte_eal_init(argc, argv);
+	if (ret < 0) {
+		std::cerr << "Failed to initialize DPDK environment." << std::endl;
+		return 1;
+	}
 
 	nb_ports = rte_eth_dev_count_avail();
 
@@ -213,47 +231,11 @@ int main(int argc, char **argv) {
 	auto listener = new netcache::Listener(conf.connection.in.port);
 	auto process_query = new netcache::ProcessQuery(conf.connection.out.port);
 
+	std::thread reset_thread(reset_counters);
+
 	std::cerr << "\nNetCache controller is ready.\n";
 
-	auto last_time = std::chrono::steady_clock::now();
-
 	while (1) {
-		// Check if the reset timers have elapsed.
-		// If so, reset the respective counters.
-		auto cur_time = std::chrono::steady_clock::now();
-		auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(cur_time-last_time);
-
-		if (elapsed_time.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
-			netcache::Controller::controller->reg_key_count.set_all_false();
-			#ifndef NDEBUG
-			std::cout << "Reset timer: data plane reg_key_count." << std::endl;
-			#endif
-		}
-
-		if (elapsed_time.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
-			netcache::Controller::controller->reg_cm_0.set_all_false();
-			netcache::Controller::controller->reg_cm_1.set_all_false();
-			netcache::Controller::controller->reg_cm_2.set_all_false();
-			netcache::Controller::controller->reg_cm_3.set_all_false();
-			#ifndef NDEBUG
-			std::cout << "Reset timer: data plane reg_cm_0." << std::endl;
-			std::cout << "Reset timer: data plane reg_cm_1." << std::endl;
-			std::cout << "Reset timer: data plane reg_cm_2." << std::endl;
-			std::cout << "Reset timer: data plane reg_cm_3." << std::endl;
-			#endif
-		}
-
-		if (elapsed_time.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
-			netcache::Controller::controller->reg_bloom_0.set_all_false();
-			netcache::Controller::controller->reg_bloom_1.set_all_false();
-			netcache::Controller::controller->reg_bloom_2.set_all_false();
-			#ifndef NDEBUG
-			std::cout << "Reset timer: data plane reg_bloom_0." << std::endl;
-			std::cout << "Reset timer: data plane reg_bloom_1." << std::endl;
-			std::cout << "Reset timer: data plane reg_bloom_2." << std::endl;
-			#endif
-		}
-
 		auto pkt = listener->receive_query();
 
 		if (pkt.has_valid_protocol()) {
@@ -270,6 +252,9 @@ int main(int argc, char **argv) {
 			std::cerr << "Invalid packet received.";
 		}
 	}
+
+	stop_reset_timer = true;
+	reset_thread.join();
 
 	return 0;
 }
