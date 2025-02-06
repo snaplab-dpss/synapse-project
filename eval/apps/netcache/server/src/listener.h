@@ -7,6 +7,7 @@
 
 #include <rte_mbuf.h>
 
+#include "constants.h"
 #include "query.h"
 
 namespace netcache {
@@ -14,21 +15,15 @@ namespace netcache {
 class Listener {
 private:
 	uint8_t* buffer;
-	uint32_t count;
+	uint32_t count = 0;
 
-	/* uint16_t port_id; */
-	/* struct rte_mbuf *buf[1]; */
+	uint16_t port_id;
+	struct rte_mbuf *buf[BURST_SIZE];
 
 public:
-	static std::shared_ptr<Listener> listener_ptr;
-	int sockfd;
-	struct sockaddr_in serv_addr, ctrl_addr;
-	socklen_t ctrl_len = sizeof(ctrl_addr);
+	Listener(const int dpdk_port);
 
-	/* Listener(const int dpdk_port); */
-	Listener();
-
-	query_t receive_query();
+	pkt_hdr_t receive_query();
 	~Listener();
 };
 

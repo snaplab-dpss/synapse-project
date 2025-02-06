@@ -1,18 +1,16 @@
 {
 	"query": {
-		"limit": 1000,
+		"limit": 1000000,
 		"duration": 5
 	},
-	"connections": [
-		{
-			"in": {
-				"port": 0,
-				"comment": "dpdk port"
-			},
-			"out": {
-				"port": 1,
-				"comment": "dpdk port"
-			}
+	"connections": {
+		"in": {
+			"port": 0,
+			"comment": "dpdk port"
+		},
+		"out": {
+			"port": 1,
+			"comment": "dpdk port"
 		}
-	]
+	}
 }

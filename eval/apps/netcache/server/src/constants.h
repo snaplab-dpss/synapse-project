@@ -8,6 +8,7 @@
 
 // DPDK
 
+#define BURST_SIZE 1
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
 #define RX_RING_SIZE 128

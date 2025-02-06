@@ -1,27 +1,32 @@
 #include <iostream>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <rte_ethdev.h>
+#include <rte_malloc.h>
+#include <rte_mbuf.h>
+#include <rte_lcore.h>
 
+#include "packet.h"
 #include "store.h"
 #include "constants.h"
 #include "server_reply.h"
 #include "listener.h"
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <linux/ip.h>
-#include <linux/udp.h>
-
 namespace netcache {
 
-Store::Store() {}
+Store::Store(const int dpdk_port, rte_mempool * pool) {
+	port_id = dpdk_port;
+	mbuf_pool = pool;
+}
 
-void Store::read_query(const query_t& query) {
+Store::~Store() {}
+
+void Store::read_query(const pkt_hdr_t& pkt) {
 	// Retrieve value from KV map using query.key.
 	uint32_t val;
-	auto it = kv_map.find(query.key);
+	auto it = kv_map.find(pkt.get_netcache_hdr()->key);
 
 	if (it == kv_map.end()) {
 		val = 0;
@@ -29,23 +34,19 @@ void Store::read_query(const query_t& query) {
 		val = it->second;
 	}
 
-	// Initialize a server_reply struct with the op, key and newly obtained value.
-	server_reply_t reply = server_reply_t(query.key, val);
+	pkt_hdr_t pkt_reply = pkt;
 
-	// Serialize server_reply and send it to the controller.
-	auto buffer = reply.serialize();
+	pkt_reply.get_netcache_hdr()->val = val;
+	pkt_reply.swap_addr();
 
-	auto sent_len =
-		sendto(Listener::listener_ptr->sockfd, (const char*)buffer.data(), buffer.size(), MSG_CONFIRM,
-			   (const struct sockaddr*)&Listener::listener_ptr->ctrl_addr,
-			   Listener::listener_ptr->ctrl_len);
+	buf[0] = rte_pktmbuf_alloc(mbuf_pool);
+    rte_memcpy(rte_pktmbuf_mtod(buf[0], pkt_hdr_t*), pkt_reply, sizeof(&pkt));
 
-	if (sent_len != buffer.size()) {
-		fprintf(stderr, "Truncated packet.\n");
-		exit(EXIT_FAILURE);
-	}
+	uint16_t num_tx =
+		rte_eth_tx_burst(port_id, 0, buf, 1);
 }
 
+/*
 void Store::write_query(const query_t& query) {
 	// Add/Update the value on the KV map using query.key.
 	kv_map[query.key] = query.val;
@@ -63,7 +64,9 @@ void Store::write_query(const query_t& query) {
 		exit(EXIT_FAILURE);
 	}
 }
+*/
 
+/*
 void Store::del_query(const query_t& query) {
 	// Delete the key/value from the KV map using query.key.
 	kv_map.erase(query.key);
@@ -81,5 +84,6 @@ void Store::del_query(const query_t& query) {
 		exit(EXIT_FAILURE);
 	}
 }
+*/
 
 }  // namespace netcache

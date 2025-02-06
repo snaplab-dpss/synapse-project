@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 
+#include "packet.h"
 #include "query.h"
 #include "server_reply.h"
 
@@ -14,14 +15,21 @@ typedef unsigned char byte_t;
 
 namespace netcache {
 
-struct Store {
+class Store {
+private:
+	uint16_t port_id;
+	struct rte_mempool* mbuf_pool;
+	struct rte_mbuf *buf[1];
+
+public:
 	std::map<uint8_t, uint32_t> kv_map;
 
-	Store();
+	Store(const int dpdk_port, rte_mempool *pool);
+	~Store();
 
-	void read_query(const query_t& query);
-	void write_query(const query_t& query);
-	void del_query(const query_t& query);
+	void read_query(const pkt_hdr_t& pkt);
+	// void write_query(const pkt_hdr_t& pkt);
+	// void del_query(const pkt_hdr_t& pkt);
 };
 
 }  // namespace netcache

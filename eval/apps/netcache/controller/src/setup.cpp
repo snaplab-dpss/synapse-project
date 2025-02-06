@@ -14,7 +14,7 @@ extern "C" {
 #include <bf_rt/bf_rt_common.h>
 #include <bf_switchd/bf_switchd.h>
 #include <bfutils/bf_utils.h>  // required for bfshell
-#include <pkt_mgr/pkt_mgr_intf.h>
+/* #include <pkt_mgr/pkt_mgr_intf.h> */
 #ifdef __cplusplus
 }
 #endif

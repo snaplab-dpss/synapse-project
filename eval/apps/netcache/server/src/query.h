@@ -6,75 +6,55 @@
 #include <stdint.h>
 #include <iostream>
 
+#include "packet.h"
+
 namespace netcache {
 
 struct query_t {
 	bool valid;
 
+	pkt_hdr_t pkt;
 	uint8_t op;
-	uint32_t seq;
+	uint8_t seq;
 	uint16_t key;
 	uint32_t val;
 
-	query_t() {
-		valid = false;
-	}
-	query_t(std::vector<uint8_t>& buffer, ssize_t pkt_size) {
-		valid = true;
+	query_t() { return; }
 
-		size_t cur_offset = 0;
+	query_t(pkt_hdr_t* pkt, ssize_t pkt_size) {
+		valid = pkt->has_valid_protocol();
 
-		op = read_uint8(buffer, cur_offset);
-		cur_offset += sizeof(op);
+		if (!valid) {
+			#ifdef DEBUG
+			printf("Invalid protocol packet. Ignoring.\n");
+			#endif
+			return;
+		}
+		pkt->pretty_print_base();
 
-		if (op != 0 && op != 1 && op != 2 && op != 3) {
-			valid = false;
+		valid =
+			(pkt_size >= (pkt->get_l2_size()
+						  + pkt->get_l3_size()
+						  + pkt->get_l4_size()
+						  + pkt->get_netcache_hdr_size()));
+
+		if (!valid) {
+			#ifdef DEBUG
+			printf("Packet too small. Ignoring.\n");
+			#endif
+			return;
 		}
 
-		seq = ntohl(read_uint32(buffer, cur_offset));
-		cur_offset += sizeof(seq);
+		auto l2 = pkt->get_l2();
+		auto l3 = pkt->get_l3();
+		auto l4 = pkt->get_l4();
 
-		key = ntohs(read_uint16(buffer, cur_offset));
-		cur_offset += sizeof(key);
+		auto netcache_hdr = pkt->get_netcache_hdr();
 
-		val = ntohl(read_uint32(buffer, cur_offset));
-		cur_offset += sizeof(val);
-	}
-
-	uint32_t read_uint32(const std::vector<uint8_t>& buffer, size_t offset) const {
-		if (offset + sizeof(uint32_t) > buffer.size()) {
-			throw std::out_of_range("Buffer overflow during uint32_t read.");
-		}
-
-		uint32_t value;
-		for (size_t i = 0; i < sizeof(uint32_t); i++) {
-			value <<= 8;
-			value |= buffer[offset + i];
-		}
-
-		return value;
-	}
-
-	uint16_t read_uint16(const std::vector<uint8_t>& buffer, size_t offset) const {
-		if (offset + sizeof(uint16_t) > buffer.size()) {
-			throw std::out_of_range("Buffer overflow during uint16_t read.");
-		}
-
-		uint16_t value;
-		for (size_t i = 0; i < sizeof(uint16_t); i++) {
-			value <<= 8;
-			value |= buffer[offset + i];
-		}
-
-		return value;
-	}
-
-	uint8_t read_uint8(const std::vector<uint8_t>& buffer, size_t offset) const {
-		if (offset + sizeof(uint8_t) > buffer.size()) {
-			throw std::out_of_range("Buffer overflow during uint8_t read.");
-		}
-
-		return buffer[offset];
+		op = netcache_hdr->op;
+		seq = netcache_hdr->seq;
+		key = netcache_hdr->key;
+		val = netcache_hdr->val;
 	}
 
 	void serialize_append(std::vector<uint8_t>& buffer, uint64_t value, size_t bytes) const {
@@ -95,5 +75,4 @@ struct query_t {
 		return buffer;
 	}
 };
-
 }  // namespace netcache

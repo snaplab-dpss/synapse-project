@@ -7,6 +7,12 @@
 
 namespace netcache {
 
+void from_json(const nlohmann::json &j, misc_t &misc) {
+	j.at("interface").get_to(misc.interface);
+	j.at("tofino_model").get_to(misc.tofino_model);
+	j.at("bf_prompt").get_to(misc.bf_prompt);
+}
+
 void from_json(const nlohmann::json &j, kv_t &kv) {
 	j.at("store_size").get_to(kv.store_size);
 	j.at("initial_entries").get_to(kv.initial_entries);
@@ -43,17 +49,23 @@ void from_json(const nlohmann::json &j, topo_pipes_t &topo_pipes) {
 	// j.at("internal").get_to(topo_pipes.internal);
 }
 
+void from_json(const nlohmann::json &j, connection_t &connection) {
+	j.at("in").get_to(connection.in);
+	j.at("out").get_to(connection.out);
+}
+
 void from_json(const nlohmann::json &j, topology_t &topo_connections) {
-	j.at("stats").get_to(topo_connections.stats);
 	j.at("connections").get_to(topo_connections.connections);
 	j.at("pipes").get_to(topo_connections.pipes);
 }
 
 void from_json(const nlohmann::json &j, conf_t &conf) {
+	j.at("misc").get_to(conf.misc);
 	j.at("kv").get_to(conf.kv);
 	j.at("key_cntr").get_to(conf.key_cntr);
 	j.at("cm").get_to(conf.cm);
 	j.at("bloom").get_to(conf.bloom);
+	j.at("connections").get_to(conf.connection);
 	j.at("topology").get_to(conf.topology);
 }
 
@@ -76,10 +88,6 @@ conf_t parse_conf_file(const std::string &conf_file_path) {
 	std::cout << "  reg size " << conf.cm.reg_size << "\n";
 	std::cout << "Bloom filter:\n";
 	std::cout << "  reg size " << conf.bloom.reg_size << "\n";
-	std::cout << "Stats:\n";
-	std::cout << "  port     " << conf.topology.stats.port << "\n";
-	std::cout << "  capacity " << conf.topology.stats.capacity << "\n";
-	std::cout << "  comment  " << conf.topology.stats.comment << "\n";
 
 	for (auto connection : conf.topology.connections) {
 		std::cout << "Connection:\n";
