@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "packet.h"
 #include "query.h"
 #include "server_reply.h"
 
@@ -12,13 +13,18 @@ typedef unsigned char byte_t;
 
 namespace netcache {
 
-struct ProcessQuery {
-	int sockfd;
-	struct sockaddr_in servaddr;
+class ProcessQuery {
+private:
+	uint16_t port_id;
+	struct rte_mempool* mbuf_pool;
+	struct rte_mbuf *buf[1];
 
-	ProcessQuery();
+public:
+	ProcessQuery(const int dpdk_port);
+	~ProcessQuery();
 
-	void read_query(const query_t& query);
+	void read_query(const pkt_hdr_t& pkt);
+
 };
 
 }  // netcache

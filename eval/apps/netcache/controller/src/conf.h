@@ -7,6 +7,12 @@
 
 namespace netcache {
 
+struct misc_t {
+	std::string interface;
+	bool tofino_model;
+	bool bf_prompt;
+};
+
 struct kv_t {
 	uint16_t store_size;
 	uint16_t initial_entries;
@@ -43,18 +49,24 @@ struct topo_pipes_t {
 	// std::vector<uint16_t> internal;
 };
 
+struct connection_t {
+	topo_port_t in;
+	topo_port_t out;
+};
+
 struct topology_t {
-	topo_port_t stats;
 	std::vector<topo_connection_t> connections;
 	topo_pipes_t pipes;
 };
 
 struct conf_t {
-	kv_t kv;
-	key_cntr_t key_cntr;
-	cm_t cm;
-	bloom_t bloom;
-	topology_t topology;
+	misc_t			misc;
+	kv_t			kv;
+	key_cntr_t		key_cntr;
+	cm_t			cm;
+	bloom_t			bloom;
+	connection_t	connection;
+	topology_t		topology;
 };
 
 conf_t parse_conf_file(const std::string &conf_file_path);

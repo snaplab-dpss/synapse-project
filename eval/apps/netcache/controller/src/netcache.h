@@ -5,6 +5,7 @@
 #include <random>
 #include <unordered_set>
 
+#include "bf_rt/bf_rt_init.hpp"
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
@@ -25,7 +26,7 @@
 extern "C" {
 #endif
 #include <bf_rt/bf_rt_common.h>
-#include <port_mgr/bf_port_if.h>
+#include <bf_rt/bf_rt_info.h>
 #ifdef __cplusplus
 }
 #endif
@@ -90,8 +91,6 @@ public:
 			config_ports(conf);
 		}
 
-		config_stats_port(conf.topology.stats.port, use_tofino_model);
-
 		for (auto connection : conf.topology.connections) {
 			auto ig_port = connection.in.port;
 			auto eg_port = connection.out.port;
@@ -117,7 +116,7 @@ public:
 		}
 
 		// Configure mirror session.
-		configure_mirroring(128, conf.topology.stats.port);
+		/* configure_mirroring(128, conf.topology.stats.port); */
 
 		// Insert k entries in the switch's KV store, all with value 0.
 		// k is defined in conf.kv.initial_entries.
@@ -140,9 +139,10 @@ public:
 		for (int i: sampl_index) {
 			cache_lookup.add_entry(i, i, i);
 		}
+
+		/* auto bf_status = port_diag_prbs_stats_display(dev_tgt.dev_id, 0); */
 	}
 
-	void config_stats_port(uint16_t stats_port, bool use_tofino_model);
 	void config_ports(const conf_t &conf);
 
 public:
@@ -153,15 +153,8 @@ public:
 	std::shared_ptr<bfrt::BfRtSession> get_session() { return session; }
 	bf_rt_target_t get_dev_tgt() const { return dev_tgt; }
 
-	struct stats_t {
-		uint64_t bytes;
-		uint64_t packets;
-
-		stats_t(uint64_t _bytes, uint64_t _packets)
-			: bytes(_bytes), packets(_packets) {}
-	};
-
 	uint64_t get_port_tx(uint16_t port) { return ports.get_port_tx(port); }
+	uint64_t get_port_rx(uint16_t port) { return ports.get_port_rx(port); }
 
 	uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
 		return ports.get_dev_port(front_panel_port, lane);

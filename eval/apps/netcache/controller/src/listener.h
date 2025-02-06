@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string>
-// #include <rte_mbuf.h>
+#include <rte_mbuf.h>
 
+#include "constants.h"
 #include "packet.h"
 #include "query.h"
 
@@ -10,16 +11,16 @@ namespace netcache {
 
 class Listener {
 private:
-	int sock_recv;
 	uint8_t* buffer;
+	uint32_t count = 0;
 
 	uint16_t port_id;
-	// struct rte_mbuf *buf[1];
+	struct rte_mbuf *buf[BURST_SIZE];
 
 public:
-	Listener(const std::string& iface);
+	Listener(const int dpdk_port);
 
-	query_t receive_query();
+	pkt_hdr_t receive_query();
 	~Listener();
 };
 

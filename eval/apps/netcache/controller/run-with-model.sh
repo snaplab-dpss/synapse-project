@@ -32,10 +32,9 @@ fi
 # make debug -j
 
 # Run controller with model
-echo "Running sudo -E $CONTROLLER_EXE $CONTROLLER_CONF_FILE -i $IFACE --tofino-model"
+# echo "Running sudo -E $CONTROLLER_EXE $CONTROLLER_CONF_FILE -i $IFACE --tofino-model"
 NETCACHE_HW_CONF=$CONF_FILE \
 	sudo -E "$CONTROLLER_EXE" \
-	"$CONTROLLER_CONF_FILE" \
-	-i $IFACE \
-	--tofino-model \
-	--bf-prompt
+	-m 8192 --no-huge --vdev "net_tap0,iface=test_rx" --vdev "net_tap1,iface==test_tx" --no-shconf \
+	-- \
+	"$CONTROLLER_CONF_FILE"

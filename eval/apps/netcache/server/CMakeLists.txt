@@ -28,6 +28,7 @@ add_executable(server
 	${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/listener.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/store.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/packet.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/conf.cpp
 )
 
