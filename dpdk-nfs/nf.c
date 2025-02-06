@@ -133,7 +133,7 @@ static void worker_loop() {
       } else if (dst_device == FLOOD) {
         packet_broadcast(&data, device);
       } else {
-        concretize_devices(&dst_device, devices_count);
+        // concretize_devices(&dst_device, devices_count);
         int i = rte_eth_tx_burst(dst_device, 0, &mbuf, 1);
         klee_assert(i == 1);
       }

@@ -1,4 +1,4 @@
-APP:=pktgen
+APP:=tm
 
 MAKEFILE_DIR:=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 TOOLS_DIR=$(realpath $(MAKEFILE_DIR)/../tools)

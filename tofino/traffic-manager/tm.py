@@ -1,11 +1,52 @@
 #!/usr/bin/env python3
 
 import bfrt_grpc.client as gc
+import argparse
 
 GRPC_SERVER_IP     = "127.0.0.1"
 GRPC_SERVER_PORT   = 50052
-P4_PROGRAM_NAME    = "pktgen"
+P4_PROGRAM_NAME    = "tm"
 DEFAULT_PORT_SPEED = 100
+
+ACTIVE_PORTS = [ p for p in range(1, 31) ]
+TG_PORT = 1
+
+CONFIGURATIONS = {
+	# 30 LANs
+	"nop": {
+		"broadcast": [ p for p in ACTIVE_PORTS if p != TG_PORT ],
+		"symmetric": [],
+		"route": [],
+	},
+
+	# 29 LAN + 1 WAN
+	# WAN in port 30
+	"fw": {
+		"broadcast": [ p for p in ACTIVE_PORTS if p not in [TG_PORT, 30] ],
+		"symmetric": [ 30 ],
+		"route": [],
+	},
+
+	# 29 LAN + 1 WAN
+	# WAN in port 30
+	"nat": {
+		"broadcast": [ p for p in ACTIVE_PORTS if p not in [TG_PORT, 30] ],
+		"symmetric": [ 30 ],
+		"route": [],
+	},
+
+	# 29 clients + 1 server
+	# Server requests coming from port 30
+	# Server in port 2
+	"kvs": {
+		"broadcast": [ p for p in ACTIVE_PORTS if p not in [TG_PORT, 2, 30] ],
+		"symmetric": [],
+		"route": [
+			(30, 2), # Server requests from clients
+			(2, 30), # Server responses back to clients
+		],
+	},
+}
 
 class Ports:
 	def __init__(self, bfrt_info):
@@ -139,7 +180,6 @@ class Ports:
 				gc.DataTuple("$PORT_ENABLE", bool_val=True),
 			])
 			
-			print("Adding port {}".format((front_panel_port, speed, fec)))
 			port_table.entry_add(target, [key], [data])
 			
 	def add_port(self, front_panel_port, speed):
@@ -194,10 +234,11 @@ class Router:
 	def __init__(self, bfrt_info):
 		self.router = bfrt_info.table_get("Ingress.router_tbl")
 
-		# Clear all entries first
+	def clear(self):
 		target = gc.Target(device_id=0, pipe_id=0xffff)
 		for _, key in self.router.entry_get(target, [], {"from_hw": False}):
-			if key: self.router.entry_del(target, [key])
+			if key:
+				self.router.entry_del(target, [key])
 		
 	def add_route_tg_entry(self, dev_port):
 		target = gc.Target(device_id=0, pipe_id=0xffff)
@@ -224,6 +265,22 @@ class Router:
 			],
 			[
 				self.router.make_data([], "Ingress.route_symmetric_response")
+			]
+		)
+	
+	def add_forward_entry(self, ingress_dev_port, egress_dev_port):
+		target = gc.Target(device_id=0, pipe_id=0xffff)
+		self.router.entry_add(
+			target,
+			[
+				self.router.make_key([
+					gc.KeyTuple("ig_intr_md.ingress_port", ingress_dev_port),
+				])
+			],
+			[
+				self.router.make_data([
+					gc.DataTuple("port", egress_dev_port),
+				], "Ingress.forward")
 			]
 		)
 
@@ -296,13 +353,12 @@ class PacketModifier:
 	def __init__(self, bfrt_info):
 		self.packet_modifier = bfrt_info.table_get("Egress.packet_modifier_tbl")
 
-		# Clear all entries first
+	def clear(self):
 		target = gc.Target(device_id=0, pipe_id=0xffff)
 		for _, key in self.packet_modifier.entry_get(target, [], {"from_hw": False}):
 			if key: self.packet_modifier.entry_del(target, [key])
 	
-	def pick_salt_for_egress_port(self, dev_port, salt_number):
-		assert salt_number in range(0, 32)
+	def set_prefix(self, dev_port, prefix):
 		target = gc.Target(device_id=0, pipe_id=0xffff)
 		self.packet_modifier.entry_add(
 			target,
@@ -312,75 +368,63 @@ class PacketModifier:
 				])
 			],
 			[
-				self.packet_modifier.make_data([], "Egress.pick_salt{}".format(salt_number))
+				self.packet_modifier.make_data([
+					gc.DataTuple("prefix", prefix)
+				], "Egress.set_prefix")
 			]
 		)
 
-def setup_kvs(bfrt_info, tg_port, lan_ports):
-	assert tg_port not in lan_ports
-
+def setup(bfrt_info, cfg):
 	ports = Ports(bfrt_info)
 	router = Router(bfrt_info)
 	multicaster = Multicaster(bfrt_info)
 	packet_modifier = PacketModifier(bfrt_info)
 
-	all_ports = [tg_port] + lan_ports
-	for port in all_ports:
+	for port in ACTIVE_PORTS:
 		ports.add_port(port, DEFAULT_PORT_SPEED)
-		print("Configured port {}".format(port))
-
-	tg_dev_port = ports.get_dev_port(tg_port)
-	lan_dev_ports = [ ports.get_dev_port(p) for p in lan_ports if p != tg_port ]
-
-	router.add_route_tg_entry(tg_dev_port)
-	multicaster.setup_multicast(lan_dev_ports)
-	for i, lan_dev_port in enumerate(lan_dev_ports):
-		packet_modifier.pick_salt_for_egress_port(lan_dev_port, i)
-		print("Picked salt {} for egress port {} (dev={})".format(
-			i, ports.get_front_panel_port(lan_dev_port), lan_dev_port))
-
-def setup_fw(bfrt_info, tg_port, lan_ports, wan_ports):
-	assert tg_port not in lan_ports
-	assert tg_port not in wan_ports
-	assert set(lan_ports).isdisjoint(wan_ports)
-
-	ports = Ports(bfrt_info)
-	router = Router(bfrt_info)
-	multicaster = Multicaster(bfrt_info)
-	packet_modifier = PacketModifier(bfrt_info)
-
-	all_ports = [tg_port] + lan_ports + wan_ports
-	for port in all_ports:
-		ports.add_port(port, DEFAULT_PORT_SPEED)
-		print("Configured port {}".format(port))
-
-	tg_dev_port = ports.get_dev_port(tg_port)
-	lan_dev_ports = [ ports.get_dev_port(p) for p in lan_ports ]
-	wan_dev_ports = [ ports.get_dev_port(p) for p in wan_ports ]
-
-	router.add_route_tg_entry(tg_dev_port)
-	for i, lan_dev_port in enumerate(lan_dev_ports):
-		packet_modifier.pick_salt_for_egress_port(lan_dev_port, i)
-		print("Picked salt {} for egress port {} (dev={})".format(
-			i, ports.get_front_panel_port(lan_dev_port), lan_dev_port))
+	print("Configured ports: {}".format(ACTIVE_PORTS))
 	
-	for wan_dev_port in wan_dev_ports:
-		router.add_route_symmetric_response(wan_dev_port)
-		print("Configured symmetric response on wan port {} (dev={})".format(
-			ports.get_front_panel_port(wan_dev_port), wan_dev_port))
+	router.clear()
+	packet_modifier.clear()
+	print("Cleared the router and packet modifier tables")
 
-	multicaster.setup_multicast(lan_dev_ports)
+	tg_dev_port = ports.get_dev_port(TG_PORT)
+	router.add_route_tg_entry(tg_dev_port)
+	print("Configured TG port: {}".format(TG_PORT))
+
+	broadcast_dev_ports = [ ports.get_dev_port(p) for p in cfg["broadcast"] ]
+	multicaster.setup_multicast(broadcast_dev_ports)
+	print("Configured broadcasting ports: {}".format(cfg["broadcast"]))
+
+	for port in cfg["symmetric"]:
+		dev_port = ports.get_dev_port(port)
+		router.add_route_symmetric_response(dev_port)
+		print("Configured symmetric port: {}".format(port))
+	
+	for ingress_port, egress_port in cfg["route"]:
+		ingress_dev_port = ports.get_dev_port(ingress_port)
+		egress_dev_port = ports.get_dev_port(egress_port)
+		router.add_forward_entry(ingress_dev_port, egress_dev_port)
+		print("Added forwarding rule: {} -> {}".format(ingress_port, egress_port))
+
+	for port in cfg["broadcast"] + [ egress_port for _, egress_port in cfg["route"] ]:
+		dev_port = ports.get_dev_port(port)
+		prefix = port
+		packet_modifier.set_prefix(dev_port, prefix)
+		print("Set prefix {} for egress port {} (dev={})".format(prefix, port, dev_port))
 
 if __name__ == "__main__":
+	parser = argparse.ArgumentParser(
+		prog="Traffic Manager",
+		description="Controller for the Traffic Manager P4 program, responsible for managing traffic coming from a DPDK" \
+					"traffic generator and broadcasting it to the DUT.",
+	)
+
+	parser.add_argument("--nf", choices=CONFIGURATIONS.keys(), required=True)
+	args = parser.parse_args()
+					
 	grpc_client = gc.ClientInterface("{}:{}".format(GRPC_SERVER_IP, GRPC_SERVER_PORT), 0, 0)
 	grpc_client.bind_pipeline_config(P4_PROGRAM_NAME)
 	bfrt_info = grpc_client.bfrt_info_get(P4_PROGRAM_NAME)
-	
-	tg_port = 2
-	lan_ports = [ p for p in range(1, 33) if p != tg_port ]
-	setup_kvs(bfrt_info, tg_port, lan_ports)
 
-	# tg_port = 2
-	# lan_ports = [ 4, 6, 8 ]
-	# wan_ports = [ 5, 7, 9 ]
-	# setup_fw(bfrt_info, tg_port, lan_ports, wan_ports)
+	setup(bfrt_info, CONFIGURATIONS[args.nf])
