@@ -24,7 +24,7 @@ const std::vector<std::string> ignored_functions{
     "vector_reset",
 };
 
-constexpr const char *const init_to_process_trigger_function = "start_time";
+constexpr const char *const init_to_process_trigger_function = "packet_receive";
 
 const std::vector<std::string> symbols_in_skippable_conditions{
     "received_a_packet",           "loop_termination",        "map_allocation_succeeded", "vector_alloc_success",
@@ -126,8 +126,7 @@ Route *route_node_from_call(const call_t &call, node_id_t id, const klee::Constr
   klee::ref<klee::Expr> dst_device = call.args.at("dst_device").expr;
   assert(!dst_device.isNull() && "Null dst_device");
 
-  int value = LibCore::solver_toolbox.value_from_expr(dst_device);
-  return new Route(id, constraints, symbol_manager, RouteOp::Forward, value);
+  return new Route(id, constraints, symbol_manager, RouteOp::Forward, dst_device);
 }
 
 call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
@@ -310,11 +309,19 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
 
       if (call.function_name == init_to_process_trigger_function) {
         in_init_mode = false;
+        for (klee::ref<klee::Expr> common_constraint : group.get_common_constraints()) {
+          constraints.addConstraint(common_constraint);
+        }
+      }
+
+      if (is_skip_function(call)) {
+        pop_call_paths(call_paths_view);
+        continue;
       }
 
       if (in_init_mode) {
         init.push_back(call);
-      } else if (!is_skip_function(call)) {
+      } else {
         Node *node;
 
         if (is_routing_function(call)) {

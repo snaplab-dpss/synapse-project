@@ -32,6 +32,61 @@ gen_and_build_profiler() {
     log_and_run NF=$nf-profiler.cpp make -f $TOOLS_DIR/Makefile.dpdk
 }
 
+nop() {
+    flows=$1
+    churn=$2
+    distribution=$3
+    zipf_param=$4
+
+    pcap="nop-f$flows-c$churn-$distribution"
+    if [ "$distribution" == "zipf" ]; then
+        pcap="$pcap$zipf_param"
+    fi
+
+    warmup_pcap=$pcap-dev0-warmup
+    pcap_dev_0=$pcap-dev0
+    pcap_dev_1=$pcap-dev1
+    report=$pcap
+
+    log_and_run $SYNTHESIZED_DIR/build/nop-profiler \
+        $PCAPS_DIR/$report.json \
+        0:$PCAPS_DIR/$pcap-dev0.pcap \
+        1:$PCAPS_DIR/$pcap-dev1.pcap \
+        2:$PCAPS_DIR/$pcap-dev2.pcap \
+        3:$PCAPS_DIR/$pcap-dev3.pcap \
+        4:$PCAPS_DIR/$pcap-dev4.pcap \
+        5:$PCAPS_DIR/$pcap-dev5.pcap \
+        6:$PCAPS_DIR/$pcap-dev6.pcap \
+        7:$PCAPS_DIR/$pcap-dev7.pcap \
+        8:$PCAPS_DIR/$pcap-dev8.pcap \
+        9:$PCAPS_DIR/$pcap-dev9.pcap \
+        10:$PCAPS_DIR/$pcap-dev10.pcap \
+        11:$PCAPS_DIR/$pcap-dev11.pcap \
+        12:$PCAPS_DIR/$pcap-dev12.pcap \
+        13:$PCAPS_DIR/$pcap-dev13.pcap \
+        14:$PCAPS_DIR/$pcap-dev14.pcap \
+        15:$PCAPS_DIR/$pcap-dev15.pcap \
+        16:$PCAPS_DIR/$pcap-dev16.pcap \
+        17:$PCAPS_DIR/$pcap-dev17.pcap \
+        18:$PCAPS_DIR/$pcap-dev18.pcap \
+        19:$PCAPS_DIR/$pcap-dev19.pcap \
+        20:$PCAPS_DIR/$pcap-dev20.pcap \
+        21:$PCAPS_DIR/$pcap-dev21.pcap \
+        22:$PCAPS_DIR/$pcap-dev22.pcap \
+        23:$PCAPS_DIR/$pcap-dev23.pcap \
+        24:$PCAPS_DIR/$pcap-dev24.pcap \
+        25:$PCAPS_DIR/$pcap-dev25.pcap \
+        26:$PCAPS_DIR/$pcap-dev26.pcap \
+        27:$PCAPS_DIR/$pcap-dev27.pcap \
+        28:$PCAPS_DIR/$pcap-dev28.pcap \
+        29:$PCAPS_DIR/$pcap-dev29.pcap
+    
+    log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
+        --in $BDDS_DIR/nop.bdd \
+        --profile $PCAPS_DIR/$report.json \
+        --out $PCAPS_DIR/$report.dot
+}
+
 fw() {
     flows=$1
     churn=$2
@@ -114,40 +169,52 @@ kvs() {
         --out $PCAPS_DIR/$report.dot
 }
 
-gen_and_build_profiler fw
+gen_and_build_profiler nop
 
-fw 10000 0 unif 0
-fw 10000 0 zipf 0.9
-fw 10000 0 zipf 0.99
-fw 10000 0 zipf 1.26
+nop 10000 0 unif 0
+nop 10000 0 zipf 0.9
+nop 10000 0 zipf 0.99
+nop 10000 0 zipf 1.26
 
-fw 10000 1000000 unif 0
-fw 10000 1000000 zipf 0.9
-fw 10000 1000000 zipf 0.99
-fw 10000 1000000 zipf 1.26
+nop 10000 1000000 unif 0
+nop 10000 1000000 zipf 0.9
+nop 10000 1000000 zipf 0.99
+nop 10000 1000000 zipf 1.26
 
-gen_and_build_profiler nat
+# gen_and_build_profiler fw
 
-nat 10000 0 unif 0
-nat 10000 0 zipf 0.9
-nat 10000 0 zipf 0.99
-nat 10000 0 zipf 1.26
+# fw 10000 0 unif 0
+# fw 10000 0 zipf 0.9
+# fw 10000 0 zipf 0.99
+# fw 10000 0 zipf 1.26
 
-nat 10000 1000000 unif 0
-nat 10000 1000000 zipf 0.9
-nat 10000 1000000 zipf 0.99
-nat 10000 1000000 zipf 1.26
+# fw 10000 1000000 unif 0
+# fw 10000 1000000 zipf 0.9
+# fw 10000 1000000 zipf 0.99
+# fw 10000 1000000 zipf 1.26
 
-gen_and_build_profiler kvs
+# gen_and_build_profiler nat
 
-kvs 100000 0 unif 0
-kvs 100000 0 zipf 0.9
-kvs 100000 0 zipf 0.99
-kvs 100000 0 zipf 1.26
+# nat 10000 0 unif 0
+# nat 10000 0 zipf 0.9
+# nat 10000 0 zipf 0.99
+# nat 10000 0 zipf 1.26
 
-kvs 100000 1000000 unif 0
-kvs 100000 1000000 zipf 0.9
-kvs 100000 1000000 zipf 0.99
-kvs 100000 1000000 zipf 1.26
+# nat 10000 1000000 unif 0
+# nat 10000 1000000 zipf 0.9
+# nat 10000 1000000 zipf 0.99
+# nat 10000 1000000 zipf 1.26
+
+# gen_and_build_profiler kvs
+
+# kvs 100000 0 unif 0
+# kvs 100000 0 zipf 0.9
+# kvs 100000 0 zipf 0.99
+# kvs 100000 0 zipf 1.26
+
+# kvs 100000 1000000 unif 0
+# kvs 100000 1000000 zipf 0.9
+# kvs 100000 1000000 zipf 0.99
+# kvs 100000 1000000 zipf 1.26
 
 # gen_and_build_profiler pol

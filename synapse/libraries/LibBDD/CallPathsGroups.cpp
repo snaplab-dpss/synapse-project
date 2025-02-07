@@ -1,6 +1,7 @@
 #include <LibBDD/CallPathsGroups.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
+#include <LibCore/Expr.h>
 
 namespace LibBDD {
 
@@ -166,6 +167,18 @@ bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> const
   }
 
   return false;
+}
+
+std::vector<klee::ref<klee::Expr>> CallPathsGroup::get_common_constraints() const {
+  std::vector<klee::ref<klee::Expr>> common_constraints;
+
+  for (klee::ref<klee::Expr> constraint : on_true.data[0]->constraints) {
+    if (satisfies_constraint(on_true.data, constraint) && satisfies_constraint(on_false.data, constraint)) {
+      common_constraints.push_back(constraint);
+    }
+  }
+
+  return common_constraints;
 }
 
 } // namespace LibBDD

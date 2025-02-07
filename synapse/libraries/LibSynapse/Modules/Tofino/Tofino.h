@@ -36,7 +36,6 @@
 #include <LibSynapse/Modules/Tofino/CMSIncrement.h>
 #include <LibSynapse/Modules/Tofino/CMSIncAndQuery.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
-#include <LibSynapse/Modules/Tofino/LPMForward.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -77,7 +76,6 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSIncAndQueryFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
-              f.push_back(std::make_unique<LPMForwardFactory>());
               return f;
             }(),
             std::make_unique<TofinoContext>(config)) {}

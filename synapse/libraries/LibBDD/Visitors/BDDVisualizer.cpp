@@ -229,10 +229,10 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
 }
 
 BDDVisitor::Action BDDViz::visit(const Route *node) {
-  node_id_t id      = node->get_id();
-  int dst_device    = node->get_dst_device();
-  RouteOp operation = node->get_operation();
-  const Node *next  = node->get_next();
+  node_id_t id                     = node->get_id();
+  klee::ref<klee::Expr> dst_device = node->get_dst_device();
+  RouteOp operation                = node->get_operation();
+  const Node *next                 = node->get_next();
 
   if (next) {
     next->visit(*this);
@@ -244,7 +244,7 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
 
   switch (operation) {
   case RouteOp::Forward: {
-    ss << "fwd(" << dst_device << ")";
+    ss << "fwd(" << LibCore::pretty_print_expr(dst_device, false) << ")";
     break;
   }
   case RouteOp::Drop: {

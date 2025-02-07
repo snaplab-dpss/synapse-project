@@ -184,7 +184,6 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMForward *node) override final;
 
 private:
   code_t transpile(klee::ref<klee::Expr> expr);

@@ -39,7 +39,7 @@ std::string get_bdd_node_description(const LibBDD::Node *node) {
     } break;
     case LibBDD::RouteOp::Forward: {
       description << "forward(";
-      description << route->get_dst_device();
+      description << LibCore::expr_to_string(route->get_dst_device());
       description << ")";
     } break;
     }

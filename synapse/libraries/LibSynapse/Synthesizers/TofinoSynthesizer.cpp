@@ -1368,11 +1368,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
-  int dst_device   = node->get_dst_device();
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
+  klee::ref<klee::Expr> dst_device = node->get_dst_device();
+  coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "fwd(" << dst_device << ");\n";
+  ingress << "fwd(" << transpiler.transpile(dst_device) << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1688,15 +1688,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << lpm_id << ".apply();\n";
-
-  return EPVisitor::Action::doChildren;
-}
-
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMForward *node) {
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-
-  ingress_apply.indent();
-  ingress_apply << "// LPM forwarding logic simplified.\n";
 
   return EPVisitor::Action::doChildren;
 }

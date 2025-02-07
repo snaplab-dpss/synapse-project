@@ -36,8 +36,8 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
     return impls;
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  int dst_device                  = route_node->get_dst_device();
+  const LibBDD::Route *route_node  = dynamic_cast<const LibBDD::Route *>(node);
+  klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

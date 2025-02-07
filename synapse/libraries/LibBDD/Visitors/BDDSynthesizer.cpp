@@ -703,6 +703,22 @@ void BDDSynthesizer::init_pre_process(const BDD *bdd) {
     coder << "path_profiler_counter_sz = ";
     coder << bdd->size();
     coder << ";\n";
+
+    klee::ref<klee::Expr> device             = bdd->get_device().expr;
+    klee::ConstraintManager base_constraints = bdd->get_root()->get_constraints();
+
+    for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
+      bool valid_device_value = LibCore::solver_toolbox.is_expr_always_false(
+          base_constraints,
+          LibCore::solver_toolbox.exprBuilder->Eq(device, LibCore::solver_toolbox.exprBuilder->Constant(device_value, device->getWidth())));
+
+      if (valid_device_value) {
+        break;
+      } else {
+        coder.indent();
+        coder << "ports.push_back(" << device_value << ");\n";
+      }
+    }
   }
 }
 
@@ -823,21 +839,39 @@ void BDDSynthesizer::synthesize(const Node *node) {
     case NodeType::Route: {
       const Route *route_node = dynamic_cast<const Route *>(node);
 
-      RouteOp op     = route_node->get_operation();
-      int dst_device = route_node->get_dst_device();
+      RouteOp op                       = route_node->get_operation();
+      klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
       switch (op) {
       case RouteOp::Drop: {
+        if (target == BDDSynthesizerTarget::PROFILER) {
+          coder.indent();
+          coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_drop();\n";
+        }
+
         coder.indent();
         coder << "return DROP;\n";
       } break;
       case RouteOp::Broadcast: {
+        if (target == BDDSynthesizerTarget::PROFILER) {
+          coder.indent();
+          coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_flood();\n";
+        }
+
         coder.indent();
         coder << "return FLOOD;\n";
       } break;
       case RouteOp::Forward: {
+        if (target == BDDSynthesizerTarget::PROFILER) {
+          coder.indent();
+          coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_fwd(";
+          coder << transpiler.transpile(dst_device);
+          coder << ");\n";
+        }
+
         coder.indent();
-        coder << "return " << dst_device << ";\n";
+        coder << "return " << transpiler.transpile(dst_device) << ";\n";
+
       } break;
       }
     } break;

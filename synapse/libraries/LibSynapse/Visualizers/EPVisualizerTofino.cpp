@@ -68,12 +68,12 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  int dst_device               = node->get_dst_device();
+  const LibBDD::Node *bdd_node     = node->get_node();
+  TargetType target                = node->get_target();
+  klee::ref<klee::Expr> dst_device = node->get_dst_device();
 
   label_builder << "Forward (";
-  label_builder << dst_device;
+  label_builder << LibCore::pretty_print_expr(dst_device, false);
   label_builder << ")";
 
   function_call(ep_node, bdd_node, target, label_builder.str());

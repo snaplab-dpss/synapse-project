@@ -63,3 +63,27 @@ struct vlan_hdr_t {
   u16 vlan_tpid;
   u16 vlan_tci;
 } __attribute__((__packed__));
+
+namespace LibCore {
+
+inline std::string ipv4_to_str(u32 addr) {
+  std::stringstream ss;
+  ss << ((addr >> 0) & 0xff);
+  ss << ".";
+  ss << ((addr >> 8) & 0xff);
+  ss << ".";
+  ss << ((addr >> 16) & 0xff);
+  ss << ".";
+  ss << ((addr >> 24) & 0xff);
+  return ss.str();
+}
+
+inline u32 ipv4_set_prefix(u32 addr, u8 prefix, bits_t prefix_size) {
+  assert(prefix_size <= 32);
+  const u32 swapped_addr  = bswap32(addr);
+  const u32 mask          = (1ull << prefix_size) - 1;
+  const u32 prefix_masked = prefix & mask;
+  return bswap32((prefix_masked << (32 - prefix_size)) | (swapped_addr >> prefix_size));
+}
+
+} // namespace LibCore

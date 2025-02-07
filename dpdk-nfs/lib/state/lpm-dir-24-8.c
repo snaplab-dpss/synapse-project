@@ -249,6 +249,15 @@ int lpm_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t val
   return 1;
 }
 
+static bool parse_ipv4addr(const char *str, uint32_t *addr) {
+  uint8_t a, b, c, d;
+  if (sscanf(str, "%hhu.%hhu.%hhu.%hhu", &a, &b, &c, &d) == 4) {
+    *addr = ((uint32_t)a << 0) | ((uint32_t)b << 8) | ((uint32_t)c << 16) | ((uint32_t)d << 24);
+    return true;
+  }
+  return false;
+}
+
 void lpm_from_file(struct LPM *lpm, const char *cfg_fname) {
   FILE *cfg_file = fopen(cfg_fname, "r");
   if (cfg_file == NULL) {
@@ -261,7 +270,7 @@ void lpm_from_file(struct LPM *lpm, const char *cfg_fname) {
 
   while (fscanf(cfg_file, "%15[^/]/%d %hu\n", ipv4_addr_str, &subnet_size, &device) == 3) {
     uint32_t ipv4_addr;
-    if (!nf_parse_ipv4addr(ipv4_addr_str, &ipv4_addr)) {
+    if (!parse_ipv4addr(ipv4_addr_str, &ipv4_addr)) {
       rte_exit(EXIT_FAILURE, "Error parsing ipv4 address \"%s\" from cfg file", ipv4_addr_str);
     }
 

@@ -7,10 +7,10 @@ namespace Controller {
 
 class Forward : public ControllerModule {
 private:
-  int dst_device;
+  klee::ref<klee::Expr> dst_device;
 
 public:
-  Forward(const LibBDD::Node *node, int _dst_device)
+  Forward(const LibBDD::Node *node, klee::ref<klee::Expr> _dst_device)
       : ControllerModule(ModuleType::Controller_Forward, "Forward", node), dst_device(_dst_device) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
@@ -22,7 +22,7 @@ public:
     return cloned;
   }
 
-  int get_dst_device() const { return dst_device; }
+  klee::ref<klee::Expr> get_dst_device() const { return dst_device; }
 };
 
 class ForwardFactory : public ControllerModuleFactory {

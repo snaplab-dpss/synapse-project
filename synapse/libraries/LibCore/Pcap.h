@@ -48,6 +48,23 @@ struct flow_t {
   };
 };
 
+std::ostream &operator<<(std::ostream &os, const flow_t &flow) {
+  os << "{";
+
+  os << LibCore::ipv4_to_str(flow.src_ip);
+  os << ":";
+  os << bswap16(flow.src_port);
+
+  os << " -> ";
+
+  os << LibCore::ipv4_to_str(flow.dst_ip);
+  os << ":";
+  os << bswap16(flow.dst_port);
+
+  os << "}";
+  return os;
+}
+
 // Symmetric
 struct sflow_t {
   in_addr_t src_ip;
@@ -419,14 +436,14 @@ private:
 
 class PcapWriter {
 private:
-  std::string output_fname;
+  std::filesystem::path output_fname;
   pcap_t *pd;
   pcap_dumper_t *pdumper;
   bool assume_ip;
   bool compact;
 
 public:
-  PcapWriter(const std::string &_output_fname, bool _assume_ip, bool _compact)
+  PcapWriter(const std::filesystem::path &_output_fname, bool _assume_ip, bool _compact)
       : output_fname(_output_fname), pd(NULL), pdumper(NULL), assume_ip(_assume_ip), compact(_compact) {
     if (assume_ip) {
       pd = pcap_open_dead(DLT_RAW, 65535 /* snaplen */);
@@ -441,9 +458,9 @@ public:
     }
   }
 
-  PcapWriter(const std::string &_output_fname) : PcapWriter(_output_fname, false, true) {}
+  PcapWriter(const std::filesystem::path &_output_fname) : PcapWriter(_output_fname, false, true) {}
 
-  const std::string &get_output_fname() const { return output_fname; }
+  const std::filesystem::path &get_output_fname() const { return output_fname; }
 
   void write(const u8 *pkt, u16 hdrs_len, u16 total_len, time_ns_t ts) {
     time_s_t sec   = ts / 1'000'000'000;
@@ -462,7 +479,7 @@ public:
 
 inline in_addr_t random_addr() {
   std::stringstream ss;
-  ss << "10.";
+  ss << rand() % 256 << ".";
   ss << rand() % 256 << ".";
   ss << rand() % 256 << ".";
   ss << rand() % 256;

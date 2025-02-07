@@ -39,6 +39,8 @@ constexpr const u64 MILLION  = 1000000LLU;
 constexpr const u64 THOUSAND = 1000LLU;
 
 #define align_to_byte(B) ((B) % 8 == 0 ? (B) : (B) + 8 - (B) % 8)
+#define bswap16(x) __builtin_bswap16(x)
+#define bswap32(x) __builtin_bswap32(x)
 
 struct rw_fractions_t {
   hit_rate_t read;

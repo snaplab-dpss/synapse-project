@@ -27,6 +27,7 @@ public:
   CallPathsGroup(const call_paths_view_t &_call_paths) : call_paths(_call_paths) { group_call_paths(); }
 
   klee::ref<klee::Expr> get_discriminating_constraint() const { return constraint; }
+  std::vector<klee::ref<klee::Expr>> get_common_constraints() const;
 
   const call_paths_view_t &get_on_true() const { return on_true; }
   const call_paths_view_t &get_on_false() const { return on_false; }

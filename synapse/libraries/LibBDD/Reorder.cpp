@@ -232,7 +232,9 @@ bool get_siblings(const vector_t &anchor, const Node *target, bool find_in_all_b
         const Route *route_target = dynamic_cast<const Route *>(target);
 
         bool matching_route_decisions = route_node->get_operation() == route_target->get_operation();
-        bool matching_output_port     = route_node->get_dst_device() == route_target->get_dst_device();
+        assert(false && "TODO: here be dragons");
+        bool matching_output_port =
+            LibCore::solver_toolbox.are_exprs_always_equal(route_node->get_dst_device(), route_target->get_dst_device());
 
         if (matching_route_decisions && matching_output_port) {
           siblings.insert(node->get_id());

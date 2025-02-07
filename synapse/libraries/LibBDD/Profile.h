@@ -27,6 +27,16 @@ struct bdd_profile_t {
     u64 bytes;
   };
 
+  struct forwarding_stats_t {
+    struct stats_t {
+      std::unordered_map<u16, u64> ports;
+      u64 drop;
+      u64 flood;
+    };
+
+    std::unordered_map<node_id_t, stats_t> stats_per_route_op;
+  };
+
   struct map_stats_t {
     struct node_t {
       node_id_t node;
@@ -53,6 +63,7 @@ struct bdd_profile_t {
   meta_t meta;
   std::unordered_map<u64, map_stats_t> stats_per_map;
   std::unordered_map<node_id_t, u64> counters;
+  forwarding_stats_t forwarding_stats;
 
   fpm_t churn_top_k_flows(u64 map, u32 k) const;
   hit_rate_t churn_hit_rate_top_k_flows(u64 map, u32 k) const;

@@ -668,8 +668,94 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-/*@{NF_STATE}@*/
+struct LPM *lpm;
+uint64_t path_profiler_counter[11];
 
-/*@{NF_INIT}@*/
 
-/*@{NF_PROCESS}@*/
+bool nf_init() {
+  if (!lpm_allocate(&lpm)) {
+    return false;
+  }
+  lpm_from_file(lpm, "lpm.cfg");
+  memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
+  path_profiler_counter_ptr = path_profiler_counter;
+  path_profiler_counter_sz = 11;
+  ports.push_back(0);
+  ports.push_back(1);
+  ports.push_back(2);
+  ports.push_back(3);
+  ports.push_back(4);
+  ports.push_back(5);
+  ports.push_back(6);
+  ports.push_back(7);
+  ports.push_back(8);
+  ports.push_back(9);
+  ports.push_back(10);
+  ports.push_back(11);
+  ports.push_back(12);
+  ports.push_back(13);
+  ports.push_back(14);
+  ports.push_back(15);
+  ports.push_back(16);
+  ports.push_back(17);
+  ports.push_back(18);
+  ports.push_back(19);
+  ports.push_back(20);
+  ports.push_back(21);
+  ports.push_back(22);
+  ports.push_back(23);
+  ports.push_back(24);
+  ports.push_back(25);
+  ports.push_back(26);
+  ports.push_back(27);
+  ports.push_back(28);
+  ports.push_back(29);
+  return true;
+}
+
+
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
+  // Node 0
+  inc_path_counter(0);
+  uint8_t* hdr;
+  packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
+  // Node 1
+  inc_path_counter(1);
+  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))) {
+    // Node 2
+    inc_path_counter(2);
+    uint8_t* hdr2;
+    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
+    // Node 3
+    inc_path_counter(3);
+    uint16_t lpm_matching_dev;
+    int lpm_lookup_match = lpm_lookup(lpm, *(uint32_t*)(uint32_t*)(hdr2+12), &lpm_matching_dev);
+    // Node 4
+    inc_path_counter(4);
+    packet_return_chunk(buffer, hdr2);
+    // Node 5
+    inc_path_counter(5);
+    packet_return_chunk(buffer, hdr);
+    // Node 6
+    inc_path_counter(6);
+    if ((0) == (lpm_lookup_match)) {
+      // Node 7
+      inc_path_counter(7);
+      forwarding_stats_per_route_op[7].inc_drop();
+      return DROP;
+    } else {
+      // Node 8
+      inc_path_counter(8);
+      forwarding_stats_per_route_op[8].inc_fwd((uint32_t)((uint16_t)(lpm_matching_dev)));
+      return (uint32_t)((uint16_t)(lpm_matching_dev));
+    } // (0) == (lpm_lookup_match)
+  } else {
+    // Node 9
+    inc_path_counter(9);
+    packet_return_chunk(buffer, hdr);
+    // Node 10
+    inc_path_counter(10);
+    forwarding_stats_per_route_op[10].inc_drop();
+    return DROP;
+  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))
+}

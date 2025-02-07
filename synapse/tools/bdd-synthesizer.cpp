@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
     LibBDD::BDDSynthesizer synthesizer(target, os);
     synthesizer.synthesize(&bdd);
   } else {
+    assert(!std::filesystem::is_directory(output_file));
     if (output_file.has_parent_path()) {
       std::filesystem::create_directories(output_file.parent_path());
     }

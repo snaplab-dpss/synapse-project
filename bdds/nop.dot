@@ -1,8 +1,24 @@
 digraph mygraph {
 	node [shape=box, style="rounded,filled", border=0];
-	1 [label="1:fwd(1)", fillcolor="chartreuse2"];
-	2 [label="2:fwd(0)", fillcolor="chartreuse2"];
-	0 [shape=Mdiamond, label="0:!(1 == DEVICE)", fillcolor="yellow"];
-	0 -> 1 [label="True"];
-	0 -> 2 [label="False"];
+	7 [label="7:drop()", fillcolor="brown1"];
+	8 [label="8:fwd(lpm_lookup_result)", fillcolor="chartreuse2"];
+	6 [shape=Mdiamond, label="6:!lpm_lookup_match", fillcolor="yellow"];
+	6 -> 7 [label="True"];
+	6 -> 8 [label="False"];
+	5 [label="5:packet_return_chunk(\l  p:1073939392,\l  the_chunk:1073755936[packet_chunks])", fillcolor="cornflowerblue"];
+	5 -> 6;
+	4 [label="4:packet_return_chunk(\l  p:1073939392,\l  the_chunk:1073756083[packet_chunks[147:167]])", fillcolor="cornflowerblue"];
+	4 -> 5;
+	3 [label="3:lpm_lookup(\l  lpm:1073911200,\l  prefix:packet_chunks[159:163],\l  value_out:1073949340[43947 -> lpm_lookup_result]) -> 1\l=>{lpm_lookup_result,lpm_lookup_match}", fillcolor="cornflowerblue"];
+	3 -> 4;
+	2 [label="2:packet_borrow_next_chunk(\l  p:1073939392,\l  length:20,\l  chunk:1073950400[ -> 1073756083])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
+	2 -> 3;
+	10 [label="10:drop()", fillcolor="brown1"];
+	9 [label="9:packet_return_chunk(\l  p:1073939392,\l  the_chunk:1073755936[packet_chunks])", fillcolor="cornflowerblue"];
+	9 -> 10;
+	1 [shape=Mdiamond, label="1:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))", fillcolor="yellow"];
+	1 -> 2 [label="True"];
+	1 -> 9 [label="False"];
+	0 [label="0:packet_borrow_next_chunk(\l  p:1073939392,\l  length:14,\l  chunk:1073949664[ -> 1073755936])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
+	0 -> 1;
 }

@@ -95,10 +95,10 @@ BDDVisitor::Action PrinterDebug::visit(const Call *node) {
 }
 
 BDDVisitor::Action PrinterDebug::visit(const Route *node) {
-  node_id_t id      = node->get_id();
-  u64 dst_device    = node->get_dst_device();
-  RouteOp operation = node->get_operation();
-  const Node *next  = node->get_next();
+  node_id_t id                     = node->get_id();
+  klee::ref<klee::Expr> dst_device = node->get_dst_device();
+  RouteOp operation                = node->get_operation();
+  const Node *next                 = node->get_next();
 
   std::cerr << "===========================================\n";
   std::cerr << "node:      " << id << "\n";
@@ -106,7 +106,7 @@ BDDVisitor::Action PrinterDebug::visit(const Route *node) {
   std::cerr << "operation: ";
   switch (operation) {
   case RouteOp::Forward: {
-    std::cerr << "fwd(" << dst_device << ")";
+    std::cerr << "fwd(" << LibCore::expr_to_string(dst_device) << ")";
     break;
   }
   case RouteOp::Drop: {

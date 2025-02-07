@@ -19,7 +19,7 @@ constexpr const char *const ROOT_DELIMITER    = ";; -- Root --";
 
 std::string serialize_expr(klee::ref<klee::Expr> expr, LibCore::kQuery_t &kQuery) {
   assert(!expr.isNull() && "Null expr");
-  auto expr_str = LibCore::expr_to_string(expr);
+  std::string expr_str = LibCore::expr_to_string(expr);
   kQuery.values.push_back(expr);
   return expr_str;
 }
@@ -32,7 +32,7 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
   call_stream << "(";
 
   bool first = true;
-  for (const auto &arg_pair : call.args) {
+  for (const std::pair<const std::string, LibBDD::arg_t> &arg_pair : call.args) {
     const std::string &arg_name = arg_pair.first;
     const arg_t &arg            = arg_pair.second;
 
@@ -75,7 +75,7 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
     call_stream << "]";
 
     call_stream << "[";
-    for (auto i = 0u; i < arg.meta.size(); i++) {
+    for (size_t i = 0; i < arg.meta.size(); i++) {
       const meta_t &meta = arg.meta[i];
 
       if (i != 0) {
@@ -99,7 +99,7 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
     bool first = true;
     call_stream << "*{";
 
-    for (const auto &extra_var_pair : call.extra_vars) {
+    for (const std::pair<const std::string, LibBDD::extra_var_t> &extra_var_pair : call.extra_vars) {
       const std::string &extra_var_name = extra_var_pair.first;
       const extra_var_t &extra_var      = extra_var_pair.second;
 
@@ -191,10 +191,10 @@ std::vector<meta_t> parse_meta(const std::string &meta_str) {
   std::vector<meta_t> meta;
   std::vector<std::string> elems(3);
 
-  auto lvl     = 0;
-  auto curr_el = 0;
+  int lvl     = 0;
+  int curr_el = 0;
 
-  for (auto c : meta_str) {
+  for (char c : meta_str) {
     if (c == '{') {
       lvl++;
       continue;
@@ -203,18 +203,18 @@ std::vector<meta_t> parse_meta(const std::string &meta_str) {
     if (c == '}') {
       lvl--;
 
-      auto symbol = elems[0];
-      auto offset = static_cast<bits_t>(std::stoi(elems[1]));
-      auto size   = static_cast<bits_t>(std::stoi(elems[2]));
+      std::string symbol = elems[0];
+      bits_t offset      = static_cast<bits_t>(std::stoi(elems[1]));
+      bits_t size        = static_cast<bits_t>(std::stoi(elems[2]));
 
-      auto m = meta_t{symbol, offset, size};
+      meta_t m{symbol, offset, size};
       meta.push_back(m);
 
       continue;
     }
 
     if (c == ',' && lvl == 0) {
-      for (auto &el : elems) {
+      for (std::string &el : elems) {
         el.clear();
       }
 
@@ -275,8 +275,8 @@ std::pair<std::string, arg_t> parse_arg(std::string serialized_arg, std::vector<
       out_str  = serialized_arg.substr(0, delim);
       meta_str = serialized_arg.substr(delim + 1);
 
-      auto meta_start = meta_str.find("[");
-      auto meta_end   = meta_str.find("]");
+      size_t meta_start = meta_str.find("[");
+      size_t meta_end   = meta_str.find("]");
 
       assert(meta_start != std::string::npos && "Invalid arg");
       assert(meta_end != std::string::npos && "Invalid arg");
@@ -351,8 +351,9 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   call_t call;
 
   // Cleanup by removing duplicated spaces
-  auto new_end = std::unique(serialized_call.begin(), serialized_call.end(), [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; });
-  serialized_call.erase(new_end, serialized_call.end());
+  serialized_call.erase(
+      std::unique(serialized_call.begin(), serialized_call.end(), [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; }),
+      serialized_call.end());
 
   size_t delim = serialized_call.find("(");
   assert(delim != std::string::npos && "Invalid call");
@@ -365,7 +366,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   int parenthesis_lvl = 1;
   delim               = 0;
   std::string arg_str;
-  for (auto c : serialized_call) {
+  for (char c : serialized_call) {
     delim++;
     if (c == '(' || c == '[') {
       parenthesis_lvl++;
@@ -389,9 +390,9 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
     arg_str += c;
   }
 
-  for (auto arg_str : args_str) {
-    auto arg_pair             = parse_arg(arg_str, exprs);
-    call.args[arg_pair.first] = arg_pair.second;
+  for (std::string arg_str : args_str) {
+    std::pair<std::string, LibBDD::arg_t> arg_pair = parse_arg(arg_str, exprs);
+    call.args[arg_pair.first]                      = arg_pair.second;
   }
 
   serialized_call = serialized_call.substr(delim);
@@ -418,8 +419,8 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
         extra_vars_str = extra_vars_str.substr(delim + 1);
       }
 
-      auto extra_var_pair                   = parse_extra_var(extra_var_str, exprs);
-      call.extra_vars[extra_var_pair.first] = extra_var_pair.second;
+      std::pair<std::string, LibBDD::extra_var_t> extra_var_pair = parse_extra_var(extra_var_str, exprs);
+      call.extra_vars[extra_var_pair.first]                      = extra_var_pair.second;
 
       if (delim == std::string::npos) {
         break;
@@ -512,23 +513,27 @@ Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints
 
 Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager,
                        std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
-  size_t delim = serialized.find(" ");
-  assert(delim != std::string::npos && "Invalid route");
-
-  auto route_operation_str = serialized.substr(0, delim);
-  auto dst_device_str      = serialized.substr(delim + 1);
-
   Route *route_node;
 
-  if (route_operation_str == "FWD") {
-    int dst_device = std::stoi(dst_device_str);
-    route_node     = new Route(id, constraints, symbol_manager, RouteOp::Forward, dst_device);
-  } else if (route_operation_str == "DROP") {
-    route_node = new Route(id, constraints, symbol_manager, RouteOp::Drop);
-  } else if (route_operation_str == "BCAST") {
-    route_node = new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
+  size_t delim = serialized.find(" ");
+  if (delim == std::string::npos) {
+    std::string route_operation_str = serialized;
+    assert(route_operation_str != "FWD" && "Invalid route");
+
+    if (route_operation_str == "DROP") {
+      route_node = new Route(id, constraints, symbol_manager, RouteOp::Drop);
+    } else if (route_operation_str == "BCAST") {
+      route_node = new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
+    } else {
+      panic("Unknown route operation");
+    }
   } else {
-    panic("Unknown route operation");
+    std::string route_operation_str = serialized.substr(0, delim);
+    std::string dst_device_str      = serialized.substr(delim + 1);
+    assert(route_operation_str == "FWD" && "Invalid route");
+
+    klee::ref<klee::Expr> dst_device = pop_expr(exprs);
+    route_node                       = new Route(id, constraints, symbol_manager, RouteOp::Forward, dst_device);
   }
 
   manager.add_node(route_node);
@@ -677,8 +682,9 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
       edges_stream << "\n";
     } break;
     case NodeType::Route: {
-      const Route *route_node = dynamic_cast<const Route *>(node);
-      const Node *next        = node->get_next();
+      const Route *route_node          = dynamic_cast<const Route *>(node);
+      klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+      const Node *next                 = node->get_next();
 
       nodes_stream << "ROUTE";
       nodes_stream << " ";
@@ -686,6 +692,8 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
       switch (route_node->get_operation()) {
       case RouteOp::Forward:
         nodes_stream << "FWD";
+        nodes_stream << " ";
+        nodes_stream << serialize_expr(dst_device, kQuery);
         break;
       case RouteOp::Drop:
         nodes_stream << "DROP";
@@ -694,9 +702,6 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
         nodes_stream << "BCAST";
         break;
       }
-
-      nodes_stream << " ";
-      nodes_stream << route_node->get_dst_device();
 
       if (next) {
         edges_stream << "(";
@@ -895,7 +900,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
 
       current_node += line;
 
-      for (auto c : line) {
+      for (char c : line) {
         if (c == '(') {
           parenthesis_level++;
         } else if (c == ')') {
