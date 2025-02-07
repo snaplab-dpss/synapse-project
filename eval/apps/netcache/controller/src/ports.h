@@ -471,8 +471,16 @@ public:
 		return port_hdl_info.get_dev_port(front_panel_port, lane, false);
 	}
 
-	uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port); }
-	uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port); }
+	uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port, true); }
+	uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port, true); }
+
+	void reset_ports(uint16_t port) {
+		key_setup(port);
+		assert(key);
+
+		table->tableEntryReset(*session, dev_tgt, 0, *key);
+		// table->tableClear(*session, dev_tgt, 0);
+	}
 
 private:
 	void key_setup(uint16_t dev_port) {

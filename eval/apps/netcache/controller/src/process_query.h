@@ -16,14 +16,14 @@ namespace netcache {
 class ProcessQuery {
 private:
 	uint16_t port_id;
-	struct rte_mempool* mbuf_pool;
-	struct rte_mbuf *buf[1];
+	// struct rte_mempool* mbuf_pool;
+	// struct rte_mbuf *buf[1];
 
 public:
 	ProcessQuery(const int dpdk_port);
 	~ProcessQuery();
 
-	void read_query(const pkt_hdr_t& pkt);
+	// void read_query(const pkt_hdr_t& pkt);
 
 };
 
