@@ -17,6 +17,7 @@ public:
 	~PortStats();
 
 	void get_stats();
+	void reset_stats();
 };
 
 }  // netcache

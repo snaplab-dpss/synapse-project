@@ -91,26 +91,23 @@ public:
 			config_ports(conf);
 		}
 
-		for (auto connection : conf.topology.connections) {
-			auto ig_port = connection.in.port;
-			auto eg_port = connection.out.port;
+		for (auto port : conf.topology.ports) {
+			auto cur_port = port.num;
 
 			if (!use_tofino_model) {
-				ig_port = ports.get_dev_port(ig_port, 0);
-				eg_port = ports.get_dev_port(eg_port, 0);
+				cur_port = ports.get_dev_port(cur_port, 0);
 			}
 
 			#ifndef NDEBUG
-			std::cout << "ig_port: " << ig_port << std::endl;
-			std::cout << "eg_port: " << eg_port << std::endl;
+			std::cout << "port: " << cur_port << std::endl;
 			#endif
 
 			// Fwd table entries.
 
 			// Read cache miss
-			fwd.add_entry(ig_port, READ_QUERY, 0, 0xFF, ig_port);
+			fwd.add_entry(cur_port, READ_QUERY, 0, 0xFF, cur_port);
 			// Read cache hit
-			fwd.add_entry(ig_port, READ_QUERY, 1, 0xFF, eg_port);
+			// fwd.add_entry(ig_port, READ_QUERY, 1, 0xFF, eg_port);
 			// fwd.add_entry(ig_port, WRITE_QUERY, 0, 0, eg_port);
 			// fwd.add_entry(ig_port, DELETE_QUERY, 0, 0, eg_port);
 		}
@@ -155,6 +152,11 @@ public:
 
 	uint64_t get_port_tx(uint16_t port) { return ports.get_port_tx(port); }
 	uint64_t get_port_rx(uint16_t port) { return ports.get_port_rx(port); }
+
+	void reset_ports(uint16_t port) {
+		ports.reset_ports(port);
+		// config_ports(conf);
+	}
 
 	uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
 		return ports.get_dev_port(front_panel_port, lane);
