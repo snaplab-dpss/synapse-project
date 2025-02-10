@@ -521,60 +521,66 @@ TofinoSynthesizer::code_t TofinoSynthesizer::build_register_action_name(const EP
   return coder.dump();
 }
 
-void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                                             const std::vector<klee::ref<klee::Expr>> &values) {
-  std::vector<var_t> keys_vars;
+void TofinoSynthesizer::transpile_action_decl(coder_t &coder, const std::string action_name,
+                                              const std::vector<klee::ref<klee::Expr>> &params) {
+  assert(!params.empty() && "Empty action");
+
   std::vector<var_t> params_vars;
 
+  for (klee::ref<klee::Expr> param : params) {
+    const std::string param_name = action_name + "_param";
+    const var_t param_value_var  = alloc_var(param_name, param, GLOBAL);
+
+    params_vars.push_back(param_value_var);
+    param_value_var.declare(coder, TofinoSynthesizer::Transpiler::transpile_literal(0, param->getWidth()));
+  }
+
+  coder.indent();
+  coder << "action " << action_name << "(";
+
+  for (size_t i = 0; i < params.size(); i++) {
+    const klee::ref<klee::Expr> param = params[i];
+
+    if (i != 0) {
+      coder << ", ";
+    }
+
+    coder << TofinoSynthesizer::Transpiler::type_from_expr(param);
+    coder << " ";
+    coder << "_" << params_vars[i].name;
+  }
+
+  coder << ") {\n";
+
+  coder.inc();
+
+  for (const var_t &param : params_vars) {
+    coder.indent();
+    coder << param.name;
+    coder << " = ";
+    coder << "_" << param.name;
+    coder << ";\n";
+  }
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  coder << "\n";
+}
+
+void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
+                                             const std::vector<klee::ref<klee::Expr>> &values) {
+  const code_t action_name = table->id + "_get_value";
+  if (!values.empty()) {
+    transpile_action_decl(coder, action_name, values);
+  }
+
+  std::vector<var_t> keys_vars;
   for (klee::ref<klee::Expr> key : keys) {
     const std::string key_name = table->id + "_key";
     const var_t key_var        = alloc_var(key_name, key, GLOBAL);
     keys_vars.push_back(key_var);
-  }
-
-  for (klee::ref<klee::Expr> value : values) {
-    const std::string param_name = table->id + "_value";
-    const var_t param_value_var  = alloc_var(param_name, value, GLOBAL);
-
-    params_vars.push_back(param_value_var);
-    param_value_var.declare(coder, TofinoSynthesizer::Transpiler::transpile_literal(0, value->getWidth()));
-  }
-
-  const code_t action_name = table->id + "_get_value";
-
-  if (!values.empty()) {
-    coder.indent();
-    coder << "action " << action_name << "(";
-
-    for (size_t i = 0; i < values.size(); i++) {
-      const klee::ref<klee::Expr> value = values[i];
-
-      if (i != 0) {
-        coder << ", ";
-      }
-
-      coder << TofinoSynthesizer::Transpiler::type_from_expr(value);
-      coder << " ";
-      coder << "_" << params_vars[i].name;
-    }
-
-    coder << ") {\n";
-
-    coder.inc();
-
-    for (const var_t &param : params_vars) {
-      coder.indent();
-      coder << param.name;
-      coder << " = ";
-      coder << "_" << param.name;
-      coder << ";\n";
-    }
-
-    coder.dec();
-    coder.indent();
-    coder << "}\n";
-
-    coder << "\n";
   }
 
   for (const var_t &key : keys_vars) {
@@ -623,6 +629,9 @@ void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
 }
 
 void TofinoSynthesizer::transpile_lpm_decl(coder_t &coder, const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device) {
+  const code_t action_name = lpm->id + "_get_device";
+  transpile_action_decl(coder, action_name, {device});
+
   const std::string key_name = "ipv4_addr";
   const var_t key_var        = alloc_var(key_name, addr, GLOBAL);
 
@@ -644,10 +653,7 @@ void TofinoSynthesizer::transpile_lpm_decl(coder_t &coder, const LPM *lpm, klee:
   coder << "}\n";
 
   coder.indent();
-  coder << "actions = { forward; drop; }\n";
-
-  coder.indent();
-  coder << "default_action = drop;\n";
+  coder << "actions = { " << action_name << "; }\n";
 
   coder.indent();
   coder << "size = " << lpm->capacity << ";\n";
@@ -1231,7 +1237,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // 3. Forward to recirculation port
   int port = node->get_recirc_port();
   ingress_apply.indent();
-  ingress_apply << "fwd(" << port << ");\n";
+  ingress_apply << "fwd((bit<9>)" << port << ");\n";
 
   // 4. Replace the ingress apply coder with the recirc coder
   active_recirc_code_path = code_path;
@@ -1669,6 +1675,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   DS_ID lpm_id                 = node->get_lpm_id();
   klee::ref<klee::Expr> addr   = node->get_addr();
   klee::ref<klee::Expr> device = node->get_device();
+  klee::ref<klee::Expr> match  = node->get_match();
 
   const LPM *lpm = get_tofino_ds<LPM>(ep, lpm_id);
 
@@ -1686,8 +1693,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
 
-  ingress_apply.indent();
-  ingress_apply << lpm_id << ".apply();\n";
+  var_t hit_var = alloc_var("hit", match, LOCAL | FORCE_BOOL);
+  hit_var.declare(ingress_apply, lpm_id + ".apply().hit");
 
   return EPVisitor::Action::doChildren;
 }

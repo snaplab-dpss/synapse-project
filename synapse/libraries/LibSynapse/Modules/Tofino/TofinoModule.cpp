@@ -456,7 +456,7 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 num_entries) {
 hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key,
                                                             u32 cache_capacity) {
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  FlowStats flow_stats                           = ctx.get_profiler().get_flow_stats(constraints, key);
+  flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
 
   u64 avg_pkts_per_flow = flow_stats.pkts / flow_stats.flows;
   u64 cached_packets    = std::min(flow_stats.pkts, avg_pkts_per_flow * cache_capacity);
@@ -527,7 +527,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
 hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key,
                                                               u32 capacity) {
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  FlowStats flow_stats                           = ctx.get_profiler().get_flow_stats(constraints, key);
+  flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
 
   u64 top_k = 0;
   for (size_t k = 0; k <= capacity && k < flow_stats.pkts_per_flow.size(); k++) {

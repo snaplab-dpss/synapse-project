@@ -12,18 +12,43 @@ namespace LibSynapse {
 
 class EP;
 
-struct FlowStats {
+struct flow_stats_t {
   klee::ref<klee::Expr> flow_id;
   u64 pkts;
   u64 flows;
   std::vector<u64> pkts_per_flow;
 };
 
+struct fwd_stats_t {
+  hit_rate_t drop;
+  hit_rate_t flood;
+  std::unordered_map<u16, hit_rate_t> ports;
+
+  bool is_drop_only() const {
+    bool drop_only = (flood == 0);
+    for (const auto &[_, hr] : ports) {
+      drop_only &= (hr == 0);
+    }
+    return drop_only;
+  }
+
+  bool is_flood_only() const {
+    bool flood_only = (drop == 0);
+    for (const auto &[_, hr] : ports) {
+      flood_only &= (hr == 0);
+    }
+    return flood_only;
+  }
+
+  bool is_fwd_only() const { return (drop == 0) && (flood == 0); }
+};
+
 struct ProfilerNode {
   klee::ref<klee::Expr> constraint;
   hit_rate_t fraction;
   std::optional<LibBDD::node_id_t> bdd_node_id;
-  std::vector<FlowStats> flows_stats;
+  std::vector<flow_stats_t> flows_stats;
+  std::optional<fwd_stats_t> forwarding_stats;
 
   ProfilerNode *on_true;
   ProfilerNode *on_false;
@@ -36,7 +61,7 @@ struct ProfilerNode {
   ProfilerNode *clone(bool keep_bdd_info) const;
   void debug(int lvl = 0) const;
 
-  FlowStats get_flow_stats(klee::ref<klee::Expr> flow_id) const;
+  flow_stats_t get_flow_stats(klee::ref<klee::Expr> flow_id) const;
 };
 
 class Profiler {
@@ -49,15 +74,15 @@ private:
   // Not the prettiest solution, but will do.
   // We cache on reads, and invalidate on writes.
   mutable struct {
-    std::unordered_map<LibBDD::node_id_t, const ProfilerNode *> n2p;
-    std::unordered_map<const ProfilerNode *, LibBDD::node_id_t> p2n;
-    std::unordered_map<LibBDD::node_id_t, const ProfilerNode *> e2p;
-    std::unordered_map<const ProfilerNode *, LibBDD::node_id_t> p2e;
+    std::unordered_map<LibBDD::node_id_t, ProfilerNode *> n2p;
+    std::unordered_map<ProfilerNode *, LibBDD::node_id_t> p2n;
+    std::unordered_map<LibBDD::node_id_t, ProfilerNode *> e2p;
+    std::unordered_map<ProfilerNode *, LibBDD::node_id_t> p2e;
   } cache;
 
 public:
   Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &bdd_profile);
-  Profiler(const LibBDD::BDD *bdd, const std::string &bdd_profile_fname);
+  Profiler(const LibBDD::BDD *bdd, const std::filesystem::path &bdd_profile_fname);
   Profiler(const LibBDD::BDD *bdd);
 
   Profiler(const Profiler &other);
@@ -82,7 +107,10 @@ public:
   hit_rate_t get_hr(const EPNode *node) const;
   hit_rate_t get_hr(const LibBDD::Node *node) const;
 
-  FlowStats get_flow_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> flow) const;
+  fwd_stats_t get_fwd_stats(const EPNode *node) const;
+  fwd_stats_t get_fwd_stats(const LibBDD::Node *node) const;
+
+  flow_stats_t get_flow_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> flow) const;
   rw_fractions_t get_cond_map_put_rw_profile_fractions(const LibBDD::Call *map_get) const;
 
   void clear_cache() const;
@@ -90,7 +118,11 @@ public:
 
 private:
   ProfilerNode *get_node(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
+  ProfilerNode *get_node(const EPNode *node) const;
+  ProfilerNode *get_node(const LibBDD::Node *node) const;
+
   hit_rate_t get_hr(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
+  fwd_stats_t get_fwd_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
 
   struct family_t {
     ProfilerNode *node;

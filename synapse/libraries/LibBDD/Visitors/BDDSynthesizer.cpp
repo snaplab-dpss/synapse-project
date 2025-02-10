@@ -704,20 +704,9 @@ void BDDSynthesizer::init_pre_process(const BDD *bdd) {
     coder << bdd->size();
     coder << ";\n";
 
-    klee::ref<klee::Expr> device             = bdd->get_device().expr;
-    klee::ConstraintManager base_constraints = bdd->get_root()->get_constraints();
-
-    for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
-      bool valid_device_value = LibCore::solver_toolbox.is_expr_always_false(
-          base_constraints,
-          LibCore::solver_toolbox.exprBuilder->Eq(device, LibCore::solver_toolbox.exprBuilder->Constant(device_value, device->getWidth())));
-
-      if (valid_device_value) {
-        break;
-      } else {
-        coder.indent();
-        coder << "ports.push_back(" << device_value << ");\n";
-      }
+    for (u16 device : bdd->get_devices()) {
+      coder.indent();
+      coder << "ports.push_back(" << device << ");\n";
     }
   }
 }
@@ -733,6 +722,11 @@ void BDDSynthesizer::init_post_process() {
       coder << node_id;
       coder << ")";
       coder << ";\n";
+    }
+
+    for (node_id_t node_id : route_nodes) {
+      coder.indent();
+      coder << "forwarding_stats_per_route_op.insert({" << node_id << ", {}});\n";
     }
   }
 
@@ -837,10 +831,11 @@ void BDDSynthesizer::synthesize(const Node *node) {
       synthesize_process(coder, call_node);
     } break;
     case NodeType::Route: {
-      const Route *route_node = dynamic_cast<const Route *>(node);
-
+      const Route *route_node          = dynamic_cast<const Route *>(node);
       RouteOp op                       = route_node->get_operation();
       klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+
+      route_nodes.insert(route_node->get_id());
 
       switch (op) {
       case RouteOp::Drop: {

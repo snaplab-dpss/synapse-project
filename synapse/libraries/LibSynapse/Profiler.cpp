@@ -11,60 +11,62 @@ namespace LibSynapse {
 namespace {
 hit_rate_t clamp_fraction(hit_rate_t fraction) { return std::min(1.0, std::max(0.0, fraction)); }
 
-ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_profile_t *bdd_profile, u64 max_count) {
-  ProfilerNode *result = nullptr;
+hit_rate_t calc_hit_rate(u64 counter, u64 max_count) {
+  return clamp_fraction(max_count == 0 ? 0 : static_cast<hit_rate_t>(counter) / max_count);
+}
 
-  if (!node) {
-    return nullptr;
+ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_profile_t *bdd_profile, u64 max_count) {
+  ProfilerNode *prof_node = nullptr;
+
+  while (node) {
+    switch (node->get_type()) {
+    case LibBDD::NodeType::Call: {
+      if (!node->get_next()) {
+        u64 counter   = bdd_profile->counters.at(node->get_id());
+        hit_rate_t hr = calc_hit_rate(counter, max_count);
+        prof_node     = new ProfilerNode(nullptr, hr, node->get_id());
+      }
+      node = node->get_next();
+    } break;
+    case LibBDD::NodeType::Branch: {
+      const LibBDD::Branch *branch    = dynamic_cast<const LibBDD::Branch *>(node);
+      const LibBDD::Node *on_true     = branch->get_on_true();
+      const LibBDD::Node *on_false    = branch->get_on_false();
+      klee::ref<klee::Expr> condition = branch->get_condition();
+
+      u64 counter   = bdd_profile->counters.at(node->get_id());
+      hit_rate_t hr = calc_hit_rate(counter, max_count);
+      prof_node     = new ProfilerNode(condition, hr, node->get_id());
+
+      if (on_true) {
+        prof_node->on_true = build_profiler_tree(on_true, bdd_profile, max_count);
+      }
+
+      if (on_false) {
+        prof_node->on_false = build_profiler_tree(on_false, bdd_profile, max_count);
+      }
+
+      node = nullptr;
+    } break;
+    case LibBDD::NodeType::Route: {
+      assert(bdd_profile->forwarding_stats.find(node->get_id()) != bdd_profile->forwarding_stats.end());
+      u64 counter   = bdd_profile->counters.at(node->get_id());
+      hit_rate_t hr = calc_hit_rate(counter, max_count);
+      prof_node     = new ProfilerNode(nullptr, hr, node->get_id());
+
+      prof_node->forwarding_stats.emplace();
+      prof_node->forwarding_stats->drop  = calc_hit_rate(bdd_profile->forwarding_stats.at(node->get_id()).drop, max_count);
+      prof_node->forwarding_stats->flood = calc_hit_rate(bdd_profile->forwarding_stats.at(node->get_id()).flood, max_count);
+      for (const auto &[device, dev_counter] : bdd_profile->forwarding_stats.at(node->get_id()).ports) {
+        prof_node->forwarding_stats->ports[device] = calc_hit_rate(dev_counter, max_count);
+      }
+
+      node = node->get_next();
+    } break;
+    }
   }
 
-  node->visit_nodes([&bdd_profile, max_count, &result](const LibBDD::Node *node) {
-    if (node->get_type() != LibBDD::NodeType::Branch) {
-      return LibBDD::NodeVisitAction::Continue;
-    }
-
-    const LibBDD::Branch *branch = dynamic_cast<const LibBDD::Branch *>(node);
-
-    klee::ref<klee::Expr> condition = branch->get_condition();
-    u64 counter                     = bdd_profile->counters.at(node->get_id());
-    hit_rate_t fraction             = clamp_fraction(static_cast<hit_rate_t>(counter) / max_count);
-    LibBDD::node_id_t bdd_node_id   = node->get_id();
-
-    ProfilerNode *new_node = new ProfilerNode(condition, fraction, bdd_node_id);
-
-    const LibBDD::Node *on_true  = branch->get_on_true();
-    const LibBDD::Node *on_false = branch->get_on_false();
-
-    new_node->on_true  = build_profiler_tree(on_true, bdd_profile, max_count);
-    new_node->on_false = build_profiler_tree(on_false, bdd_profile, max_count);
-
-    if (!new_node->on_true && on_true) {
-      u64 on_true_counter           = bdd_profile->counters.at(on_true->get_id());
-      hit_rate_t on_true_fraction   = clamp_fraction(static_cast<hit_rate_t>(on_true_counter) / max_count);
-      LibBDD::node_id_t bdd_node_id = on_true->get_id();
-      new_node->on_true             = new ProfilerNode(nullptr, on_true_fraction, bdd_node_id);
-    }
-
-    if (!new_node->on_false && on_false) {
-      u64 on_false_counter          = bdd_profile->counters.at(on_false->get_id());
-      hit_rate_t on_false_fraction  = clamp_fraction(static_cast<hit_rate_t>(on_false_counter) / max_count);
-      LibBDD::node_id_t bdd_node_id = on_false->get_id();
-      new_node->on_false            = new ProfilerNode(nullptr, on_false_fraction, bdd_node_id);
-    }
-
-    if (new_node->on_true) {
-      new_node->on_true->prev = new_node;
-    }
-
-    if (new_node->on_false) {
-      new_node->on_false->prev = new_node;
-    }
-
-    result = new_node;
-    return LibBDD::NodeVisitAction::Stop;
-  });
-
-  return result;
+  return prof_node;
 }
 
 LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
@@ -75,8 +77,9 @@ LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
 
   const LibBDD::Node *root             = bdd->get_root();
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
+  const std::vector<u16> devices       = bdd->get_devices();
 
-  root->visit_nodes([&bdd_profile](const LibBDD::Node *node) {
+  root->visit_nodes([&bdd_profile, devices](const LibBDD::Node *node) {
     assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "LibBDD::Node counter not found");
     u64 current_counter = bdd_profile.counters[node->get_id()];
 
@@ -126,6 +129,28 @@ LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
         const LibBDD::Node *next             = node->get_next();
         bdd_profile.counters[next->get_id()] = current_counter;
       }
+
+      const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
+
+      switch (route_node->get_operation()) {
+      case LibBDD::RouteOp::Drop: {
+        bdd_profile.forwarding_stats[node->get_id()].drop = current_counter;
+      } break;
+      case LibBDD::RouteOp::Broadcast: {
+        bdd_profile.forwarding_stats[node->get_id()].flood = current_counter;
+      } break;
+      case LibBDD::RouteOp::Forward: {
+        klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+        if (LibCore::is_constant(dst_device)) {
+          u16 device = LibCore::solver_toolbox.value_from_expr(dst_device);
+          assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
+          bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
+        } else {
+          u16 device                                                 = devices[LibCore::SingletonRandomEngine::generate() % devices.size()];
+          bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
+        }
+      } break;
+      }
     } break;
     }
 
@@ -148,6 +173,8 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
 
   hit_rate_t old_fraction = clamp_fraction(node->fraction);
   hit_rate_t new_fraction = clamp_fraction(parent_old_fraction != 0 ? (parent_new_fraction / parent_old_fraction) * node->fraction : 0);
+
+  assert(false && "TODO: update forwarding stats");
 
   node->fraction = new_fraction;
 
@@ -181,7 +208,8 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
     new_node->bdd_node_id = bdd_node_id;
   }
 
-  new_node->flows_stats = flows_stats;
+  new_node->flows_stats      = flows_stats;
+  new_node->forwarding_stats = forwarding_stats;
 
   if (on_true) {
     new_node->on_true       = on_true->clone(keep_bdd_info);
@@ -198,7 +226,7 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
 
 std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
   os << "<";
-  os << "fraction=" << node.fraction;
+  os << "hr=" << node.fraction;
 
   if (!node.constraint.isNull()) {
     os << ", ";
@@ -208,6 +236,22 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
   if (node.bdd_node_id) {
     os << ", ";
     os << "bdd_node=" << *node.bdd_node_id;
+  }
+
+  if (node.forwarding_stats) {
+    os << ", ";
+    os << "fwd_stats={";
+    os << "drop=" << node.forwarding_stats->drop << ", ";
+    os << "flood=" << node.forwarding_stats->flood << ", ";
+    os << "ports={";
+    for (const auto &[port, hr] : node.forwarding_stats->ports) {
+      if (hr == 0) {
+        continue;
+      }
+      os << port << "=" << hr << ", ";
+    }
+    os << "}";
+    os << "}";
   }
 
   os << ">";
@@ -244,14 +288,35 @@ void ProfilerNode::debug(int lvl) const {
   }
 }
 
-FlowStats ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
-  for (const FlowStats &stats : flows_stats) {
+flow_stats_t ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
+  for (const flow_stats_t &stats : flows_stats) {
     if (LibCore::solver_toolbox.are_exprs_always_equal(flow_id, stats.flow_id)) {
       return stats;
     }
   }
 
   panic("Flow stats not found");
+}
+
+fwd_stats_t Profiler::get_fwd_stats(const std::vector<klee::ref<klee::Expr>> &constraints) const {
+  ProfilerNode *profiler_node = get_node(constraints);
+  assert(profiler_node && "Profiler node not found");
+  assert(profiler_node->forwarding_stats.has_value());
+  return profiler_node->forwarding_stats.value();
+}
+
+fwd_stats_t Profiler::get_fwd_stats(const EPNode *node) const {
+  ProfilerNode *profiler_node = get_node(node);
+  assert(profiler_node && "Profiler node not found");
+  assert(profiler_node->forwarding_stats.has_value());
+  return profiler_node->forwarding_stats.value();
+}
+
+fwd_stats_t Profiler::get_fwd_stats(const LibBDD::Node *node) const {
+  ProfilerNode *profiler_node = get_node(node);
+  assert(profiler_node && "Profiler node not found");
+  assert(profiler_node->forwarding_stats.has_value());
+  return profiler_node->forwarding_stats.value();
 }
 
 Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_profile)
@@ -282,7 +347,7 @@ Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_pro
       assert(call.args.find("key") != call.args.end() && "Key not found");
       klee::ref<klee::Expr> flow_id = call.args.at("key").in;
 
-      FlowStats flow_stats = {
+      flow_stats_t flow_stats = {
           .flow_id       = flow_id,
           .pkts          = node_map_stats.pkts,
           .flows         = node_map_stats.flows,
@@ -296,7 +361,7 @@ Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_pro
 
 Profiler::Profiler(const LibBDD::BDD *bdd) : Profiler(bdd, build_random_bdd_profile(bdd)) {}
 
-Profiler::Profiler(const LibBDD::BDD *bdd, const std::string &bdd_profile_fname)
+Profiler::Profiler(const LibBDD::BDD *bdd, const std::filesystem::path &bdd_profile_fname)
     : Profiler(bdd, LibBDD::parse_bdd_profile(bdd_profile_fname)) {}
 
 Profiler::Profiler(const Profiler &other)
@@ -352,6 +417,46 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
 
   assert(current && "Profiler node not found");
   return current;
+}
+
+ProfilerNode *Profiler::get_node(const LibBDD::Node *node) const {
+  auto found_it = cache.n2p.find(node->get_id());
+  if (found_it != cache.n2p.end()) {
+    assert(found_it->second && "Invalid profiler node");
+    return found_it->second;
+  }
+
+  std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
+  ProfilerNode *profiler_node                    = get_node(constraints);
+
+  if (!profiler_node) {
+    panic("Profiler node not found");
+  }
+
+  cache.n2p[node->get_id()] = profiler_node;
+  cache.p2n[profiler_node]  = node->get_id();
+
+  return profiler_node;
+}
+
+ProfilerNode *Profiler::get_node(const EPNode *node) const {
+  auto found_it = cache.e2p.find(node->get_id());
+  if (found_it != cache.e2p.end()) {
+    assert(found_it->second && "Invalid profiler node");
+    return found_it->second;
+  }
+
+  std::vector<klee::ref<klee::Expr>> constraints = node->get_constraints();
+  ProfilerNode *profiler_node                    = get_node(constraints);
+
+  if (!profiler_node) {
+    panic("Profiler node not found");
+  }
+
+  cache.e2p[node->get_id()] = profiler_node;
+  cache.p2e[profiler_node]  = node->get_id();
+
+  return profiler_node;
 }
 
 void Profiler::replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fraction) {
@@ -504,48 +609,21 @@ void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_ra
 }
 
 hit_rate_t Profiler::get_hr(const LibBDD::Node *node) const {
-  auto found_it = cache.n2p.find(node->get_id());
-  if (found_it != cache.n2p.end()) {
-    assert(found_it->second && "Invalid profiler node");
-    return found_it->second->fraction;
-  }
-
-  std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  ProfilerNode *profiler_node                    = get_node(constraints);
-
-  if (!profiler_node) {
-    panic("Profiler node not found");
-  }
-
-  cache.n2p[node->get_id()] = profiler_node;
-  cache.p2n[profiler_node]  = node->get_id();
-
+  ProfilerNode *profiler_node = get_node(node);
+  assert(profiler_node);
   return profiler_node->fraction;
 }
 
 hit_rate_t Profiler::get_hr(const EPNode *node) const {
-  auto found_it = cache.e2p.find(node->get_id());
-  if (found_it != cache.e2p.end()) {
-    assert(found_it->second && "Invalid profiler node");
-    return found_it->second->fraction;
-  }
-
-  std::vector<klee::ref<klee::Expr>> constraints = node->get_constraints();
-  ProfilerNode *profiler_node                    = get_node(constraints);
-
-  if (!profiler_node) {
-    panic("Profiler node not found");
-  }
-
-  cache.e2p[node->get_id()] = profiler_node;
-  cache.p2e[profiler_node]  = node->get_id();
-
+  ProfilerNode *profiler_node = get_node(node);
+  assert(profiler_node);
   return profiler_node->fraction;
 }
 
 hit_rate_t Profiler::get_hr(const std::vector<klee::ref<klee::Expr>> &constraints) const {
-  ProfilerNode *node = get_node(constraints);
-  return node->fraction;
+  ProfilerNode *profiler_node = get_node(constraints);
+  assert(profiler_node);
+  return profiler_node->fraction;
 }
 
 void Profiler::clear_cache() const {
@@ -563,7 +641,7 @@ void Profiler::debug() const {
   std::cerr << "===========================================\n\n";
 }
 
-FlowStats Profiler::get_flow_stats(const std::vector<klee::ref<klee::Expr>> &constraints, klee::ref<klee::Expr> flow_id) const {
+flow_stats_t Profiler::get_flow_stats(const std::vector<klee::ref<klee::Expr>> &constraints, klee::ref<klee::Expr> flow_id) const {
   return get_node(constraints)->get_flow_stats(flow_id);
 }
 

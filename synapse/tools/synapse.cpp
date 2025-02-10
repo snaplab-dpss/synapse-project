@@ -43,11 +43,11 @@ int main(int argc, char **argv) {
   LibSynapse::HeuristicOption heuristic_opt;
   std::filesystem::path profile_file;
   LibSynapse::search_config_t search_config;
-  u32 seed       = 0;
-  bool show_prof = false;
-  bool show_ep   = false;
-  bool show_ss   = false;
-  bool show_bdd  = false;
+  u32 seed{0};
+  bool show_prof{false};
+  bool show_ep{false};
+  bool show_ss{false};
+  bool show_bdd{false};
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
   app.add_option("--config", targets_config_file, "Configuration file.")->required();

@@ -710,6 +710,9 @@ bool nf_init() {
   ports.push_back(27);
   ports.push_back(28);
   ports.push_back(29);
+  forwarding_stats_per_route_op.insert({10, {}});
+  forwarding_stats_per_route_op.insert({8, {}});
+  forwarding_stats_per_route_op.insert({7, {}});
   return true;
 }
 

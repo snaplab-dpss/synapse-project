@@ -1039,10 +1039,6 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
 }
 
 bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const Node *> &fwd_logic) const {
-  if (node->get_type() != NodeType::Branch) {
-    return false;
-  }
-
   bool pattern_found = false;
   node->visit_nodes([&fwd_logic, &pattern_found](const Node *node) {
     switch (node->get_type()) {
@@ -1074,6 +1070,29 @@ bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const No
   });
 
   return pattern_found;
+}
+
+std::vector<u16> BDD::get_devices() const {
+  std::vector<u16> devices;
+
+  if (!root) {
+    return devices;
+  }
+
+  const klee::ConstraintManager &base_constraints = root->get_constraints();
+  for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
+    bool valid_device_value = LibCore::solver_toolbox.is_expr_always_false(
+        base_constraints, LibCore::solver_toolbox.exprBuilder->Eq(
+                              device.expr, LibCore::solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
+
+    if (valid_device_value) {
+      break;
+    } else {
+      devices.push_back(device_value);
+    }
+  }
+
+  return devices;
 }
 
 } // namespace LibBDD

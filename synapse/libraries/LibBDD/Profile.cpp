@@ -85,7 +85,7 @@ void from_json(const json &j, std::unordered_map<u16, u64> &port_stats) {
   }
 }
 
-void from_json(const json &j, bdd_profile_t::forwarding_stats_t::stats_t &stats) {
+void from_json(const json &j, bdd_profile_t::fwd_stats_t &stats) {
   // Use our parser instead of the default one provided by the library. Their
   // one is not working for some reason.
   from_json(j["ports"], stats.ports);
@@ -94,10 +94,10 @@ void from_json(const json &j, bdd_profile_t::forwarding_stats_t::stats_t &stats)
   j.at("flood").get_to(stats.flood);
 }
 
-void from_json(const json &j, bdd_profile_t::forwarding_stats_t &forwarding_stats) {
+void from_json(const json &j, std::unordered_map<node_id_t, bdd_profile_t::fwd_stats_t> &forwarding_stats) {
   for (const auto &kv : j.items()) {
-    node_id_t node_id                            = std::stoull(kv.key());
-    forwarding_stats.stats_per_route_op[node_id] = kv.value();
+    node_id_t node_id         = std::stoull(kv.key());
+    forwarding_stats[node_id] = kv.value();
   }
 }
 
@@ -112,7 +112,7 @@ void from_json(const json &j, bdd_profile_t &report) {
   from_json(j["forwarding_stats"], report.forwarding_stats);
 }
 
-bdd_profile_t parse_bdd_profile(const std::string &filename) {
+bdd_profile_t parse_bdd_profile(const std::filesystem::path &filename) {
   std::ifstream file(filename);
 
   if (!file.is_open()) {

@@ -47,6 +47,7 @@ public:
 
   std::string hash() const { return root->hash(true); }
   size_t size() const { return root->count_children(true) + 1; }
+  std::vector<u16> get_devices() const;
 
   LibCore::Symbols get_generated_symbols(const Node *node) const;
   void visit(BDDVisitor &visitor) const;
