@@ -1,12 +1,22 @@
 #pragma once
 
-#include "nf.h"
-
 #include <stdint.h>
 
+#include "lib/state/lpm-dir-24-8.h"
+#include "nf.h"
+#include "nf-util.h"
+
 struct nf_config {
-  // WAN device, i.e. external
-  uint16_t wan_device;
+  struct {
+    uint16_t *devices;
+    size_t n;
+  } internal_devs;
+
+  struct {
+    uint16_t *src_dev;
+    uint16_t *dst_dev;
+    size_t n;
+  } fwd_rules;
 
   // Expiration time of flows, in microseconds
   uint32_t expiration_time;

@@ -15,6 +15,28 @@ bool nf_init(void) {
   return flow_manager != NULL;
 }
 
+bool is_internal(uint16_t device) {
+  bool is_int_dev;
+
+  int *is_internal;
+  vector_borrow(flow_manager->state->int_devices, device, (void **)&is_internal);
+  is_int_dev = (*is_internal != 0);
+  vector_return(flow_manager->state->int_devices, device, is_internal);
+
+  return is_int_dev;
+}
+
+uint16_t get_dst_dev(uint16_t src_dev) {
+  uint16_t dst_dev;
+
+  uint16_t *destination_device;
+  vector_borrow(flow_manager->state->fwd_rules, src_dev, (void **)&destination_device);
+  dst_dev = *destination_device;
+  vector_return(flow_manager->state->fwd_rules, src_dev, destination_device);
+
+  return dst_dev;
+}
+
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   flow_manager_expire(flow_manager, now);
 
@@ -31,8 +53,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     return DROP;
   }
 
-  uint16_t dst_device;
-  if (device == config.wan_device) {
+  if (is_internal(device)) {
     // Inverse the src and dst for the "reply flow"
     struct FlowId id = {
         .src_port = tcpudp_header->dst_port,
@@ -42,11 +63,10 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .protocol = rte_ipv4_header->next_proto_id,
     };
 
-    if (!flow_manager_get_refresh_flow(flow_manager, &id, now, &dst_device)) {
+    if (!flow_manager_get_refresh_flow(flow_manager, &id, now)) {
       NF_DEBUG("Unknown external flow, dropping");
       return DROP;
     }
-
   } else {
     struct FlowId id = {
         .src_port = tcpudp_header->src_port,
@@ -56,9 +76,8 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .protocol = rte_ipv4_header->next_proto_id,
     };
 
-    flow_manager_allocate_or_refresh_flow(flow_manager, &id, device, now);
-    dst_device = config.wan_device;
+    flow_manager_allocate_or_refresh_flow(flow_manager, &id, now);
   }
 
-  return dst_device;
+  return get_dst_dev(device);
 }

@@ -17,13 +17,13 @@ void nf_config_init(int argc, char **argv) {
   uint16_t nb_devices = rte_eth_dev_count_avail();
 
   struct option long_options[] = {{"server", required_argument, NULL, 'i'},
-                                  {"lpm-config", required_argument, NULL, 'f'},
+                                  {"lpm-config", required_argument, NULL, 'l'},
                                   {"capacity", required_argument, NULL, 'c'},
                                   {"expire", required_argument, NULL, 't'},
                                   {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "i:f:c:t:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "i:l:c:t:", long_options, NULL)) != EOF) {
     unsigned device;
     switch (opt) {
     case 'i':
@@ -33,7 +33,7 @@ void nf_config_init(int argc, char **argv) {
       }
       break;
 
-    case 'f':
+    case 'l':
       strncpy(config.lpm_cfg_file, optarg, LPM_CONFIG_FNAME_LEN - 1);
       config.lpm_cfg_file[LPM_CONFIG_FNAME_LEN - 1] = '\0';
       break;

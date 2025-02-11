@@ -1,6 +1,6 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/FCFSCachedTable.h>
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 
 namespace LibSynapse {

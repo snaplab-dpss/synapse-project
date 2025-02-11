@@ -7,7 +7,6 @@ extern "C" {
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
 #include <lib/state/token-bucket.h>
-#include <lib/state/devices-table.h>
 #include <lib/state/lpm-dir-24-8.h>
 
 #include <lib/util/hash.h>
@@ -31,7 +30,7 @@ extern "C" {
 #include <rte_mbuf.h>
 #include <rte_random.h>
 
-#include <stdbool.h>
+#include <cstdbool>
 
 #define NF_INFO(text, ...)                                                                                             \
   printf(text "\n", ##__VA_ARGS__);                                                                                    \

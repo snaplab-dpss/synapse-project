@@ -4,8 +4,8 @@
 #include <LibBDD/Nodes/Node.h>
 
 #include <filesystem>
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstdbool>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>

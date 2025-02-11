@@ -1,11 +1,11 @@
 #pragma once
 
 #include <string>
-#include <stdint.h>
+#include <cstdint>
 #include <csignal>
 #include <iostream>
 #include <limits>
-#include <assert.h>
+#include <cassert>
 #include <filesystem>
 
 inline void dbg_pause() {

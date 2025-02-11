@@ -35,9 +35,11 @@ std::optional<addr_t> get_obj_from_call(const Call *node_call) {
 }
 
 dchain_config_t get_dchain_config_from_bdd(const BDD &bdd, addr_t dchain_addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name != "dchain_allocate")
       continue;
 
@@ -60,9 +62,11 @@ dchain_config_t get_dchain_config_from_bdd(const BDD &bdd, addr_t dchain_addr) {
 }
 
 bits_t get_key_size(const BDD &bdd, addr_t addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name == "map_allocate") {
       klee::ref<klee::Expr> _map = call.args.at("map_out").out;
       assert(!_map.isNull() && "Invalid map_out");
@@ -96,9 +100,11 @@ bits_t get_key_size(const BDD &bdd, addr_t addr) {
 }
 
 map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name != "map_allocate")
       continue;
 
@@ -124,9 +130,11 @@ map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr) {
 }
 
 vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name != "vector_allocate")
       continue;
 
@@ -152,9 +160,11 @@ vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr) {
 }
 
 cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name != "cms_allocate")
       continue;
 
@@ -186,9 +196,11 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
 }
 
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name != "cht_fill_cht")
       continue;
 
@@ -214,9 +226,11 @@ cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {
 }
 
 tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr) {
-  const std::vector<call_t> &init = bdd.get_init();
+  const std::vector<Call *> &init = bdd.get_init();
 
-  for (const call_t &call : init) {
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
     if (call.function_name != "tb_allocate")
       continue;
 

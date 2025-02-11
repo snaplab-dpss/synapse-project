@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <klee/Expr.h>
 
 using u64 = __UINT64_TYPE__;

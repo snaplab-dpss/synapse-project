@@ -4,7 +4,7 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
 
-#include <assert.h>
+#include <cassert>
 
 namespace LibBDD {
 

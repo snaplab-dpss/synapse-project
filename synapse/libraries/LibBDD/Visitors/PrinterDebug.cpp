@@ -20,8 +20,8 @@ void PrinterDebug::visit(const BDD *bdd) {
 
   std::cerr << "===========================================\n";
   std::cerr << "Init calls:\n";
-  for (const call_t &call : bdd->get_init()) {
-    std::cerr << "\t" << call << "\n";
+  for (const Call *call : bdd->get_init()) {
+    std::cerr << "\t" << call->get_call() << "\n";
   }
   std::cerr << "===========================================\n";
 

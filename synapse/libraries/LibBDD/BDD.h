@@ -18,7 +18,7 @@ private:
   LibCore::symbol_t packet_len;
   LibCore::symbol_t time;
 
-  std::vector<call_t> init;
+  std::vector<Call *> init;
   Node *root;
 
   NodeManager manager;
@@ -42,7 +42,7 @@ public:
   LibCore::symbol_t get_packet_len() const { return packet_len; }
   LibCore::symbol_t get_time() const { return time; }
 
-  const std::vector<call_t> &get_init() const { return init; }
+  const std::vector<Call *> &get_init() const { return init; }
   const Node *get_root() const { return root; }
 
   std::string hash() const { return root->hash(true); }

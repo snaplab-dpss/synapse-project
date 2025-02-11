@@ -64,18 +64,15 @@ private:
   BDDSynthesizerTarget target;
   Transpiler transpiler;
 
-  enum class IsConditional { No, Yes };
-  using init_synthesizer_fn = std::function<IsConditional(coder_t &, const call_t &)>;
-  std::unordered_map<std::string, init_synthesizer_fn> init_synthesizers;
-
-  using process_synthesizer_fn = std::function<void(coder_t &, const Call *)>;
-  std::unordered_map<std::string, process_synthesizer_fn> process_synthesizers;
-
   struct var_t {
     std::string name;
     klee::ref<klee::Expr> expr;
     klee::ref<klee::Expr> addr;
   };
+
+  using success_condition_t    = std::optional<var_t>;
+  using process_synthesizer_fn = std::function<success_condition_t(coder_t &, const Call *)>;
+  std::unordered_map<std::string, process_synthesizer_fn> function_synthesizers;
 
   struct stack_frame_t {
     std::vector<var_t> vars;
@@ -99,47 +96,43 @@ private:
   void init_post_process();
   void synthesize(const Node *node);
 
-  IsConditional synthesize_init(coder_t &, const call_t &);
-  void synthesize_process(coder_t &, const Call *);
+  success_condition_t synthesize_function(coder_t &, const Call *);
 
-  IsConditional map_allocate(coder_t &, const call_t &);
-  IsConditional vector_allocate(coder_t &, const call_t &);
-  IsConditional dchain_allocate(coder_t &, const call_t &);
-  IsConditional cms_allocate(coder_t &, const call_t &);
-  IsConditional tb_allocate(coder_t &, const call_t &);
-  IsConditional devtbl_allocate(coder_t &, const call_t &);
-  IsConditional devtbl_fill(coder_t &, const call_t &);
-  IsConditional lpm_allocate(coder_t &, const call_t &);
-  IsConditional lpm_from_file(coder_t &, const call_t &);
+  success_condition_t map_allocate(coder_t &, const Call *);
+  success_condition_t vector_allocate(coder_t &, const Call *);
+  success_condition_t dchain_allocate(coder_t &, const Call *);
+  success_condition_t cms_allocate(coder_t &, const Call *);
+  success_condition_t tb_allocate(coder_t &, const Call *);
+  success_condition_t lpm_allocate(coder_t &, const Call *);
 
-  void packet_borrow_next_chunk(coder_t &, const Call *);
-  void packet_return_chunk(coder_t &, const Call *);
-  void nf_set_rte_ipv4_udptcp_checksum(coder_t &, const Call *);
-  void expire_items_single_map(coder_t &, const Call *);
-  void expire_items_single_map_iteratively(coder_t &, const Call *);
-  void map_get(coder_t &, const Call *);
-  void map_put(coder_t &, const Call *);
-  void map_erase(coder_t &, const Call *);
-  void map_size(coder_t &, const Call *);
-  void vector_borrow(coder_t &, const Call *);
-  void vector_return(coder_t &, const Call *);
-  void vector_clear(coder_t &, const Call *);
-  void vector_sample_lt(coder_t &, const Call *);
-  void dchain_allocate_new_index(coder_t &, const Call *);
-  void dchain_rejuvenate_index(coder_t &, const Call *);
-  void dchain_expire_one(coder_t &, const Call *);
-  void dchain_is_index_allocated(coder_t &, const Call *);
-  void dchain_free_index(coder_t &, const Call *);
-  void cms_increment(coder_t &, const Call *);
-  void cms_count_min(coder_t &, const Call *);
-  void cms_periodic_cleanup(coder_t &, const Call *);
-  void tb_is_tracing(coder_t &, const Call *);
-  void tb_trace(coder_t &, const Call *);
-  void tb_update_and_check(coder_t &, const Call *);
-  void tb_expire(coder_t &, const Call *);
-  void devtbl_lookup(coder_t &, const Call *);
-  void lpm_lookup(coder_t &, const Call *);
-  void lpm_update(coder_t &, const Call *);
+  success_condition_t packet_borrow_next_chunk(coder_t &, const Call *);
+  success_condition_t packet_return_chunk(coder_t &, const Call *);
+  success_condition_t nf_set_rte_ipv4_udptcp_checksum(coder_t &, const Call *);
+  success_condition_t expire_items_single_map(coder_t &, const Call *);
+  success_condition_t expire_items_single_map_iteratively(coder_t &, const Call *);
+  success_condition_t map_get(coder_t &, const Call *);
+  success_condition_t map_put(coder_t &, const Call *);
+  success_condition_t map_erase(coder_t &, const Call *);
+  success_condition_t map_size(coder_t &, const Call *);
+  success_condition_t vector_borrow(coder_t &, const Call *);
+  success_condition_t vector_return(coder_t &, const Call *);
+  success_condition_t vector_clear(coder_t &, const Call *);
+  success_condition_t vector_sample_lt(coder_t &, const Call *);
+  success_condition_t dchain_allocate_new_index(coder_t &, const Call *);
+  success_condition_t dchain_rejuvenate_index(coder_t &, const Call *);
+  success_condition_t dchain_expire_one(coder_t &, const Call *);
+  success_condition_t dchain_is_index_allocated(coder_t &, const Call *);
+  success_condition_t dchain_free_index(coder_t &, const Call *);
+  success_condition_t cms_increment(coder_t &, const Call *);
+  success_condition_t cms_count_min(coder_t &, const Call *);
+  success_condition_t cms_periodic_cleanup(coder_t &, const Call *);
+  success_condition_t tb_is_tracing(coder_t &, const Call *);
+  success_condition_t tb_trace(coder_t &, const Call *);
+  success_condition_t tb_update_and_check(coder_t &, const Call *);
+  success_condition_t tb_expire(coder_t &, const Call *);
+  success_condition_t lpm_lookup(coder_t &, const Call *);
+  success_condition_t lpm_update(coder_t &, const Call *);
+  success_condition_t lpm_from_file(coder_t &, const Call *);
 
   void stack_dbg() const;
   void stack_push();

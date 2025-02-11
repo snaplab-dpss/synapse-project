@@ -90,9 +90,11 @@ Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const toml:
     target_ctxs[target.type] = target.base_ctx->clone();
   }
 
-  const std::vector<LibBDD::call_t> &init_calls = bdd->get_init();
+  const std::vector<LibBDD::Call *> &init = bdd->get_init();
 
-  for (const LibBDD::call_t &call : init_calls) {
+  for (const LibBDD::Call *call_node : init) {
+    const LibBDD::call_t &call = call_node->get_call();
+
     if (call.function_name == "map_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("map_out").out;
       addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);

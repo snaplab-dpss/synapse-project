@@ -9,8 +9,10 @@
 // validator
 #ifdef KLEE_VERIFICATION
 #define AND &
+#define OR |
 #else // KLEE_VERIFICATION
 #define AND &&
+#define OR ||
 #endif // KLEE_VERIFICATION
 
 #ifdef KLEE_VERIFICATION

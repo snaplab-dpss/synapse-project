@@ -106,6 +106,37 @@ uintmax_t nf_util_parse_int(const char *str, const char *name, int base, char ne
   return result;
 }
 
+struct int_list_t nf_util_parse_int_list(const char *str, const char *name, int base, char separator) {
+  struct int_list_t result = {.list = NULL, .n = 0};
+
+  while (1) {
+    result.n++;
+    result.list = (uintmax_t *)realloc(result.list, result.n * sizeof(uintmax_t));
+    if (result.list == NULL) {
+      rte_exit(EXIT_FAILURE, "Out of memory in nf_util_parse_int_list!");
+    }
+
+    char *temp;
+    result.list[result.n - 1] = strtoimax(str, &temp, base);
+
+    if (temp == str) {
+      rte_exit(EXIT_FAILURE, "Error while parsing '%s': %s\n", name, str);
+    }
+
+    if (*temp != separator) {
+      result.list[result.n - 1] = nf_util_parse_int(str, name, base, '\0');
+      break;
+    }
+
+    do {
+      str++;
+    } while (*str != separator);
+    str++;
+  }
+
+  return result;
+}
+
 char *nf_mac_to_str(struct rte_ether_addr *addr) {
   // format is xx:xx:xx:xx:xx:xx\0
   uint16_t buffer_size = 6 * 2 + 5 + 1; // FIXME: why dynamic alloc here?

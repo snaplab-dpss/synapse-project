@@ -32,7 +32,7 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
   call_stream << "(";
 
   bool first = true;
-  for (const std::pair<const std::string, LibBDD::arg_t> &arg_pair : call.args) {
+  for (const std::pair<const std::string, arg_t> &arg_pair : call.args) {
     const std::string &arg_name = arg_pair.first;
     const arg_t &arg            = arg_pair.second;
 
@@ -99,7 +99,7 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
     bool first = true;
     call_stream << "*{";
 
-    for (const std::pair<const std::string, LibBDD::extra_var_t> &extra_var_pair : call.extra_vars) {
+    for (const std::pair<const std::string, extra_var_t> &extra_var_pair : call.extra_vars) {
       const std::string &extra_var_name = extra_var_pair.first;
       const extra_var_t &extra_var      = extra_var_pair.second;
 
@@ -174,10 +174,106 @@ std::string serialize_symbols(const LibCore::Symbols &symbols, LibCore::kQuery_t
   return symbols_stream.str();
 }
 
-void serialize_init(const std::vector<call_t> &calls, std::stringstream &init_stream, LibCore::kQuery_t &kQuery) {
-  for (const call_t &call : calls) {
-    init_stream << serialize_call(call, kQuery);
-    init_stream << "\n";
+void serialize_node(const Node *node, std::stringstream &nodes_stream, std::stringstream &edges_stream, LibCore::kQuery_t &kQuery) {
+  nodes_stream << node->get_id();
+  nodes_stream << ":(";
+
+  const klee::ConstraintManager &constraints = node->get_constraints();
+
+  nodes_stream << constraints.size();
+  nodes_stream << " ";
+
+  for (klee::ref<klee::Expr> constraint : constraints) {
+    serialize_expr(constraint, kQuery);
+  }
+
+  switch (node->get_type()) {
+  case NodeType::Call: {
+    const Call *call_node           = dynamic_cast<const Call *>(node);
+    const Node *next                = node->get_next();
+    const LibCore::Symbols &symbols = call_node->get_local_symbols();
+
+    nodes_stream << "CALL";
+    nodes_stream << " ";
+    nodes_stream << serialize_call(call_node->get_call(), kQuery);
+    nodes_stream << serialize_symbols(symbols, kQuery);
+
+    if (next) {
+      edges_stream << "(";
+      edges_stream << node->get_id();
+      edges_stream << "->";
+      edges_stream << next->get_id();
+      edges_stream << ")";
+      edges_stream << "\n";
+    }
+  } break;
+  case NodeType::Branch: {
+    const Branch *branch_node       = dynamic_cast<const Branch *>(node);
+    klee::ref<klee::Expr> condition = branch_node->get_condition();
+    const Node *on_true             = branch_node->get_on_true();
+    const Node *on_false            = branch_node->get_on_false();
+
+    assert(!condition.isNull() && "Null condition");
+
+    nodes_stream << "BRANCH";
+    nodes_stream << " ";
+    nodes_stream << serialize_expr(condition, kQuery);
+
+    edges_stream << "(";
+    edges_stream << node->get_id();
+    edges_stream << "->";
+    if (on_true) {
+      edges_stream << on_true->get_id();
+    }
+    edges_stream << "->";
+    if (on_false) {
+      edges_stream << on_false->get_id();
+    }
+    edges_stream << ")";
+    edges_stream << "\n";
+  } break;
+  case NodeType::Route: {
+    const Route *route_node          = dynamic_cast<const Route *>(node);
+    klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+    const Node *next                 = node->get_next();
+
+    nodes_stream << "ROUTE";
+    nodes_stream << " ";
+
+    switch (route_node->get_operation()) {
+    case RouteOp::Forward:
+      nodes_stream << "FWD";
+      nodes_stream << " ";
+      nodes_stream << serialize_expr(dst_device, kQuery);
+      break;
+    case RouteOp::Drop:
+      nodes_stream << "DROP";
+      break;
+    case RouteOp::Broadcast:
+      nodes_stream << "BCAST";
+      break;
+    }
+
+    if (next) {
+      edges_stream << "(";
+      edges_stream << node->get_id();
+      edges_stream << "->";
+      edges_stream << next->get_id();
+      edges_stream << ")";
+      edges_stream << "\n";
+    }
+  } break;
+  }
+
+  nodes_stream << ")";
+  nodes_stream << "\n";
+}
+
+void serialize_init(const std::vector<Call *> &calls, std::stringstream &init_stream, LibCore::kQuery_t &kQuery) {
+  for (const Call *call : calls) {
+    // No edges.
+    std::stringstream edges_stream;
+    serialize_node(call, init_stream, edges_stream, kQuery);
   }
 }
 
@@ -391,8 +487,8 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   }
 
   for (std::string arg_str : args_str) {
-    std::pair<std::string, LibBDD::arg_t> arg_pair = parse_arg(arg_str, exprs);
-    call.args[arg_pair.first]                      = arg_pair.second;
+    std::pair<std::string, arg_t> arg_pair = parse_arg(arg_str, exprs);
+    call.args[arg_pair.first]              = arg_pair.second;
   }
 
   serialized_call = serialized_call.substr(delim);
@@ -419,8 +515,8 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
         extra_vars_str = extra_vars_str.substr(delim + 1);
       }
 
-      std::pair<std::string, LibBDD::extra_var_t> extra_var_pair = parse_extra_var(extra_var_str, exprs);
-      call.extra_vars[extra_var_pair.first]                      = extra_var_pair.second;
+      std::pair<std::string, extra_var_t> extra_var_pair = parse_extra_var(extra_var_str, exprs);
+      call.extra_vars[extra_var_pair.first]              = extra_var_pair.second;
 
       if (delim == std::string::npos) {
         break;
@@ -614,111 +710,10 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
 
   serialize_init(init, init_stream, kQuery);
 
-  std::vector<const Node *> nodes{root};
-
-  while (nodes.size()) {
-    const Node *node = nodes[0];
-    nodes.erase(nodes.begin());
-
-    nodes_stream << node->get_id();
-    nodes_stream << ":(";
-
-    const klee::ConstraintManager &constraints = node->get_constraints();
-
-    nodes_stream << constraints.size();
-    nodes_stream << " ";
-
-    for (klee::ref<klee::Expr> constraint : constraints) {
-      serialize_expr(constraint, kQuery);
-    }
-
-    switch (node->get_type()) {
-    case NodeType::Call: {
-      const Call *call_node           = dynamic_cast<const Call *>(node);
-      const Node *next                = node->get_next();
-      const LibCore::Symbols &symbols = call_node->get_local_symbols();
-
-      nodes_stream << "CALL";
-      nodes_stream << " ";
-      nodes_stream << serialize_call(call_node->get_call(), kQuery);
-      nodes_stream << serialize_symbols(symbols, kQuery);
-
-      if (next) {
-        edges_stream << "(";
-        edges_stream << node->get_id();
-        edges_stream << "->";
-        edges_stream << next->get_id();
-        edges_stream << ")";
-        edges_stream << "\n";
-
-        nodes.push_back(next);
-      }
-    } break;
-    case NodeType::Branch: {
-      const Branch *branch_node       = dynamic_cast<const Branch *>(node);
-      klee::ref<klee::Expr> condition = branch_node->get_condition();
-      const Node *on_true             = branch_node->get_on_true();
-      const Node *on_false            = branch_node->get_on_false();
-
-      assert(!condition.isNull() && "Null condition");
-
-      nodes_stream << "BRANCH";
-      nodes_stream << " ";
-      nodes_stream << serialize_expr(condition, kQuery);
-
-      edges_stream << "(";
-      edges_stream << node->get_id();
-      edges_stream << "->";
-      if (on_true) {
-        edges_stream << on_true->get_id();
-        nodes.push_back(on_true);
-      }
-      edges_stream << "->";
-      if (on_false) {
-        edges_stream << on_false->get_id();
-        nodes.push_back(on_false);
-      }
-      edges_stream << ")";
-      edges_stream << "\n";
-    } break;
-    case NodeType::Route: {
-      const Route *route_node          = dynamic_cast<const Route *>(node);
-      klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
-      const Node *next                 = node->get_next();
-
-      nodes_stream << "ROUTE";
-      nodes_stream << " ";
-
-      switch (route_node->get_operation()) {
-      case RouteOp::Forward:
-        nodes_stream << "FWD";
-        nodes_stream << " ";
-        nodes_stream << serialize_expr(dst_device, kQuery);
-        break;
-      case RouteOp::Drop:
-        nodes_stream << "DROP";
-        break;
-      case RouteOp::Broadcast:
-        nodes_stream << "BCAST";
-        break;
-      }
-
-      if (next) {
-        edges_stream << "(";
-        edges_stream << node->get_id();
-        edges_stream << "->";
-        edges_stream << next->get_id();
-        edges_stream << ")";
-        edges_stream << "\n";
-
-        nodes.push_back(next);
-      }
-    } break;
-    }
-
-    nodes_stream << ")";
-    nodes_stream << "\n";
-  }
+  root->visit_nodes([&nodes_stream, &edges_stream, &kQuery](const Node *node) {
+    serialize_node(node, nodes_stream, edges_stream, kQuery);
+    return NodeVisitAction::Continue;
+  });
 
   out << MAGIC_SIGNATURE << "\n";
 
@@ -887,10 +882,20 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
     } break;
 
     case state_t::STATE_INIT: {
-      if (get_next_state(state, line) != state)
+      if (get_next_state(state, line) != state) {
         break;
+      }
 
-      call_t call = parse_call(line, exprs);
+      Node *node = parse_node(line, exprs, manager, symbol_manager);
+
+      assert(node && "Invalid node");
+      assert(node->get_type() == NodeType::Call && "Non call node in init");
+      assert(nodes.find(node->get_id()) == nodes.end() && "Duplicate node");
+
+      Call *call = dynamic_cast<Call *>(node);
+
+      id                    = std::max(id, node->get_id()) + 1;
+      nodes[node->get_id()] = node;
       init.push_back(call);
     } break;
 
@@ -914,8 +919,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
         assert(node && "Invalid node");
         assert(nodes.find(node->get_id()) == nodes.end() && "Duplicate node");
 
-        id = std::max(id, node->get_id()) + 1;
-
+        id                    = std::max(id, node->get_id()) + 1;
         nodes[node->get_id()] = node;
         current_node.clear();
       }

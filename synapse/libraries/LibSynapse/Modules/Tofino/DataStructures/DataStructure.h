@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <string>
 #include <vector>
-#include <assert.h>
+#include <cassert>
 
 namespace LibSynapse {
 namespace Tofino {

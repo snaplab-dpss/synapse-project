@@ -2,14 +2,24 @@
 
 #include <stdint.h>
 
+#include "lib/state/lpm-dir-24-8.h"
 #include "nf.h"
+#include "nf-util.h"
 
 struct nf_config {
-  // WAN device, i.e. external
-  uint16_t wan_device;
+  // LPM configuration file for routing between the server and the clients.
+  // The configuration file expects the following format per line: "<ipv4 addr>/<subnet size> <device>".
+  // E.g.:
+  // 10.0.0.0/8 0
+  // 11.0.0.0/8 1
+  char lpm_cfg_file[LPM_CONFIG_FNAME_LEN];
 
-  // External IP address
-  uint32_t external_addr;
+  // WAN devices
+  struct {
+    uint16_t *devices;
+    size_t n;
+    uint32_t *external_addrs;
+  } wan_devs;
 
   // Expiration time of flows in microseconds
   uint32_t expiration_time;

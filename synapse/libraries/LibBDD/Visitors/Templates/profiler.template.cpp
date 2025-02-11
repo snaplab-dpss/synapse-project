@@ -7,7 +7,6 @@ extern "C" {
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
 #include <lib/state/token-bucket.h>
-#include <lib/state/devices-table.h>
 #include <lib/state/lpm-dir-24-8.h>
 
 #include <lib/util/hash.h>
@@ -33,7 +32,7 @@ extern "C" {
 #include <rte_hash_crc.h>
 
 #include <pcap.h>
-#include <stdbool.h>
+#include <cstdbool>
 #include <unistd.h>
 
 #include <fstream>
@@ -484,8 +483,7 @@ PcapReader warmup_reader;
 PcapReader reader;
 std::unordered_map<int, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
-uint64_t *path_profiler_counter_ptr;
-uint64_t path_profiler_counter_sz;
+std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 time_ns_t elapsed_time;
 
 void inc_path_counter(int i) {
@@ -493,7 +491,12 @@ void inc_path_counter(int i) {
     return;
   }
 
-  path_profiler_counter_ptr[i]++;
+  auto found_it = node_pkt_counter.find(i);
+  if (found_it != node_pkt_counter.end()) {
+    found_it->second++;
+  } else {
+    node_pkt_counter.insert({i, 0});
+  }
 }
 
 void generate_report() {
@@ -521,8 +524,8 @@ void generate_report() {
   }
 
   report["counters"] = json::object();
-  for (size_t i = 0; i < path_profiler_counter_sz; i++) {
-    report["counters"][std::to_string(i)] = path_profiler_counter_ptr[i];
+  for (const auto& [node_id, count] : node_pkt_counter) {
+    report["counters"][std::to_string(node_id)] = count;
   }
 
   report["meta"]            = json::object();

@@ -597,47 +597,42 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
                       {MARKER_NF_PROCESS, 0},
                   },
                   _out),
-      target(_target), transpiler(this), init_synthesizers({
+      target(_target), transpiler(this), function_synthesizers({
                                              POPULATE_SYNTHESIZER(map_allocate),
                                              POPULATE_SYNTHESIZER(vector_allocate),
                                              POPULATE_SYNTHESIZER(dchain_allocate),
                                              POPULATE_SYNTHESIZER(cms_allocate),
                                              POPULATE_SYNTHESIZER(tb_allocate),
-                                             POPULATE_SYNTHESIZER(devtbl_allocate),
-                                             POPULATE_SYNTHESIZER(devtbl_fill),
                                              POPULATE_SYNTHESIZER(lpm_allocate),
+                                             POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
+                                             POPULATE_SYNTHESIZER(packet_return_chunk),
+                                             POPULATE_SYNTHESIZER(nf_set_rte_ipv4_udptcp_checksum),
+                                             POPULATE_SYNTHESIZER(expire_items_single_map),
+                                             POPULATE_SYNTHESIZER(expire_items_single_map_iteratively),
+                                             POPULATE_SYNTHESIZER(map_get),
+                                             POPULATE_SYNTHESIZER(map_put),
+                                             POPULATE_SYNTHESIZER(map_erase),
+                                             POPULATE_SYNTHESIZER(map_size),
+                                             POPULATE_SYNTHESIZER(vector_borrow),
+                                             POPULATE_SYNTHESIZER(vector_return),
+                                             POPULATE_SYNTHESIZER(vector_clear),
+                                             POPULATE_SYNTHESIZER(vector_sample_lt),
+                                             POPULATE_SYNTHESIZER(dchain_allocate_new_index),
+                                             POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
+                                             POPULATE_SYNTHESIZER(dchain_expire_one),
+                                             POPULATE_SYNTHESIZER(dchain_is_index_allocated),
+                                             POPULATE_SYNTHESIZER(dchain_free_index),
+                                             POPULATE_SYNTHESIZER(cms_increment),
+                                             POPULATE_SYNTHESIZER(cms_count_min),
+                                             POPULATE_SYNTHESIZER(cms_periodic_cleanup),
+                                             POPULATE_SYNTHESIZER(tb_is_tracing),
+                                             POPULATE_SYNTHESIZER(tb_trace),
+                                             POPULATE_SYNTHESIZER(tb_update_and_check),
+                                             POPULATE_SYNTHESIZER(tb_expire),
+                                             POPULATE_SYNTHESIZER(lpm_lookup),
+                                             POPULATE_SYNTHESIZER(lpm_update),
                                              POPULATE_SYNTHESIZER(lpm_from_file),
-                                         }),
-      process_synthesizers({
-          POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
-          POPULATE_SYNTHESIZER(packet_return_chunk),
-          POPULATE_SYNTHESIZER(nf_set_rte_ipv4_udptcp_checksum),
-          POPULATE_SYNTHESIZER(expire_items_single_map),
-          POPULATE_SYNTHESIZER(expire_items_single_map_iteratively),
-          POPULATE_SYNTHESIZER(map_get),
-          POPULATE_SYNTHESIZER(map_put),
-          POPULATE_SYNTHESIZER(map_erase),
-          POPULATE_SYNTHESIZER(map_size),
-          POPULATE_SYNTHESIZER(vector_borrow),
-          POPULATE_SYNTHESIZER(vector_return),
-          POPULATE_SYNTHESIZER(vector_clear),
-          POPULATE_SYNTHESIZER(vector_sample_lt),
-          POPULATE_SYNTHESIZER(dchain_allocate_new_index),
-          POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
-          POPULATE_SYNTHESIZER(dchain_expire_one),
-          POPULATE_SYNTHESIZER(dchain_is_index_allocated),
-          POPULATE_SYNTHESIZER(dchain_free_index),
-          POPULATE_SYNTHESIZER(cms_increment),
-          POPULATE_SYNTHESIZER(cms_count_min),
-          POPULATE_SYNTHESIZER(cms_periodic_cleanup),
-          POPULATE_SYNTHESIZER(tb_is_tracing),
-          POPULATE_SYNTHESIZER(tb_trace),
-          POPULATE_SYNTHESIZER(tb_update_and_check),
-          POPULATE_SYNTHESIZER(tb_expire),
-          POPULATE_SYNTHESIZER(devtbl_lookup),
-          POPULATE_SYNTHESIZER(lpm_lookup),
-          POPULATE_SYNTHESIZER(lpm_update),
-      }) {}
+                                         }) {}
 
 void BDDSynthesizer::synthesize(const BDD *bdd) {
   // Global state
@@ -656,15 +651,13 @@ void BDDSynthesizer::init_pre_process(const BDD *bdd) {
   coder << "bool nf_init() {\n";
   coder.inc();
 
-  const calls_t &calls = bdd->get_init();
+  for (const Call *call_node : bdd->get_init()) {
+    success_condition_t cond = synthesize_function(coder, call_node);
 
-  for (const call_t &call : calls) {
-    coder.indent();
-
-    coder_t tmp_coder = coder;
-    if (synthesize_init(tmp_coder, call) == IsConditional::Yes) {
+    if (cond) {
+      coder.indent();
       coder << "if (!";
-      coder << tmp_coder;
+      coder << cond->name;
       coder << ") {\n";
 
       coder.inc();
@@ -674,36 +667,10 @@ void BDDSynthesizer::init_pre_process(const BDD *bdd) {
       coder.dec();
       coder.indent();
       coder << "}\n";
-    } else {
-      coder << tmp_coder;
-      coder << ";\n";
     }
   }
 
   if (target == BDDSynthesizerTarget::PROFILER) {
-    coder_t &coder_nf_state = get(MARKER_NF_STATE);
-
-    coder_nf_state.indent();
-    coder_nf_state << "uint64_t path_profiler_counter[";
-    coder_nf_state << bdd->size();
-    coder_nf_state << "]";
-    coder_nf_state << ";\n";
-
-    coder.indent();
-    coder << "memset(";
-    coder << "(void*)path_profiler_counter, ";
-    coder << "0, ";
-    coder << "sizeof(path_profiler_counter)";
-    coder << ");\n";
-
-    coder.indent();
-    coder << "path_profiler_counter_ptr = path_profiler_counter;\n";
-
-    coder.indent();
-    coder << "path_profiler_counter_sz = ";
-    coder << bdd->size();
-    coder << ";\n";
-
     for (u16 device : bdd->get_devices()) {
       coder.indent();
       coder << "ports.push_back(" << device << ");\n";
@@ -828,7 +795,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
     } break;
     case NodeType::Call: {
       const Call *call_node = dynamic_cast<const Call *>(node);
-      synthesize_process(coder, call_node);
+      synthesize_function(coder, call_node);
     } break;
     case NodeType::Route: {
       const Route *route_node          = dynamic_cast<const Route *>(node);
@@ -876,25 +843,17 @@ void BDDSynthesizer::synthesize(const Node *node) {
   });
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::synthesize_init(coder_t &coder, const call_t &call) {
-  if (this->init_synthesizers.find(call.function_name) == this->init_synthesizers.end()) {
-    panic("No init synthesizer found for function: %s\n", call.function_name.c_str());
-  }
-
-  return (this->init_synthesizers[call.function_name])(coder, call);
-}
-
-void BDDSynthesizer::synthesize_process(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::synthesize_function(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  if (this->process_synthesizers.find(call.function_name) == this->process_synthesizers.end()) {
-    panic("No process synthesizer found for function: %s\n", call.function_name.c_str());
+  if (this->function_synthesizers.find(call.function_name) == this->function_synthesizers.end()) {
+    panic("No synthesizer found for function: %s\n", call.function_name.c_str());
   }
 
-  (this->process_synthesizers[call.function_name])(coder, call_node);
+  return (this->function_synthesizers[call.function_name])(coder, call_node);
 }
 
-void BDDSynthesizer::packet_borrow_next_chunk(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::packet_borrow_next_chunk(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> length    = call.args.at("length").expr;
@@ -915,9 +874,11 @@ void BDDSynthesizer::packet_borrow_next_chunk(coder_t &coder, const Call *call_n
   coder << ";\n";
 
   stack_add(hdr);
+
+  return {};
 }
 
-void BDDSynthesizer::packet_return_chunk(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::packet_return_chunk(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> chunk_addr = call.args.at("the_chunk").expr;
@@ -945,9 +906,11 @@ void BDDSynthesizer::packet_return_chunk(coder_t &coder, const Call *call_node) 
   coder << stack_get(chunk_addr).name;
   coder << ")";
   coder << ";\n";
+
+  return {};
 }
 
-void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> ip_header     = call.args.at("ip_header").expr;
@@ -967,9 +930,11 @@ void BDDSynthesizer::nf_set_rte_ipv4_udptcp_checksum(coder_t &coder, const Call 
   coder << ";\n";
 
   stack_add(c);
+
+  return {};
 }
 
-void BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> chain  = call.args.at("chain").expr;
@@ -992,9 +957,11 @@ void BDDSynthesizer::expire_items_single_map(coder_t &coder, const Call *call_no
   coder << ";\n";
 
   stack_add(nfreed);
+
+  return {};
 }
 
-void BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> vector  = call.args.at("vector").expr;
@@ -1017,14 +984,20 @@ void BDDSynthesizer::expire_items_single_map_iteratively(coder_t &coder, const C
   coder << ";\n";
 
   stack_add(nfreed);
+
+  return {};
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::map_allocate(coder_t &coder, const call_t &call) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::map_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
   klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> map_out  = call.args.at("map_out").out;
+  LibCore::symbol_t success      = call_node->get_local_symbol("map_allocation_succeeded");
 
   var_t map_out_var = build_var("map", map_out);
+  var_t success_var = build_var("map_allocation_succeeded", success.expr);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
@@ -1032,65 +1005,20 @@ BDDSynthesizer::IsConditional BDDSynthesizer::map_allocate(coder_t &coder, const
   coder_nf_state << map_out_var.name;
   coder_nf_state << ";\n";
 
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
   coder << "map_allocate(";
   coder << transpiler.transpile(capacity) << ", ";
   coder << transpiler.transpile(key_size) << ", ";
   coder << "&" << map_out_var.name;
-  coder << ")";
+  coder << ");\n";
 
   stack_add(map_out_var);
 
-  return IsConditional::Yes;
+  return success_var;
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> value,
-                                                    coder_t &coder, bool &found_in_stack) {
-  bytes_t size = value->getWidth() / 8;
-
-  var_t var;
-  if (!(found_in_stack = stack_find(addr, var))) {
-    var = build_var(base_name, value, addr);
-    coder.indent();
-    coder << "uint8_t " << var.name << "[" << size << "];\n";
-  } else if (LibCore::solver_toolbox.are_exprs_always_equal(var.expr, value)) {
-    return var;
-  }
-
-  var_t stack_value;
-  if (stack_find_or_create_tmp_slice_var(value, coder, stack_value)) {
-    if (stack_value.addr.isNull()) {
-      bits_t width = stack_value.expr->getWidth();
-      assert(width <= klee::Expr::Int64 && "Invalid width");
-      coder.indent();
-      coder << "*(" << Transpiler::type_from_size(width) << "*)";
-      coder << var.name;
-      coder << " = ";
-      coder << stack_value.name;
-      coder << ";\n";
-    } else {
-      coder.indent();
-      coder << "memcpy(";
-      coder << "(void*)" << var.name << ", ";
-      coder << "(void*)" << stack_value.name << ", ";
-      coder << size;
-      coder << ");\n";
-    }
-
-    var.expr = stack_value.expr;
-  } else {
-    for (bytes_t b = 0; b < size; b++) {
-      klee::ref<klee::Expr> byte = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
-      coder.indent();
-      coder << var.name << "[" << b << "] = ";
-      coder << transpiler.transpile(byte);
-      coder << ";\n";
-    }
-  }
-
-  return var;
-}
-
-void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr       = call.args.at("map").expr;
@@ -1140,9 +1068,11 @@ void BDDSynthesizer::map_get(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+
+  return r;
 }
 
-void BDDSynthesizer::map_put(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::map_put(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
@@ -1179,9 +1109,11 @@ void BDDSynthesizer::map_put(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+
+  return {};
 }
 
-void BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
@@ -1221,9 +1153,11 @@ void BDDSynthesizer::map_erase(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+
+  return {};
 }
 
-void BDDSynthesizer::map_size(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::map_size(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr  = call.args.at("map").expr;
@@ -1242,14 +1176,20 @@ void BDDSynthesizer::map_size(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   stack_add(s);
+
+  return {};
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::vector_allocate(coder_t &coder, const call_t &call) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
   klee::ref<klee::Expr> elem_size  = call.args.at("elem_size").expr;
   klee::ref<klee::Expr> capacity   = call.args.at("capacity").expr;
   klee::ref<klee::Expr> vector_out = call.args.at("vector_out").out;
+  LibCore::symbol_t success        = call_node->get_local_symbol("vector_alloc_success");
 
   var_t vector_out_var = build_var("vector", vector_out);
+  var_t success_var    = build_var("vector_alloc_success", success.expr);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
@@ -1257,18 +1197,20 @@ BDDSynthesizer::IsConditional BDDSynthesizer::vector_allocate(coder_t &coder, co
   coder_nf_state << vector_out_var.name;
   coder_nf_state << ";\n";
 
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
   coder << "vector_allocate(";
   coder << transpiler.transpile(elem_size) << ", ";
   coder << transpiler.transpile(capacity) << ", ";
   coder << "&" << vector_out_var.name;
-  coder << ")";
+  coder << ");\n";
 
   stack_add(vector_out_var);
 
-  return IsConditional::Yes;
+  return success_var;
 }
 
-void BDDSynthesizer::vector_borrow(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_borrow(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
@@ -1290,9 +1232,11 @@ void BDDSynthesizer::vector_borrow(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   stack_add(v);
+
+  return {};
 }
 
-void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> value      = call.args.at("value").in;
@@ -1301,7 +1245,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
   var_t v = stack_get(value_addr);
 
   if (LibCore::solver_toolbox.are_exprs_always_equal(v.expr, value)) {
-    return;
+    return {};
   }
 
   var_t new_v;
@@ -1316,7 +1260,7 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     coder << new_v.name << ", ";
     coder << value->getWidth() / 8;
     coder << ");\n";
-    return;
+    return {};
   }
 
   std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(v.expr, value);
@@ -1339,9 +1283,11 @@ void BDDSynthesizer::vector_return(coder_t &coder, const Call *call_node) {
     coder << transpiler.transpile(mod.expr);
     coder << ";\n";
   }
+
+  return {};
 }
 
-void BDDSynthesizer::vector_clear(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_clear(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
@@ -1351,9 +1297,11 @@ void BDDSynthesizer::vector_clear(coder_t &coder, const Call *call_node) {
   coder << stack_get(vector_addr).name;
   coder << ")";
   coder << ";\n";
+
+  return {};
 }
 
-void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> vector_addr    = call.args.at("vector").expr;
@@ -1392,13 +1340,19 @@ void BDDSynthesizer::vector_sample_lt(coder_t &coder, const Call *call_node) {
 
   stack_add(f);
   stack_add(i);
+
+  return f;
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::dchain_allocate(coder_t &coder, const call_t &call) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
   klee::ref<klee::Expr> index_range = call.args.at("index_range").expr;
   klee::ref<klee::Expr> chain_out   = call.args.at("chain_out").out;
+  LibCore::symbol_t success         = call_node->get_local_symbol("is_dchain_allocated");
 
   var_t chain_out_var = build_var("dchain", chain_out);
+  var_t success_var   = build_var("is_dchain_allocated", success.expr);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
@@ -1406,17 +1360,19 @@ BDDSynthesizer::IsConditional BDDSynthesizer::dchain_allocate(coder_t &coder, co
   coder_nf_state << chain_out_var.name;
   coder_nf_state << ";\n";
 
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
   coder << "dchain_allocate(";
   coder << transpiler.transpile(index_range) << ", ";
   coder << "&" << chain_out_var.name;
-  coder << ")";
+  coder << ");\n";
 
   stack_add(chain_out_var);
 
-  return IsConditional::Yes;
+  return success_var;
 }
 
-void BDDSynthesizer::dchain_allocate_new_index(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate_new_index(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
@@ -1445,9 +1401,11 @@ void BDDSynthesizer::dchain_allocate_new_index(coder_t &coder, const Call *call_
 
   stack_add(oos);
   stack_add(i);
+
+  return oos;
 }
 
-void BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
@@ -1461,9 +1419,11 @@ void BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder, const Call *call_no
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";
+
+  return {};
 }
 
-void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   // const call_t &call = call_node->get_call();
 
   // coder.indent();
@@ -1471,9 +1431,10 @@ void BDDSynthesizer::dchain_expire_one(coder_t &coder, const Call *call_node) {
   // coder << ";\n";
 
   panic("TODO: dchain_expire_one");
+  return {};
 }
 
-void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
@@ -1492,9 +1453,11 @@ void BDDSynthesizer::dchain_is_index_allocated(coder_t &coder, const Call *call_
   coder << ";\n";
 
   stack_add(ia);
+
+  return ia;
 }
 
-void BDDSynthesizer::dchain_free_index(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_free_index(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
@@ -1506,16 +1469,22 @@ void BDDSynthesizer::dchain_free_index(coder_t &coder, const Call *call_node) {
   coder << transpiler.transpile(index);
   coder << ")";
   coder << ";\n";
+
+  return {};
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::cms_allocate(coder_t &coder, const call_t &call) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::cms_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
   klee::ref<klee::Expr> height           = call.args.at("height").expr;
   klee::ref<klee::Expr> width            = call.args.at("width").expr;
   klee::ref<klee::Expr> key_size         = call.args.at("key_size").expr;
   klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out          = call.args.at("cms_out").out;
+  LibCore::symbol_t success              = call_node->get_local_symbol("cms_allocation_succeeded");
 
   var_t cms_out_var = build_var("cms", cms_out);
+  var_t success_var = build_var("cms_allocation_succeeded", success.expr);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
@@ -1523,20 +1492,21 @@ BDDSynthesizer::IsConditional BDDSynthesizer::cms_allocate(coder_t &coder, const
   coder_nf_state << cms_out_var.name;
   coder_nf_state << ";\n";
 
+  coder.indent();
   coder << "cms_allocate(";
   coder << transpiler.transpile(height) << ", ";
   coder << transpiler.transpile(width) << ", ";
   coder << transpiler.transpile(key_size) << ", ";
   coder << transpiler.transpile(cleanup_interval) << ", ";
   coder << "&" << cms_out_var.name;
-  coder << ")";
+  coder << ");\n";
 
   stack_add(cms_out_var);
 
-  return IsConditional::Yes;
+  return success_var;
 }
 
-void BDDSynthesizer::cms_increment(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::cms_increment(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
@@ -1558,9 +1528,11 @@ void BDDSynthesizer::cms_increment(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+
+  return {};
 }
 
-void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr     = call.args.at("cms").expr;
@@ -1588,9 +1560,11 @@ void BDDSynthesizer::cms_count_min(coder_t &coder, const Call *call_node) {
   }
 
   stack_add(me);
+
+  return {};
 }
 
-void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::cms_periodic_cleanup(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
@@ -1609,16 +1583,22 @@ void BDDSynthesizer::cms_periodic_cleanup(coder_t &coder, const Call *call_node)
   coder << ";\n";
 
   stack_add(cs);
+
+  return cs;
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::tb_allocate(coder_t &coder, const call_t &call) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::tb_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
   klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
   klee::ref<klee::Expr> rate     = call.args.at("rate").expr;
   klee::ref<klee::Expr> burst    = call.args.at("burst").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> tb_out   = call.args.at("tb_out").out;
+  LibCore::symbol_t success      = call_node->get_local_symbol("tb_allocation_succeeded");
 
-  var_t tb_out_var = build_var("tb", tb_out);
+  var_t tb_out_var  = build_var("tb", tb_out);
+  var_t success_var = build_var("tb_allocation_succeeded", success.expr);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
@@ -1626,60 +1606,28 @@ BDDSynthesizer::IsConditional BDDSynthesizer::tb_allocate(coder_t &coder, const 
   coder_nf_state << tb_out_var.name;
   coder_nf_state << ";\n";
 
+  coder.indent();
   coder << "tb_allocate(";
   coder << transpiler.transpile(capacity) << ", ";
   coder << transpiler.transpile(rate) << "ull, ";
   coder << transpiler.transpile(burst) << "ull, ";
   coder << transpiler.transpile(key_size) << ", ";
   coder << "&" << tb_out_var.name;
-  coder << ")";
+  coder << ");\n";
 
   stack_add(tb_out_var);
 
-  return IsConditional::Yes;
+  return success_var;
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::devtbl_allocate(coder_t &coder, const call_t &call) {
-  klee::ref<klee::Expr> max_devices = call.args.at("max_devices").expr;
-  klee::ref<klee::Expr> devtbl_out  = call.args.at("devtbl_out").out;
+BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
 
-  var_t devtbl_out_var = build_var("devtbl", devtbl_out);
-
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
-  coder_nf_state.indent();
-  coder_nf_state << "struct DevicesTable *";
-  coder_nf_state << devtbl_out_var.name;
-  coder_nf_state << ";\n";
-
-  coder << "devtbl_allocate(";
-  coder << transpiler.transpile(max_devices) << ", ";
-  coder << "&" << devtbl_out_var.name;
-  coder << ")";
-
-  stack_add(devtbl_out_var);
-
-  return IsConditional::Yes;
-}
-
-BDDSynthesizer::IsConditional BDDSynthesizer::devtbl_fill(coder_t &coder, const call_t &call) {
-  klee::ref<klee::Expr> devtbl_addr = call.args.at("devtbl").expr;
-  klee::ref<klee::Expr> cfg_fname   = call.args.at("cfg_fname").in;
-
-  std::string cfg_fname_str = LibCore::expr_to_ascii(cfg_fname);
-
-  coder.indent();
-  coder << "devtbl_fill(";
-  coder << stack_get(devtbl_addr).name << ", ";
-  coder << "\"" << cfg_fname_str << "\"";
-  coder << ")";
-
-  return IsConditional::No;
-}
-
-BDDSynthesizer::IsConditional BDDSynthesizer::lpm_allocate(coder_t &coder, const call_t &call) {
   klee::ref<klee::Expr> lpm_out = call.args.at("lpm_out").out;
+  LibCore::symbol_t success     = call_node->get_local_symbol("lpm_alloc_success");
 
   var_t lpm_out_var = build_var("lpm", lpm_out);
+  var_t success_var = build_var("lpm_alloc_success", success.expr);
 
   coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
@@ -1687,30 +1635,18 @@ BDDSynthesizer::IsConditional BDDSynthesizer::lpm_allocate(coder_t &coder, const
   coder_nf_state << lpm_out_var.name;
   coder_nf_state << ";\n";
 
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
   coder << "lpm_allocate(";
   coder << "&" << lpm_out_var.name;
-  coder << ")";
+  coder << ");\n";
 
   stack_add(lpm_out_var);
 
-  return IsConditional::Yes;
+  return success_var;
 }
 
-BDDSynthesizer::IsConditional BDDSynthesizer::lpm_from_file(coder_t &coder, const call_t &call) {
-  klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
-  klee::ref<klee::Expr> cfg_fname = call.args.at("cfg_fname").in;
-
-  std::string cfg_fname_str = LibCore::expr_to_ascii(cfg_fname);
-
-  coder << "lpm_from_file(";
-  coder << stack_get(lpm_addr).name << ", ";
-  coder << "\"" << cfg_fname_str << "\"";
-  coder << ")";
-
-  return IsConditional::No;
-}
-
-void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> tb_addr    = call.args.at("tb").expr;
@@ -1745,9 +1681,11 @@ void BDDSynthesizer::tb_is_tracing(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+
+  return it;
 }
 
-void BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> tb_addr             = call.args.at("tb").expr;
@@ -1786,9 +1724,11 @@ void BDDSynthesizer::tb_trace(coder_t &coder, const Call *call_node) {
   } else {
     stack_replace(k, key);
   }
+
+  return st;
 }
 
-void BDDSynthesizer::tb_update_and_check(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::tb_update_and_check(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
@@ -1810,9 +1750,11 @@ void BDDSynthesizer::tb_update_and_check(coder_t &coder, const Call *call_node) 
   coder << ";\n";
 
   stack_add(p);
+
+  return p;
 }
 
-void BDDSynthesizer::tb_expire(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::tb_expire(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
@@ -1824,37 +1766,11 @@ void BDDSynthesizer::tb_expire(coder_t &coder, const Call *call_node) {
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";
+
+  return {};
 }
 
-void BDDSynthesizer::devtbl_lookup(coder_t &coder, const Call *call_node) {
-  const call_t &call = call_node->get_call();
-
-  klee::ref<klee::Expr> devtbl_addr = call.args.at("devtbl").expr;
-  klee::ref<klee::Expr> dev         = call.args.at("dev").expr;
-  klee::ref<klee::Expr> mac         = call.args.at("mac").out;
-
-  LibCore::symbol_t devices_table_hit = call_node->get_local_symbol("devices_table_hit");
-
-  var_t hit_var = build_var("devices_table_hit", devices_table_hit.expr);
-  var_t mac_var = build_var("mac", mac);
-
-  coder.indent();
-  coder << "struct rte_ether_addr " << mac_var.name << ";\n";
-
-  coder.indent();
-  coder << "int " << hit_var.name << " = ";
-  coder << "devtbl_lookup(";
-  coder << stack_get(devtbl_addr).name << ", ";
-  coder << transpiler.transpile(dev) << ", ";
-  coder << "&" << mac_var.name;
-  coder << ")";
-  coder << ";\n";
-
-  stack_add(hit_var);
-  stack_add(mac_var);
-}
-
-void BDDSynthesizer::lpm_lookup(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_lookup(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
@@ -1880,9 +1796,11 @@ void BDDSynthesizer::lpm_lookup(coder_t &coder, const Call *call_node) {
 
   stack_add(lookup_match_var);
   stack_add(lpm_matching_dev);
+
+  return lookup_match_var;
 }
 
-void BDDSynthesizer::lpm_update(coder_t &coder, const Call *call_node) {
+BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_update(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
@@ -1905,6 +1823,25 @@ void BDDSynthesizer::lpm_update(coder_t &coder, const Call *call_node) {
   coder << ";\n";
 
   stack_add(update_result_var);
+
+  return update_result_var;
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_from_file(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
+  klee::ref<klee::Expr> cfg_fname = call.args.at("cfg_fname").in;
+
+  std::string cfg_fname_str = LibCore::expr_to_ascii(cfg_fname);
+
+  coder.indent();
+  coder << "lpm_from_file(";
+  coder << stack_get(lpm_addr).name << ", ";
+  coder << "\"" << cfg_fname_str << "\"";
+  coder << ");\n";
+
+  return {};
 }
 
 void BDDSynthesizer::stack_dbg() const {
@@ -2095,6 +2032,53 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::r
 
   reserved_var_names[name] += 1;
   return var_t(name + std::to_string(reserved_var_names[name]), expr, addr);
+}
+
+BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> value,
+                                                    coder_t &coder, bool &found_in_stack) {
+  bytes_t size = value->getWidth() / 8;
+
+  var_t var;
+  if (!(found_in_stack = stack_find(addr, var))) {
+    var = build_var(base_name, value, addr);
+    coder.indent();
+    coder << "uint8_t " << var.name << "[" << size << "];\n";
+  } else if (LibCore::solver_toolbox.are_exprs_always_equal(var.expr, value)) {
+    return var;
+  }
+
+  var_t stack_value;
+  if (stack_find_or_create_tmp_slice_var(value, coder, stack_value)) {
+    if (stack_value.addr.isNull()) {
+      bits_t width = stack_value.expr->getWidth();
+      assert(width <= klee::Expr::Int64 && "Invalid width");
+      coder.indent();
+      coder << "*(" << Transpiler::type_from_size(width) << "*)";
+      coder << var.name;
+      coder << " = ";
+      coder << stack_value.name;
+      coder << ";\n";
+    } else {
+      coder.indent();
+      coder << "memcpy(";
+      coder << "(void*)" << var.name << ", ";
+      coder << "(void*)" << stack_value.name << ", ";
+      coder << size;
+      coder << ");\n";
+    }
+
+    var.expr = stack_value.expr;
+  } else {
+    for (bytes_t b = 0; b < size; b++) {
+      klee::ref<klee::Expr> byte = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
+      coder.indent();
+      coder << var.name << "[" << b << "] = ";
+      coder << transpiler.transpile(byte);
+      coder << ";\n";
+    }
+  }
+
+  return var;
 }
 
 } // namespace LibBDD

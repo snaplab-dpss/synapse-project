@@ -3,7 +3,7 @@
 #include <LibSynapse/ExecutionPlan.h>
 
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 
 namespace LibSynapse {
 namespace Tofino {

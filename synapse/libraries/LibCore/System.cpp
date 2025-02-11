@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <execinfo.h>
 #include <dlfcn.h>
-#include <assert.h>
+#include <cassert>
 
 namespace LibCore {
 

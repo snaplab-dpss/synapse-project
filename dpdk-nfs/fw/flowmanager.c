@@ -14,11 +14,6 @@
 #include "config.h"
 #include "../nf-log.h"
 
-struct FlowManager {
-  struct State *state;
-  time_ns_t expiration_time;
-};
-
 struct FlowManager *flow_manager_allocate() {
   struct FlowManager *manager = (struct FlowManager *)malloc(sizeof(struct FlowManager));
   if (manager == NULL) {
@@ -35,7 +30,7 @@ struct FlowManager *flow_manager_allocate() {
   return manager;
 }
 
-void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct FlowId *id, uint16_t internal_device, time_ns_t time) {
+void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time) {
   int index;
   if (map_get(manager->state->fm, id, &index)) {
     NF_DEBUG("Rejuvenated flow");
@@ -55,11 +50,6 @@ void flow_manager_allocate_or_refresh_flow(struct FlowManager *manager, struct F
   memcpy((void *)key, (void *)id, sizeof(struct FlowId));
   map_put(manager->state->fm, key, index);
   vector_return(manager->state->fv, index, key);
-
-  uint16_t *int_dev;
-  vector_borrow(manager->state->int_devices, index, (void **)&int_dev);
-  *int_dev = internal_device;
-  vector_return(manager->state->int_devices, index, int_dev);
 }
 
 void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
@@ -70,16 +60,11 @@ void flow_manager_expire(struct FlowManager *manager, time_ns_t time) {
   expire_items_single_map(manager->state->heap, manager->state->fv, manager->state->fm, last_time);
 }
 
-bool flow_manager_get_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time, uint16_t *internal_device) {
+bool flow_manager_get_refresh_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time) {
   int index;
   if (map_get(manager->state->fm, id, &index) == 0) {
     return false;
   }
-
-  uint32_t *int_dev;
-  vector_borrow(manager->state->int_devices, index, (void **)&int_dev);
-  *internal_device = *int_dev;
-  vector_return(manager->state->int_devices, index, int_dev);
 
   dchain_rejuvenate_index(manager->state->heap, index, time);
   return true;

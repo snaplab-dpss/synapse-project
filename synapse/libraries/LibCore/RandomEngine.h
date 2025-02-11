@@ -5,7 +5,7 @@
 #include <functional>
 #include <random>
 #include <memory>
-#include <assert.h>
+#include <cassert>
 
 namespace LibCore {
 

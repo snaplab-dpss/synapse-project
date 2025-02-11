@@ -3,7 +3,7 @@
 #include <ctime>
 #include <fstream>
 #include <limits>
-#include <math.h>
+#include <cmath>
 #include <unistd.h>
 
 #define SHOW_MODULE_NAME(M)                                                                                                                \

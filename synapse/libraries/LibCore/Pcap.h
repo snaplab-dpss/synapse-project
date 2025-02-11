@@ -48,7 +48,7 @@ struct flow_t {
   };
 };
 
-std::ostream &operator<<(std::ostream &os, const flow_t &flow) {
+inline std::ostream &operator<<(std::ostream &os, const flow_t &flow) {
   os << "{";
 
   os << LibCore::ipv4_to_str(flow.src_ip);

@@ -1,6 +1,6 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/CountMinSketch.h>
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 
 namespace LibSynapse {

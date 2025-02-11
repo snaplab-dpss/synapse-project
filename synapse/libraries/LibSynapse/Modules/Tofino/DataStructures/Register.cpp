@@ -2,7 +2,7 @@
 #include <LibSynapse/Modules/Tofino/TNA/TNA.h>
 
 #include <iostream>
-#include <assert.h>
+#include <cassert>
 
 namespace LibSynapse {
 namespace Tofino {

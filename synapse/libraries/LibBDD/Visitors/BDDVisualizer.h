@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
-#include <math.h>
+#include <cmath>
 #include <unistd.h>
 
 #include <unordered_set>

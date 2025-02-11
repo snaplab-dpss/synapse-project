@@ -78,6 +78,13 @@ void nf_set_rte_ipv4_udptcp_checksum(struct rte_ipv4_hdr *ip_header, void *l4_he
 
 uintmax_t nf_util_parse_int(const char *str, const char *name, int base, char next);
 
+struct int_list_t {
+  uintmax_t *list;
+  size_t n;
+};
+
+struct int_list_t nf_util_parse_int_list(const char *str, const char *name, int base, char separator);
+
 char *nf_mac_to_str(struct rte_ether_addr *addr);
 
 char *nf_rte_ipv4_to_str(uint32_t addr);

@@ -12,8 +12,9 @@ void CallPathsGroup::group_call_paths() {
     on_true.data.clear();
     on_false.data.clear();
 
-    if (cp->calls.size() == 0)
+    if (cp->calls.empty()) {
       continue;
+    }
 
     const call_t &call = cp->calls[0];
 
@@ -26,28 +27,29 @@ void CallPathsGroup::group_call_paths() {
       on_false.data.push_back(cp);
     }
 
-    // all calls are equal, no need do discriminate
-    if (on_false.data.size() == 0)
+    // All calls are equal, no need do discriminate
+    if (on_false.data.empty()) {
       return;
+    }
 
     constraint = find_discriminating_constraint();
 
-    if (!constraint.isNull())
+    if (!constraint.isNull()) {
       return;
+    }
   }
 
-  // no more calls
-  if (on_true.data.size() == 0 && on_false.data.size() == 0) {
+  if (on_true.data.empty() && on_false.data.empty()) {
     on_true = call_paths;
     return;
   }
 
   // Last shot...
-  for (unsigned i = 0; i < call_paths.data.size(); i++) {
+  for (size_t i = 0; i < call_paths.data.size(); i++) {
     on_true.data.clear();
     on_false.data.clear();
 
-    for (unsigned j = 0; j < call_paths.data.size(); j++) {
+    for (size_t j = 0; j < call_paths.data.size(); j++) {
       call_path_t *call_path = call_paths.data[j];
 
       if (i == j) {
@@ -59,8 +61,9 @@ void CallPathsGroup::group_call_paths() {
 
     constraint = find_discriminating_constraint();
 
-    if (!constraint.isNull())
+    if (!constraint.isNull()) {
       return;
+    }
   }
 
   panic("Could not group call paths");

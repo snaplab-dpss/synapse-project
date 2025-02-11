@@ -27,9 +27,8 @@ const std::vector<std::string> ignored_functions{
 constexpr const char *const init_to_process_trigger_function = "packet_receive";
 
 const std::vector<std::string> symbols_in_skippable_conditions{
-    "received_a_packet",           "loop_termination",        "map_allocation_succeeded", "vector_alloc_success",
-    "is_dchain_allocated",         "cht_fill_cht_successful", "cms_allocation_succeeded", "tb_allocation_succeeded",
-    "devtbl_allocation_succeeded", "lpm_alloc_success",       "lpm_update_elem_result",
+    "received_a_packet",
+    "loop_termination",
 };
 
 const std::vector<std::string> routing_functions{
@@ -39,6 +38,12 @@ const std::vector<std::string> routing_functions{
 };
 
 const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call{
+    {"map_allocate", {"map_allocation_succeeded"}},
+    {"vector_allocate", {"vector_alloc_success"}},
+    {"dchain_allocate", {"is_dchain_allocated"}},
+    {"cms_allocate", {"cms_allocation_succeeded"}},
+    {"tb_allocate", {"tb_allocation_succeeded"}},
+    {"lpm_allocate", {"lpm_alloc_success"}},
     {"rte_lcore_count", {"lcores"}},
     {"rte_ether_addr_hash", {"rte_ether_addr_hash"}},
     {"nf_set_rte_ipv4_udptcp_checksum", {"checksum"}},
@@ -52,6 +57,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"dchain_allocate_new_index", {"out_of_space", "new_index"}},
     {"vector_borrow", {"vector_data_reset"}},
     {"vector_sample_lt", {"found_sample", "sample_index"}},
+    {"cht_fill_cht", {"cht_fill_cht_successful"}},
     {"cht_find_preferred_available_backend", {"chosen_backend", "prefered_backend_found"}},
     {"cms_count_min", {"min_estimate"}},
     {"cms_periodic_cleanup", {"cleanup_success"}},
@@ -60,7 +66,6 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"tb_trace", {"index_out"}},
     {"tb_update_and_check", {"pass"}},
     {"tb_expire", {"number_of_freed_flows"}},
-    {"devtbl_lookup", {"devices_table_hit", "dev", "mac"}},
     {"lpm_lookup", {"lpm_lookup_match", "lpm_lookup_result"}},
     {"lpm_update", {"lpm_update_elem_result"}},
 };
@@ -248,7 +253,6 @@ LibCore::Symbols get_generated_symbols(const call_t &call, LibCore::Symbols &sym
     std::optional<LibCore::symbol_t> symbol = get_generated_symbol(symbols, base, base_symbols_generated);
     if (symbol.has_value()) {
       generated_symbols.add(symbol.value());
-      base_symbols_generated[symbol->base]++;
     }
   }
 
@@ -263,7 +267,7 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
 }
 
 Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolManager *symbol_manager, NodeManager &node_manager,
-                          std::vector<call_t> &init, node_id_t &id, bool in_init_mode = true,
+                          std::vector<Call *> &init, node_id_t &id, bool in_init_mode = true,
                           klee::ConstraintManager constraints                            = klee::ConstraintManager(),
                           std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
   Node *root = nullptr;
@@ -277,7 +281,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
   LibCore::Symbols symbols = call_paths_view.get_symbols();
 
   while (!call_paths_view.data.empty()) {
-    CallPathsGroup group(call_paths_view);
+    CallPathsGroup group(call_paths_view, in_init_mode);
 
     const call_paths_view_t &on_true  = group.get_on_true();
     const call_paths_view_t &on_false = group.get_on_false();
@@ -287,8 +291,8 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
       break;
     }
 
-    if (on_true.data.size() == call_paths_view.data.size()) {
-      assert(on_false.data.empty() && "Unexpected call paths");
+    if (on_false.data.empty()) {
+      call_paths_view = on_true;
 
       call_t call                        = get_successful_call(call_paths_view.data);
       LibCore::Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
@@ -320,7 +324,10 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
       }
 
       if (in_init_mode) {
-        init.push_back(call);
+        Call *node = new Call(id, constraints, symbol_manager, call, generated_symbols);
+        node_manager.add_node(node);
+        id++;
+        init.push_back(node);
       } else {
         Node *node;
 
@@ -387,7 +394,15 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
       Node *on_false_root =
           bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, in_init_mode, on_false_constraints, base_symbols_generated);
 
-      assert((on_true_root && on_false_root) && "Invalid BDD");
+      if (!on_true_root || !on_false_root) {
+        std::stringstream ss;
+        const LibBDD::call_paths_view_t &failed_group = on_true_root == nullptr ? on_true : on_false;
+        ss << "Failed to build nodes for the call paths:\n";
+        for (const call_path_t *cp : failed_group.data) {
+          ss << "  " << cp->file_name << "\n";
+        }
+        panic("%s", ss.str().c_str());
+      }
 
       node->set_on_true(on_true_root);
       node->set_on_false(on_false_root);
@@ -654,8 +669,10 @@ void BDD::assert_integrity() const {
 }
 
 BDD::BDD(const BDD &other)
-    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), init(other.init),
-      symbol_manager(other.symbol_manager) {
+    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), symbol_manager(other.symbol_manager) {
+  for (const Call *init_node : other.init) {
+    init.push_back(dynamic_cast<Call *>(init_node->clone(manager)));
+  }
   root = other.root->clone(manager, true);
 }
 
@@ -668,11 +685,15 @@ BDD::BDD(BDD &&other)
 BDD &BDD::operator=(const BDD &other) {
   if (this == &other)
     return *this;
-  id             = other.id;
-  device         = other.device;
-  packet_len     = other.packet_len;
-  time           = other.time;
-  init           = other.init;
+  id         = other.id;
+  device     = other.device;
+  packet_len = other.packet_len;
+  time       = other.time;
+
+  for (const Call *init_node : other.init) {
+    init.push_back(dynamic_cast<Call *>(init_node->clone(manager)));
+  }
+
   root           = other.root->clone(manager, true);
   symbol_manager = other.symbol_manager;
   return *this;

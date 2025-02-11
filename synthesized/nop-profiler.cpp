@@ -7,7 +7,6 @@ extern "C" {
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
 #include <lib/state/token-bucket.h>
-#include <lib/state/devices-table.h>
 #include <lib/state/lpm-dir-24-8.h>
 
 #include <lib/util/hash.h>
@@ -33,7 +32,7 @@ extern "C" {
 #include <rte_hash_crc.h>
 
 #include <pcap.h>
-#include <stdbool.h>
+#include <cstdbool>
 #include <unistd.h>
 
 #include <fstream>
@@ -484,8 +483,7 @@ PcapReader warmup_reader;
 PcapReader reader;
 std::unordered_map<int, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
-uint64_t *path_profiler_counter_ptr;
-uint64_t path_profiler_counter_sz;
+std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 time_ns_t elapsed_time;
 
 void inc_path_counter(int i) {
@@ -493,7 +491,12 @@ void inc_path_counter(int i) {
     return;
   }
 
-  path_profiler_counter_ptr[i]++;
+  auto found_it = node_pkt_counter.find(i);
+  if (found_it != node_pkt_counter.end()) {
+    found_it->second++;
+  } else {
+    node_pkt_counter.insert({i, 0});
+  }
 }
 
 void generate_report() {
@@ -521,8 +524,8 @@ void generate_report() {
   }
 
   report["counters"] = json::object();
-  for (size_t i = 0; i < path_profiler_counter_sz; i++) {
-    report["counters"][std::to_string(i)] = path_profiler_counter_ptr[i];
+  for (const auto& [node_id, count] : node_pkt_counter) {
+    report["counters"][std::to_string(node_id)] = count;
   }
 
   report["meta"]            = json::object();
@@ -669,17 +672,14 @@ int main(int argc, char **argv) {
 }
 
 struct LPM *lpm;
-uint64_t path_profiler_counter[11];
 
 
 bool nf_init() {
-  if (!lpm_allocate(&lpm)) {
+  int lpm_alloc_success = lpm_allocate(&lpm);
+  if (!lpm_alloc_success) {
     return false;
   }
   lpm_from_file(lpm, "lpm.cfg");
-  memset((void*)path_profiler_counter, 0, sizeof(path_profiler_counter));
-  path_profiler_counter_ptr = path_profiler_counter;
-  path_profiler_counter_sz = 11;
   ports.push_back(0);
   ports.push_back(1);
   ports.push_back(2);
@@ -710,55 +710,55 @@ bool nf_init() {
   ports.push_back(27);
   ports.push_back(28);
   ports.push_back(29);
+  forwarding_stats_per_route_op.insert({12, {}});
   forwarding_stats_per_route_op.insert({10, {}});
-  forwarding_stats_per_route_op.insert({8, {}});
-  forwarding_stats_per_route_op.insert({7, {}});
+  forwarding_stats_per_route_op.insert({9, {}});
   return true;
 }
 
 
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
-  // Node 0
-  inc_path_counter(0);
+  // Node 2
+  inc_path_counter(2);
   uint8_t* hdr;
   packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
-  // Node 1
-  inc_path_counter(1);
+  // Node 3
+  inc_path_counter(3);
   if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))) {
-    // Node 2
-    inc_path_counter(2);
-    uint8_t* hdr2;
-    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
-    // Node 3
-    inc_path_counter(3);
-    uint16_t lpm_matching_dev;
-    int lpm_lookup_match = lpm_lookup(lpm, *(uint32_t*)(uint32_t*)(hdr2+12), &lpm_matching_dev);
     // Node 4
     inc_path_counter(4);
-    packet_return_chunk(buffer, hdr2);
+    uint8_t* hdr2;
+    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
     // Node 5
     inc_path_counter(5);
-    packet_return_chunk(buffer, hdr);
+    uint16_t lpm_matching_dev;
+    int lpm_lookup_match = lpm_lookup(lpm, *(uint32_t*)(uint32_t*)(hdr2+12), &lpm_matching_dev);
     // Node 6
     inc_path_counter(6);
+    packet_return_chunk(buffer, hdr2);
+    // Node 7
+    inc_path_counter(7);
+    packet_return_chunk(buffer, hdr);
+    // Node 8
+    inc_path_counter(8);
     if ((0) == (lpm_lookup_match)) {
-      // Node 7
-      inc_path_counter(7);
-      forwarding_stats_per_route_op[7].inc_drop();
+      // Node 9
+      inc_path_counter(9);
+      forwarding_stats_per_route_op[9].inc_drop();
       return DROP;
     } else {
-      // Node 8
-      inc_path_counter(8);
-      forwarding_stats_per_route_op[8].inc_fwd((uint32_t)((uint16_t)(lpm_matching_dev)));
+      // Node 10
+      inc_path_counter(10);
+      forwarding_stats_per_route_op[10].inc_fwd((uint32_t)((uint16_t)(lpm_matching_dev)));
       return (uint32_t)((uint16_t)(lpm_matching_dev));
     } // (0) == (lpm_lookup_match)
   } else {
-    // Node 9
-    inc_path_counter(9);
+    // Node 11
+    inc_path_counter(11);
     packet_return_chunk(buffer, hdr);
-    // Node 10
-    inc_path_counter(10);
-    forwarding_stats_per_route_op[10].inc_drop();
+    // Node 12
+    inc_path_counter(12);
+    forwarding_stats_per_route_op[12].inc_drop();
     return DROP;
   } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))
 }
