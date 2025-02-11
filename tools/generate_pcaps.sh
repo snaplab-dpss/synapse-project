@@ -74,16 +74,24 @@ fw() {
 # Network Address Translator #
 ##############################
 
-# FIXME:
-# nat() {
-#     parallel \
-#         -j $(nproc) \
-#         eval \
-#         $SYNAPSE_DIR/build/bin/pcap-generator-nat \
-#         --seed 0 --lan-devs 1 --packets $TOTAL_PACKETS --flows 10000 --churn {1} {2} \
-#         ::: 0 1000000 10000000 \
-#         ::: "--uniform" "--zipf --zipf-param 0.9" "--zipf --zipf-param 0.99" "--zipf --zipf-param 1.26"
-# }
+nat() {
+    flows=10000
+    devs="0,1 2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29"
+    parallel \
+        -j $(nproc) \
+        eval \
+        $SYNAPSE_DIR/build/bin/pcap-generator-nat \
+        --out $PCAPS_DIR \
+        --packets $TOTAL_PACKETS \
+        --flows $flows \
+        --packet-size $PACKET_SIZE \
+        --churn {1} \
+        --traffic {2} \
+        --devs $devs \
+        --seed 0 \
+        ::: 0 1000000 10000000 \
+        ::: "uniform" "zipf --zipf-param 0.9" "zipf --zipf-param 0.99" "zipf --zipf-param 1.26"
+}
 
 ###################
 # Key Value Store #
@@ -102,7 +110,7 @@ fw() {
 #         ::: "--uniform" "--zipf --zipf-param 0.9" "--zipf --zipf-param 0.99" "--zipf --zipf-param 1.26"
 # }
 
-nop
-fw
-# nat
+# nop
+# fw
+nat
 # kvs

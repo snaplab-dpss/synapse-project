@@ -54,6 +54,7 @@ protected:
   const std::string nf;
   const config_t config;
   const std::unordered_map<u16, u16> lan_to_wan_dev;
+  const std::unordered_map<u16, u16> wan_to_lan_dev;
   const std::vector<u16> lan_devices;
   const std::vector<u16> wan_devices;
   const pkt_t template_packet;
@@ -134,6 +135,14 @@ protected:
     return lan_to_wan_dev;
   }
 
+  static std::unordered_map<u16, u16> build_wan_to_lan(const std::vector<std::pair<u16, u16>> &lan_wan_pairs) {
+    std::unordered_map<u16, u16> wan_to_lan_dev;
+    for (const auto &[lan, wan] : lan_wan_pairs) {
+      wan_to_lan_dev[wan] = lan;
+    }
+    return wan_to_lan_dev;
+  }
+
   static std::vector<u16> build_lan_devices(const std::vector<std::pair<u16, u16>> &lan_wan_pairs) {
     std::vector<u16> lan_devices;
     for (const auto &[lan, _] : lan_wan_pairs) {
@@ -158,9 +167,9 @@ protected:
 
   void report() const;
 
-  virtual void random_swap_flow(flow_idx_t flow_idx, u16 lan_dev, u16 wan_dev) = 0;
-  virtual pkt_t build_lan_packet(flow_idx_t flow_idx)                          = 0;
-  virtual pkt_t build_wan_packet(flow_idx_t flow_idx)                          = 0;
+  virtual void random_swap_flow(flow_idx_t flow_idx)               = 0;
+  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) = 0;
+  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) = 0;
 
   void tick() {
     // To obtain the time in seconds:

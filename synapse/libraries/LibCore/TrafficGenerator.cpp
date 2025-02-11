@@ -4,8 +4,9 @@ namespace LibCore {
 
 TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config)
     : nf(_nf), config(_config), lan_to_wan_dev(build_lan_to_wan(config.lan_wan_pairs)),
-      lan_devices(build_lan_devices(config.lan_wan_pairs)), wan_devices(build_wan_devices(config.lan_wan_pairs)),
-      template_packet(build_pkt_template()), uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
+      wan_to_lan_dev(build_wan_to_lan(config.lan_wan_pairs)), lan_devices(build_lan_devices(config.lan_wan_pairs)),
+      wan_devices(build_wan_devices(config.lan_wan_pairs)), template_packet(build_pkt_template()),
+      uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
       zipf_rand(_config.random_seed, _config.zipf_param, _config.total_flows), pd(NULL), pdumper(NULL), current_lan_dev_it(0), counters(0),
       flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
   for (u16 lan_dev : lan_devices) {
@@ -101,14 +102,14 @@ void TrafficGenerator::generate() {
     printf("WAN dev %u: %s\n", wan_dev, wan_writer.get_output_fname().c_str());
   }
 
+  // FIXME: this is too slow! we should be sending at all ports at the same time.
   for (u64 i = 0; i < config.total_packets; i++) {
     if (next_alarm >= 0 && current_time >= next_alarm) {
       u16 lan_dev = get_current_lan_dev();
-      u16 wan_dev = lan_to_wan_dev.at(lan_dev);
       advance_lan_dev();
 
       flow_idx_t chosen_swap_flow_idx = uniform_rand.generate();
-      random_swap_flow(chosen_swap_flow_idx, lan_dev, wan_dev);
+      random_swap_flow(chosen_swap_flow_idx);
       flows_swapped++;
       next_alarm += alarm_tick;
 
@@ -132,14 +133,14 @@ void TrafficGenerator::generate() {
       u16 lan_dev              = flows_to_lan_dev.at(flow_idx);
       flows_dev_turn[flow_idx] = Dev::WAN;
 
-      pkt_t pkt = build_lan_packet(flow_idx);
+      pkt_t pkt = build_lan_packet(lan_dev, flow_idx);
       lan_writers.at(lan_dev).write((const u8 *)&pkt, config.packet_size, config.packet_size, current_time);
     } else {
       u16 lan_dev              = flows_to_lan_dev.at(flow_idx);
       u16 wan_dev              = lan_to_wan_dev.at(lan_dev);
       flows_dev_turn[flow_idx] = Dev::LAN;
 
-      pkt_t pkt = build_wan_packet(flow_idx);
+      pkt_t pkt = build_wan_packet(wan_dev, flow_idx);
       wan_writers.at(wan_dev).write((const u8 *)&pkt, config.packet_size, config.packet_size, current_time);
     }
 
@@ -213,7 +214,7 @@ void TrafficGenerator::generate_warmup() {
         continue;
       }
 
-      pkt_t pkt = build_lan_packet(flow_idx);
+      pkt_t pkt = build_lan_packet(dev, flow_idx);
       warmup_writer.write((const u8 *)&pkt, config.packet_size, config.packet_size, current_time);
 
       counter++;
@@ -225,9 +226,9 @@ void TrafficGenerator::generate_warmup() {
         fflush(stdout);
       }
     }
-
-    printf("\n");
   }
+
+  printf("\n");
 }
 
 } // namespace LibCore

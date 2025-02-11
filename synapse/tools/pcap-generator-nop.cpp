@@ -63,15 +63,19 @@ public:
     reset_lan_dev();
   }
 
-  virtual void random_swap_flow(flow_idx_t flow_idx, u16 lan_dev, u16 wan_dev) {
+  virtual void random_swap_flow(flow_idx_t flow_idx) {
     assert(flow_idx < flows.size());
+    u16 lan_dev = flows_to_lan_dev.at(flow_idx);
+    u16 wan_dev = lan_to_wan_dev.at(lan_dev);
+
     LibCore::flow_t new_flow = random_flow();
     new_flow.src_ip          = mask_addr_from_dev(new_flow.src_ip, lan_dev);
     new_flow.dst_ip          = mask_addr_from_dev(new_flow.dst_ip, wan_dev);
-    flows[flow_idx]          = new_flow;
+
+    flows[flow_idx] = new_flow;
   }
 
-  virtual pkt_t build_lan_packet(flow_idx_t flow_idx) {
+  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) {
     pkt_t pkt                   = template_packet;
     const LibCore::flow_t &flow = flows[flow_idx];
     pkt.ip_hdr.src_addr         = flow.src_ip;
@@ -81,7 +85,7 @@ public:
     return pkt;
   }
 
-  virtual pkt_t build_wan_packet(flow_idx_t flow_idx) {
+  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) {
     pkt_t pkt                     = template_packet;
     const LibCore::flow_t &flow   = flows[flow_idx];
     LibCore::flow_t inverted_flow = invert_flow(flow);
