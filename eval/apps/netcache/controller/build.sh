@@ -3,19 +3,33 @@
 set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-BUILD_DIR="$SCRIPT_DIR/build"
-RELEASE_DIR="$BUILD_DIR/release"
-DEBUG_DIR="$BUILD_DIR/debug"
 
-mkdir -p $RELEASE_DIR
-mkdir -p $DEBUG_DIR
+ROOT_DIR=$SCRIPT_DIR
 
-pushd $DEBUG_DIR > /dev/null
-	cmake -DCMAKE_BUILD_TYPE=Debug ../..
-	make -j
-popd > /dev/null
+DEBUG_BUILD_DIR=$ROOT_DIR/build/Debug
+RELEASE_BUILD_DIR=$ROOT_DIR/build/Release
 
-pushd $RELEASE_DIR > /dev/null
-	cmake -DCMAKE_BUILD_TYPE=Release ../..
-	make -j
-popd > /dev/null
+build_debug() {
+	if [ ! -d "$DEBUG_BUILD_DIR" ]; then
+		mkdir -p "$DEBUG_BUILD_DIR"
+	fi
+
+	pushd "$DEBUG_BUILD_DIR" >/dev/null
+		cmake -DCMAKE_BUILD_TYPE=Debug "$ROOT_DIR"
+		make -j
+	popd >/dev/null
+}
+
+build_release() {
+	if [ ! -d "$RELEASE_BUILD_DIR" ]; then
+		mkdir -p "$RELEASE_BUILD_DIR"
+	fi
+
+	pushd "$RELEASE_BUILD_DIR" >/dev/null
+		cmake -DCMAKE_BUILD_TYPE=Release "$ROOT_DIR"
+		make -j
+	popd >/dev/null
+}
+
+build_debug
+build_release

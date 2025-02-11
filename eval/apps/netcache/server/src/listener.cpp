@@ -34,6 +34,33 @@ Listener::Listener(const int dpdk_port) {
 
 Listener::~Listener() {}
 
+pkt_hdr_t* Listener::test() {
+	uint16_t nb_rx = rte_eth_rx_burst(1, 0, buf, BURST_SIZE);
+
+	if (nb_rx == 0) {
+		pkt_hdr_t* pkt;
+		return pkt;
+	}
+	count++;
+
+	std::cout << "Packet received: count " << count << "\n";
+	auto buffer = (uint8_t *)rte_pktmbuf_mtod(buf[0], char *);
+
+	size_t data_size = rte_pktmbuf_data_len(buf[0]);
+
+	rte_pktmbuf_free(buf[0]);
+
+	auto pkt = (pkt_hdr_t *)(buffer);
+
+	#ifndef NDEBUG
+	if (pkt->has_valid_protocol()) {
+		pkt->pretty_print_base();
+	}
+	#endif
+
+	return pkt;
+}
+
 pkt_hdr_t Listener::receive_query() {
 	uint16_t nb_rx = rte_eth_rx_burst(1, 0, buf, BURST_SIZE);
 

@@ -1,10 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
 
+#include "netcache.h"
 #include "table.h"
 
 #include <port_mgr/bf_port_if.h>
+#include <bf_pm/bf_pm_intf.h>
+#include <bf_rt/bf_rt_info.hpp>
+#include <bf_rt/bf_rt_init.hpp>
+#include <bf_rt/bf_rt_common.h>
 
 namespace netcache {
 
@@ -31,14 +37,12 @@ public:
 		assert(bf_status == BF_SUCCESS);
 	}
 
-	uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane,
-						  bool from_hw = false) {
-		auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
-							  : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+	uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
+		uint64_t hwflag = 0;
 
 		key_setup(front_panel_port, lane);
-		auto bf_status =
-			table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+
+		auto bf_status = table->tableEntryGet(*session, dev_tgt, hwflag, *key, data.get());
 		assert(bf_status == BF_SUCCESS);
 
 		uint64_t value;
@@ -320,13 +324,12 @@ public:
 		});
 	}
 
-	uint64_t get_port_rx(uint16_t dev_port, bool from_hw = false) {
-		auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
-							  : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+	uint64_t get_port_rx(uint16_t dev_port) {
+		uint64_t hwflag = 0;
 
 		key_setup(dev_port);
 
-		auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+		auto bf_status = table->tableEntryGet(*session, dev_tgt, hwflag, *key, data.get());
 		assert(bf_status == BF_SUCCESS);
 
 		uint64_t value;
@@ -336,13 +339,12 @@ public:
 		return value;
 	}
 
-	uint64_t get_port_tx(uint16_t dev_port, bool from_hw = false) {
-		auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
-							  : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+	uint64_t get_port_tx(uint16_t dev_port) {
+		uint64_t hwflag = 0;
 
 		key_setup(dev_port);
 
-		auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+		auto bf_status = table->tableEntryGet(*session, dev_tgt, hwflag, *key, data.get());
 		assert(bf_status == BF_SUCCESS);
 
 		uint64_t value;
@@ -350,6 +352,13 @@ public:
 		assert(bf_status == BF_SUCCESS);
 
 		return value;
+	}
+
+	void reset_port() {
+		uint64_t hwflag = 0;
+
+		auto bf_status = table->tableClear(*session, dev_tgt, hwflag);
+		assert(bf_status == BF_SUCCESS);
 	}
 
 private:
@@ -447,7 +456,7 @@ public:
 	}
 
 	void add_port(uint16_t front_panel_port, uint16_t lane, bf_port_speed_t speed) {
-		auto dev_port = port_hdl_info.get_dev_port(front_panel_port, lane, false);
+		auto dev_port = port_hdl_info.get_dev_port(front_panel_port, lane);
 		add_dev_port(dev_port, speed);
 	}
 
@@ -468,19 +477,13 @@ public:
 	}
 
 	uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
-		return port_hdl_info.get_dev_port(front_panel_port, lane, false);
+		return port_hdl_info.get_dev_port(front_panel_port, lane);
 	}
 
-	uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port, true); }
-	uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port, true); }
+	uint64_t get_port_rx(uint16_t port) { return port_stat.get_port_rx(port); }
+	uint64_t get_port_tx(uint16_t port) { return port_stat.get_port_tx(port); }
 
-	void reset_ports(uint16_t port) {
-		key_setup(port);
-		assert(key);
-
-		table->tableEntryReset(*session, dev_tgt, 0, *key);
-		// table->tableClear(*session, dev_tgt, 0);
-	}
+	void reset_ports() { port_stat.reset_port(); }
 
 private:
 	void key_setup(uint16_t dev_port) {

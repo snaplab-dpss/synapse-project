@@ -28,6 +28,7 @@ public:
 	~Store();
 
 	void read_query(const pkt_hdr_t& pkt);
+	void test(pkt_hdr_t* pkt);
 	// void write_query(const pkt_hdr_t& pkt);
 	// void del_query(const pkt_hdr_t& pkt);
 };

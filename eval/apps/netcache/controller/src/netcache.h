@@ -140,7 +140,6 @@ public:
 		/* auto bf_status = port_diag_prbs_stats_display(dev_tgt.dev_id, 0); */
 	}
 
-	void config_ports(const conf_t &conf);
 
 public:
 	Controller(Controller &other) = delete;
@@ -150,13 +149,12 @@ public:
 	std::shared_ptr<bfrt::BfRtSession> get_session() { return session; }
 	bf_rt_target_t get_dev_tgt() const { return dev_tgt; }
 
+	void config_ports(const conf_t &conf);
+
 	uint64_t get_port_tx(uint16_t port) { return ports.get_port_tx(port); }
 	uint64_t get_port_rx(uint16_t port) { return ports.get_port_rx(port); }
 
-	void reset_ports(uint16_t port) {
-		ports.reset_ports(port);
-		// config_ports(conf);
-	}
+	void reset_ports() { ports.reset_ports(); }
 
 	uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) {
 		return ports.get_dev_port(front_panel_port, lane);

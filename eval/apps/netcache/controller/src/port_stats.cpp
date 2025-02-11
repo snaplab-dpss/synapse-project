@@ -16,16 +16,15 @@ void PortStats::get_stats() {
 
 	// Get tx/rx for all active ports.
 	for (auto port : conf.topology.ports) {
-		auto port_num = port.num;
+		auto dev_port = port.num;
+		if (!use_tofino_model) {
+			dev_port = netcache::Controller::controller->get_dev_port(port.num, 0);
+		}
 
-		// if (!use_tofino_model) {
-		// 	in_port = netcache::Controller::controller->get_dev_port(in_port, 0);
-		// }
+		auto tx = netcache::Controller::controller->get_port_tx(dev_port);
+		auto rx = netcache::Controller::controller->get_port_rx(dev_port);
 
-		auto tx = netcache::Controller::controller->get_port_tx(port_num);
-		auto rx = netcache::Controller::controller->get_port_rx(port_num);
-
-		cur_stats.push_back({port_num, rx, tx});
+		cur_stats.push_back({port.num, rx, tx});
 	}
 
 	std::cerr << "STATS";
@@ -39,9 +38,7 @@ void PortStats::get_stats() {
 }
 
 void PortStats::reset_stats() {
-	for (auto port : conf.topology.ports) {
-		netcache::Controller::controller->reset_ports(port.num);
-	}
+	netcache::Controller::controller->reset_ports();
 }
 
 }  // namespace netcache

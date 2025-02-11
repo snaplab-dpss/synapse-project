@@ -1,27 +1,27 @@
-#pragma once
+// #pragma once
 
-#include <string>
-#include <rte_mbuf.h>
+// #include <string>
+// #include <rte_mbuf.h>
 
-#include "constants.h"
-#include "packet.h"
-#include "query.h"
+// #include "constants.h"
+// #include "packet.h"
+// #include "query.h"
 
-namespace netcache {
+// namespace netcache {
 
-class Listener {
-private:
-	uint8_t* buffer;
-	uint32_t count = 0;
+// class Listener {
+// private:
+// 	uint8_t* buffer;
+// 	uint32_t count = 0;
 
-	uint16_t port_id;
-	struct rte_mbuf *buf[BURST_SIZE];
+// 	uint16_t port_id;
+// 	struct rte_mbuf *buf[BURST_SIZE];
 
-public:
-	Listener(const int dpdk_port);
+// public:
+// 	Listener(const int dpdk_port);
 
-	pkt_hdr_t receive_query();
-	~Listener();
-};
+// 	pkt_hdr_t receive_query();
+// 	~Listener();
+// };
 
-}  // namespace netcache
+// }  // namespace netcache

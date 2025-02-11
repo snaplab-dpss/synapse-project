@@ -29,6 +29,7 @@ struct args_t {
 	args_t(int argc, char** argv) {
 
 		conf_file_path=std::string(argv[argc-1]);
+		/* std::cout << conf_file_path << std::endl; */
 		parse_help(argc, argv);
 	}
 
@@ -212,31 +213,34 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		auto pkt = listener->receive_query();
+		/* auto pkt = listener->receive_query(); */
+		auto pkt = listener->test();
 
 		if (pkt->has_valid_protocol()) {
-			 uint8_t cur_op = pkt.get_netcache_hdr()->op;
-			 if (cur_op == WRITE_QUERY) {
-			 	query_cntr++;
-			 	#ifndef NDEBUG
-			 	std::cout << "Received write query." << std::endl;
-			 	#endif
-			 	// store->write_query(pkt);
-			 } else if (cur_op == DELETE_QUERY) {
-			 	query_cntr++;
-			 	#ifndef NDEBUG
-			 	std::cout << "Received delete query." << std::endl;
-			 	#endif
-			 	// store->del_query(pkt);
-			 } else if (cur_op == READ_QUERY) {
-			 	query_cntr++;
-			 	#ifndef NDEBUG
-			 	std::cout << "Received read query." << std::endl;
-			 	#endif
-			 	store->read_query(pkt);
-			 } else {
-			 	std::cerr << "Invalid query received.";
-			 }
+			std::cout << "TEST." << std::endl;
+			store->test(pkt);
+			/* uint8_t cur_op = pkt.get_netcache_hdr()->op; */
+			/* if (cur_op == WRITE_QUERY) { */
+			/* 	query_cntr++; */
+			/* 	#ifndef NDEBUG */
+			/* 	std::cout << "Received write query." << std::endl; */
+			/* 	#endif */
+			/* 	// store->write_query(pkt); */
+			/* } else if (cur_op == DELETE_QUERY) { */
+			/* 	query_cntr++; */
+			/* 	#ifndef NDEBUG */
+			/* 	std::cout << "Received delete query." << std::endl; */
+			/* 	#endif */
+			/* 	// store->del_query(pkt); */
+			/* } else if (cur_op == READ_QUERY) { */
+			/* 	query_cntr++; */
+			/* 	#ifndef NDEBUG */
+			/* 	std::cout << "Received read query." << std::endl; */
+			/* 	#endif */
+			/* 	store->read_query(pkt); */
+			/* } else { */
+			/* 	std::cerr << "Invalid query received."; */
+			/* } */
 		} else {
 			#ifndef NDEBUG
 			std::cerr << "Invalid packet received.";
