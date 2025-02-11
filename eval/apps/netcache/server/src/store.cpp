@@ -23,6 +23,32 @@ Store::Store(const int dpdk_port, rte_mempool * pool) {
 
 Store::~Store() {}
 
+void Store::test(pkt_hdr_t* pkt) {
+	/* std::cout << "TEST START" << std::endl; */
+	pkt->swap_addr();
+
+	/* std::cout << "Z!" << std::endl; */
+	buf[0] = rte_pktmbuf_alloc(mbuf_pool);
+    /* struct pkt_hdr_t* pkt_reply = rte_pktmbuf_mtod(buf[0], pkt_hdr_t*); */
+    rte_memcpy(rte_pktmbuf_mtod(buf[0], pkt_hdr_t*), pkt, sizeof(&pkt));
+	/* std::cout << "B!" << std::endl; */
+
+	/* pkt_reply = pkt; */
+
+	/* if (pkt_reply->has_valid_protocol()) { */
+		/* std::cout << "C!" << std::endl; */
+	/* } */
+
+	uint16_t num_tx =
+		/* rte_eth_tx_burst(port_id, 0, buf, 1); */
+		rte_eth_tx_burst(port_id, 0, buf, 1);
+	if (num_tx > 0) {
+		std::cout << "SENT! " << num_tx << std::endl;
+	}
+
+	rte_pktmbuf_free(buf[0]);
+}
+
 void Store::read_query(const pkt_hdr_t& pkt) {
 	// Retrieve value from KV map using query.key.
 	uint32_t val;
@@ -34,13 +60,19 @@ void Store::read_query(const pkt_hdr_t& pkt) {
 		val = it->second;
 	}
 
-	pkt_hdr_t pkt_reply = pkt;
+	pkt.get_netcache_hdr()->val = val;
 
-	pkt_reply.get_netcache_hdr()->val = val;
-	pkt_reply.swap_addr();
+	pkt_hdr_t pkt_reply = pkt;
+	pkt.swap_addr();
+
+	// Initialize a server_reply struct with the op, key and newly obtained value.
+	/* server_reply_t reply = server_reply_t(query.key, val); */
+
+	// Serialize server_reply and send it back.
+	/* auto buffer = reply.serialize(); */
 
 	buf[0] = rte_pktmbuf_alloc(mbuf_pool);
-    rte_memcpy(rte_pktmbuf_mtod(buf[0], pkt_hdr_t*), pkt_reply, sizeof(&pkt));
+    rte_pktmbuf_mtod(buf[0], struct pkt_hdr_t*);
 
 	uint16_t num_tx =
 		rte_eth_tx_burst(port_id, 0, buf, 1);

@@ -24,6 +24,7 @@ public:
 	Listener(const int dpdk_port);
 
 	pkt_hdr_t receive_query();
+	pkt_hdr_t* test();
 	~Listener();
 };
 

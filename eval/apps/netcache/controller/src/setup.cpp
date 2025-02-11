@@ -47,10 +47,10 @@ extern "C" {
 // BFN-T10-032Q
 #define CPU_PORT_4_PIPES 192
 
-#define SWITCH_PKT_ERROR(fmt, arg...)                                 \
+#define SWITCH_PKT_ERROR(fmt, arg...)								  \
 	bf_sys_log_and_trace(BF_MOD_SWITCHAPI, BF_LOG_ERR, "%s:%d: " fmt, \
 						 __FUNCTION__, __LINE__, ##arg)
-#define SWITCH_PKT_DEBUG(fmt, arg...)                                \
+#define SWITCH_PKT_DEBUG(fmt, arg...)								 \
 	bf_sys_log_and_trace(BF_MOD_SWITCHAPI, BF_LOG_DBG, "%s:%d " fmt, \
 						 __FUNCTION__, __LINE__, ##arg)
 
@@ -58,13 +58,6 @@ namespace netcache {
 
 typedef int switch_int32_t;
 typedef uint32_t switch_status_t;
-
-struct stats_t {
-	uint64_t bytes;
-	uint64_t packets;
-
-	stats_t(uint64_t _bytes, uint64_t _packets) : bytes(_bytes), packets(_packets) {}
-};
 
 char *get_env_var_value(const char *env_var) {
 	auto env_var_value = getenv(env_var);

@@ -34,7 +34,7 @@ void from_json(const nlohmann::json &j, bloom_t &bloom) {
 }
 
 void from_json(const nlohmann::json &j, topo_port_t &topo_port) {
-	j.at("port").get_to(topo_port.port);
+	j.at("num").get_to(topo_port.num);
 	j.at("capacity").get_to(topo_port.capacity);
 	j.at("comment").get_to(topo_port.comment);
 }
@@ -49,14 +49,14 @@ void from_json(const nlohmann::json &j, topo_pipes_t &topo_pipes) {
 	// j.at("internal").get_to(topo_pipes.internal);
 }
 
-void from_json(const nlohmann::json &j, connection_t &connection) {
-	j.at("in").get_to(connection.in);
-	j.at("out").get_to(connection.out);
+void from_json(const nlohmann::json &j, dpdk_t &dpdk) {
+	j.at("in").get_to(dpdk.in);
+	j.at("out").get_to(dpdk.out);
 }
 
-void from_json(const nlohmann::json &j, topology_t &topo_connections) {
-	j.at("connections").get_to(topo_connections.connections);
-	j.at("pipes").get_to(topo_connections.pipes);
+void from_json(const nlohmann::json &j, topology_t &topology) {
+	j.at("ports").get_to(topology.ports);
+	j.at("pipes").get_to(topology.pipes);
 }
 
 void from_json(const nlohmann::json &j, conf_t &conf) {
@@ -65,7 +65,7 @@ void from_json(const nlohmann::json &j, conf_t &conf) {
 	j.at("key_cntr").get_to(conf.key_cntr);
 	j.at("cm").get_to(conf.cm);
 	j.at("bloom").get_to(conf.bloom);
-	j.at("connections").get_to(conf.connection);
+	j.at("dpdk").get_to(conf.dpdk);
 	j.at("topology").get_to(conf.topology);
 }
 
@@ -89,15 +89,11 @@ conf_t parse_conf_file(const std::string &conf_file_path) {
 	std::cout << "Bloom filter:\n";
 	std::cout << "  reg size " << conf.bloom.reg_size << "\n";
 
-	for (auto connection : conf.topology.connections) {
-		std::cout << "Connection:\n";
-		std::cout << "  [in]  port     " << connection.in.port << "\n";
-		std::cout << "  [in]  capacity " << connection.in.capacity << "\n";
-		std::cout << "  [in]  comment  " << connection.in.comment << "\n";
-
-		std::cout << "  [out] port     " << connection.out.port << "\n";
-		std::cout << "  [out] capacity " << connection.out.capacity << "\n";
-		std::cout << "  [out] comment  " << connection.out.comment << "\n";
+	for (auto port : conf.topology.ports) {
+		std::cout << "Port:\n";
+		std::cout << "	num			" << port.num << "\n";
+		std::cout << "	capacity	" << port.capacity << "\n";
+		std::cout << "	comment		" << port.comment << "\n";
 	}
 
 	return conf;

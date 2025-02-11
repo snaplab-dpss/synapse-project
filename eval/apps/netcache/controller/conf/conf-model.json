@@ -1,8 +1,8 @@
 {
 	"misc": {
 		"interface": "veth6",
-		"tofino_model": false,
-		"bf_prompt": false
+		"tofino_model": true,
+		"bf_prompt": true
 	},
 	"kv": {
 		"store_size": 8192,
@@ -20,14 +20,14 @@
 		"reg_size": 1024,
 		"reset_timer": 10000000
 	},
-	"connections": {
+	"dpdk": {
 		"in": {
-			"port": 0,
+			"num": 0,
 			"capacity": 100,
 			"comment": "dpdk port"
 		},
 		"out": {
-			"port": 1,
+			"num": 1,
 			"capacity": 100,
 			"comment": "dpdk port"
 		}
@@ -36,23 +36,16 @@
 		"pipes": {
 			"external": [ 0 ]
 		},
-		"stats": {
-			"port": 11,
-			"capacity": 100,
-			"comment": "veth6"
-		},
-		"connections": [
+		"ports": [
 			{
-				"in": {
-					"port": 8,
-					"capacity": 100,
-					"comment": "veth0"
-				},
-				"out": {
-					"port": 9,
-					"capacity": 100,
-					"comment": "veth2"
-				}
+				"num": 8,
+				"capacity": 100,
+				"comment": "veth0"
+			},
+			{
+				"num": 9,
+				"capacity": 100,
+				"comment": "veth2"
 			}
 		]
 	}

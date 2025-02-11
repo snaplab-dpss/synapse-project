@@ -10,13 +10,11 @@ if [ -z ${SDE_INSTALL+x} ]; then
 	exit 1
 fi
 
-CONTROLLER_EXE="$SCRIPT_DIR/build/netcache-controller"
+CONTROLLER_EXE="$SCRIPT_DIR/build/Debug/netcache-controller"
 CONTROLLER_CONF_FILE="$SCRIPT_DIR/conf/conf-hw.json"
 HW_CONF_FILE="$SCRIPT_DIR/conf/AS9516-32D.conf"
 
 LD_LIBRARY_PATH="/usr/local/lib/:$SDE_INSTALL/lib/"
-
-IFACE="veth1"
 
 # Compile
 # make release -j

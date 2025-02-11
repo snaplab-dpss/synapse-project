@@ -20,14 +20,14 @@
 		"reg_size": 1024,
 		"reset_timer": 10000000
 	},
-	"connections": {
+	"dpdk": {
 		"in": {
-			"port": 0,
+			"num": 0,
 			"capacity": 100,
 			"comment": "dpdk port"
 		},
 		"out": {
-			"port": 1,
+			"num": 1,
 			"capacity": 100,
 			"comment": "dpdk port"
 		}
@@ -36,23 +36,146 @@
 		"pipes": {
 			"external": [ 0 ]
 		},
-		"stats": {
-			"port": 11,
-			"capacity": 100,
-			"comment": ""
-		},
-		"connections": [
+		"ports": [
 			{
-				"in": {
-					"port": 6,
-					"capacity": 100,
-					"comment": "geodude e810 port 0"
-				},
-				"out": {
-					"port": 2,
-					"capacity": 100,
-					"comment": "graveler e810 port 1"
-				}
+				"num": 3,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 4,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 5,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 6,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 7,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 8,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 9,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 10,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 11,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 12,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 13,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 14,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 15,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 16,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 17,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 18,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 19,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 20,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 21,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 22,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 23,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 24,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 25,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 26,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 27,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 28,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 29,
+				"capacity": 100,
+				"comment": ""
+			},
+			{
+				"num": 30,
+				"capacity": 100,
+				"comment": ""
 			}
 		]
 	}

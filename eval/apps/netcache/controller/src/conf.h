@@ -34,7 +34,7 @@ struct bloom_t {
 };
 
 struct topo_port_t {
-	uint16_t port;
+	uint16_t num;
 	uint32_t capacity;
 	std::string comment;
 };
@@ -49,13 +49,13 @@ struct topo_pipes_t {
 	// std::vector<uint16_t> internal;
 };
 
-struct connection_t {
+struct dpdk_t {
 	topo_port_t in;
 	topo_port_t out;
 };
 
 struct topology_t {
-	std::vector<topo_connection_t> connections;
+	std::vector<topo_port_t> ports;
 	topo_pipes_t pipes;
 };
 
@@ -65,7 +65,7 @@ struct conf_t {
 	key_cntr_t		key_cntr;
 	cm_t			cm;
 	bloom_t			bloom;
-	connection_t	connection;
+	dpdk_t			dpdk;
 	topology_t		topology;
 };
 
