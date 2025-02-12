@@ -130,6 +130,7 @@ class Experiment:
         pktgen: Pktgen,
         churn: int,
         pkt_size: int,
+        broadcast_ports: list[int],
     ) -> tuple[int,int,int]:        
         if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
             raise ValueError("max_loss must be in [0, 1).")
@@ -165,10 +166,10 @@ class Experiment:
 
             while nb_tx_pkts == 0:
                 controller.reset_port_stats()
+                pktgen.reset_stats()
+
                 pktgen.set_rate(current_rate)
                 
-                # Run pktgen with warmup
-                # pktgen.run(ITERATION_DURATION_SEC)
                 pktgen.start()
                 sleep(ITERATION_DURATION_SEC)
                 pktgen.stop()
@@ -179,12 +180,19 @@ class Experiment:
                 port_stats = controller.get_port_stats()
                 nb_rx_pkts = sum([ rx for _, rx in port_stats.values() ])
                 nb_tx_pkts = sum([ tx for tx, _ in port_stats.values() ])
+
+                pktgen_tx_pkts = pktgen.get_stats()[0]
                 
                 self.log(f"Stats {port_stats}")
+                self.log(f"Pktgen stats {pktgen.get_stats()}")
                 self.log(f"TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
 
-                if nb_tx_pkts == 0:
-                    self.log(f"No packets flowing, repeating run")
+                for port in broadcast_ports:
+                    port_tx_pkts = port_stats[port][1]
+                    if port_tx_pkts != pktgen_tx_pkts:
+                        self.log(f"Port {port} is slacking off! Sent {port_tx_pkts} instead of {pktgen_tx_pkts}. Repeating run.")
+                        nb_tx_pkts = 0
+                        break
 
             nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
             nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8

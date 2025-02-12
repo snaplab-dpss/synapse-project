@@ -165,7 +165,8 @@ class Throughput(Experiment):
             self.controller,
             self.pktgen,
             self.churn,
-            self.pkt_size
+            self.pkt_size,
+            self.broadcast,
         )
 
         with open(self.save_name, "a") as f:
