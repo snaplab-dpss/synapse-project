@@ -43,13 +43,14 @@ class Switch:
         compilation_vars = " ".join([ f"-D{key}={value}" for key, value in compile_time_vars ])
         
         if self.tofino_version == 1:
-            make_target = "install-tofino1"
+            make_target = "install"
         elif self.tofino_version == 2:
             make_target = "install-tofino2"
         else:
             self.host.crash(f"We are only compatible with Tofino 1 and 2.")
 
         env_vars = " ".join([
+            f"APP={program_name}",
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
             f"P4_COMPILATION_VARS=\"{compilation_vars}\"",

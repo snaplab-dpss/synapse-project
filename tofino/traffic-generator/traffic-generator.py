@@ -370,8 +370,8 @@ def setup(bfrt_info, cfg):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(
-		description=f"Controller for the {P4_PROGRAM_NAME} P4 program, responsible for managing traffic coming from a DPDK" \
-					"traffic generator and broadcasting it to the DUT.",
+		description="Controller for the {} P4 program, responsible for managing traffic coming from a DPDK" \
+					"traffic generator and broadcasting it to the DUT.".format(P4_PROGRAM_NAME),
 	)
 
 	parser.add_argument("--nf", choices=CONFIGURATIONS.keys(), required=False)
@@ -394,8 +394,8 @@ if __name__ == "__main__":
 
 	print("======== Configuration ========")
 	if args.nf:
-		print(f"NF:     {args.nf}")
-	print(f"Config: {config}")
+		print("NF:     {}".format(args.nf))
+	print("Config: {}".format(config))
 	print("==============================")
 
 	if args.dry_run:
