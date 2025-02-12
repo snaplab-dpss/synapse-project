@@ -50,6 +50,7 @@ header netcache_t {
 	bit<8>	seq;
 	key_t	key;
 	val_t	val;
+	bit<8>	cpu;
 }
 
 header meta_t {

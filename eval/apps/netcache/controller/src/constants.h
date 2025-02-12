@@ -10,7 +10,7 @@
 #define WRITE_QUERY		0x1
 #define DELETE_QUERY	0x2
 #define NC_PORT			50000
-#define NC_HDR_SIZE		8
+#define NC_HDR_SIZE		9
 
 // DPDK
 
