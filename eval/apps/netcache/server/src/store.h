@@ -6,12 +6,11 @@
 #include <map>
 
 #include "packet.h"
-#include "query.h"
-#include "server_reply.h"
 
 #define BUFFER_SIZE 65536
 
 typedef unsigned char byte_t;
+typedef uint64_t bytes_t;
 
 namespace netcache {
 
@@ -20,6 +19,7 @@ private:
 	uint16_t port_id;
 	struct rte_mempool* mbuf_pool;
 	struct rte_mbuf *buf[1];
+	uint32_t count = 0;
 
 public:
 	std::map<uint8_t, uint32_t> kv_map;
@@ -27,10 +27,9 @@ public:
 	Store(const int dpdk_port, rte_mempool *pool);
 	~Store();
 
-	void read_query(const pkt_hdr_t& pkt);
-	void test(pkt_hdr_t* pkt);
-	// void write_query(const pkt_hdr_t& pkt);
-	// void del_query(const pkt_hdr_t& pkt);
+	void read_query();
+	bool check_pkt(struct rte_mbuf *mbuf);
+	void modify_pkt(struct rte_mbuf *mbuf);
 };
 
 }  // namespace netcache
