@@ -68,6 +68,11 @@ class Pktgen():
             console_pattern=PKTGEN_PROMPT if wait_from_prompt else None,
         )
 
+    def kill_pktgen(self) -> None:
+        self.host.run_command("sudo killall pktgen")
+        self.pktgen_active = False
+        self.ready = False
+
     def launch(
         self,
         nb_flows: int,
@@ -79,6 +84,8 @@ class Pktgen():
         mark_warmup_packets: bool = False,
     ) -> None:
         assert not self.pktgen_active
+
+        self.kill_pktgen()
 
         # This is kind of lazy, and not sure if even correct, but let's
         # grab the last digit from he PCIe ID and use it as the port ID.

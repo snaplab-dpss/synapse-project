@@ -2,6 +2,7 @@
 
 import argparse
 import tomli
+import os
 
 from pathlib import Path
 
@@ -9,6 +10,11 @@ from experiments.hosts.pktgen import Pktgen
 from experiments.hosts.tofino_tg import TofinoTG, TofinoTGController
 from experiments.hosts.switch import Switch
 from experiments.hosts.synapse import SynapseController
+from experiments.throughput import Throughput
+from experiments.experiment import Experiment, ExperimentTracker
+
+CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
+DATA_DIR = CURRENT_DIR / "data"
 
 def main():
     parser = argparse.ArgumentParser()
@@ -20,7 +26,6 @@ def main():
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
     
-    print("Connecting to Tofino DUT")
     dut_switch = Switch(
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
@@ -29,7 +34,6 @@ def main():
         log_file=config["logs"]["switch_dut"],
     )
 
-    print("Connecting to Tofino DUT (controller)")
     synapse_controller = SynapseController(
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
@@ -39,7 +43,6 @@ def main():
         log_file=config["logs"]["controller_dut"],
     )
 
-    print("Connecting to Tofino TG")
     tg_switch = TofinoTG(
         hostname=config["hosts"]["switch_tg"],
         repo=config["repo"]["switch_tg"],
@@ -48,7 +51,6 @@ def main():
         log_file=config["logs"]["switch_tg"],
     )
 
-    print("Connecting to Tofino TG (controller)")
     tg_controller = TofinoTGController(
         hostname=config["hosts"]["switch_tg"],
         repo=config["repo"]["switch_tg"],
@@ -56,7 +58,6 @@ def main():
         log_file=config["logs"]["controller_tg"],
     )
 
-    print("Connecting to pktgen")
     pktgen = Pktgen(
         hostname=config["hosts"]["pktgen"],
         repo=config["repo"]["pktgen"],
@@ -66,57 +67,31 @@ def main():
         log_file=config["logs"]["pktgen"],
     )
 
-    print("Installing Tofino TG")
-    tg_switch.install()
-
-    print("Launching Tofino TG")
-    tg_switch.launch()
-    tg_switch.wait_ready()
-
-    print("Running Tofino TG (controller)")
-    tg_controller.run(
+    throughput = Throughput(
+        name="Forwarder tput",
+        save_name=DATA_DIR / "forwarder-tput.csv",
+        dut_switch=dut_switch,
+        controller=synapse_controller,
+        tg_switch=tg_switch,
+        tg_controller=tg_controller,
+        pktgen=pktgen,
+        p4_src_in_repo="tofino/forwarder/forwarder.p4",
+        controller_src_in_repo="tofino/forwarder/forwarder.cpp",
+        timeout_ms=1000,
         broadcast=[3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
         symmetric=[],
         route=[],
-    )
-
-    print("Launching pktgen")
-    pktgen.launch(
         nb_flows=10_000,
         pkt_size=200,
-        exp_time_us=1_000_000,
-        crc_unique_flows=False,
-        crc_bits=16,
-        seed=0,
-        mark_warmup_packets=False,
+        churn=0,
+        experiment_log_file=config["logs"]["experiment"],
     )
-    pktgen.wait_launch()
 
-    print("Installing Tofino DUT")
-    dut_switch.install(src_in_repo="tofino/forwarder/forwarder.p4")
+    exp_tracker = ExperimentTracker()
+    exp_tracker.add_experiments([throughput])
+    exp_tracker.run_experiments()
 
-    print("Launching Tofino DUT (controller)")
-    synapse_controller.launch(src_in_repo="tofino/forwarder/forwarder.cpp")
-    synapse_controller.wait_ready()
-
-    print("Resetting")
-    synapse_controller.reset_port_stats()
-
-    print("Getting port stats")
-    port_stats = synapse_controller.get_port_stats()
-    print(port_stats)
-
-    pktgen.set_rate(100_000)
-    pktgen.run(5)
-    pktgen.get_stats()
-
-    print("Getting port stats")
-    port_stats = synapse_controller.get_port_stats()
-    print(port_stats)
-
-    pktgen.close()
     tg_switch.kill_switchd()
-    synapse_controller.quit()
 
 if __name__ == "__main__":
     main()

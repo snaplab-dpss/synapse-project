@@ -222,7 +222,7 @@ class SynapseController:
     def stop(self):
         if self.controller_cmd is None:
             return
-
+        
         # Kill all instances
         cmd = f"sudo killall {self.exe}"
         self.host.run_command(cmd)

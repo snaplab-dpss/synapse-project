@@ -1,5 +1,4 @@
-import time
-
+from time import sleep
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
@@ -14,6 +13,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
+from experiments.hosts.synapse import SynapseController
 from experiments.hosts.pktgen import Pktgen
 
 MAX_THROUGHPUT          = 100_000 # 100 Gbps
@@ -94,7 +94,7 @@ class Experiment:
             pktgen.run(ITERATION_DURATION_SEC)
             
             # Let the flows expire.
-            time.sleep(REST_TIME_SEC)
+            sleep(REST_TIME_SEC)
 
             nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
 
@@ -126,6 +126,7 @@ class Experiment:
     
     def find_stable_throughput(
         self,
+        controller: SynapseController,
         pktgen: Pktgen,
         churn: int,
         pkt_size: int,
@@ -146,7 +147,7 @@ class Experiment:
         pktgen.set_churn(churn)
 
         # Setting warmup duration
-        pktgen.set_warmup_duration(WARMUP_TIME_SEC)
+        # pktgen.set_warmup_duration(WARMUP_TIME_SEC)
 
         self.log()
 
@@ -163,16 +164,24 @@ class Experiment:
             nb_rx_pkts = 0
 
             while nb_tx_pkts == 0:
-                pktgen.reset_stats()
+                controller.reset_port_stats()
                 pktgen.set_rate(current_rate)
                 
                 # Run pktgen with warmup
-                pktgen.run(ITERATION_DURATION_SEC)
+                # pktgen.run(ITERATION_DURATION_SEC)
+                pktgen.start()
+                sleep(ITERATION_DURATION_SEC)
+                pktgen.stop()
                 
                 # Let the flows expire.
-                time.sleep(REST_TIME_SEC)
+                sleep(REST_TIME_SEC)
 
-                nb_tx_pkts, nb_rx_pkts = pktgen.get_stats()
+                port_stats = controller.get_port_stats()
+                nb_rx_pkts = sum([ rx for _, rx in port_stats.values() ])
+                nb_tx_pkts = sum([ tx for tx, _ in port_stats.values() ])
+                
+                self.log(f"Stats {port_stats}")
+                self.log(f"TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
 
                 if nb_tx_pkts == 0:
                     self.log(f"No packets flowing, repeating run")

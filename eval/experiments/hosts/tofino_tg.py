@@ -26,7 +26,11 @@ class TofinoTG(Switch):
         super().install(src_in_repo)
     
     def launch(self) -> None:
-        self.kill_switchd()
+        if self.ready:
+            return
+        
+        if self.host.is_proc_running("bf_switchd"):
+            self.kill_switchd()
 
         env_vars = " ".join([
             f"SDE={self.sde}",

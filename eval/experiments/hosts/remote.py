@@ -44,6 +44,11 @@ class RemoteHost(Host):
         
     def crash(self, msg):
         super().crash(msg, self.host)
+    
+    def is_proc_running(self, proc_name):
+        cmd = self.run_command(f"pgrep {proc_name}")
+        code = cmd.recv_exit_status()
+        return code == 0
 
     def upload_file(
         self,

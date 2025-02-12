@@ -125,8 +125,17 @@ static void configure_ports() {
     } else {
       LOG("Enabling port %u", port);
       u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
-      ports->add_dev_port(dev_port, DEFAULT_PORT_SPEED, DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
+      ports->add_dev_port(dev_port, DEFAULT_PORT_SPEED, DEFAULT_PORT_LOOPBACK_MODE, false);
       cfg.dev_ports.push_back(dev_port);
+    }
+  }
+
+  if (args.wait_for_ports) {
+    for (u16 port : args.ports) {
+      u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
+      while (!ports->is_port_up(dev_port)) {
+        sleep(1);
+      }
     }
   }
 }
