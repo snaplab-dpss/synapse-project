@@ -10,7 +10,7 @@ import re
 from .remote import RemoteHost
 
 MIN_TIMEOUT = 10 # miliseconds
-SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon> "
+SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon>"
 
 class SynapseController:
     def __init__(
@@ -152,7 +152,7 @@ class SynapseController:
 
         return output
     
-    def get_port_stats(self) -> list[tuple[int,int,int]]:
+    def get_port_stats(self) -> dict[int,tuple[int,int]]:
         assert self.ready
         assert self.controller_cmd
         
@@ -161,9 +161,22 @@ class SynapseController:
             console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
         )
 
-        print("OUTPUT", output)
+        output_split = output.split(' ')
+        assert output_split[0] == "STATS"
 
-        return []
+        stats = {}
+        for entry in output_split[1:]:
+            if SYNAPSE_BENCH_CONTROLLER_PROMPT in entry:
+                break
+
+            entry_split = entry.split(':')
+            assert len(entry_split) == 3
+            port = int(entry_split[0])
+            rx = int(entry_split[1])
+            tx = int(entry_split[2])
+            stats[port] = (rx, tx)
+
+        return stats
 
     def reset_port_stats(self) -> None:
         assert self.ready
