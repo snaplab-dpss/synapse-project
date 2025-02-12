@@ -66,39 +66,32 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 	struct rte_eth_dev_info dev_info;
 	struct rte_eth_txconf txconf;
 
-	if (!rte_eth_dev_is_valid_port(port)) {
-		return -1;
-	}
+	if (!rte_eth_dev_is_valid_port(port)) { return -1; }
 
 	memset(&port_conf, 0, sizeof(struct rte_eth_conf));
 
 	retval = rte_eth_dev_info_get(port, &dev_info);
 	if (retval != 0) {
-		printf("Error during getting device (port %u) info: %s\n",
-				port, strerror(-retval));
+		printf("Error during getting device (port %u) info: %s\n", port, strerror(-retval));
 		return retval;
 	}
 
 	if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
-		port_conf.txmode.offloads |=
-			RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
+		port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
 	}
 
 	// Configure the Ethernet device.
 	retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
-	if (retval != 0)
-		return retval;
+	if (retval != 0) { return retval; }
 
 	retval = rte_eth_dev_adjust_nb_rx_tx_desc(port, &nb_rxd, &nb_txd);
-	if (retval != 0)
-		return retval;
+	if (retval != 0) { return retval; }
 
 	// Allocate and set up 1 RX queue per Ethernet port.
 	for (q = 0; q < rx_rings; q++) {
 		retval = rte_eth_rx_queue_setup(
 				port, q, nb_rxd, rte_eth_dev_socket_id(port), NULL, mbuf_pool);
-		if (retval < 0)
-			return retval;
+		if (retval < 0) { return retval; }
 	}
 
 	txconf = dev_info.default_txconf;
@@ -107,22 +100,17 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 	for (q = 0; q < tx_rings; q++) {
 		retval = rte_eth_tx_queue_setup(
 				port, q, nb_txd, rte_eth_dev_socket_id(port), &txconf);
-		if (retval < 0)
-			return retval;
+		if (retval < 0) { return retval; }
 	}
 
 	// Start ethernet port.
 	retval = rte_eth_dev_start(port);
-	if (retval < 0) {
-		return retval;
-	}
+	if (retval < 0) { return retval; }
 
 	// Display the port MAC address.
 	struct rte_ether_addr addr;
 	retval = rte_eth_macaddr_get(port, &addr);
-	if (retval != 0) {
-		return retval;
-	}
+	if (retval != 0) { return retval; }
 
 	printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
 			   " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
@@ -130,8 +118,7 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 
 	// Enable RX in promiscuous mode for the ethernet device.
 	retval = rte_eth_promiscuous_enable(0);
-	if (retval != 0)
-		return retval;
+	if (retval != 0) { return retval; }
 
 	return 0;
 }
@@ -170,7 +157,7 @@ int main(int argc, char** argv) {
 		if (port_init(portid, mbuf_pool) != 0)
 			rte_exit(EXIT_FAILURE, "Cannot init port %u\n", portid);
 
-	auto store = new netcache::Store(conf.connection.out.port, mbuf_pool);
+	auto store = new netcache::Store(conf.connection.in.port, conf.connection.out.port, mbuf_pool);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 

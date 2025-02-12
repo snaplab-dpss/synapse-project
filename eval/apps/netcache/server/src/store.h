@@ -16,7 +16,8 @@ namespace netcache {
 
 class Store {
 private:
-	uint16_t port_id;
+	uint16_t port_in;
+	uint16_t port_out;
 	struct rte_mempool* mbuf_pool;
 	struct rte_mbuf *buf[1];
 	uint32_t count = 0;
@@ -24,7 +25,7 @@ private:
 public:
 	std::map<uint8_t, uint32_t> kv_map;
 
-	Store(const int dpdk_port, rte_mempool *pool);
+	Store(const int in, const int out, rte_mempool *pool);
 	~Store();
 
 	void read_query();
