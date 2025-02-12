@@ -245,7 +245,7 @@ public:
 
   void reset_stats() {
     bf_status_t bf_status = table->tableClear(*session, dev_tgt);
-    ASSERT_BF_STATUS(bf_status == BF_SUCCESS);
+    ASSERT_BF_STATUS(bf_status);
   }
 
 private:
