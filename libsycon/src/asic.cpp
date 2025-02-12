@@ -115,15 +115,15 @@ static void configure_ports() {
   bf_status_t status = bf_port_info_get(cfg.dev_tgt.dev_id, pcie_cpu_port, &pcie_cpu_port_speed, &pcie_cpu_port_lane_number);
   ASSERT_BF_STATUS(status);
 
-  DEBUG("PCIe CPU port:       %u (%s)", pcie_cpu_port, bf_port_speed_str(pcie_cpu_port_speed));
-  DEBUG("Eth CPU port:        %u", eth_cpu_port);
+  LOG("PCIe CPU port:       %u (%s)", pcie_cpu_port, bf_port_speed_str(pcie_cpu_port_speed));
+  LOG("Eth CPU port:        %u", eth_cpu_port);
 
   // No need to configure the ports when running with tofino model.
   for (u16 port : args.ports) {
     if (args.model) {
       cfg.dev_ports.push_back(port);
     } else {
-      DEBUG("Enabling port %u", port);
+      LOG("Enabling port %u", port);
       u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
       ports->add_dev_port(dev_port, DEFAULT_PORT_SPEED, DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
       cfg.dev_ports.push_back(dev_port);
