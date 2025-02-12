@@ -16,9 +16,11 @@ namespace sycon {
 std::unique_ptr<Port_Stat> port_stat;
 std::unique_ptr<Ports> ports;
 
+u16 get_asic_dev_port(u16 front_panel_port) { return ports->get_dev_port(front_panel_port, DEFAULT_PORT_LANE); }
+u16 get_asic_front_panel_port_from_dev_port(u16 dev_port) { return ports->get_front_panel_port(dev_port); }
 u64 get_asic_port_rx(u16 dev_port) { return port_stat->get_port_rx(dev_port, true); }
-
 u64 get_asic_port_tx(u16 dev_port) { return port_stat->get_port_tx(dev_port, true); }
+void reset_asic_port_stats() { port_stat->reset_stats(); }
 
 static std::string get_conf_file() {
   std::filesystem::path conf_file = read_env(ENV_SDE_INSTALL);
@@ -53,7 +55,7 @@ static void setup_bf_session() {
   auto &devMgr = bfrt::BfRtDevMgr::getInstance();
 
   // Get info object from dev_id and p4 program name
-  auto bf_status = devMgr.bfRtInfoGet(cfg.dev_tgt.dev_id, args.p4_prog_name, &cfg.info);
+  bf_status_t bf_status = devMgr.bfRtInfoGet(cfg.dev_tgt.dev_id, args.p4_prog_name, &cfg.info);
   ASSERT_BF_STATUS(bf_status)
 
   // Create the sessions objects
@@ -110,31 +112,23 @@ static void configure_ports() {
 
   bf_port_speed_t pcie_cpu_port_speed;
   u32 pcie_cpu_port_lane_number;
-  bf_status_t status =
-      bf_port_info_get(cfg.dev_tgt.dev_id, pcie_cpu_port, &pcie_cpu_port_speed, &pcie_cpu_port_lane_number);
+  bf_status_t status = bf_port_info_get(cfg.dev_tgt.dev_id, pcie_cpu_port, &pcie_cpu_port_speed, &pcie_cpu_port_lane_number);
   ASSERT_BF_STATUS(status);
 
   DEBUG("PCIe CPU port:       %u (%s)", pcie_cpu_port, bf_port_speed_str(pcie_cpu_port_speed));
   DEBUG("Eth CPU port:        %u", eth_cpu_port);
 
-  cfg.in_dev_port  = args.in_port;
-  cfg.out_dev_port = args.out_port;
-
   // No need to configure the ports when running with tofino model.
-  if (args.model) {
-    return;
+  for (u16 port : args.ports) {
+    if (args.model) {
+      cfg.dev_ports.push_back(port);
+    } else {
+      DEBUG("Enabling port %u", port);
+      u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
+      ports->add_dev_port(dev_port, DEFAULT_PORT_SPEED, DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
+      cfg.dev_ports.push_back(dev_port);
+    }
   }
-
-  DEBUG("Enabling port %u", args.in_port);
-  u16 in_dev_port = ports->get_dev_port(args.in_port, DEFAULT_PORT_LANE);
-  ports->add_dev_port(in_dev_port, DEFAULT_PORT_SPEED, DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
-
-  DEBUG("Enabling port %u", args.out_port);
-  u16 out_dev_port = ports->get_dev_port(args.out_port, DEFAULT_PORT_LANE);
-  ports->add_dev_port(out_dev_port, DEFAULT_PORT_SPEED, DEFAULT_PORT_LOOPBACK_MODE, args.wait_for_ports);
-
-  cfg.in_dev_port  = in_dev_port;
-  cfg.out_dev_port = out_dev_port;
 }
 
 static void update_dev_configuration() {

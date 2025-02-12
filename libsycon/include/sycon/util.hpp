@@ -10,10 +10,10 @@
 #define SWAP_ENDIAN_16(v) __builtin_bswap16((v))
 #define SWAP_ENDIAN_32(v) __builtin_bswap32((v))
 
-#define WAIT_FOR_ENTER(msg)                                                                                            \
-  {                                                                                                                    \
-    LOG(msg);                                                                                                          \
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                \
+#define WAIT_FOR_ENTER(msg)                                                                                                                \
+  {                                                                                                                                        \
+    LOG(msg);                                                                                                                              \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                                    \
   }
 
 #define likely(x) __builtin_expect((x), 1)

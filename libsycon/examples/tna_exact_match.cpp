@@ -60,7 +60,7 @@ public:
     key_setup(vrf, dst_addr);
     data_setup_nat(data_src_addr, data_dst_addr, data_dst_port);
 
-    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
+    bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status);
   }
 
@@ -68,7 +68,7 @@ private:
   void key_setup(u16 vrf, u32 dst_addr) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(key_fields.vrf, static_cast<u64>(vrf));
+    bf_status_t bf_status = key->setValue(key_fields.vrf, static_cast<u64>(vrf));
     ASSERT_BF_STATUS(bf_status);
 
     bf_status = key->setValue(key_fields.dst_addr, static_cast<u64>(dst_addr));
@@ -76,7 +76,7 @@ private:
   }
 
   void data_setup_nat(u32 src_addr, u32 dst_addr, u16 dst_port) {
-    auto bf_status = table->dataReset(actions.nat, data.get());
+    bf_status_t bf_status = table->dataReset(actions.nat, data.get());
     ASSERT_BF_STATUS(bf_status);
 
     bf_status = data->setValue(data_fields.nat_srcAddr, static_cast<u64>(src_addr));

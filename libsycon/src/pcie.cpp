@@ -24,7 +24,7 @@ namespace sycon {
 static void pcie_tx(bf_dev_id_t device, u8 *pkt, u32 packet_size) {
   bf_pkt *tx_pkt = nullptr;
 
-  auto bf_status = bf_pkt_alloc(cfg.dev_tgt.dev_id, &tx_pkt, packet_size, BF_DMA_CPU_PKT_TRANSMIT_0);
+  bf_status_t bf_status = bf_pkt_alloc(cfg.dev_tgt.dev_id, &tx_pkt, packet_size, BF_DMA_CPU_PKT_TRANSMIT_0);
   ASSERT_BF_STATUS(bf_status)
 
   bf_status = bf_pkt_data_copy(tx_pkt, pkt, packet_size);
@@ -106,7 +106,7 @@ void register_pcie_pkt_ops() {
 
   // register callback for RX
   for (int rx_ring = BF_PKT_RX_RING_0; rx_ring < BF_PKT_RX_RING_MAX; rx_ring++) {
-    auto bf_status = bf_pkt_rx_register(cfg.dev_tgt.dev_id, pcie_rx, (bf_pkt_rx_ring_t)rx_ring, 0);
+    bf_status_t bf_status = bf_pkt_rx_register(cfg.dev_tgt.dev_id, pcie_rx, (bf_pkt_rx_ring_t)rx_ring, 0);
     ASSERT_BF_STATUS(bf_status)
   }
 }

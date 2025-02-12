@@ -4,8 +4,7 @@
 
 namespace sycon {
 
-Counter::Counter(const std::string &control_name, const std::string &register_name, bool count_bytes,
-                 bool count_packets)
+Counter::Counter(const std::string &control_name, const std::string &register_name, bool count_bytes, bool count_packets)
     : Table(control_name, register_name) {
   assert(count_bytes || count_packets);
 

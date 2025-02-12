@@ -37,8 +37,7 @@ extern struct config_t {
 
   volatile int16_t atom;
 
-  u16 in_dev_port;
-  u16 out_dev_port;
+  std::vector<u16> dev_ports;
 
   config_t() : atom(0) {}
 

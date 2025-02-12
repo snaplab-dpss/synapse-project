@@ -25,12 +25,12 @@ void parse_args(int argc, char *argv[]) {
                "Wait for the ports to be up and running (only relevant when "
                "running with the ASIC, not with the model)")
       ->default_val(DEFAULT_WAIT_FOR_PORTS);
+  app.add_flag("--bench", args.bench_mode, "Run the bench CLI")->default_val(DEFAULT_BENCH_CLI);
   app.add_flag("--model", args.model, "Run for the tofino model")->default_val(DEFAULT_RUN_WITH_MODEL);
   app.add_option("--tna", args.tna_version, "TNA version")->default_val(DEFAULT_TNA_VERSION);
   app.add_option("--expiration-time", args.expiration_time, "Expiration time in ms (set to 0 to never expire)")
       ->default_val(DEFAULT_EXPIRATION_TIME);
-  app.add_option("--in", args.in_port, "Input frontend port")->default_val(DEFAULT_IN_PORT);
-  app.add_option("--out", args.out_port, "Output frontend port")->default_val(DEFAULT_OUT_PORT);
+  app.add_option("--ports", args.ports, "Frontend ports")->required();
 
   nf_args(app);
 
@@ -39,6 +39,14 @@ void parse_args(int argc, char *argv[]) {
   } catch (const CLI::ParseError &e) {
     app.exit(e);
     exit(1);
+  }
+
+  if (args.run_ucli && args.bench_mode) {
+    ERROR("Cannot run both the user CLI and the bench CLI at the same time.\n");
+  }
+
+  if (args.ports.empty()) {
+    ERROR("No ports specified.\n");
   }
 }
 

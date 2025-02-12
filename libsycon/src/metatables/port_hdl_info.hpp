@@ -31,11 +31,10 @@ public:
   }
 
   u16 get_dev_port(u16 front_panel_port, u16 lane, bool from_hw = false) {
-    auto hwflag =
-        from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(front_panel_port, lane);
-    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     u64 value;
@@ -49,7 +48,7 @@ private:
   void key_setup(u16 front_panel_port, u16 lane) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(CONN_ID, static_cast<u64>(front_panel_port));
+    bf_status_t bf_status = key->setValue(CONN_ID, static_cast<u64>(front_panel_port));
     ASSERT_BF_STATUS(bf_status)
 
     bf_status = key->setValue(CHNL_ID, static_cast<u64>(lane));

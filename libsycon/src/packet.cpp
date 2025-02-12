@@ -36,10 +36,10 @@ void packet_log(const eth_hdr_t *eth_hdr) {
   assert(eth_hdr);
 
   LOG("###[ Ethernet ]###");
-  LOG("dst  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->dst_mac[0], eth_hdr->dst_mac[1], eth_hdr->dst_mac[2],
-      eth_hdr->dst_mac[3], eth_hdr->dst_mac[4], eth_hdr->dst_mac[5]);
-  LOG("src  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->src_mac[0], eth_hdr->src_mac[1], eth_hdr->src_mac[2],
-      eth_hdr->src_mac[3], eth_hdr->src_mac[4], eth_hdr->src_mac[5]);
+  LOG("dst  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->dst_mac[0], eth_hdr->dst_mac[1], eth_hdr->dst_mac[2], eth_hdr->dst_mac[3],
+      eth_hdr->dst_mac[4], eth_hdr->dst_mac[5]);
+  LOG("src  %02x:%02x:%02x:%02x:%02x:%02x", eth_hdr->src_mac[0], eth_hdr->src_mac[1], eth_hdr->src_mac[2], eth_hdr->src_mac[3],
+      eth_hdr->src_mac[4], eth_hdr->src_mac[5]);
   LOG("type 0x%x", eth_hdr->eth_type);
 }
 
@@ -54,10 +54,10 @@ void packet_log(const ipv4_hdr_t *ipv4_hdr) {
   LOG("ttl     %u", ipv4_hdr->ttl);
   LOG("proto   %u", ipv4_hdr->protocol);
   LOG("chksum  0x%x", SWAP_ENDIAN_16(ipv4_hdr->check));
-  LOG("src     %u.%u.%u.%u", (ipv4_hdr->src_ip >> 0) & 0xff, (ipv4_hdr->src_ip >> 8) & 0xff,
-      (ipv4_hdr->src_ip >> 16) & 0xff, (ipv4_hdr->src_ip >> 24) & 0xff);
-  LOG("dst     %u.%u.%u.%u", (ipv4_hdr->dst_ip >> 0) & 0xff, (ipv4_hdr->dst_ip >> 8) & 0xff,
-      (ipv4_hdr->dst_ip >> 16) & 0xff, (ipv4_hdr->dst_ip >> 24) & 0xff);
+  LOG("src     %u.%u.%u.%u", (ipv4_hdr->src_ip >> 0) & 0xff, (ipv4_hdr->src_ip >> 8) & 0xff, (ipv4_hdr->src_ip >> 16) & 0xff,
+      (ipv4_hdr->src_ip >> 24) & 0xff);
+  LOG("dst     %u.%u.%u.%u", (ipv4_hdr->dst_ip >> 0) & 0xff, (ipv4_hdr->dst_ip >> 8) & 0xff, (ipv4_hdr->dst_ip >> 16) & 0xff,
+      (ipv4_hdr->dst_ip >> 24) & 0xff);
 }
 
 void packet_log(const tcpudp_hdr_t *tcpudp_hdr) {

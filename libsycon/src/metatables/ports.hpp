@@ -25,6 +25,8 @@ private:
   Port_HDL_Info port_hdl_info;
   Port_Stat port_stat;
 
+  std::unordered_map<u16, u16> dev_port_to_front_panel_port;
+
 public:
   Ports() : Table("", "$PORT") {
     init_key({
@@ -58,12 +60,8 @@ public:
     };
 
     std::map<bf_loopback_mode_e, std::string> loopback_mode_opts{
-        {BF_LPBK_NONE, "BF_LPBK_NONE"},
-        {BF_LPBK_MAC_NEAR, "BF_LPBK_MAC_NEAR"},
-        {BF_LPBK_MAC_FAR, "BF_LPBK_MAC_FAR"},
-        {BF_LPBK_PCS_NEAR, "BF_LPBK_PCS_NEAR"},
-        {BF_LPBK_SERDES_NEAR, "BF_LPBK_SERDES_NEAR"},
-        {BF_LPBK_SERDES_FAR, "BF_LPBK_SERDES_FAR"},
+        {BF_LPBK_NONE, "BF_LPBK_NONE"},         {BF_LPBK_MAC_NEAR, "BF_LPBK_MAC_NEAR"},       {BF_LPBK_MAC_FAR, "BF_LPBK_MAC_FAR"},
+        {BF_LPBK_PCS_NEAR, "BF_LPBK_PCS_NEAR"}, {BF_LPBK_SERDES_NEAR, "BF_LPBK_SERDES_NEAR"}, {BF_LPBK_SERDES_FAR, "BF_LPBK_SERDES_FAR"},
         {BF_LPBK_PIPE, "BF_LPBK_PIPE"},
     };
 
@@ -72,7 +70,7 @@ public:
     key_setup(dev_port);
     data_setup(speed_opts[speed], fec_opts[fec], true, loopback_mode_opts[loopback_mode]);
 
-    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
+    bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status)
 
     while (wait_until_ready && !is_port_up(dev_port)) {
@@ -86,12 +84,11 @@ public:
   }
 
   bool is_port_up(u16 dev_port, bool from_hw = false) {
-    auto hwflag =
-        from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(dev_port);
 
-    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     bool value;
@@ -101,23 +98,35 @@ public:
     return value;
   }
 
-  u16 get_dev_port(u16 front_panel_port, u16 lane) { return port_hdl_info.get_dev_port(front_panel_port, lane, false); }
+  u16 get_dev_port(u16 front_panel_port, u16 lane) {
+    u16 dev_port                           = port_hdl_info.get_dev_port(front_panel_port, lane, false);
+    dev_port_to_front_panel_port[dev_port] = front_panel_port;
+    return dev_port;
+  }
+
+  u16 get_front_panel_port(u16 dev_port) {
+    if (dev_port_to_front_panel_port.find(dev_port) == dev_port_to_front_panel_port.end()) {
+      ERROR("Port %u not found", dev_port);
+    }
+    return dev_port_to_front_panel_port[dev_port];
+  }
 
   u64 get_port_rx(u16 port) { return port_stat.get_port_rx(port); }
   u64 get_port_tx(u16 port) { return port_stat.get_port_tx(port); }
+  void reset_stats_on_all_ports(u16 port) { port_stat.reset_stats(); }
 
 private:
   void key_setup(u16 dev_port) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(DEV_PORT, static_cast<u64>(dev_port));
+    bf_status_t bf_status = key->setValue(DEV_PORT, static_cast<u64>(dev_port));
     ASSERT_BF_STATUS(bf_status)
   }
 
   void data_setup(std::string speed, std::string fec, bool port_enable, std::string loopback_mode) {
     table->dataReset(data.get());
 
-    auto bf_status = data->setValue(SPEED, speed);
+    bf_status_t bf_status = data->setValue(SPEED, speed);
     ASSERT_BF_STATUS(bf_status)
 
     bf_status = data->setValue(FEC, fec);

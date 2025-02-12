@@ -20,14 +20,13 @@ constexpr const char SDE_CONF_RELATIVE_PATH_TOFINO2[] = "share/p4/targets/tofino
 constexpr const time_ms_t NEVER_EXPIRE = 0;
 
 constexpr const bool DEFAULT_ARG_UCLI                         = false;
+constexpr const bool DEFAULT_RUN_WITH_MODEL                   = false;
+constexpr const bool DEFAULT_BENCH_CLI                        = false;
 constexpr const int DEFAULT_TNA_VERSION                       = 2;
 constexpr const time_ms_t DEFAULT_EXPIRATION_TIME             = NEVER_EXPIRE;
-constexpr const int DEFAULT_IN_PORT                           = 0;
-constexpr const int DEFAULT_OUT_PORT                          = 1;
 constexpr const bf_port_speed_t DEFAULT_PORT_SPEED            = BF_SPEED_100G;
 constexpr const bf_loopback_mode_e DEFAULT_PORT_LOOPBACK_MODE = BF_LPBK_NONE;
 constexpr const u16 DEFAULT_PORT_LANE                         = 0;
-constexpr const bool DEFAULT_RUN_WITH_MODEL                   = false;
 constexpr const bool DEFAULT_WAIT_FOR_PORTS                   = true;
 
 constexpr const u16 ALL_PIPES                     = 0xffff;

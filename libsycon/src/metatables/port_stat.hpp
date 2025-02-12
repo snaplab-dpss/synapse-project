@@ -212,12 +212,12 @@ public:
   }
 
   u64 get_port_rx(u16 dev_port, bool from_hw = false) {
-    auto hwflag =
+    bfrt::BfRtTable::BfRtTableGetFlag hwflag =
         from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(dev_port);
 
-    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     u64 value;
@@ -228,12 +228,12 @@ public:
   }
 
   u64 get_port_tx(u16 dev_port, bool from_hw = false) {
-    auto hwflag =
+    bfrt::BfRtTable::BfRtTableGetFlag hwflag =
         from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(dev_port);
 
-    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     u64 value;
@@ -243,12 +243,17 @@ public:
     return value;
   }
 
+  void reset_stats() {
+    bf_status_t bf_status = table->tableClear(*session, dev_tgt);
+    ASSERT_BF_STATUS(bf_status == BF_SUCCESS);
+  }
+
 private:
   void key_setup(u16 dev_port) {
     table->keyReset(key.get());
     assert(key);
 
-    auto bf_status = key->setValue(key_fields.dev_port, static_cast<u64>(dev_port));
+    bf_status_t bf_status = key->setValue(key_fields.dev_port, static_cast<u64>(dev_port));
     ASSERT_BF_STATUS(bf_status)
   }
 };

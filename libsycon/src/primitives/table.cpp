@@ -18,10 +18,9 @@ std::string Table::append_control(const std::string &control, const std::string 
 }
 
 Table::Table(const std::string &_control, const std::string &_name)
-    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name), table(nullptr),
-      time_aware(false) {
-  auto full_name = append_control(control, name);
-  auto bf_status = info->bfrtTableFromNameGet(full_name, &table);
+    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name), table(nullptr), time_aware(false) {
+  auto full_name        = append_control(control, name);
+  bf_status_t bf_status = info->bfrtTableFromNameGet(full_name, &table);
   ASSERT_BF_STATUS(bf_status)
 }
 
@@ -30,14 +29,14 @@ void Table::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { se
 void Table::init_key() {
   if (!key) {
     // Allocate key and data once, and use reset across different uses
-    auto bf_status = table->keyAllocate(&key);
+    bf_status_t bf_status = table->keyAllocate(&key);
     ASSERT_BF_STATUS(bf_status)
     assert(key);
   }
 
   std::vector<bf_rt_id_t> key_fields_ids;
 
-  auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  bf_status_t bf_status = table->keyFieldIdListGet(&key_fields_ids);
   ASSERT_BF_STATUS(bf_status)
 
   for (auto id : key_fields_ids) {
@@ -62,26 +61,26 @@ void Table::init_key() {
 void Table::init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
   if (!key) {
     // Allocate key and data once, and use reset across different uses
-    auto bf_status = table->keyAllocate(&key);
+    bf_status_t bf_status = table->keyAllocate(&key);
     ASSERT_BF_STATUS(bf_status)
     assert(key);
   }
 
   for (const auto &field : fields) {
-    auto bf_status = table->keyFieldIdGet(field.first, field.second);
+    bf_status_t bf_status = table->keyFieldIdGet(field.first, field.second);
     ASSERT_BF_STATUS(bf_status)
   }
 }
 
 void Table::init_data(const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
   if (!data) {
-    auto bf_status = table->dataAllocate(&data);
+    bf_status_t bf_status = table->dataAllocate(&data);
     ASSERT_BF_STATUS(bf_status)
     assert(data);
   }
 
   for (const auto &field : fields) {
-    auto bf_status = table->dataFieldIdGet(field.first, field.second);
+    bf_status_t bf_status = table->dataFieldIdGet(field.first, field.second);
     ASSERT_BF_STATUS(bf_status)
   }
 
@@ -90,14 +89,14 @@ void Table::init_data(const std::unordered_map<std::string, bf_rt_id_t *> &field
 
 void Table::init_data_with_action(bf_rt_id_t action_id) {
   if (!data) {
-    auto bf_status = table->dataAllocate(&data);
+    bf_status_t bf_status = table->dataAllocate(&data);
     ASSERT_BF_STATUS(bf_status)
     assert(data);
   }
 
   std::vector<bf_rt_id_t> data_fields_ids;
 
-  auto bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
+  bf_status_t bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
   ASSERT_BF_STATUS(bf_status)
 
   DEBUG("Data:");
@@ -126,12 +125,12 @@ void Table::init_data_with_action(bf_rt_id_t action_id) {
 
 void Table::init_data_with_action(const std::string &name, bf_rt_id_t action_id, bf_rt_id_t *field_id) {
   if (!data) {
-    auto bf_status = table->dataAllocate(&data);
+    bf_status_t bf_status = table->dataAllocate(&data);
     ASSERT_BF_STATUS(bf_status)
     assert(data);
   }
 
-  auto bf_status = table->dataFieldIdGet(name, action_id, field_id);
+  bf_status_t bf_status = table->dataFieldIdGet(name, action_id, field_id);
   ASSERT_BF_STATUS(bf_status)
 }
 
@@ -143,13 +142,13 @@ void Table::init_data_with_actions(const std::unordered_map<std::string, std::pa
 
 void Table::init_action(const std::string &action_name, bf_rt_id_t *action_id) {
   auto full_action_name = append_control(control, action_name);
-  auto bf_status        = table->actionIdGet(full_action_name, action_id);
+  bf_status_t bf_status = table->actionIdGet(full_action_name, action_id);
   ASSERT_BF_STATUS(bf_status)
 }
 
 void Table::init_action(bf_rt_id_t *action_id) {
   std::vector<bf_rt_id_t> action_ids;
-  auto bf_status = table->actionIdListGet(&action_ids);
+  bf_status_t bf_status = table->actionIdListGet(&action_ids);
   ASSERT_BF_STATUS(bf_status)
 
   // Even tables with only a single explicit action, the NoAction action will
@@ -176,8 +175,8 @@ void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdl
 
   std::unique_ptr<bfrt::BfRtTableAttributes> attr;
 
-  auto bf_status = table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME,
-                                            bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
+  bf_status_t bf_status =
+      table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME, bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
   ASSERT_BF_STATUS(bf_status)
 
   u32 min_ttl            = timeout;
@@ -201,14 +200,14 @@ std::string Table::get_name() const { return name; }
 
 size_t Table::get_size() const {
   size_t size;
-  auto bf_status = table->tableSizeGet(*session, dev_tgt, &size);
+  bf_status_t bf_status = table->tableSizeGet(*session, dev_tgt, &size);
   ASSERT_BF_STATUS(bf_status)
   return size;
 }
 
 size_t Table::get_usage() const {
   u32 usage;
-  auto bf_status = table->tableUsageGet(*session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW, &usage);
+  bf_status_t bf_status = table->tableUsageGet(*session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW, &usage);
   ASSERT_BF_STATUS(bf_status)
   return usage;
 }
@@ -226,7 +225,7 @@ void Table::dump_data_fields() const {
 void Table::dump_data_fields(std::ostream &os) const {
   std::vector<bf_rt_id_t> ids;
 
-  auto bf_status = table->dataFieldIdListGet(&ids);
+  bf_status_t bf_status = table->dataFieldIdListGet(&ids);
   ASSERT_BF_STATUS(bf_status);
 
   for (auto id : ids) {
@@ -239,7 +238,7 @@ void Table::dump_data_fields(std::ostream &os) const {
 static void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableKey *key) {
   std::vector<bf_rt_id_t> key_fields_ids;
 
-  auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  bf_status_t bf_status = table->keyFieldIdListGet(&key_fields_ids);
   ASSERT_BF_STATUS(bf_status);
 
   for (auto key_field_id : key_fields_ids) {
@@ -534,11 +533,11 @@ static void dump_data(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRt
   }
 }
 
-static void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableKey *key,
-                       bfrt::BfRtTableData *data, bool time_aware) {
+static void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableKey *key, bfrt::BfRtTableData *data,
+                       bool time_aware) {
   std::vector<bf_rt_id_t> key_fields_ids;
 
-  auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  bf_status_t bf_status = table->keyFieldIdListGet(&key_fields_ids);
   ASSERT_BF_STATUS(bf_status);
 
   dump_key(os, table, key);
@@ -553,7 +552,7 @@ struct kd_t {
 
   kd_t(const bfrt::BfRtTable *table, u32 n) : keys(n), datas(n), pairs(n) {
     for (auto i = 0u; i < n; i++) {
-      auto bf_status = table->keyAllocate(&keys[i]);
+      bf_status_t bf_status = table->keyAllocate(&keys[i]);
       ASSERT_BF_STATUS(bf_status);
 
       bf_status = table->dataAllocate(&datas[i]);

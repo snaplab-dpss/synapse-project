@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "time.hpp"
 #include "util.hpp"
@@ -12,9 +13,9 @@ struct args_t {
   bool run_ucli;
   int tna_version;
   time_ms_t expiration_time;
-  u16 in_port;
-  u16 out_port;
+  std::vector<u16> ports;
   bool model;
+  bool bench_mode;
 
   // Wait until the input and output ports are ready.
   // Is is only relevant when running with the ASIC, not with the model.

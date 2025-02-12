@@ -53,8 +53,7 @@ private:
   void key_setup(uint16_t ingress_port) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(key_fields.ingress_port,
-                                   static_cast<uint64_t>(ingress_port));
+    auto bf_status = key->setValue(key_fields.ingress_port, static_cast<uint64_t>(ingress_port));
     ASSERT_BF_STATUS(bf_status);
   }
 
@@ -87,8 +86,6 @@ void sycon::nf_args(CLI::App &app) {}
 
 void sycon::nf_user_signal_handler() {}
 
-bool sycon::nf_process(time_ns_t now, byte_t *pkt, uint16_t size) {
-  return true;
-}
+bool sycon::nf_process(time_ns_t now, byte_t *pkt, uint16_t size) { return true; }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

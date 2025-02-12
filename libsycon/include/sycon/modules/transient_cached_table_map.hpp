@@ -32,8 +32,7 @@ private:
 
 public:
   TransientCachedTableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout,
-                          const std::string &_cache_timer_name, const std::string &_digest_control_name,
-                          const std::string &_digest_name)
+                          const std::string &_cache_timer_name, const std::string &_digest_control_name, const std::string &_digest_name)
       : TableMap<K, V>(_control_name, _table_name, _timeout), cache_timer(_control_name, _cache_timer_name),
         digest_control_name(_digest_control_name), digest_name(_digest_name) {
     init_digest();
@@ -42,8 +41,7 @@ public:
 
 private:
   void init_digest() {
-    bf_status_t bf_status =
-        cfg.info->bfrtLearnFromNameGet(Table::append_control(digest_control_name, digest_name), &learn_obj);
+    bf_status_t bf_status = cfg.info->bfrtLearnFromNameGet(Table::append_control(digest_control_name, digest_name), &learn_obj);
     ASSERT_BF_STATUS(bf_status)
 
     bf_status = learn_obj->learnFieldIdListGet(&learn_obj_fields_ids);
@@ -58,8 +56,7 @@ private:
   }
 
   void register_digest_callback() {
-    bf_status_t bf_status =
-        learn_obj->bfRtLearnCallbackRegister(cfg.session, cfg.dev_tgt, internal_digest_callback, (void *)this);
+    bf_status_t bf_status = learn_obj->bfRtLearnCallbackRegister(cfg.session, cfg.dev_tgt, internal_digest_callback, (void *)this);
     ASSERT_BF_STATUS(bf_status)
   }
 
@@ -102,8 +99,7 @@ private:
     TableMap<K, V>::put(digest.key, digest.value);
   }
 
-  static bf_status_t internal_digest_callback(const bf_rt_target_t &bf_rt_tgt,
-                                              const std::shared_ptr<bfrt::BfRtSession> session,
+  static bf_status_t internal_digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,
                                               std::vector<std::unique_ptr<bfrt::BfRtLearnData>> data,
                                               bf_rt_learn_msg_hdl *const learn_msg_hdl, const void *cookie) {
     DEBUG("RECEIVED %lu DIGESTS!", data.size());

@@ -28,8 +28,7 @@ public:
     init_data_with_action(action_id);
   }
 
-  TableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout)
-      : TableMap(_control_name, _table_name) {
+  TableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout) : TableMap(_control_name, _table_name) {
     timeout = _timeout;
     enable_expirations();
   }
@@ -76,19 +75,19 @@ public:
 
 private:
   void key_setup(const table_key_t<K> &k) {
-    auto bf_status = table->keyReset(key.get());
+    bf_status_t bf_status = table->keyReset(key.get());
     ASSERT_BF_STATUS(bf_status)
 
     for (size_t i = 0; i < key_fields.size(); i++) {
-      auto key_value = k.values[i];
-      auto key_field = key_fields[i];
-      auto bf_status = key->setValue(key_field.id, key_value);
+      auto key_value        = k.values[i];
+      auto key_field        = key_fields[i];
+      bf_status_t bf_status = key->setValue(key_field.id, key_value);
       ASSERT_BF_STATUS(bf_status)
     }
   }
 
   void data_setup(const table_value_t<V> &v) {
-    auto bf_status = table->dataReset(action_id, data.get());
+    bf_status_t bf_status = table->dataReset(action_id, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     assert(V == data_fields.size());
@@ -162,7 +161,7 @@ private:
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    auto bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
+    bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
 
     ASSERT_BF_STATUS(bf_status)
   }
@@ -176,7 +175,7 @@ private:
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    auto bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
+    bf_status_t bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
 
     ASSERT_BF_STATUS(bf_status)
   }
@@ -189,7 +188,7 @@ private:
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    auto bf_status = table->tableEntryDel(*session, dev_tgt, flags, *key);
+    bf_status_t bf_status = table->tableEntryDel(*session, dev_tgt, flags, *key);
     ASSERT_BF_STATUS(bf_status)
   }
 
@@ -197,7 +196,7 @@ private:
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
-    auto bf_status = table->tableClear(*session, dev_tgt, flags);
+    bf_status_t bf_status = table->tableClear(*session, dev_tgt, flags);
     ASSERT_BF_STATUS(bf_status)
 
     DEBUG();
@@ -213,8 +212,8 @@ private:
     assert(K == key_fields.size());
 
     for (size_t i = 0; i < key_fields.size(); i++) {
-      auto field     = key_fields[i];
-      auto bf_status = key->getValue(field.id, &k.values[i]);
+      auto field            = key_fields[i];
+      bf_status_t bf_status = key->getValue(field.id, &k.values[i]);
       ASSERT_BF_STATUS(bf_status)
     }
 
@@ -227,8 +226,8 @@ private:
     assert(V == data_fields.size());
 
     for (size_t i = 0; i < data_fields.size(); i++) {
-      auto field     = data_fields[i];
-      auto bf_status = value->getValue(field.id, &v.values[i]);
+      auto field            = data_fields[i];
+      bf_status_t bf_status = value->getValue(field.id, &v.values[i]);
       ASSERT_BF_STATUS(bf_status)
     }
 
@@ -265,8 +264,7 @@ private:
     }
   }
 
-  static bf_status_t internal_expiration_callback(const bf_rt_target_t &target, const bfrt::BfRtTableKey *key,
-                                                  void *cookie) {
+  static bf_status_t internal_expiration_callback(const bf_rt_target_t &target, const bfrt::BfRtTableKey *key, void *cookie) {
     TableMap *tm     = static_cast<TableMap *>(cookie);
     table_key_t<K> k = tm->build_key(key);
 

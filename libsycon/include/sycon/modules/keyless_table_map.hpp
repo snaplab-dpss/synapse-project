@@ -33,7 +33,7 @@ public:
 
 private:
   void data_setup(const table_value_t<V> &v) {
-    auto bf_status = table->dataReset(action_id, data.get());
+    bf_status_t bf_status = table->dataReset(action_id, data.get());
     ASSERT_BF_STATUS(bf_status)
 
     assert(V == data_fields.size());
