@@ -63,10 +63,12 @@ class TofinoTGController:
         self,
         hostname: str,
         repo: str,
+        sde: str,
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.repo = Path(repo)
+        self.sde = Path(sde)
 
         self.host.test_connection()
         
@@ -81,9 +83,17 @@ class TofinoTGController:
     ) -> None:
         target_dir = self.repo / "tofino" / "traffic-generator"
 
-        cmd = f"./{TRAFFIC_GENERATOR_APP_NAME}.py"
-        cmd += f" --broadcast {' '.join(map(str, broadcast))}"
-        cmd += f" --symmetric {' '.join(map(str, symmetric))}"
+        env_vars = " ".join([
+            f"SDE={self.sde}",
+            f"SDE_INSTALL={self.sde}/install",
+            f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/"
+        ])
+
+        cmd = f"{env_vars} ./{TRAFFIC_GENERATOR_APP_NAME}.py"
+        if broadcast:
+            cmd += f" --broadcast {' '.join(map(str, broadcast))}"
+        if symmetric:
+            cmd += f" --symmetric {' '.join(map(str, symmetric))}"
         for src, dst in route:
             cmd += f" --route {src} {dst}"
         

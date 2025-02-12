@@ -50,6 +50,7 @@ def main():
     tg_controller = TofinoTGController(
         hostname=config["hosts"]["switch_tg"],
         repo=config["repo"]["switch_tg"],
+        sde=config["devices"]["switch_tg"]["sde"],
         log_file=config["logs"]["controller_tg"],
     )
 
@@ -64,13 +65,13 @@ def main():
     # )
 
     tg_switch.install()
-    # tg_switch.launch()
-    # tg_switch.wait_ready()
-    # tg_controller.run(
-    #     broadcast=[3,4,5,6],
-    #     symmetric=[],
-    #     route=[],
-    # )
+    tg_switch.launch()
+    tg_switch.wait_ready()
+    tg_controller.run(
+        broadcast=[3,4,5,6],
+        symmetric=[],
+        route=[],
+    )
 
 if __name__ == "__main__":
     main()

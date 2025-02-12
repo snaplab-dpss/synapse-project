@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# import bfrt_grpc.client as gc
+import bfrt_grpc.client as gc
 import argparse
 
 GRPC_SERVER_IP     = "127.0.0.1"
