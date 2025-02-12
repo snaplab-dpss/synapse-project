@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "table.hpp"
+#include "table.h"
 
 namespace sycon {
 

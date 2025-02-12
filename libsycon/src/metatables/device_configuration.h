@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../include/sycon/args.hpp"
-#include "../../include/sycon/log.hpp"
-#include "../../include/sycon/primitives/table.hpp"
-#include "../../include/sycon/time.hpp"
-#include "../../include/sycon/util.hpp"
+#include "../../include/sycon/args.h"
+#include "../../include/sycon/log.h"
+#include "../../include/sycon/primitives/table.h"
+#include "../../include/sycon/time.h"
+#include "../../include/sycon/util.h"
 
 namespace sycon {
 

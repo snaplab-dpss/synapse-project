@@ -1,6 +1,6 @@
-#include "../include/sycon/args.hpp"
-#include "../include/sycon/constants.hpp"
-#include "../include/sycon/externs.hpp"
+#include "../include/sycon/args.h"
+#include "../include/sycon/constants.h"
+#include "../include/sycon/externs.h"
 
 #include <filesystem>
 #include <string>

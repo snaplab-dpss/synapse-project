@@ -2,13 +2,12 @@
 
 #include <stdint.h>
 
-#include "../include/sycon/time.hpp"
+#include "../include/sycon/time.h"
 
 extern "C" {
 #include <bf_switchd/bf_switchd.h>
-}
-
 #include <port_mgr/bf_port_if.h>
+}
 
 namespace sycon {
 

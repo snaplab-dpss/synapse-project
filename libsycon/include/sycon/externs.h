@@ -2,8 +2,8 @@
 
 #include <CLI/CLI.hpp>
 
-#include "packet.hpp"
-#include "time.hpp"
+#include "packet.h"
+#include "time.h"
 
 // These should be defined by the application using this library.
 

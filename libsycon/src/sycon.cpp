@@ -2,7 +2,7 @@
 #define _GNU_SOURCE
 #endif
 
-#include "../include/sycon/sycon.hpp"
+#include "../include/sycon/sycon.h"
 
 #include <signal.h>
 

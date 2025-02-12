@@ -2,7 +2,7 @@
 #define _GNU_SOURCE
 #endif
 
-#include "../include/sycon/time.hpp"
+#include "../include/sycon/time.h"
 
 namespace sycon {
 

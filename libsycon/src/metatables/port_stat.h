@@ -4,8 +4,8 @@
 
 #include <map>
 
-#include "../../include/sycon/log.hpp"
-#include "../../include/sycon/primitives/table.hpp"
+#include "../../include/sycon/log.h"
+#include "../../include/sycon/primitives/table.h"
 
 namespace sycon {
 

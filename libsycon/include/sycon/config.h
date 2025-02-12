@@ -6,7 +6,7 @@ extern "C" {
 #include <bf_switchd/bf_switchd.h>
 }
 
-#include "log.hpp"
+#include "log.h"
 
 namespace sycon {
 

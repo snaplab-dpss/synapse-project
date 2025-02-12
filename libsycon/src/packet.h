@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/sycon/util.hpp"
+#include "../include/sycon/util.h"
 
 namespace sycon {
 

@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "time.hpp"
-#include "util.hpp"
+#include "time.h"
+#include "util.h"
 
 namespace sycon {
 

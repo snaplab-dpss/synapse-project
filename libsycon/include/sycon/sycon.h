@@ -1,15 +1,15 @@
 #pragma once
 
-#include "args.hpp"
-#include "asic.hpp"
-#include "config.hpp"
-#include "externs.hpp"
-#include "log.hpp"
-#include "modules/modules.hpp"
-#include "packet.hpp"
-#include "primitives/primitives.hpp"
-#include "time.hpp"
-#include "util.hpp"
+#include "args.h"
+#include "asic.h"
+#include "config.h"
+#include "externs.h"
+#include "log.h"
+#include "modules/modules.h"
+#include "packet.h"
+#include "primitives/primitives.h"
+#include "time.h"
+#include "util.h"
 
 namespace sycon {
 

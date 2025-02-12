@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "util.hpp"
+#include "util.h"
 
 namespace sycon {
 

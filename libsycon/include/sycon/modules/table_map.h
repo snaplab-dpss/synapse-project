@@ -4,10 +4,10 @@
 #include <optional>
 #include <unordered_set>
 
-#include "../constants.hpp"
-#include "../primitives/table.hpp"
-#include "../time.hpp"
-#include "../util.hpp"
+#include "../constants.h"
+#include "../primitives/table.h"
+#include "../time.h"
+#include "../util.h"
 
 namespace sycon {
 

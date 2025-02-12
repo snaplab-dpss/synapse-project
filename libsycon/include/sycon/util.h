@@ -5,7 +5,7 @@
 #include <limits>
 #include <string>
 
-#include "log.hpp"
+#include "log.h"
 
 #define SWAP_ENDIAN_16(v) __builtin_bswap16((v))
 #define SWAP_ENDIAN_32(v) __builtin_bswap32((v))

@@ -7,7 +7,7 @@ extern "C" {
 #include <bf_switchd/bf_switchd.h>
 }
 
-#include "util.hpp"
+#include "util.h"
 
 #ifdef NDEBUG
 #define DEBUG(...)

@@ -1,11 +1,11 @@
-#include "../include/sycon/asic.hpp"
-#include "../include/sycon/args.hpp"
-#include "../include/sycon/config.hpp"
-#include "../include/sycon/constants.hpp"
-#include "../include/sycon/externs.hpp"
-#include "metatables/device_configuration.hpp"
-#include "metatables/port_stat.hpp"
-#include "metatables/ports.hpp"
+#include "../include/sycon/asic.h"
+#include "../include/sycon/args.h"
+#include "../include/sycon/config.h"
+#include "../include/sycon/constants.h"
+#include "../include/sycon/externs.h"
+#include "metatables/device_configuration.h"
+#include "metatables/port_stat.h"
+#include "metatables/ports.h"
 
 #include <unistd.h>
 #include <filesystem>

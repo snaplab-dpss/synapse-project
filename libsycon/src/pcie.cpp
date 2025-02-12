@@ -2,13 +2,13 @@
 #define _GNU_SOURCE
 #endif
 
-#include "../include/sycon/config.hpp"
-#include "../include/sycon/constants.hpp"
-#include "../include/sycon/externs.hpp"
-#include "../include/sycon/log.hpp"
-#include "../include/sycon/packet.hpp"
-#include "../include/sycon/sycon.hpp"
-#include "packet.hpp"
+#include "../include/sycon/config.h"
+#include "../include/sycon/constants.h"
+#include "../include/sycon/externs.h"
+#include "../include/sycon/log.h"
+#include "../include/sycon/packet.h"
+#include "../include/sycon/sycon.h"
+#include "packet.h"
 
 extern "C" {
 #include <bf_switchd/bf_switchd.h>

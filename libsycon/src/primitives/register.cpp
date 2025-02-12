@@ -1,6 +1,6 @@
-#include "../../include/sycon/primitives/register.hpp"
+#include "../../include/sycon/primitives/register.h"
 
-#include "../../include/sycon/log.hpp"
+#include "../../include/sycon/log.h"
 
 namespace sycon {
 

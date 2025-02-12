@@ -1,6 +1,6 @@
-#include "../../include/sycon/primitives/counter.hpp"
+#include "../../include/sycon/primitives/counter.h"
 
-#include "../../include/sycon/log.hpp"
+#include "../../include/sycon/log.h"
 
 namespace sycon {
 

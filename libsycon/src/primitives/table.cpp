@@ -1,11 +1,11 @@
-#include "../../include/sycon/primitives/table.hpp"
+#include "../../include/sycon/primitives/table.h"
 
 #include <sstream>
 
-#include "../../include/sycon/config.hpp"
-#include "../../include/sycon/constants.hpp"
-#include "../../include/sycon/log.hpp"
-#include "../../include/sycon/util.hpp"
+#include "../../include/sycon/config.h"
+#include "../../include/sycon/constants.h"
+#include "../../include/sycon/log.h"
+#include "../../include/sycon/util.h"
 
 namespace sycon {
 

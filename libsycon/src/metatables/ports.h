@@ -5,8 +5,8 @@
 
 #include <map>
 
-#include "port_hdl_info.hpp"
-#include "port_stat.hpp"
+#include "port_hdl_info.h"
+#include "port_stat.h"
 
 namespace sycon {
 

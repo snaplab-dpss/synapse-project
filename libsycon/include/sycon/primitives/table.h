@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "../time.hpp"
+#include "../time.h"
 
 namespace sycon {
 

@@ -1,13 +1,14 @@
 #pragma once
 
-#include <array>
 #include <bf_rt/bf_rt_learn.hpp>
+
+#include <array>
 #include <optional>
 #include <unordered_set>
 #include <vector>
 
-#include "../primitives/register.hpp"
-#include "table_map.hpp"
+#include "../primitives/register.h"
+#include "table_map.h"
 
 namespace sycon {
 

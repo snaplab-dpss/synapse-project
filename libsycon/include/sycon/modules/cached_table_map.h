@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "table_map.hpp"
+#include "table_map.h"
 
 namespace sycon {
 

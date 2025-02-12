@@ -1,6 +1,6 @@
-#include "../include/sycon/packet.hpp"
-#include "../include/sycon/log.hpp"
-#include "packet.hpp"
+#include "../include/sycon/packet.h"
+#include "../include/sycon/log.h"
+#include "packet.h"
 
 #include <iomanip>
 #include <sstream>

@@ -1,5 +1,5 @@
-#include "../include/sycon/util.hpp"
-#include "../include/sycon/log.hpp"
+#include "../include/sycon/util.h"
+#include "../include/sycon/log.h"
 
 #include <stdlib.h>
 

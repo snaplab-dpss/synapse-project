@@ -1,4 +1,4 @@
-#include <sycon/sycon.hpp>
+#include <sycon/sycon.h>
 #include <unistd.h>
 
 using namespace sycon;
