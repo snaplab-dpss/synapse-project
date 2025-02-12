@@ -43,7 +43,7 @@ class SynapseController:
         if not self.host.remote_file_exists(src):
             self.host.crash(f"Unable to find file {src}")
 
-        makefile = self.repo / "tools" / "Makefile"
+        makefile = self.repo / "tofino" / "tools" / "Makefile"
 
         env_vars = " ".join([
             f"SDE={self.sde}",
@@ -68,7 +68,7 @@ class SynapseController:
             self.host.crash(f"Unable to find file {src}")
 
         program_name = src.stem
-        makefile = self.repo / "tools" / "Makefile"
+        makefile = self.repo / "tofino" / "tools" / "Makefile"
 
         env_vars = " ".join([
             f"SDE={self.sde}",

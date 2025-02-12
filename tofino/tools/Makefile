@@ -41,7 +41,7 @@ P4C             := $(SDE_INSTALL)/bin/bf-p4c
 P4C_DEBUG_FLAGS := -g --verbose 2 --create-graphs
 
 P4_ASSEMBLY_TNA1  := $(SDE)/build/p4-build/tofino/$(APP)/$(APP)/tofino/pipe/$(APP).bfa
-P4_ASSEMBLY_TNA2  := $(SDE)/build/p4-build/tofino/$(APP)/$(APP)/tofino2/pipe/$(APP).bfa
+P4_ASSEMBLY_TNA2  := $(SDE)/build/p4-build/tofino2/$(APP)/$(APP)/tofino2/pipe/$(APP).bfa
 P4_ASSEMBLY_DEBUG := $(BUILD_DIR)/pipe/$(APP).bfa
 
 P4_TNA1_BUILD_FLAGS := --target tofino --arch tna

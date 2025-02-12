@@ -66,9 +66,9 @@ def main():
         log_file=config["logs"]["pktgen"],
     )
 
-    dut_switch.install(src_in_repo="tofino/forwarder")
-    synapse_controller.launch(src_in_repo="tofino/forwarder")
-    
+    dut_switch.install(src_in_repo="tofino/forwarder/forwarder.p4")
+    synapse_controller.launch(src_in_repo="tofino/forwarder/forwarder.cpp")
+
     tg_switch.install()
     tg_switch.launch()
     tg_switch.wait_ready()
