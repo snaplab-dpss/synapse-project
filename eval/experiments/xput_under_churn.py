@@ -2,7 +2,7 @@
 
 import math
 
-from experiments.hosts.controller import Controller
+from eval.experiments.hosts.synapse import Controller
 from experiments.hosts.switch import Switch
 from experiments.hosts.pktgen import Pktgen
 

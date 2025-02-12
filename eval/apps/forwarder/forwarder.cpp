@@ -73,8 +73,17 @@ struct state_t {
 state_t *state;
 
 void sycon::nf_init() {
-  state = new state_t();
-  state->forwarder.add_fwd_entry(cfg.in_dev_port, cfg.out_dev_port);
+  state                                             = new state_t();
+  std::vector<std::pair<u16, u16>> port_connections = {
+      {1, 2},   {3, 4},   {5, 6},   {7, 8},   {9, 10},  {11, 12}, {13, 14}, {15, 16},
+      {17, 18}, {19, 20}, {21, 22}, {23, 24}, {25, 26}, {27, 28}, {29, 30},
+  };
+
+  for (auto &[src_port, dst_port] : port_connections) {
+    u16 src_dev_port = get_asic_dev_port(src_port);
+    u16 dst_dev_port = get_asic_dev_port(dst_port);
+    state->forwarder.add_fwd_entry(src_dev_port, dst_dev_port);
+  }
 }
 
 void sycon::nf_exit() {

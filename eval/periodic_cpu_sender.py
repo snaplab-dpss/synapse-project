@@ -16,7 +16,7 @@ from rich.console import Console
 
 from experiments.hosts.pktgen import Pktgen
 from experiments.hosts.switch import Switch
-from experiments.hosts.controller import Controller
+from eval.experiments.hosts.synapse import Controller
 
 from experiments.xput_per_cpu_ratio import ThroughputPerCPURatio
 

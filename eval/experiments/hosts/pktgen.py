@@ -23,7 +23,7 @@ class Pktgen():
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
-        self.pktgen_dir = Path(repo) / "eval" / "deps" / "pktgen"
+        self.pktgen_dir = Path(repo) / "deps" / "pktgen"
         self.pktgen_exe = self.pktgen_dir / "Release" / "bin"/ "pktgen"
         self.setup_env_script = self.pktgen_dir / "paths.sh"
         self.rx_pcie_dev = rx_pcie_dev

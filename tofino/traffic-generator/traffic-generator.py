@@ -5,7 +5,7 @@ import argparse
 
 GRPC_SERVER_IP     = "127.0.0.1"
 GRPC_SERVER_PORT   = 50052
-P4_PROGRAM_NAME    = "tm"
+P4_PROGRAM_NAME    = "traffic-generator"
 DEFAULT_PORT_SPEED = 100
 
 ACTIVE_PORTS = [ p for p in range(1, 31) ]

@@ -20,7 +20,7 @@ def main():
         config = tomli.load(f)
     
     print("Launching Tofino DUT...")
-    Switch(
+    synapse_nf = Switch(
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
         sde=config["devices"]["switch_dut"]["sde"],
@@ -28,23 +28,23 @@ def main():
         log_file=config["logs"]["switch_dut"],
     )
 
-    print("Launching Tofino TG...")
-    Switch(
-        hostname=config["hosts"]["switch_tg"],
-        repo=config["repo"]["switch_tg"],
-        sde=config["devices"]["switch_tg"]["sde"],
-        tofino_version=config["devices"]["switch_tg"]["tofino_version"],
-        log_file=config["logs"]["switch_tg"],
-    )
-
     print("Launching controller for Tofino DUT...")
-    SynapseController(
+    synapse_controller = SynapseController(
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
         sde=config["devices"]["switch_dut"]["sde"],
         ports=config["devices"]["switch_dut"]["ports"],
         tofino_version=config["devices"]["switch_dut"]["tofino_version"],
         log_file=config["logs"]["controller_dut"],
+    )
+
+    print("Launching Tofino TG...")
+    switch_tg = Switch(
+        hostname=config["hosts"]["switch_tg"],
+        repo=config["repo"]["switch_tg"],
+        sde=config["devices"]["switch_tg"]["sde"],
+        tofino_version=config["devices"]["switch_tg"]["tofino_version"],
+        log_file=config["logs"]["switch_tg"],
     )
 
     print("Launching pktgen...")

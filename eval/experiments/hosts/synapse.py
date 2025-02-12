@@ -11,23 +11,21 @@ from .remote import RemoteHost
 
 MIN_TIMEOUT = 10 # miliseconds
 
-class Controller:
+class SynapseController:
     def __init__(
         self,
         hostname: str,
         repo: str,
         sde: str,
         tofino_version: int,
-        switch_pktgen_in_port: int,
-        switch_pktgen_out_port: int,
+        ports: list[int],
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.repo = Path(repo)
         self.sde = Path(sde)
         self.tofino_version = tofino_version
-        self.switch_pktgen_in_port = switch_pktgen_in_port
-        self.switch_pktgen_out_port = switch_pktgen_out_port
+        self.ports = ports
         self.controller_cmd = None
         self.exe = None
 
@@ -106,8 +104,8 @@ class Controller:
         cmd = f"sudo -E ./build/release/{self.exe}"
         cmd += f" --tna {self.tofino_version}"
         cmd += f" --wait-ports"
-        cmd += f" --in {self.switch_pktgen_in_port}"
-        cmd += f" --out {self.switch_pktgen_out_port}"
+        cmd += f" --bench"
+        cmd += f" --ports {self.ports}"
         cmd += f" --expiration-time {timeout_ms}"
 
         for extra_arg in extra_args:

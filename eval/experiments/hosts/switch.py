@@ -18,6 +18,7 @@ class Switch:
         self.repo = Path(repo)
         self.sde = Path(sde)
         self.tofino_version = tofino_version
+        self.makefile = self.repo / "tofino" / "tools" / "Makefile"
 
         self.host.test_connection()
         
@@ -29,7 +30,7 @@ class Switch:
 
     def install(
         self,
-        src_in_repo: str,
+        src_in_repo: str | Path,
         compile_time_vars: list[tuple[str,str]] = [],
     ) -> None:
         src_path = self.repo / src_in_repo
@@ -38,7 +39,6 @@ class Switch:
             self.host.crash(f"Unable to find file {src_path}")
 
         program_name = src_path.stem
-        makefile = self.repo / "tools" / "Makefile"
 
         compilation_vars = " ".join([ f"-D{key}={value}" for key, value in compile_time_vars ])
         
@@ -56,7 +56,7 @@ class Switch:
             f"CONTROLLER_ARGS=\"\"", # hack to ignore controller args
         ])
 
-        compilation_cmd = f"{env_vars} make -f {makefile} {make_target}"
+        compilation_cmd = f"{env_vars} make -f {self.makefile} {make_target}"
         cmd = self.host.run_command(compilation_cmd, dir=src_path.parent)
         cmd.watch()
         code = cmd.recv_exit_status()

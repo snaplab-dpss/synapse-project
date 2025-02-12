@@ -6,35 +6,6 @@
 #include <tna.p4>
 #endif
 
-#if __TARGET_TOFINO__ == 2
-#define CPU_PCIE_PORT 0
-
-#define ETH_CPU_PORT_0 2
-#define ETH_CPU_PORT_1 3
-#define ETH_CPU_PORT_2 4
-#define ETH_CPU_PORT_3 5
-
-#define RECIRCULATION_PORT 6
-
-// hardware
-// #define IN_PORT 136
-// #define OUT_PORT 144
-
-// model
-#define IN_PORT 8
-#define OUT_PORT 9
-#else
-// hardware
-// #define CPU_PCIE_PORT 192
-// #define IN_PORT 164
-// #define OUT_PORT 172
-
-// model
-#define CPU_PCIE_PORT 320
-#define IN_PORT 0
-#define OUT_PORT 1
-#endif
-
 typedef bit<9> port_t;
 typedef bit<7> port_pad_t;
 
@@ -95,19 +66,6 @@ parser IngressParser(
 	/* This is a mandatory state, required by Tofino Architecture */
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
-
-		transition select(ig_intr_md.ingress_port) {
-			CPU_PCIE_PORT: parse_cpu;
-			default: parse_init;
-		}
-	}
-
-	state parse_cpu {
-		pkt.extract(hdr.cpu);
-		transition accept;
-	}
-
-	state parse_init{
 		transition accept;
 	}
 }
@@ -129,13 +87,6 @@ control Ingress(
 
 	action fwd(port_t port) {
 		ig_tm_md.ucast_egress_port = port;
-	}
-
-	action send_to_controller(bit<16> code_path) {
-		hdr.cpu.setValid();
-		hdr.cpu.code_path = code_path;
-		hdr.cpu.in_port = ig_intr_md.ingress_port;
-		fwd(CPU_PCIE_PORT);
 	}
 
 	table forwarder {
