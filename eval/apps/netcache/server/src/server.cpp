@@ -15,13 +15,7 @@
 
 #include "conf.h"
 #include "constants.h"
-#include "listener.h"
-#include "report.h"
 #include "store.h"
-
-#define REPORT_FILE "netcache-server.tsv"
-
-netcache::report_t report;
 
 struct args_t {
 	std::string conf_file_path;
@@ -29,7 +23,6 @@ struct args_t {
 	args_t(int argc, char** argv) {
 
 		conf_file_path=std::string(argv[argc-1]);
-		/* std::cout << conf_file_path << std::endl; */
 		parse_help(argc, argv);
 	}
 
@@ -62,13 +55,6 @@ struct args_t {
 		std::cerr << "\n";
 	}
 };
-
-void signalHandler(int signum) {
-	report.dump(REPORT_FILE);
-
-	std::cout << "Report generated at \"" << REPORT_FILE << "\". Exiting.\n";
-	exit(signum);
-}
 
 static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 	struct rte_eth_conf port_conf;
@@ -151,10 +137,6 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 }
 
 int main(int argc, char** argv) {
-	signal(SIGINT, signalHandler);
-	signal(SIGQUIT, signalHandler);
-	signal(SIGTERM, signalHandler);
-
 	auto args = args_t(argc, argv);
 	args.dump();
 
@@ -188,10 +170,6 @@ int main(int argc, char** argv) {
 		if (port_init(portid, mbuf_pool) != 0)
 			rte_exit(EXIT_FAILURE, "Cannot init port %u\n", portid);
 
-	if (rte_lcore_count() > 1)
-		printf("\nWARNING: Too many lcores enabled. Only 1 used.\n");
-
-	auto listener = new netcache::Listener(conf.connection.in.port);
 	auto store = new netcache::Store(conf.connection.out.port, mbuf_pool);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -213,39 +191,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		/* auto pkt = listener->receive_query(); */
-		auto pkt = listener->test();
-
-		if (pkt->has_valid_protocol()) {
-			std::cout << "TEST." << std::endl;
-			store->test(pkt);
-			/* uint8_t cur_op = pkt.get_netcache_hdr()->op; */
-			/* if (cur_op == WRITE_QUERY) { */
-			/* 	query_cntr++; */
-			/* 	#ifndef NDEBUG */
-			/* 	std::cout << "Received write query." << std::endl; */
-			/* 	#endif */
-			/* 	// store->write_query(pkt); */
-			/* } else if (cur_op == DELETE_QUERY) { */
-			/* 	query_cntr++; */
-			/* 	#ifndef NDEBUG */
-			/* 	std::cout << "Received delete query." << std::endl; */
-			/* 	#endif */
-			/* 	// store->del_query(pkt); */
-			/* } else if (cur_op == READ_QUERY) { */
-			/* 	query_cntr++; */
-			/* 	#ifndef NDEBUG */
-			/* 	std::cout << "Received read query." << std::endl; */
-			/* 	#endif */
-			/* 	store->read_query(pkt); */
-			/* } else { */
-			/* 	std::cerr << "Invalid query received."; */
-			/* } */
-		} else {
-			#ifndef NDEBUG
-			std::cerr << "Invalid packet received.";
-			#endif
-		}
+		store->read_query();
 	}
 
 	return 0;
