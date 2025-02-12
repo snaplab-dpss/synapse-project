@@ -55,9 +55,9 @@ build_pktgen() {
     ssh $host "cd $path_to_repo && ./build.sh"
 }
 
-sync tofino2-b2 /home/user/synapse
-sync graveler /home/fcp/synapse
-sync graveler /home/fcp/synapse/eval/deps/pktgen
-sync_cfg graveler /home/fcp/synapse
-install_libsycon tofino2-b2 /home/user/synapse
-build_pktgen graveler /home/fcp/synapse/eval/deps/pktgen
+sync tofino1 /root/synapse-project
+sync tofino2 /home/user/synapse-project
+sync geodude /home/fcp/synapse-project
+# sync_cfg graveler /home/fcp/synapse
+install_libsycon tofino2 /home/user/synapse-project
+build_pktgen geodude /home/fcp/synapse-project/deps/pktgen

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import bfrt_grpc.client as gc
+# import bfrt_grpc.client as gc
 import argparse
 
 GRPC_SERVER_IP     = "127.0.0.1"
@@ -184,51 +184,6 @@ class Ports:
 			
 	def add_port(self, front_panel_port, speed):
 		self.add_ports([(front_panel_port, speed)])
-			
-	def get_available_ports(self):
-		port_table = self.bfrt_info.table_get("$PORT")
-		target = gc.Target(device_id=0, pipe_id=0xffff)
-		keys = port_table.entry_get(target, [], {"from_hw": False})
-
-		ports = []
-
-		for data, key in keys:
-			key_dict = key.to_dict()
-			data_dict = data.to_dict()
-
-			port = {
-				"port": data_dict["$CONN_ID"],
-				"valid": data_dict["$IS_VALID"],
-				"enabled": data_dict["$PORT_ENABLE"],
-				"up": data_dict["$PORT_UP"],
-			}
-
-			ports.append(port)
-
-		return ports
-	
-	def get_enabled_ports(self):
-		port_table = self.bfrt_info.table_get("$PORT")
-		target = gc.Target(device_id=0, pipe_id=0xffff)
-		keys = port_table.entry_get(target, [], {"from_hw": False})
-
-		ports = []
-
-		for data, key in keys:
-			key_dict = key.to_dict()
-			data_dict = data.to_dict()
-
-			port = {
-				"port": data_dict["$CONN_ID"],
-				"valid": data_dict["$IS_VALID"],
-				"enabled": data_dict["$PORT_ENABLE"],
-				"up": data_dict["$PORT_UP"],
-			}
-
-			if data_dict["$PORT_ENABLE"]:   
-				ports.append(port["port"])
-
-		return ports
 
 class Router:
 	def __init__(self, bfrt_info):
@@ -415,16 +370,40 @@ def setup(bfrt_info, cfg):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(
-		prog="Traffic Manager",
-		description="Controller for the Traffic Manager P4 program, responsible for managing traffic coming from a DPDK" \
+		description=f"Controller for the {P4_PROGRAM_NAME} P4 program, responsible for managing traffic coming from a DPDK" \
 					"traffic generator and broadcasting it to the DUT.",
 	)
 
-	parser.add_argument("--nf", choices=CONFIGURATIONS.keys(), required=True)
+	parser.add_argument("--nf", choices=CONFIGURATIONS.keys(), required=False)
+	parser.add_argument("--broadcast", type=int, nargs="+", default=[], required=False)
+	parser.add_argument("--symmetric", type=int, nargs="+", default=[], required=False)
+	parser.add_argument("--route", type=int, nargs=2, action="append", default=[], required=False)
+	parser.add_argument("--dry-run", default=False, action="store_true")
 	args = parser.parse_args()
+
+	if args.nf is None and (not args.broadcast and not args.symmetric and not args.route):
+		print("No configuration provided. Please provide either an NF or a custom routing configuration.")
+		print("Use --help for more information.")
+		exit(1)
+
+	config = CONFIGURATIONS[args.nf] if args.nf else {
+		"broadcast": args.broadcast,
+		"symmetric": args.symmetric,
+		"route": [(src,dst) for src,dst in args.route ],
+	}
+
+	print("======== Configuration ========")
+	if args.nf:
+		print(f"NF:     {args.nf}")
+	print(f"Config: {config}")
+	print("==============================")
+
+	if args.dry_run:
+		print("Dry run, not connecting to the switch.")
+		exit(0)
 					
 	grpc_client = gc.ClientInterface("{}:{}".format(GRPC_SERVER_IP, GRPC_SERVER_PORT), 0, 0)
 	grpc_client.bind_pipeline_config(P4_PROGRAM_NAME)
 	bfrt_info = grpc_client.bfrt_info_get(P4_PROGRAM_NAME)
 
-	setup(bfrt_info, CONFIGURATIONS[args.nf])
+	setup(bfrt_info, config)
