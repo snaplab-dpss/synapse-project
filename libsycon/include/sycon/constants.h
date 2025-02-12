@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "../include/sycon/time.h"
+#include "time.h"
 
 extern "C" {
 #include <bf_switchd/bf_switchd.h>

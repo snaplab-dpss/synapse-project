@@ -53,9 +53,9 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
       bf_switchd_exit_sighandler(signum);
       exit(0);
     case SIGUSR1:
-      LOG("~~~ Received a USR1 signal ~~~")
+      LOG("~~~ Received a USR1 signal ~~~");
       nf_user_signal_handler();
-      LOG("~~~ USR1 signal processing done ~~~")
+      LOG("~~~ USR1 signal processing done ~~~");
       break;
     default:
       DEBUG("~~~ Received unknown signal %d (%s) ~~~", signum, strsignal(signum));
@@ -110,7 +110,7 @@ void run_cli() {
 
 void run_bench_cli() {
   while (1) {
-    std::cout << ">";
+    SHOW_PROMPT();
 
     std::string command;
     std::getline(std::cin, command);
@@ -126,7 +126,7 @@ void run_bench_cli() {
         ss << " " << front_panel_port << ":" << rx << ":" << tx;
       }
 
-      std::cerr << ss.str() << std::endl;
+      LOG("%s", ss.str().c_str());
     } else if (command == "reset") {
       reset_asic_port_stats();
     } else if (command == "exit" || command == "quit") {

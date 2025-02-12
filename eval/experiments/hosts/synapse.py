@@ -10,6 +10,7 @@ import re
 from .remote import RemoteHost
 
 MIN_TIMEOUT = 10 # miliseconds
+SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon> "
 
 class SynapseController:
     def __init__(
@@ -105,7 +106,7 @@ class SynapseController:
         cmd += f" --tna {self.tofino_version}"
         cmd += f" --wait-ports"
         cmd += f" --bench"
-        cmd += f" --ports {self.ports}"
+        cmd += f" --ports {' '.join(map(str, self.ports))}"
         cmd += f" --expiration-time {timeout_ms}"
 
         for extra_arg in extra_args:
@@ -126,7 +127,8 @@ class SynapseController:
             raise RuntimeError("Controller not started")
 
         self.controller_cmd.watch(
-            stop_pattern="Press enter to terminate.",
+            # stop_pattern="Press enter to terminate.",
+            stop_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
         )
 
         self.ready = True
@@ -150,6 +152,40 @@ class SynapseController:
 
         return output
     
+    def get_port_stats(self) -> list[tuple[int,int,int]]:
+        assert self.ready
+        assert self.controller_cmd
+        
+        output = self.controller_cmd.run_console_commands(
+            commands=["stats"],
+            console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
+        )
+
+        print("OUTPUT", output)
+
+        return []
+
+    def reset_port_stats(self) -> None:
+        assert self.ready
+        assert self.controller_cmd
+        
+        self.controller_cmd.run_console_commands(
+            commands=["reset"],
+            console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
+        )
+    
+    def quit(self) -> None:
+        assert self.ready
+        assert self.controller_cmd
+        
+        self.controller_cmd.run_console_commands(
+            commands=["quit"],
+            console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
+        )
+
+        self.ready = False
+        self.controller_cmd = None
+
     def get_cpu_counters(self) -> Optional[tuple[int,int,int]]:
         output = self.send_usr1_signal()
 

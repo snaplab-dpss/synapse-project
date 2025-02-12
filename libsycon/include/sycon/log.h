@@ -7,8 +7,6 @@ extern "C" {
 #include <bf_switchd/bf_switchd.h>
 }
 
-#include "util.h"
-
 #ifdef NDEBUG
 #define DEBUG(...)
 
@@ -35,21 +33,23 @@ extern "C" {
   }
 #endif
 
+#define SHOW_PROMPT() (printf("Sycon> "), fflush(stdout))
+
 #define LOG(fmt, ...)                                                                                                                      \
-  {                                                                                                                                        \
+  ({                                                                                                                                       \
     printf(fmt "\n", ##__VA_ARGS__);                                                                                                       \
     fflush(stdout);                                                                                                                        \
-  }
+  })
 
 #define ERROR(fmt, ...)                                                                                                                    \
-  {                                                                                                                                        \
+  ({                                                                                                                                       \
     fprintf(stderr, "ERROR: " fmt "\n", ##__VA_ARGS__);                                                                                    \
     fflush(stderr);                                                                                                                        \
     exit(1);                                                                                                                               \
-  }
+  })
 
 #define WARNING(fmt, ...)                                                                                                                  \
-  {                                                                                                                                        \
+  ({                                                                                                                                       \
     printf("WARNING: " fmt "\n", ##__VA_ARGS__);                                                                                           \
     fflush(stdout);                                                                                                                        \
-  }
+  })

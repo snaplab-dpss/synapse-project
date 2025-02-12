@@ -7,6 +7,7 @@ extern "C" {
 }
 
 #include "log.h"
+#include "time.h"
 
 namespace sycon {
 

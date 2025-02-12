@@ -259,7 +259,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtT
 
     switch (key_field_data_type) {
     case bfrt::DataType::BOOL: {
-      ERROR("Bool type handling not implemented for key field data types")
+      ERROR("Bool type handling not implemented for key field data types");
     } break;
     case bfrt::DataType::UINT64: {
       u64 key_field_value;
@@ -278,13 +278,12 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtT
         os << " (mask=" << key_field_mask << ")";
       } break;
       default: {
-        ERROR("Only Exact and Ternary key types are implemented for uint64 "
-              "data type")
+        ERROR("Only Exact and Ternary key types are implemented for uint64 data type");
       }
       }
     } break;
     case bfrt::DataType::FLOAT: {
-      ERROR("Float type handling not implemented for key field data types")
+      ERROR("Float type handling not implemented for key field data types");
     } break;
     case bfrt::DataType::STRING: {
       std::string key_field_value;
@@ -299,15 +298,15 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtT
         os << key_field_value;
       } break;
       default: {
-        ERROR("Only Exact key type is implemented for String data type")
+        ERROR("Only Exact key type is implemented for String data type");
       }
       }
     } break;
     case bfrt::DataType::INT_ARR: {
-      ERROR("Int array type handling not implemented for key field data types")
+      ERROR("Int array type handling not implemented for key field data types");
     } break;
     case bfrt::DataType::BOOL_ARR: {
-      ERROR("Bool array type handling not implemented for key field data types")
+      ERROR("Bool array type handling not implemented for key field data types");
     } break;
     case bfrt::DataType::BYTE_STREAM: {
       size_t size;
@@ -348,20 +347,18 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtT
         }
       } break;
       default: {
-        ERROR("Only Exact and Ternary key types are implemented for byte "
-              "stream data type")
+        ERROR("Only Exact and Ternary key types are implemented for byte stream data type");
       }
       }
     } break;
     case bfrt::DataType::CONTAINER: {
-      ERROR("Container type handling not implemented for data types")
+      ERROR("Container type handling not implemented for data types");
     } break;
     case bfrt::DataType::STRING_ARR: {
-      ERROR("String array type handling not implemented for key field data "
-            "types")
+      ERROR("String array type handling not implemented for key field data types");
     } break;
     default: {
-      ERROR("Unexpected key field data type")
+      ERROR("Unexpected key field data type");
       assert(false && "Unexpected key field data type");
     }
     }
