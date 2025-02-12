@@ -80,17 +80,17 @@ def main():
         route=[],
     )
 
-    # print("Launching pktgen")
-    # pktgen.launch(
-    #     nb_flows=10_000,
-    #     pkt_size=200,
-    #     exp_time_us=1_000_000,
-    #     crc_unique_flows=False,
-    #     crc_bits=16,
-    #     seed=0,
-    #     mark_warmup_packets=False,
-    # )
-    # pktgen.wait_launch()
+    print("Launching pktgen")
+    pktgen.launch(
+        nb_flows=10_000,
+        pkt_size=200,
+        exp_time_us=1_000_000,
+        crc_unique_flows=False,
+        crc_bits=16,
+        seed=0,
+        mark_warmup_packets=False,
+    )
+    pktgen.wait_launch()
 
     print("Installing Tofino DUT")
     dut_switch.install(src_in_repo="tofino/forwarder/forwarder.p4")
@@ -99,13 +99,22 @@ def main():
     synapse_controller.launch(src_in_repo="tofino/forwarder/forwarder.cpp")
     synapse_controller.wait_ready()
 
+    print("Resetting")
+    synapse_controller.reset_port_stats()
+
     print("Getting port stats")
     port_stats = synapse_controller.get_port_stats()
     print(port_stats)
 
-    print("Resetting")
-    synapse_controller.reset_port_stats()
+    pktgen.set_rate(100_000)
+    pktgen.run(5)
+    pktgen.get_stats()
 
+    print("Getting port stats")
+    port_stats = synapse_controller.get_port_stats()
+    print(port_stats)
+
+    pktgen.close()
     tg_switch.kill_switchd()
     synapse_controller.quit()
 

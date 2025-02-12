@@ -10,7 +10,7 @@ import re
 from .remote import RemoteHost
 
 MIN_TIMEOUT = 10 # miliseconds
-SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon>"
+SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon> "
 
 class SynapseController:
     def __init__(
@@ -161,12 +161,12 @@ class SynapseController:
             console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
         )
 
-        output_split = output.split(' ')
+        output_split = output.rstrip().split(' ')
         assert output_split[0] == "STATS"
 
         stats = {}
         for entry in output_split[1:]:
-            if SYNAPSE_BENCH_CONTROLLER_PROMPT in entry:
+            if '\n' in entry:
                 break
 
             entry_split = entry.split(':')
