@@ -1,10 +1,16 @@
 #pragma once
 
+#define ETHER_TYPE_IPV4 0x0800
+#define UDP_PROTO 17
+#define TCP_PROTO 6
+
 // Netcache
 
 #define READ_QUERY		0x0
 #define WRITE_QUERY		0x1
 #define DELETE_QUERY	0x2
+#define NC_PORT			50000
+#define NC_HDR_SIZE		8
 
 // DPDK
 

@@ -10,13 +10,13 @@ if [ -z ${SDE_INSTALL+x} ]; then
 	exit 1
 fi
 
-CONTROLLER_EXE="$SCRIPT_DIR/build/netcache-controller"
+CONTROLLER_EXE="$SCRIPT_DIR/build/Release/netcache-controller"
 CONTROLLER_CONF_FILE="$SCRIPT_DIR/conf/conf-model.json"
 TOFINO_MODEL_EXE_NAME="tofino-model"
 CONF_DIR="$SDE_INSTALL/share/p4/targets/tofino2"
 CONF_FILE="$CONF_DIR/netcache.conf"
 
-IFACE="veth6"
+LD_LIBRARY_PATH="/usr/local/lib/:$SDE_INSTALL/lib/"
 
 if ! ps -e | grep -q "$TOFINO_MODEL_EXE_NAME"; then
 	echo "Tofino model not running. Exiting."
@@ -24,17 +24,18 @@ if ! ps -e | grep -q "$TOFINO_MODEL_EXE_NAME"; then
 fi
 
 # Hugepages config
-if [ "$(grep HugePages_Total /proc/meminfo | awk '{print $2}')" -lt "512" ]; then \
-	sudo sysctl -w vm.nr_hugepages=512 > /dev/null
-fi
+# if [ "$(grep HugePages_Total /proc/meminfo | awk '{print $2}')" -lt "512" ]; then \
+# 	sudo sysctl -w vm.nr_hugepages=512 > /dev/null
+# fi
 
 # Compile
 # make debug -j
 
 # Run controller with model
 # echo "Running sudo -E $CONTROLLER_EXE $CONTROLLER_CONF_FILE -i $IFACE --tofino-model"
-NETCACHE_HW_CONF=$CONF_FILE \
-	sudo -E "$CONTROLLER_EXE" \
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+	NETCACHE_HW_CONF=$CONF_FILE \
+	"$CONTROLLER_EXE" \
 	-m 8192 --no-huge --vdev "net_tap0,iface=test_rx" --vdev "net_tap1,iface==test_tx" --no-shconf \
 	-- \
 	"$CONTROLLER_CONF_FILE"

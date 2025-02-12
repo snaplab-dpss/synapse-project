@@ -9,7 +9,6 @@
 #include <rte_mbuf.h>
 #include <rte_lcore.h>
 #include <rte_log.h>
-
 #include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_udp.h>
@@ -21,32 +20,29 @@
 
 namespace netcache {
 
-Store::Store(const int dpdk_port, rte_mempool * pool) {
-	port_id = dpdk_port;
+Store::Store(const int in, const int out, rte_mempool *pool) {
+	port_in = in;
+	port_out = out;
 	mbuf_pool = pool;
 }
 
 Store::~Store() {}
 
 void Store::read_query() {
-	uint16_t nb_rx = rte_eth_rx_burst(0, 0, buf, BURST_SIZE);
+	uint16_t nb_rx = rte_eth_rx_burst(port_in, 0, buf, BURST_SIZE);
 
-	if (nb_rx == 0) {
-		return;
-	}
+	if (nb_rx == 0) { return; }
 	count++;
 
-    if(check_pkt(buf[0]) == false) {
-        return;
-    }
+    if(!check_pkt(buf[0])) { return; }
 
     modify_pkt(buf[0]);
 
-	uint16_t nb_tx = rte_eth_tx_burst(1, 0, buf, 1);
+	uint16_t nb_tx = rte_eth_tx_burst(port_out, 0, buf, 1);
 
 	if (nb_tx > 0) {
         #ifndef NDEBUG
-		    std::cout << "SENT! " << nb_tx << std::endl;
+		    std::cout << "Sent " << nb_tx << "packet(s)." << std::endl;
         #endif
 	} else {
 		rte_pktmbuf_free(buf[0]);

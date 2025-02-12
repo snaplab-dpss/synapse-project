@@ -4,6 +4,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -26,6 +27,8 @@ protected:
 
 	std::unique_ptr<bfrt::BfRtTableKey> key;
 	std::unique_ptr<bfrt::BfRtTableData> data;
+	// std::unique_ptr<bfrt::BfRtTableAttributes> attributes;
+	std::unique_ptr<bfrt::BfRtTableEntryScopeArguments> api;
 
 protected:
 	Table(const bfrt::BfRtInfo *_info,
