@@ -17,6 +17,7 @@ struct netcache_hdr_t {
 	uint8_t seq;
 	uint16_t key;
 	uint32_t val;
+	uint8_t cpu;
 } __attribute__((packed));
 
 };	// namespace netcache

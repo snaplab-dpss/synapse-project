@@ -106,6 +106,18 @@ control SwitchIngress(
 		const default_action = miss();
 	}
 
+	table is_cpu {
+		key = {
+			ig_intr_md.ingress_port : exact;
+		}
+		actions = {
+			set_out_port;
+			miss;
+		}
+		const default_action = miss;
+		size = 4;
+	}
+
 	table fwd {
 		key = {
 			ig_intr_md.ingress_port : exact;
@@ -121,7 +133,7 @@ control SwitchIngress(
 	}
 
 	apply {
-		if (hdr.netcache.isValid()) {
+		if (hdr.netcache.isValid() && hdr.netcache.cpu == 0) {
 			cache_lookup.apply();
 
 			if (hdr.netcache.op == READ_QUERY) {
@@ -144,8 +156,12 @@ control SwitchIngress(
 				vtable_update();
 			}
 		}
-		set_normal_pkt();
-		fwd.apply();
+		if (hdr.netcache.cpu == 1) {
+			is_cpu.apply();
+		} else {
+			set_normal_pkt();
+			fwd.apply();
+		}
 	}
 }
 
@@ -208,7 +224,10 @@ control SwitchEgress(
 	apply {
 		if (hdr.netcache.isValid()) {
 			eg_dprsr_md.drop_ctl = 1;
-			if (hdr.netcache.op == READ_QUERY) {
+			if (hdr.netcache.cpu == 1) {
+				eg_dprsr_md.drop_ctl = 0;
+			}
+			else if (hdr.netcache.op == READ_QUERY) {
 				eg_dprsr_md.drop_ctl = 0;
 				sampl_check();
 				if (sampl_cur == 1) {
@@ -225,6 +244,7 @@ control SwitchEgress(
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
 								hdr.netcache.val = cm_result;
+								hdr.netcache.cpu = 1;
 								set_mirror();
 							}
 						}
