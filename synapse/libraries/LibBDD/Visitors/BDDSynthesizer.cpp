@@ -1386,19 +1386,16 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate_new_index(co
   klee::ref<klee::Expr> time        = call.args.at("time").expr;
   klee::ref<klee::Expr> index_out   = call.args.at("index_out").out;
 
-  LibCore::symbol_t out_of_space = call_node->get_local_symbol("out_of_space");
+  LibCore::symbol_t not_out_of_space = call_node->get_local_symbol("not_out_of_space");
 
-  var_t oos = build_var("out_of_space", out_of_space.expr);
-  var_t i   = build_var("index", index_out);
+  var_t noos = build_var("not_out_of_space", not_out_of_space.expr);
+  var_t i    = build_var("index", index_out);
 
   coder.indent();
   coder << "int " << i.name << ";\n";
 
   coder.indent();
-  coder << "int " << oos.name << " = ";
-  // Negate the result because we have an out-of-space symbol, which is true
-  // when there is no space (i.e., the result is false).
-  coder << "!";
+  coder << "int " << noos.name << " = ";
   coder << "dchain_allocate_new_index(";
   coder << stack_get(dchain_addr).name << ", ";
   coder << "&" << i.name << ", ";
@@ -1406,10 +1403,10 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate_new_index(co
   coder << ")";
   coder << ";\n";
 
-  stack_add(oos);
+  stack_add(noos);
   stack_add(i);
 
-  return oos;
+  return noos;
 }
 
 BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_rejuvenate_index(coder_t &coder, const Call *call_node) {

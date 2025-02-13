@@ -191,7 +191,16 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitExtract(const klee
 }
 
 klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitZExt(const klee::ZExtExpr &e) {
-  panic("TODO: visitZExt");
+  klee::ref<klee::Expr> arg = e.getKid(0);
+  coder_t &coder            = coders.top();
+
+  coder << "(";
+  coder << type_from_expr(arg);
+  coder << ")";
+  coder << "(";
+  coder << transpile(arg);
+  coder << ")";
+
   return Action::skipChildren();
 }
 

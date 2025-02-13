@@ -9,7 +9,7 @@
 #define NUM_ELEMS (128)
 
 struct Vector {
-  uint8_t *data;
+  uint8_t *data[NUM_ELEMS];
   int elem_size;
   int capacity;
   int elems_claimed;
@@ -31,13 +31,17 @@ int vector_allocate(int elem_size, unsigned capacity, struct Vector **vector_out
   klee_trace_param_ptr(vector_out, sizeof(struct Vector *), "vector_out");
 
   int allocation_succeeded = klee_int("vector_alloc_success");
-  if (!allocation_succeeded)
-    return 0;
+  if (!allocation_succeeded) {
+    return allocation_succeeded;
+  }
 
   *vector_out = malloc(sizeof(struct Vector));
   klee_make_symbolic(*vector_out, sizeof(struct Vector), "vector");
-  (*vector_out)->data = calloc(NUM_ELEMS, elem_size);
-  klee_make_symbolic((*vector_out)->data, elem_size * NUM_ELEMS, "vector_data");
+  for (int i = 0; i < NUM_ELEMS; i++) {
+    (*vector_out)->data[i] = calloc(1, elem_size);
+    klee_make_symbolic((*vector_out)->data[i], elem_size, "vector_data");
+  }
+  // klee_make_symbolic((*vector_out)->data, elem_size * NUM_ELEMS, "vector_data");
   // Do not call init elem, to preserve the elems being symbolic.
   // for (int n = 0; n < NUM_ELEMS; n++) {
   //  init_elem((*vector_out)->data + (elem_size*n));
@@ -49,22 +53,20 @@ int vector_allocate(int elem_size, unsigned capacity, struct Vector **vector_out
   (*vector_out)->nested_field_count = 0;
   (*vector_out)->ent_cond           = NULL;
   (*vector_out)->ent_cond_state     = NULL;
-  klee_forbid_access((*vector_out)->data, elem_size * NUM_ELEMS, "private state");
-  return 1;
+  for (int i = 0; i < NUM_ELEMS; i++) {
+    klee_forbid_access((*vector_out)->data[i], elem_size, "private state");
+  }
+  return allocation_succeeded;
 }
 
 void vector_reset(struct Vector *vector) {
-  klee_trace_ret();
-  klee_trace_param_u64((uint64_t)vector, "vector");
   // TODO: reallocate vector->data to avoid having the same pointer?
-  klee_allow_access(vector->data, vector->elem_size * NUM_ELEMS);
-  klee_make_symbolic(vector->data, NUM_ELEMS * vector->elem_size, "vector_data");
+  for (int i = 0; i < NUM_ELEMS; i++) {
+    klee_allow_access(vector->data[i], vector->elem_size);
+    klee_make_symbolic(vector->data[i], vector->elem_size, "vector_data");
+    klee_forbid_access(vector->data[i], vector->elem_size, "private state");
+  }
   vector->elems_claimed = 0;
-  // Do not call init elem, to preserve the elems being symbolic.
-  // for (int n = 0; n < NUM_ELEMS; n++) {
-  //  vector->init_elem(vector->data + (vector->elem_size*n));
-  //}
-  klee_forbid_access(vector->data, vector->elem_size * NUM_ELEMS, "private state");
 }
 
 void vector_set_entry_condition(struct Vector *vector, vector_entry_condition *cond, void *state) {
@@ -94,7 +96,7 @@ void vector_borrow(struct Vector *vector, int index, void **val_out) {
   klee_trace_param_i32(index, "index");
   klee_trace_param_tagged_ptr(val_out, sizeof(void *), "val_out", vector->cell_type, TD_OUT);
   klee_assert(vector->elems_claimed < NUM_ELEMS);
-  void *cell = vector->data + vector->elems_claimed * vector->elem_size;
+  void *cell = vector->data[vector->elems_claimed];
   klee_trace_extra_ptr(cell, vector->elem_size, "borrowed_cell", vector->cell_type, TD_OUT);
   {
     for (int i = 0; i < vector->field_count; ++i) {
@@ -108,7 +110,9 @@ void vector_borrow(struct Vector *vector, int index, void **val_out) {
     }
   }
 
-  klee_allow_access(vector->data, vector->elem_size * NUM_ELEMS);
+  for (int i = 0; i < NUM_ELEMS; i++) {
+    klee_allow_access(vector->data[i], vector->elem_size);
+  }
 
   if (vector->ent_cond) {
     klee_assume(vector->ent_cond(cell, index, vector->ent_cond_state));
@@ -117,6 +121,7 @@ void vector_borrow(struct Vector *vector, int index, void **val_out) {
   klee_assert(vector->elems_claimed < NUM_ELEMS);
   vector->index_claimed[vector->elems_claimed] = index;
   vector->elems_claimed += 1;
+
   *val_out = cell;
 }
 
@@ -144,21 +149,25 @@ void vector_return(struct Vector *vector, int index, void *value) {
 
   int belongs = 0;
   for (int i = 0; i < vector->elems_claimed; ++i) {
-    if (vector->data + i * vector->elem_size == value) {
+    if (vector->data[i] == value) {
       klee_assert(vector->index_claimed[i] == index);
       belongs = 1;
     }
   }
   klee_assert(belongs);
-  klee_forbid_access(vector->data, vector->elem_size * NUM_ELEMS, "private state");
+  for (int i = 0; i < NUM_ELEMS; i++) {
+    klee_forbid_access(vector->data[i], vector->elem_size, "private state");
+  }
 }
 
 void vector_clear(struct Vector *vector) {
   klee_trace_param_u64((uint64_t)vector, "vector");
 
-  klee_allow_access(vector->data, vector->elem_size * NUM_ELEMS);
-  memset(vector->data, 0, vector->elem_size * NUM_ELEMS);
-  klee_forbid_access(vector->data, vector->elem_size * NUM_ELEMS, "private state");
+  for (int i = 0; i < NUM_ELEMS; i++) {
+    klee_allow_access(vector->data[i], vector->elem_size);
+    memset(vector->data[i], 0, vector->elem_size);
+    klee_forbid_access(vector->data[i], vector->elem_size, "private state");
+  }
 }
 
 int vector_sample_lt(struct Vector *vector, int samples, void *threshold, int *index_out) {

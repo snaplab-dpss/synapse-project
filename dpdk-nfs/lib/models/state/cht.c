@@ -19,12 +19,13 @@ int cht_find_preferred_available_backend(uint64_t hash, struct Vector *cht, stru
   klee_trace_param_u32(cht_height, "cht_height");
   klee_trace_param_u32(backend_capacity, "backend_capacity");
   klee_trace_param_ptr(chosen_backend, sizeof(int), "chosen_backend");
-  if (klee_int("prefered_backend_found")) {
+
+  int prefered_backend_found = klee_int("prefered_backend_found");
+  if (prefered_backend_found) {
     *chosen_backend = klee_int("chosen_backend");
     klee_assume(0 <= *chosen_backend);
     klee_assume(*chosen_backend < backend_capacity);
-    return 1;
-  } else {
-    return 0;
   }
+
+  return prefered_backend_found;
 }

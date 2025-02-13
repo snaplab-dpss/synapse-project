@@ -33,9 +33,8 @@ __attribute__((noinline)) int map_allocate(unsigned capacity, unsigned key_size,
     (*map_out)->backup_occupancy      = klee_range(0, capacity, "backup_map_occupancy");
     (*map_out)->Num_bucket_traversals = klee_int("Num_bucket_traversals");
     (*map_out)->Num_hash_collisions   = klee_int("Num_hash_collisions");
-    return 1;
   }
-  return 0;
+  return allocation_succeeded;
 }
 
 void map_reset(struct Map *map) {
@@ -120,7 +119,6 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key, int *value_out
   klee_assert(map->next_unclaimed_entry < NUM_ELEMS && "No space left in the map stub");
   int map_has_this_key = klee_int("map_has_this_key");
   int allocated_index  = klee_int("allocated_index");
-  int ret;
   if (map_has_this_key) {
     int n = map->next_unclaimed_entry;
     ++map->next_unclaimed_entry;
@@ -134,12 +132,9 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key, int *value_out
       klee_assume(map->ent_cond(map->keyp[n], map->allocated_index[n], map->ent_cond_state));
       klee_assume(map->ent_cond(map->key_copyp[n], map->allocated_index[n], map->ent_cond_state));
     }
-    ret = 1;
-  } else {
-    ret = 0;
   }
   *value_out = allocated_index;
-  return ret;
+  return map_has_this_key;
 }
 
 __attribute__((noinline)) void map_put(struct Map *map, void *key, int value) {

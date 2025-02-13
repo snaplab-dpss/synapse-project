@@ -15,12 +15,14 @@ struct LPM {
 int lpm_allocate(struct LPM **lpm_out) {
   klee_trace_ret();
   klee_trace_param_ptr(lpm_out, sizeof(struct LPM *), "lpm_out");
+
   int allocation_succeeded = klee_int("lpm_alloc_success");
-  if (!allocation_succeeded)
-    return 0;
-  *lpm_out         = malloc(sizeof(struct LPM));
-  (**lpm_out).cond = NULL;
-  return 1;
+  if (allocation_succeeded) {
+    *lpm_out         = malloc(sizeof(struct LPM));
+    (**lpm_out).cond = NULL;
+  }
+
+  return allocation_succeeded;
 }
 
 void lpm_free(struct LPM *lpm) {
@@ -37,12 +39,7 @@ int lpm_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t val
 
   klee_assert(lpm != NULL);
 
-  int success = klee_int("lpm_update_elem_result");
-  if (success) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return klee_int("lpm_update_elem_result");
 }
 
 int lpm_lookup(struct LPM *lpm, uint32_t prefix, uint16_t *value_out) {
@@ -60,10 +57,9 @@ int lpm_lookup(struct LPM *lpm, uint32_t prefix, uint16_t *value_out) {
       klee_assume(lpm->cond(prefix, value));
     }
     *value_out = value;
-    return 1;
   }
 
-  return 0;
+  return match;
 }
 
 void lpm_set_entry_condition(struct LPM *lpm, lpm_entry_condition *cond) { lpm->cond = cond; }

@@ -231,12 +231,13 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     return index_alloc_check;
   }
 
-  LibCore::symbol_t out_of_space       = get_local_symbol("out_of_space");
+  assert(false && "TODO: Reimplement this");
+  LibCore::symbol_t not_out_of_space   = get_local_symbol("not_out_of_space");
   LibCore::Symbols freed_flows_symbols = symbol_manager->get_symbols_with_base("number_of_freed_flows");
   assert(freed_flows_symbols.size() <= 1 && "Multiple number_of_freed_flows symbols");
 
   std::unordered_set<std::string> target_names;
-  target_names.insert(out_of_space.name);
+  target_names.insert(not_out_of_space.name);
   for (const LibCore::symbol_t &symbol : freed_flows_symbols.get()) {
     target_names.insert(symbol.name);
   }
@@ -261,8 +262,8 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
   });
 
   if (index_alloc_check.branch) {
-    klee::ref<klee::Expr> success_condition = LibCore::solver_toolbox.exprBuilder->Eq(
-        out_of_space.expr, LibCore::solver_toolbox.exprBuilder->Constant(0, out_of_space.expr->getWidth()));
+    klee::ref<klee::Expr> success_condition = LibCore::solver_toolbox.exprBuilder->Ne(
+        not_out_of_space.expr, LibCore::solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
 
     if (!freed_flows_symbols.empty()) {
       klee::ref<klee::Expr> freed_flows = freed_flows_symbols.get().begin()->expr;

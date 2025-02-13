@@ -21,7 +21,6 @@ const std::vector<std::string> ignored_functions{
     "packet_receive",
     "packet_state_total_length",
     "packet_get_unread_length",
-    "vector_reset",
 };
 
 constexpr const char *const init_to_process_trigger_function = "packet_receive";
@@ -54,7 +53,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"map_get", {"map_has_this_key", "allocated_index"}},
     {"map_size", {"map_size"}},
     {"dchain_is_index_allocated", {"dchain_is_index_allocated"}},
-    {"dchain_allocate_new_index", {"out_of_space", "new_index"}},
+    {"dchain_allocate_new_index", {"not_out_of_space", "new_index"}},
     {"vector_borrow", {"vector_data"}},
     {"vector_sample_lt", {"found_sample", "sample_index"}},
     {"cht_fill_cht", {"cht_fill_cht_successful"}},
@@ -141,15 +140,17 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
     assert(cp->calls.size() && "No calls");
     const call_t &call = cp->calls[0];
 
-    if (call.ret.isNull())
+    if (call.ret.isNull()) {
       return call;
+    }
 
     klee::ref<klee::Expr> zero    = LibCore::solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
     klee::ref<klee::Expr> eq_zero = LibCore::solver_toolbox.exprBuilder->Eq(call.ret, zero);
-    bool is_ret_success           = LibCore::solver_toolbox.is_expr_always_false(eq_zero);
+    bool is_ret_success           = LibCore::solver_toolbox.is_expr_always_false(cp->constraints, eq_zero);
 
-    if (is_ret_success)
+    if (is_ret_success) {
       return call;
+    }
   }
 
   // No function with successful return.
@@ -187,52 +188,44 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
   return is_zero;
 }
 
-std::optional<LibCore::symbol_t> get_generated_symbol(const LibCore::Symbols &symbols, const std::string &base,
-                                                      std::unordered_map<std::string, size_t> &base_symbols_generated) {
-  auto symbol_cmp = [base](const LibCore::symbol_t &a, const LibCore::symbol_t &b) {
-    assert(a.base == b.base && "Different base symbols");
-
-    size_t base_a_pos = a.name.find(base);
-    size_t base_b_pos = b.name.find(base);
-
-    std::string a_suffix = a.name.substr(base_a_pos + base.size());
-    std::string b_suffix = b.name.substr(base_b_pos + base.size());
-
-    if (a_suffix.size() == 0) {
-      return true;
-    }
-
-    if (b_suffix.size() == 0) {
-      return false;
-    }
-
-    assert(a_suffix[0] == '_' && "Invalid suffix");
-    assert(b_suffix[0] == '_' && "Invalid suffix");
-
-    int a_suffix_num = std::stoi(a_suffix.substr(1));
-    int b_suffix_num = std::stoi(b_suffix.substr(1));
-
-    return a_suffix_num < b_suffix_num;
-  };
-
+std::optional<LibCore::symbol_t> get_generated_symbol(const call_t &call, const LibCore::Symbols &symbols, const std::string &base) {
   std::vector<LibCore::symbol_t> filtered = symbols.filter_by_base(base).get();
-  std::sort(filtered.begin(), filtered.end(), symbol_cmp);
 
-  size_t total_base_symbols_generated = 0;
-  if (base_symbols_generated.find(base) != base_symbols_generated.end()) {
-    total_base_symbols_generated = base_symbols_generated[base];
-  } else {
-    base_symbols_generated[base] = 0;
+  if (LibCore::symbol_t::is_symbol(call.ret)) {
+    LibCore::symbol_t symbol(call.ret);
+    if (base == symbol.base) {
+      return symbol;
+    }
   }
 
-  if (total_base_symbols_generated >= filtered.size()) {
-    // Not enough symbols for translation
-    return std::nullopt;
+  for (const auto &[arg_name, arg] : call.args) {
+    if (LibCore::symbol_t::is_symbol(arg.out)) {
+      LibCore::symbol_t symbol(arg.out);
+      if (base == symbol.base) {
+        return symbol;
+      }
+    }
   }
 
-  base_symbols_generated[base]++;
+  for (const auto &[extra_var_name, extra_var] : call.extra_vars) {
+    if (LibCore::symbol_t::is_symbol(extra_var.second)) {
+      LibCore::symbol_t symbol(extra_var.second);
+      if (base == symbol.base) {
+        return symbol;
+      }
+    }
+  }
 
-  return filtered[total_base_symbols_generated];
+  for (const auto &[arg_name, arg] : call.args) {
+    if (LibCore::symbol_t::is_symbol(arg.expr)) {
+      LibCore::symbol_t symbol(arg.expr);
+      if (base == symbol.base) {
+        return symbol;
+      }
+    }
+  }
+
+  return std::nullopt;
 }
 
 LibCore::Symbols get_generated_symbols(const call_t &call, LibCore::Symbols &symbols,
@@ -250,7 +243,7 @@ LibCore::Symbols get_generated_symbols(const call_t &call, LibCore::Symbols &sym
   }
 
   for (const std::string &base : base_symbols_it->second) {
-    std::optional<LibCore::symbol_t> symbol = get_generated_symbol(symbols, base, base_symbols_generated);
+    std::optional<LibCore::symbol_t> symbol = get_generated_symbol(call, symbols, base);
     if (symbol.has_value()) {
       generated_symbols.add(symbol.value());
     }
@@ -313,7 +306,6 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
 
       if (call.function_name == init_to_process_trigger_function) {
         in_init_mode = false;
-        base_symbols_generated.clear();
         for (klee::ref<klee::Expr> common_constraint : group.get_common_constraints()) {
           constraints.addConstraint(common_constraint);
         }

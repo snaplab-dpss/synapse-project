@@ -53,6 +53,10 @@ symbol_t::symbol_t(klee::ref<klee::Expr> _expr) : expr(_expr) {
 }
 
 bool symbol_t::is_symbol(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return false;
+  }
+
   SymbolNamesRetriever retriever;
   retriever.visit(expr);
   return retriever.get_names().size() == 1;

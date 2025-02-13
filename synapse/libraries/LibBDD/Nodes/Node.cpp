@@ -469,7 +469,7 @@ LibCore::Symbols Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
 
   const std::unordered_set<std::string> ignoring_symbols{
       "packet_chunks",
-      "out_of_space",
+      "not_out_of_space",
   };
 
   while (node) {

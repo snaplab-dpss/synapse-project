@@ -52,9 +52,9 @@ std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep, co
   }
 
   Module *module;
-  if (call_node->has_local_symbol("out_of_space")) {
-    LibCore::symbol_t out_of_space = call_node->get_local_symbol("out_of_space");
-    module                         = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, out_of_space);
+  if (call_node->has_local_symbol("not_out_of_space")) {
+    LibCore::symbol_t not_out_of_space = call_node->get_local_symbol("not_out_of_space");
+    module                             = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, not_out_of_space);
   } else {
     module = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
   }

@@ -24,19 +24,11 @@ header recirc_h {
 
 };
 
-header hdr_0_h {
-  bit<112> data;
-}
-header hdr_1_h {
-  bit<160> data;
-}
 
 
 struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
-  hdr_0_h hdr_0;
-  hdr_1_h hdr_1;
 
 }
 
@@ -112,23 +104,6 @@ parser IngressParser(
   }
 
   state parser_init {
-    pkt.extract(hdr.hdr_0);
-    transition parser_1;
-  }
-  state parser_1 {
-    transition select (hdr.hdr_0.data[111:96]) {
-      2048: parser_2;
-      default: parser_10;
-    }
-  }
-  state parser_2 {
-    pkt.extract(hdr.hdr_1);
-    transition parser_8;
-  }
-  state parser_10 {
-    transition reject;
-  }
-  state parser_8 {
     transition accept;
   }
 
@@ -163,17 +138,19 @@ control Ingress(
     b = tmp;
   }
 
-  bit<16> lpm_1073911200_get_device_param_0 = 16w0;
-  action lpm_1073911200_get_device(bit<16> _lpm_1073911200_get_device_param_0) {
-    lpm_1073911200_get_device_param_0 = _lpm_1073911200_get_device_param_0;
+  bit<16> table_1074013000_65_get_value_param_0 = 16w0;
+  action table_1074013000_65_get_value(bit<16> _table_1074013000_65_get_value_param_0) {
+    table_1074013000_65_get_value_param_0 = _table_1074013000_65_get_value_param_0;
   }
 
-  bit<32> ipv4_addr_0 = 32w0;
-  table lpm_1073911200 {
+  bit<32> table_1074013000_65_key_0 = 32w0;
+  table table_1074013000_65 {
     key = {
-      ipv4_addr_0: ternary;
+      table_1074013000_65_key_0: exact;
     }
-    actions = { lpm_1073911200_get_device; }
+    actions = {
+      table_1074013000_65_get_value;
+    }
     size = 32;
   }
 
@@ -187,39 +164,25 @@ control Ingress(
       
     } else {
       // EP node  0
-      // BDD node 0:packet_borrow_next_chunk(p:(w64 1073939392), length:(w32 14), chunk:(w64 1073949664)[ -> (w64 1073755936)])
-      if(hdr.hdr_0.isValid()) {
-        // EP node  2
-        // BDD node 1:if ((And (Eq (w16 8) (ReadLSB w16 (w32 12) packet_chunks)) (Ule (w64 20) (ZExt w64 (Extract w16 0 (Add w32 (w32 4294967282) (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))))))
-        // EP node  3
-        // BDD node 1:if ((And (Eq (w16 8) (ReadLSB w16 (w32 12) packet_chunks)) (Ule (w64 20) (ZExt w64 (Extract w16 0 (Add w32 (w32 4294967282) (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))))))
-        // EP node  5
-        // BDD node 2:packet_borrow_next_chunk(p:(w64 1073939392), length:(w32 20), chunk:(w64 1073950400)[ -> (w64 1073756083)])
-        if(hdr.hdr_1.isValid()) {
-          // EP node  10
-          // BDD node 3:lpm_lookup(lpm:(w64 1073911200), prefix:(ReadLSB w32 (w32 159) packet_chunks), value_out:(w64 1073949340)[(w16 43947) -> (ReadLSB w16 (w32 0) lpm_lookup_result)])
-          ipv4_addr_0 = hdr.hdr_1.data[127:96];
-          bool hit_0 = lpm_1073911200.apply().hit;
-          // EP node  180
-          // BDD node 6:if ((Eq (w32 0) (ReadLSB w32 (w32 0) lpm_lookup_match))
-          if (!hit_0) {
-            // EP node  181
-            // BDD node 6:if ((Eq (w32 0) (ReadLSB w32 (w32 0) lpm_lookup_match))
-            // EP node  303
-            // BDD node 7:DROP
-            drop();
-          } else {
-            // EP node  182
-            // BDD node 6:if ((Eq (w32 0) (ReadLSB w32 (w32 0) lpm_lookup_match))
-            // EP node  238
-            // BDD node 8:FORWARD
-            fwd(lpm_1073911200_get_device_param_0);
-          }
-        }
-        // EP node  4
-        // BDD node 1:if ((And (Eq (w16 8) (ReadLSB w16 (w32 12) packet_chunks)) (Ule (w64 20) (ZExt w64 (Extract w16 0 (Add w32 (w32 4294967282) (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))))))
-        // EP node  315
-        // BDD node 10:DROP
+      // BDD node 65:vector_borrow(vector:(w64 1074013000), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074082400)[ -> (w64 1074026896)])
+      table_1074013000_65_key_0 = (bit<16>)(meta.port);
+      table_1074013000_65.apply();
+      // EP node  10
+      // BDD node 66:vector_return(vector:(w64 1074013000), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074026896)[(ReadLSB w16 (w32 0) vector_data_128)])
+      // EP node  24
+      // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
+      if (16wffff != table_1074013000_65_get_value_param_0) {
+        // EP node  25
+        // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
+        // EP node  58
+        // BDD node 68:FORWARD
+        fwd(table_1074013000_65_get_value_param_0);
+      } else {
+        // EP node  26
+        // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
+        // EP node  93
+        // BDD node 69:DROP
+        drop();
       }
       ig_tm_md.bypass_egress = 1;
     }

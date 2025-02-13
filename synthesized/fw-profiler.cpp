@@ -918,20 +918,20 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  stats_per_map[1074043968].init(174);
-  stats_per_map[1074043968].init(147);
-  stats_per_map[1074043968].init(142);
+  stats_per_map[1074043744].init(174);
+  stats_per_map[1074043744].init(155);
+  stats_per_map[1074043744].init(142);
   forwarding_stats_per_route_op.insert({193, {}});
-  forwarding_stats_per_route_op.insert({191, {}});
   forwarding_stats_per_route_op.insert({188, {}});
   forwarding_stats_per_route_op.insert({187, {}});
-  forwarding_stats_per_route_op.insert({179, {}});
   forwarding_stats_per_route_op.insert({173, {}});
   forwarding_stats_per_route_op.insert({172, {}});
   forwarding_stats_per_route_op.insert({164, {}});
   forwarding_stats_per_route_op.insert({163, {}});
-  forwarding_stats_per_route_op.insert({156, {}});
-  forwarding_stats_per_route_op.insert({155, {}});
+  forwarding_stats_per_route_op.insert({179, {}});
+  forwarding_stats_per_route_op.insert({153, {}});
+  forwarding_stats_per_route_op.insert({191, {}});
+  forwarding_stats_per_route_op.insert({152, {}});
   node_pkt_counter.insert({193, 0});
   node_pkt_counter.insert({192, 0});
   node_pkt_counter.insert({161, 0});
@@ -1046,57 +1046,57 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074043968].update(142, key, 13, now);
+        stats_per_map[1074043744].update(142, key, 13, now);
         // Node 143
         inc_path_counter(143);
         if ((0) == (map_hit)) {
           // Node 144
           inc_path_counter(144);
           int index;
-          int out_of_space = !dchain_allocate_new_index(dchain, &index, now);
+          int not_out_of_space = dchain_allocate_new_index(dchain, &index, now);
           // Node 145
           inc_path_counter(145);
-          if ((0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) & ((0) == (freed_flows)))))) {
+          if ((0) == (not_out_of_space)) {
             // Node 146
             inc_path_counter(146);
             uint8_t* vector_value_out66 = 0;
-            vector_borrow(vector, index, (void**)&vector_value_out66);
+            vector_borrow(vector3, (uint16_t)(device & 65535), (void**)&vector_value_out66);
             // Node 147
             inc_path_counter(147);
-            memcpy((void*)vector_value_out66, (void*)key, 13);
-            map_put(map, vector_value_out66, index);
-            stats_per_map[1074043968].update(147, vector_value_out66, 13, now);
             // Node 148
             inc_path_counter(148);
+            packet_return_chunk(buffer, hdr3);
             // Node 149
             inc_path_counter(149);
-            uint8_t* vector_value_out67 = 0;
-            vector_borrow(vector3, (uint16_t)(device & 65535), (void**)&vector_value_out67);
+            packet_return_chunk(buffer, hdr2);
             // Node 150
             inc_path_counter(150);
+            packet_return_chunk(buffer, hdr);
             // Node 151
             inc_path_counter(151);
-            packet_return_chunk(buffer, hdr3);
-            // Node 152
-            inc_path_counter(152);
-            packet_return_chunk(buffer, hdr2);
-            // Node 153
-            inc_path_counter(153);
-            packet_return_chunk(buffer, hdr);
+            if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66)))) {
+              // Node 152
+              inc_path_counter(152);
+              forwarding_stats_per_route_op[152].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66)));
+              return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66));
+            } else {
+              // Node 153
+              inc_path_counter(153);
+              forwarding_stats_per_route_op[153].inc_drop();
+              return DROP;
+            } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66)))
+          } else {
             // Node 154
             inc_path_counter(154);
-            if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67)))) {
-              // Node 155
-              inc_path_counter(155);
-              forwarding_stats_per_route_op[155].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67)));
-              return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67));
-            } else {
-              // Node 156
-              inc_path_counter(156);
-              forwarding_stats_per_route_op[156].inc_drop();
-              return DROP;
-            } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67)))
-          } else {
+            uint8_t* vector_value_out67 = 0;
+            vector_borrow(vector, index, (void**)&vector_value_out67);
+            // Node 155
+            inc_path_counter(155);
+            memcpy((void*)vector_value_out67, (void*)key, 13);
+            map_put(map, vector_value_out67, index);
+            stats_per_map[1074043744].update(155, vector_value_out67, 13, now);
+            // Node 156
+            inc_path_counter(156);
             // Node 157
             inc_path_counter(157);
             uint8_t* vector_value_out68 = 0;
@@ -1125,7 +1125,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               forwarding_stats_per_route_op[164].inc_drop();
               return DROP;
             } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out68)))
-          } // (0) == ((uint8_t)((uint32_t)(((uint8_t)((bool)((0) != (out_of_space)))) & ((0) == (freed_flows)))))
+          } // (0) == (not_out_of_space)
         } else {
           // Node 165
           inc_path_counter(165);
@@ -1178,7 +1178,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key2[12] = *(hdr2+9);
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
-        stats_per_map[1074043968].update(174, key2, 13, now);
+        stats_per_map[1074043744].update(174, key2, 13, now);
         // Node 175
         inc_path_counter(175);
         if ((0) == (map_hit2)) {

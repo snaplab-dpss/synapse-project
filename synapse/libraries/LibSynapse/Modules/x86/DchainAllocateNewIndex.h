@@ -10,17 +10,17 @@ private:
   addr_t dchain_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> index_out;
-  std::optional<LibCore::symbol_t> out_of_space;
+  std::optional<LibCore::symbol_t> not_out_of_space;
 
 public:
   DchainAllocateNewIndex(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                          const LibCore::symbol_t &_out_of_space)
       : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", node), dchain_addr(_dchain_addr), time(_time),
-        index_out(_index_out), out_of_space(_out_of_space) {}
+        index_out(_index_out), not_out_of_space(_out_of_space) {}
 
   DchainAllocateNewIndex(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
       : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", node), dchain_addr(_dchain_addr), time(_time),
-        index_out(_index_out), out_of_space(std::nullopt) {}
+        index_out(_index_out), not_out_of_space(std::nullopt) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -29,8 +29,8 @@ public:
   virtual Module *clone() const override {
     Module *cloned;
 
-    if (out_of_space.has_value()) {
-      cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, *out_of_space);
+    if (not_out_of_space.has_value()) {
+      cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, *not_out_of_space);
     } else {
       cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
     }
@@ -41,8 +41,7 @@ public:
   addr_t get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
-
-  std::optional<LibCore::symbol_t> get_out_of_space() const { return out_of_space; }
+  std::optional<LibCore::symbol_t> get_not_out_of_space() const { return not_out_of_space; }
 };
 
 class DchainAllocateNewIndexFactory : public x86ModuleFactory {

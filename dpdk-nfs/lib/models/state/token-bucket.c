@@ -84,10 +84,9 @@ int tb_allocate(uint32_t capacity, uint64_t rate, uint64_t burst, uint32_t key_s
     klee_make_symbolic((*tb_out), sizeof(struct TokenBucket), "tb");
     klee_assert((*tb_out) != NULL);
     (*tb_out)->capacity = capacity;
-    return 1;
   }
 
-  return 0;
+  return allocation_succeeded;
 }
 
 int tb_is_tracing(struct TokenBucket *tb, void *k, int *index_out) {

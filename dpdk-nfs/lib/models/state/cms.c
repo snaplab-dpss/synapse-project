@@ -61,10 +61,9 @@ int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t c
     *cms_out = malloc(sizeof(struct CMS));
     klee_make_symbolic((*cms_out), sizeof(struct CMS), "cms");
     klee_assert((*cms_out) != NULL);
-    return 1;
   }
 
-  return 0;
+  return allocation_succeeded;
 }
 
 void cms_increment(struct CMS *cms, void *key) {

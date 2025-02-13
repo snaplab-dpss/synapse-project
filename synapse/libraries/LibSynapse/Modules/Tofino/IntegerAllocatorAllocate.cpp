@@ -54,11 +54,11 @@ std::vector<impl_t> IntegerAllocatorAllocateFactory::process_node(const EP *ep, 
     return impls;
   }
 
-  LibCore::symbol_t out_of_space = call_node->get_local_symbol("out_of_space");
+  LibCore::symbol_t not_out_of_space = call_node->get_local_symbol("not_out_of_space");
 
   // TODO: implement the actual data structure.
 
-  Module *module  = new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, out_of_space);
+  Module *module  = new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, not_out_of_space);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
