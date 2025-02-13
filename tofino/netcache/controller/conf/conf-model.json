@@ -1,8 +1,7 @@
 {
-	"misc": {
-		"interface": "veth6",
+	"switchd": {
 		"tofino_model": true,
-		"bf_prompt": false
+		"bf_prompt": true
 	},
 	"kv": {
 		"store_size": 8192,

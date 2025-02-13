@@ -1,7 +1,21 @@
 #ifndef _CONSTANTS_
 #define _CONSTANTS_
 
-#define MAX_PORTS 255
+#if __TARGET_TOFINO__ == 2
+
+#define CPU_PCIE_PORT 0
+#define ETH_CPU_PORT_0 2
+#define ETH_CPU_PORT_1 3
+#define ETH_CPU_PORT_2 4
+#define ETH_CPU_PORT_3 5
+#define RECIRCULATION_PORT 6
+
+#else
+
+#define CPU_PCIE_PORT 320
+#define RECIRCULATION_PORT 68
+
+#endif
 
 typedef bit<16> ether_type_t;
 const ether_type_t ETHERTYPE_IPV4 = 16w0x0800;
@@ -14,8 +28,6 @@ const ip_proto_t IP_PROTO_UDP = 17;
 
 typedef bit<9> port_t;
 
-const port_t CPU_PORT = 255;
-
 typedef bit<8>  pkt_type_t;
 const pkt_type_t PKT_TYPE_NORMAL = 1;
 const pkt_type_t PKT_TYPE_MIRROR = 2;
@@ -24,6 +36,8 @@ typedef bit<4> mirror_type_t;
 const mirror_type_t MIRROR_TYPE_E2E = 2;
 
 // NetCache
+
+#define WAN_PORT 448
 
 const bit<16> NC_PORT = 50000;
 

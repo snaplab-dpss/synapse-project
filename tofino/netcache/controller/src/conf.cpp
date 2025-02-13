@@ -7,10 +7,9 @@
 
 namespace netcache {
 
-void from_json(const nlohmann::json &j, misc_t &misc) {
-	j.at("interface").get_to(misc.interface);
-	j.at("tofino_model").get_to(misc.tofino_model);
-	j.at("bf_prompt").get_to(misc.bf_prompt);
+void from_json(const nlohmann::json &j, switchd_t &switchd) {
+	j.at("tofino_model").get_to(switchd.tofino_model);
+	j.at("bf_prompt").get_to(switchd.bf_prompt);
 }
 
 void from_json(const nlohmann::json &j, kv_t &kv) {
@@ -60,7 +59,7 @@ void from_json(const nlohmann::json &j, topology_t &topology) {
 }
 
 void from_json(const nlohmann::json &j, conf_t &conf) {
-	j.at("misc").get_to(conf.misc);
+	j.at("switchd").get_to(conf.switchd);
 	j.at("kv").get_to(conf.kv);
 	j.at("key_cntr").get_to(conf.key_cntr);
 	j.at("cm").get_to(conf.cm);
@@ -81,21 +80,25 @@ conf_t parse_conf_file(const std::string &conf_file_path) {
 	auto conf = data.get<conf_t>();
 
 	std::cout << "\n";
-	std::cout << "K/V Store:\n";
-	std::cout << "  store size " << conf.kv.store_size << "\n";
-	std::cout << "  initial entries (filled) " << conf.kv.initial_entries << "\n";
-	std::cout << "CM sketch:\n";
-	std::cout << "  reg size " << conf.cm.reg_size << "\n";
-	std::cout << "Bloom filter:\n";
-	std::cout << "  reg size " << conf.bloom.reg_size << "\n";
+	std::cout << "switchd\n";
+	std::cout << "	tofino_model:		" << conf.switchd.tofino_model << "\n";
+	std::cout << "	bf_prompt:			" << conf.switchd.bf_prompt << "\n";
+	std::cout << "K/V Store\n";
+	std::cout << "	store_size:			" << conf.kv.store_size << "\n";
+	std::cout << "	initial_entries:	" << conf.kv.initial_entries << "\n";
+	std::cout << "CM sketch\n";
+	std::cout << "	reg size:			" << conf.cm.reg_size << "\n";
+	std::cout << "Bloom filter\n";
+	std::cout << "	reg size:			" << conf.bloom.reg_size << "\n";
 
 	for (auto port : conf.topology.ports) {
-		std::cout << "Port:\n";
-		std::cout << "	num			" << port.num << "\n";
-		std::cout << "	capacity	" << port.capacity << "\n";
-		std::cout << "	comment		" << port.comment << "\n";
+		std::cout << "Port\n";
+		std::cout << "	num:			" << port.num << "\n";
+		std::cout << "	capacity:		" << port.capacity << "\n";
+		std::cout << "	comment:		" << port.comment << "\n";
 	}
 
 	return conf;
 }
+
 }  // namespace netcache

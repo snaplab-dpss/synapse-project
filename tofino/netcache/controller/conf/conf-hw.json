@@ -1,6 +1,5 @@
 {
-	"misc": {
-		"interface": "veth6",
+	"switchd": {
 		"tofino_model": false,
 		"bf_prompt": false
 	},

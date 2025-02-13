@@ -106,23 +106,12 @@ control SwitchIngress(
 		const default_action = miss();
 	}
 
-	table is_cpu {
-		key = {
-			ig_intr_md.ingress_port : exact;
-		}
-		actions = {
-			set_out_port;
-			miss;
-		}
-		const default_action = miss;
-		size = 4;
-	}
-
 	table fwd {
 		key = {
 			ig_intr_md.ingress_port : exact;
 			hdr.netcache.op         : exact;
-			hdr.meta.cache_hit      : ternary;
+			hdr.meta.cache_hit      : exact;
+			hdr.netcache.port		: ternary;
 		}
 		actions = {
 			set_out_port;
@@ -133,9 +122,9 @@ control SwitchIngress(
 	}
 
 	apply {
-		if (hdr.netcache.isValid() && hdr.netcache.cpu == 0) {
+		hdr.meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
+		if (hdr.netcache.isValid() && ig_intr_md.ingress_port != WAN_PORT) {
 			cache_lookup.apply();
-
 			if (hdr.netcache.op == READ_QUERY) {
 				// Cache hit
 				if (hdr.meta.cache_hit == 1) {
@@ -156,12 +145,8 @@ control SwitchIngress(
 				vtable_update();
 			}
 		}
-		if (hdr.netcache.cpu == 1) {
-			is_cpu.apply();
-		} else {
-			set_normal_pkt();
-			fwd.apply();
-		}
+		set_normal_pkt();
+		fwd.apply();
 	}
 }
 
@@ -224,7 +209,7 @@ control SwitchEgress(
 	apply {
 		if (hdr.netcache.isValid()) {
 			eg_dprsr_md.drop_ctl = 1;
-			if (hdr.netcache.cpu == 1) {
+			if (hdr.meta.ingress_port == WAN_PORT) {
 				eg_dprsr_md.drop_ctl = 0;
 			}
 			else if (hdr.netcache.op == READ_QUERY) {
@@ -244,7 +229,7 @@ control SwitchEgress(
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
 								hdr.netcache.val = cm_result;
-								hdr.netcache.cpu = 1;
+								hdr.netcache.port = hdr.meta.ingress_port;
 								set_mirror();
 							}
 						}

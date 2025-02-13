@@ -9,7 +9,6 @@
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
-#include "tables/is_cpu.h"
 #include "tables/cache_lookup.h"
 #include "registers/reg_vtable.h"
 #include "registers/reg_key_count.h"
@@ -46,7 +45,6 @@ public:
 	conf_t conf;
 	// Switch tables
 	Fwd fwd;
-	IsCpu is_cpu;
 	CacheLookup cache_lookup;
 	// Switch registers
 	RegVTable reg_vtable;
@@ -79,7 +77,6 @@ public:
 		  conf(_conf),
 		  use_tofino_model(_use_tofino_model),
 		  fwd(_info, _session, _dev_tgt),
-		  is_cpu(_info, _session, _dev_tgt),
 		  cache_lookup(_info, _session, _dev_tgt),
 		  reg_vtable(_info, _session, _dev_tgt),
 		  reg_key_count(_info, _session, _dev_tgt),
@@ -94,6 +91,8 @@ public:
 			config_ports(conf);
 		}
 
+		uint32_t wan_port = ports.get_dev_port(32, 0);
+
 		for (auto port : conf.topology.ports) {
 			auto cur_port = port.num;
 
@@ -102,24 +101,24 @@ public:
 			}
 
 			#ifndef NDEBUG
-			std::cout << "port: " << cur_port << std::endl;
+				std::cout << "port: " << cur_port << std::endl;
 			#endif
 
-			// fwd table entries.
-
-			// Read cache miss
-			fwd.add_entry(cur_port, READ_QUERY, 0, 0xFF, cur_port);
-			// Read cache hit
-			/* fwd.add_entry(ig_port, READ_QUERY, 1, 0xFF, eg_port); */
-
-			/* fwd.add_entry(ig_port, WRITE_QUERY, 0, 0, eg_port); */
-			/* fwd.add_entry(ig_port, DELETE_QUERY, 0, 0, eg_port); */
-
-			// is_cpu table entries.
+			// Read cache hit.
+			fwd.add_entry(cur_port, READ_QUERY, 1, 0, 0x0, cur_port);
+			// Read cache miss (request).
+			fwd.add_entry(cur_port, READ_QUERY, 0, 0, 0x0, wan_port);
+			// Read cache miss (reply).
+			fwd.add_entry(wan_port, READ_QUERY, 0, cur_port, 0xFFFF, cur_port);
 		}
 
+		// HH report (request).
+		fwd.add_entry(CPU_PORT, READ_QUERY, 0, CPU_PORT, 0xFFFF, wan_port);
+		// HH report (reply).
+		fwd.add_entry(wan_port, READ_QUERY, 0, CPU_PORT, 0xFFFF, CPU_PORT);
+
 		// Configure mirror session.
-		configure_mirroring(128, 250);
+		configure_mirroring(128, CPU_PORT);
 
 		// Insert k entries in the switch's KV store, all with value 0.
 		// k is defined in conf.kv.initial_entries.

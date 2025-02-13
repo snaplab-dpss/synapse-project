@@ -193,8 +193,8 @@ int main(int argc, char **argv) {
 
 	netcache::conf_t conf = netcache::parse_conf_file(args.conf_file_path);
 
-	netcache::init_bf_switchd(conf.misc.tofino_model, conf.misc.bf_prompt);
-	netcache::setup_controller(conf, conf.misc.tofino_model);
+	netcache::init_bf_switchd(conf.switchd.tofino_model, conf.switchd.bf_prompt);
+	netcache::setup_controller(conf, conf.switchd.tofino_model);
 
 	struct rte_mempool *mbuf_pool;
 	unsigned nb_ports;
@@ -228,19 +228,19 @@ int main(int argc, char **argv) {
 
 	// Start listening to stdin
 	while (1) {
-		std::cout << ">";
-		std::string command;
-		std::getline(std::cin, command);
+		/* std::cout << ">"; */
+		/* std::string command; */
+		/* std::getline(std::cin, command); */
 
-		if (command == "stats") {
-			port_stats.get_stats();
-		} else if (command == "reset") {
-			port_stats.reset_stats();
-		 } else if (command == "exit" || command == "quit") {
-			break;
-		 } else {
-			std::cout << "Wrong command. Avaliable commands: (1) stats; (2) exit/quit.\n";
-		 }
+		/* if (command == "stats") { */
+		/* 	port_stats.get_stats(); */
+		/* } else if (command == "reset") { */
+		/* 	port_stats.reset_stats(); */
+		/*  } else if (command == "exit" || command == "quit") { */
+		/* 	break; */
+		/*  } else { */
+		/* 	std::cout << "Wrong command. Avaliable commands: (1) stats; (2) exit/quit.\n"; */
+		/*  } */
 	}
 
 	stop_reset_timer = true;
