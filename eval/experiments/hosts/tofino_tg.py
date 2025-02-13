@@ -107,3 +107,4 @@ class TofinoTGController:
 
         if code != 0:
             self.host.crash(f"Tofino TG controller exited with code != 0.")
+            exit(1)

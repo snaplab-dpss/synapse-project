@@ -8,42 +8,45 @@ GRPC_SERVER_PORT   = 50052
 P4_PROGRAM_NAME    = "traffic-generator"
 DEFAULT_PORT_SPEED = 100
 
-ACTIVE_PORTS = [ p for p in range(1, 31) ]
+FRONT_PANEL_PORTS = [ p for p in range(1, 33) ]
 TG_PORT = 1
+DUT_CONNECTED_PORTS = [ p for p in range(3, 33) ]
+
+assert TG_PORT in FRONT_PANEL_PORTS
+assert all([ p in FRONT_PANEL_PORTS for p in DUT_CONNECTED_PORTS ])
+assert all([ p != TG_PORT for p in DUT_CONNECTED_PORTS ])
 
 CONFIGURATIONS = {
-	# 30 LANs
+	# 32 LANs
 	"nop": {
-		"broadcast": [ p for p in ACTIVE_PORTS if p != TG_PORT ],
+		"broadcast": [ p for p in DUT_CONNECTED_PORTS ],
 		"symmetric": [],
 		"route": [],
 	},
 
-	# 29 LAN + 1 WAN
-	# WAN in port 30
+	# 16 LANs + 16 WANs
 	"fw": {
-		"broadcast": [ p for p in ACTIVE_PORTS if p not in [TG_PORT, 30] ],
-		"symmetric": [ 30 ],
+		"broadcast": [ 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
+		"symmetric": [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
 		"route": [],
 	},
 
-	# 29 LAN + 1 WAN
-	# WAN in port 30
+	# 16 LANs + 16 WANs
 	"nat": {
-		"broadcast": [ p for p in ACTIVE_PORTS if p not in [TG_PORT, 30] ],
-		"symmetric": [ 30 ],
+		"broadcast": [ 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
+		"symmetric": [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
 		"route": [],
 	},
 
 	# 29 clients + 1 server
-	# Server requests coming from port 30
+	# Server requests coming from port 32
 	# Server in port 2
 	"kvs": {
-		"broadcast": [ p for p in ACTIVE_PORTS if p not in [TG_PORT, 2, 30] ],
+		"broadcast": [ p for p in DUT_CONNECTED_PORTS if p not in [2, 32] ],
 		"symmetric": [],
 		"route": [
-			(30, 2), # Server requests from clients
-			(2, 30), # Server responses back to clients
+			(32, 2), # Server requests from clients
+			(2, 32), # Server responses back to clients
 		],
 	},
 }
@@ -335,9 +338,9 @@ def setup(bfrt_info, cfg):
 	multicaster = Multicaster(bfrt_info)
 	packet_modifier = PacketModifier(bfrt_info)
 
-	for port in ACTIVE_PORTS:
+	for port in FRONT_PANEL_PORTS:
 		ports.add_port(port, DEFAULT_PORT_SPEED)
-	print("Configured ports: {}".format(ACTIVE_PORTS))
+	print("Configured ports: {}".format(FRONT_PANEL_PORTS))
 	
 	router.clear()
 	packet_modifier.clear()
