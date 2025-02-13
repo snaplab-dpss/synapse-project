@@ -491,12 +491,7 @@ void inc_path_counter(int i) {
     return;
   }
 
-  auto found_it = node_pkt_counter.find(i);
-  if (found_it != node_pkt_counter.end()) {
-    found_it->second++;
-  } else {
-    node_pkt_counter.insert({i, 0});
-  }
+  node_pkt_counter[i]++;
 }
 
 void generate_report() {

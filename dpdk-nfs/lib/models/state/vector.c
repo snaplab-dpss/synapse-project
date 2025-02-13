@@ -58,7 +58,7 @@ void vector_reset(struct Vector *vector) {
   klee_trace_param_u64((uint64_t)vector, "vector");
   // TODO: reallocate vector->data to avoid having the same pointer?
   klee_allow_access(vector->data, vector->elem_size * NUM_ELEMS);
-  klee_make_symbolic(vector->data, NUM_ELEMS * vector->elem_size, "vector_data_reset");
+  klee_make_symbolic(vector->data, NUM_ELEMS * vector->elem_size, "vector_data");
   vector->elems_claimed = 0;
   // Do not call init elem, to preserve the elems being symbolic.
   // for (int n = 0; n < NUM_ELEMS; n++) {

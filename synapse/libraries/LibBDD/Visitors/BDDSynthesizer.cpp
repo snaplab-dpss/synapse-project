@@ -695,6 +695,11 @@ void BDDSynthesizer::init_post_process() {
       coder.indent();
       coder << "forwarding_stats_per_route_op.insert({" << node_id << ", {}});\n";
     }
+
+    for (node_id_t node_id : process_nodes) {
+      coder.indent();
+      coder << "node_pkt_counter.insert({" << node_id << ", 0});\n";
+    }
   }
 
   coder.indent();
@@ -740,6 +745,8 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
   node->visit_nodes([this, &coder](const Node *node) {
     NodeVisitAction action = NodeVisitAction::Continue;
+
+    process_nodes.insert(node->get_id());
 
     coder.indent();
     coder << "// Node ";

@@ -55,7 +55,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"map_size", {"map_size"}},
     {"dchain_is_index_allocated", {"dchain_is_index_allocated"}},
     {"dchain_allocate_new_index", {"out_of_space", "new_index"}},
-    {"vector_borrow", {"vector_data_reset"}},
+    {"vector_borrow", {"vector_data"}},
     {"vector_sample_lt", {"found_sample", "sample_index"}},
     {"cht_fill_cht", {"cht_fill_cht_successful"}},
     {"cht_find_preferred_available_backend", {"chosen_backend", "prefered_backend_found"}},
@@ -313,6 +313,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
 
       if (call.function_name == init_to_process_trigger_function) {
         in_init_mode = false;
+        base_symbols_generated.clear();
         for (klee::ref<klee::Expr> common_constraint : group.get_common_constraints()) {
           constraints.addConstraint(common_constraint);
         }

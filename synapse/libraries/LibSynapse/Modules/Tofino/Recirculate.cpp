@@ -17,8 +17,10 @@ EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbo
   }
 
   EP *new_ep = new EP(*ep);
+
+  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(ep->get_active_leaf().node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port,
-                                                                               ep->get_node_egress(ep->get_active_leaf().node));
+                                                                               ep->get_node_egress(hr, ep->get_active_leaf().node));
 
   Module *module  = new Recirculate(node, symbols, recirc_port);
   EPNode *ep_node = new EPNode(module);

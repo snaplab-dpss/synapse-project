@@ -33,7 +33,7 @@ run() {
 
 run "nop"
 run "fw"
-run "nat"
+# run "nat"
 # run "kvs"
 # run "cl"
 # run "pol"

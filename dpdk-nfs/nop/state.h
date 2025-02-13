@@ -3,10 +3,10 @@
 
 #include "loop.h"
 
-#include "lib/state/lpm-dir-24-8.h"
+#include "lib/state/vector.h"
 
 struct State {
-  struct LPM *fwd;
+  struct Vector *fwd_rules;
 };
 
 struct State *alloc_state();

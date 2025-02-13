@@ -1,24 +1,12 @@
 digraph mygraph {
 	node [shape=box, style="rounded,filled", border=0];
-	9 [label="9:drop()", fillcolor="brown1"];
-	10 [label="10:fwd(lpm_lookup_result)", fillcolor="chartreuse2"];
-	8 [shape=Mdiamond, label="8:!lpm_lookup_match", fillcolor="yellow"];
-	8 -> 9 [label="True"];
-	8 -> 10 [label="False"];
-	7 [label="7:packet_return_chunk(\l  p:1073939392,\l  the_chunk:1073755936[packet_chunks])", fillcolor="cornflowerblue"];
-	7 -> 8;
-	6 [label="6:packet_return_chunk(\l  p:1073939392,\l  the_chunk:1073756083[packet_chunks[147:167]])", fillcolor="cornflowerblue"];
-	6 -> 7;
-	5 [label="5:lpm_lookup(\l  lpm:1073911200,\l  prefix:packet_chunks[159:163],\l  value_out:1073949340[43947 -> lpm_lookup_result]) -> 1\l=>{lpm_lookup_result,lpm_lookup_match}", fillcolor="cornflowerblue"];
-	5 -> 6;
-	4 [label="4:packet_borrow_next_chunk(\l  p:1073939392,\l  length:20,\l  chunk:1073950400[ -> 1073756083])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
-	4 -> 5;
-	12 [label="12:drop()", fillcolor="brown1"];
-	11 [label="11:packet_return_chunk(\l  p:1073939392,\l  the_chunk:1073755936[packet_chunks])", fillcolor="cornflowerblue"];
-	11 -> 12;
-	3 [shape=Mdiamond, label="3:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))", fillcolor="yellow"];
-	3 -> 4 [label="True"];
-	3 -> 11 [label="False"];
-	2 [label="2:packet_borrow_next_chunk(\l  p:1073939392,\l  length:14,\l  chunk:1073949664[ -> 1073755936])\l=>{packet_chunks}", fillcolor="cornflowerblue"];
-	2 -> 3;
+	68 [label="68:fwd(vector_data_1)", fillcolor="chartreuse2"];
+	69 [label="69:drop()", fillcolor="brown1"];
+	67 [shape=Mdiamond, label="67:!(-1 == vector_data_1)", fillcolor="yellow"];
+	67 -> 68 [label="True"];
+	67 -> 69 [label="False"];
+	66 [label="66:vector_return(\l  vector:1074013136,\l  index:DEVICE,\l  value:1074026016[vector_data_1])", fillcolor="cornflowerblue"];
+	66 -> 67;
+	65 [label="65:vector_borrow(\l  vector:1074013136,\l  index:DEVICE,\l  val_out:1074077592[ -> 1074026016])\l=>{vector_data}", fillcolor="cornflowerblue"];
+	65 -> 66;
 }

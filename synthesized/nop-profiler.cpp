@@ -491,12 +491,7 @@ void inc_path_counter(int i) {
     return;
   }
 
-  auto found_it = node_pkt_counter.find(i);
-  if (found_it != node_pkt_counter.end()) {
-    found_it->second++;
-  } else {
-    node_pkt_counter.insert({i, 0});
-  }
+  node_pkt_counter[i]++;
 }
 
 void generate_report() {
@@ -671,15 +666,110 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-struct LPM *lpm;
+struct Vector *vector;
 
 
 bool nf_init() {
-  int lpm_alloc_success = lpm_allocate(&lpm);
-  if (!lpm_alloc_success) {
+  int vector_alloc_success = vector_allocate(2, 32, &vector);
+  if (!vector_alloc_success) {
     return false;
   }
-  lpm_from_file(lpm, "lpm.cfg");
+  uint8_t* vector_value_out = 0;
+  vector_borrow(vector, 0, (void**)&vector_value_out);
+  *(uint16_t*)vector_value_out = 1;
+  uint8_t* vector_value_out2 = 0;
+  vector_borrow(vector, 1, (void**)&vector_value_out2);
+  *(uint16_t*)vector_value_out2 = 0;
+  uint8_t* vector_value_out3 = 0;
+  vector_borrow(vector, 2, (void**)&vector_value_out3);
+  *(uint16_t*)vector_value_out3 = 3;
+  uint8_t* vector_value_out4 = 0;
+  vector_borrow(vector, 3, (void**)&vector_value_out4);
+  *(uint16_t*)vector_value_out4 = 2;
+  uint8_t* vector_value_out5 = 0;
+  vector_borrow(vector, 4, (void**)&vector_value_out5);
+  *(uint16_t*)vector_value_out5 = 5;
+  uint8_t* vector_value_out6 = 0;
+  vector_borrow(vector, 5, (void**)&vector_value_out6);
+  *(uint16_t*)vector_value_out6 = 4;
+  uint8_t* vector_value_out7 = 0;
+  vector_borrow(vector, 6, (void**)&vector_value_out7);
+  *(uint16_t*)vector_value_out7 = 7;
+  uint8_t* vector_value_out8 = 0;
+  vector_borrow(vector, 7, (void**)&vector_value_out8);
+  *(uint16_t*)vector_value_out8 = 6;
+  uint8_t* vector_value_out9 = 0;
+  vector_borrow(vector, 8, (void**)&vector_value_out9);
+  *(uint16_t*)vector_value_out9 = 9;
+  uint8_t* vector_value_out10 = 0;
+  vector_borrow(vector, 9, (void**)&vector_value_out10);
+  *(uint16_t*)vector_value_out10 = 8;
+  uint8_t* vector_value_out11 = 0;
+  vector_borrow(vector, 10, (void**)&vector_value_out11);
+  *(uint16_t*)vector_value_out11 = 11;
+  uint8_t* vector_value_out12 = 0;
+  vector_borrow(vector, 11, (void**)&vector_value_out12);
+  *(uint16_t*)vector_value_out12 = 10;
+  uint8_t* vector_value_out13 = 0;
+  vector_borrow(vector, 12, (void**)&vector_value_out13);
+  *(uint16_t*)vector_value_out13 = 13;
+  uint8_t* vector_value_out14 = 0;
+  vector_borrow(vector, 13, (void**)&vector_value_out14);
+  *(uint16_t*)vector_value_out14 = 12;
+  uint8_t* vector_value_out15 = 0;
+  vector_borrow(vector, 14, (void**)&vector_value_out15);
+  *(uint16_t*)vector_value_out15 = 15;
+  uint8_t* vector_value_out16 = 0;
+  vector_borrow(vector, 15, (void**)&vector_value_out16);
+  *(uint16_t*)vector_value_out16 = 14;
+  uint8_t* vector_value_out17 = 0;
+  vector_borrow(vector, 16, (void**)&vector_value_out17);
+  *(uint16_t*)vector_value_out17 = 17;
+  uint8_t* vector_value_out18 = 0;
+  vector_borrow(vector, 17, (void**)&vector_value_out18);
+  *(uint16_t*)vector_value_out18 = 16;
+  uint8_t* vector_value_out19 = 0;
+  vector_borrow(vector, 18, (void**)&vector_value_out19);
+  *(uint16_t*)vector_value_out19 = 19;
+  uint8_t* vector_value_out20 = 0;
+  vector_borrow(vector, 19, (void**)&vector_value_out20);
+  *(uint16_t*)vector_value_out20 = 18;
+  uint8_t* vector_value_out21 = 0;
+  vector_borrow(vector, 20, (void**)&vector_value_out21);
+  *(uint16_t*)vector_value_out21 = 21;
+  uint8_t* vector_value_out22 = 0;
+  vector_borrow(vector, 21, (void**)&vector_value_out22);
+  *(uint16_t*)vector_value_out22 = 20;
+  uint8_t* vector_value_out23 = 0;
+  vector_borrow(vector, 22, (void**)&vector_value_out23);
+  *(uint16_t*)vector_value_out23 = 23;
+  uint8_t* vector_value_out24 = 0;
+  vector_borrow(vector, 23, (void**)&vector_value_out24);
+  *(uint16_t*)vector_value_out24 = 22;
+  uint8_t* vector_value_out25 = 0;
+  vector_borrow(vector, 24, (void**)&vector_value_out25);
+  *(uint16_t*)vector_value_out25 = 25;
+  uint8_t* vector_value_out26 = 0;
+  vector_borrow(vector, 25, (void**)&vector_value_out26);
+  *(uint16_t*)vector_value_out26 = 24;
+  uint8_t* vector_value_out27 = 0;
+  vector_borrow(vector, 26, (void**)&vector_value_out27);
+  *(uint16_t*)vector_value_out27 = 27;
+  uint8_t* vector_value_out28 = 0;
+  vector_borrow(vector, 27, (void**)&vector_value_out28);
+  *(uint16_t*)vector_value_out28 = 26;
+  uint8_t* vector_value_out29 = 0;
+  vector_borrow(vector, 28, (void**)&vector_value_out29);
+  *(uint16_t*)vector_value_out29 = 29;
+  uint8_t* vector_value_out30 = 0;
+  vector_borrow(vector, 29, (void**)&vector_value_out30);
+  *(uint16_t*)vector_value_out30 = 28;
+  uint8_t* vector_value_out31 = 0;
+  vector_borrow(vector, 30, (void**)&vector_value_out31);
+  *(uint16_t*)vector_value_out31 = 31;
+  uint8_t* vector_value_out32 = 0;
+  vector_borrow(vector, 31, (void**)&vector_value_out32);
+  *(uint16_t*)vector_value_out32 = 30;
   ports.push_back(0);
   ports.push_back(1);
   ports.push_back(2);
@@ -710,55 +800,37 @@ bool nf_init() {
   ports.push_back(27);
   ports.push_back(28);
   ports.push_back(29);
-  forwarding_stats_per_route_op.insert({12, {}});
-  forwarding_stats_per_route_op.insert({10, {}});
-  forwarding_stats_per_route_op.insert({9, {}});
+  ports.push_back(30);
+  ports.push_back(31);
+  forwarding_stats_per_route_op.insert({69, {}});
+  forwarding_stats_per_route_op.insert({68, {}});
+  node_pkt_counter.insert({69, 0});
+  node_pkt_counter.insert({68, 0});
+  node_pkt_counter.insert({67, 0});
+  node_pkt_counter.insert({66, 0});
+  node_pkt_counter.insert({65, 0});
   return true;
 }
 
 
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
-  // Node 2
-  inc_path_counter(2);
-  uint8_t* hdr;
-  packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
-  // Node 3
-  inc_path_counter(3);
-  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))) {
-    // Node 4
-    inc_path_counter(4);
-    uint8_t* hdr2;
-    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
-    // Node 5
-    inc_path_counter(5);
-    uint16_t lpm_matching_dev;
-    int lpm_lookup_match = lpm_lookup(lpm, *(uint32_t*)(uint32_t*)(hdr2+12), &lpm_matching_dev);
-    // Node 6
-    inc_path_counter(6);
-    packet_return_chunk(buffer, hdr2);
-    // Node 7
-    inc_path_counter(7);
-    packet_return_chunk(buffer, hdr);
-    // Node 8
-    inc_path_counter(8);
-    if ((0) == (lpm_lookup_match)) {
-      // Node 9
-      inc_path_counter(9);
-      forwarding_stats_per_route_op[9].inc_drop();
-      return DROP;
-    } else {
-      // Node 10
-      inc_path_counter(10);
-      forwarding_stats_per_route_op[10].inc_fwd((uint32_t)((uint16_t)(lpm_matching_dev)));
-      return (uint32_t)((uint16_t)(lpm_matching_dev));
-    } // (0) == (lpm_lookup_match)
+  // Node 65
+  inc_path_counter(65);
+  uint8_t* vector_value_out33 = 0;
+  vector_borrow(vector, (uint16_t)(device & 65535), (void**)&vector_value_out33);
+  // Node 66
+  inc_path_counter(66);
+  // Node 67
+  inc_path_counter(67);
+  if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33)))) {
+    // Node 68
+    inc_path_counter(68);
+    forwarding_stats_per_route_op[68].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33)));
+    return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33));
   } else {
-    // Node 11
-    inc_path_counter(11);
-    packet_return_chunk(buffer, hdr);
-    // Node 12
-    inc_path_counter(12);
-    forwarding_stats_per_route_op[12].inc_drop();
+    // Node 69
+    inc_path_counter(69);
+    forwarding_stats_per_route_op[69].inc_drop();
     return DROP;
-  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))
+  } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33)))
 }

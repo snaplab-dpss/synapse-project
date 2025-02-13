@@ -60,7 +60,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
   assert(fwd_stats.is_fwd_only());
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
-    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, new_ep->get_node_egress(fwd_node));
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, new_ep->get_node_egress(dev_hr, fwd_node));
   }
 
   return impls;

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+########################################################################################################################################
+#   Note: This is all based on our specific testbed configuration.
+#   You may want to adjust the port configuration on each NF.
+#   For example, our NFs will run on a Tofino programmable switch with 32 ports (1 to 32). However, we only have ports 3-32 connected.
+#   That is why we generate pcaps only for devices 2-31 (devices start by 0).
+########################################################################################################################################
+
 set -euox pipefail
 
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
@@ -18,8 +25,10 @@ PACKET_SIZE=200
 ###################
 
 nop() {
+    # Ports 0 and 1 won't be connected.
+
     flows=10000
-    devs="0,1 2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29"
+    devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \
         eval \
@@ -40,20 +49,9 @@ nop() {
 #     Firewall    #
 ###################
 
-# FIXME:
-# fw() {
-#     parallel \
-#         -j $(nproc) \
-#         eval \
-#         $SYNAPSE_DIR/build/bin/pcap-generator-fw \
-#         --seed 0 --lan-devs 1 --packets $TOTAL_PACKETS --flows 10000 --churn {1} {2} \
-#         ::: 0 1000000 10000000 \
-#         ::: "--uniform" "--zipf --zipf-param 0.9" "--zipf --zipf-param 0.99" "--zipf --zipf-param 1.26"
-# }
-
 fw() {
     flows=10000
-    devs="0,1 2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29"
+    devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \
         eval \
@@ -76,7 +74,7 @@ fw() {
 
 nat() {
     flows=10000
-    devs="0,1 2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29"
+    devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \
         eval \
@@ -110,7 +108,7 @@ nat() {
 #         ::: "--uniform" "--zipf --zipf-param 0.9" "--zipf --zipf-param 0.99" "--zipf --zipf-param 1.26"
 # }
 
-# nop
-# fw
-nat
+nop
+fw
+# nat
 # kvs

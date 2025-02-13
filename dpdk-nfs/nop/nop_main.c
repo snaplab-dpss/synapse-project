@@ -1,4 +1,4 @@
-#include "nop_config.h"
+#include "config.h"
 #include "nf.h"
 #include "nf-log.h"
 #include "nf-util.h"
@@ -16,31 +16,23 @@ bool nf_init(void) {
     return false;
   }
 
-  lpm_from_file(state->fwd, "lpm.cfg");
-
   return true;
+}
+
+uint16_t get_dst_dev(uint16_t src_dev) {
+  uint16_t dst_dev;
+
+  uint16_t *destination_device;
+  vector_borrow(state->fwd_rules, src_dev, (void **)&destination_device);
+  dst_dev = *destination_device;
+  vector_return(state->fwd_rules, src_dev, destination_device);
+
+  return dst_dev;
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   // Mark now as unused, we don't care about time
   (void)now;
 
-  struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
-  struct rte_ipv4_hdr *rte_ipv4_header   = nf_then_get_ipv4_header(rte_ether_header, buffer);
-  if (rte_ipv4_header == NULL) {
-    NF_DEBUG("Not IPv4, dropping");
-    return DROP;
-  }
-
-  NF_DEBUG("Running lpm on %u.%u.%u.%u", (rte_ipv4_header->src_addr >> 0) & 0xff, (rte_ipv4_header->src_addr >> 8) & 0xff,
-           (rte_ipv4_header->src_addr >> 16) & 0xff, (rte_ipv4_header->src_addr >> 24) & 0xff);
-
-  uint16_t dst_device;
-  if (!lpm_lookup(state->fwd, rte_ipv4_header->src_addr, &dst_device)) {
-    NF_DEBUG("No route found, dropping");
-    return DROP;
-  }
-
-  NF_DEBUG("Sending to %u", dst_device);
-  return dst_device;
+  return get_dst_dev(device);
 }

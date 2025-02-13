@@ -299,7 +299,8 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(send_to_controller_node));
+  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
 
   return impls;
 }

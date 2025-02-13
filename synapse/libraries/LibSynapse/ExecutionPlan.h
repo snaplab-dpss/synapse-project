@@ -92,7 +92,7 @@ public:
   EPNode *get_node_by_id(ep_node_id_t id) const;
   hit_rate_t get_active_leaf_hit_rate() const;
   const LibBDD::Call *packet_borrow_from_return(const LibBDD::Call *packet_return_chunk) const;
-  port_ingress_t get_node_egress(const EPNode *node) const;
+  port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   port_ingress_t get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const;
   pps_t estimate_tput_pps() const;
   pps_t speculate_tput_pps() const;

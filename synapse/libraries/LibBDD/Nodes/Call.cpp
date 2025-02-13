@@ -205,7 +205,7 @@ bool Call::is_vector_borrow_value_ignored() const {
     return false;
   }
 
-  LibCore::symbol_t value = get_local_symbol("vector_data_reset");
+  LibCore::symbol_t value = get_local_symbol("vector_data");
   bool used               = false;
 
   next->visit_nodes([&value, &used](const Node *node) {

@@ -860,9 +860,7 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, std::vector<int> past_recircul
   return egress;
 }
 
-port_ingress_t EP::get_node_egress(const EPNode *node) const {
-  hit_rate_t hr = ctx.get_profiler().get_hr(node);
-
+port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   port_ingress_t egress;
   if (node->get_module()->get_target() == TargetType::Controller) {
     egress.controller = hr;

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+########################################################################################################################################
+#   Note: This is all based on our specific testbed configuration.
+#   You may want to adjust the port configuration on each NF.
+#   For example, our NFs will run on a Tofino programmable switch with 32 ports (1 to 32). However, we only have ports 3-32 connected.
+#   That is why we generate pcaps only for devices 2-31 (devices start by 0).
+########################################################################################################################################
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
@@ -47,8 +54,6 @@ nop() {
 
     log_and_run $SYNTHESIZED_DIR/build/nop-profiler \
         $PCAPS_DIR/$report.json \
-        0:$PCAPS_DIR/$pcap-dev0.pcap \
-        1:$PCAPS_DIR/$pcap-dev1.pcap \
         2:$PCAPS_DIR/$pcap-dev2.pcap \
         3:$PCAPS_DIR/$pcap-dev3.pcap \
         4:$PCAPS_DIR/$pcap-dev4.pcap \
@@ -76,7 +81,9 @@ nop() {
         26:$PCAPS_DIR/$pcap-dev26.pcap \
         27:$PCAPS_DIR/$pcap-dev27.pcap \
         28:$PCAPS_DIR/$pcap-dev28.pcap \
-        29:$PCAPS_DIR/$pcap-dev29.pcap
+        29:$PCAPS_DIR/$pcap-dev29.pcap \
+        30:$PCAPS_DIR/$pcap-dev30.pcap \
+        31:$PCAPS_DIR/$pcap-dev31.pcap
     
     log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/nop.bdd \
@@ -99,7 +106,6 @@ fw() {
 
     log_and_run $SYNTHESIZED_DIR/build/fw-profiler \
         $PCAPS_DIR/$report.json \
-        --warmup 0:$PCAPS_DIR/$pcap-dev0-warmup.pcap \
         --warmup 2:$PCAPS_DIR/$pcap-dev2-warmup.pcap \
         --warmup 4:$PCAPS_DIR/$pcap-dev4-warmup.pcap \
         --warmup 6:$PCAPS_DIR/$pcap-dev6-warmup.pcap \
@@ -114,8 +120,7 @@ fw() {
         --warmup 24:$PCAPS_DIR/$pcap-dev24-warmup.pcap \
         --warmup 26:$PCAPS_DIR/$pcap-dev26-warmup.pcap \
         --warmup 28:$PCAPS_DIR/$pcap-dev28-warmup.pcap \
-        0:$PCAPS_DIR/$pcap-dev0.pcap \
-        1:$PCAPS_DIR/$pcap-dev1.pcap \
+        --warmup 30:$PCAPS_DIR/$pcap-dev30-warmup.pcap \
         2:$PCAPS_DIR/$pcap-dev2.pcap \
         3:$PCAPS_DIR/$pcap-dev3.pcap \
         4:$PCAPS_DIR/$pcap-dev4.pcap \
@@ -143,7 +148,9 @@ fw() {
         26:$PCAPS_DIR/$pcap-dev26.pcap \
         27:$PCAPS_DIR/$pcap-dev27.pcap \
         28:$PCAPS_DIR/$pcap-dev28.pcap \
-        29:$PCAPS_DIR/$pcap-dev29.pcap
+        29:$PCAPS_DIR/$pcap-dev29.pcap \
+        30:$PCAPS_DIR/$pcap-dev30.pcap \
+        31:$PCAPS_DIR/$pcap-dev31.pcap
     
     log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/fw.bdd \
@@ -166,7 +173,6 @@ nat() {
 
     log_and_run $SYNTHESIZED_DIR/build/nat-profiler \
         $PCAPS_DIR/$report.json \
-        --warmup 0:$PCAPS_DIR/$pcap-dev0-warmup.pcap \
         --warmup 2:$PCAPS_DIR/$pcap-dev2-warmup.pcap \
         --warmup 4:$PCAPS_DIR/$pcap-dev4-warmup.pcap \
         --warmup 6:$PCAPS_DIR/$pcap-dev6-warmup.pcap \
@@ -181,8 +187,7 @@ nat() {
         --warmup 24:$PCAPS_DIR/$pcap-dev24-warmup.pcap \
         --warmup 26:$PCAPS_DIR/$pcap-dev26-warmup.pcap \
         --warmup 28:$PCAPS_DIR/$pcap-dev28-warmup.pcap \
-        0:$PCAPS_DIR/$pcap-dev0.pcap \
-        1:$PCAPS_DIR/$pcap-dev1.pcap \
+        --warmup 30:$PCAPS_DIR/$pcap-dev30-warmup.pcap \
         2:$PCAPS_DIR/$pcap-dev2.pcap \
         3:$PCAPS_DIR/$pcap-dev3.pcap \
         4:$PCAPS_DIR/$pcap-dev4.pcap \
@@ -210,7 +215,9 @@ nat() {
         26:$PCAPS_DIR/$pcap-dev26.pcap \
         27:$PCAPS_DIR/$pcap-dev27.pcap \
         28:$PCAPS_DIR/$pcap-dev28.pcap \
-        29:$PCAPS_DIR/$pcap-dev29.pcap
+        29:$PCAPS_DIR/$pcap-dev29.pcap \
+        30:$PCAPS_DIR/$pcap-dev30.pcap \
+        31:$PCAPS_DIR/$pcap-dev31.pcap
     
     log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/nat.bdd \
@@ -244,41 +251,41 @@ kvs() {
         --out $PCAPS_DIR/$report.dot
 }
 
-# gen_and_build_profiler nop
+gen_and_build_profiler nop
 
-# nop 10000 0 unif 0
-# nop 10000 0 zipf 0.9
-# nop 10000 0 zipf 0.99
-# nop 10000 0 zipf 1.26
+nop 10000 0 unif 0
+nop 10000 0 zipf 0.9
+nop 10000 0 zipf 0.99
+nop 10000 0 zipf 1.26
 
-# nop 10000 1000000 unif 0
-# nop 10000 1000000 zipf 0.9
-# nop 10000 1000000 zipf 0.99
-# nop 10000 1000000 zipf 1.26
+nop 10000 1000000 unif 0
+nop 10000 1000000 zipf 0.9
+nop 10000 1000000 zipf 0.99
+nop 10000 1000000 zipf 1.26
 
-# gen_and_build_profiler fw
+gen_and_build_profiler fw
 
-# fw 10000 0 unif 0
-# fw 10000 0 zipf 0.9
-# fw 10000 0 zipf 0.99
-# fw 10000 0 zipf 1.26
+fw 10000 0 unif 0
+fw 10000 0 zipf 0.9
+fw 10000 0 zipf 0.99
+fw 10000 0 zipf 1.26
 
-# fw 10000 1000000 unif 0
-# fw 10000 1000000 zipf 0.9
-# fw 10000 1000000 zipf 0.99
-# fw 10000 1000000 zipf 1.26
+fw 10000 1000000 unif 0
+fw 10000 1000000 zipf 0.9
+fw 10000 1000000 zipf 0.99
+fw 10000 1000000 zipf 1.26
 
-gen_and_build_profiler nat
+# gen_and_build_profiler nat
 
-nat 10000 0 unif 0
-nat 10000 0 zipf 0.9
-nat 10000 0 zipf 0.99
-nat 10000 0 zipf 1.26
+# nat 10000 0 unif 0
+# nat 10000 0 zipf 0.9
+# nat 10000 0 zipf 0.99
+# nat 10000 0 zipf 1.26
 
-nat 10000 1000000 unif 0
-nat 10000 1000000 zipf 0.9
-nat 10000 1000000 zipf 0.99
-nat 10000 1000000 zipf 1.26
+# nat 10000 1000000 unif 0
+# nat 10000 1000000 zipf 0.9
+# nat 10000 1000000 zipf 0.99
+# nat 10000 1000000 zipf 1.26
 
 # gen_and_build_profiler kvs
 

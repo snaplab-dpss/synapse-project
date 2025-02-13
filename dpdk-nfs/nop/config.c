@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "nf.h"
 #include "nf-util.h"
 #include "nf-log.h"
 
@@ -16,42 +17,10 @@
 void nf_config_init(int argc, char **argv) {
   config.fwd_rules.n = 0;
 
-  struct option long_options[] = {{"expire", required_argument, NULL, 't'},
-                                  {"max-flows", required_argument, NULL, 'f'},
-                                  {"internal-devs", required_argument, NULL, 'i'},
-                                  {"fwd-rule", required_argument, NULL, 'r'},
-                                  {NULL, 0, NULL, 0}};
+  struct option long_options[] = {{"fwd-rule", required_argument, NULL, 'r'}, {NULL, 0, NULL, 0}};
   int opt;
-  while ((opt = getopt_long(argc, argv, "t:f:i:l:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != EOF) {
     switch (opt) {
-    case 't':
-      config.expiration_time = nf_util_parse_int(optarg, "exp-time", 10, '\0');
-      if (config.expiration_time == 0) {
-        PARSE_ERROR("Expiration time must be strictly positive.\n");
-      }
-      break;
-
-    case 'f':
-      config.max_flows = nf_util_parse_int(optarg, "max-flows", 10, '\0');
-      if (config.max_flows <= 0) {
-        PARSE_ERROR("Flow table size must be strictly positive.\n");
-      }
-      break;
-
-    case 'i': {
-      uint16_t nb_devices        = rte_eth_dev_count_avail();
-      struct int_list_t int_list = nf_util_parse_int_list(optarg, "internal devs", 10, ',');
-
-      config.internal_devs.n       = int_list.n;
-      config.internal_devs.devices = (uint16_t *)malloc(int_list.n * sizeof(uint16_t));
-      for (int i = 0; i < int_list.n; i++) {
-        if (int_list.list[i] >= nb_devices) {
-          PARSE_ERROR("internal devs: device %lu >= nb_devices (%u)\n", int_list.list[i], nb_devices);
-        }
-        config.internal_devs.devices[i] = int_list.list[i];
-      }
-    } break;
-
     case 'r': {
       uint16_t nb_devices        = rte_eth_dev_count_avail();
       struct int_list_t int_list = nf_util_parse_int_list(optarg, "fwd rule", 10, ',');
@@ -92,27 +61,16 @@ void nf_config_init(int argc, char **argv) {
 void nf_config_usage(void) {
   NF_INFO("Usage:\n"
           "[DPDK EAL options] --\n"
-          "\t--expire <time>: flow expiration time (us).\n"
-          "\t--max-flows <n>: flow table capacity.\n"
-          "\t--internal-devs <dev1,dev2,...>: set devices to be internal.\n"
           "\t--fwd-rule <src,dst>: set forwarding rule.\n");
 }
 
 void nf_config_print(void) {
-  NF_INFO("\n--- FW Config ---\n");
-
-  NF_INFO("Internals devs:");
-  for (size_t i = 0; i < config.internal_devs.n; i++) {
-    NF_INFO("\t%" PRIu16, config.internal_devs.devices[i]);
-  }
+  NF_INFO("\n--- NOP Config ---\n");
 
   NF_INFO("Forwarding rules:");
   for (size_t i = 0; i < config.fwd_rules.n; i++) {
     NF_INFO("\t%" PRIu16 " -> %" PRIu16, config.fwd_rules.src_dev[i], config.fwd_rules.dst_dev[i]);
   }
-
-  NF_INFO("Expiration time: %" PRIu32 "us", config.expiration_time);
-  NF_INFO("Max flows: %" PRIu32, config.max_flows);
 
   NF_INFO("\n--- --- ------ ---\n");
 }

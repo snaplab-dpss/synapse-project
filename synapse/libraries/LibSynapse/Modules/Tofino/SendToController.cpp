@@ -74,7 +74,8 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   // decision is made?
   assert((!ep->get_active_leaf().node || !ep->get_active_leaf().node->forwarding_decision_already_made()) && "TODO");
 
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(s2c_node));
+  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, s2c_node));
 
   // FIXME: missing custom packet parsing for the SyNAPSE header.
 
