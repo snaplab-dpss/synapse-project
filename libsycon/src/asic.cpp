@@ -159,6 +159,7 @@ void configure_dev() {
     DEBUG("* Running in hardware mode but compiled with debug flags *");
     DEBUG("*                                                        *");
     DEBUG("**********************************************************");
+    DEBUG("");
   }
 }
 
