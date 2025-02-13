@@ -188,9 +188,9 @@ class Experiment:
                 self.log(f"TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
 
                 for port in broadcast_ports:
-                    port_tx_pkts = port_stats[port][1]
-                    if port_tx_pkts != pktgen_tx_pkts:
-                        self.log(f"Port {port} is slacking off! Sent {port_tx_pkts} instead of {pktgen_tx_pkts}. Repeating run.")
+                    dut_port_rx_pkts = port_stats[port][0]
+                    if dut_port_rx_pkts != pktgen_tx_pkts:
+                        self.log(f"Port {port} is slacking off! Sent {dut_port_rx_pkts} instead of {pktgen_tx_pkts}. Repeating run.")
                         nb_tx_pkts = 0
                         break
 

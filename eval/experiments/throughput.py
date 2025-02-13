@@ -14,6 +14,55 @@ from rich.progress import Progress
 
 from typing import Optional
 
+class ThroughputHosts:
+    def __init__(
+        self,
+        config: dict,
+    ) -> None:
+        self.dut_switch = Switch(
+            hostname=config["hosts"]["switch_dut"],
+            repo=config["repo"]["switch_dut"],
+            sde=config["devices"]["switch_dut"]["sde"],
+            tofino_version=config["devices"]["switch_dut"]["tofino_version"],
+            log_file=config["logs"]["switch_dut"],
+        )
+
+        self.controller = SynapseController(
+            hostname=config["hosts"]["switch_dut"],
+            repo=config["repo"]["switch_dut"],
+            sde=config["devices"]["switch_dut"]["sde"],
+            ports=config["devices"]["switch_dut"]["ports"],
+            tofino_version=config["devices"]["switch_dut"]["tofino_version"],
+            log_file=config["logs"]["controller_dut"],
+        )
+
+        self.tg_switch = TofinoTG(
+            hostname=config["hosts"]["switch_tg"],
+            repo=config["repo"]["switch_tg"],
+            sde=config["devices"]["switch_tg"]["sde"],
+            tofino_version=config["devices"]["switch_tg"]["tofino_version"],
+            log_file=config["logs"]["switch_tg"],
+        )
+
+        self.tg_controller = TofinoTGController(
+            hostname=config["hosts"]["switch_tg"],
+            repo=config["repo"]["switch_tg"],
+            sde=config["devices"]["switch_tg"]["sde"],
+            log_file=config["logs"]["controller_tg"],
+        )
+
+        self.pktgen = Pktgen(
+            hostname=config["hosts"]["pktgen"],
+            repo=config["repo"]["pktgen"],
+            rx_pcie_dev=config["devices"]["pktgen"]["rx_dev"],
+            tx_pcie_dev=config["devices"]["pktgen"]["tx_dev"],
+            nb_tx_cores=config["devices"]["pktgen"]["nb_tx_cores"],
+            log_file=config["logs"]["pktgen"],
+        )
+    
+    def terminate(self):
+        self.tg_switch.kill_switchd()
+
 class Throughput(Experiment):
     def __init__(
         self,
@@ -23,18 +72,14 @@ class Throughput(Experiment):
         save_name: Path,
 
         # Hosts
-        dut_switch: Switch,
-        controller: SynapseController,
-        tg_switch: TofinoTG,
-        tg_controller: TofinoTGController,
-        pktgen: Pktgen,
+        hosts: ThroughputHosts,
 
         # Switch
         p4_src_in_repo: str,
 
         # Controller
         controller_src_in_repo: str,
-        timeout_ms: int,
+        controller_timeout_ms: int,
 
         # TG controller
         broadcast: list[int],
@@ -53,20 +98,14 @@ class Throughput(Experiment):
         
         # Experiment parameters
         self.save_name = save_name
-
-        # Hosts
-        self.dut_switch = dut_switch
-        self.controller = controller
-        self.tg_switch = tg_switch
-        self.tg_controller = tg_controller
-        self.pktgen = pktgen
+        self.hosts = hosts
 
         # Switch
         self.p4_src_in_repo = p4_src_in_repo
         
         # Controller
         self.controller_src_in_repo = controller_src_in_repo
-        self.timeout_ms = timeout_ms
+        self.controller_timeout_ms = controller_timeout_ms
 
         # TG controller
         self.broadcast = broadcast
@@ -120,50 +159,50 @@ class Throughput(Experiment):
             return
     
         self.log("Installing Tofino TG")
-        self.tg_switch.install()
+        self.hosts.tg_switch.install()
 
         self.log("Installing NF")
-        self.dut_switch.install(self.p4_src_in_repo)
+        self.hosts.dut_switch.install(self.p4_src_in_repo)
 
         self.log("Launching Tofino TG")
-        self.tg_switch.launch()
+        self.hosts.tg_switch.launch()
         
         self.log("Launching synapse controller")
-        self.controller.launch(
+        self.hosts.controller.launch(
             self.controller_src_in_repo,
-            self.timeout_ms
+            self.controller_timeout_ms
         )
 
         self.log("Launching pktgen")
-        self.pktgen.launch(
+        self.hosts.pktgen.launch(
             nb_flows=self.nb_flows,
             pkt_size=self.pkt_size,
-            exp_time_us=self.timeout_ms * 1000,
+            exp_time_us=self.controller_timeout_ms * 1000,
         )
 
         self.log("Waiting for Tofino TG")
-        self.tg_switch.wait_ready()
+        self.hosts.tg_switch.wait_ready()
 
         self.log("Configuring Tofino TG")
-        self.tg_controller.run(
+        self.hosts.tg_controller.run(
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
         )
 
         self.log("Waiting for pktgen")
-        self.pktgen.wait_launch()
+        self.hosts.pktgen.wait_launch()
 
         self.log("Waiting for synapse controller")
-        self.controller.wait_ready()
+        self.hosts.controller.wait_ready()
 
         self.log("Starting experiment")
 
         step_progress.update(task_id, description=f"({current_iter})")
 
         throughput_bps, throughput_pps, _ = self.find_stable_throughput(
-            self.controller,
-            self.pktgen,
+            self.hosts.controller,
+            self.hosts.pktgen,
             self.churn,
             self.pkt_size,
             self.broadcast,
@@ -175,5 +214,5 @@ class Throughput(Experiment):
         step_progress.update(task_id, advance=1)
         step_progress.update(task_id, visible=False)
 
-        self.pktgen.close()
-        self.controller.stop()
+        self.hosts.pktgen.close()
+        self.hosts.controller.stop()
