@@ -133,10 +133,12 @@ static void configure_ports() {
   if (args.wait_for_ports) {
     for (u16 port : args.ports) {
       u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
+      LOG("Waiting on port %u...", port);
       while (!ports->is_port_up(dev_port)) {
         sleep(1);
       }
     }
+    LOG("All ports are ready!");
   }
 }
 
