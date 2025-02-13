@@ -243,8 +243,8 @@ control Egress(
 	inout egress_intrinsic_metadata_for_deparser_t eg_intr_dprs_md,
 	inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
-	action set_prefix(bit<5> prefix) {
-		hdr.ipv4.src_addr[31:27] = prefix;
+	action set_prefix(bit<6> prefix) {
+		hdr.ipv4.src_addr[31:26] = prefix;
 	}
 
 	table packet_modifier_tbl {

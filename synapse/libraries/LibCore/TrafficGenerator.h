@@ -159,7 +159,7 @@ protected:
     return wan_devices;
   }
 
-  static in_addr_t mask_addr_from_dev(in_addr_t addr, u16 dev) { return LibCore::ipv4_set_prefix(addr, dev, 5); }
+  static in_addr_t mask_addr_from_dev(in_addr_t addr, u16 dev) { return LibCore::ipv4_set_prefix(addr, dev, 6); }
 
   void advance_lan_dev() { current_lan_dev_it = (current_lan_dev_it + 1) % lan_devices.size(); }
   void reset_lan_dev() { current_lan_dev_it = 0; }
