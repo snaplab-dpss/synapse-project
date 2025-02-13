@@ -7,8 +7,7 @@
 
 namespace netcache {
 
-struct misc_t {
-	std::string interface;
+struct switchd_t {
 	bool tofino_model;
 	bool bf_prompt;
 };
@@ -60,7 +59,7 @@ struct topology_t {
 };
 
 struct conf_t {
-	misc_t			misc;
+	switchd_t		switchd;
 	kv_t			kv;
 	key_cntr_t		key_cntr;
 	cm_t			cm;

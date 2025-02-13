@@ -4,13 +4,15 @@
 #define UDP_PROTO 17
 #define TCP_PROTO 6
 
+#define CPU_PORT 0
+
 // Netcache
 
 #define READ_QUERY		0x0
 #define WRITE_QUERY		0x1
 #define DELETE_QUERY	0x2
 #define NC_PORT			50000
-#define NC_HDR_SIZE		9
+#define NC_HDR_SIZE		10
 
 // DPDK
 

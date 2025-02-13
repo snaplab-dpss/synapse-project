@@ -50,10 +50,11 @@ header netcache_t {
 	bit<8>	seq;
 	key_t	key;
 	val_t	val;
-	bit<8>	cpu;
+	bit<16>	port;
 }
 
 header meta_t {
+	bit<16>		ingress_port;
 	bit<8>		cache_hit;
 	keyIdx_t	key_idx;
 	vtableIdx_t vt_idx;
