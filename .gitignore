@@ -22,6 +22,7 @@ logs
 data
 playground
 pcaps
+profiles
 
 # Draw.io garbage
 .$*.bkp
@@ -44,7 +45,7 @@ bf-sde-*
 zlog-cfg-cur
 *.log*
 
-# Don't upload pcaps
+# Don't upload pcaps and profiles
 *.pcap
 
 # Profiling

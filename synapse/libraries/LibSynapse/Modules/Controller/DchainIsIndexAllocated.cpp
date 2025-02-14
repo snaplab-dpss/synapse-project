@@ -50,7 +50,7 @@ std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep, co
     return impls;
   }
 
-  LibCore::symbol_t is_allocated = call_node->get_local_symbol("dchain_is_index_allocated");
+  LibCore::symbol_t is_allocated = call_node->get_local_symbol("is_index_allocated");
 
   Module *module  = new DchainIsIndexAllocated(node, dchain_addr, index, is_allocated);
   EPNode *ep_node = new EPNode(module);

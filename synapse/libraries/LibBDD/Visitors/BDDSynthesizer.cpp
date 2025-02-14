@@ -1444,7 +1444,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_is_index_allocated(co
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index       = call.args.at("index").expr;
 
-  LibCore::symbol_t is_allocated = call_node->get_local_symbol("dchain_is_index_allocated");
+  LibCore::symbol_t is_allocated = call_node->get_local_symbol("is_index_allocated");
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
 

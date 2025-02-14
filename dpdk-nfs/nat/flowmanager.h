@@ -3,13 +3,17 @@
 
 #include "config.h"
 #include "flow.h"
+#include "state.h"
 #include "lib/util/time.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <rte_ether.h>
 
-struct FlowManager;
+struct FlowManager {
+  struct State *state;
+  uint32_t expiration_time; /*nanoseconds*/
+};
 
 struct FlowManager *flow_manager_allocate();
 bool flow_manager_allocate_flow(struct FlowManager *manager, struct FlowId *id, time_ns_t time, uint16_t *external_port);

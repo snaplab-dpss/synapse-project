@@ -109,7 +109,7 @@ struct dev_pcap_t {
 };
 
 struct config_t {
-  std::string report_fname;
+  std::filesystem::path report_fname;
   std::vector<dev_pcap_t> pcaps;
 } config;
 
@@ -603,6 +603,10 @@ void generate_report() {
     report["stats_per_map"][std::to_string(map)] = map_stats_json;
   }
 
+  if (config.report_fname.has_parent_path() && !std::filesystem::exists(config.report_fname.parent_path())) {
+    std::filesystem::create_directories(config.report_fname.parent_path());
+  }
+
   std::ofstream os = std::ofstream(config.report_fname);
   os << report.dump(2);
   os.flush();
@@ -918,9 +922,9 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  stats_per_map[1074043744].init(174);
-  stats_per_map[1074043744].init(155);
-  stats_per_map[1074043744].init(142);
+  stats_per_map[1074043776].init(174);
+  stats_per_map[1074043776].init(155);
+  stats_per_map[1074043776].init(142);
   forwarding_stats_per_route_op.insert({193, {}});
   forwarding_stats_per_route_op.insert({188, {}});
   forwarding_stats_per_route_op.insert({187, {}});
@@ -1046,7 +1050,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074043744].update(142, key, 13, now);
+        stats_per_map[1074043776].update(142, key, 13, now);
         // Node 143
         inc_path_counter(143);
         if ((0) == (map_hit)) {
@@ -1094,7 +1098,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(155);
             memcpy((void*)vector_value_out67, (void*)key, 13);
             map_put(map, vector_value_out67, index);
-            stats_per_map[1074043744].update(155, vector_value_out67, 13, now);
+            stats_per_map[1074043776].update(155, vector_value_out67, 13, now);
             // Node 156
             inc_path_counter(156);
             // Node 157
@@ -1178,7 +1182,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key2[12] = *(hdr2+9);
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
-        stats_per_map[1074043744].update(174, key2, 13, now);
+        stats_per_map[1074043776].update(174, key2, 13, now);
         // Node 175
         inc_path_counter(175);
         if ((0) == (map_hit2)) {

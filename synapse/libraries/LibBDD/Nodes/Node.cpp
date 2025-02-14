@@ -469,7 +469,6 @@ LibCore::Symbols Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
 
   const std::unordered_set<std::string> ignoring_symbols{
       "packet_chunks",
-      "not_out_of_space",
   };
 
   while (node) {
@@ -573,25 +572,11 @@ LibCore::Symbols Node::get_used_symbols() const {
           symbols.add(symbol_manager->get_symbol(name));
         }
       }
-
-      if (!arg.out.isNull()) {
-        std::unordered_set<std::string> names = LibCore::symbol_t::get_symbols_names(arg.out);
-        for (const std::string &name : names) {
-          symbols.add(symbol_manager->get_symbol(name));
-        }
-      }
     }
 
     for (const auto &[extra_var_name, extra_var] : call.extra_vars) {
       if (!extra_var.first.isNull()) {
         std::unordered_set<std::string> names = LibCore::symbol_t::get_symbols_names(extra_var.first);
-        for (const std::string &name : names) {
-          symbols.add(symbol_manager->get_symbol(name));
-        }
-      }
-
-      if (!extra_var.second.isNull()) {
-        std::unordered_set<std::string> names = LibCore::symbol_t::get_symbols_names(extra_var.second);
         for (const std::string &name : names) {
           symbols.add(symbol_manager->get_symbol(name));
         }

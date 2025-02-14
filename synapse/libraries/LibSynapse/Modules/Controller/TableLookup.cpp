@@ -54,7 +54,7 @@ void table_data_from_dchain_op(const LibBDD::Call *call_node, addr_t &obj, std::
   keys = {index};
 
   if (call.function_name == "dchain_is_index_allocated") {
-    hit = call_node->get_local_symbol("dchain_is_index_allocated");
+    hit = call_node->get_local_symbol("is_index_allocated");
   }
 }
 

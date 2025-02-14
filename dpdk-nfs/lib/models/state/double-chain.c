@@ -83,7 +83,7 @@ __attribute__((noinline)) int dchain_is_index_allocated(struct DoubleChain *chai
   klee_trace_param_i32(index, "index");
 
   klee_assert(chain != NULL);
-  return klee_int("dchain_is_index_allocated");
+  return klee_int("is_index_allocated");
 }
 
 int dchain_free_index(struct DoubleChain *chain, int index) {

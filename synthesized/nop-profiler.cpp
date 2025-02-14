@@ -109,7 +109,7 @@ struct dev_pcap_t {
 };
 
 struct config_t {
-  std::string report_fname;
+  std::filesystem::path report_fname;
   std::vector<dev_pcap_t> pcaps;
 } config;
 
@@ -601,6 +601,10 @@ void generate_report() {
     }
 
     report["stats_per_map"][std::to_string(map)] = map_stats_json;
+  }
+
+  if (config.report_fname.has_parent_path() && !std::filesystem::exists(config.report_fname.parent_path())) {
+    std::filesystem::create_directories(config.report_fname.parent_path());
   }
 
   std::ofstream os = std::ofstream(config.report_fname);

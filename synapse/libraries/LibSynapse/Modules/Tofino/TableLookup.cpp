@@ -75,7 +75,7 @@ table_data_t table_data_from_dchain_op(const EP *ep, const LibBDD::Call *call_no
   };
 
   if (call.function_name == "dchain_is_index_allocated") {
-    table_data.hit = call_node->get_local_symbol("dchain_is_index_allocated");
+    table_data.hit = call_node->get_local_symbol("is_index_allocated");
   }
 
   return table_data;

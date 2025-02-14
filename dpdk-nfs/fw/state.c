@@ -12,7 +12,6 @@
 #include "lib/models/state/map-control.h"
 #include "lib/models/state/vector-control.h"
 #include "lib/models/state/double-chain-control.h"
-#include "lib/models/state/lpm-dir-24-8-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;

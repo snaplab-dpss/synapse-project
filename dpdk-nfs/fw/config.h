@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 
-#include "lib/state/lpm-dir-24-8.h"
 #include "nf.h"
 #include "nf-util.h"
 

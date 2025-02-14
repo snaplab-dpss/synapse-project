@@ -9,6 +9,8 @@ struct State {
   struct Map *fm;
   struct Vector *fv;
   struct DoubleChain *heap;
+  struct Vector *int_devices;
+  struct Vector *fwd_rules;
 };
 
 struct State *alloc_state();

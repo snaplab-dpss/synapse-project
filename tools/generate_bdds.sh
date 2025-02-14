@@ -14,6 +14,7 @@ export SYNAPSE_BINS_DIR="$SYNAPSE_DIR/build/bin"
 
 export CALL_PATHS_TO_BDD="$SYNAPSE_BINS_DIR/call-paths-to-bdd"
 export BDD_VISUALIZER="$SYNAPSE_BINS_DIR/bdd-visualizer"
+export BDD_INSPECTOR="$SYNAPSE_BINS_DIR/bdd-inspector"
 
 run() {
 	nf=$1
@@ -28,12 +29,13 @@ run() {
 	popd > /dev/null
 	
 	$CALL_PATHS_TO_BDD --out $BDDS_DIR/$nf.bdd $NFS_DIR/$nf/klee-last/*.call_path 2>/dev/null
+	$BDD_INSPECTOR --in $BDDS_DIR/$nf.bdd
 	$BDD_VISUALIZER --in $BDDS_DIR/$nf.bdd --out $BDDS_DIR/$nf.dot 2>/dev/null
 }
 
 run "nop"
 run "fw"
-# run "nat"
+run "nat"
 # run "kvs"
 # run "cl"
 # run "pol"

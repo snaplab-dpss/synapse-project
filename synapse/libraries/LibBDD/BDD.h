@@ -53,8 +53,20 @@ public:
   void visit(BDDVisitor &visitor) const;
   void serialize(const std::filesystem::path &fpath) const;
   void deserialize(const std::filesystem::path &fpath);
-  void assert_integrity() const;
   int get_node_depth(node_id_t id) const;
+
+  enum class InspectionStatus { Ok, MissingRootNode, HasNullNode, BranchWithoutChildren, BrokenLink, MissingSymbol };
+  struct inspection_report_t {
+    InspectionStatus status;
+    std::string message;
+  };
+
+  // Debug operation that acts as an inspector, checking the BDD integrity and symbol availability.
+  // Returns true if the BDD is valid, false otherwise.
+  // A valid BDD should always pass this check.
+  [[nodiscard]] inspection_report_t inspect() const;
+
+  void assert_integrity() const;
 
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;

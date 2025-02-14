@@ -25,8 +25,6 @@ PACKET_SIZE=200
 ###################
 
 nop() {
-    # Ports 0 and 1 won't be connected.
-
     flows=10000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
@@ -108,7 +106,7 @@ nat() {
 #         ::: "--uniform" "--zipf --zipf-param 0.9" "--zipf --zipf-param 0.99" "--zipf --zipf-param 1.26"
 # }
 
-nop
-fw
-# nat
+# nop
+# fw
+nat
 # kvs

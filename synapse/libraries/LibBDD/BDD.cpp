@@ -37,6 +37,8 @@ const std::vector<std::string> routing_functions{
 };
 
 const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call{
+    {"current_time", {"next_time"}},
+    {"packet_receive", {"DEVICE", "pkt_len"}},
     {"map_allocate", {"map_allocation_succeeded"}},
     {"vector_allocate", {"vector_alloc_success"}},
     {"dchain_allocate", {"is_dchain_allocated"}},
@@ -46,13 +48,11 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"rte_lcore_count", {"lcores"}},
     {"rte_ether_addr_hash", {"rte_ether_addr_hash"}},
     {"nf_set_rte_ipv4_udptcp_checksum", {"checksum"}},
-    {"current_time", {"next_time"}},
-    {"packet_receive", {"DEVICE", "pkt_len"}},
     {"expire_items_single_map", {"number_of_freed_flows"}},
     {"expire_items_single_map_iteratively", {"number_of_freed_flows"}},
     {"map_get", {"map_has_this_key", "allocated_index"}},
     {"map_size", {"map_size"}},
-    {"dchain_is_index_allocated", {"dchain_is_index_allocated"}},
+    {"dchain_is_index_allocated", {"is_index_allocated"}},
     {"dchain_allocate_new_index", {"not_out_of_space", "new_index"}},
     {"vector_borrow", {"vector_data"}},
     {"vector_sample_lt", {"found_sample", "sample_index"}},
@@ -1107,6 +1107,83 @@ std::vector<u16> BDD::get_devices() const {
   }
 
   return devices;
+}
+
+BDD::inspection_report_t BDD::inspect() const {
+  if (!root) {
+    return {InspectionStatus::MissingRootNode, "Missing root node"};
+  }
+
+  inspection_report_t report                                 = {InspectionStatus::Ok, "Ok"};
+  const std::unordered_set<std::string> symbols_always_known = {"DEVICE", "pkt_len", "next_time", "packet_chunks"};
+
+  root->visit_nodes([&report, &symbols_always_known](const Node *node) {
+    if (!node) {
+      report = {InspectionStatus::HasNullNode, "Has null node"};
+      return NodeVisitAction::Stop;
+    }
+
+    const LibCore::Symbols used_symbols      = node->get_used_symbols();
+    const LibCore::Symbols available_symbols = node->get_prev_symbols();
+
+    for (const LibCore::symbol_t &used_symbol : used_symbols.get()) {
+      if (symbols_always_known.find(used_symbol.name) != symbols_always_known.end()) {
+        continue;
+      }
+
+      if (!available_symbols.has(used_symbol.name)) {
+        report = {InspectionStatus::MissingSymbol,
+                  "Node " + std::to_string(node->get_id()) + " uses unavailable symbol " + used_symbol.name};
+        return NodeVisitAction::Stop;
+      }
+    }
+
+    switch (node->get_type()) {
+    case NodeType::Branch: {
+      const Branch *branch = dynamic_cast<const Branch *>(node);
+      const Node *on_true  = branch->get_on_true();
+      const Node *on_false = branch->get_on_false();
+
+      if (!on_true) {
+        report = {InspectionStatus::BranchWithoutChildren, "Branch node " + std::to_string(node->get_id()) + " without on true side"};
+        return NodeVisitAction::Stop;
+      }
+
+      if (!on_false) {
+        report = {InspectionStatus::BranchWithoutChildren, "Branch node " + std::to_string(node->get_id()) + " without on false side"};
+        return NodeVisitAction::Stop;
+      }
+
+      if (on_true->get_prev() != node) {
+        report = {InspectionStatus::BrokenLink, "Branch node " + std::to_string(node->get_id()) + " on true side has invalid link"};
+        return NodeVisitAction::Stop;
+      }
+
+      if (on_false->get_prev() != node) {
+        report = {InspectionStatus::BrokenLink, "Branch node " + std::to_string(node->get_id()) + " on false side has invalid link"};
+        return NodeVisitAction::Stop;
+      }
+
+      break;
+    } break;
+    case NodeType::Call: {
+      if (node->get_next() && node->get_next()->get_prev() != node) {
+        report = {InspectionStatus::BrokenLink, "Call node " + std::to_string(node->get_id()) + " has invalid link"};
+        return NodeVisitAction::Stop;
+      }
+    } break;
+
+    case NodeType::Route: {
+      if (node->get_next() && node->get_next()->get_prev() != node) {
+        report = {InspectionStatus::BrokenLink, "Route node " + std::to_string(node->get_id()) + " has invalid link"};
+        return NodeVisitAction::Stop;
+      }
+    } break;
+    }
+    return NodeVisitAction::Continue;
+  });
+
+  return report;
 }
 
 } // namespace LibBDD

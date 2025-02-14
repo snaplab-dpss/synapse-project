@@ -63,6 +63,10 @@ const LibCore::Symbols &Call::get_local_symbols() const { return generated_symbo
 
 LibCore::symbol_t Call::get_local_symbol(const std::string &base) const {
   assert(!base.empty() && "Empty base");
+  if (generated_symbols.empty()) {
+    std::cerr << "this: " << dump(true) << "\n";
+    std::cerr << "base: " << base << "\n";
+  }
   assert(!generated_symbols.empty() && "No symbols");
 
   LibCore::Symbols filtered = generated_symbols.filter_by_base(base);

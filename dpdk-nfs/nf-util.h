@@ -74,7 +74,7 @@ bool nf_has_tcpudp_header(struct rte_ipv4_hdr *header);
 bool nf_has_tcp_header(struct rte_ipv4_hdr *header);
 bool nf_has_udp_header(struct rte_ipv4_hdr *header);
 
-void nf_set_rte_ipv4_udptcp_checksum(struct rte_ipv4_hdr *ip_header, void *l4_header, void *packet);
+int nf_set_rte_ipv4_udptcp_checksum(struct rte_ipv4_hdr *ip_header, void *l4_header, void *packet);
 
 uintmax_t nf_util_parse_int(const char *str, const char *name, int base, char next);
 

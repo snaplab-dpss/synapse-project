@@ -5,56 +5,6 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
-void assert_bdd(const LibBDD::BDD &bdd) {
-  std::cout << "Asserting BDD...\n";
-
-  const LibBDD::Node *root = bdd.get_root();
-  assert(root);
-
-  std::vector<const LibBDD::Node *> nodes{root};
-
-  while (nodes.size()) {
-    const LibBDD::Node *node = nodes[0];
-    nodes.erase(nodes.begin());
-
-    if (node->get_type() == LibBDD::NodeType::Branch) {
-      const LibBDD::Branch *branch = static_cast<const LibBDD::Branch *>(node);
-
-      const LibBDD::Node *on_true  = branch->get_on_true();
-      const LibBDD::Node *on_false = branch->get_on_false();
-
-      assert(on_true);
-      assert(on_false);
-
-      const LibBDD::Node *on_true_prev  = on_true->get_prev();
-      const LibBDD::Node *on_false_prev = on_false->get_prev();
-
-      assert(on_true_prev);
-      assert(on_false_prev);
-
-      assert(on_true_prev->get_id() == node->get_id());
-      assert(on_false_prev->get_id() == node->get_id());
-
-      nodes.push_back(on_true);
-      nodes.push_back(on_false);
-    } else {
-      const LibBDD::Node *next = node->get_next();
-
-      if (!next)
-        continue;
-
-      const LibBDD::Node *next_prev = next->get_prev();
-
-      assert(next_prev);
-      assert(next_prev->get_id() == node->get_id());
-
-      nodes.push_back(next);
-    }
-  }
-
-  std::cout << "OK!\n";
-}
-
 int main(int argc, char **argv) {
   CLI::App app{"Call paths to BDD"};
 
@@ -82,7 +32,6 @@ int main(int argc, char **argv) {
   } else {
     bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &manager);
   }
-  assert_bdd(*bdd);
 
   LibBDD::PrinterDebug printer;
   bdd->visit(printer);

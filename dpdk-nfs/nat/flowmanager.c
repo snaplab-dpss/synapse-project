@@ -13,11 +13,6 @@
 #include "state.h"
 #include "config.h"
 
-struct FlowManager {
-  struct State *state;
-  uint32_t expiration_time; /*nanoseconds*/
-};
-
 struct FlowManager *flow_manager_allocate() {
   struct FlowManager *manager = (struct FlowManager *)malloc(sizeof(struct FlowManager));
   if (manager == NULL) {

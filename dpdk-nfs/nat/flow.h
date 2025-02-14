@@ -10,7 +10,6 @@ struct FlowId {
   uint16_t dst_port;
   uint32_t src_ip;
   uint32_t dst_ip;
-  uint16_t internal_device;
   uint8_t protocol;
 } PACKED_FOR_KLEE_VERIFICATION;
 
@@ -23,7 +22,6 @@ struct FlowId {
   p("dst_port: %d", (obj)->dst_port);                                                                                                      \
   p("src_ip: %d", (obj)->src_ip);                                                                                                          \
   p("dst_ip: %d", (obj)->dst_ip);                                                                                                          \
-  p("internal_device: %d", (obj)->internal_device);                                                                                        \
   p("protocol: %d", (obj)->protocol);                                                                                                      \
   p("}");
 
@@ -31,7 +29,7 @@ struct FlowId {
 #include <klee/klee.h>
 #include "lib/models/str-descr.h"
 
-extern struct str_field_descr FlowId_descrs[6];
+extern struct str_field_descr FlowId_descrs[5];
 extern struct nested_field_descr FlowId_nests[0];
 #endif // KLEE_VERIFICATION
 

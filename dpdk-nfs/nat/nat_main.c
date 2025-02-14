@@ -15,6 +15,28 @@ bool nf_init(void) {
   return flow_manager != NULL;
 }
 
+bool is_internal(uint16_t device) {
+  bool is_int_dev;
+
+  int *is_internal;
+  vector_borrow(flow_manager->state->int_devices, device, (void **)&is_internal);
+  is_int_dev = (*is_internal != 0);
+  vector_return(flow_manager->state->int_devices, device, is_internal);
+
+  return is_int_dev;
+}
+
+uint16_t get_dst_dev(uint16_t src_dev) {
+  uint16_t dst_dev;
+
+  uint16_t *destination_device;
+  vector_borrow(flow_manager->state->fwd_rules, src_dev, (void **)&destination_device);
+  dst_dev = *destination_device;
+  vector_return(flow_manager->state->fwd_rules, src_dev, destination_device);
+
+  return dst_dev;
+}
+
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
   flow_manager_expire(flow_manager, now);
 
@@ -32,35 +54,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
 
   NF_DEBUG("Forwarding an IPv4 packet on device %" PRIu16, device);
 
-  uint16_t dst_device;
-  if (device == config.wan_device) {
-    NF_DEBUG("Device %" PRIu16 " is external", device);
-
-    struct FlowId internal_flow;
-    if (flow_manager_get_external(flow_manager, tcpudp_header->dst_port, now, &internal_flow)) {
-      NF_DEBUG("Found internal flow.");
-      LOG_FLOWID(&internal_flow, NF_DEBUG);
-
-      if (internal_flow.dst_ip != rte_ipv4_header->src_addr | internal_flow.dst_port != tcpudp_header->src_port |
-          internal_flow.protocol != rte_ipv4_header->next_proto_id) {
-        NF_DEBUG("Spoofing attempt, dropping.");
-        return DROP;
-      }
-
-      rte_ipv4_header->dst_addr = internal_flow.src_ip;
-      tcpudp_header->dst_port   = internal_flow.src_port;
-      dst_device                = internal_flow.internal_device;
-    } else {
-      NF_DEBUG("Unknown flow, dropping");
-      return DROP;
-    }
-  } else {
-    struct FlowId id = {.src_port        = tcpudp_header->src_port,
-                        .dst_port        = tcpudp_header->dst_port,
-                        .src_ip          = rte_ipv4_header->src_addr,
-                        .dst_ip          = rte_ipv4_header->dst_addr,
-                        .protocol        = rte_ipv4_header->next_proto_id,
-                        .internal_device = device};
+  if (is_internal(device)) {
+    struct FlowId id = {
+        .src_port = tcpudp_header->src_port,
+        .dst_port = tcpudp_header->dst_port,
+        .src_ip   = rte_ipv4_header->src_addr,
+        .dst_ip   = rte_ipv4_header->dst_addr,
+        .protocol = rte_ipv4_header->next_proto_id,
+    };
 
     NF_DEBUG("Device %" PRIu16 " is internal (not %" PRIu16 ")", device, config.wan_device);
 
@@ -78,10 +79,29 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
 
     rte_ipv4_header->src_addr = config.external_addr;
     tcpudp_header->src_port   = external_port;
-    dst_device                = config.wan_device;
+  } else {
+    NF_DEBUG("Device %" PRIu16 " is external", device);
+
+    struct FlowId internal_flow;
+    if (flow_manager_get_external(flow_manager, tcpudp_header->dst_port, now, &internal_flow)) {
+      NF_DEBUG("Found internal flow.");
+      LOG_FLOWID(&internal_flow, NF_DEBUG);
+
+      if (internal_flow.dst_ip != rte_ipv4_header->src_addr | internal_flow.dst_port != tcpudp_header->src_port |
+          internal_flow.protocol != rte_ipv4_header->next_proto_id) {
+        NF_DEBUG("Spoofing attempt, dropping.");
+        return DROP;
+      }
+
+      rte_ipv4_header->dst_addr = internal_flow.src_ip;
+      tcpudp_header->dst_port   = internal_flow.src_port;
+    } else {
+      NF_DEBUG("Unknown flow, dropping");
+      return DROP;
+    }
   }
 
   nf_set_rte_ipv4_udptcp_checksum(rte_ipv4_header, tcpudp_header, buffer);
 
-  return dst_device;
+  return get_dst_dev(device);
 }
