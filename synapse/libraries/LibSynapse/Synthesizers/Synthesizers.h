@@ -7,21 +7,18 @@
 
 namespace LibSynapse {
 
-constexpr const char *const TOFINO_OUT_FILENAME     = "tofino.p4";
-constexpr const char *const TOFINO_CPU_OUT_FILENAME = "controller.cpp";
-constexpr const char *const X86_OUT_FILENAME        = "x86.cpp";
-
-void synthesize(const EP *ep, const std::filesystem::path &out_dir) {
+void synthesize(const EP *ep, std::string name, const std::filesystem::path &out_dir) {
   const TargetsView &targets = ep->get_targets();
 
   for (const TargetView &target : targets.elements) {
     switch (target.type) {
     case TargetType::Tofino: {
-      std::ofstream out(out_dir / TOFINO_OUT_FILENAME);
+      std::ofstream out(out_dir / (name + ".p4"));
       Tofino::TofinoSynthesizer synthesizer(out, ep->get_bdd());
       synthesizer.visit(ep);
     } break;
     case TargetType::Controller: {
+      std::ofstream out(out_dir / (name + ".cpp"));
       // assert(false && "TODO");
     } break;
     case TargetType::x86: {

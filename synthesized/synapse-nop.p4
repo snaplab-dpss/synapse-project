@@ -176,7 +176,7 @@ control Ingress(
         // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
         // EP node  58
         // BDD node 68:FORWARD
-        fwd(table_1074013000_65_get_value_param_0);
+        fwd((bit<9>)table_1074013000_65_get_value_param_0);
       } else {
         // EP node  26
         // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))

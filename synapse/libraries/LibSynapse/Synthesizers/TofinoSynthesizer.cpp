@@ -1387,7 +1387,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "fwd(" << transpiler.transpile(dst_device) << ");\n";
+  ingress << "fwd((bit<9>)" << transpiler.transpile(dst_device) << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
