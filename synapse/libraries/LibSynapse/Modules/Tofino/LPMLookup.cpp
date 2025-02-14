@@ -81,5 +81,35 @@ std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const LibBDD::N
   return impls;
 }
 
+std::unique_ptr<Module> LPMLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *lpm_lookup = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call     = lpm_lookup->get_call();
+
+  if (call.function_name != "lpm_lookup") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> lpm_addr_expr = call.args.at("lpm").expr;
+  klee::ref<klee::Expr> addr          = call.args.at("prefix").expr;
+  klee::ref<klee::Expr> device        = call.args.at("value_out").out;
+  klee::ref<klee::Expr> match         = lpm_lookup->get_local_symbol("lpm_lookup_match").expr;
+
+  addr_t obj = LibCore::expr_addr_to_obj_addr(lpm_addr_expr);
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_LPM)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(obj);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const LPM *lpm = dynamic_cast<const LPM *>(*ds.begin());
+
+  return std::make_unique<LPMLookup>(node, lpm->id, obj, addr, device, match);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

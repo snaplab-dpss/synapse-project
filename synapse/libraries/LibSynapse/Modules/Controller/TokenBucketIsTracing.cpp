@@ -65,5 +65,31 @@ std::vector<impl_t> TBIsTracingFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> TBIsTracingFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "tb_is_tracing") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key          = call.args.at("key").in;
+  klee::ref<klee::Expr> index_out    = call.args.at("index_out").out;
+  klee::ref<klee::Expr> is_tracing   = call.ret;
+
+  addr_t tb_addr = LibCore::expr_addr_to_obj_addr(tb_addr_expr);
+
+  if (!ctx.can_impl_ds(tb_addr, DSImpl::Controller_TokenBucket)) {
+    return {};
+  }
+
+  return std::make_unique<TokenBucketIsTracing>(node, tb_addr, key, index_out, is_tracing);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

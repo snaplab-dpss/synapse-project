@@ -5,12 +5,12 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-vector_register_data_t get_vector_register_data(const EP *ep, const LibBDD::Call *vector_borrow, const LibBDD::Call *vector_return) {
+vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD::Call *vector_borrow, const LibBDD::Call *vector_return) {
   const LibBDD::call_t &vb = vector_borrow->get_call();
   const LibBDD::call_t &vr = vector_return->get_call();
 
   addr_t obj                         = LibCore::expr_addr_to_obj_addr(vb.args.at("vector").expr);
-  const LibBDD::vector_config_t &cfg = ep->get_ctx().get_vector_config(obj);
+  const LibBDD::vector_config_t &cfg = ctx.get_vector_config(obj);
 
   vector_register_data_t vector_register_data = {
       .obj         = obj,
@@ -44,7 +44,7 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
 
   const LibBDD::Call *vector_borrow = vector_return->get_vector_borrow_from_return();
 
-  vector_register_data_t vector_register_data = get_vector_register_data(ep, vector_borrow, vector_return);
+  vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow, vector_return);
 
   if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return std::nullopt;
@@ -87,7 +87,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
   }
 
   const LibBDD::Call *vector_borrow           = vector_return->get_vector_borrow_from_return();
-  vector_register_data_t vector_register_data = get_vector_register_data(ep, vector_borrow, vector_return);
+  vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow, vector_return);
 
   if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return impls;
@@ -127,6 +127,43 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *vector_return = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call        = vector_return->get_call();
+
+  if (call.function_name != "vector_return") {
+    return {};
+  }
+
+  if (!vector_return->is_vector_write()) {
+    return {};
+  }
+
+  const LibBDD::Call *vector_borrow           = vector_return->get_vector_borrow_from_return();
+  vector_register_data_t vector_register_data = get_vector_register_data(ctx, vector_borrow, vector_return);
+
+  if (!ctx.check_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
+    return {};
+  }
+
+  if (!expr_fits_in_action(vector_register_data.write_value)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(vector_register_data.obj);
+  std::unordered_set<DS_ID> rids;
+  for (const DS *reg : ds) {
+    rids.insert(reg->id);
+  }
+
+  return std::make_unique<VectorRegisterUpdate>(node, rids, vector_register_data.obj, vector_register_data.index,
+                                                vector_register_data.value, vector_register_data.write_value);
 }
 
 } // namespace Tofino

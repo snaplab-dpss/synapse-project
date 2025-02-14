@@ -73,5 +73,24 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
   return impls;
 }
 
+std::unique_ptr<Module> CMSPeriodicCleanupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+
+  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::x86_CountMinSketch)) {
+    return {};
+  }
+
+  return std::make_unique<CMSPeriodicCleanup>(node, cms_addr);
+}
+
 } // namespace x86
 } // namespace LibSynapse

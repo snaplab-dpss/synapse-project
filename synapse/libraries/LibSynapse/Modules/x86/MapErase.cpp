@@ -74,5 +74,26 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const LibBDD::No
   return impls;
 }
 
+std::unique_ptr<Module> MapEraseFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> trash         = call.args.at("trash").out;
+
+  addr_t map_addr = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+
+  if (!ctx.check_ds_impl(map_addr, DSImpl::x86_Map)) {
+    return {};
+  }
+
+  return std::make_unique<MapErase>(node, map_addr, key, trash);
+}
+
 } // namespace x86
 } // namespace LibSynapse

@@ -90,5 +90,34 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
   return impls;
 }
 
+std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "cms_count_min") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> min_estimate  = call_node->get_local_symbol("min_estimate").expr;
+
+  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(cms_addr);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const CountMinSketch *cms = dynamic_cast<const CountMinSketch *>(*ds.begin());
+
+  return std::make_unique<CMSQuery>(node, cms->id, cms_addr, key, min_estimate);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

@@ -20,7 +20,7 @@ struct table_data_t {
   LibCore::symbol_t map_has_this_key;
   int num_entries;
 
-  table_data_t(const EP *ep, const LibBDD::Call *map_get) {
+  table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
     const LibBDD::call_t &call = map_get->get_call();
     assert(call.function_name == "map_get" && "Not a map_get call");
 
@@ -29,7 +29,7 @@ struct table_data_t {
     table_keys       = Table::build_keys(key);
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    num_entries      = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries      = ctx.get_map_config(obj).capacity;
   }
 };
 } // namespace
@@ -83,7 +83,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  table_data_t table_data(ep, map_get);
+  table_data_t table_data(ep->get_ctx(), map_get);
   LibCore::symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
 
   Module *module =
@@ -97,6 +97,35 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call  = map_get->get_call();
+
+  if (call.function_name != "map_get") {
+    return {};
+  }
+
+  LibBDD::map_coalescing_objs_t map_objs;
+  if (!bdd->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+    return {};
+  }
+
+  table_data_t table_data(ctx, map_get);
+  LibCore::symbol_t mock_min_estimate;
+
+  return std::make_unique<HHTableRead>(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key,
+                                       mock_min_estimate);
 }
 
 } // namespace Controller

@@ -61,6 +61,7 @@ private:
     Action visitSge(const klee::SgeExpr &e);
   };
 
+  const BDD *bdd;
   BDDSynthesizerTarget target;
   Transpiler transpiler;
 
@@ -87,13 +88,13 @@ private:
   std::unordered_set<node_id_t> process_nodes;
 
 public:
-  BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out);
+  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::ostream &_out);
 
-  void synthesize(const BDD *bdd);
+  virtual void synthesize() override final;
 
 private:
-  void init_pre_process(const BDD *bdd);
-  void process(const BDD *bdd);
+  void init_pre_process();
+  void process();
   void init_post_process();
   void synthesize(const Node *node);
 

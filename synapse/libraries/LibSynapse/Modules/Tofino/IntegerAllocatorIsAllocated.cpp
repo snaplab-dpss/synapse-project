@@ -68,5 +68,31 @@ std::vector<impl_t> IntegerAllocatorIsAllocatedFactory::process_node(const EP *e
   return impls;
 }
 
+std::unique_ptr<Module> IntegerAllocatorIsAllocatedFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
+                                                                   const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "dchain_is_index_allocated") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  LibCore::symbol_t is_allocated         = call_node->get_local_symbol("is_index_allocated");
+
+  addr_t dchain_addr = LibCore::expr_addr_to_obj_addr(dchain_addr_expr);
+
+  if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
+    return {};
+  }
+
+  return std::make_unique<IntegerAllocatorIsAllocated>(node, dchain_addr, index, is_allocated);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

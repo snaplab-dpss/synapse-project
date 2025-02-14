@@ -56,5 +56,22 @@ std::vector<impl_t> ParseHeaderFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> ParseHeaderFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> chunk     = call.args.at("chunk").out;
+  klee::ref<klee::Expr> out_chunk = call.extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> length    = call.args.at("length").expr;
+
+  addr_t chunk_addr = LibCore::expr_addr_to_obj_addr(chunk);
+
+  return std::make_unique<ParseHeader>(node, chunk_addr, out_chunk, length);
+}
+
 } // namespace x86
 } // namespace LibSynapse

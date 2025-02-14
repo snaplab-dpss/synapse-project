@@ -59,5 +59,24 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const LibB
   return impls;
 }
 
+std::unique_ptr<Module> ChecksumUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> ip_hdr_addr_expr = call.args.at("ip_header").expr;
+  klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
+  klee::ref<klee::Expr> p                = call.args.at("packet").expr;
+
+  LibCore::symbol_t checksum = call_node->get_local_symbol("checksum");
+  addr_t ip_hdr_addr         = LibCore::expr_addr_to_obj_addr(ip_hdr_addr_expr);
+  addr_t l4_hdr_addr         = LibCore::expr_addr_to_obj_addr(l4_hdr_addr_expr);
+
+  return std::make_unique<ChecksumUpdate>(node, ip_hdr_addr, l4_hdr_addr, checksum);
+}
+
 } // namespace x86
 } // namespace LibSynapse

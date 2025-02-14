@@ -61,5 +61,30 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD
   return impls;
 }
 
+std::unique_ptr<Module> ModifyHeaderFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "packet_return_chunk") {
+    return {};
+  }
+
+  addr_t hdr_addr                          = LibCore::expr_addr_to_obj_addr(call.args.at("the_chunk").expr);
+  klee::ref<klee::Expr> borrowed           = call.args.at("the_chunk").in;
+  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(borrowed, borrowed);
+
+  if (changes.empty()) {
+    return {};
+  }
+
+  std::vector<LibCore::expr_byte_swap_t> swaps = LibCore::get_expr_byte_swaps(borrowed, borrowed);
+
+  return std::make_unique<ModifyHeader>(node, hdr_addr, borrowed, changes, swaps);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

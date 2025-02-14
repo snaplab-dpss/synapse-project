@@ -77,5 +77,29 @@ std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> MeterInsertFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *tb_trace = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call   = tb_trace->get_call();
+
+  if (call.function_name != "tb_trace") {
+    return {};
+  }
+
+  addr_t obj;
+  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> success;
+  get_tb_data(tb_trace, obj, keys, success);
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_Meter)) {
+    return {};
+  }
+
+  return std::make_unique<MeterInsert>(node, obj, keys, success);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

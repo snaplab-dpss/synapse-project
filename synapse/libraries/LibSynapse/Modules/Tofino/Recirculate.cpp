@@ -98,5 +98,10 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> RecirculateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  // We don't actually create a module for recirculation.
+  return {};
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

@@ -173,5 +173,20 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   return impls;
 }
 
+std::unique_ptr<Module> ParserConditionFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Branch) {
+    return {};
+  }
+
+  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+
+  if (!branch_node->is_parser_condition()) {
+    return {};
+  }
+
+  klee::ref<klee::Expr> condition = branch_node->get_condition();
+  return std::make_unique<ParserCondition>(node, condition);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

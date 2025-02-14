@@ -68,5 +68,32 @@ std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep, const Li
   return impls;
 }
 
+std::unique_ptr<Module> TBUpdateAndCheckFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "tb_update_and_check") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> index        = call.args.at("index").expr;
+  klee::ref<klee::Expr> pkt_len      = call.args.at("pkt_len").expr;
+  klee::ref<klee::Expr> time         = call.args.at("time").expr;
+  klee::ref<klee::Expr> pass         = call.ret;
+
+  addr_t tb_addr = LibCore::expr_addr_to_obj_addr(tb_addr_expr);
+
+  if (!ctx.check_ds_impl(tb_addr, DSImpl::x86_TokenBucket)) {
+    return {};
+  }
+
+  return std::make_unique<TokenBucketUpdateAndCheck>(node, tb_addr, index, pkt_len, time, pass);
+}
+
 } // namespace x86
 } // namespace LibSynapse

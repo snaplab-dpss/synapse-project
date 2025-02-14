@@ -61,5 +61,16 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
   return impls;
 }
 
+std::unique_ptr<Module> IfFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+  klee::ref<klee::Expr> condition   = branch_node->get_condition();
+
+  return std::make_unique<If>(node, condition);
+}
+
 } // namespace x86
 } // namespace LibSynapse

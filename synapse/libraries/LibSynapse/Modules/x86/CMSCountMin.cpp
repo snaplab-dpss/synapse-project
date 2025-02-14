@@ -74,5 +74,26 @@ std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> CMSCountMinFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+
+  addr_t cms_addr                = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  LibCore::symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
+
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::x86_CountMinSketch)) {
+    return {};
+  }
+
+  return std::make_unique<CMSCountMin>(node, cms_addr, key, min_estimate.expr);
+}
+
 } // namespace x86
 } // namespace LibSynapse

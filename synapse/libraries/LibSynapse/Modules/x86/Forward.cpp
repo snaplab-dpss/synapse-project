@@ -51,5 +51,16 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   return impls;
 }
 
+std::unique_ptr<Module> ForwardFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Route *route_node  = dynamic_cast<const LibBDD::Route *>(node);
+  klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+
+  return std::make_unique<Forward>(node, dst_device);
+}
+
 } // namespace x86
 } // namespace LibSynapse

@@ -104,8 +104,8 @@ impl_t ModuleFactory::implement(const EP *ep, const LibBDD::Node *node, EP *resu
   return impl_t(decide(ep, node, params), result, false);
 }
 
-std::vector<impl_t> ModuleFactory::generate(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager,
-                                            bool reorder_bdd) const {
+std::vector<impl_t> ModuleFactory::implement(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager,
+                                             bool reorder_bdd) const {
   std::vector<impl_t> implementations;
 
   if (!can_process_platform(ep, target)) {

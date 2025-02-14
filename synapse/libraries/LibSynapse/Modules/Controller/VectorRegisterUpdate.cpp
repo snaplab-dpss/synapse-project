@@ -76,5 +76,42 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
   return impls;
 }
 
+std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "vector_return") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> obj_expr        = call.args.at("vector").expr;
+  klee::ref<klee::Expr> index           = call.args.at("index").expr;
+  klee::ref<klee::Expr> value_addr_expr = call.args.at("value").expr;
+  klee::ref<klee::Expr> value           = call.args.at("value").in;
+
+  addr_t obj        = LibCore::expr_addr_to_obj_addr(obj_expr);
+  addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_VectorRegister)) {
+    return {};
+  }
+
+  const LibBDD::Call *vector_borrow = call_node->get_vector_borrow_from_return();
+  assert(vector_borrow && "Vector return without borrow");
+
+  klee::ref<klee::Expr> original_value     = vector_borrow->get_call().extra_vars.at("borrowed_cell").second;
+  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(original_value, value);
+
+  if (changes.empty()) {
+    return {};
+  }
+
+  return std::make_unique<VectorRegisterUpdate>(node, obj, index, value_addr, changes);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

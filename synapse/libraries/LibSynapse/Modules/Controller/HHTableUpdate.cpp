@@ -106,5 +106,30 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const LibBD
   return impls;
 }
 
+std::unique_ptr<Module> HHTableUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *map_put = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call  = map_put->get_call();
+
+  if (call.function_name != "map_put") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
+  addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
+    return {};
+  }
+
+  table_data_t table_data(map_put);
+  LibCore::symbol_t mock_min_estimate;
+
+  return std::make_unique<HHTableUpdate>(node, table_data.obj, table_data.table_keys, table_data.value, mock_min_estimate);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

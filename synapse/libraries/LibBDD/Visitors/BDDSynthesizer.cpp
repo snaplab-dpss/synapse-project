@@ -589,7 +589,7 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitSge(const klee::SgeEx
 #define POPULATE_SYNTHESIZER(FNAME)                                                                                                        \
   { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
 
-BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
+BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::ostream &_out)
     : Synthesizer(template_from_type(_target),
                   {
                       {MARKER_NF_STATE, 0},
@@ -597,55 +597,55 @@ BDDSynthesizer::BDDSynthesizer(BDDSynthesizerTarget _target, std::ostream &_out)
                       {MARKER_NF_PROCESS, 0},
                   },
                   _out),
-      target(_target), transpiler(this), function_synthesizers({
-                                             POPULATE_SYNTHESIZER(map_allocate),
-                                             POPULATE_SYNTHESIZER(vector_allocate),
-                                             POPULATE_SYNTHESIZER(dchain_allocate),
-                                             POPULATE_SYNTHESIZER(cms_allocate),
-                                             POPULATE_SYNTHESIZER(tb_allocate),
-                                             POPULATE_SYNTHESIZER(lpm_allocate),
-                                             POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
-                                             POPULATE_SYNTHESIZER(packet_return_chunk),
-                                             POPULATE_SYNTHESIZER(nf_set_rte_ipv4_udptcp_checksum),
-                                             POPULATE_SYNTHESIZER(expire_items_single_map),
-                                             POPULATE_SYNTHESIZER(expire_items_single_map_iteratively),
-                                             POPULATE_SYNTHESIZER(map_get),
-                                             POPULATE_SYNTHESIZER(map_put),
-                                             POPULATE_SYNTHESIZER(map_erase),
-                                             POPULATE_SYNTHESIZER(map_size),
-                                             POPULATE_SYNTHESIZER(vector_borrow),
-                                             POPULATE_SYNTHESIZER(vector_return),
-                                             POPULATE_SYNTHESIZER(vector_clear),
-                                             POPULATE_SYNTHESIZER(vector_sample_lt),
-                                             POPULATE_SYNTHESIZER(dchain_allocate_new_index),
-                                             POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
-                                             POPULATE_SYNTHESIZER(dchain_expire_one),
-                                             POPULATE_SYNTHESIZER(dchain_is_index_allocated),
-                                             POPULATE_SYNTHESIZER(dchain_free_index),
-                                             POPULATE_SYNTHESIZER(cms_increment),
-                                             POPULATE_SYNTHESIZER(cms_count_min),
-                                             POPULATE_SYNTHESIZER(cms_periodic_cleanup),
-                                             POPULATE_SYNTHESIZER(tb_is_tracing),
-                                             POPULATE_SYNTHESIZER(tb_trace),
-                                             POPULATE_SYNTHESIZER(tb_update_and_check),
-                                             POPULATE_SYNTHESIZER(tb_expire),
-                                             POPULATE_SYNTHESIZER(lpm_lookup),
-                                             POPULATE_SYNTHESIZER(lpm_update),
-                                             POPULATE_SYNTHESIZER(lpm_from_file),
-                                         }) {}
+      bdd(_bdd), target(_target), transpiler(this), function_synthesizers({
+                                                        POPULATE_SYNTHESIZER(map_allocate),
+                                                        POPULATE_SYNTHESIZER(vector_allocate),
+                                                        POPULATE_SYNTHESIZER(dchain_allocate),
+                                                        POPULATE_SYNTHESIZER(cms_allocate),
+                                                        POPULATE_SYNTHESIZER(tb_allocate),
+                                                        POPULATE_SYNTHESIZER(lpm_allocate),
+                                                        POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
+                                                        POPULATE_SYNTHESIZER(packet_return_chunk),
+                                                        POPULATE_SYNTHESIZER(nf_set_rte_ipv4_udptcp_checksum),
+                                                        POPULATE_SYNTHESIZER(expire_items_single_map),
+                                                        POPULATE_SYNTHESIZER(expire_items_single_map_iteratively),
+                                                        POPULATE_SYNTHESIZER(map_get),
+                                                        POPULATE_SYNTHESIZER(map_put),
+                                                        POPULATE_SYNTHESIZER(map_erase),
+                                                        POPULATE_SYNTHESIZER(map_size),
+                                                        POPULATE_SYNTHESIZER(vector_borrow),
+                                                        POPULATE_SYNTHESIZER(vector_return),
+                                                        POPULATE_SYNTHESIZER(vector_clear),
+                                                        POPULATE_SYNTHESIZER(vector_sample_lt),
+                                                        POPULATE_SYNTHESIZER(dchain_allocate_new_index),
+                                                        POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
+                                                        POPULATE_SYNTHESIZER(dchain_expire_one),
+                                                        POPULATE_SYNTHESIZER(dchain_is_index_allocated),
+                                                        POPULATE_SYNTHESIZER(dchain_free_index),
+                                                        POPULATE_SYNTHESIZER(cms_increment),
+                                                        POPULATE_SYNTHESIZER(cms_count_min),
+                                                        POPULATE_SYNTHESIZER(cms_periodic_cleanup),
+                                                        POPULATE_SYNTHESIZER(tb_is_tracing),
+                                                        POPULATE_SYNTHESIZER(tb_trace),
+                                                        POPULATE_SYNTHESIZER(tb_update_and_check),
+                                                        POPULATE_SYNTHESIZER(tb_expire),
+                                                        POPULATE_SYNTHESIZER(lpm_lookup),
+                                                        POPULATE_SYNTHESIZER(lpm_update),
+                                                        POPULATE_SYNTHESIZER(lpm_from_file),
+                                                    }) {}
 
-void BDDSynthesizer::synthesize(const BDD *bdd) {
+void BDDSynthesizer::synthesize() {
   // Global state
   stack_push();
 
-  init_pre_process(bdd);
-  process(bdd);
+  init_pre_process();
+  process();
   init_post_process();
 
   Synthesizer::dump();
 }
 
-void BDDSynthesizer::init_pre_process(const BDD *bdd) {
+void BDDSynthesizer::init_pre_process() {
   coder_t &coder = get(MARKER_NF_INIT);
 
   coder << "bool nf_init() {\n";
@@ -709,7 +709,7 @@ void BDDSynthesizer::init_post_process() {
   coder << "}\n";
 }
 
-void BDDSynthesizer::process(const BDD *bdd) {
+void BDDSynthesizer::process() {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
   LibCore::symbol_t device = bdd->get_device();

@@ -58,5 +58,27 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
   return impls;
 }
 
+std::unique_ptr<Module> ParserExtractionFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "packet_borrow_next_chunk") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> hdr_addr_expr = call.args.at("chunk").out;
+  klee::ref<klee::Expr> hdr           = call.extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> length_expr   = call.args.at("length").expr;
+
+  addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
+  bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
+
+  return std::make_unique<ParserExtraction>(node, hdr_addr, hdr, length);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

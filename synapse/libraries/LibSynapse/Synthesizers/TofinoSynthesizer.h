@@ -16,6 +16,11 @@ namespace LibSynapse {
 namespace Tofino {
 
 class TofinoSynthesizer : public LibCore::Synthesizer, public EPVisitor {
+public:
+  TofinoSynthesizer(const EP *ep, std::ostream &out, const LibBDD::BDD *bdd);
+
+  virtual void synthesize() override final;
+
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
   private:
@@ -88,7 +93,7 @@ private:
 
   class Stack {
   private:
-    std::vector<var_t> vars;
+    std::vector<var_t> frames;
     std::unordered_set<code_t> names;
 
   public:
@@ -153,14 +158,9 @@ private:
   std::vector<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
 
+  const EP *ep;
   Transpiler transpiler;
 
-public:
-  TofinoSynthesizer(std::ostream &out, const LibBDD::BDD *bdd);
-
-  coder_t &get(const std::string &marker) override final;
-
-  void visit(const EP *ep) override final;
   void visit(const EP *ep, const EPNode *ep_node) override final;
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
@@ -185,7 +185,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
 
-private:
+  coder_t &get(const std::string &marker) override final;
   code_t transpile(klee::ref<klee::Expr> expr);
 
   code_t create_unique_name(const code_t &name);

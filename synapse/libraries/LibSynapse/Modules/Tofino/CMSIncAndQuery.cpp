@@ -6,7 +6,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-bool is_inc_and_query_cms(const EP *ep, const LibBDD::Call *cms_increment) {
+bool is_inc_and_query_cms(const LibBDD::Call *cms_increment) {
   if (cms_increment->get_call().function_name != "cms_increment") {
     return false;
   }
@@ -41,7 +41,7 @@ std::optional<spec_impl_t> CMSIncAndQueryFactory::speculate(const EP *ep, const 
   const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call        = cms_increment->get_call();
 
-  if (!is_inc_and_query_cms(ep, cms_increment)) {
+  if (!is_inc_and_query_cms(cms_increment)) {
     return std::nullopt;
   }
 
@@ -82,7 +82,7 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
 
   const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
 
-  if (!is_inc_and_query_cms(ep, cms_increment)) {
+  if (!is_inc_and_query_cms(cms_increment)) {
     return impls;
   }
 
@@ -124,6 +124,37 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> CMSIncAndQueryFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
+
+  if (!is_inc_and_query_cms(cms_increment)) {
+    return {};
+  }
+
+  const LibBDD::Call *count_min = dynamic_cast<const LibBDD::Call *>(node->get_next());
+  const LibBDD::call_t &call    = count_min->get_call();
+
+  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> min_estimate  = count_min->get_local_symbol("min_estimate").expr;
+
+  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(cms_addr);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const CountMinSketch *cms = dynamic_cast<const CountMinSketch *>(*ds.begin());
+
+  return std::make_unique<CMSIncAndQuery>(node, cms->id, cms_addr, key, min_estimate);
 }
 
 } // namespace Tofino

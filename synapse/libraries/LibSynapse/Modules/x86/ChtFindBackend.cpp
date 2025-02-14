@@ -79,5 +79,31 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const LibB
   return impls;
 }
 
+std::unique_ptr<Module> ChtFindBackendFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> cht      = call.args.at("cht").expr;
+  klee::ref<klee::Expr> backends = call.args.at("active_backends").expr;
+  klee::ref<klee::Expr> hash     = call.args.at("hash").expr;
+  klee::ref<klee::Expr> height   = call.args.at("cht_height").expr;
+  klee::ref<klee::Expr> capacity = call.args.at("backend_capacity").expr;
+  klee::ref<klee::Expr> backend  = call.args.at("chosen_backend").out;
+
+  addr_t cht_addr      = LibCore::expr_addr_to_obj_addr(cht);
+  addr_t backends_addr = LibCore::expr_addr_to_obj_addr(backends);
+
+  if (!ctx.check_ds_impl(cht_addr, DSImpl::x86_ConsistentHashTable)) {
+    return {};
+  }
+
+  return std::make_unique<ChtFindBackend>(node, cht_addr, backends_addr, hash, height, capacity, backend,
+                                          call_node->get_local_symbol("prefered_backend_found"));
+}
+
 } // namespace x86
 } // namespace LibSynapse

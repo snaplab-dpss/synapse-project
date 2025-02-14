@@ -197,12 +197,12 @@ search_report_t SearchEngine::search() {
 
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
-      for (const std::unique_ptr<ModuleFactory> &modgen : target->module_factories) {
+      for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
         const std::vector<impl_t> implementations =
-            modgen->generate(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
+            factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 
-        search_space->add_to_active_leaf(ep.get(), node, modgen.get(), implementations);
-        report.save(modgen.get(), implementations);
+        search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
+        report.save(factory.get(), implementations);
         new_implementations.insert(new_implementations.end(), implementations.begin(), implementations.end());
 
         if (target->type == TargetType::Tofino) {

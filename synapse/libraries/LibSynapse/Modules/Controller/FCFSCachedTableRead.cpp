@@ -8,8 +8,7 @@ using Tofino::DS_ID;
 using Tofino::Table;
 
 namespace {
-DS_ID get_cached_table_id(const EP *ep, addr_t obj) {
-  const Context &ctx                                      = ep->get_ctx();
+DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
@@ -83,7 +82,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     return impls;
   }
 
-  DS_ID id = get_cached_table_id(ep, obj);
+  DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
 
   Module *module  = new FCFSCachedTableRead(node, id, obj, keys, value, found);
   EPNode *ep_node = new EPNode(module);
@@ -95,6 +94,35 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "map_get") {
+    return {};
+  }
+
+  addr_t obj;
+  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> value;
+  std::optional<LibCore::symbol_t> found;
+  get_data(call_node, obj, keys, value, found);
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_ds(obj);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
+
+  return std::make_unique<FCFSCachedTableRead>(node, fcfs_cached_table->id, obj, keys, value, found);
 }
 
 } // namespace Controller

@@ -61,5 +61,29 @@ std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const LibBDD::N
   return impls;
 }
 
+std::unique_ptr<Module> CMSUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "cms_increment") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+
+  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+    return {};
+  }
+
+  return std::make_unique<CMSUpdate>(node, cms_addr, key);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

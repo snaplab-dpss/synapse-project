@@ -35,16 +35,16 @@ int main(int argc, char **argv) {
 
   if (output_file.empty()) {
     std::ostream os(std::cout.rdbuf());
-    LibBDD::BDDSynthesizer synthesizer(target, os);
-    synthesizer.synthesize(&bdd);
+    LibBDD::BDDSynthesizer synthesizer(&bdd, target, os);
+    synthesizer.synthesize();
   } else {
     assert(!std::filesystem::is_directory(output_file));
     if (output_file.has_parent_path()) {
       std::filesystem::create_directories(output_file.parent_path());
     }
     std::ofstream os(output_file);
-    LibBDD::BDDSynthesizer synthesizer(target, os);
-    synthesizer.synthesize(&bdd);
+    LibBDD::BDDSynthesizer synthesizer(&bdd, target, os);
+    synthesizer.synthesize();
     std::cerr << "Output written to " << output_file << ".\n";
   }
 

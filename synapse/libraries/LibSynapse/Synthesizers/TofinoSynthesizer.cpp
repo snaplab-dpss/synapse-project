@@ -35,7 +35,7 @@ const Parser &get_tofino_parser(const EP *ep) {
   return tna.parser;
 }
 
-bool naturalCompare(const std::string &a, const std::string &b) {
+bool natural_compare(const std::string &a, const std::string &b) {
   size_t i = 0, j = 0;
 
   while (i < a.size() && j < b.size()) {
@@ -847,24 +847,24 @@ TofinoSynthesizer::code_t TofinoSynthesizer::var_t::get_stem() const {
 
 void TofinoSynthesizer::Stack::push(const var_t &var) {
   if (names.find(var.name) == names.end()) {
-    vars.push_back(var);
+    frames.push_back(var);
     names.insert(var.name);
   }
 }
 
 void TofinoSynthesizer::Stack::push(const Stack &stack) {
-  for (const var_t &var : stack.vars) {
+  for (const var_t &var : stack.frames) {
     push(var);
   }
 }
 
 void TofinoSynthesizer::Stack::clear() {
-  vars.clear();
+  frames.clear();
   names.clear();
 }
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact(klee::ref<klee::Expr> expr) const {
-  for (auto var_it = vars.rbegin(); var_it != vars.rend(); var_it++) {
+  for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
     if (LibCore::solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       return var;
@@ -879,7 +879,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
     return var;
   }
 
-  for (auto var_it = vars.rbegin(); var_it != vars.rend(); var_it++) {
+  for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
 
     bits_t expr_size = expr->getWidth();
@@ -900,7 +900,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
   return std::nullopt;
 }
 
-std::vector<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_all() const { return vars; }
+std::vector<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_all() const { return frames; }
 
 void TofinoSynthesizer::Stacks::push() { stacks.emplace_back(); }
 
@@ -940,7 +940,7 @@ void TofinoSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<TofinoSynthesizer::Stack> TofinoSynthesizer::Stacks::get_all() const { return stacks; }
 
-TofinoSynthesizer::TofinoSynthesizer(std::ostream &_out, const LibBDD::BDD *bdd)
+TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::ostream &_out, const LibBDD::BDD *bdd)
     : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                   {
                       {MARKER_CPU_HEADER, 1},
@@ -957,7 +957,7 @@ TofinoSynthesizer::TofinoSynthesizer(std::ostream &_out, const LibBDD::BDD *bdd)
                       {MARKER_EGRESS_METADATA, 1},
                   },
                   _out),
-      transpiler(this) {
+      ep(_ep), transpiler(this) {
   LibCore::symbol_t device = bdd->get_device();
   LibCore::symbol_t time   = bdd->get_time();
 
@@ -972,7 +972,7 @@ TofinoSynthesizer::coder_t &TofinoSynthesizer::get(const std::string &marker) {
   return Synthesizer::get(marker);
 }
 
-void TofinoSynthesizer::visit(const EP *ep) {
+void TofinoSynthesizer::synthesize() {
   EPVisitor::visit(ep);
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
@@ -1024,10 +1024,14 @@ void TofinoSynthesizer::visit(const EP *ep) {
 
 void TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-  ingress_apply.indent();
-  ingress_apply << "// EP node  " << ep_node->get_id() << "\n";
-  ingress_apply.indent();
-  ingress_apply << "// BDD node " << ep_node->get_module()->get_node()->dump(true) << "\n";
+
+  if (ep_node->get_module()->get_target() == TargetType::Tofino) {
+    ingress_apply.indent();
+    ingress_apply << "// EP node  " << ep_node->get_id() << "\n";
+    ingress_apply.indent();
+    ingress_apply << "// BDD node " << ep_node->get_module()->get_node()->dump(true) << "\n";
+  }
+
   EPVisitor::visit(ep, ep_node);
 }
 
@@ -1571,7 +1575,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::vector<const Register *> regs;
   std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
-  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
+  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return natural_compare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {
@@ -1620,7 +1624,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::vector<const Register *> regs;
   std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
-  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return naturalCompare(r0->id, r1->id); });
+  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return natural_compare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
     if (declared_ds.find(reg->id) == declared_ds.end()) {

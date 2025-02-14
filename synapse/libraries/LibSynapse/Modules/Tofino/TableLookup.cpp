@@ -5,7 +5,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-table_data_t table_data_from_map_op(const EP *ep, const LibBDD::Call *call_node) {
+table_data_t table_data_from_map_op(const Context &ctx, const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "map_get" && "Unexpected function");
 
@@ -16,7 +16,6 @@ table_data_t table_data_from_map_op(const EP *ep, const LibBDD::Call *call_node)
   LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
   addr_t obj                         = LibCore::expr_addr_to_obj_addr(map_addr_expr);
 
-  const Context &ctx              = ep->get_ctx();
   const LibBDD::map_config_t &cfg = ctx.get_map_config(obj);
 
   table_data_t table_data = {
@@ -30,7 +29,7 @@ table_data_t table_data_from_map_op(const EP *ep, const LibBDD::Call *call_node)
   return table_data;
 }
 
-table_data_t table_data_from_vector_op(const EP *ep, const LibBDD::Call *call_node) {
+table_data_t table_data_from_vector_op(const Context &ctx, const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "vector_borrow" && "Unexpected function");
 
@@ -40,7 +39,6 @@ table_data_t table_data_from_vector_op(const EP *ep, const LibBDD::Call *call_no
 
   addr_t obj = LibCore::expr_addr_to_obj_addr(vector_addr_expr);
 
-  const Context &ctx                 = ep->get_ctx();
   const LibBDD::vector_config_t &cfg = ctx.get_vector_config(obj);
 
   table_data_t table_data = {
@@ -54,7 +52,7 @@ table_data_t table_data_from_vector_op(const EP *ep, const LibBDD::Call *call_no
   return table_data;
 }
 
-table_data_t table_data_from_dchain_op(const EP *ep, const LibBDD::Call *call_node) {
+table_data_t table_data_from_dchain_op(const Context &ctx, const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
   assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Unexpected function");
 
@@ -63,7 +61,6 @@ table_data_t table_data_from_dchain_op(const EP *ep, const LibBDD::Call *call_no
 
   addr_t dchain_addr = LibCore::expr_addr_to_obj_addr(dchain_addr_expr);
 
-  const Context &ctx                 = ep->get_ctx();
   const LibBDD::dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
 
   table_data_t table_data = {
@@ -81,11 +78,11 @@ table_data_t table_data_from_dchain_op(const EP *ep, const LibBDD::Call *call_no
   return table_data;
 }
 
-std::optional<table_data_t> get_table_data(const EP *ep, const LibBDD::Call *call_node) {
+std::optional<table_data_t> get_table_data(const Context &ctx, const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
 
   if (call.function_name == "map_get") {
-    return table_data_from_map_op(ep, call_node);
+    return table_data_from_map_op(ctx, call_node);
   }
 
   if (call.function_name == "vector_borrow") {
@@ -93,11 +90,11 @@ std::optional<table_data_t> get_table_data(const EP *ep, const LibBDD::Call *cal
       return std::nullopt;
     }
 
-    return table_data_from_vector_op(ep, call_node);
+    return table_data_from_vector_op(ctx, call_node);
   }
 
   if (call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") {
-    return table_data_from_dchain_op(ep, call_node);
+    return table_data_from_dchain_op(ctx, call_node);
   }
 
   return std::nullopt;
@@ -115,7 +112,7 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  std::optional<table_data_t> table_data = get_table_data(ep, call_node);
+  std::optional<table_data_t> table_data = get_table_data(ep->get_ctx(), call_node);
 
   if (!table_data.has_value()) {
     return std::nullopt;
@@ -148,7 +145,7 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  std::optional<table_data_t> table_data = get_table_data(ep, call_node);
+  std::optional<table_data_t> table_data = get_table_data(ep->get_ctx(), call_node);
 
   if (!table_data.has_value()) {
     return impls;
@@ -180,6 +177,29 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const LibBDD:
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> TableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+
+  std::optional<table_data_t> table_data = get_table_data(ctx, call_node);
+
+  if (!table_data.has_value()) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(table_data->obj, DSImpl::Tofino_Table)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(table_data->obj);
+  const Table *table                                    = dynamic_cast<const Table *>(*ds.begin());
+
+  return std::make_unique<TableLookup>(node, table->id, table_data->obj, table_data->keys, table_data->values, table_data->hit);
 }
 
 } // namespace Tofino

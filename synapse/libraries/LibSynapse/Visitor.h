@@ -168,7 +168,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
 
   // ========================================
-  // Tofino CPU
+  // Controller
   // ========================================
 
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *m) { return Action::doChildren; }

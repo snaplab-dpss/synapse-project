@@ -15,7 +15,7 @@ struct fcfs_cached_table_data_t {
   klee::ref<klee::Expr> write_value;
   u32 num_entries;
 
-  fcfs_cached_table_data_t(const EP *ep, std::vector<const LibBDD::Call *> future_map_puts) {
+  fcfs_cached_table_data_t(const Context &ctx, std::vector<const LibBDD::Call *> future_map_puts) {
     assert(!future_map_puts.empty() && "No future map puts");
     const LibBDD::Call *map_put = future_map_puts.front();
 
@@ -24,7 +24,7 @@ struct fcfs_cached_table_data_t {
     obj         = LibCore::expr_addr_to_obj_addr(put_call.args.at("map").expr);
     key         = put_call.args.at("key").in;
     write_value = put_call.args.at("value").expr;
-    num_entries = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries = ctx.get_map_config(obj).capacity;
   }
 };
 
@@ -264,7 +264,7 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  fcfs_cached_table_data_t cached_table_data(ep, future_map_puts);
+  fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), future_map_puts);
 
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
@@ -350,7 +350,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
   }
 
   LibCore::symbol_t cache_write_failed = symbol_manager->create_symbol("cache_write_failed", 32);
-  fcfs_cached_table_data_t cached_table_data(ep, future_map_puts);
+  fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), future_map_puts);
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
@@ -363,6 +363,41 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
   }
 
   return impls;
+}
+
+std::unique_ptr<Module> FCFSCachedTableWriteFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *dchain_allocate_new_index = dynamic_cast<const LibBDD::Call *>(node);
+
+  std::vector<const LibBDD::Call *> future_map_puts;
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+    return {};
+  }
+
+  assert(!future_map_puts.empty() && "No future map puts");
+
+  LibBDD::map_coalescing_objs_t map_objs;
+  if (!bdd->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+    return {};
+  }
+
+  fcfs_cached_table_data_t cached_table_data(ctx, future_map_puts);
+  LibCore::symbol_t mock_cache_write_failed;
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs.map);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
+
+  return std::make_unique<FCFSCachedTableWrite>(node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key,
+                                                cached_table_data.write_value, mock_cache_write_failed);
 }
 
 } // namespace Tofino

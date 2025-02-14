@@ -73,5 +73,28 @@ std::vector<impl_t> HHTableDeleteFactory::process_node(const EP *ep, const LibBD
   return impls;
 }
 
+std::unique_ptr<Module> HHTableDeleteFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "map_erase") {
+    return {};
+  }
+
+  addr_t obj;
+  std::vector<klee::ref<klee::Expr>> keys;
+  get_map_erase_data(call_node, obj, keys);
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
+    return {};
+  }
+
+  return std::make_unique<HHTableDelete>(node, obj, keys);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

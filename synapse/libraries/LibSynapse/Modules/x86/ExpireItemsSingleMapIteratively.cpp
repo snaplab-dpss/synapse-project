@@ -60,5 +60,27 @@ std::vector<impl_t> ExpireItemsSingleMapIterativelyFactory::process_node(const E
   return impls;
 }
 
+std::unique_ptr<Module> ExpireItemsSingleMapIterativelyFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
+                                                                       const LibBDD::Node *node) const {
+  std::vector<impl_t> impls;
+
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> map_addr_expr    = call.args.at("map").expr;
+  klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> start            = call.args.at("start").expr;
+  klee::ref<klee::Expr> n_elems          = call.args.at("n_elems").expr;
+
+  addr_t map_addr    = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_addr_expr);
+
+  return std::make_unique<ExpireItemsSingleMapIteratively>(node, map_addr, vector_addr, start, n_elems);
+}
+
 } // namespace x86
 } // namespace LibSynapse

@@ -63,7 +63,7 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const LibBDD::call_t &ca
   return true;
 }
 
-bool should_ignore(const EP *ep, const Context &ctx, const LibBDD::Node *node) {
+bool should_ignore(const Context &ctx, const LibBDD::Node *node) {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return false;
   }
@@ -97,7 +97,7 @@ bool should_ignore(const EP *ep, const Context &ctx, const LibBDD::Node *node) {
 } // namespace
 
 std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (!should_ignore(ep, ctx, node)) {
+  if (!should_ignore(ctx, node)) {
     return std::nullopt;
   }
 
@@ -107,7 +107,7 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const LibBDD::
 std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
-  if (!should_ignore(ep, ep->get_ctx(), node)) {
+  if (!should_ignore(ep->get_ctx(), node)) {
     return impls;
   }
 
@@ -121,6 +121,14 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const LibBDD::Node
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> IgnoreFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!should_ignore(ctx, node)) {
+    return {};
+  }
+
+  return std::make_unique<Ignore>(node);
 }
 
 } // namespace Tofino

@@ -90,5 +90,33 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const LibBDD
   return impls;
 }
 
+std::unique_ptr<Module> CMSIncrementFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "cms_increment") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+
+  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(cms_addr);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const CountMinSketch *cms = dynamic_cast<const CountMinSketch *>(*ds.begin());
+
+  return std::make_unique<CMSIncrement>(node, cms->id, cms_addr, key);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

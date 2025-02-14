@@ -305,5 +305,10 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   return impls;
 }
 
+std::unique_ptr<Module> HHTableConditionalUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
+                                                                const LibBDD::Node *node) const {
+  return {};
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

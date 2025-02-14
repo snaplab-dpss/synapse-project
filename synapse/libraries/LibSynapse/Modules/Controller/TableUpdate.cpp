@@ -129,5 +129,26 @@ std::vector<impl_t> TableUpdateFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> TableUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+
+  addr_t obj;
+  std::vector<klee::ref<klee::Expr>> keys;
+  std::vector<klee::ref<klee::Expr>> values;
+  if (!get_table_update_data(call_node, obj, keys, values)) {
+    return {};
+  }
+
+  if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
+    return {};
+  }
+
+  return std::make_unique<TableUpdate>(node, obj, keys, values);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

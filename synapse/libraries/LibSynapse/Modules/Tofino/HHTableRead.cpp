@@ -13,7 +13,7 @@ struct hh_table_data_t {
   LibCore::symbol_t map_has_this_key;
   u32 num_entries;
 
-  hh_table_data_t(const EP *ep, const LibBDD::Call *map_get) {
+  hh_table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
     const LibBDD::call_t &call = map_get->get_call();
     assert(call.function_name == "map_get" && "Not a map_get call");
 
@@ -24,7 +24,7 @@ struct hh_table_data_t {
     table_keys       = Table::build_keys(key);
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_has_this_key_symbol;
-    num_entries      = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries      = ctx.get_map_config(obj).capacity;
   }
 };
 
@@ -70,7 +70,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  hh_table_data_t table_data(ep, map_get);
+  hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT)) {
     return std::nullopt;
@@ -114,7 +114,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  hh_table_data_t table_data(ep, map_get);
+  hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   HHTable *hh_table =
       build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT);
@@ -143,6 +143,44 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   new_ep->process_leaf(ep_node, {leaf});
 
   return impls;
+}
+
+std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call  = map_get->get_call();
+
+  if (call.function_name != "map_get") {
+    return {};
+  }
+
+  LibBDD::map_coalescing_objs_t map_objs;
+  if (!bdd->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+    return {};
+  }
+
+  LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
+  if (!mpsc.branch) {
+    return {};
+  }
+
+  hh_table_data_t table_data(ctx, map_get);
+  LibCore::symbol_t mock_min_estimate;
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs.map);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
+
+  return std::make_unique<HHTableRead>(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
+                                       table_data.map_has_this_key, mock_min_estimate);
 }
 
 } // namespace Tofino

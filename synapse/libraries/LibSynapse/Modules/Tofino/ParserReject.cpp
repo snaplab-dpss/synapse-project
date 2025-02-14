@@ -76,5 +76,20 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD
   return impls;
 }
 
+std::unique_ptr<Module> ParserRejectFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Route) {
+    return {};
+  }
+
+  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
+  LibBDD::RouteOp op              = route_node->get_operation();
+
+  if (op != LibBDD::RouteOp::Drop) {
+    return {};
+  }
+
+  return std::make_unique<ParserReject>(node);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

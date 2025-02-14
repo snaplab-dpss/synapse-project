@@ -68,5 +68,31 @@ std::vector<impl_t> IntegerAllocatorRejuvenateFactory::process_node(const EP *ep
   return impls;
 }
 
+std::unique_ptr<Module> IntegerAllocatorRejuvenateFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
+                                                                  const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (!call.function_name.compare("dchain_rejuvenate_index")) {
+    return {};
+  }
+
+  klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  klee::ref<klee::Expr> time             = call.args.at("time").expr;
+
+  addr_t dchain_addr = LibCore::expr_addr_to_obj_addr(dchain_addr_expr);
+
+  if (!ctx.can_impl_ds(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
+    return {};
+  }
+
+  return std::make_unique<IntegerAllocatorRejuvenate>(node, dchain_addr, index, time);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

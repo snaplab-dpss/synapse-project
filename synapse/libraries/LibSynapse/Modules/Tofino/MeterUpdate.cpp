@@ -5,7 +5,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-bool get_tb_data(const EP *ep, const LibBDD::Call *tb_is_tracing, const LibBDD::Call *tb_update_and_check, addr_t &obj,
+bool get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, const LibBDD::Call *tb_update_and_check, addr_t &obj,
                  LibBDD::tb_config_t &cfg, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> pkt_len,
                  klee::ref<klee::Expr> &hit, klee::ref<klee::Expr> pass, DS_ID &id) {
   const LibBDD::call_t &call_is_tracing = tb_is_tracing->get_call();
@@ -25,9 +25,7 @@ bool get_tb_data(const EP *ep, const LibBDD::Call *tb_is_tracing, const LibBDD::
   hit     = is_tracing;
   pass    = call_update.ret;
   id      = "tb_" + std::to_string(tb_is_tracing->get_id());
-
-  const Context &ctx = ep->get_ctx();
-  cfg                = ctx.get_tb_config(obj);
+  cfg     = ctx.get_tb_config(obj);
 
   return true;
 }
@@ -94,7 +92,7 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Lib
   klee::ref<klee::Expr> pass;
   DS_ID id;
 
-  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
+  if (!get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
     return std::nullopt;
   }
 
@@ -141,7 +139,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
   klee::ref<klee::Expr> pass;
   DS_ID id;
 
-  if (!get_tb_data(ep, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
+  if (!get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
     return impls;
   }
 
@@ -175,6 +173,41 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
   new_ep->replace_bdd(std::move(new_bdd));
 
   return impls;
+}
+
+std::unique_ptr<Module> MeterUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *tb_is_tracing = dynamic_cast<const LibBDD::Call *>(node);
+
+  const LibBDD::Call *tb_update_and_check;
+  if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
+    return {};
+  }
+
+  addr_t obj;
+  LibBDD::tb_config_t cfg;
+  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> pkt_len;
+  klee::ref<klee::Expr> hit;
+  klee::ref<klee::Expr> pass;
+  DS_ID id;
+
+  if (!get_tb_data(ctx, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_Meter)) {
+    return {};
+  }
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(obj);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const Meter *meter = dynamic_cast<const Meter *>(*ds.begin());
+
+  return std::make_unique<MeterUpdate>(node, meter->id, obj, keys, pkt_len, hit, pass);
 }
 
 } // namespace Tofino

@@ -82,5 +82,10 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   return impls;
 }
 
+std::unique_ptr<Module> SendToControllerFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  // We don't actually create a module for recirculation.
+  return {};
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

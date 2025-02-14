@@ -131,5 +131,27 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
+std::unique_ptr<Module> TableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+
+  addr_t obj;
+  std::vector<klee::ref<klee::Expr>> keys;
+  std::vector<klee::ref<klee::Expr>> values;
+  std::optional<LibCore::symbol_t> found;
+  if (!get_table_lookup_data(call_node, obj, keys, values, found)) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_Table)) {
+    return {};
+  }
+
+  return std::make_unique<TableLookup>(node, obj, keys, values, found);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

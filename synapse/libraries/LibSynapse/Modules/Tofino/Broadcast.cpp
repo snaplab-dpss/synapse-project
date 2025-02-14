@@ -61,5 +61,20 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const LibBDD::N
   return impls;
 }
 
+std::unique_ptr<Module> BroadcastFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Route) {
+    return {};
+  }
+
+  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
+  LibBDD::RouteOp op              = route_node->get_operation();
+
+  if (op != LibBDD::RouteOp::Broadcast) {
+    return {};
+  }
+
+  return std::make_unique<Broadcast>(node);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

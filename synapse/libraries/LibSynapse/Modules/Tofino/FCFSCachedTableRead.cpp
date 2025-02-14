@@ -5,6 +5,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
+
 struct fcfs_cached_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
@@ -12,14 +13,14 @@ struct fcfs_cached_table_data_t {
   LibCore::symbol_t map_has_this_key;
   u32 num_entries;
 
-  fcfs_cached_table_data_t(const EP *ep, const LibBDD::Call *map_get) {
+  fcfs_cached_table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
     const LibBDD::call_t &call = map_get->get_call();
 
     obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    num_entries      = ep->get_ctx().get_map_config(obj).capacity;
+    num_entries      = ctx.get_map_config(obj).capacity;
   }
 };
 
@@ -73,7 +74,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return std::nullopt;
   }
 
-  fcfs_cached_table_data_t cached_table_data(ep, map_get);
+  fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get);
 
   FCFSCachedTable *fcfs_cached_table = get_fcfs_cached_table(ep, node, cached_table_data.obj);
   if (!fcfs_cached_table) {
@@ -115,7 +116,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     return impls;
   }
 
-  fcfs_cached_table_data_t cached_table_data(ep, map_get);
+  fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get);
 
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
 
@@ -129,6 +130,38 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
   }
 
   return impls;
+}
+
+std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call  = map_get->get_call();
+
+  if (call.function_name != "map_get") {
+    return {};
+  }
+
+  LibBDD::map_coalescing_objs_t map_objs;
+  if (!bdd->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+    return {};
+  }
+
+  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+    return {};
+  }
+
+  fcfs_cached_table_data_t cached_table_data(ctx, map_get);
+
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs.map);
+  assert(ds.size() == 1 && "Expected exactly one DS");
+  const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
+
+  return std::make_unique<FCFSCachedTableRead>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
+                                               cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
 }
 
 } // namespace Tofino

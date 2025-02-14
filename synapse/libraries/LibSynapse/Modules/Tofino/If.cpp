@@ -100,5 +100,33 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
   return impls;
 }
 
+std::unique_ptr<Module> IfFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Branch) {
+    return {};
+  }
+
+  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+
+  if (branch_node->is_parser_condition()) {
+    return {};
+  }
+
+  klee::ref<klee::Expr> condition    = branch_node->get_condition();
+  const LibSynapse::Tofino::TNA &tna = ctx.get_target_ctx<TofinoContext>()->get_tna();
+
+  std::vector<klee::ref<klee::Expr>> conditions;
+  for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
+    if (!tna.condition_meets_phv_limit(sub_condition)) {
+      panic("TODO: deal with this");
+      return {};
+    }
+
+    klee::ref<klee::Expr> simplified = LibCore::simplify_conditional(sub_condition);
+    conditions.push_back(simplified);
+  }
+
+  return std::make_unique<If>(node, condition, conditions);
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

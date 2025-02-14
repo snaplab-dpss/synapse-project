@@ -47,6 +47,8 @@ public:
   Synthesizer(std::filesystem::path _template_file, std::unordered_map<marker_t, indent_t> markers, std::ostream &_out);
   virtual ~Synthesizer() = default;
 
+  virtual void synthesize() = 0;
+
 protected:
   virtual coder_t &get(const marker_t &marker);
   void dump() const;

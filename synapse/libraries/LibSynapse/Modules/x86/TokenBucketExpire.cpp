@@ -64,5 +64,29 @@ std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const LibBDD::No
   return impls;
 }
 
+std::unique_ptr<Module> TBExpireFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "tb_expire") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
+  klee::ref<klee::Expr> time         = call.args.at("time").expr;
+
+  addr_t tb_addr = LibCore::expr_addr_to_obj_addr(tb_addr_expr);
+
+  if (!ctx.check_ds_impl(tb_addr, DSImpl::x86_TokenBucket)) {
+    return {};
+  }
+
+  return std::make_unique<TokenBucketExpire>(node, tb_addr, time);
+}
+
 } // namespace x86
 } // namespace LibSynapse

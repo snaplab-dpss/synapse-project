@@ -51,7 +51,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) override final;
 
   // ========================================
-  // Tofino CPU
+  // Controller
   // ========================================
 
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) override final;

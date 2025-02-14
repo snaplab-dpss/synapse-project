@@ -460,4 +460,18 @@ bool Call::is_tb_tracing_check_followed_by_update_on_true(const Call *&tb_update
   return tb_update_and_check != nullptr;
 }
 
+const Call *Call::packet_borrow_from_return() const {
+  assert(call.function_name == "packet_return_chunk" && "Unexpected function");
+
+  klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
+
+  std::vector<const Call *> prev_borrows = get_prev_functions({"packet_borrow_next_chunk"});
+  std::vector<const Call *> prev_returns = get_prev_functions({"packet_return_chunk"});
+
+  assert(prev_borrows.size() && "No previous borrows");
+  assert(prev_borrows.size() > prev_returns.size() && "No previous borrow");
+
+  return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
+}
+
 } // namespace LibBDD

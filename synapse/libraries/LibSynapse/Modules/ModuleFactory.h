@@ -65,8 +65,9 @@ public:
 
   virtual ~ModuleFactory() {}
 
-  std::vector<impl_t> generate(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager, bool reorder_bdd) const;
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const = 0;
+  std::vector<impl_t> implement(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager, bool reorder_bdd) const;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const     = 0;
+  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const = 0;
 
   ModuleType get_type() const { return type; }
   TargetType get_target() const { return target; }

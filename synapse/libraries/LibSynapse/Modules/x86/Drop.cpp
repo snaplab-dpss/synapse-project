@@ -46,5 +46,13 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const LibBDD::Node *
   return impls;
 }
 
+std::unique_ptr<Module> DropFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  return std::make_unique<Drop>(node);
+}
+
 } // namespace x86
 } // namespace LibSynapse

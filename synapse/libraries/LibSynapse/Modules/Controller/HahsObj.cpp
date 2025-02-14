@@ -51,5 +51,26 @@ std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const LibBDD::Nod
   return impls;
 }
 
+std::unique_ptr<Module> HashObjFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (node->get_type() != LibBDD::NodeType::Call) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  if (call.function_name != "hash_obj") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> obj_addr_expr = call.args.at("obj").expr;
+  klee::ref<klee::Expr> size          = call.args.at("size").expr;
+  klee::ref<klee::Expr> hash          = call.ret;
+
+  addr_t obj_addr = LibCore::expr_addr_to_obj_addr(obj_addr_expr);
+
+  return std::make_unique<HashObj>(node, obj_addr, size, hash);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

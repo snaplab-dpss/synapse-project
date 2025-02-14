@@ -68,5 +68,25 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD
   return impls;
 }
 
+std::unique_ptr<Module> ModifyHeaderFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *packet_return_chunk = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call              = packet_return_chunk->get_call();
+
+  addr_t hdr_addr                          = LibCore::expr_addr_to_obj_addr(call.args.at("the_chunk").expr);
+  klee::ref<klee::Expr> borrowed           = call.extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> returned           = call.args.at("the_chunk").in;
+  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(borrowed, returned);
+
+  if (changes.empty()) {
+    return {};
+  }
+
+  return std::make_unique<ModifyHeader>(node, hdr_addr, changes);
+}
+
 } // namespace x86
 } // namespace LibSynapse

@@ -76,5 +76,28 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const LibBDD::Node
   return impls;
 }
 
+std::unique_ptr<Module> MapPutFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
+  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> value         = call.args.at("value").expr;
+
+  addr_t map_addr = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  addr_t key_addr = LibCore::expr_addr_to_obj_addr(key_addr_expr);
+
+  if (!ctx.check_ds_impl(map_addr, DSImpl::x86_Map)) {
+    return {};
+  }
+
+  return std::make_unique<MapPut>(node, map_addr, key_addr, key, value);
+}
+
 } // namespace x86
 } // namespace LibSynapse
