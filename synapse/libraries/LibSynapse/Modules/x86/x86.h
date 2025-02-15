@@ -69,10 +69,10 @@ struct x86Target : public Target {
               f.push_back(std::make_unique<CMSPeriodicCleanupFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
               f.push_back(std::make_unique<ChtFindBackendFactory>());
-              f.push_back(std::make_unique<TBExpireFactory>());
-              f.push_back(std::make_unique<TBIsTracingFactory>());
-              f.push_back(std::make_unique<TBTraceFactory>());
-              f.push_back(std::make_unique<TBUpdateAndCheckFactory>());
+              f.push_back(std::make_unique<TokenBucketExpireFactory>());
+              f.push_back(std::make_unique<TokenBucketIsTracingFactory>());
+              f.push_back(std::make_unique<TokenBucketTraceFactory>());
+              f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>());
               return f;
             }(),
             std::make_unique<x86Context>()) {}

@@ -85,9 +85,9 @@ public:
   size_t count_code_paths() const;
   LibCore::Symbols get_used_symbols() const;
   LibCore::Symbols get_prev_symbols(const node_ids_t &stop_nodes = node_ids_t()) const;
-  std::vector<const Call *> get_prev_functions(const std::vector<std::string> &functions_names,
+  std::vector<const Call *> get_prev_functions(const std::unordered_set<std::string> &functions_names,
                                                const node_ids_t &stop_nodes = node_ids_t()) const;
-  std::vector<const Call *> get_future_functions(const std::vector<std::string> &functions, bool stop_on_branches = false) const;
+  std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;
   bool is_packet_drop_code_path() const;
   std::vector<const Call *> get_coalescing_nodes_from_key(klee::ref<klee::Expr> target_key, const map_coalescing_objs_t &data) const;
 

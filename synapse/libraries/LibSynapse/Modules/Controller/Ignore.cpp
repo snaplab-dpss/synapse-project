@@ -49,6 +49,38 @@ bool ds_ignore_logic(const Context &ctx, const LibBDD::call_t &call) {
   return false;
 }
 
+bool should_ignore_coalesced_state_allocation(const Context &ctx, const LibBDD::Call *call_node) {
+  using ignored_alloc_functions_t = std::unordered_set<std::string>;
+
+  const std::unordered_map<DSImpl, ignored_alloc_functions_t> ignored_alloc_functions_per_ds{
+      {DSImpl::Tofino_FCFSCachedTable, {"dchain_allocate"}},
+      {DSImpl::Tofino_HeavyHitterTable, {"dchain_allocate"}},
+      {DSImpl::Tofino_Table, {"dchain_allocate"}},
+  };
+
+  const LibBDD::call_t &call     = call_node->get_call();
+  klee::ref<klee::Expr> obj_expr = call_node->get_obj();
+
+  if (obj_expr.isNull()) {
+    return false;
+  }
+
+  addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
+
+  if (!ctx.has_ds_impl(obj)) {
+    return false;
+  }
+
+  DSImpl impl   = ctx.get_ds_impl(obj);
+  auto found_it = ignored_alloc_functions_per_ds.find(impl);
+  if (found_it == ignored_alloc_functions_per_ds.end()) {
+    return false;
+  }
+
+  const ignored_alloc_functions_t &ignored_alloc_functions = found_it->second;
+  return ignored_alloc_functions.find(call.function_name) != ignored_alloc_functions.end();
+}
+
 bool should_ignore(const Context &ctx, const LibBDD::Node *node) {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return false;
@@ -80,6 +112,10 @@ bool should_ignore(const Context &ctx, const LibBDD::Node *node) {
   }
 
   if (ds_ignore_logic(ctx, call)) {
+    return true;
+  }
+
+  if (should_ignore_coalesced_state_allocation(ctx, call_node)) {
     return true;
   }
 

@@ -5,31 +5,33 @@
 namespace LibSynapse {
 namespace Controller {
 
-class TokenBucketExpire : public ControllerModule {
+class IntegerAllocatorAllocate : public ControllerModule {
 private:
-  addr_t tb_addr;
-  klee::ref<klee::Expr> time;
+  addr_t dchain_addr;
+  klee::ref<klee::Expr> index_range;
 
 public:
-  TokenBucketExpire(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : ControllerModule(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire", node), tb_addr(_tb_addr), time(_time) {}
+  IntegerAllocatorAllocate(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index_range)
+      : ControllerModule(ModuleType::Controller_IntegerAllocatorAllocate, "IntegerAllocatorAllocate", node), dchain_addr(_dchain_addr),
+        index_range(_index_range) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketExpire(node, tb_addr, time);
+    Module *cloned = new IntegerAllocatorAllocate(node, dchain_addr, index_range);
     return cloned;
   }
 
-  addr_t get_tb_addr() const { return tb_addr; }
-  klee::ref<klee::Expr> get_time() const { return time; }
+  addr_t get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_index_range() const { return index_range; }
 };
 
-class TokenBucketExpireFactory : public ControllerModuleFactory {
+class IntegerAllocatorAllocateFactory : public ControllerModuleFactory {
 public:
-  TokenBucketExpireFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire") {}
+  IntegerAllocatorAllocateFactory()
+      : ControllerModuleFactory(ModuleType::Controller_IntegerAllocatorAllocate, "IntegerAllocatorAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

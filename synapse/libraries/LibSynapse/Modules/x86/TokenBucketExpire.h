@@ -12,7 +12,7 @@ private:
 
 public:
   TokenBucketExpire(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : x86Module(ModuleType::x86_TBExpire, "TokenBucketExpire", node), tb_addr(_tb_addr), time(_time) {}
+      : x86Module(ModuleType::x86_TokenBucketExpire, "TokenBucketExpire", node), tb_addr(_tb_addr), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -27,9 +27,9 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
 };
 
-class TBExpireFactory : public x86ModuleFactory {
+class TokenBucketExpireFactory : public x86ModuleFactory {
 public:
-  TBExpireFactory() : x86ModuleFactory(ModuleType::x86_TBExpire, "TokenBucketExpire") {}
+  TokenBucketExpireFactory() : x86ModuleFactory(ModuleType::x86_TokenBucketExpire, "TokenBucketExpire") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

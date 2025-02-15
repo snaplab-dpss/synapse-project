@@ -5,31 +5,32 @@
 namespace LibSynapse {
 namespace Controller {
 
-class TokenBucketExpire : public ControllerModule {
+class DchainAllocate : public ControllerModule {
 private:
-  addr_t tb_addr;
-  klee::ref<klee::Expr> time;
+  addr_t dchain_addr;
 
 public:
-  TokenBucketExpire(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : ControllerModule(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire", node), tb_addr(_tb_addr), time(_time) {}
+  DchainAllocate(const LibBDD::Node *node, addr_t _dchain_addr)
+      : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", node), dchain_addr(_dchain_addr) {}
+
+  DchainAllocate(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+      : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", node), dchain_addr(_dchain_addr) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketExpire(node, tb_addr, time);
+    Module *cloned = new DchainAllocate(node, dchain_addr);
     return cloned;
   }
 
-  addr_t get_tb_addr() const { return tb_addr; }
-  klee::ref<klee::Expr> get_time() const { return time; }
+  addr_t get_dchain_addr() const { return dchain_addr; }
 };
 
-class TokenBucketExpireFactory : public ControllerModuleFactory {
+class DchainAllocateFactory : public ControllerModuleFactory {
 public:
-  TokenBucketExpireFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire") {}
+  DchainAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_DchainAllocate, "DchainAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

@@ -114,6 +114,7 @@ public:
   const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
   void save_ds_impl(addr_t obj, DSImpl impl);
   bool has_ds_impl(addr_t obj) const;
+  DSImpl get_ds_impl(addr_t obj) const;
   bool check_ds_impl(addr_t obj, DSImpl impl) const;
   bool can_impl_ds(addr_t obj, DSImpl impl) const;
 

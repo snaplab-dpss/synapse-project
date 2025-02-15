@@ -5,31 +5,34 @@
 namespace LibSynapse {
 namespace Controller {
 
-class TokenBucketExpire : public ControllerModule {
+class MapAllocate : public ControllerModule {
 private:
-  addr_t tb_addr;
-  klee::ref<klee::Expr> time;
+  addr_t map_addr;
+  klee::ref<klee::Expr> capacity;
+  klee::ref<klee::Expr> key_size;
 
 public:
-  TokenBucketExpire(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : ControllerModule(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire", node), tb_addr(_tb_addr), time(_time) {}
+  MapAllocate(const LibBDD::Node *node, addr_t _map_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _key_size)
+      : ControllerModule(ModuleType::Controller_MapAllocate, "MapAllocate", node), map_addr(_map_addr), capacity(_capacity),
+        key_size(_key_size) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketExpire(node, tb_addr, time);
+    Module *cloned = new MapAllocate(node, map_addr, capacity, key_size);
     return cloned;
   }
 
-  addr_t get_tb_addr() const { return tb_addr; }
-  klee::ref<klee::Expr> get_time() const { return time; }
+  addr_t get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_capacity() const { return capacity; }
+  klee::ref<klee::Expr> get_key_size() const { return key_size; }
 };
 
-class TokenBucketExpireFactory : public ControllerModuleFactory {
+class MapAllocateFactory : public ControllerModuleFactory {
 public:
-  TokenBucketExpireFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire") {}
+  MapAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_MapAllocate, "MapAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

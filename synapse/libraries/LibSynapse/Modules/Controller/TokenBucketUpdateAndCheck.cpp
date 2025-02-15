@@ -4,7 +4,7 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> TBUpdateAndCheckFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> TokenBucketUpdateAndCheckFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
   }
@@ -26,8 +26,8 @@ std::optional<spec_impl_t> TBUpdateAndCheckFactory::speculate(const EP *ep, cons
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                          LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> TokenBucketUpdateAndCheckFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                                   LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -67,7 +67,8 @@ std::vector<impl_t> TBUpdateAndCheckFactory::process_node(const EP *ep, const Li
   return impls;
 }
 
-std::unique_ptr<Module> TBUpdateAndCheckFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> TokenBucketUpdateAndCheckFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
+                                                                 const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }

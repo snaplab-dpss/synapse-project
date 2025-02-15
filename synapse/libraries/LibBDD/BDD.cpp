@@ -13,7 +13,7 @@
 namespace LibBDD {
 
 namespace {
-const std::vector<std::string> ignored_functions{
+const std::unordered_set<std::string> ignored_functions{
     "start_time",
     "current_time",
     "loop_invariant_consume",
@@ -25,12 +25,12 @@ const std::vector<std::string> ignored_functions{
 
 constexpr const char *const init_to_process_trigger_function = "packet_receive";
 
-const std::vector<std::string> symbols_in_skippable_conditions{
+const std::unordered_set<std::string> symbols_in_skippable_conditions{
     "received_a_packet",
     "loop_termination",
 };
 
-const std::vector<std::string> routing_functions{
+const std::unordered_set<std::string> routing_functions{
     "packet_send",
     "packet_free",
     "packet_broadcast",
@@ -320,6 +320,12 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
         Call *node = new Call(id, constraints, symbol_manager, call, generated_symbols);
         node_manager.add_node(node);
         id++;
+
+        if (!init.empty()) {
+          init.back()->set_next(node);
+          node->set_prev(init.back());
+        }
+
         init.push_back(node);
       } else {
         Node *node;
@@ -664,7 +670,12 @@ void BDD::assert_integrity() const {
 BDD::BDD(const BDD &other)
     : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), symbol_manager(other.symbol_manager) {
   for (const Call *init_node : other.init) {
-    init.push_back(dynamic_cast<Call *>(init_node->clone(manager)));
+    Call *cloned = dynamic_cast<Call *>(init_node->clone(manager));
+    if (!init.empty()) {
+      init.back()->set_next(cloned);
+      cloned->set_prev(init.back());
+    }
+    init.push_back(cloned);
   }
   root = other.root->clone(manager, true);
 }
@@ -684,7 +695,12 @@ BDD &BDD::operator=(const BDD &other) {
   time       = other.time;
 
   for (const Call *init_node : other.init) {
-    init.push_back(dynamic_cast<Call *>(init_node->clone(manager)));
+    Call *cloned = dynamic_cast<Call *>(init_node->clone(manager));
+    if (!init.empty()) {
+      init.back()->set_next(cloned);
+      cloned->set_prev(init.back());
+    }
+    init.push_back(cloned);
   }
 
   root           = other.root->clone(manager, true);
@@ -1114,6 +1130,24 @@ BDD::inspection_report_t BDD::inspect() const {
     return {InspectionStatus::MissingRootNode, "Missing root node"};
   }
 
+  for (size_t i = 0; i < init.size(); i++) {
+    const Call *init_node = init[i];
+
+    if (!init_node) {
+      return {InspectionStatus::HasNullNode, "Has null node (in init group)"};
+    }
+
+    if (i < init.size() - 1) {
+      if (!init_node->get_next()) {
+        return {InspectionStatus::DanglingInitNode, "Init node " + std::to_string(init_node->get_id()) + " is not connected"};
+      }
+
+      if (init_node->get_next()->get_prev() != init_node) {
+        return {InspectionStatus::BrokenLink, "Init node " + std::to_string(init_node->get_id()) + " has invalid link"};
+      }
+    }
+  }
+
   inspection_report_t report                                 = {InspectionStatus::Ok, "Ok"};
   const std::unordered_set<std::string> symbols_always_known = {"DEVICE", "pkt_len", "next_time", "packet_chunks"};
 
@@ -1163,8 +1197,6 @@ BDD::inspection_report_t BDD::inspect() const {
         report = {InspectionStatus::BrokenLink, "Branch node " + std::to_string(node->get_id()) + " on false side has invalid link"};
         return NodeVisitAction::Stop;
       }
-
-      break;
     } break;
     case NodeType::Call: {
       if (node->get_next() && node->get_next()->get_prev() != node) {
@@ -1180,6 +1212,7 @@ BDD::inspection_report_t BDD::inspect() const {
       }
     } break;
     }
+
     return NodeVisitAction::Continue;
   });
 

@@ -36,7 +36,7 @@ call_t rename_call_symbols(LibCore::SymbolManager *symbol_manager, const call_t 
 }
 
 std::vector<const Call *> get_unfiltered_coalescing_nodes(const Node *node, const map_coalescing_objs_t &data) {
-  const std::vector<std::string> target_functions{
+  const std::unordered_set<std::string> target_functions{
       "map_get",
       "map_put",
       "map_erase",
@@ -495,18 +495,16 @@ LibCore::Symbols Node::get_prev_symbols(const node_ids_t &stop_nodes) const {
   return symbols;
 }
 
-std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string> &wanted, const node_ids_t &stop_nodes) const {
+std::vector<const Call *> Node::get_prev_functions(const std::unordered_set<std::string> &wanted, const node_ids_t &stop_nodes) const {
   std::vector<const Call *> prev_functions;
 
   const Node *node = this;
   while ((node = node->get_prev())) {
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node    = dynamic_cast<const Call *>(node);
-      const call_t &call       = call_node->get_call();
-      const std::string &fname = call.function_name;
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
 
-      auto found_it = std::find(wanted.begin(), wanted.end(), fname);
-      if (found_it != wanted.end()) {
+      if (wanted.find(call.function_name) != wanted.end()) {
         prev_functions.insert(prev_functions.begin(), call_node);
       }
     }
@@ -519,7 +517,7 @@ std::vector<const Call *> Node::get_prev_functions(const std::vector<std::string
   return prev_functions;
 }
 
-std::vector<const Call *> Node::get_future_functions(const std::vector<std::string> &wanted, bool stop_on_branches) const {
+std::vector<const Call *> Node::get_future_functions(const std::unordered_set<std::string> &wanted, bool stop_on_branches) const {
   std::vector<const Call *> functions;
 
   visit_nodes([&functions, &wanted](const Node *node) {
@@ -530,9 +528,7 @@ std::vector<const Call *> Node::get_future_functions(const std::vector<std::stri
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call    = call_node->get_call();
 
-    auto found_it = std::find(wanted.begin(), wanted.end(), call.function_name);
-
-    if (found_it != wanted.end()) {
+    if (wanted.find(call.function_name) != wanted.end()) {
       functions.push_back(call_node);
     }
 

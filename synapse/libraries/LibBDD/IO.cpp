@@ -896,6 +896,12 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
 
       id                    = std::max(id, node->get_id()) + 1;
       nodes[node->get_id()] = node;
+
+      if (!init.empty()) {
+        init.back()->set_next(call);
+        call->set_prev(init.back());
+      }
+
       init.push_back(call);
     } break;
 

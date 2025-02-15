@@ -49,7 +49,7 @@ enum class ModuleType {
   Tofino_LPMLookup,
 
   // ========================================
-  // Tofino CPU
+  // Controller
   // ========================================
   Controller_Ignore,
   Controller_ParseHeader,
@@ -61,35 +61,47 @@ enum class ModuleType {
   Controller_Forward,
   Controller_Broadcast,
   Controller_Drop,
+  Controller_TableAllocate,
   Controller_TableLookup,
   Controller_TableUpdate,
   Controller_TableDelete,
+  Controller_FCFSCachedTableAllocate,
   Controller_FCFSCachedTableRead,
   Controller_FCFSCachedTableWrite,
   Controller_FCFSCachedTableDelete,
+  Controller_HHTableAllocate,
   Controller_HHTableRead,
   Controller_HHTableConditionalUpdate,
   Controller_HHTableUpdate,
   Controller_HHTableDelete,
+  Controller_DchainAllocate,
   Controller_DchainAllocateNewIndex,
   Controller_DchainRejuvenateIndex,
   Controller_DchainIsIndexAllocated,
   Controller_DchainFreeIndex,
+  Controller_IntegerAllocatorAllocate,
   Controller_IntegerAllocatorFreeIndex,
+  Controller_VectorAllocate,
   Controller_VectorRead,
   Controller_VectorWrite,
+  Controller_MapAllocate,
   Controller_MapGet,
   Controller_MapPut,
   Controller_MapErase,
+  Controller_ChtAllocate,
   Controller_ChtFindBackend,
   Controller_HashObj,
+  Controller_VectorRegisterAllocate,
   Controller_VectorRegisterLookup,
   Controller_VectorRegisterUpdate,
-  Controller_TBIsTracing,
-  Controller_TBTrace,
-  Controller_TBUpdateAndCheck,
-  Controller_TBExpire,
+  Controller_TokenBucketAllocate,
+  Controller_TokenBucketIsTracing,
+  Controller_TokenBucketTrace,
+  Controller_TokenBucketUpdateAndCheck,
+  Controller_TokenBucketExpire,
+  Controller_MeterAllocate,
   Controller_MeterInsert,
+  Controller_CMSAllocate,
   Controller_CMSUpdate,
   Controller_CMSQuery,
   Controller_CMSIncrement,
@@ -124,10 +136,10 @@ enum class ModuleType {
   x86_ExpireItemsSingleMapIteratively,
   x86_ChtFindBackend,
   x86_HashObj,
-  x86_TBIsTracing,
-  x86_TBTrace,
-  x86_TBUpdateAndCheck,
-  x86_TBExpire,
+  x86_TokenBucketIsTracing,
+  x86_TokenBucketTrace,
+  x86_TokenBucketUpdateAndCheck,
+  x86_TokenBucketExpire,
 };
 
 inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
@@ -255,6 +267,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_Drop:
     os << "Controller_Drop";
     break;
+  case ModuleType::Controller_TableAllocate:
+    os << "Controller_TableAllocate";
+    break;
   case ModuleType::Controller_TableLookup:
     os << "Controller_TableLookup";
     break;
@@ -264,6 +279,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_TableDelete:
     os << "Controller_TableDelete";
     break;
+  case ModuleType::Controller_FCFSCachedTableAllocate:
+    os << "Controller_FCFSCachedTableAllocate";
+    break;
   case ModuleType::Controller_FCFSCachedTableRead:
     os << "Controller_FCFSCachedTableRead";
     break;
@@ -272,6 +290,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_FCFSCachedTableDelete:
     os << "Controller_FCFSCachedTableDelete";
+    break;
+  case ModuleType::Controller_HHTableAllocate:
+    os << "Controller_HHTableAllocate";
     break;
   case ModuleType::Controller_HHTableRead:
     os << "Controller_HHTableRead";
@@ -285,6 +306,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_HHTableDelete:
     os << "Controller_HHTableDelete";
     break;
+  case ModuleType::Controller_DchainAllocate:
+    os << "Controller_DchainAllocate";
+    break;
   case ModuleType::Controller_DchainAllocateNewIndex:
     os << "Controller_DchainAllocateNewIndex";
     break;
@@ -297,14 +321,23 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DchainFreeIndex:
     os << "Controller_DchainFreeIndex";
     break;
+  case ModuleType::Controller_IntegerAllocatorAllocate:
+    os << "Controller_IntegerAllocatorAllocate";
+    break;
   case ModuleType::Controller_IntegerAllocatorFreeIndex:
     os << "Controller_IntegerAllocatorFreeIndex";
+    break;
+  case ModuleType::Controller_VectorAllocate:
+    os << "Controller_VectorAllocate";
     break;
   case ModuleType::Controller_VectorRead:
     os << "Controller_VectorRead";
     break;
   case ModuleType::Controller_VectorWrite:
     os << "Controller_VectorWrite";
+    break;
+  case ModuleType::Controller_MapAllocate:
+    os << "Controller_MapAllocate";
     break;
   case ModuleType::Controller_MapGet:
     os << "Controller_MapGet";
@@ -315,11 +348,17 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_MapErase:
     os << "Controller_MapErase";
     break;
+  case ModuleType::Controller_ChtAllocate:
+    os << "Controller_ChtAllocate";
+    break;
   case ModuleType::Controller_ChtFindBackend:
     os << "Controller_ChtFindBackend";
     break;
   case ModuleType::Controller_HashObj:
     os << "Controller_HashObj";
+    break;
+  case ModuleType::Controller_VectorRegisterAllocate:
+    os << "Controller_VectorRegisterAllocate";
     break;
   case ModuleType::Controller_VectorRegisterLookup:
     os << "Controller_VectorRegisterLookup";
@@ -327,20 +366,29 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_VectorRegisterUpdate:
     os << "Controller_VectorRegisterUpdate";
     break;
-  case ModuleType::Controller_TBIsTracing:
-    os << "Controller_TBIsTracing";
+  case ModuleType::Controller_TokenBucketAllocate:
+    os << "Controller_TokenBucketAllocate";
     break;
-  case ModuleType::Controller_TBTrace:
-    os << "Controller_TBTrace";
+  case ModuleType::Controller_TokenBucketIsTracing:
+    os << "Controller_TokenBucketIsTracing";
     break;
-  case ModuleType::Controller_TBUpdateAndCheck:
-    os << "Controller_TBUpdateAndCheck";
+  case ModuleType::Controller_TokenBucketTrace:
+    os << "Controller_TokenBucketTrace";
     break;
-  case ModuleType::Controller_TBExpire:
-    os << "Controller_TBExpire";
+  case ModuleType::Controller_TokenBucketUpdateAndCheck:
+    os << "Controller_TokenBucketUpdateAndCheck";
+    break;
+  case ModuleType::Controller_TokenBucketExpire:
+    os << "Controller_TokenBucketExpire";
+    break;
+  case ModuleType::Controller_MeterAllocate:
+    os << "Controller_MeterAllocate";
     break;
   case ModuleType::Controller_MeterInsert:
     os << "Controller_MeterInsert";
+    break;
+  case ModuleType::Controller_CMSAllocate:
+    os << "Controller_CMSAllocate";
     break;
   case ModuleType::Controller_CMSUpdate:
     os << "Controller_CMSUpdate";
@@ -432,17 +480,17 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::x86_HashObj:
     os << "x86_HashObj";
     break;
-  case ModuleType::x86_TBIsTracing:
-    os << "x86_TBIsTracing";
+  case ModuleType::x86_TokenBucketIsTracing:
+    os << "x86_TokenBucketIsTracing";
     break;
-  case ModuleType::x86_TBTrace:
-    os << "x86_TBTrace";
+  case ModuleType::x86_TokenBucketTrace:
+    os << "x86_TokenBucketTrace";
     break;
-  case ModuleType::x86_TBUpdateAndCheck:
-    os << "x86_TBUpdateAndCheck";
+  case ModuleType::x86_TokenBucketUpdateAndCheck:
+    os << "x86_TokenBucketUpdateAndCheck";
     break;
-  case ModuleType::x86_TBExpire:
-    os << "x86_TBExpire";
+  case ModuleType::x86_TokenBucketExpire:
+    os << "x86_TokenBucketExpire";
     break;
   }
 

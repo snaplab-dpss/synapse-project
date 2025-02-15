@@ -263,6 +263,7 @@ void Context::save_ds_impl(addr_t obj, DSImpl impl) {
 }
 
 bool Context::has_ds_impl(addr_t obj) const { return ds_impls.find(obj) != ds_impls.end(); }
+DSImpl Context::get_ds_impl(addr_t obj) const { return ds_impls.at(obj); }
 
 bool Context::check_ds_impl(addr_t obj, DSImpl decision) const {
   auto found_it = ds_impls.find(obj);

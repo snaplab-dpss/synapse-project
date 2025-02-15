@@ -5,7 +5,7 @@
 namespace LibSynapse {
 namespace x86 {
 
-std::optional<spec_impl_t> TBExpireFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> TokenBucketExpireFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
   }
@@ -27,7 +27,8 @@ std::optional<spec_impl_t> TBExpireFactory::speculate(const EP *ep, const LibBDD
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> TokenBucketExpireFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                           LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -64,7 +65,7 @@ std::vector<impl_t> TBExpireFactory::process_node(const EP *ep, const LibBDD::No
   return impls;
 }
 
-std::unique_ptr<Module> TBExpireFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> TokenBucketExpireFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }

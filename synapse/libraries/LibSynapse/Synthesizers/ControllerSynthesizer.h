@@ -136,6 +136,7 @@ private:
   void visit(const EP *ep, const EPNode *ep_node) override final;
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
+
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) override final;
@@ -146,41 +147,56 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Forward *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Broadcast *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainIsIndexAllocated *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapGet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapPut *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapErase *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChtAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChtFindBackend *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketTrace *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketUpdateAndCheck *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MeterAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MeterInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *node) override final;
 
-private:
+  bool in_nf_init{true};
+  void change_to_process_coder() { in_nf_init = false; }
+  coder_t &get_current_coder();
+
   coder_t &get(const std::string &marker) override final;
   code_t transpile(klee::ref<klee::Expr> expr);
 

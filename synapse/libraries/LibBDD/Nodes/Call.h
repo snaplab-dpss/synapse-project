@@ -35,6 +35,7 @@ public:
   Node *clone(NodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;
 
+  klee::ref<klee::Expr> get_obj() const;
   std::vector<const Call *> get_vector_returns_from_borrow() const;
   const Call *get_vector_borrow_from_return() const;
   bool is_vector_read() const;

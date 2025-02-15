@@ -5,7 +5,7 @@
 namespace LibSynapse {
 namespace x86 {
 
-std::optional<spec_impl_t> TBIsTracingFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> TokenBucketIsTracingFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
   }
@@ -27,7 +27,8 @@ std::optional<spec_impl_t> TBIsTracingFactory::speculate(const EP *ep, const Lib
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> TBIsTracingFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> TokenBucketIsTracingFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                              LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -66,7 +67,7 @@ std::vector<impl_t> TBIsTracingFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
-std::unique_ptr<Module> TBIsTracingFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> TokenBucketIsTracingFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }

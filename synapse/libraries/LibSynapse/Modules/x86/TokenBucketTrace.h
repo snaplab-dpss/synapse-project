@@ -17,7 +17,7 @@ private:
 public:
   TokenBucketTrace(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len,
                    klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
-      : x86Module(ModuleType::x86_TBTrace, "TokenBucketTrace", node), tb_addr(_tb_addr), key(_key), pkt_len(_pkt_len), time(_time),
+      : x86Module(ModuleType::x86_TokenBucketTrace, "TokenBucketTrace", node), tb_addr(_tb_addr), key(_key), pkt_len(_pkt_len), time(_time),
         index_out(_index_out), successfuly_tracing(_is_tracing) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
@@ -37,9 +37,9 @@ public:
   klee::ref<klee::Expr> get_successfuly_tracing() const { return successfuly_tracing; }
 };
 
-class TBTraceFactory : public x86ModuleFactory {
+class TokenBucketTraceFactory : public x86ModuleFactory {
 public:
-  TBTraceFactory() : x86ModuleFactory(ModuleType::x86_TBTrace, "TokenBucketTrace") {}
+  TokenBucketTraceFactory() : x86ModuleFactory(ModuleType::x86_TokenBucketTrace, "TokenBucketTrace") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

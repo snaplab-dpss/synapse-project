@@ -16,8 +16,8 @@ private:
 public:
   TokenBucketUpdateAndCheck(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
                             klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
-      : ControllerModule(ModuleType::Controller_TBUpdateAndCheck, "TokenBucketUpdateAndCheck", node), tb_addr(_tb_addr), index(_index),
-        pkt_len(_pkt_len), time(_time), pass(_pass) {}
+      : ControllerModule(ModuleType::Controller_TokenBucketUpdateAndCheck, "TokenBucketUpdateAndCheck", node), tb_addr(_tb_addr),
+        index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
@@ -35,9 +35,10 @@ public:
   klee::ref<klee::Expr> get_pass() const { return pass; }
 };
 
-class TBUpdateAndCheckFactory : public ControllerModuleFactory {
+class TokenBucketUpdateAndCheckFactory : public ControllerModuleFactory {
 public:
-  TBUpdateAndCheckFactory() : ControllerModuleFactory(ModuleType::Controller_TBUpdateAndCheck, "TokenBucketUpdateAndCheck") {}
+  TokenBucketUpdateAndCheckFactory()
+      : ControllerModuleFactory(ModuleType::Controller_TokenBucketUpdateAndCheck, "TokenBucketUpdateAndCheck") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

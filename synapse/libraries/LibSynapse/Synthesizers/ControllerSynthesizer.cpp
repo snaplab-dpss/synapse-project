@@ -19,6 +19,15 @@ constexpr const char *const MARKER_NF_USER_SIGNAL_HANDLER = "NF_USER_SIGNAL_HAND
 constexpr const char *const MARKER_NF_PROCESS             = "NF_PROCESS";
 constexpr const char *const TEMPLATE_FILENAME             = "controller.template.cpp";
 
+template <class T> const T *get_tofino_ds_from_obj(const EP *ep, addr_t obj) {
+  const Context &ctx                                          = ep->get_ctx();
+  const TofinoContext *tofino_ctx                             = ctx.get_target_ctx<TofinoContext>();
+  const std::unordered_set<LibSynapse::Tofino::DS *> &matches = tofino_ctx->get_ds(obj);
+  assert(!matches.empty() && "DS not found");
+  assert(matches.size() == 1 && "Multiple DS matches");
+  return dynamic_cast<const T *>(*matches.begin());
+}
+
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -583,6 +592,10 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::ostream &_out, 
   alloc_var("size", pkt_len.expr);
 }
 
+ControllerSynthesizer::coder_t &ControllerSynthesizer::get_current_coder() {
+  return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS);
+}
+
 ControllerSynthesizer::coder_t &ControllerSynthesizer::get(const std::string &marker) { return Synthesizer::get(marker); }
 
 void ControllerSynthesizer::synthesize() {
@@ -592,22 +605,44 @@ void ControllerSynthesizer::synthesize() {
 }
 
 void ControllerSynthesizer::synthesize_nf_init() {
-  // coder_t &nf_init       = get(MARKER_NF_INIT);
+  coder_t &nf_init       = get(MARKER_NF_INIT);
   const LibBDD::BDD *bdd = ep->get_bdd();
 
   ControllerTarget controller_target;
   for (const LibBDD::Call *call_node : bdd->get_init()) {
+    std::vector<std::unique_ptr<Module>> candidate_modules;
     for (const std::unique_ptr<ModuleFactory> &factory : controller_target.module_factories) {
       std::unique_ptr<Module> module = factory->create(bdd, ep->get_ctx(), call_node);
       if (module) {
-        std::cerr << "Node: " << call_node->dump(true) << "\n";
-        std::cerr << "Module: " << module->get_name() << "\n";
+        candidate_modules.push_back(std::move(module));
       }
     }
+
+    if (candidate_modules.empty()) {
+      panic("No module found for call node %s", call_node->dump(true).c_str());
+    }
+
+    std::cerr << "Init call node " << call_node->dump(true) << "\n";
+    for (const std::unique_ptr<Module> &module : candidate_modules) {
+      std::cerr << "Candidate module " << module->get_name() << "\n";
+    }
+
+    assert(candidate_modules.size() == 1 && "Multiple init module candidates");
+    const Module *module = candidate_modules.front().get();
+
+    nf_init.indent();
+    nf_init << "// BDD node " << call_node->dump(true) << "\n";
+    nf_init.indent();
+    nf_init << "// Module " << module->get_name() << "\n";
+
+    module->visit(*this, ep, nullptr);
   }
 }
 
-void ControllerSynthesizer::synthesize_nf_process() { EPVisitor::visit(ep); }
+void ControllerSynthesizer::synthesize_nf_process() {
+  change_to_process_coder();
+  EPVisitor::visit(ep);
+}
 
 void ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &coder = get(MARKER_NF_PROCESS);
@@ -666,16 +701,48 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   panic("TODO: Controller::Drop");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableAllocate *node) {
+  assert(in_nf_init && "TableAllocate outside of NF_INIT");
+
+  // coder_t &nf_init = get(MARKER_NF_INIT);
+  coder_t &state = get(MARKER_STATE);
+
+  addr_t obj = node->get_obj();
+  // klee::ref<klee::Expr> key_size   = node->get_key_size();
+  // klee::ref<klee::Expr> value_size = node->get_value_size();
+
+  const Tofino::Table *table = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+
+  state.indent();
+  state << "// Creating table " << table->id << "...";
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableLookup *node) {
-  panic("TODO: Controller::TableLookup");
+  coder_t &coder = get_current_coder();
+
+  coder.indent();
+  coder << "// TableLookup\n";
+
+  return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableUpdate *node) {
-  panic("TODO: Controller::TableUpdate");
+  coder_t &coder = get_current_coder();
+
+  coder.indent();
+  coder << "// TableUpdate\n";
+
+  return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableDelete *node) {
   panic("TODO: Controller::TableDelete");
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) {
+  panic("TODO: Controller::DchainAllocate");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) {
@@ -694,12 +761,20 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   panic("TODO: Controller::DchainFreeIndex");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorAllocate *node) {
+  panic("TODO: Controller::VectorAllocate");
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRead *node) {
   panic("TODO: Controller::VectorRead");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorWrite *node) {
   panic("TODO: Controller::VectorWrite");
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapAllocate *node) {
+  panic("TODO: Controller::MapAllocate");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapGet *node) {
@@ -714,6 +789,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   panic("TODO: Controller::MapErase");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChtAllocate *node) {
+  panic("TODO: Controller::ChtAllocate");
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChtFindBackend *node) {
   panic("TODO: Controller::ChtFindBackend");
 }
@@ -722,12 +801,20 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   panic("TODO: Controller::HashObj");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterAllocate *node) {
+  panic("TODO: Controller::VectorRegisterAllocate");
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterLookup *node) {
   panic("TODO: Controller::VectorRegisterLookup");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterUpdate *node) {
   panic("TODO: Controller::VectorRegisterUpdate");
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableAllocate *node) {
+  panic("TODO: Controller::FCFSCachedTableAllocate");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableRead *node) {
@@ -740,6 +827,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableDelete *node) {
   panic("TODO: Controller::FCFSCachedTableDelete");
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableAllocate *node) {
+  panic("TODO: Controller::HHTableAllocate");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableRead *node) {
@@ -758,6 +849,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   panic("TODO: Controller::HHTableDelete");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) {
+  panic("TODO: Controller::TokenBucketAllocate");
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) {
   panic("TODO: Controller::TokenBucketIsTracing");
 }
@@ -774,12 +869,24 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   panic("TODO: Controller::TokenBucketExpire");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MeterAllocate *node) {
+  panic("TODO: Controller::MeterAllocate");
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MeterInsert *node) {
   panic("TODO: Controller::MeterInsert");
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorAllocate *node) {
+  panic("TODO: Controller::IntegerAllocatorAllocate");
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorFreeIndex *node) {
   panic("TODO: Controller::IntegerAllocatorFreeIndex");
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) {
+  panic("TODO: Controller::CMSAllocate");
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *node) {

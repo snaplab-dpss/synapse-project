@@ -13,36 +13,48 @@
 #include <LibSynapse/Modules/Controller/Forward.h>
 #include <LibSynapse/Modules/Controller/Broadcast.h>
 #include <LibSynapse/Modules/Controller/Drop.h>
+#include <LibSynapse/Modules/Controller/TableAllocate.h>
 #include <LibSynapse/Modules/Controller/TableLookup.h>
 #include <LibSynapse/Modules/Controller/TableUpdate.h>
 #include <LibSynapse/Modules/Controller/TableDelete.h>
+#include <LibSynapse/Modules/Controller/DchainAllocate.h>
 #include <LibSynapse/Modules/Controller/DchainAllocateNewIndex.h>
 #include <LibSynapse/Modules/Controller/DchainIsIndexAllocated.h>
 #include <LibSynapse/Modules/Controller/DchainRejuvenateIndex.h>
 #include <LibSynapse/Modules/Controller/DchainFreeIndex.h>
+#include <LibSynapse/Modules/Controller/VectorAllocate.h>
 #include <LibSynapse/Modules/Controller/VectorRead.h>
 #include <LibSynapse/Modules/Controller/VectorWrite.h>
+#include <LibSynapse/Modules/Controller/MapAllocate.h>
 #include <LibSynapse/Modules/Controller/MapGet.h>
 #include <LibSynapse/Modules/Controller/MapPut.h>
 #include <LibSynapse/Modules/Controller/MapErase.h>
 #include <LibSynapse/Modules/Controller/ChecksumUpdate.h>
+#include <LibSynapse/Modules/Controller/ChtAllocate.h>
 #include <LibSynapse/Modules/Controller/ChtFindBackend.h>
 #include <LibSynapse/Modules/Controller/HashObj.h>
+#include <LibSynapse/Modules/Controller/VectorRegisterAllocate.h>
 #include <LibSynapse/Modules/Controller/VectorRegisterLookup.h>
 #include <LibSynapse/Modules/Controller/VectorRegisterUpdate.h>
+#include <LibSynapse/Modules/Controller/FCFSCachedTableAllocate.h>
 #include <LibSynapse/Modules/Controller/FCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Controller/FCFSCachedTableWrite.h>
 #include <LibSynapse/Modules/Controller/FCFSCachedTableDelete.h>
+#include <LibSynapse/Modules/Controller/HHTableAllocate.h>
 #include <LibSynapse/Modules/Controller/HHTableRead.h>
 #include <LibSynapse/Modules/Controller/HHTableUpdate.h>
 #include <LibSynapse/Modules/Controller/HHTableConditionalUpdate.h>
 #include <LibSynapse/Modules/Controller/HHTableDelete.h>
+#include <LibSynapse/Modules/Controller/TokenBucketAllocate.h>
 #include <LibSynapse/Modules/Controller/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/Controller/TokenBucketTrace.h>
 #include <LibSynapse/Modules/Controller/TokenBucketUpdateAndCheck.h>
 #include <LibSynapse/Modules/Controller/TokenBucketExpire.h>
+#include <LibSynapse/Modules/Controller/MeterAllocate.h>
 #include <LibSynapse/Modules/Controller/MeterInsert.h>
+#include <LibSynapse/Modules/Controller/IntegerAllocatorAllocate.h>
 #include <LibSynapse/Modules/Controller/IntegerAllocatorFreeIndex.h>
+#include <LibSynapse/Modules/Controller/CMSAllocate.h>
 #include <LibSynapse/Modules/Controller/CMSUpdate.h>
 #include <LibSynapse/Modules/Controller/CMSQuery.h>
 #include <LibSynapse/Modules/Controller/CMSIncrement.h>
@@ -67,35 +79,47 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<BroadcastFactory>());
               f.push_back(std::make_unique<DropFactory>());
+              f.push_back(std::make_unique<TableAllocateFactory>());
               f.push_back(std::make_unique<TableLookupFactory>());
               f.push_back(std::make_unique<TableUpdateFactory>());
               f.push_back(std::make_unique<TableDeleteFactory>());
+              f.push_back(std::make_unique<DchainAllocateFactory>());
               f.push_back(std::make_unique<DchainAllocateNewIndexFactory>());
               f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>());
               f.push_back(std::make_unique<DchainRejuvenateIndexFactory>());
               f.push_back(std::make_unique<DchainFreeIndexFactory>());
+              f.push_back(std::make_unique<VectorAllocateFactory>());
               f.push_back(std::make_unique<VectorReadFactory>());
               f.push_back(std::make_unique<VectorWriteFactory>());
+              f.push_back(std::make_unique<MapAllocateFactory>());
               f.push_back(std::make_unique<MapGetFactory>());
               f.push_back(std::make_unique<MapPutFactory>());
               f.push_back(std::make_unique<MapEraseFactory>());
+              f.push_back(std::make_unique<ChtAllocateFactory>());
               f.push_back(std::make_unique<ChtFindBackendFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
+              f.push_back(std::make_unique<VectorRegisterAllocateFactory>());
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
+              f.push_back(std::make_unique<FCFSCachedTableAllocateFactory>());
               f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
               f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
+              f.push_back(std::make_unique<HHTableAllocateFactory>());
               f.push_back(std::make_unique<HHTableReadFactory>());
               f.push_back(std::make_unique<HHTableUpdateFactory>());
               f.push_back(std::make_unique<HHTableConditionalUpdateFactory>());
               f.push_back(std::make_unique<HHTableDeleteFactory>());
-              f.push_back(std::make_unique<TBIsTracingFactory>());
-              f.push_back(std::make_unique<TBTraceFactory>());
-              f.push_back(std::make_unique<TBUpdateAndCheckFactory>());
-              f.push_back(std::make_unique<TBExpireFactory>());
+              f.push_back(std::make_unique<TokenBucketAllocateFactory>());
+              f.push_back(std::make_unique<TokenBucketIsTracingFactory>());
+              f.push_back(std::make_unique<TokenBucketTraceFactory>());
+              f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>());
+              f.push_back(std::make_unique<TokenBucketExpireFactory>());
+              f.push_back(std::make_unique<MeterAllocateFactory>());
               f.push_back(std::make_unique<MeterInsertFactory>());
+              f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
               f.push_back(std::make_unique<IntegerAllocatorFreeIndexFactory>());
+              f.push_back(std::make_unique<CMSAllocateFactory>());
               f.push_back(std::make_unique<CMSUpdateFactory>());
               f.push_back(std::make_unique<CMSQueryFactory>());
               f.push_back(std::make_unique<CMSIncrementFactory>());

@@ -63,10 +63,6 @@ const LibCore::Symbols &Call::get_local_symbols() const { return generated_symbo
 
 LibCore::symbol_t Call::get_local_symbol(const std::string &base) const {
   assert(!base.empty() && "Empty base");
-  if (generated_symbols.empty()) {
-    std::cerr << "this: " << dump(true) << "\n";
-    std::cerr << "base: " << base << "\n";
-  }
   assert(!generated_symbols.empty() && "No symbols");
 
   LibCore::Symbols filtered = generated_symbols.filter_by_base(base);
@@ -472,6 +468,18 @@ const Call *Call::packet_borrow_from_return() const {
   assert(prev_borrows.size() > prev_returns.size() && "No previous borrow");
 
   return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
+}
+
+klee::ref<klee::Expr> Call::get_obj() const {
+  const std::set<std::string> obj_candidates = {"map", "vector", "tb", "dchain", "cht", "cms", "lpm"};
+
+  for (const std::string &obj_candidate : obj_candidates) {
+    if (call.args.find(obj_candidate) != call.args.end()) {
+      return call.args.at(obj_candidate).expr;
+    }
+  }
+
+  return nullptr;
 }
 
 } // namespace LibBDD

@@ -11,6 +11,10 @@ namespace LibSynapse {
 void synthesize(const EP *ep, std::string name, const std::filesystem::path &out_dir) {
   const TargetsView &targets = ep->get_targets();
 
+  if (ep->get_bdd()->inspect().status != LibBDD::BDD::InspectionStatus::Ok) {
+    panic("BDD is not OK: %s", ep->get_bdd()->inspect().message.c_str());
+  }
+
   for (const TargetView &target : targets.elements) {
     switch (target.type) {
     case TargetType::Tofino: {
