@@ -1,7 +1,7 @@
 #include "state.h"
 #include "entry.h"
 #include "lib/util/boilerplate.h"
-#include "kvs_config.h"
+#include "config.h"
 #include "loop.h"
 
 #include <stdlib.h>
@@ -60,7 +60,9 @@ struct State *alloc_state() {
   lpm_set_entry_condition(ret->fwd, port_validity);
 #endif // KLEE_VERIFICATION
 
-  lpm_from_file(ret->fwd, config.lpm_cfg_file);
+  for (size_t i = 0; i < config.lpm_rules.n; i++) {
+    lpm_update(ret->fwd, config.lpm_rules.subnet[i], config.lpm_rules.mask[i], config.lpm_rules.dst_dev[i]);
+  }
 
   allocated_nf_state = ret;
   return ret;

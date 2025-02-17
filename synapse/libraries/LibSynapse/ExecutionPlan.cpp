@@ -509,14 +509,14 @@ void EP::assert_integrity() const {
     nodes.pop_back();
 
     assert(node && "Null node");
-    assert(node->get_module() && "LibBDD::Node without a module");
+    assert(node->get_module() && "Node without a module");
 
     const Module *module         = node->get_module();
     const LibBDD::Node *bdd_node = module->get_node();
     assert(bdd_node && "Module without a node");
 
     const LibBDD::Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-    assert(bdd_node == found_bdd_node && "LibBDD::Node not found in the LibBDD::BDD");
+    assert(bdd_node == found_bdd_node && "Node not found in the BDD");
 
     for (const EPNode *child : node->get_children()) {
       assert(child && "Null child");
@@ -528,10 +528,10 @@ void EP::assert_integrity() const {
   for (const auto &[target, roots] : targets_roots) {
     for (const LibBDD::node_id_t root_id : roots) {
       const LibBDD::Node *bdd_node = bdd->get_node_by_id(root_id);
-      assert(bdd_node && "Root node not found in the LibBDD::BDD");
+      assert(bdd_node && "Root node not found in the BDD");
 
       const LibBDD::Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-      assert(bdd_node == found_bdd_node && "Root node not found in the LibBDD::BDD");
+      assert(bdd_node == found_bdd_node && "Root node not found in the BDD");
     }
   }
 
@@ -540,10 +540,10 @@ void EP::assert_integrity() const {
     assert(next && "Active leaf without a next node");
 
     const LibBDD::Node *found_next = bdd->get_node_by_id(next->get_id());
-    assert(next == found_next && "Next node not found in the LibBDD::BDD");
+    assert(next == found_next && "Next node not found in the BDD");
   }
 
-  bdd->assert_integrity();
+  assert(bdd->inspect().status == LibBDD::BDD::InspectionStatus::Ok && "BDD inspection failed");
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "entry.h"
-#include "kvs_config.h"
+#include "config.h"
 #include "kvs_hdr.h"
 #include "state.h"
 #include "nf-log.h"

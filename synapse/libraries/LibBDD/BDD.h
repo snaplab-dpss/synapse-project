@@ -66,8 +66,6 @@ public:
   // A valid BDD should always pass this check.
   [[nodiscard]] inspection_report_t inspect() const;
 
-  void assert_integrity() const;
-
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;
   bool get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const;

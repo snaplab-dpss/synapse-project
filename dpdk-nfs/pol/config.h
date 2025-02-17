@@ -3,15 +3,19 @@
 #include <stdint.h>
 
 #include "nf.h"
-
-#define CONFIG_FNAME_LEN 512
+#include "nf-util.h"
 
 struct nf_config {
-  // LAN (i.e. internal) device
-  uint16_t lan_device;
+  struct {
+    uint16_t *devices;
+    size_t n;
+  } internal_devs;
 
-  // WAN device, i.e. external
-  uint16_t wan_device;
+  struct {
+    uint16_t *src_dev;
+    uint16_t *dst_dev;
+    size_t n;
+  } fwd_rules;
 
   // Policer rate in B/s
   uint64_t rate;

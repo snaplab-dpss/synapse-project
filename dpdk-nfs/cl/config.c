@@ -1,4 +1,4 @@
-#include "cl_config.h"
+#include "config.h"
 
 #include <getopt.h>
 #include <stdlib.h>
@@ -8,8 +8,6 @@
 #include "nf-util.h"
 #include "nf-log.h"
 
-const uint16_t DEFAULT_LAN                     = 1;
-const uint16_t DEFAULT_WAN                     = 0;
 const uint32_t DEFAULT_MAX_FLOWS               = 65536;
 const uint16_t DEFAULT_MAX_CLIENTS             = 60;
 const uint64_t DEFAULT_EXPIRATION_TIME         = 1000000; // 1s
@@ -23,9 +21,9 @@ const uint64_t DEFAULT_SKETCH_CLEANUP_INTERVAL = 10000000; // 10s
   exit(EXIT_FAILURE);
 
 void nf_config_init(int argc, char **argv) {
+  config.fwd_rules.n = 0;
+
   // Set the default values
-  config.lan_device              = DEFAULT_LAN;
-  config.wan_device              = DEFAULT_WAN;
   config.max_flows               = DEFAULT_MAX_FLOWS;
   config.max_clients             = DEFAULT_MAX_CLIENTS;
   config.expiration_time         = DEFAULT_EXPIRATION_TIME;
@@ -35,8 +33,8 @@ void nf_config_init(int argc, char **argv) {
 
   unsigned nb_devices = rte_eth_dev_count_avail();
 
-  struct option long_options[] = {{"lan", required_argument, NULL, 'l'},
-                                  {"wan", required_argument, NULL, 'w'},
+  struct option long_options[] = {{"internal-devs", required_argument, NULL, 'd'},
+                                  {"fwd-rule", required_argument, NULL, 'r'},
                                   {"max-flows", required_argument, NULL, 'f'},
                                   {"max-clients", required_argument, NULL, 'c'},
                                   {"expire", required_argument, NULL, 't'},
@@ -46,21 +44,48 @@ void nf_config_init(int argc, char **argv) {
                                   {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "l:w:f:c:t:h:W:C:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "d:r:f:c:t:h:W:C:", long_options, NULL)) != EOF) {
     switch (opt) {
-    case 'l':
-      config.lan_device = nf_util_parse_int(optarg, "lan", 10, '\0');
-      if (config.lan_device >= nb_devices) {
-        PARSE_ERROR("Invalid LAN device.\n");
-      }
-      break;
+    case 'd': {
+      uint16_t nb_devices        = rte_eth_dev_count_avail();
+      struct int_list_t int_list = nf_util_parse_int_list(optarg, "internal devs", 10, ',');
 
-    case 'w':
-      config.wan_device = nf_util_parse_int(optarg, "wan", 10, '\0');
-      if (config.wan_device >= nb_devices) {
-        PARSE_ERROR("Invalid WAN device.\n");
+      config.internal_devs.n       = int_list.n;
+      config.internal_devs.devices = (uint16_t *)malloc(int_list.n * sizeof(uint16_t));
+      for (int i = 0; i < int_list.n; i++) {
+        if (int_list.list[i] >= nb_devices) {
+          PARSE_ERROR("internal devs: device %lu >= nb_devices (%u)\n", int_list.list[i], nb_devices);
+        }
+        config.internal_devs.devices[i] = int_list.list[i];
       }
-      break;
+    } break;
+
+    case 'r': {
+      uint16_t nb_devices        = rte_eth_dev_count_avail();
+      struct int_list_t int_list = nf_util_parse_int_list(optarg, "fwd rule", 10, ',');
+
+      if (int_list.n != 2) {
+        PARSE_ERROR("fwd rule: expected 2 devices, got %lu\n", int_list.n);
+      }
+
+      config.fwd_rules.n++;
+      config.fwd_rules.src_dev = (uint16_t *)realloc(config.fwd_rules.src_dev, config.fwd_rules.n * sizeof(uint16_t));
+      config.fwd_rules.dst_dev = (uint16_t *)realloc(config.fwd_rules.dst_dev, config.fwd_rules.n * sizeof(uint16_t));
+
+      uint16_t src_dev = int_list.list[0];
+      uint16_t dst_dev = int_list.list[1];
+
+      if (src_dev >= nb_devices) {
+        PARSE_ERROR("fwd rule: src device %u >= nb_devices (%u)\n", src_dev, nb_devices);
+      }
+
+      if (dst_dev >= nb_devices) {
+        PARSE_ERROR("fwd rule: dst device %u >= nb_devices (%u)\n", dst_dev, nb_devices);
+      }
+
+      config.fwd_rules.src_dev[config.fwd_rules.n - 1] = int_list.list[0];
+      config.fwd_rules.dst_dev[config.fwd_rules.n - 1] = int_list.list[1];
+    } break;
 
     case 'f':
       config.max_flows = nf_util_parse_int(optarg, "max-flows", 10, '\0');
@@ -101,10 +126,8 @@ void nf_config_init(int argc, char **argv) {
 void nf_config_usage(void) {
   NF_INFO("Usage:\n"
           "[DPDK EAL options] --\n"
-          "\t--lan <device>: LAN device,"
-          " default: %" PRIu16 ".\n"
-          "\t--wan <device>: WAN device,"
-          " default: %" PRIu16 ".\n"
+          "\t--internal-devs <dev1,dev2,...>: set devices to be internal.\n"
+          "\t--fwd-rule <src,dst>: set forwarding rule.\n"
           "\t--max-flows <max-flows>: maximum number of flows,"
           " default: %" PRIu32 ".\n"
           "\t--max-clients <max-clients>: maximum allowed number of clients,"
@@ -117,15 +140,23 @@ void nf_config_usage(void) {
           " default: %" PRIu32 ".\n"
           "\t--sketch-cleanup-interval <interval>: CMS cleanup interval (us),"
           " default: %" PRIu64 ".\n",
-          DEFAULT_LAN, DEFAULT_WAN, DEFAULT_MAX_FLOWS, DEFAULT_MAX_CLIENTS, DEFAULT_EXPIRATION_TIME, DEFAULT_SKETCH_HEIGHT,
-          DEFAULT_SKETCH_WIDTH, DEFAULT_SKETCH_CLEANUP_INTERVAL);
+          DEFAULT_MAX_FLOWS, DEFAULT_MAX_CLIENTS, DEFAULT_EXPIRATION_TIME, DEFAULT_SKETCH_HEIGHT, DEFAULT_SKETCH_WIDTH,
+          DEFAULT_SKETCH_CLEANUP_INTERVAL);
 }
 
 void nf_config_print(void) {
   NF_INFO("\n--- Connection Limiter Config ---\n");
 
-  NF_INFO("LAN Device: %" PRIu16, config.lan_device);
-  NF_INFO("WAN Device: %" PRIu16, config.wan_device);
+  NF_INFO("Internals devs:");
+  for (size_t i = 0; i < config.internal_devs.n; i++) {
+    NF_INFO("\t%" PRIu16, config.internal_devs.devices[i]);
+  }
+
+  NF_INFO("Forwarding rules:");
+  for (size_t i = 0; i < config.fwd_rules.n; i++) {
+    NF_INFO("\t%" PRIu16 " -> %" PRIu16, config.fwd_rules.src_dev[i], config.fwd_rules.dst_dev[i]);
+  }
+
   NF_INFO("Max flows: %" PRIu32, config.max_flows);
   NF_INFO("Max clients: %" PRIu16, config.max_clients);
   NF_INFO("Expiration time: %" PRIu64, config.expiration_time);

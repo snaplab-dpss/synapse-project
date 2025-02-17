@@ -1,16 +1,19 @@
 #include "state.h"
-#include "ip_addr.h"
+#include "flow.h"
+#include "client.h"
 #include "loop.h"
 #include "config.h"
 
 #include <stdlib.h>
-#include <rte_ethdev.h>
+#include <assert.h>
 
 #include "lib/util/boilerplate.h"
 
 #ifdef KLEE_VERIFICATION
-#include "lib/models/state/token-bucket-control.h"
+#include "lib/models/state/map-control.h"
 #include "lib/models/state/vector-control.h"
+#include "lib/models/state/double-chain-control.h"
+#include "lib/models/state/cms-control.h"
 #endif // KLEE_VERIFICATION
 
 struct State *allocated_nf_state = NULL;
@@ -23,18 +26,32 @@ bool port_validity(void *value, int index, void *state) {
 
 bool bool_invariant(void *value, int index, void *state) { return (*(int *)value == 0) | (*(int *)value == 1); }
 
-struct State *alloc_state(uint32_t capacity, uint64_t rate, uint64_t burst, uint32_t dev_count) {
-  if (allocated_nf_state != NULL) {
+struct State *alloc_state() {
+  if (allocated_nf_state != NULL)
     return allocated_nf_state;
-  }
 
   struct State *ret = malloc(sizeof(struct State));
-  if (ret == NULL) {
+
+  if (ret == NULL)
+    return NULL;
+
+  ret->flows = NULL;
+  if (map_allocate(config.max_flows, sizeof(struct flow), &(ret->flows)) == 0) {
     return NULL;
   }
 
-  ret->tb = NULL;
-  if (tb_allocate(capacity, rate, burst, sizeof(struct ip_addr), &(ret->tb)) == 0) {
+  ret->flows_keys = NULL;
+  if (vector_allocate(sizeof(struct flow), config.max_flows, &(ret->flows_keys)) == 0) {
+    return NULL;
+  }
+
+  ret->flow_allocator = NULL;
+  if (dchain_allocate(config.max_flows, &(ret->flow_allocator)) == 0) {
+    return NULL;
+  }
+
+  ret->cms = NULL;
+  if (cms_allocate(config.sketch_height, config.sketch_width, sizeof(struct client), config.sketch_cleanup_interval, &(ret->cms)) == 0) {
     return NULL;
   }
 
@@ -46,14 +63,13 @@ struct State *alloc_state(uint32_t capacity, uint64_t rate, uint64_t burst, uint
   if (vector_allocate(sizeof(uint16_t), rte_eth_dev_count_avail(), &(ret->fwd_rules)) == 0)
     return NULL;
 
-  ret->capacity  = capacity;
-  ret->rate      = rate;
-  ret->burst     = burst;
-  ret->dev_count = dev_count;
-
 #ifdef KLEE_VERIFICATION
-  tb_set_layout(ret->tb, ip_addr_descrs, sizeof(ip_addr_descrs) / sizeof(ip_addr_descrs[0]), ip_addr_nests,
-                sizeof(ip_addr_nests) / sizeof(ip_addr_nests[0]), "ip_addr");
+  map_set_layout(ret->flows, flow_descrs, sizeof(flow_descrs) / sizeof(flow_descrs[0]), flow_nests,
+                 sizeof(flow_nests) / sizeof(flow_nests[0]), "flow");
+  vector_set_layout(ret->flows_keys, flow_descrs, sizeof(flow_descrs) / sizeof(flow_descrs[0]), flow_nests,
+                    sizeof(flow_nests) / sizeof(flow_nests[0]), "flow");
+  cms_set_layout(ret->cms, client_descrs, sizeof(client_descrs) / sizeof(client_descrs[0]), client_nests,
+                 sizeof(client_nests) / sizeof(client_nests[0]), "client");
   vector_set_layout(ret->int_devices, NULL, 0, NULL, 0, "int");
   vector_set_entry_condition(ret->int_devices, bool_invariant, ret);
   vector_set_layout(ret->fwd_rules, NULL, 0, NULL, 0, "uint16_t");
@@ -90,8 +106,9 @@ struct State *alloc_state(uint32_t capacity, uint64_t rate, uint64_t burst, uint
 
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
-  loop_iteration_border(&allocated_nf_state->tb, &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules,
-                        allocated_nf_state->dev_count, lcore_id, time);
+  loop_iteration_border(&allocated_nf_state->flows, &allocated_nf_state->flows_keys, &allocated_nf_state->flow_allocator,
+                        &allocated_nf_state->cms, &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules, config.max_flows,
+                        lcore_id, time);
 }
 
 #endif // KLEE_VERIFICATION

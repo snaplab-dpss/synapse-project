@@ -8,24 +8,39 @@
 #include "nf.h"
 #include "nf-log.h"
 #include "nf-util.h"
-
-#include "cl_config.h"
-#include "cl_state.h"
+#include "config.h"
+#include "state.h"
+#include "flow.h"
+#include "client.h"
 
 struct nf_config config;
 struct State *state;
 
 bool nf_init(void) {
-  uint32_t max_flows                  = config.max_flows;
-  uint16_t max_clients                = config.max_clients;
-  uint32_t sketch_height              = config.sketch_height;
-  uint32_t sketch_width               = config.sketch_width;
-  uint64_t sketch_cleanup_interval_us = config.sketch_cleanup_interval;
-  uint32_t dev_count                  = rte_eth_dev_count_avail();
-
-  state = alloc_state(max_flows, max_clients, sketch_height, sketch_width, sketch_cleanup_interval_us * 1000, dev_count);
-
+  state = alloc_state();
   return state != NULL;
+}
+
+bool is_internal(uint16_t device) {
+  bool is_int_dev;
+
+  int *is_internal;
+  vector_borrow(state->int_devices, device, (void **)&is_internal);
+  is_int_dev = (*is_internal != 0);
+  vector_return(state->int_devices, device, is_internal);
+
+  return is_int_dev;
+}
+
+uint16_t get_dst_dev(uint16_t src_dev) {
+  uint16_t dst_dev;
+
+  uint16_t *destination_device;
+  vector_borrow(state->fwd_rules, src_dev, (void **)&destination_device);
+  dst_dev = *destination_device;
+  vector_return(state->fwd_rules, src_dev, destination_device);
+
+  return dst_dev;
 }
 
 void expire_entries(time_ns_t now) {
@@ -110,11 +125,10 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     return DROP;
   }
 
-  if (device == config.lan_device) {
+  if (is_internal(device)) {
     // Simply forward outgoing packets.
     NF_DEBUG("Outgoing packet. Not limiting clients.");
-    return config.wan_device;
-  } else if (device == config.wan_device) {
+  } else {
     struct flow flow = {
         .src_port = tcpudp_header->src_port,
         .dst_port = tcpudp_header->dst_port,
@@ -123,20 +137,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .protocol = rte_ipv4_header->next_proto_id,
     };
 
-    int fwd = limit_clients(&flow, now);
-
-    if (fwd) {
-      return config.lan_device;
+    if (limit_clients(&flow, now) == 0) {
+      // Drop packet.
+      NF_DEBUG("Limiting   %u.%u.%u.%u:%u => %u.%u.%u.%u:%u", (flow.src_ip >> 0) & 0xff, (flow.src_ip >> 8) & 0xff,
+               (flow.src_ip >> 16) & 0xff, (flow.src_ip >> 24) & 0xff, flow.src_port, (flow.dst_ip >> 0) & 0xff, (flow.dst_ip >> 8) & 0xff,
+               (flow.dst_ip >> 16) & 0xff, (flow.dst_ip >> 24) & 0xff, flow.dst_port);
+      return DROP;
     }
-
-    // Drop packet.
-    NF_DEBUG("Limiting   %u.%u.%u.%u:%u => %u.%u.%u.%u:%u", (flow.src_ip >> 0) & 0xff, (flow.src_ip >> 8) & 0xff,
-             (flow.src_ip >> 16) & 0xff, (flow.src_ip >> 24) & 0xff, flow.src_port, (flow.dst_ip >> 0) & 0xff, (flow.dst_ip >> 8) & 0xff,
-             (flow.dst_ip >> 16) & 0xff, (flow.dst_ip >> 24) & 0xff, flow.dst_port);
-    return DROP;
   }
 
-  // Drop any other packets.
-  NF_DEBUG("Unknown port. Dropping.");
-  return DROP;
+  return get_dst_dev(device);
 }

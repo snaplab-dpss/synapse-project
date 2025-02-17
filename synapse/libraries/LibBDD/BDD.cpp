@@ -61,8 +61,8 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"cms_count_min", {"min_estimate"}},
     {"cms_periodic_cleanup", {"cleanup_success"}},
     {"hash_obj", {"hash"}},
-    {"tb_is_tracing", {"is_tracing"}},
-    {"tb_trace", {"index_out"}},
+    {"tb_is_tracing", {"is_tracing", "index_out"}},
+    {"tb_trace", {"successfuly_tracing", "index_out"}},
     {"tb_update_and_check", {"pass"}},
     {"tb_expire", {"number_of_freed_flows"}},
     {"lpm_lookup", {"lpm_lookup_match", "lpm_lookup_result"}},
@@ -639,32 +639,6 @@ BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_
 
 BDD::BDD(const std::filesystem::path &fpath, LibCore::SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) {
   deserialize(fpath);
-}
-
-void BDD::assert_integrity() const {
-  assert(root && "No root node");
-  root->visit_nodes([](const Node *node) {
-    assert(node && "Null node");
-    switch (node->get_type()) {
-    case NodeType::Branch: {
-      const Branch *branch = dynamic_cast<const Branch *>(node);
-      const Node *on_true  = branch->get_on_true();
-      const Node *on_false = branch->get_on_false();
-      assert(on_true && "No on true node");
-      assert(on_false && "No on false node");
-      assert(on_true->get_prev() == node && "Invalid on true node");
-      assert(on_false->get_prev() == node && "Invalid on false node");
-      break;
-    } break;
-    case NodeType::Call:
-    case NodeType::Route: {
-      if (node->get_next()) {
-        assert(node->get_next()->get_prev() == node && "Invalid next node");
-      }
-    } break;
-    }
-    return NodeVisitAction::Continue;
-  });
 }
 
 BDD::BDD(const BDD &other)

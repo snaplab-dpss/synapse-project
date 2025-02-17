@@ -1,13 +1,16 @@
 #include "config.h"
-#include "nf-parse.h"
 
 #include <getopt.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
-#include "nf.h"
 #include "nf-util.h"
 #include "nf-log.h"
+
+const uint64_t DEFAULT_RATE     = 1000000; // 1MB/s
+const uint64_t DEFAULT_BURST    = 100000;  // 100kB
+const uint32_t DEFAULT_CAPACITY = 128;     // IPs
 
 #define PARSE_ERROR(format, ...)                                                                                                           \
   nf_config_usage();                                                                                                                       \
@@ -17,11 +20,19 @@
 void nf_config_init(int argc, char **argv) {
   config.fwd_rules.n = 0;
 
-  struct option long_options[] = {{"internal-devs", required_argument, NULL, 'd'}, {"fwd-rule", required_argument, NULL, 'r'},
-                                  {"expire", required_argument, NULL, 't'},        {"extip", required_argument, NULL, 'i'},
-                                  {"max-flows", required_argument, NULL, 'f'},     {NULL, 0, NULL, 0}};
+  // Set the default values
+  config.rate         = DEFAULT_RATE;     // B/s
+  config.burst        = DEFAULT_BURST;    // B
+  config.dyn_capacity = DEFAULT_CAPACITY; // MAC addresses
+
+  unsigned nb_devices = rte_eth_dev_count_avail();
+
+  struct option long_options[] = {{"internal-devs", required_argument, NULL, 'd'}, {"fwd-rule", required_argument, NULL, 'f'},
+                                  {"rate", required_argument, NULL, 'r'},          {"burst", required_argument, NULL, 'b'},
+                                  {"capacity", required_argument, NULL, 'c'},      {NULL, 0, NULL, 0}};
+
   int opt;
-  while ((opt = getopt_long(argc, argv, "d:r:t:i:f:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "d:f:r:b:c:", long_options, NULL)) != EOF) {
     switch (opt) {
     case 'd': {
       uint16_t nb_devices        = rte_eth_dev_count_avail();
@@ -37,7 +48,7 @@ void nf_config_init(int argc, char **argv) {
       }
     } break;
 
-    case 'r': {
+    case 'f': {
       uint16_t nb_devices        = rte_eth_dev_count_avail();
       struct int_list_t int_list = nf_util_parse_int_list(optarg, "fwd rule", 10, ',');
 
@@ -64,29 +75,29 @@ void nf_config_init(int argc, char **argv) {
       config.fwd_rules.dst_dev[config.fwd_rules.n - 1] = int_list.list[1];
     } break;
 
-    case 't':
-      config.expiration_time = nf_util_parse_int(optarg, "exp-time", 10, '\0');
-      if (config.expiration_time == 0) {
-        PARSE_ERROR("Expiration time must be strictly positive.\n");
+    case 'r':
+      config.rate = nf_util_parse_int(optarg, "rate", 10, '\0');
+      if (config.rate == 0) {
+        PARSE_ERROR("Policer rate must be strictly positive.\n");
       }
       break;
 
-    case 'i':
-      if (!nf_parse_ipv4addr(optarg, &(config.external_addr))) {
-        PARSE_ERROR("Invalid external IP address: %s\n", optarg);
+    case 'b':
+      config.burst = nf_util_parse_int(optarg, "burst", 10, '\0');
+      if (config.burst == 0) {
+        PARSE_ERROR("Policer burst size must be strictly positive.\n");
       }
       break;
 
-    case 'f':
-      config.max_flows = nf_util_parse_int(optarg, "max-flows", 10, '\0');
-      if (config.max_flows <= 0) {
+    case 'c':
+      config.dyn_capacity = nf_util_parse_int(optarg, "capacity", 10, '\0');
+      if (config.dyn_capacity <= 0) {
         PARSE_ERROR("Flow table size must be strictly positive.\n");
       }
       break;
 
     default:
-      PARSE_ERROR("Unknown option.\n");
-      break;
+      PARSE_ERROR("Unknown option %c", opt);
     }
   }
 
@@ -97,15 +108,19 @@ void nf_config_init(int argc, char **argv) {
 void nf_config_usage(void) {
   NF_INFO("Usage:\n"
           "[DPDK EAL options] --\n"
-          "\t--expire <time>: flow expiration time (us).\n"
-          "\t--extip <ip>: external IP address.\n"
-          "\t--max-flows <n>: flow table capacity.\n"
           "\t--internal-devs <dev1,dev2,...>: set devices to be internal.\n"
-          "\t--fwd-rule <src,dst>: set forwarding rule.\n");
+          "\t--fwd-rule <src,dst>: set forwarding rule.\n"
+          "\t--rate <rate>: policer rate in bytes/s,"
+          " default: %" PRIu64 ".\n"
+          "\t--burst <size>: policer burst size in bytes,"
+          " default: %" PRIu64 ".\n"
+          "\t--capacity <n>: policer table capacity,"
+          " default: %" PRIu32 ".\n",
+          DEFAULT_RATE, DEFAULT_BURST, DEFAULT_CAPACITY);
 }
 
 void nf_config_print(void) {
-  NF_INFO("\n--- NAT Config ---\n");
+  NF_INFO("\n--- Policer Config ---\n");
 
   NF_INFO("Internals devs:");
   for (size_t i = 0; i < config.internal_devs.n; i++) {
@@ -117,12 +132,9 @@ void nf_config_print(void) {
     NF_INFO("\t%" PRIu16 " -> %" PRIu16, config.fwd_rules.src_dev[i], config.fwd_rules.dst_dev[i]);
   }
 
-  char *ext_ip_str = nf_rte_ipv4_to_str(config.external_addr);
-  NF_INFO("External IP: %s", ext_ip_str);
-  free(ext_ip_str);
+  NF_INFO("Rate: %" PRIu64, config.rate);
+  NF_INFO("Burst: %" PRIu64, config.burst);
+  NF_INFO("Capacity: %" PRIu16, config.dyn_capacity);
 
-  NF_INFO("Expiration time: %" PRIu32 "us", config.expiration_time);
-  NF_INFO("Max flows: %" PRIu32, config.max_flows);
-
-  NF_INFO("\n--- --- ------ ---\n");
+  NF_INFO("\n--- ------ ------ ---\n");
 }
