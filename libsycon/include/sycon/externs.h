@@ -22,7 +22,7 @@ extern void nf_init();
 extern void nf_exit();
 
 // Function triggered by the arrival of each packet.
-extern bool nf_process(time_ns_t now, byte_t *pkt, u16 size);
+extern bool nf_process(time_ns_t now, u8 *pkt, u16 size);
 
 // Runs on USR1 signal (typically used for reporting or reseting state).
 extern void nf_user_signal_handler();

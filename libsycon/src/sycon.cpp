@@ -120,15 +120,15 @@ void run_bench_cli() {
       ss << "STATS ";
 
       for (u16 dev_port : cfg.dev_ports) {
-        u16 front_panel_port = get_asic_front_panel_port_from_dev_port(dev_port);
-        u64 rx               = get_asic_port_rx(dev_port);
-        u64 tx               = get_asic_port_tx(dev_port);
+        u16 front_panel_port = asic_get_front_panel_port_from_dev_port(dev_port);
+        u64 rx               = asic_get_port_rx(dev_port);
+        u64 tx               = asic_get_port_tx(dev_port);
         ss << front_panel_port << ":" << rx << ":" << tx << " ";
       }
 
       LOG("%s", ss.str().c_str());
     } else if (command == "reset") {
-      reset_asic_port_stats();
+      asic_reset_port_stats();
     } else if (command == "exit" || command == "quit") {
       break;
     } else {

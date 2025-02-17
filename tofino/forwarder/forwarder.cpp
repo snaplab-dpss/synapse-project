@@ -3,7 +3,7 @@
 
 using namespace sycon;
 
-class Forwarder : public Table {
+class Forwarder : public PrimitiveTable {
 private:
   struct key_fields_t {
     // Key fields IDs
@@ -22,7 +22,7 @@ private:
   } actions;
 
 public:
-  Forwarder() : Table("Ingress", "forwarder") {
+  Forwarder() : PrimitiveTable("Ingress", "forwarder") {
     init_key({
         {"ig_intr_md.ingress_port", &key_fields.ingress_port},
     });
@@ -81,8 +81,8 @@ void sycon::nf_init() {
   };
 
   for (auto &[src_port, dst_port] : port_connections) {
-    u16 src_dev_port = get_asic_dev_port(src_port);
-    u16 dst_dev_port = get_asic_dev_port(dst_port);
+    u16 src_dev_port = asic_get_dev_port(src_port);
+    u16 dst_dev_port = asic_get_dev_port(dst_port);
     state->forwarder.add_fwd_entry(src_dev_port, dst_dev_port);
   }
 }
@@ -96,6 +96,6 @@ void sycon::nf_args(CLI::App &app) {}
 
 void sycon::nf_user_signal_handler() {}
 
-bool sycon::nf_process(time_ns_t now, byte_t *pkt, uint16_t size) { return true; }
+bool sycon::nf_process(time_ns_t now, u8 *pkt, uint16_t size) { return true; }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

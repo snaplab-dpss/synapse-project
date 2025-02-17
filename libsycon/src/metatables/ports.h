@@ -10,7 +10,7 @@
 
 namespace sycon {
 
-class Ports : Table {
+class Ports : PrimitiveTable {
 private:
   // Key fields IDs
   bf_rt_id_t DEV_PORT;
@@ -28,7 +28,7 @@ private:
   std::unordered_map<u16, u16> dev_port_to_front_panel_port;
 
 public:
-  Ports() : Table("", "$PORT") {
+  Ports() : PrimitiveTable("", "$PORT") {
     init_key({
         {"$DEV_PORT", &DEV_PORT},
     });

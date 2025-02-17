@@ -9,7 +9,7 @@
 
 namespace sycon {
 
-class Port_Stat : Table {
+class Port_Stat : PrimitiveTable {
 private:
   struct key_fields_t {
     // Key fields IDs
@@ -113,7 +113,7 @@ private:
   data_fields_t data_fields;
 
 public:
-  Port_Stat() : Table("", "$PORT_STAT") {
+  Port_Stat() : PrimitiveTable("", "$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
     });

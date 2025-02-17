@@ -7,11 +7,11 @@
 #include "../constants.h"
 #include "../primitives/table.h"
 #include "../time.h"
-#include "../util.h"
+#include "../field.h"
 
 namespace sycon {
 
-template <size_t V> class KeylessTableMap : public Table {
+template <size_t V> class KeylessTableMap : public PrimitiveTable {
   static_assert(V > 0);
 
 private:
@@ -22,7 +22,7 @@ private:
 
 public:
   KeylessTableMap(const std::string &_control_name, const std::string &_table_name, const table_value_t<V> &_entry)
-      : Table(_control_name, _table_name) {
+      : PrimitiveTable(_control_name, _table_name) {
     init_key();
     init_action(&action_id);
     init_data_with_action(action_id);

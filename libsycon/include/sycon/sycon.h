@@ -5,11 +5,13 @@
 #include "config.h"
 #include "externs.h"
 #include "log.h"
-#include "modules/modules.h"
+#include "data_structures/data_structures.h"
 #include "packet.h"
 #include "primitives/primitives.h"
 #include "time.h"
 #include "util.h"
+#include "buffer.h"
+#include "field.h"
 
 namespace sycon {
 
@@ -31,6 +33,7 @@ void run_bench_cli();
   } else if (args.bench_mode) {                                                                                                            \
     run_bench_cli();                                                                                                                       \
   } else {                                                                                                                                 \
+    DEBUG("Warning: running in debug mode");                                                                                               \
     WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");                                                                    \
   }                                                                                                                                        \
   nf_exit();

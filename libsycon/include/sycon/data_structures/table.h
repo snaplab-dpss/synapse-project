@@ -7,11 +7,11 @@
 #include "../constants.h"
 #include "../primitives/table.h"
 #include "../time.h"
-#include "../util.h"
+#include "../field.h"
 
 namespace sycon {
 
-template <size_t K, size_t V> class TableMap : public Table {
+template <size_t K, size_t V> class Table : public PrimitiveTable {
   static_assert(K > 0);
   static_assert(V > 0);
 
@@ -22,13 +22,13 @@ private:
   std::optional<time_ms_t> timeout;
 
 public:
-  TableMap(const std::string &_control_name, const std::string &_table_name) : Table(_control_name, _table_name) {
+  Table(const std::string &_control_name, const std::string &_table_name) : PrimitiveTable(_control_name, _table_name) {
     init_key();
     init_action(&action_id);
     init_data_with_action(action_id);
   }
 
-  TableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout) : TableMap(_control_name, _table_name) {
+  Table(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout) : Table(_control_name, _table_name) {
     timeout = _timeout;
     enable_expirations();
   }
@@ -265,7 +265,7 @@ private:
   }
 
   static bf_status_t internal_expiration_callback(const bf_rt_target_t &target, const bfrt::BfRtTableKey *key, void *cookie) {
-    TableMap *tm     = static_cast<TableMap *>(cookie);
+    Table *tm        = static_cast<Table *>(cookie);
     table_key_t<K> k = tm->build_key(key);
 
     cfg.begin_transaction();

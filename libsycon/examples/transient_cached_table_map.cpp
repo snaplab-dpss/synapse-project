@@ -22,7 +22,7 @@ void sycon::nf_user_signal_handler() {}
 
 void sycon::nf_args(CLI::App &app) {}
 
-bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
+bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr       = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
   eth_hdr_t *eth_hdr       = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
   ipv4_hdr_t *ipv4_hdr     = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));

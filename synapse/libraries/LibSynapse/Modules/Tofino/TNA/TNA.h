@@ -34,9 +34,16 @@ struct TNAProperties {
   bits_t max_salu_size;
 };
 
+struct TofinoPort {
+  u16 nf_device;
+  u16 front_panel_port;
+  u16 tofino_device;
+};
+
 class TNA {
 private:
   const TNAProperties properties;
+  const std::vector<TofinoPort> ports;
   SimplePlacer simple_placer;
 
 public:
@@ -46,6 +53,7 @@ public:
   TNA(const TNA &other);
 
   const TNAProperties &get_properties() const { return properties; }
+  const std::vector<TofinoPort> &get_ports() const { return ports; }
 
   // Tofino compiler complains if we access more than 4 bytes of the packet on
   // the same if statement.

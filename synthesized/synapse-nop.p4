@@ -33,7 +33,7 @@ struct synapse_ingress_headers_t {
 }
 
 struct synapse_ingress_metadata_t {
-  bit<16> port;
+  bit<16> dev;
   bit<32> time;
 
 }
@@ -83,7 +83,7 @@ parser IngressParser(
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
 
-    meta.port = 7w0 ++ ig_intr_md.ingress_port;
+    meta.dev = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
     
     transition select(ig_intr_md.ingress_port) {
@@ -117,13 +117,8 @@ control Ingress(
   inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
   inout ingress_intrinsic_metadata_for_tm_t ig_tm_md
 ) {
-  action drop() {
-    ig_dprsr_md.drop_ctl = 1;
-  }
-
-  action fwd(bit<9> port) {
-    ig_tm_md.ucast_egress_port = port;
-  }
+  action drop() { ig_dprsr_md.drop_ctl = 1; }
+  action fwd(bit<9> port) { ig_tm_md.ucast_egress_port = port; }
 
   action send_to_controller(bit<16> code_path) {
     hdr.cpu.setValid();
@@ -136,6 +131,20 @@ control Ingress(
     bit<8> tmp = a;
     a = b;
     b = tmp;
+  }
+
+  action set_ingress_dev(bit<16> nf_dev) { meta.dev = nf_dev; }
+  table ingress_port_to_nf_dev {
+    key = { ig_intr_md.ingress_port: exact; }
+    actions = { set_ingress_dev; }
+    size = 32;
+  }
+
+  bit<16> nf_dev = 16w0;
+  table forward_nf_dev {
+    key = { nf_dev: exact; }
+    actions = { fwd; }
+    size = 32;
   }
 
   bit<16> table_1074013032_65_get_value_param_0 = 16w0;
@@ -163,20 +172,22 @@ control Ingress(
     } else if (hdr.recirc.isValid()) {
       
     } else {
+      ingress_port_to_nf_dev.apply();
       // EP node  0
       // BDD node 65:vector_borrow(vector:(w64 1074013032), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074082432)[ -> (w64 1074026928)])
-      table_1074013032_65_key_0 = (bit<16>)(meta.port);
+      table_1074013032_65_key_0 = (bit<32>)(meta.dev);
       table_1074013032_65.apply();
       // EP node  10
       // BDD node 66:vector_return(vector:(w64 1074013032), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074026928)[(ReadLSB w16 (w32 0) vector_data_128)])
       // EP node  24
       // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
-      if (16wffff != table_1074013032_65_get_value_param_0) {
+      if (16w0xffff != table_1074013032_65_get_value_param_0) {
         // EP node  25
         // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
         // EP node  58
         // BDD node 68:FORWARD
-        fwd((bit<9>)table_1074013032_65_get_value_param_0);
+        nf_dev = table_1074013032_65_get_value_param_0;
+        forward_nf_dev.apply();
       } else {
         // EP node  26
         // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))

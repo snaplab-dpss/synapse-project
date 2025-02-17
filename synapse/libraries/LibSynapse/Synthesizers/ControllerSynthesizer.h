@@ -4,7 +4,7 @@
 #include <LibSynapse/Visitor.h>
 #include <LibBDD/BDD.h>
 #include <LibSynapse/Modules/Controller/Controller.h>
-#include <LibSynapse/Modules/Tofino/SendToController.h>
+#include <LibSynapse/Modules/Tofino/Tofino.h>
 
 #include <klee/util/ExprVisitor.h>
 
@@ -126,12 +126,14 @@ private:
 
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
+  std::vector<code_t> state_member_init_list;
 
   const EP *ep;
   Transpiler transpiler;
 
   void synthesize_nf_init();
   void synthesize_nf_process();
+  void synthesize_state_member_init_list();
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
 
@@ -201,8 +203,12 @@ private:
   code_t transpile(klee::ref<klee::Expr> expr);
 
   code_t create_unique_name(const code_t &name);
+  code_t assert_unique_name(const code_t &name);
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr = nullptr);
+  var_t alloc_fields(const code_t &name, const std::vector<klee::ref<klee::Expr>> &fields);
   code_path_t alloc_recirc_coder();
+
+  void transpile_table_decl(const Tofino::Table *table);
 
   void dbg_vars() const;
 

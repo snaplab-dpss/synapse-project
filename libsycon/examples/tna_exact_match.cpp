@@ -2,7 +2,7 @@
 
 using namespace sycon;
 
-class IpRoute : public Table {
+class IpRoute : public PrimitiveTable {
 private:
   struct key_fields_t {
     // Key fields IDs
@@ -28,7 +28,7 @@ private:
   } actions;
 
 public:
-  IpRoute() : Table("SwitchIngress", "ipRoute") {
+  IpRoute() : PrimitiveTable("SwitchIngress", "ipRoute") {
     init_key({
         {"vrf", &key_fields.vrf},
         {"hdr.ipv4.dst_addr", &key_fields.dst_addr},
@@ -109,6 +109,6 @@ void sycon::nf_user_signal_handler() {}
 
 void sycon::nf_args(CLI::App &app) {}
 
-bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) { return true; }
+bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) { return true; }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

@@ -176,7 +176,10 @@ LibBDD::BDD *setup_bdd(const LibBDD::BDD &bdd) {
   delete_all_vector_key_operations_from_bdd(new_bdd);
 
   // Just to double check that we didn't break anything...
-  new_bdd->assert_integrity();
+  LibBDD::BDD::inspection_report_t report = new_bdd->inspect();
+  if (report.status != LibBDD::BDD::InspectionStatus::Ok) {
+    panic("BDD inspection failed: %s", report.message.c_str());
+  }
 
   return new_bdd;
 }

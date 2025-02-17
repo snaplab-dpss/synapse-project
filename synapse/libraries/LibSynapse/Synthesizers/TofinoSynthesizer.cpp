@@ -72,7 +72,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee
   bytes_t width = expr->getWidth() / 8;
 
   coder_t code;
-  code << width * 8 << "w";
+  code << width * 8 << "w0x";
 
   for (size_t byte = 0; byte < width; byte++) {
     klee::ref<klee::Expr> extract = LibCore::solver_toolbox.exprBuilder->Extract(expr, (width - byte - 1) * 8, 8);
@@ -80,7 +80,6 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee
 
     std::stringstream ss;
     ss << std::hex << std::setw(2) << std::setfill('0') << byte_value;
-
     code << ss.str();
   }
 
@@ -195,7 +194,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitZExt(const klee::Z
   coder_t &coder            = coders.top();
 
   coder << "(";
-  coder << type_from_expr(arg);
+  coder << type_from_size(e.width);
   coder << ")";
   coder << "(";
   coder << transpile(arg);
@@ -961,7 +960,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::ostream &_out, const Li
   LibCore::symbol_t device = bdd->get_device();
   LibCore::symbol_t time   = bdd->get_time();
 
-  alloc_var("meta.port", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
+  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
   alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
 }
 
@@ -1391,7 +1390,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "fwd((bit<9>)" << transpiler.transpile(dst_device) << ");\n";
+  ingress << "nf_dev = " << transpiler.transpile(dst_device) << ";\n";
+  ingress.indent();
+  ingress << "forward_nf_dev.apply();\n";
 
   return EPVisitor::Action::doChildren;
 }

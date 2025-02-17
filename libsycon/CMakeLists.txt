@@ -36,6 +36,8 @@ add_compile_options(
     -Wno-unused-variable -Wno-unused-parameter
 )
 
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 ###############################################################################
 # Setting output targets
 ###############################################################################

@@ -9,9 +9,12 @@ namespace {
 
 using LibSynapse::Tofino::DS;
 using LibSynapse::Tofino::DS_ID;
+using LibSynapse::Tofino::TNA;
 using LibSynapse::Tofino::TofinoContext;
+using LibSynapse::Tofino::TofinoPort;
 
-constexpr const char *const MARKER_STATE                  = "STATE";
+constexpr const char *const MARKER_STATE_FIELDS           = "STATE_FIELDS";
+constexpr const char *const MARKER_STATE_MEMBER_INIT_LIST = "STATE_MEMBER_INIT_LIST";
 constexpr const char *const MARKER_NF_INIT                = "NF_INIT";
 constexpr const char *const MARKER_NF_EXIT                = "NF_EXIT";
 constexpr const char *const MARKER_NF_ARGS                = "NF_ARGS";
@@ -81,16 +84,16 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::type_from_size(
     type = "bool";
     break;
   case 8:
-    type = "uint8_t";
+    type = "u8";
     break;
   case 16:
-    type = "uint16_t";
+    type = "u16";
     break;
   case 32:
-    type = "uint32_t";
+    type = "u32";
     break;
   case 64:
-    type = "uint64_t";
+    type = "u64";
     break;
   default:
     panic("Unknown type (size=%u)\n", size);
@@ -574,7 +577,8 @@ std::vector<ControllerSynthesizer::Stack> ControllerSynthesizer::Stacks::get_all
 ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::ostream &_out, const LibBDD::BDD *bdd)
     : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                   {
-                      {MARKER_STATE, 1},
+                      {MARKER_STATE_FIELDS, 1},
+                      {MARKER_STATE_MEMBER_INIT_LIST, 3},
                       {MARKER_NF_INIT, 1},
                       {MARKER_NF_EXIT, 1},
                       {MARKER_NF_ARGS, 1},
@@ -601,12 +605,31 @@ ControllerSynthesizer::coder_t &ControllerSynthesizer::get(const std::string &ma
 void ControllerSynthesizer::synthesize() {
   synthesize_nf_init();
   synthesize_nf_process();
+  synthesize_state_member_init_list();
   Synthesizer::dump();
 }
 
 void ControllerSynthesizer::synthesize_nf_init() {
   coder_t &nf_init       = get(MARKER_NF_INIT);
   const LibBDD::BDD *bdd = ep->get_bdd();
+
+  const Context &ctx              = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  const TNA &tna                  = tofino_ctx->get_tna();
+
+  for (const TofinoPort &port : tna.get_ports()) {
+    nf_init.indent();
+    nf_init << "state->ingress_port_to_nf_dev.add_entry(";
+    nf_init << "asic_get_dev_port(" << port.front_panel_port << "), ";
+    nf_init << port.nf_device;
+    nf_init << ");\n";
+
+    nf_init.indent();
+    nf_init << "state->forward_nf_dev.add_entry(";
+    nf_init << port.nf_device << ", ";
+    nf_init << "asic_get_dev_port(" << port.front_panel_port << ")";
+    nf_init << ");\n";
+  }
 
   ControllerTarget controller_target;
   for (const LibBDD::Call *call_node : bdd->get_init()) {
@@ -620,11 +643,6 @@ void ControllerSynthesizer::synthesize_nf_init() {
 
     if (candidate_modules.empty()) {
       panic("No module found for call node %s", call_node->dump(true).c_str());
-    }
-
-    std::cerr << "Init call node " << call_node->dump(true) << "\n";
-    for (const std::unique_ptr<Module> &module : candidate_modules) {
-      std::cerr << "Candidate module " << module->get_name() << "\n";
     }
 
     assert(candidate_modules.size() == 1 && "Multiple init module candidates");
@@ -642,6 +660,20 @@ void ControllerSynthesizer::synthesize_nf_init() {
 void ControllerSynthesizer::synthesize_nf_process() {
   change_to_process_coder();
   EPVisitor::visit(ep);
+}
+
+void ControllerSynthesizer::synthesize_state_member_init_list() {
+  coder_t &coder = get(MARKER_STATE_MEMBER_INIT_LIST);
+
+  if (state_member_init_list.empty()) {
+    return;
+  }
+
+  for (size_t i = 0; i < state_member_init_list.size(); i++) {
+    coder << ",\n";
+    coder.indent();
+    coder << state_member_init_list[i];
+  }
 }
 
 void ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
@@ -662,7 +694,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) {
-  panic("TODO: Controller::Ignore");
+  return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) {
@@ -702,19 +734,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableAllocate *node) {
-  assert(in_nf_init && "TableAllocate outside of NF_INIT");
-
-  // coder_t &nf_init = get(MARKER_NF_INIT);
-  coder_t &state = get(MARKER_STATE);
-
-  addr_t obj = node->get_obj();
-  // klee::ref<klee::Expr> key_size   = node->get_key_size();
-  // klee::ref<klee::Expr> value_size = node->get_value_size();
-
+  const addr_t obj           = node->get_obj();
   const Tofino::Table *table = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
 
-  state.indent();
-  state << "// Creating table " << table->id << "...";
+  transpile_table_decl(table);
 
   return EPVisitor::Action::doChildren;
 }
@@ -722,8 +745,39 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableLookup *node) {
   coder_t &coder = get_current_coder();
 
+  const addr_t obj                                 = node->get_obj();
+  const std::vector<klee::ref<klee::Expr>> &keys   = node->get_keys();
+  const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
+  std::optional<LibCore::symbol_t> found           = node->get_found();
+  const Tofino::Table *table                       = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+
+  var_t key_var   = alloc_fields("table_key", keys);
+  var_t value_var = alloc_fields("table_value", values);
+
   coder.indent();
-  coder << "// TableLookup\n";
+  coder << "fields_t<" << keys.size() << "> " << key_var.name << ";\n";
+  for (size_t i = 0; i < keys.size(); i++) {
+    coder.indent();
+    coder << key_var.name << "[" << i << "] = ";
+    coder << transpiler.transpile(keys[i]);
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "fields_t<" << values.size() << "> " << value_var.name << ";\n";
+
+  coder.indent();
+  if (found) {
+    var_t found_var = alloc_var("table_entry_found", found->expr);
+    coder << transpiler.type_from_expr(found->expr);
+    coder << found_var.name;
+    coder << " = ";
+  }
+  coder << "state->" << table->id;
+  coder << ".get(";
+  coder << key_var.name << ", ";
+  coder << value_var.name;
+  coder << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -731,8 +785,38 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableUpdate *node) {
   coder_t &coder = get_current_coder();
 
+  const addr_t obj                                 = node->get_obj();
+  const std::vector<klee::ref<klee::Expr>> &keys   = node->get_keys();
+  const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
+  const Tofino::Table *table                       = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+
+  var_t key_var   = alloc_fields("table_key", keys);
+  var_t value_var = alloc_fields("table_value", values);
+
   coder.indent();
-  coder << "// TableUpdate\n";
+  coder << "fields_t<" << keys.size() << "> " << key_var.name << ";\n";
+  for (size_t i = 0; i < keys.size(); i++) {
+    coder.indent();
+    coder << key_var.name << "[" << i << "] = ";
+    coder << transpiler.transpile(keys[i]);
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "fields_t<" << values.size() << "> " << value_var.name << ";\n";
+  for (size_t i = 0; i < values.size(); i++) {
+    coder.indent();
+    coder << value_var.name << "[" << i << "] = ";
+    coder << transpiler.transpile(values[i]);
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "state->" << table->id;
+  coder << ".put(";
+  coder << key_var.name << ", ";
+  coder << value_var.name;
+  coder << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -913,6 +997,20 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
   return var;
 }
 
+ControllerSynthesizer::var_t ControllerSynthesizer::alloc_fields(const code_t &proposed_name,
+                                                                 const std::vector<klee::ref<klee::Expr>> &fields) {
+  const code_t name = create_unique_name(proposed_name);
+  const var_t var{.name = name, .expr = nullptr, .addr = nullptr};
+
+  for (size_t i = 0; i < fields.size(); i++) {
+    klee::ref<klee::Expr> field = fields[i];
+    const var_t field_var{.name = name + "[" + std::to_string(i) + "]", .expr = field, .addr = nullptr};
+    vars.insert_back(field_var);
+  }
+
+  return var;
+}
+
 ControllerSynthesizer::code_t ControllerSynthesizer::create_unique_name(const code_t &prefix) {
   if (reserved_var_names.find(prefix) == reserved_var_names.end()) {
     reserved_var_names[prefix] = 0;
@@ -926,6 +1024,34 @@ ControllerSynthesizer::code_t ControllerSynthesizer::create_unique_name(const co
   counter++;
 
   return coder.dump();
+}
+
+ControllerSynthesizer::code_t ControllerSynthesizer::assert_unique_name(const code_t &name) {
+  if (reserved_var_names.find(name) == reserved_var_names.end()) {
+    reserved_var_names[name] = 0;
+  }
+
+  assert(reserved_var_names.at(name) == 0 && "Name already used");
+  return name;
+}
+
+void ControllerSynthesizer::transpile_table_decl(const Tofino::Table *table) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const u64 nb_keys   = table->keys.size();
+  const u64 nb_values = 1;
+  const code_t name   = assert_unique_name(table->id);
+
+  state_fields.indent();
+  state_fields << "Table<" << nb_keys << "," << nb_values << "> " << name << ";\n";
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"Ingress\", ";
+  member_init_list << "\"" << table->id << "\"";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
 }
 
 void ControllerSynthesizer::dbg_vars() const {

@@ -3,18 +3,17 @@
 
 using namespace sycon;
 
-using Map = TableMap<4, 1>;
-using map_key_t = table_key_t<4>;
+using Map         = Table<4, 1>;
+using map_key_t   = table_key_t<4>;
 using map_value_t = table_value_t<1>;
 
 struct state_t {
   Map map;
-  Counter pkt_counter;
-  Counter cpu_counter;
+  PrimitiveCounter pkt_counter;
+  PrimitiveCounter cpu_counter;
 
   state_t()
-      : map("Ingress", "table_with_timeout", args.expiration_time),
-        pkt_counter("Ingress", "pkt_counter", true, true),
+      : map("Ingress", "table_with_timeout", args.expiration_time), pkt_counter("Ingress", "pkt_counter", true, true),
         cpu_counter("Ingress", "cpu_counter", true, true) {
     pkt_counter.set_session(cfg.usr_signal_session);
     cpu_counter.set_session(cfg.usr_signal_session);
@@ -33,11 +32,11 @@ void sycon::nf_user_signal_handler() {
   counter_data_t pkt_counter_data = state->pkt_counter.get(0);
   counter_data_t cpu_counter_data = state->cpu_counter.get(0);
 
-  u64 in_packets = pkt_counter_data.packets;
+  u64 in_packets  = pkt_counter_data.packets;
   u64 cpu_packets = cpu_counter_data.packets;
 
   // Total packets (including warmup traffic)
-  u64 total_packets = get_asic_port_rx(cfg.in_dev_port);
+  u64 total_packets = asic_get_port_rx(cfg.in_dev_port);
 
   LOG("Packet counters:");
   LOG("In: %lu", in_packets)
@@ -45,18 +44,15 @@ void sycon::nf_user_signal_handler() {
   LOG("Total: %lu", total_packets)
 }
 
-bool sycon::nf_process(time_ns_t now, byte_t *pkt, u16 size) {
-  cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
-  eth_hdr_t *eth_hdr = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
-  ipv4_hdr_t *ipv4_hdr = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
-  tcpudp_hdr_t *tcpudp_hdr =
-      (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
+bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  cpu_hdr_t *cpu_hdr       = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
+  eth_hdr_t *eth_hdr       = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
+  ipv4_hdr_t *ipv4_hdr     = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
+  tcpudp_hdr_t *tcpudp_hdr = (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
 
   (void)eth_hdr;
 
-  map_key_t flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip),
-                  SWAP_ENDIAN_32(ipv4_hdr->dst_ip),
-                  SWAP_ENDIAN_16(tcpudp_hdr->src_port),
+  map_key_t flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip), SWAP_ENDIAN_32(ipv4_hdr->dst_ip), SWAP_ENDIAN_16(tcpudp_hdr->src_port),
                   SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
 
   map_value_t out_port({cfg.out_dev_port});

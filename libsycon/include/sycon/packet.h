@@ -4,7 +4,7 @@
 
 namespace sycon {
 
-typedef byte_t mac_addr_t[6];
+typedef u8 mac_addr_t[6];
 typedef u32 ipv4_addr_t;
 typedef u16 port_t;
 
@@ -38,9 +38,9 @@ struct tcpudp_hdr_t {
   port_t dst_port;
 } __attribute__((packed));
 
-byte_t *packet_consume(byte_t *packet, u16 bytes);
+u8 *packet_consume(u8 *packet, u16 bytes);
 
-void packet_hexdump(byte_t *pkt, u16 size);
+void packet_hexdump(u8 *pkt, u16 size);
 
 void packet_log(const cpu_hdr_t *cpu_hdr);
 void packet_log(const eth_hdr_t *eth_hdr);

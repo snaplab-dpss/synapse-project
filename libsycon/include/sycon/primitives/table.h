@@ -4,6 +4,7 @@
 #include <bf_rt/bf_rt_table.hpp>
 #include <bf_rt/bf_rt_table_data.hpp>
 #include <bf_rt/bf_rt_table_key.hpp>
+
 #include <iomanip>
 #include <memory>
 #include <string>
@@ -16,18 +17,17 @@ namespace sycon {
 struct table_field_t {
   std::string name;
   bf_rt_id_t id;
-  bit_len_t size;
+  bits_t size;
 };
 
-class Table {
+class PrimitiveTable {
 protected:
-  bf_rt_target_t dev_tgt;
+  const bf_rt_target_t dev_tgt;
   const bfrt::BfRtInfo *info;
   std::shared_ptr<bfrt::BfRtSession> session;
 
-  std::string control;
-  std::string name;
-
+  const std::string control;
+  const std::string name;
   const bfrt::BfRtTable *table;
 
   std::unique_ptr<bfrt::BfRtTableKey> key;
@@ -40,32 +40,11 @@ protected:
   bool time_aware;
 
 public:
-  Table(const std::string &_control_name, const std::string &_table_name);
+  PrimitiveTable(const std::string &_control_name, const std::string &_table_name);
 
-protected:
-  void init_key();
-  void init_data();
-
-  void init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
-  void init_data(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
-
-  void init_data_with_action(bf_rt_id_t action_id);
-
-  void init_data_with_action(const std::string &name, bf_rt_id_t action_id, bf_rt_id_t *field_id);
-
-  void init_data_with_actions(const std::unordered_map<std::string, std::pair<bf_rt_id_t, bf_rt_id_t *>> &fields);
-  void init_action(const std::string &name, bf_rt_id_t *action_id);
-  void init_action(bf_rt_id_t *action_id);
-
-  void init_actions(const std::unordered_map<std::string, bf_rt_id_t *> &actions);
-
-  void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
-
-public:
   void set_session(const std::shared_ptr<bfrt::BfRtSession> &_session);
 
-  std::string get_name() const;
-
+  const std::string &get_name() const;
   size_t get_size() const;
   size_t get_usage() const;
 
@@ -80,6 +59,23 @@ public:
 
   static void dump_table_names(const bfrt::BfRtInfo *bfrtInfo);
   static std::string append_control(const std::string &control, const std::string &name);
+
+protected:
+  void init_key();
+  void init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
+
+  void init_data();
+  void init_data(const std::unordered_map<std::string, bf_rt_id_t *> &fields);
+
+  void init_data_with_action(bf_rt_id_t action_id);
+  void init_data_with_action(const std::string &name, bf_rt_id_t action_id, bf_rt_id_t *field_id);
+  void init_data_with_actions(const std::unordered_map<std::string, std::pair<bf_rt_id_t, bf_rt_id_t *>> &fields);
+
+  void init_action(const std::string &name, bf_rt_id_t *action_id);
+  void init_action(bf_rt_id_t *action_id);
+  void init_actions(const std::unordered_map<std::string, bf_rt_id_t *> &actions);
+
+  void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 };
 
 } // namespace sycon

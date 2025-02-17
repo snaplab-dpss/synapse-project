@@ -33,7 +33,7 @@ struct synapse_ingress_headers_t {
 }
 
 struct synapse_ingress_metadata_t {
-  bit<16> port;
+  bit<16> dev;
   bit<32> time;
 /*@{INGRESS_METADATA}@*/
 }
@@ -83,7 +83,7 @@ parser IngressParser(
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
 
-    meta.port = 7w0 ++ ig_intr_md.ingress_port;
+    meta.dev = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
     
     transition select(ig_intr_md.ingress_port) {
@@ -114,13 +114,8 @@ control Ingress(
   inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
   inout ingress_intrinsic_metadata_for_tm_t ig_tm_md
 ) {
-  action drop() {
-    ig_dprsr_md.drop_ctl = 1;
-  }
-
-  action fwd(bit<9> port) {
-    ig_tm_md.ucast_egress_port = port;
-  }
+  action drop() { ig_dprsr_md.drop_ctl = 1; }
+  action fwd(bit<9> port) { ig_tm_md.ucast_egress_port = port; }
 
   action send_to_controller(bit<16> code_path) {
     hdr.cpu.setValid();
@@ -135,6 +130,20 @@ control Ingress(
     b = tmp;
   }
 
+  action set_ingress_dev(bit<16> nf_dev) { meta.dev = nf_dev; }
+  table ingress_port_to_nf_dev {
+    key = { ig_intr_md.ingress_port: exact; }
+    actions = { set_ingress_dev; }
+    size = 32;
+  }
+
+  bit<16> nf_dev = 16w0;
+  table forward_nf_dev {
+    key = { nf_dev: exact; }
+    actions = { fwd; }
+    size = 32;
+  }
+
 /*@{INGRESS_CONTROL}@*/
   apply {
     if (hdr.cpu.isValid()) {
@@ -144,6 +153,7 @@ control Ingress(
     } else if (hdr.recirc.isValid()) {
 /*@{INGRESS_CONTROL_APPLY_RECIRC}@*/      
     } else {
+      ingress_port_to_nf_dev.apply();
 /*@{INGRESS_CONTROL_APPLY}@*/
     }
   }

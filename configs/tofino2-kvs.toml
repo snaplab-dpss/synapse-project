@@ -6,12 +6,164 @@ model = "AS9516-32D"
 ########################################################
 
 [[switch.front_panel_ports]]
-dev = 0                        # Client device
-capacity_bps = 100_000_000_000 # Port capacity: 100G
+vport = -1 # Unused
+pport = 1
+capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-dev = 1                      # Storage server device
-capacity_bps = 1_000_000_000 # Storage server capacity: 1G (bottleneck)
+vport = -1 # Unused
+pport = 2
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 0
+pport = 3
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 1
+pport = 4
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 2
+pport = 5
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 3
+pport = 6
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 4
+pport = 7
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 5
+pport = 8
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 6
+pport = 9
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 7
+pport = 10
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 8
+pport = 11
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 9
+pport = 12
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 10
+pport = 13
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 11
+pport = 14
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 12
+pport = 15
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 13
+pport = 16
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 14
+pport = 17
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 15
+pport = 18
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 16
+pport = 19
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 17
+pport = 20
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 18
+pport = 21
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 19
+pport = 22
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 20
+pport = 23
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 21
+pport = 24
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 22
+pport = 25
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 23
+pport = 26
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 24
+pport = 27
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 25
+pport = 28
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 26
+pport = 29
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 27
+pport = 30
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 28
+pport = 31
+capacity_bps = 100_000_000_000 # 100G
+
+[[switch.front_panel_ports]]
+vport = 29                    # Storage server NF device
+pport = 32                    # Storage server front panel port
+capacity_bps =  1_000_000_000 # Storage server capacity: 1G (bottleneck)
 
 ########################################################
 #                 Recirculation ports                  #

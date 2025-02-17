@@ -16,9 +16,9 @@ void packet_init(u16 size) {
   packet_size     = size;
 }
 
-byte_t *packet_consume(byte_t *packet_base, u16 bytes) {
+u8 *packet_consume(u8 *packet_base, u16 bytes) {
   assert(packet_consumed + bytes <= packet_size);
-  byte_t *header = packet_base + packet_consumed;
+  u8 *header = packet_base + packet_consumed;
   packet_consumed += bytes;
   return header;
 }
@@ -157,7 +157,7 @@ u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr, const void *l4_hdr)
   return (u16)cksum;
 }
 
-void packet_hexdump(byte_t *pkt, u16 size) {
+void packet_hexdump(u8 *pkt, u16 size) {
   std::stringstream ss;
 
   ss << "###[ Packet ]###\n";

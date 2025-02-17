@@ -77,8 +77,8 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     pkt = bf_pkt_get_nextseg(pkt);
   } while (pkt);
 
-  time_ns_t now  = get_time();
-  byte_t *packet = reinterpret_cast<byte_t *>(&in_packet);
+  time_ns_t now = get_time();
+  u8 *packet    = reinterpret_cast<u8 *>(&in_packet);
 
   DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
 

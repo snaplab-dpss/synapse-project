@@ -8,11 +8,11 @@
 #include <vector>
 
 #include "../primitives/register.h"
-#include "table_map.h"
+#include "table.h"
 
 namespace sycon {
 
-template <size_t K, size_t V> class TransientCachedTableMap : public TableMap<K, V> {
+template <size_t K, size_t V> class TransientCachedTableMap : public Table<K, V> {
   static_assert(K > 0);
   static_assert(V > 0);
 
@@ -23,7 +23,7 @@ template <size_t K, size_t V> class TransientCachedTableMap : public TableMap<K,
   };
 
 private:
-  Register cache_timer;
+  PrimitiveRegister cache_timer;
 
   std::string digest_control_name;
   std::string digest_name;
@@ -34,7 +34,7 @@ private:
 public:
   TransientCachedTableMap(const std::string &_control_name, const std::string &_table_name, time_ms_t _timeout,
                           const std::string &_cache_timer_name, const std::string &_digest_control_name, const std::string &_digest_name)
-      : TableMap<K, V>(_control_name, _table_name, _timeout), cache_timer(_control_name, _cache_timer_name),
+      : Table<K, V>(_control_name, _table_name, _timeout), cache_timer(_control_name, _cache_timer_name),
         digest_control_name(_digest_control_name), digest_name(_digest_name) {
     init_digest();
     register_digest_callback();
@@ -42,7 +42,7 @@ public:
 
 private:
   void init_digest() {
-    bf_status_t bf_status = cfg.info->bfrtLearnFromNameGet(Table::append_control(digest_control_name, digest_name), &learn_obj);
+    bf_status_t bf_status = cfg.info->bfrtLearnFromNameGet(PrimitiveTable::append_control(digest_control_name, digest_name), &learn_obj);
     ASSERT_BF_STATUS(bf_status)
 
     bf_status = learn_obj->learnFieldIdListGet(&learn_obj_fields_ids);
@@ -97,7 +97,7 @@ private:
     cache_timer.set(digest.cache_index, 0);
 
     // Add entry to the table.
-    TableMap<K, V>::put(digest.key, digest.value);
+    Table<K, V>::put(digest.key, digest.value);
   }
 
   static bf_status_t internal_digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,

@@ -9,7 +9,7 @@
 
 namespace sycon {
 
-class Port_HDL_Info : Table {
+class Port_HDL_Info : PrimitiveTable {
 private:
   // Key fields IDs
   bf_rt_id_t CONN_ID;
@@ -19,7 +19,7 @@ private:
   bf_rt_id_t DEV_PORT;
 
 public:
-  Port_HDL_Info() : Table("", "$PORT_HDL_INFO") {
+  Port_HDL_Info() : PrimitiveTable("", "$PORT_HDL_INFO") {
     init_key({
         {"$CONN_ID", &CONN_ID},
         {"$CHNL_ID", &CHNL_ID},

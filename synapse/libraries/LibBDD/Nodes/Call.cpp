@@ -201,10 +201,6 @@ bool Call::is_vector_borrow_value_ignored() const {
     return true;
   }
 
-  if (!is_vector_read()) {
-    return false;
-  }
-
   LibCore::symbol_t value = get_local_symbol("vector_data");
   bool used               = false;
 

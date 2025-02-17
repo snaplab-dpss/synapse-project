@@ -30,11 +30,34 @@ TNAProperties properties_from_config(const toml::table &config) {
       .max_salu_size                              = *config["switch"]["arch"]["max_salu_size"].value<bits_t>(),
   };
 }
+
+std::vector<TofinoPort> tofino_ports_from_config(const toml::table &config) {
+  std::vector<TofinoPort> ports;
+
+  for (auto &&elem : *config["switch"]["front_panel_ports"].as_array()) {
+    int vport = *elem.at_path("vport").value<int>();
+    if (vport < 0) {
+      continue;
+    }
+
+    int physical_port = *elem.at_path("pport").value<int>();
+    int tofino_device = *elem.at_path("dev").value<int>();
+
+    TofinoPort port{.nf_device        = static_cast<u16>(vport),
+                    .front_panel_port = static_cast<u16>(physical_port),
+                    .tofino_device    = static_cast<u16>(tofino_device)};
+
+    ports.push_back(port);
+  }
+
+  return ports;
+}
 } // namespace
 
-TNA::TNA(const toml::table &config) : properties(properties_from_config(config)), simple_placer(&properties) {}
+TNA::TNA(const toml::table &config)
+    : properties(properties_from_config(config)), ports(tofino_ports_from_config(config)), simple_placer(&properties) {}
 
-TNA::TNA(const TNA &other) : properties(other.properties), simple_placer(other.simple_placer), parser(other.parser) {}
+TNA::TNA(const TNA &other) : properties(other.properties), ports(other.ports), simple_placer(other.simple_placer), parser(other.parser) {}
 
 bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
   int total_packet_bytes_read          = 0;

@@ -4,8 +4,8 @@
 
 namespace sycon {
 
-Counter::Counter(const std::string &control_name, const std::string &register_name, bool count_bytes, bool count_packets)
-    : Table(control_name, register_name) {
+PrimitiveCounter::PrimitiveCounter(const std::string &control_name, const std::string &register_name, bool count_bytes, bool count_packets)
+    : PrimitiveTable(control_name, register_name) {
   assert(count_bytes || count_packets);
 
   init_key({{"$COUNTER_INDEX", &index}});
@@ -26,7 +26,7 @@ Counter::Counter(const std::string &control_name, const std::string &register_na
   assert(bytes || packets);
 }
 
-counter_data_t Counter::get(u32 i) {
+counter_data_t PrimitiveCounter::get(u32 i) {
   key_setup(i);
   data_reset();
 
@@ -49,7 +49,7 @@ counter_data_t Counter::get(u32 i) {
   return values;
 }
 
-void Counter::reset(u32 i) {
+void PrimitiveCounter::reset(u32 i) {
   key_setup(i);
   data_setup(0, 0);
 
@@ -57,21 +57,21 @@ void Counter::reset(u32 i) {
   ASSERT_BF_STATUS(bf_status)
 }
 
-void Counter::reset() {
+void PrimitiveCounter::reset() {
   auto size = get_size();
   for (size_t i = 0; i < size; i++) {
     reset(i);
   }
 }
 
-void Counter::key_setup(u32 i) {
+void PrimitiveCounter::key_setup(u32 i) {
   table->keyReset(key.get());
 
   bf_status_t bf_status = key->setValue(index, static_cast<u64>(i));
   ASSERT_BF_STATUS(bf_status)
 }
 
-void Counter::data_setup(u64 value_bytes, u64 value_packets) {
+void PrimitiveCounter::data_setup(u64 value_bytes, u64 value_packets) {
   data_reset();
 
   if (bytes) {
@@ -85,6 +85,6 @@ void Counter::data_setup(u64 value_bytes, u64 value_packets) {
   }
 }
 
-void Counter::data_reset() { table->dataReset(data.get()); }
+void PrimitiveCounter::data_reset() { table->dataReset(data.get()); }
 
 }; // namespace sycon

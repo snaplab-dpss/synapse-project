@@ -19,11 +19,6 @@ ifeq ($(P4_COMPILATION_VARS),INVALID_P4_COMPILATION_VARS)
 $(error "P4_COMPILATION_VARS is not set.")
 endif
 
-CONTROLLER_ARGS ?= INVALID_CONTROLLER_ARGS
-ifeq ($(CONTROLLER_ARGS),INVALID_CONTROLLER_ARGS)
-$(error "CONTROLLER_ARGS is not set.")
-endif
-
 CURRENT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
 BUILD_DIR   := build
@@ -85,7 +80,7 @@ $(CONTROLLER_BIN_DEBUG): $(CONTROLLER)
 		-o $(CONTROLLER_BIN_DEBUG) \
 		$(CONTROLLER_LIBS_DEBUG)
 
-controller: $(CONTROLLER_BIN)
+controller-release: $(CONTROLLER_BIN)
 $(CONTROLLER_BIN): $(CONTROLLER)
 	@mkdir -p $(RELEASE_DIR)
 	$(CXX) \
@@ -95,11 +90,7 @@ $(CONTROLLER_BIN): $(CONTROLLER)
 		-o $(CONTROLLER_BIN) \
 		$(CONTROLLER_LIBS)
 
-run-controller-model: $(CONTROLLER_BIN_DEBUG)
-	sudo -E $(CONTROLLER_BIN_DEBUG) --model --tna 1 $(CONTROLLER_ARGS)
-
-run-model: install
-	cd $(SDE) && ./run_tofino_model.sh -p $(APP)
+controller: controller-release controller-debug
 
 run-packet-sender: install
 	sudo $(PACKET_SENDER)

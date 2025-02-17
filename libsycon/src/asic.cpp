@@ -16,11 +16,11 @@ namespace sycon {
 std::unique_ptr<Port_Stat> port_stat;
 std::unique_ptr<Ports> ports;
 
-u16 get_asic_dev_port(u16 front_panel_port) { return ports->get_dev_port(front_panel_port, DEFAULT_PORT_LANE); }
-u16 get_asic_front_panel_port_from_dev_port(u16 dev_port) { return ports->get_front_panel_port(dev_port); }
-u64 get_asic_port_rx(u16 dev_port) { return port_stat->get_port_rx(dev_port, true); }
-u64 get_asic_port_tx(u16 dev_port) { return port_stat->get_port_tx(dev_port, true); }
-void reset_asic_port_stats() { port_stat->reset_stats(); }
+u16 asic_get_dev_port(u16 front_panel_port) { return ports->get_dev_port(front_panel_port, DEFAULT_PORT_LANE); }
+u16 asic_get_front_panel_port_from_dev_port(u16 dev_port) { return ports->get_front_panel_port(dev_port); }
+u64 asic_get_port_rx(u16 dev_port) { return port_stat->get_port_rx(dev_port, true); }
+u64 asic_get_port_tx(u16 dev_port) { return port_stat->get_port_tx(dev_port, true); }
+void asic_reset_port_stats() { port_stat->reset_stats(); }
 
 static std::string get_conf_file() {
   std::filesystem::path conf_file = read_env(ENV_SDE_INSTALL);

@@ -23,13 +23,13 @@ void sycon::nf_args(CLI::App &app) {}
 
 void sycon::nf_user_signal_handler() {}
 
-bool sycon::nf_process(time_ns_t now, byte_t *pkt, uint16_t size) {
+bool sycon::nf_process(time_ns_t now, u8 *pkt, uint16_t size) {
   cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
 
   u16 in_dev_port  = SWAP_ENDIAN_16(cpu_hdr->in_port);
-  u16 in_port      = get_asic_front_panel_port_from_dev_port(in_dev_port);
+  u16 in_port      = asic_get_front_panel_port_from_dev_port(in_dev_port);
   u16 out_port     = state->port_connections.at(in_port);
-  u16 out_dev_port = get_asic_dev_port(out_port);
+  u16 out_dev_port = asic_get_dev_port(out_port);
 
   DEBUG("In dev port %u, in port %u, out port %u, out dev port %u", in_dev_port, in_port, out_port, out_dev_port);
 

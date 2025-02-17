@@ -11,7 +11,7 @@ struct counter_data_t {
   u64 packets;
 };
 
-class Counter : public Table {
+class PrimitiveCounter : public PrimitiveTable {
 private:
   bf_rt_id_t index;
 
@@ -19,7 +19,7 @@ private:
   std::optional<bf_rt_id_t> packets;
 
 public:
-  Counter(const std::string &control_name, const std::string &counter_name, bool count_bytes, bool count_packets);
+  PrimitiveCounter(const std::string &control_name, const std::string &counter_name, bool count_bytes, bool count_packets);
 
   counter_data_t get(u32 i);
 

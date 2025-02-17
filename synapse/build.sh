@@ -14,7 +14,6 @@ build() {
     -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
     $PROJECT_DIR
 
-  # make -kj $(nproc) || exit 1
   ninja
 }
 
@@ -28,7 +27,7 @@ build_profile() {
     -DCMAKE_EXE_LINKER_FLAGS="-pg" \
     -DCMAKE_SHARED_LINKER_FLAGS="-pg" $PROJECT_DIR
 
-  make -kj $(nproc) || exit 1
+  ninja
 }
 
 build

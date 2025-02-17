@@ -83,6 +83,10 @@ std::optional<spec_impl_t> TableLookupFactory::speculate(const EP *ep, const Lib
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
 
+  if (call_node->is_vector_borrow_value_ignored()) {
+    return std::nullopt;
+  }
+
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   std::vector<klee::ref<klee::Expr>> values;
@@ -106,6 +110,10 @@ std::vector<impl_t> TableLookupFactory::process_node(const EP *ep, const LibBDD:
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+
+  if (call_node->is_vector_borrow_value_ignored()) {
+    return impls;
+  }
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
@@ -137,6 +145,10 @@ std::unique_ptr<Module> TableLookupFactory::create(const LibBDD::BDD *bdd, const
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+
+  if (call_node->is_vector_borrow_value_ignored()) {
+    return {};
+  }
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
