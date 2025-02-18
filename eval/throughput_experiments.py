@@ -6,28 +6,56 @@ import os
 
 from pathlib import Path
 
-from experiments.hosts.pktgen import Pktgen
-from experiments.hosts.tofino_tg import TofinoTG, TofinoTGController
-from experiments.hosts.switch import Switch
-from experiments.hosts.synapse import SynapseController
 from experiments.throughput import ThroughputHosts, Throughput
 from experiments.experiment import Experiment, ExperimentTracker
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 DATA_DIR = CURRENT_DIR / "data"
 
-def main():
-    parser = argparse.ArgumentParser()
+SYNAPSE_NFS = [
+    {
+        "name": "Synapse NOP",
+        "tofino": "synthesized/synapse-nop.p4",
+        "controller": "synthesized/synapse-nop.cpp",
+        "routing": {
+            "broadcast": [ 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
+            "symmetric": [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
+            "route": [],
+        },
+    },
+]
 
-    parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
-    parser.add_argument("-f", "--force", action="store_true", default=False, help="Regenerate data, even if they already exist")
-    
-    args = parser.parse_args()
-    
-    with open(args.config_file, "rb") as f:
-        config = tomli.load(f)
-    
-    hosts = ThroughputHosts(config)
+def synapse_nfs(hosts: ThroughputHosts, log_file: str) -> list[Experiment]:
+    experiments = []
+
+    for nf in SYNAPSE_NFS:
+        name = nf["name"]
+        tofino = nf["tofino"]
+        controller = nf["controller"]
+        routing = nf["routing"]
+
+        experiment = Throughput(
+            name=name,
+            save_name=DATA_DIR / f"tput_{name}.csv",
+            hosts=hosts,
+            p4_src_in_repo=tofino,
+            controller_src_in_repo=controller,
+            controller_timeout_ms=1000,
+            broadcast=routing["broadcast"],
+            symmetric=routing["symmetric"],
+            route=routing["route"],
+            nb_flows=10_000,
+            pkt_size=200,
+            churn=0,
+            experiment_log_file=log_file,
+        )
+
+        experiments.append(experiment)
+
+    return experiments
+
+def simple_experiments(hosts: ThroughputHosts, log_file: str) -> list[Experiment]:
+    experiments = []
 
     forwarder_tput = Throughput(
         name="Forwarder tput",
@@ -42,7 +70,7 @@ def main():
         nb_flows=10_000,
         pkt_size=200,
         churn=0,
-        experiment_log_file=config["logs"]["experiment"],
+        experiment_log_file=log_file,
     )
 
     send_to_controller_tput = Throughput(
@@ -58,11 +86,31 @@ def main():
         nb_flows=10_000,
         pkt_size=200,
         churn=0,
-        experiment_log_file=config["logs"]["experiment"],
+        experiment_log_file=log_file,
     )
 
+    experiments.append(forwarder_tput)
+    experiments.append(send_to_controller_tput)
+
+    return experiments
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
+    parser.add_argument("-f", "--force", action="store_true", default=False, help="Regenerate data, even if they already exist")
+    
+    args = parser.parse_args()
+    
+    with open(args.config_file, "rb") as f:
+        config = tomli.load(f)
+    
+    hosts = ThroughputHosts(config)
+    log_file = config["logs"]["experiment"]
+
     exp_tracker = ExperimentTracker()
-    exp_tracker.add_experiments([forwarder_tput, send_to_controller_tput])
+    # exp_tracker.add_experiments(simple_experiments(hosts, log_file))
+    exp_tracker.add_experiments(synapse_nfs(hosts, log_file))
     exp_tracker.run_experiments()
 
     hosts.terminate()

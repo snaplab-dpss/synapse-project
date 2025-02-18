@@ -49,10 +49,9 @@ class SynapseController:
         env_vars = " ".join([
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
-            f"P4_COMPILATION_VARS=\"\"",  # hack to ignore p4 compilation vars
         ])
 
-        compilation_cmd = f"{env_vars} make -f {makefile} clean"
+        compilation_cmd = f"{env_vars} APP={src} make -f {makefile} clean"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
         code = cmd.recv_exit_status()
@@ -67,22 +66,20 @@ class SynapseController:
         if not self.host.remote_file_exists(src):
             self.host.crash(f"Unable to find file {src}")
 
-        program_name = src.stem
         makefile = self.repo / "tofino" / "tools" / "Makefile"
 
         env_vars = " ".join([
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
-            f"P4_COMPILATION_VARS=\"\"",  # hack to ignore p4 compilation vars
         ])
         
-        compilation_cmd = f"{env_vars} make -f {makefile} controller -j"
+        compilation_cmd = f"{env_vars} APP={src} make -f {makefile} controller -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
         code = cmd.recv_exit_status()
 
         if code != 0:
-            self.host.crash(f"Controller compilation failed (app={program_name}).")
+            self.host.crash(f"Controller compilation failed (app={src.stem}).")
 
     def launch(
         self,

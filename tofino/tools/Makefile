@@ -9,8 +9,7 @@ $(error "SDE_INSTALL is not set.")
 endif
 
 ifndef APP
-SOURCES := $(wildcard *cpp)
-APP := $(basename $(SOURCES))
+$(error "APP is not set.")
 endif
 
 P4_COMPILATION_VARS ?= ""
