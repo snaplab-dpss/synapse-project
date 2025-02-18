@@ -41,7 +41,7 @@ figsize_third = (width_third, height_third)
 
 tight_layout_pad = 0.21
 linewidth = 1
-elinewidth = 1
+elinewidth = 0.5
 capsize = 2
 markersize = 2.5
 markeredgewidth = 1

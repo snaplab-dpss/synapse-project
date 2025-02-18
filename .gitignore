@@ -29,12 +29,14 @@ profiles
 .$*.dtmp
 
 # Latex garbage
-eval/*.aux
-eval/*.log
-eval/*.out
-eval/*.fls
-eval/*.fdb_latexmk
-eval/*.pdf
+plots/*.aux
+plots/*.log
+plots/*.out
+plots/*.fls
+plots/*.fdb
+_latexmk
+plots/*.pdf
+plots/*.tex
 
 # In case we mess up
 core.*

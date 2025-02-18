@@ -23,6 +23,7 @@ MAX_ACCEPTABLE_LOSS     = 0.001   # 0.1%
 WARMUP_TIME_SEC         = 5       # seconds
 WARMUP_RATE             = 1       # 1 Mbps
 REST_TIME_SEC           = 2       # seconds
+SLACK_OFF_MAX_TRIES     = 10
 
 # FIXME: Change this
 EXPERIMENT_ITERATIONS   = 1
@@ -164,6 +165,7 @@ class Experiment:
             nb_tx_pkts = 0
             nb_rx_pkts = 0
 
+            slacking_off_events = 0
             while nb_tx_pkts == 0:
                 controller.reset_port_stats()
                 pktgen.reset_stats()
@@ -188,11 +190,19 @@ class Experiment:
                 self.log(f"TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
 
                 for port in broadcast_ports:
+                    if port not in port_stats:
+                        self.log(f"Port {port} not found in stats. The port is probably down. Double check the configuration.")
+                        exit(1)
+
                     dut_port_rx_pkts = port_stats[port][0]
                     if dut_port_rx_pkts != pktgen_tx_pkts:
-                        self.log(f"Port {port} is slacking off! Sent {dut_port_rx_pkts} instead of {pktgen_tx_pkts}. Repeating run.")
-                        nb_tx_pkts = 0
-                        break
+                        if slacking_off_events < SLACK_OFF_MAX_TRIES:
+                            self.log(f"Port {port} is slacking off! Sent {dut_port_rx_pkts} instead of {pktgen_tx_pkts}. Repeating run.")
+                            nb_tx_pkts = 0
+                            slacking_off_events += 1
+                            break
+                        else:
+                            self.log(f"Port {port} is slacking off! Sent {dut_port_rx_pkts} instead of {pktgen_tx_pkts}. Giving up.")
 
             nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
             nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8

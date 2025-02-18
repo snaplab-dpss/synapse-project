@@ -2,15 +2,14 @@
 
 import os
 
-from pathlib import Path
-
 from utils.plot_config import *
 
 from msgspec.json import decode
 from msgspec import Struct
+from pathlib import Path
+from typing import Literal
 
 import matplotlib.pyplot as plt
-from typing import Literal
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 # PLOTS_DIR = CURRENT_DIR / "plots"

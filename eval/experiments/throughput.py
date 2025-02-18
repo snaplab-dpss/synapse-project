@@ -201,11 +201,11 @@ class Throughput(Experiment):
         step_progress.update(task_id, description=f"({current_iter})")
 
         throughput_bps, throughput_pps, _ = self.find_stable_throughput(
-            self.hosts.controller,
-            self.hosts.pktgen,
-            self.churn,
-            self.pkt_size,
-            self.broadcast,
+            controller=self.hosts.controller,
+            pktgen=self.hosts.pktgen,
+            churn=self.churn,
+            pkt_size=self.pkt_size,
+            broadcast_ports=self.broadcast,
         )
 
         with open(self.save_name, "a") as f:

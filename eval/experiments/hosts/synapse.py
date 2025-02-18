@@ -51,7 +51,7 @@ class SynapseController:
             f"SDE_INSTALL={self.sde}/install",
         ])
 
-        compilation_cmd = f"{env_vars} APP={src} make -f {makefile} clean"
+        compilation_cmd = f"{env_vars} APP={src.stem} make -f {makefile} clean"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
         code = cmd.recv_exit_status()
@@ -73,7 +73,7 @@ class SynapseController:
             f"SDE_INSTALL={self.sde}/install",
         ])
         
-        compilation_cmd = f"{env_vars} APP={src} make -f {makefile} controller -j"
+        compilation_cmd = f"{env_vars} APP={src.stem} make -f {makefile} controller -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
         code = cmd.recv_exit_status()

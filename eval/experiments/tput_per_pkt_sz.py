@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-from eval.experiments.hosts.synapse import Controller
-from experiments.hosts.switch import Switch
-from experiments.hosts.pktgen import Pktgen
-
+from experiments.throughput import ThroughputHosts
 from experiments.experiment import Experiment
 
 from pathlib import Path
@@ -13,8 +10,6 @@ from rich.progress import Progress
 
 from typing import Optional
 
-PACKET_SIZES_BYTES = [ 64, 128, 256, 512, 1024, 1500 ]
-
 class ThroughputPerPacketSize(Experiment):
     def __init__(
         self,
@@ -22,46 +17,50 @@ class ThroughputPerPacketSize(Experiment):
         # Experiment parameters
         name: str,
         save_name: Path,
+        pkt_sizes: list[int],
 
         # Hosts
-        switch: Switch,
-        controller: Controller,
-        pktgen: Pktgen,
+        hosts: ThroughputHosts,
 
         # Switch
         p4_src_in_repo: str,
 
         # Controller
         controller_src_in_repo: str,
-        timeout_ms: int,
+        controller_timeout_ms: int,
+
+        # TG controller
+        broadcast: list[int],
+        symmetric: list[int],
+        route: list[tuple[int,int]],
 
         # Pktgen
         nb_flows: int,
-        churn: int,
-        crc_unique_flows: bool,
-        crc_bits: int,
 
-        # Extra
         experiment_log_file: Optional[str] = None,
         console: Console = Console()
     ) -> None:
         super().__init__(name, experiment_log_file)
         
+        # Experiment parameters
         self.save_name = save_name
+        self.hosts = hosts
+        self.pkt_sizes = pkt_sizes
 
-        self.switch = switch
-        self.controller = controller
-        self.pktgen = pktgen
-
+        # Switch
         self.p4_src_in_repo = p4_src_in_repo
         
+        # Controller
         self.controller_src_in_repo = controller_src_in_repo
-        self.timeout_ms = timeout_ms
+        self.controller_timeout_ms = controller_timeout_ms
 
+        # TG controller
+        self.broadcast = broadcast
+        self.symmetric = symmetric
+        self.route = route
+
+        # Pktgen
         self.nb_flows = nb_flows
-        self.churn = churn
-        self.crc_unique_flows = crc_unique_flows
-        self.crc_bits = crc_bits
 
         self.console = console
 
@@ -92,11 +91,11 @@ class ThroughputPerPacketSize(Experiment):
         step_progress: Progress,
         current_iter: int,
     ) -> None:
-        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(PACKET_SIZES_BYTES))
+        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(self.pkt_sizes))
 
         # Check if we already have everything before running all the programs.
         completed = True
-        for pkt_size in PACKET_SIZES_BYTES:
+        for pkt_size in self.pkt_sizes:
             exp_key = (current_iter,pkt_size,)
             if exp_key not in self.experiment_tracker:
                 completed = False
@@ -104,14 +103,47 @@ class ThroughputPerPacketSize(Experiment):
         if completed:
             return
 
-        self.switch.install(self.p4_src_in_repo)
+        self.log("Installing Tofino TG")
+        self.hosts.tg_switch.install()
 
-        self.controller.launch(
+        self.log("Installing NF")
+        self.hosts.dut_switch.install(self.p4_src_in_repo)
+
+        self.log("Launching Tofino TG")
+        self.hosts.tg_switch.launch()
+        
+        self.log("Launching synapse controller")
+        self.hosts.controller.launch(
             self.controller_src_in_repo,
-            self.timeout_ms
+            self.controller_timeout_ms
         )
 
-        for pkt_size in PACKET_SIZES_BYTES:
+        self.log("Launching pktgen")
+        self.hosts.pktgen.launch(
+            nb_flows=self.nb_flows,
+            pkt_size=self.pkt_sizes[0],
+            exp_time_us=self.controller_timeout_ms * 1000,
+        )
+
+        self.log("Waiting for Tofino TG")
+        self.hosts.tg_switch.wait_ready()
+
+        self.log("Configuring Tofino TG")
+        self.hosts.tg_controller.run(
+            broadcast=self.broadcast,
+            symmetric=self.symmetric,
+            route=self.route,
+        )
+
+        self.log("Waiting for pktgen")
+        self.hosts.pktgen.wait_launch()
+
+        self.log("Waiting for synapse controller")
+        self.hosts.controller.wait_ready()
+
+        self.log("Starting experiment")
+
+        for pkt_size in self.pkt_sizes:
             exp_key = (current_iter,pkt_size,)
             
             description=f"{self.name} (it={current_iter} pkt={pkt_size}B)"
@@ -123,21 +155,22 @@ class ThroughputPerPacketSize(Experiment):
 
             step_progress.update(task_id, description=description)
 
-            self.pktgen.launch(
-                self.nb_flows,
-                pkt_size,
-                self.timeout_ms * 1000,
-                self.crc_unique_flows,
-                self.crc_bits
+            self.log("Launching pktgen")
+            self.hosts.pktgen.close()
+            self.hosts.pktgen.launch(
+                nb_flows=self.nb_flows,
+                pkt_size=pkt_size,
+                exp_time_us=self.controller_timeout_ms * 1000,
             )
 
-            self.pktgen.wait_launch()
-            self.controller.wait_ready()
+            self.hosts.pktgen.wait_launch()
 
             throughput_bps, throughput_pps, _ = self.find_stable_throughput(
-                self.pktgen,
-                self.churn,
-                pkt_size
+                controller=self.hosts.controller,
+                pktgen=self.hosts.pktgen,
+                churn=0,
+                pkt_size=pkt_size,
+                broadcast_ports=self.broadcast,
             )
 
             with open(self.save_name, "a") as f:
@@ -145,8 +178,7 @@ class ThroughputPerPacketSize(Experiment):
 
             step_progress.update(task_id, description=description, advance=1)
 
-            self.pktgen.close()
-        
-        self.controller.stop()
+        self.hosts.pktgen.close()
+        self.hosts.controller.stop()
         
         step_progress.update(task_id, visible=False)
