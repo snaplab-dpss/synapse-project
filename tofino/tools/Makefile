@@ -13,11 +13,7 @@ SOURCES := $(wildcard *cpp)
 APP := $(basename $(SOURCES))
 endif
 
-# Kind of a hack, but oh well...
-P4_COMPILATION_VARS ?= INVALID_P4_COMPILATION_VARS
-ifeq ($(P4_COMPILATION_VARS),INVALID_P4_COMPILATION_VARS)
-$(error "P4_COMPILATION_VARS is not set.")
-endif
+P4_COMPILATION_VARS ?= ""
 
 CURRENT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
