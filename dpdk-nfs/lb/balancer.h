@@ -8,8 +8,8 @@
 
 #include <rte_ether.h>
 
-#include "lb_flow.h"
-#include "lb_backend.h"
+#include "flow.h"
+#include "backend.h"
 #include "ip_addr.h"
 
 struct LoadBalancer;

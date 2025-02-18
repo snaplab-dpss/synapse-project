@@ -9,21 +9,40 @@
 #include "nf.h"
 #include "nf-log.h"
 #include "nf-util.h"
-
-#include "psd_config.h"
-#include "psd_state.h"
+#include "config.h"
+#include "state.h"
+#include "ip_addr.h"
+#include "counter.h"
+#include "touched_port.h"
 
 struct nf_config config;
 struct State *state;
 
 bool nf_init(void) {
-  uint32_t capacity  = config.capacity;
-  uint16_t max_ports = config.max_ports;
-  uint32_t dev_count = rte_eth_dev_count_avail();
-
-  state = alloc_state(capacity, max_ports, dev_count);
-
+  state = alloc_state();
   return state != NULL;
+}
+
+bool is_internal(uint16_t device) {
+  bool is_int_dev;
+
+  int *is_internal;
+  vector_borrow(state->int_devices, device, (void **)&is_internal);
+  is_int_dev = (*is_internal != 0);
+  vector_return(state->int_devices, device, is_internal);
+
+  return is_int_dev;
+}
+
+uint16_t get_dst_dev(uint16_t src_dev) {
+  uint16_t dst_dev;
+
+  uint16_t *destination_device;
+  vector_borrow(state->fwd_rules, src_dev, (void **)&destination_device);
+  dst_dev = *destination_device;
+  vector_return(state->fwd_rules, src_dev, destination_device);
+
+  return dst_dev;
 }
 
 void expire_entries(time_ns_t time) {
@@ -61,7 +80,7 @@ int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
 
   // Now save the source and add the first port.
   port_index = 0;
-  vector_borrow(state->ports_key, state->max_ports * index + port_index, (void **)&touched_port);
+  vector_borrow(state->ports_key, config.max_ports * index + port_index, (void **)&touched_port);
 
   *src_key           = src;
   *counter           = 1;
@@ -73,7 +92,7 @@ int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
 
   vector_return(state->srcs_key, index, src_key);
   vector_return(state->touched_ports_counter, index, counter);
-  vector_return(state->ports_key, state->max_ports * index + port_index, touched_port);
+  vector_return(state->ports_key, config.max_ports * index + port_index, touched_port);
 
   return true;
 }
@@ -106,7 +125,7 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
   struct TouchedPort touched_port = {.src = src, .port = target_port};
   present                         = map_get(state->ports, &touched_port, &port_index);
 
-  if (!present && *counter >= state->max_ports) {
+  if (!present && *counter >= config.max_ports) {
     NF_DEBUG("Dropping   %3u.%3u.%3u.%3u", (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff, (src >> 24) & 0xff);
     vector_return(state->touched_ports_counter, index, counter);
     return true;
@@ -116,7 +135,7 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
     struct TouchedPort *new_touched_port = NULL;
     port_index                           = *((int *)counter) - 1;
 
-    vector_borrow(state->ports_key, state->max_ports * index + (port_index + 1), (void **)&new_touched_port);
+    vector_borrow(state->ports_key, config.max_ports * index + (port_index + 1), (void **)&new_touched_port);
 
     (*counter)++;
     new_touched_port->src  = src;
@@ -124,7 +143,7 @@ int detect_port_scanning(uint32_t src, uint16_t target_port, time_ns_t time) {
 
     map_put(state->ports, new_touched_port, port_index + 1);
 
-    vector_return(state->ports_key, state->max_ports * index + (port_index + 1), new_touched_port);
+    vector_return(state->ports_key, config.max_ports * index + (port_index + 1), new_touched_port);
   }
 
   vector_return(state->touched_ports_counter, index, counter);
@@ -147,23 +166,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     return DROP;
   }
 
-  if (device == config.lan_device) {
+  if (is_internal(device)) {
     // Simply forward outgoing packets.
     NF_DEBUG("Outgoing packet. Not checking for port scanning attempts.");
-    return config.wan_device;
-  } else if (device == config.wan_device) {
-    int detected = detect_port_scanning(rte_ipv4_header->src_addr, tcpudp_header->dst_port, now);
-
-    if (detected) {
-      // Drop packet.
+  } else {
+    if (detect_port_scanning(rte_ipv4_header->src_addr, tcpudp_header->dst_port, now)) {
       return DROP;
     }
-
-    // OK to forward.
-    return config.lan_device;
   }
 
-  // Drop any other packets.
-  NF_DEBUG("Unknown port. Dropping.");
-  return DROP;
+  return get_dst_dev(device);
 }

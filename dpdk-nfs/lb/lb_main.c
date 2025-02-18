@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include "lb_config.h"
-#include "lb_balancer.h"
+#include "config.h"
+#include "balancer.h"
 #include "nf.h"
 #include "nf-log.h"
 #include "nf-util.h"
@@ -55,7 +55,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     rte_ether_header->s_addr  = config.device_macs[backend.nic];
     rte_ether_header->d_addr  = backend.mac;
 
-    // Checksum
     nf_set_rte_ipv4_udptcp_checksum(rte_ipv4_header, tcpudp_header, buffer);
   }
 

@@ -9,8 +9,8 @@
 #include "lib/util/time.h"
 
 #include "ip_addr.h"
-#include "lb_backend.h"
-#include "lb_flow.h"
+#include "backend.h"
+#include "flow.h"
 
 void loop_invariant_consume(struct Map **flow_to_flow_id, struct Vector **flow_heap, struct DoubleChain **flow_chain,
                             struct Vector **flow_id_to_backend_id, struct Map **ip_to_backend_id, struct Vector **backend_ips,

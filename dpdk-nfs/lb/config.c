@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "lb_config.h"
+#include "config.h"
 #include "nf-util.h"
 #include "nf-log.h"
+#include "lib/util/compute.h"
 
 #define PARSE_ERROR(format, ...)                                                                                                           \
   nf_config_usage();                                                                                                                       \
@@ -53,6 +54,11 @@ void nf_config_init(int argc, char **argv) {
       if (config.cht_height <= 0) {
         PARSE_ERROR("CHT height must be strictly positive.\n");
       }
+
+      if (!is_prime(config.cht_height)) {
+        PARSE_ERROR("CHT height must be a prime number.\n");
+      }
+
       break;
 
     case 't':

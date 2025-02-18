@@ -1,21 +1,21 @@
 #ifndef _STATE_H_INCLUDED_
 #define _STATE_H_INCLUDED_
 
-#include "psd_loop.h"
+#include "lib/state/map.h"
+#include "lib/state/vector.h"
+#include "lib/state/double-chain.h"
 
 struct State {
   struct Map *srcs;
   struct Vector *srcs_key;
   struct Vector *touched_ports_counter;
   struct DoubleChain *allocator;
-
   struct Map *ports;
   struct Vector *ports_key;
-
-  uint32_t capacity;
-  uint32_t max_ports;
-  uint32_t dev_count;
+  struct Vector *int_devices;
+  struct Vector *fwd_rules;
 };
 
-struct State *alloc_state(uint32_t capacity, uint64_t max_ports, uint32_t dev_count);
+struct State *alloc_state();
+
 #endif //_STATE_H_INCLUDED_
