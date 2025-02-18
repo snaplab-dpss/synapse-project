@@ -50,7 +50,6 @@ class SynapseController:
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
             f"P4_COMPILATION_VARS=\"\"",  # hack to ignore p4 compilation vars
-            f"CONTROLLER_ARGS=\"\"", # hack to ignore controller args
         ])
 
         compilation_cmd = f"{env_vars} make -f {makefile} clean"
@@ -75,10 +74,9 @@ class SynapseController:
             f"SDE={self.sde}",
             f"SDE_INSTALL={self.sde}/install",
             f"P4_COMPILATION_VARS=\"\"",  # hack to ignore p4 compilation vars
-            f"CONTROLLER_ARGS=\"\"", # hack to ignore controller args
         ])
         
-        compilation_cmd = f"{env_vars} make -f {makefile} -j"
+        compilation_cmd = f"{env_vars} make -f {makefile} controller -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
         code = cmd.recv_exit_status()
