@@ -14,7 +14,14 @@ from rich.progress import Progress
 
 from typing import Optional
 
+
 class ThroughputHosts:
+    dut_switch: Switch
+    controller: SynapseController
+    tg_switch: TofinoTG
+    tg_controller: TofinoTGController
+    pktgen: Pktgen
+
     def __init__(
         self,
         config: dict,
@@ -59,50 +66,44 @@ class ThroughputHosts:
             nb_tx_cores=config["devices"]["pktgen"]["nb_tx_cores"],
             log_file=config["logs"]["pktgen"],
         )
-    
+
     def terminate(self):
         self.tg_switch.kill_switchd()
+
 
 class Throughput(Experiment):
     def __init__(
         self,
-
         # Experiment parameters
         name: str,
         save_name: Path,
-
         # Hosts
         hosts: ThroughputHosts,
-
         # Switch
         p4_src_in_repo: str,
-
         # Controller
         controller_src_in_repo: str,
         controller_timeout_ms: int,
-
         # TG controller
         broadcast: list[int],
         symmetric: list[int],
-        route: list[tuple[int,int]],
-
+        route: list[tuple[int, int]],
         # Pktgen
         nb_flows: int,
         pkt_size: int,
         churn: int,
-
         experiment_log_file: Optional[str] = None,
-        console: Console = Console()
+        console: Console = Console(),
     ) -> None:
         super().__init__(name, experiment_log_file)
-        
+
         # Experiment parameters
         self.save_name = save_name
         self.hosts = hosts
 
         # Switch
         self.p4_src_in_repo = p4_src_in_repo
-        
+
         # Controller
         self.controller_src_in_repo = controller_src_in_repo
         self.controller_timeout_ms = controller_timeout_ms
@@ -122,7 +123,7 @@ class Throughput(Experiment):
         self._sync()
 
     def _sync(self):
-        header = f"throughput (bps),throughput (pps)\n"
+        header = f"pktgen tput (bps), pktgen tput (pps), tput (bps), tput (pps)\n"
 
         self.experiment_tracker = 0
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
@@ -157,7 +158,7 @@ class Throughput(Experiment):
             self.console.log(f"[orange1]Skipping: {current_iter}")
             step_progress.update(task_id, advance=1)
             return
-    
+
         self.log("Installing Tofino TG")
         self.hosts.tg_switch.install()
 
@@ -166,12 +167,9 @@ class Throughput(Experiment):
 
         self.log("Launching Tofino TG")
         self.hosts.tg_switch.launch()
-        
+
         self.log("Launching synapse controller")
-        self.hosts.controller.launch(
-            self.controller_src_in_repo,
-            self.controller_timeout_ms
-        )
+        self.hosts.controller.launch(self.controller_src_in_repo, self.controller_timeout_ms)
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
@@ -200,7 +198,7 @@ class Throughput(Experiment):
 
         step_progress.update(task_id, description=f"({current_iter})")
 
-        throughput_bps, throughput_pps, _ = self.find_stable_throughput(
+        report = self.find_stable_throughput(
             controller=self.hosts.controller,
             pktgen=self.hosts.pktgen,
             churn=self.churn,
@@ -209,7 +207,7 @@ class Throughput(Experiment):
         )
 
         with open(self.save_name, "a") as f:
-            f.write(f"{throughput_bps},{throughput_pps}\n")
+            f.write(f"{report.pktgen_bps},{report.pktgen_pps},{report.bps},{report.pps}\n")
 
         step_progress.update(task_id, advance=1)
         step_progress.update(task_id, visible=False)

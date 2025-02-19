@@ -19,6 +19,8 @@ class Switch:
         self.sde = Path(sde)
         self.tofino_version = tofino_version
         self.makefile = self.repo / "tofino" / "tools" / "Makefile"
+        self.ready = False
+        self.switchd_cmd = None
 
         self.host.test_connection()
         
@@ -64,3 +66,40 @@ class Switch:
 
         if code != 0:
             self.host.crash(f"P4 compilation failed (app={program_name}).")
+    
+    def launch(self, app_name: str) -> None:
+        if self.ready:
+            return
+        
+        if self.host.is_proc_running("bf_switchd"):
+            self.kill_switchd()
+
+        env_vars = " ".join([
+            f"SDE={self.sde}",
+            f"SDE_INSTALL={self.sde}/install",
+        ])
+
+        cmd = f"{env_vars} ./run_switchd.sh -p {app_name}"
+        self.switchd_cmd = self.host.run_command(cmd, dir=self.sde)
+        self.ready = False
+    
+    def wait_ready(self) -> None:
+        if self.ready:
+            return
+
+        if self.switchd_cmd is None:
+            raise RuntimeError("Switchd not started")
+
+        self.switchd_cmd.watch(
+            stop_pattern="bfshell> ",
+        )
+
+        if self.switchd_cmd.exit_status_ready():
+            self.host.crash("Switchd exited before time.")
+
+        self.ready = True
+    
+    def kill_switchd(self) -> None:
+        self.host.run_command("sudo killall bf_switchd")
+        self.switchd_cmd = None
+        self.ready = False

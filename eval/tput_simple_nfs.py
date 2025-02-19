@@ -2,15 +2,12 @@
 
 import argparse
 import tomli
-import os
 
 from pathlib import Path
 
-from experiments.throughput import ThroughputHosts, Throughput
+from experiments.tput import ThroughputHosts, Throughput
 from experiments.experiment import Experiment, ExperimentTracker
-
-CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
-DATA_DIR = CURRENT_DIR / "data"
+from utils.constants import *
 
 def simple_experiments(hosts: ThroughputHosts, log_file: str) -> list[Experiment]:
     experiments = []

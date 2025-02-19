@@ -2,16 +2,13 @@
 
 import argparse
 import tomli
-import os
 
 from pathlib import Path
 
-from experiments.throughput import ThroughputHosts
+from experiments.tput import ThroughputHosts
 from experiments.tput_per_pkt_sz import ThroughputPerPacketSize
-from experiments.experiment import Experiment, ExperimentTracker
-
-CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
-DATA_DIR = CURRENT_DIR / "data"
+from experiments.experiment import ExperimentTracker
+from utils.constants import *
 
 PKT_SIZES = [64, 128, 256, 512, 1024, 1280, 1500]
 

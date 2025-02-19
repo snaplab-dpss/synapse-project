@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 from .remote import RemoteHost
 from .switch import Switch
 
-TRAFFIC_GENERATOR_APP_NAME = "traffic-generator"
+APP_NAME = "traffic-generator"
 
 class TofinoTG(Switch):
     def __init__(
@@ -17,50 +17,15 @@ class TofinoTG(Switch):
         tofino_version: int,
         log_file: Optional[str] = None,
     ) -> None:
+        self.app_name = APP_NAME
         super().__init__(hostname, repo, sde, tofino_version, log_file)
-        self.ready = False
-        self.switchd_cmd = None
 
     def install(self) -> None:
-        src_in_repo = Path("tofino") / "traffic-generator" / f"{TRAFFIC_GENERATOR_APP_NAME}.p4"
+        src_in_repo = Path("tofino") / self.app_name / f"{self.app_name}.p4"
         super().install(src_in_repo)
     
     def launch(self) -> None:
-        if self.ready:
-            return
-        
-        if self.host.is_proc_running("bf_switchd"):
-            self.kill_switchd()
-
-        env_vars = " ".join([
-            f"SDE={self.sde}",
-            f"SDE_INSTALL={self.sde}/install",
-        ])
-
-        cmd = f"{env_vars} ./run_switchd.sh -p {TRAFFIC_GENERATOR_APP_NAME}"
-        self.switchd_cmd = self.host.run_command(cmd, dir=self.sde)
-        self.ready = False
-    
-    def wait_ready(self) -> None:
-        if self.ready:
-            return
-
-        if self.switchd_cmd is None:
-            raise RuntimeError("Switchd not started")
-
-        self.switchd_cmd.watch(
-            stop_pattern="bfshell> ",
-        )
-
-        if self.switchd_cmd.exit_status_ready():
-            self.host.crash("Switchd exited before time.")
-
-        self.ready = True
-    
-    def kill_switchd(self) -> None:
-        self.host.run_command("sudo killall bf_switchd")
-        self.switchd_cmd = None
-        self.ready = False
+        super().launch(self.app_name)
 
 class TofinoTGController:
     def __init__(
@@ -73,6 +38,7 @@ class TofinoTGController:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.repo = Path(repo)
         self.sde = Path(sde)
+        self.app_name = APP_NAME
 
         self.host.test_connection()
         
@@ -85,7 +51,7 @@ class TofinoTGController:
             symmetric: list[int],
             route: list[Tuple[int,int]],
     ) -> None:
-        target_dir = self.repo / "tofino" / "traffic-generator"
+        target_dir = self.repo / "tofino" / self.app_name
 
         env_vars = " ".join([
             f"SDE={self.sde}",
@@ -93,7 +59,7 @@ class TofinoTGController:
             f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/"
         ])
 
-        cmd = f"{env_vars} ./{TRAFFIC_GENERATOR_APP_NAME}.py"
+        cmd = f"{env_vars} ./{self.app_name}.py"
         if broadcast:
             cmd += f" --broadcast {' '.join(map(str, broadcast))}"
         if symmetric:
@@ -106,5 +72,5 @@ class TofinoTGController:
         code = command.recv_exit_status()
 
         if code != 0:
-            self.host.crash(f"Tofino TG controller exited with code != 0.")
+            self.host.crash(f"{self.app_name} controller exited with code != 0.")
             exit(1)
