@@ -82,6 +82,7 @@ public:
   LibCore::SymbolManager *get_mutable_symbol_manager() { return symbol_manager; }
   const LibCore::SymbolManager *get_symbol_manager() const { return symbol_manager; }
 
+  void delete_init_node(node_id_t target_id);
   Node *delete_non_branch(node_id_t target_id);
   Node *delete_branch(node_id_t target_id, bool direction_to_keep);
   Node *clone_and_add_non_branches(const Node *current, const std::vector<const Node *> &new_nodes);

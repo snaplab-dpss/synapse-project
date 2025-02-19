@@ -16,6 +16,10 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
+  if (call_node->is_vector_borrow_value_ignored()) {
+    return std::nullopt;
+  }
+
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   addr_t vector_addr                     = LibCore::expr_addr_to_obj_addr(vector_addr_expr);
 
@@ -38,6 +42,10 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
+    return impls;
+  }
+
+  if (call_node->is_vector_borrow_value_ignored()) {
     return impls;
   }
 
@@ -72,6 +80,10 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const LibBDD::BDD *b
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
+    return {};
+  }
+
+  if (call_node->is_vector_borrow_value_ignored()) {
     return {};
   }
 

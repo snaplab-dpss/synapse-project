@@ -209,6 +209,7 @@ private:
   code_path_t alloc_recirc_coder();
 
   void transpile_table_decl(const Tofino::Table *table);
+  void transpile_register_decl(const Tofino::Register *reg);
 
   void dbg_vars() const;
 

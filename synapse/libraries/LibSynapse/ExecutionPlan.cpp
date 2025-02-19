@@ -135,6 +135,22 @@ void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd, addr_t map) {
   for (const LibBDD::Node *node : candidates) {
     bdd->delete_non_branch(node->get_id());
   }
+
+  for (const LibBDD::Call *call : bdd->get_init()) {
+    if (call->get_call().function_name != "vector_allocate") {
+      continue;
+    }
+
+    klee::ref<klee::Expr> obj_expr = call->get_call().args.at("vector_out").out;
+    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+
+    if (obj != vector_key) {
+      continue;
+    }
+
+    bdd->delete_init_node(call->get_id());
+    break;
+  }
 }
 
 void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
@@ -163,7 +179,7 @@ void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   });
 
   // There are more efficient ways of doing this (that don't involve traversing
-  // the entire LibBDD::BDD every single time), but this is a quick and dirty way of
+  // the entire BDD every single time), but this is a quick and dirty way of
   // doing it.
   for (addr_t map : maps) {
     delete_all_vector_key_operations_from_bdd(bdd, map);

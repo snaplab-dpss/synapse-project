@@ -22,13 +22,20 @@ constexpr const char *const MARKER_NF_USER_SIGNAL_HANDLER = "NF_USER_SIGNAL_HAND
 constexpr const char *const MARKER_NF_PROCESS             = "NF_PROCESS";
 constexpr const char *const TEMPLATE_FILENAME             = "controller.template.cpp";
 
-template <class T> const T *get_tofino_ds_from_obj(const EP *ep, addr_t obj) {
-  const Context &ctx                                          = ep->get_ctx();
-  const TofinoContext *tofino_ctx                             = ctx.get_target_ctx<TofinoContext>();
-  const std::unordered_set<LibSynapse::Tofino::DS *> &matches = tofino_ctx->get_ds(obj);
-  assert(!matches.empty() && "DS not found");
-  assert(matches.size() == 1 && "Multiple DS matches");
-  return dynamic_cast<const T *>(*matches.begin());
+template <class T> std::unordered_set<const T *> get_tofino_ds_from_obj(const EP *ep, addr_t obj) {
+  const Context &ctx              = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+
+  std::unordered_set<const T *> ds_matches;
+  for (const DS *ds : tofino_ctx->get_ds(obj)) {
+    const T *ds_match = dynamic_cast<const T *>(ds);
+    if (ds_match) {
+      ds_matches.insert(ds_match);
+    }
+  }
+
+  assert(!ds_matches.empty() && "Multiple DS matches");
+  return ds_matches;
 }
 
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
@@ -643,9 +650,21 @@ void ControllerSynthesizer::synthesize_nf_init() {
 
     if (candidate_modules.empty()) {
       panic("No module found for call node %s", call_node->dump(true).c_str());
+    } else if (candidate_modules.size() > 1) {
+      std::stringstream err_msg;
+      err_msg << "Multiple init module candidates for call node " << call_node->dump(true);
+      err_msg << "\n";
+      err_msg << "Candidates = [";
+      for (size_t i = 0; i < candidate_modules.size(); i++) {
+        err_msg << candidate_modules[i]->get_name();
+        if (i + 1 < candidate_modules.size()) {
+          err_msg << ", ";
+        }
+      }
+      err_msg << "]";
+      panic("%s", err_msg.str().c_str());
     }
 
-    assert(candidate_modules.size() == 1 && "Multiple init module candidates");
     const Module *module = candidate_modules.front().get();
 
     nf_init.indent();
@@ -734,10 +753,12 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableAllocate *node) {
-  const addr_t obj           = node->get_obj();
-  const Tofino::Table *table = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+  const addr_t obj                                 = node->get_obj();
+  std::unordered_set<const Tofino::Table *> tables = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
 
-  transpile_table_decl(table);
+  for (const Tofino::Table *table : tables) {
+    transpile_table_decl(table);
+  }
 
   return EPVisitor::Action::doChildren;
 }
@@ -749,7 +770,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const std::vector<klee::ref<klee::Expr>> &keys   = node->get_keys();
   const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
   std::optional<LibCore::symbol_t> found           = node->get_found();
-  const Tofino::Table *table                       = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+
+  std::unordered_set<const Tofino::Table *> tables = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+  const Tofino::Table *table                       = *tables.begin();
 
   var_t key_var   = alloc_fields("table_key", keys);
   var_t value_var = alloc_fields("table_value", values);
@@ -788,7 +811,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t obj                                 = node->get_obj();
   const std::vector<klee::ref<klee::Expr>> &keys   = node->get_keys();
   const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
-  const Tofino::Table *table                       = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+
+  std::unordered_set<const Tofino::Table *> tables = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
 
   var_t key_var   = alloc_fields("table_key", keys);
   var_t value_var = alloc_fields("table_value", values);
@@ -811,12 +835,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     coder << ";\n";
   }
 
-  coder.indent();
-  coder << "state->" << table->id;
-  coder << ".put(";
-  coder << key_var.name << ", ";
-  coder << value_var.name;
-  coder << ");\n";
+  for (const Tofino::Table *table : tables) {
+    coder.indent();
+    coder << "state->" << table->id;
+    coder << ".put(";
+    coder << key_var.name << ", ";
+    coder << value_var.name;
+    coder << ");\n";
+  }
 
   return EPVisitor::Action::doChildren;
 }
@@ -886,7 +912,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterAllocate *node) {
-  panic("TODO: Controller::VectorRegisterAllocate");
+  const addr_t obj                                       = node->get_obj();
+  std::unordered_set<const Tofino::Register *> registers = get_tofino_ds_from_obj<Tofino::Register>(ep, obj);
+
+  for (const Tofino::Register *reg : registers) {
+    transpile_register_decl(reg);
+  }
+
+  return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterLookup *node) {
@@ -1050,6 +1083,23 @@ void ControllerSynthesizer::transpile_table_decl(const Tofino::Table *table) {
   member_init_list << "(";
   member_init_list << "\"Ingress\", ";
   member_init_list << "\"" << table->id << "\"";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_register_decl(const Tofino::Register *reg) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name = assert_unique_name(reg->id);
+
+  state_fields.indent();
+  state_fields << "PrimitiveRegister " << name << ";\n";
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"Ingress\", ";
+  member_init_list << "\"" << reg->id << "\"";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }

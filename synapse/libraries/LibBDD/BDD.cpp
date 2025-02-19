@@ -682,6 +682,34 @@ BDD &BDD::operator=(const BDD &other) {
   return *this;
 }
 
+void BDD::delete_init_node(node_id_t target_id) {
+  auto it = init.begin();
+  while (it != init.end()) {
+    if ((*it)->get_id() == target_id) {
+      Call *node = *it;
+      Node *prev = node->get_mutable_prev();
+      Node *next = node->get_mutable_next();
+
+      if (prev) {
+        assert(prev->get_type() == NodeType::Call && "Unexpected node type");
+        prev->set_next(next);
+      }
+
+      if (next) {
+        assert(next->get_type() == NodeType::Call && "Unexpected node type");
+        next->set_prev(prev);
+      }
+
+      it = init.erase(it);
+      manager.free_node(node);
+
+      return;
+    }
+
+    it++;
+  }
+}
+
 Node *BDD::delete_non_branch(node_id_t target_id) {
   Node *anchor_next = get_mutable_node_by_id(target_id);
   assert(anchor_next && "Node not found");
@@ -912,8 +940,14 @@ bool BDD::get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const
 bool BDD::get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const {
   const call_t &call = map_op->get_call();
 
-  assert(call.args.find("map") != call.args.end() && "No map argument");
-  addr_t obj = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+  addr_t obj;
+  if (call.args.find("map") != call.args.end()) {
+    obj = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+  } else if (call.args.find("map_out") != call.args.end()) {
+    obj = LibCore::expr_addr_to_obj_addr(call.args.at("map_out").out);
+  } else {
+    panic("No map argument");
+  }
 
   return get_map_coalescing_objs(obj, map_objs);
 }
@@ -921,8 +955,14 @@ bool BDD::get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing
 bool BDD::get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const {
   const call_t &call = dchain_op->get_call();
 
-  assert(call.args.find("chain") != call.args.end() && "No chain argument");
-  addr_t obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain").expr);
+  addr_t obj;
+  if (call.args.find("chain") != call.args.end()) {
+    obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain").expr);
+  } else if (call.args.find("chain_out") != call.args.end()) {
+    obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain_out").out);
+  } else {
+    panic("No chain argument");
+  }
 
   return get_map_coalescing_objs(obj, map_objs);
 }

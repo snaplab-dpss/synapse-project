@@ -7,25 +7,25 @@ namespace Controller {
 
 class VectorRegisterAllocate : public ControllerModule {
 private:
-  addr_t vector_addr;
+  addr_t obj;
   klee::ref<klee::Expr> elem_size;
   klee::ref<klee::Expr> capacity;
 
 public:
-  VectorRegisterAllocate(const LibBDD::Node *node, addr_t _vector_addr, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_VectorRegisterAllocate, "VectorRegisterAllocate", node), vector_addr(_vector_addr),
-        elem_size(_elem_size), capacity(_capacity) {}
+  VectorRegisterAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
+      : ControllerModule(ModuleType::Controller_VectorRegisterAllocate, "VectorRegisterAllocate", node), obj(_obj), elem_size(_elem_size),
+        capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterAllocate(node, vector_addr, elem_size, capacity);
+    Module *cloned = new VectorRegisterAllocate(node, obj, elem_size, capacity);
     return cloned;
   }
 
-  addr_t get_vector_addr() const { return vector_addr; }
+  addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_elem_size() const { return elem_size; }
   klee::ref<klee::Expr> get_capacity() const { return capacity; }
 };
