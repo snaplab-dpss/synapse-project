@@ -39,8 +39,8 @@ public:
     assert(!expr.isNull() && "Null expr");
     assert(expr->getNumKids() == 2 && "Not a binary expr");
 
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
 
     auto lhs_is_pkt_read = is_packet_readLSB(lhs);
     auto rhs_is_pkt_read = is_packet_readLSB(rhs);
@@ -65,8 +65,8 @@ public:
 
 #define VISIT_BINARY_CMP_OP(T)                                                                                                             \
   Action visit##T(const klee::T##Expr &e) {                                                                                                \
-    auto expr     = const_cast<klee::T##Expr *>(&e);                                                                                       \
-    auto new_expr = visit_binary_expr(expr);                                                                                               \
+    klee::ref<klee::Expr> expr = const_cast<klee::T##Expr *>(&e);                                                                          \
+    auto new_expr              = visit_binary_expr(expr);                                                                                  \
     return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);                                                          \
   }
 
@@ -336,8 +336,8 @@ public:
   }
 
   Action visitExtract(const klee::ExtractExpr &e) {
-    auto expr         = e.getKid(0);
-    auto offset_value = e.offset;
+    klee::ref<klee::Expr> expr = e.getKid(0);
+    auto offset_value          = e.offset;
 
     auto arg = ExprPrettyPrinter::print(expr, use_signed);
 
@@ -1132,11 +1132,7 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   };
 
   if (expr->getKind() == klee::Expr::Extract) {
-    klee::ref<klee::Expr> extract_expr = expr;
-    klee::ref<klee::Expr> out;
-    if (simplify_extract(extract_expr, out)) {
-      expr = out;
-    }
+    expr = simplify(expr);
   }
 
   while (expr->getKind() == klee::Expr::Concat) {
@@ -1178,23 +1174,51 @@ symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::opti
   return retriever.get_symbolic_reads();
 }
 
-bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
+bool simplify_extract_0_zext_conditional(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
   if (extract_expr->getKind() != klee::Expr::Extract) {
     return false;
   }
 
-  auto extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
 
-  auto offset = extract->offset;
-  auto expr   = extract->expr;
-  auto size   = extract->width;
+  if (extract->offset != 0 || extract->width != 1) {
+    return false;
+  }
+
+  if (extract->expr->getKind() != klee::Expr::ZExt) {
+    return false;
+  }
+
+  klee::ZExtExpr *zext = dynamic_cast<klee::ZExtExpr *>(extract->expr.get());
+
+  if (!is_conditional(zext->src)) {
+    return false;
+  }
+
+  out = zext->src;
+  return true;
+}
+
+bool simplify_extract_of_concats(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
+  if (extract_expr->getKind() != klee::Expr::Extract) {
+    return false;
+  }
+
+  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  u32 offset                 = extract->offset;
+  klee::ref<klee::Expr> expr = extract->expr;
+  bits_t size                = extract->width;
+
+  if (expr->getKind() != klee::Expr::Kind::Concat) {
+    return false;
+  }
 
   // concats
   while (expr->getKind() == klee::Expr::Kind::Concat) {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-    auto rhs_size = rhs->getWidth();
+    klee::Expr::Width rhs_size = rhs->getWidth();
 
     if (offset >= rhs_size) {
       // completely on the left side
@@ -1217,9 +1241,52 @@ bool simplify_extract(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> 
     return true;
   }
 
-  auto new_extract = solver_toolbox.exprBuilder->Extract(expr, offset, size);
+  out = solver_toolbox.exprBuilder->Extract(expr, offset, size);
 
-  out = new_extract;
+  return true;
+}
+
+bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
+  if (extract_expr->getKind() != klee::Expr::Extract) {
+    return false;
+  }
+
+  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  u32 offset                 = extract->offset;
+  klee::ref<klee::Expr> expr = extract->expr;
+  bits_t size                = extract->width;
+
+  if (offset != 0) {
+    return false;
+  }
+
+  if (expr->getKind() != klee::Expr::Kind::ZExt && expr->getKind() != klee::Expr::Kind::SExt) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> src;
+  klee::Expr::Width ext_size;
+  if (expr->getKind() == klee::Expr::Kind::ZExt) {
+    klee::ZExtExpr *zext = dynamic_cast<klee::ZExtExpr *>(expr.get());
+    src                  = zext->src;
+    ext_size             = zext->width;
+  } else {
+    klee::SExtExpr *sext = dynamic_cast<klee::SExtExpr *>(expr.get());
+    src                  = sext->src;
+    ext_size             = sext->width;
+  }
+
+  if (size > ext_size) {
+    return false;
+  }
+
+  if (size == src->getWidth()) {
+    out = src;
+    return true;
+  }
+
+  out = solver_toolbox.exprBuilder->Extract(src, offset, size);
+
   return true;
 }
 
@@ -1230,32 +1297,30 @@ bool is_cmp_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &not_const_kid) 
     return false;
   }
 
-  auto lhs = expr->getKid(0);
-  auto rhs = expr->getKid(1);
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-  auto lhs_is_constant = is_constant(lhs);
-  auto rhs_is_constant = is_constant(rhs);
+  bool lhs_is_constant = is_constant(lhs);
+  bool rhs_is_constant = is_constant(rhs);
 
   if (!lhs_is_constant && !rhs_is_constant) {
     return false;
   }
 
-  auto constant = lhs_is_constant ? lhs : rhs;
-  auto other    = lhs_is_constant ? rhs : lhs;
+  klee::ref<klee::Expr> constant = lhs_is_constant ? lhs : rhs;
+  klee::ref<klee::Expr> other    = lhs_is_constant ? rhs : lhs;
 
   const std::vector<klee::Expr::Kind> allowed_exprs{
       klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,  klee::Expr::Ult, klee::Expr::Ule,
       klee::Expr::Ugt, klee::Expr::Uge, klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
   };
 
-  auto found_it = std::find(allowed_exprs.begin(), allowed_exprs.end(), other->getKind());
-
-  if (found_it == allowed_exprs.end()) {
+  if (std::find(allowed_exprs.begin(), allowed_exprs.end(), other->getKind()) == allowed_exprs.end()) {
     return false;
   }
 
-  auto constant_value = solver_toolbox.value_from_expr(constant);
-  not_const_kid       = other;
+  u64 constant_value = solver_toolbox.value_from_expr(constant);
+  not_const_kid      = other;
 
   return constant_value == 0;
 }
@@ -1333,8 +1398,8 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
 
   switch (found_it->second) {
   case klee::Expr::Or: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
 
     if (can_be_negated(lhs) && can_be_negated(rhs)) {
       lhs = negate(lhs);
@@ -1345,8 +1410,8 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return solver_toolbox.exprBuilder->Not(expr);
   } break;
   case klee::Expr::And: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
 
     if (can_be_negated(lhs) && can_be_negated(rhs)) {
       lhs = negate(lhs);
@@ -1357,53 +1422,53 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
     return solver_toolbox.exprBuilder->Not(expr);
   } break;
   case klee::Expr::Eq: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Eq(lhs, rhs);
   } break;
   case klee::Expr::Ne: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Ne(lhs, rhs);
   } break;
   case klee::Expr::Ult: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Ult(lhs, rhs);
   } break;
   case klee::Expr::Ule: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Ule(lhs, rhs);
   } break;
   case klee::Expr::Ugt: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Ugt(lhs, rhs);
   } break;
   case klee::Expr::Uge: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Uge(lhs, rhs);
   } break;
   case klee::Expr::Slt: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Slt(lhs, rhs);
   } break;
   case klee::Expr::Sle: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Sle(lhs, rhs);
   } break;
   case klee::Expr::Sgt: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Sgt(lhs, rhs);
   } break;
   case klee::Expr::Sge: {
-    auto lhs = expr->getKid(0);
-    auto rhs = expr->getKid(1);
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
     return solver_toolbox.exprBuilder->Sge(lhs, rhs);
   } break;
   case klee::Expr::ZExt: {
@@ -1512,8 +1577,8 @@ bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
 
   assert(expr->getNumKids() == 2 && "Invalid expr");
 
-  auto lhs = expr->getKid(0);
-  auto rhs = expr->getKid(1);
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
 
   auto detected = false;
 
@@ -1541,39 +1606,93 @@ bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
   return true;
 }
 
-typedef bool (*simplifier_op)(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out);
+using simplifier_fn = std::function<bool(klee::ref<klee::Expr>, klee::ref<klee::Expr> &)>;
+
+enum class simplifier_type_t {
+  EXTRACT_0_ZEXT_CONDITIONAL,
+  EXTRACT_CONCATS,
+  EXTRACT_EXT,
+  CMP_EQ_0,
+  CMP_ZEXT_EQ_SIZE,
+  NOT_EQ,
+  CMP_NE_0,
+};
+
+std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
+  switch (type) {
+  case simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL:
+    os << "EXTRACT_0_ZEXT_CONDITIONAL";
+    break;
+  case simplifier_type_t::EXTRACT_CONCATS:
+    os << "EXTRACT_CONCATS";
+    break;
+  case simplifier_type_t::EXTRACT_EXT:
+    os << "EXTRACT_EXT";
+    break;
+  case simplifier_type_t::CMP_EQ_0:
+    os << "CMP_EQ_0";
+    break;
+  case simplifier_type_t::CMP_ZEXT_EQ_SIZE:
+    os << "CMP_ZEXT_EQ_SIZE";
+    break;
+  case simplifier_type_t::NOT_EQ:
+    os << "NOT_EQ";
+    break;
+  case simplifier_type_t::CMP_NE_0:
+    os << "CMP_NE_0";
+    break;
+  }
+
+  return os;
+}
+
+struct simplifier_op {
+  simplifier_type_t type;
+  simplifier_fn apply;
+};
 
 typedef std::vector<simplifier_op> simplifiers_t;
 
-bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &simplified_expr) {
+std::vector<simplifier_type_t> apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> expr,
+                                                 klee::ref<klee::Expr> &simplified_expr) {
+  std::vector<simplifier_type_t> simplifications_applied;
+
   simplified_expr = expr;
 
   for (auto op : simplifiers) {
-    if (op(expr, simplified_expr)) {
-      return true;
+    if (op.apply(expr, simplified_expr)) {
+      simplifications_applied.push_back(op.type);
+      return simplifications_applied;
     }
   }
 
-  auto num_kids                   = expr->getNumKids();
-  auto new_kids                   = std::vector<klee::ref<klee::Expr>>(num_kids);
-  auto simplified                 = false;
+  u32 num_kids = expr->getNumKids();
+  std::vector<klee::ref<klee::Expr>> new_kids(num_kids);
+
+  bool simplified                 = false;
   klee::Expr::Width max_kid_width = 0;
 
-  for (auto i = 0u; i < num_kids; i++) {
-    auto kid            = expr->getKid(i);
-    auto simplified_kid = kid;
+  for (u32 i = 0; i < num_kids; i++) {
+    klee::ref<klee::Expr> kid            = expr->getKid(i);
+    klee::ref<klee::Expr> simplified_kid = kid;
 
-    simplified |= apply_simplifiers(simplifiers, kid, simplified_kid);
-    max_kid_width = std::max(max_kid_width, simplified_kid->getWidth());
-    new_kids[i]   = simplified_kid;
+    std::vector<simplifier_type_t> local_simplifications = apply_simplifiers(simplifiers, kid, simplified_kid);
+    max_kid_width                                        = std::max(max_kid_width, simplified_kid->getWidth());
+    new_kids[i]                                          = simplified_kid;
+
+    simplified |= !local_simplifications.empty();
+
+    for (auto simplification : local_simplifications) {
+      simplifications_applied.push_back(simplification);
+    }
   }
 
   if (!simplified) {
-    return false;
+    return simplifications_applied;
   }
 
-  for (auto i = 0u; i < num_kids; i++) {
-    auto simplified_kid = new_kids[i];
+  for (u32 i = 0; i < num_kids; i++) {
+    klee::ref<klee::Expr> simplified_kid = new_kids[i];
 
     if (simplified_kid->getWidth() < max_kid_width) {
       simplified_kid = solver_toolbox.exprBuilder->ZExt(simplified_kid, max_kid_width);
@@ -1584,18 +1703,26 @@ bool apply_simplifiers(const simplifiers_t &simplifiers, klee::ref<klee::Expr> e
   }
 
   simplified_expr = expr->rebuild(&new_kids[0]);
-  return true;
+  return simplifications_applied;
 }
 
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
-  assert(!expr.isNull() && "Null expr");
+  if (expr.isNull()) {
+    return expr;
+  }
 
   if (expr->getKind() == klee::Expr::Constant) {
     return expr;
   }
 
   const simplifiers_t simplifiers{
-      simplify_extract, simplify_cmp_eq_0, simplify_cmp_zext_eq_size, simplify_not_eq, simplify_cmp_ne_0,
+      {simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL, simplify_extract_0_zext_conditional},
+      {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
+      {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
+      {simplifier_type_t::CMP_EQ_0, simplify_cmp_eq_0},
+      {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
+      {simplifier_type_t::NOT_EQ, simplify_not_eq},
+      {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
   };
 
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
@@ -1603,8 +1730,13 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
   while (true) {
     klee::ref<klee::Expr> simplified = expr;
 
-    apply_simplifiers(simplifiers, expr, simplified);
+    std::vector<simplifier_type_t> simplifications_applied = apply_simplifiers(simplifiers, expr, simplified);
     assert(!simplified.isNull() && "Null expr");
+
+    // for (simplifier_type_t type : simplifications_applied) {
+    //   std::cerr << "Applied simplification: " << type << std::endl;
+    //   std::cerr << "New expr: " << expr_to_string(simplified) << std::endl;
+    // }
 
     for (klee::ref<klee::Expr> prev : prev_exprs) {
       if (!simplified->compare(*prev.get())) {
@@ -1627,7 +1759,12 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
   }
 
   const simplifiers_t simplifiers{
-      simplify_extract, simplify_cmp_eq_0, simplify_cmp_zext_eq_size, simplify_not_eq, simplify_cmp_ne_0,
+      {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
+      {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
+      {simplifier_type_t::CMP_EQ_0, simplify_cmp_eq_0},
+      {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
+      {simplifier_type_t::NOT_EQ, simplify_not_eq},
+      {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
   };
 
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
@@ -1635,7 +1772,7 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
   while (true) {
     klee::ref<klee::Expr> simplified = expr;
 
-    apply_simplifiers(simplifiers, expr, simplified);
+    std::vector<simplifier_type_t> simplifications_applied = apply_simplifiers(simplifiers, expr, simplified);
     assert(!simplified.isNull() && "Null expr");
 
     for (klee::ref<klee::Expr> prev : prev_exprs) {

@@ -3,6 +3,7 @@
 #include <LibBDD/Nodes/NodeManager.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
+#include <LibCore/Debug.h>
 
 #include <cassert>
 
@@ -227,18 +228,9 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     return index_alloc_check;
   }
 
-  assert(false && "TODO: Reimplement this");
-  LibCore::symbol_t not_out_of_space   = get_local_symbol("not_out_of_space");
-  LibCore::Symbols freed_flows_symbols = symbol_manager->get_symbols_with_base("number_of_freed_flows");
-  assert(freed_flows_symbols.size() <= 1 && "Multiple number_of_freed_flows symbols");
+  LibCore::symbol_t not_out_of_space = get_local_symbol("not_out_of_space");
 
-  std::unordered_set<std::string> target_names;
-  target_names.insert(not_out_of_space.name);
-  for (const LibCore::symbol_t &symbol : freed_flows_symbols.get()) {
-    target_names.insert(symbol.name);
-  }
-
-  visit_nodes([&target_names, &index_alloc_check](const Node *node) {
+  visit_nodes([&not_out_of_space, &index_alloc_check](const Node *node) {
     if (node->get_type() != NodeType::Branch) {
       return NodeVisitAction::Continue;
     }
@@ -248,7 +240,7 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     const std::unordered_set<std::string> used = LibCore::symbol_t::get_symbols_names(condition);
 
     for (const std::string &name : used) {
-      if (target_names.find(name) == target_names.end()) {
+      if (name != not_out_of_space.name) {
         return NodeVisitAction::Continue;
       }
     }
@@ -260,13 +252,6 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
   if (index_alloc_check.branch) {
     klee::ref<klee::Expr> success_condition = LibCore::solver_toolbox.exprBuilder->Ne(
         not_out_of_space.expr, LibCore::solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
-
-    if (!freed_flows_symbols.empty()) {
-      klee::ref<klee::Expr> freed_flows = freed_flows_symbols.get().begin()->expr;
-      success_condition                 = LibCore::solver_toolbox.exprBuilder->Or(
-                          success_condition,
-                          LibCore::solver_toolbox.exprBuilder->Ne(freed_flows, LibCore::solver_toolbox.exprBuilder->Constant(0, freed_flows->getWidth())));
-    }
 
     assert(index_alloc_check.branch->get_on_true() && "No on_true");
     assert(index_alloc_check.branch->get_on_false() && "No on_false");

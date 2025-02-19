@@ -729,7 +729,7 @@ spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType curren
     panic("No module to speculative execute\n"
           "EP:     %lu\n"
           "Target: %s\n"
-          "LibBDD::Node:   %s\n",
+          "Node:   %s\n",
           id, to_string(current_target).c_str(), node->dump(true).c_str());
   }
 

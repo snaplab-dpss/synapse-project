@@ -54,6 +54,16 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   }
 
   if (is_internal(device)) {
+    struct FlowId id = {
+        .src_port = tcpudp_header->src_port,
+        .dst_port = tcpudp_header->dst_port,
+        .src_ip   = rte_ipv4_header->src_addr,
+        .dst_ip   = rte_ipv4_header->dst_addr,
+        .protocol = rte_ipv4_header->next_proto_id,
+    };
+
+    flow_manager_allocate_or_refresh_flow(flow_manager, &id, now);
+  } else {
     // Inverse the src and dst for the "reply flow"
     struct FlowId id = {
         .src_port = tcpudp_header->dst_port,
@@ -67,16 +77,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
       NF_DEBUG("Unknown external flow, dropping");
       return DROP;
     }
-  } else {
-    struct FlowId id = {
-        .src_port = tcpudp_header->src_port,
-        .dst_port = tcpudp_header->dst_port,
-        .src_ip   = rte_ipv4_header->src_addr,
-        .dst_ip   = rte_ipv4_header->dst_addr,
-        .protocol = rte_ipv4_header->next_proto_id,
-    };
-
-    flow_manager_allocate_or_refresh_flow(flow_manager, &id, now);
   }
 
   return get_dst_dev(device);

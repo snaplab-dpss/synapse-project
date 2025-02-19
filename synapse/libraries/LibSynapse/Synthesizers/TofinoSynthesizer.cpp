@@ -88,6 +88,8 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee
 
 TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
   std::cerr << "Transpiling " << LibCore::expr_to_string(expr, false) << "\n";
+  expr = LibCore::simplify(expr);
+  std::cerr << "Simplified to " << LibCore::expr_to_string(expr, false) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
@@ -185,7 +187,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitExtract(const klee
   }
 
   synthesizer->dbg_vars();
-  panic("TODO: visitExtract");
+  panic("TODO: visitExtract: %s", LibCore::expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
