@@ -17,37 +17,40 @@ assert all([ p in FRONT_PANEL_PORTS for p in DUT_CONNECTED_PORTS ])
 assert all([ p != TG_PORT for p in DUT_CONNECTED_PORTS ])
 
 CONFIGURATIONS = {
-	# 32 LANs
-	"nop": {
-		"broadcast": [ 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
-		"symmetric": [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
-		"route": [],
-	},
-
-	# 16 LANs + 16 WANs
-	"fw": {
-		"broadcast": [ 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
-		"symmetric": [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
-		"route": [],
-	},
-
-	# 16 LANs + 16 WANs
-	"nat": {
-		"broadcast": [ 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
-		"symmetric": [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
-		"route": [],
-	},
-
-	# 29 clients + 1 server
-	# Server requests coming from port 32
-	# Server in port 2
-	"kvs": {
-		"broadcast": [ p for p in DUT_CONNECTED_PORTS if p not in [2, 32] ],
+	# 30 LANs
+	"echo": {
+		"broadcast": DUT_CONNECTED_PORTS,
 		"symmetric": [],
-		"route": [
-			(32, 2), # Server requests from clients
-			(2, 32), # Server responses back to clients
-		],
+		"route": [],
+	},
+
+	# 30 LANs
+	"fwd": {
+		"broadcast": [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
+		"symmetric": [ 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
+		"route": [],
+	},
+
+	# 15 LANs + 15 WANs
+	"fw": {
+		"broadcast": [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
+		"symmetric": [ 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
+		"route": [],
+	},
+
+	# 15 LANs + 15 WANs
+	"nat": {
+		"broadcast": [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
+		"symmetric": [ 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
+		"route": [],
+	},
+
+	# 30 clients + 1 server
+	# The server is connected to the DUT, the clients are connected to the TG.
+	"kvs": {
+		"broadcast": DUT_CONNECTED_PORTS,
+		"symmetric": [],
+		"route": [],
 	},
 }
 

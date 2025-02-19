@@ -130,8 +130,10 @@ void TrafficGenerator::generate() {
     assert(flow_idx < config.total_flows);
 
     if (flows_dev_turn[flow_idx] == Dev::LAN) {
-      u16 lan_dev              = flows_to_lan_dev.at(flow_idx);
-      flows_dev_turn[flow_idx] = Dev::WAN;
+      u16 lan_dev = flows_to_lan_dev.at(flow_idx);
+      if (expects_response(lan_dev, flow_idx)) {
+        flows_dev_turn[flow_idx] = Dev::WAN;
+      }
 
       pkt_t pkt = build_lan_packet(lan_dev, flow_idx);
       lan_writers.at(lan_dev).write((const u8 *)&pkt, config.packet_size, config.packet_size, current_time);

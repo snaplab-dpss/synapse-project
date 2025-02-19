@@ -922,20 +922,20 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  stats_per_map[1074043776].init(174);
-  stats_per_map[1074043776].init(155);
-  stats_per_map[1074043776].init(142);
-  forwarding_stats_per_route_op.insert({193, {}});
-  forwarding_stats_per_route_op.insert({188, {}});
-  forwarding_stats_per_route_op.insert({187, {}});
-  forwarding_stats_per_route_op.insert({173, {}});
-  forwarding_stats_per_route_op.insert({172, {}});
-  forwarding_stats_per_route_op.insert({164, {}});
-  forwarding_stats_per_route_op.insert({163, {}});
-  forwarding_stats_per_route_op.insert({179, {}});
-  forwarding_stats_per_route_op.insert({153, {}});
-  forwarding_stats_per_route_op.insert({191, {}});
-  forwarding_stats_per_route_op.insert({152, {}});
+  stats_per_map[1074043808].init(174);
+  stats_per_map[1074043808].init(155);
+  stats_per_map[1074043808].init(142);
+  forwarding_stats_per_route_op.insert({193, PortStats{}});
+  forwarding_stats_per_route_op.insert({188, PortStats{}});
+  forwarding_stats_per_route_op.insert({187, PortStats{}});
+  forwarding_stats_per_route_op.insert({173, PortStats{}});
+  forwarding_stats_per_route_op.insert({172, PortStats{}});
+  forwarding_stats_per_route_op.insert({164, PortStats{}});
+  forwarding_stats_per_route_op.insert({163, PortStats{}});
+  forwarding_stats_per_route_op.insert({179, PortStats{}});
+  forwarding_stats_per_route_op.insert({153, PortStats{}});
+  forwarding_stats_per_route_op.insert({191, PortStats{}});
+  forwarding_stats_per_route_op.insert({152, PortStats{}});
   node_pkt_counter.insert({193, 0});
   node_pkt_counter.insert({192, 0});
   node_pkt_counter.insert({161, 0});
@@ -1050,7 +1050,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074043776].update(142, key, 13, now);
+        stats_per_map[1074043808].update(142, key, 13, now);
         // Node 143
         inc_path_counter(143);
         if ((0) == (map_hit)) {
@@ -1098,7 +1098,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(155);
             memcpy((void*)vector_value_out67, (void*)key, 13);
             map_put(map, vector_value_out67, index);
-            stats_per_map[1074043776].update(155, vector_value_out67, 13, now);
+            stats_per_map[1074043808].update(155, vector_value_out67, 13, now);
             // Node 156
             inc_path_counter(156);
             // Node 157
@@ -1182,7 +1182,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key2[12] = *(hdr2+9);
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
-        stats_per_map[1074043776].update(174, key2, 13, now);
+        stats_per_map[1074043808].update(174, key2, 13, now);
         // Node 175
         inc_path_counter(175);
         if ((0) == (map_hit2)) {

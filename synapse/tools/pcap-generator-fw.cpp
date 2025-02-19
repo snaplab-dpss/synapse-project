@@ -65,7 +65,7 @@ public:
     reset_lan_dev();
   }
 
-  virtual void random_swap_flow(flow_idx_t flow_idx) {
+  virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
     u16 lan_dev = flows_to_lan_dev.at(flow_idx);
     u16 wan_dev = lan_to_wan_dev.at(lan_dev);
@@ -77,7 +77,7 @@ public:
     flows_swapped++;
   }
 
-  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) {
+  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) override {
     pkt_t pkt                   = template_packet;
     const LibCore::flow_t &flow = flows[flow_idx];
     pkt.ip_hdr.src_addr         = flow.src_ip;
@@ -87,7 +87,7 @@ public:
     return pkt;
   }
 
-  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) {
+  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) override {
     pkt_t pkt                     = template_packet;
     const LibCore::flow_t &flow   = flows[flow_idx];
     LibCore::flow_t inverted_flow = invert_flow(flow);
@@ -97,6 +97,8 @@ public:
     pkt.udp_hdr.dst_port          = inverted_flow.dst_port;
     return pkt;
   }
+
+  virtual bool expects_response(u16 lan_dev, flow_idx_t flow_idx) const override { return true; }
 };
 
 int main(int argc, char *argv[]) {

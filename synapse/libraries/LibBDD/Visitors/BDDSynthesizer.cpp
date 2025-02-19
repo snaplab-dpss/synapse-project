@@ -693,7 +693,7 @@ void BDDSynthesizer::init_post_process() {
 
     for (node_id_t node_id : route_nodes) {
       coder.indent();
-      coder << "forwarding_stats_per_route_op.insert({" << node_id << ", {}});\n";
+      coder << "forwarding_stats_per_route_op.insert({" << node_id << ", PortStats{}});\n";
     }
 
     for (node_id_t node_id : process_nodes) {

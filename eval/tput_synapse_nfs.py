@@ -14,10 +14,10 @@ DATA_DIR = CURRENT_DIR / "data"
 
 SYNAPSE_NFS = [
     {
-        "name": "nop",
+        "name": "fwd",
         "description": "Synapse NOP",
-        "tofino": "synthesized/synapse-nop.p4",
-        "controller": "synthesized/synapse-nop.cpp",
+        "tofino": "synthesized/synapse-fwd.p4",
+        "controller": "synthesized/synapse-fwd.cpp",
         "routing": {
             "broadcast": [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
             "symmetric": [ 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],

@@ -44,62 +44,13 @@ std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::con
   return flows;
 }
 
-class PortAllocator {
+class FwdTrafficGenerator : public LibCore::TrafficGenerator {
 private:
-  std::vector<u16> available_ports;
-  std::unordered_map<LibCore::flow_t, u64, LibCore::flow_t::flow_hash_t> flow_to_port;
-
-public:
-  PortAllocator() {
-    u16 port = UINT16_MAX;
-    while (1) {
-      available_ports.push_back(port);
-      if (port == 0) {
-        break;
-      }
-      port--;
-    }
-  }
-
-  void allocate(const LibCore::flow_t &flow) {
-    assert(!available_ports.empty());
-    assert(!flow_to_port.contains(flow));
-    u16 port = available_ports.back();
-    available_ports.pop_back();
-    flow_to_port[flow] = port;
-  }
-
-  size_t available() const { return available_ports.size(); }
-  size_t allocated() const { return flow_to_port.size(); }
-
-  u16 get(const LibCore::flow_t &flow) { return flow_to_port.at(flow); }
-
-  bool free(const LibCore::flow_t &flow) {
-    if (!flow_to_port.contains(flow)) {
-      return false;
-    }
-
-    u16 port = get(flow);
-    available_ports.insert(available_ports.begin(), port);
-    flow_to_port.erase(flow);
-
-    return true;
-  }
-};
-
-class NATTrafficGenerator : public LibCore::TrafficGenerator {
-private:
-  static constexpr const u32 PUBLIC_IP = 0xffffffff;
-
   std::vector<LibCore::flow_t> flows;
-  std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> allocated_flows;
-  PortAllocator port_allocator;
 
 public:
-  NATTrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
-      : TrafficGenerator("nat", _config), flows(_base_flows) {
-    assert(flows.size() <= 65535 && "Too many flows for a NAT (max 65535).");
-
+  FwdTrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
+      : TrafficGenerator("fwd", _config), flows(_base_flows) {
     for (LibCore::flow_t &flow : flows) {
       u16 lan_dev = get_current_lan_dev();
       u16 wan_dev = lan_to_wan_dev.at(lan_dev);
@@ -117,50 +68,31 @@ public:
     u16 lan_dev = flows_to_lan_dev.at(flow_idx);
     u16 wan_dev = lan_to_wan_dev.at(lan_dev);
 
-    LibCore::flow_t old_flow = flows.at(flow_idx);
     LibCore::flow_t new_flow = random_flow();
     new_flow.src_ip          = mask_addr_from_dev(new_flow.src_ip, lan_dev);
     new_flow.dst_ip          = mask_addr_from_dev(new_flow.dst_ip, wan_dev);
 
-    allocated_flows.erase(old_flow);
-    port_allocator.free(old_flow);
-
     flows[flow_idx] = new_flow;
-    flows_swapped++;
   }
 
   virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) override {
+    pkt_t pkt                   = template_packet;
     const LibCore::flow_t &flow = flows[flow_idx];
-
-    if (allocated_flows.find(flow) == allocated_flows.end()) {
-      allocated_flows.insert(flow);
-      port_allocator.allocate(flow);
-      assert(port_allocator.allocated() <= flows.size());
-    }
-
-    pkt_t pkt            = template_packet;
-    pkt.ip_hdr.src_addr  = flow.src_ip;
-    pkt.ip_hdr.dst_addr  = flow.dst_ip;
-    pkt.udp_hdr.src_port = flow.src_port;
-    pkt.udp_hdr.dst_port = flow.dst_port;
-
+    pkt.ip_hdr.src_addr         = flow.src_ip;
+    pkt.ip_hdr.dst_addr         = flow.dst_ip;
+    pkt.udp_hdr.src_port        = flow.src_port;
+    pkt.udp_hdr.dst_port        = flow.dst_port;
     return pkt;
   }
 
   virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) override {
+    pkt_t pkt                     = template_packet;
     const LibCore::flow_t &flow   = flows[flow_idx];
     LibCore::flow_t inverted_flow = invert_flow(flow);
-
-    u16 allocated_port = port_allocator.get(flow);
-
-    pkt_t pkt            = template_packet;
-    pkt.ip_hdr.src_addr  = inverted_flow.src_ip;
-    pkt.udp_hdr.src_port = inverted_flow.src_port;
-
-    // No ntohs, the original NAT doesn't care.
-    pkt.ip_hdr.dst_addr  = PUBLIC_IP;
-    pkt.udp_hdr.dst_port = allocated_port;
-
+    pkt.ip_hdr.src_addr           = inverted_flow.src_ip;
+    pkt.ip_hdr.dst_addr           = inverted_flow.dst_ip;
+    pkt.udp_hdr.src_port          = inverted_flow.src_port;
+    pkt.udp_hdr.dst_port          = inverted_flow.dst_port;
     return pkt;
   }
 
@@ -168,7 +100,7 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Traffic generator for the nat nf."};
+  CLI::App app{"Traffic generator for the fwd nf."};
 
   LibCore::TrafficGenerator::config_t config;
 
@@ -200,9 +132,8 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<LibCore::flow_t> base_flows = get_base_flows(config);
-  NATTrafficGenerator generator(config, base_flows);
+  FwdTrafficGenerator generator(config, base_flows);
 
-  generator.generate_warmup();
   generator.generate();
 
   return 0;

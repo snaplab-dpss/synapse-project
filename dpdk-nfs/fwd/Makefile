@@ -1,6 +1,6 @@
 NF_DEVICES := 32
 
-NF_FILES := nop_main.c config.c loop.c state.c
+NF_FILES := fwd_main.c config.c loop.c state.c
 
 NF_ARGS := --fwd-rule 0,1 --fwd-rule 1,0 \
            --fwd-rule 2,3 --fwd-rule 3,2 \

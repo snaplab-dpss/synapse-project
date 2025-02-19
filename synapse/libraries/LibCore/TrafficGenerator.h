@@ -167,9 +167,10 @@ protected:
 
   void report() const;
 
-  virtual void random_swap_flow(flow_idx_t flow_idx)               = 0;
-  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) = 0;
-  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) = 0;
+  virtual void random_swap_flow(flow_idx_t flow_idx)                    = 0;
+  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx)      = 0;
+  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx)      = 0;
+  virtual bool expects_response(u16 lan_dev, flow_idx_t flow_idx) const = 0;
 
   void tick() {
     // To obtain the time in seconds:

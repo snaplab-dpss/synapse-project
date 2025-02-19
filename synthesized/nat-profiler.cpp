@@ -922,19 +922,19 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  stats_per_map[1074052848].init(174);
-  stats_per_map[1074052848].init(165);
-  forwarding_stats_per_route_op.insert({193, {}});
-  forwarding_stats_per_route_op.insert({197, {}});
-  forwarding_stats_per_route_op.insert({184, {}});
-  forwarding_stats_per_route_op.insert({183, {}});
-  forwarding_stats_per_route_op.insert({172, {}});
-  forwarding_stats_per_route_op.insert({164, {}});
-  forwarding_stats_per_route_op.insert({199, {}});
-  forwarding_stats_per_route_op.insert({160, {}});
-  forwarding_stats_per_route_op.insert({156, {}});
-  forwarding_stats_per_route_op.insert({194, {}});
-  forwarding_stats_per_route_op.insert({155, {}});
+  stats_per_map[1074052864].init(174);
+  stats_per_map[1074052864].init(165);
+  forwarding_stats_per_route_op.insert({193, PortStats{}});
+  forwarding_stats_per_route_op.insert({197, PortStats{}});
+  forwarding_stats_per_route_op.insert({184, PortStats{}});
+  forwarding_stats_per_route_op.insert({183, PortStats{}});
+  forwarding_stats_per_route_op.insert({172, PortStats{}});
+  forwarding_stats_per_route_op.insert({164, PortStats{}});
+  forwarding_stats_per_route_op.insert({199, PortStats{}});
+  forwarding_stats_per_route_op.insert({160, PortStats{}});
+  forwarding_stats_per_route_op.insert({156, PortStats{}});
+  forwarding_stats_per_route_op.insert({194, PortStats{}});
+  forwarding_stats_per_route_op.insert({155, PortStats{}});
   node_pkt_counter.insert({199, 0});
   node_pkt_counter.insert({198, 0});
   node_pkt_counter.insert({197, 0});
@@ -1143,7 +1143,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074052848].update(165, key, 13, now);
+        stats_per_map[1074052864].update(165, key, 13, now);
         // Node 166
         inc_path_counter(166);
         if ((0) == (map_hit)) {
@@ -1176,7 +1176,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(174);
             memcpy((void*)vector_value_out68, (void*)key, 13);
             map_put(map, vector_value_out68, index);
-            stats_per_map[1074052848].update(174, vector_value_out68, 13, now);
+            stats_per_map[1074052864].update(174, vector_value_out68, 13, now);
             // Node 175
             inc_path_counter(175);
             // Node 176

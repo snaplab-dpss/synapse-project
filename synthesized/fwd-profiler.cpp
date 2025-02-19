@@ -806,8 +806,8 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  forwarding_stats_per_route_op.insert({69, {}});
-  forwarding_stats_per_route_op.insert({68, {}});
+  forwarding_stats_per_route_op.insert({69, PortStats{}});
+  forwarding_stats_per_route_op.insert({68, PortStats{}});
   node_pkt_counter.insert({69, 0});
   node_pkt_counter.insert({68, 0});
   node_pkt_counter.insert({67, 0});

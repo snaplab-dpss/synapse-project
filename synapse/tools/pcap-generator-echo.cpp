@@ -44,38 +44,20 @@ std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::con
   return flows;
 }
 
-class NopTrafficGenerator : public LibCore::TrafficGenerator {
+class EchoTrafficGenerator : public LibCore::TrafficGenerator {
 private:
   std::vector<LibCore::flow_t> flows;
 
 public:
-  NopTrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
-      : TrafficGenerator("nop", _config), flows(_base_flows) {
-    for (LibCore::flow_t &flow : flows) {
-      u16 lan_dev = get_current_lan_dev();
-      u16 wan_dev = lan_to_wan_dev.at(lan_dev);
-      advance_lan_dev();
+  EchoTrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
+      : TrafficGenerator("echo", _config), flows(_base_flows) {}
 
-      flow.src_ip = mask_addr_from_dev(flow.src_ip, lan_dev);
-      flow.dst_ip = mask_addr_from_dev(flow.dst_ip, wan_dev);
-    }
-
-    reset_lan_dev();
-  }
-
-  virtual void random_swap_flow(flow_idx_t flow_idx) {
+  virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
-    u16 lan_dev = flows_to_lan_dev.at(flow_idx);
-    u16 wan_dev = lan_to_wan_dev.at(lan_dev);
-
-    LibCore::flow_t new_flow = random_flow();
-    new_flow.src_ip          = mask_addr_from_dev(new_flow.src_ip, lan_dev);
-    new_flow.dst_ip          = mask_addr_from_dev(new_flow.dst_ip, wan_dev);
-
-    flows[flow_idx] = new_flow;
+    flows[flow_idx] = random_flow();
   }
 
-  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) {
+  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) override {
     pkt_t pkt                   = template_packet;
     const LibCore::flow_t &flow = flows[flow_idx];
     pkt.ip_hdr.src_addr         = flow.src_ip;
@@ -85,22 +67,17 @@ public:
     return pkt;
   }
 
-  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) {
-    pkt_t pkt                     = template_packet;
-    const LibCore::flow_t &flow   = flows[flow_idx];
-    LibCore::flow_t inverted_flow = invert_flow(flow);
-    pkt.ip_hdr.src_addr           = inverted_flow.src_ip;
-    pkt.ip_hdr.dst_addr           = inverted_flow.dst_ip;
-    pkt.udp_hdr.src_port          = inverted_flow.src_port;
-    pkt.udp_hdr.dst_port          = inverted_flow.dst_port;
-    return pkt;
-  }
+  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) override { panic("We should never need to generate a WAN packet."); }
+
+  virtual bool expects_response(u16 lan_dev, flow_idx_t flow_idx) const override { return false; }
 };
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Traffic generator for the nop nf."};
+  CLI::App app{"Traffic generator for the echo nf."};
 
   LibCore::TrafficGenerator::config_t config;
+
+  std::vector<u16> devs;
 
   app.add_option("--out", config.out_dir, "Output directory.")->default_val(LibCore::TrafficGenerator::DEFAULT_OUTPUT_DIR);
   app.add_option("--packets", config.total_packets, "Total packets.")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_PACKETS);
@@ -116,11 +93,15 @@ int main(int argc, char *argv[]) {
           },
           CLI::ignore_case));
   app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(LibCore::TrafficGenerator::DEFAULT_ZIPF_PARAM);
-  app.add_option("--devs", config.lan_wan_pairs, "LAN/WAN pairs.")->delimiter(',')->required();
+  app.add_option("--devs", devs, "Devices.")->required();
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
   app.add_flag("--dry-run", config.dry_run, "Print out the configuration values without generating the pcaps.")->default_val(false);
 
   CLI11_PARSE(app, argc, argv);
+
+  for (u16 dev : devs) {
+    config.lan_wan_pairs.push_back({dev, dev});
+  }
 
   srand(config.random_seed);
 
@@ -130,7 +111,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<LibCore::flow_t> base_flows = get_base_flows(config);
-  NopTrafficGenerator generator(config, base_flows);
+  EchoTrafficGenerator generator(config, base_flows);
 
   generator.generate();
 

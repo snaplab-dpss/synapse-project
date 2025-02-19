@@ -65,7 +65,7 @@ void nf_config_usage(void) {
 }
 
 void nf_config_print(void) {
-  NF_INFO("\n--- NOP Config ---\n");
+  NF_INFO("\n--- Fowarder Config ---\n");
 
   NF_INFO("Forwarding rules:");
   for (size_t i = 0; i < config.fwd_rules.n; i++) {
