@@ -142,7 +142,7 @@ def plot_pps(data: dict, file: Path):
     ax.set_xlabel("Packet size (B)")
 
     ax.set_yticks([500, 1000, 1500, 2000, 2500, 3000, 3500], labels=["500M", "1G", "1.5G", "2G", "2.5G", "3G", "3.5G"])
-    ax.yaxis.set_minor_locator(MultipleLocator(300))
+    ax.yaxis.set_minor_locator(MultipleLocator(250))
 
     pkt_sizes = [str(pkt_size) for pkt_size in data.keys()]
 
