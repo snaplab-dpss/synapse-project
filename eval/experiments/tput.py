@@ -123,9 +123,9 @@ class Throughput(Experiment):
         self._sync()
 
     def _sync(self):
-        header = f"pktgen tput (bps), pktgen tput (pps), tput (bps), tput (pps)\n"
+        header = f"#it, pktgen tput (bps), pktgen tput (pps), tput (bps), tput (pps)\n"
 
-        self.experiment_tracker = 0
+        self.experiment_tracker = set()
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
 
         # If file exists, continue where we left off.
@@ -133,16 +133,11 @@ class Throughput(Experiment):
             with open(self.save_name) as f:
                 read_header = f.readline()
                 assert header == read_header
+
                 for row in f.readlines():
-                    # pps
-                    end = row.rfind(",")
-                    row = row[:end]
-
-                    # bps
-                    end = row.rfind(",")
-                    row = row[:end]
-
-                    self.experiment_tracker += 1
+                    cols = row.split(",")
+                    it = int(cols[0])
+                    self.experiment_tracker.add(it)
         else:
             with open(self.save_name, "w") as f:
                 f.write(header)
@@ -154,7 +149,7 @@ class Throughput(Experiment):
     ) -> None:
         task_id = step_progress.add_task(self.name, total=1)
 
-        if self.experiment_tracker > current_iter:
+        if current_iter in self.experiment_tracker:
             self.console.log(f"[orange1]Skipping: {current_iter}")
             step_progress.update(task_id, advance=1)
             return
@@ -207,7 +202,7 @@ class Throughput(Experiment):
         )
 
         with open(self.save_name, "a") as f:
-            f.write(f"{report.pktgen_bps},{report.pktgen_pps},{report.bps},{report.pps}\n")
+            f.write(f"{current_iter},{report.pktgen_bps},{report.pktgen_pps},{report.bps},{report.pps}\n")
 
         step_progress.update(task_id, advance=1)
         step_progress.update(task_id, visible=False)
