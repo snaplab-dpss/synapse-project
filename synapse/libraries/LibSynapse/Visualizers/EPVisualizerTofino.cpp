@@ -105,29 +105,15 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node                  = node->get_node();
-  TargetType target                             = node->get_target();
-  const std::unordered_set<Tofino::DS_ID> &rids = node->get_rids();
-  addr_t obj                                    = node->get_obj();
+  const LibBDD::Node *bdd_node = node->get_node();
+  TargetType target            = node->get_target();
+  Tofino::DS_ID id             = node->get_id();
+  addr_t obj                   = node->get_obj();
 
-  label_builder << "Register Lookup\n";
+  label_builder << "Vector Register Lookup\n";
   label_builder << "(";
-  label_builder << "rids=[";
-
-  int i = 0;
-  for (const std::string &rid : rids) {
-    label_builder << rid;
-    i++;
-    if (i < (int)rids.size()) {
-      label_builder << ",";
-      if (i % 3 == 0) {
-        label_builder << "\\n";
-      }
-    }
-  }
-
-  label_builder << "], obj=";
-  label_builder << obj;
+  label_builder << "id=" << id << ", ";
+  label_builder << "obj=" << obj;
   label_builder << ")";
 
   function_call(ep_node, bdd_node, target, label_builder.str());
@@ -138,29 +124,16 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node                  = node->get_node();
-  TargetType target                             = node->get_target();
-  const std::unordered_set<Tofino::DS_ID> &rids = node->get_rids();
-  addr_t obj                                    = node->get_obj();
+  const LibBDD::Node *bdd_node = node->get_node();
+  TargetType target            = node->get_target();
+  Tofino::DS_ID id             = node->get_id();
+  addr_t obj                   = node->get_obj();
 
-  label_builder << "Register Update\n";
-
-  label_builder << "rids=[";
-
-  int i = 0;
-  for (const std::string &rid : rids) {
-    label_builder << rid;
-    i++;
-    if (i < (int)rids.size()) {
-      label_builder << ",";
-      if (i % 3 == 0) {
-        label_builder << "\\n";
-      }
-    }
-  }
-
-  label_builder << "], obj=";
-  label_builder << obj;
+  label_builder << "Vector Register Update\n";
+  label_builder << "(";
+  label_builder << "id=" << id << ", ";
+  label_builder << "obj=" << obj;
+  label_builder << ")";
 
   function_call(ep_node, bdd_node, target, label_builder.str());
 

@@ -1,4 +1,4 @@
-APP := bloom_filter
+APP := vector_register
 
 P4_COMPILATION_VARS := 
 CONTROLLER_ARGS :=

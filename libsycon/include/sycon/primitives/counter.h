@@ -20,6 +20,8 @@ private:
 
 public:
   PrimitiveCounter(const std::string &control_name, const std::string &counter_name, bool count_bytes, bool count_packets);
+  PrimitiveCounter(const PrimitiveCounter &other) = default;
+  PrimitiveCounter(PrimitiveCounter &&other)      = default;
 
   counter_data_t get(u32 i);
 

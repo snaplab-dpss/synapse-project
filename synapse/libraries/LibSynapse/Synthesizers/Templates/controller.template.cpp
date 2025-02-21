@@ -31,8 +31,13 @@ void sycon::nf_user_signal_handler() {
 /*@{NF_USER_SIGNAL_HANDLER}@*/
 }
 
+struct cpu_hdr_extra_t {
+/*@{CPU_HDR_EXTRA}@*/
+} __attribute__((packed));
+
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
-  cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
+  cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
+  cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
 /*@{NF_PROCESS}@*/
 }
 

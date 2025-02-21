@@ -38,7 +38,16 @@ struct tcpudp_hdr_t {
   port_t dst_port;
 } __attribute__((packed));
 
-u8 *packet_consume(u8 *packet, u16 bytes);
+extern bytes_t packet_consumed;
+extern bytes_t packet_size;
+
+template <typename T> T *packet_consume(u8 *packet_base) {
+  bytes_t size = sizeof(T);
+  assert(packet_consumed + size <= packet_size);
+  u8 *header = packet_base + packet_consumed;
+  packet_consumed += size;
+  return reinterpret_cast<T *>(header);
+}
 
 void packet_hexdump(u8 *pkt, u16 size);
 

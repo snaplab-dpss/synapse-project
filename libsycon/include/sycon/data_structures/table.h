@@ -76,19 +76,19 @@ public:
 private:
   void key_setup(const table_key_t<K> &k) {
     bf_status_t bf_status = table->keyReset(key.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     for (size_t i = 0; i < key_fields.size(); i++) {
       auto key_value        = k.values[i];
       auto key_field        = key_fields[i];
       bf_status_t bf_status = key->setValue(key_field.id, key_value);
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
   }
 
   void data_setup(const table_value_t<V> &v) {
     bf_status_t bf_status = table->dataReset(action_id, data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     assert(V == data_fields.size());
 
@@ -96,12 +96,12 @@ private:
       auto param_field_value = v.values[i];
       auto param_field       = data_fields[i];
       bf_status              = data->setValue(param_field.id, param_field_value);
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
 
     if (time_aware) {
       bf_status = data->setValue(entry_ttl_data_id, static_cast<u64>(*timeout));
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
   }
 
@@ -118,7 +118,7 @@ private:
       return false;
     }
 
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
     return true;
   }
 
@@ -135,7 +135,7 @@ private:
       return false;
     }
 
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bfrt::BfRtTableKey key;
     bfrt::BfRtTableData value;
@@ -146,7 +146,7 @@ private:
       return false;
     }
 
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     v = build_value(value);
     return true;
@@ -163,7 +163,7 @@ private:
 
     bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
 
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   void driver_mod(const table_key_t<K> &k, const table_value_t<V> &v) {
@@ -177,7 +177,7 @@ private:
 
     bf_status_t bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
 
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   void driver_del(const table_key_t<K> &k) {
@@ -189,7 +189,7 @@ private:
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
     bf_status_t bf_status = table->tableEntryDel(*session, dev_tgt, flags, *key);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   void driver_clear() {
@@ -197,7 +197,7 @@ private:
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
     bf_status_t bf_status = table->tableClear(*session, dev_tgt, flags);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     DEBUG();
     DEBUG("*********************************************");
@@ -214,7 +214,7 @@ private:
     for (size_t i = 0; i < key_fields.size(); i++) {
       auto field            = key_fields[i];
       bf_status_t bf_status = key->getValue(field.id, &k.values[i]);
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
 
     return k;
@@ -228,7 +228,7 @@ private:
     for (size_t i = 0; i < data_fields.size(); i++) {
       auto field            = data_fields[i];
       bf_status_t bf_status = value->getValue(field.id, &v.values[i]);
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
 
     return v;

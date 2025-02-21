@@ -23,10 +23,10 @@ void sycon::nf_user_signal_handler() {}
 void sycon::nf_args(CLI::App &app) {}
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
-  cpu_hdr_t *cpu_hdr       = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
-  eth_hdr_t *eth_hdr       = (eth_hdr_t *)packet_consume(pkt, sizeof(eth_hdr_t));
-  ipv4_hdr_t *ipv4_hdr     = (ipv4_hdr_t *)packet_consume(pkt, sizeof(ipv4_hdr_t));
-  tcpudp_hdr_t *tcpudp_hdr = (tcpudp_hdr_t *)packet_consume(pkt, sizeof(tcpudp_hdr_t));
+  cpu_hdr_t *cpu_hdr       = packet_consume<cpu_hdr_t>(pkt);
+  eth_hdr_t *eth_hdr       = packet_consume<eth_hdr_t>(pkt);
+  ipv4_hdr_t *ipv4_hdr     = packet_consume<ipv4_hdr_t>(pkt);
+  tcpudp_hdr_t *tcpudp_hdr = packet_consume<tcpudp_hdr_t>(pkt);
 
   table_key_t<4> flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip), SWAP_ENDIAN_32(ipv4_hdr->dst_ip), SWAP_ENDIAN_16(tcpudp_hdr->src_port),
                        SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});

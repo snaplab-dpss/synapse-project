@@ -1104,7 +1104,7 @@ std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr) {
 std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
   std::vector<expr_group_t> groups;
 
-  auto process_read = [&](klee::ref<klee::Expr> read_expr) {
+  auto process_read = [&groups](klee::ref<klee::Expr> read_expr) {
     assert(read_expr->getKind() == klee::Expr::Read && "Not a read");
     klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
 
@@ -1113,22 +1113,30 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
     klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-    unsigned byte                   = index_const->getZExtValue();
+    bytes_t current_byte            = index_const->getZExtValue();
 
-    if (groups.size() && groups.back().has_symbol && groups.back().symbol == symbol && groups.back().offset - 1 == byte) {
-      groups.back().size++;
-      groups.back().offset = byte;
-      groups.back().expr   = concat_lsb(groups.back().expr, read_expr);
-    } else {
-      groups.emplace_back(true, symbol, byte, read_expr->getWidth() / 8, read_expr);
+    bool appended_to_group = false;
+    if (groups.size()) {
+      expr_group_t &last_group = groups.back();
+      if (last_group.has_symbol && last_group.symbol == symbol && last_group.offset == current_byte + 1) {
+        last_group.size++;
+        last_group.offset = current_byte;
+        last_group.expr   = concat_lsb(last_group.expr, read_expr);
+        appended_to_group = true;
+      }
+    }
+
+    if (!appended_to_group) {
+      bytes_t size = read_expr->getWidth() / 8;
+      groups.emplace_back(true, symbol, current_byte, size, read_expr);
     }
   };
 
-  auto process_not_read = [&](klee::ref<klee::Expr> not_read_expr) {
+  auto process_not_read = [&groups](klee::ref<klee::Expr> not_read_expr) {
     assert(not_read_expr->getKind() != klee::Expr::Read && "Non read is actually a read");
-    unsigned size = not_read_expr->getWidth();
+    bits_t size = not_read_expr->getWidth();
     assert(size % 8 == 0 && "Size not multiple of 8");
-    groups.emplace_back(expr_group_t{false, "", 0, size / 8, not_read_expr});
+    groups.emplace_back(false, "", 0, size / 8, not_read_expr);
   };
 
   if (expr->getKind() == klee::Expr::Extract) {

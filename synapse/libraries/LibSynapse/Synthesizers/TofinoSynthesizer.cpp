@@ -1572,12 +1572,17 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const std::unordered_set<DS_ID> &rids = node->get_rids();
-  const klee::ref<klee::Expr> index     = node->get_index();
-  const klee::ref<klee::Expr> value     = node->get_value();
+  DS_ID id                    = node->get_id();
+  klee::ref<klee::Expr> index = node->get_index();
+  klee::ref<klee::Expr> value = node->get_value();
+
+  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, id);
 
   std::vector<const Register *> regs;
-  std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
+  for (const Register &reg : vector_register->regs) {
+    regs.push_back(&reg);
+  }
+
   std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return natural_compare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {
@@ -1620,13 +1625,18 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const std::unordered_set<DS_ID> &rids = node->get_rids();
-  klee::ref<klee::Expr> index           = node->get_index();
-  klee::ref<klee::Expr> value           = node->get_read_value();
-  klee::ref<klee::Expr> write_value     = node->get_write_value();
+  DS_ID id                          = node->get_id();
+  klee::ref<klee::Expr> index       = node->get_index();
+  klee::ref<klee::Expr> value       = node->get_read_value();
+  klee::ref<klee::Expr> write_value = node->get_write_value();
+
+  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, id);
 
   std::vector<const Register *> regs;
-  std::for_each(rids.begin(), rids.end(), [ep, &regs](DS_ID rid) { regs.push_back(get_tofino_ds<Register>(ep, rid)); });
+  for (const Register &reg : vector_register->regs) {
+    regs.push_back(&reg);
+  }
+
   std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return natural_compare(r0->id, r1->id); });
 
   for (const Register *reg : regs) {

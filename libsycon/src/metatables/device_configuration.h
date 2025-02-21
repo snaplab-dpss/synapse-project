@@ -50,16 +50,16 @@ public:
 
   void set_digest_timout(time_us_t timeout) {
     bf_status_t bf_status = table->dataReset(data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     data->setValue(flow_learn_timeout_usec, timeout);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     u64 flags = 0;
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
     bf_status = table->tableDefaultEntrySet(*session, dev_tgt, *data);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 };
 

@@ -11,11 +11,11 @@ extern "C" {
 #define DEBUG(...)
 
 #define ASSERT_BF_STATUS(status)                                                                                                           \
-  {                                                                                                                                        \
+  ({                                                                                                                                       \
     if (unlikely((status) != BF_SUCCESS)) {                                                                                                \
       ERROR("BF function failed (%s)", bf_err_str((status)));                                                                              \
     }                                                                                                                                      \
-  }
+  })
 
 #else
 #define DEBUG(fmt, ...)                                                                                                                    \
@@ -25,12 +25,12 @@ extern "C" {
   }
 
 #define ASSERT_BF_STATUS(status)                                                                                                           \
-  {                                                                                                                                        \
+  ({                                                                                                                                       \
     if (unlikely((status) != BF_SUCCESS)) {                                                                                                \
       DEBUG("BF function failed (%s)", bf_err_str((status)));                                                                              \
     }                                                                                                                                      \
     assert((status) == BF_SUCCESS);                                                                                                        \
-  }
+  })
 #endif
 
 #define SHOW_PROMPT() (printf("Sycon> "), fflush(stdout))

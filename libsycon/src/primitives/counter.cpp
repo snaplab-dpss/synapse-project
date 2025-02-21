@@ -32,18 +32,18 @@ counter_data_t PrimitiveCounter::get(u32 i) {
 
   auto flag             = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
   bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, flag, data.get());
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   counter_data_t values;
 
   if (bytes) {
     bf_status = data->getValue(*bytes, &values.bytes);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   if (packets) {
     bf_status = data->getValue(*packets, &values.packets);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   return values;
@@ -54,11 +54,11 @@ void PrimitiveCounter::reset(u32 i) {
   data_setup(0, 0);
 
   bf_status_t bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 }
 
 void PrimitiveCounter::reset() {
-  auto size = get_size();
+  size_t size = get_capacity();
   for (size_t i = 0; i < size; i++) {
     reset(i);
   }
@@ -68,7 +68,7 @@ void PrimitiveCounter::key_setup(u32 i) {
   table->keyReset(key.get());
 
   bf_status_t bf_status = key->setValue(index, static_cast<u64>(i));
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 }
 
 void PrimitiveCounter::data_setup(u64 value_bytes, u64 value_packets) {
@@ -76,12 +76,12 @@ void PrimitiveCounter::data_setup(u64 value_bytes, u64 value_packets) {
 
   if (bytes) {
     bf_status_t bf_status = data->setValue(*bytes, static_cast<u64>(value_bytes));
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   if (packets) {
     bf_status_t bf_status = data->setValue(*packets, static_cast<u64>(value_packets));
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 }
 

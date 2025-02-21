@@ -7,15 +7,14 @@ namespace Tofino {
 
 class VectorRegisterLookup : public TofinoModule {
 private:
-  std::unordered_set<DS_ID> rids;
+  DS_ID id;
   addr_t obj;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRegisterLookup(const LibBDD::Node *node, const std::unordered_set<DS_ID> &_rids, addr_t _obj, klee::ref<klee::Expr> _index,
-                       klee::ref<klee::Expr> _value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), rids(_rids), obj(_obj), index(_index),
+  VectorRegisterLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
+      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), id(_id), obj(_obj), index(_index),
         value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
@@ -23,16 +22,16 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterLookup(node, rids, obj, index, value);
+    Module *cloned = new VectorRegisterLookup(node, id, obj, index, value);
     return cloned;
   }
 
-  const std::unordered_set<DS_ID> &get_rids() const { return rids; }
+  DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_value() const { return value; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return rids; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {id}; }
 };
 
 class VectorRegisterLookupFactory : public TofinoModuleFactory {

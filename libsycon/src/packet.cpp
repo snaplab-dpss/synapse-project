@@ -7,20 +7,13 @@
 
 namespace sycon {
 
-static u32 packet_consumed;
-static u32 packet_size;
+bytes_t packet_consumed;
+bytes_t packet_size;
 
-void packet_init(u16 size) {
+void packet_init(bytes_t size) {
   assert(size > 0);
   packet_consumed = 0;
   packet_size     = size;
-}
-
-u8 *packet_consume(u8 *packet_base, u16 bytes) {
-  assert(packet_consumed + bytes <= packet_size);
-  u8 *header = packet_base + packet_consumed;
-  packet_consumed += bytes;
-  return header;
 }
 
 void packet_log(const cpu_hdr_t *cpu_hdr) {

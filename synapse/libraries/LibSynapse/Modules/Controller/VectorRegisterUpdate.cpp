@@ -67,7 +67,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  Module *module  = new VectorRegisterUpdate(node, obj, index, value_addr, changes);
+  Module *module  = new VectorRegisterUpdate(node, obj, index, value_addr, original_value, value, changes);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -110,7 +110,7 @@ std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const LibBDD::BDD *b
     return {};
   }
 
-  return std::make_unique<VectorRegisterUpdate>(node, obj, index, value_addr, changes);
+  return std::make_unique<VectorRegisterUpdate>(node, obj, index, value_addr, original_value, value, changes);
 }
 
 } // namespace Controller

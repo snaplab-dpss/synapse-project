@@ -34,7 +34,7 @@ public:
 private:
   void data_setup(const table_value_t<V> &v) {
     bf_status_t bf_status = table->dataReset(action_id, data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     assert(V == data_fields.size());
 
@@ -42,12 +42,12 @@ private:
       auto param_field_value = v.values[i];
       auto param_field       = data_fields[i];
       bf_status              = data->setValue(param_field.id, param_field_value);
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
 
     if (time_aware) {
       bf_status = data->setValue(entry_ttl_data_id, static_cast<u64>(*timeout));
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
   }
 
@@ -58,7 +58,7 @@ private:
     BF_RT_FLAG_CLEAR(flags, BF_RT_FROM_HW);
 
     bf_status_t bf_status = table->tableDefaultEntrySet(*session, dev_tgt, *data);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 };
 

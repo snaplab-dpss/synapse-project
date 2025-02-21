@@ -218,11 +218,11 @@ public:
     key_setup(dev_port);
 
     bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     u64 value;
     bf_status = data->getValue(data_fields.FramesReceivedOK, &value);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     return value;
   }
@@ -234,11 +234,11 @@ public:
     key_setup(dev_port);
 
     bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     u64 value;
     bf_status = data->getValue(data_fields.FramesTransmittedOK, &value);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     return value;
   }
@@ -254,7 +254,7 @@ private:
     assert(key);
 
     bf_status_t bf_status = key->setValue(key_fields.dev_port, static_cast<u64>(dev_port));
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 };
 

@@ -56,7 +56,7 @@ static void setup_bf_session() {
 
   // Get info object from dev_id and p4 program name
   bf_status_t bf_status = devMgr.bfRtInfoGet(cfg.dev_tgt.dev_id, args.p4_prog_name, &cfg.info);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   // Create the sessions objects
   cfg.session            = bfrt::BfRtSession::sessionCreate();

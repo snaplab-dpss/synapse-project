@@ -71,7 +71,7 @@ public:
     data_setup(speed_opts[speed], fec_opts[fec], true, loopback_mode_opts[loopback_mode]);
 
     bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     while (wait_until_ready && !is_port_up(dev_port)) {
       sleep(1);
@@ -89,11 +89,11 @@ public:
     key_setup(dev_port);
 
     bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bool value;
     bf_status = data->getValue(PORT_UP, &value);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     return value;
   }
@@ -120,23 +120,23 @@ private:
     table->keyReset(key.get());
 
     bf_status_t bf_status = key->setValue(DEV_PORT, static_cast<u64>(dev_port));
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   void data_setup(std::string speed, std::string fec, bool port_enable, std::string loopback_mode) {
     table->dataReset(data.get());
 
     bf_status_t bf_status = data->setValue(SPEED, speed);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bf_status = data->setValue(FEC, fec);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bf_status = data->setValue(PORT_ENABLE, port_enable);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bf_status = data->setValue(LOOPBACK_MODE, loopback_mode);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 };
 

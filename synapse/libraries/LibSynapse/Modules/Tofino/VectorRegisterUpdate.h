@@ -7,16 +7,16 @@ namespace Tofino {
 
 class VectorRegisterUpdate : public TofinoModule {
 private:
-  std::unordered_set<DS_ID> rids;
+  DS_ID id;
   addr_t obj;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> read_value;
   klee::ref<klee::Expr> write_value;
 
 public:
-  VectorRegisterUpdate(const LibBDD::Node *node, const std::unordered_set<DS_ID> &_rids, addr_t _obj, klee::ref<klee::Expr> _index,
-                       klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate", node), rids(_rids), obj(_obj), index(_index),
+  VectorRegisterUpdate(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _read_value,
+                       klee::ref<klee::Expr> _write_value)
+      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate", node), id(_id), obj(_obj), index(_index),
         read_value(_read_value), write_value(_write_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
@@ -24,17 +24,17 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterUpdate(node, rids, obj, index, read_value, write_value);
+    Module *cloned = new VectorRegisterUpdate(node, id, obj, index, read_value, write_value);
     return cloned;
   }
 
-  const std::unordered_set<DS_ID> &get_rids() const { return rids; }
+  DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_read_value() const { return read_value; }
   klee::ref<klee::Expr> get_write_value() const { return write_value; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return rids; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {id}; }
 };
 
 class VectorRegisterUpdateFactory : public TofinoModuleFactory {

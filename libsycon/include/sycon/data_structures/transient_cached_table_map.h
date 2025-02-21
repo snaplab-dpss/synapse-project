@@ -43,10 +43,10 @@ public:
 private:
   void init_digest() {
     bf_status_t bf_status = cfg.info->bfrtLearnFromNameGet(PrimitiveTable::append_control(digest_control_name, digest_name), &learn_obj);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bf_status = learn_obj->learnFieldIdListGet(&learn_obj_fields_ids);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     if (learn_obj_fields_ids.size() != K + V + 1) {
       ERROR("Digest learn object should be composed of a cache index value, "
@@ -58,7 +58,7 @@ private:
 
   void register_digest_callback() {
     bf_status_t bf_status = learn_obj->bfRtLearnCallbackRegister(cfg.session, cfg.dev_tgt, internal_digest_callback, (void *)this);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   digest_t build_digest(const bfrt::BfRtLearnData *data) const {
@@ -68,7 +68,7 @@ private:
 
     bf_rt_id_t id         = learn_obj_fields_ids[0];
     bf_status_t bf_status = data->getValue(id, &digest.cache_index);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     for (size_t i = 1; i < learn_obj_fields_ids.size(); i++) {
       id = learn_obj_fields_ids[i];
@@ -80,7 +80,7 @@ private:
         bf_status = data->getValue(id, &digest.value.values[i - K - 1]);
       }
 
-      ASSERT_BF_STATUS(bf_status)
+      ASSERT_BF_STATUS(bf_status);
     }
 
     return digest;
@@ -116,7 +116,7 @@ private:
     // Don't forget to ACK back! This tells the driver to release the allocated
     // resources.
     bf_status_t ack_status = tctm->learn_obj->bfRtLearnNotifyAck(session, learn_msg_hdl);
-    ASSERT_BF_STATUS(ack_status)
+    ASSERT_BF_STATUS(ack_status);
 
     return BF_SUCCESS;
   }

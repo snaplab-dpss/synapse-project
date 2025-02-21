@@ -29,6 +29,7 @@ protected:
   const std::string control;
   const std::string name;
   const bfrt::BfRtTable *table;
+  const size_t capacity;
 
   std::unique_ptr<bfrt::BfRtTableKey> key;
   std::unique_ptr<bfrt::BfRtTableData> data;
@@ -41,11 +42,13 @@ protected:
 
 public:
   PrimitiveTable(const std::string &_control_name, const std::string &_table_name);
+  PrimitiveTable(const PrimitiveTable &other);
+  PrimitiveTable(PrimitiveTable &&other) = delete;
 
   void set_session(const std::shared_ptr<bfrt::BfRtSession> &_session);
 
   const std::string &get_name() const;
-  size_t get_size() const;
+  size_t get_capacity() const;
   size_t get_usage() const;
 
   const std::vector<table_field_t> &get_key_fields() const;
@@ -55,7 +58,7 @@ public:
   void dump_data_fields(std::ostream &) const;
 
   void dump() const;
-  void dump(std::ostream &) const;
+  virtual void dump(std::ostream &) const;
 
   static void dump_table_names(const bfrt::BfRtInfo *bfrtInfo);
   static std::string append_control(const std::string &control, const std::string &name);

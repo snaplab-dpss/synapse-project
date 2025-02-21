@@ -9,6 +9,28 @@
 
 namespace sycon {
 
+namespace {
+
+const bfrt::BfRtTable *build_table(const bf_rt_target_t dev_tgt, const bfrt::BfRtInfo *info, const std::string &control,
+                                   const std::string &name) {
+  const std::string full_name = PrimitiveTable::append_control(control, name);
+
+  const bfrt::BfRtTable *table;
+  bf_status_t bf_status = info->bfrtTableFromNameGet(full_name, &table);
+  ASSERT_BF_STATUS(bf_status);
+
+  return table;
+}
+
+size_t get_capacity_from_hw(const bf_rt_target_t dev_tgt, const std::shared_ptr<bfrt::BfRtSession> &session, const bfrt::BfRtTable *table) {
+  size_t size;
+  bf_status_t bf_status = table->tableSizeGet(*session, dev_tgt, &size);
+  ASSERT_BF_STATUS(bf_status);
+  return size;
+}
+
+} // namespace
+
 std::string PrimitiveTable::append_control(const std::string &control, const std::string &name) {
   if (control.size()) {
     return control + "." + name;
@@ -18,11 +40,12 @@ std::string PrimitiveTable::append_control(const std::string &control, const std
 }
 
 PrimitiveTable::PrimitiveTable(const std::string &_control, const std::string &_name)
-    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name), table(nullptr), time_aware(false) {
-  auto full_name        = append_control(control, name);
-  bf_status_t bf_status = info->bfrtTableFromNameGet(full_name, &table);
-  ASSERT_BF_STATUS(bf_status)
-}
+    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name),
+      table(build_table(dev_tgt, info, control, name)), capacity(get_capacity_from_hw(dev_tgt, session, table)), time_aware(false) {}
+
+PrimitiveTable::PrimitiveTable(const PrimitiveTable &other)
+    : dev_tgt(other.dev_tgt), info(other.info), session(other.session), control(other.control), name(other.name), table(other.table),
+      capacity(other.capacity), time_aware(other.time_aware) {}
 
 void PrimitiveTable::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { session = _session; }
 
@@ -30,22 +53,21 @@ void PrimitiveTable::init_key() {
   if (!key) {
     // Allocate key and data once, and use reset across different uses
     bf_status_t bf_status = table->keyAllocate(&key);
-    ASSERT_BF_STATUS(bf_status)
-    assert(key);
+    ASSERT_BF_STATUS(bf_status);
   }
 
   std::vector<bf_rt_id_t> key_fields_ids;
   bf_status_t bf_status = table->keyFieldIdListGet(&key_fields_ids);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   for (bf_dev_pipe_t id : key_fields_ids) {
     std::string name;
     bf_status = table->keyFieldNameGet(id, &name);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     size_t size;
     bf_status = table->keyFieldSizeGet(id, &size);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     key_fields.push_back({name, id, static_cast<bits_t>(size)});
   }
@@ -60,26 +82,26 @@ void PrimitiveTable::init_key(const std::unordered_map<std::string, bf_rt_id_t *
   if (!key) {
     // Allocate key and data once, and use reset across different uses
     bf_status_t bf_status = table->keyAllocate(&key);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
     assert(key);
   }
 
   for (const auto &[name, field_id] : fields) {
     bf_status_t bf_status = table->keyFieldIdGet(name, field_id);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 }
 
 void PrimitiveTable::init_data(const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
   if (!data) {
     bf_status_t bf_status = table->dataAllocate(&data);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
     assert(data);
   }
 
   for (const auto &[name, field_id] : fields) {
     bf_status_t bf_status = table->dataFieldIdGet(name, field_id);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 
   table->dataFieldIdGet(DATA_FIELD_NAME_ENTRY_TTL, &entry_ttl_data_id);
@@ -88,25 +110,25 @@ void PrimitiveTable::init_data(const std::unordered_map<std::string, bf_rt_id_t 
 void PrimitiveTable::init_data_with_action(bf_rt_id_t action_id) {
   if (!data) {
     bf_status_t bf_status = table->dataAllocate(&data);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
     assert(data);
   }
 
   std::vector<bf_rt_id_t> data_fields_ids;
 
   bf_status_t bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   DEBUG("Data:");
 
   for (bf_dev_pipe_t id : data_fields_ids) {
     std::string name;
     bf_status = table->dataFieldNameGet(id, action_id, &name);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     size_t size;
     bf_status = table->dataFieldSizeGet(id, action_id, &size);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     // Meta entries start with $ (e.g. $ENTRY_TTL).
     // We don't store those entries on data_fields.
@@ -123,12 +145,12 @@ void PrimitiveTable::init_data_with_action(bf_rt_id_t action_id) {
 void PrimitiveTable::init_data_with_action(const std::string &name, bf_rt_id_t action_id, bf_rt_id_t *field_id) {
   if (!data) {
     bf_status_t bf_status = table->dataAllocate(&data);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
     assert(data);
   }
 
   bf_status_t bf_status = table->dataFieldIdGet(name, action_id, field_id);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 }
 
 void PrimitiveTable::init_data_with_actions(const std::unordered_map<std::string, std::pair<bf_rt_id_t, bf_rt_id_t *>> &fields) {
@@ -140,13 +162,13 @@ void PrimitiveTable::init_data_with_actions(const std::unordered_map<std::string
 void PrimitiveTable::init_action(const std::string &action_name, bf_rt_id_t *action_id) {
   auto full_action_name = append_control(control, action_name);
   bf_status_t bf_status = table->actionIdGet(full_action_name, action_id);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 }
 
 void PrimitiveTable::init_action(bf_rt_id_t *action_id) {
   std::vector<bf_rt_id_t> action_ids;
   bf_status_t bf_status = table->actionIdListGet(&action_ids);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   // Even tables with only a single explicit action, the NoAction action will
   // still be there by default.
@@ -154,7 +176,7 @@ void PrimitiveTable::init_action(bf_rt_id_t *action_id) {
 
   std::string action_name;
   bf_status = table->actionNameGet(action_ids[0], &action_name);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   *action_id = (action_name != TOFINO_NO_ACTION_NAME) ? action_ids[0] : action_ids[1];
 }
@@ -173,7 +195,7 @@ void PrimitiveTable::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt
   std::unique_ptr<bfrt::BfRtTableAttributes> attr;
   bf_status_t bf_status =
       table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME, bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   u32 min_ttl            = timeout;
   u32 max_ttl            = timeout;
@@ -182,11 +204,11 @@ void PrimitiveTable::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt
   assert(ttl_query_interval <= min_ttl);
 
   bf_status = attr->idleTableNotifyModeSet(enable, callback, ttl_query_interval, max_ttl, min_ttl, cookie);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   u32 flags = 0;
   bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
 
   // Even if they are inactive, the table is still time aware.
   time_aware = true;
@@ -194,17 +216,12 @@ void PrimitiveTable::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt
 
 const std::string &PrimitiveTable::get_name() const { return name; }
 
-size_t PrimitiveTable::get_size() const {
-  size_t size;
-  bf_status_t bf_status = table->tableSizeGet(*session, dev_tgt, &size);
-  ASSERT_BF_STATUS(bf_status)
-  return size;
-}
+size_t PrimitiveTable::get_capacity() const { return capacity; }
 
 size_t PrimitiveTable::get_usage() const {
   u32 usage;
   bf_status_t bf_status = table->tableUsageGet(*session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW, &usage);
-  ASSERT_BF_STATUS(bf_status)
+  ASSERT_BF_STATUS(bf_status);
   return usage;
 }
 
@@ -330,7 +347,7 @@ static void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtT
       case bfrt::KeyFieldType::TERNARY: {
         std::vector<u8> mask(size);
         bf_status = key->getValueandMask(key_field_id, size, value.data(), mask.data());
-        ASSERT_BF_STATUS(bf_status)
+        ASSERT_BF_STATUS(bf_status);
         for (auto i = 0u; i < value.size(); i++) {
           auto v = value[i];
           auto m = mask[i];
@@ -569,7 +586,7 @@ void PrimitiveTable::dump(std::ostream &os) const {
 
   os << "\n";
   os << "================================================\n";
-  os << "  PrimitiveTable name: " << name << "\n";
+  os << "  Table name: " << name << "\n";
 
   total_entries = get_usage();
 

@@ -74,9 +74,9 @@ private:
   struct var_t {
     code_t name;
     klee::ref<klee::Expr> expr;
-    klee::ref<klee::Expr> addr;
 
     code_t get_slice(bits_t offset, bits_t size) const;
+    code_t get_stem() const;
   };
 
   class Stack {
@@ -127,6 +127,7 @@ private:
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
   std::vector<code_t> state_member_init_list;
+  std::vector<ep_node_id_t> code_paths;
 
   const EP *ep;
   Transpiler transpiler;
@@ -204,12 +205,14 @@ private:
 
   code_t create_unique_name(const code_t &name);
   code_t assert_unique_name(const code_t &name);
-  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr = nullptr);
+  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr);
+  var_t alloc_cpu_hdr_extra_var(const code_t &name, klee::ref<klee::Expr> expr);
   var_t alloc_fields(const code_t &name, const std::vector<klee::ref<klee::Expr>> &fields);
   code_path_t alloc_recirc_coder();
 
   void transpile_table_decl(const Tofino::Table *table);
   void transpile_register_decl(const Tofino::Register *reg);
+  void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
 
   void dbg_vars() const;
 

@@ -77,53 +77,52 @@ public:
   Action visitSRem(const klee::SRemExpr &e) override final { return visit_incompatible_op(); }
 };
 
-std::unordered_set<Register *> build_vector_registers(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
-  std::unordered_set<Register *> regs;
-
+VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
   const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
 
   std::vector<klee::ref<klee::Expr>> partitions = Register::partition_value(properties, data.value);
 
+  std::vector<bits_t> values_sizes;
   for (klee::ref<klee::Expr> partition : partitions) {
-    DS_ID id              = "vector_reg_" + std::to_string(data.obj) + "_" + std::to_string(regs.size());
     bits_t partition_size = partition->getWidth();
-    Register *reg         = new Register(properties, id, data.num_entries, data.index->getWidth(), partition_size, data.actions);
-    regs.insert(reg);
+    values_sizes.push_back(partition_size);
   }
 
-  if (!tofino_ctx->check_many_placements(ep, node, {std::unordered_set<DS *>(regs.begin(), regs.end())})) {
-    for (Register *reg : regs) {
-      delete reg;
-    }
-    regs.clear();
+  const DS_ID id                  = "vector_register_" + std::to_string(data.obj) + "_" + std::to_string(node->get_id());
+  VectorRegister *vector_register = new VectorRegister(properties, id, data.num_entries, data.index->getWidth(), values_sizes);
+
+  if (!tofino_ctx->check_placement(ep, node, vector_register)) {
+    delete vector_register;
+    vector_register = nullptr;
   }
 
-  return regs;
+  return vector_register;
 }
 
-std::unordered_set<Register *> get_vector_registers(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
-  std::unordered_set<Register *> regs;
-
+VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->has_ds(data.obj)) {
-    return regs;
+    return nullptr;
   }
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
   assert(!ds.empty() && "No vector registers found");
 
   if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
-    return regs;
+    return nullptr;
   }
 
-  for (DS *reg : ds) {
-    assert(reg->type == DSType::REGISTER && "Unexpected type");
-    regs.insert(dynamic_cast<Register *>(reg));
+  if (ds.size() > 1) {
+    return nullptr;
   }
 
-  return regs;
+  assert(ds.size() == 1);
+  DS *vr = *ds.begin();
+
+  assert(vr->type == DSType::VECTOR_REGISTER && "Unexpected type");
+  return dynamic_cast<VectorRegister *>(vr);
 }
 
 FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 num_entries,
@@ -329,38 +328,39 @@ bool TofinoModuleFactory::can_build_table(const EP *ep, const LibBDD::Node *node
   return true;
 }
 
-std::unordered_set<Register *> TofinoModuleFactory::build_or_reuse_vector_registers(const EP *ep, const LibBDD::Node *node,
-                                                                                    const vector_register_data_t &data) {
-  std::unordered_set<Register *> regs;
+VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node,
+                                                                    const vector_register_data_t &data) {
+  VectorRegister *vector_register;
 
   const Context &ctx       = ep->get_ctx();
   bool regs_already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
   if (regs_already_placed) {
-    regs = get_vector_registers(ep, node, data);
+    vector_register = get_vector_register(ep, node, data);
   } else {
-    regs = build_vector_registers(ep, node, data);
+    vector_register = build_vector_register(ep, node, data);
   }
 
-  return regs;
+  return vector_register;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_vector_registers(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   const Context &ctx       = ep->get_ctx();
   bool regs_already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
   if (regs_already_placed) {
-    return !get_vector_registers(ep, node, data).empty();
+    VectorRegister *vector_register = get_vector_register(ep, node, data);
+    return vector_register != nullptr;
   }
 
-  std::unordered_set<Register *> regs = build_vector_registers(ep, node, data);
-  bool success                        = !regs.empty();
+  VectorRegister *vector_register = build_vector_register(ep, node, data);
 
-  for (DS *reg : regs) {
-    delete reg;
+  if (vector_register == nullptr) {
+    return false;
   }
 
-  return success;
+  delete vector_register;
+  return true;
 }
 
 FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj,

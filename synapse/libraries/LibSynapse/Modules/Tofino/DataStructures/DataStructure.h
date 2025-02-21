@@ -19,6 +19,7 @@ enum class DSType {
   HH_TABLE,
   COUNT_MIN_SKETCH,
   LPM,
+  VECTOR_REGISTER,
 };
 
 struct DS {

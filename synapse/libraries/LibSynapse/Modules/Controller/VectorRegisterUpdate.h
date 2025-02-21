@@ -10,27 +10,31 @@ private:
   addr_t obj;
   klee::ref<klee::Expr> index;
   addr_t value_addr;
+  klee::ref<klee::Expr> old_value;
+  klee::ref<klee::Expr> new_value;
   std::vector<LibCore::expr_mod_t> modifications;
 
 public:
   VectorRegisterUpdate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
+                       klee::ref<klee::Expr> _old_value, klee::ref<klee::Expr> _new_value,
                        const std::vector<LibCore::expr_mod_t> &_modifications)
       : ControllerModule(ModuleType::Controller_VectorRegisterUpdate, "VectorRegisterUpdate", node), obj(_obj), index(_index),
-        value_addr(_value_addr), modifications(_modifications) {}
+        value_addr(_value_addr), old_value(_old_value), new_value(_new_value), modifications(_modifications) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterUpdate(node, obj, index, value_addr, modifications);
+    Module *cloned = new VectorRegisterUpdate(node, obj, index, value_addr, old_value, new_value, modifications);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_index() const { return index; }
   addr_t get_value_addr() const { return value_addr; }
-
+  klee::ref<klee::Expr> get_old_value() const { return old_value; }
+  klee::ref<klee::Expr> get_new_value() const { return new_value; }
   const std::vector<LibCore::expr_mod_t> &get_modifications() const { return modifications; }
 };
 

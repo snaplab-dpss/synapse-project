@@ -63,9 +63,8 @@ public:
   //  Vector Registers
   // ======================================================================
 
-  static std::unordered_set<Register *> build_or_reuse_vector_registers(const EP *ep, const LibBDD::Node *node,
-                                                                        const vector_register_data_t &data);
-  static bool can_build_or_reuse_vector_registers(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data);
+  static VectorRegister *build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data);
+  static bool can_build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data);
 
   // ======================================================================
   //  FCFS Cached Table

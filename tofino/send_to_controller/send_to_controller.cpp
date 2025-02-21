@@ -24,7 +24,7 @@ void sycon::nf_args(CLI::App &app) {}
 void sycon::nf_user_signal_handler() {}
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, uint16_t size) {
-  cpu_hdr_t *cpu_hdr = (cpu_hdr_t *)packet_consume(pkt, sizeof(cpu_hdr_t));
+  cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
 
   u16 in_dev_port  = SWAP_ENDIAN_16(cpu_hdr->in_port);
   u16 in_port      = asic_get_front_panel_port_from_dev_port(in_dev_port);

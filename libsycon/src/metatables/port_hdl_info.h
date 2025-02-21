@@ -35,11 +35,11 @@ public:
 
     key_setup(front_panel_port, lane);
     bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     u64 value;
     bf_status = data->getValue(DEV_PORT, &value);
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     return (u16)value;
   }
@@ -49,10 +49,10 @@ private:
     table->keyReset(key.get());
 
     bf_status_t bf_status = key->setValue(CONN_ID, static_cast<u64>(front_panel_port));
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
 
     bf_status = key->setValue(CHNL_ID, static_cast<u64>(lane));
-    ASSERT_BF_STATUS(bf_status)
+    ASSERT_BF_STATUS(bf_status);
   }
 };
 

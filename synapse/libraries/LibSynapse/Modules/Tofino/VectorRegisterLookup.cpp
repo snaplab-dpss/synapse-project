@@ -48,7 +48,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  if (!can_build_or_reuse_vector_registers(ep, vector_borrow, vector_register_data)) {
+  if (!can_build_or_reuse_vector_register(ep, vector_borrow, vector_register_data)) {
     return std::nullopt;
   }
 
@@ -80,18 +80,14 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  std::unordered_set<Register *> regs = build_or_reuse_vector_registers(ep, call_node, vector_register_data);
+  VectorRegister *vector_register = build_or_reuse_vector_register(ep, call_node, vector_register_data);
 
-  if (regs.empty()) {
+  if (!vector_register) {
     return impls;
   }
 
-  std::unordered_set<DS_ID> rids;
-  for (DS *reg : regs) {
-    rids.insert(reg->id);
-  }
-
-  Module *module  = new VectorRegisterLookup(node, rids, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
+  Module *module =
+      new VectorRegisterLookup(node, vector_register->id, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -101,9 +97,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  for (Register *reg : regs) {
-    tofino_ctx->place(new_ep, node, vector_register_data.obj, reg);
-  }
+  tofino_ctx->place(new_ep, node, vector_register_data.obj, vector_register);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
@@ -130,12 +124,11 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const LibBDD::BDD *b
   }
 
   const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(vector_register_data.obj);
-  std::unordered_set<DS_ID> rids;
-  for (const DS *reg : ds) {
-    rids.insert(reg->id);
-  }
+  assert(ds.size() == 1);
+  assert((*ds.begin())->type == DSType::VECTOR_REGISTER);
+  Tofino::VectorRegister *vector_register = dynamic_cast<Tofino::VectorRegister *>(*ds.begin());
 
-  return std::make_unique<VectorRegisterLookup>(node, rids, vector_register_data.obj, vector_register_data.index,
+  return std::make_unique<VectorRegisterLookup>(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                                 vector_register_data.value);
 }
 
