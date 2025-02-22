@@ -1525,25 +1525,30 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::TableLookup *node) {
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) {
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  DS_ID table_id                          = node->get_table_id();
+  DS_ID map_table_id                      = node->get_id();
   std::vector<klee::ref<klee::Expr>> keys = node->get_keys();
+  klee::ref<klee::Expr> value             = node->get_value();
   std::optional<LibCore::symbol_t> hit    = node->get_hit();
 
-  const Table *table = get_tofino_ds<Table>(ep, table_id);
+  const MapTable *map_table = get_tofino_ds<MapTable>(ep, map_table_id);
+
+  LibBDD::node_id_t node_id = node->get_node()->get_id();
+  const Table *table        = map_table->get_table(node_id);
+  assert(table && "Table not found");
 
   std::vector<code_t> transpiled_keys;
   for (klee::ref<klee::Expr> key : keys) {
     transpiled_keys.push_back(transpiler.transpile(key));
   }
 
-  if (declared_ds.find(table_id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, keys, node->get_values());
+  if (declared_ds.find(table->id) == declared_ds.end()) {
+    transpile_table_decl(ingress, table, keys, {value});
     ingress << "\n";
-    declared_ds.insert(table_id);
+    declared_ds.insert(table->id);
   }
 
   for (size_t i = 0; i < transpiled_keys.size(); i++) {
@@ -1559,10 +1564,83 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   if (hit) {
     var_t hit_var = alloc_var("hit", hit->expr, LOCAL | FORCE_BOOL);
-    hit_var.declare(ingress_apply, table_id + ".apply().hit");
+    hit_var.declare(ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
-    ingress_apply << table_id << ".apply();\n";
+    ingress_apply << table->id << ".apply();\n";
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  DS_ID vector_table_id       = node->get_id();
+  klee::ref<klee::Expr> key   = node->get_key();
+  klee::ref<klee::Expr> value = node->get_value();
+
+  const VectorTable *vector_table = get_tofino_ds<VectorTable>(ep, vector_table_id);
+
+  LibBDD::node_id_t node_id = node->get_node()->get_id();
+  const Table *table        = vector_table->get_table(node_id);
+  assert(table && "Table not found");
+
+  if (declared_ds.find(table->id) == declared_ds.end()) {
+    transpile_table_decl(ingress, table, {key}, {value});
+    ingress << "\n";
+    declared_ds.insert(table->id);
+  }
+
+  std::optional<var_t> key_var = ingress_vars.get(key);
+  assert(key_var && "Key is not a variable");
+
+  code_t transpiled_key = transpiler.transpile(key);
+
+  ingress_apply.indent();
+  ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
+
+  ingress_apply.indent();
+  ingress_apply << table->id << ".apply();\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  DS_ID dchain_table_id                = node->get_id();
+  klee::ref<klee::Expr> key            = node->get_key();
+  std::optional<LibCore::symbol_t> hit = node->get_hit();
+
+  const DchainTable *dchain_table = get_tofino_ds<DchainTable>(ep, dchain_table_id);
+
+  LibBDD::node_id_t node_id = node->get_node()->get_id();
+  const Table *table        = dchain_table->get_table(node_id);
+  assert(table && "Table not found");
+
+  if (declared_ds.find(table->id) == declared_ds.end()) {
+    transpile_table_decl(ingress, table, {key}, {});
+    ingress << "\n";
+    declared_ds.insert(table->id);
+  }
+
+  std::optional<var_t> key_var = ingress_vars.get(key);
+  assert(key_var && "Key is not a variable");
+
+  code_t transpiled_key = transpiler.transpile(key);
+
+  ingress_apply.indent();
+  ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
+
+  if (hit) {
+    var_t hit_var = alloc_var("hit", hit->expr, LOCAL | FORCE_BOOL);
+    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  } else {
+    ingress_apply.indent();
+    ingress_apply << table->id << ".apply();\n";
   }
 
   return EPVisitor::Action::doChildren;

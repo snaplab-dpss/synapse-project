@@ -81,15 +81,57 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::TableLookup *node) {
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) {
   std::stringstream label_builder;
 
   const LibBDD::Node *bdd_node = node->get_node();
   TargetType target            = node->get_target();
-  Tofino::DS_ID tid            = node->get_table_id();
+  Tofino::DS_ID tid            = node->get_id();
   addr_t obj                   = node->get_obj();
 
-  label_builder << "Table Lookup\n";
+  label_builder << "Map Table Lookup\n";
+  label_builder << "(";
+  label_builder << "tid=";
+  label_builder << tid;
+  label_builder << ", obj=";
+  label_builder << obj;
+  label_builder << ")";
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) {
+  std::stringstream label_builder;
+
+  const LibBDD::Node *bdd_node = node->get_node();
+  TargetType target            = node->get_target();
+  Tofino::DS_ID tid            = node->get_id();
+  addr_t obj                   = node->get_obj();
+
+  label_builder << "Vector Table Lookup\n";
+  label_builder << "(";
+  label_builder << "tid=";
+  label_builder << tid;
+  label_builder << ", obj=";
+  label_builder << obj;
+  label_builder << ")";
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) {
+  std::stringstream label_builder;
+
+  const LibBDD::Node *bdd_node = node->get_node();
+  TargetType target            = node->get_target();
+  Tofino::DS_ID tid            = node->get_id();
+  addr_t obj                   = node->get_obj();
+
+  label_builder << "Dchain Table Lookup\n";
   label_builder << "(";
   label_builder << "tid=";
   label_builder << tid;

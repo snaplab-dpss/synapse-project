@@ -38,6 +38,14 @@ void Table::debug() const {
   std::cerr << "ID:        " << id << "\n";
   std::cerr << "Primitive: " << primitive << "\n";
   std::cerr << "Entries:   " << num_entries << "\n";
+  std::cerr << "Keys:      [";
+  for (bits_t key_size : keys)
+    std::cerr << key_size << " ";
+  std::cerr << "]\n";
+  std::cerr << "Params:    [";
+  for (bits_t param_size : params)
+    std::cerr << param_size << " ";
+  std::cerr << "]\n";
   std::cerr << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
   std::cerr << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
   std::cerr << "==============================\n";

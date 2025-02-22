@@ -5,11 +5,11 @@
 #include <map>
 
 #include "../../include/sycon/log.h"
-#include "../../include/sycon/primitives/table.h"
+#include "../../include/sycon/primitives/meta_table.h"
 
 namespace sycon {
 
-class Port_Stat : PrimitiveTable {
+class Port_Stat : MetaTable {
 private:
   struct key_fields_t {
     // Key fields IDs
@@ -113,7 +113,7 @@ private:
   data_fields_t data_fields;
 
 public:
-  Port_Stat() : PrimitiveTable("", "$PORT_STAT") {
+  Port_Stat() : MetaTable("", "$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
     });

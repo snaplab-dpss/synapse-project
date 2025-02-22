@@ -1,10 +1,10 @@
 #pragma once
 
-#include "table.h"
+#include "meta_table.h"
 
 namespace sycon {
 
-class PrimitiveRegister : public PrimitiveTable {
+class Register : public MetaTable {
 private:
   bf_rt_id_t index_id;
   bf_rt_id_t value_id;
@@ -12,9 +12,9 @@ private:
   size_t pipes;
 
 public:
-  PrimitiveRegister(const std::string &control_name, const std::string &register_name);
-  PrimitiveRegister(const PrimitiveRegister &other);
-  PrimitiveRegister(PrimitiveRegister &&other) = delete;
+  Register(const std::string &control_name, const std::string &register_name);
+  Register(const Register &other);
+  Register(Register &&other) = delete;
 
   u32 get(u32 i);
   void set(u32 i, u32 value);

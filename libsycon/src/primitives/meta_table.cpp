@@ -1,0 +1,499 @@
+#include "../../include/sycon/primitives/meta_table.h"
+
+#include <sstream>
+
+#include "../../include/sycon/config.h"
+#include "../../include/sycon/constants.h"
+#include "../../include/sycon/log.h"
+#include "../../include/sycon/util.h"
+
+namespace sycon {
+
+namespace {
+
+const bfrt::BfRtTable *build_table(const bf_rt_target_t dev_tgt, const bfrt::BfRtInfo *info, const std::string &control,
+                                   const std::string &name) {
+  std::string full_name = name;
+  if (control.size()) {
+    full_name = control + "." + full_name;
+  }
+
+  const bfrt::BfRtTable *table;
+  bf_status_t bf_status = info->bfrtTableFromNameGet(full_name, &table);
+  ASSERT_BF_STATUS(bf_status);
+
+  return table;
+}
+
+size_t get_capacity_from_hw(const bf_rt_target_t dev_tgt, const std::shared_ptr<bfrt::BfRtSession> &session, const bfrt::BfRtTable *table) {
+  size_t size;
+  bf_status_t bf_status = table->tableSizeGet(*session, dev_tgt, &size);
+  ASSERT_BF_STATUS(bf_status);
+  return size;
+}
+
+void dump_key(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableKey *key) {
+  std::vector<bf_rt_id_t> key_fields_ids;
+
+  bf_status_t bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  ASSERT_BF_STATUS(bf_status);
+
+  for (bf_dev_pipe_t key_field_id : key_fields_ids) {
+    std::string key_field_name;
+    bfrt::DataType key_field_data_type;
+    bfrt::KeyFieldType key_field_type;
+
+    bf_status = table->keyFieldNameGet(key_field_id, &key_field_name);
+    ASSERT_BF_STATUS(bf_status);
+
+    os << "  (key)    " << key_field_name << " = ";
+
+    bf_status = table->keyFieldDataTypeGet(key_field_id, &key_field_data_type);
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = table->keyFieldTypeGet(key_field_id, &key_field_type);
+    ASSERT_BF_STATUS(bf_status);
+
+    switch (key_field_data_type) {
+    case bfrt::DataType::BOOL: {
+      ERROR("Bool type handling not implemented for key field data types");
+    } break;
+    case bfrt::DataType::UINT64: {
+      u64 key_field_value;
+
+      switch (key_field_type) {
+      case bfrt::KeyFieldType::EXACT: {
+        bf_status = key->getValue(key_field_id, &key_field_value);
+        ASSERT_BF_STATUS(bf_status);
+        os << key_field_value;
+      } break;
+      case bfrt::KeyFieldType::TERNARY: {
+        u64 key_field_mask;
+        bf_status = key->getValueandMask(key_field_id, &key_field_value, &key_field_mask);
+        ASSERT_BF_STATUS(bf_status);
+        os << key_field_value;
+        os << " (mask=" << key_field_mask << ")";
+      } break;
+      default: {
+        ERROR("Only Exact and Ternary key types are implemented for uint64 data type");
+      }
+      }
+    } break;
+    case bfrt::DataType::FLOAT: {
+      ERROR("Float type handling not implemented for key field data types");
+    } break;
+    case bfrt::DataType::STRING: {
+      std::string key_field_value;
+      bf_status = key->getValue(key_field_id, &key_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      os << key_field_value;
+
+      switch (key_field_type) {
+      case bfrt::KeyFieldType::EXACT: {
+        bf_status = key->getValue(key_field_id, &key_field_value);
+        ASSERT_BF_STATUS(bf_status);
+        os << key_field_value;
+      } break;
+      default: {
+        ERROR("Only Exact key type is implemented for String data type");
+      }
+      }
+    } break;
+    case bfrt::DataType::INT_ARR: {
+      ERROR("Int array type handling not implemented for key field data types");
+    } break;
+    case bfrt::DataType::BOOL_ARR: {
+      ERROR("Bool array type handling not implemented for key field data types");
+    } break;
+    case bfrt::DataType::BYTE_STREAM: {
+      size_t size;
+      std::vector<u8> value;
+
+      bf_status = table->keyFieldSizeGet(key_field_id, &size);
+      ASSERT_BF_STATUS(bf_status);
+
+      if (size % 8 == 0) {
+        size /= 8;
+      } else {
+        size = (size / 8) + 1;
+      }
+      value.resize(size);
+
+      switch (key_field_type) {
+      case bfrt::KeyFieldType::EXACT: {
+        bf_status = key->getValue(key_field_id, size, value.data());
+        ASSERT_BF_STATUS(bf_status);
+
+        for (auto v : value) {
+          os << " 0x";
+          os << std::setw(2) << std::setfill('0') << std::hex << (int)v;
+        }
+      } break;
+      case bfrt::KeyFieldType::TERNARY: {
+        std::vector<u8> mask(size);
+        bf_status = key->getValueandMask(key_field_id, size, value.data(), mask.data());
+        ASSERT_BF_STATUS(bf_status);
+        for (auto i = 0u; i < value.size(); i++) {
+          auto v = value[i];
+          auto m = mask[i];
+          os << " 0x";
+          os << std::setw(2) << std::setfill('0') << std::hex << (int)v;
+          os << " (mask=0x";
+          os << std::setw(2) << std::setfill('0') << std::hex << (int)m;
+          os << ")";
+        }
+      } break;
+      default: {
+        ERROR("Only Exact and Ternary key types are implemented for byte stream data type");
+      }
+      }
+    } break;
+    case bfrt::DataType::CONTAINER: {
+      ERROR("Container type handling not implemented for data types");
+    } break;
+    case bfrt::DataType::STRING_ARR: {
+      ERROR("String array type handling not implemented for key field data types");
+    } break;
+    default: {
+      ERROR("Unexpected key field data type");
+      assert(false && "Unexpected key field data type");
+    }
+    }
+    os << "\n";
+  }
+}
+
+void dump_value(std::ostream &os, const std::vector<u64> &value) {
+  os << "[";
+  for (u64 entry : value) {
+    os << " " << entry;
+  }
+  os << " ]";
+}
+
+void dump_value(std::ostream &os, const std::vector<u8> &value) {
+  for (u8 v : value) {
+    os << " 0x";
+    os << std::setw(2) << std::setfill('0') << std::hex << (int)v;
+  }
+
+  u64 v = 0;
+  for (u8 byte : value) {
+    v = (v << 8) | byte;
+  }
+  os << " (" << v << ")";
+}
+
+void dump_value(std::ostream &os, const std::vector<bool> &value) {
+  os << "[";
+  for (bool entry : value) {
+    if (entry) {
+      os << " true";
+    } else {
+      os << " false";
+    }
+  }
+  os << " ]";
+}
+
+void dump_value(std::ostream &os, const std::vector<std::string> &value) {
+  os << "[";
+  for (const std::string &entry : value) {
+    os << " " << entry;
+  }
+  os << " ]";
+}
+
+void dump_data(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableData *data) {
+  bf_rt_id_t action_id;
+  std::vector<bf_rt_id_t> data_fields_ids;
+  bf_status_t bf_status;
+  bool has_action = table->actionIdApplicable();
+
+  if (has_action) {
+    data->actionIdGet(&action_id);
+
+    std::string action_name;
+    bf_status = table->actionNameGet(action_id, &action_name);
+    ASSERT_BF_STATUS(bf_status);
+
+    os << "  (action) " << action_name << "\n";
+
+    bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
+    ASSERT_BF_STATUS(bf_status);
+  } else {
+    bf_status = table->dataFieldIdListGet(&data_fields_ids);
+    ASSERT_BF_STATUS(bf_status);
+  }
+
+  for (bf_dev_pipe_t data_field_id : data_fields_ids) {
+    std::string data_field_name;
+    bfrt::DataType data_field_data_type;
+
+    if (has_action) {
+      bf_status = table->dataFieldNameGet(data_field_id, action_id, &data_field_name);
+    } else {
+      bf_status = table->dataFieldNameGet(data_field_id, &data_field_name);
+    }
+
+    ASSERT_BF_STATUS(bf_status);
+
+    os << "  (data)   " << data_field_name << " ";
+
+    if (has_action) {
+      bf_status = table->dataFieldDataTypeGet(data_field_id, action_id, &data_field_data_type);
+    } else {
+      bf_status = table->dataFieldDataTypeGet(data_field_id, &data_field_data_type);
+    }
+
+    ASSERT_BF_STATUS(bf_status);
+
+    switch (data_field_data_type) {
+    case bfrt::DataType::BOOL: {
+      bool data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      os << data_field_value;
+    } break;
+    case bfrt::DataType::UINT64: {
+      u64 data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      os << data_field_value;
+    } break;
+    case bfrt::DataType::FLOAT: {
+      float data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      os << data_field_value;
+    } break;
+    case bfrt::DataType::STRING: {
+      std::string data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      os << data_field_value;
+    } break;
+    case bfrt::DataType::INT_ARR: {
+      std::vector<u64> data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      dump_value(os, data_field_value);
+    } break;
+    case bfrt::DataType::BOOL_ARR: {
+      std::vector<bool> data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      dump_value(os, data_field_value);
+    } break;
+    case bfrt::DataType::BYTE_STREAM: {
+      size_t size;
+      std::vector<u8> value;
+
+      if (has_action) {
+        bf_status = table->dataFieldSizeGet(data_field_id, action_id, &size);
+        ASSERT_BF_STATUS(bf_status);
+      } else {
+        bf_status = table->dataFieldSizeGet(data_field_id, &size);
+        ASSERT_BF_STATUS(bf_status);
+      }
+
+      size = (size % 8 == 0) ? (size / 8) : ((size / 8) + 1);
+      value.resize(size);
+
+      bf_status = data->getValue(data_field_id, size, value.data());
+      ASSERT_BF_STATUS(bf_status);
+      dump_value(os, value);
+    } break;
+    case bfrt::DataType::CONTAINER: {
+      ERROR("Container type handling not implemented for data types");
+    } break;
+    case bfrt::DataType::STRING_ARR: {
+      std::vector<std::string> data_field_value;
+      bf_status = data->getValue(data_field_id, &data_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      dump_value(os, data_field_value);
+    } break;
+    default: {
+      ERROR("Not implemented");
+    }
+    }
+    os << "\n";
+  }
+}
+
+void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableKey *key, bfrt::BfRtTableData *data) {
+  std::vector<bf_rt_id_t> key_fields_ids;
+
+  bf_status_t bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  ASSERT_BF_STATUS(bf_status);
+
+  dump_key(os, table, key);
+  dump_data(os, table, data);
+  os << "\n";
+}
+
+} // namespace
+
+MetaTable::MetaTable(const std::string &_control, const std::string &_name)
+    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name),
+      table(build_table(dev_tgt, info, control, name)), capacity(get_capacity_from_hw(dev_tgt, session, table)) {
+  bf_status_t bf_status;
+
+  std::vector<bf_dev_pipe_t> key_fields_ids;
+  bf_status = table->keyFieldIdListGet(&key_fields_ids);
+  ASSERT_BF_STATUS(bf_status);
+
+  if (!key_fields_ids.empty()) {
+    bf_status = table->keyAllocate(&key);
+    ASSERT_BF_STATUS(bf_status);
+  }
+
+  bf_status = table->dataAllocate(&data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+MetaTable::MetaTable(const MetaTable &other)
+    : dev_tgt(other.dev_tgt), info(other.info), session(other.session), control(other.control), name(other.name), table(other.table),
+      capacity(other.capacity) {
+  bf_status_t bf_status;
+
+  bf_status = table->keyAllocate(&key);
+  ASSERT_BF_STATUS(bf_status);
+
+  bf_status = table->dataAllocate(&data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+void MetaTable::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { session = _session; }
+
+void MetaTable::init_key(const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
+  for (const auto &[name, field_id] : fields) {
+    bf_status_t bf_status = table->keyFieldIdGet(name, field_id);
+    ASSERT_BF_STATUS(bf_status);
+  }
+}
+
+void MetaTable::init_data(const std::unordered_map<std::string, bf_rt_id_t *> &fields) {
+  for (const auto &[name, field_id] : fields) {
+    bf_status_t bf_status = table->dataFieldIdGet(name, field_id);
+    ASSERT_BF_STATUS(bf_status);
+  }
+}
+
+void MetaTable::init_action(const std::string &action_name, bf_rt_id_t *action_id) {
+  std::string full_action_name = action_name;
+  if (control.size()) {
+    full_action_name = control + "." + full_action_name;
+  }
+  bf_status_t bf_status = table->actionIdGet(full_action_name, action_id);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+void MetaTable::init_action(bf_rt_id_t *action_id) {
+  std::vector<bf_rt_id_t> action_ids;
+  bf_status_t bf_status = table->actionIdListGet(&action_ids);
+  ASSERT_BF_STATUS(bf_status);
+
+  // Even tables with only a single explicit action, the NoAction action will
+  // still be there by default.
+  assert(action_ids.size() == 2);
+
+  std::string action_name;
+  bf_status = table->actionNameGet(action_ids[0], &action_name);
+  ASSERT_BF_STATUS(bf_status);
+
+  *action_id = (action_name != TOFINO_NO_ACTION_NAME) ? action_ids[0] : action_ids[1];
+}
+
+void MetaTable::init_actions(const std::unordered_map<std::string, bf_rt_id_t *> &actions) {
+  for (const auto &action : actions) {
+    init_action(action.first, action.second);
+  }
+}
+
+const std::string &MetaTable::get_name() const { return name; }
+
+size_t MetaTable::get_capacity() const { return capacity; }
+
+size_t MetaTable::get_usage() const {
+  u32 usage;
+  bf_status_t bf_status = table->tableUsageGet(*session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW, &usage);
+  ASSERT_BF_STATUS(bf_status);
+  return usage;
+}
+
+struct kd_t {
+  std::vector<std::unique_ptr<bfrt::BfRtTableKey>> keys;
+  std::vector<std::unique_ptr<bfrt::BfRtTableData>> datas;
+  bfrt::BfRtTable::keyDataPairs pairs;
+
+  kd_t(const bfrt::BfRtTable *table, u32 n) : keys(n), datas(n), pairs(n) {
+    for (auto i = 0u; i < n; i++) {
+      bf_status_t bf_status = table->keyAllocate(&keys[i]);
+      ASSERT_BF_STATUS(bf_status);
+
+      bf_status = table->dataAllocate(&datas[i]);
+      ASSERT_BF_STATUS(bf_status);
+
+      pairs[i] = std::pair<bfrt::BfRtTableKey *, bfrt::BfRtTableData *>(keys[i].get(), datas[i].get());
+    }
+  }
+};
+
+void MetaTable::dump() const {
+  std::stringstream ss;
+  dump(ss);
+  LOG("%s", ss.str().c_str());
+}
+
+void MetaTable::dump(std::ostream &os) const {
+  bf_status_t bf_status;
+  u32 total_entries;
+  u32 processed_entries;
+  bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+
+  os << "\n";
+  os << "================================================\n";
+  os << "  MetaTable name: " << name << "\n";
+
+  total_entries = get_usage();
+
+  os << "\n";
+
+  processed_entries = 0;
+
+  bf_status = table->keyReset(key.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  bf_status = table->dataReset(data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  while (processed_entries != total_entries) {
+    if (processed_entries == 0) {
+      bf_status = table->tableEntryGetFirst(*session, dev_tgt, flag, key.get(), data.get());
+      ASSERT_BF_STATUS(bf_status);
+      processed_entries++;
+
+      dump_entry(os, table, key.get(), data.get());
+    } else {
+      u32 to_request = total_entries - processed_entries;
+      kd_t kd(table, to_request);
+
+      u32 num_returned;
+      bf_status = table->tableEntryGetNext_n(*session, dev_tgt, *key, to_request, flag, &kd.pairs, &num_returned);
+      ASSERT_BF_STATUS(bf_status);
+
+      assert(num_returned == to_request);
+      processed_entries += num_returned;
+
+      for (u32 i = 0; i < num_returned; i++) {
+        dump_entry(os, table, kd.keys[i].get(), kd.datas[i].get());
+      }
+    }
+  }
+
+  os << "  Entries: " << std::dec << total_entries << "\n";
+  os << "================================================\n";
+}
+
+} // namespace sycon

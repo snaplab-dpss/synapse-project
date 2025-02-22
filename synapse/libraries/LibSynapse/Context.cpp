@@ -279,8 +279,14 @@ const std::unordered_map<addr_t, DSImpl> &Context::get_ds_impls() const { return
 
 std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   switch (impl) {
-  case DSImpl::Tofino_Table:
-    os << "Tofino::Table";
+  case DSImpl::Tofino_MapTable:
+    os << "Tofino::MapTable";
+    break;
+  case DSImpl::Tofino_VectorTable:
+    os << "Tofino::VectorTable";
+    break;
+  case DSImpl::Tofino_DchainTable:
+    os << "Tofino::DchainTable";
     break;
   case DSImpl::Tofino_VectorRegister:
     os << "Tofino::Register";

@@ -1,0 +1,37 @@
+#pragma once
+
+#include <LibBDD/Nodes/Node.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/DataStructure.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
+#include <LibCore/Types.h>
+
+#include <vector>
+
+#include <klee/Expr.h>
+
+namespace LibSynapse {
+namespace Tofino {
+
+struct DchainTable : public DS {
+  u32 capacity;
+  bits_t key_size;
+  std::vector<Table> tables;
+
+  DchainTable(DS_ID id, u32 capacity);
+
+  DchainTable(const DchainTable &other);
+
+  DS *clone() const override;
+  void debug() const override;
+  std::vector<std::unordered_set<const DS *>> get_internal() const override;
+
+  bits_t get_match_xbar_consume() const;
+  bits_t get_consumed_sram() const;
+
+  bool has_table(LibBDD::node_id_t op) const;
+  const Table *get_table(LibBDD::node_id_t op) const;
+  std::optional<DS_ID> add_table(LibBDD::node_id_t op);
+};
+
+} // namespace Tofino
+} // namespace LibSynapse

@@ -5,8 +5,8 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD::Call *node) {
 
+vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD::Call *node) {
   const LibBDD::call_t &call = node->get_call();
 
   klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
@@ -28,6 +28,7 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD
 
   return vector_register_data;
 }
+
 } // namespace
 
 std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {

@@ -33,7 +33,9 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::TableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
@@ -64,9 +66,14 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Forward *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Broadcast *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableLookup *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableUpdate *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainIsIndexAllocated *node) override final;

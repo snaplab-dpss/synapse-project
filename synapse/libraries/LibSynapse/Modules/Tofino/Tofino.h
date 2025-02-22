@@ -19,7 +19,9 @@
 #include <LibSynapse/Modules/Tofino/ParserCondition.h>
 #include <LibSynapse/Modules/Tofino/ParserReject.h>
 #include <LibSynapse/Modules/Tofino/ModifyHeader.h>
-#include <LibSynapse/Modules/Tofino/TableLookup.h>
+#include <LibSynapse/Modules/Tofino/MapTableLookup.h>
+#include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
+#include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterUpdate.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
@@ -59,7 +61,9 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<ParserConditionFactory>());
               f.push_back(std::make_unique<ParserRejectFactory>());
               f.push_back(std::make_unique<ModifyHeaderFactory>());
-              f.push_back(std::make_unique<TableLookupFactory>());
+              f.push_back(std::make_unique<MapTableLookupFactory>());
+              f.push_back(std::make_unique<DchainTableLookupFactory>());
+              f.push_back(std::make_unique<VectorTableLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableReadFactory>());

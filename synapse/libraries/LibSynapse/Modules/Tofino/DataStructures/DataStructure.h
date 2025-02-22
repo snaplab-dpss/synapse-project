@@ -11,15 +11,27 @@ namespace Tofino {
 using DS_ID = std::string;
 
 enum class DSType {
+  // ========================
+  // Primitive types
+  // ========================
+
   TABLE,
   REGISTER,
   METER,
   HASH,
+
+  // ========================
+  // Compositional types
+  // ========================
+
+  MAP_TABLE,
+  VECTOR_TABLE,
+  DCHAIN_TABLE,
+  VECTOR_REGISTER,
   FCFS_CACHED_TABLE,
   HH_TABLE,
   COUNT_MIN_SKETCH,
   LPM,
-  VECTOR_REGISTER,
 };
 
 struct DS {

@@ -5,34 +5,31 @@
 namespace LibSynapse {
 namespace Controller {
 
-class TableUpdate : public ControllerModule {
+class MapTableDelete : public ControllerModule {
 private:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  std::vector<klee::ref<klee::Expr>> values;
 
 public:
-  TableUpdate(const LibBDD::Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-              const std::vector<klee::ref<klee::Expr>> &_values)
-      : ControllerModule(ModuleType::Controller_TableUpdate, "TableUpdate", node), obj(_obj), keys(_keys), values(_values) {}
+  MapTableDelete(const LibBDD::Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
+      : ControllerModule(ModuleType::Controller_MapTableDelete, "MapTableDelete", node), obj(_obj), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {
-    TableUpdate *cloned = new TableUpdate(node, obj, keys, values);
+    MapTableDelete *cloned = new MapTableDelete(node, obj, keys);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
-  const std::vector<klee::ref<klee::Expr>> &get_values() const { return values; }
 };
 
-class TableUpdateFactory : public ControllerModuleFactory {
+class MapTableDeleteFactory : public ControllerModuleFactory {
 public:
-  TableUpdateFactory() : ControllerModuleFactory(ModuleType::Controller_TableUpdate, "TableUpdate") {}
+  MapTableDeleteFactory() : ControllerModuleFactory(ModuleType::Controller_MapTableDelete, "MapTableDelete") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

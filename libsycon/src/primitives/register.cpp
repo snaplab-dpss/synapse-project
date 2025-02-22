@@ -4,8 +4,15 @@
 
 namespace sycon {
 
-PrimitiveRegister::PrimitiveRegister(const std::string &control_name, const std::string &register_name)
-    : PrimitiveTable(control_name, register_name) {
+namespace {
+
+std::string append_control(const std::string &control_name, const std::string &name) {
+  return control_name.size() ? control_name + "." + name : name;
+}
+
+} // namespace
+
+Register::Register(const std::string &control_name, const std::string &register_name) : MetaTable(control_name, register_name) {
   init_key({{"$REGISTER_INDEX", &index_id}});
   init_data({{append_control(control_name, register_name) + ".f1", &value_id}});
 
@@ -13,13 +20,13 @@ PrimitiveRegister::PrimitiveRegister(const std::string &control_name, const std:
   ASSERT_BF_STATUS(bf_status);
 }
 
-PrimitiveRegister::PrimitiveRegister(const PrimitiveRegister &other)
-    : PrimitiveTable(other), index_id(other.index_id), value_id(other.value_id), value_size(other.value_size), pipes(other.pipes) {
+Register::Register(const Register &other)
+    : MetaTable(other), index_id(other.index_id), value_id(other.value_id), value_size(other.value_size), pipes(other.pipes) {
   init_key({{"$REGISTER_INDEX", &index_id}});
   init_data({{append_control(control, name) + ".f1", &value_id}});
 }
 
-u32 PrimitiveRegister::get(u32 i) {
+u32 Register::get(u32 i) {
   key_setup(i);
   data_reset();
 
@@ -34,7 +41,7 @@ u32 PrimitiveRegister::get(u32 i) {
   return value;
 }
 
-void PrimitiveRegister::set(u32 i, u32 value) {
+void Register::set(u32 i, u32 value) {
   key_setup(i);
   data_setup(value);
 
@@ -42,7 +49,7 @@ void PrimitiveRegister::set(u32 i, u32 value) {
   ASSERT_BF_STATUS(bf_status);
 }
 
-void PrimitiveRegister::overwrite_all_entries(u32 value) {
+void Register::overwrite_all_entries(u32 value) {
   data_setup(value);
 
   for (size_t i = 0; i < capacity; i++) {
@@ -53,25 +60,25 @@ void PrimitiveRegister::overwrite_all_entries(u32 value) {
   }
 }
 
-void PrimitiveRegister::key_setup(u32 i) {
+void Register::key_setup(u32 i) {
   table->keyReset(key.get());
 
   bf_status_t bf_status = key->setValue(index_id, static_cast<u64>(i));
   ASSERT_BF_STATUS(bf_status);
 }
 
-void PrimitiveRegister::data_setup(u32 value) {
+void Register::data_setup(u32 value) {
   data_reset();
 
   bf_status_t bf_status = data->setValue(value_id, static_cast<uint64_t>(value));
   ASSERT_BF_STATUS(bf_status);
 }
 
-void PrimitiveRegister::data_reset() { table->dataReset(data.get()); }
+void Register::data_reset() { table->dataReset(data.get()); }
 
-bits_t PrimitiveRegister::get_value_size() const { return value_size; }
+bits_t Register::get_value_size() const { return value_size; }
 
-void PrimitiveRegister::dump(std::ostream &os) const {
+void Register::dump(std::ostream &os) const {
   bf_status_t bf_status;
   bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 

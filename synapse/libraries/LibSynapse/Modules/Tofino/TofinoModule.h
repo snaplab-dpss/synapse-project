@@ -18,11 +18,25 @@ public:
   virtual std::unordered_set<DS_ID> get_generated_ds() const { return {}; }
 };
 
-struct table_data_t {
+struct map_table_data_t {
   addr_t obj;
   u32 num_entries;
   std::vector<klee::ref<klee::Expr>> keys;
-  std::vector<klee::ref<klee::Expr>> values;
+  klee::ref<klee::Expr> value;
+  std::optional<LibCore::symbol_t> hit;
+};
+
+struct vector_table_data_t {
+  addr_t obj;
+  u32 num_entries;
+  klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> value;
+};
+
+struct dchain_table_data_t {
+  addr_t obj;
+  u32 num_entries;
+  klee::ref<klee::Expr> key;
   std::optional<LibCore::symbol_t> hit;
 };
 
@@ -53,11 +67,25 @@ public:
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
 
   // ======================================================================
-  //  Simple Tables
+  //  Map Table
   // ======================================================================
 
-  static Table *build_table(const EP *ep, const LibBDD::Node *node, const table_data_t &data);
-  static bool can_build_table(const EP *ep, const LibBDD::Node *node, const table_data_t &data);
+  static MapTable *build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data);
+  static bool can_build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data);
+
+  // ======================================================================
+  //  Vector Table
+  // ======================================================================
+
+  static VectorTable *build_or_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data);
+  static bool can_build_or_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data);
+
+  // ======================================================================
+  //  Dchain Table
+  // ======================================================================
+
+  static DchainTable *build_or_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data);
+  static bool can_build_or_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data);
 
   // ======================================================================
   //  Vector Registers

@@ -55,8 +55,7 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const LibBDD::call_t &ca
   addr_t chain_addr           = LibCore::expr_addr_to_obj_addr(chain);
 
   // These are the data structures that can perform rejuvenations.
-  if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_Table) && !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
-      !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) && !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
   }
 

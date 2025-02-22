@@ -2,91 +2,26 @@
 
 using namespace sycon;
 
-class IpRoute : public PrimitiveTable {
+class IpRoute : public Table {
 private:
-  struct key_fields_t {
-    // Key fields IDs
-    bf_rt_id_t vrf;
-    bf_rt_id_t dst_addr;
-  } key_fields;
-
-  struct {
-    // Data field ids
-    bf_rt_id_t route_srcMac;
-    bf_rt_id_t route_dstMac;
-    bf_rt_id_t route_dst_port;
-
-    bf_rt_id_t nat_srcAddr;
-    bf_rt_id_t nat_dstAddr;
-    bf_rt_id_t nat_dst_port;
-  } data_fields;
-
-  struct actions_t {
-    // Actions ids
-    bf_rt_id_t route;
-    bf_rt_id_t nat;
-  } actions;
+  const std::string route_action_name;
+  const std::string nat_action_name;
 
 public:
-  IpRoute() : PrimitiveTable("SwitchIngress", "ipRoute") {
-    init_key({
-        {"vrf", &key_fields.vrf},
-        {"hdr.ipv4.dst_addr", &key_fields.dst_addr},
-    });
-
-    init_actions({
-        {"route", &actions.route},
-    });
-
-    init_actions({
-        {"nat", &actions.nat},
-    });
-
-    init_data_with_actions({
-        {"srcMac", {actions.route, &data_fields.route_srcMac}},
-        {"dstMac", {actions.route, &data_fields.route_dstMac}},
-        {"dst_port", {actions.route, &data_fields.route_dst_port}},
-    });
-
-    init_data_with_actions({
-        {"srcAddr", {actions.nat, &data_fields.nat_srcAddr}},
-        {"dstAddr", {actions.nat, &data_fields.nat_dstAddr}},
-        {"dst_port", {actions.nat, &data_fields.nat_dst_port}},
-    });
-  }
+  IpRoute() : Table("SwitchIngress", "ipRoute"), route_action_name("route"), nat_action_name("nat") {}
 
 public:
   void add_entry_nat(u16 vrf, u32 dst_addr, u32 data_src_addr, u32 data_dst_addr, u16 data_dst_port) {
-    key_setup(vrf, dst_addr);
-    data_setup_nat(data_src_addr, data_dst_addr, data_dst_port);
+    buffer_t key(6);
+    key.set(0, 2, vrf);
+    key.set(2, 4, dst_addr);
 
-    bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
-    ASSERT_BF_STATUS(bf_status);
-  }
+    buffer_t data(10);
+    data.set(0, 4, data_src_addr);
+    data.set(4, 4, data_dst_addr);
+    data.set(8, 2, data_dst_port);
 
-private:
-  void key_setup(u16 vrf, u32 dst_addr) {
-    table->keyReset(key.get());
-
-    bf_status_t bf_status = key->setValue(key_fields.vrf, static_cast<u64>(vrf));
-    ASSERT_BF_STATUS(bf_status);
-
-    bf_status = key->setValue(key_fields.dst_addr, static_cast<u64>(dst_addr));
-    ASSERT_BF_STATUS(bf_status);
-  }
-
-  void data_setup_nat(u32 src_addr, u32 dst_addr, u16 dst_port) {
-    bf_status_t bf_status = table->dataReset(actions.nat, data.get());
-    ASSERT_BF_STATUS(bf_status);
-
-    bf_status = data->setValue(data_fields.nat_srcAddr, static_cast<u64>(src_addr));
-    ASSERT_BF_STATUS(bf_status);
-
-    bf_status = data->setValue(data_fields.nat_dstAddr, static_cast<u64>(dst_addr));
-    ASSERT_BF_STATUS(bf_status);
-
-    bf_status = data->setValue(data_fields.nat_dst_port, static_cast<u64>(dst_port));
-    ASSERT_BF_STATUS(bf_status);
+    Table::add_entry(key, nat_action_name, {data});
   }
 };
 

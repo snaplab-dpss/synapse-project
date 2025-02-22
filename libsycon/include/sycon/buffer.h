@@ -46,17 +46,28 @@ struct buffer_t {
 
   u8 &operator[](bytes_t i) { return data[i]; }
 
-  u32 get_by_offset(bytes_t offset, bytes_t width) const {
+  u64 get(bytes_t offset, bytes_t width) const {
     assert(width > 0 && "Width must be greater than 0");
     assert(offset + width <= size && "Offset and width must be within buffer bounds");
-    assert(width <= 4 && "Width must be less than or equal to 4 bytes");
+    assert(width <= 8 && "Width must be less than or equal to 8 bytes");
 
-    u32 value = 0;
+    u64 value = 0;
     for (bytes_t i = 0; i < width; i++) {
       value <<= 8;
       value |= data[offset + i];
     }
     return value;
+  }
+
+  void set(bytes_t offset, bytes_t width, u64 value) {
+    assert(width > 0 && "Width must be greater than 0");
+    assert(offset + width <= size && "Offset and width must be within buffer bounds");
+    assert(width <= 8 && "Width must be less than or equal to 8 bytes");
+
+    for (bytes_t i = 0; i < width; i++) {
+      data[offset + i] = value & 0xFF;
+      value >>= 8;
+    }
   }
 };
 

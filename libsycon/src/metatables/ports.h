@@ -5,12 +5,14 @@
 
 #include <map>
 
+#include "../../include/sycon/primitives/meta_table.h"
+
 #include "port_hdl_info.h"
 #include "port_stat.h"
 
 namespace sycon {
 
-class Ports : PrimitiveTable {
+class Ports : MetaTable {
 private:
   // Key fields IDs
   bf_rt_id_t DEV_PORT;
@@ -28,7 +30,7 @@ private:
   std::unordered_map<u16, u16> dev_port_to_front_panel_port;
 
 public:
-  Ports() : PrimitiveTable("", "$PORT") {
+  Ports() : MetaTable("", "$PORT") {
     init_key({
         {"$DEV_PORT", &DEV_PORT},
     });

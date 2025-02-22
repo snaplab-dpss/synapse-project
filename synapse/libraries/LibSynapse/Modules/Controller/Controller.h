@@ -13,10 +13,17 @@
 #include <LibSynapse/Modules/Controller/Forward.h>
 #include <LibSynapse/Modules/Controller/Broadcast.h>
 #include <LibSynapse/Modules/Controller/Drop.h>
-#include <LibSynapse/Modules/Controller/TableAllocate.h>
-#include <LibSynapse/Modules/Controller/TableLookup.h>
-#include <LibSynapse/Modules/Controller/TableUpdate.h>
-#include <LibSynapse/Modules/Controller/TableDelete.h>
+#include <LibSynapse/Modules/Controller/MapTableAllocate.h>
+#include <LibSynapse/Modules/Controller/MapTableLookup.h>
+#include <LibSynapse/Modules/Controller/MapTableUpdate.h>
+#include <LibSynapse/Modules/Controller/MapTableDelete.h>
+#include <LibSynapse/Modules/Controller/VectorTableAllocate.h>
+#include <LibSynapse/Modules/Controller/VectorTableLookup.h>
+#include <LibSynapse/Modules/Controller/VectorTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DchainTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DchainTableLookup.h>
+#include <LibSynapse/Modules/Controller/DchainTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DchainTableDelete.h>
 #include <LibSynapse/Modules/Controller/DchainAllocate.h>
 #include <LibSynapse/Modules/Controller/DchainAllocateNewIndex.h>
 #include <LibSynapse/Modules/Controller/DchainIsIndexAllocated.h>
@@ -79,10 +86,17 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<BroadcastFactory>());
               f.push_back(std::make_unique<DropFactory>());
-              f.push_back(std::make_unique<TableAllocateFactory>());
-              f.push_back(std::make_unique<TableLookupFactory>());
-              f.push_back(std::make_unique<TableUpdateFactory>());
-              f.push_back(std::make_unique<TableDeleteFactory>());
+              f.push_back(std::make_unique<MapTableAllocateFactory>());
+              f.push_back(std::make_unique<MapTableLookupFactory>());
+              f.push_back(std::make_unique<MapTableUpdateFactory>());
+              f.push_back(std::make_unique<MapTableDeleteFactory>());
+              f.push_back(std::make_unique<VectorTableAllocateFactory>());
+              f.push_back(std::make_unique<VectorTableLookupFactory>());
+              f.push_back(std::make_unique<VectorTableUpdateFactory>());
+              f.push_back(std::make_unique<DchainTableAllocateFactory>());
+              f.push_back(std::make_unique<DchainTableLookupFactory>());
+              f.push_back(std::make_unique<DchainTableUpdateFactory>());
+              f.push_back(std::make_unique<DchainTableDeleteFactory>());
               f.push_back(std::make_unique<DchainAllocateFactory>());
               f.push_back(std::make_unique<DchainAllocateNewIndexFactory>());
               f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>());

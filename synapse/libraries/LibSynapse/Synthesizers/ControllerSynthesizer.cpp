@@ -853,105 +853,86 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableAllocate *node) {
-  const addr_t obj                                 = node->get_obj();
-  std::unordered_set<const Tofino::Table *> tables = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableAllocate *node) {
+  const addr_t obj                  = node->get_obj();
+  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
 
-  for (const Tofino::Table *table : tables) {
-    transpile_table_decl(table);
-  }
+  transpile_map_table_decl(map_table);
 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableLookup *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableLookup *node) {
   coder_t &coder = get_current_coder();
-
-  const addr_t obj                                 = node->get_obj();
-  const std::vector<klee::ref<klee::Expr>> &keys   = node->get_keys();
-  const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
-  std::optional<LibCore::symbol_t> found           = node->get_found();
-
-  std::unordered_set<const Tofino::Table *> tables = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
-  const Tofino::Table *table                       = *tables.begin();
-
-  var_t key_var = alloc_fields("table_key", keys);
-
   coder.indent();
-  coder << "fields_t<" << keys.size() << "> " << key_var.name << ";\n";
-  for (size_t i = 0; i < keys.size(); i++) {
-    coder.indent();
-    coder << key_var.name << "[" << i << "] = ";
-    coder << transpiler.transpile(keys[i]);
-    coder << ";\n";
-  }
+  coder << "// TODO: Controller::MapTableLookup\n";
+  return EPVisitor::Action::doChildren;
+}
 
-  var_t value_var = alloc_fields("table_value", values);
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableUpdate *node) {
+  coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "fields_t<" << values.size() << "> " << value_var.name << ";\n";
+  coder << "// TODO: Controller::MapTableUpdate\n";
+  return EPVisitor::Action::doChildren;
+}
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableDelete *node) {
+  coder_t &coder = get_current_coder();
   coder.indent();
-  if (found) {
-    var_t found_var = alloc_var("table_entry_found", found->expr);
-    coder << transpiler.type_from_expr(found->expr);
-    coder << found_var.name;
-    coder << " = ";
-  }
-  coder << "state->" << table->id;
-  coder << ".get(";
-  coder << key_var.name << ", ";
-  coder << value_var.name;
-  coder << ");\n";
+  coder << "// TODO: Controller::MapTableDelete\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableAllocate *node) {
+  const addr_t obj                        = node->get_obj();
+  const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
+
+  transpile_vector_table_decl(vector_table);
 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *node) {
   coder_t &coder = get_current_coder();
+  coder.indent();
+  coder << "// TODO: Controller::VectorTableLookup\n";
+  return EPVisitor::Action::doChildren;
+}
 
-  const addr_t obj                                 = node->get_obj();
-  const std::vector<klee::ref<klee::Expr>> &keys   = node->get_keys();
-  const std::vector<klee::ref<klee::Expr>> &values = node->get_values();
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  coder << "// TODO: Controller::VectorTableUpdate\n";
+  return EPVisitor::Action::doChildren;
+}
 
-  std::unordered_set<const Tofino::Table *> tables = get_tofino_ds_from_obj<Tofino::Table>(ep, obj);
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocate *node) {
+  const addr_t obj                        = node->get_obj();
+  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
 
-  for (const Tofino::Table *table : tables) {
-    var_t key_var   = alloc_fields("table_key", keys);
-    var_t value_var = alloc_fields("table_value", values);
-
-    coder.indent();
-    coder << "fields_t<" << keys.size() << "> " << key_var.name << ";\n";
-    for (size_t i = 0; i < keys.size(); i++) {
-      coder.indent();
-      coder << key_var.name << "[" << i << "] = ";
-      coder << transpiler.transpile(keys[i]);
-      coder << ";\n";
-    }
-
-    coder.indent();
-    coder << "fields_t<" << values.size() << "> " << value_var.name << ";\n";
-    for (size_t i = 0; i < values.size(); i++) {
-      coder.indent();
-      coder << value_var.name << "[" << i << "] = ";
-      coder << transpiler.transpile(values[i]);
-      coder << ";\n";
-    }
-
-    coder.indent();
-    coder << "state->" << table->id;
-    coder << ".put(";
-    coder << key_var.name << ", ";
-    coder << value_var.name;
-    coder << ");\n";
-  }
+  transpile_dchain_table_decl(dchain_table);
 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TableDelete *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::TableDelete\n";
+  coder << "// TODO: Controller::DchainTableLookup\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  coder << "// TODO: Controller::DchainTableUpdate\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  coder << "// TODO: Controller::DchainTableDelete\n";
   return EPVisitor::Action::doChildren;
 }
 
@@ -1365,6 +1346,69 @@ void ControllerSynthesizer::transpile_register_decl(const Tofino::Register *reg)
   member_init_list << "(";
   member_init_list << "\"Ingress\", ";
   member_init_list << "\"" << reg->id << "\"";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map_table) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name = assert_unique_name(map_table->id);
+
+  state_fields.indent();
+  state_fields << "MapTable " << name << ";\n";
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"Ingress\", ";
+  member_init_list << "{";
+  for (const Tofino::Table &table : map_table->tables) {
+    member_init_list << "\"" << table.id << "\",";
+  }
+  member_init_list << "}";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTable *vector_table) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name = assert_unique_name(vector_table->id);
+
+  state_fields.indent();
+  state_fields << "VectorTable " << name << ";\n";
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"Ingress\", ";
+  member_init_list << "{";
+  for (const Tofino::Table &table : vector_table->tables) {
+    member_init_list << "\"" << table.id << "\",";
+  }
+  member_init_list << "}";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name = assert_unique_name(dchain_table->id);
+
+  state_fields.indent();
+  state_fields << "DchainTable " << name << ";\n";
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"Ingress\", ";
+  member_init_list << "{";
+  for (const Tofino::Table &table : dchain_table->tables) {
+    member_init_list << "\"" << table.id << "\",";
+  }
+  member_init_list << "}";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }

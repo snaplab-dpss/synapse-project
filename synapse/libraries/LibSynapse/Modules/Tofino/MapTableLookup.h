@@ -5,41 +5,41 @@
 namespace LibSynapse {
 namespace Tofino {
 
-class TableLookup : public TofinoModule {
+class MapTableLookup : public TofinoModule {
 private:
-  DS_ID table_id;
+  DS_ID id;
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  std::vector<klee::ref<klee::Expr>> values;
+  klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> hit;
 
 public:
-  TableLookup(const LibBDD::Node *node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-              const std::vector<klee::ref<klee::Expr>> &_values, std::optional<LibCore::symbol_t> _hit)
-      : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node), table_id(_table_id), obj(_obj), keys(_keys), values(_values),
-        hit(_hit) {}
+  MapTableLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+                 klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _hit)
+      : TofinoModule(ModuleType::Tofino_MapTableLookup, "MapTableLookup", node), id(_id), obj(_obj), keys(_keys), value(_value), hit(_hit) {
+  }
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TableLookup(node, table_id, obj, keys, values, hit);
+    Module *cloned = new MapTableLookup(node, id, obj, keys, value, hit);
     return cloned;
   }
 
-  DS_ID get_table_id() const { return table_id; }
+  DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
-  const std::vector<klee::ref<klee::Expr>> &get_values() const { return values; }
+  klee::ref<klee::Expr> get_value() const { return value; }
   std::optional<LibCore::symbol_t> get_hit() const { return hit; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {table_id}; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {id}; }
 };
 
-class TableLookupFactory : public TofinoModuleFactory {
+class MapTableLookupFactory : public TofinoModuleFactory {
 public:
-  TableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_TableLookup, "TableLookup") {}
+  MapTableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_MapTableLookup, "MapTableLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

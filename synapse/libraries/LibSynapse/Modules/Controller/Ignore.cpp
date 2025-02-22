@@ -22,7 +22,7 @@ bool can_ignore_dchain_op(const Context &ctx, const LibBDD::call_t &call) {
     return false;
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_Table) && !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
       !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
   }
@@ -55,7 +55,6 @@ bool should_ignore_coalesced_state_allocation(const Context &ctx, const LibBDD::
   const std::unordered_map<DSImpl, ignored_alloc_functions_t> ignored_alloc_functions_per_ds{
       {DSImpl::Tofino_FCFSCachedTable, {"dchain_allocate"}},
       {DSImpl::Tofino_HeavyHitterTable, {"dchain_allocate"}},
-      {DSImpl::Tofino_Table, {"dchain_allocate"}},
   };
 
   const LibBDD::call_t &call     = call_node->get_call();

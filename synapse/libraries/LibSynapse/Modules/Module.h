@@ -17,6 +17,7 @@ enum class ModuleType {
   // ========================================
   // Tofino
   // ========================================
+
   Tofino_Ignore,
   Tofino_SendToController,
   Tofino_Forward,
@@ -30,7 +31,9 @@ enum class ModuleType {
   Tofino_ParserCondition,
   Tofino_ParserReject,
   Tofino_ModifyHeader,
-  Tofino_TableLookup,
+  Tofino_MapTableLookup,
+  Tofino_VectorTableLookup,
+  Tofino_DchainTableLookup,
   Tofino_VectorRegisterLookup,
   Tofino_VectorRegisterUpdate,
   Tofino_FCFSCachedTableRead,
@@ -51,6 +54,7 @@ enum class ModuleType {
   // ========================================
   // Controller
   // ========================================
+
   Controller_Ignore,
   Controller_ParseHeader,
   Controller_ModifyHeader,
@@ -61,10 +65,17 @@ enum class ModuleType {
   Controller_Forward,
   Controller_Broadcast,
   Controller_Drop,
-  Controller_TableAllocate,
-  Controller_TableLookup,
-  Controller_TableUpdate,
-  Controller_TableDelete,
+  Controller_MapTableAllocate,
+  Controller_MapTableLookup,
+  Controller_MapTableUpdate,
+  Controller_MapTableDelete,
+  Controller_VectorTableAllocate,
+  Controller_VectorTableLookup,
+  Controller_VectorTableUpdate,
+  Controller_DchainTableAllocate,
+  Controller_DchainTableLookup,
+  Controller_DchainTableUpdate,
+  Controller_DchainTableDelete,
   Controller_FCFSCachedTableAllocate,
   Controller_FCFSCachedTableRead,
   Controller_FCFSCachedTableWrite,
@@ -110,6 +121,7 @@ enum class ModuleType {
   // ========================================
   // x86
   // ========================================
+
   x86_Ignore,
   x86_If,
   x86_Then,
@@ -183,8 +195,14 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_ModifyHeader:
     os << "Tofino_ModifyHeader";
     break;
-  case ModuleType::Tofino_TableLookup:
-    os << "Tofino_TableLookup";
+  case ModuleType::Tofino_MapTableLookup:
+    os << "Tofino_MapTableLookup";
+    break;
+  case ModuleType::Tofino_DchainTableLookup:
+    os << "Tofino_DchainTableLookup";
+    break;
+  case ModuleType::Tofino_VectorTableLookup:
+    os << "Tofino_VectorTableLookup";
     break;
   case ModuleType::Tofino_VectorRegisterLookup:
     os << "Tofino_VectorRegisterLookup";
@@ -267,17 +285,38 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_Drop:
     os << "Controller_Drop";
     break;
-  case ModuleType::Controller_TableAllocate:
-    os << "Controller_TableAllocate";
+  case ModuleType::Controller_MapTableAllocate:
+    os << "Controller_MapTableAllocate";
     break;
-  case ModuleType::Controller_TableLookup:
-    os << "Controller_TableLookup";
+  case ModuleType::Controller_MapTableLookup:
+    os << "Controller_MapTableLookup";
     break;
-  case ModuleType::Controller_TableUpdate:
-    os << "Controller_TableUpdate";
+  case ModuleType::Controller_MapTableUpdate:
+    os << "Controller_MapTableUpdate";
     break;
-  case ModuleType::Controller_TableDelete:
-    os << "Controller_TableDelete";
+  case ModuleType::Controller_MapTableDelete:
+    os << "Controller_MapTableDelete";
+    break;
+  case ModuleType::Controller_DchainTableAllocate:
+    os << "Controller_DchainTableAllocate";
+    break;
+  case ModuleType::Controller_DchainTableLookup:
+    os << "Controller_DchainTableLookup";
+    break;
+  case ModuleType::Controller_DchainTableUpdate:
+    os << "Controller_DchainTableUpdate";
+    break;
+  case ModuleType::Controller_DchainTableDelete:
+    os << "Controller_DchainTableDelete";
+    break;
+  case ModuleType::Controller_VectorTableAllocate:
+    os << "Controller_VectorTableAllocate";
+    break;
+  case ModuleType::Controller_VectorTableLookup:
+    os << "Controller_VectorTableLookup";
+    break;
+  case ModuleType::Controller_VectorTableUpdate:
+    os << "Controller_VectorTableUpdate";
     break;
   case ModuleType::Controller_FCFSCachedTableAllocate:
     os << "Controller_FCFSCachedTableAllocate";

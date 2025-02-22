@@ -2,13 +2,13 @@
 
 #include "../../include/sycon/args.h"
 #include "../../include/sycon/log.h"
-#include "../../include/sycon/primitives/table.h"
+#include "../../include/sycon/primitives/meta_table.h"
 #include "../../include/sycon/time.h"
 #include "../../include/sycon/util.h"
 
 namespace sycon {
 
-class Device_Configuration : PrimitiveTable {
+class Device_Configuration : MetaTable {
 private:
   // Data field ids
   bf_rt_id_t sku;
@@ -29,7 +29,7 @@ private:
   bf_rt_id_t selector_member_order;
 
 public:
-  Device_Configuration() : PrimitiveTable(TOFINO_ARCH(args.tna_version) + ".dev", "device_configuration") {
+  Device_Configuration() : MetaTable(TOFINO_ARCH(args.tna_version) + ".dev", "device_configuration") {
     init_data({{"sku", &sku},
                {"num_pipes", &num_pipes},
                {"num_stages", &num_stages},

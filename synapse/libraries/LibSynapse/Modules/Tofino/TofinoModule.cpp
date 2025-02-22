@@ -77,6 +77,249 @@ public:
   Action visitSRem(const klee::SRemExpr &e) override final { return visit_incompatible_op(); }
 };
 
+MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  bits_t key_size = 0;
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    key_size += key->getWidth();
+    keys_size.push_back(key->getWidth());
+  }
+
+  assert(data.value->getWidth() == klee::Expr::Int32);
+
+  DS_ID id = "map_table_" + std::to_string(data.obj);
+
+  MapTable *map_table = new MapTable(id, data.num_entries, key_size);
+  map_table->add_table(node->get_id(), keys_size);
+
+  if (!tofino_ctx->check_placement(ep, node, map_table)) {
+    delete map_table;
+    map_table = nullptr;
+  }
+
+  return map_table;
+}
+
+MapTable *get_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  if (!tofino_ctx->has_ds(data.obj)) {
+    return nullptr;
+  }
+
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  assert(!ds.empty() && "No map table found");
+
+  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
+    return nullptr;
+  }
+
+  if (ds.size() > 1) {
+    return nullptr;
+  }
+
+  assert(ds.size() == 1);
+  DS *mt = *ds.begin();
+
+  assert(mt->type == DSType::MAP_TABLE && "Unexpected type");
+  return dynamic_cast<MapTable *>(mt);
+}
+
+bool can_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  MapTable *map_table = get_map_table(ep, node, data);
+  assert(map_table && "Map table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!map_table->has_table(node->get_id()));
+
+  MapTable *clone = dynamic_cast<MapTable *>(map_table->clone());
+
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    keys_size.push_back(key->getWidth());
+  }
+
+  clone->add_table(node->get_id(), keys_size);
+  map_table = clone;
+
+  bool can_place = tofino_ctx->check_placement(ep, node, map_table);
+  delete map_table;
+
+  return can_place;
+}
+
+MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  MapTable *map_table = get_map_table(ep, node, data);
+  assert(map_table && "Map table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!map_table->has_table(node->get_id()));
+
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    keys_size.push_back(key->getWidth());
+  }
+
+  map_table->add_table(node->get_id(), keys_size);
+
+  assert(tofino_ctx->check_placement(ep, node, map_table));
+
+  return map_table;
+}
+
+VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  assert(data.key->getWidth() == klee::Expr::Int32);
+  bits_t param_size = data.value->getWidth();
+
+  DS_ID id = "vector_table_" + std::to_string(data.obj);
+
+  VectorTable *vector_table = new VectorTable(id, data.num_entries, param_size);
+  vector_table->add_table(node->get_id());
+
+  if (!tofino_ctx->check_placement(ep, node, vector_table)) {
+    delete vector_table;
+    vector_table = nullptr;
+  }
+
+  return vector_table;
+}
+
+VectorTable *get_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  if (!tofino_ctx->has_ds(data.obj)) {
+    return nullptr;
+  }
+
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  assert(!ds.empty() && "No vector table found");
+
+  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
+    return nullptr;
+  }
+
+  if (ds.size() > 1) {
+    return nullptr;
+  }
+
+  assert(ds.size() == 1);
+  DS *vt = *ds.begin();
+
+  assert(vt->type == DSType::VECTOR_TABLE && "Unexpected type");
+  return dynamic_cast<VectorTable *>(vt);
+}
+
+bool can_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+  VectorTable *vector_table = get_vector_table(ep, node, data);
+  assert(vector_table && "Vector table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!vector_table->has_table(node->get_id()));
+
+  VectorTable *clone = dynamic_cast<VectorTable *>(vector_table->clone());
+
+  clone->add_table(node->get_id());
+  vector_table = clone;
+
+  bool can_place = tofino_ctx->check_placement(ep, node, vector_table);
+  delete vector_table;
+
+  return can_place;
+}
+
+VectorTable *reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+  VectorTable *vector_table = get_vector_table(ep, node, data);
+  assert(vector_table && "Vector table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!vector_table->has_table(node->get_id()));
+
+  vector_table->add_table(node->get_id());
+
+  assert(tofino_ctx->check_placement(ep, node, vector_table));
+
+  return vector_table;
+}
+
+DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  assert(data.key->getWidth() == klee::Expr::Int32);
+
+  DS_ID id = "dchain_table_" + std::to_string(data.obj);
+
+  DchainTable *dchain_table = new DchainTable(id, data.num_entries);
+  dchain_table->add_table(node->get_id());
+
+  if (!tofino_ctx->check_placement(ep, node, dchain_table)) {
+    delete dchain_table;
+    dchain_table = nullptr;
+  }
+
+  return dchain_table;
+}
+
+DchainTable *get_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  if (!tofino_ctx->has_ds(data.obj)) {
+    return nullptr;
+  }
+
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  assert(!ds.empty() && "No dchain table found");
+
+  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
+    return nullptr;
+  }
+
+  if (ds.size() > 1) {
+    return nullptr;
+  }
+
+  assert(ds.size() == 1);
+  DS *vt = *ds.begin();
+
+  assert(vt->type == DSType::DCHAIN_TABLE && "Unexpected type");
+  return dynamic_cast<DchainTable *>(vt);
+}
+
+bool can_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+  DchainTable *dchain_table = get_dchain_table(ep, node, data);
+  assert(dchain_table && "Dchain table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!dchain_table->has_table(node->get_id()));
+
+  DchainTable *clone = dynamic_cast<DchainTable *>(dchain_table->clone());
+
+  clone->add_table(node->get_id());
+  dchain_table = clone;
+
+  bool can_place = tofino_ctx->check_placement(ep, node, dchain_table);
+  delete dchain_table;
+
+  return can_place;
+}
+
+DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+  DchainTable *dchain_table = get_dchain_table(ep, node, data);
+  assert(dchain_table && "Dchain table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!dchain_table->has_table(node->get_id()));
+
+  dchain_table->add_table(node->get_id());
+
+  assert(tofino_ctx->check_placement(ep, node, dchain_table));
+
+  return dchain_table;
+}
+
 VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
   const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
@@ -89,7 +332,8 @@ VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, co
     values_sizes.push_back(partition_size);
   }
 
-  const DS_ID id                  = "vector_register_" + std::to_string(data.obj) + "_" + std::to_string(node->get_id());
+  const DS_ID id = "vector_register_" + std::to_string(data.obj);
+
   VectorRegister *vector_register = new VectorRegister(properties, id, data.num_entries, data.index->getWidth(), values_sizes);
 
   if (!tofino_ctx->check_placement(ep, node, vector_register)) {
@@ -293,38 +537,102 @@ bool TofinoModuleFactory::expr_fits_in_action(klee::ref<klee::Expr> expr) {
   return checker.is_compatible();
 }
 
-Table *TofinoModuleFactory::build_table(const EP *ep, const LibBDD::Node *node, const table_data_t &data) {
-  std::vector<bits_t> keys_size;
-  for (klee::ref<klee::Expr> key : data.keys) {
-    keys_size.push_back(key->getWidth());
+MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  MapTable *map_table;
+
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
+
+  if (already_placed) {
+    map_table = reuse_map_table(ep, node, data);
+  } else {
+    map_table = build_map_table(ep, node, data);
   }
 
-  std::vector<bits_t> params_size;
-  for (klee::ref<klee::Expr> value : data.values) {
-    params_size.push_back(value->getWidth());
-  }
-
-  DS_ID id = "table_" + std::to_string(data.obj) + "_" + std::to_string(node->get_id());
-
-  Table *table = new Table(id, data.num_entries, keys_size, params_size);
-
-  const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
-  if (!tofino_ctx->check_placement(ep, node, table)) {
-    delete table;
-    return nullptr;
-  }
-
-  return table;
+  return map_table;
 }
 
-bool TofinoModuleFactory::can_build_table(const EP *ep, const LibBDD::Node *node, const table_data_t &data) {
-  Table *table = build_table(ep, node, data);
+bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
-  if (!table) {
+  if (already_placed) {
+    return can_reuse_map_table(ep, node, data);
+  }
+
+  MapTable *map_table = build_map_table(ep, node, data);
+
+  if (!map_table) {
     return false;
   }
 
-  delete table;
+  delete map_table;
+  return true;
+}
+
+VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+  VectorTable *vector_table;
+
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
+
+  if (already_placed) {
+    vector_table = reuse_vector_table(ep, node, data);
+  } else {
+    vector_table = build_vector_table(ep, node, data);
+  }
+
+  return vector_table;
+}
+
+bool TofinoModuleFactory::can_build_or_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
+
+  if (already_placed) {
+    return can_reuse_vector_table(ep, node, data);
+  }
+
+  VectorTable *vector_table = build_vector_table(ep, node, data);
+
+  if (!vector_table) {
+    return false;
+  }
+
+  delete vector_table;
+  return true;
+}
+
+DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+  DchainTable *dchain_table;
+
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable);
+
+  if (already_placed) {
+    dchain_table = reuse_dchain_table(ep, node, data);
+  } else {
+    dchain_table = build_dchain_table(ep, node, data);
+  }
+
+  return dchain_table;
+}
+
+bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable);
+
+  if (already_placed) {
+    return can_reuse_dchain_table(ep, node, data);
+  }
+
+  DchainTable *dchain_table = build_dchain_table(ep, node, data);
+
+  if (!dchain_table) {
+    return false;
+  }
+
+  delete dchain_table;
   return true;
 }
 
@@ -332,10 +640,10 @@ VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep
                                                                     const vector_register_data_t &data) {
   VectorRegister *vector_register;
 
-  const Context &ctx       = ep->get_ctx();
-  bool regs_already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
-  if (regs_already_placed) {
+  if (already_placed) {
     vector_register = get_vector_register(ep, node, data);
   } else {
     vector_register = build_vector_register(ep, node, data);
@@ -410,6 +718,7 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
 
   if (already_placed) {
     cached_table = get_fcfs_cached_table(ep, node, obj);
+    assert(false && "FIXME: we should check if we can reuse this data structure, as it requires another table will have to be created");
 
     if (!cached_table || cached_table->cache_capacity != cache_capacity) {
       return false;

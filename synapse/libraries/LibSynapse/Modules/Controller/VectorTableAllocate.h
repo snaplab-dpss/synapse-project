@@ -5,7 +5,7 @@
 namespace LibSynapse {
 namespace Controller {
 
-class TableAllocate : public ControllerModule {
+class VectorTableAllocate : public ControllerModule {
 private:
   addr_t obj;
   klee::ref<klee::Expr> key_size;
@@ -13,9 +13,9 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  TableAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
-                klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_TableAllocate, "TableAllocate", node), obj(_obj), key_size(_key_size),
+  VectorTableAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
+                      klee::ref<klee::Expr> _capacity)
+      : ControllerModule(ModuleType::Controller_VectorTableAllocate, "VectorTableAllocate", node), obj(_obj), key_size(_key_size),
         value_size(_value_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
@@ -23,7 +23,7 @@ public:
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new TableAllocate(node, obj, key_size, value_size, capacity);
+    Module *cloned = new VectorTableAllocate(node, obj, key_size, value_size, capacity);
     return cloned;
   }
 
@@ -33,9 +33,9 @@ public:
   klee::ref<klee::Expr> get_capacity() const { return capacity; }
 };
 
-class TableAllocateFactory : public ControllerModuleFactory {
+class VectorTableAllocateFactory : public ControllerModuleFactory {
 public:
-  TableAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_TableAllocate, "TableAllocate") {}
+  VectorTableAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_VectorTableAllocate, "VectorTableAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

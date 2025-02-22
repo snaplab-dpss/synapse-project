@@ -5,9 +5,18 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-bool get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, const LibBDD::Call *tb_update_and_check, addr_t &obj,
-                 LibBDD::tb_config_t &cfg, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> pkt_len,
-                 klee::ref<klee::Expr> &hit, klee::ref<klee::Expr> pass, DS_ID &id) {
+
+struct tb_data_t {
+  addr_t obj;
+  LibBDD::tb_config_t cfg;
+  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> pkt_len;
+  klee::ref<klee::Expr> hit;
+  klee::ref<klee::Expr> pass;
+  DS_ID id;
+};
+
+tb_data_t get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, const LibBDD::Call *tb_update_and_check) {
   const LibBDD::call_t &call_is_tracing = tb_is_tracing->get_call();
   assert(call_is_tracing.function_name == "tb_is_tracing" && "Unexpected function");
 
@@ -19,15 +28,17 @@ bool get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, const Li
   klee::ref<klee::Expr> index_out    = call_is_tracing.args.at("index_out").out;
   klee::ref<klee::Expr> is_tracing   = call_is_tracing.ret;
 
-  obj     = LibCore::expr_addr_to_obj_addr(tb_addr_expr);
-  keys    = Table::build_keys(key);
-  pkt_len = call_update.args.at("pkt_len").expr;
-  hit     = is_tracing;
-  pass    = call_update.ret;
-  id      = "tb_" + std::to_string(tb_is_tracing->get_id());
-  cfg     = ctx.get_tb_config(obj);
+  tb_data_t data = {
+      .obj     = LibCore::expr_addr_to_obj_addr(tb_addr_expr),
+      .cfg     = ctx.get_tb_config(LibCore::expr_addr_to_obj_addr(tb_addr_expr)),
+      .keys    = Table::build_keys(key),
+      .pkt_len = call_update.args.at("pkt_len").expr,
+      .hit     = is_tracing,
+      .pass    = call_update.ret,
+      .id      = "tb_" + std::to_string(tb_is_tracing->get_id()),
+  };
 
-  return true;
+  return data;
 }
 
 Meter *build_meter(const EP *ep, const LibBDD::Node *node, DS_ID id, const LibBDD::tb_config_t &cfg,
@@ -84,23 +95,13 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  addr_t obj;
-  LibBDD::tb_config_t cfg;
-  std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> pkt_len;
-  klee::ref<klee::Expr> hit;
-  klee::ref<klee::Expr> pass;
-  DS_ID id;
+  tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
 
-  if (!get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
+  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(obj, DSImpl::Tofino_Table)) {
-    return std::nullopt;
-  }
-
-  Meter *meter = build_meter(ep, node, id, cfg, keys);
+  Meter *meter = build_meter(ep, node, data.id, data.cfg, data.keys);
 
   if (!meter) {
     return std::nullopt;
@@ -109,7 +110,7 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Lib
   delete meter;
 
   Context new_ctx = ctx;
-  new_ctx.save_ds_impl(obj, DSImpl::Tofino_Meter);
+  new_ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   spec_impl.skip.insert(tb_update_and_check->get_id());
@@ -131,29 +132,19 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  addr_t obj;
-  LibBDD::tb_config_t cfg;
-  std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> pkt_len;
-  klee::ref<klee::Expr> hit;
-  klee::ref<klee::Expr> pass;
-  DS_ID id;
+  tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
 
-  if (!get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
+  if (!ep->get_ctx().can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
     return impls;
   }
 
-  if (!ep->get_ctx().can_impl_ds(obj, DSImpl::Tofino_Meter)) {
-    return impls;
-  }
-
-  Meter *meter = build_meter(ep, node, id, cfg, keys);
+  Meter *meter = build_meter(ep, node, data.id, data.cfg, data.keys);
 
   if (!meter) {
     return impls;
   }
 
-  Module *module  = new MeterUpdate(node, id, obj, keys, pkt_len, hit, pass);
+  Module *module  = new MeterUpdate(node, data.id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -163,10 +154,10 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
   std::unique_ptr<LibBDD::BDD> new_bdd = delete_future_tb_update(new_ep, node, tb_update_and_check, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(obj, DSImpl::Tofino_Meter);
+  ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, obj, meter);
+  tofino_ctx->place(new_ep, node, data.obj, meter);
 
   EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
@@ -187,27 +178,17 @@ std::unique_ptr<Module> MeterUpdateFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  addr_t obj;
-  LibBDD::tb_config_t cfg;
-  std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> pkt_len;
-  klee::ref<klee::Expr> hit;
-  klee::ref<klee::Expr> pass;
-  DS_ID id;
+  tb_data_t data = get_tb_data(ctx, tb_is_tracing, tb_update_and_check);
 
-  if (!get_tb_data(ctx, tb_is_tracing, tb_update_and_check, obj, cfg, keys, pkt_len, hit, pass, id)) {
+  if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_Meter)) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_Meter)) {
-    return {};
-  }
-
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(data.obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Meter *meter = dynamic_cast<const Meter *>(*ds.begin());
 
-  return std::make_unique<MeterUpdate>(node, meter->id, obj, keys, pkt_len, hit, pass);
+  return std::make_unique<MeterUpdate>(node, meter->id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
 }
 
 } // namespace Tofino

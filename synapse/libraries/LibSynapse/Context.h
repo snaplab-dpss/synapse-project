@@ -18,7 +18,10 @@ enum class DSImpl {
   // ========================================
   // Tofino
   // ========================================
-  Tofino_Table,
+
+  Tofino_MapTable,
+  Tofino_VectorTable,
+  Tofino_DchainTable,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
   Tofino_Meter,
@@ -31,6 +34,7 @@ enum class DSImpl {
   // ========================================
   // Tofino CPU
   // ========================================
+
   Controller_Map,
   Controller_Vector,
   Controller_DoubleChain,
@@ -41,6 +45,7 @@ enum class DSImpl {
   // ========================================
   // x86
   // ========================================
+
   x86_Map,
   x86_Vector,
   x86_DoubleChain,
