@@ -589,14 +589,14 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitSge(const klee::SgeEx
 #define POPULATE_SYNTHESIZER(FNAME)                                                                                                        \
   { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
 
-BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::ostream &_out)
+BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file)
     : Synthesizer(template_from_type(_target),
                   {
                       {MARKER_NF_STATE, 0},
                       {MARKER_NF_INIT, 0},
                       {MARKER_NF_PROCESS, 0},
                   },
-                  _out),
+                  _out_file),
       bdd(_bdd), target(_target), transpiler(this), function_synthesizers({
                                                         POPULATE_SYNTHESIZER(map_allocate),
                                                         POPULATE_SYNTHESIZER(vector_allocate),

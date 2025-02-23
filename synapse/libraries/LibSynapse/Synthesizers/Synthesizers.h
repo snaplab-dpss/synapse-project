@@ -19,14 +19,14 @@ void synthesize(const EP *ep, std::string name, const std::filesystem::path &out
     switch (target.type) {
     case TargetType::Tofino: {
       std::cerr << "\n************** Synthesizing Tofino **************\n";
-      std::ofstream out(out_dir / (name + ".p4"));
-      Tofino::TofinoSynthesizer synthesizer(ep, out, ep->get_bdd());
+      std::filesystem::path out_file(out_dir / (name + ".p4"));
+      Tofino::TofinoSynthesizer synthesizer(ep, out_file);
       synthesizer.synthesize();
     } break;
     case TargetType::Controller: {
       std::cerr << "\n************ Synthesizing Controller ************\n";
-      std::ofstream out(out_dir / (name + ".cpp"));
-      Controller::ControllerSynthesizer synthesizer(ep, out, ep->get_bdd());
+      std::filesystem::path out_file(out_dir / (name + ".cpp"));
+      Controller::ControllerSynthesizer synthesizer(ep, out_file);
       synthesizer.synthesize();
     } break;
     case TargetType::x86: {

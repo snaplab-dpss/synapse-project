@@ -99,6 +99,32 @@ std::vector<table_action_t> build_actions(const bfrt::BfRtTable *table) {
   return action_fields;
 }
 
+table_action_t build_no_action(const bfrt::BfRtTable *table) {
+  bf_status_t bf_status;
+
+  std::string name;
+  bf_status = table->tableNameGet(&name);
+  ASSERT_BF_STATUS(bf_status);
+
+  std::vector<bf_rt_id_t> action_fields_ids;
+  bf_status = table->actionIdListGet(&action_fields_ids);
+  ASSERT_BF_STATUS(bf_status);
+
+  for (bf_rt_id_t action_id : action_fields_ids) {
+    std::string name;
+    bf_status = table->actionNameGet(action_id, &name);
+    ASSERT_BF_STATUS(bf_status);
+
+    if (name != "NoAction") {
+      continue;
+    }
+
+    return table_action_t{name, action_id, {}};
+  }
+
+  ERROR("NoAction not found");
+}
+
 const bfrt::BfRtTable *build_table(const bf_rt_target_t dev_tgt, const bfrt::BfRtInfo *info, const std::string &control,
                                    const std::string &name) {
   std::string full_name = name;
@@ -431,7 +457,7 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableK
 Table::Table(const std::string &_control, const std::string &_name)
     : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name),
       table(build_table(dev_tgt, info, control, name)), capacity(get_capacity_from_hw(dev_tgt, session, table)),
-      key_fields(build_key_fields(table)), actions(build_actions(table)), time_aware(false) {
+      key_fields(build_key_fields(table)), actions(build_actions(table)), no_action(build_no_action(table)), time_aware(false) {
   bf_status_t bf_status;
 
   bf_status = table->keyAllocate(&key);
@@ -443,7 +469,8 @@ Table::Table(const std::string &_control, const std::string &_name)
 
 Table::Table(const Table &other)
     : dev_tgt(other.dev_tgt), info(other.info), session(other.session), control(other.control), name(other.name), table(other.table),
-      capacity(other.capacity), key_fields(other.key_fields), actions(other.actions), time_aware(other.time_aware) {
+      capacity(other.capacity), key_fields(other.key_fields), actions(other.actions), no_action(other.no_action),
+      time_aware(other.time_aware) {
   bf_status_t bf_status;
 
   bf_status = table->keyAllocate(&key);
@@ -501,7 +528,7 @@ void Table::add_entry(const buffer_t &k) {
 
   set_key(k);
 
-  bf_status = table->dataReset(data.get());
+  bf_status = table->dataReset(no_action.action_id, data.get());
   ASSERT_BF_STATUS(bf_status);
 
   bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
@@ -523,7 +550,7 @@ void Table::mod_entry(const buffer_t &k) {
 
   set_key(k);
 
-  bf_status = table->dataReset(data.get());
+  bf_status = table->dataReset(no_action.action_id, data.get());
   ASSERT_BF_STATUS(bf_status);
 
   bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);

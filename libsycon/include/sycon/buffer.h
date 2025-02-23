@@ -54,7 +54,7 @@ struct buffer_t {
     u64 value = 0;
     for (bytes_t i = 0; i < width; i++) {
       value <<= 8;
-      value |= data[offset + i];
+      value |= data[width - 1 - (offset + i)];
     }
     return value;
   }

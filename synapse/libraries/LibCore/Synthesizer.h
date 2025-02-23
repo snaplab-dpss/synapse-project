@@ -37,14 +37,14 @@ protected:
 
 private:
   const std::filesystem::path template_file;
+  const std::filesystem::path out_file;
   std::unordered_map<marker_t, coder_t> coders;
-  std::ostream &out;
 
   static std::unordered_map<marker_t, coder_t> get_builders(std::unordered_map<marker_t, indent_t> markers);
   static void assert_markers_in_template(const std::filesystem::path &template_file, const std::unordered_map<marker_t, coder_t> &coders);
 
 public:
-  Synthesizer(std::filesystem::path _template_file, std::unordered_map<marker_t, indent_t> markers, std::ostream &_out);
+  Synthesizer(std::filesystem::path template_file, std::unordered_map<marker_t, indent_t> markers, std::filesystem::path out_file);
   virtual ~Synthesizer() = default;
 
   virtual void synthesize() = 0;

@@ -12,10 +12,8 @@
 
 header cpu_h {
   bit<16> code_path;
-  @padding bit<7> pad_in_port;
-  bit<9> in_port;
-  @padding bit<7> pad_out_port;
-  bit<9> out_port;
+  bit<16> ingress_dev;
+  bit<16> egress_dev;
 
 }
 
@@ -123,7 +121,7 @@ control Ingress(
   action send_to_controller(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;
-    hdr.cpu.in_port = ig_intr_md.ingress_port;
+    hdr.cpu.ingress_dev = meta.dev;
     fwd(CPU_PCIE_PORT);
   }
 
@@ -140,28 +138,32 @@ control Ingress(
     size = 32;
   }
 
+  bool trigger_forward = false;
   bit<16> nf_dev = 16w0;
   table forward_nf_dev {
     key = { nf_dev: exact; }
     actions = { fwd; }
-    size = 32;
+    size = 64;
   }
 
 
   apply {
     if (hdr.cpu.isValid()) {
-      bit<9> out_port = hdr.cpu.out_port;
+      nf_dev = hdr.cpu.egress_dev;
       hdr.cpu.setInvalid();
-      fwd(out_port);
     } else if (hdr.recirc.isValid()) {
       
     } else {
       ingress_port_to_nf_dev.apply();
-      // EP node  0
+      // EP node  1
       // BDD node 0:FORWARD
       nf_dev = meta.dev;
-      forward_nf_dev.apply();
+      trigger_forward = true;
       ig_tm_md.bypass_egress = 1;
+    }
+
+    if (trigger_forward) {
+      forward_nf_dev.apply();
     }
   }
 }

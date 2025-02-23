@@ -626,6 +626,15 @@ void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
 
     coder.dec();
     coder.indent();
+  } else {
+    coder << "\n";
+    coder.inc();
+
+    coder.indent();
+    coder << " NoAction;\n";
+
+    coder.dec();
+    coder.indent();
   }
 
   coder << "}\n";
@@ -941,7 +950,7 @@ void TofinoSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<TofinoSynthesizer::Stack> TofinoSynthesizer::Stacks::get_all() const { return stacks; }
 
-TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::ostream &_out, const LibBDD::BDD *bdd)
+TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_path)
     : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                   {
                       {MARKER_CPU_HEADER, 1},
@@ -957,8 +966,10 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::ostream &_out, const Li
                       {MARKER_EGRESS_HEADERS, 1},
                       {MARKER_EGRESS_METADATA, 1},
                   },
-                  _out),
+                  _out_path),
       ep(_ep), transpiler(this) {
+  const LibBDD::BDD *bdd = ep->get_bdd();
+
   LibCore::symbol_t device = bdd->get_device();
   LibCore::symbol_t time   = bdd->get_time();
 
@@ -1394,7 +1405,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress.indent();
   ingress << "nf_dev = " << transpiler.transpile(dst_device) << ";\n";
   ingress.indent();
-  ingress << "forward_nf_dev.apply();\n";
+  ingress << "trigger_forward = true;\n";
 
   return EPVisitor::Action::doChildren;
 }

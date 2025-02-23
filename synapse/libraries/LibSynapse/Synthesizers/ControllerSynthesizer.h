@@ -18,7 +18,7 @@ namespace Controller {
 
 class ControllerSynthesizer : public LibCore::Synthesizer, public EPVisitor {
 public:
-  ControllerSynthesizer(const EP *ep, std::ostream &out, const LibBDD::BDD *bdd);
+  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file);
 
   virtual void synthesize() override final;
 
@@ -74,6 +74,8 @@ private:
   struct var_t {
     code_t name;
     klee::ref<klee::Expr> expr;
+    bool is_ptr;
+    bool is_buffer;
 
     code_t get_slice(bits_t offset, bits_t size) const;
     code_t get_stem() const;
@@ -206,15 +208,20 @@ private:
   bool in_nf_init{true};
   void change_to_process_coder() { in_nf_init = false; }
   coder_t &get_current_coder();
-
   coder_t &get(const std::string &marker) override final;
-  code_t transpile(klee::ref<klee::Expr> expr);
 
   code_t create_unique_name(const code_t &name);
   code_t assert_unique_name(const code_t &name);
-  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr);
-  var_t alloc_cpu_hdr_extra_var(const code_t &name, klee::ref<klee::Expr> expr);
-  var_t alloc_fields(const code_t &name, const std::vector<klee::ref<klee::Expr>> &fields);
+
+  using var_alloc_opt_t = u32;
+
+  static constexpr const var_alloc_opt_t EXACT_NAME       = 0b000001;
+  static constexpr const var_alloc_opt_t IS_CPU_HDR       = 0b000010;
+  static constexpr const var_alloc_opt_t IS_CPU_HDR_EXTRA = 0b000100;
+  static constexpr const var_alloc_opt_t IS_PTR           = 0b001000;
+  static constexpr const var_alloc_opt_t IS_BUFFER        = 0b010000;
+
+  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, var_alloc_opt_t opt = 0);
   code_path_t alloc_recirc_coder();
 
   void transpile_table_decl(const Tofino::Table *table);

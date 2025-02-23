@@ -14,6 +14,11 @@ namespace LibBDD {
 enum class BDDSynthesizerTarget { NF, PROFILER };
 
 class BDDSynthesizer : public LibCore::Synthesizer {
+public:
+  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file);
+
+  virtual void synthesize() override final;
+
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
   private:
@@ -87,12 +92,6 @@ private:
   std::unordered_set<node_id_t> route_nodes;
   std::unordered_set<node_id_t> process_nodes;
 
-public:
-  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::ostream &_out);
-
-  virtual void synthesize() override final;
-
-private:
   void init_pre_process();
   void process();
   void init_post_process();

@@ -14,6 +14,7 @@ namespace sycon {
 class DchainTable {
 private:
   std::unordered_set<u32> cache;
+  std::unordered_set<u32> free_indexes;
   std::vector<Table> tables;
   u32 capacity;
 
@@ -29,10 +30,14 @@ public:
     for (const Table &table : tables) {
       assert(table.get_capacity() == capacity);
     }
+
+    for (u32 i = 0; i < capacity; i++) {
+      free_indexes.insert(i);
+    }
   }
 
-  bool get(u32 k) const {
-    auto found_it = cache.find(k);
+  bool is_index_allocated(u32 index) const {
+    auto found_it = cache.find(index);
     if (found_it == cache.end()) {
       return false;
     }
@@ -40,29 +45,37 @@ public:
     return true;
   }
 
-  void put(u32 k) {
-    auto found_it  = cache.find(k);
-    bool new_entry = found_it == cache.end();
-
-    for (Table &table : tables) {
-      if (new_entry) {
-        table.add_entry(k);
-      } else {
-        table.mod_entry(k);
-      }
+  bool allocate_new_index(u32 &index) {
+    if (free_indexes.empty()) {
+      return false;
     }
 
-    cache.insert(k);
+    index = *free_indexes.begin();
+    free_indexes.erase(free_indexes.begin());
+
+    buffer_t key(4);
+    key.set(0, 4, index);
+
+    for (Table &table : tables) {
+      table.add_entry(key);
+    }
+
+    cache.insert(index);
+
+    return true;
   }
 
-  void del(u32 k) {
-    auto found_it = cache.find(k);
+  void free_index(u32 index) {
+    auto found_it = cache.find(index);
     if (found_it == cache.end()) {
       return;
     }
 
+    buffer_t key(4);
+    key.set(0, 4, index);
+
     for (Table &table : tables) {
-      table.del_entry(k);
+      table.del_entry(key);
     }
 
     cache.erase(found_it);

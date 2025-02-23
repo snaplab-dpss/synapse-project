@@ -10,7 +10,7 @@ namespace {
 
 struct map_table_data_t {
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
 };
 
@@ -24,7 +24,7 @@ map_table_data_t get_map_table_update_data(const LibBDD::Call *call_node) {
 
   map_table_data_t data = {
       .obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .keys  = Table::build_keys(key),
+      .key   = key,
       .value = value,
   };
 
@@ -75,7 +75,7 @@ std::vector<impl_t> MapTableUpdateFactory::process_node(const EP *ep, const LibB
     return impls;
   }
 
-  Module *module  = new MapTableUpdate(node, data.obj, data.keys, data.value);
+  Module *module  = new MapTableUpdate(node, data.obj, data.key, data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -105,7 +105,7 @@ std::unique_ptr<Module> MapTableUpdateFactory::create(const LibBDD::BDD *bdd, co
     return {};
   }
 
-  return std::make_unique<MapTableUpdate>(node, data.obj, data.keys, data.value);
+  return std::make_unique<MapTableUpdate>(node, data.obj, data.key, data.value);
 }
 
 } // namespace Controller

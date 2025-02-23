@@ -28,6 +28,8 @@ void Synthesizer::assert_markers_in_template(const std::filesystem::path &templa
       panic("Marker \"%s\" not found in template: %s\n", marker.c_str(), template_file.c_str());
     }
   }
+
+  file.close();
 }
 
 std::unordered_map<Synthesizer::marker_t, Synthesizer::coder_t> Synthesizer::get_builders(std::unordered_map<marker_t, indent_t> markers) {
@@ -38,8 +40,9 @@ std::unordered_map<Synthesizer::marker_t, Synthesizer::coder_t> Synthesizer::get
   return coders;
 }
 
-Synthesizer::Synthesizer(std::filesystem::path _template_file, std::unordered_map<marker_t, indent_t> _markers, std::ostream &_out)
-    : template_file(_template_file), coders(get_builders(_markers)), out(_out) {
+Synthesizer::Synthesizer(std::filesystem::path _template_file, std::unordered_map<marker_t, indent_t> _markers,
+                         std::filesystem::path _out_file)
+    : template_file(_template_file), out_file(_out_file), coders(get_builders(_markers)) {
   if (!std::filesystem::exists(template_file)) {
     panic("Template file not found: %s\n", template_file.c_str());
   }
@@ -101,6 +104,7 @@ void Synthesizer::dump() const {
     template_str.replace(pos, marker.size(), code);
   }
 
+  std::ofstream out(out_file);
   out << template_str;
   out.flush();
 }

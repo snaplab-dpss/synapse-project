@@ -14,19 +14,19 @@ void sycon::nf_init() {
   state = std::make_unique<state_t>();
 
   buffer_t buffer(7);
-  buffer[0] = 0x00;
-  buffer[1] = 0x01;
-  buffer[2] = 0x02;
-  buffer[3] = 0x03;
-  buffer[4] = 0x04;
-  buffer[5] = 0x05;
-  buffer[6] = 0x06;
+  buffer.set(0, 7, 0x01020304050607);
+
+  std::cerr << "In buffer: " << buffer << "(" << buffer.get(0, 7) << ")" << std::endl;
+  LOG("Value: 0x%lx", buffer.get(0, 7));
 
   state->vector_register.put(0, buffer);
   state->vector_register.dump();
 
   buffer_t out_buffer;
   state->vector_register.get(0, out_buffer);
+
+  std::cerr << "Out buffer: " << out_buffer << "(" << out_buffer.get(0, 7) << ")" << std::endl;
+  LOG("Value: 0x%lx", out_buffer.get(0, 7));
 }
 
 void sycon::nf_exit() {}

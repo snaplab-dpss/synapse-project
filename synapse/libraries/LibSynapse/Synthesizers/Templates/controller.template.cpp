@@ -36,9 +36,11 @@ struct cpu_hdr_extra_t {
 } __attribute__((packed));
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  bool forward = true;
   cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
 /*@{NF_PROCESS}@*/
+  return forward;
 }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

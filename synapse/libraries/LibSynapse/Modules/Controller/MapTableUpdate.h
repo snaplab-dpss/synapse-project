@@ -8,24 +8,24 @@ namespace Controller {
 class MapTableUpdate : public ControllerModule {
 private:
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
 
 public:
-  MapTableUpdate(const LibBDD::Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_MapTableUpdate, "MapTableUpdate", node), obj(_obj), keys(_keys), value(_value) {}
+  MapTableUpdate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType::Controller_MapTableUpdate, "MapTableUpdate", node), obj(_obj), key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const {
-    MapTableUpdate *cloned = new MapTableUpdate(node, obj, keys, value);
+    MapTableUpdate *cloned = new MapTableUpdate(node, obj, key, value);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
-  const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
+  klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_value() const { return value; }
 };
 

@@ -16,13 +16,20 @@ void packet_init(bytes_t size) {
   packet_size     = size;
 }
 
+u8 *packet_consume(u8 *packet_base, bytes_t size) {
+  assert(packet_consumed + size <= packet_size);
+  u8 *header = packet_base + packet_consumed;
+  packet_consumed += size;
+  return header;
+}
+
 void packet_log(const cpu_hdr_t *cpu_hdr) {
   assert(cpu_hdr);
 
   LOG("###[ CPU ]###");
-  LOG("code path  %u", SWAP_ENDIAN_16(cpu_hdr->code_path));
-  LOG("in port    %u", SWAP_ENDIAN_16(cpu_hdr->in_port));
-  LOG("out port   %u", SWAP_ENDIAN_16(cpu_hdr->out_port));
+  LOG("code path   %u", SWAP_ENDIAN_16(cpu_hdr->code_path));
+  LOG("ingress dev %u", SWAP_ENDIAN_16(cpu_hdr->ingress_dev));
+  LOG("egress dev  %u", SWAP_ENDIAN_16(cpu_hdr->egress_dev));
 }
 
 void packet_log(const eth_hdr_t *eth_hdr) {

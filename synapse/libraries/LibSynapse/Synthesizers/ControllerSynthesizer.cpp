@@ -163,7 +163,19 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitConcat(const k
   coder_t &coder             = coders.top();
 
   if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr)) {
-    coder << var->name;
+    if (var->is_ptr) {
+      coder << "*(" << type_from_size(expr->getWidth()) << "*)";
+      coder << var->name;
+    } else if (var->is_buffer) {
+      coder << "(" << type_from_size(expr->getWidth()) << ")";
+      coder << var->name << ".get(";
+      coder << "0, ";
+      coder << expr->getWidth() / 8;
+      coder << ")";
+    } else {
+      coder << var->name;
+    }
+
     return Action::skipChildren();
   }
 
@@ -474,17 +486,36 @@ ControllerSynthesizer::code_t ControllerSynthesizer::var_t::get_slice(bits_t off
 
   coder_t coder;
 
-  if (offset > 0) {
+  if (is_ptr) {
+    coder << "*(";
+    coder << Transpiler::type_from_size(size);
+    coder << "*)(";
+    coder << name;
+    coder << " + ";
+    coder << offset / 8;
+    coder << ")";
+  } else if (is_buffer) {
     coder << "(";
-    coder << name;
-    coder << ">>";
-    coder << offset;
-    coder << ") & ";
-    coder << ((1 << size) - 1);
+    coder << Transpiler::type_from_size(size);
+    coder << ")";
+    coder << name << ".get(";
+    coder << offset / 8;
+    coder << ", ";
+    coder << size / 8;
+    coder << ")";
   } else {
-    coder << name;
-    coder << " & ";
-    coder << ((1ull << size) - 1);
+    if (offset > 0) {
+      coder << "(";
+      coder << name;
+      coder << ">>";
+      coder << offset;
+      coder << ") & ";
+      coder << ((1 << size) - 1);
+    } else {
+      coder << name;
+      coder << " & ";
+      coder << ((1ull << size) - 1);
+    }
   }
 
   return coder.dump();
@@ -547,7 +578,9 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(kl
       klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
       if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
-        var_t out_var{.name = var.get_slice(offset, expr_size), .expr = var_slice};
+        var_t out_var = var;
+        out_var.name  = var.get_slice(offset, expr_size);
+        out_var.expr  = var_slice;
         return out_var;
       }
     }
@@ -595,7 +628,7 @@ void ControllerSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<ControllerSynthesizer::Stack> ControllerSynthesizer::Stacks::get_all() const { return stacks; }
 
-ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::ostream &_out, const LibBDD::BDD *bdd)
+ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::path _out_file)
     : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                   {
                       {MARKER_STATE_FIELDS, 1},
@@ -607,16 +640,8 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::ostream &_out, 
                       {MARKER_NF_PROCESS, 1},
                       {MARKER_CPU_HDR_EXTRA, 1},
                   },
-                  _out),
-      ep(_ep), transpiler(this) {
-  LibCore::symbol_t now     = bdd->get_time();
-  LibCore::symbol_t device  = bdd->get_device();
-  LibCore::symbol_t pkt_len = bdd->get_packet_len();
-
-  alloc_var("now", now.expr);
-  alloc_var("cpu_hdr->in_port", device.expr);
-  alloc_var("size", pkt_len.expr);
-}
+                  _out_file),
+      ep(_ep), transpiler(this) {}
 
 ControllerSynthesizer::coder_t &ControllerSynthesizer::get_current_coder() {
   return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS);
@@ -626,6 +651,20 @@ ControllerSynthesizer::coder_t &ControllerSynthesizer::get(const std::string &ma
 
 void ControllerSynthesizer::synthesize() {
   synthesize_nf_init();
+
+  vars.clear();
+  vars.push();
+
+  const LibBDD::BDD *bdd = ep->get_bdd();
+
+  LibCore::symbol_t now     = bdd->get_time();
+  LibCore::symbol_t device  = bdd->get_device();
+  LibCore::symbol_t pkt_len = bdd->get_packet_len();
+
+  alloc_var("now", now.expr);
+  alloc_var("size", pkt_len.expr);
+  alloc_var("ingress_dev", device.expr, EXACT_NAME | IS_CPU_HDR);
+
   synthesize_nf_process();
   synthesize_state_member_init_list();
   Synthesizer::dump();
@@ -741,7 +780,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
     assert(width >= 8 && "Unexpected width (less than 8)");
 
-    var_t var = alloc_cpu_hdr_extra_var(symbol.name, symbol.expr);
+    var_t var = alloc_var(symbol.name, symbol.expr, EXACT_NAME | IS_CPU_HDR_EXTRA);
 
     cpu_extra.indent();
     switch (width) {
@@ -792,8 +831,19 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) {
   coder_t &coder = get_current_coder();
+
+  klee::ref<klee::Expr> chunk  = node->get_chunk();
+  klee::ref<klee::Expr> length = node->get_length();
+
+  var_t hdr = alloc_var("hdr", chunk, IS_PTR);
+
   coder.indent();
-  coder << "// TODO: Controller::ParseHeader\n";
+  coder << "u8* " << hdr.name << " = ";
+  coder << "packet_consume(";
+  coder << "pkt";
+  coder << ", " << transpiler.transpile(length);
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -812,44 +862,71 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::If *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  coder << "// TODO: Controller::If\n";
-  return EPVisitor::Action::doChildren;
+  coder_t &ingress = get_current_coder();
+
+  klee::ref<klee::Expr> condition       = node->get_condition();
+  const std::vector<EPNode *> &children = ep_node->get_children();
+  assert(children.size() == 2 && "If node must have 2 children");
+
+  const EPNode *then_node = children[0];
+  const EPNode *else_node = children[1];
+
+  ingress.indent();
+  ingress << "if (";
+  ingress << transpiler.transpile(condition);
+  ingress << ") {\n";
+
+  ingress.inc();
+  vars.push();
+  visit(ep, then_node);
+  vars.pop();
+  ingress.dec();
+
+  ingress.indent();
+  ingress.stream << "} else {\n";
+
+  ingress.inc();
+  vars.push();
+  visit(ep, else_node);
+  vars.pop();
+  ingress.dec();
+
+  ingress.indent();
+  ingress << "}\n";
+
+  return EPVisitor::Action::skipChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Then *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  coder << "// TODO: Controller::Then\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Else *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  coder << "// TODO: Controller::Else\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Forward *node) {
   coder_t &coder = get_current_coder();
+
+  klee::ref<klee::Expr> dst_device = node->get_dst_device();
+
   coder.indent();
-  coder << "// TODO: Controller::Forward\n";
+  coder << "cpu_hdr->egress_dev = SWAP_ENDIAN_16(";
+  coder << transpiler.transpile(dst_device);
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Broadcast *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  coder << "// TODO: Controller::Broadcast\n";
+  panic("TODO: Controller::Broadcast");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::Drop\n";
+  coder << "forward = false;\n";
   return EPVisitor::Action::doChildren;
 }
 
@@ -871,8 +948,36 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableUpdate *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+
+  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
+
+  std::vector<code_t> key_bytes;
+  for (klee::ref<klee::Expr> key_byte : LibCore::bytes_in_expr(key)) {
+    key_bytes.push_back(transpiler.transpile(key_byte));
+  }
+
+  var_t map_table_key = alloc_var("key", key, IS_BUFFER);
+  bytes_t key_size    = key->getWidth() / 8;
+
   coder.indent();
-  coder << "// TODO: Controller::MapTableUpdate\n";
+  coder << "buffer_t " << map_table_key.name;
+  coder << "(" << key_size << ");\n";
+
+  for (bytes_t i = 0; i < key_bytes.size(); i++) {
+    coder.indent();
+    coder << map_table_key.name << "[" << i << "] = " << key_bytes[i] << ";\n";
+  }
+
+  coder.indent();
+  coder << "state->" << map_table->id << ".put(";
+  coder << map_table_key.name;
+  coder << ", " << transpiler.transpile(value);
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -924,8 +1029,25 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *node) {
   coder_t &coder = get_current_coder();
+
+  addr_t obj                              = node->get_obj();
+  klee::ref<klee::Expr> allocated_index   = node->get_allocated_index();
+  klee::ref<klee::Expr> success           = node->get_success();
+  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
+
+  var_t allocated_index_var = alloc_var("allocated_index", allocated_index);
+  var_t success_var         = alloc_var("success", success);
+
   coder.indent();
-  coder << "// TODO: Controller::DchainTableUpdate\n";
+  coder << "u32 " << allocated_index_var.name << ";\n";
+
+  coder.indent();
+  coder << "bool " << success_var.name << " = ";
+  coder << "state->" << dchain_table->id;
+  coder << ".allocate_new_index(";
+  coder << allocated_index_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -1052,8 +1174,24 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterLookup *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> index = node->get_index();
+  const klee::ref<klee::Expr> value = node->get_value();
+
+  const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
+
+  var_t vector_register_value = alloc_var("value", value, IS_BUFFER);
+
   coder.indent();
-  coder << "// TODO: Controller::VectorRegisterLookup\n";
+  coder << "buffer_t " << vector_register_value.name << ";\n";
+
+  coder.indent();
+  coder << "state->" << vector_register->id << ".get(";
+  coder << transpiler.transpile(index);
+  coder << ", " << vector_register_value.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -1069,9 +1207,11 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
   var_t vector_register_value = alloc_var("value", new_value);
+  bytes_t value_size          = new_value->getWidth() / 8;
 
   coder.indent();
-  coder << "buffer_t " << vector_register_value.name << ";\n";
+  coder << "buffer_t " << vector_register_value.name;
+  coder << "(" << value_size << ");\n";
 
   coder.indent();
   coder << "state->" << vector_register->id << ".get(";
@@ -1261,30 +1401,25 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr) {
-  const code_t name = create_unique_name(proposed_name);
-  const var_t var{.name = name, .expr = expr};
-  vars.insert_back(var);
-  return var;
-}
+ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr,
+                                                              var_alloc_opt_t opt) {
+  var_t var{
+      .name      = (opt & EXACT_NAME) ? assert_unique_name(proposed_name) : create_unique_name(proposed_name),
+      .expr      = expr,
+      .is_ptr    = (opt & IS_PTR) ? true : false,
+      .is_buffer = (opt & IS_BUFFER) ? true : false,
+  };
 
-ControllerSynthesizer::var_t ControllerSynthesizer::alloc_cpu_hdr_extra_var(const code_t &proposed_name, klee::ref<klee::Expr> expr) {
-  const code_t name = create_unique_name(proposed_name);
-  const var_t var{.name = name, .expr = expr};
-  var_t cpu_hdr_extra_var{.name = "cpu_hdr->" + name, .expr = expr};
-  vars.insert_back(cpu_hdr_extra_var);
-  return var;
-}
-
-ControllerSynthesizer::var_t ControllerSynthesizer::alloc_fields(const code_t &proposed_name,
-                                                                 const std::vector<klee::ref<klee::Expr>> &fields) {
-  const code_t name = create_unique_name(proposed_name);
-  const var_t var{.name = name, .expr = nullptr};
-
-  for (size_t i = 0; i < fields.size(); i++) {
-    klee::ref<klee::Expr> field = fields[i];
-    const var_t field_var{.name = name + "[" + std::to_string(i) + "]", .expr = field};
-    vars.insert_back(field_var);
+  if (opt & IS_CPU_HDR) {
+    var_t cpu_hdr_var = var;
+    cpu_hdr_var.name  = "cpu_hdr->" + var.name;
+    vars.insert_back(cpu_hdr_var);
+  } else if (opt & IS_CPU_HDR_EXTRA) {
+    var_t cpu_hdr_extra_var = var;
+    cpu_hdr_extra_var.name  = "cpu_hdr_extra->" + var.name;
+    vars.insert_back(cpu_hdr_extra_var);
+  } else {
+    vars.insert_back(var);
   }
 
   return var;
@@ -1295,7 +1430,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::create_unique_name(const co
     reserved_var_names[prefix] = 0;
   }
 
-  int &counter = reserved_var_names[prefix];
+  int &counter = reserved_var_names.at(prefix);
 
   coder_t coder;
   coder << prefix << "_" << counter;
@@ -1311,6 +1446,8 @@ ControllerSynthesizer::code_t ControllerSynthesizer::assert_unique_name(const co
   }
 
   assert(reserved_var_names.at(name) == 0 && "Name already used");
+  reserved_var_names[name]++;
+
   return name;
 }
 

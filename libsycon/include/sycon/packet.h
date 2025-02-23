@@ -10,8 +10,8 @@ typedef u16 port_t;
 
 struct cpu_hdr_t {
   u16 code_path;
-  u16 in_port;
-  u16 out_port;
+  u16 ingress_dev;
+  u16 egress_dev;
 } __attribute__((packed));
 
 struct eth_hdr_t {
@@ -49,6 +49,7 @@ template <typename T> T *packet_consume(u8 *packet_base) {
   return reinterpret_cast<T *>(header);
 }
 
+u8 *packet_consume(u8 *packet_base, bytes_t size);
 void packet_hexdump(u8 *pkt, u16 size);
 
 void packet_log(const cpu_hdr_t *cpu_hdr);

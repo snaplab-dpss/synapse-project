@@ -9,6 +9,7 @@ namespace {
 struct dchain_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> success;
 };
 
 dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
@@ -17,10 +18,12 @@ dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index_out        = call.args.at("index_out").out;
+  LibCore::symbol_t not_out_of_space     = call_node->get_local_symbol("not_out_of_space");
 
   dchain_table_data_t data = {
-      .obj = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
-      .key = index_out,
+      .obj     = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
+      .key     = index_out,
+      .success = not_out_of_space.expr,
   };
 
   return data;
@@ -70,7 +73,7 @@ std::vector<impl_t> DchainTableUpdateFactory::process_node(const EP *ep, const L
     return impls;
   }
 
-  Module *module  = new DchainTableUpdate(node, data.obj, data.key);
+  Module *module  = new DchainTableUpdate(node, data.obj, data.key, data.success);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -100,7 +103,7 @@ std::unique_ptr<Module> DchainTableUpdateFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  return std::make_unique<DchainTableUpdate>(node, data.obj, data.key);
+  return std::make_unique<DchainTableUpdate>(node, data.obj, data.key, data.success);
 }
 
 } // namespace Controller

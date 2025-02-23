@@ -17,7 +17,7 @@ namespace Tofino {
 
 class TofinoSynthesizer : public LibCore::Synthesizer, public EPVisitor {
 public:
-  TofinoSynthesizer(const EP *ep, std::ostream &out, const LibBDD::BDD *bdd);
+  TofinoSynthesizer(const EP *ep, std::filesystem::path _out_path);
 
   virtual void synthesize() override final;
 
@@ -191,7 +191,7 @@ private:
   code_t transpile(klee::ref<klee::Expr> expr);
 
   code_t create_unique_name(const code_t &name);
-  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, alloc_opt_t option);
+  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, alloc_opt_t option = 0);
   code_path_t alloc_recirc_coder();
 
   code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
