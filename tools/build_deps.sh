@@ -83,6 +83,7 @@ source_install_z3() {
 	echo "Installing Z3..."
 
 	pushd "$Z3_DIR"
+		git clean -fx # https://github.com/Z3Prover/z3/issues/6552
 		python3 scripts/mk_make.py -p "$Z3_BUILD_DIR"
 
 		pushd "$Z3_BUILD_DIR"
