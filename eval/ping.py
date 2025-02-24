@@ -9,12 +9,13 @@ from hosts.pktgen import Pktgen
 from hosts.kvs_server import KVSServer
 from hosts.switch import Switch
 from hosts.synapse import SynapseController
+from utils.constants import *
 
 
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
+    parser.add_argument("-c", "--config-file", type=Path, default=EVAL_DIR / "experiment_config.toml", help="Path to config file")
 
     args = parser.parse_args()
 
@@ -60,12 +61,15 @@ def main():
     )
 
     print("Launching KVS server...")
-    KVSServer(
+    server = KVSServer(
         hostname=config["hosts"]["server"],
         repo=config["repo"]["server"],
         pcie_dev=config["devices"]["server"]["dev"],
         log_file=config["logs"]["server"],
     )
+
+    server.launch()
+    server.wait_launch()
 
     print(f"All hosts are reachable.")
 

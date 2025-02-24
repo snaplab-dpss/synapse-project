@@ -1,5 +1,6 @@
 from typing import Optional, Iterable
 
+
 class DpdkConfig:
     """Represent DPDK command-line options.
 

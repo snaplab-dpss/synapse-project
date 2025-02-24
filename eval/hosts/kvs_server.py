@@ -1,3 +1,4 @@
+import re
 import itertools
 
 from paramiko import ssh_exception
@@ -57,14 +58,11 @@ class KVSServer:
 
         self.kill_server()
 
-        remote_cmd = f"sudo {str(self.server_exe)} {self.dpdk_config} -- {self.config_file}"
+        remote_cmd = f"source {self.setup_env_script} && sudo -E {str(self.server_exe)} {self.dpdk_config} -- {self.config_file}"
 
         self.server = self.host.run_command(remote_cmd, pty=True)
         self.server_active = True
         self.ready = False
-
-        self.remote_cmd = remote_cmd
-        self.target_pkt_tx = 0
 
     def wait_launch(self) -> None:
         assert self.server_active
@@ -85,7 +83,7 @@ class KVSServer:
             self.server_active = False
             raise Exception("Cannot run KVS server")
 
-        return self.server.watch(stop_pattern="***** Server started *****")
+        return self.server.watch(stop_pattern=re.escape("***** Server started *****"))
 
     @property
     def dpdk_config(self):

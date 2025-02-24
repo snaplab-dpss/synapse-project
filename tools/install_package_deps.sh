@@ -28,7 +28,7 @@ install_system_deps() {
 		parallel \
 		libcanberra-gtk-module libcanberra-gtk3-module \
 		zsh \
-		python3-pip python3-venv python3-scapy python-is-python3 xdot \
+		python3-pip python3-venv python3-scapy python-is-python3 python3-pyelftools xdot \
 		gperf libgoogle-perftools-dev libpcap-dev meson pkg-config \
 		bison flex zlib1g-dev libncurses5-dev libpcap-dev \
 		opam m4 libgmp-dev \

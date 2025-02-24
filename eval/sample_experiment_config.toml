@@ -14,6 +14,7 @@
 switch_dut = ""
 switch_tg  = ""
 pktgen     = ""
+server     = ""
 
 # Set the paths to this repo on the remote machines.
 # Ensure that the user you are using to ssh into the machines has write access
@@ -22,6 +23,7 @@ pktgen     = ""
 switch_dut = ""
 switch_tg  = ""
 pktgen     = ""
+server     = ""
 
 [devices.switch_dut]
 sde            = ""   # Path to SDE dir
@@ -40,6 +42,9 @@ rx_dev       = ""
 tx_line_rate = 100 # in Gbps.
 nb_tx_cores  = 4
 
+[devices.server]
+dev = ""
+
 [logs]
 # Log files. They will be saved in the orchestrator machine in the same
 # directory where you run the experiment.py script.
@@ -48,6 +53,7 @@ switch_dut     = "logs/switch_dut.log"
 controller_tg  = "logs/controller_tg.log"
 switch_tg      = "logs/switch_tg.log"
 pktgen         = "logs/pktgen.log"
+server         = "logs/server.log"
 experiment     = "logs/experiment.log"
 
 [extra]

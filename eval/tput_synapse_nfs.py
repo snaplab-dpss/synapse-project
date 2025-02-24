@@ -27,12 +27,13 @@ SYNAPSE_NFS = [
         "tofino": "synthesized/synapse-fwd.p4",
         "controller": "synthesized/synapse-fwd.cpp",
         "routing": {
-            "broadcast": [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 ],
-            "symmetric": [ 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ],
+            "broadcast": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31],
+            "symmetric": [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32],
             "route": [],
         },
     },
 ]
+
 
 def synapse_nfs(hosts: ThroughputHosts, log_file: str) -> list[Experiment]:
     experiments = []
@@ -64,16 +65,17 @@ def synapse_nfs(hosts: ThroughputHosts, log_file: str) -> list[Experiment]:
 
     return experiments
 
+
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
-    
+    parser.add_argument("-c", "--config-file", type=Path, default=EVAL_DIR / "experiment_config.toml", help="Path to config file")
+
     args = parser.parse_args()
-    
+
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
-    
+
     hosts = ThroughputHosts(config)
     log_file = config["logs"]["experiment"]
 
@@ -82,6 +84,7 @@ def main():
     exp_tracker.run_experiments()
 
     hosts.terminate()
+
 
 if __name__ == "__main__":
     main()

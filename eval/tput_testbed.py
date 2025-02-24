@@ -17,8 +17,7 @@ PKT_SIZES = [64, 128, 256, 512, 1024, 1280, 1500]
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
-    parser.add_argument("-f", "--force", action="store_true", default=False, help="Regenerate data, even if they already exist")
+    parser.add_argument("-c", "--config-file", type=Path, default=EVAL_DIR / "experiment_config.toml", help="Path to config file")
 
     args = parser.parse_args()
 
