@@ -118,7 +118,7 @@ void TrafficGenerator::generate() {
       counters[chosen_swap_flow_idx]         = 0;
     }
 
-    flow_idx_t flow_idx;
+    flow_idx_t flow_idx{0};
     switch (config.traffic_type) {
     case TrafficType::Uniform:
       flow_idx = uniform_rand.generate();

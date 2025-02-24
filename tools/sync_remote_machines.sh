@@ -43,7 +43,7 @@ install_libsycon() {
     ssh $host "cd $path_to_repo/libsycon && touch CMakeLists.txt && ./install.sh"
 }
 
-build_pktgen() {
+force_build_pktgen() {
     host=$1
     path_to_repo=$2
 
@@ -52,12 +52,12 @@ build_pktgen() {
     echo "*********************************************"
 
     # Touching CMakeLists allows cmake to detect new files (because of glob)
-    ssh $host "cd $path_to_repo && ./build.sh"
+    ssh $host "cd $path_to_repo && rm -rf Debug Release && ./build.sh"
 }
 
 sync tofino1 /root/synapse-project
 sync tofino2 /home/user/synapse-project
-sync geodude /home/fcp/synapse-project
-# sync_cfg graveler /home/fcp/synapse
+sync geodude /opt/synapse-project
+sync graveler /opt/synapse-project
 install_libsycon tofino2 /home/user/synapse-project
-build_pktgen geodude /home/fcp/synapse-project/deps/pktgen
+force_build_pktgen geodude /opt/synapse-project/deps/pktgen
