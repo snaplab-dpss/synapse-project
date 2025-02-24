@@ -8,7 +8,7 @@ from pathlib import Path
 from experiments.tput import ThroughputHosts
 from experiments.tput_per_pkt_sz import ThroughputPerPacketSize
 from experiments.experiment import ExperimentTracker
-from experiments.hosts.tofino_ta import TofinoTA, TofinoTAController
+from hosts.tofino_ta import TofinoTA, TofinoTAController
 from utils.constants import *
 
 PKT_SIZES = [64, 128, 256, 512, 1024, 1280, 1500]

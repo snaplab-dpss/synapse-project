@@ -5,20 +5,22 @@ import tomli
 
 from pathlib import Path
 
-from experiments.hosts.pktgen import Pktgen
-from experiments.hosts.switch import Switch
-from experiments.hosts.synapse import SynapseController
+from hosts.pktgen import Pktgen
+from hosts.kvs_server import KVSServer
+from hosts.switch import Switch
+from hosts.synapse import SynapseController
+
 
 def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--config-file", type=Path, default="experiment_config.toml", help="Path to config file")
-    
+
     args = parser.parse_args()
-    
+
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
-    
+
     print("Launching Tofino DUT...")
     Switch(
         hostname=config["hosts"]["switch_dut"],
@@ -57,7 +59,16 @@ def main():
         log_file=config["logs"]["pktgen"],
     )
 
+    print("Launching KVS server...")
+    KVSServer(
+        hostname=config["hosts"]["server"],
+        repo=config["repo"]["server"],
+        pcie_dev=config["devices"]["server"]["dev"],
+        log_file=config["logs"]["server"],
+    )
+
     print(f"All hosts are reachable.")
+
 
 if __name__ == "__main__":
     main()

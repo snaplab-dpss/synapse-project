@@ -14,8 +14,8 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from experiments.hosts.synapse import SynapseController
-from experiments.hosts.pktgen import Pktgen
+from hosts.synapse import SynapseController
+from hosts.pktgen import Pktgen
 
 MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5  # seconds

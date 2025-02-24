@@ -2,10 +2,10 @@
 
 from experiments.experiment import Experiment
 
-from experiments.hosts.synapse import SynapseController
-from experiments.hosts.switch import Switch
-from experiments.hosts.tofino_tg import TofinoTG, TofinoTGController
-from experiments.hosts.pktgen import Pktgen
+from hosts.synapse import SynapseController
+from hosts.switch import Switch
+from hosts.tofino_tg import TofinoTG, TofinoTGController
+from hosts.pktgen import Pktgen
 
 from pathlib import Path
 
