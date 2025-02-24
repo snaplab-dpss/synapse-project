@@ -259,13 +259,14 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
         struct netcache_hdr_t *nc_hdr = (struct netcache_hdr_t *)nc_hdr_ptr;
 
         #ifndef NDEBUG
-            printf("Original NC header: op %u, seq %u, key %u, val %u, cpu %u\n",
-                    nc_hdr->op, nc_hdr->seq, nc_hdr->key, nc_hdr->val, nc_hdr->cpu);
+            printf("Original NC header: op %u, key %u, val %u, status %u, port %u\n",
+                    nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status, nc_hdr->port);
         #endif
 
         auto it = kv_map.find(nc_hdr->key);
         if (it == kv_map.end()) {
             val = 0;
+			nc_hdr->status = 1;
         } else {
             val = it->second;
         }
@@ -273,8 +274,8 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
         nc_hdr->val = val;
 
         #ifndef NDEBUG
-            printf("Modified NC header: op %u, seq %u, key %u, val %u, cpu %u\n",
-                    nc_hdr->op, nc_hdr->seq, nc_hdr->key, nc_hdr->val, nc_hdr->cpu);
+            printf("Modified NC header: op %u, key %u, val %u, status %u, port %u\n",
+                    nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status, nc_hdr->port);
         #endif
     } else if (ip_hdr->next_proto_id == IPPROTO_TCP) {
         uint8_t *nc_hdr_ptr = (uint8_t *)(tcp_hdr + 1);
@@ -282,8 +283,8 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
         struct netcache_hdr_t *nc_hdr = (struct netcache_hdr_t *)nc_hdr_ptr;
 
         #ifndef NDEBUG
-            printf("Original NC header: op %u, seq %u, key %u, val %u, cpu %u\n",
-                    nc_hdr->op, nc_hdr->seq, nc_hdr->key, nc_hdr->val, nc_hdr->cpu);
+            printf("Original NC header: op %u, key %u, val %u, status %u, port %u\n",
+                    nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status, nc_hdr->port);
         #endif
 
         auto it = kv_map.find(nc_hdr->key);
@@ -296,8 +297,8 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
         nc_hdr->val = val;
 
         #ifndef NDEBUG
-            printf("Modified NC header: op %u, seq %u, key %u, val %u, cpu %u\n",
-                    nc_hdr->op, nc_hdr->seq, nc_hdr->key, nc_hdr->val, nc_hdr->cpu);
+            printf("Modified NC header: op %u, key %u, val %u, status %u, port %u\n",
+                    nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status, nc_hdr->port);
         #endif
     }
 }

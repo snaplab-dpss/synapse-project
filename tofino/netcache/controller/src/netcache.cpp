@@ -8,6 +8,22 @@ namespace netcache {
 std::shared_ptr<Controller> Controller::controller;
 
 void Controller::config_ports(const conf_t &conf) {
+
+	bf_dev_port_t pcie_cpu_port = bf_pcie_cpu_port_get(dev_tgt.dev_id);
+	bf_dev_port_t eth_cpu_port	= bf_eth_cpu_port_get(dev_tgt.dev_id);
+
+	bf_port_speed_t pcie_cpu_port_speed;
+	uint32_t pcie_cpu_port_lane_number;
+	bf_status_t status = bf_port_info_get(dev_tgt.dev_id, pcie_cpu_port, &pcie_cpu_port_speed, &pcie_cpu_port_lane_number);
+	if (status != BF_SUCCESS) {
+		exit(1);
+	}
+
+	std::cout << "PCIe CPU port:	"
+			  <<  pcie_cpu_port << ", "
+			  << bf_port_speed_str(pcie_cpu_port_speed);
+	std::cout << "ETH CPU port:		" <<  eth_cpu_port;
+
 	for (auto port : conf.topology.ports) {
 		auto speed = Ports::gbps_to_bf_port_speed(port.capacity);
 		auto dev_port = ports.get_dev_port(port.num, 0);

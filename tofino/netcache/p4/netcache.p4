@@ -24,7 +24,19 @@ control SwitchIngress(
 		inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
 		inout ingress_intrinsic_metadata_for_tm_t ig_tm_md) {
 
+	Register<bit<8>, bit<16>>(NC_ENTRIES) reg_cache_lookup;
 	Register<bit<NC_VAL_WIDTH>, bit<16>>(NC_ENTRIES) reg_vtable;
+
+	RegisterAction<_, bit<16>, bit<8>>(reg_cache_lookup) ract_cache_lookup = {
+		void apply(inout bit<8> lookup, out bit<8> res) {
+			res = lookup;
+			if (hdr.netcache.op == WRITE_QUERY) {
+				lookup = 1;
+			} else if (hdr.netcache.op == DELETE_QUERY) {
+				lookup = 0;
+			}
+		}
+	};
 
 	RegisterAction<_, bit<16>, bit<NC_VAL_WIDTH>>(reg_vtable) ract_vtable_read = {
 		void apply(inout bit<NC_VAL_WIDTH> val, out bit<NC_VAL_WIDTH> res) {
@@ -45,6 +57,10 @@ control SwitchIngress(
 	action set_lookup_metadata(vtableIdx_t vt_idx, keyIdx_t key_idx) {
 		hdr.meta.vt_idx = vt_idx;
 		hdr.meta.key_idx = key_idx;
+	}
+
+	action cache_lookup() {
+		hdr.meta.cache_hit = ract_cache_lookup.execute(hdr.meta.vt_idx);
 	}
 
 	action vtable_read() {
@@ -94,17 +110,17 @@ control SwitchIngress(
 
 	action miss() {}
 
-	table cache_lookup {
-		key = {
-			hdr.netcache.key : exact;
-		}
-		actions = {
-			set_lookup_metadata;
-			miss;
-		}
-		size = NC_ENTRIES;
-		const default_action = miss();
-	}
+	// table cache_lookup {
+	// 	key = {
+	// 		hdr.netcache.key : exact;
+	// 	}
+	// 	actions = {
+	// 		set_lookup_metadata;
+	// 		miss;
+	// 	}
+	// 	size = NC_ENTRIES;
+	// 	const default_action = miss();
+	// }
 
 	table fwd {
 		key = {
@@ -123,8 +139,13 @@ control SwitchIngress(
 
 	apply {
 		hdr.meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
-		if (hdr.netcache.isValid() && ig_intr_md.ingress_port != WAN_PORT) {
-			cache_lookup.apply();
+		// Check if packet is not a HH report going from/to controller<->server.
+		if (hdr.netcache.isValid()
+				&& ig_intr_md.ingress_port != WAN_PORT
+				&& ig_intr_md.ingress_port != CPU_PCIE_PORT) {
+			hdr.netcache.port = hdr.meta.ingress_port;
+			// cache_lookup.apply();
+			cache_lookup();
 			if (hdr.netcache.op == READ_QUERY) {
 				// Cache hit
 				if (hdr.meta.cache_hit == 1) {
@@ -207,9 +228,11 @@ control SwitchEgress(
 	}
 
 	apply {
+		#if (CACHE_ACTIVATED == 1)
 		if (hdr.netcache.isValid()) {
 			eg_dprsr_md.drop_ctl = 1;
-			if (hdr.meta.ingress_port == WAN_PORT) {
+			// Packet is a HH report going from/to controller<->server or a server READ reply.
+			if (hdr.meta.ingress_port == CPU_PCIE_PORT || hdr.meta.ingress_port == WAN_PORT) {
 				eg_dprsr_md.drop_ctl = 0;
 			}
 			else if (hdr.netcache.op == READ_QUERY) {
@@ -229,7 +252,7 @@ control SwitchEgress(
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
 								hdr.netcache.val = cm_result;
-								hdr.netcache.port = hdr.meta.ingress_port;
+								// hdr.netcache.status = 1;
 								set_mirror();
 							}
 						}
@@ -237,6 +260,7 @@ control SwitchEgress(
 				}
 			}
 		}
+		#endif
 	}
 }
 

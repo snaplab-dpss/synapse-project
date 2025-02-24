@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 
+#include "setup.h"
 #include "netcache.h"
 #include "ports.h"
 
@@ -76,10 +77,15 @@ std::string get_target_conf_file() {
 	return get_env_var_value(ENV_VAR_CONF_FILE);
 }
 
-void init_bf_switchd(bool use_tofino_model, bool bf_prompt) {
+void init_bf_switchd(bool bf_prompt) {
+	// Check if root privileges exist or not, exit if not.
+	if (geteuid() != 0) {
+		std::cerr << "Requires sudo. Exiting.";
+	}
+
 	auto switchd_main_ctx = (bf_switchd_context_t *)calloc(1, sizeof(bf_switchd_context_t));
 
-	/* Allocate memory to hold switchd configuration and state */
+	// Allocate memory to hold switchd configuration and state
 	if (switchd_main_ctx == NULL) {
 		std::cerr << "ERROR: Failed to allocate memory for switchd context\n";
 		exit(1);
@@ -104,11 +110,6 @@ void init_bf_switchd(bool use_tofino_model, bool bf_prompt) {
 	if (bf_status != BF_SUCCESS) {
 		exit(1);
 	}
-}
-
-void setup_controller(const std::string &conf_file_path, bool use_tofino_model) {
-	auto conf = parse_conf_file(conf_file_path);
-	setup_controller(conf, use_tofino_model);
 }
 
 void setup_controller(const conf_t &conf, bool use_tofino_model) {

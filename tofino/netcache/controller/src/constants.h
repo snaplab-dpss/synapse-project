@@ -6,6 +6,8 @@
 
 #define CPU_PORT 0
 
+constexpr const int SWITCH_PACKET_MAX_BUFFER_SIZE = 10000;
+
 // Netcache
 
 #define READ_QUERY		0x0
@@ -14,10 +16,4 @@
 #define NC_PORT			50000
 #define NC_HDR_SIZE		10
 
-// DPDK
-
 #define BURST_SIZE 1
-#define NUM_MBUFS 8191
-#define MBUF_CACHE_SIZE 250
-#define RX_RING_SIZE 128
-#define TX_RING_SIZE 512

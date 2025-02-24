@@ -9,8 +9,9 @@
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
-#include "tables/cache_lookup.h"
+// #include "tables/cache_lookup.h"
 #include "registers/reg_vtable.h"
+#include "registers/reg_cache_lookup.h"
 #include "registers/reg_key_count.h"
 #include "registers/reg_cm_0.h"
 #include "registers/reg_cm_1.h"
@@ -33,7 +34,7 @@ extern "C" {
 
 namespace netcache {
 
-void init_bf_switchd(bool use_tofino_model, bool bf_prompt);
+void init_bf_switchd(bool bf_prompt);
 void setup_controller(const conf_t &conf, bool use_tofino_model);
 void setup_controller(const std::string &conf_file_path, bool use_tofino_model);
 
@@ -42,12 +43,18 @@ struct bfrt_info_t;
 class Controller {
 public:
 	static std::shared_ptr<Controller> controller;
+
+	const bfrt::BfRtInfo *info;
+	std::shared_ptr<bfrt::BfRtSession> session;
+	bf_rt_target_t dev_tgt;
+
 	conf_t conf;
 	// Switch tables
 	Fwd fwd;
-	CacheLookup cache_lookup;
+	// CacheLookup cache_lookup;
 	// Switch registers
 	RegVTable reg_vtable;
+	RegCacheLookup reg_cache_lookup;
 	RegKeyCount reg_key_count;
 	RegCm0 reg_cm_0;
 	RegCm1 reg_cm_1;
@@ -58,9 +65,6 @@ public:
 	RegBloom2 reg_bloom_2;
 
 ;private:
-	const bfrt::BfRtInfo *info;
-	std::shared_ptr<bfrt::BfRtSession> session;
-	bf_rt_target_t dev_tgt;
 
 	Ports ports;
 	bool use_tofino_model;
@@ -77,8 +81,9 @@ public:
 		  conf(_conf),
 		  use_tofino_model(_use_tofino_model),
 		  fwd(_info, _session, _dev_tgt),
-		  cache_lookup(_info, _session, _dev_tgt),
+		  // cache_lookup(_info, _session, _dev_tgt),
 		  reg_vtable(_info, _session, _dev_tgt),
+		  reg_cache_lookup(_info, _session, _dev_tgt),
 		  reg_key_count(_info, _session, _dev_tgt),
 		  reg_cm_0(_info, _session, _dev_tgt),
 		  reg_cm_1(_info, _session, _dev_tgt),
@@ -137,10 +142,11 @@ public:
 
 		// Initial cache lookup table config.
 		// With this setup, we're assuming that key = key_idx, just to keep it simple.
-		cache_lookup.add_entry(0, 0, 0);
-		for (int i: sampl_index) {
-			cache_lookup.add_entry(i, i, i);
-		}
+		for (int i: sampl_index) { reg_cache_lookup.allocate((uint32_t) i, 1); }
+		// cache_lookup.add_entry(0, 0, 0);
+		// for (int i: sampl_index) {
+		// 	cache_lookup.add_entry(i, i, i);
+		// }
 
 		/* auto bf_status = port_diag_prbs_stats_display(dev_tgt.dev_id, 0); */
 	}
