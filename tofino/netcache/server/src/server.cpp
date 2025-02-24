@@ -170,6 +170,8 @@ int main(int argc, char **argv) {
 
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+  std::cout << "***** Server started *****" << std::endl;
+
   while (1) {
     // If the received number of queries has reached a limit, wait for some
     // time before processing additional ones.

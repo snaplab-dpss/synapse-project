@@ -12,4 +12,4 @@ SOCKET_MEM=128
 CONF=$SCRIPT_DIR/conf.json
 
 # Run the netcache server
-"$SCRIPT_DIR"/build/release/server -m 8192 --no-huge --vdev "net_tap0,iface=test_rx" --vdev "net_tap1,iface=test_tx" --no-shconf -- $CONF
+sudo $SCRIPT_DIR/build/release/server -m 8192 --no-huge --vdev "net_tap0,iface=test_rx" --vdev "net_tap1,iface=test_tx" --no-shconf -- $CONF

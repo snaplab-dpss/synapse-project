@@ -1,15 +1,12 @@
-import re
 import itertools
 
 from paramiko import ssh_exception
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from .remote import RemoteHost
 from .dpdk_config import DpdkConfig
-
-KVS_PROMPT = "> "
 
 
 class KVSServer:
@@ -23,6 +20,7 @@ class KVSServer:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.server_dir = Path(repo) / "tofino" / "netcache" / "server"
         self.server_exe = self.server_dir / "build" / "release" / "server"
+        self.config_file = self.server_dir / "conf.json"
         self.pcie_dev = pcie_dev
 
         self.setup_env_script = Path(repo) / "paths.sh"
@@ -56,15 +54,38 @@ class KVSServer:
 
     def launch(self) -> None:
         assert not self.server_active
-        assert False and "TODO: "
 
-    def wait_launch(self) -> int:
-        assert self.server_active
-        assert False and "TODO: "
+        self.kill_server()
 
-    def wait_ready(self) -> str:
+        remote_cmd = f"sudo {str(self.server_exe)} {self.dpdk_config} -- {self.config_file}"
+
+        self.server = self.host.run_command(remote_cmd, pty=True)
+        self.server_active = True
+        self.ready = False
+
+        self.remote_cmd = remote_cmd
+        self.target_pkt_tx = 0
+
+    def wait_launch(self) -> None:
         assert self.server_active
-        assert False and "TODO: "
+
+        if self.ready:
+            return
+
+        self._wait_ready()
+        self.ready = True
+
+    def _wait_ready(self) -> str:
+        assert self.server_active
+
+        # Wait to see if we actually managed to run pktgen successfuly.
+        # Typically we fail here if we forgot to bind ports to DPDK,
+        # or allocate hugepages.
+        if self.server.exit_status_ready() and self.server.recv_exit_status() != 0:
+            self.server_active = False
+            raise Exception("Cannot run KVS server")
+
+        return self.server.watch(stop_pattern="***** Server started *****")
 
     @property
     def dpdk_config(self):
@@ -74,7 +95,6 @@ class KVSServer:
         self.host.validate_pcie_dev(self.pcie_dev)
 
         all_cores = self.host.get_all_cpus()
-
         all_cores = set(self.host.get_pcie_dev_cpus(self.pcie_dev))
 
         nb_cores = 1
