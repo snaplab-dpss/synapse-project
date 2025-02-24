@@ -64,7 +64,7 @@ def main():
     server = KVSServer(
         hostname=config["hosts"]["server"],
         repo=config["repo"]["server"],
-        pcie_dev=config["devices"]["server"]["dev"],
+        pcie_devs=config["devices"]["server"]["devs"],
         log_file=config["logs"]["server"],
     )
 

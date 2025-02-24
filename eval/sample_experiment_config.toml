@@ -43,7 +43,7 @@ tx_line_rate = 100 # in Gbps.
 nb_tx_cores  = 4
 
 [devices.server]
-dev = ""
+devs = [ "0000:af:00.0", "0000:af:00.1" ]
 
 [logs]
 # Log files. They will be saved in the orchestrator machine in the same
