@@ -3,26 +3,21 @@ project(netcache-server)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT DEFINED ENV{RTE_SDK})
-    message(FATAL_ERROR "RTE_SDK is not set")
-endif()
-
 set(PROG "server")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBDPDK REQUIRED libdpdk)
 
-set(RTE_SDK "$ENV{RTE_SDK}")
-
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CFLAGS "-std=c++11 -DSDE_INSTALL=\"${SDE_INSTALL}\" -DRTE_TARGET=\"${RTE_SDK}\"")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFLAGS}")
+# PC_FILE := $(shell $(PKGCONF) --path libdpdk 2>/dev/null)
+# CFLAGS  += $(shell $(PKGCONF) --cflags libdpdk)
+# LDFLAGS  = $(shell $(PKGCONF) --static --libs libdpdk)
+# LDFLAGS += -L$(RTE_SDK)/$(RTE_TARGET)
 
-set(LDFLAGS "-Wl,-rpath,${RTE_SDK}/build/lib")
-set(LDLIBS "-L${RTE_TARGET}/lib -W")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFLAGS}")
 
 add_executable(server
 	${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp

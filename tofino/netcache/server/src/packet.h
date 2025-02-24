@@ -13,11 +13,11 @@
 namespace netcache {
 
 struct netcache_hdr_t {
-	uint8_t op;
-	uint16_t key;
-	uint32_t val;
-	uint8_t status;
-	uint16_t port;
+  uint8_t op;
+  uint16_t key;
+  uint32_t val;
+  uint8_t status;
+  uint16_t port;
 } __attribute__((packed));
 
-};	// namespace netcache
+}; // namespace netcache
