@@ -52,12 +52,12 @@ force_build_pktgen() {
     echo "*********************************************"
 
     # Touching CMakeLists allows cmake to detect new files (because of glob)
-    ssh $host "cd $path_to_repo && rm -rf Debug Release && ./build.sh"
+    ssh $host "cd $path_to_repo && touch CMakeLists.txt && ./build.sh"
 }
 
 sync tofino1 /root/synapse-project
 sync tofino2 /home/user/synapse-project
-sync geodude /opt/synapse-project
-sync graveler /opt/synapse-project
+sync geodude ~/synapse-project
+sync graveler ~/synapse-project
 install_libsycon tofino2 /home/user/synapse-project
-force_build_pktgen geodude /opt/synapse-project/deps/pktgen
+force_build_pktgen geodude ~/synapse-project/deps/pktgen

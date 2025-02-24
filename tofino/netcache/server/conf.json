@@ -5,7 +5,7 @@
 	},
 	"connections": {
 		"in": {
-			"port": 0,
+			"port": 1,
 			"comment": "dpdk port"
 		},
 		"out": {
