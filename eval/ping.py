@@ -61,15 +61,12 @@ def main():
     )
 
     print("Launching KVS server...")
-    server = KVSServer(
+    KVSServer(
         hostname=config["hosts"]["server"],
         repo=config["repo"]["server"],
         pcie_devs=config["devices"]["server"]["devs"],
         log_file=config["logs"]["server"],
     )
-
-    server.launch()
-    server.wait_launch()
 
     print(f"All hosts are reachable.")
 
