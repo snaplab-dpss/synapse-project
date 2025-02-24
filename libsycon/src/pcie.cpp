@@ -67,7 +67,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     pkt_len = bf_pkt_get_pkt_size(pkt);
 
     if ((packet_size + pkt_len) > SWITCH_PACKET_MAX_BUFFER_SIZE) {
-      DEBUG("Packet too large to transmit - skipping")
+      DEBUG("Packet too large to transmit - skipping");
       break;
     }
 

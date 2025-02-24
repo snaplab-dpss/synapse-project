@@ -782,7 +782,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       // EP node  5798
       // BDD node 161:vector_borrow(vector:(w64 1074093080), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074211408)[ -> (w64 1074106976)])
       buffer_t value_64;
-      state->vector_register_1074093080.get((u16)(cpu_hdr_extra->DEVICE & 65535), value_64);
+      state->vector_register_1074093080.get((u16)(SWAP_ENDIAN_32(cpu_hdr_extra->DEVICE) & 65535), value_64);
       // EP node  5901
       // BDD node 162:vector_return(vector:(w64 1074093080), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074106976)[(ReadLSB w16 (w32 0) vector_data_640)])
       // EP node  6337
@@ -823,7 +823,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       // EP node  5954
       // BDD node 172:vector_borrow(vector:(w64 1074093080), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074213640)[ -> (w64 1074106976)])
       buffer_t value_65;
-      state->vector_register_1074093080.get((u16)(cpu_hdr_extra->DEVICE & 65535), value_65);
+      state->vector_register_1074093080.get((u16)(SWAP_ENDIAN_32(cpu_hdr_extra->DEVICE) & 65535), value_65);
       // EP node  6062
       // BDD node 173:vector_return(vector:(w64 1074093080), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074106976)[(ReadLSB w16 (w32 0) vector_data_640)])
       // EP node  6572

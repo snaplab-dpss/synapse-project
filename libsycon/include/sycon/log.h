@@ -19,10 +19,10 @@ extern "C" {
 
 #else
 #define DEBUG(fmt, ...)                                                                                                                    \
-  {                                                                                                                                        \
+  ({                                                                                                                                       \
     fprintf(stderr, "DEBUG: " fmt "\n", ##__VA_ARGS__);                                                                                    \
     fflush(stderr);                                                                                                                        \
-  }
+  })
 
 #define ASSERT_BF_STATUS(status)                                                                                                           \
   ({                                                                                                                                       \

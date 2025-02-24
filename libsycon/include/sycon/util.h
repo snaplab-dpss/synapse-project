@@ -4,17 +4,19 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <iostream>
 
 #include "log.h"
 
 #define SWAP_ENDIAN_16(v) __builtin_bswap16((v))
 #define SWAP_ENDIAN_32(v) __builtin_bswap32((v))
+#define SWAP_ENDIAN_64(v) __builtin_bswap64((v))
 
 #define WAIT_FOR_ENTER(msg)                                                                                                                \
-  {                                                                                                                                        \
+  do {                                                                                                                                     \
     LOG(msg);                                                                                                                              \
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                                    \
-  }
+  } while (0)
 
 #define likely(x) __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)

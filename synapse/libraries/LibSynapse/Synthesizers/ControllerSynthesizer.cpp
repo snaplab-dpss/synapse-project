@@ -1412,11 +1412,47 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
 
   if (opt & IS_CPU_HDR) {
     var_t cpu_hdr_var = var;
-    cpu_hdr_var.name  = "cpu_hdr->" + var.name;
+
+    switch (var.expr->getWidth()) {
+    case 8: {
+      cpu_hdr_var.name = "cpu_hdr->" + var.name;
+    } break;
+    case 16: {
+      cpu_hdr_var.name = "SWAP_ENDIAN_16(cpu_hdr->" + var.name + ")";
+    } break;
+    case 32: {
+      cpu_hdr_var.name = "SWAP_ENDIAN_32(cpu_hdr->" + var.name + ")";
+    } break;
+    case 64: {
+      cpu_hdr_var.name = "SWAP_ENDIAN_64(cpu_hdr->" + var.name + ")";
+    } break;
+    default: {
+      panic("Unexpected width in cpu hdr (%d bits)", var.expr->getWidth());
+    } break;
+    }
+
     vars.insert_back(cpu_hdr_var);
   } else if (opt & IS_CPU_HDR_EXTRA) {
     var_t cpu_hdr_extra_var = var;
-    cpu_hdr_extra_var.name  = "cpu_hdr_extra->" + var.name;
+
+    switch (var.expr->getWidth()) {
+    case 8: {
+      cpu_hdr_extra_var.name = "cpu_hdr_extra->" + var.name;
+    } break;
+    case 16: {
+      cpu_hdr_extra_var.name = "SWAP_ENDIAN_16(cpu_hdr_extra->" + var.name + ")";
+    } break;
+    case 32: {
+      cpu_hdr_extra_var.name = "SWAP_ENDIAN_32(cpu_hdr_extra->" + var.name + ")";
+    } break;
+    case 64: {
+      cpu_hdr_extra_var.name = "SWAP_ENDIAN_64(cpu_hdr_extra->" + var.name + ")";
+    } break;
+    default: {
+      panic("Unexpected width in cpu hdr extra (%d bits)", var.expr->getWidth());
+    } break;
+    }
+
     vars.insert_back(cpu_hdr_extra_var);
   } else {
     vars.insert_back(var);

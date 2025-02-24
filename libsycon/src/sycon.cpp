@@ -48,7 +48,7 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
     case SIGINT:
     case SIGQUIT:
     case SIGTERM:
-      DEBUG("~~~ NF exit ~~~")
+      DEBUG("~~~ NF exit ~~~");
       nf_exit();
       bf_switchd_exit_sighandler(signum);
       exit(0);
