@@ -1,6 +1,6 @@
 [submodule "deps/dpdk"]
 	path = deps/dpdk
-	url = https://github.com/snaplab-dpss/maestro-dpdk.git
+	url = https://github.com/DPDK/dpdk.git
 [submodule "deps/llvm"]
 	path = deps/llvm
 	url = https://github.com/snaplab-dpss/maestro-llvm.git
@@ -12,7 +12,7 @@
 	url = https://github.com/snaplab-dpss/maestro-klee-uclibc.git
 [submodule "deps/z3"]
 	path = deps/z3
-	url = https://github.com/snaplab-dpss/maestro-z3.git
+	url = https://github.com/Z3Prover/z3.git
 [submodule "deps/pktgen"]
 	path = deps/pktgen
 	url = https://github.com/fchamicapereira/pktgen.git

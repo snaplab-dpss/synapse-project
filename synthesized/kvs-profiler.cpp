@@ -223,8 +223,8 @@ private:
 
     if (assume_ip[dev]) {
       struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)pkt_data;
-      nf_parse_etheraddr(DEFAULT_DST_MAC, &eth_hdr->d_addr);
-      nf_parse_etheraddr(DEFAULT_SRC_MAC, &eth_hdr->s_addr);
+      nf_parse_etheraddr(DEFAULT_DST_MAC, &eth_hdr->dst_addr);
+      nf_parse_etheraddr(DEFAULT_SRC_MAC, &eth_hdr->src_addr);
       eth_hdr->ether_type = rte_bswap16(RTE_ETHER_TYPE_IPV4);
       pkt_data += sizeof(struct rte_ether_hdr);
     }

@@ -13,8 +13,8 @@ struct rte_ether_addr {
 };
 
 struct rte_ether_hdr {
-  struct rte_ether_addr d_addr;
-  struct rte_ether_addr s_addr;
+  struct rte_ether_addr dst_addr;
+  struct rte_ether_addr src_addr;
   uint16_t ether_type;
 };
 

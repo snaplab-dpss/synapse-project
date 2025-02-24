@@ -34,11 +34,11 @@ run() {
 }
 
 run "echo"
-# run "fwd"
+run "fwd"
 run "fw"
-# run "nat"
-# run "pol"
-# run "kvs"
-# run "cl"
-# run "psd"
+run "nat"
+run "pol"
+run "kvs"
+run "cl"
+run "psd"
 # run "lb"

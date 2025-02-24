@@ -21,12 +21,12 @@ size_t chunks_borrowed_num = 0;
 
 void nf_log_pkt(struct rte_ether_hdr *rte_ether_header, struct rte_ipv4_hdr *rte_ipv4_header, struct tcpudp_hdr *tcpudp_header) {
   NF_INFO("###[ Ethernet ]###");
-  NF_INFO("  dst  %02x:%02x:%02x:%02x:%02x:%02x", rte_ether_header->d_addr.addr_bytes[0], rte_ether_header->d_addr.addr_bytes[1],
-          rte_ether_header->d_addr.addr_bytes[2], rte_ether_header->d_addr.addr_bytes[3], rte_ether_header->d_addr.addr_bytes[4],
-          rte_ether_header->d_addr.addr_bytes[5]);
-  NF_INFO("  src  %02x:%02x:%02x:%02x:%02x:%02x", rte_ether_header->s_addr.addr_bytes[0], rte_ether_header->s_addr.addr_bytes[1],
-          rte_ether_header->s_addr.addr_bytes[2], rte_ether_header->s_addr.addr_bytes[3], rte_ether_header->s_addr.addr_bytes[4],
-          rte_ether_header->s_addr.addr_bytes[5]);
+  NF_INFO("  dst  %02x:%02x:%02x:%02x:%02x:%02x", rte_ether_header->dst_addr.addr_bytes[0], rte_ether_header->dst_addr.addr_bytes[1],
+          rte_ether_header->dst_addr.addr_bytes[2], rte_ether_header->dst_addr.addr_bytes[3], rte_ether_header->dst_addr.addr_bytes[4],
+          rte_ether_header->dst_addr.addr_bytes[5]);
+  NF_INFO("  src  %02x:%02x:%02x:%02x:%02x:%02x", rte_ether_header->src_addr.addr_bytes[0], rte_ether_header->src_addr.addr_bytes[1],
+          rte_ether_header->src_addr.addr_bytes[2], rte_ether_header->src_addr.addr_bytes[3], rte_ether_header->src_addr.addr_bytes[4],
+          rte_ether_header->src_addr.addr_bytes[5]);
   NF_INFO("  type 0x%x", rte_bswap16(rte_ether_header->ether_type));
 
   NF_INFO("###[ IP ]###");

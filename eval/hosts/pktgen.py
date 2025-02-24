@@ -30,6 +30,8 @@ class Pktgen:
         self.tx_pcie_dev = tx_pcie_dev
         self.nb_tx_cores = nb_tx_cores
 
+        self.setup_env_script = Path(repo) / "paths.sh"
+
         self.pktgen_active = False
 
         self.max_churn = 0
@@ -48,7 +50,7 @@ class Pktgen:
     def _build(self):
         build_script = self.pktgen_dir / "build.sh"
 
-        cmd = self.host.run_command(f"{build_script}")
+        cmd = self.host.run_command(f"source {self.setup_env_script} && {build_script}")
         cmd.watch()
         code = cmd.recv_exit_status()
 
@@ -107,7 +109,7 @@ class Pktgen:
 
         pktgen_options = " ".join(pktgen_options_list)
 
-        remote_cmd = f"sudo {str(self.pktgen_exe)} {self.dpdk_config} -- {pktgen_options}"
+        remote_cmd = f"source {self.setup_env_script} && sudo -E {str(self.pktgen_exe)} {self.dpdk_config} -- {pktgen_options}"
 
         self.pktgen = self.host.run_command(remote_cmd, pty=True)
         self.pktgen_active = True

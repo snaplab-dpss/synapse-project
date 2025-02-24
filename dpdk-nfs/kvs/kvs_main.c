@@ -19,9 +19,9 @@ bool nf_init(void) {
 }
 
 void invert_flow(struct rte_ether_hdr *ether_hdr, struct rte_ipv4_hdr *ipv4_hdr, struct rte_udp_hdr *udp_hdr) {
-  struct rte_ether_addr tmp = ether_hdr->s_addr;
-  ether_hdr->s_addr         = ether_hdr->d_addr;
-  ether_hdr->d_addr         = tmp;
+  struct rte_ether_addr tmp = ether_hdr->src_addr;
+  ether_hdr->src_addr       = ether_hdr->dst_addr;
+  ether_hdr->dst_addr       = tmp;
 
   uint32_t tmp_ip    = ipv4_hdr->src_addr;
   ipv4_hdr->src_addr = ipv4_hdr->dst_addr;

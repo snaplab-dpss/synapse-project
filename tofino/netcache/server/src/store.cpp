@@ -134,22 +134,26 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
   eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
 
 #ifndef NDEBUG
-  printf("Original MAC src: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->s_addr.addr_bytes[0], eth_hdr->s_addr.addr_bytes[1],
-         eth_hdr->s_addr.addr_bytes[2], eth_hdr->s_addr.addr_bytes[3], eth_hdr->s_addr.addr_bytes[4], eth_hdr->s_addr.addr_bytes[5]);
-  printf("Original MAC dst: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->d_addr.addr_bytes[0], eth_hdr->d_addr.addr_bytes[1],
-         eth_hdr->d_addr.addr_bytes[2], eth_hdr->d_addr.addr_bytes[3], eth_hdr->d_addr.addr_bytes[4], eth_hdr->d_addr.addr_bytes[5]);
+  printf("Original MAC src: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
+         eth_hdr->src_addr.addr_bytes[5]);
+  printf("Original MAC dst: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
+         eth_hdr->dst_addr.addr_bytes[5]);
 #endif
 
   // Swap src and dst MAC
-  eth_tmp         = eth_hdr->s_addr;
-  eth_hdr->s_addr = eth_hdr->d_addr;
-  eth_hdr->d_addr = eth_tmp;
+  eth_tmp           = eth_hdr->src_addr;
+  eth_hdr->src_addr = eth_hdr->dst_addr;
+  eth_hdr->dst_addr = eth_tmp;
 
 #ifndef NDEBUG
-  printf("Swapped MAC src: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->s_addr.addr_bytes[0], eth_hdr->s_addr.addr_bytes[1],
-         eth_hdr->s_addr.addr_bytes[2], eth_hdr->s_addr.addr_bytes[3], eth_hdr->s_addr.addr_bytes[4], eth_hdr->s_addr.addr_bytes[5]);
-  printf("Swapped MAC dst: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->d_addr.addr_bytes[0], eth_hdr->d_addr.addr_bytes[1],
-         eth_hdr->d_addr.addr_bytes[2], eth_hdr->d_addr.addr_bytes[3], eth_hdr->d_addr.addr_bytes[4], eth_hdr->d_addr.addr_bytes[5]);
+  printf("Swapped MAC src: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
+         eth_hdr->src_addr.addr_bytes[5]);
+  printf("Swapped MAC dst: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
+         eth_hdr->dst_addr.addr_bytes[5]);
 #endif
 
   // ------------------------

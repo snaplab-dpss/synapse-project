@@ -78,8 +78,8 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
     return retval;
   }
 
-  if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE) {
-    port_conf.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+  if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
+    port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
   }
 
   // Configure the Ethernet device.

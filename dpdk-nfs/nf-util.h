@@ -30,31 +30,32 @@ struct rte_ether_hdr;
 #define WORD_SIZE 4
 
 #ifdef KLEE_VERIFICATION
-static struct str_field_descr rte_ether_fields[] = {{offsetof(struct rte_ether_hdr, ether_type), sizeof(uint16_t), 0, "ether_type"},
-                                                    {offsetof(struct rte_ether_hdr, d_addr), sizeof(struct rte_ether_addr), 0, "d_addr"},
-                                                    {offsetof(struct rte_ether_hdr, s_addr), sizeof(struct rte_ether_addr), 0, "s_addr"}};
-static struct str_field_descr rte_ipv4_fields[]  = {{offsetof(struct rte_ipv4_hdr, version_ihl), sizeof(uint8_t), 0, "version_ihl"},
-                                                    {offsetof(struct rte_ipv4_hdr, type_of_service), sizeof(uint8_t), 0, "type_of_service"},
-                                                    {offsetof(struct rte_ipv4_hdr, total_length), sizeof(uint16_t), 0, "total_length"},
-                                                    {offsetof(struct rte_ipv4_hdr, packet_id), sizeof(uint16_t), 0, "packet_id"},
-                                                    {offsetof(struct rte_ipv4_hdr, fragment_offset), sizeof(uint16_t), 0, "fragment_offset"},
-                                                    {offsetof(struct rte_ipv4_hdr, time_to_live), sizeof(uint8_t), 0, "time_to_live"},
-                                                    {offsetof(struct rte_ipv4_hdr, next_proto_id), sizeof(uint8_t), 0, "next_proto_id"},
-                                                    {offsetof(struct rte_ipv4_hdr, hdr_checksum), sizeof(uint16_t), 0, "hdr_checksum"},
-                                                    {offsetof(struct rte_ipv4_hdr, src_addr), sizeof(uint32_t), 0, "src_addr"},
-                                                    {offsetof(struct rte_ipv4_hdr, dst_addr), sizeof(uint32_t), 0, "dst_addr"}};
-static struct str_field_descr tcpudp_fields[]    = {{offsetof(struct tcpudp_hdr, src_port), sizeof(uint16_t), 0, "src_port"},
-                                                    {offsetof(struct tcpudp_hdr, dst_port), sizeof(uint16_t), 0, "dst_port"}};
-static struct str_field_descr tcp_fields[]       = {
-          {offsetof(struct rte_tcp_hdr, src_port), sizeof(uint16_t), 0, "src_port"},
-          {offsetof(struct rte_tcp_hdr, dst_port), sizeof(uint16_t), 0, "dst_port"},
-          {offsetof(struct rte_tcp_hdr, sent_seq), sizeof(uint32_t), 0, "seq_no"},
-          {offsetof(struct rte_tcp_hdr, recv_ack), sizeof(uint32_t), 0, "ack_no"},
-          {offsetof(struct rte_tcp_hdr, data_off), sizeof(uint8_t), 0, "data_off"},
-          {offsetof(struct rte_tcp_hdr, tcp_flags), sizeof(uint8_t), 0, "flags"},
-          {offsetof(struct rte_tcp_hdr, rx_win), sizeof(uint16_t), 0, "window"},
-          {offsetof(struct rte_tcp_hdr, cksum), sizeof(uint16_t), 0, "checksum"},
-          {offsetof(struct rte_tcp_hdr, tcp_urp), sizeof(uint16_t), 0, "urgent_ptr"},
+static struct str_field_descr rte_ether_fields[] = {
+    {offsetof(struct rte_ether_hdr, ether_type), sizeof(uint16_t), 0, "ether_type"},
+    {offsetof(struct rte_ether_hdr, dst_addr), sizeof(struct rte_ether_addr), 0, "dst_addr"},
+    {offsetof(struct rte_ether_hdr, src_addr), sizeof(struct rte_ether_addr), 0, "src_addr"}};
+static struct str_field_descr rte_ipv4_fields[] = {{offsetof(struct rte_ipv4_hdr, version_ihl), sizeof(uint8_t), 0, "version_ihl"},
+                                                   {offsetof(struct rte_ipv4_hdr, type_of_service), sizeof(uint8_t), 0, "type_of_service"},
+                                                   {offsetof(struct rte_ipv4_hdr, total_length), sizeof(uint16_t), 0, "total_length"},
+                                                   {offsetof(struct rte_ipv4_hdr, packet_id), sizeof(uint16_t), 0, "packet_id"},
+                                                   {offsetof(struct rte_ipv4_hdr, fragment_offset), sizeof(uint16_t), 0, "fragment_offset"},
+                                                   {offsetof(struct rte_ipv4_hdr, time_to_live), sizeof(uint8_t), 0, "time_to_live"},
+                                                   {offsetof(struct rte_ipv4_hdr, next_proto_id), sizeof(uint8_t), 0, "next_proto_id"},
+                                                   {offsetof(struct rte_ipv4_hdr, hdr_checksum), sizeof(uint16_t), 0, "hdr_checksum"},
+                                                   {offsetof(struct rte_ipv4_hdr, src_addr), sizeof(uint32_t), 0, "src_addr"},
+                                                   {offsetof(struct rte_ipv4_hdr, dst_addr), sizeof(uint32_t), 0, "dst_addr"}};
+static struct str_field_descr tcpudp_fields[]   = {{offsetof(struct tcpudp_hdr, src_port), sizeof(uint16_t), 0, "src_port"},
+                                                   {offsetof(struct tcpudp_hdr, dst_port), sizeof(uint16_t), 0, "dst_port"}};
+static struct str_field_descr tcp_fields[]      = {
+         {offsetof(struct rte_tcp_hdr, src_port), sizeof(uint16_t), 0, "src_port"},
+         {offsetof(struct rte_tcp_hdr, dst_port), sizeof(uint16_t), 0, "dst_port"},
+         {offsetof(struct rte_tcp_hdr, sent_seq), sizeof(uint32_t), 0, "seq_no"},
+         {offsetof(struct rte_tcp_hdr, recv_ack), sizeof(uint32_t), 0, "ack_no"},
+         {offsetof(struct rte_tcp_hdr, data_off), sizeof(uint8_t), 0, "data_off"},
+         {offsetof(struct rte_tcp_hdr, tcp_flags), sizeof(uint8_t), 0, "flags"},
+         {offsetof(struct rte_tcp_hdr, rx_win), sizeof(uint16_t), 0, "window"},
+         {offsetof(struct rte_tcp_hdr, cksum), sizeof(uint16_t), 0, "checksum"},
+         {offsetof(struct rte_tcp_hdr, tcp_urp), sizeof(uint16_t), 0, "urgent_ptr"},
 };
 static struct str_field_descr udp_fields[] = {
     {offsetof(struct rte_udp_hdr, src_port), sizeof(uint16_t), 0, "src_port"},
@@ -63,8 +64,8 @@ static struct str_field_descr udp_fields[] = {
     {offsetof(struct rte_udp_hdr, dgram_cksum), sizeof(uint16_t), 0, "checksum"},
 };
 static struct nested_field_descr rte_ether_nested_fields[] = {
-    {offsetof(struct rte_ether_hdr, d_addr), 0, sizeof(uint8_t), 6, "src_addr_bytes"},
-    {offsetof(struct rte_ether_hdr, s_addr), 0, sizeof(uint8_t), 6, "dst_addr_bytes"}};
+    {offsetof(struct rte_ether_hdr, dst_addr), 0, sizeof(uint8_t), 6, "src_addr_bytes"},
+    {offsetof(struct rte_ether_hdr, src_addr), 0, sizeof(uint8_t), 6, "dst_addr_bytes"}};
 #endif // KLEE_VERIFICATION
 
 void nf_log_pkt(struct rte_ether_hdr *rte_ether_header, struct rte_ipv4_hdr *rte_ipv4_header, struct tcpudp_hdr *tcpudp_header);

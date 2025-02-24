@@ -41,7 +41,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
 
   if (device != config.wan_device) {
     NF_DEBUG("Processing heartbeat, device is %" PRIu16, device);
-    lb_process_heartbit(balancer, &flow, rte_ether_header->s_addr, device, now);
+    lb_process_heartbit(balancer, &flow, rte_ether_header->src_addr, device, now);
     return DROP;
   }
 
@@ -51,9 +51,9 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   concretize_devices(&backend.nic, rte_eth_dev_count_avail());
 
   if (backend.nic != config.wan_device) {
-    rte_ipv4_header->dst_addr = backend.ip;
-    rte_ether_header->s_addr  = config.device_macs[backend.nic];
-    rte_ether_header->d_addr  = backend.mac;
+    rte_ipv4_header->dst_addr  = backend.ip;
+    rte_ether_header->src_addr = config.device_macs[backend.nic];
+    rte_ether_header->dst_addr = backend.mac;
 
     nf_set_rte_ipv4_udptcp_checksum(rte_ipv4_header, tcpudp_header, buffer);
   }
