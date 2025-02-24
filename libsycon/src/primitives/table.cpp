@@ -29,12 +29,19 @@ std::vector<table_field_t> build_key_fields(const bfrt::BfRtTable *table) {
     ASSERT_BF_STATUS(bf_status);
 
     assert(size > 0);
-    assert(size % 8 == 0);
     assert(size <= 64);
+
+    if (size % 8 != 0) {
+      size += 8 - (size % 8);
+    }
 
     key_fields.push_back({name, id, static_cast<bits_t>(size)});
   }
 
+  std::string name;
+  table->tableNameGet(&name);
+  DEBUG("");
+  DEBUG("Table: %s", name.c_str());
   DEBUG("Keys:");
   for (auto k : key_fields) {
     DEBUG("  %s (%lu bits) (id=%u)", k.name.c_str(), k.size, k.id);
@@ -79,8 +86,11 @@ std::vector<table_action_t> build_actions(const bfrt::BfRtTable *table) {
       ASSERT_BF_STATUS(bf_status);
 
       assert(size > 0);
-      assert(size % 8 == 0);
       assert(size <= 64);
+
+      if (size % 8 != 0) {
+        size += 8 - (size % 8);
+      }
 
       data_fields.push_back({data_name, data_id, static_cast<bits_t>(size)});
     }
@@ -454,9 +464,9 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableK
 
 } // namespace
 
-Table::Table(const std::string &_control, const std::string &_name)
-    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name),
-      table(build_table(dev_tgt, info, control, name)), capacity(get_capacity_from_hw(dev_tgt, session, table)),
+Table::Table(const std::string &_control_name, const std::string &_table_name)
+    : control_name(_control_name), table_name(_table_name), dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session),
+      table(build_table(dev_tgt, info, control_name, table_name)), capacity(get_capacity_from_hw(dev_tgt, session, table)),
       key_fields(build_key_fields(table)), actions(build_actions(table)), no_action(build_no_action(table)), time_aware(false) {
   bf_status_t bf_status;
 
@@ -468,8 +478,8 @@ Table::Table(const std::string &_control, const std::string &_name)
 }
 
 Table::Table(const Table &other)
-    : dev_tgt(other.dev_tgt), info(other.info), session(other.session), control(other.control), name(other.name), table(other.table),
-      capacity(other.capacity), key_fields(other.key_fields), actions(other.actions), no_action(other.no_action),
+    : control_name(other.control_name), table_name(other.table_name), dev_tgt(other.dev_tgt), info(other.info), session(other.session),
+      table(other.table), capacity(other.capacity), key_fields(other.key_fields), actions(other.actions), no_action(other.no_action),
       time_aware(other.time_aware) {
   bf_status_t bf_status;
 
@@ -483,7 +493,7 @@ Table::Table(const Table &other)
 void Table::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { session = _session; }
 
 void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable) {
-  DEBUG("Set timeouts state for table %s: %d", name.c_str(), enable);
+  DEBUG("Set timeouts state for table %s: %d", table_name.c_str(), enable);
 
   assert(timeout >= TOFINO_MIN_EXPIRATION_TIME);
 
@@ -509,7 +519,7 @@ void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdl
   time_aware = true;
 }
 
-const std::string &Table::get_name() const { return name; }
+const std::string &Table::get_name() const { return table_name; }
 
 size_t Table::get_capacity() const { return capacity; }
 
@@ -528,10 +538,14 @@ void Table::add_entry(const buffer_t &k) {
 
   set_key(k);
 
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
   bf_status = table->dataReset(no_action.action_id, data.get());
   ASSERT_BF_STATUS(bf_status);
 
-  bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
+  bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
   ASSERT_BF_STATUS(bf_status);
 }
 
@@ -541,7 +555,11 @@ void Table::add_entry(const buffer_t &k, const std::string &action_name, const s
   set_key(k);
   set_data(action_name, params);
 
-  bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
   ASSERT_BF_STATUS(bf_status);
 }
 
@@ -550,10 +568,14 @@ void Table::mod_entry(const buffer_t &k) {
 
   set_key(k);
 
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
   bf_status = table->dataReset(no_action.action_id, data.get());
   ASSERT_BF_STATUS(bf_status);
 
-  bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
+  bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
   ASSERT_BF_STATUS(bf_status);
 }
 
@@ -567,12 +589,47 @@ void Table::mod_entry(const buffer_t &k, const std::string &action_name, const s
   ASSERT_BF_STATUS(bf_status);
 }
 
+void Table::add_or_mod_entry(const buffer_t &k) {
+  bf_status_t bf_status;
+
+  set_key(k);
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status = table->dataReset(no_action.action_id, data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+void Table::add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params) {
+  bf_status_t bf_status;
+
+  set_key(k);
+  set_data(action_name, params);
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bool was_added = false;
+  bf_status      = table->tableEntryAddOrMod(*session, dev_tgt, flags, *key, *data, &was_added);
+  ASSERT_BF_STATUS(bf_status);
+}
+
 void Table::del_entry(const buffer_t &k) {
   bf_status_t bf_status;
 
   set_key(k);
 
-  bf_status = table->tableEntryDel(*session, dev_tgt, *key);
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status = table->tableEntryDel(*session, dev_tgt, flags, *key);
   ASSERT_BF_STATUS(bf_status);
 }
 
@@ -621,11 +678,25 @@ void Table::set_key(const buffer_t &k) {
 
   bytes_t offset = 0;
   for (const table_field_t &field : key_fields) {
-    bytes_t size = field.size / 8;
-    u64 value    = k.get(offset, size);
+    const bytes_t size = field.size / 8;
 
-    bf_status = key->setValue(field.id, value);
-    ASSERT_BF_STATUS(bf_status);
+    bfrt::DataType data_type;
+    table->keyFieldDataTypeGet(field.id, &data_type);
+
+    switch (data_type) {
+    case bfrt::DataType::UINT64: {
+      u64 value = k.get(offset, size);
+      bf_status = key->setValue(field.id, value);
+      ASSERT_BF_STATUS(bf_status);
+    } break;
+    case bfrt::DataType::BYTE_STREAM: {
+      bf_status = key->setValue(field.id, k.data, size);
+      ASSERT_BF_STATUS(bf_status);
+    } break;
+    default: {
+      ERROR("TODO: Implement data type %d", static_cast<int>(data_type));
+    }
+    }
 
     offset += size;
   }
@@ -650,7 +721,7 @@ void Table::set_data(const std::string &action_name, const std::vector<buffer_t>
   for (size_t i = 0; i < action.data_fields.size(); i++) {
     const table_field_t &field = action.data_fields[i];
     const buffer_t &param      = params[i];
-    bytes_t size               = field.size / 8;
+    const bytes_t size         = field.size / 8;
 
     bfrt::DataType data_type;
     bf_status = table->dataFieldDataTypeGet(field.id, action.action_id, &data_type);
@@ -663,7 +734,7 @@ void Table::set_data(const std::string &action_name, const std::vector<buffer_t>
       ASSERT_BF_STATUS(bf_status);
     } break;
     case bfrt::DataType::BYTE_STREAM: {
-      bf_status = data->setValue(field.id, param.data, param.size);
+      bf_status = data->setValue(field.id, param.data, size);
       ASSERT_BF_STATUS(bf_status);
     } break;
     default: {
@@ -687,7 +758,7 @@ void Table::dump(std::ostream &os) const {
 
   os << "\n";
   os << "================================================\n";
-  os << "  Table name: " << name << "\n";
+  os << "  Table name: " << table_name << "\n";
 
   total_entries = get_usage();
 

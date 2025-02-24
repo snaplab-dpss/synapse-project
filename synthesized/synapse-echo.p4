@@ -116,7 +116,7 @@ control Ingress(
   inout ingress_intrinsic_metadata_for_tm_t ig_tm_md
 ) {
   action drop() { ig_dprsr_md.drop_ctl = 1; }
-  action fwd(bit<9> port) { ig_tm_md.ucast_egress_port = port; }
+  action fwd(bit<16> port) { ig_tm_md.ucast_egress_port = port[8:0]; }
 
   action send_to_controller(bit<16> code_path) {
     hdr.cpu.setValid();

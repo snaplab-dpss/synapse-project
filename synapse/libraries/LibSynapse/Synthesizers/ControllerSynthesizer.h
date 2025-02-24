@@ -224,6 +224,7 @@ private:
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, var_alloc_opt_t opt = 0);
   code_path_t alloc_recirc_coder();
 
+  var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr);
   void transpile_table_decl(const Tofino::Table *table);
   void transpile_register_decl(const Tofino::Register *reg);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);

@@ -85,8 +85,8 @@ control Ingress(
 		ig_dprsr_md.drop_ctl = 1;
 	}
 
-	action fwd(port_t port) {
-		ig_tm_md.ucast_egress_port = port;
+	action fwd(bit<16> port) {
+		ig_tm_md.ucast_egress_port = port[8:0];
 	}
 
 	table forwarder {

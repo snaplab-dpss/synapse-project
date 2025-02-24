@@ -5,11 +5,8 @@
 namespace sycon {
 
 class ForwardNFDev : public Table {
-private:
-  const std::string action_name;
-
 public:
-  ForwardNFDev() : Table("Ingress", "forward_nf_dev"), action_name("fwd") {}
+  ForwardNFDev() : Table("Ingress", "forward_nf_dev") {}
 
   void add_entry(u16 nf_dev, u16 dev_port) {
     buffer_t key(2);
@@ -18,7 +15,8 @@ public:
     buffer_t data(2);
     data.set(0, 2, dev_port);
 
-    Table::add_entry(key, action_name, {data});
+    assert(actions.size() == 1);
+    Table::add_entry(key, actions[0].name, {data});
   }
 };
 

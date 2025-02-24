@@ -45,6 +45,10 @@ std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, con
     return std::nullopt;
   }
 
+  if (vector_borrow->is_vector_borrow_value_ignored()) {
+    return std::nullopt;
+  }
+
   vector_table_data_t data = get_vector_table_data(vector_borrow);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
@@ -66,6 +70,10 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const L
   const LibBDD::call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
+    return impls;
+  }
+
+  if (vector_borrow->is_vector_borrow_value_ignored()) {
     return impls;
   }
 
@@ -96,6 +104,10 @@ std::unique_ptr<Module> VectorTableLookupFactory::create(const LibBDD::BDD *bdd,
   const LibBDD::call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
+    return {};
+  }
+
+  if (vector_borrow->is_vector_borrow_value_ignored()) {
     return {};
   }
 

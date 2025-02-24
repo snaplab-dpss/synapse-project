@@ -5,12 +5,12 @@ using namespace sycon;
 struct state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardNFDev forward_nf_dev;
-  Table<1,1> table_1074013064_65;
+  VectorTable vector_table_1074013064;
 
   state_t()
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
-      table_1074013064_65("Ingress", "table_1074013064_65")
+      vector_table_1074013064("Ingress", {"vector_table_1074013064_65",})
     {}
 };
 
@@ -79,295 +79,263 @@ void sycon::nf_init() {
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 29);
   state->forward_nf_dev.add_entry(29, asic_get_dev_port(32));
   // BDD node 0:vector_allocate(elem_size:(w32 2), capacity:(w32 32), vector_out:(w64 1074012792)[(w64 0) -> (w64 1074013064)])
-  // Module TableAllocate
+  // Module VectorTableAllocate
   // BDD node 1:vector_borrow(vector:(w64 1074013064), index:(w32 0), val_out:(w64 1074012728)[ -> (w64 1074026960)])
   // Module Ignore
   // BDD node 2:vector_return(vector:(w64 1074013064), index:(w32 0), value:(w64 1074026960)[(w16 1)])
-  // Module TableUpdate
-  fields_t<1> table_key_0;
-  table_key_0[0] = 0;
-  fields_t<1> table_value_0;
-  table_value_0[0] = 1;
-  state->table_1074013064_65.put(table_key_0, table_value_0);
+  // Module VectorTableUpdate
+  buffer_t value_0(2);
+  value_0[0] = 0;
+  value_0[1] = 1;
+  state->vector_table_1074013064.put(0, value_0);
   // BDD node 3:vector_borrow(vector:(w64 1074013064), index:(w32 1), val_out:(w64 1074012728)[ -> (w64 1074026984)])
   // Module Ignore
   // BDD node 4:vector_return(vector:(w64 1074013064), index:(w32 1), value:(w64 1074026984)[(w16 0)])
-  // Module TableUpdate
-  fields_t<1> table_key_1;
-  table_key_1[0] = 1;
-  fields_t<1> table_value_1;
-  table_value_1[0] = 0;
-  state->table_1074013064_65.put(table_key_1, table_value_1);
+  // Module VectorTableUpdate
+  buffer_t value_1(2);
+  value_1[0] = 0;
+  value_1[1] = 0;
+  state->vector_table_1074013064.put(1, value_1);
   // BDD node 5:vector_borrow(vector:(w64 1074013064), index:(w32 2), val_out:(w64 1074012728)[ -> (w64 1074027008)])
   // Module Ignore
   // BDD node 6:vector_return(vector:(w64 1074013064), index:(w32 2), value:(w64 1074027008)[(w16 3)])
-  // Module TableUpdate
-  fields_t<1> table_key_2;
-  table_key_2[0] = 2;
-  fields_t<1> table_value_2;
-  table_value_2[0] = 3;
-  state->table_1074013064_65.put(table_key_2, table_value_2);
+  // Module VectorTableUpdate
+  buffer_t value_2(2);
+  value_2[0] = 0;
+  value_2[1] = 3;
+  state->vector_table_1074013064.put(2, value_2);
   // BDD node 7:vector_borrow(vector:(w64 1074013064), index:(w32 3), val_out:(w64 1074012728)[ -> (w64 1074027032)])
   // Module Ignore
   // BDD node 8:vector_return(vector:(w64 1074013064), index:(w32 3), value:(w64 1074027032)[(w16 2)])
-  // Module TableUpdate
-  fields_t<1> table_key_3;
-  table_key_3[0] = 3;
-  fields_t<1> table_value_3;
-  table_value_3[0] = 2;
-  state->table_1074013064_65.put(table_key_3, table_value_3);
+  // Module VectorTableUpdate
+  buffer_t value_3(2);
+  value_3[0] = 0;
+  value_3[1] = 2;
+  state->vector_table_1074013064.put(3, value_3);
   // BDD node 9:vector_borrow(vector:(w64 1074013064), index:(w32 4), val_out:(w64 1074012728)[ -> (w64 1074027056)])
   // Module Ignore
   // BDD node 10:vector_return(vector:(w64 1074013064), index:(w32 4), value:(w64 1074027056)[(w16 5)])
-  // Module TableUpdate
-  fields_t<1> table_key_4;
-  table_key_4[0] = 4;
-  fields_t<1> table_value_4;
-  table_value_4[0] = 5;
-  state->table_1074013064_65.put(table_key_4, table_value_4);
+  // Module VectorTableUpdate
+  buffer_t value_4(2);
+  value_4[0] = 0;
+  value_4[1] = 5;
+  state->vector_table_1074013064.put(4, value_4);
   // BDD node 11:vector_borrow(vector:(w64 1074013064), index:(w32 5), val_out:(w64 1074012728)[ -> (w64 1074027080)])
   // Module Ignore
   // BDD node 12:vector_return(vector:(w64 1074013064), index:(w32 5), value:(w64 1074027080)[(w16 4)])
-  // Module TableUpdate
-  fields_t<1> table_key_5;
-  table_key_5[0] = 5;
-  fields_t<1> table_value_5;
-  table_value_5[0] = 4;
-  state->table_1074013064_65.put(table_key_5, table_value_5);
+  // Module VectorTableUpdate
+  buffer_t value_5(2);
+  value_5[0] = 0;
+  value_5[1] = 4;
+  state->vector_table_1074013064.put(5, value_5);
   // BDD node 13:vector_borrow(vector:(w64 1074013064), index:(w32 6), val_out:(w64 1074012728)[ -> (w64 1074027104)])
   // Module Ignore
   // BDD node 14:vector_return(vector:(w64 1074013064), index:(w32 6), value:(w64 1074027104)[(w16 7)])
-  // Module TableUpdate
-  fields_t<1> table_key_6;
-  table_key_6[0] = 6;
-  fields_t<1> table_value_6;
-  table_value_6[0] = 7;
-  state->table_1074013064_65.put(table_key_6, table_value_6);
+  // Module VectorTableUpdate
+  buffer_t value_6(2);
+  value_6[0] = 0;
+  value_6[1] = 7;
+  state->vector_table_1074013064.put(6, value_6);
   // BDD node 15:vector_borrow(vector:(w64 1074013064), index:(w32 7), val_out:(w64 1074012728)[ -> (w64 1074027128)])
   // Module Ignore
   // BDD node 16:vector_return(vector:(w64 1074013064), index:(w32 7), value:(w64 1074027128)[(w16 6)])
-  // Module TableUpdate
-  fields_t<1> table_key_7;
-  table_key_7[0] = 7;
-  fields_t<1> table_value_7;
-  table_value_7[0] = 6;
-  state->table_1074013064_65.put(table_key_7, table_value_7);
+  // Module VectorTableUpdate
+  buffer_t value_7(2);
+  value_7[0] = 0;
+  value_7[1] = 6;
+  state->vector_table_1074013064.put(7, value_7);
   // BDD node 17:vector_borrow(vector:(w64 1074013064), index:(w32 8), val_out:(w64 1074012728)[ -> (w64 1074027152)])
   // Module Ignore
   // BDD node 18:vector_return(vector:(w64 1074013064), index:(w32 8), value:(w64 1074027152)[(w16 9)])
-  // Module TableUpdate
-  fields_t<1> table_key_8;
-  table_key_8[0] = 8;
-  fields_t<1> table_value_8;
-  table_value_8[0] = 9;
-  state->table_1074013064_65.put(table_key_8, table_value_8);
+  // Module VectorTableUpdate
+  buffer_t value_8(2);
+  value_8[0] = 0;
+  value_8[1] = 9;
+  state->vector_table_1074013064.put(8, value_8);
   // BDD node 19:vector_borrow(vector:(w64 1074013064), index:(w32 9), val_out:(w64 1074012728)[ -> (w64 1074027176)])
   // Module Ignore
   // BDD node 20:vector_return(vector:(w64 1074013064), index:(w32 9), value:(w64 1074027176)[(w16 8)])
-  // Module TableUpdate
-  fields_t<1> table_key_9;
-  table_key_9[0] = 9;
-  fields_t<1> table_value_9;
-  table_value_9[0] = 8;
-  state->table_1074013064_65.put(table_key_9, table_value_9);
+  // Module VectorTableUpdate
+  buffer_t value_9(2);
+  value_9[0] = 0;
+  value_9[1] = 8;
+  state->vector_table_1074013064.put(9, value_9);
   // BDD node 21:vector_borrow(vector:(w64 1074013064), index:(w32 10), val_out:(w64 1074012728)[ -> (w64 1074027200)])
   // Module Ignore
   // BDD node 22:vector_return(vector:(w64 1074013064), index:(w32 10), value:(w64 1074027200)[(w16 11)])
-  // Module TableUpdate
-  fields_t<1> table_key_10;
-  table_key_10[0] = 10;
-  fields_t<1> table_value_10;
-  table_value_10[0] = 11;
-  state->table_1074013064_65.put(table_key_10, table_value_10);
+  // Module VectorTableUpdate
+  buffer_t value_10(2);
+  value_10[0] = 0;
+  value_10[1] = 11;
+  state->vector_table_1074013064.put(10, value_10);
   // BDD node 23:vector_borrow(vector:(w64 1074013064), index:(w32 11), val_out:(w64 1074012728)[ -> (w64 1074027224)])
   // Module Ignore
   // BDD node 24:vector_return(vector:(w64 1074013064), index:(w32 11), value:(w64 1074027224)[(w16 10)])
-  // Module TableUpdate
-  fields_t<1> table_key_11;
-  table_key_11[0] = 11;
-  fields_t<1> table_value_11;
-  table_value_11[0] = 10;
-  state->table_1074013064_65.put(table_key_11, table_value_11);
+  // Module VectorTableUpdate
+  buffer_t value_11(2);
+  value_11[0] = 0;
+  value_11[1] = 10;
+  state->vector_table_1074013064.put(11, value_11);
   // BDD node 25:vector_borrow(vector:(w64 1074013064), index:(w32 12), val_out:(w64 1074012728)[ -> (w64 1074027248)])
   // Module Ignore
   // BDD node 26:vector_return(vector:(w64 1074013064), index:(w32 12), value:(w64 1074027248)[(w16 13)])
-  // Module TableUpdate
-  fields_t<1> table_key_12;
-  table_key_12[0] = 12;
-  fields_t<1> table_value_12;
-  table_value_12[0] = 13;
-  state->table_1074013064_65.put(table_key_12, table_value_12);
+  // Module VectorTableUpdate
+  buffer_t value_12(2);
+  value_12[0] = 0;
+  value_12[1] = 13;
+  state->vector_table_1074013064.put(12, value_12);
   // BDD node 27:vector_borrow(vector:(w64 1074013064), index:(w32 13), val_out:(w64 1074012728)[ -> (w64 1074027272)])
   // Module Ignore
   // BDD node 28:vector_return(vector:(w64 1074013064), index:(w32 13), value:(w64 1074027272)[(w16 12)])
-  // Module TableUpdate
-  fields_t<1> table_key_13;
-  table_key_13[0] = 13;
-  fields_t<1> table_value_13;
-  table_value_13[0] = 12;
-  state->table_1074013064_65.put(table_key_13, table_value_13);
+  // Module VectorTableUpdate
+  buffer_t value_13(2);
+  value_13[0] = 0;
+  value_13[1] = 12;
+  state->vector_table_1074013064.put(13, value_13);
   // BDD node 29:vector_borrow(vector:(w64 1074013064), index:(w32 14), val_out:(w64 1074012728)[ -> (w64 1074027296)])
   // Module Ignore
   // BDD node 30:vector_return(vector:(w64 1074013064), index:(w32 14), value:(w64 1074027296)[(w16 15)])
-  // Module TableUpdate
-  fields_t<1> table_key_14;
-  table_key_14[0] = 14;
-  fields_t<1> table_value_14;
-  table_value_14[0] = 15;
-  state->table_1074013064_65.put(table_key_14, table_value_14);
+  // Module VectorTableUpdate
+  buffer_t value_14(2);
+  value_14[0] = 0;
+  value_14[1] = 15;
+  state->vector_table_1074013064.put(14, value_14);
   // BDD node 31:vector_borrow(vector:(w64 1074013064), index:(w32 15), val_out:(w64 1074012728)[ -> (w64 1074027320)])
   // Module Ignore
   // BDD node 32:vector_return(vector:(w64 1074013064), index:(w32 15), value:(w64 1074027320)[(w16 14)])
-  // Module TableUpdate
-  fields_t<1> table_key_15;
-  table_key_15[0] = 15;
-  fields_t<1> table_value_15;
-  table_value_15[0] = 14;
-  state->table_1074013064_65.put(table_key_15, table_value_15);
+  // Module VectorTableUpdate
+  buffer_t value_15(2);
+  value_15[0] = 0;
+  value_15[1] = 14;
+  state->vector_table_1074013064.put(15, value_15);
   // BDD node 33:vector_borrow(vector:(w64 1074013064), index:(w32 16), val_out:(w64 1074012728)[ -> (w64 1074027344)])
   // Module Ignore
   // BDD node 34:vector_return(vector:(w64 1074013064), index:(w32 16), value:(w64 1074027344)[(w16 17)])
-  // Module TableUpdate
-  fields_t<1> table_key_16;
-  table_key_16[0] = 16;
-  fields_t<1> table_value_16;
-  table_value_16[0] = 17;
-  state->table_1074013064_65.put(table_key_16, table_value_16);
+  // Module VectorTableUpdate
+  buffer_t value_16(2);
+  value_16[0] = 0;
+  value_16[1] = 17;
+  state->vector_table_1074013064.put(16, value_16);
   // BDD node 35:vector_borrow(vector:(w64 1074013064), index:(w32 17), val_out:(w64 1074012728)[ -> (w64 1074027368)])
   // Module Ignore
   // BDD node 36:vector_return(vector:(w64 1074013064), index:(w32 17), value:(w64 1074027368)[(w16 16)])
-  // Module TableUpdate
-  fields_t<1> table_key_17;
-  table_key_17[0] = 17;
-  fields_t<1> table_value_17;
-  table_value_17[0] = 16;
-  state->table_1074013064_65.put(table_key_17, table_value_17);
+  // Module VectorTableUpdate
+  buffer_t value_17(2);
+  value_17[0] = 0;
+  value_17[1] = 16;
+  state->vector_table_1074013064.put(17, value_17);
   // BDD node 37:vector_borrow(vector:(w64 1074013064), index:(w32 18), val_out:(w64 1074012728)[ -> (w64 1074027392)])
   // Module Ignore
   // BDD node 38:vector_return(vector:(w64 1074013064), index:(w32 18), value:(w64 1074027392)[(w16 19)])
-  // Module TableUpdate
-  fields_t<1> table_key_18;
-  table_key_18[0] = 18;
-  fields_t<1> table_value_18;
-  table_value_18[0] = 19;
-  state->table_1074013064_65.put(table_key_18, table_value_18);
+  // Module VectorTableUpdate
+  buffer_t value_18(2);
+  value_18[0] = 0;
+  value_18[1] = 19;
+  state->vector_table_1074013064.put(18, value_18);
   // BDD node 39:vector_borrow(vector:(w64 1074013064), index:(w32 19), val_out:(w64 1074012728)[ -> (w64 1074027416)])
   // Module Ignore
   // BDD node 40:vector_return(vector:(w64 1074013064), index:(w32 19), value:(w64 1074027416)[(w16 18)])
-  // Module TableUpdate
-  fields_t<1> table_key_19;
-  table_key_19[0] = 19;
-  fields_t<1> table_value_19;
-  table_value_19[0] = 18;
-  state->table_1074013064_65.put(table_key_19, table_value_19);
+  // Module VectorTableUpdate
+  buffer_t value_19(2);
+  value_19[0] = 0;
+  value_19[1] = 18;
+  state->vector_table_1074013064.put(19, value_19);
   // BDD node 41:vector_borrow(vector:(w64 1074013064), index:(w32 20), val_out:(w64 1074012728)[ -> (w64 1074027440)])
   // Module Ignore
   // BDD node 42:vector_return(vector:(w64 1074013064), index:(w32 20), value:(w64 1074027440)[(w16 21)])
-  // Module TableUpdate
-  fields_t<1> table_key_20;
-  table_key_20[0] = 20;
-  fields_t<1> table_value_20;
-  table_value_20[0] = 21;
-  state->table_1074013064_65.put(table_key_20, table_value_20);
+  // Module VectorTableUpdate
+  buffer_t value_20(2);
+  value_20[0] = 0;
+  value_20[1] = 21;
+  state->vector_table_1074013064.put(20, value_20);
   // BDD node 43:vector_borrow(vector:(w64 1074013064), index:(w32 21), val_out:(w64 1074012728)[ -> (w64 1074027464)])
   // Module Ignore
   // BDD node 44:vector_return(vector:(w64 1074013064), index:(w32 21), value:(w64 1074027464)[(w16 20)])
-  // Module TableUpdate
-  fields_t<1> table_key_21;
-  table_key_21[0] = 21;
-  fields_t<1> table_value_21;
-  table_value_21[0] = 20;
-  state->table_1074013064_65.put(table_key_21, table_value_21);
+  // Module VectorTableUpdate
+  buffer_t value_21(2);
+  value_21[0] = 0;
+  value_21[1] = 20;
+  state->vector_table_1074013064.put(21, value_21);
   // BDD node 45:vector_borrow(vector:(w64 1074013064), index:(w32 22), val_out:(w64 1074012728)[ -> (w64 1074027488)])
   // Module Ignore
   // BDD node 46:vector_return(vector:(w64 1074013064), index:(w32 22), value:(w64 1074027488)[(w16 23)])
-  // Module TableUpdate
-  fields_t<1> table_key_22;
-  table_key_22[0] = 22;
-  fields_t<1> table_value_22;
-  table_value_22[0] = 23;
-  state->table_1074013064_65.put(table_key_22, table_value_22);
+  // Module VectorTableUpdate
+  buffer_t value_22(2);
+  value_22[0] = 0;
+  value_22[1] = 23;
+  state->vector_table_1074013064.put(22, value_22);
   // BDD node 47:vector_borrow(vector:(w64 1074013064), index:(w32 23), val_out:(w64 1074012728)[ -> (w64 1074027512)])
   // Module Ignore
   // BDD node 48:vector_return(vector:(w64 1074013064), index:(w32 23), value:(w64 1074027512)[(w16 22)])
-  // Module TableUpdate
-  fields_t<1> table_key_23;
-  table_key_23[0] = 23;
-  fields_t<1> table_value_23;
-  table_value_23[0] = 22;
-  state->table_1074013064_65.put(table_key_23, table_value_23);
+  // Module VectorTableUpdate
+  buffer_t value_23(2);
+  value_23[0] = 0;
+  value_23[1] = 22;
+  state->vector_table_1074013064.put(23, value_23);
   // BDD node 49:vector_borrow(vector:(w64 1074013064), index:(w32 24), val_out:(w64 1074012728)[ -> (w64 1074027536)])
   // Module Ignore
   // BDD node 50:vector_return(vector:(w64 1074013064), index:(w32 24), value:(w64 1074027536)[(w16 25)])
-  // Module TableUpdate
-  fields_t<1> table_key_24;
-  table_key_24[0] = 24;
-  fields_t<1> table_value_24;
-  table_value_24[0] = 25;
-  state->table_1074013064_65.put(table_key_24, table_value_24);
+  // Module VectorTableUpdate
+  buffer_t value_24(2);
+  value_24[0] = 0;
+  value_24[1] = 25;
+  state->vector_table_1074013064.put(24, value_24);
   // BDD node 51:vector_borrow(vector:(w64 1074013064), index:(w32 25), val_out:(w64 1074012728)[ -> (w64 1074027560)])
   // Module Ignore
   // BDD node 52:vector_return(vector:(w64 1074013064), index:(w32 25), value:(w64 1074027560)[(w16 24)])
-  // Module TableUpdate
-  fields_t<1> table_key_25;
-  table_key_25[0] = 25;
-  fields_t<1> table_value_25;
-  table_value_25[0] = 24;
-  state->table_1074013064_65.put(table_key_25, table_value_25);
+  // Module VectorTableUpdate
+  buffer_t value_25(2);
+  value_25[0] = 0;
+  value_25[1] = 24;
+  state->vector_table_1074013064.put(25, value_25);
   // BDD node 53:vector_borrow(vector:(w64 1074013064), index:(w32 26), val_out:(w64 1074012728)[ -> (w64 1074027584)])
   // Module Ignore
   // BDD node 54:vector_return(vector:(w64 1074013064), index:(w32 26), value:(w64 1074027584)[(w16 27)])
-  // Module TableUpdate
-  fields_t<1> table_key_26;
-  table_key_26[0] = 26;
-  fields_t<1> table_value_26;
-  table_value_26[0] = 27;
-  state->table_1074013064_65.put(table_key_26, table_value_26);
+  // Module VectorTableUpdate
+  buffer_t value_26(2);
+  value_26[0] = 0;
+  value_26[1] = 27;
+  state->vector_table_1074013064.put(26, value_26);
   // BDD node 55:vector_borrow(vector:(w64 1074013064), index:(w32 27), val_out:(w64 1074012728)[ -> (w64 1074027608)])
   // Module Ignore
   // BDD node 56:vector_return(vector:(w64 1074013064), index:(w32 27), value:(w64 1074027608)[(w16 26)])
-  // Module TableUpdate
-  fields_t<1> table_key_27;
-  table_key_27[0] = 27;
-  fields_t<1> table_value_27;
-  table_value_27[0] = 26;
-  state->table_1074013064_65.put(table_key_27, table_value_27);
+  // Module VectorTableUpdate
+  buffer_t value_27(2);
+  value_27[0] = 0;
+  value_27[1] = 26;
+  state->vector_table_1074013064.put(27, value_27);
   // BDD node 57:vector_borrow(vector:(w64 1074013064), index:(w32 28), val_out:(w64 1074012728)[ -> (w64 1074027632)])
   // Module Ignore
   // BDD node 58:vector_return(vector:(w64 1074013064), index:(w32 28), value:(w64 1074027632)[(w16 29)])
-  // Module TableUpdate
-  fields_t<1> table_key_28;
-  table_key_28[0] = 28;
-  fields_t<1> table_value_28;
-  table_value_28[0] = 29;
-  state->table_1074013064_65.put(table_key_28, table_value_28);
+  // Module VectorTableUpdate
+  buffer_t value_28(2);
+  value_28[0] = 0;
+  value_28[1] = 29;
+  state->vector_table_1074013064.put(28, value_28);
   // BDD node 59:vector_borrow(vector:(w64 1074013064), index:(w32 29), val_out:(w64 1074012728)[ -> (w64 1074027656)])
   // Module Ignore
   // BDD node 60:vector_return(vector:(w64 1074013064), index:(w32 29), value:(w64 1074027656)[(w16 28)])
-  // Module TableUpdate
-  fields_t<1> table_key_29;
-  table_key_29[0] = 29;
-  fields_t<1> table_value_29;
-  table_value_29[0] = 28;
-  state->table_1074013064_65.put(table_key_29, table_value_29);
+  // Module VectorTableUpdate
+  buffer_t value_29(2);
+  value_29[0] = 0;
+  value_29[1] = 28;
+  state->vector_table_1074013064.put(29, value_29);
   // BDD node 61:vector_borrow(vector:(w64 1074013064), index:(w32 30), val_out:(w64 1074012728)[ -> (w64 1074027680)])
   // Module Ignore
   // BDD node 62:vector_return(vector:(w64 1074013064), index:(w32 30), value:(w64 1074027680)[(w16 31)])
-  // Module TableUpdate
-  fields_t<1> table_key_30;
-  table_key_30[0] = 30;
-  fields_t<1> table_value_30;
-  table_value_30[0] = 31;
-  state->table_1074013064_65.put(table_key_30, table_value_30);
+  // Module VectorTableUpdate
+  buffer_t value_30(2);
+  value_30[0] = 0;
+  value_30[1] = 31;
+  state->vector_table_1074013064.put(30, value_30);
   // BDD node 63:vector_borrow(vector:(w64 1074013064), index:(w32 31), val_out:(w64 1074012728)[ -> (w64 1074027704)])
   // Module Ignore
   // BDD node 64:vector_return(vector:(w64 1074013064), index:(w32 31), value:(w64 1074027704)[(w16 30)])
-  // Module TableUpdate
-  fields_t<1> table_key_31;
-  table_key_31[0] = 31;
-  fields_t<1> table_value_31;
-  table_value_31[0] = 30;
-  state->table_1074013064_65.put(table_key_31, table_value_31);
+  // Module VectorTableUpdate
+  buffer_t value_31(2);
+  value_31[0] = 0;
+  value_31[1] = 30;
+  state->vector_table_1074013064.put(31, value_31);
 
 }
 
@@ -383,9 +351,16 @@ void sycon::nf_user_signal_handler() {
 
 }
 
-bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
-  cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
+struct cpu_hdr_extra_t {
 
+} __attribute__((packed));
+
+bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  bool forward = true;
+  cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
+  cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
+
+  return forward;
 }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

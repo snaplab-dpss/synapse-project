@@ -5,11 +5,8 @@
 namespace sycon {
 
 class IngressPortToNFDev : public Table {
-private:
-  const std::string action_name;
-
 public:
-  IngressPortToNFDev() : Table("Ingress", "ingress_port_to_nf_dev"), action_name("set_ingress_dev") {}
+  IngressPortToNFDev() : Table("Ingress", "ingress_port_to_nf_dev") {}
 
 public:
   void add_entry(u16 ingress_port, u16 nf_dev) {
@@ -19,7 +16,8 @@ public:
     buffer_t data(2);
     data.set(0, 2, nf_dev);
 
-    Table::add_entry(key, action_name, {data});
+    assert(actions.size() == 1);
+    Table::add_entry(key, actions[0].name, {data});
   }
 };
 

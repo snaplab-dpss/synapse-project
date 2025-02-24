@@ -50,9 +50,6 @@ public:
   }
 
   void put(u32 k, const buffer_t &v) {
-    auto found_it  = cache.find(k);
-    bool new_entry = found_it == cache.end();
-
     buffer_t key(4);
     key.set(0, 4, k);
 
@@ -61,12 +58,7 @@ public:
       assert(actions.size() == 1);
 
       const table_action_t &set_param_action = actions[0];
-
-      if (new_entry) {
-        table.add_entry(key, set_param_action.name, {v});
-      } else {
-        table.mod_entry(key, set_param_action.name, {v});
-      }
+      table.add_or_mod_entry(key, set_param_action.name, {v});
     }
 
     cache[k] = v;
@@ -96,7 +88,7 @@ public:
 
   void dump(std::ostream &os) const {
     os << "================================================\n";
-    os << "Map Table Cache:\n";
+    os << "Vector Table Cache:\n";
     for (const auto &[k, v] : cache) {
       os << "  key=" << k << " value=" << v << "\n";
     }

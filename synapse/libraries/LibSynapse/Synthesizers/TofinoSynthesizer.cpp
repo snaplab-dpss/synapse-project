@@ -1262,7 +1262,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // 3. Forward to recirculation port
   int port = node->get_recirc_port();
   ingress_apply.indent();
-  ingress_apply << "fwd((bit<9>)" << port << ");\n";
+  ingress_apply << "fwd(" << port << ");\n";
 
   // 4. Replace the ingress apply coder with the recirc coder
   active_recirc_code_path = code_path;

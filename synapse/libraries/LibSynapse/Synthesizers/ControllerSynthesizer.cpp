@@ -955,26 +955,11 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
 
-  std::vector<code_t> key_bytes;
-  for (klee::ref<klee::Expr> key_byte : LibCore::bytes_in_expr(key)) {
-    key_bytes.push_back(transpiler.transpile(key_byte));
-  }
-
-  var_t map_table_key = alloc_var("key", key, IS_BUFFER);
-  bytes_t key_size    = key->getWidth() / 8;
-
-  coder.indent();
-  coder << "buffer_t " << map_table_key.name;
-  coder << "(" << key_size << ");\n";
-
-  for (bytes_t i = 0; i < key_bytes.size(); i++) {
-    coder.indent();
-    coder << map_table_key.name << "[" << i << "] = " << key_bytes[i] << ";\n";
-  }
+  var_t key_var = transpile_buffer_decl_and_set(coder, "key", key);
 
   coder.indent();
   coder << "state->" << map_table->id << ".put(";
-  coder << map_table_key.name;
+  coder << key_var.name;
   coder << ", " << transpiler.transpile(value);
   coder << ");\n";
 
@@ -1006,8 +991,21 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+
+  const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
+
+  var_t value_var = transpile_buffer_decl_and_set(coder, "value", value);
+
   coder.indent();
-  coder << "// TODO: Controller::VectorTableUpdate\n";
+  coder << "state->" << vector_table->id << ".put(";
+  coder << transpiler.transpile(key);
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -1181,15 +1179,15 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
-  var_t vector_register_value = alloc_var("value", value, IS_BUFFER);
+  var_t value_var = alloc_var("value", value, IS_BUFFER);
 
   coder.indent();
-  coder << "buffer_t " << vector_register_value.name << ";\n";
+  coder << "buffer_t " << value_var.name << ";\n";
 
   coder.indent();
   coder << "state->" << vector_register->id << ".get(";
   coder << transpiler.transpile(index);
-  coder << ", " << vector_register_value.name;
+  coder << ", " << value_var.name;
   coder << ");\n";
 
   return EPVisitor::Action::doChildren;
@@ -1206,24 +1204,22 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
-  var_t vector_register_value = alloc_var("value", new_value);
-  bytes_t value_size          = new_value->getWidth() / 8;
+  const var_t value_var = alloc_var("value", new_value);
 
   coder.indent();
-  coder << "buffer_t " << vector_register_value.name;
-  coder << "(" << value_size << ");\n";
+  coder << "buffer_t " << value_var.name << ";\n";
 
   coder.indent();
   coder << "state->" << vector_register->id << ".get(";
   coder << transpiler.transpile(index);
-  coder << ", " << vector_register_value.name;
+  coder << ", " << value_var.name;
   coder << ");\n";
 
   for (const LibCore::expr_mod_t &mod : modifications) {
     bytes_t offset = mod.offset / 8;
     for (klee::ref<klee::Expr> byte_expr : LibCore::bytes_in_expr(mod.expr)) {
       coder.indent();
-      coder << vector_register_value.name;
+      coder << value_var.name;
       coder << "[" << offset << "] = ";
       coder << transpiler.transpile(byte_expr);
       coder << ";\n";
@@ -1234,7 +1230,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder.indent();
   coder << "state->" << vector_register->id << ".put(";
   coder << transpiler.transpile(index);
-  coder << ", " << vector_register_value.name;
+  coder << ", " << value_var.name;
   coder << ");\n";
 
   return EPVisitor::Action::doChildren;
@@ -1605,6 +1601,28 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
   member_init_list << "}";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
+}
+
+ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name,
+                                                                                  klee::ref<klee::Expr> expr) {
+  std::vector<code_t> network_order_bytes;
+  for (klee::ref<klee::Expr> byte : LibCore::bytes_in_expr(expr)) {
+    // Swapping endianness!
+    network_order_bytes.insert(network_order_bytes.begin(), transpiler.transpile(byte));
+  }
+
+  const var_t var    = alloc_var(proposed_name, expr, IS_BUFFER);
+  const bytes_t size = expr->getWidth() / 8;
+  assert(size == network_order_bytes.size() && "Size mismatch");
+
+  coder.indent();
+  coder << "buffer_t " << var.name << "(" << size << ");\n";
+  for (bytes_t i = 0; i < size; i++) {
+    coder.indent();
+    coder << var.name << "[" << i << "] = " << network_order_bytes[i] << ";\n";
+  }
+
+  return var;
 }
 
 void ControllerSynthesizer::dbg_vars() const {

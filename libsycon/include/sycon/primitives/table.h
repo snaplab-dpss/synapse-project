@@ -29,12 +29,13 @@ struct table_action_t {
 
 class Table {
 protected:
+  const std::string control_name;
+  const std::string table_name;
+
   const bf_rt_target_t dev_tgt;
   const bfrt::BfRtInfo *info;
   std::shared_ptr<bfrt::BfRtSession> session;
 
-  const std::string control;
-  const std::string name;
   const bfrt::BfRtTable *table;
   const size_t capacity;
 
@@ -66,6 +67,8 @@ public:
   void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
   void mod_entry(const buffer_t &k);
   void mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
+  void add_or_mod_entry(const buffer_t &k);
+  void add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
   void del_entry(const buffer_t &k);
 
   void dump_data_fields() const;
