@@ -1,6 +1,5 @@
 #include <signal.h>
 #include <unistd.h>
-
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -10,19 +9,16 @@
 #include <chrono>
 #include <thread>
 
-#include <rte_eal.h>
-#include <rte_common.h>
-#include <rte_ethdev.h>
-#include <rte_log.h>
-#include <rte_mbuf.h>
-
 #include "constants.h"
 #include "netcache.h"
 #include "port_stats.h"
 #include "process_query.h"
+#include "pcie.h"
 
 volatile bool stop_reset_timer = false;
 volatile bool stop_query_listener = false;
+
+std::shared_ptr<netcache::ProcessQuery> netcache::ProcessQuery::process_query;
 
 struct args_t {
 	std::string conf_file_path;
@@ -58,75 +54,6 @@ struct args_t {
 		std::cout << "	conf (w/ topo): " << conf_file_path << "\n";
 	}
 };
-
-static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
-	struct rte_eth_conf port_conf;
-	const uint16_t rx_rings = 1, tx_rings = 1;
-	uint16_t nb_rxd = RX_RING_SIZE;
-	uint16_t nb_txd = TX_RING_SIZE;
-	int retval;
-	uint16_t q;
-	struct rte_eth_dev_info dev_info;
-	struct rte_eth_txconf txconf;
-
-	if (!rte_eth_dev_is_valid_port(port)) {
-		return -1;
-	}
-
-	memset(&port_conf, 0, sizeof(struct rte_eth_conf));
-
-	retval = rte_eth_dev_info_get(port, &dev_info);
-	if (retval != 0) {
-		printf("Error during getting device (port %u) info: %s\n", port, strerror(-retval));
-		return retval;
-	}
-
-	if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
-		port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
-	}
-
-	// Configure the Ethernet device.
-	retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
-	if (retval != 0) { return retval; }
-
-	retval = rte_eth_dev_adjust_nb_rx_tx_desc(port, &nb_rxd, &nb_txd);
-	if (retval != 0) { return retval; }
-
-	// Allocate and set up 1 RX queue per Ethernet port.
-	for (q = 0; q < rx_rings; q++) {
-		retval = rte_eth_rx_queue_setup(
-				port, q, nb_rxd, rte_eth_dev_socket_id(port), NULL, mbuf_pool);
-		if (retval < 0) { return retval; }
-	}
-
-	txconf = dev_info.default_txconf;
-	txconf.offloads = port_conf.txmode.offloads;
-	// Allocate and set up 1 TX queue per Ethernet port.
-	for (q = 0; q < tx_rings; q++) {
-		retval = rte_eth_tx_queue_setup(
-				port, q, nb_txd, rte_eth_dev_socket_id(port), &txconf);
-		if (retval < 0) { return retval; }
-	}
-
-	// Start ethernet port.
-	retval = rte_eth_dev_start(port);
-	if (retval < 0) { return retval; }
-
-	// Display the port MAC address.
-	struct rte_ether_addr addr;
-	retval = rte_eth_macaddr_get(port, &addr);
-	if (retval != 0) { return retval; }
-
-	printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
-			   " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
-			port, RTE_ETHER_ADDR_BYTES(&addr));
-
-	// Enable RX in promiscuous mode for the ethernet device.
-	retval = rte_eth_promiscuous_enable(0);
-	if (retval != 0) { return retval; }
-
-	return 0;
-}
 
 void reset_counters() {
 	auto last_ts_key	= std::chrono::steady_clock::now();
@@ -183,9 +110,9 @@ void reset_counters() {
 	}
 }
 
-void query_listener(netcache::ProcessQuery& process_query) {
-	while (!stop_query_listener) { process_query.read_query(); }
- }
+/* void query_listener(netcache::ProcessQuery& process_query) { */
+/* 	while (!stop_query_listener) { process_query.read_query(); } */
+/*  } */
 
 int main(int argc, char **argv) {
 	args_t args(argc, argv);
@@ -193,61 +120,43 @@ int main(int argc, char **argv) {
 
 	netcache::conf_t conf = netcache::parse_conf_file(args.conf_file_path);
 
-	netcache::init_bf_switchd(conf.switchd.tofino_model, conf.switchd.bf_prompt);
+	netcache::init_bf_switchd(conf.switchd.bf_prompt);
 	netcache::setup_controller(conf, conf.switchd.tofino_model);
+	netcache::register_pcie_pkt_ops();
 
-	struct rte_mempool *mbuf_pool;
-	unsigned nb_ports;
-	uint16_t portid;
-
-	int ret = rte_eal_init(argc, argv);
-	if (ret < 0) {
-		std::cerr << "Failed to initialize DPDK environment." << std::endl;
-		return 1;
-	 }
-
-	 nb_ports = rte_eth_dev_count_avail();
-
-	 if(nb_ports < 2) { rte_exit(EXIT_FAILURE,"Invalid port number\n"); }
-
-	 mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * nb_ports,
-	 MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
-
-	 RTE_ETH_FOREACH_DEV(portid)
-		if (port_init(portid, mbuf_pool) != 0) {
-			rte_exit(EXIT_FAILURE, "Cannot init port %u\n", portid);
-		}
-
-	netcache::ProcessQuery process_query(conf.dpdk.in.num, conf.dpdk.out.num, mbuf_pool);
+	// netcache::ProcessQuery process_query;
 	netcache::PortStats port_stats;
 
+	auto instance = new netcache::ProcessQuery();;
+	netcache::ProcessQuery::process_query = std::shared_ptr<netcache::ProcessQuery>(instance);
+
 	std::thread reset_thread(reset_counters);
-	std::thread query_thread(query_listener, std::ref(process_query));
+	// std::thread query_thread(query_listener, std::ref(process_query));
 
 	std::cerr << "\nNetCache controller is ready.\n";
 
 	// Start listening to stdin
 	while (1) {
-		/* std::cout << ">"; */
-		/* std::string command; */
-		/* std::getline(std::cin, command); */
+		std::cout << ">";
+		std::string command;
+		std::getline(std::cin, command);
 
-		/* if (command == "stats") { */
-		/* 	port_stats.get_stats(); */
-		/* } else if (command == "reset") { */
-		/* 	port_stats.reset_stats(); */
-		/*  } else if (command == "exit" || command == "quit") { */
-		/* 	break; */
-		/*  } else { */
-		/* 	std::cout << "Wrong command. Avaliable commands: (1) stats; (2) exit/quit.\n"; */
-		/*  } */
+		if (command == "stats") {
+			port_stats.get_stats();
+		} else if (command == "reset") {
+			port_stats.reset_stats();
+		 } else if (command == "exit" || command == "quit") {
+			break;
+		 } else {
+			std::cout << "Wrong command. Avaliable commands: (1) stats; (2) exit/quit.\n";
+		 }
 	}
 
 	stop_reset_timer = true;
-	stop_query_listener = true;
+	/* stop_query_listener = true; */
 
 	reset_thread.join();
-	query_thread.join();
+	/* query_thread.join(); */
 
 	return 0;
 }

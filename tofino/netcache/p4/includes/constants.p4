@@ -17,6 +17,10 @@
 
 #endif
 
+#ifndef CACHE_ACTIVATED
+#define CACHE_ACTIVATED 1
+#endif
+
 typedef bit<16> ether_type_t;
 const ether_type_t ETHERTYPE_IPV4 = 16w0x0800;
 
@@ -37,7 +41,7 @@ const mirror_type_t MIRROR_TYPE_E2E = 2;
 
 // NetCache
 
-#define WAN_PORT 448
+#define WAN_PORT 8
 
 const bit<16> NC_PORT = 50000;
 
