@@ -135,7 +135,7 @@ parser IngressParser(
     transition reject;
   }
   state parser_137 {
-    transition select (map_table_1074043456_157_key_0) {
+    transition select (hdr.hdr_1.data[79:72]) {
       6: parser_138;
       17: parser_138;
       default: parser_191;
@@ -236,7 +236,7 @@ control Ingress(
     size = 65536;
   }
 
-  Register<bit<32>,_>(32, 0) vector_register_1074093080_0;
+  Register<bit<16>,_>(32, 0) vector_register_1074093080_0;
 
   RegisterAction<bit<16>, bit<32>, bit<16>>(vector_register_1074093080_0) vector_register_1074093080_0_read_2231 = {
     void apply(inout bit<16> value, out bit<16> out_value) {

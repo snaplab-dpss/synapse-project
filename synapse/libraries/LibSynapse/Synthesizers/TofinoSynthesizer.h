@@ -132,6 +132,7 @@ private:
     void insert_back(const Stack &stack);
 
     Stack squash() const;
+    Stack squash_hdrs_only() const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
     std::vector<Stack> get_all() const;
   };

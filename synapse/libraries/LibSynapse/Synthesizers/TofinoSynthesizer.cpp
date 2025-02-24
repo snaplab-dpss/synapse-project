@@ -693,7 +693,7 @@ void TofinoSynthesizer::transpile_register_decl(coder_t &coder, const Register *
 
   coder.indent();
   coder << "Register<";
-  coder << TofinoSynthesizer::Transpiler::type_from_size(reg->index_size);
+  coder << TofinoSynthesizer::Transpiler::type_from_size(reg->value_size);
   coder << ",_>";
 
   coder << "(";
@@ -930,6 +930,18 @@ TofinoSynthesizer::Stack TofinoSynthesizer::Stacks::squash() const {
   return squashed;
 }
 
+TofinoSynthesizer::Stack TofinoSynthesizer::Stacks::squash_hdrs_only() const {
+  Stack squashed;
+  for (const Stack &stack : stacks) {
+    for (const var_t &var : stack.get_all()) {
+      if (var.is_header_field) {
+        squashed.push(var);
+      }
+    }
+  }
+  return squashed;
+}
+
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stacks::get(klee::ref<klee::Expr> expr) const {
   for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
     if (std::optional<var_t> var = stack_it->get_exact(expr)) {
@@ -967,15 +979,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_p
                       {MARKER_EGRESS_METADATA, 1},
                   },
                   _out_path),
-      ep(_ep), transpiler(this) {
-  const LibBDD::BDD *bdd = ep->get_bdd();
-
-  LibCore::symbol_t device = bdd->get_device();
-  LibCore::symbol_t time   = bdd->get_time();
-
-  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
-}
+      ep(_ep), transpiler(this) {}
 
 TofinoSynthesizer::coder_t &TofinoSynthesizer::get(const std::string &marker) {
   if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {
@@ -985,6 +989,16 @@ TofinoSynthesizer::coder_t &TofinoSynthesizer::get(const std::string &marker) {
 }
 
 void TofinoSynthesizer::synthesize() {
+  const LibBDD::BDD *bdd = ep->get_bdd();
+
+  LibCore::symbol_t device = bdd->get_device();
+  LibCore::symbol_t time   = bdd->get_time();
+
+  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
+  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
+
+  ingress_vars.push();
+
   EPVisitor::visit(ep);
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
@@ -993,6 +1007,18 @@ void TofinoSynthesizer::synthesize() {
 
   // Transpile the parser after the whole EP has been visited so we have all the
   // headers available.
+
+  ingress_vars.clear();
+  hdrs_stacks.clear();
+
+  ingress_vars.push();
+  hdrs_stacks.push();
+
+  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
+  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
+
+  ingress_vars.push();
+
   transpile_parser(get_tofino_parser(ep));
 
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
@@ -1385,7 +1411,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *node) {
-  parser_vars[node->get_node()->get_id()] = ingress_vars.squash();
+  parser_vars[node->get_node()->get_id()] = ingress_vars.squash_hdrs_only();
   parser_hdrs[node->get_node()->get_id()] = hdrs_stacks.squash();
   return EPVisitor::Action::doChildren;
 }
@@ -1461,7 +1487,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.inc();
 
-  parser_vars[node->get_node()->get_id()] = ingress_vars.squash();
+  parser_vars[node->get_node()->get_id()] = ingress_vars.squash_hdrs_only();
   parser_hdrs[node->get_node()->get_id()] = hdrs_stacks.squash();
 
   assert(ep_node->get_children().size() == 1 && "ParserExtraction must have 1 child");
@@ -1845,8 +1871,26 @@ TofinoSynthesizer::code_t TofinoSynthesizer::create_unique_name(const code_t &pr
 }
 
 void TofinoSynthesizer::dbg_vars() const {
-  std::cerr << "================= Stack ================= \n";
+  std::cerr << "================== Stack =================== \n";
   for (const Stack &stack : ingress_vars.get_all()) {
+    std::cerr << "------------------------------------------\n";
+    for (const var_t &var : stack.get_all()) {
+      std::cerr << var.name;
+      if (var.is_bool()) {
+        std::cerr << " (bool)";
+      }
+      if (var.is_header_field) {
+        std::cerr << " (header)";
+      }
+      std::cerr << ": ";
+      std::cerr << LibCore::expr_to_string(var.expr, true);
+      std::cerr << "\n";
+    }
+  }
+  std::cerr << "============================================ \n";
+
+  std::cerr << "================== Headers ================= \n";
+  for (const Stack &stack : hdrs_stacks.get_all()) {
     std::cerr << "------------------------------------------\n";
     for (const var_t &var : stack.get_all()) {
       std::cerr << var.name;
