@@ -10,7 +10,6 @@ typedef u16 port_t;
 
 struct cpu_hdr_t {
   u16 code_path;
-  u16 ingress_dev;
   u16 egress_dev;
 } __attribute__((packed));
 

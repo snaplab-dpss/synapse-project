@@ -12,7 +12,6 @@
 
 header cpu_h {
   bit<16> code_path;
-  bit<16> ingress_dev;
   bit<16> egress_dev;
 
 }
@@ -121,7 +120,6 @@ control Ingress(
   action send_to_controller(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;
-    hdr.cpu.ingress_dev = meta.dev;
     fwd(CPU_PCIE_PORT);
   }
 

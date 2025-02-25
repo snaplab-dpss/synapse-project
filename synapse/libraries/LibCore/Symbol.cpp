@@ -117,6 +117,16 @@ Symbols Symbols::filter_by_base(const std::string &base) const {
   return result;
 }
 
+Symbols Symbols::intersect(const Symbols &symbols) const {
+  Symbols result;
+  for (const symbol_t &symbol : data) {
+    if (symbols.has(symbol.name)) {
+      result.data.insert(symbol);
+    }
+  }
+  return result;
+}
+
 std::ostream &operator<<(std::ostream &os, const symbol_t &symbol) {
   os << "symbol{";
   os << "base=" << symbol.base << ", ";
@@ -126,7 +136,7 @@ std::ostream &operator<<(std::ostream &os, const symbol_t &symbol) {
 }
 
 std::ostream &operator<<(std::ostream &os, const Symbols &symbols) {
-  os << "Symbols:";
+  os << "Symbols:\n";
   for (const symbol_t &symbol : symbols.data) {
     os << "  " << symbol << "\n";
   }

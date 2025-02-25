@@ -739,12 +739,20 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
 
 LibCore::Symbols TofinoModuleFactory::get_dataplane_state(const EP *ep, const LibBDD::Node *node) {
   const LibBDD::node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
-  LibCore::Symbols symbols        = node->get_prev_symbols(roots);
 
-  symbols.add(ep->get_bdd()->get_device());
-  symbols.add(ep->get_bdd()->get_time());
+  LibCore::Symbols generated_symbols = node->get_prev_symbols(roots);
+  generated_symbols.add(ep->get_bdd()->get_device());
+  generated_symbols.add(ep->get_bdd()->get_time());
 
-  return symbols;
+  LibCore::Symbols future_used_symbols;
+  if (node->get_next()) {
+    node->get_next()->visit_nodes([&future_used_symbols](const LibBDD::Node *node) {
+      future_used_symbols.add(node->get_used_symbols());
+      return LibBDD::NodeVisitAction::Continue;
+    });
+  }
+
+  return generated_symbols.intersect(future_used_symbols);
 }
 
 std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 num_entries) {

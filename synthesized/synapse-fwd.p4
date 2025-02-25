@@ -12,7 +12,6 @@
 
 header cpu_h {
   bit<16> code_path;
-  bit<16> ingress_dev;
   bit<16> egress_dev;
 
 }
@@ -121,7 +120,6 @@ control Ingress(
   action send_to_controller(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;
-    hdr.cpu.ingress_dev = meta.dev;
     fwd(CPU_PCIE_PORT);
   }
 
@@ -146,18 +144,18 @@ control Ingress(
     size = 64;
   }
 
-  bit<16> vector_table_1074013064_65_get_value_param_0 = 16w0;
-  action vector_table_1074013064_65_get_value(bit<16> _vector_table_1074013064_65_get_value_param_0) {
-    vector_table_1074013064_65_get_value_param_0 = _vector_table_1074013064_65_get_value_param_0;
+  bit<16> vector_table_1074012584_65_get_value_param_0 = 16w0;
+  action vector_table_1074012584_65_get_value(bit<16> _vector_table_1074012584_65_get_value_param_0) {
+    vector_table_1074012584_65_get_value_param_0 = _vector_table_1074012584_65_get_value_param_0;
   }
 
-  bit<32> vector_table_1074013064_65_key_0 = 32w0;
-  table vector_table_1074013064_65 {
+  bit<32> vector_table_1074012584_65_key_0 = 32w0;
+  table vector_table_1074012584_65 {
     key = {
-      vector_table_1074013064_65_key_0: exact;
+      vector_table_1074012584_65_key_0: exact;
     }
     actions = {
-      vector_table_1074013064_65_get_value;
+      vector_table_1074012584_65_get_value;
     }
     size = 32;
   }
@@ -172,23 +170,23 @@ control Ingress(
     } else {
       ingress_port_to_nf_dev.apply();
       // EP node  1
-      // BDD node 65:vector_borrow(vector:(w64 1074013064), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074082464)[ -> (w64 1074026960)])
-      vector_table_1074013064_65_key_0 = (bit<32>)(meta.dev);
-      vector_table_1074013064_65.apply();
+      // BDD node 65:vector_borrow(vector:(w64 1074012584), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074081984)[ -> (w64 1074026480)])
+      vector_table_1074012584_65_key_0 = (bit<32>)(meta.dev);
+      vector_table_1074012584_65.apply();
       // EP node  13
-      // BDD node 66:vector_return(vector:(w64 1074013064), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074026960)[(ReadLSB w16 (w32 0) vector_data_128)])
+      // BDD node 66:vector_return(vector:(w64 1074012584), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074026480)[(ReadLSB w16 (w32 0) vector_data_128)])
       // EP node  30
-      // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
-      if (16w0xffff != vector_table_1074013064_65_get_value_param_0) {
+      // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
+      if (16w0xffff != vector_table_1074012584_65_get_value_param_0) {
         // EP node  31
-        // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
+        // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
         // EP node  70
         // BDD node 68:FORWARD
-        nf_dev = vector_table_1074013064_65_get_value_param_0;
+        nf_dev = vector_table_1074012584_65_get_value_param_0;
         trigger_forward = true;
       } else {
         // EP node  32
-        // BDD node 67:if ((Eq false (Eq (w16 65535) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_128)))))
+        // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
         // EP node  112
         // BDD node 69:DROP
         drop();

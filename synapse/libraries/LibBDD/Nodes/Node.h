@@ -80,6 +80,7 @@ public:
   std::string recursive_dump(int lvl = 0) const;
 
   bool is_reachable(node_id_t id) const;
+  bool is_packet_drop_code_path() const;
   std::string hash(bool recursive) const;
   size_t count_children(bool recursive) const;
   size_t count_code_paths() const;
@@ -88,7 +89,6 @@ public:
   std::vector<const Call *> get_prev_functions(const std::unordered_set<std::string> &functions_names,
                                                const node_ids_t &stop_nodes = node_ids_t()) const;
   std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;
-  bool is_packet_drop_code_path() const;
   std::vector<const Call *> get_coalescing_nodes_from_key(klee::ref<klee::Expr> target_key, const map_coalescing_objs_t &data) const;
 
   virtual std::vector<node_id_t> get_leaves() const;

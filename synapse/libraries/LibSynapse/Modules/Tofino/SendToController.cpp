@@ -57,8 +57,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   const LibBDD::Node *next             = node;
   std::unique_ptr<LibBDD::BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
-  // Note that we don't point to the next LibBDD::BDD node, as it was not actually
-  // implemented.
+  // Note that we don't point to the next BDD node, as it was not actually implemented.
   // We are delegating the implementation to other platform.
   EPLeaf leaf(s2c_node, next);
   new_ep->process_leaf(s2c_node, {leaf}, false);
@@ -70,8 +69,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->parser_accept(ep, node);
 
-  // TODO: How do we recalculate the estimated throughput after a forwarding
-  // decision is made?
+  // TODO: How do we recalculate the estimated throughput after a forwarding decision is made?
   assert((!ep->get_active_leaf().node || !ep->get_active_leaf().node->forwarding_decision_already_made()) && "TODO");
 
   hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);

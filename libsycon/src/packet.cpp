@@ -28,7 +28,6 @@ void packet_log(const cpu_hdr_t *cpu_hdr) {
 
   LOG("###[ CPU ]###");
   LOG("code path   %u", SWAP_ENDIAN_16(cpu_hdr->code_path));
-  LOG("ingress dev %u", SWAP_ENDIAN_16(cpu_hdr->ingress_dev));
   LOG("egress dev  %u", SWAP_ENDIAN_16(cpu_hdr->egress_dev));
 }
 
