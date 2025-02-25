@@ -6,13 +6,6 @@
 #include "nf-util.h"
 
 struct nf_config {
-  struct {
-    uint32_t *subnet;
-    uint8_t *mask;
-    uint16_t *dst_dev;
-    size_t n;
-  } lpm_rules;
-
   // Internal server
   uint16_t server_dev;
 

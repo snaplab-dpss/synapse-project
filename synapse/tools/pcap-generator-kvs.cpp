@@ -26,7 +26,7 @@
 #define SRC_PORT 10000
 #define DST_PORT 670 // KVSTORE_PORT
 
-#define KEY_SIZE_BYTES 12
+#define KEY_SIZE_BYTES 16
 #define VALUE_SIZE_BYTES 128
 
 #define DEFAULT_TOTAL_PACKETS 1'000'000lu
@@ -65,6 +65,7 @@ struct kvs_hdr_t {
   u8 key[KEY_SIZE_BYTES];
   u8 value[VALUE_SIZE_BYTES];
   u8 status;
+  u16 client_port;
 } __attribute__((__packed__));
 
 struct pkt_hdr_t {

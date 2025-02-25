@@ -7,7 +7,7 @@
 #include "lib/util/boilerplate.h"
 #include "lib/util/ether.h"
 
-#define KEY_SIZE_BYTES 12
+#define KEY_SIZE_BYTES 16
 #define MAX_VALUE_SIZE_BYTES 128
 
 typedef uint8_t kv_key_t[KEY_SIZE_BYTES];

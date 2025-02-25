@@ -12,13 +12,9 @@
 #define STUB_DEVICES_COUNT 0
 #endif
 
-// #define MAX_CHUNK_SIZE 41
-#define MAX_CHUNK_SIZE 147
+#define MAX_CHUNK_SIZE 256
 #define PREALLOC_CHUNKS 5
 
-// struct Packet {
-/* int nic; */
-/* int is_ipv4; */
 int global_n_borrowed_chunks;
 int global_total_n_borrowed_chunks;
 uint32_t global_packet_len;
@@ -36,9 +32,6 @@ struct ChunkLayout {
   uint32_t n_nests;
   char *tname;
 } global_chunk_layouts[PREALLOC_CHUNKS];
-
-// void* global_packet_buffer;
-//};
 
 void set_packet_receive_success(bool received) { receive_succeded = received; }
 

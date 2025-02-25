@@ -119,12 +119,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   }
 
   if (device == config.server_dev) {
-    uint16_t dst_device;
-    if (!lpm_lookup(kvs_state->fwd, ipv4_hdr->dst_addr, &dst_device)) {
-      return DROP;
-    } else {
-      return dst_device;
-    }
+    return kvs_hdr->client_port;
   }
 
   int index;
@@ -143,5 +138,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   }
 
   // Cache miss and not updated, send to storage server.
+  kvs_hdr->client_port = device;
   return config.server_dev;
 }
