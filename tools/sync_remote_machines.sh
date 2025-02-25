@@ -12,6 +12,7 @@ sync() {
     echo "*********************************************"
     echo "Synchronizing host $host"
     echo "*********************************************"
+    ssh $host "cd $path_to_repo && git submodule sync --recursive && git submodule update --init --recursive"
     ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main"
 }
 
