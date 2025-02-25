@@ -233,55 +233,107 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
   // ------- Netcache -------
   // ------------------------
 
-  uint32_t val;
+	std::array<uint8_t, KV_KEY_SIZE> kv_key;
 
   if (ip_hdr->next_proto_id == IPPROTO_UDP) {
     uint8_t *nc_hdr_ptr = (uint8_t *)(udp_hdr + 1);
 
     struct netcache_hdr_t *nc_hdr = (struct netcache_hdr_t *)nc_hdr_ptr;
 
-#ifndef NDEBUG
-    printf("Original NC header: op %u, key %u, val %u, status %u, port %u\n", nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status,
-           nc_hdr->port);
-#endif
+	#ifndef NDEBUG
+		printf("Original NC header: ");
+		std::cout << "op: " << nc_hdr->op << std::endl;
+		std::cout << "key: ";
+		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "value: ";
+		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "status: " << nc_hdr->status << std::endl;
+		std::cout << "port: " << nc_hdr->port << std::endl;
+	#endif
 
-    auto it = kv_map.find(nc_hdr->key);
+	std::copy(nc_hdr->key, nc_hdr->key + 16, kv_key.begin());
+
+    auto it = kv_map.find(kv_key);
     if (it == kv_map.end()) {
-      val            = 0;
-      nc_hdr->status = 1;
+		memset(nc_hdr->val, 0, sizeof(nc_hdr->val));
+		nc_hdr->status = 1;
     } else {
-      val = it->second;
+		memcpy(nc_hdr->val, it->second, sizeof(nc_hdr->val));
+		nc_hdr->status = 0;
     }
 
-    nc_hdr->val = val;
+	#ifndef NDEBUG
+		printf("Modified NC header: ");
+		std::cout << "op: " << nc_hdr->op << std::endl;
+		std::cout << "key: ";
+		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "value: ";
+		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "status: " << nc_hdr->status << std::endl;
+		std::cout << "port: " << nc_hdr->port << std::endl;
+	#endif
 
-#ifndef NDEBUG
-    printf("Modified NC header: op %u, key %u, val %u, status %u, port %u\n", nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status,
-           nc_hdr->port);
-#endif
   } else if (ip_hdr->next_proto_id == IPPROTO_TCP) {
     uint8_t *nc_hdr_ptr = (uint8_t *)(tcp_hdr + 1);
 
     struct netcache_hdr_t *nc_hdr = (struct netcache_hdr_t *)nc_hdr_ptr;
 
-#ifndef NDEBUG
-    printf("Original NC header: op %u, key %u, val %u, status %u, port %u\n", nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status,
-           nc_hdr->port);
-#endif
+	#ifndef NDEBUG
+		printf("Original NC header: ");
+		std::cout << "op: " << nc_hdr->op << std::endl;
+		std::cout << "key: ";
+		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "value: ";
+		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "status: " << nc_hdr->status << std::endl;
+		std::cout << "port: " << nc_hdr->port << std::endl;
+	#endif
 
-    auto it = kv_map.find(nc_hdr->key);
+	std::copy(nc_hdr->key, nc_hdr->key + 16, kv_key.begin());
+
+    auto it = kv_map.find(kv_key);
     if (it == kv_map.end()) {
-      val = 0;
+		memset(nc_hdr->val, 0, sizeof(nc_hdr->val));
+		nc_hdr->status = 1;
     } else {
-      val = it->second;
+		memcpy(nc_hdr->val, it->second, sizeof(nc_hdr->val));
+		nc_hdr->status = 0;
     }
 
-    nc_hdr->val = val;
-
-#ifndef NDEBUG
-    printf("Modified NC header: op %u, key %u, val %u, status %u, port %u\n", nc_hdr->op, nc_hdr->key, nc_hdr->val, nc_hdr->status,
-           nc_hdr->port);
-#endif
+	#ifndef NDEBUG
+		printf("Modified NC header: ");
+		std::cout << "op: " << nc_hdr->op << std::endl;
+		std::cout << "key: ";
+		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "value: ";
+		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
+			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
+		}
+		std::cout << std::endl;
+		std::cout << "status: " << nc_hdr->status << std::endl;
+		std::cout << "port: " << nc_hdr->port << std::endl;
+	#endif
   }
 }
 

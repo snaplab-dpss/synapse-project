@@ -12,6 +12,9 @@
 #define NC_PORT 50000
 #define NC_HDR_SIZE 9
 
+#define KV_KEY_SIZE 16
+#define KV_VAL_SIZE 128
+
 // DPDK
 
 #define BURST_SIZE 1
