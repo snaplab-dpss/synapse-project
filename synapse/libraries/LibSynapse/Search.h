@@ -42,7 +42,6 @@ struct search_report_t {
   std::unique_ptr<SearchSpace> search_space;
   Score score;
   std::string tput_estimation;
-  std::string tput_speculation;
   search_meta_t meta;
 };
 

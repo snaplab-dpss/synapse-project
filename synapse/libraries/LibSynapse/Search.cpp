@@ -2,6 +2,7 @@
 #include <LibBDD/Visitors/BDDVisualizer.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibSynapse/Visualizers/SSVisualizer.h>
+#include <LibCore/Debug.h>
 
 #include <chrono>
 #include <iomanip>
@@ -242,13 +243,12 @@ search_report_t SearchEngine::search() {
   meta.unfinished_eps = heuristic->unfinished_size();
   meta.finished_eps   = heuristic->finished_size();
 
-  std::unique_ptr<const EP> winner = heuristic->pop_best_finished();
-  Score score                      = heuristic->get_score(winner.get());
-  std::string tput_estimation      = SearchSpace::build_meta_tput_estimate(winner.get());
-  std::string tput_speculation     = SearchSpace::build_meta_tput_speculation(winner.get());
+  std::unique_ptr<const EP> winner  = heuristic->pop_best_finished();
+  const Score score                 = heuristic->get_score(winner.get());
+  const std::string tput_estimation = SearchSpace::build_meta_tput_estimate(winner.get());
 
   search_report_t report{
-      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, tput_estimation, tput_speculation, meta,
+      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, tput_estimation, meta,
   };
 
   return report;

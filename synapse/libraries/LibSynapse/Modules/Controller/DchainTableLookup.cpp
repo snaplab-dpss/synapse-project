@@ -9,7 +9,6 @@ namespace {
 struct dchain_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
-  klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> hit;
 };
 
@@ -21,10 +20,9 @@ dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
   dchain_table_data_t data = {
-      .obj   = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
-      .key   = index,
-      .value = nullptr,
-      .hit   = std::nullopt,
+      .obj = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
+      .key = index,
+      .hit = std::nullopt,
   };
 
   if (call.function_name == "dchain_is_index_allocated") {
@@ -78,7 +76,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const L
     return impls;
   }
 
-  Module *module  = new DchainTableLookup(node, data.obj, data.key, data.value);
+  Module *module  = new DchainTableLookup(node, data.obj, data.key, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -108,7 +106,7 @@ std::unique_ptr<Module> DchainTableLookupFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  return std::make_unique<DchainTableLookup>(node, data.obj, data.key, data.value);
+  return std::make_unique<DchainTableLookup>(node, data.obj, data.key, data.hit);
 }
 
 } // namespace Controller

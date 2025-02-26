@@ -9,7 +9,8 @@ namespace LibSynapse {
 
 namespace {
 
-constexpr const pps_t STABLE_TPUT_PRECISION = 100;
+constexpr const pps_t STABLE_TPUT_PRECISION        = 100;
+constexpr const double STABLE_TPUT_ACCEPTABLE_LOSS = 0.001;
 
 LibBDD::node_ids_t filter_away_nodes(const LibBDD::node_ids_t &nodes, const LibBDD::node_ids_t &filter) {
   LibBDD::node_ids_t result;
@@ -23,27 +24,39 @@ LibBDD::node_ids_t filter_away_nodes(const LibBDD::node_ids_t &nodes, const LibB
   return result;
 }
 
-pps_t find_stable_tput(pps_t ingress, std::function<pps_t(pps_t)> estimator) {
+struct tput_estimation_t {
+  pps_t ingress;
+  pps_t egress_estimation;
+  pps_t unavoidable_drop;
+};
+
+pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> estimator) {
   pps_t egress = 0;
 
   pps_t smallest_unstable = ingress;
   pps_t prev_ingress      = ingress;
-  pps_t diff              = smallest_unstable;
+  pps_t precision         = smallest_unstable;
 
-  // Algorithm for converging to a stable throughput (basically a binary
-  // search). This hopefully doesn't take many iterations...
-  while (diff > STABLE_TPUT_PRECISION) {
+  // Algorithm for converging to a stable throughput (basically a binary search).
+  // Hopefully this won't take many iterations...
+  while (precision > STABLE_TPUT_PRECISION) {
+    tput_estimation_t estimation = estimator(ingress);
+
     prev_ingress = ingress;
-    egress       = estimator(ingress);
+    egress       = estimation.egress_estimation + estimation.unavoidable_drop;
+    double loss  = egress / static_cast<double>(ingress);
 
-    if (egress < ingress) {
+    assert(egress <= ingress);
+    assert(loss >= 0 && loss <= 1);
+
+    if (loss <= STABLE_TPUT_ACCEPTABLE_LOSS) {
       smallest_unstable = ingress;
       ingress           = (ingress + egress) / 2;
     } else {
       ingress = (ingress + smallest_unstable) / 2;
     }
 
-    diff = ingress > prev_ingress ? ingress - prev_ingress : prev_ingress - ingress;
+    precision = ingress > prev_ingress ? ingress - prev_ingress : prev_ingress - ingress;
   }
 
   return egress;
@@ -99,16 +112,18 @@ addr_t get_vector_obj_storing_map_key(const LibBDD::BDD *bdd, const LibBDD::map_
   panic("Vector key not found");
 }
 
-void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd, addr_t map) {
+void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd, addr_t map) {
   LibBDD::map_coalescing_objs_t map_coalescing_data;
   if (!bdd->get_map_coalescing_objs(map, map_coalescing_data)) {
     return;
   }
 
   addr_t vector_key = get_vector_obj_storing_map_key(bdd, map_coalescing_data);
-  std::unordered_set<const LibBDD::Node *> candidates;
 
-  bdd->get_root()->visit_nodes([map_coalescing_data, vector_key, &candidates](const LibBDD::Node *node) {
+  std::unordered_set<const LibBDD::Node *> candidates;
+  LibCore::Symbols key_symbols;
+
+  bdd->get_root()->visit_nodes([map_coalescing_data, vector_key, &candidates, &key_symbols](const LibBDD::Node *node) {
     if (node->get_type() != LibBDD::NodeType::Call) {
       return LibBDD::NodeVisitAction::Continue;
     }
@@ -127,10 +142,37 @@ void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd, addr_t map) {
       return LibBDD::NodeVisitAction::Continue;
     }
 
+    if (call.function_name == "vector_borrow") {
+      key_symbols.add(call_node->get_local_symbols());
+    }
+
     candidates.insert(node);
 
     return LibBDD::NodeVisitAction::Continue;
   });
+
+  bool used = false;
+  bdd->get_root()->visit_nodes([&used, &candidates, &key_symbols](const LibBDD::Node *node) {
+    if (node->get_type() != LibBDD::NodeType::Call) {
+      return LibBDD::NodeVisitAction::Continue;
+    }
+
+    if (candidates.find(node) != candidates.end()) {
+      return LibBDD::NodeVisitAction::Continue;
+    }
+
+    const LibCore::Symbols symbols = node->get_used_symbols();
+    if (!symbols.intersect(key_symbols).empty()) {
+      used = true;
+      return LibBDD::NodeVisitAction::Stop;
+    }
+
+    return LibBDD::NodeVisitAction::Continue;
+  });
+
+  if (used) {
+    return;
+  }
 
   for (const LibBDD::Node *node : candidates) {
     bdd->delete_non_branch(node->get_id());
@@ -153,7 +195,7 @@ void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd, addr_t map) {
   }
 }
 
-void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
+void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   // 1. Get all map operations.
   // 2. Remove all vector operations storing the key.
   std::unordered_set<addr_t> maps;
@@ -182,14 +224,14 @@ void delete_all_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   // the entire BDD every single time), but this is a quick and dirty way of
   // doing it.
   for (addr_t map : maps) {
-    delete_all_vector_key_operations_from_bdd(bdd, map);
+    delete_all_unused_vector_key_operations_from_bdd(bdd, map);
   }
 }
 
 LibBDD::BDD *setup_bdd(const LibBDD::BDD &bdd) {
   LibBDD::BDD *new_bdd = new LibBDD::BDD(bdd);
 
-  delete_all_vector_key_operations_from_bdd(new_bdd);
+  delete_all_unused_vector_key_operations_from_bdd(new_bdd);
 
   // Just to double check that we didn't break anything...
   LibBDD::BDD::inspection_report_t report = new_bdd->inspect();
@@ -664,7 +706,6 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   LibBDD::node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
 
   spec_impl_t peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
-
   spec_impl_t peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
 
   pps_t old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
@@ -674,8 +715,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
     return new_pps > old_pps;
   }
 
-  // Speeding things up, we don't need to check for small differences in
-  // throughput.
+  // Speeding things up, we don't need to check for small differences in throughput.
   if (old_pps <= STABLE_TPUT_PRECISION) {
     return false;
   }
@@ -694,7 +734,6 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   }
 
   peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
-
   peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
 
   old_pps = peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
@@ -799,8 +838,7 @@ pps_t EP::speculate_tput_pps() const {
       skip     = speculation.skip;
 
       if (speculation.next_target.has_value()) {
-        // Just ignore if we change the target, we only care about the
-        // switch nodes for now.
+        // Just ignore if we change the target, we only care about the switch nodes for now.
         return LibBDD::NodeVisitAction::SkipChildren;
       }
 
@@ -808,9 +846,20 @@ pps_t EP::speculate_tput_pps() const {
     });
   }
 
-  auto egress_from_ingress = [spec_ctx](pps_t ingress) { return spec_ctx.get_perf_oracle().estimate_tput(ingress); };
+  auto egress_estimation_from_ingress = [&spec_ctx](pps_t ingress) {
+    const PerfOracle &perf_oracle = spec_ctx.get_perf_oracle();
 
-  pps_t egress            = find_stable_tput(ingress, egress_from_ingress);
+    tput_estimation_t estimation = {
+        .ingress           = ingress,
+        .egress_estimation = perf_oracle.estimate_tput(ingress),
+        .unavoidable_drop  = static_cast<bps_t>(ingress * perf_oracle.get_dropped_ingress()),
+    };
+
+    return estimation;
+  };
+
+  pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
+
   cached_tput_speculation = egress;
 
   // if (id == 0) {
@@ -848,9 +897,19 @@ pps_t EP::estimate_tput_pps() const {
 
   pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
 
-  auto egress_from_ingress = [this](pps_t ingress) { return ctx.get_perf_oracle().estimate_tput(ingress); };
+  auto egress_estimation_from_ingress = [this](pps_t ingress) {
+    const PerfOracle &perf_oracle = ctx.get_perf_oracle();
 
-  pps_t egress           = find_stable_tput(max_ingress, egress_from_ingress);
+    tput_estimation_t estimation = {
+        .ingress           = ingress,
+        .egress_estimation = perf_oracle.estimate_tput(ingress),
+        .unavoidable_drop  = static_cast<bps_t>(ingress * perf_oracle.get_dropped_ingress()),
+    };
+
+    return estimation;
+  };
+
+  pps_t egress           = find_stable_tput(max_ingress, egress_estimation_from_ingress);
   cached_tput_estimation = egress;
 
   return egress;

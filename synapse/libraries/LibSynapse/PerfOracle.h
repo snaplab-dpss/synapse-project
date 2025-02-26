@@ -61,6 +61,7 @@ private:
 
   // Dropped traffic is important for the final egress throughput calculation.
   hit_rate_t dropped_ingress;
+  hit_rate_t controller_dropped_ingress;
 
 public:
   PerfOracle(const toml::table &config, int avg_pkt_bytes);
@@ -80,9 +81,12 @@ public:
   void add_controller_traffic(hit_rate_t hr);
 
   void add_dropped_traffic(hit_rate_t hr);
+  void add_controller_dropped_traffic(hit_rate_t hr);
 
   pps_t get_max_input_pps() const;
   bps_t get_max_input_bps() const;
+
+  hit_rate_t get_dropped_ingress() const { return dropped_ingress; }
 
   // We optimistically assume the controller traffic will not bottleneck any
   // of the front-panel ports. We do this by forwarding the entire controller
@@ -101,6 +105,7 @@ public:
   pps_t estimate_tput(pps_t ingress) const;
 
   void debug() const;
+  void assert_final_state() const;
 
 private:
   std::vector<pps_t> get_recirculated_egress(int port, pps_t ingress) const;

@@ -76,6 +76,7 @@ void Heuristic::add(std::vector<impl_t> &&new_implementations) {
     if (ep->get_next_node()) {
       unfinished_eps.insert(ep);
     } else {
+      ep->get_ctx().get_perf_oracle().assert_final_state();
       finished_eps.insert(ep);
     }
   }

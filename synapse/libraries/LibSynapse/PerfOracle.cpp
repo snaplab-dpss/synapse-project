@@ -7,17 +7,9 @@
 namespace LibSynapse {
 
 namespace {
-constexpr const hit_rate_t HIT_RATE_EPSILON = 1e-6;
+
 constexpr const int NEWTON_MAX_ITERATIONS   = 10;
 constexpr const hit_rate_t NEWTON_PRECISION = 1e-3;
-
-void clamp_fraction(hit_rate_t &fraction) {
-  fraction = std::max(0.0, fraction);
-  fraction = std::min(1.0, fraction);
-  if (fraction < HIT_RATE_EPSILON) {
-    fraction = 0;
-  }
-}
 
 std::vector<bps_t> parse_front_panel_ports(const toml::table &config) {
   std::vector<bps_t> ports;
@@ -98,11 +90,8 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
   assert(other.global >= 0 && "Global hit rate must be non-negative");
   assert(other.global <= 1 && "Global hit rate must be at most 1");
 
-  global += other.global;
-  clamp_fraction(global);
-
-  controller += other.controller;
-  clamp_fraction(controller);
+  global     = LibCore::clamp(global + other.global);
+  controller = LibCore::clamp(controller + other.controller);
 
   for (const auto &[rport_depth_pair, hr] : other.recirc) {
     int rport = rport_depth_pair.first;
@@ -116,10 +105,8 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
     if (recirc.find(rport_depth_pair) == recirc.end()) {
       recirc.insert({rport_depth_pair, hr});
     } else {
-      recirc.at(rport_depth_pair) += hr;
+      recirc.at(rport_depth_pair) = LibCore::clamp(recirc.at(rport_depth_pair) + hr);
     }
-
-    clamp_fraction(recirc.at(rport_depth_pair));
   }
 
   return *this;
@@ -162,7 +149,7 @@ hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
 PerfOracle::PerfOracle(const toml::table &config, int _avg_pkt_bytes)
     : front_panel_ports_capacities(parse_front_panel_ports(config)), recirculation_ports_capacities(parse_recirculation_ports(config)),
       controller_capacity(*config["controller"]["capacity_pps"].value<pps_t>()), avg_pkt_bytes(_avg_pkt_bytes), unaccounted_ingress(1),
-      dropped_ingress(0) {
+      dropped_ingress(0), controller_dropped_ingress(0) {
   for (size_t port = 0; port < front_panel_ports_capacities.size(); port++) {
     ports_ingress[port] = port_ingress_t();
   }
@@ -177,7 +164,7 @@ PerfOracle::PerfOracle(const PerfOracle &other)
       recirculation_ports_capacities(other.recirculation_ports_capacities), controller_capacity(other.controller_capacity),
       avg_pkt_bytes(other.avg_pkt_bytes), unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
       recirc_ports_ingress(other.recirc_ports_ingress), controller_ingress(other.controller_ingress),
-      dropped_ingress(other.dropped_ingress) {}
+      dropped_ingress(other.dropped_ingress), controller_dropped_ingress(other.controller_dropped_ingress) {}
 
 PerfOracle::PerfOracle(PerfOracle &&other)
     : front_panel_ports_capacities(std::move(other.front_panel_ports_capacities)),
@@ -185,7 +172,7 @@ PerfOracle::PerfOracle(PerfOracle &&other)
       controller_capacity(std::move(other.controller_capacity)), avg_pkt_bytes(std::move(other.avg_pkt_bytes)),
       unaccounted_ingress(std::move(other.unaccounted_ingress)), ports_ingress(std::move(other.ports_ingress)),
       recirc_ports_ingress(std::move(other.recirc_ports_ingress)), controller_ingress(std::move(other.controller_ingress)),
-      dropped_ingress(std::move(other.dropped_ingress)) {}
+      dropped_ingress(std::move(other.dropped_ingress)), controller_dropped_ingress(std::move(other.controller_dropped_ingress)) {}
 
 PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   if (this == &other) {
@@ -201,6 +188,7 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   recirc_ports_ingress           = other.recirc_ports_ingress;
   controller_ingress             = other.controller_ingress;
   dropped_ingress                = other.dropped_ingress;
+  controller_dropped_ingress     = other.controller_dropped_ingress;
 
   return *this;
 }
@@ -208,15 +196,17 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
 void PerfOracle::add_fwd_traffic(int port, const port_ingress_t &ingress) {
   assert(port < (int)front_panel_ports_capacities.size() && "Invalid port");
   ports_ingress[port] += ingress;
-  unaccounted_ingress -= ingress.get_total_hr();
-  clamp_fraction(unaccounted_ingress);
+  unaccounted_ingress = LibCore::clamp(unaccounted_ingress - ingress.get_total_hr());
 }
 
 void PerfOracle::add_dropped_traffic(hit_rate_t hr) {
-  dropped_ingress += hr;
-  clamp_fraction(dropped_ingress);
-  unaccounted_ingress -= hr;
-  clamp_fraction(unaccounted_ingress);
+  dropped_ingress     = LibCore::clamp(dropped_ingress + hr);
+  unaccounted_ingress = LibCore::clamp(unaccounted_ingress - hr);
+}
+
+void PerfOracle::add_controller_dropped_traffic(hit_rate_t hr) {
+  add_dropped_traffic(hr);
+  controller_dropped_ingress = LibCore::clamp(controller_dropped_ingress + hr);
 }
 
 void PerfOracle::add_fwd_traffic(int port, hit_rate_t hr) {
@@ -336,17 +326,15 @@ bps_t PerfOracle::get_max_input_bps() const {
 pps_t PerfOracle::get_max_input_pps() const { return LibCore::bps2pps(get_max_input_bps(), avg_pkt_bytes); }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
-  // 1. First we calculate the recirculation egress for each recirculation
-  // port and recirculation depth. Recirculation traffic can only come from
-  // global ingress and other recirculation ports.
+  // 1. First we calculate the recirculation egress for each recirculation port and recirculation depth.
+  // Recirculation traffic can only come from global ingress and other recirculation ports.
   std::unordered_map<int, std::vector<pps_t>> recirc_egress;
   for (size_t rport = 0; rport < recirculation_ports_capacities.size(); rport++) {
     recirc_egress[rport] = get_recirculated_egress(rport, ingress);
   }
 
-  // 2. Then we calculate the controller throughput (as it can be a
-  // bottleneck). The controller can receive traffic from both global ingress
-  // and recirculation ports.
+  // 2. Then we calculate the controller throughput (as it can be a bottleneck).
+  // The controller can receive traffic from both global ingress and recirculation ports.
   pps_t controller_tput = ingress * controller_ingress.global;
   for (const auto &[port_depth_pair, hr] : controller_ingress.recirc) {
     int rport = port_depth_pair.first;
@@ -358,19 +346,19 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   }
   controller_tput = std::min(controller_tput, controller_capacity);
 
-  // 3. Finally we calculate the throughput for each front-panel port.
+  // 3. Finally we calculate the egress throughput for each front-panel port.
   pps_t tput = 0;
 
-  hit_rate_t unaccounted_controller_hr = controller_ingress.get_total_hr();
+  hit_rate_t unaccounted_controller_hr = LibCore::clamp(controller_ingress.get_total_hr() - controller_dropped_ingress);
   hit_rate_t total_controller_hr       = controller_ingress.get_total_hr();
 
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
     pps_t port_tput = ingress * port_ingress.global;
 
     if (total_controller_hr > 0) {
-      hit_rate_t rel_ctrl_hr = port_ingress.controller / total_controller_hr;
+      hit_rate_t rel_ctrl_hr = LibCore::clamp(port_ingress.controller / total_controller_hr);
       port_tput += controller_tput * rel_ctrl_hr;
-      unaccounted_controller_hr -= port_ingress.controller;
+      unaccounted_controller_hr = LibCore::clamp(unaccounted_controller_hr - port_ingress.controller);
     }
 
     for (const auto &[port_depth_pair, hr] : port_ingress.recirc) {
@@ -386,17 +374,35 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     tput += std::min(port_tput, port_capacity);
   }
 
-  // There's controller traffic which has not yet been forwarded to any
-  // front-panel port. Let's optimistically steer it to a mock port a count it
-  // as throughput.
+  // There's controller traffic which has not yet been forwarded to any front-panel port.
+  // Let's optimistically steer it to a mock port and count it as throughput.
   if (unaccounted_controller_hr > 0) {
-    hit_rate_t rel_ctrl_hr = unaccounted_controller_hr / total_controller_hr;
+    hit_rate_t rel_ctrl_hr = LibCore::clamp(unaccounted_controller_hr / total_controller_hr);
     tput += controller_tput * rel_ctrl_hr;
   }
 
-  tput += (unaccounted_ingress - unaccounted_controller_hr) * ingress;
+  hit_rate_t remaining_hr = LibCore::clamp(unaccounted_ingress - unaccounted_controller_hr);
+  tput += remaining_hr * ingress;
 
+  assert(tput <= ingress);
   return tput;
+}
+
+void PerfOracle::assert_final_state() const {
+  hit_rate_t egress_hr = 0;
+  for (const auto &[fwd_port, port_ingress] : ports_ingress) {
+    egress_hr = LibCore::clamp(egress_hr + port_ingress.get_total_hr());
+  }
+
+  hit_rate_t unaccounted_controller_hr = LibCore::clamp(controller_ingress.get_total_hr() - controller_dropped_ingress);
+
+  for (const auto &[fwd_port, port_ingress] : ports_ingress) {
+    unaccounted_controller_hr = LibCore::clamp(unaccounted_controller_hr - port_ingress.controller);
+  }
+
+  assert(unaccounted_ingress == 0);
+  assert(unaccounted_controller_hr == 0);
+  assert(LibCore::clamp(egress_hr + dropped_ingress) == 1);
 }
 
 std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress) {

@@ -59,6 +59,8 @@ struct args_t {
       return "Unknown";
     };
 
+    LibSynapse::Targets targets(parse_targets_config(targets_config_file));
+
     std::cout << "====================== Args ======================\n";
     std::cout << "Input BDD file:   " << input_bdd_file << "\n";
     std::cout << "Output directory: " << out_dir << "\n";
@@ -67,6 +69,11 @@ struct args_t {
     std::cout << "Heuristic:        " << heuristic_to_str(heuristic_opt) << "\n";
     std::cout << "Profile file:     " << profile_file << "\n";
     std::cout << "Seed:             " << seed << "\n";
+    std::cout << "Targets:          ";
+    for (const LibSynapse::TargetView &target : targets.get_view().elements) {
+      std::cout << target.type << " (" << target.module_factories.size() << " modules) ";
+    }
+    std::cout << "\n";
     std::cout << "Search:\n";
     std::cout << "  No reorder:     " << search_config.no_reorder << "\n";
     std::cout << "  Peek:           [";
@@ -156,7 +163,6 @@ int main(int argc, char **argv) {
   std::cout << "Winner EP:\n";
   std::cout << "  Winner:           " << report.score << "\n";
   std::cout << "  Throughput:       " << report.tput_estimation << "\n";
-  std::cout << "  Speculation:      " << report.tput_speculation << "\n";
   std::cout << "\n";
 
   if (args.show_ep) {

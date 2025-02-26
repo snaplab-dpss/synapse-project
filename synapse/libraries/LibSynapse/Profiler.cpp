@@ -9,10 +9,9 @@
 namespace LibSynapse {
 
 namespace {
-hit_rate_t clamp_fraction(hit_rate_t fraction) { return std::min(1.0, std::max(0.0, fraction)); }
 
 hit_rate_t calc_hit_rate(u64 counter, u64 max_count) {
-  return clamp_fraction(max_count == 0 ? 0 : static_cast<hit_rate_t>(counter) / max_count);
+  return LibCore::clamp(max_count == 0 ? 0 : static_cast<hit_rate_t>(counter) / max_count);
 }
 
 ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_profile_t *bdd_profile, u64 max_count) {
@@ -171,8 +170,8 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
   assert(parent_new_fraction >= 0.0 && "Invalid parent new fraction");
   assert(parent_new_fraction <= 1.0 && "Invalid parent new fraction");
 
-  hit_rate_t old_fraction = clamp_fraction(node->fraction);
-  hit_rate_t new_fraction = clamp_fraction(parent_old_fraction != 0 ? (parent_new_fraction / parent_old_fraction) * node->fraction : 0);
+  hit_rate_t old_fraction = LibCore::clamp(node->fraction);
+  hit_rate_t new_fraction = LibCore::clamp(parent_old_fraction != 0 ? (parent_new_fraction / parent_old_fraction) * node->fraction : 0);
 
   assert(false && "TODO: update forwarding stats");
 
@@ -473,8 +472,8 @@ void Profiler::replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fractio
   new_node->on_true->prev  = new_node;
   new_node->on_false->prev = new_node;
 
-  hit_rate_t fraction_on_true  = clamp_fraction(fraction);
-  hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
+  hit_rate_t fraction_on_true  = LibCore::clamp(fraction);
+  hit_rate_t fraction_on_false = LibCore::clamp(new_node->fraction - fraction);
 
   assert(fraction_on_true <= new_node->fraction && "Invalid fraction");
   assert(fraction_on_false <= new_node->fraction && "Invalid fraction");
@@ -508,8 +507,8 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint, hit_
   new_node->on_false       = node->clone(false);
   new_node->on_false->prev = new_node;
 
-  hit_rate_t fraction_on_true  = clamp_fraction(fraction);
-  hit_rate_t fraction_on_false = clamp_fraction(new_node->fraction - fraction);
+  hit_rate_t fraction_on_true  = LibCore::clamp(fraction);
+  hit_rate_t fraction_on_false = LibCore::clamp(new_node->fraction - fraction);
 
   recursive_update_fractions(new_node->on_true, new_node->fraction, fraction_on_true);
   recursive_update_fractions(new_node->on_false, new_node->fraction, fraction_on_false);
@@ -586,8 +585,8 @@ void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, hit_
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
 
-  hit_rate_t old_fraction = clamp_fraction(node->fraction);
-  hit_rate_t new_fraction = clamp_fraction(node->fraction * factor);
+  hit_rate_t old_fraction = LibCore::clamp(node->fraction);
+  hit_rate_t new_fraction = LibCore::clamp(node->fraction * factor);
 
   node->fraction = new_fraction;
 
@@ -599,8 +598,8 @@ void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_ra
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
 
-  hit_rate_t old_fraction = clamp_fraction(node->fraction);
-  hit_rate_t new_fraction = clamp_fraction(new_hr);
+  hit_rate_t old_fraction = LibCore::clamp(node->fraction);
+  hit_rate_t new_fraction = LibCore::clamp(new_hr);
 
   node->fraction = new_fraction;
 

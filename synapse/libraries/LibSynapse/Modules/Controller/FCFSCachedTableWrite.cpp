@@ -8,6 +8,7 @@ using Tofino::DS_ID;
 using Tofino::Table;
 
 namespace {
+
 DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);

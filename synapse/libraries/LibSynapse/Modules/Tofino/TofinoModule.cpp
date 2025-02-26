@@ -111,15 +111,6 @@ MapTable *get_map_table(const EP *ep, const LibBDD::Node *node, const map_table_
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
   assert(!ds.empty() && "No map table found");
-
-  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
-    return nullptr;
-  }
-
-  if (ds.size() > 1) {
-    return nullptr;
-  }
-
   assert(ds.size() == 1);
   DS *mt = *ds.begin();
 
@@ -164,7 +155,9 @@ MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
 
   map_table->add_table(node->get_id(), keys_size);
 
-  assert(tofino_ctx->check_placement(ep, node, map_table));
+  if (!tofino_ctx->check_placement(ep, node, map_table)) {
+    return nullptr;
+  }
 
   return map_table;
 }
@@ -197,15 +190,6 @@ VectorTable *get_vector_table(const EP *ep, const LibBDD::Node *node, const vect
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
   assert(!ds.empty() && "No vector table found");
-
-  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
-    return nullptr;
-  }
-
-  if (ds.size() > 1) {
-    return nullptr;
-  }
-
   assert(ds.size() == 1);
   DS *vt = *ds.begin();
 
@@ -240,7 +224,9 @@ VectorTable *reuse_vector_table(const EP *ep, const LibBDD::Node *node, const ve
 
   vector_table->add_table(node->get_id());
 
-  assert(tofino_ctx->check_placement(ep, node, vector_table));
+  if (!tofino_ctx->check_placement(ep, node, vector_table)) {
+    return nullptr;
+  }
 
   return vector_table;
 }
@@ -272,15 +258,6 @@ DchainTable *get_dchain_table(const EP *ep, const LibBDD::Node *node, const dcha
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
   assert(!ds.empty() && "No dchain table found");
-
-  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
-    return nullptr;
-  }
-
-  if (ds.size() > 1) {
-    return nullptr;
-  }
-
   assert(ds.size() == 1);
   DS *vt = *ds.begin();
 
@@ -315,7 +292,9 @@ DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
 
   dchain_table->add_table(node->get_id());
 
-  assert(tofino_ctx->check_placement(ep, node, dchain_table));
+  if (!tofino_ctx->check_placement(ep, node, dchain_table)) {
+    return nullptr;
+  }
 
   return dchain_table;
 }
@@ -353,15 +332,6 @@ VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, cons
 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
   assert(!ds.empty() && "No vector registers found");
-
-  if (!tofino_ctx->check_many_placements(ep, node, {ds})) {
-    return nullptr;
-  }
-
-  if (ds.size() > 1) {
-    return nullptr;
-  }
-
   assert(ds.size() == 1);
   DS *vr = *ds.begin();
 
@@ -700,13 +670,7 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
   assert(ds.size() == 1 && "Invalid number of DS");
   assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
 
-  FCFSCachedTable *cached_table = dynamic_cast<FCFSCachedTable *>(*ds.begin());
-
-  if (!tofino_ctx->check_placement(ep, node, cached_table)) {
-    cached_table = nullptr;
-  }
-
-  return cached_table;
+  return dynamic_cast<FCFSCachedTable *>(*ds.begin());
 }
 
 bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,

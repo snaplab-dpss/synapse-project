@@ -2,6 +2,7 @@
 #include <LibCore/Net.h>
 
 #include <sstream>
+#include <iostream>
 
 namespace LibCore {
 

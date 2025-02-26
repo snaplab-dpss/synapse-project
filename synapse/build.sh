@@ -25,7 +25,8 @@ build_profile() {
     -G Ninja \
     -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
     -DCMAKE_EXE_LINKER_FLAGS="-pg" \
-    -DCMAKE_SHARED_LINKER_FLAGS="-pg" $PROJECT_DIR
+    -DCMAKE_SHARED_LINKER_FLAGS="-pg" \
+    $PROJECT_DIR
 
   ninja
 }

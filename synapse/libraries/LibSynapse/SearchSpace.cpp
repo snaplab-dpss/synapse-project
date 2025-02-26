@@ -2,6 +2,7 @@
 #include <LibCore/Graphviz.h>
 #include <LibCore/Types.h>
 #include <LibCore/Expr.h>
+#include <LibCore/Debug.h>
 
 namespace LibSynapse {
 
@@ -169,7 +170,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
       };
     }
 
-    std::vector<std::pair<std::string, std::string>> metadata = {
+    const std::vector<std::pair<std::string, std::string>> metadata = {
         {"Tput", build_meta_tput_estimate(impl.result)},
         {"Spec", build_meta_tput_speculation(impl.result)},
     };
