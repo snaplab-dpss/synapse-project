@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
   app.add_option("--in", args.in_port, "Ingress port.");
   app.add_option("--out", args.out_port, "Egress port.");
   app.add_option("--delay", args.processing_delay_per_query_us, "Processing per-query delay (us).");
-  app.add_flag("--dry-run", dry_run, "Don't run search.");
+  app.add_flag("--dry-run", dry_run, "Don't run, just print out the configuration.");
 
   CLI11_PARSE(app, argc, argv);
 

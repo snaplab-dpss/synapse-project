@@ -137,9 +137,6 @@ void Store::modify_pkt(rte_mbuf *mbuf) {
   inet_ntop(AF_INET, &ip_hdr->src_addr, src_ip, INET_ADDRSTRLEN);
   inet_ntop(AF_INET, &ip_hdr->dst_addr, dst_ip, INET_ADDRSTRLEN);
 
-  LOG_DEBUG("Original IP src: %s", src_ip);
-  LOG_DEBUG("Original IP dst: %s", dst_ip);
-
   // Swap src and dst IP
   uint32_t temp_src = ip_hdr->src_addr;
   ip_hdr->src_addr  = ip_hdr->dst_addr;
