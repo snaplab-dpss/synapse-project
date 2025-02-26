@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
   argc -= ret;
   argv += ret;
 
-  CLI::App app{"Synapse"};
+  CLI::App app{"KVS server"};
 
   args_t args;
   bool dry_run{false};
