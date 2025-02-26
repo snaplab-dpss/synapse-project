@@ -25,10 +25,149 @@ control SwitchIngress(
 		inout ingress_intrinsic_metadata_for_tm_t ig_tm_md) {
 
 	Register<bit<8>, bit<16>>(NC_ENTRIES) reg_cache_lookup;
-	Register<bit<NC_VAL_WIDTH>, bit<16>>(NC_ENTRIES) reg_vtable;
 
-	RegisterAction<_, bit<16>, bit<8>>(reg_cache_lookup) ract_cache_lookup = {
-		void apply(inout bit<8> lookup, out bit<8> res) {
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_k0_31;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_k32_63;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_k64_95;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_k96_127;
+
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v0_31;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v32_63;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v64_95;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v96_127;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v128_159;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v160_191;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v192_223;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v224_255;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v256_287;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v288_319;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v320_351;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v352_383;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v384_415;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v416_447;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v448_479;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v480_511;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v512_543;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v544_575;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v576_607;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v608_639;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v640_671;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v672_703;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v704_735;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v736_767;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v768_799;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v800_831;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v832_863;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v864_895;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v896_927;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v928_959;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v960_991;
+	Register<bit<32>, bit<16>>(NC_ENTRIES) reg_v992_1023;
+
+	Hash<bit<16>>(HashAlgorithm_t.CRC16) hash_key;
+
+	#define KEY_UPDATE(msb, lsb) \
+		RegisterAction<bit<32>, bit<16>, bit<8>>(reg##_k##lsb##_##msb) update_k##lsb##_##msb## = { \
+			void apply(inout bit<32> val) { \
+				if (hdr.netcache.op == WRITE_QUERY) { \
+					val = hdr.netcache.key[msb:lsb]; \
+				} else { \
+					val = 0; \
+				} \
+			} \
+		};
+
+	#define VAL_READ(msb, lsb) \
+		RegisterAction<bit<32>, bit<16>, bit<32>>(reg##_v##lsb##_##msb) read_v##lsb##_##msb## = { \
+			void apply(inout bit<32> val, out bit<32> res) { \
+				res = hdr.netcache.val[msb:lsb]; \
+			} \
+		};
+
+	#define VAL_UPDATE(msb, lsb) \
+		RegisterAction<bit<32>, bit<16>, bit<8>>(reg##_v##lsb##_##msb) update_v##lsb##_##msb## = { \
+			void apply(inout bit<32> val) { \
+				if (hdr.netcache.op == WRITE_QUERY) { \
+					val = hdr.netcache.val[msb:lsb]; \
+				} else { \
+					val = 0; \
+				} \
+			} \
+		};
+
+	KEY_UPDATE(31, 0)
+	KEY_UPDATE(63, 32)
+	KEY_UPDATE(95, 64)
+	KEY_UPDATE(127, 96)
+
+	VAL_READ(31, 0)
+	VAL_READ(63, 32)
+	VAL_READ(95, 64)
+	VAL_READ(127, 96)
+	VAL_READ(159, 128)
+	VAL_READ(191, 160)
+	VAL_READ(223, 192)
+	VAL_READ(255, 224)
+	VAL_READ(287, 256)
+	VAL_READ(319, 288)
+	VAL_READ(351, 320)
+	VAL_READ(383, 352)
+	VAL_READ(415, 384)
+	VAL_READ(447, 416)
+	VAL_READ(479, 448)
+	VAL_READ(511, 480)
+	VAL_READ(543, 512)
+	VAL_READ(575, 544)
+	VAL_READ(607, 576)
+	VAL_READ(639, 608)
+	VAL_READ(671, 640)
+	VAL_READ(703, 672)
+	VAL_READ(735, 704)
+	VAL_READ(767, 736)
+	VAL_READ(799, 768)
+	VAL_READ(831, 800)
+	VAL_READ(863, 832)
+	VAL_READ(895, 864)
+	VAL_READ(927, 896)
+	VAL_READ(959, 928)
+	VAL_READ(991, 960)
+	VAL_READ(1023, 992)
+
+	VAL_UPDATE(31, 0)
+	VAL_UPDATE(63, 32)
+	VAL_UPDATE(95, 64)
+	VAL_UPDATE(127, 96)
+	VAL_UPDATE(159, 128)
+	VAL_UPDATE(191, 160)
+	VAL_UPDATE(223, 192)
+	VAL_UPDATE(255, 224)
+	VAL_UPDATE(287, 256)
+	VAL_UPDATE(319, 288)
+	VAL_UPDATE(351, 320)
+	VAL_UPDATE(383, 352)
+	VAL_UPDATE(415, 384)
+	VAL_UPDATE(447, 416)
+	VAL_UPDATE(479, 448)
+	VAL_UPDATE(511, 480)
+	VAL_UPDATE(543, 512)
+	VAL_UPDATE(575, 544)
+	VAL_UPDATE(607, 576)
+	VAL_UPDATE(639, 608)
+	VAL_UPDATE(671, 640)
+	VAL_UPDATE(703, 672)
+	VAL_UPDATE(735, 704)
+	VAL_UPDATE(767, 736)
+	VAL_UPDATE(799, 768)
+	VAL_UPDATE(831, 800)
+	VAL_UPDATE(863, 832)
+	VAL_UPDATE(895, 864)
+	VAL_UPDATE(927, 896)
+	VAL_UPDATE(959, 928)
+	VAL_UPDATE(991, 960)
+	VAL_UPDATE(1023, 992)
+
+	RegisterAction<_, bit<16>, bit<1>>(reg_cache_lookup) ract_cache_lookup = {
+		void apply(inout bit<1> lookup, out bit<1> res) {
 			res = lookup;
 			if (hdr.netcache.op == WRITE_QUERY) {
 				lookup = 1;
@@ -38,37 +177,12 @@ control SwitchIngress(
 		}
 	};
 
-	RegisterAction<_, bit<16>, bit<NC_VAL_WIDTH>>(reg_vtable) ract_vtable_read = {
-		void apply(inout bit<NC_VAL_WIDTH> val, out bit<NC_VAL_WIDTH> res) {
-			res = val;
-		}
-	};
-
-	RegisterAction<_, bit<16>, bit<NC_VAL_WIDTH>>(reg_vtable) ract_vtable_update = {
-		void apply(inout bit<NC_VAL_WIDTH> val) {
-			if (hdr.netcache.op == WRITE_QUERY) {
-				val = hdr.netcache.val;
-			} else {
-				val = 0;
-			}
-		}
-	};
-
-	action set_lookup_metadata(vtableIdx_t vt_idx, keyIdx_t key_idx) {
-		hdr.meta.vt_idx = vt_idx;
-		hdr.meta.key_idx = key_idx;
+	action hash_key_calc() {
+		hdr.meta.hash_key = hash_key.get({hdr.netcache.key});
 	}
 
 	action cache_lookup() {
-		hdr.meta.cache_hit = ract_cache_lookup.execute(hdr.meta.vt_idx);
-	}
-
-	action vtable_read() {
-		hdr.netcache.val = ract_vtable_read.execute(hdr.meta.vt_idx);
-	}
-
-	action vtable_update() {
-		ract_vtable_update.execute(hdr.meta.vt_idx);
+		hdr.meta.cache_hit = ract_cache_lookup.execute(hdr.meta.hash_key);
 	}
 
 	action update_pkt_udp() {
@@ -110,18 +224,6 @@ control SwitchIngress(
 
 	action miss() {}
 
-	// table cache_lookup {
-	// 	key = {
-	// 		hdr.netcache.key : exact;
-	// 	}
-	// 	actions = {
-	// 		set_lookup_metadata;
-	// 		miss;
-	// 	}
-	// 	size = NC_ENTRIES;
-	// 	const default_action = miss();
-	// }
-
 	table fwd {
 		key = {
 			ig_intr_md.ingress_port : exact;
@@ -139,18 +241,54 @@ control SwitchIngress(
 
 	apply {
 		hdr.meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
+
+
 		// Check if packet is not a HH report going from/to controller<->server.
 		if (hdr.netcache.isValid()
 				&& ig_intr_md.ingress_port != WAN_PORT
 				&& ig_intr_md.ingress_port != CPU_PCIE_PORT) {
+
+			// Calculate the hash based on the received pkt nc key.
+			hash_key_calc();
+
 			hdr.netcache.port = hdr.meta.ingress_port;
-			// cache_lookup.apply();
 			cache_lookup();
 			if (hdr.netcache.op == READ_QUERY) {
-				// Cache hit
+				// Cache hit.
 				if (hdr.meta.cache_hit == 1) {
-					// Update the packet header with the cached value.
-					vtable_read();
+					// Read the cached value and update the packet header.
+					hdr.netcache.val[31:0] = read_v0_31.execute(hdr.meta.hash_key);
+					hdr.netcache.val[63:32] = read_v32_63.execute(hdr.meta.hash_key);
+					hdr.netcache.val[95:64] = read_v64_95.execute(hdr.meta.hash_key);
+					hdr.netcache.val[127:96] = read_v96_127.execute(hdr.meta.hash_key);
+					hdr.netcache.val[159:128] = read_v128_159.execute(hdr.meta.hash_key);
+					hdr.netcache.val[191:160] = read_v160_191.execute(hdr.meta.hash_key);
+					hdr.netcache.val[223:192] = read_v192_223.execute(hdr.meta.hash_key);
+					hdr.netcache.val[255:224] = read_v224_255.execute(hdr.meta.hash_key);
+					hdr.netcache.val[287:256] = read_v256_287.execute(hdr.meta.hash_key);
+					hdr.netcache.val[319:288] = read_v288_319.execute(hdr.meta.hash_key);
+					hdr.netcache.val[351:320] = read_v320_351.execute(hdr.meta.hash_key);
+					hdr.netcache.val[383:352] = read_v352_383.execute(hdr.meta.hash_key);
+					hdr.netcache.val[415:384] = read_v384_415.execute(hdr.meta.hash_key);
+					hdr.netcache.val[447:416] = read_v416_447.execute(hdr.meta.hash_key);
+					hdr.netcache.val[479:448] = read_v448_479.execute(hdr.meta.hash_key);
+					hdr.netcache.val[511:480] = read_v480_511.execute(hdr.meta.hash_key);
+					hdr.netcache.val[543:512] = read_v512_543.execute(hdr.meta.hash_key);
+					hdr.netcache.val[575:544] = read_v544_575.execute(hdr.meta.hash_key);
+					hdr.netcache.val[607:576] = read_v576_607.execute(hdr.meta.hash_key);
+					hdr.netcache.val[639:608] = read_v608_639.execute(hdr.meta.hash_key);
+					hdr.netcache.val[671:640] = read_v640_671.execute(hdr.meta.hash_key);
+					hdr.netcache.val[703:672] = read_v672_703.execute(hdr.meta.hash_key);
+					hdr.netcache.val[735:704] = read_v704_735.execute(hdr.meta.hash_key);
+					hdr.netcache.val[767:736] = read_v736_767.execute(hdr.meta.hash_key);
+					hdr.netcache.val[799:768] = read_v768_799.execute(hdr.meta.hash_key);
+					hdr.netcache.val[831:800] = read_v800_831.execute(hdr.meta.hash_key);
+					hdr.netcache.val[863:832] = read_v832_863.execute(hdr.meta.hash_key);
+					hdr.netcache.val[895:864] = read_v864_895.execute(hdr.meta.hash_key);
+					hdr.netcache.val[927:896] = read_v896_927.execute(hdr.meta.hash_key);
+					hdr.netcache.val[959:928] = read_v928_959.execute(hdr.meta.hash_key);
+					hdr.netcache.val[991:960] = read_v960_991.execute(hdr.meta.hash_key);
+					hdr.netcache.val[1023:992] = read_v992_1023.execute(hdr.meta.hash_key);
 					// Swap the IP src/dst and port src/dst.
 					if (hdr.udp.isValid()) {
 						update_pkt_udp();
@@ -161,9 +299,44 @@ control SwitchIngress(
 			}
 
 			else if (hdr.netcache.op == WRITE_QUERY || hdr.netcache.op == DELETE_QUERY) {
-				// Update/delete the cached value with the received value.
-				hdr.meta.vt_idx = hdr.netcache.key;
-				vtable_update();
+				// Update/delete the cached key/value with the received value.
+				update_k0_31.execute(hdr.meta.hash_key);
+				update_k32_63.execute(hdr.meta.hash_key);
+				update_k64_95.execute(hdr.meta.hash_key);
+				update_k96_127.execute(hdr.meta.hash_key);
+
+				update_v0_31.execute(hdr.meta.hash_key);
+				update_v32_63.execute(hdr.meta.hash_key);
+				update_v64_95.execute(hdr.meta.hash_key);
+				update_v96_127.execute(hdr.meta.hash_key);
+				update_v128_159.execute(hdr.meta.hash_key);
+				update_v160_191.execute(hdr.meta.hash_key);
+				update_v192_223.execute(hdr.meta.hash_key);
+				update_v224_255.execute(hdr.meta.hash_key);
+				update_v256_287.execute(hdr.meta.hash_key);
+				update_v288_319.execute(hdr.meta.hash_key);
+				update_v320_351.execute(hdr.meta.hash_key);
+				update_v352_383.execute(hdr.meta.hash_key);
+				update_v384_415.execute(hdr.meta.hash_key);
+				update_v416_447.execute(hdr.meta.hash_key);
+				update_v448_479.execute(hdr.meta.hash_key);
+				update_v480_511.execute(hdr.meta.hash_key);
+				update_v512_543.execute(hdr.meta.hash_key);
+				update_v544_575.execute(hdr.meta.hash_key);
+				update_v576_607.execute(hdr.meta.hash_key);
+				update_v608_639.execute(hdr.meta.hash_key);
+				update_v640_671.execute(hdr.meta.hash_key);
+				update_v672_703.execute(hdr.meta.hash_key);
+				update_v704_735.execute(hdr.meta.hash_key);
+				update_v736_767.execute(hdr.meta.hash_key);
+				update_v768_799.execute(hdr.meta.hash_key);
+				update_v800_831.execute(hdr.meta.hash_key);
+				update_v832_863.execute(hdr.meta.hash_key);
+				update_v864_895.execute(hdr.meta.hash_key);
+				update_v896_927.execute(hdr.meta.hash_key);
+				update_v928_959.execute(hdr.meta.hash_key);
+				update_v960_991.execute(hdr.meta.hash_key);
+				update_v992_1023.execute(hdr.meta.hash_key);
 			}
 		}
 		set_normal_pkt();
@@ -216,7 +389,7 @@ control SwitchEgress(
 	}
 
 	action key_count_incr() {
-		ract_key_count_incr.execute(hdr.netcache.key);
+		ract_key_count_incr.execute(hdr.meta.hash_key);
 	}
 
 	action set_mirror() {
@@ -251,7 +424,7 @@ control SwitchEgress(
 							bloom.apply(hdr, bloom_result);
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
-								hdr.netcache.val = cm_result;
+								hdr.netcache.val = (bit<1024>)cm_result;
 								// hdr.netcache.status = 1;
 								set_mirror();
 							}
