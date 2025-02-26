@@ -5,7 +5,8 @@
 #include <string>
 #include <vector>
 #include <signal.h>
-#include <chrono>
+#include <CLI/CLI.hpp>
+#include <filesystem>
 
 #include <rte_eal.h>
 #include <rte_common.h>
@@ -13,45 +14,21 @@
 #include <rte_log.h>
 #include <rte_mbuf.h>
 
-#include "conf.h"
 #include "constants.h"
 #include "store.h"
 
 struct args_t {
-  std::string conf_file_path;
+  int in_port;
+  int out_port;
+  int64_t processing_delay_per_query_us;
 
-  args_t(int argc, char **argv) {
-
-    conf_file_path = std::string(argv[argc - 1]);
-    parse_help(argc, argv);
-  }
-
-  void help(char **argv) const {
-    std::cerr << "Usage: " << argv[0] << " [-h|--help]\n";
-    exit(1);
-  }
-
-  void parse_help(int argc, char **argv) {
-    auto args_str = std::vector<std::string>{
-        std::string("-h"),
-        std::string("--help"),
-    };
-
-    for (auto argi = 1u; argi < argc - 1; argi++) {
-      auto arg = std::string(argv[argi]);
-
-      for (auto arg_str : args_str) {
-        auto cmp = arg.compare(arg_str);
-
-        if (cmp == 0) {
-          help(argv);
-        }
-      }
-    }
-  }
+  args_t() : in_port(0), out_port(1), processing_delay_per_query_us(0) {}
 
   void dump() const {
     std::cerr << "Configuration:\n";
+    std::cerr << "  Input port: " << in_port << "\n";
+    std::cerr << "  Output port: " << out_port << "\n";
+    std::cerr << "  Processing delay per query (us): " << processing_delay_per_query_us << "\n";
     std::cerr << "\n";
   }
 };
@@ -134,63 +111,52 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 }
 
 int main(int argc, char **argv) {
-  auto args = args_t(argc, argv);
+  int ret = rte_eal_init(argc, argv);
+  if (ret < 0) {
+    rte_exit(EXIT_FAILURE, "Cannot init EAL\n");
+  }
+  argc -= ret;
+  argv += ret;
+
+  CLI::App app{"Synapse"};
+
+  args_t args;
+  bool dry_run{false};
+
+  app.add_option("--in", args.in_port, "Ingress port.");
+  app.add_option("--out", args.out_port, "Egress port.");
+  app.add_option("--delay", args.processing_delay_per_query_us, "Processing per-query delay (us).");
+  app.add_flag("--dry-run", dry_run, "Don't run search.");
+
+  CLI11_PARSE(app, argc, argv);
+
   args.dump();
 
-  auto conf = netcache::parse_conf_file(args.conf_file_path);
-
-  int query_cntr = 0;
-
-  struct rte_mempool *mbuf_pool;
-  unsigned nb_ports;
-  uint16_t portid;
-
-  int ret0 = rte_eal_init(argc, argv);
-  if (ret0 < 0) {
-    std::cerr << "Failed to initialize DPDK environment." << std::endl;
-    return 1;
+  if (dry_run) {
+    return 0;
   }
 
-  nb_ports = rte_eth_dev_count_avail();
+  unsigned nb_ports = rte_eth_dev_count_avail();
 
-  if (nb_ports < 2) {
-    rte_exit(EXIT_FAILURE, "Invalid port number\n");
+  if (nb_ports == 0) {
+    rte_exit(EXIT_FAILURE, "No ports provided\n");
   }
 
-  mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * nb_ports, MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+  struct rte_mempool *mbuf_pool =
+      rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * nb_ports, MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
 
   if (mbuf_pool == NULL)
     rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
 
+  uint16_t portid;
   RTE_ETH_FOREACH_DEV(portid)
   if (port_init(portid, mbuf_pool) != 0)
     rte_exit(EXIT_FAILURE, "Cannot init port %u\n", portid);
 
-  auto store = new netcache::Store(conf.connection.in.port, conf.connection.out.port, mbuf_pool);
-
-  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  netcache::Store store(args.processing_delay_per_query_us, args.in_port, args.out_port);
 
   std::cout << "***** Server started *****" << std::endl;
-
-  while (1) {
-    // If the received number of queries has reached a limit, wait for some
-    // time before processing additional ones.
-
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    uint32_t time_diff                        = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
-
-    if (time_diff > conf.query.duration) {
-      std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-      query_cntr                                  = 0;
-    } else {
-      if (query_cntr > conf.query.limit) {
-        sleep(conf.query.duration - (conf.query.duration - time_diff));
-        query_cntr = 0;
-      }
-    }
-
-    store->read_query();
-  }
+  store.run();
 
   return 0;
 }

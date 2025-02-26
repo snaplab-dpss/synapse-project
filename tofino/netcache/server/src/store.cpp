@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <chrono>
 
 #include <rte_ethdev.h>
 #include <rte_malloc.h>
@@ -14,164 +15,130 @@
 #include <rte_udp.h>
 #include <rte_tcp.h>
 
+#include "log.h"
 #include "packet.h"
 #include "store.h"
 #include "constants.h"
 
 namespace netcache {
 
-Store::Store(const int in, const int out, rte_mempool *pool) {
-  port_in   = in;
-  port_out  = out;
-  mbuf_pool = pool;
+Store::Store(const int64_t _processing_delay_us, const int in, const int out) {
+  processing_delay_us = _processing_delay_us;
+  port_in             = in;
+  port_out            = out;
 }
 
 Store::~Store() {}
 
-void Store::read_query() {
-  uint16_t nb_rx = rte_eth_rx_burst(port_in, 0, buf, BURST_SIZE);
+void Store::run() {
+  while (1) {
+    struct rte_mbuf *mbufs[BURST_SIZE];
+    uint16_t nb_rx    = rte_eth_rx_burst(port_in, 0, mbufs, BURST_SIZE);
+    uint16_t tx_count = 0;
 
-  if (nb_rx == 0) {
-    return;
-  }
-  count++;
+    for (uint16_t n = 0; n < nb_rx; n++) {
+      LOG_DEBUG();
+      LOG_DEBUG("Grabbing packet %u/%u.", n + 1, nb_rx);
 
-  if (!check_pkt(buf[0])) {
-    return;
-  }
+      std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+      int64_t elapsed_us                          = 0;
+      do {
+        elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - begin).count();
+      } while (processing_delay_us > 0 && elapsed_us < processing_delay_us);
 
-  modify_pkt(buf[0]);
+      LOG_DEBUG("Processing packet (elapsed %lu us).", elapsed_us);
 
-  uint16_t nb_tx = rte_eth_tx_burst(port_out, 0, buf, 1);
+      if (!check_pkt(mbufs[n])) {
+        rte_pktmbuf_free(mbufs[n]);
+        continue;
+      }
 
-  if (nb_tx > 0) {
-#ifndef NDEBUG
-    std::cout << "Sent " << nb_tx << "packet(s)." << std::endl;
-#endif
-  } else {
-    rte_pktmbuf_free(buf[0]);
+      LOG_DEBUG("Processing netcache query...");
+      modify_pkt(mbufs[n]);
+
+      tx_count++;
+    }
+
+    uint16_t nb_tx = rte_eth_tx_burst(port_out, 0, mbufs, tx_count);
+    for (uint16_t n = nb_tx; n < tx_count; n++) {
+      rte_pktmbuf_free(mbufs[n]);
+    }
   }
 }
 
-bool Store::check_pkt(struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *eth_hdr;
-  struct rte_ipv4_hdr *ipv4_hdr;
-  struct rte_udp_hdr *udp_hdr;
-  struct rte_tcp_hdr *tcp_hdr;
+bool Store::check_pkt(rte_mbuf *mbuf) {
+  uint32_t pkt_len = mbuf->pkt_len;
 
-  if (mbuf->pkt_len < sizeof(struct rte_ether_hdr)) {
-#ifndef NDEBUG
-    std::cout << "Received pkt: not enough data for ethernet header." << std::endl;
-#endif
+  constexpr const uint32_t min_size = sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) + sizeof(rte_udp_hdr) + sizeof(netcache_hdr_t);
+
+  if (pkt_len < min_size) {
+    LOG_DEBUG("Too small for a netcache packet (%u).", pkt_len);
     return false;
   }
 
-  eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, rte_ether_hdr *);
 
-  if (eth_hdr->ether_type != rte_be_to_cpu_16(ETHER_TYPE_IPV4)) {
-    if (mbuf->pkt_len < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr)) {
-#ifndef NDEBUG
-      std::cout << "Received pkt: not enough data for IPv4 header." << std::endl;
-#endif
-      return false;
-    }
+  if (rte_be_to_cpu_16(eth_hdr->ether_type) != ETHER_TYPE_IPV4) {
+    LOG_DEBUG("Not IPv4 packet.");
+    return false;
   }
 
-  ipv4_hdr = (struct rte_ipv4_hdr *)((uint8_t *)eth_hdr + sizeof(struct rte_ether_hdr));
+  rte_ipv4_hdr *ipv4_hdr = (rte_ipv4_hdr *)((uint8_t *)eth_hdr + sizeof(rte_ether_hdr));
 
-  if (ipv4_hdr->next_proto_id != UDP_PROTO || ipv4_hdr->next_proto_id != TCP_PROTO) {
+  if (ipv4_hdr->next_proto_id != UDP_PROTO && ipv4_hdr->next_proto_id != TCP_PROTO) {
+    LOG_DEBUG("Not a UDP or TCP packet.");
     return false;
   }
 
   if (ipv4_hdr->next_proto_id == UDP_PROTO) {
-    if (mbuf->pkt_len < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr)) {
-#ifndef NDEBUG
-      std::cout << "Received pkt: not enough data for udp header." << std::endl;
-#endif
+    rte_udp_hdr *udp_hdr = (rte_udp_hdr *)((uint8_t *)ipv4_hdr + sizeof(rte_ipv4_hdr));
+    if (rte_be_to_cpu_16(udp_hdr->dst_port) != KVSTORE_PORT) {
+      LOG_DEBUG("KVS port mismatch (%u).", rte_be_to_cpu_16(udp_hdr->dst_port));
       return false;
     }
-    udp_hdr = (struct rte_udp_hdr *)((uint8_t *)ipv4_hdr + sizeof(struct rte_ipv4_hdr));
-    if (udp_hdr->src_port == rte_be_to_cpu_16(NC_PORT) || udp_hdr->dst_port == rte_be_to_cpu_16(NC_PORT)) {
-      if (buf[0]->pkt_len >= sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr) + NC_HDR_SIZE) {
-        return true;
-      } else {
-#ifndef NDEBUG
-        std::cout << "Received pkt: not enough data for netcache header." << std::endl;
-#endif
-      }
+  } else if (ipv4_hdr->next_proto_id == TCP_PROTO) {
+    if (pkt_len < sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) + sizeof(rte_tcp_hdr) + sizeof(netcache_hdr_t)) {
+      LOG_DEBUG("Not enough data for a netcache packet on top of TCP.");
+      return false;
+    }
+
+    rte_tcp_hdr *tcp_hdr = (rte_tcp_hdr *)((uint8_t *)ipv4_hdr + sizeof(rte_ipv4_hdr));
+    if (rte_be_to_cpu_16(tcp_hdr->dst_port) != KVSTORE_PORT) {
+      LOG_DEBUG("KVS port mismatch (%u).", rte_be_to_cpu_16(tcp_hdr->dst_port));
+      return false;
     }
   }
 
-  if (ipv4_hdr->next_proto_id == TCP_PROTO) {
-    if (mbuf->pkt_len < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_tcp_hdr)) {
-#ifndef NDEBUG
-      std::cout << "Received pkt: not enough data for tcp header." << std::endl;
-#endif
-      return false;
-    }
-    tcp_hdr = (struct rte_tcp_hdr *)((uint8_t *)ipv4_hdr + sizeof(struct rte_ipv4_hdr));
-    if (tcp_hdr->src_port == rte_be_to_cpu_16(NC_PORT) || tcp_hdr->dst_port == rte_be_to_cpu_16(NC_PORT)) {
-      if (buf[0]->pkt_len >= sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_tcp_hdr) + NC_HDR_SIZE) {
-        return true;
-      } else {
-#ifndef NDEBUG
-        std::cout << "Received pkt: not enough data for netcache header." << std::endl;
-#endif
-      }
-    }
-  }
-
-  return false;
+  return true;
 }
 
-void Store::modify_pkt(struct rte_mbuf *mbuf) {
+void Store::modify_pkt(rte_mbuf *mbuf) {
   // ------------------------
   // -------- Eth -----------
   // ------------------------
 
-  struct rte_ether_hdr *eth_hdr;
-  struct rte_ether_addr eth_tmp;
-  eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  rte_ether_hdr *eth_hdr;
+  rte_ether_addr eth_tmp;
+  eth_hdr = rte_pktmbuf_mtod(mbuf, rte_ether_hdr *);
 
-#ifndef NDEBUG
-  printf("Original MAC src: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
-         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
-         eth_hdr->src_addr.addr_bytes[5]);
-  printf("Original MAC dst: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
-         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
-         eth_hdr->dst_addr.addr_bytes[5]);
-#endif
-
-  // Swap src and dst MAC
   eth_tmp           = eth_hdr->src_addr;
   eth_hdr->src_addr = eth_hdr->dst_addr;
   eth_hdr->dst_addr = eth_tmp;
-
-#ifndef NDEBUG
-  printf("Swapped MAC src: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
-         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
-         eth_hdr->src_addr.addr_bytes[5]);
-  printf("Swapped MAC dst: %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
-         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
-         eth_hdr->dst_addr.addr_bytes[5]);
-#endif
 
   // ------------------------
   // ---------- IP ----------
   // ------------------------
 
-  struct rte_ipv4_hdr *ip_hdr;
-  ip_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ipv4_hdr *);
+  rte_ipv4_hdr *ip_hdr;
+  ip_hdr = rte_pktmbuf_mtod(mbuf, rte_ipv4_hdr *);
 
   char src_ip[INET_ADDRSTRLEN];
   char dst_ip[INET_ADDRSTRLEN];
   inet_ntop(AF_INET, &ip_hdr->src_addr, src_ip, INET_ADDRSTRLEN);
   inet_ntop(AF_INET, &ip_hdr->dst_addr, dst_ip, INET_ADDRSTRLEN);
 
-#ifndef NDEBUG
-  printf("Original IP src: %s\n", src_ip);
-  printf("Original IP dst: %s\n", dst_ip);
-#endif
+  LOG_DEBUG("Original IP src: %s", src_ip);
+  LOG_DEBUG("Original IP dst: %s", dst_ip);
 
   // Swap src and dst IP
   uint32_t temp_src = ip_hdr->src_addr;
@@ -185,155 +152,61 @@ void Store::modify_pkt(struct rte_mbuf *mbuf) {
   inet_ntop(AF_INET, &ip_hdr->src_addr, src_ip, INET_ADDRSTRLEN);
   inet_ntop(AF_INET, &ip_hdr->dst_addr, dst_ip, INET_ADDRSTRLEN);
 
-#ifndef NDEBUG
-  printf("Swapped IP src: %s\n", src_ip);
-  printf("Swapped IP dst: %s\n", dst_ip);
-#endif
-
   // ------------------------
   // ------- UDP/TCP --------
   // ------------------------
 
-  struct rte_udp_hdr *udp_hdr;
-  struct rte_tcp_hdr *tcp_hdr;
+  rte_udp_hdr *udp_hdr;
+  rte_tcp_hdr *tcp_hdr;
 
   if (ip_hdr->next_proto_id == IPPROTO_UDP) {
-    udp_hdr = (struct rte_udp_hdr *)((uint8_t *)ip_hdr + (ip_hdr->version_ihl & 0x0F) * 4);
+    udp_hdr = (rte_udp_hdr *)((uint8_t *)ip_hdr + (ip_hdr->version_ihl & 0x0F) * 4);
 
-#ifndef NDEBUG
-    printf("Original UDP Ports: src %u, dst %u\n", rte_be_to_cpu_16(udp_hdr->src_port), rte_be_to_cpu_16(udp_hdr->dst_port));
-#endif
-
-    // Swap UDP ports
     uint16_t temp_port = udp_hdr->src_port;
     udp_hdr->src_port  = udp_hdr->dst_port;
     udp_hdr->dst_port  = temp_port;
-
-#ifndef NDEBUG
-    printf("Swapped UDP Ports: src %u, dst %u\n", rte_be_to_cpu_16(udp_hdr->src_port), rte_be_to_cpu_16(udp_hdr->dst_port));
-#endif
   } else if (ip_hdr->next_proto_id == IPPROTO_TCP) {
-    tcp_hdr = (struct rte_tcp_hdr *)((uint8_t *)ip_hdr + (ip_hdr->version_ihl & 0x0F) * 4);
+    tcp_hdr = (rte_tcp_hdr *)((uint8_t *)ip_hdr + (ip_hdr->version_ihl & 0x0F) * 4);
 
-#ifndef NDEBUG
-    printf("Original TCP Ports: src %u, dst %u\n", rte_be_to_cpu_16(tcp_hdr->src_port), rte_be_to_cpu_16(tcp_hdr->dst_port));
-#endif
-
-    // Swap TCP ports
     uint16_t temp_port = tcp_hdr->src_port;
     tcp_hdr->src_port  = tcp_hdr->dst_port;
     tcp_hdr->dst_port  = temp_port;
-
-#ifndef NDEBUG
-    printf("Swapped TCP Ports: src: %u, dst: %u\n", rte_be_to_cpu_16(tcp_hdr->src_port), rte_be_to_cpu_16(tcp_hdr->dst_port));
-#endif
   }
 
   // ------------------------
   // ------- Netcache -------
   // ------------------------
 
-	std::array<uint8_t, KV_KEY_SIZE> kv_key;
+  std::array<uint8_t, KV_KEY_SIZE> kv_key;
 
   if (ip_hdr->next_proto_id == IPPROTO_UDP) {
-    uint8_t *nc_hdr_ptr = (uint8_t *)(udp_hdr + 1);
-
-    struct netcache_hdr_t *nc_hdr = (struct netcache_hdr_t *)nc_hdr_ptr;
-
-	#ifndef NDEBUG
-		printf("Original NC header: ");
-		std::cout << "op: " << nc_hdr->op << std::endl;
-		std::cout << "key: ";
-		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "value: ";
-		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "status: " << nc_hdr->status << std::endl;
-		std::cout << "port: " << nc_hdr->port << std::endl;
-	#endif
-
-	std::copy(nc_hdr->key, nc_hdr->key + 16, kv_key.begin());
+    uint8_t *nc_hdr_ptr    = (uint8_t *)(udp_hdr + 1);
+    netcache_hdr_t *nc_hdr = (netcache_hdr_t *)nc_hdr_ptr;
+    std::copy(nc_hdr->key, nc_hdr->key + 16, kv_key.begin());
 
     auto it = kv_map.find(kv_key);
     if (it == kv_map.end()) {
-		memset(nc_hdr->val, 0, sizeof(nc_hdr->val));
-		nc_hdr->status = 1;
+      memset(nc_hdr->val, 0, sizeof(nc_hdr->val));
+      nc_hdr->status = 1;
     } else {
-		memcpy(nc_hdr->val, it->second, sizeof(nc_hdr->val));
-		nc_hdr->status = 0;
+      memcpy(nc_hdr->val, it->second, sizeof(nc_hdr->val));
+      nc_hdr->status = 0;
     }
-
-	#ifndef NDEBUG
-		printf("Modified NC header: ");
-		std::cout << "op: " << nc_hdr->op << std::endl;
-		std::cout << "key: ";
-		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "value: ";
-		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "status: " << nc_hdr->status << std::endl;
-		std::cout << "port: " << nc_hdr->port << std::endl;
-	#endif
 
   } else if (ip_hdr->next_proto_id == IPPROTO_TCP) {
-    uint8_t *nc_hdr_ptr = (uint8_t *)(tcp_hdr + 1);
+    uint8_t *nc_hdr_ptr    = (uint8_t *)(tcp_hdr + 1);
+    netcache_hdr_t *nc_hdr = (netcache_hdr_t *)nc_hdr_ptr;
 
-    struct netcache_hdr_t *nc_hdr = (struct netcache_hdr_t *)nc_hdr_ptr;
-
-	#ifndef NDEBUG
-		printf("Original NC header: ");
-		std::cout << "op: " << nc_hdr->op << std::endl;
-		std::cout << "key: ";
-		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "value: ";
-		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "status: " << nc_hdr->status << std::endl;
-		std::cout << "port: " << nc_hdr->port << std::endl;
-	#endif
-
-	std::copy(nc_hdr->key, nc_hdr->key + 16, kv_key.begin());
+    std::copy(nc_hdr->key, nc_hdr->key + 16, kv_key.begin());
 
     auto it = kv_map.find(kv_key);
     if (it == kv_map.end()) {
-		memset(nc_hdr->val, 0, sizeof(nc_hdr->val));
-		nc_hdr->status = 1;
+      memset(nc_hdr->val, 0, sizeof(nc_hdr->val));
+      nc_hdr->status = 1;
     } else {
-		memcpy(nc_hdr->val, it->second, sizeof(nc_hdr->val));
-		nc_hdr->status = 0;
+      memcpy(nc_hdr->val, it->second, sizeof(nc_hdr->val));
+      nc_hdr->status = 0;
     }
-
-	#ifndef NDEBUG
-		printf("Modified NC header: ");
-		std::cout << "op: " << nc_hdr->op << std::endl;
-		std::cout << "key: ";
-		for (int i = 0; i < sizeof(nc_hdr->key); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->key[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "value: ";
-		for (int i = 0; i < sizeof(nc_hdr->val); ++i) {
-			std::cout << static_cast<uint8_t>(nc_hdr->val[i]);
-		}
-		std::cout << std::endl;
-		std::cout << "status: " << nc_hdr->status << std::endl;
-		std::cout << "port: " << nc_hdr->port << std::endl;
-	#endif
   }
 }
 

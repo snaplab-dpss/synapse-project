@@ -9,15 +9,14 @@
 #define READ_QUERY 0x0
 #define WRITE_QUERY 0x1
 #define DELETE_QUERY 0x2
-#define NC_PORT 50000
-#define NC_HDR_SIZE 9
+#define KVSTORE_PORT 670
 
 #define KV_KEY_SIZE 16
 #define KV_VAL_SIZE 128
 
 // DPDK
 
-#define BURST_SIZE 1
+#define BURST_SIZE 32
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
 #define RX_RING_SIZE 128
