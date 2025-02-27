@@ -850,14 +850,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::ModifyHeader\n";
+  panic("TODO: Controller::ModifyHeader");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::ChecksumUpdate\n";
+  panic("TODO: Controller::ChecksumUpdate");
   return EPVisitor::Action::doChildren;
 }
 
@@ -942,7 +942,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableLookup *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MapTableLookup\n";
+  panic("TODO: Controller::MapTableLookup");
   return EPVisitor::Action::doChildren;
 }
 
@@ -969,7 +969,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MapTableDelete\n";
+  panic("TODO: Controller::MapTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
@@ -984,8 +984,24 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> index = node->get_index();
+  const klee::ref<klee::Expr> value = node->get_value();
+
+  const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
+
+  var_t value_var = alloc_var("value", value, IS_BUFFER);
+
   coder.indent();
-  coder << "// TODO: Controller::VectorTableLookup\n";
+  coder << "buffer_t " << value_var.name << ";\n";
+
+  coder.indent();
+  coder << "state->" << vector_table->id << ".read(";
+  coder << transpiler.transpile(index);
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -1001,7 +1017,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   var_t value_var = transpile_buffer_decl_and_set(coder, "value", value);
 
   coder.indent();
-  coder << "state->" << vector_table->id << ".put(";
+  coder << "state->" << vector_table->id << ".write(";
   coder << transpiler.transpile(key);
   coder << ", " << value_var.name;
   coder << ");\n";
@@ -1021,7 +1037,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainTableLookup\n";
+  panic("TODO: Controller::DchainTableLookup");
   return EPVisitor::Action::doChildren;
 }
 
@@ -1052,112 +1068,112 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainTableDelete\n";
+  panic("TODO: Controller::DchainTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainAllocate\n";
+  panic("TODO: Controller::DchainAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainAllocateNewIndex\n";
+  panic("TODO: Controller::DchainAllocateNewIndex");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainRejuvenateIndex\n";
+  panic("TODO: Controller::DchainRejuvenateIndex");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainIsIndexAllocated *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainIsIndexAllocated\n";
+  panic("TODO: Controller::DchainIsIndexAllocated");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainFreeIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::DchainFreeIndex\n";
+  panic("TODO: Controller::DchainFreeIndex");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::VectorAllocate\n";
+  panic("TODO: Controller::VectorAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRead *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::VectorRead\n";
+  panic("TODO: Controller::VectorRead");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorWrite *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::VectorWrite\n";
+  panic("TODO: Controller::VectorWrite");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MapAllocate\n";
+  panic("TODO: Controller::MapAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapGet *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MapGet\n";
+  panic("TODO: Controller::MapGet");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapPut *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MapPut\n";
+  panic("TODO: Controller::MapPut");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapErase *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MapErase\n";
+  panic("TODO: Controller::MapErase");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChtAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::ChtAllocate\n";
+  panic("TODO: Controller::ChtAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChtFindBackend *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::ChtFindBackend\n";
+  panic("TODO: Controller::ChtFindBackend");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HashObj *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::HashObj\n";
+  panic("TODO: Controller::HashObj");
   return EPVisitor::Action::doChildren;
 }
 
@@ -1239,161 +1255,161 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::FCFSCachedTableAllocate\n";
+  panic("TODO: Controller::FCFSCachedTableAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableRead *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::FCFSCachedTableRead\n";
+  panic("TODO: Controller::FCFSCachedTableRead");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableWrite *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::FCFSCachedTableWrite\n";
+  panic("TODO: Controller::FCFSCachedTableWrite");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::FCFSCachedTableDelete\n";
+  panic("TODO: Controller::FCFSCachedTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::HHTableAllocate\n";
+  panic("TODO: Controller::HHTableAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableRead *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::HHTableRead\n";
+  panic("TODO: Controller::HHTableRead");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableConditionalUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::HHTableConditionalUpdate\n";
+  panic("TODO: Controller::HHTableConditionalUpdate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::HHTableUpdate\n";
+  panic("TODO: Controller::HHTableUpdate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::HHTableDelete\n";
+  panic("TODO: Controller::HHTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::TokenBucketAllocate\n";
+  panic("TODO: Controller::TokenBucketAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::TokenBucketIsTracing\n";
+  panic("TODO: Controller::TokenBucketIsTracing");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketTrace *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::TokenBucketTrace\n";
+  panic("TODO: Controller::TokenBucketTrace");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketUpdateAndCheck *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::TokenBucketUpdateAndCheck\n";
+  panic("TODO: Controller::TokenBucketUpdateAndCheck");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::TokenBucketExpire\n";
+  panic("TODO: Controller::TokenBucketExpire");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MeterAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MeterAllocate\n";
+  panic("TODO: Controller::MeterAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MeterInsert *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::MeterInsert\n";
+  panic("TODO: Controller::MeterInsert");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::IntegerAllocatorAllocate\n";
+  panic("TODO: Controller::IntegerAllocatorAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorFreeIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::IntegerAllocatorFreeIndex\n";
+  panic("TODO: Controller::IntegerAllocatorFreeIndex");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::CMSAllocate\n";
+  panic("TODO: Controller::CMSAllocate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::CMSUpdate\n";
+  panic("TODO: Controller::CMSUpdate");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::CMSQuery\n";
+  panic("TODO: Controller::CMSQuery");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::CMSIncrement\n";
+  panic("TODO: Controller::CMSIncrement");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "// TODO: Controller::CMSCountMin\n";
+  panic("TODO: Controller::CMSCountMin");
   return EPVisitor::Action::doChildren;
 }
 

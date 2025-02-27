@@ -8,7 +8,7 @@ namespace {
 
 struct vector_table_data_t {
   addr_t obj;
-  klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value;
 };
 
@@ -24,7 +24,7 @@ vector_table_data_t get_vector_table_data(const LibBDD::Call *call_node) {
 
   vector_table_data_t data = {
       .obj   = LibCore::expr_addr_to_obj_addr(vector_addr_expr),
-      .key   = index,
+      .index = index,
       .value = cell,
   };
 
@@ -83,7 +83,7 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const L
     return impls;
   }
 
-  Module *module  = new VectorTableLookup(node, data.obj, data.key, data.value);
+  Module *module  = new VectorTableLookup(node, data.obj, data.index, data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -117,7 +117,7 @@ std::unique_ptr<Module> VectorTableLookupFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  return std::make_unique<VectorTableLookup>(node, data.obj, data.key, data.value);
+  return std::make_unique<VectorTableLookup>(node, data.obj, data.index, data.value);
 }
 
 } // namespace Controller

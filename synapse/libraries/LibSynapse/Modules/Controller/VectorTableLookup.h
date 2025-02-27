@@ -8,24 +8,24 @@ namespace Controller {
 class VectorTableLookup : public ControllerModule {
 private:
   addr_t obj;
-  klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value;
 
 public:
-  VectorTableLookup(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_VectorTableLookup, "VectorTableLookup", node), obj(_obj), key(_key), value(_value) {}
+  VectorTableLookup(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType::Controller_VectorTableLookup, "VectorTableLookup", node), obj(_obj), index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorTableLookup(node, obj, key, value);
+    Module *cloned = new VectorTableLookup(node, obj, index, value);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
-  klee::ref<klee::Expr> get_key() const { return key; }
+  klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_value() const { return value; }
 };
 

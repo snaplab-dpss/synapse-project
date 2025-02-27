@@ -139,7 +139,7 @@ control Ingress(
 		actions = {
 			vector_table_0_get_value;
 		}
-		size = 32;
+		size = 8;
 	}
 
 	bit<16> vector_table_1_get_value_param_0 = 16w0;
@@ -155,7 +155,7 @@ control Ingress(
 		actions = {
 			vector_table_1_get_value;
 		}
-		size = 32;
+		size = 8;
 	}
 
 	apply {

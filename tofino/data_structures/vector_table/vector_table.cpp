@@ -13,25 +13,21 @@ std::unique_ptr<state_t> state;
 void sycon::nf_init() {
   state = std::make_unique<state_t>();
 
-  LOG("***** Empty vector table *****");
+  LOG("***** Unmodified vector table *****");
   state->vector_table.dump();
 
-  LOG("******** New entry ********");
-  u32 key = 0xdeadbeef;
+  u32 index = 3;
 
   buffer_t value(2);
   value.set(0, 2, 0xcafe);
 
-  state->vector_table.put(key, value);
+  LOG("******** Entry write ********");
+  state->vector_table.write(index, value);
   state->vector_table.dump();
 
   LOG("******** Entry mod ********");
   value.set(0, 2, 0xbabe);
-  state->vector_table.put(key, value);
-  state->vector_table.dump();
-
-  LOG("******** Entry del ********");
-  state->vector_table.del(key);
+  state->vector_table.write(index, value);
   state->vector_table.dump();
 }
 

@@ -13,7 +13,7 @@ namespace sycon {
 
 class VectorTable {
 private:
-  std::unordered_map<u32, buffer_t> cache;
+  std::vector<buffer_t> cache;
   std::vector<Table> tables;
   u32 capacity;
   bits_t value_size;
@@ -37,47 +37,33 @@ public:
     for (const Table &table : tables) {
       assert(table.get_capacity() == capacity);
     }
-  }
 
-  bool get(u32 k, buffer_t &v) const {
-    auto found_it = cache.find(k);
-    if (found_it == cache.end()) {
-      return false;
+    buffer_t value(value_size / 8);
+    cache.resize(capacity, value);
+
+    for (u32 i = 0; i < capacity; i++) {
+      write(i, value);
     }
-
-    v = found_it->second;
-    return true;
   }
 
-  void put(u32 k, const buffer_t &v) {
+  void read(u32 index, buffer_t &v) const {
+    assert(index < capacity && "Index out of bounds");
+    v = cache.at(index);
+  }
+
+  void write(u32 index, const buffer_t &value) {
     buffer_t key(4);
-    key.set(0, 4, k);
+    key.set(0, 4, index);
 
     for (Table &table : tables) {
       const std::vector<table_action_t> &actions = table.get_actions();
       assert(actions.size() == 1);
 
       const table_action_t &set_param_action = actions[0];
-      table.add_or_mod_entry(key, set_param_action.name, {v});
+      table.add_or_mod_entry(key, set_param_action.name, {value});
     }
 
-    cache[k] = v;
-  }
-
-  void del(u32 k) {
-    auto found_it = cache.find(k);
-    if (found_it == cache.end()) {
-      return;
-    }
-
-    buffer_t key(4);
-    key.set(0, 4, k);
-
-    for (Table &table : tables) {
-      table.del_entry(key);
-    }
-
-    cache.erase(found_it);
+    cache.at(index) = value;
   }
 
   void dump() const {
@@ -89,8 +75,8 @@ public:
   void dump(std::ostream &os) const {
     os << "================================================\n";
     os << "Vector Table Cache:\n";
-    for (const auto &[k, v] : cache) {
-      os << "  key=" << k << " value=" << v << "\n";
+    for (u32 i = 0; i < capacity; i++) {
+      os << "  index=" << i << " value=" << cache.at(i) << "\n";
     }
     os << "================================================\n";
 
