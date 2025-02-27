@@ -6,6 +6,8 @@
 #include <string>
 #include <iostream>
 
+#include "constants.h"
+
 #define IP_PROTO_TCP 6
 #define IP_PROTO_UDP 17
 #define PORT_NETCACHE 50000
@@ -59,8 +61,8 @@ struct udp_hdr_t {
 
 struct netcache_hdr_t {
 	uint8_t op;
-	uint16_t key;
-	uint32_t val;
+	uint8_t key[KV_KEY_SIZE];
+	uint8_t val[KV_VAL_SIZE];
 	uint8_t status;
 	uint16_t port;
 } __attribute__((packed));
@@ -220,14 +222,23 @@ struct pkt_hdr_t {
 			return;
 		}
 		pretty_print_base();
-		auto netcache_hdr = get_netcache_hdr();
+		auto nc_hdr = get_netcache_hdr();
 
 		printf("###[ NetCache ]###\n");
-		printf("  op		%u\n", ntohl(netcache_hdr->op));
-		printf("  key		%u\n", ntohl(netcache_hdr->key));
-		printf("  val		%u\n", ntohl(netcache_hdr->val));
-		printf("  status	%u\n", ntohl(netcache_hdr->status));
-		printf("  port		%u\n", ntohl(netcache_hdr->port));
+		printf("  op		%u\n", ntohl(nc_hdr->op));
+		printf("  key		%u%u%u%u\n", nc_hdr->key[0], nc_hdr->key[1],
+			   nc_hdr->key[2], nc_hdr->key[3]);
+		printf("  val		%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u\n",
+			   nc_hdr->val[0], nc_hdr->val[1], nc_hdr->val[2], nc_hdr->val[3],
+			   nc_hdr->val[4], nc_hdr->val[5], nc_hdr->val[6], nc_hdr->val[7],
+			   nc_hdr->val[8], nc_hdr->val[9], nc_hdr->val[10], nc_hdr->val[11],
+			   nc_hdr->val[12], nc_hdr->val[13], nc_hdr->val[14], nc_hdr->val[15],
+			   nc_hdr->val[16], nc_hdr->val[17], nc_hdr->val[18], nc_hdr->val[19],
+			   nc_hdr->val[20], nc_hdr->val[21], nc_hdr->val[22], nc_hdr->val[23],
+			   nc_hdr->val[24], nc_hdr->val[25], nc_hdr->val[26], nc_hdr->val[27],
+			   nc_hdr->val[28], nc_hdr->val[29], nc_hdr->val[30], nc_hdr->val[31]);
+		printf("  status	%u\n", ntohl(nc_hdr->status));
+		printf("  port		%u\n", ntohl(nc_hdr->port));
 	}
 } __attribute__((packed));
 

@@ -16,7 +16,6 @@
 #include "pcie.h"
 
 volatile bool stop_reset_timer = false;
-volatile bool stop_query_listener = false;
 
 std::shared_ptr<netcache::ProcessQuery> netcache::ProcessQuery::process_query;
 
@@ -134,10 +133,6 @@ void reset_counters(bool no_cache_activated) {
 	}
 }
 
-/* void query_listener(netcache::ProcessQuery& process_query) { */
-/* 	while (!stop_query_listener) { process_query.read_query(); } */
-/*  } */
-
 int main(int argc, char **argv) {
 	args_t args(argc, argv);
 
@@ -147,18 +142,16 @@ int main(int argc, char **argv) {
 	netcache::setup_controller(conf, conf.switchd.tofino_model);
 	netcache::register_pcie_pkt_ops();
 
-	// netcache::ProcessQuery process_query;
 	netcache::PortStats port_stats;
 
 	auto instance = new netcache::ProcessQuery();;
 	netcache::ProcessQuery::process_query = std::shared_ptr<netcache::ProcessQuery>(instance);
 
 	std::thread reset_thread(reset_counters, args.no_cache_activated);
-	// std::thread query_thread(query_listener, std::ref(process_query));
 
 	std::cerr << "\nNetCache controller is ready.\n";
 
-	// Start listening to stdin
+	// Start listening to stdin.
 	while (1) {
 		std::cout << ">";
 		std::string command;
@@ -176,10 +169,7 @@ int main(int argc, char **argv) {
 	}
 
 	stop_reset_timer = true;
-	/* stop_query_listener = true; */
-
 	reset_thread.join();
-	/* query_thread.join(); */
 
 	return 0;
 }
