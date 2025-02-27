@@ -16,10 +16,6 @@ struct state_t {
 
 std::unique_ptr<state_t> state;
 
-struct cpu_hdr_extra_t {
-
-} __attribute__((packed));
-
 void sycon::nf_init() {
   state = std::make_unique<state_t>();
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(3), 0);
@@ -91,7 +87,7 @@ void sycon::nf_init() {
   buffer_t value_0(2);
   value_0[0] = 0;
   value_0[1] = 1;
-  state->vector_table_1074012584.put(0, value_0);
+  state->vector_table_1074012584.write(0, value_0);
   // BDD node 3:vector_borrow(vector:(w64 1074012584), index:(w32 1), val_out:(w64 1074012248)[ -> (w64 1074026504)])
   // Module Ignore
   // BDD node 4:vector_return(vector:(w64 1074012584), index:(w32 1), value:(w64 1074026504)[(w16 0)])
@@ -99,7 +95,7 @@ void sycon::nf_init() {
   buffer_t value_1(2);
   value_1[0] = 0;
   value_1[1] = 0;
-  state->vector_table_1074012584.put(1, value_1);
+  state->vector_table_1074012584.write(1, value_1);
   // BDD node 5:vector_borrow(vector:(w64 1074012584), index:(w32 2), val_out:(w64 1074012248)[ -> (w64 1074026528)])
   // Module Ignore
   // BDD node 6:vector_return(vector:(w64 1074012584), index:(w32 2), value:(w64 1074026528)[(w16 3)])
@@ -107,7 +103,7 @@ void sycon::nf_init() {
   buffer_t value_2(2);
   value_2[0] = 0;
   value_2[1] = 3;
-  state->vector_table_1074012584.put(2, value_2);
+  state->vector_table_1074012584.write(2, value_2);
   // BDD node 7:vector_borrow(vector:(w64 1074012584), index:(w32 3), val_out:(w64 1074012248)[ -> (w64 1074026552)])
   // Module Ignore
   // BDD node 8:vector_return(vector:(w64 1074012584), index:(w32 3), value:(w64 1074026552)[(w16 2)])
@@ -115,7 +111,7 @@ void sycon::nf_init() {
   buffer_t value_3(2);
   value_3[0] = 0;
   value_3[1] = 2;
-  state->vector_table_1074012584.put(3, value_3);
+  state->vector_table_1074012584.write(3, value_3);
   // BDD node 9:vector_borrow(vector:(w64 1074012584), index:(w32 4), val_out:(w64 1074012248)[ -> (w64 1074026576)])
   // Module Ignore
   // BDD node 10:vector_return(vector:(w64 1074012584), index:(w32 4), value:(w64 1074026576)[(w16 5)])
@@ -123,7 +119,7 @@ void sycon::nf_init() {
   buffer_t value_4(2);
   value_4[0] = 0;
   value_4[1] = 5;
-  state->vector_table_1074012584.put(4, value_4);
+  state->vector_table_1074012584.write(4, value_4);
   // BDD node 11:vector_borrow(vector:(w64 1074012584), index:(w32 5), val_out:(w64 1074012248)[ -> (w64 1074026600)])
   // Module Ignore
   // BDD node 12:vector_return(vector:(w64 1074012584), index:(w32 5), value:(w64 1074026600)[(w16 4)])
@@ -131,7 +127,7 @@ void sycon::nf_init() {
   buffer_t value_5(2);
   value_5[0] = 0;
   value_5[1] = 4;
-  state->vector_table_1074012584.put(5, value_5);
+  state->vector_table_1074012584.write(5, value_5);
   // BDD node 13:vector_borrow(vector:(w64 1074012584), index:(w32 6), val_out:(w64 1074012248)[ -> (w64 1074026624)])
   // Module Ignore
   // BDD node 14:vector_return(vector:(w64 1074012584), index:(w32 6), value:(w64 1074026624)[(w16 7)])
@@ -139,7 +135,7 @@ void sycon::nf_init() {
   buffer_t value_6(2);
   value_6[0] = 0;
   value_6[1] = 7;
-  state->vector_table_1074012584.put(6, value_6);
+  state->vector_table_1074012584.write(6, value_6);
   // BDD node 15:vector_borrow(vector:(w64 1074012584), index:(w32 7), val_out:(w64 1074012248)[ -> (w64 1074026648)])
   // Module Ignore
   // BDD node 16:vector_return(vector:(w64 1074012584), index:(w32 7), value:(w64 1074026648)[(w16 6)])
@@ -147,7 +143,7 @@ void sycon::nf_init() {
   buffer_t value_7(2);
   value_7[0] = 0;
   value_7[1] = 6;
-  state->vector_table_1074012584.put(7, value_7);
+  state->vector_table_1074012584.write(7, value_7);
   // BDD node 17:vector_borrow(vector:(w64 1074012584), index:(w32 8), val_out:(w64 1074012248)[ -> (w64 1074026672)])
   // Module Ignore
   // BDD node 18:vector_return(vector:(w64 1074012584), index:(w32 8), value:(w64 1074026672)[(w16 9)])
@@ -155,7 +151,7 @@ void sycon::nf_init() {
   buffer_t value_8(2);
   value_8[0] = 0;
   value_8[1] = 9;
-  state->vector_table_1074012584.put(8, value_8);
+  state->vector_table_1074012584.write(8, value_8);
   // BDD node 19:vector_borrow(vector:(w64 1074012584), index:(w32 9), val_out:(w64 1074012248)[ -> (w64 1074026696)])
   // Module Ignore
   // BDD node 20:vector_return(vector:(w64 1074012584), index:(w32 9), value:(w64 1074026696)[(w16 8)])
@@ -163,7 +159,7 @@ void sycon::nf_init() {
   buffer_t value_9(2);
   value_9[0] = 0;
   value_9[1] = 8;
-  state->vector_table_1074012584.put(9, value_9);
+  state->vector_table_1074012584.write(9, value_9);
   // BDD node 21:vector_borrow(vector:(w64 1074012584), index:(w32 10), val_out:(w64 1074012248)[ -> (w64 1074026720)])
   // Module Ignore
   // BDD node 22:vector_return(vector:(w64 1074012584), index:(w32 10), value:(w64 1074026720)[(w16 11)])
@@ -171,7 +167,7 @@ void sycon::nf_init() {
   buffer_t value_10(2);
   value_10[0] = 0;
   value_10[1] = 11;
-  state->vector_table_1074012584.put(10, value_10);
+  state->vector_table_1074012584.write(10, value_10);
   // BDD node 23:vector_borrow(vector:(w64 1074012584), index:(w32 11), val_out:(w64 1074012248)[ -> (w64 1074026744)])
   // Module Ignore
   // BDD node 24:vector_return(vector:(w64 1074012584), index:(w32 11), value:(w64 1074026744)[(w16 10)])
@@ -179,7 +175,7 @@ void sycon::nf_init() {
   buffer_t value_11(2);
   value_11[0] = 0;
   value_11[1] = 10;
-  state->vector_table_1074012584.put(11, value_11);
+  state->vector_table_1074012584.write(11, value_11);
   // BDD node 25:vector_borrow(vector:(w64 1074012584), index:(w32 12), val_out:(w64 1074012248)[ -> (w64 1074026768)])
   // Module Ignore
   // BDD node 26:vector_return(vector:(w64 1074012584), index:(w32 12), value:(w64 1074026768)[(w16 13)])
@@ -187,7 +183,7 @@ void sycon::nf_init() {
   buffer_t value_12(2);
   value_12[0] = 0;
   value_12[1] = 13;
-  state->vector_table_1074012584.put(12, value_12);
+  state->vector_table_1074012584.write(12, value_12);
   // BDD node 27:vector_borrow(vector:(w64 1074012584), index:(w32 13), val_out:(w64 1074012248)[ -> (w64 1074026792)])
   // Module Ignore
   // BDD node 28:vector_return(vector:(w64 1074012584), index:(w32 13), value:(w64 1074026792)[(w16 12)])
@@ -195,7 +191,7 @@ void sycon::nf_init() {
   buffer_t value_13(2);
   value_13[0] = 0;
   value_13[1] = 12;
-  state->vector_table_1074012584.put(13, value_13);
+  state->vector_table_1074012584.write(13, value_13);
   // BDD node 29:vector_borrow(vector:(w64 1074012584), index:(w32 14), val_out:(w64 1074012248)[ -> (w64 1074026816)])
   // Module Ignore
   // BDD node 30:vector_return(vector:(w64 1074012584), index:(w32 14), value:(w64 1074026816)[(w16 15)])
@@ -203,7 +199,7 @@ void sycon::nf_init() {
   buffer_t value_14(2);
   value_14[0] = 0;
   value_14[1] = 15;
-  state->vector_table_1074012584.put(14, value_14);
+  state->vector_table_1074012584.write(14, value_14);
   // BDD node 31:vector_borrow(vector:(w64 1074012584), index:(w32 15), val_out:(w64 1074012248)[ -> (w64 1074026840)])
   // Module Ignore
   // BDD node 32:vector_return(vector:(w64 1074012584), index:(w32 15), value:(w64 1074026840)[(w16 14)])
@@ -211,7 +207,7 @@ void sycon::nf_init() {
   buffer_t value_15(2);
   value_15[0] = 0;
   value_15[1] = 14;
-  state->vector_table_1074012584.put(15, value_15);
+  state->vector_table_1074012584.write(15, value_15);
   // BDD node 33:vector_borrow(vector:(w64 1074012584), index:(w32 16), val_out:(w64 1074012248)[ -> (w64 1074026864)])
   // Module Ignore
   // BDD node 34:vector_return(vector:(w64 1074012584), index:(w32 16), value:(w64 1074026864)[(w16 17)])
@@ -219,7 +215,7 @@ void sycon::nf_init() {
   buffer_t value_16(2);
   value_16[0] = 0;
   value_16[1] = 17;
-  state->vector_table_1074012584.put(16, value_16);
+  state->vector_table_1074012584.write(16, value_16);
   // BDD node 35:vector_borrow(vector:(w64 1074012584), index:(w32 17), val_out:(w64 1074012248)[ -> (w64 1074026888)])
   // Module Ignore
   // BDD node 36:vector_return(vector:(w64 1074012584), index:(w32 17), value:(w64 1074026888)[(w16 16)])
@@ -227,7 +223,7 @@ void sycon::nf_init() {
   buffer_t value_17(2);
   value_17[0] = 0;
   value_17[1] = 16;
-  state->vector_table_1074012584.put(17, value_17);
+  state->vector_table_1074012584.write(17, value_17);
   // BDD node 37:vector_borrow(vector:(w64 1074012584), index:(w32 18), val_out:(w64 1074012248)[ -> (w64 1074026912)])
   // Module Ignore
   // BDD node 38:vector_return(vector:(w64 1074012584), index:(w32 18), value:(w64 1074026912)[(w16 19)])
@@ -235,7 +231,7 @@ void sycon::nf_init() {
   buffer_t value_18(2);
   value_18[0] = 0;
   value_18[1] = 19;
-  state->vector_table_1074012584.put(18, value_18);
+  state->vector_table_1074012584.write(18, value_18);
   // BDD node 39:vector_borrow(vector:(w64 1074012584), index:(w32 19), val_out:(w64 1074012248)[ -> (w64 1074026936)])
   // Module Ignore
   // BDD node 40:vector_return(vector:(w64 1074012584), index:(w32 19), value:(w64 1074026936)[(w16 18)])
@@ -243,7 +239,7 @@ void sycon::nf_init() {
   buffer_t value_19(2);
   value_19[0] = 0;
   value_19[1] = 18;
-  state->vector_table_1074012584.put(19, value_19);
+  state->vector_table_1074012584.write(19, value_19);
   // BDD node 41:vector_borrow(vector:(w64 1074012584), index:(w32 20), val_out:(w64 1074012248)[ -> (w64 1074026960)])
   // Module Ignore
   // BDD node 42:vector_return(vector:(w64 1074012584), index:(w32 20), value:(w64 1074026960)[(w16 21)])
@@ -251,7 +247,7 @@ void sycon::nf_init() {
   buffer_t value_20(2);
   value_20[0] = 0;
   value_20[1] = 21;
-  state->vector_table_1074012584.put(20, value_20);
+  state->vector_table_1074012584.write(20, value_20);
   // BDD node 43:vector_borrow(vector:(w64 1074012584), index:(w32 21), val_out:(w64 1074012248)[ -> (w64 1074026984)])
   // Module Ignore
   // BDD node 44:vector_return(vector:(w64 1074012584), index:(w32 21), value:(w64 1074026984)[(w16 20)])
@@ -259,7 +255,7 @@ void sycon::nf_init() {
   buffer_t value_21(2);
   value_21[0] = 0;
   value_21[1] = 20;
-  state->vector_table_1074012584.put(21, value_21);
+  state->vector_table_1074012584.write(21, value_21);
   // BDD node 45:vector_borrow(vector:(w64 1074012584), index:(w32 22), val_out:(w64 1074012248)[ -> (w64 1074027008)])
   // Module Ignore
   // BDD node 46:vector_return(vector:(w64 1074012584), index:(w32 22), value:(w64 1074027008)[(w16 23)])
@@ -267,7 +263,7 @@ void sycon::nf_init() {
   buffer_t value_22(2);
   value_22[0] = 0;
   value_22[1] = 23;
-  state->vector_table_1074012584.put(22, value_22);
+  state->vector_table_1074012584.write(22, value_22);
   // BDD node 47:vector_borrow(vector:(w64 1074012584), index:(w32 23), val_out:(w64 1074012248)[ -> (w64 1074027032)])
   // Module Ignore
   // BDD node 48:vector_return(vector:(w64 1074012584), index:(w32 23), value:(w64 1074027032)[(w16 22)])
@@ -275,7 +271,7 @@ void sycon::nf_init() {
   buffer_t value_23(2);
   value_23[0] = 0;
   value_23[1] = 22;
-  state->vector_table_1074012584.put(23, value_23);
+  state->vector_table_1074012584.write(23, value_23);
   // BDD node 49:vector_borrow(vector:(w64 1074012584), index:(w32 24), val_out:(w64 1074012248)[ -> (w64 1074027056)])
   // Module Ignore
   // BDD node 50:vector_return(vector:(w64 1074012584), index:(w32 24), value:(w64 1074027056)[(w16 25)])
@@ -283,7 +279,7 @@ void sycon::nf_init() {
   buffer_t value_24(2);
   value_24[0] = 0;
   value_24[1] = 25;
-  state->vector_table_1074012584.put(24, value_24);
+  state->vector_table_1074012584.write(24, value_24);
   // BDD node 51:vector_borrow(vector:(w64 1074012584), index:(w32 25), val_out:(w64 1074012248)[ -> (w64 1074027080)])
   // Module Ignore
   // BDD node 52:vector_return(vector:(w64 1074012584), index:(w32 25), value:(w64 1074027080)[(w16 24)])
@@ -291,7 +287,7 @@ void sycon::nf_init() {
   buffer_t value_25(2);
   value_25[0] = 0;
   value_25[1] = 24;
-  state->vector_table_1074012584.put(25, value_25);
+  state->vector_table_1074012584.write(25, value_25);
   // BDD node 53:vector_borrow(vector:(w64 1074012584), index:(w32 26), val_out:(w64 1074012248)[ -> (w64 1074027104)])
   // Module Ignore
   // BDD node 54:vector_return(vector:(w64 1074012584), index:(w32 26), value:(w64 1074027104)[(w16 27)])
@@ -299,7 +295,7 @@ void sycon::nf_init() {
   buffer_t value_26(2);
   value_26[0] = 0;
   value_26[1] = 27;
-  state->vector_table_1074012584.put(26, value_26);
+  state->vector_table_1074012584.write(26, value_26);
   // BDD node 55:vector_borrow(vector:(w64 1074012584), index:(w32 27), val_out:(w64 1074012248)[ -> (w64 1074027128)])
   // Module Ignore
   // BDD node 56:vector_return(vector:(w64 1074012584), index:(w32 27), value:(w64 1074027128)[(w16 26)])
@@ -307,7 +303,7 @@ void sycon::nf_init() {
   buffer_t value_27(2);
   value_27[0] = 0;
   value_27[1] = 26;
-  state->vector_table_1074012584.put(27, value_27);
+  state->vector_table_1074012584.write(27, value_27);
   // BDD node 57:vector_borrow(vector:(w64 1074012584), index:(w32 28), val_out:(w64 1074012248)[ -> (w64 1074027152)])
   // Module Ignore
   // BDD node 58:vector_return(vector:(w64 1074012584), index:(w32 28), value:(w64 1074027152)[(w16 29)])
@@ -315,7 +311,7 @@ void sycon::nf_init() {
   buffer_t value_28(2);
   value_28[0] = 0;
   value_28[1] = 29;
-  state->vector_table_1074012584.put(28, value_28);
+  state->vector_table_1074012584.write(28, value_28);
   // BDD node 59:vector_borrow(vector:(w64 1074012584), index:(w32 29), val_out:(w64 1074012248)[ -> (w64 1074027176)])
   // Module Ignore
   // BDD node 60:vector_return(vector:(w64 1074012584), index:(w32 29), value:(w64 1074027176)[(w16 28)])
@@ -323,7 +319,7 @@ void sycon::nf_init() {
   buffer_t value_29(2);
   value_29[0] = 0;
   value_29[1] = 28;
-  state->vector_table_1074012584.put(29, value_29);
+  state->vector_table_1074012584.write(29, value_29);
   // BDD node 61:vector_borrow(vector:(w64 1074012584), index:(w32 30), val_out:(w64 1074012248)[ -> (w64 1074027200)])
   // Module Ignore
   // BDD node 62:vector_return(vector:(w64 1074012584), index:(w32 30), value:(w64 1074027200)[(w16 31)])
@@ -331,7 +327,7 @@ void sycon::nf_init() {
   buffer_t value_30(2);
   value_30[0] = 0;
   value_30[1] = 31;
-  state->vector_table_1074012584.put(30, value_30);
+  state->vector_table_1074012584.write(30, value_30);
   // BDD node 63:vector_borrow(vector:(w64 1074012584), index:(w32 31), val_out:(w64 1074012248)[ -> (w64 1074027224)])
   // Module Ignore
   // BDD node 64:vector_return(vector:(w64 1074012584), index:(w32 31), value:(w64 1074027224)[(w16 30)])
@@ -339,7 +335,7 @@ void sycon::nf_init() {
   buffer_t value_31(2);
   value_31[0] = 0;
   value_31[1] = 30;
-  state->vector_table_1074012584.put(31, value_31);
+  state->vector_table_1074012584.write(31, value_31);
 
 }
 
@@ -354,6 +350,10 @@ void sycon::nf_args(CLI::App &app) {
 void sycon::nf_user_signal_handler() {
 
 }
+
+struct cpu_hdr_extra_t {
+
+} __attribute__((packed));
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   bool forward = true;

@@ -52,15 +52,15 @@ extern struct config_t {
   void unlock() { atom = 0; }
 
   void begin_transaction() {
-    bool atomic = true;
+    const bool atomic = true;
     lock();
     bf_status_t bf_status = session->beginTransaction(atomic);
     ASSERT_BF_STATUS(bf_status);
   }
 
   void end_transaction() {
-    bool block_until_complete = true;
-    bf_status_t bf_status     = session->commitTransaction(block_until_complete);
+    const bool block_until_complete = true;
+    bf_status_t bf_status           = session->commitTransaction(block_until_complete);
     ASSERT_BF_STATUS(bf_status);
     unlock();
   }

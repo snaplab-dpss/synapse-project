@@ -216,9 +216,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitAdd(const klee::Ad
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " + ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -229,9 +229,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSub(const klee::Su
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " - ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -272,9 +272,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitAnd(const klee::An
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " & ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -285,9 +285,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitOr(const klee::OrE
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " | ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -341,9 +341,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitEq(const klee::EqE
     }
   }
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " == ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -377,9 +377,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitNe(const klee::NeE
     }
   }
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " != ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -390,9 +390,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUlt(const klee::Ul
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " < ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -403,9 +403,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUle(const klee::Ul
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " <= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -416,9 +416,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUgt(const klee::Ug
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " > ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -429,9 +429,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUge(const klee::Ug
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " >= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -442,9 +442,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSlt(const klee::Sl
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " < ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -455,9 +455,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSle(const klee::Sl
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " <= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -468,9 +468,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSgt(const klee::Sg
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " > ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -481,9 +481,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSge(const klee::Sg
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " >= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -580,7 +580,7 @@ void TofinoSynthesizer::transpile_action_decl(coder_t &coder, const std::string 
 }
 
 void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                                             const std::vector<klee::ref<klee::Expr>> &values) {
+                                             const std::vector<klee::ref<klee::Expr>> &values, TimeAware time_aware) {
   const code_t action_name = table->id + "_get_value";
   if (!values.empty()) {
     transpile_action_decl(coder, action_name, values);
@@ -641,6 +641,11 @@ void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
 
   coder.indent();
   coder << "size = " << table->num_entries << ";\n";
+
+  if (time_aware == TimeAware::Yes) {
+    coder.indent();
+    coder << "idle_timeout = true;\n";
+  }
 
   coder.dec();
   coder.indent();
@@ -809,7 +814,7 @@ void TofinoSynthesizer::transpile_register_write_action_decl(coder_t &coder, con
 void TofinoSynthesizer::transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
                                                          const klee::ref<klee::Expr> key, const klee::ref<klee::Expr> value) {
   for (const Table &table : fcfs_cached_table->tables) {
-    transpile_table_decl(coder, &table, {key}, {value});
+    transpile_table_decl(coder, &table, {key}, {value}, TimeAware::No);
   }
 
   std::cerr << coder.dump();
@@ -994,7 +999,7 @@ void TofinoSynthesizer::synthesize() {
   LibCore::symbol_t device = bdd->get_device();
   LibCore::symbol_t time   = bdd->get_time();
 
-  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
+  alloc_var("meta.dev", device.expr, GLOBAL | EXACT_NAME);
   alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
 
   ingress_vars.push();
@@ -1429,7 +1434,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "nf_dev = " << transpiler.transpile(dst_device) << ";\n";
+  ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device) << ";\n";
   ingress.indent();
   ingress << "trigger_forward = true;\n";
 
@@ -1583,7 +1588,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (declared_ds.find(table->id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, keys, {value});
+    transpile_table_decl(ingress, table, keys, {value}, TimeAware::No);
     ingress << "\n";
     declared_ds.insert(table->id);
   }
@@ -1625,7 +1630,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   assert(table && "Table not found");
 
   if (declared_ds.find(table->id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, {key}, {value});
+    transpile_table_decl(ingress, table, {key}, {value}, TimeAware::No);
     ingress << "\n";
     declared_ds.insert(table->id);
   }
@@ -1659,7 +1664,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   assert(table && "Table not found");
 
   if (declared_ds.find(table->id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, {key}, {});
+    transpile_table_decl(ingress, table, {key}, {}, TimeAware::Yes);
     ingress << "\n";
     declared_ds.insert(table->id);
   }

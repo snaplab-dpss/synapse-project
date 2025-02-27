@@ -467,7 +467,8 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableK
 Table::Table(const std::string &_control_name, const std::string &_table_name)
     : control_name(_control_name), table_name(_table_name), dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session),
       table(build_table(dev_tgt, info, control_name, table_name)), capacity(get_capacity_from_hw(dev_tgt, session, table)),
-      key_fields(build_key_fields(table)), actions(build_actions(table)), no_action(build_no_action(table)), time_aware(false) {
+      key_fields(build_key_fields(table)), actions(build_actions(table)), no_action(build_no_action(table)), time_aware(false),
+      entry_ttl_data_id(0), entry_ttl(0) {
   bf_status_t bf_status;
 
   bf_status = table->keyAllocate(&key);
@@ -480,7 +481,7 @@ Table::Table(const std::string &_control_name, const std::string &_table_name)
 Table::Table(const Table &other)
     : control_name(other.control_name), table_name(other.table_name), dev_tgt(other.dev_tgt), info(other.info), session(other.session),
       table(other.table), capacity(other.capacity), key_fields(other.key_fields), actions(other.actions), no_action(other.no_action),
-      time_aware(other.time_aware) {
+      time_aware(other.time_aware), entry_ttl_data_id(other.entry_ttl_data_id), entry_ttl(other.entry_ttl) {
   bf_status_t bf_status;
 
   bf_status = table->keyAllocate(&key);
@@ -502,24 +503,31 @@ void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdl
       table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME, bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
   ASSERT_BF_STATUS(bf_status);
 
-  u32 min_ttl            = timeout;
-  u32 max_ttl            = timeout;
-  u32 ttl_query_interval = timeout;
+  const u32 min_ttl            = timeout;
+  const u32 max_ttl            = timeout;
+  const u32 ttl_query_interval = timeout;
 
   assert(ttl_query_interval <= min_ttl);
 
   bf_status = attr->idleTableNotifyModeSet(enable, callback, ttl_query_interval, max_ttl, min_ttl, cookie);
   ASSERT_BF_STATUS(bf_status);
 
-  u32 flags = 0;
+  u32 flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
   bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
   ASSERT_BF_STATUS(bf_status);
 
   // Even if they are inactive, the table is still time aware.
   time_aware = true;
+  entry_ttl  = timeout;
+  bf_status  = table->dataFieldIdGet(DATA_FIELD_NAME_ENTRY_TTL, &entry_ttl_data_id);
+  ASSERT_BF_STATUS(bf_status);
 }
 
-const std::string &Table::get_name() const { return table_name; }
+std::string Table::get_name() const { return table_name; }
+std::string Table::get_full_name() const { return "pipe." + control_name + "." + table_name; }
 
 size_t Table::get_capacity() const { return capacity; }
 
@@ -537,13 +545,11 @@ void Table::add_entry(const buffer_t &k) {
   bf_status_t bf_status;
 
   set_key(k);
+  set_data();
 
   uint64_t flags;
   BF_RT_FLAG_INIT(flags);
   BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
-
-  bf_status = table->dataReset(no_action.action_id, data.get());
-  ASSERT_BF_STATUS(bf_status);
 
   bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
   ASSERT_BF_STATUS(bf_status);
@@ -567,13 +573,11 @@ void Table::mod_entry(const buffer_t &k) {
   bf_status_t bf_status;
 
   set_key(k);
+  set_data();
 
   uint64_t flags;
   BF_RT_FLAG_INIT(flags);
   BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
-
-  bf_status = table->dataReset(no_action.action_id, data.get());
-  ASSERT_BF_STATUS(bf_status);
 
   bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
   ASSERT_BF_STATUS(bf_status);
@@ -593,13 +597,11 @@ void Table::add_or_mod_entry(const buffer_t &k) {
   bf_status_t bf_status;
 
   set_key(k);
+  set_data();
 
   uint64_t flags;
   BF_RT_FLAG_INIT(flags);
   BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
-
-  bf_status = table->dataReset(no_action.action_id, data.get());
-  ASSERT_BF_STATUS(bf_status);
 
   bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
   ASSERT_BF_STATUS(bf_status);
@@ -702,6 +704,18 @@ void Table::set_key(const buffer_t &k) {
   }
 }
 
+void Table::set_data() {
+  bf_status_t bf_status;
+
+  bf_status = table->dataReset(no_action.action_id, data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  if (time_aware) {
+    bf_status = data->setValue(entry_ttl_data_id, entry_ttl);
+    ASSERT_BF_STATUS(bf_status);
+  }
+}
+
 void Table::set_data(const std::string &action_name, const std::vector<buffer_t> &params) {
   bf_status_t bf_status;
 
@@ -741,6 +755,11 @@ void Table::set_data(const std::string &action_name, const std::vector<buffer_t>
       ERROR("TODO: Implement data type %d", static_cast<int>(data_type));
     }
     }
+  }
+
+  if (time_aware) {
+    bf_status = data->setValue(entry_ttl_data_id, entry_ttl);
+    ASSERT_BF_STATUS(bf_status);
   }
 }
 

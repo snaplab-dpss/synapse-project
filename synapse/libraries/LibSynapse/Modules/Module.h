@@ -73,9 +73,10 @@ enum class ModuleType {
   Controller_VectorTableLookup,
   Controller_VectorTableUpdate,
   Controller_DchainTableAllocate,
-  Controller_DchainTableLookup,
-  Controller_DchainTableUpdate,
-  Controller_DchainTableDelete,
+  Controller_DchainTableIsIndexAllocated,
+  Controller_DchainTableAllocateNewIndex,
+  Controller_DchainTableFreeIndex,
+  Controller_DchainTableRefreshIndex,
   Controller_FCFSCachedTableAllocate,
   Controller_FCFSCachedTableRead,
   Controller_FCFSCachedTableWrite,
@@ -300,14 +301,17 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DchainTableAllocate:
     os << "Controller_DchainTableAllocate";
     break;
-  case ModuleType::Controller_DchainTableLookup:
-    os << "Controller_DchainTableLookup";
+  case ModuleType::Controller_DchainTableIsIndexAllocated:
+    os << "Controller_DchainTableIsIndexAllocated";
     break;
-  case ModuleType::Controller_DchainTableUpdate:
-    os << "Controller_DchainTableUpdate";
+  case ModuleType::Controller_DchainTableAllocateNewIndex:
+    os << "Controller_DchainTableAllocateNewIndex";
     break;
-  case ModuleType::Controller_DchainTableDelete:
-    os << "Controller_DchainTableDelete";
+  case ModuleType::Controller_DchainTableFreeIndex:
+    os << "Controller_DchainTableFreeIndex";
+    break;
+  case ModuleType::Controller_DchainTableRefreshIndex:
+    os << "Controller_DchainTableRefreshIndex";
     break;
   case ModuleType::Controller_VectorTableAllocate:
     os << "Controller_VectorTableAllocate";

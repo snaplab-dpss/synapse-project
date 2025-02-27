@@ -57,13 +57,14 @@ class MapTableAllocate;
 class MapTableLookup;
 class MapTableUpdate;
 class MapTableDelete;
-class DchainTableAllocate;
-class DchainTableLookup;
-class DchainTableUpdate;
-class DchainTableDelete;
 class VectorTableAllocate;
 class VectorTableLookup;
 class VectorTableUpdate;
+class DchainTableAllocate;
+class DchainTableIsIndexAllocated;
+class DchainTableAllocateNewIndex;
+class DchainTableFreeIndex;
+class DchainTableRefreshIndex;
 class DchainAllocate;
 class DchainAllocateNewIndex;
 class DchainRejuvenateIndex;
@@ -209,9 +210,10 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocate *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableIsIndexAllocated *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocateNewIndex *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableFreeIndex *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableRefreshIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *m) { return Action::doChildren; }

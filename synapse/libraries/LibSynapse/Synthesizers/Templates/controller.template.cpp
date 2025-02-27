@@ -14,10 +14,6 @@ struct state_t {
 
 std::unique_ptr<state_t> state;
 
-struct cpu_hdr_extra_t {
-/*@{CPU_HDR_EXTRA}@*/
-} __attribute__((packed));
-
 void sycon::nf_init() {
   state = std::make_unique<state_t>();
 /*@{NF_INIT}@*/
@@ -34,6 +30,10 @@ void sycon::nf_args(CLI::App &app) {
 void sycon::nf_user_signal_handler() {
 /*@{NF_USER_SIGNAL_HANDLER}@*/
 }
+
+struct cpu_hdr_extra_t {
+/*@{CPU_HDR_EXTRA}@*/
+} __attribute__((packed));
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   bool forward = true;

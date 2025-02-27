@@ -1,4 +1,4 @@
-#include <LibSynapse/Modules/Controller/DchainTableLookup.h>
+#include <LibSynapse/Modules/Controller/DchainTableRefreshIndex.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -8,33 +8,27 @@ namespace {
 
 struct dchain_table_data_t {
   addr_t obj;
-  klee::ref<klee::Expr> key;
-  std::optional<LibCore::symbol_t> hit;
+  klee::ref<klee::Expr> index;
 };
 
 dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
-  assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Not a dchain call");
+  assert((call.function_name == "dchain_rejuvenate_index") && "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
   dchain_table_data_t data = {
-      .obj = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
-      .key = index,
-      .hit = std::nullopt,
+      .obj   = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
+      .index = index,
   };
-
-  if (call.function_name == "dchain_is_index_allocated") {
-    data.hit = call_node->get_local_symbol("is_index_allocated");
-  }
 
   return data;
 }
 
 } // namespace
 
-std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> DchainTableRefreshIndexFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
   }
@@ -42,7 +36,7 @@ std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, con
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
-  if (call.function_name != "dchain_is_index_allocated" && call.function_name != "dchain_rejuvenate_index") {
+  if (call.function_name != "dchain_rejuvenate_index") {
     return std::nullopt;
   }
 
@@ -55,8 +49,8 @@ std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, con
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                           LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> DchainTableRefreshIndexFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                                 LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -66,7 +60,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const L
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
-  if (call.function_name != "dchain_is_index_allocated" && call.function_name != "dchain_rejuvenate_index") {
+  if (call.function_name != "dchain_rejuvenate_index") {
     return impls;
   }
 
@@ -76,7 +70,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const L
     return impls;
   }
 
-  Module *module  = new DchainTableLookup(node, data.obj, data.key, data.hit);
+  Module *module  = new DchainTableRefreshIndex(node, data.obj, data.index);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -88,7 +82,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const L
   return impls;
 }
 
-std::unique_ptr<Module> DchainTableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> DchainTableRefreshIndexFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }
@@ -96,7 +90,7 @@ std::unique_ptr<Module> DchainTableLookupFactory::create(const LibBDD::BDD *bdd,
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
-  if (call.function_name != "dchain_is_index_allocated" && call.function_name != "dchain_rejuvenate_index") {
+  if (call.function_name != "dchain_rejuvenate_index") {
     return {};
   }
 
@@ -106,7 +100,7 @@ std::unique_ptr<Module> DchainTableLookupFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  return std::make_unique<DchainTableLookup>(node, data.obj, data.key, data.hit);
+  return std::make_unique<DchainTableRefreshIndex>(node, data.obj, data.index);
 }
 
 } // namespace Controller

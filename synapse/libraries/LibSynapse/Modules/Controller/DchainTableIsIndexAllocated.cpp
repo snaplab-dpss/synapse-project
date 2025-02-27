@@ -1,4 +1,4 @@
-#include <LibSynapse/Modules/Controller/DchainTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DchainTableIsIndexAllocated.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -8,22 +8,22 @@ namespace {
 
 struct dchain_table_data_t {
   addr_t obj;
-  klee::ref<klee::Expr> key;
-  klee::ref<klee::Expr> success;
+  klee::ref<klee::Expr> index;
+  LibCore::symbol_t is_allocated;
 };
 
 dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
-  assert(call.function_name == "dchain_allocate_new_index" && "Not a dchain call");
+  assert((call.function_name == "dchain_is_index_allocated") && "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
-  klee::ref<klee::Expr> index_out        = call.args.at("index_out").out;
-  LibCore::symbol_t not_out_of_space     = call_node->get_local_symbol("not_out_of_space");
+  klee::ref<klee::Expr> index            = call.args.at("index").expr;
+  LibCore::symbol_t is_allocated         = call_node->get_local_symbol("is_index_allocated");
 
   dchain_table_data_t data = {
-      .obj     = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
-      .key     = index_out,
-      .success = not_out_of_space.expr,
+      .obj          = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
+      .index        = index,
+      .is_allocated = is_allocated,
   };
 
   return data;
@@ -31,7 +31,7 @@ dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DchainTableUpdateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> DchainTableIsIndexAllocatedFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
   }
@@ -39,7 +39,7 @@ std::optional<spec_impl_t> DchainTableUpdateFactory::speculate(const EP *ep, con
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
-  if (call.function_name != "dchain_allocate_new_index") {
+  if (call.function_name != "dchain_is_index_allocated") {
     return std::nullopt;
   }
 
@@ -52,8 +52,8 @@ std::optional<spec_impl_t> DchainTableUpdateFactory::speculate(const EP *ep, con
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainTableUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                           LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> DchainTableIsIndexAllocatedFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                                     LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -63,7 +63,7 @@ std::vector<impl_t> DchainTableUpdateFactory::process_node(const EP *ep, const L
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
-  if (call.function_name != "dchain_allocate_new_index") {
+  if (call.function_name != "dchain_is_index_allocated") {
     return impls;
   }
 
@@ -73,7 +73,7 @@ std::vector<impl_t> DchainTableUpdateFactory::process_node(const EP *ep, const L
     return impls;
   }
 
-  Module *module  = new DchainTableUpdate(node, data.obj, data.key, data.success);
+  Module *module  = new DchainTableIsIndexAllocated(node, data.obj, data.index, data.is_allocated);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -85,7 +85,8 @@ std::vector<impl_t> DchainTableUpdateFactory::process_node(const EP *ep, const L
   return impls;
 }
 
-std::unique_ptr<Module> DchainTableUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> DchainTableIsIndexAllocatedFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
+                                                                   const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }
@@ -93,17 +94,17 @@ std::unique_ptr<Module> DchainTableUpdateFactory::create(const LibBDD::BDD *bdd,
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
-  if (call.function_name != "dchain_allocate_new_index") {
+  if (call.function_name != "dchain_is_index_allocated") {
     return {};
   }
 
   dchain_table_data_t data = get_dchain_table_data(call_node);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_DchainTable)) {
+  if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable)) {
     return {};
   }
 
-  return std::make_unique<DchainTableUpdate>(node, data.obj, data.key, data.success);
+  return std::make_unique<DchainTableIsIndexAllocated>(node, data.obj, data.index, data.is_allocated);
 }
 
 } // namespace Controller

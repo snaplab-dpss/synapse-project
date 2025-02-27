@@ -46,8 +46,9 @@ protected:
   std::unique_ptr<bfrt::BfRtTableKey> key;
   std::unique_ptr<bfrt::BfRtTableData> data;
 
-  bf_rt_id_t entry_ttl_data_id;
   bool time_aware;
+  bf_rt_id_t entry_ttl_data_id;
+  time_ms_t entry_ttl;
 
 public:
   Table(const std::string &_control_name, const std::string &_table_name);
@@ -56,12 +57,15 @@ public:
 
   void set_session(const std::shared_ptr<bfrt::BfRtSession> &_session);
 
-  const std::string &get_name() const;
+  std::string get_name() const;
+  std::string get_full_name() const;
   size_t get_capacity() const;
   size_t get_usage() const;
 
   const std::vector<table_field_t> &get_key_fields() const;
   const std::vector<table_action_t> &get_actions() const;
+
+  void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 
   void add_entry(const buffer_t &k);
   void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
@@ -81,8 +85,8 @@ public:
 
 protected:
   void set_key(const buffer_t &k);
+  void set_data();
   void set_data(const std::string &action_name, const std::vector<buffer_t> &params);
-  void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 };
 
 } // namespace sycon

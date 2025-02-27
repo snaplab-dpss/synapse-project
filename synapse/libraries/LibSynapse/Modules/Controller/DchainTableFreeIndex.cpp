@@ -1,4 +1,4 @@
-#include <LibSynapse/Modules/Controller/DchainTableDelete.h>
+#include <LibSynapse/Modules/Controller/DchainTableFreeIndex.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -8,7 +8,7 @@ namespace {
 
 struct dchain_table_data_t {
   addr_t obj;
-  klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> index;
 };
 
 dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
@@ -19,8 +19,8 @@ dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
   dchain_table_data_t data = {
-      .obj = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
-      .key = index,
+      .obj   = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
+      .index = index,
   };
 
   return data;
@@ -28,7 +28,7 @@ dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DchainTableDeleteFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> DchainTableFreeIndexFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
   }
@@ -49,8 +49,8 @@ std::optional<spec_impl_t> DchainTableDeleteFactory::speculate(const EP *ep, con
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DchainTableDeleteFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                           LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> DchainTableFreeIndexFactory::process_node(const EP *ep, const LibBDD::Node *node,
+                                                              LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -70,7 +70,7 @@ std::vector<impl_t> DchainTableDeleteFactory::process_node(const EP *ep, const L
     return impls;
   }
 
-  Module *module  = new DchainTableDelete(node, data.obj, data.key);
+  Module *module  = new DchainTableFreeIndex(node, data.obj, data.index);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -82,7 +82,7 @@ std::vector<impl_t> DchainTableDeleteFactory::process_node(const EP *ep, const L
   return impls;
 }
 
-std::unique_ptr<Module> DchainTableDeleteFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> DchainTableFreeIndexFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }
@@ -100,7 +100,7 @@ std::unique_ptr<Module> DchainTableDeleteFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  return std::make_unique<DchainTableDelete>(node, data.obj, data.key);
+  return std::make_unique<DchainTableFreeIndex>(node, data.obj, data.index);
 }
 
 } // namespace Controller

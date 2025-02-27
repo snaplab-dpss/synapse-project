@@ -74,6 +74,7 @@ private:
   struct var_t {
     code_t name;
     klee::ref<klee::Expr> expr;
+    std::optional<addr_t> addr;
     bool is_ptr;
     bool is_buffer;
 
@@ -97,6 +98,7 @@ private:
     void clear();
 
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get_by_addr(addr_t addr) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
     std::vector<var_t> get_all() const;
   };
@@ -123,6 +125,7 @@ private:
 
     Stack squash() const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get_by_addr(addr_t addr) const;
     std::vector<Stack> get_all() const;
   };
 
@@ -160,9 +163,10 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocate *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocateNewIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableRefreshIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) override final;
@@ -215,13 +219,14 @@ private:
 
   using var_alloc_opt_t = u32;
 
+  static constexpr const var_alloc_opt_t NO_OPTION        = 0b000000;
   static constexpr const var_alloc_opt_t EXACT_NAME       = 0b000001;
   static constexpr const var_alloc_opt_t IS_CPU_HDR       = 0b000010;
   static constexpr const var_alloc_opt_t IS_CPU_HDR_EXTRA = 0b000100;
   static constexpr const var_alloc_opt_t IS_PTR           = 0b001000;
   static constexpr const var_alloc_opt_t IS_BUFFER        = 0b010000;
 
-  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, var_alloc_opt_t opt = 0);
+  var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr, var_alloc_opt_t opt);
   code_path_t alloc_recirc_coder();
 
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr);
@@ -229,7 +234,7 @@ private:
   void transpile_register_decl(const Tofino::Register *reg);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
   void transpile_vector_table_decl(const Tofino::VectorTable *vector_table);
-  void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table);
+  void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
 
   void dbg_vars() const;

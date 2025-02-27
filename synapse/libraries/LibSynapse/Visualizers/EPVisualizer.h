@@ -69,9 +69,10 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableDelete *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocateNewIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableRefreshIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) override final;

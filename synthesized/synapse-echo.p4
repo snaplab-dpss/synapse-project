@@ -30,7 +30,7 @@ struct synapse_ingress_headers_t {
 }
 
 struct synapse_ingress_metadata_t {
-  bit<16> dev;
+  bit<32> dev;
   bit<32> time;
 
 }
@@ -129,7 +129,7 @@ control Ingress(
     b = tmp;
   }
 
-  action set_ingress_dev(bit<16> nf_dev) { meta.dev = nf_dev; }
+  action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
     key = { ig_intr_md.ingress_port: exact; }
     actions = { set_ingress_dev; }
@@ -137,7 +137,7 @@ control Ingress(
   }
 
   bool trigger_forward = false;
-  bit<16> nf_dev = 16w0;
+  bit<32> nf_dev = 0;
   table forward_nf_dev {
     key = { nf_dev: exact; }
     actions = { fwd; }
@@ -147,7 +147,7 @@ control Ingress(
 
   apply {
     if (hdr.cpu.isValid()) {
-      nf_dev = hdr.cpu.egress_dev;
+      nf_dev[15:0] = hdr.cpu.egress_dev;
       hdr.cpu.setInvalid();
     } else if (hdr.recirc.isValid()) {
       
@@ -155,7 +155,7 @@ control Ingress(
       ingress_port_to_nf_dev.apply();
       // EP node  1
       // BDD node 0:FORWARD
-      nf_dev = meta.dev;
+      nf_dev[15:0] = meta.dev[15:0];
       trigger_forward = true;
       ig_tm_md.bypass_egress = 1;
     }

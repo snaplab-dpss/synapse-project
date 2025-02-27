@@ -1,11 +1,13 @@
 #include <sycon/sycon.h>
 
+#include <unistd.h>
+
 using namespace sycon;
 
 struct state_t {
   DchainTable dchain_table;
 
-  state_t() : dchain_table("Ingress", {"dchain_table_0"}) {}
+  state_t() : dchain_table("Ingress", {"dchain_table_0", "dchain_table_1"}, 1000) {}
 };
 
 std::unique_ptr<state_t> state;
@@ -29,6 +31,33 @@ void sycon::nf_init() {
   LOG("******** Free index ********");
   state->dchain_table.free_index(new_index);
   state->dchain_table.dump();
+
+  LOG("******** Allocate and expire index ********");
+  success = state->dchain_table.allocate_new_index(new_index);
+  LOG("Allocated new index %u success %d", new_index, success);
+  is_allocated = state->dchain_table.is_index_allocated(new_index);
+  LOG("Is index %u allocated %d", new_index, is_allocated);
+  state->dchain_table.dump();
+
+  LOG("zzzzzzzzzzz...");
+  sleep(5);
+
+  LOG("******** Is index allocated ********");
+  is_allocated = state->dchain_table.is_index_allocated(new_index);
+  LOG("Is index %u allocated %d", new_index, is_allocated);
+  state->dchain_table.dump();
+
+  LOG("******** Continuously refresh index ********");
+  success = state->dchain_table.allocate_new_index(new_index);
+  LOG("Allocated new index %u success %d", new_index, success);
+  is_allocated = state->dchain_table.is_index_allocated(new_index);
+
+  LOG("Continuously refreshing...");
+  for (size_t i = 0; i < 1'000; i++) {
+    state->dchain_table.refresh_index(new_index);
+  }
+  LOG("Done! Now we sleep...");
+  sleep(5);
 }
 
 void sycon::nf_exit() {}

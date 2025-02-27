@@ -225,9 +225,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitAdd(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " + ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -238,9 +238,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSub(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " - ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -281,9 +281,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitAnd(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " & ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -294,9 +294,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitOr(const klee:
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " | ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -338,13 +338,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitEq(const klee:
     var_expr   = lhs;
   }
 
-  coder << "(";
-  coder << transpile(lhs);
-  coder << ")";
+  coder << "(" << transpile(lhs) << ")";
   coder << " == ";
-  coder << "(";
-  coder << transpile(rhs);
-  coder << ")";
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -366,13 +362,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitNe(const klee:
     var_expr   = lhs;
   }
 
-  coder << "(";
-  coder << transpile(lhs);
-  coder << ")";
+  coder << "(" << transpile(lhs) << ")";
   coder << " != ";
-  coder << "(";
-  coder << transpile(rhs);
-  coder << ")";
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -383,9 +375,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUlt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " < ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -396,9 +388,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUle(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " <= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -409,9 +401,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUgt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " > ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -422,9 +414,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUge(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " >= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -435,9 +427,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSlt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " < ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -448,9 +440,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSle(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " <= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -461,9 +453,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSgt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " > ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -474,9 +466,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSge(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << transpile(lhs);
+  coder << "(" << transpile(lhs) << ")";
   coder << " >= ";
-  coder << transpile(rhs);
+  coder << "(" << transpile(rhs) << ")";
 
   return Action::skipChildren();
 }
@@ -578,13 +570,29 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(kl
       klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
       if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
-        var_t out_var = var;
-        out_var.name  = var.get_slice(offset, expr_size);
-        out_var.expr  = var_slice;
+        const var_t out_var = {
+            .name      = var.get_slice(offset, expr_size),
+            .expr      = var_slice,
+            .addr      = std::nullopt,
+            .is_ptr    = false,
+            .is_buffer = false,
+        };
+
         return out_var;
       }
     }
   }
+  return std::nullopt;
+}
+
+std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get_by_addr(addr_t addr) const {
+  for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
+    const var_t &var = *var_it;
+    if (var.addr.has_value() && var.addr.value() == addr) {
+      return var;
+    }
+  }
+
   return std::nullopt;
 }
 
@@ -617,6 +625,16 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get(k
 
   for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
     if (std::optional<var_t> var = stack_it->get(expr)) {
+      return var;
+    }
+  }
+
+  return std::nullopt;
+}
+
+std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get_by_addr(addr_t addr) const {
+  for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
+    if (std::optional<var_t> var = stack_it->get_by_addr(addr)) {
       return var;
     }
   }
@@ -661,9 +679,8 @@ void ControllerSynthesizer::synthesize() {
   LibCore::symbol_t device  = bdd->get_device();
   LibCore::symbol_t pkt_len = bdd->get_packet_len();
 
-  alloc_var("now", now.expr);
-  alloc_var("size", pkt_len.expr);
-  alloc_var("ingress_dev", device.expr, EXACT_NAME | IS_CPU_HDR);
+  alloc_var("now", now.expr, {}, NO_OPTION);
+  alloc_var("size", pkt_len.expr, {}, NO_OPTION);
 
   synthesize_nf_process();
   synthesize_state_member_init_list();
@@ -775,12 +792,16 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const LibCore::Symbols &symbols = node->get_symbols();
   for (const LibCore::symbol_t &symbol : symbols.get()) {
-    bytes_t width = symbol.expr->getWidth();
+    bits_t width = symbol.expr->getWidth();
 
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
     assert(width >= 8 && "Unexpected width (less than 8)");
 
-    var_t var = alloc_var(symbol.name, symbol.expr, EXACT_NAME | IS_CPU_HDR_EXTRA);
+    if (vars.get(symbol.expr).has_value()) {
+      continue;
+    }
+
+    const var_t var = alloc_var(symbol.name, symbol.expr, {}, EXACT_NAME | IS_CPU_HDR_EXTRA | (width > 64 ? IS_PTR : NO_OPTION));
 
     cpu_extra.indent();
     switch (width) {
@@ -832,10 +853,11 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) {
   coder_t &coder = get_current_coder();
 
+  const addr_t chunk_addr      = node->get_chunk_addr();
   klee::ref<klee::Expr> chunk  = node->get_chunk();
   klee::ref<klee::Expr> length = node->get_length();
 
-  var_t hdr = alloc_var("hdr", chunk, IS_PTR);
+  var_t hdr = alloc_var("hdr", chunk, chunk_addr, IS_PTR);
 
   coder.indent();
   coder << "u8* " << hdr.name << " = ";
@@ -849,15 +871,46 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) {
   coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::ModifyHeader");
+
+  const addr_t chunk_addr                        = node->get_chunk_addr();
+  const std::vector<LibCore::expr_mod_t> changes = node->get_changes();
+
+  const std::optional<var_t> hdr = vars.get_by_addr(chunk_addr);
+  assert(hdr.has_value() && "Header not found");
+
+  for (const LibCore::expr_mod_t &mod : changes) {
+    assert(mod.width == 8 && "Unsupported width");
+    coder.indent();
+    coder << hdr.value().name << "[" << mod.offset / 8 << "] = ";
+    coder << transpiler.transpile(mod.expr);
+    coder << ";\n";
+  }
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t ip_hdr_addr         = node->get_ip_hdr_addr();
+  const addr_t l4_hdr_addr         = node->get_l4_hdr_addr();
+  const LibCore::symbol_t checksum = node->get_checksum();
+
+  std::optional<var_t> ip_hdr = vars.get_by_addr(ip_hdr_addr);
+  std::optional<var_t> l4_hdr = vars.get_by_addr(l4_hdr_addr);
+
+  assert(ip_hdr.has_value() && "IP header not found");
+  assert(l4_hdr.has_value() && "L4 header not found");
+
+  var_t checksum_var = alloc_var("checksum", checksum.expr, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::ChecksumUpdate");
+  coder << "u16 " << checksum_var.name << " = ";
+  coder << "update_ipv4_tcpudp_checksums(";
+  coder << "(ipv4_hdr_t *)" << ip_hdr.value().name;
+  coder << ", (void *)" << l4_hdr.value().name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -991,7 +1044,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
 
-  var_t value_var = alloc_var("value", value, IS_BUFFER);
+  var_t value_var = alloc_var("value", value, {}, IS_BUFFER);
 
   coder.indent();
   coder << "buffer_t " << value_var.name << ";\n";
@@ -1026,31 +1079,65 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocate *node) {
-  const addr_t obj                        = node->get_obj();
+  const addr_t obj                = node->get_obj();
+  const time_ns_t expiration_time = node->get_expiration_time();
+
   const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
 
-  transpile_dchain_table_decl(dchain_table);
+  transpile_dchain_table_decl(dchain_table, expiration_time);
 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableLookup *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableIsIndexAllocated *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                     = node->get_obj();
+  klee::ref<klee::Expr> index          = node->get_index();
+  const LibCore::symbol_t is_allocated = node->get_is_allocated();
+
+  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
+
+  var_t is_allocated_var = alloc_var("is_allocated", is_allocated.expr, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::DchainTableLookup");
+  coder << "bool " << is_allocated_var.name << " = ";
+  coder << "state->" << dchain_table->id;
+  coder << ".is_index_allocated(";
+  coder << transpiler.transpile(index);
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableRefreshIndex *node) {
   coder_t &coder = get_current_coder();
 
-  addr_t obj                              = node->get_obj();
-  klee::ref<klee::Expr> allocated_index   = node->get_allocated_index();
-  klee::ref<klee::Expr> success           = node->get_success();
+  const addr_t obj            = node->get_obj();
+  klee::ref<klee::Expr> index = node->get_index();
+
   const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
 
-  var_t allocated_index_var = alloc_var("allocated_index", allocated_index);
-  var_t success_var         = alloc_var("success", success);
+  coder.indent();
+  coder << "state->" << dchain_table->id;
+  coder << ".refresh_index(";
+  coder << transpiler.transpile(index);
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocateNewIndex *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                      = node->get_obj();
+  klee::ref<klee::Expr> allocated_index = node->get_allocated_index();
+  klee::ref<klee::Expr> success         = node->get_success();
+
+  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
+
+  var_t allocated_index_var = alloc_var("allocated_index", allocated_index, {}, NO_OPTION);
+  var_t success_var         = alloc_var("success", success, {}, NO_OPTION);
 
   coder.indent();
   coder << "u32 " << allocated_index_var.name << ";\n";
@@ -1065,10 +1152,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableDelete *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableFreeIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  panic("TODO: Controller::DchainTableDelete");
+  panic("TODO: Controller::DchainTableFreeIndex");
   return EPVisitor::Action::doChildren;
 }
 
@@ -1195,7 +1282,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
-  var_t value_var = alloc_var("value", value, IS_BUFFER);
+  var_t value_var = alloc_var("value", value, {}, IS_BUFFER);
 
   coder.indent();
   coder << "buffer_t " << value_var.name << ";\n";
@@ -1220,7 +1307,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
-  const var_t value_var = alloc_var("value", new_value);
+  const var_t value_var = alloc_var("value", new_value, {}, NO_OPTION);
 
   coder.indent();
   coder << "buffer_t " << value_var.name << ";\n";
@@ -1414,10 +1501,11 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr,
-                                                              var_alloc_opt_t opt) {
-  var_t var{
+                                                              std::optional<addr_t> addr, var_alloc_opt_t opt) {
+  const var_t var{
       .name      = (opt & EXACT_NAME) ? assert_unique_name(proposed_name) : create_unique_name(proposed_name),
       .expr      = expr,
+      .addr      = addr,
       .is_ptr    = (opt & IS_PTR) ? true : false,
       .is_buffer = (opt & IS_BUFFER) ? true : false,
   };
@@ -1447,10 +1535,11 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
   } else if (opt & IS_CPU_HDR_EXTRA) {
     var_t cpu_hdr_extra_var = var;
 
-    switch (var.expr->getWidth()) {
-    case 8: {
-      cpu_hdr_extra_var.name = "cpu_hdr_extra->" + var.name;
-    } break;
+    bits_t width = var.expr->getWidth();
+    assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
+    assert(width >= 8 && "Unexpected width (less than 8)");
+
+    switch (width) {
     case 16: {
       cpu_hdr_extra_var.name = "SWAP_ENDIAN_16(cpu_hdr_extra->" + var.name + ")";
     } break;
@@ -1461,7 +1550,7 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
       cpu_hdr_extra_var.name = "SWAP_ENDIAN_64(cpu_hdr_extra->" + var.name + ")";
     } break;
     default: {
-      panic("Unexpected width in cpu hdr extra (%d bits)", var.expr->getWidth());
+      cpu_hdr_extra_var.name = "cpu_hdr_extra->" + var.name;
     } break;
     }
 
@@ -1577,10 +1666,11 @@ void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTabl
   state_member_init_list.push_back(member_init_list.dump());
 }
 
-void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table) {
+void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time) {
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
-  const code_t name = assert_unique_name(dchain_table->id);
+  const code_t name                  = assert_unique_name(dchain_table->id);
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
 
   state_fields.indent();
   state_fields << "DchainTable " << name << ";\n";
@@ -1594,6 +1684,7 @@ void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTabl
     member_init_list << "\"" << table.id << "\",";
   }
   member_init_list << "}";
+  member_init_list << ", " << expiration_time_ms << "LL";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }
@@ -1627,7 +1718,7 @@ ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_se
     network_order_bytes.insert(network_order_bytes.begin(), transpiler.transpile(byte));
   }
 
-  const var_t var    = alloc_var(proposed_name, expr, IS_BUFFER);
+  const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER);
   const bytes_t size = expr->getWidth() / 8;
   assert(size == network_order_bytes.size() && "Size mismatch");
 

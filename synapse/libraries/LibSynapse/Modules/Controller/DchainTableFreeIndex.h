@@ -5,33 +5,31 @@
 namespace LibSynapse {
 namespace Controller {
 
-class DchainTableLookup : public ControllerModule {
+class DchainTableFreeIndex : public ControllerModule {
 private:
   addr_t obj;
-  klee::ref<klee::Expr> key;
-  std::optional<LibCore::symbol_t> hit;
+  klee::ref<klee::Expr> index;
 
 public:
-  DchainTableLookup(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key, const std::optional<LibCore::symbol_t> &_hit)
-      : ControllerModule(ModuleType::Controller_DchainTableLookup, "DchainTableLookup", node), obj(_obj), key(_key), hit(_hit) {}
+  DchainTableFreeIndex(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index)
+      : ControllerModule(ModuleType::Controller_DchainTableFreeIndex, "DchainTableFreeIndex", node), obj(_obj), index(_index) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
-  virtual Module *clone() const override {
-    Module *cloned = new DchainTableLookup(node, obj, key, hit);
+  virtual Module *clone() const {
+    DchainTableFreeIndex *cloned = new DchainTableFreeIndex(node, obj, index);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
-  klee::ref<klee::Expr> get_key() const { return key; }
-  std::optional<LibCore::symbol_t> get_hit() const { return hit; }
+  klee::ref<klee::Expr> get_index() const { return index; }
 };
 
-class DchainTableLookupFactory : public ControllerModuleFactory {
+class DchainTableFreeIndexFactory : public ControllerModuleFactory {
 public:
-  DchainTableLookupFactory() : ControllerModuleFactory(ModuleType::Controller_DchainTableLookup, "DchainTableLookup") {}
+  DchainTableFreeIndexFactory() : ControllerModuleFactory(ModuleType::Controller_DchainTableFreeIndex, "DchainTableFreeIndex") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

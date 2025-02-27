@@ -21,9 +21,10 @@
 #include <LibSynapse/Modules/Controller/VectorTableLookup.h>
 #include <LibSynapse/Modules/Controller/VectorTableUpdate.h>
 #include <LibSynapse/Modules/Controller/DchainTableAllocate.h>
-#include <LibSynapse/Modules/Controller/DchainTableLookup.h>
-#include <LibSynapse/Modules/Controller/DchainTableUpdate.h>
-#include <LibSynapse/Modules/Controller/DchainTableDelete.h>
+#include <LibSynapse/Modules/Controller/DchainTableAllocateNewIndex.h>
+#include <LibSynapse/Modules/Controller/DchainTableFreeIndex.h>
+#include <LibSynapse/Modules/Controller/DchainTableIsIndexAllocated.h>
+#include <LibSynapse/Modules/Controller/DchainTableRefreshIndex.h>
 #include <LibSynapse/Modules/Controller/DchainAllocate.h>
 #include <LibSynapse/Modules/Controller/DchainAllocateNewIndex.h>
 #include <LibSynapse/Modules/Controller/DchainIsIndexAllocated.h>
@@ -94,9 +95,10 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<VectorTableLookupFactory>());
               f.push_back(std::make_unique<VectorTableUpdateFactory>());
               f.push_back(std::make_unique<DchainTableAllocateFactory>());
-              f.push_back(std::make_unique<DchainTableLookupFactory>());
-              f.push_back(std::make_unique<DchainTableUpdateFactory>());
-              f.push_back(std::make_unique<DchainTableDeleteFactory>());
+              f.push_back(std::make_unique<DchainTableAllocateNewIndexFactory>());
+              f.push_back(std::make_unique<DchainTableFreeIndexFactory>());
+              f.push_back(std::make_unique<DchainTableIsIndexAllocatedFactory>());
+              f.push_back(std::make_unique<DchainTableRefreshIndexFactory>());
               f.push_back(std::make_unique<DchainAllocateFactory>());
               f.push_back(std::make_unique<DchainAllocateNewIndexFactory>());
               f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>());

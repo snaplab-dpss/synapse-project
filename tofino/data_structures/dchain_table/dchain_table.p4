@@ -135,14 +135,29 @@ control Ingress(
 			NoAction;
 		}
 		size = 65536;
+		idle_timeout = true;
+	}
+
+	bit<32> dchain_table_1_key_0 = 32w0;
+	table dchain_table_1 {
+		key = {
+			dchain_table_1_key_0: exact;
+		}
+		actions = {
+			NoAction;
+		}
+		size = 65536;
+		idle_timeout = true;
 	}
 
 	apply {
 		// Prevent the compiler from optimizing away our data structures.
 		if (dchain_table_0.apply().hit) {
 			forward(0);
-		} else {
+		} else if (dchain_table_1.apply().hit) {
 			forward(1);
+		} else {
+			forward(2);
 		}
 	}
 }

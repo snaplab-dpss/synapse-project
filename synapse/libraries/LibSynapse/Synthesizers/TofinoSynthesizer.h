@@ -198,8 +198,11 @@ private:
   code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(coder_t &coder, const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params);
+
+  enum class TimeAware { Yes, No };
   void transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                            const std::vector<klee::ref<klee::Expr>> &values);
+                            const std::vector<klee::ref<klee::Expr>> &values, TimeAware time_aware);
+
   void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
   void transpile_register_read_action_decl(coder_t &coder, const Register *reg, const code_t &name);
   void transpile_register_write_action_decl(coder_t &coder, const Register *reg, const code_t &name, const var_t &write_value);

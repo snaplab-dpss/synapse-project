@@ -14,18 +14,13 @@ struct state_t {
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
       map_table_1074043296("Ingress", {"map_table_1074043296_157","map_table_1074043296_142",}),
-      dchain_table_1074075280("Ingress", {"dchain_table_1074075280_180","dchain_table_1074075280_148",}),
+      dchain_table_1074075280("Ingress", {"dchain_table_1074075280_180","dchain_table_1074075280_148",}, 1000LL),
       vector_table_1074075704("Ingress", {"vector_table_1074075704_139",}),
       vector_table_1074092920("Ingress", {"vector_table_1074092920_181","vector_table_1074092920_149",})
     {}
 };
 
 std::unique_ptr<state_t> state;
-
-struct cpu_hdr_extra_t {
-  u32 DEVICE;
-
-} __attribute__((packed));
 
 void sycon::nf_init() {
   state = std::make_unique<state_t>();
@@ -687,6 +682,11 @@ void sycon::nf_args(CLI::App &app) {
 void sycon::nf_user_signal_handler() {
 
 }
+
+struct cpu_hdr_extra_t {
+  u32 DEVICE;
+
+} __attribute__((packed));
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   bool forward = true;

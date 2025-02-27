@@ -4,6 +4,36 @@
 namespace LibSynapse {
 namespace Tofino {
 
+namespace {
+
+std::vector<LibCore::expr_mod_t> filter_out_checksum_mods(const std::vector<LibCore::expr_mod_t> &mods) {
+  std::vector<LibCore::expr_mod_t> filtered;
+
+  for (const LibCore::expr_mod_t &mod : mods) {
+    LibCore::symbolic_reads_t reads = LibCore::get_unique_symbolic_reads(mod.expr);
+
+    bool found_checksum = false;
+    for (const LibCore::symbolic_read_t &read : reads) {
+      if (read.symbol == "checksum") {
+        found_checksum = true;
+        break;
+      }
+    }
+
+    if (found_checksum && reads.size() != 1) {
+      panic("ChecksumUpdate: modification with checksum and other symbols.");
+    }
+
+    if (!found_checksum) {
+      filtered.push_back(mod);
+    }
+  }
+
+  return filtered;
+}
+
+} // namespace
+
 std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return std::nullopt;
@@ -40,7 +70,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD
   addr_t hdr_addr                          = LibCore::expr_addr_to_obj_addr(call.args.at("the_chunk").expr);
   klee::ref<klee::Expr> borrowed           = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned           = packet_return_chunk->get_call().args.at("the_chunk").in;
-  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(borrowed, returned);
+  std::vector<LibCore::expr_mod_t> changes = filter_out_checksum_mods(LibCore::build_expr_mods(borrowed, returned));
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
@@ -66,8 +96,8 @@ std::unique_ptr<Module> ModifyHeaderFactory::create(const LibBDD::BDD *bdd, cons
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const LibBDD::Call *packet_return_chunk = dynamic_cast<const LibBDD::Call *>(node);
+  const LibBDD::call_t &call              = packet_return_chunk->get_call();
 
   if (call.function_name != "packet_return_chunk") {
     return {};
@@ -75,7 +105,8 @@ std::unique_ptr<Module> ModifyHeaderFactory::create(const LibBDD::BDD *bdd, cons
 
   addr_t hdr_addr                          = LibCore::expr_addr_to_obj_addr(call.args.at("the_chunk").expr);
   klee::ref<klee::Expr> borrowed           = call.args.at("the_chunk").in;
-  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(borrowed, borrowed);
+  klee::ref<klee::Expr> returned           = packet_return_chunk->get_call().args.at("the_chunk").in;
+  std::vector<LibCore::expr_mod_t> changes = filter_out_checksum_mods(LibCore::build_expr_mods(borrowed, returned));
 
   if (changes.empty()) {
     return {};
