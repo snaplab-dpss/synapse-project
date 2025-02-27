@@ -4,13 +4,48 @@
 #include <vector>
 #include <random>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "bf_rt/bf_rt_init.hpp"
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
-// #include "tables/cache_lookup.h"
-#include "registers/reg_vtable.h"
+#include "registers/reg_k0_31.h"
+#include "registers/reg_k32_63.h"
+#include "registers/reg_k64_95.h"
+#include "registers/reg_k96_127.h"
+#include "registers/reg_v0_31.h"
+#include "registers/reg_v32_63.h"
+#include "registers/reg_v64_95.h"
+#include "registers/reg_v96_127.h"
+#include "registers/reg_v128_159.h"
+#include "registers/reg_v160_191.h"
+#include "registers/reg_v192_223.h"
+#include "registers/reg_v224_255.h"
+#include "registers/reg_v256_287.h"
+#include "registers/reg_v288_319.h"
+#include "registers/reg_v320_351.h"
+#include "registers/reg_v352_383.h"
+#include "registers/reg_v384_415.h"
+#include "registers/reg_v416_447.h"
+#include "registers/reg_v448_479.h"
+#include "registers/reg_v480_511.h"
+#include "registers/reg_v512_543.h"
+#include "registers/reg_v544_575.h"
+#include "registers/reg_v576_607.h"
+#include "registers/reg_v608_639.h"
+#include "registers/reg_v640_671.h"
+#include "registers/reg_v672_703.h"
+#include "registers/reg_v704_735.h"
+#include "registers/reg_v736_767.h"
+#include "registers/reg_v768_799.h"
+#include "registers/reg_v800_831.h"
+#include "registers/reg_v832_863.h"
+#include "registers/reg_v864_895.h"
+#include "registers/reg_v896_927.h"
+#include "registers/reg_v928_959.h"
+#include "registers/reg_v960_991.h"
+#include "registers/reg_v992_1023.h"
 #include "registers/reg_cache_lookup.h"
 #include "registers/reg_key_count.h"
 #include "registers/reg_cm_0.h"
@@ -40,6 +75,22 @@ void setup_controller(const std::string &conf_file_path, bool use_tofino_model);
 
 struct bfrt_info_t;
 
+struct hash_key_128 {
+  std::size_t operator()(const std::array<uint8_t, 16> &key) const {
+    std::size_t hash = 0;
+    for (int i = 0; i < 16; ++i) {
+      hash ^= std::hash<uint8_t>()(key[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+    }
+    return hash;
+  }
+};
+
+struct hash_key_128_equal {
+  bool operator()(const std::array<uint8_t, 16> &key1, const std::array<uint8_t, 16> &key2) const {
+    return std::memcmp(key1.data(), key2.data(), 16) == 0;
+  }
+};
+
 class Controller {
 public:
 	static std::shared_ptr<Controller> controller;
@@ -51,10 +102,44 @@ public:
 	conf_t conf;
 	// Switch tables
 	Fwd fwd;
-	// CacheLookup cache_lookup;
 	// Switch registers
-	RegVTable reg_vtable;
 	RegCacheLookup reg_cache_lookup;
+	RegK0_31 reg_k0_31;
+	RegK32_63 reg_k32_63;
+	RegK64_95 reg_k64_95;
+	RegK96_127 reg_k96_127;
+	RegV0_31 reg_v0_31;
+	RegV32_63 reg_v32_63;
+	RegV64_95 reg_v64_95;
+	RegV96_127 reg_v96_127;
+	RegV128_159 reg_v128_159;
+	RegV160_191 reg_v160_191;
+	RegV192_223 reg_v192_223;
+	RegV224_255 reg_v224_255;
+	RegV256_287 reg_v256_287;
+	RegV288_319 reg_v288_319;
+	RegV320_351 reg_v320_351;
+	RegV352_383 reg_v352_383;
+	RegV384_415 reg_v384_415;
+	RegV416_447 reg_v416_447;
+	RegV448_479 reg_v448_479;
+	RegV480_511 reg_v480_511;
+	RegV512_543 reg_v512_543;
+	RegV544_575 reg_v544_575;
+	RegV576_607 reg_v576_607;
+	RegV608_639 reg_v608_639;
+	RegV640_671 reg_v640_671;
+	RegV672_703 reg_v672_703;
+	RegV704_735 reg_v704_735;
+	RegV736_767 reg_v736_767;
+	RegV768_799 reg_v768_799;
+	RegV800_831 reg_v800_831;
+	RegV832_863 reg_v832_863;
+	RegV864_895 reg_v864_895;
+	RegV896_927 reg_v896_927;
+	RegV928_959 reg_v928_959;
+	RegV960_991 reg_v960_991;
+	RegV992_1023 reg_v992_1023;
 	RegKeyCount reg_key_count;
 	RegCm0 reg_cm_0;
 	RegCm1 reg_cm_1;
@@ -63,6 +148,9 @@ public:
 	RegBloom0 reg_bloom_0;
 	RegBloom1 reg_bloom_1;
 	RegBloom2 reg_bloom_2;
+
+	std::unordered_map<std::array<uint8_t, KV_KEY_SIZE>, uint16_t,
+					   hash_key_128, hash_key_128_equal> hash_key;
 
 ;private:
 
@@ -81,9 +169,43 @@ public:
 		  conf(_conf),
 		  use_tofino_model(_use_tofino_model),
 		  fwd(_info, _session, _dev_tgt),
-		  // cache_lookup(_info, _session, _dev_tgt),
-		  reg_vtable(_info, _session, _dev_tgt),
 		  reg_cache_lookup(_info, _session, _dev_tgt),
+		  reg_k0_31(_info, _session, _dev_tgt),
+		  reg_k32_63(_info, _session, _dev_tgt),
+		  reg_k64_95(_info, _session, _dev_tgt),
+		  reg_k96_127(_info, _session, _dev_tgt),
+		  reg_v0_31(_info, _session, _dev_tgt),
+		  reg_v32_63(_info, _session, _dev_tgt),
+		  reg_v64_95(_info, _session, _dev_tgt),
+		  reg_v96_127(_info, _session, _dev_tgt),
+		  reg_v128_159(_info, _session, _dev_tgt),
+		  reg_v160_191(_info, _session, _dev_tgt),
+		  reg_v192_223(_info, _session, _dev_tgt),
+		  reg_v224_255(_info, _session, _dev_tgt),
+		  reg_v256_287(_info, _session, _dev_tgt),
+		  reg_v288_319(_info, _session, _dev_tgt),
+		  reg_v320_351(_info, _session, _dev_tgt),
+		  reg_v352_383(_info, _session, _dev_tgt),
+		  reg_v384_415(_info, _session, _dev_tgt),
+		  reg_v416_447(_info, _session, _dev_tgt),
+		  reg_v448_479(_info, _session, _dev_tgt),
+		  reg_v480_511(_info, _session, _dev_tgt),
+		  reg_v512_543(_info, _session, _dev_tgt),
+		  reg_v544_575(_info, _session, _dev_tgt),
+		  reg_v576_607(_info, _session, _dev_tgt),
+		  reg_v608_639(_info, _session, _dev_tgt),
+		  reg_v640_671(_info, _session, _dev_tgt),
+		  reg_v672_703(_info, _session, _dev_tgt),
+		  reg_v704_735(_info, _session, _dev_tgt),
+		  reg_v736_767(_info, _session, _dev_tgt),
+		  reg_v768_799(_info, _session, _dev_tgt),
+		  reg_v800_831(_info, _session, _dev_tgt),
+		  reg_v832_863(_info, _session, _dev_tgt),
+		  reg_v864_895(_info, _session, _dev_tgt),
+		  reg_v896_927(_info, _session, _dev_tgt),
+		  reg_v928_959(_info, _session, _dev_tgt),
+		  reg_v960_991(_info, _session, _dev_tgt),
+		  reg_v992_1023(_info, _session, _dev_tgt),
 		  reg_key_count(_info, _session, _dev_tgt),
 		  reg_cm_0(_info, _session, _dev_tgt),
 		  reg_cm_1(_info, _session, _dev_tgt),
@@ -125,8 +247,7 @@ public:
 		// Configure mirror session.
 		configure_mirroring(128, CPU_PORT);
 
-		// Insert k entries in the switch's KV store, all with value 0.
-		// k is defined in conf.kv.initial_entries.
+		// Insert k entries in the switch's KV store.
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -138,17 +259,10 @@ public:
 
 		std::vector<int> sampl_index(elems.begin(), elems.end());
 
-		for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
+		// for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
 
 		// Initial cache lookup table config.
-		// With this setup, we're assuming that key = key_idx, just to keep it simple.
 		for (int i: sampl_index) { reg_cache_lookup.allocate((uint32_t) i, 1); }
-		// cache_lookup.add_entry(0, 0, 0);
-		// for (int i: sampl_index) {
-		// 	cache_lookup.add_entry(i, i, i);
-		// }
-
-		/* auto bf_status = port_diag_prbs_stats_display(dev_tgt.dev_id, 0); */
 	}
 
 

@@ -424,8 +424,8 @@ control SwitchEgress(
 							bloom.apply(hdr, bloom_result);
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
-								hdr.netcache.val = (bit<1024>)cm_result;
-								// hdr.netcache.status = 1;
+								hdr.netcache.key = (bit<NC_KEY_WIDTH>)hdr.meta.hash_key;
+								hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
 								set_mirror();
 							}
 						}

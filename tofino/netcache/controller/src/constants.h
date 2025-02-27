@@ -16,4 +16,7 @@ constexpr const int SWITCH_PACKET_MAX_BUFFER_SIZE = 10000;
 #define NC_PORT			50000
 #define NC_HDR_SIZE		10
 
+#define KV_KEY_SIZE 16
+#define KV_VAL_SIZE 128
+
 #define BURST_SIZE 1

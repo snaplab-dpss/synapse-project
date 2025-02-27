@@ -5,7 +5,6 @@
 #include <sstream>
 #include <string>
 
-#include "setup.h"
 #include "netcache.h"
 #include "ports.h"
 

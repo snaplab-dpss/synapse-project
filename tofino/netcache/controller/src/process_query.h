@@ -19,8 +19,6 @@ public:
 	ProcessQuery();
 	~ProcessQuery();
 
-	/* bool read_query(uint8_t *pkt, uint32_t size); */
-	/* struct netcache_hdr_t* check_pkt(struct rte_mbuf *mbuf); */
 	std::vector<std::vector<uint32_t>> sample_values();
 	void update_cache(struct netcache_hdr_t* nc_hdr);
 };
