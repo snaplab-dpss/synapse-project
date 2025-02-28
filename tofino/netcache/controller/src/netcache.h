@@ -70,7 +70,8 @@ extern "C" {
 
 namespace netcache {
 
-void init_bf_switchd(bool bf_prompt, int tna_version);
+bf_switchd_context_t *init_bf_switchd(bool bf_prompt, int tna_version);
+void run_cli(bf_switchd_context_t *switchd_main_ctx);
 void setup_controller(const conf_t &conf, const args_t &args);
 
 struct bfrt_info_t;

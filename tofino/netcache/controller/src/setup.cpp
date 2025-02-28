@@ -15,7 +15,7 @@ extern "C" {
 #include <bf_rt/bf_rt_common.h>
 #include <bf_switchd/bf_switchd.h>
 #include <bfutils/bf_utils.h> // required for bfshell
-/* #include <pkt_mgr/pkt_mgr_intf.h> */
+#include <target-utils/clish/thread.h>
 #ifdef __cplusplus
 }
 #endif
@@ -94,7 +94,25 @@ static std::string get_target_conf_file(int tna_version) {
   return std::string(conf_file);
 }
 
-void init_bf_switchd(bool bf_prompt, int tna_version) {
+void run_cli(bf_switchd_context_t *switchd_main_ctx) {
+  cli_run_bfshell();
+
+  // Wait for CLI exit.
+  pthread_join(switchd_main_ctx->tmr_t_id, NULL);
+  pthread_join(switchd_main_ctx->dma_t_id, NULL);
+  pthread_join(switchd_main_ctx->int_t_id, NULL);
+  pthread_join(switchd_main_ctx->pkt_t_id, NULL);
+  pthread_join(switchd_main_ctx->port_fsm_t_id, NULL);
+  pthread_join(switchd_main_ctx->drusim_t_id, NULL);
+
+  for (size_t i = 0; i < sizeof(switchd_main_ctx->agent_t_id) / sizeof(switchd_main_ctx->agent_t_id[0]); ++i) {
+    if (switchd_main_ctx->agent_t_id[i] != 0) {
+      pthread_join(switchd_main_ctx->agent_t_id[i], NULL);
+    }
+  }
+}
+
+bf_switchd_context_t *init_bf_switchd(bool bf_prompt, int tna_version) {
   // Check if root privileges exist or not, exit if not.
   if (geteuid() != 0) {
     std::cerr << "Requires sudo. Exiting.";
@@ -112,21 +130,22 @@ void init_bf_switchd(bool bf_prompt, int tna_version) {
 
   memset(switchd_main_ctx, 0, sizeof(bf_switchd_context_t));
 
-  switchd_main_ctx->install_dir           = get_install_dir();
-  switchd_main_ctx->conf_file             = const_cast<char *>(target_conf_file.c_str());
-  switchd_main_ctx->skip_p4               = false;
-  switchd_main_ctx->skip_port_add         = false;
-  switchd_main_ctx->running_in_background = !bf_prompt;
+  switchd_main_ctx->install_dir   = get_install_dir();
+  switchd_main_ctx->conf_file     = const_cast<char *>(target_conf_file.c_str());
+  switchd_main_ctx->skip_p4       = false;
+  switchd_main_ctx->skip_port_add = false;
+  // Always set "background" because we do not want bf_switchd_lib_init to start
+  // a CLI session.  That can be done afterward by the caller if requested
+  // through command line options.
+  switchd_main_ctx->running_in_background = true;
   switchd_main_ctx->shell_set_ucli        = false;
   switchd_main_ctx->dev_sts_thread        = true;
   switchd_main_ctx->dev_sts_port          = THRIFT_PORT_NUM;
 
   auto bf_status = bf_switchd_lib_init(switchd_main_ctx);
-  std::cerr << "Initialized bf_switchd, status = " << bf_status << "\n";
+  ASSERT_BF_STATUS(bf_status);
 
-  if (bf_status != BF_SUCCESS) {
-    exit(1);
-  }
+  return switchd_main_ctx;
 }
 
 void setup_controller(const conf_t &conf, const args_t &args) {

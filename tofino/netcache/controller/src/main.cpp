@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  netcache::init_bf_switchd(args.run_ucli, args.tna_version);
+  bf_switchd_context_t *switchd_ctx = netcache::init_bf_switchd(args.run_ucli, args.tna_version);
   netcache::setup_controller(conf, args);
 
   if (args.cache_activated) {
@@ -122,7 +122,12 @@ int main(int argc, char **argv) {
 
   LOG("NetCache controller is ready.");
   DEBUG("Warning: running in debug mode");
-  WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");
+
+  if (args.run_ucli) {
+    netcache::run_cli(switchd_ctx);
+  } else {
+    WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");
+  }
 
   if (args.cache_activated) {
     stop_reset_timer = true;
