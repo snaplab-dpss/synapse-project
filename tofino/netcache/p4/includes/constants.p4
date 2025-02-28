@@ -41,8 +41,6 @@ const mirror_type_t MIRROR_TYPE_E2E = 2;
 
 // NetCache
 
-#define WAN_PORT 8
-
 const bit<16> NC_PORT = 670;
 
 // Size of a key field

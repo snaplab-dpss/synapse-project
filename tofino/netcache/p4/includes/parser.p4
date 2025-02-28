@@ -30,7 +30,7 @@ parser SwitchIngressParser(
 		pkt.extract(hdr.ethernet);
 		transition select(hdr.ethernet.ether_type) {
 			ETHERTYPE_IPV4 : parse_ipv4;
-			default : accept;
+			default : reject;
 		}
 	}
 
@@ -39,7 +39,7 @@ parser SwitchIngressParser(
 		transition select(hdr.ipv4.protocol) {
 			IP_PROTO_UDP : parse_udp;
 			IP_PROTO_TCP : parse_tcp;
-			default : accept;
+			default : reject;
 		}
 	}
 
@@ -48,7 +48,7 @@ parser SwitchIngressParser(
 		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
 			(NC_PORT, _) : parse_netcache;
 			(_, NC_PORT) : parse_netcache;
-			default : accept;
+			default : reject;
 		}
 	}
 
@@ -57,7 +57,7 @@ parser SwitchIngressParser(
 		transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
 			(NC_PORT, _) : parse_netcache;
 			(_, NC_PORT) : parse_netcache;
-			default : accept;
+			default : reject;
 		}
 	}
 

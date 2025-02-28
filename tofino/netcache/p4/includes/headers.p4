@@ -56,6 +56,7 @@ header netcache_t {
 header meta_t {
 	bit<16>		hash_key;
 	bit<16>		ingress_port;
+	bit<8>		is_client_packet;
 	bit<1>		cache_hit;
 	bit<7>		_padding;
 }

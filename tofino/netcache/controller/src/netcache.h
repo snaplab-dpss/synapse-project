@@ -10,6 +10,7 @@
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
+#include "tables/is_client_packet.h"
 #include "registers/reg_k0_31.h"
 #include "registers/reg_k32_63.h"
 #include "registers/reg_k64_95.h"
@@ -106,6 +107,8 @@ public:
 
   // Switch tables
   Fwd fwd;
+  IsClientPacket is_client_packet;
+
   // Switch registers
   RegCacheLookup reg_cache_lookup;
   RegK0_31 reg_k0_31;
@@ -158,31 +161,35 @@ public:
   Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const conf_t &_conf,
              const args_t &_args)
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), conf(_conf), args(_args),
-        fwd(_info, _session, _dev_tgt), reg_cache_lookup(_info, _session, _dev_tgt), reg_k0_31(_info, _session, _dev_tgt),
-        reg_k32_63(_info, _session, _dev_tgt), reg_k64_95(_info, _session, _dev_tgt), reg_k96_127(_info, _session, _dev_tgt),
-        reg_v0_31(_info, _session, _dev_tgt), reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt),
-        reg_v96_127(_info, _session, _dev_tgt), reg_v128_159(_info, _session, _dev_tgt), reg_v160_191(_info, _session, _dev_tgt),
-        reg_v192_223(_info, _session, _dev_tgt), reg_v224_255(_info, _session, _dev_tgt), reg_v256_287(_info, _session, _dev_tgt),
-        reg_v288_319(_info, _session, _dev_tgt), reg_v320_351(_info, _session, _dev_tgt), reg_v352_383(_info, _session, _dev_tgt),
-        reg_v384_415(_info, _session, _dev_tgt), reg_v416_447(_info, _session, _dev_tgt), reg_v448_479(_info, _session, _dev_tgt),
-        reg_v480_511(_info, _session, _dev_tgt), reg_v512_543(_info, _session, _dev_tgt), reg_v544_575(_info, _session, _dev_tgt),
-        reg_v576_607(_info, _session, _dev_tgt), reg_v608_639(_info, _session, _dev_tgt), reg_v640_671(_info, _session, _dev_tgt),
-        reg_v672_703(_info, _session, _dev_tgt), reg_v704_735(_info, _session, _dev_tgt), reg_v736_767(_info, _session, _dev_tgt),
-        reg_v768_799(_info, _session, _dev_tgt), reg_v800_831(_info, _session, _dev_tgt), reg_v832_863(_info, _session, _dev_tgt),
-        reg_v864_895(_info, _session, _dev_tgt), reg_v896_927(_info, _session, _dev_tgt), reg_v928_959(_info, _session, _dev_tgt),
-        reg_v960_991(_info, _session, _dev_tgt), reg_v992_1023(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt),
-        reg_cm_0(_info, _session, _dev_tgt), reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt),
-        reg_cm_3(_info, _session, _dev_tgt), reg_bloom_0(_info, _session, _dev_tgt), reg_bloom_1(_info, _session, _dev_tgt),
-        reg_bloom_2(_info, _session, _dev_tgt) {
+        fwd(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt), reg_cache_lookup(_info, _session, _dev_tgt),
+        reg_k0_31(_info, _session, _dev_tgt), reg_k32_63(_info, _session, _dev_tgt), reg_k64_95(_info, _session, _dev_tgt),
+        reg_k96_127(_info, _session, _dev_tgt), reg_v0_31(_info, _session, _dev_tgt), reg_v32_63(_info, _session, _dev_tgt),
+        reg_v64_95(_info, _session, _dev_tgt), reg_v96_127(_info, _session, _dev_tgt), reg_v128_159(_info, _session, _dev_tgt),
+        reg_v160_191(_info, _session, _dev_tgt), reg_v192_223(_info, _session, _dev_tgt), reg_v224_255(_info, _session, _dev_tgt),
+        reg_v256_287(_info, _session, _dev_tgt), reg_v288_319(_info, _session, _dev_tgt), reg_v320_351(_info, _session, _dev_tgt),
+        reg_v352_383(_info, _session, _dev_tgt), reg_v384_415(_info, _session, _dev_tgt), reg_v416_447(_info, _session, _dev_tgt),
+        reg_v448_479(_info, _session, _dev_tgt), reg_v480_511(_info, _session, _dev_tgt), reg_v512_543(_info, _session, _dev_tgt),
+        reg_v544_575(_info, _session, _dev_tgt), reg_v576_607(_info, _session, _dev_tgt), reg_v608_639(_info, _session, _dev_tgt),
+        reg_v640_671(_info, _session, _dev_tgt), reg_v672_703(_info, _session, _dev_tgt), reg_v704_735(_info, _session, _dev_tgt),
+        reg_v736_767(_info, _session, _dev_tgt), reg_v768_799(_info, _session, _dev_tgt), reg_v800_831(_info, _session, _dev_tgt),
+        reg_v832_863(_info, _session, _dev_tgt), reg_v864_895(_info, _session, _dev_tgt), reg_v896_927(_info, _session, _dev_tgt),
+        reg_v928_959(_info, _session, _dev_tgt), reg_v960_991(_info, _session, _dev_tgt), reg_v992_1023(_info, _session, _dev_tgt),
+        reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt), reg_cm_1(_info, _session, _dev_tgt),
+        reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt), reg_bloom_0(_info, _session, _dev_tgt),
+        reg_bloom_1(_info, _session, _dev_tgt), reg_bloom_2(_info, _session, _dev_tgt) {
     if (!args.run_tofino_model) {
       config_ports();
     }
 
-    auto server_port     = args.server_port;
-    auto server_dev_port = ports.get_dev_port(server_port, 0);
+    const uint16_t cpu_port        = args.tna_version == 1 ? CPU_PORT_TNA1 : CPU_PORT_TNA2;
+    const uint16_t server_port     = args.server_port;
+    const uint16_t server_dev_port = ports.get_dev_port(server_port, 0);
 
-    for (auto port : args.client_ports) {
-      auto dev_port = port;
+    is_client_packet.add_not_client_port(server_dev_port);
+    is_client_packet.add_not_client_port(cpu_port);
+
+    for (uint16_t port : args.client_ports) {
+      uint16_t dev_port = port;
 
       if (!args.run_tofino_model) {
         dev_port = ports.get_dev_port(port, 0);
@@ -200,8 +207,6 @@ public:
         fwd.add_entry(server_dev_port, 1, dev_port, 0xFFFF, dev_port);
       }
     }
-
-    const uint16_t cpu_port = args.tna_version == 1 ? CPU_PORT_TNA1 : CPU_PORT_TNA2;
 
     // HH report (request).
     fwd.add_entry(cpu_port, 0, 0, 0x0, server_dev_port);

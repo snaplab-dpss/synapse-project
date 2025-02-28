@@ -224,6 +224,27 @@ control SwitchIngress(
 
 	action miss() {}
 
+	action set_client_packet() {
+		hdr.meta.is_client_packet = 1;
+	}
+
+	action set_not_client_packet() {
+		hdr.meta.is_client_packet = 0;
+	}
+
+	table is_client_packet {
+		key = {
+			ig_intr_md.ingress_port : exact;
+		}
+		actions = {
+			set_client_packet;
+			set_not_client_packet;
+		}
+
+		const default_action = set_client_packet;
+		size = 2;
+	}
+
 	table fwd {
 		key = {
 			ig_intr_md.ingress_port : exact;
@@ -239,17 +260,15 @@ control SwitchIngress(
 	}
 
 	apply {
+		hdr.meta.setValid();
 		hdr.meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
+		is_client_packet.apply();
 
+		// Calculate the hash based on the received pkt nc key.
+		hash_key_calc();
 
 		// Check if packet is not a HH report going from/to controller<->server.
-		if (hdr.netcache.isValid()
-				&& ig_intr_md.ingress_port != WAN_PORT
-				&& ig_intr_md.ingress_port != CPU_PCIE_PORT) {
-
-			// Calculate the hash based on the received pkt nc key.
-			hash_key_calc();
-
+		if (hdr.meta.is_client_packet == 1) {
 			hdr.netcache.port = hdr.meta.ingress_port;
 			cache_lookup();
 			if (hdr.netcache.op == READ_QUERY) {
@@ -400,32 +419,25 @@ control SwitchEgress(
 	}
 
 	apply {
-		if (hdr.netcache.isValid()) {
-			eg_dprsr_md.drop_ctl = 1;
-			// Packet is a HH report going from/to controller<->server or a server READ reply.
-			if (hdr.meta.ingress_port == CPU_PCIE_PORT || hdr.meta.ingress_port == WAN_PORT) {
-				eg_dprsr_md.drop_ctl = 0;
-			}
-			else if (hdr.netcache.op == READ_QUERY) {
-				eg_dprsr_md.drop_ctl = 0;
-				sampl_check();
-				if (sampl_cur == 1) {
-					if (hdr.meta.cache_hit == 1) {
-						// Update cache counter.
-						key_count_incr();
-					} else {
-						// Update cm sketch.
-						cm.apply(hdr, cm_result);
-						// Check cm result against threshold (HH_THRES).
-						if (cm_result[31:7] != 0) {
-							// Check against bloom filter.
-							bloom.apply(hdr, bloom_result);
-							// If confirmed HH, inform the controller through mirroring.
-							if (bloom_result == 0) {
-								hdr.netcache.key = (bit<NC_KEY_WIDTH>)hdr.meta.hash_key;
-								hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
-								set_mirror();
-							}
+		// Packet is a HH report going from/to controller<->server or a server READ reply.
+		if (hdr.meta.is_client_packet == 1 && hdr.netcache.op == READ_QUERY) {
+			sampl_check();
+			if (sampl_cur == 1) {
+				if (hdr.meta.cache_hit == 1) {
+					// Update cache counter.
+					key_count_incr();
+				} else {
+					// Update cm sketch.
+					cm.apply(hdr, cm_result);
+					// Check cm result against threshold (HH_THRES).
+					if (cm_result[31:7] != 0) {
+						// Check against bloom filter.
+						bloom.apply(hdr, bloom_result);
+						// If confirmed HH, inform the controller through mirroring.
+						if (bloom_result == 0) {
+							hdr.netcache.key = (bit<NC_KEY_WIDTH>)hdr.meta.hash_key;
+							hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
+							set_mirror();
 						}
 					}
 				}
