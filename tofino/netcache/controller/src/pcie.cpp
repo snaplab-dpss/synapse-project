@@ -109,9 +109,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   bool atomic = true;
   lock();
   bf_status_t bf_status = Controller::controller->session->beginTransaction(atomic);
-  if (bf_status != BF_SUCCESS) {
-    exit(1);
-  }
+  ASSERT_BF_STATUS(bf_status);
 
   auto pkt_hdr = (pkt_hdr_t *)(packet);
 

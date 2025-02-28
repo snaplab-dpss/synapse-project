@@ -400,7 +400,6 @@ control SwitchEgress(
 	}
 
 	apply {
-		#if (CACHE_ACTIVATED == 1)
 		if (hdr.netcache.isValid()) {
 			eg_dprsr_md.drop_ctl = 1;
 			// Packet is a HH report going from/to controller<->server or a server READ reply.
@@ -432,7 +431,6 @@ control SwitchEgress(
 				}
 			}
 		}
-		#endif
 	}
 }
 

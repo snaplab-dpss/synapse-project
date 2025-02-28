@@ -105,7 +105,10 @@ int main(int argc, char **argv) {
 
   netcache::init_bf_switchd(args.run_ucli, args.tna_version);
   netcache::setup_controller(conf, args);
-  netcache::register_pcie_pkt_ops();
+
+  if (args.cache_activated) {
+    netcache::register_pcie_pkt_ops();
+  }
 
   netcache::PortStats port_stats;
 
