@@ -272,7 +272,6 @@ control SwitchIngress(
 			hdr.netcache.port = hdr.meta.ingress_port;
 			cache_lookup();
 			if (hdr.netcache.op == READ_QUERY) {
-				// Cache hit.
 				if (hdr.meta.cache_hit == 1) {
 					// Read the cached value and update the packet header.
 					hdr.netcache.val[31:0] = read_v0_31.execute(hdr.meta.hash_key);
@@ -357,6 +356,7 @@ control SwitchIngress(
 				update_v992_1023.execute(hdr.meta.hash_key);
 			}
 		}
+
 		set_normal_pkt();
 		fwd.apply();
 	}
