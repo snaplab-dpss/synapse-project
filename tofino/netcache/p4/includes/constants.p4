@@ -43,7 +43,7 @@ const mirror_type_t MIRROR_TYPE_E2E = 2;
 
 #define WAN_PORT 8
 
-const bit<16> NC_PORT = 50000;
+const bit<16> NC_PORT = 670;
 
 // Size of a key field
 #define NC_KEY_WIDTH				128

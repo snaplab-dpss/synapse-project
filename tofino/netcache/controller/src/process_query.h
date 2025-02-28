@@ -14,13 +14,13 @@ namespace netcache {
 
 class ProcessQuery {
 public:
-	static std::shared_ptr<ProcessQuery> process_query;
+  static std::shared_ptr<ProcessQuery> process_query;
 
-	ProcessQuery();
-	~ProcessQuery();
+  ProcessQuery();
+  ~ProcessQuery();
 
-	std::vector<std::vector<uint32_t>> sample_values();
-	void update_cache(struct netcache_hdr_t* nc_hdr);
+  std::vector<std::vector<uint32_t>> sample_values();
+  void update_cache(struct netcache_hdr_t *nc_hdr);
 };
 
-}  // netcache
+} // namespace netcache

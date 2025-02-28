@@ -6,86 +6,84 @@ namespace netcache {
 
 class Register : public Table {
 private:
-    bf_rt_id_t index;
-    bf_rt_id_t content;
+  bf_rt_id_t index;
+  bf_rt_id_t content;
 
 protected:
-    Register(const bfrt::BfRtInfo *info,
-             std::shared_ptr<bfrt::BfRtSession> session,
-             const bf_rt_target_t &dev_tgt, const std::string &register_name)
-        : Table(info, session, dev_tgt, register_name) {
-        init_key({{"$REGISTER_INDEX", &index}});
-        init_data({{register_name + ".f1", &content}});
+  Register(const bfrt::BfRtInfo *info, std::shared_ptr<bfrt::BfRtSession> session, const bf_rt_target_t &dev_tgt,
+           const std::string &register_name)
+      : Table(info, session, dev_tgt, register_name) {
+    init_key({{"$REGISTER_INDEX", &index}});
+    init_data({{register_name + ".f1", &content}});
+  }
+
+  void set(uint16_t i, uint32_t value) {
+    session->beginBatch();
+
+    key_setup(i);
+    data_setup(value);
+
+    auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
+
+    ASSERT_BF_STATUS(bf_status);
+
+    auto block = true;
+    session->endBatch(block);
+  }
+
+  uint32_t get(uint16_t i, bool from_hw = false) {
+    session->beginBatch();
+
+    auto hw_flag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+
+    key_setup(i);
+
+    auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hw_flag, data.get());
+    ASSERT_BF_STATUS(bf_status);
+
+    // The output is a vector, one value per pipeline
+    std::vector<uint64_t> value;
+    bf_status = data->getValue(content, &value);
+    ASSERT_BF_STATUS(bf_status);
+    auto size = value.size();
+
+    auto block = true;
+    session->endBatch(block);
+
+    return (uint32_t)value[0];
+  }
+
+  void overwrite_all_entries(uint32_t value) {
+    auto size = get_size();
+    session->beginBatch();
+
+    data_setup(value);
+
+    for (size_t i = 0; i < size; i++) {
+      key_setup(i);
+
+      auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
+      ASSERT_BF_STATUS(bf_status);
     }
 
-    void set(uint16_t i, uint32_t value) {
-        session->beginBatch();
-
-        key_setup(i);
-        data_setup(value);
-
-        auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
-        
-        assert(bf_status == BF_SUCCESS);
-
-        auto block = true;
-        session->endBatch(block);
-    }
-
-    uint32_t get(uint16_t i, bool from_hw = false) {
-        session->beginBatch();
-
-        auto hw_flag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW
-                               : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
-
-        key_setup(i);
-
-        auto bf_status = table->tableEntryGet(*session, dev_tgt, *key, hw_flag, data.get());
-        assert(bf_status == BF_SUCCESS);
-
-        // The output is a vector, one value per pipeline
-        std::vector<uint64_t> value;
-        bf_status = data->getValue(content, &value);
-        assert(bf_status == BF_SUCCESS);
-        auto size = value.size();
-
-        auto block = true;
-        session->endBatch(block);
-
-        return (uint32_t)value[0];
-    }
-
-    void overwrite_all_entries(uint32_t value) {
-        auto size = get_size();
-        session->beginBatch();
-
-        data_setup(value);
-
-        for (size_t i = 0; i < size; i++) {
-            key_setup(i);
-
-            auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
-            assert(bf_status == BF_SUCCESS);
-        }
-
-        auto block = true;
-        session->endBatch(block);
-    }
+    auto block = true;
+    session->endBatch(block);
+  }
 
 private:
-    void key_setup(uint32_t i) {
-        table->keyReset(key.get());
+  void key_setup(uint32_t i) {
+    table->keyReset(key.get());
 
-        auto bf_status = key->setValue(index, static_cast<uint64_t>(i));
-        assert(bf_status == BF_SUCCESS);
-    }
+    auto bf_status = key->setValue(index, static_cast<uint64_t>(i));
+    ASSERT_BF_STATUS(bf_status);
+  }
 
-    void data_setup(uint32_t value) {
-        table->dataReset(data.get());
+  void data_setup(uint32_t value) {
+    table->dataReset(data.get());
 
-        auto bf_status = data->setValue(content, static_cast<uint64_t>(value));
-        assert(bf_status == BF_SUCCESS);
-    }
+    auto bf_status = data->setValue(content, static_cast<uint64_t>(value));
+    ASSERT_BF_STATUS(bf_status);
+  }
 };
 
-};  // namespace netcache
+}; // namespace netcache

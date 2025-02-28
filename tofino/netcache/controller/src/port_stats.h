@@ -9,15 +9,16 @@ namespace netcache {
 
 class PortStats {
 private:
-	conf_t conf;
-	bool use_tofino_model;
+  conf_t conf;
+  std::vector<uint16_t> ports;
+  bool use_tofino_model;
 
 public:
-	PortStats();
-	~PortStats();
+  PortStats();
+  ~PortStats();
 
-	void get_stats();
-	void reset_stats();
+  void get_stats();
+  void reset_stats();
 };
 
-}  // netcache
+} // namespace netcache

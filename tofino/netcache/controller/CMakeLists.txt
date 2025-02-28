@@ -1,56 +1,94 @@
 cmake_minimum_required(VERSION 3.15)
 project(netcache-controller)
 
+###############################################################################
+# Configuring C++ standard version
+###############################################################################
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+###############################################################################
+# Configuring C standard version
+###############################################################################
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED True)
+set(CMAKE_C_EXTENSIONS True)
+
+###############################################################################
+# We need to know where SDE is installed
+###############################################################################
+
+IF(DEFINED ENV{SDE_INSTALL})
+    MESSAGE(STATUS "SDE_INSTALL: $ENV{SDE_INSTALL}")
+ELSE()
+    MESSAGE(FATAL_ERROR "SDE_INSTALL env var is not set")
+ENDIF()
+
+###############################################################################
+# Setting some complation flags
+###############################################################################
+
+add_compile_options(
+    -Wall -Wextra -Werror -Wfatal-errors
+    -Wno-unused-variable -Wno-unused-parameter
+)
+
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT DEFINED ENV{SDE_INSTALL})
-    message(FATAL_ERROR "SDE_INSTALL is not set")
-endif()
+################################################################################
+# Add our CMake module directory to the list of module search directories
+################################################################################
 
-# if(NOT DEFINED ENV{RTE_SDK})
-#     message(FATAL_ERROR "RTE_SDK is not set")
-# endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
-# Set variables
+################################################################################
+# Set some variables
+################################################################################
+
 set(PROG "netcache-controller")
 set(ARCH "tofino2")
 set(CUR_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(SRC_DIR "${CUR_DIR}/src")
 
-# find_package(PkgConfig REQUIRED)
-# pkg_check_modules(LIBDPDK REQUIRED libdpdk)
-
-# Include directories
-set(SDE_INSTALL "$ENV{SDE_INSTALL}")
-include_directories(${SDE_INSTALL}/include)
-include_directories(${SDE_INSTALL}/include/${ARCH}/pdfixed)
-
-# set(RTE_SDK "$ENV{RTE_SDK}")
-
-set(CMAKE_CXX_STANDARD 11)
-
-file(GLOB_RECURSE SOURCES "${SRC_DIR}/*.cpp")
-file(GLOB_RECURSE HEADERS "${SRC_DIR}/*.h")
+###############################################################################
+# Setting output targets
+###############################################################################
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# set(CFLAGS "-std=c++11 -DSDE_INSTALL=\"${SDE_INSTALL}\" -DRTE_TARGET=\"${RTE_SDK}\"")
-set(CFLAGS "-std=c++11 -DSDE_INSTALL=\"${SDE_INSTALL}\"")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFLAGS}")
-
-set(BF_LIBS "-ldriver -ltarget_sys -lbfutils")
-set(LDFLAGS "-Wl,-rpath,${SDE_INSTALL}/lib")
-# set(LDFLAGS "-Wl,-rpath,${RTE_SDK}/build/lib")
-# set(LDLIBS "-L${SDE_INSTALL}/lib -Wl,-L${RTE_TARGET}/lib -Wl,--start-group ${BF_LIBS} -Wl,--end-group -lm -pthread -lpcap -ldl -levent")
-set(LDLIBS "-L${SDE_INSTALL}/lib -Wl,--start-group ${BF_LIBS} -Wl,--end-group -lm -pthread -lpcap -ldl -levent")
+file(GLOB_RECURSE SOURCES "${SRC_DIR}/*.cpp")
+file(GLOB_RECURSE HEADERS "${SRC_DIR}/*.h")
 
 add_executable(${PROG} ${SOURCES})
 
-# target_compile_options(${PROG} PRIVATE ${LIBDPDK_CFLAGS})
-# target_link_libraries(${PROG} ${LDFLAGS} ${LDLIBS} ${LIBDPDK_LDFLAGS})
-target_link_libraries(${PROG} ${LDFLAGS} ${LDLIBS} "-Wl,--disable-new-dtags")
+###############################################################################
+# Configure external projects
+###############################################################################
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_sde.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_absl.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_json.cmake)
+
+target_link_libraries(${PROG}
+    PUBLIC
+        CLI11::CLI11
+    PRIVATE
+        Threads::Threads
+        absl::synchronization
+        nlohmann_json::nlohmann_json
+        ${SDE_LIBRARIES}
+
+        # This fixes the requirement for LD_LIBRARY_PATH update when running the final binaries.
+        # https://stackoverflow.com/questions/58997230/cmake-project-fails-to-find-shared-library
+        "-Wl,--disable-new-dtags"
+
+        # For some reason some systems need this (it may be specific to g++8).
+        "stdc++fs"
+)

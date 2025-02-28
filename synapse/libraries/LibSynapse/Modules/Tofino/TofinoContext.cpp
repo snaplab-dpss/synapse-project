@@ -265,7 +265,6 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const L
 
 void TofinoContext::place(EP *ep, const LibBDD::Node *node, addr_t obj, DS *ds) {
   if (has_ds(ds->id)) {
-    // Already placed.
     return;
   }
 
@@ -280,11 +279,10 @@ bool TofinoContext::check_placement(const EP *ep, const LibBDD::Node *node, cons
 
   PlacementStatus status = tna.can_place(ds, deps);
 
-  // if (status != PlacementStatus::SUCCESS) {
-  //   TargetType target = ep->get_active_target();
-  //   std::cerr << "[" << target << "] Cannot place ds " << ds->id << " ("
-  //              << status << ")\n";
-  // }
+  if (status != PlacementStatus::SUCCESS) {
+    TargetType target = ep->get_active_target();
+    std::cerr << "[" << target << "] Cannot place ds " << ds->id << " (" << status << ")\n";
+  }
 
   return status == PlacementStatus::SUCCESS;
 }
@@ -294,19 +292,20 @@ bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node
 
   PlacementStatus status = tna.can_place_many(ds, deps);
 
-  // if (status != PlacementStatus::SUCCESS) {
-  //   TargetType target = ep->get_active_target();
-  //   std::cerr << "[" << target << "] Cannot place objs (" << status <<
-  //   ")\n"; std::cerr << "  DS:\n"; for (const auto &ds_list : ds) {
-  //     for (const DS *ds : ds_list) {
-  //       std::cerr << "   * " << ds->id << "\n";
-  //     }
-  //   }
-  //   std::cerr << "  Deps:\n";
-  //   for (DS_ID dep : deps) {
-  //     std::cerr << "   * " << dep << "\n";
-  //   }
-  // }
+  if (status != PlacementStatus::SUCCESS) {
+    TargetType target = ep->get_active_target();
+    std::cerr << "[" << target << "] Cannot place objs (" << status << ")\n";
+    std::cerr << "  DS:\n";
+    for (const auto &ds_list : ds) {
+      for (const DS *ds : ds_list) {
+        std::cerr << "   * " << ds->id << "\n";
+      }
+    }
+    std::cerr << "  Deps:\n";
+    for (DS_ID dep : deps) {
+      std::cerr << "   * " << dep << "\n";
+    }
+  }
 
   return status == PlacementStatus::SUCCESS;
 }

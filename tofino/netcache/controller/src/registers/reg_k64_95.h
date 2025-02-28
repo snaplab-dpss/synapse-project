@@ -5,10 +5,8 @@
 namespace netcache {
 
 class RegK64_95 : public Register {
- public:
-  RegK64_95(const bfrt::BfRtInfo *info,
-             std::shared_ptr<bfrt::BfRtSession> session,
-             const bf_rt_target_t &dev_tgt)
+public:
+  RegK64_95(const bfrt::BfRtInfo *info, std::shared_ptr<bfrt::BfRtSession> session, const bf_rt_target_t &dev_tgt)
       : Register(info, session, dev_tgt, "SwitchIngress.reg_k64_95") {}
 
   void set_all_true() { overwrite_all_entries(1); }
@@ -18,4 +16,4 @@ class RegK64_95 : public Register {
   uint32_t retrieve(uint16_t index, bool from_hw = false) { return get(index, from_hw); }
 };
 
-};  // namespace netcache
+}; // namespace netcache

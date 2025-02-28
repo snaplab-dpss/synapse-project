@@ -99,11 +99,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_pcap.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_sde.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_absl.cmake)
-
-find_package(Threads REQUIRED)
+include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
 
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC

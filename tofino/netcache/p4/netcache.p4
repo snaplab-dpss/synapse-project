@@ -227,7 +227,6 @@ control SwitchIngress(
 	table fwd {
 		key = {
 			ig_intr_md.ingress_port : exact;
-			hdr.netcache.op         : exact;
 			hdr.meta.cache_hit      : exact;
 			hdr.netcache.port		: ternary;
 		}
@@ -340,7 +339,8 @@ control SwitchIngress(
 			}
 		}
 		set_normal_pkt();
-		fwd.apply();
+		// fwd.apply();
+		set_out_port(ig_intr_md.ingress_port);
 	}
 }
 
