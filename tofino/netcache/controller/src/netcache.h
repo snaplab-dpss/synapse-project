@@ -181,16 +181,14 @@ public:
     auto server_port     = args.server_port;
     auto server_dev_port = ports.get_dev_port(server_port, 0);
 
-    for (auto port : args.ports) {
+    for (auto port : args.client_ports) {
       auto dev_port = port;
 
       if (!args.run_tofino_model) {
         dev_port = ports.get_dev_port(port, 0);
       }
 
-#ifndef NDEBUG
-      std::cout << "port: " << dev_port << std::endl;
-#endif
+      LOG("Frontend client port %u -> device port %u", port, dev_port);
 
       if (port != server_port) {
         // Read cache hit.
@@ -260,7 +258,7 @@ public:
   uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) { return ports.get_dev_port(front_panel_port, lane); }
 
   conf_t get_conf() const { return conf; }
-  std::vector<uint16_t> get_ports() const { return args.ports; }
+  std::vector<uint16_t> get_client_ports() const { return args.client_ports; }
   bool get_use_tofino_model() const { return args.run_tofino_model; }
 
   bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eg_port) {

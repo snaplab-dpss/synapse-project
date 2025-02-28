@@ -8,7 +8,7 @@ namespace netcache {
 
 struct args_t {
   std::filesystem::path conf_file_path;
-  std::vector<uint16_t> ports;
+  std::vector<uint16_t> client_ports;
   uint16_t server_port;
   bool cache_activated;
   bool run_ucli;
@@ -21,12 +21,12 @@ struct args_t {
   void dump() const {
     std::cout << "Arguments:\n";
     std::cout << "  Configuration file path: " << conf_file_path << "\n";
-    std::cout << "  Frontend ports: ";
-    for (const auto &port : ports) {
+    std::cout << "  Frontend client ports: ";
+    for (const auto &port : client_ports) {
       std::cout << port << " ";
     }
     std::cout << "\n";
-    std::cout << "  Server port: " << server_port << "\n";
+    std::cout << "  Frontend server port: " << server_port << "\n";
     std::cout << "  Cache activated: " << cache_activated << "\n";
     std::cout << "  Run UCLI: " << run_ucli << "\n";
     std::cout << "  Wait for ports: " << wait_for_ports << "\n";

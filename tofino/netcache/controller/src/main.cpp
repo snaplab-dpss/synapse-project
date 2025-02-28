@@ -14,7 +14,6 @@
 #include "args.h"
 #include "constants.h"
 #include "netcache.h"
-#include "port_stats.h"
 #include "process_query.h"
 #include "pcie.h"
 #include "args.h"
@@ -86,8 +85,8 @@ int main(int argc, char **argv) {
                "Wait for the ports to be up and running (only relevant when running with the ASIC, not with the model)");
   app.add_flag("--model", args.run_tofino_model, "Run for the tofino model");
   app.add_option("--tna", args.tna_version, "TNA version");
-  app.add_option("--ports", args.ports, "Frontend ports")->required();
-  app.add_option("--server-port", args.server_port, "Server port")->required();
+  app.add_option("--client-ports", args.client_ports, "Frontend client ports")->required();
+  app.add_option("--server-port", args.server_port, "Frontend server port")->required();
   app.add_flag("--dry-run", dry_run, "Dry run");
 
   CLI11_PARSE(app, argc, argv);
@@ -109,8 +108,6 @@ int main(int argc, char **argv) {
   if (args.cache_activated) {
     netcache::register_pcie_pkt_ops();
   }
-
-  netcache::PortStats port_stats;
 
   auto instance                         = new netcache::ProcessQuery();
   netcache::ProcessQuery::process_query = std::shared_ptr<netcache::ProcessQuery>(instance);

@@ -18,22 +18,30 @@ void Controller::config_ports() {
     exit(1);
   }
 
-  std::cout << "PCIe CPU port:	" << pcie_cpu_port << ", " << bf_port_speed_str(pcie_cpu_port_speed);
-  std::cout << "ETH CPU port:		" << eth_cpu_port;
+  LOG("PCIe CPU port: %u (%s)", pcie_cpu_port, bf_port_speed_str(pcie_cpu_port_speed));
+  LOG("ETH CPU port: %u", eth_cpu_port);
 
   if (!args.run_tofino_model) {
-    for (auto port : args.ports) {
+    auto server_dev_port = ports.get_dev_port(args.server_port, 0);
+    ports.add_dev_port(server_dev_port, bf_port_speed_t::BF_SPEED_100G);
+
+    for (auto port : args.client_ports) {
       auto dev_port = ports.get_dev_port(port, 0);
       ports.add_dev_port(dev_port, bf_port_speed_t::BF_SPEED_100G);
     }
 
     if (args.wait_for_ports) {
-      for (auto port : args.ports) {
-        std::cerr << "Waiting for port " << port << " to be up...\n";
+      for (auto port : args.client_ports) {
+        LOG("Waiting for port %u to be up...", port);
         auto dev_port = ports.get_dev_port(port, 0);
         while (!ports.is_port_up(dev_port)) {
           sleep(1);
         }
+      }
+
+      LOG("Waiting for server port %u to be up...", args.server_port);
+      while (!ports.is_port_up(server_dev_port)) {
+        sleep(1);
       }
     }
   }

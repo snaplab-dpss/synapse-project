@@ -91,9 +91,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     pkt_len = bf_pkt_get_pkt_size(pkt);
 
     if ((packet_size + pkt_len) > SWITCH_PACKET_MAX_BUFFER_SIZE) {
-#if DEBUG
-      std::cout << "Packet too large to transmit - skipping";
-#endif
+      DEBUG("Packet too large to transmit - skipping");
       break;
     }
 
@@ -116,9 +114,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   bool valid = pkt_hdr->has_valid_protocol();
 
   if (!valid) {
-#ifdef DEBUG
-    printf("Invalid protocol packet. Ignoring.\n");
-#endif
+    DEBUG("Invalid protocol packet. Ignoring.");
     int fail = bf_pkt_free(device, orig_pkt);
     assert(fail == 0);
 
@@ -132,9 +128,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   valid = (packet_size >= (pkt_hdr->get_l2_size() + pkt_hdr->get_l3_size() + pkt_hdr->get_l4_size() + pkt_hdr->get_netcache_hdr_size()));
 
   if (!valid) {
-#ifdef DEBUG
-    printf("Packet too small. Ignoring.\n");
-#endif
+    DEBUG("Packet too small. Ignoring.");
     int fail = bf_pkt_free(device, orig_pkt);
     assert(fail == 0);
 
