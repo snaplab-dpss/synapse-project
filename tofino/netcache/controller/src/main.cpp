@@ -122,7 +122,10 @@ int main(int argc, char **argv) {
 
   LOG("NetCache controller is ready.");
   DEBUG("Warning: running in debug mode");
-  WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");
+
+  if (!args.run_ucli) {
+    WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");
+  }
 
   if (args.cache_activated) {
     stop_reset_timer = true;
