@@ -339,8 +339,7 @@ control SwitchIngress(
 			}
 		}
 		set_normal_pkt();
-		// fwd.apply();
-		set_out_port(ig_intr_md.ingress_port);
+		fwd.apply();
 	}
 }
 
