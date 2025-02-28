@@ -20,15 +20,15 @@
 struct args_t {
   int in_port;
   int out_port;
-  int64_t processing_delay_per_query_us;
+  int64_t processing_delay_per_query_ns;
 
-  args_t() : in_port(0), out_port(1), processing_delay_per_query_us(0) {}
+  args_t() : in_port(0), out_port(1), processing_delay_per_query_ns(0) {}
 
   void dump() const {
     std::cerr << "Configuration:\n";
     std::cerr << "  Input port: " << in_port << "\n";
     std::cerr << "  Output port: " << out_port << "\n";
-    std::cerr << "  Processing delay per query (us): " << processing_delay_per_query_us << "\n";
+    std::cerr << "  Processing delay per query (us): " << processing_delay_per_query_ns << "\n";
     std::cerr << "\n";
   }
 };
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
   app.add_option("--in", args.in_port, "Ingress port.");
   app.add_option("--out", args.out_port, "Egress port.");
-  app.add_option("--delay", args.processing_delay_per_query_us, "Processing per-query delay (us).");
+  app.add_option("--delay", args.processing_delay_per_query_ns, "Processing per-query delay (ns).");
   app.add_flag("--dry-run", dry_run, "Don't run, just print out the configuration.");
 
   CLI11_PARSE(app, argc, argv);
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
   if (port_init(portid, mbuf_pool) != 0)
     rte_exit(EXIT_FAILURE, "Cannot init port %u\n", portid);
 
-  netcache::Store store(args.processing_delay_per_query_us, args.in_port, args.out_port);
+  netcache::Store store(args.processing_delay_per_query_ns, args.in_port, args.out_port);
 
   std::cout << "***** Server started *****" << std::endl;
   store.run();

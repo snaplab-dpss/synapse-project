@@ -22,8 +22,8 @@
 
 namespace netcache {
 
-Store::Store(const int64_t _processing_delay_us, const int in, const int out) {
-  processing_delay_us = _processing_delay_us;
+Store::Store(const int64_t _processing_delay_ns, const int in, const int out) {
+  processing_delay_ns = _processing_delay_ns;
   port_in             = in;
   port_out            = out;
 }
@@ -41,12 +41,12 @@ void Store::run() {
       LOG_DEBUG("Grabbing packet %u/%u.", n + 1, nb_rx);
 
       std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-      int64_t elapsed_us                          = 0;
+      int64_t elapsed_ns                          = 0;
       do {
-        elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - begin).count();
-      } while (processing_delay_us > 0 && elapsed_us < processing_delay_us);
+        elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - begin).count();
+      } while (processing_delay_ns > 0 && elapsed_ns < processing_delay_ns);
 
-      LOG_DEBUG("Processing packet (elapsed %lu us).", elapsed_us);
+      LOG_DEBUG("Processing packet (elapsed %lu ns).", elapsed_ns);
 
       if (!check_pkt(mbufs[n])) {
         rte_pktmbuf_free(mbufs[n]);

@@ -35,14 +35,14 @@ struct hash_key_128_equal {
 
 class Store {
 private:
-  int64_t processing_delay_us;
+  int64_t processing_delay_ns;
   uint16_t port_in;
   uint16_t port_out;
 
 public:
   std::unordered_map<std::array<uint8_t, 16>, uint8_t[], hash_key_128, hash_key_128_equal> kv_map;
 
-  Store(const int64_t processing_delay_us, const int in, const int out);
+  Store(const int64_t processing_delay_ns, const int in, const int out);
   ~Store();
 
   void run();
