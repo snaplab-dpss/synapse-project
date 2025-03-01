@@ -159,6 +159,7 @@ void setup_controller(const conf_t &conf, const args_t &args) {
   // Get info object from dev_id and p4 program name
   const bfrt::BfRtInfo *info = nullptr;
   auto bf_status             = devMgr.bfRtInfoGet(dev_tgt.dev_id, PROGRAM_NAME, &info);
+  ASSERT_BF_STATUS(bf_status);
 
   // Create a session object
   auto session = bfrt::BfRtSession::sessionCreate();

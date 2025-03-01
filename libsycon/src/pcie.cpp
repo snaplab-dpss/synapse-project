@@ -99,9 +99,15 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
 }
 
 void register_pcie_pkt_ops() {
+  if (!bf_pkt_is_inited(cfg.dev_tgt.dev_id)) {
+    ERROR("kdrv kernel module not loaded. Exiting.");
+    exit(1);
+  }
+
   // register callback for TX complete
   for (int tx_ring = BF_PKT_TX_RING_0; tx_ring < BF_PKT_TX_RING_MAX; tx_ring++) {
-    bf_pkt_tx_done_notif_register(cfg.dev_tgt.dev_id, txComplete, (bf_pkt_tx_ring_t)tx_ring);
+    bf_status_t bf_status = bf_pkt_tx_done_notif_register(cfg.dev_tgt.dev_id, txComplete, (bf_pkt_tx_ring_t)tx_ring);
+    ASSERT_BF_STATUS(bf_status);
   }
 
   // register callback for RX
