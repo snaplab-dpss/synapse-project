@@ -2,6 +2,7 @@
 
 import bfrt_grpc.client as gc
 import argparse
+import sys
 
 GRPC_SERVER_IP = "127.0.0.1"
 GRPC_SERVER_PORT = 50052
@@ -54,95 +55,70 @@ CONFIGURATIONS = {
 class Ports:
     def __init__(self, bfrt_info):
         self.bfrt_info = bfrt_info
+        self.port_table = self.bfrt_info.table_get("$PORT")
+        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
         self.dev_to_front_panel = {}
+        self.front_panel_to_dev_port = {}
 
     def get_dev_port(self, front_panel_port, lane=0):
         target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
+        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
 
-        key = port_hdl_info_table.make_key([gc.KeyTuple("$CONN_ID", front_panel_port), gc.KeyTuple("$CHNL_ID", lane)])
-        resp = port_hdl_info_table.entry_get(target, [key], {"from_hw": False})
+        key = self.port_hdl_info_table.make_key([gc.KeyTuple("$CONN_ID", front_panel_port), gc.KeyTuple("$CHNL_ID", lane)])
+        resp = self.port_hdl_info_table.entry_get(target, [key], {"from_hw": False})
 
         dev_port = next(resp)[0].to_dict()["$DEV_PORT"]
         self.dev_to_front_panel[dev_port] = front_panel_port
+        self.front_panel_to_dev_port[front_panel_port] = dev_port
 
         return dev_port
+
+    def get_dev_ports(self, front_panel_ports):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
+
+        resp = self.port_hdl_info_table.entry_get(
+            target,
+            [
+                self.port_hdl_info_table.make_key(
+                    [
+                        gc.KeyTuple("$CONN_ID", front_panel_port),
+                        gc.KeyTuple("$CHNL_ID", 0),
+                    ]
+                )
+                for front_panel_port in front_panel_ports
+            ],
+            {"from_hw": False},
+        )
+
+        for entry in resp:
+            data = entry[0].to_dict()
+            key = entry[1].to_dict()
+
+            dev_port = data["$DEV_PORT"]
+            front_panel_port = key["$CONN_ID"]["value"]
+
+            self.dev_to_front_panel[dev_port] = front_panel_port
+            self.front_panel_to_dev_port[front_panel_port] = dev_port
+
+        return self.front_panel_to_dev_port
 
     def get_front_panel_port(self, dev_port):
         if dev_port in self.dev_to_front_panel:
             return self.dev_to_front_panel[dev_port]
 
         target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
+        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
 
-        key = port_hdl_info_table.make_key([gc.KeyTuple("$DEV_PORT", dev_port), gc.KeyTuple("$CHNL_ID", 0)])
+        key = self.port_hdl_info_table.make_key([gc.KeyTuple("$DEV_PORT", dev_port), gc.KeyTuple("$CHNL_ID", 0)])
 
         # Convert dev port to front-panel port
-        resp = port_hdl_info_table.entry_get(target, [key], {"from_hw": False})
+        resp = self.port_hdl_info_table.entry_get(target, [key], {"from_hw": False})
 
         front_panel_port = next(resp)[0].to_dict()["$CONN_ID"]
         self.dev_to_front_panel[dev_port] = front_panel_port
 
         return front_panel_port
-
-    def get_all_front_panel_ports(self):
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
-
-        def clean_query(target, port_hdl_info_table):
-            front_panel_ports = set()
-            resp = port_hdl_info_table.entry_get(target, [], {"from_hw": False})
-
-            for _, data in resp:
-                data_dict = data.to_dict()
-                front_panel_port = data_dict["$CONN_ID"]["value"]
-                front_panel_ports.add(front_panel_port)
-
-            return list(front_panel_ports)
-
-        def old_query(target, port_hdl_info_table):
-            # This is kind of janky, but we can only query the entire table on some switches, who knows why.
-            # Hence, we do it one by one.
-
-            front_panel_ports = []
-            front_panel_port = 1
-            while True:
-                try:
-                    resp = port_hdl_info_table.entry_get(
-                        target,
-                        [
-                            port_hdl_info_table.make_key(
-                                [
-                                    gc.KeyTuple("$CONN_ID", front_panel_port),
-                                    gc.KeyTuple("$CHNL_ID", 0),
-                                ]
-                            )
-                        ],
-                        {"from_hw": False},
-                    )
-                    _, data = next(resp)
-                    data_dict = data.to_dict()
-
-                    port = data_dict["$CONN_ID"]["value"]
-                    assert port == front_panel_port
-
-                    front_panel_ports.append(port)
-                    front_panel_port += 1
-                except:
-                    break
-
-            # We expect 32 ports, not 33
-            if len(front_panel_ports) == 33:
-                front_panel_ports.pop()
-
-            return front_panel_ports
-
-        try:
-            front_panel_ports = clean_query(target, port_hdl_info_table)
-        except:
-            front_panel_ports = old_query(target, port_hdl_info_table)
-
-        return front_panel_ports
 
     # Port list is a list of tuples: (front panel port, lane, speed, FEC string).
     # Speed is one of {10, 25, 40, 50, 100}.
@@ -172,12 +148,11 @@ class Ports:
         }
 
         target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        port_table = self.bfrt_info.table_get("$PORT")
 
         for front_panel_port, speed in port_list:
             fec = speed_to_fec[speed]
-            key = port_table.make_key([gc.KeyTuple("$DEV_PORT", self.get_dev_port(front_panel_port))])
-            data = port_table.make_data(
+            key = self.port_table.make_key([gc.KeyTuple("$DEV_PORT", self.get_dev_port(front_panel_port))])
+            data = self.port_table.make_data(
                 [
                     gc.DataTuple("$SPEED", str_val=speed_conversion_table[speed]),
                     gc.DataTuple("$FEC", str_val=fec_conversion_table[fec]),
@@ -185,7 +160,7 @@ class Ports:
                 ]
             )
 
-            port_table.entry_add(target, [key], [data])
+            self.port_table.entry_add(target, [key], [data])
 
     def add_port(self, front_panel_port, speed):
         self.add_ports([(front_panel_port, speed)])
@@ -477,19 +452,18 @@ def run_setup(bfrt_info, ports, broadcast, symmetric, route):
 def run_stats(bfrt_info, ports: Ports, op):
     counters = Counters(bfrt_info)
 
-    front_panel_ports = ports.get_all_front_panel_ports()
-    front_panel_to_dev = {p: ports.get_dev_port(p) for p in front_panel_ports}
-    dev_to_front_panel = {v: k for k, v in front_panel_to_dev.items()}
+    front_panel_to_dev = ports.get_dev_ports(FRONT_PANEL_PORTS)
     dev_ports = list(front_panel_to_dev.values())
 
     if op == "get":
         stats = counters.get_stats(dev_ports)
-        for port, port_stats in stats.items():
+        items = sorted(stats.items())
+        for dev_port, port_stats in items:
             rx_pkts = port_stats["rx_pkts"]
             rx_bytes = port_stats["rx_bytes"]
             tx_pkts = port_stats["tx_pkts"]
             tx_bytes = port_stats["tx_bytes"]
-            print("{}:{}:{}:{}:{}".format(dev_to_front_panel[port], rx_pkts, rx_bytes, tx_pkts, tx_bytes))
+            print("{}:{}:{}:{}:{}".format(ports.dev_to_front_panel[dev_port], rx_pkts, rx_bytes, tx_pkts, tx_bytes))
     elif op == "clear":
         counters.clear_stats(dev_ports)
     else:
@@ -500,7 +474,7 @@ def run_stats(bfrt_info, ports: Ports, op):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Traffic Accelerator")
 
-    subparsers = parser.add_subparsers(help="Available operations", dest="operation", required=True)
+    subparsers = parser.add_subparsers(help="Available operations", dest="operation")
 
     setup_parser = subparsers.add_parser("setup")
     setup_parser.add_argument("--nf", choices=CONFIGURATIONS.keys())
@@ -512,6 +486,10 @@ if __name__ == "__main__":
     stats_parser.add_argument("op", choices=["get", "clear"])
 
     args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     grpc_client = gc.ClientInterface("{}:{}".format(GRPC_SERVER_IP, GRPC_SERVER_PORT), 0, 0)
     grpc_client.bind_pipeline_config(P4_PROGRAM_NAME)
@@ -545,5 +523,4 @@ if __name__ == "__main__":
     elif args.operation == "stats":
         run_stats(bfrt_info, ports, args.op)
     else:
-        print("ERROR: unknown operation {}".format(args.operation))
-        exit(1)
+        args.print_help()
