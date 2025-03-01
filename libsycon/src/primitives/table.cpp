@@ -109,7 +109,7 @@ std::vector<table_action_t> build_actions(const bfrt::BfRtTable *table) {
   return action_fields;
 }
 
-table_action_t build_no_action(const bfrt::BfRtTable *table) {
+std::optional<table_action_t> build_no_action(const bfrt::BfRtTable *table) {
   bf_status_t bf_status;
 
   std::string name;
@@ -132,7 +132,7 @@ table_action_t build_no_action(const bfrt::BfRtTable *table) {
     return table_action_t{name, action_id, {}};
   }
 
-  ERROR("NoAction not found");
+  return std::nullopt;
 }
 
 const bfrt::BfRtTable *build_table(const bf_rt_target_t dev_tgt, const bfrt::BfRtInfo *info, const std::string &control,
@@ -707,7 +707,8 @@ void Table::set_key(const buffer_t &k) {
 void Table::set_data() {
   bf_status_t bf_status;
 
-  bf_status = table->dataReset(no_action.action_id, data.get());
+  assert(no_action.has_value());
+  bf_status = table->dataReset(no_action->action_id, data.get());
   ASSERT_BF_STATUS(bf_status);
 
   if (time_aware) {
@@ -719,8 +720,10 @@ void Table::set_data() {
 void Table::set_data(const std::string &action_name, const std::vector<buffer_t> &params) {
   bf_status_t bf_status;
 
-  auto found_it =
-      std::find_if(actions.begin(), actions.end(), [&action_name](const table_action_t &action) { return action.name == action_name; });
+  auto found_it = std::find_if(actions.begin(), actions.end(), [this, &action_name](const table_action_t &action) {
+    return action.name == control_name + "." + action_name;
+  });
+
   if (found_it == actions.end()) {
     ERROR("Action %s not found", action_name.c_str());
     return;

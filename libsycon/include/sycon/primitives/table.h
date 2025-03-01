@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 #include "../time.h"
 #include "../buffer.h"
@@ -41,7 +42,7 @@ protected:
 
   const std::vector<table_field_t> key_fields;
   const std::vector<table_action_t> actions;
-  const table_action_t no_action;
+  const std::optional<table_action_t> no_action;
 
   std::unique_ptr<bfrt::BfRtTableKey> key;
   std::unique_ptr<bfrt::BfRtTableData> data;
