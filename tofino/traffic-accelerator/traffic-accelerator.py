@@ -489,11 +489,11 @@ def run_stats(bfrt_info, ports: Ports, op):
             rx_bytes = port_stats["rx_bytes"]
             tx_pkts = port_stats["tx_pkts"]
             tx_bytes = port_stats["tx_bytes"]
-            print(f"{dev_to_front_panel[port]}:{rx_pkts}:{rx_bytes}:{tx_pkts}:{tx_bytes}")
+            print("{}:{}:{}:{}:{}".format(dev_to_front_panel[port], rx_pkts, rx_bytes, tx_pkts, tx_bytes))
     elif op == "clear":
         counters.clear_stats(dev_ports)
     else:
-        print(f"ERROR: unknown operation {op}")
+        print("ERROR: unknown operation {}".format(op))
         exit(1)
 
 
@@ -545,5 +545,5 @@ if __name__ == "__main__":
     elif args.operation == "stats":
         run_stats(bfrt_info, ports, args.op)
     else:
-        print(f"ERROR: unknown operation {args.operation}")
+        print("ERROR: unknown operation {}".format(args.operation))
         exit(1)
