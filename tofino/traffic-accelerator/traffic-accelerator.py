@@ -166,87 +166,6 @@ class Ports:
         self.add_ports([(front_panel_port, speed)])
 
 
-class Counters:
-    def __init__(self, bfrt_info):
-        self.in_counter = bfrt_info.table_get("Ingress.in_counter")
-        self.out_counter = bfrt_info.table_get("Egress.out_counter")
-
-    def get_stats(self, dev_ports):
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-
-        in_counter_resp = self.in_counter.entry_get(
-            target,
-            [self.in_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
-            {"from_hw": True},
-        )
-
-        out_counter_resp = self.out_counter.entry_get(
-            target,
-            [self.out_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
-            {"from_hw": True},
-        )
-
-        stats = {}
-
-        for in_counter_entry, out_counter_entry in zip(in_counter_resp, out_counter_resp):
-            in_counter_data = in_counter_entry[0].to_dict()
-            in_counter_key = in_counter_entry[1].to_dict()
-
-            out_counter_data = out_counter_entry[0].to_dict()
-            out_counter_key = out_counter_entry[1].to_dict()
-
-            in_dev_port = in_counter_key["$COUNTER_INDEX"]["value"]
-            in_pkts = in_counter_data["$COUNTER_SPEC_PKTS"]
-            in_bytes = in_counter_data["$COUNTER_SPEC_BYTES"]
-
-            out_dev_port = out_counter_key["$COUNTER_INDEX"]["value"]
-            out_pkts = out_counter_data["$COUNTER_SPEC_PKTS"]
-            out_bytes = out_counter_data["$COUNTER_SPEC_BYTES"]
-
-            for port in [in_dev_port, out_dev_port]:
-                if port not in stats:
-                    stats[port] = {"rx_pkts": 0, "rx_bytes": 0, "tx_pkts": 0, "tx_bytes": 0}
-
-            stats[in_dev_port]["rx_pkts"] = in_pkts
-            stats[in_dev_port]["rx_bytes"] = in_bytes
-
-            stats[out_dev_port]["tx_pkts"] = out_pkts
-            stats[out_dev_port]["tx_bytes"] = out_bytes
-
-        return stats
-
-    def clear_stats(self, dev_ports):
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-
-        self.in_counter.entry_mod(
-            target,
-            [self.in_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
-            [
-                self.in_counter.make_data(
-                    [
-                        gc.DataTuple("$COUNTER_SPEC_BYTES", 0),
-                        gc.DataTuple("$COUNTER_SPEC_PKTS", 0),
-                    ]
-                )
-                for _ in dev_ports
-            ],
-        )
-
-        self.out_counter.entry_mod(
-            target,
-            [self.out_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
-            [
-                self.out_counter.make_data(
-                    [
-                        gc.DataTuple("$COUNTER_SPEC_BYTES", 0),
-                        gc.DataTuple("$COUNTER_SPEC_PKTS", 0),
-                    ]
-                )
-                for _ in dev_ports
-            ],
-        )
-
-
 class Router:
     def __init__(self, bfrt_info):
         self.router = bfrt_info.table_get("Ingress.router_tbl")
@@ -410,6 +329,87 @@ class PacketModifier:
         )
 
 
+class Counters:
+    def __init__(self, bfrt_info):
+        self.in_counter = bfrt_info.table_get("Ingress.in_counter")
+        self.out_counter = bfrt_info.table_get("Egress.out_counter")
+
+    def get_stats(self, dev_ports):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        in_counter_resp = self.in_counter.entry_get(
+            target,
+            [self.in_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
+            {"from_hw": True},
+        )
+
+        out_counter_resp = self.out_counter.entry_get(
+            target,
+            [self.out_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
+            {"from_hw": True},
+        )
+
+        stats = {}
+
+        for in_counter_entry, out_counter_entry in zip(in_counter_resp, out_counter_resp):
+            in_counter_data = in_counter_entry[0].to_dict()
+            in_counter_key = in_counter_entry[1].to_dict()
+
+            out_counter_data = out_counter_entry[0].to_dict()
+            out_counter_key = out_counter_entry[1].to_dict()
+
+            in_dev_port = in_counter_key["$COUNTER_INDEX"]["value"]
+            in_pkts = in_counter_data["$COUNTER_SPEC_PKTS"]
+            in_bytes = in_counter_data["$COUNTER_SPEC_BYTES"]
+
+            out_dev_port = out_counter_key["$COUNTER_INDEX"]["value"]
+            out_pkts = out_counter_data["$COUNTER_SPEC_PKTS"]
+            out_bytes = out_counter_data["$COUNTER_SPEC_BYTES"]
+
+            for port in [in_dev_port, out_dev_port]:
+                if port not in stats:
+                    stats[port] = {"rx_pkts": 0, "rx_bytes": 0, "tx_pkts": 0, "tx_bytes": 0}
+
+            stats[in_dev_port]["rx_pkts"] = in_pkts
+            stats[in_dev_port]["rx_bytes"] = in_bytes
+
+            stats[out_dev_port]["tx_pkts"] = out_pkts
+            stats[out_dev_port]["tx_bytes"] = out_bytes
+
+        return stats
+
+    def clear_stats(self, dev_ports):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        self.in_counter.entry_mod(
+            target,
+            [self.in_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
+            [
+                self.in_counter.make_data(
+                    [
+                        gc.DataTuple("$COUNTER_SPEC_BYTES", 0),
+                        gc.DataTuple("$COUNTER_SPEC_PKTS", 0),
+                    ]
+                )
+                for _ in dev_ports
+            ],
+        )
+
+        self.out_counter.entry_mod(
+            target,
+            [self.out_counter.make_key([gc.KeyTuple("$COUNTER_INDEX", dev_port)]) for dev_port in dev_ports],
+            [
+                self.out_counter.make_data(
+                    [
+                        gc.DataTuple("$COUNTER_SPEC_BYTES", 0),
+                        gc.DataTuple("$COUNTER_SPEC_PKTS", 0),
+                    ]
+                )
+                for _ in dev_ports
+            ],
+        )
+
+
 def run_setup(bfrt_info, ports, broadcast, symmetric, route):
     router = Router(bfrt_info)
     multicaster = Multicaster(bfrt_info)
@@ -449,7 +449,7 @@ def run_setup(bfrt_info, ports, broadcast, symmetric, route):
         print("Set prefix {} for egress port {} (dev={})".format(prefix, port, dev_port))
 
 
-def run_stats(bfrt_info, ports: Ports, op):
+def run_stats(bfrt_info, ports, op):
     counters = Counters(bfrt_info)
 
     front_panel_to_dev = ports.get_dev_ports(FRONT_PANEL_PORTS)
@@ -457,8 +457,8 @@ def run_stats(bfrt_info, ports: Ports, op):
 
     if op == "get":
         stats = counters.get_stats(dev_ports)
-        items = sorted(stats.items())
-        for dev_port, port_stats in items:
+        for dev_port in dev_ports:
+            port_stats = stats[dev_port]
             rx_pkts = port_stats["rx_pkts"]
             rx_bytes = port_stats["rx_bytes"]
             tx_pkts = port_stats["tx_pkts"]

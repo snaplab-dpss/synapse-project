@@ -173,8 +173,11 @@ control Ingress(
 		size = 32;
 	}
 
+	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) in_counter;
+
 	apply {
 		router_tbl.apply();
+		in_counter.count(ig_intr_md.ingress_port);
 	}
 }
 
@@ -259,8 +262,11 @@ control Egress(
 		size = 32;
 	}
 
+	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) out_counter;
+
 	apply {
 		packet_modifier_tbl.apply();
+		out_counter.count(eg_intr_md.egress_port);
 	}
 }
 
