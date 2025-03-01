@@ -24,11 +24,11 @@ def main():
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
 
-    tg_hosts = ThroughputHosts(config)
     log_file = config["logs"]["experiment"]
 
     exp_tracker = ExperimentTracker()
 
+    tg_hosts = ThroughputHosts(config, use_accelerator=False)
     exp_tracker.add_experiment(
         ThroughputPerPacketSize(
             name="Echo tput/pkt_sz (TG)",
@@ -46,22 +46,7 @@ def main():
         )
     )
 
-    ta_hosts = ThroughputHosts(config)
-    ta_hosts.tg_switch = TofinoTA(
-        hostname=config["hosts"]["switch_tg"],
-        repo=config["repo"]["switch_tg"],
-        sde=config["devices"]["switch_tg"]["sde"],
-        tofino_version=config["devices"]["switch_tg"]["tofino_version"],
-        log_file=config["logs"]["switch_tg"],
-    )
-
-    ta_hosts.tg_controller = TofinoTAController(
-        hostname=config["hosts"]["switch_tg"],
-        repo=config["repo"]["switch_tg"],
-        sde=config["devices"]["switch_tg"]["sde"],
-        log_file=config["logs"]["controller_tg"],
-    )
-
+    ta_hosts = ThroughputHosts(config, use_accelerator=True)
     exp_tracker.add_experiment(
         ThroughputPerPacketSize(
             name="Echo tput/pkt_sz (TA)",

@@ -73,13 +73,14 @@ class Pktgen:
 
     def launch(
         self,
-        nb_flows: int,
+        nb_flows: int = 65535,
         pkt_size: int = 64,
         exp_time_us: int = 0,
         crc_unique_flows: bool = False,
         crc_bits: int = 16,
         seed: int = 0,
         mark_warmup_packets: bool = False,
+        kvs_mode: bool = False,
     ) -> None:
         assert not self.pktgen_active
 
@@ -106,6 +107,9 @@ class Pktgen:
 
         if mark_warmup_packets:
             pktgen_options_list.append(f"--mark-warmup-packets")
+
+        if kvs_mode:
+            pktgen_options_list.append(f"--kvs-mode")
 
         pktgen_options = " ".join(pktgen_options_list)
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from hosts.pktgen import Pktgen
 from hosts.kvs_server import KVSServer
+from hosts.netcache import NetCache, NetCacheController
 from hosts.switch import Switch
 from hosts.synapse import SynapseController
 from utils.constants import *
@@ -45,7 +46,7 @@ def main():
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
         sde=config["devices"]["switch_dut"]["sde"],
-        ports=config["devices"]["switch_dut"]["ports"],
+        ports=config["devices"]["switch_dut"]["client_ports"],
         tofino_version=config["devices"]["switch_dut"]["tofino_version"],
         log_file=config["logs"]["controller_dut"],
     )
@@ -64,8 +65,28 @@ def main():
     KVSServer(
         hostname=config["hosts"]["server"],
         repo=config["repo"]["server"],
-        pcie_devs=config["devices"]["server"]["devs"],
+        pcie_dev=config["devices"]["server"]["dev"],
         log_file=config["logs"]["server"],
+    )
+
+    print("Launching NetCache...")
+    NetCache(
+        hostname=config["hosts"]["switch_dut"],
+        repo=config["repo"]["switch_dut"],
+        sde=config["devices"]["switch_dut"]["sde"],
+        tofino_version=config["devices"]["switch_dut"]["tofino_version"],
+        log_file=config["logs"]["switch_dut"],
+    )
+
+    print("Launching controller for NetCache...")
+    NetCacheController(
+        hostname=config["hosts"]["switch_dut"],
+        repo=config["repo"]["switch_dut"],
+        sde=config["devices"]["switch_dut"]["sde"],
+        tofino_version=config["devices"]["switch_dut"]["tofino_version"],
+        client_ports=config["devices"]["switch_dut"]["client_ports"],
+        server_port=config["devices"]["switch_dut"]["server_port"],
+        log_file=config["logs"]["controller_dut"],
     )
 
     print(f"All hosts are reachable.")

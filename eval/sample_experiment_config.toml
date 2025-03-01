@@ -28,7 +28,8 @@ server     = ""
 [devices.switch_dut]
 sde            = ""   # Path to SDE dir
 tofino_version = 2    # TNA versions 1 or 2
-ports          = [  ] # Active ports on the switch.
+client_ports   = [  ]
+server_port    = -1
 
 [devices.switch_tg]
 sde            = ""   # Path to SDE dir.
@@ -43,7 +44,7 @@ tx_line_rate = 100 # in Gbps.
 nb_tx_cores  = 4
 
 [devices.server]
-devs = [ "0000:af:00.0", "0000:af:00.1" ]
+dev = "0000:af:00.1"
 
 [logs]
 # Log files. They will be saved in the orchestrator machine in the same

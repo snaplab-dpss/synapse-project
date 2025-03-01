@@ -15,14 +15,14 @@ class KVSServer:
         self,
         hostname: str,
         repo: str,
-        pcie_devs: list[str],
+        pcie_dev: str,
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.server_dir = Path(repo) / "tofino" / "netcache" / "server"
         self.server_exe = self.server_dir / "build" / "release" / "server"
         self.config_file = self.server_dir / "conf.json"
-        self.pcie_devs = pcie_devs
+        self.pcie_dev = pcie_dev
 
         self.setup_env_script = Path(repo) / "paths.sh"
 
@@ -90,11 +90,10 @@ class KVSServer:
         if hasattr(self, "_dpdk_config"):
             return self._dpdk_config
 
-        for pcie_dev in self.pcie_devs:
-            self.host.validate_pcie_dev(pcie_dev)
+        self.host.validate_pcie_dev(self.pcie_dev)
 
         all_cores = self.host.get_all_cpus()
-        all_cores = set(self.host.get_pcie_dev_cpus(self.pcie_devs[0]))
+        all_cores = set(self.host.get_pcie_dev_cpus(self.pcie_dev))
 
         nb_cores = 1
         cores = list(itertools.islice(all_cores, nb_cores))
@@ -102,7 +101,7 @@ class KVSServer:
         dpdk_config = DpdkConfig(
             cores=cores,
             proc_type="auto",
-            pci_allow_list=self.pcie_devs,
+            pci_allow_list=[self.pcie_dev],
         )
 
         self._dpdk_config = dpdk_config

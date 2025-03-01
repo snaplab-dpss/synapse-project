@@ -5,6 +5,7 @@ from experiments.experiment import Experiment
 from hosts.synapse import SynapseController
 from hosts.switch import Switch
 from hosts.tofino_tg import TofinoTG, TofinoTGController
+from hosts.tofino_ta import TofinoTA, TofinoTAController
 from hosts.pktgen import Pktgen
 
 from pathlib import Path
@@ -13,6 +14,60 @@ from rich.console import Console
 from rich.progress import Progress
 
 from typing import Optional
+
+
+class TGHosts:
+    tg_switch: TofinoTG
+    tg_controller: TofinoTGController
+    pktgen: Pktgen
+
+    def __init__(
+        self,
+        config: dict,
+        use_accelerator: bool = True,
+    ) -> None:
+        if use_accelerator:
+            self.tg_switch = TofinoTA(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                tofino_version=config["devices"]["switch_tg"]["tofino_version"],
+                log_file=config["logs"]["switch_tg"],
+            )
+
+            self.tg_controller = TofinoTAController(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                log_file=config["logs"]["controller_tg"],
+            )
+        else:
+            self.tg_switch = TofinoTG(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                tofino_version=config["devices"]["switch_tg"]["tofino_version"],
+                log_file=config["logs"]["switch_tg"],
+            )
+
+            self.tg_controller = TofinoTGController(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                log_file=config["logs"]["controller_tg"],
+            )
+
+        self.pktgen = Pktgen(
+            hostname=config["hosts"]["pktgen"],
+            repo=config["repo"]["pktgen"],
+            rx_pcie_dev=config["devices"]["pktgen"]["rx_dev"],
+            tx_pcie_dev=config["devices"]["pktgen"]["tx_dev"],
+            nb_tx_cores=config["devices"]["pktgen"]["nb_tx_cores"],
+            log_file=config["logs"]["pktgen"],
+        )
+
+    def terminate(self):
+        self.tg_switch.kill_switchd()
 
 
 class ThroughputHosts:
@@ -25,6 +80,7 @@ class ThroughputHosts:
     def __init__(
         self,
         config: dict,
+        use_accelerator: bool = True,
     ) -> None:
         self.dut_switch = Switch(
             hostname=config["hosts"]["switch_dut"],
@@ -38,25 +94,41 @@ class ThroughputHosts:
             hostname=config["hosts"]["switch_dut"],
             repo=config["repo"]["switch_dut"],
             sde=config["devices"]["switch_dut"]["sde"],
-            ports=config["devices"]["switch_dut"]["ports"],
+            ports=config["devices"]["switch_dut"]["client_ports"],
             tofino_version=config["devices"]["switch_dut"]["tofino_version"],
             log_file=config["logs"]["controller_dut"],
         )
 
-        self.tg_switch = TofinoTG(
-            hostname=config["hosts"]["switch_tg"],
-            repo=config["repo"]["switch_tg"],
-            sde=config["devices"]["switch_tg"]["sde"],
-            tofino_version=config["devices"]["switch_tg"]["tofino_version"],
-            log_file=config["logs"]["switch_tg"],
-        )
+        if use_accelerator:
+            self.tg_switch = TofinoTA(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                tofino_version=config["devices"]["switch_tg"]["tofino_version"],
+                log_file=config["logs"]["switch_tg"],
+            )
 
-        self.tg_controller = TofinoTGController(
-            hostname=config["hosts"]["switch_tg"],
-            repo=config["repo"]["switch_tg"],
-            sde=config["devices"]["switch_tg"]["sde"],
-            log_file=config["logs"]["controller_tg"],
-        )
+            self.tg_controller = TofinoTAController(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                log_file=config["logs"]["controller_tg"],
+            )
+        else:
+            self.tg_switch = TofinoTG(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                tofino_version=config["devices"]["switch_tg"]["tofino_version"],
+                log_file=config["logs"]["switch_tg"],
+            )
+
+            self.tg_controller = TofinoTGController(
+                hostname=config["hosts"]["switch_tg"],
+                repo=config["repo"]["switch_tg"],
+                sde=config["devices"]["switch_tg"]["sde"],
+                log_file=config["logs"]["controller_tg"],
+            )
 
         self.pktgen = Pktgen(
             hostname=config["hosts"]["pktgen"],
