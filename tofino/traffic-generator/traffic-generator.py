@@ -458,6 +458,7 @@ def run_stats(bfrt_info, ports, op):
 
     if op == "get":
         stats = counters.get_stats(dev_ports)
+        print("====== Stats report ======")
         for dev_port in dev_ports:
             port_stats = stats[dev_port]
             rx_pkts = port_stats["rx_pkts"]
