@@ -14,7 +14,7 @@ public:
     buffer_t param(2);
     param.set(0, 2, out_port);
 
-    add_entry(key, "fwd", {param});
+    add_entry(key, "Ingress.fwd", {param});
   }
 };
 
