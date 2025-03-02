@@ -131,11 +131,17 @@ static void configure_ports() {
   }
 
   if (args.wait_for_ports) {
-    for (u16 port : args.ports) {
-      u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
-      LOG("Waiting on port %u...", port);
-      while (!ports->is_port_up(dev_port)) {
-        sleep(1);
+    bool all_ports_up = false;
+    while (!all_ports_up) {
+      sleep(1);
+      all_ports_up = true;
+      for (u16 port : args.ports) {
+        u16 dev_port = ports->get_dev_port(port, DEFAULT_PORT_LANE);
+        if (!ports->is_port_up(dev_port)) {
+          LOG("Port %u is not ready yet...", port);
+          all_ports_up = false;
+          break;
+        }
       }
     }
     LOG("All ports are ready!");
