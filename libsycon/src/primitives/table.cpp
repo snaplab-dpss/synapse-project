@@ -720,9 +720,8 @@ void Table::set_data() {
 void Table::set_data(const std::string &action_name, const std::vector<buffer_t> &params) {
   bf_status_t bf_status;
 
-  auto found_it = std::find_if(actions.begin(), actions.end(), [this, &action_name](const table_action_t &action) {
-    return action.name == control_name + "." + action_name;
-  });
+  auto found_it = std::find_if(actions.begin(), actions.end(),
+                               [this, &action_name](const table_action_t &action) { return action.name == action_name; });
 
   if (found_it == actions.end()) {
     ERROR("Action %s not found", action_name.c_str());
