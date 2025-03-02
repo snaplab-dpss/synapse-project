@@ -45,32 +45,32 @@ public:
   }
 
   void add_dev_port(u16 dev_port, bf_port_speed_t speed, bf_loopback_mode_e loopback_mode, bool wait_until_ready) {
-    std::map<bf_port_speed_t, std::string> speed_opts{
+    const std::map<bf_port_speed_t, std::string> speed_opts{
         {BF_SPEED_NONE, "BF_SPEED_10G"}, {BF_SPEED_25G, "BF_SPEED_25G"},   {BF_SPEED_40G, "BF_SPEED_40G"},
         {BF_SPEED_50G, "BF_SPEED_50G"},  {BF_SPEED_100G, "BF_SPEED_100G"},
     };
 
-    std::map<bf_fec_type_t, std::string> fec_opts{
+    const std::map<bf_fec_type_t, std::string> fec_opts{
         {BF_FEC_TYP_NONE, "BF_FEC_TYP_NONE"},
         {BF_FEC_TYP_FIRECODE, "BF_FEC_TYP_FIRECODE"},
         {BF_FEC_TYP_REED_SOLOMON, "BF_FEC_TYP_REED_SOLOMON"},
     };
 
-    std::map<bf_port_speed_t, bf_fec_type_t> speed_to_fec{
+    const std::map<bf_port_speed_t, bf_fec_type_t> speed_to_fec{
         {BF_SPEED_NONE, BF_FEC_TYP_NONE}, {BF_SPEED_25G, BF_FEC_TYP_NONE}, {BF_SPEED_40G, BF_FEC_TYP_NONE},
         {BF_SPEED_50G, BF_FEC_TYP_NONE},  {BF_SPEED_50G, BF_FEC_TYP_NONE}, {BF_SPEED_100G, BF_FEC_TYP_REED_SOLOMON},
     };
 
-    std::map<bf_loopback_mode_e, std::string> loopback_mode_opts{
+    const std::map<bf_loopback_mode_e, std::string> loopback_mode_opts{
         {BF_LPBK_NONE, "BF_LPBK_NONE"},         {BF_LPBK_MAC_NEAR, "BF_LPBK_MAC_NEAR"},       {BF_LPBK_MAC_FAR, "BF_LPBK_MAC_FAR"},
         {BF_LPBK_PCS_NEAR, "BF_LPBK_PCS_NEAR"}, {BF_LPBK_SERDES_NEAR, "BF_LPBK_SERDES_NEAR"}, {BF_LPBK_SERDES_FAR, "BF_LPBK_SERDES_FAR"},
         {BF_LPBK_PIPE, "BF_LPBK_PIPE"},
     };
 
-    auto fec = speed_to_fec[speed];
+    auto fec = speed_to_fec.at(speed);
 
     key_setup(dev_port);
-    data_setup(speed_opts[speed], fec_opts[fec], true, loopback_mode_opts[loopback_mode]);
+    data_setup(speed_opts.at(speed), fec_opts.at(fec), true, loopback_mode_opts.at(loopback_mode));
 
     bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status);
@@ -85,12 +85,14 @@ public:
     add_dev_port(dev_port, speed, BF_LPBK_NONE, wait_until_ready);
   }
 
-  bool is_port_up(u16 dev_port, bool from_hw = false) {
-    auto hwflag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
-
+  bool is_port_up(u16 dev_port) {
     key_setup(dev_port);
 
-    bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, *key, hwflag, data.get());
+    uint64_t flags;
+    BF_RT_FLAG_INIT(flags);
+    BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+    bf_status_t bf_status = table->tableEntryGet(*session, dev_tgt, flags, *key, data.get());
     ASSERT_BF_STATUS(bf_status);
 
     bool value;
