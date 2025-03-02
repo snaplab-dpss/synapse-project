@@ -42,7 +42,7 @@ struct buffer_t {
     }
 
     std::memset(data, 0, size);
-    std::copy(other.data, other.data + other.size, data);
+    std::copy(other.data, other.data + other.size, data + (size - other.size));
 
     return *this;
   }
