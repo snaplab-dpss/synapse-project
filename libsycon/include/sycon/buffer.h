@@ -35,10 +35,12 @@ struct buffer_t {
       return *this;
     }
 
-    if (size != other.size) {
+    if (size < other.size) {
       delete[] data;
       size = other.size;
       data = new u8[size];
+    } else {
+      std::memset(data, 0, size);
     }
 
     std::copy(other.data, other.data + size, data);

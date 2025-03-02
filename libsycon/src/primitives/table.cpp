@@ -692,7 +692,9 @@ void Table::set_key(const buffer_t &k) {
       ASSERT_BF_STATUS(bf_status);
     } break;
     case bfrt::DataType::BYTE_STREAM: {
-      bf_status = key->setValue(field.id, k.data, size);
+      buffer_t stream(size);
+      stream    = k;
+      bf_status = key->setValue(field.id, stream.data, size);
       ASSERT_BF_STATUS(bf_status);
     } break;
     default: {
@@ -750,7 +752,9 @@ void Table::set_data(const std::string &action_name, const std::vector<buffer_t>
       ASSERT_BF_STATUS(bf_status);
     } break;
     case bfrt::DataType::BYTE_STREAM: {
-      bf_status = data->setValue(field.id, param.data, size);
+      buffer_t stream(size);
+      stream    = param;
+      bf_status = data->setValue(field.id, stream.data, size);
       ASSERT_BF_STATUS(bf_status);
     } break;
     default: {
