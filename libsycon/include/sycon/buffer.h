@@ -39,11 +39,10 @@ struct buffer_t {
       delete[] data;
       size = other.size;
       data = new u8[size];
-    } else {
-      std::memset(data, 0, size);
     }
 
-    std::copy(other.data, other.data + size, data);
+    std::memset(data, 0, size);
+    std::copy(other.data, other.data + other.size, data);
 
     return *this;
   }
