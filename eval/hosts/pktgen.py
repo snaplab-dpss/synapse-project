@@ -67,13 +67,13 @@ class Pktgen:
         )
 
     def kill_pktgen(self) -> None:
-        self.host.run_command(f"sudo killall {self.pktgen_exe.name}")
+        self.host.run_command(f"sudo killall -s SIGKILL {self.pktgen_exe.name}")
         self.pktgen_active = False
         self.ready = False
 
     def launch(
         self,
-        nb_flows: int = 65535,
+        nb_flows: int = 10_000,
         pkt_size: int = 64,
         exp_time_us: int = 0,
         crc_unique_flows: bool = False,
@@ -159,6 +159,8 @@ class Pktgen:
         # or allocate hugepages.
         if self.pktgen.exit_status_ready() and self.pktgen.recv_exit_status() != 0:
             self.pktgen_active = False
+            output = self.pktgen.watch()
+            self.host.log(output)
             raise Exception("Cannot run pktgen")
 
         return self.pktgen.watch(stop_pattern=PKTGEN_PROMPT)
@@ -209,7 +211,7 @@ class Pktgen:
         self.pktgen_active = False
         self.host.log("Pktgen exited successfuly.")
 
-    def get_stats(self) -> tuple[int, int]:
+    def get_stats(self) -> tuple[int, int, int, int]:
         assert self.pktgen_active
         output = self._run_commands("stats")
 
@@ -225,16 +227,18 @@ class Pktgen:
         tx_line = lines[1]
         rx_line = lines[2]
 
-        tx_result = re.search(r"\s+TX:\s+(\d+)", tx_line)
-        rx_result = re.search(r"\s+RX:\s+(\d+)", rx_line)
+        tx_result = re.search(r"\s+TX:\s+(\d+) pkts (\d+) bytes", tx_line)
+        rx_result = re.search(r"\s+RX:\s+(\d+) pkts (\d+) bytes", rx_line)
 
         assert tx_result
         assert rx_result
 
-        tx = int(tx_result.group(1))
-        rx = int(rx_result.group(1))
+        tx_pkts = int(tx_result.group(1))
+        tx_bytes = int(tx_result.group(2))
+        rx_pkts = int(rx_result.group(1))
+        rx_bytes = int(rx_result.group(2))
 
-        return tx, rx
+        return tx_pkts, tx_bytes, rx_pkts, rx_bytes
 
     def enter_interactive(self) -> None:
         self.pktgen.posix_shell()

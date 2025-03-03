@@ -61,7 +61,7 @@ class KVSThroughput(Experiment):
         self._sync()
 
     def _sync(self):
-        header = f"#it, delay (ns), requested (bps), pktgen tput (bps), pktgen tput (pps), tput (bps), tput (pps)\n"
+        header = f"#it, delay (ns), requested (bps), pktgen tput (bps), pktgen tput (pps), DUT ingress (bps), DUT ingress (pps) DUT egress (bps) DUT egress (pps)\n"
 
         self.experiment_tracker = set()
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +127,7 @@ class KVSThroughput(Experiment):
         self.tg_hosts.tg_switch.wait_ready()
 
         self.log("Configuring Tofino TG")
-        self.tg_hosts.tg_controller.run(
+        self.tg_hosts.tg_controller.setup(
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
@@ -166,15 +166,22 @@ class KVSThroughput(Experiment):
             self.tg_hosts.pktgen.wait_launch()
 
             report = self.find_stable_throughput(
-                controller=self.tg_hosts.controller,
+                tg_controller=self.tg_hosts.tg_controller,
                 pktgen=self.tg_hosts.pktgen,
                 churn=0,
-                pkt_size=194,  # kvs packet size
-                broadcast_ports=self.broadcast,
             )
 
             with open(self.save_name, "a") as f:
-                f.write(f"{current_iter},{delay_ns},{report.requested_bps},{report.pktgen_bps},{report.pktgen_pps},{report.bps},{report.pps}\n")
+                f.write(f"{current_iter}")
+                f.write(f",{delay_ns}")
+                f.write(f",{report.requested_bps}")
+                f.write(f",{report.pktgen_bps}")
+                f.write(f",{report.pktgen_pps}")
+                f.write(f",{report.dut_ingress_bps}")
+                f.write(f",{report.dut_ingress_pps}")
+                f.write(f",{report.dut_egress_bps}")
+                f.write(f",{report.dut_egress_pps}")
+                f.write(f"\n")
 
             step_progress.update(task_id, description=description, advance=1)
 
@@ -235,7 +242,7 @@ def main():
             netcache=netcache,
             netcache_controller=netcache_controller,
             kvs_server=kvs_server,
-            broadcast=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+            broadcast=config["devices"]["switch_tg"]["dut_ports"],
             symmetric=[],
             route=[],
             experiment_log_file=log_file,

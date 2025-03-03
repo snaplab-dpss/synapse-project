@@ -106,7 +106,6 @@ class NetCacheController:
 
         if not self.host.remote_file_exists(config_file):
             self.host.crash(f"NetCache config file {config_file} not found on remote host {self.host}")
-        #  --config conf/conf.json --disable-cache --wait-ports --tna 2 --server-port 1 --client-ports 3 --ucli
 
         cmd = f"sudo -E ./build/Release/netcache-controller"
         cmd += f" --config {config_file}"
@@ -132,6 +131,9 @@ class NetCacheController:
         self.controller_cmd.watch(
             stop_pattern=re.escape("NetCache controller is ready."),
         )
+
+        if self.controller_cmd.exit_status_ready():
+            self.host.crash("Controller exited unexpectedly")
 
         self.ready = True
 

@@ -61,7 +61,7 @@ class ThroughputPerPacketSize(Experiment):
         self._sync()
 
     def _sync(self):
-        header = f"#it, pkt size (bytes), requested (bps), pktgen tput (bps), pktgen tput (pps), tput (bps), tput (pps)\n"
+        header = f"#it, pkt size (bytes), requested (bps), pktgen tput (bps), pktgen tput (pps), DUT ingress (bps), DUT ingress (pps) DUT egress (bps) DUT egress (pps)\n"
 
         self.experiment_tracker = set()
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
@@ -128,7 +128,7 @@ class ThroughputPerPacketSize(Experiment):
         self.hosts.tg_switch.wait_ready()
 
         self.log("Configuring Tofino TG")
-        self.hosts.tg_controller.run(
+        self.hosts.tg_controller.setup(
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
@@ -139,6 +139,9 @@ class ThroughputPerPacketSize(Experiment):
 
         self.log("Waiting for synapse controller")
         self.hosts.controller.wait_ready()
+
+        self.log("Waiting for TG ports")
+        self.hosts.tg_controller.wait_for_ports()
 
         self.log("Starting experiment")
 
@@ -168,15 +171,22 @@ class ThroughputPerPacketSize(Experiment):
             self.hosts.pktgen.wait_launch()
 
             report = self.find_stable_throughput(
-                controller=self.hosts.controller,
+                tg_controller=self.hosts.tg_controller,
                 pktgen=self.hosts.pktgen,
                 churn=0,
-                pkt_size=pkt_size,
-                broadcast_ports=self.broadcast,
             )
 
             with open(self.save_name, "a") as f:
-                f.write(f"{current_iter},{pkt_size},{report.requested_bps},{report.pktgen_bps},{report.pktgen_pps},{report.bps},{report.pps}\n")
+                f.write(f"{current_iter}")
+                f.write(f",{pkt_size}")
+                f.write(f",{report.requested_bps}")
+                f.write(f",{report.pktgen_bps}")
+                f.write(f",{report.pktgen_pps}")
+                f.write(f",{report.dut_ingress_bps}")
+                f.write(f",{report.dut_ingress_pps}")
+                f.write(f",{report.dut_egress_bps}")
+                f.write(f",{report.dut_egress_pps}")
+                f.write(f"\n")
 
             step_progress.update(task_id, description=description, advance=1)
 

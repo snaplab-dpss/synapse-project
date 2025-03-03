@@ -8,7 +8,6 @@ from pathlib import Path
 from experiments.tput import ThroughputHosts
 from experiments.tput_per_pkt_sz import ThroughputPerPacketSize
 from experiments.experiment import ExperimentTracker
-from hosts.tofino_ta import TofinoTA, TofinoTAController
 from utils.constants import *
 
 PKT_SIZES = [64, 128, 256, 512, 1024, 1280, 1500]
@@ -38,7 +37,7 @@ def main():
             p4_src_in_repo="synthesized/synapse-echo.p4",
             controller_src_in_repo="synthesized/synapse-echo.cpp",
             controller_timeout_ms=1000,
-            broadcast=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+            broadcast=config["devices"]["switch_dut"]["client_ports"],
             symmetric=[],
             route=[],
             nb_flows=10_000,
@@ -56,7 +55,7 @@ def main():
             p4_src_in_repo="synthesized/synapse-echo.p4",
             controller_src_in_repo="synthesized/synapse-echo.cpp",
             controller_timeout_ms=1000,
-            broadcast=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+            broadcast=config["devices"]["switch_dut"]["client_ports"],
             symmetric=[],
             route=[],
             nb_flows=10_000,

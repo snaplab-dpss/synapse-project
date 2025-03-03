@@ -9,8 +9,9 @@ import re
 
 from .remote import RemoteHost
 
-MIN_TIMEOUT = 10 # miliseconds
+MIN_TIMEOUT = 10  # miliseconds
 SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon> "
+
 
 class SynapseController:
     def __init__(
@@ -31,25 +32,27 @@ class SynapseController:
         self.exe = None
 
         self.host.test_connection()
-        
+
         if not self.host.remote_dir_exists(self.repo):
             self.host.crash(f"Repo not found on remote host {self.host}")
-        
+
         if not self.host.remote_dir_exists(self.sde):
             self.host.crash(f"SDE directory not found on remote host {self.sde}")
-        
+
         self.ready = False
-    
+
     def _clean(self, src: Path) -> None:
         if not self.host.remote_file_exists(src):
             self.host.crash(f"Unable to find file {src}")
 
         makefile = self.repo / "tofino" / "tools" / "Makefile"
 
-        env_vars = " ".join([
-            f"SDE={self.sde}",
-            f"SDE_INSTALL={self.sde}/install",
-        ])
+        env_vars = " ".join(
+            [
+                f"SDE={self.sde}",
+                f"SDE_INSTALL={self.sde}/install",
+            ]
+        )
 
         compilation_cmd = f"{env_vars} APP={src.stem} make -f {makefile} clean"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
@@ -58,7 +61,7 @@ class SynapseController:
 
         if code != 0:
             self.host.crash(f"Controller cleanup failed.")
-        
+
     def _compile(self, src: Path) -> None:
         # Cleanup first, always recompile from scratch.
         self._clean(src)
@@ -68,11 +71,13 @@ class SynapseController:
 
         makefile = self.repo / "tofino" / "tools" / "Makefile"
 
-        env_vars = " ".join([
-            f"SDE={self.sde}",
-            f"SDE_INSTALL={self.sde}/install",
-        ])
-        
+        env_vars = " ".join(
+            [
+                f"SDE={self.sde}",
+                f"SDE_INSTALL={self.sde}/install",
+            ]
+        )
+
         compilation_cmd = f"{env_vars} APP={src.stem} make -f {makefile} controller -j"
         cmd = self.host.run_command(compilation_cmd, dir=src.parent)
         cmd.watch()
@@ -81,12 +86,7 @@ class SynapseController:
         if code != 0:
             self.host.crash(f"Controller compilation failed (app={src.stem}).")
 
-    def launch(
-        self,
-        src_in_repo: str,
-        timeout_ms: int = MIN_TIMEOUT,
-        extra_args: list[tuple[str, Union[str,int,float]]] = []
-    ) -> None:
+    def launch(self, src_in_repo: str, timeout_ms: int = MIN_TIMEOUT, extra_args: list[tuple[str, Union[str, int, float]]] = []) -> None:
         if timeout_ms != 0 and timeout_ms < MIN_TIMEOUT:
             raise Exception(f"Timeout value must be 0 or >= {MIN_TIMEOUT}ms (is {timeout_ms}ms)")
 
@@ -122,16 +122,18 @@ class SynapseController:
             raise RuntimeError("Controller not started")
 
         self.controller_cmd.watch(
-            # stop_pattern="Press enter to terminate.",
             stop_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
         )
 
+        if self.controller_cmd.exit_status_ready():
+            self.host.crash("Controller exited unexpectedly")
+
         self.ready = True
-    
+
     def send_usr1_signal(self) -> Optional[str]:
         if self.controller_cmd is None:
             return None
-        
+
         cmd = f"sudo killall -SIGUSR1 {self.exe}"
 
         # Flush stdout and stderr before running the new command
@@ -146,25 +148,25 @@ class SynapseController:
             )
 
         return output
-    
-    def get_port_stats(self) -> dict[int,tuple[int,int]]:
+
+    def get_port_stats(self) -> dict[int, tuple[int, int]]:
         assert self.ready
         assert self.controller_cmd
-        
+
         output = self.controller_cmd.run_console_commands(
             commands=["stats"],
             console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
         )
 
-        output_split = output.rstrip().split(' ')
+        output_split = output.rstrip().split(" ")
         assert output_split[0] == "STATS"
 
         stats = {}
         for entry in output_split[1:]:
-            if '\n' in entry:
+            if "\n" in entry:
                 break
 
-            entry_split = entry.split(':')
+            entry_split = entry.split(":")
             assert len(entry_split) == 3
             port = int(entry_split[0])
             rx = int(entry_split[1])
@@ -176,16 +178,16 @@ class SynapseController:
     def reset_port_stats(self) -> None:
         assert self.ready
         assert self.controller_cmd
-        
+
         self.controller_cmd.run_console_commands(
             commands=["reset"],
             console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
         )
-    
+
     def quit(self) -> None:
         assert self.ready
         assert self.controller_cmd
-        
+
         self.controller_cmd.run_console_commands(
             commands=["quit"],
             console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
@@ -194,19 +196,19 @@ class SynapseController:
         self.ready = False
         self.controller_cmd = None
 
-    def get_cpu_counters(self) -> Optional[tuple[int,int,int]]:
+    def get_cpu_counters(self) -> Optional[tuple[int, int, int]]:
         output = self.send_usr1_signal()
 
         if not output:
             return None
-        
+
         result = re.search(r".*In:\s+(\d+)\nCPU:\s+(\d+)\nTotal:\s+(\d+).*", output)
 
         if not result:
             self.host.crash("Asked for CPU counters but information not found on controller output")
 
         assert result
-        
+
         in_pkts = int(result.group(1))
         cpu_pkts = int(result.group(2))
         total_pkts = int(result.group(3))
@@ -217,18 +219,18 @@ class SynapseController:
     def stop(self):
         if self.controller_cmd is None:
             return
-        
+
         # Kill all instances
         cmd = f"sudo killall {self.exe}"
         self.host.run_command(cmd)
         self.controller_cmd.watch()
-        
+
         self.host.log("Controller exited successfuly.")
 
         self.controller_cmd = None
         self.exe = None
         self.ready = False
-    
+
     def __del__(self):
         try:
             self.stop()

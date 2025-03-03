@@ -14,7 +14,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from hosts.synapse import SynapseController
+from hosts.tofino_tg import TofinoTGController
 from hosts.pktgen import Pktgen
 
 MAX_THROUGHPUT = 100_000  # 100 Gbps
@@ -24,7 +24,6 @@ MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 WARMUP_TIME_SEC = 5  # seconds
 WARMUP_RATE = 1  # 1 Mbps
 REST_TIME_SEC = 2  # seconds
-SLACK_OFF_MAX_TRIES = 10
 EXPERIMENT_ITERATIONS = 5
 
 
@@ -33,9 +32,20 @@ class ThroughputReport:
     requested_bps: int
     pktgen_bps: int
     pktgen_pps: int
-    bps: int
-    pps: int
+    dut_ingress_bps: int
+    dut_ingress_pps: int
+    dut_egress_bps: int
+    dut_egress_pps: int
     loss: float
+
+    def __str__(self):
+        s = ""
+        s += f"Requested: {self.requested_bps/1e9} Gbps "
+        s += f"Pktgen: {self.pktgen_bps/1e9} Gbps {self.pktgen_pps/1e6} Mpps "
+        s += f"DUT ingress: {self.dut_ingress_bps/1e9} Gbps ({self.dut_ingress_pps/1e6} Mpps) "
+        s += f"DUT egress: {self.dut_egress_bps/1e9} Gbps ({self.dut_egress_pps/1e6} Mpps) "
+        s += f"Loss: {self.loss*100:.2f}%"
+        return s
 
 
 class Experiment:
@@ -59,10 +69,12 @@ class Experiment:
             self.log_file = None
 
     def log(self, msg=""):
+        now = datetime.now()
+        ts = now.strftime("%Y-%m-%d %H:%M:%S")
         if self.log_file:
-            now = datetime.now()
-            ts = now.strftime("%Y-%m-%d %H:%M:%S")
             print(f"[{ts}][{self.name}] {msg}", file=self.log_file, flush=True)
+        else:
+            print(f"[{ts}][{self.name}] {msg}", flush=True)
 
     def run(self, step_progress: Progress, current_iter: int) -> None:
         raise NotImplementedError
@@ -75,36 +87,72 @@ class Experiment:
 
         progress.update(task_id, description="[bold green] done!")
 
+    def warmup_ports(
+        self,
+        tg_controller: TofinoTGController,
+        pktgen: Pktgen,
+    ) -> None:
+        ports_are_ready = False
+        while not ports_are_ready:
+            tg_controller.wait_for_ports()
+            ports_are_ready = True
+
+            meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
+
+            pktgen.set_rate(WARMUP_RATE)
+            pktgen.start()
+            sleep(WARMUP_TIME_SEC)
+            pktgen.stop()
+
+            meta_port_stats_new = tg_controller.get_port_stats_from_meta_table()
+
+            self.log()
+            self.log(f"Meta stats old {meta_port_stats_old}")
+            self.log(f"Meta stats new {meta_port_stats_new}")
+
+            tx_reference = None
+            for port in tg_controller.broadcast_ports:
+                tx = meta_port_stats_new[port].FramesTransmittedOK - meta_port_stats_old[port].FramesTransmittedOK
+                self.log(f"Port {port} TX {tx}")
+                assert tx >= 0
+
+                if tx_reference is None:
+                    tx_reference = tx
+                elif abs(tx - tx_reference) / tx_reference > MAX_ACCEPTABLE_LOSS:
+                    ports_are_ready = False
+                    self.log(f"Port {port} is not ready yet. Retrying...")
+                    sleep(1)
+                    break
+
+        self.log("Ports are ready now.")
+        self.log()
+
     def find_stable_throughput(
         self,
-        controller: SynapseController,
+        tg_controller: TofinoTGController,
         pktgen: Pktgen,
         churn: int,
-        pkt_size: int,
-        broadcast_ports: list[int],
     ) -> ThroughputReport:
-        if not (0 <= MAX_ACCEPTABLE_LOSS < 1):
-            raise ValueError("max_loss must be in [0, 1).")
+        self.log("Warming up ports...")
+        self.warmup_ports(tg_controller, pktgen)
+
+        pktgen.set_churn(churn)
 
         rate_lower = 0
         rate_upper = MAX_THROUGHPUT
 
-        loss_winner = 1
-        pktgen_rate_bps_winner = 0
-        pktgen_rate_pps_winner = 0
-        real_throughput_bps_winner = 0
-        real_throughput_pps_winner = 0
-        requested_rate_bps_winner = 0
+        winner_report = ThroughputReport(
+            requested_bps=0,
+            pktgen_bps=0,
+            pktgen_pps=0,
+            dut_ingress_bps=0,
+            dut_ingress_pps=0,
+            dut_egress_bps=0,
+            dut_egress_pps=0,
+            loss=1,
+        )
 
         current_rate = rate_upper
-
-        # Setting the churn value
-        pktgen.set_churn(churn)
-
-        # Setting warmup duration
-        # pktgen.set_warmup_duration(WARMUP_TIME_SEC)
-
-        self.log()
 
         # We iteratively refine the bounds until the difference between them is
         # less than the specified precision.
@@ -115,77 +163,68 @@ class Experiment:
 
             self.log(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps")
 
-            pktgen_nb_tx_pkts = 0
-            nb_tx_pkts = 0
+            tg_controller.reset_stats()
+            pktgen.reset_stats()
+
+            pktgen.set_rate(current_rate)
+
+            pktgen.start()
+            sleep(ITERATION_DURATION_SEC)
+            pktgen.stop()
+
+            # Let the flows expire.
+            sleep(REST_TIME_SEC)
+
+            port_stats = tg_controller.get_port_stats()
+            self.log(f"Stats {port_stats}")
+
             nb_rx_pkts = 0
+            nb_rx_bits = 0
+            nb_tx_pkts = 0
+            nb_tx_bits = 0
 
-            slacking_off_events = 0
-            while nb_tx_pkts == 0:
-                controller.reset_port_stats()
-                pktgen.reset_stats()
+            for port, stats in port_stats.items():
+                if port in tg_controller.broadcast_ports:
+                    nb_rx_pkts += stats.rx_pkts
+                    nb_rx_bits += stats.rx_bytes * 8
+                    nb_tx_pkts += stats.tx_pkts
+                    nb_tx_bits += stats.tx_bytes * 8
 
-                pktgen.set_rate(current_rate)
+            pktgen_stats = pktgen.get_stats()
+            pktgen_nb_tx_pkts = pktgen_stats[0]
+            pktgen_nb_tx_bytes = pktgen_stats[1]
 
-                pktgen.start()
-                sleep(ITERATION_DURATION_SEC)
-                pktgen.stop()
+            self.log(f"Pktgen stats {pktgen.get_stats()}")
+            self.log(f"[packets] TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
+            self.log(f"[bits]    TX {nb_tx_bits:,} RX {nb_rx_bits:,}")
 
-                # Let the flows expire.
-                sleep(REST_TIME_SEC)
+            pkt_size_without_crc = pktgen_nb_tx_bytes / pktgen_nb_tx_pkts
+            pkt_size_with_crc = pkt_size_without_crc + 4  # 4 bytes CRC
+            pktgen_nb_tx_bits = pktgen_nb_tx_pkts * pkt_size_with_crc * 8
 
-                port_stats = controller.get_port_stats()
-                nb_rx_pkts = sum([rx for _, rx in port_stats.values()])
-                nb_tx_pkts = sum([tx for tx, _ in port_stats.values()])
+            report = ThroughputReport(
+                requested_bps=current_rate * 1_000_000,
+                pktgen_bps=int(pktgen_nb_tx_bits / ITERATION_DURATION_SEC),
+                pktgen_pps=int(pktgen_nb_tx_pkts / ITERATION_DURATION_SEC),
+                dut_ingress_bps=int(nb_tx_bits / ITERATION_DURATION_SEC),
+                dut_ingress_pps=int(nb_tx_pkts / ITERATION_DURATION_SEC),
+                dut_egress_bps=int(nb_rx_bits / ITERATION_DURATION_SEC),
+                dut_egress_pps=int(nb_rx_pkts / ITERATION_DURATION_SEC),
+                loss=1 - nb_rx_pkts / nb_tx_pkts,
+            )
 
-                pktgen_nb_tx_pkts = pktgen.get_stats()[0]
+            tx_Gbps = report.dut_ingress_bps / 1e9
+            tx_Mpps = report.dut_ingress_pps / 1e6
 
-                self.log(f"Stats {port_stats}")
-                self.log(f"Pktgen stats {pktgen.get_stats()}")
-                self.log(f"TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
+            rx_Gbps = report.dut_egress_bps / 1e9
+            rx_Mpps = report.dut_egress_pps / 1e6
 
-                for port in broadcast_ports:
-                    if port not in port_stats:
-                        self.log(f"Port {port} not found in stats. The port is probably down. Double check the configuration.")
-                        exit(1)
-
-                    dut_port_rx_pkts = port_stats[port][0]
-                    if dut_port_rx_pkts != pktgen_nb_tx_pkts:
-                        if slacking_off_events < SLACK_OFF_MAX_TRIES:
-                            self.log(f"Port {port} is slacking off! Sent {dut_port_rx_pkts} instead of {pktgen_nb_tx_pkts}. Repeating run.")
-                            nb_tx_pkts = 0
-                            slacking_off_events += 1
-                            break
-                        else:
-                            self.log(f"Port {port} is slacking off! Sent {dut_port_rx_pkts} instead of {pktgen_nb_tx_pkts}. Giving up.")
-
-            requested_rate_bps = current_rate * 1_000_000
-
-            pktgen_nb_tx_bits = pktgen_nb_tx_pkts * (pkt_size + 20) * 8
-            nb_tx_bits = nb_tx_pkts * (pkt_size + 20) * 8
-            nb_rx_bits = nb_rx_pkts * (pkt_size + 20) * 8
-
-            pktgen_throughput_tx_bps = int(pktgen_nb_tx_bits / ITERATION_DURATION_SEC)
-            pktgen_throughput_tx_pps = int(pktgen_nb_tx_pkts / ITERATION_DURATION_SEC)
-
-            real_throughput_tx_bps = int(nb_tx_bits / ITERATION_DURATION_SEC)
-            real_throughput_tx_pps = int(nb_tx_pkts / ITERATION_DURATION_SEC)
-
-            real_throughput_rx_bps = int(nb_rx_bits / ITERATION_DURATION_SEC)
-            real_throughput_rx_pps = int(nb_rx_pkts / ITERATION_DURATION_SEC)
-
-            loss = 1 - nb_rx_pkts / nb_tx_pkts
-
-            tx_Gbps = real_throughput_tx_bps / 1e9
-            tx_Mpps = real_throughput_tx_pps / 1e6
-
-            rx_Gbps = real_throughput_rx_bps / 1e9
-            rx_Mpps = real_throughput_rx_pps / 1e6
-
+            self.log(str(report))
             self.log(f"TX {tx_Mpps:.5f} Mpps {tx_Gbps:.5f} Gbps")
             self.log(f"RX {rx_Mpps:.5f} Mpps {rx_Gbps:.5f} Gbps")
-            self.log(f"Lost {loss*100}% of packets")
+            self.log(f"Lost {report.loss*100}% of packets")
 
-            if loss > MAX_ACCEPTABLE_LOSS:
+            if report.loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
 
                 # Initial phase, let's quickly find the correct order of magnitude
@@ -194,35 +233,14 @@ class Experiment:
                     continue
             else:
                 if current_rate == rate_upper:
-                    return ThroughputReport(
-                        requested_rate_bps,
-                        pktgen_throughput_tx_bps,
-                        pktgen_throughput_tx_pps,
-                        real_throughput_tx_bps,
-                        real_throughput_tx_pps,
-                        loss,
-                    )
+                    return report
 
                 rate_lower = current_rate
-
-                requested_rate_bps_winner = requested_rate_bps
-                pktgen_rate_bps_winner = pktgen_throughput_tx_bps
-                pktgen_rate_pps_winner = pktgen_throughput_tx_pps
-                real_throughput_bps_winner = real_throughput_tx_bps
-                real_throughput_pps_winner = real_throughput_tx_pps
-                loss_winner = loss
+                winner_report = report
 
             current_rate = int((rate_upper + rate_lower) / 2)
 
-        # Found a rate.
-        return ThroughputReport(
-            requested_rate_bps_winner,
-            pktgen_rate_bps_winner,
-            pktgen_rate_pps_winner,
-            real_throughput_bps_winner,
-            real_throughput_pps_winner,
-            loss_winner,
-        )
+        return winner_report
 
 
 class ExperimentTracker:
