@@ -85,12 +85,6 @@ void ProcessQuery::update_cache(struct netcache_hdr_t *nc_hdr) {
   std::memcpy(&update_v992_1023, nc_hdr->val + 124, sizeof(update_v992_1023));
 
   // Update the key/value corresponding to the HH report directly on the switch.
-  // Key.
-  Controller::controller->reg_k0_31.allocate(update_hash, update_k0_31);
-  Controller::controller->reg_k32_63.allocate(update_hash, update_k32_63);
-  Controller::controller->reg_k64_95.allocate(update_hash, update_k64_95);
-  Controller::controller->reg_k96_127.allocate(update_hash, update_k96_127);
-  // Value.
   Controller::controller->reg_v0_31.allocate(update_hash, update_v0_31);
   Controller::controller->reg_v32_63.allocate(update_hash, update_v32_63);
   Controller::controller->reg_v64_95.allocate(update_hash, update_v64_95);
@@ -123,8 +117,6 @@ void ProcessQuery::update_cache(struct netcache_hdr_t *nc_hdr) {
   Controller::controller->reg_v928_959.allocate(update_hash, update_v928_959);
   Controller::controller->reg_v960_991.allocate(update_hash, update_v960_991);
   Controller::controller->reg_v992_1023.allocate(update_hash, update_v992_1023);
-  // Cache lookup.
-  Controller::controller->reg_cache_lookup.allocate(update_hash, 1);
 }
 
 // Sample k values from the switch's cached item counter array.

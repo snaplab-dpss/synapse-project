@@ -11,10 +11,6 @@
 #include "packet.h"
 #include "tables/fwd.h"
 #include "tables/is_client_packet.h"
-#include "registers/reg_k0_31.h"
-#include "registers/reg_k32_63.h"
-#include "registers/reg_k64_95.h"
-#include "registers/reg_k96_127.h"
 #include "registers/reg_v0_31.h"
 #include "registers/reg_v32_63.h"
 #include "registers/reg_v64_95.h"
@@ -47,7 +43,6 @@
 #include "registers/reg_v928_959.h"
 #include "registers/reg_v960_991.h"
 #include "registers/reg_v992_1023.h"
-#include "registers/reg_cache_lookup.h"
 #include "registers/reg_key_count.h"
 #include "registers/reg_cm_0.h"
 #include "registers/reg_cm_1.h"
@@ -110,11 +105,6 @@ public:
   IsClientPacket is_client_packet;
 
   // Switch registers
-  RegCacheLookup reg_cache_lookup;
-  RegK0_31 reg_k0_31;
-  RegK32_63 reg_k32_63;
-  RegK64_95 reg_k64_95;
-  RegK96_127 reg_k96_127;
   RegV0_31 reg_v0_31;
   RegV32_63 reg_v32_63;
   RegV64_95 reg_v64_95;
@@ -161,22 +151,20 @@ public:
   Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const conf_t &_conf,
              const args_t &_args)
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), conf(_conf), args(_args),
-        fwd(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt), reg_cache_lookup(_info, _session, _dev_tgt),
-        reg_k0_31(_info, _session, _dev_tgt), reg_k32_63(_info, _session, _dev_tgt), reg_k64_95(_info, _session, _dev_tgt),
-        reg_k96_127(_info, _session, _dev_tgt), reg_v0_31(_info, _session, _dev_tgt), reg_v32_63(_info, _session, _dev_tgt),
-        reg_v64_95(_info, _session, _dev_tgt), reg_v96_127(_info, _session, _dev_tgt), reg_v128_159(_info, _session, _dev_tgt),
-        reg_v160_191(_info, _session, _dev_tgt), reg_v192_223(_info, _session, _dev_tgt), reg_v224_255(_info, _session, _dev_tgt),
-        reg_v256_287(_info, _session, _dev_tgt), reg_v288_319(_info, _session, _dev_tgt), reg_v320_351(_info, _session, _dev_tgt),
-        reg_v352_383(_info, _session, _dev_tgt), reg_v384_415(_info, _session, _dev_tgt), reg_v416_447(_info, _session, _dev_tgt),
-        reg_v448_479(_info, _session, _dev_tgt), reg_v480_511(_info, _session, _dev_tgt), reg_v512_543(_info, _session, _dev_tgt),
-        reg_v544_575(_info, _session, _dev_tgt), reg_v576_607(_info, _session, _dev_tgt), reg_v608_639(_info, _session, _dev_tgt),
-        reg_v640_671(_info, _session, _dev_tgt), reg_v672_703(_info, _session, _dev_tgt), reg_v704_735(_info, _session, _dev_tgt),
-        reg_v736_767(_info, _session, _dev_tgt), reg_v768_799(_info, _session, _dev_tgt), reg_v800_831(_info, _session, _dev_tgt),
-        reg_v832_863(_info, _session, _dev_tgt), reg_v864_895(_info, _session, _dev_tgt), reg_v896_927(_info, _session, _dev_tgt),
-        reg_v928_959(_info, _session, _dev_tgt), reg_v960_991(_info, _session, _dev_tgt), reg_v992_1023(_info, _session, _dev_tgt),
-        reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt), reg_cm_1(_info, _session, _dev_tgt),
-        reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt), reg_bloom_0(_info, _session, _dev_tgt),
-        reg_bloom_1(_info, _session, _dev_tgt), reg_bloom_2(_info, _session, _dev_tgt) {
+        fwd(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt), reg_v0_31(_info, _session, _dev_tgt),
+        reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt), reg_v96_127(_info, _session, _dev_tgt),
+        reg_v128_159(_info, _session, _dev_tgt), reg_v160_191(_info, _session, _dev_tgt), reg_v192_223(_info, _session, _dev_tgt),
+        reg_v224_255(_info, _session, _dev_tgt), reg_v256_287(_info, _session, _dev_tgt), reg_v288_319(_info, _session, _dev_tgt),
+        reg_v320_351(_info, _session, _dev_tgt), reg_v352_383(_info, _session, _dev_tgt), reg_v384_415(_info, _session, _dev_tgt),
+        reg_v416_447(_info, _session, _dev_tgt), reg_v448_479(_info, _session, _dev_tgt), reg_v480_511(_info, _session, _dev_tgt),
+        reg_v512_543(_info, _session, _dev_tgt), reg_v544_575(_info, _session, _dev_tgt), reg_v576_607(_info, _session, _dev_tgt),
+        reg_v608_639(_info, _session, _dev_tgt), reg_v640_671(_info, _session, _dev_tgt), reg_v672_703(_info, _session, _dev_tgt),
+        reg_v704_735(_info, _session, _dev_tgt), reg_v736_767(_info, _session, _dev_tgt), reg_v768_799(_info, _session, _dev_tgt),
+        reg_v800_831(_info, _session, _dev_tgt), reg_v832_863(_info, _session, _dev_tgt), reg_v864_895(_info, _session, _dev_tgt),
+        reg_v896_927(_info, _session, _dev_tgt), reg_v928_959(_info, _session, _dev_tgt), reg_v960_991(_info, _session, _dev_tgt),
+        reg_v992_1023(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt),
+        reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt),
+        reg_bloom_0(_info, _session, _dev_tgt), reg_bloom_1(_info, _session, _dev_tgt), reg_bloom_2(_info, _session, _dev_tgt) {
     if (!args.run_tofino_model) {
       config_ports();
     }
@@ -238,11 +226,6 @@ public:
     std::vector<int> sampl_index(elems.begin(), elems.end());
 
     // for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
-
-    // Initial cache lookup table config.
-    for (int i : sampl_index) {
-      reg_cache_lookup.allocate((uint32_t)i, 1);
-    }
   }
 
 public:
