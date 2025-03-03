@@ -120,9 +120,6 @@ class KVSThroughput(Experiment):
         self.log("Launching pktgen")
         self.tg_hosts.pktgen.launch(kvs_mode=True)
 
-        self.log("Launching KVS server")
-        self.kvs_server.launch()
-
         self.log("Waiting for Tofino TG")
         self.tg_hosts.tg_switch.wait_ready()
 
@@ -135,12 +132,6 @@ class KVSThroughput(Experiment):
 
         self.log("Waiting for pktgen")
         self.tg_hosts.pktgen.wait_launch()
-
-        self.log("Waiting for NetCache controller")
-        self.netcache_controller.wait_ready()
-
-        self.log("Waiting for KVS server")
-        self.kvs_server.wait_launch()
 
         self.log("Starting experiment")
 
@@ -158,6 +149,14 @@ class KVSThroughput(Experiment):
                 continue
 
             step_progress.update(task_id, description=description)
+
+            self.log(f"Launching and waiting for KVS server (delay={delay_ns:,}ns)")
+            self.kvs_server.kill_server()
+            self.kvs_server.launch(delay_ns=delay_ns)
+            self.kvs_server.wait_launch()
+
+            self.log("Waiting for NetCache controller")
+            self.netcache_controller.wait_ready()
 
             self.log("Launching pktgen")
             self.tg_hosts.pktgen.close()

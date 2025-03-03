@@ -215,15 +215,14 @@ class SynapseController:
 
         return in_pkts, cpu_pkts, total_pkts
 
-    # When asked for CPU counters, returns both the packets and bytes counter values.
     def stop(self):
         if self.controller_cmd is None:
             return
 
-        # Kill all instances
-        cmd = f"sudo killall {self.exe}"
-        self.host.run_command(cmd)
-        self.controller_cmd.watch()
+        self.host.run_command(f'sudo pkill -f "synapse"').watch()
+
+        if self.exe:
+            self.host.run_command(f"sudo killall {self.exe}").watch()
 
         self.host.log("Controller exited successfuly.")
 

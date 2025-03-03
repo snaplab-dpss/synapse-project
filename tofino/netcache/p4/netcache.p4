@@ -204,6 +204,7 @@ control SwitchIngress(
 
 	action set_client_packet() {
 		hdr.meta.is_client_packet = 1;
+		hdr.netcache.port = hdr.meta.ingress_port;
 	}
 
 	action set_not_client_packet() {
@@ -246,8 +247,6 @@ control SwitchIngress(
 
 		// Check if packet is not a HH report going from/to controller<->server.
 		if (hdr.meta.is_client_packet == 1 && hdr.meta.cache_hit == 1) {
-			hdr.netcache.port = hdr.meta.ingress_port;
-
 			if (hdr.netcache.op == READ_QUERY) {
 				// Read the cached value and update the packet header.
 				hdr.netcache.val[31:0] = read_v0_31.execute(hdr.meta.key_idx);

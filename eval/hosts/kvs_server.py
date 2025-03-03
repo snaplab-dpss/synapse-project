@@ -21,7 +21,6 @@ class KVSServer:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.server_dir = Path(repo) / "tofino" / "netcache" / "server"
         self.server_exe = self.server_dir / "build" / "release" / "server"
-        self.config_file = self.server_dir / "conf.json"
         self.pcie_dev = pcie_dev
 
         self.setup_env_script = Path(repo) / "paths.sh"
@@ -53,12 +52,16 @@ class KVSServer:
         self.server_active = False
         self.ready = False
 
-    def launch(self) -> None:
+    def launch(
+        self,
+        delay_ns: int,
+    ) -> None:
         assert not self.server_active
 
         self.kill_server()
 
-        remote_cmd = f"source {self.setup_env_script} && sudo -E {str(self.server_exe)} {self.dpdk_config} -- {self.config_file}"
+        args = f"--in 0 --out 0 --delay {delay_ns}"
+        remote_cmd = f"source {self.setup_env_script} && sudo -E {str(self.server_exe)} {self.dpdk_config} -- {args}"
 
         self.server = self.host.run_command(remote_cmd, pty=True)
         self.server_active = True
@@ -79,11 +82,20 @@ class KVSServer:
         # Wait to see if we actually managed to run pktgen successfuly.
         # Typically we fail here if we forgot to bind ports to DPDK,
         # or allocate hugepages.
-        if self.server.exit_status_ready() and self.server.recv_exit_status() != 0:
+        if self.server.exit_status_ready():
             self.server_active = False
-            raise Exception("Cannot run KVS server")
+            output = self.server.watch()
+            self.host.log(output)
+            self.host.crash("Failed to run KVS server.")
 
-        return self.server.watch(stop_pattern=re.escape("***** Server started *****"))
+        output = self.server.watch(stop_pattern=re.escape("***** Server started *****"))
+
+        if self.server.exit_status_ready():
+            self.server_active = False
+            self.host.log(output)
+            self.host.crash("Failed to run KVS server.")
+
+        return output
 
     @property
     def dpdk_config(self):
