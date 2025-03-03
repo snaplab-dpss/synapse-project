@@ -76,9 +76,6 @@ class NetCacheController:
             self.host.crash(f"NetCache controller cleanup failed.")
 
     def _compile(self) -> None:
-        # Cleanup first, always recompile from scratch.
-        self._clean()
-
         build_script = self.path_to_controller / "build.sh"
 
         env_vars = " ".join(

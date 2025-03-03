@@ -1,12 +1,12 @@
 #ifndef _CM_
 #define _CM_
 
-control c_cm(inout header_t hdr, out bit<32> cm_result) {
+control c_cm(inout header_t hdr, out bit<16> cm_result) {
 
-	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_0;
-	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_1;
-	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_2;
-	Register<bit<32>, bit<SKETCH_IDX_WIDTH>>(SKETCH_ENTRIES) reg_cm_3;
+	Register<bit<16>, _>(SKETCH_ENTRIES) reg_cm_0;
+	Register<bit<16>, _>(SKETCH_ENTRIES) reg_cm_1;
+	Register<bit<16>, _>(SKETCH_ENTRIES) reg_cm_2;
+	Register<bit<16>, _>(SKETCH_ENTRIES) reg_cm_3;
 
 	CRCPolynomial<bit<16>>(coeff	= 0x0589,
 						   reversed = false,
@@ -29,44 +29,44 @@ control c_cm(inout header_t hdr, out bit<32> cm_result) {
 						   init		= 16w0x0000,
 						   xor		= 16w0xFFFF) crc16_genibus;
 
-	Hash<bit<16>>(HashAlgorithm_t.CRC16)				 hash_crc16;
-	Hash<bit<16>>(HashAlgorithm_t.CUSTOM, crc16_dect)	 hash_crc16_dect;
-	Hash<bit<16>>(HashAlgorithm_t.CUSTOM, crc16_dnp)	 hash_crc16_dnp;
-	Hash<bit<16>>(HashAlgorithm_t.CUSTOM, crc16_genibus) hash_crc16_genibus;
+	Hash<bit<SKETCH_IDX_WIDTH>>(HashAlgorithm_t.CRC16)				 hash_crc16;
+	Hash<bit<SKETCH_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, crc16_dect)	 hash_crc16_dect;
+	Hash<bit<SKETCH_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, crc16_dnp)	 hash_crc16_dnp;
+	Hash<bit<SKETCH_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, crc16_genibus) hash_crc16_genibus;
 
 	bit<SKETCH_IDX_WIDTH> hash_cm_0;
 	bit<SKETCH_IDX_WIDTH> hash_cm_1;
 	bit<SKETCH_IDX_WIDTH> hash_cm_2;
 	bit<SKETCH_IDX_WIDTH> hash_cm_3;
 
-	bit<32> val_cm_0;
-	bit<32> val_cm_1;
-	bit<32> val_cm_2;
-	bit<32> val_cm_3;
+	bit<16> val_cm_0;
+	bit<16> val_cm_1;
+	bit<16> val_cm_2;
+	bit<16> val_cm_3;
 
-	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_0) ract_cm_0_update = {
-		void apply(inout bit<32> val, out bit<32> res) {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<16>>(reg_cm_0) ract_cm_0_update = {
+		void apply(inout bit<16> val, out bit<16> res) {
 			val = val + 1;
 			res = val;
 		}
 	};
 
-	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_1) ract_cm_1_update = {
-		void apply(inout bit<32> val, out bit<32> res) {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<16>>(reg_cm_1) ract_cm_1_update = {
+		void apply(inout bit<16> val, out bit<16> res) {
 			val = val + 1;
 			res = val;
 		}
 	};
 
-	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_2) ract_cm_2_update = {
-		void apply(inout bit<32> val, out bit<32> res) {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<16>>(reg_cm_2) ract_cm_2_update = {
+		void apply(inout bit<16> val, out bit<16> res) {
 			val = val + 1;
 			res = val;
 		}
 	};
 
-	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<32>>(reg_cm_3) ract_cm_3_update = {
-		void apply(inout bit<32> val, out bit<32> res) {
+	RegisterAction<_, bit<SKETCH_IDX_WIDTH>, bit<16>>(reg_cm_3) ract_cm_3_update = {
+		void apply(inout bit<16> val, out bit<16> res) {
 			val = val + 1;
 			res = val;
 		}

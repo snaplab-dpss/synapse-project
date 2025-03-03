@@ -62,11 +62,6 @@ bool kvs_cache_lookup(struct State *state, time_ns_t now, enum kvs_op op, kv_key
     memcpy(curr_value, value, sizeof(kv_value_t));
     vector_return(state->values, *index, curr_value);
   } break;
-  case KVS_OP_DEL: {
-    void *trash;
-    map_erase(state->kvs, key, &trash);
-    dchain_free_index(state->heap, *index);
-  } break;
   }
 
   return true;

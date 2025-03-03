@@ -2,9 +2,9 @@
 #define _BLOOM_
 
 control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
-	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_0;
-	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_1;
-	Register<bit<1>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) reg_bloom_2;
+	Register<bit<1>, _>(BLOOM_ENTRIES) reg_bloom_0;
+	Register<bit<1>, _>(BLOOM_ENTRIES) reg_bloom_1;
+	Register<bit<1>, _>(BLOOM_ENTRIES) reg_bloom_2;
 
 	CRCPolynomial<bit<32>>(coeff	= 0x1EDC6F41,
 						   reversed = true,
@@ -20,9 +20,9 @@ control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
 						   init		= 0x00000000,
 						   xor		= 0xFFFFFFFF) crc32_d;
 
-	Hash<bit<32>>(HashAlgorithm_t.CRC32)			hash_crc32;
-	Hash<bit<32>>(HashAlgorithm_t.CUSTOM, crc32_c)	hash_crc32_c;
-	Hash<bit<32>>(HashAlgorithm_t.CUSTOM, crc32_d)	hash_crc32_d;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32)			hash_crc32;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, crc32_c)	hash_crc32_c;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, crc32_d)	hash_crc32_d;
 
 	bit<BLOOM_IDX_WIDTH> hash_bloom_0;
 	bit<BLOOM_IDX_WIDTH> hash_bloom_1;

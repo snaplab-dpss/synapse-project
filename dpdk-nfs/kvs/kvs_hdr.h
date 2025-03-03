@@ -9,7 +9,6 @@
 enum kvs_op {
   KVS_OP_GET = 0,
   KVS_OP_PUT = 1,
-  KVS_OP_DEL = 2,
 };
 
 enum kvs_status {
