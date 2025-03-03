@@ -55,7 +55,7 @@ public:
   }
 
 private:
-  void key_setup(uint32_t ig_port, uint8_t cache_hit, uint16_t nc_port, uint8_t mask) {
+  void key_setup(uint32_t ig_port, uint8_t cache_hit, uint16_t nc_port, uint16_t mask) {
     table->keyReset(key.get());
 
     auto bf_status = key->setValue(key_fields.ig_port, static_cast<uint64_t>(ig_port));
