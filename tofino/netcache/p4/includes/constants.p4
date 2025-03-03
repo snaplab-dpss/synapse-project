@@ -50,7 +50,7 @@ const bit<16> NC_PORT = 670;
 // Size of the vtable index (used to access the vtable register)
 #define NC_VTABLE_SIZE_WIDTH		16
 // Number of entries in the vtable register
-#define NC_ENTRIES					8192
+#define NC_ENTRIES					65536
 // Size of the key index used in the cache counter
 #define NC_KEY_IDX_WIDTH			16
 // Number of entries in each of the CM registers
