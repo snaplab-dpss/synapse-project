@@ -62,7 +62,6 @@ class Ports:
 
     def get_dev_port(self, front_panel_port, lane=0):
         target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
 
         key = self.port_hdl_info_table.make_key([gc.KeyTuple("$CONN_ID", front_panel_port), gc.KeyTuple("$CHNL_ID", lane)])
         resp = self.port_hdl_info_table.entry_get(target, [key], {"from_hw": False})
@@ -75,7 +74,6 @@ class Ports:
 
     def get_dev_ports(self, front_panel_ports):
         target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
 
         resp = self.port_hdl_info_table.entry_get(
             target,
@@ -107,18 +105,10 @@ class Ports:
         if dev_port in self.dev_to_front_panel:
             return self.dev_to_front_panel[dev_port]
 
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
-
-        key = self.port_hdl_info_table.make_key([gc.KeyTuple("$DEV_PORT", dev_port), gc.KeyTuple("$CHNL_ID", 0)])
-
-        # Convert dev port to front-panel port
-        resp = self.port_hdl_info_table.entry_get(target, [key], {"from_hw": False})
-
-        front_panel_port = next(resp)[0].to_dict()["$CONN_ID"]
-        self.dev_to_front_panel[dev_port] = front_panel_port
-
-        return front_panel_port
+        self.get_dev_ports(FRONT_PANEL_PORTS)
+        print("I want", dev_port)
+        print(self.dev_to_front_panel)
+        return self.dev_to_front_panel[dev_port]
 
     # Port list is a list of tuples: (front panel port, lane, speed, FEC string).
     # Speed is one of {10, 25, 40, 50, 100}.
@@ -164,6 +154,37 @@ class Ports:
 
     def add_port(self, front_panel_port, speed):
         self.add_ports([(front_panel_port, speed)])
+
+    def get_ports_state(self, dev_ports):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        resp = self.port_table.entry_get(
+            target,
+            [self.port_table.make_key([gc.KeyTuple("$DEV_PORT", dev_port)]) for dev_port in dev_ports],
+            {"from_hw": True},
+        )
+
+        state = {}
+        for entry in resp:
+            data = entry[0].to_dict()
+            key = entry[1].to_dict()
+
+            dev_port = key["$DEV_PORT"]["value"]
+            speed = data["$SPEED"]
+            fec = data["$FEC"]
+            port_enable = data["$PORT_ENABLE"]
+            loopback_mode = data["$LOOPBACK_MODE"]
+            port_up = data["$PORT_UP"]
+
+            state[dev_port] = {
+                "speed": speed,
+                "fec": fec,
+                "loopback_mode": loopback_mode,
+                "port_enable": port_enable,
+                "port_up": port_up,
+            }
+
+        return state
 
 
 class Router:
@@ -410,7 +431,7 @@ class Counters:
         )
 
 
-def run_setup(bfrt_info, ports, broadcast, symmetric, route):
+def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
     router = Router(bfrt_info)
     multicaster = Multicaster(bfrt_info)
     packet_modifier = PacketModifier(bfrt_info)
@@ -449,6 +470,30 @@ def run_setup(bfrt_info, ports, broadcast, symmetric, route):
         print("Set prefix {} for egress port {} (dev={})".format(prefix, port, dev_port))
 
 
+def run_setup_get(ports: Ports):
+    dev_ports = ports.get_dev_ports(FRONT_PANEL_PORTS).values()
+    state = ports.get_ports_state(dev_ports)
+
+    print("====== Port state report ======")
+    for dev_port, port_state in state.items():
+        front_panel_port = ports.get_front_panel_port(dev_port)
+        speed = port_state["speed"]
+        fec = port_state["fec"]
+        port_enable = port_state["port_enable"]
+        loopback_mode = port_state["loopback_mode"]
+        port_up = port_state["port_up"]
+        print(
+            "{}: speed={}, fec={}, loopback_mode={}, port_enable={}, port_up={}".format(
+                front_panel_port,
+                speed,
+                fec,
+                loopback_mode,
+                1 if port_enable else 0,
+                1 if port_up else 0,
+            )
+        )
+
+
 def run_stats(bfrt_info, ports, op):
     counters = Counters(bfrt_info)
 
@@ -478,10 +523,15 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help="Available operations", dest="operation")
 
     setup_parser = subparsers.add_parser("setup")
-    setup_parser.add_argument("--nf", choices=CONFIGURATIONS.keys())
-    setup_parser.add_argument("--broadcast", type=int, nargs="+", default=[])
-    setup_parser.add_argument("--symmetric", type=int, nargs="+", default=[])
-    setup_parser.add_argument("--route", type=int, nargs=2, action="append", default=[])
+
+    setup_subparsers = setup_parser.add_subparsers(dest="setup_operation")
+    setup_set_parser = setup_subparsers.add_parser("set")
+    setup_set_parser.add_argument("--nf", choices=CONFIGURATIONS.keys())
+    setup_set_parser.add_argument("--broadcast", type=int, nargs="+", default=[])
+    setup_set_parser.add_argument("--symmetric", type=int, nargs="+", default=[])
+    setup_set_parser.add_argument("--route", type=int, nargs=2, action="append", default=[])
+
+    setup_get_parser = setup_subparsers.add_parser("get")
 
     stats_parser = subparsers.add_parser("stats")
     stats_parser.add_argument("op", choices=["get", "clear"])
@@ -490,7 +540,16 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        exit(1)
+
+    if args.operation == "setup" and args.setup_operation is None:
+        setup_parser.print_help()
+        exit(1)
+
+    if args.operation == "setup" and args.setup_operation == "set":
+        if args.nf is None and (not args.broadcast and not args.symmetric and not args.route):
+            setup_set_parser.print_help()
+            exit(1)
 
     grpc_client = gc.ClientInterface("{}:{}".format(GRPC_SERVER_IP, GRPC_SERVER_PORT), 0, 0)
     grpc_client.bind_pipeline_config(P4_PROGRAM_NAME)
@@ -499,28 +558,26 @@ if __name__ == "__main__":
     ports = Ports(bfrt_info)
 
     if args.operation == "setup":
-        if args.nf is None and (not args.broadcast and not args.symmetric and not args.route):
-            print("No configuration provided. Please provide either an NF or a custom routing configuration.")
-            print("Use --help for more information.")
-            exit(1)
+        if args.setup_operation == "set":
+            config = (
+                CONFIGURATIONS[args.nf]
+                if args.nf
+                else {
+                    "broadcast": args.broadcast,
+                    "symmetric": args.symmetric,
+                    "route": [(src, dst) for src, dst in args.route],
+                }
+            )
 
-        config = (
-            CONFIGURATIONS[args.nf]
-            if args.nf
-            else {
-                "broadcast": args.broadcast,
-                "symmetric": args.symmetric,
-                "route": [(src, dst) for src, dst in args.route],
-            }
-        )
+            print("======== Configuration ========")
+            if args.nf:
+                print("NF:     {}".format(args.nf))
+            print("Config: {}".format(config))
+            print("==============================")
 
-        print("======== Configuration ========")
-        if args.nf:
-            print("NF:     {}".format(args.nf))
-        print("Config: {}".format(config))
-        print("==============================")
-
-        run_setup(bfrt_info, ports, config["broadcast"], config["symmetric"], config["route"])
+            run_setup_set(bfrt_info, ports, config["broadcast"], config["symmetric"], config["route"])
+        elif args.setup_operation == "get":
+            run_setup_get(ports)
     elif args.operation == "stats":
         run_stats(bfrt_info, ports, args.op)
     else:
