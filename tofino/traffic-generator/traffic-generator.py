@@ -57,6 +57,8 @@ class Ports:
         self.bfrt_info = bfrt_info
         self.port_table = self.bfrt_info.table_get("$PORT")
         self.port_hdl_info_table = self.bfrt_info.table_get("$PORT_HDL_INFO")
+        self.port_stat = self.bfrt_info.table_get("$PORT_STAT")
+
         self.dev_to_front_panel = {}
         self.front_panel_to_dev_port = {}
 
@@ -185,6 +187,31 @@ class Ports:
             }
 
         return state
+
+    def get_ports_stats(self, dev_ports):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        resp = self.port_stat.entry_get(
+            target,
+            [self.port_table.make_key([gc.KeyTuple("$DEV_PORT", dev_port)]) for dev_port in dev_ports],
+            {"from_hw": True},
+        )
+
+        stats = {}
+        for entry in resp:
+            data = entry[0].to_dict()
+            key = entry[1].to_dict()
+
+            dev_port = key["$DEV_PORT"]["value"]
+            FramesTransmittedOK = data["$FramesTransmittedOK"]
+            FramesReceivedOK = data["$FramesReceivedOK"]
+
+            stats[dev_port] = {
+                "FramesReceivedOK": FramesReceivedOK,
+                "FramesTransmittedOK": FramesTransmittedOK,
+            }
+
+        return stats
 
 
 class Router:
@@ -494,23 +521,34 @@ def run_setup_get(ports: Ports):
         )
 
 
-def run_stats(bfrt_info, ports, op):
+def run_stats(bfrt_info, ports, op, from_ports_meta_table):
     counters = Counters(bfrt_info)
 
     front_panel_to_dev = ports.get_dev_ports(FRONT_PANEL_PORTS)
     dev_ports = list(front_panel_to_dev.values())
 
     if op == "get":
-        stats = counters.get_stats(dev_ports)
         print("====== Stats report ======")
-        for dev_port in dev_ports:
-            port_stats = stats[dev_port]
-            rx_pkts = port_stats["rx_pkts"]
-            rx_bytes = port_stats["rx_bytes"]
-            tx_pkts = port_stats["tx_pkts"]
-            tx_bytes = port_stats["tx_bytes"]
-            print("{}:{}:{}:{}:{}".format(ports.dev_to_front_panel[dev_port], rx_pkts, rx_bytes, tx_pkts, tx_bytes))
+        if args.meta:
+            stats = ports.get_ports_stats(dev_ports)
+            for dev_port in dev_ports:
+                port_stats = stats[dev_port]
+                rx_pkts = port_stats["FramesReceivedOK"]
+                tx_pkts = port_stats["FramesTransmittedOK"]
+                print("{}:{}:{}".format(ports.dev_to_front_panel[dev_port], rx_pkts, tx_pkts))
+        else:
+            stats = counters.get_stats(dev_ports)
+            for dev_port in dev_ports:
+                port_stats = stats[dev_port]
+                rx_pkts = port_stats["rx_pkts"]
+                rx_bytes = port_stats["rx_bytes"]
+                tx_pkts = port_stats["tx_pkts"]
+                tx_bytes = port_stats["tx_bytes"]
+                print("{}:{}:{}:{}:{}".format(ports.dev_to_front_panel[dev_port], rx_pkts, rx_bytes, tx_pkts, tx_bytes))
     elif op == "clear":
+        if from_ports_meta_table:
+            print("ERROR: Can't clear stats from the ports meta table")
+            exit(1)
         counters.clear_stats(dev_ports)
     else:
         print("ERROR: unknown operation {}".format(op))
@@ -535,6 +573,7 @@ if __name__ == "__main__":
 
     stats_parser = subparsers.add_parser("stats")
     stats_parser.add_argument("op", choices=["get", "clear"])
+    stats_parser.add_argument("--meta", action="store_true", default=False)
 
     args = parser.parse_args()
 
@@ -579,6 +618,6 @@ if __name__ == "__main__":
         elif args.setup_operation == "get":
             run_setup_get(ports)
     elif args.operation == "stats":
-        run_stats(bfrt_info, ports, args.op)
+        run_stats(bfrt_info, ports, args.op, args.meta)
     else:
         args.print_help()
