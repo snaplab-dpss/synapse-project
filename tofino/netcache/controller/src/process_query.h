@@ -6,8 +6,6 @@
 
 #include "packet.h"
 
-#define BUFFER_SIZE 65536
-
 typedef unsigned char byte_t;
 
 namespace netcache {

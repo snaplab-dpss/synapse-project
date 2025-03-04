@@ -1,1 +1,2 @@
 #it, delay (ns), requested (bps), pktgen tput (bps), pktgen tput (pps), DUT ingress (bps), DUT ingress (pps) DUT egress (bps) DUT egress (pps)
+0,0,0,0,0,0,0,0,0

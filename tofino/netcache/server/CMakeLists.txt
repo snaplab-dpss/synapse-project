@@ -19,6 +19,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_json.cmake)
 add_executable(${PROG}
 	${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/store.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/clock.cpp
 )
 
 target_compile_options(${PROG} PUBLIC ${DPDK_CFLAGS_OTHER})

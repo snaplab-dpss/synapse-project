@@ -1,14 +1,11 @@
 #pragma once
 
-#define ETHER_TYPE_IPV4 0x0800
-#define UDP_PROTO 17
-#define TCP_PROTO 6
-
 // Netcache
 
-#define READ_QUERY 0x0
-#define WRITE_QUERY 0x1
-#define DELETE_QUERY 0x2
+#define READ_QUERY 0
+#define WRITE_QUERY 1
+#define KVS_SUCCESS 0
+#define KVS_FAILURE 1
 #define KVSTORE_PORT 670
 
 #define KV_KEY_SIZE 16
@@ -17,7 +14,7 @@
 // DPDK
 
 #define BURST_SIZE 32
-#define NUM_MBUFS 8191
+#define NUM_MBUFS 4096
 #define MBUF_CACHE_SIZE 250
-#define RX_RING_SIZE 128
-#define TX_RING_SIZE 512
+#define RX_RING_SIZE 2048
+#define TX_RING_SIZE 2048

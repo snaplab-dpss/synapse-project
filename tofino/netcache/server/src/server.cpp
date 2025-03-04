@@ -28,7 +28,7 @@ struct args_t {
     std::cerr << "Configuration:\n";
     std::cerr << "  Input port: " << in_port << "\n";
     std::cerr << "  Output port: " << out_port << "\n";
-    std::cerr << "  Processing delay per query (us): " << processing_delay_per_query_ns << "\n";
+    std::cerr << "  Processing delay per query (ns): " << processing_delay_per_query_ns << "\n";
     std::cerr << "\n";
   }
 };
@@ -102,7 +102,7 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
   }
 
   // Enable RX in promiscuous mode for the ethernet device.
-  retval = rte_eth_promiscuous_enable(0);
+  retval = rte_eth_promiscuous_enable(port);
   if (retval != 0) {
     return retval;
   }

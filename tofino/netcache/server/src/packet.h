@@ -8,10 +8,6 @@
 
 #include "constants.h"
 
-#define PORT_NETCACHE 50000
-
-#define MAX_PACKET_SIZE 65536
-
 namespace netcache {
 
 struct netcache_hdr_t {
