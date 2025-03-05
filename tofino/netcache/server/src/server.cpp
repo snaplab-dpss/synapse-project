@@ -136,15 +136,33 @@ struct worker_args_t {
   int in_port;
   int out_port;
   uint16_t rx_queue;
+  std::unordered_map<uint16_t, bool> *lcores_ready;
 };
 
 static void worker_main(void *args) {
   worker_args_t worker_args = *(worker_args_t *)args;
 
+  netcache::Store store(worker_args.processing_delay_per_query_ns, worker_args.in_port, worker_args.out_port, worker_args.rx_queue);
+
   printf("KVS server started on lcore %u\n", rte_lcore_id());
   fflush(stdout);
 
-  netcache::Store store(worker_args.processing_delay_per_query_ns, worker_args.in_port, worker_args.out_port, worker_args.rx_queue);
+  (*worker_args.lcores_ready).at(rte_lcore_id()) = true;
+
+  if (rte_get_main_lcore() == rte_lcore_id()) {
+    bool all_ready = false;
+    while (!all_ready) {
+      all_ready = true;
+      for (const auto &[_, ready] : *worker_args.lcores_ready) {
+        all_ready = all_ready && ready;
+      }
+      sleep(1);
+    }
+
+    printf("All lcores ready\n");
+    fflush(stdout);
+  }
+
   store.run();
 }
 
@@ -207,13 +225,16 @@ int main(int argc, char **argv) {
     rte_exit(EXIT_FAILURE, "Cannot init port %u\n", portid);
   }
 
+  std::unordered_map<uint16_t, bool> lcores_ready;
   std::unordered_map<uint16_t, worker_args_t> lcore_to_worker_args;
   RTE_LCORE_FOREACH(lcore_id) {
+    lcores_ready[lcore_id]         = false;
     lcore_to_worker_args[lcore_id] = worker_args_t{
         .processing_delay_per_query_ns = args.processing_delay_per_query_ns,
         .in_port                       = args.in_port,
         .out_port                      = args.out_port,
         .rx_queue                      = lcore_to_rx_queue.at(lcore_id),
+        .lcores_ready                  = &lcores_ready,
     };
   }
 
