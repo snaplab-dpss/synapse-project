@@ -49,9 +49,9 @@ static inline int port_init(uint16_t port, struct rte_mempool **mbuf_pools, std:
     return retval;
   }
 
-  struct rte_eth_conf port_conf          = {0};
-  port_conf.rxmode.mq_mode               = RTE_ETH_MQ_RX_RSS;
-  port_conf.rx_adv_conf.rss_conf.rss_key = NULL;
+  struct rte_eth_conf port_conf         = {0};
+  port_conf.rxmode.mq_mode              = RTE_ETH_MQ_RX_RSS;
+  port_conf.rx_adv_conf.rss_conf.rss_hf = RTE_ETH_RSS_NONFRAG_IPV4_UDP;
   if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
     port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
   }

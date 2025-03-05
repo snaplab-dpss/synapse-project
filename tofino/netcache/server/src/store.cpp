@@ -44,8 +44,6 @@ void Store::run() {
       nb_rx = rte_eth_rx_burst(port_in, queue, rx_mbufs, BURST_SIZE);
     } while (nb_rx == 0);
 
-    printf("[%u] Received %u packets\n", rte_lcore_id(), nb_rx);
-
     while (__builtin_expect((now() < goal), 0)) {
       // prevent the compiler from removing this loop
       __asm__ __volatile__("");
