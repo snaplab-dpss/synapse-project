@@ -1,5 +1,5 @@
-#ifdef CAPACITY_POW2
 #include "map-impl-pow2.h"
+
 #include <string.h>
 #include <stdint.h>
 
@@ -116,5 +116,3 @@ unsigned map_impl_size(int *busybits, unsigned capacity) {
   }
   return s;
 }
-
-#endif // CAPACITY_POW2

@@ -34,14 +34,15 @@ struct key_cmp_t {
 
 class Store {
 private:
-  int64_t processing_delay_ns;
-  uint16_t port_in;
-  uint16_t port_out;
+  const int64_t processing_delay_ns;
+  const uint16_t port_in;
+  const uint16_t port_out;
+  const uint16_t queue;
 
 public:
   std::unordered_map<key_t, value_t, key_hash_t, key_cmp_t> kv_map;
 
-  Store(const int64_t processing_delay_ns, const int in, const int out);
+  Store(const int64_t processing_delay_ns, const int in, const int out, const uint16_t rx_queue);
   ~Store();
 
   void run();

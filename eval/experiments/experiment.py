@@ -163,12 +163,15 @@ class Experiment:
 
             self.log(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps")
 
+            pktgen.set_rate(WARMUP_RATE)
+            pktgen.start()
+            sleep(WARMUP_TIME_SEC)
+
             tg_controller.reset_stats()
             pktgen.reset_stats()
 
             pktgen.set_rate(current_rate)
 
-            pktgen.start()
             sleep(ITERATION_DURATION_SEC)
             pktgen.stop()
 
@@ -220,8 +223,8 @@ class Experiment:
             rx_Mpps = report.dut_egress_pps / 1e6
 
             self.log(str(report))
-            self.log(f"TX {tx_Mpps:.5f} Mpps {tx_Gbps:.5f} Gbps")
-            self.log(f"RX {rx_Mpps:.5f} Mpps {rx_Gbps:.5f} Gbps")
+            self.log(f"TX {tx_Mpps:12.5f} Mpps {tx_Gbps:12.5f} Gbps")
+            self.log(f"RX {rx_Mpps:12.5f} Mpps {rx_Gbps:12.5f} Gbps")
             self.log(f"Lost {report.loss*100}% of packets")
 
             if report.loss > MAX_ACCEPTABLE_LOSS:

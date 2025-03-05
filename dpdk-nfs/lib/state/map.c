@@ -1,12 +1,9 @@
+#include "map.h"
+#include "map-impl-pow2.h"
+#include "../util/compute.h"
+
 #include <stdlib.h>
 #include <stddef.h>
-#include "map.h"
-
-#ifdef CAPACITY_POW2
-#include "map-impl-pow2.h"
-#else
-#include "map-impl.h"
-#endif
 
 struct Map {
   int *busybits;
@@ -20,13 +17,10 @@ struct Map {
 };
 
 int map_allocate(unsigned capacity, unsigned key_size, struct Map **map_out) {
-#ifdef CAPACITY_POW2
   // Check that capacity is a power of 2
-  if (capacity == 0 || (capacity & (capacity - 1)) != 0) {
+  if (capacity == 0 || is_power_of_two(capacity) == 0) {
     return 0;
   }
-#else
-#endif
 
   struct Map *old_map_val = *map_out;
   struct Map *map_alloc   = (struct Map *)malloc(sizeof(struct Map));

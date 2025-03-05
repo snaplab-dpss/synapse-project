@@ -7,6 +7,7 @@
 #define KVS_SUCCESS 0
 #define KVS_FAILURE 1
 #define KVSTORE_PORT 670
+#define KVSTORE_CAPACITY (1 << 20)
 
 #define KV_KEY_SIZE 16
 #define KV_VAL_SIZE 128

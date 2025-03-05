@@ -22,11 +22,8 @@
 
 namespace netcache {
 
-Store::Store(const int64_t _processing_delay_ns, const int in, const int out) {
-  processing_delay_ns = _processing_delay_ns;
-  port_in             = in;
-  port_out            = out;
-}
+Store::Store(const int64_t _processing_delay_ns, const int in, const int out, const uint16_t rx_queue)
+    : processing_delay_ns(_processing_delay_ns), port_in(in), port_out(out), queue(rx_queue), kv_map(KVSTORE_CAPACITY) {}
 
 Store::~Store() {}
 
@@ -44,8 +41,10 @@ void Store::run() {
     uint16_t tx_count = 0;
 
     do {
-      nb_rx = rte_eth_rx_burst(port_in, 0, rx_mbufs, BURST_SIZE);
+      nb_rx = rte_eth_rx_burst(port_in, queue, rx_mbufs, BURST_SIZE);
     } while (nb_rx == 0);
+
+    printf("[%u] Received %u packets\n", rte_lcore_id(), nb_rx);
 
     while (__builtin_expect((now() < goal), 0)) {
       // prevent the compiler from removing this loop
@@ -68,7 +67,7 @@ void Store::run() {
       tx_count++;
     }
 
-    uint16_t nb_tx = rte_eth_tx_burst(port_out, 0, tx_mbufs, tx_count);
+    uint16_t nb_tx = rte_eth_tx_burst(port_out, queue, tx_mbufs, tx_count);
     for (uint16_t n = nb_tx; n < tx_count; n++) {
       rte_pktmbuf_free(tx_mbufs[n]);
     }
@@ -138,11 +137,11 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
   key_t kv_key;
   std::memcpy(kv_key.data(), nc_hdr->key, KV_KEY_SIZE);
 
+  auto it = kv_map.find(kv_key);
+
   if (nc_hdr->op == READ_QUERY) {
     LOG_DEBUG("Processing read query...");
-    auto it = kv_map.find(kv_key);
     if (it == kv_map.end()) {
-      LOG_DEBUG("Not found!");
       nc_hdr->status = KVS_FAILURE;
     } else {
       std::memcpy(nc_hdr->val, it->second.data(), KV_VAL_SIZE);
@@ -150,9 +149,14 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
     }
   } else if (nc_hdr->op == WRITE_QUERY) {
     LOG_DEBUG("Processing write query...");
-    value_t kv_value;
-    std::memcpy(kv_value.data(), nc_hdr->val, KV_VAL_SIZE);
-    kv_map.emplace(kv_key, std::move(kv_value));
+    if (it == kv_map.end()) {
+      value_t kv_value;
+      std::memcpy(kv_value.data(), nc_hdr->val, KV_VAL_SIZE);
+      kv_map.emplace(kv_key, std::move(kv_value));
+    } else {
+      std::memcpy(it->second.data(), nc_hdr->val, KV_VAL_SIZE);
+    }
+    nc_hdr->status = KVS_SUCCESS;
   }
 }
 

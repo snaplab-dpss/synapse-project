@@ -15,6 +15,7 @@ set(PROG "server")
 include(${CMAKE_SOURCE_DIR}/cmake/find_dpdk.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_json.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_libnf.cmake)
 
 add_executable(${PROG}
 	${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
@@ -26,6 +27,7 @@ target_compile_options(${PROG} PUBLIC ${DPDK_CFLAGS_OTHER})
 
 target_include_directories(${PROG} PUBLIC ${DPDK_INCLUDE_DIRS})
 target_include_directories(${PROG} PUBLIC ${CLI11_INCLUDE_DIRS})
+target_include_directories(${PROG} PUBLIC ${JSON_INCLUDE_DIRS})
 
 target_link_directories(${PROG} PUBLIC ${DPDK_LIBRARY_DIRS})
 

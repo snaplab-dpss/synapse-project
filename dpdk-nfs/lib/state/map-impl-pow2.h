@@ -1,8 +1,9 @@
 #ifndef _MAP_IMPL_H_INCLUDED_
 #define _MAP_IMPL_H_INCLUDED_
 
-#include <stdbool.h>
 #include "map-util.h"
+
+#include <stdbool.h>
 
 // Values and keys are void*, and the actual keys and values should be managed
 // by the client application.

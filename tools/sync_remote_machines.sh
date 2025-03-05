@@ -12,7 +12,7 @@ sync() {
     echo "*********************************************"
     echo "Synchronizing host $host"
     echo "*********************************************"
-    ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main"
+    ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main && cd $path_to_repo/deps/pktgen && git pull origin main"
 }
 
 sync_cfg() {
