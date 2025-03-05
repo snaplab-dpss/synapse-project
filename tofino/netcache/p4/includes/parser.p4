@@ -85,9 +85,9 @@ parser SwitchEgressParser(
 	state parse_metadata {
 		mirror_h mirror_md = pkt.lookahead<mirror_h>();
 		transition select(mirror_md.pkt_type) {
-			PKT_TYPE_MIRROR : parse_mirror_md;
-			PKT_TYPE_NORMAL : parse_bridged_md;
-			default : accept;
+			PKT_TYPE_MIRROR: parse_mirror_md;
+			PKT_TYPE_NORMAL: parse_bridged_md;
+			default: accept;
 		}
 	}
 

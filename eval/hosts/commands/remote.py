@@ -13,12 +13,13 @@ from typing import TextIO, Union, Optional, Callable
 
 from .command import Command
 
+
 class RemoteCommand(Command):
     def __init__(
         self,
         ssh_client: paramiko.SSHClient,
         command: str,
-        dir: Optional[Union[str,Path]] = None,
+        dir: Optional[Union[str, Path]] = None,
         source_bashrc: bool = True,
         log_file: Optional[TextIO] = None,
         pty: bool = False,
@@ -55,7 +56,7 @@ class RemoteCommand(Command):
 
     def exit_status_ready(self) -> bool:
         return self.cmd_.exit_status_ready()
-    
+
     def flush(
         self,
         keyboard_int: Optional[Callable[[], None]] = None,
@@ -200,9 +201,7 @@ class RemoteCommand(Command):
             print("\n")
 
             while True:
-                r, _, _ = select.select(
-                    [sys.stdout, sys.stderr, sys.stdin], [], []
-                )
+                r, _, _ = select.select([sys.stdout, sys.stderr, sys.stdin], [], [])
                 if sys.stdout in r:
                     try:
                         data = self.recv(512)

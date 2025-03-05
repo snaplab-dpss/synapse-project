@@ -40,10 +40,10 @@ class ThroughputReport:
 
     def __str__(self):
         s = ""
-        s += f"Requested: {self.requested_bps/1e9} Gbps "
-        s += f"Pktgen: {self.pktgen_bps/1e9} Gbps {self.pktgen_pps/1e6} Mpps "
-        s += f"DUT ingress: {self.dut_ingress_bps/1e9} Gbps ({self.dut_ingress_pps/1e6} Mpps) "
-        s += f"DUT egress: {self.dut_egress_bps/1e9} Gbps ({self.dut_egress_pps/1e6} Mpps) "
+        s += f"Requested: {self.requested_bps/1e9:12.5f} Gbps "
+        s += f"Pktgen: {self.pktgen_bps/1e9:12.5f} Gbps {self.pktgen_pps/1e6:12.5f} Mpps "
+        s += f"DUT ingress: {self.dut_ingress_bps/1e9:12.5f} Gbps {self.dut_ingress_pps/1e6:12.5f} Mpps "
+        s += f"DUT egress: {self.dut_egress_bps/1e9:12.5f} Gbps {self.dut_egress_pps/1e6:12.5f} Mpps "
         s += f"Loss: {self.loss*100:.2f}%"
         return s
 
@@ -53,8 +53,10 @@ class Experiment:
         self,
         name: str,
         log_file: Optional[str] = None,
+        iterations: int = EXPERIMENT_ITERATIONS,
     ) -> None:
         self.name = name
+        self.iterations = iterations
 
         if log_file:
             out_file_path = Path(log_file)
@@ -68,6 +70,9 @@ class Experiment:
         else:
             self.log_file = None
 
+        self.log()
+        self.log(f"=================== {name} ===================")
+
     def log(self, msg=""):
         now = datetime.now()
         ts = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -80,8 +85,8 @@ class Experiment:
         raise NotImplementedError
 
     def run_many(self, progress: Progress, step_progress: Progress) -> None:
-        task_id = progress.add_task("", total=EXPERIMENT_ITERATIONS, name=self.name)
-        for iter in range(EXPERIMENT_ITERATIONS):
+        task_id = progress.add_task("", total=self.iterations, name=self.name)
+        for iter in range(self.iterations):
             self.run(step_progress, iter)
             progress.update(task_id, advance=1)
 
@@ -112,13 +117,13 @@ class Experiment:
 
             tx_reference = None
             for port in tg_controller.broadcast_ports:
-                tx = meta_port_stats_new[port].FramesTransmittedOK - meta_port_stats_old[port].FramesTransmittedOK
+                tx = max(0, meta_port_stats_new[port].FramesTransmittedOK - meta_port_stats_old[port].FramesTransmittedOK)
                 self.log(f"Port {port} TX {tx}")
-                assert tx >= 0
 
-                if tx_reference is None:
+                if tx_reference is None and tx != 0:
                     tx_reference = tx
-                elif abs(tx - tx_reference) / tx_reference > MAX_ACCEPTABLE_LOSS:
+
+                if tx_reference is not None and abs(tx - tx_reference) / tx_reference > MAX_ACCEPTABLE_LOSS:
                     ports_are_ready = False
                     self.log(f"Port {port} is not ready yet. Retrying...")
                     sleep(1)
@@ -132,9 +137,11 @@ class Experiment:
         tg_controller: TofinoTGController,
         pktgen: Pktgen,
         churn: int,
+        iterations: int = THROUGHPUT_SEARCH_STEPS,
     ) -> ThroughputReport:
         self.log("Warming up ports...")
         self.warmup_ports(tg_controller, pktgen)
+        sleep(REST_TIME_SEC)
 
         pktgen.set_churn(churn)
 
@@ -156,26 +163,27 @@ class Experiment:
 
         # We iteratively refine the bounds until the difference between them is
         # less than the specified precision.
-        for i in range(THROUGHPUT_SEARCH_STEPS):
+        for i in range(iterations):
             # There's no point in continuing this search.
             if rate_upper == 0 or current_rate == 0:
                 break
 
-            self.log(f"[{i+1}/{THROUGHPUT_SEARCH_STEPS}] Trying rate {current_rate:,} Mbps")
+            self.log()
+            self.log(f"[{i+1}/{iterations}] Trying rate {current_rate:,} Mbps")
 
-            pktgen.set_rate(WARMUP_RATE)
-            pktgen.start()
-            sleep(WARMUP_TIME_SEC)
+            # pktgen.set_rate(WARMUP_RATE)
+            # pktgen.start()
+            # sleep(WARMUP_TIME_SEC)
 
             tg_controller.reset_stats()
             pktgen.reset_stats()
 
             pktgen.set_rate(current_rate)
 
+            sleep(REST_TIME_SEC)
+            pktgen.start()
             sleep(ITERATION_DURATION_SEC)
             pktgen.stop()
-
-            # Let the flows expire.
             sleep(REST_TIME_SEC)
 
             port_stats = tg_controller.get_port_stats()
@@ -196,10 +204,6 @@ class Experiment:
             pktgen_stats = pktgen.get_stats()
             pktgen_nb_tx_pkts = pktgen_stats[0]
             pktgen_nb_tx_bytes = pktgen_stats[1]
-
-            self.log(f"Pktgen stats {pktgen.get_stats()}")
-            self.log(f"[packets] TX {nb_tx_pkts:,} RX {nb_rx_pkts:,}")
-            self.log(f"[bits]    TX {nb_tx_bits:,} RX {nb_rx_bits:,}")
 
             pkt_size_without_crc = pktgen_nb_tx_bytes / pktgen_nb_tx_pkts
             pkt_size_with_crc = pkt_size_without_crc + 4  # 4 bytes CRC
@@ -222,10 +226,10 @@ class Experiment:
             rx_Gbps = report.dut_egress_bps / 1e9
             rx_Mpps = report.dut_egress_pps / 1e6
 
-            self.log(str(report))
-            self.log(f"TX {tx_Mpps:12.5f} Mpps {tx_Gbps:12.5f} Gbps")
-            self.log(f"RX {rx_Mpps:12.5f} Mpps {rx_Gbps:12.5f} Gbps")
-            self.log(f"Lost {report.loss*100}% of packets")
+            self.log(f"Pktgen {report.pktgen_pps / 1e6:12.5f} Mpps {report.pktgen_bps / 1e9:12.5f} Gbps")
+            self.log(f"TX     {nb_tx_pkts:12} pkts {tx_Mpps:12.5f} Mpps {tx_Gbps:12.5f} Gbps")
+            self.log(f"RX     {nb_rx_pkts:12} pkts {rx_Mpps:12.5f} Mpps {rx_Gbps:12.5f} Gbps")
+            self.log(f"Lost   {report.loss*100:.3f}% of packets")
 
             if report.loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
@@ -235,13 +239,15 @@ class Experiment:
                     current_rate = int(current_rate / 10)
                     continue
             else:
-                if current_rate == rate_upper:
-                    return report
-
-                rate_lower = current_rate
                 winner_report = report
+                rate_lower = current_rate
+                if current_rate == rate_upper:
+                    break
 
             current_rate = int((rate_upper + rate_lower) / 2)
+
+        self.log()
+        self.log(f"Winner {winner_report.dut_egress_pps / 1e6:12.5f} Mpps {winner_report.dut_egress_bps / 1e9:12.5f} Gbps")
 
         return winner_report
 

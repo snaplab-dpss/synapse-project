@@ -24,7 +24,7 @@ class TGHosts:
     def __init__(
         self,
         config: dict,
-        use_accelerator: bool = True,
+        use_accelerator: bool = False,
     ) -> None:
         if use_accelerator:
             self.tg_switch = TofinoTA(

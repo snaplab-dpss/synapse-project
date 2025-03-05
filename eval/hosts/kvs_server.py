@@ -16,12 +16,14 @@ class KVSServer:
         hostname: str,
         repo: str,
         pcie_dev: str,
+        nb_cores: int = 16,
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.server_dir = Path(repo) / "tofino" / "netcache" / "server"
         self.server_exe = self.server_dir / "build" / "release" / "server"
         self.pcie_dev = pcie_dev
+        self.nb_cores = nb_cores
 
         self.setup_env_script = Path(repo) / "paths.sh"
 
@@ -88,7 +90,7 @@ class KVSServer:
             self.host.log(output)
             self.host.crash("Failed to run KVS server.")
 
-        output = self.server.watch(stop_pattern=re.escape("***** Server started *****"))
+        output = self.server.watch(stop_pattern="All lcores ready")
 
         if self.server.exit_status_ready():
             self.server_active = False
@@ -107,8 +109,7 @@ class KVSServer:
         all_cores = self.host.get_all_cpus()
         all_cores = set(self.host.get_pcie_dev_cpus(self.pcie_dev))
 
-        nb_cores = 1
-        cores = list(itertools.islice(all_cores, nb_cores))
+        cores = list(itertools.islice(all_cores, self.nb_cores))
 
         dpdk_config = DpdkConfig(
             cores=cores,

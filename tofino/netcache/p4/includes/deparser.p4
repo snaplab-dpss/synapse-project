@@ -15,13 +15,7 @@
 
 control SwitchIngressDeparser(packet_out pkt, inout header_t hdr, in ingress_metadata_t ig_md, in ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md) {
 	apply {
-		pkt.emit(hdr.bridged_md);
-		pkt.emit(hdr.ethernet);
-		pkt.emit(hdr.ipv4);
-		pkt.emit(hdr.udp);
-		pkt.emit(hdr.tcp);
-		pkt.emit(hdr.netcache);
-		pkt.emit(hdr.meta);
+		pkt.emit(hdr);
 	}
 }
 
@@ -38,11 +32,7 @@ control SwitchEgressDeparser(packet_out pkt, inout header_t hdr, in egress_metad
 			mirror.emit<mirror_h>(eg_md.egr_mir_ses, {eg_md.pkt_type});
 		}
 
-		pkt.emit(hdr.ethernet);
-		pkt.emit(hdr.ipv4);
-		pkt.emit(hdr.udp);
-		pkt.emit(hdr.tcp);
-		pkt.emit(hdr.netcache);
+		pkt.emit(hdr);
 	}
 }
 

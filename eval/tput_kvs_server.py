@@ -14,9 +14,10 @@ from experiments.tput import TGHosts
 from experiments.experiment import Experiment, ExperimentTracker
 from hosts.kvs_server import KVSServer
 from hosts.netcache import NetCache, NetCacheController
+from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-DELAY_NS_VALUES = [0, 10, 100, 1000, 10_000, 100_000]
+DELAY_NS_VALUES = [0, 100, 200, 500, 700, 1000]
 
 
 class KVSThroughput(Experiment):
@@ -201,11 +202,13 @@ def main():
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
 
+    kill_hosts_on_sigint(config)
+
     log_file = config["logs"]["experiment"]
 
     exp_tracker = ExperimentTracker()
 
-    tg_hosts = TGHosts(config, use_accelerator=True)
+    tg_hosts = TGHosts(config, use_accelerator=False)
 
     netcache = NetCache(
         hostname=config["hosts"]["switch_dut"],

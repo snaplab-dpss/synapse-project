@@ -33,7 +33,7 @@ public:
       : Table(info, session, dev_tgt, "SwitchIngress.fwd") {
     init_key({
         {"ig_intr_md.ingress_port", &key_fields.ig_port},
-        {"hdr.meta.cache_hit", &key_fields.cache_hit},
+        {"ig_md.cache_hit", &key_fields.cache_hit},
         {"hdr.netcache.port", &key_fields.nc_port},
     });
 

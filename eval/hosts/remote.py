@@ -11,6 +11,7 @@ from .commands.command import Command
 from .commands.remote import RemoteCommand
 from .commands.local import LocalCommand
 
+
 class RemoteHost(Host):
     def __init__(
         self,
@@ -26,25 +27,25 @@ class RemoteHost(Host):
         self.retry_interval = retry_interval
 
         self._ssh_client = None
-    
+
     def run_command(self, *args, **kwargs) -> Command:
         return RemoteCommand(self.ssh_client, *args, **kwargs, log_file=self.log_file)
-    
+
     def run_command_locally(self, *args, **kwargs) -> Command:
         return LocalCommand(*args, **kwargs, log_file=self.log_file)
-    
+
     def remote_file_exists(self, remote_path: Path) -> bool:
         return super().remote_file_exists(self.host, remote_path)
-    
+
     def remote_dir_exists(self, remote_path: Path) -> bool:
         return super().remote_dir_exists(self.host, remote_path)
 
     def log(self, msg):
         super().log(msg, self.host)
-        
+
     def crash(self, msg):
         super().crash(msg, self.host)
-    
+
     def is_proc_running(self, proc_name):
         cmd = self.run_command(f"pgrep {proc_name}")
         code = cmd.recv_exit_status()
@@ -62,14 +63,14 @@ class RemoteHost(Host):
             remote_path,
             overwrite,
         )
-    
+
     def get_ssh_host_addr(self) -> str:
         cmd = f"grep {self.host} ~/.ssh/config"
         cmd = self.run_command_locally(cmd)
         code = cmd.recv_exit_status()
 
         if code != 0:
-            self.crash(f'Host {self.host} not found in local ssh config.')
+            self.crash(f"Host {self.host} not found in local ssh config.")
 
         cmd = f'ssh -tt -G {self.host} | grep "^hostname"'
         cmd = self.run_command_locally(cmd)
@@ -88,7 +89,7 @@ class RemoteHost(Host):
     def test_connection(self):
         # Test reachability
         host_addr = self.get_ssh_host_addr()
-        num_of_icmp_req = 1
+        num_of_icmp_req = 2
         timeout_sec = 5
         cmd = f"ping {host_addr} -c {num_of_icmp_req} -W {timeout_sec}"
         cmd = self.run_command_locally(cmd)
@@ -96,14 +97,14 @@ class RemoteHost(Host):
 
         if code != 0:
             self.crash(f"Host {self.host} is unreachable")
-        
+
         # Test SSH reachability
         cmd = self.run_command(f"echo Host {self.host} is reachable!")
         code = cmd.recv_exit_status()
 
         if code != 0:
             self.crash(f"Unable to ssh into {self.host}")
-    
+
     @property
     def ssh_client(self):
         if self._ssh_client is not None:
@@ -138,9 +139,7 @@ class RemoteHost(Host):
             cfg["sock"] = paramiko.ProxyCommand(user_config["proxycommand"])
 
         if "identityfile" in user_config:
-            cfg["pkey"] = paramiko.RSAKey.from_private_key_file(
-                user_config["identityfile"][0]
-            )
+            cfg["pkey"] = paramiko.RSAKey.from_private_key_file(user_config["identityfile"][0])
 
         trial = 0
         while True:

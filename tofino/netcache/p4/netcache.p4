@@ -141,12 +141,12 @@ control SwitchIngress(
 	VAL_UPDATE(1023, 992)
 
 	action set_key_idx(bit<16> key_idx) {
-		hdr.meta.key_idx = key_idx;
-		hdr.meta.cache_hit = 1;
+		ig_md.key_idx = key_idx;
+		ig_md.cache_hit = 1;
 	}
 
 	action set_cache_miss() {
-		hdr.meta.cache_hit = 0;
+		ig_md.cache_hit = 0;
 	}
 
 	table keys {
@@ -194,6 +194,10 @@ control SwitchIngress(
 	action set_normal_pkt() {
 		hdr.bridged_md.setValid();
 		hdr.bridged_md.pkt_type = PKT_TYPE_NORMAL;
+		hdr.bridged_md.key_idx = ig_md.key_idx;
+		hdr.bridged_md.ingress_port = (bit<16>)ig_intr_md.ingress_port;
+		hdr.bridged_md.is_client_packet = ig_md.is_client_packet;
+		hdr.bridged_md.cache_hit = ig_md.cache_hit;
 	}
 
 	action set_out_port(PortId_t port) {
@@ -203,17 +207,17 @@ control SwitchIngress(
 	action miss() {}
 
 	action set_client_packet() {
-		hdr.meta.is_client_packet = 1;
-		hdr.netcache.port = hdr.meta.ingress_port;
+		ig_md.is_client_packet = 1;
+		hdr.netcache.port = (bit<16>)ig_intr_md.ingress_port;
 	}
 
 	action set_not_client_packet() {
-		hdr.meta.is_client_packet = 0;
+		ig_md.is_client_packet = 0;
 	}
 
 	table is_client_packet {
 		key = {
-			ig_intr_md.ingress_port : exact;
+			ig_intr_md.ingress_port: exact;
 		}
 		actions = {
 			set_client_packet;
@@ -226,9 +230,9 @@ control SwitchIngress(
 
 	table fwd {
 		key = {
-			ig_intr_md.ingress_port : exact;
-			hdr.meta.cache_hit      : exact;
-			hdr.netcache.port		: ternary;
+			ig_intr_md.ingress_port: exact;
+			ig_md.cache_hit: exact;
+			hdr.netcache.port: ternary;
 		}
 		actions = {
 			set_out_port;
@@ -239,89 +243,86 @@ control SwitchIngress(
 	}
 
 	apply {
-		hdr.meta.setValid();
-		hdr.meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
-
 		is_client_packet.apply();
 		keys.apply();
 
 		// Check if packet is not a HH report going from/to controller<->server.
-		if (hdr.meta.is_client_packet == 1 && hdr.meta.cache_hit == 1) {
+		if (ig_md.is_client_packet == 1 && ig_md.cache_hit == 1) {
 			if (hdr.netcache.op == READ_QUERY) {
 				// Read the cached value and update the packet header.
-				hdr.netcache.val[31:0] = read_v0_31.execute(hdr.meta.key_idx);
-				hdr.netcache.val[63:32] = read_v32_63.execute(hdr.meta.key_idx);
-				hdr.netcache.val[95:64] = read_v64_95.execute(hdr.meta.key_idx);
-				hdr.netcache.val[127:96] = read_v96_127.execute(hdr.meta.key_idx);
-				hdr.netcache.val[159:128] = read_v128_159.execute(hdr.meta.key_idx);
-				hdr.netcache.val[191:160] = read_v160_191.execute(hdr.meta.key_idx);
-				hdr.netcache.val[223:192] = read_v192_223.execute(hdr.meta.key_idx);
-				hdr.netcache.val[255:224] = read_v224_255.execute(hdr.meta.key_idx);
-				hdr.netcache.val[287:256] = read_v256_287.execute(hdr.meta.key_idx);
-				hdr.netcache.val[319:288] = read_v288_319.execute(hdr.meta.key_idx);
-				hdr.netcache.val[351:320] = read_v320_351.execute(hdr.meta.key_idx);
-				hdr.netcache.val[383:352] = read_v352_383.execute(hdr.meta.key_idx);
-				hdr.netcache.val[415:384] = read_v384_415.execute(hdr.meta.key_idx);
-				hdr.netcache.val[447:416] = read_v416_447.execute(hdr.meta.key_idx);
-				hdr.netcache.val[479:448] = read_v448_479.execute(hdr.meta.key_idx);
-				hdr.netcache.val[511:480] = read_v480_511.execute(hdr.meta.key_idx);
-				hdr.netcache.val[543:512] = read_v512_543.execute(hdr.meta.key_idx);
-				hdr.netcache.val[575:544] = read_v544_575.execute(hdr.meta.key_idx);
-				hdr.netcache.val[607:576] = read_v576_607.execute(hdr.meta.key_idx);
-				hdr.netcache.val[639:608] = read_v608_639.execute(hdr.meta.key_idx);
-				hdr.netcache.val[671:640] = read_v640_671.execute(hdr.meta.key_idx);
-				hdr.netcache.val[703:672] = read_v672_703.execute(hdr.meta.key_idx);
-				hdr.netcache.val[735:704] = read_v704_735.execute(hdr.meta.key_idx);
-				hdr.netcache.val[767:736] = read_v736_767.execute(hdr.meta.key_idx);
-				hdr.netcache.val[799:768] = read_v768_799.execute(hdr.meta.key_idx);
-				hdr.netcache.val[831:800] = read_v800_831.execute(hdr.meta.key_idx);
-				hdr.netcache.val[863:832] = read_v832_863.execute(hdr.meta.key_idx);
-				hdr.netcache.val[895:864] = read_v864_895.execute(hdr.meta.key_idx);
-				hdr.netcache.val[927:896] = read_v896_927.execute(hdr.meta.key_idx);
-				hdr.netcache.val[959:928] = read_v928_959.execute(hdr.meta.key_idx);
-				hdr.netcache.val[991:960] = read_v960_991.execute(hdr.meta.key_idx);
-				hdr.netcache.val[1023:992] = read_v992_1023.execute(hdr.meta.key_idx);
+				hdr.netcache.val[31:0] = read_v0_31.execute(ig_md.key_idx);
+				hdr.netcache.val[63:32] = read_v32_63.execute(ig_md.key_idx);
+				hdr.netcache.val[95:64] = read_v64_95.execute(ig_md.key_idx);
+				hdr.netcache.val[127:96] = read_v96_127.execute(ig_md.key_idx);
+				hdr.netcache.val[159:128] = read_v128_159.execute(ig_md.key_idx);
+				hdr.netcache.val[191:160] = read_v160_191.execute(ig_md.key_idx);
+				hdr.netcache.val[223:192] = read_v192_223.execute(ig_md.key_idx);
+				hdr.netcache.val[255:224] = read_v224_255.execute(ig_md.key_idx);
+				hdr.netcache.val[287:256] = read_v256_287.execute(ig_md.key_idx);
+				hdr.netcache.val[319:288] = read_v288_319.execute(ig_md.key_idx);
+				hdr.netcache.val[351:320] = read_v320_351.execute(ig_md.key_idx);
+				hdr.netcache.val[383:352] = read_v352_383.execute(ig_md.key_idx);
+				hdr.netcache.val[415:384] = read_v384_415.execute(ig_md.key_idx);
+				hdr.netcache.val[447:416] = read_v416_447.execute(ig_md.key_idx);
+				hdr.netcache.val[479:448] = read_v448_479.execute(ig_md.key_idx);
+				hdr.netcache.val[511:480] = read_v480_511.execute(ig_md.key_idx);
+				hdr.netcache.val[543:512] = read_v512_543.execute(ig_md.key_idx);
+				hdr.netcache.val[575:544] = read_v544_575.execute(ig_md.key_idx);
+				hdr.netcache.val[607:576] = read_v576_607.execute(ig_md.key_idx);
+				hdr.netcache.val[639:608] = read_v608_639.execute(ig_md.key_idx);
+				hdr.netcache.val[671:640] = read_v640_671.execute(ig_md.key_idx);
+				hdr.netcache.val[703:672] = read_v672_703.execute(ig_md.key_idx);
+				hdr.netcache.val[735:704] = read_v704_735.execute(ig_md.key_idx);
+				hdr.netcache.val[767:736] = read_v736_767.execute(ig_md.key_idx);
+				hdr.netcache.val[799:768] = read_v768_799.execute(ig_md.key_idx);
+				hdr.netcache.val[831:800] = read_v800_831.execute(ig_md.key_idx);
+				hdr.netcache.val[863:832] = read_v832_863.execute(ig_md.key_idx);
+				hdr.netcache.val[895:864] = read_v864_895.execute(ig_md.key_idx);
+				hdr.netcache.val[927:896] = read_v896_927.execute(ig_md.key_idx);
+				hdr.netcache.val[959:928] = read_v928_959.execute(ig_md.key_idx);
+				hdr.netcache.val[991:960] = read_v960_991.execute(ig_md.key_idx);
+				hdr.netcache.val[1023:992] = read_v992_1023.execute(ig_md.key_idx);
 			} else {
-				update_v0_31.execute(hdr.meta.key_idx);
-				update_v32_63.execute(hdr.meta.key_idx);
-				update_v64_95.execute(hdr.meta.key_idx);
-				update_v96_127.execute(hdr.meta.key_idx);
-				update_v128_159.execute(hdr.meta.key_idx);
-				update_v160_191.execute(hdr.meta.key_idx);
-				update_v192_223.execute(hdr.meta.key_idx);
-				update_v224_255.execute(hdr.meta.key_idx);
-				update_v256_287.execute(hdr.meta.key_idx);
-				update_v288_319.execute(hdr.meta.key_idx);
-				update_v320_351.execute(hdr.meta.key_idx);
-				update_v352_383.execute(hdr.meta.key_idx);
-				update_v384_415.execute(hdr.meta.key_idx);
-				update_v416_447.execute(hdr.meta.key_idx);
-				update_v448_479.execute(hdr.meta.key_idx);
-				update_v480_511.execute(hdr.meta.key_idx);
-				update_v512_543.execute(hdr.meta.key_idx);
-				update_v544_575.execute(hdr.meta.key_idx);
-				update_v576_607.execute(hdr.meta.key_idx);
-				update_v608_639.execute(hdr.meta.key_idx);
-				update_v640_671.execute(hdr.meta.key_idx);
-				update_v672_703.execute(hdr.meta.key_idx);
-				update_v704_735.execute(hdr.meta.key_idx);
-				update_v736_767.execute(hdr.meta.key_idx);
-				update_v768_799.execute(hdr.meta.key_idx);
-				update_v800_831.execute(hdr.meta.key_idx);
-				update_v832_863.execute(hdr.meta.key_idx);
-				update_v864_895.execute(hdr.meta.key_idx);
-				update_v896_927.execute(hdr.meta.key_idx);
-				update_v928_959.execute(hdr.meta.key_idx);
-				update_v960_991.execute(hdr.meta.key_idx);
-				update_v992_1023.execute(hdr.meta.key_idx);
+				update_v0_31.execute(ig_md.key_idx);
+				update_v32_63.execute(ig_md.key_idx);
+				update_v64_95.execute(ig_md.key_idx);
+				update_v96_127.execute(ig_md.key_idx);
+				update_v128_159.execute(ig_md.key_idx);
+				update_v160_191.execute(ig_md.key_idx);
+				update_v192_223.execute(ig_md.key_idx);
+				update_v224_255.execute(ig_md.key_idx);
+				update_v256_287.execute(ig_md.key_idx);
+				update_v288_319.execute(ig_md.key_idx);
+				update_v320_351.execute(ig_md.key_idx);
+				update_v352_383.execute(ig_md.key_idx);
+				update_v384_415.execute(ig_md.key_idx);
+				update_v416_447.execute(ig_md.key_idx);
+				update_v448_479.execute(ig_md.key_idx);
+				update_v480_511.execute(ig_md.key_idx);
+				update_v512_543.execute(ig_md.key_idx);
+				update_v544_575.execute(ig_md.key_idx);
+				update_v576_607.execute(ig_md.key_idx);
+				update_v608_639.execute(ig_md.key_idx);
+				update_v640_671.execute(ig_md.key_idx);
+				update_v672_703.execute(ig_md.key_idx);
+				update_v704_735.execute(ig_md.key_idx);
+				update_v736_767.execute(ig_md.key_idx);
+				update_v768_799.execute(ig_md.key_idx);
+				update_v800_831.execute(ig_md.key_idx);
+				update_v832_863.execute(ig_md.key_idx);
+				update_v864_895.execute(ig_md.key_idx);
+				update_v896_927.execute(ig_md.key_idx);
+				update_v928_959.execute(ig_md.key_idx);
+				update_v960_991.execute(ig_md.key_idx);
+				update_v992_1023.execute(ig_md.key_idx);
 			}
 
 			// Swap the IP src/dst and port src/dst.
 			update_pkt_udp();
 		}
 
-		set_normal_pkt();
 		fwd.apply();
+		set_normal_pkt();
 	}
 }
 
@@ -370,7 +371,7 @@ control SwitchEgress(
 	}
 
 	action key_count_incr() {
-		ract_key_count_incr.execute(hdr.meta.key_idx);
+		ract_key_count_incr.execute(hdr.bridged_md.key_idx);
 	}
 
 	action set_mirror() {
@@ -382,29 +383,33 @@ control SwitchEgress(
 	}
 
 	apply {
-		// Packet is a HH report going from/to controller<->server or a server READ reply.
-		if (hdr.meta.is_client_packet == 1 && hdr.netcache.op == READ_QUERY) {
-			sampl_check();
-			if (sampl_cur == 1) {
-				if (hdr.meta.cache_hit == 1) {
-					// Update cache counter.
-					key_count_incr();
-				} else {
-					// Update cm sketch.
-					cm.apply(hdr, cm_result);
-					// Check cm result against threshold (HH_THRES).
-					if (cm_result[15:7] != 0) {
-						// Check against bloom filter.
-						bloom.apply(hdr, bloom_result);
-						// If confirmed HH, inform the controller through mirroring.
-						if (bloom_result == 0) {
-							hdr.netcache.key = (bit<NC_KEY_WIDTH>)hdr.meta.key_idx;
-							hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
-							set_mirror();
+		if (hdr.bridged_md.isValid()) {
+			// Packet is a HH report going from/to controller<->server or a server READ reply.
+			if (hdr.bridged_md.is_client_packet == 1 && hdr.netcache.op == READ_QUERY) {
+				sampl_check();
+				if (sampl_cur == 1) {
+					if (hdr.bridged_md.cache_hit == 1) {
+						// Update cache counter.
+						key_count_incr();
+					} else {
+						// Update cm sketch.
+						cm.apply(hdr, cm_result);
+						// Check cm result against threshold (HH_THRES).
+						if (cm_result[15:7] != 0) {
+							// Check against bloom filter.
+							bloom.apply(hdr, bloom_result);
+							// If confirmed HH, inform the controller through mirroring.
+							if (bloom_result == 0) {
+								hdr.netcache.key = (bit<NC_KEY_WIDTH>)hdr.bridged_md.key_idx;
+								hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
+								set_mirror();
+							}
 						}
 					}
 				}
 			}
+
+			hdr.bridged_md.setInvalid();
 		}
 	}
 }

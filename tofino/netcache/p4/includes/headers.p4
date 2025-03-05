@@ -53,25 +53,25 @@ header netcache_t {
 	bit<16>	port;
 }
 
-header meta_t {
-	bit<16>		key_idx;
-	bit<16>		ingress_port;
-	bit<8>		is_client_packet;
-	bit<1>		cache_hit;
-	bit<7>		_padding;
+struct ingress_metadata_t {
+	bit<8> is_client_packet;
+	bit<16> key_idx;
+	bit<8> cache_hit;
 }
 
 header mirror_bridged_metadata_h {
 	pkt_type_t pkt_type;
 	@flexible bit<1> do_egr_mirroring;	// Enable egress mirroring
 	@flexible MirrorId_t egr_mir_ses;	// Egress mirror session ID
+	@flexible bit<16> key_idx;
+	@flexible bit<16> ingress_port;
+	@flexible bit<8> is_client_packet;
+	@flexible bit<8> cache_hit;
 }
 
 header mirror_h {
 	pkt_type_t	pkt_type;
 }
-
-struct ingress_metadata_t {}
 
 struct egress_metadata_t {
 	bit<1>		do_egr_mirroring;	// Enable egress mirroring
@@ -86,7 +86,6 @@ struct header_t {
 	tcp_t		tcp;
 	udp_t		udp;
 	netcache_t	netcache;
-	meta_t		meta;
 }
 
 #endif

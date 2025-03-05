@@ -139,7 +139,7 @@ class TofinoTGController:
             result = re.search(r"(\d+): speed=(.+), fec=(.+), loopback_mode=(.+), port_enable=(\d), port_up=(\d).*", line)
 
             if not result:
-                self.host.crash(f'Unable to parse port state report line: "{line}".')
+                continue
 
             port = int(result.group(1))
             port_state = PortState(

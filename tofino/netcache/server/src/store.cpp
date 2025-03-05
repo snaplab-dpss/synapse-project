@@ -120,9 +120,6 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
   ip_hdr->src_addr  = ip_hdr->dst_addr;
   ip_hdr->dst_addr  = temp_src;
 
-  ip_hdr->hdr_checksum = 0;
-  ip_hdr->hdr_checksum = ~rte_raw_cksum(ip_hdr, sizeof(rte_ipv4_hdr));
-
   rte_udp_hdr *udp_hdr = (rte_udp_hdr *)pkt_ptr;
   pkt_ptr += sizeof(rte_udp_hdr);
 
