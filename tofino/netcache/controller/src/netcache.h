@@ -5,11 +5,13 @@
 #include <random>
 #include <unordered_set>
 #include <unordered_map>
+#include <map>
 
 #include "bf_rt/bf_rt_init.hpp"
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
+#include "tables/keys.h"
 #include "tables/is_client_packet.h"
 #include "registers/reg_v0_31.h"
 #include "registers/reg_v32_63.h"
@@ -102,6 +104,7 @@ public:
 
   // Switch tables
   Fwd fwd;
+  Keys keys;
   IsClientPacket is_client_packet;
 
   // Switch registers
@@ -147,11 +150,14 @@ public:
   RegBloom2 reg_bloom_2;
 
   std::unordered_map<std::array<uint8_t, KV_KEY_SIZE>, uint16_t, hash_key_128, hash_key_128_equal> hash_key;
+  std::map<uint16_t, std::array<uint8_t, 16>> key_storage;
+  std::unordered_set<uint16_t> available_keys;
 
   Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const conf_t &_conf,
              const args_t &_args)
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), conf(_conf), args(_args),
-        fwd(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt), reg_v0_31(_info, _session, _dev_tgt),
+        fwd(_info, _session, _dev_tgt), keys(_info, _session, _dev_tgt),
+		is_client_packet(_info, _session, _dev_tgt), reg_v0_31(_info, _session, _dev_tgt),
         reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt), reg_v96_127(_info, _session, _dev_tgt),
         reg_v128_159(_info, _session, _dev_tgt), reg_v160_191(_info, _session, _dev_tgt), reg_v192_223(_info, _session, _dev_tgt),
         reg_v224_255(_info, _session, _dev_tgt), reg_v256_287(_info, _session, _dev_tgt), reg_v288_319(_info, _session, _dev_tgt),
@@ -211,19 +217,27 @@ public:
       return;
     }
 
-    // Insert k entries in the switch's KV store.
+	// Initialize the key storage map and available keys set.
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+	uint16_t i = 0;
+	do {
+		key_storage[i] = {0};
+		available_keys.insert(i);
+	} while (++i != 0);
 
-    std::uniform_int_distribution<> dis(1, conf.kv.store_size);
-    std::unordered_set<int> elems;
+    // Insert k initial entries in the switch's KV store.
 
-    while (elems.size() < conf.kv.initial_entries) {
-      elems.insert(dis(gen));
-    }
+    // std::random_device rd;
+    // std::mt19937 gen(rd());
 
-    std::vector<int> sampl_index(elems.begin(), elems.end());
+    // std::uniform_int_distribution<> dis(1, conf.kv.store_size);
+    // std::unordered_set<int> elems;
+
+    // while (elems.size() < conf.kv.initial_entries) {
+    //   elems.insert(dis(gen));
+    // }
+
+    // std::vector<int> sampl_index(elems.begin(), elems.end());
 
     // for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
   }

@@ -1,20 +1,20 @@
 #pragma once
 
-#include "log.h"
 
 #include <assert.h>
-
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-
 #include <bf_rt/bf_rt_init.hpp>
 #include <bf_rt/bf_rt_table.hpp>
 #include <bf_rt/bf_rt_table_data.hpp>
 #include <bf_rt/bf_rt_table_key.hpp>
+
+#include "log.h"
+#include "constants.h"
 
 namespace netcache {
 
