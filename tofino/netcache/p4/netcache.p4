@@ -160,7 +160,7 @@ control SwitchIngress(
 
 		const default_action = set_cache_miss;
 
-		size = NC_ENTRIES;	
+		size = NC_ENTRIES;
 	}
 
 	action update_pkt_udp() {
