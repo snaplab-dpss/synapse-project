@@ -3,11 +3,14 @@
 import os
 import statistics
 
-from utils.plot_config import *
+from dataclasses import dataclass
+from typing import Tuple
 from pathlib import Path
-
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
+
+from utils.plot_config import *
+
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"
@@ -23,63 +26,96 @@ TG_BPS_OUTPUT_FILE = PLOTS_DIR / "tput_testbed_tg_bps.pdf"
 TA_BPS_OUTPUT_FILE = PLOTS_DIR / "tput_testbed_ta_bps.pdf"
 
 
-def parse_data_file(file: Path):
+@dataclass
+class Data:
+    requested_bps: Tuple[float, float]
+    pktgen_bps: Tuple[float, float]
+    pktgen_pps: Tuple[float, float]
+    dut_ingress_bps: Tuple[float, float]
+    dut_ingress_pps: Tuple[float, float]
+    dut_egress_bps: Tuple[float, float]
+    dut_egress_pps: Tuple[float, float]
+
+
+def parse_data_file(file: Path) -> dict[int, Data]:
     raw_data = {}
     with open(file, "r") as f:
         lines = f.readlines()
         for line in lines[1:]:
             parts = line.split(",")
-            assert len(parts) == 7
+            assert len(parts) == 9
             pkt_size = int(parts[1])
             requested_bps = int(parts[2])
-            pktgen_tput_bps = int(parts[3])
-            pktgen_tput_pps = int(parts[4])
-            tput_bps = int(parts[5])
-            tput_pps = int(parts[6])
+            pktgen_bps = int(parts[3])
+            pktgen_pps = int(parts[4])
+            dut_ingress_bps = int(parts[5])
+            dut_ingress_pps = int(parts[6])
+            dut_egress_bps = int(parts[7])
+            dut_egress_pps = int(parts[8])
 
             if pkt_size not in raw_data:
                 raw_data[pkt_size] = []
-            raw_data[pkt_size].append((requested_bps, pktgen_tput_bps, pktgen_tput_pps, tput_bps, tput_pps))
+            raw_data[pkt_size].append(
+                (
+                    requested_bps,
+                    pktgen_bps,
+                    pktgen_pps,
+                    dut_ingress_bps,
+                    dut_ingress_pps,
+                    dut_egress_bps,
+                    dut_egress_pps,
+                )
+            )
 
     data = {}
     for pkt_size in raw_data.keys():
         if len(raw_data[pkt_size]) == 1:
             avg_requested_bps = raw_data[pkt_size][0][0]
-            avg_pktgen_tput_bps = raw_data[pkt_size][0][1]
-            avg_pktgen_tput_pps = raw_data[pkt_size][0][2]
-            avg_tput_bps = raw_data[pkt_size][0][3]
-            avg_tput_pps = raw_data[pkt_size][0][4]
+            avg_pktgen_bps = raw_data[pkt_size][0][1]
+            avg_pktgen_pps = raw_data[pkt_size][0][2]
+            avg_dut_ingress_bps = raw_data[pkt_size][0][3]
+            avg_dut_ingress_pps = raw_data[pkt_size][0][4]
+            avg_dut_egress_bps = raw_data[pkt_size][0][5]
+            avg_dut_egress_pps = raw_data[pkt_size][0][6]
 
             stdev_requested_bps = 0
-            stdev_pktgen_tput_bps = 0
-            stdev_pktgen_tput_pps = 0
-            stdev_tput_bps = 0
-            stdev_tput_pps = 0
+            stdev_pktgen_bps = 0
+            stdev_pktgen_pps = 0
+            stdev_dut_ingress_bps = 0
+            stdev_dut_ingress_pps = 0
+            stdev_dut_egress_bps = 0
+            stdev_dut_egress_pps = 0
         else:
             avg_requested_bps = statistics.mean([x[0] for x in raw_data[pkt_size]])
-            avg_pktgen_tput_bps = statistics.mean([x[1] for x in raw_data[pkt_size]])
-            avg_pktgen_tput_pps = statistics.mean([x[2] for x in raw_data[pkt_size]])
-            avg_tput_bps = statistics.mean([x[3] for x in raw_data[pkt_size]])
-            avg_tput_pps = statistics.mean([x[4] for x in raw_data[pkt_size]])
+            avg_pktgen_bps = statistics.mean([x[1] for x in raw_data[pkt_size]])
+            avg_pktgen_pps = statistics.mean([x[2] for x in raw_data[pkt_size]])
+            avg_dut_ingress_bps = statistics.mean([x[3] for x in raw_data[pkt_size]])
+            avg_dut_ingress_pps = statistics.mean([x[4] for x in raw_data[pkt_size]])
+            avg_dut_egress_bps = statistics.mean([x[5] for x in raw_data[pkt_size]])
+            avg_dut_egress_pps = statistics.mean([x[6] for x in raw_data[pkt_size]])
 
             stdev_requested_bps = statistics.stdev([x[0] for x in raw_data[pkt_size]])
-            stdev_pktgen_tput_bps = statistics.stdev([x[1] for x in raw_data[pkt_size]])
-            stdev_pktgen_tput_pps = statistics.stdev([x[2] for x in raw_data[pkt_size]])
-            stdev_tput_bps = statistics.stdev([x[3] for x in raw_data[pkt_size]])
-            stdev_tput_pps = statistics.stdev([x[4] for x in raw_data[pkt_size]])
+            stdev_pktgen_bps = statistics.stdev([x[1] for x in raw_data[pkt_size]])
+            stdev_pktgen_pps = statistics.stdev([x[2] for x in raw_data[pkt_size]])
+            stdev_dut_ingress_bps = statistics.stdev([x[3] for x in raw_data[pkt_size]])
+            stdev_dut_ingress_pps = statistics.stdev([x[4] for x in raw_data[pkt_size]])
+            stdev_dut_egress_bps = statistics.stdev([x[5] for x in raw_data[pkt_size]])
+            stdev_dut_egress_pps = statistics.stdev([x[6] for x in raw_data[pkt_size]])
 
-        data[pkt_size] = (
+        data[pkt_size] = Data(
             (avg_requested_bps, stdev_requested_bps),
-            (avg_pktgen_tput_bps, stdev_pktgen_tput_bps),
-            (avg_pktgen_tput_pps, stdev_pktgen_tput_pps),
-            (avg_tput_bps, stdev_tput_bps),
-            (avg_tput_pps, stdev_tput_pps),
+            (avg_pktgen_bps, stdev_pktgen_bps),
+            (avg_pktgen_pps, stdev_pktgen_pps),
+            (avg_dut_ingress_bps, stdev_dut_ingress_bps),
+            (avg_dut_ingress_pps, stdev_dut_ingress_pps),
+            (avg_dut_egress_bps, stdev_dut_egress_bps),
+            (avg_dut_egress_pps, stdev_dut_egress_pps),
         )
 
     return data
 
 
-def plot_bps(data: dict, file: Path):
+def plot_bps(data: dict[int, Data], file: Path):
     fig, ax = plt.subplots()
 
     ax.set_ylim(ymin=0, ymax=3000)
@@ -92,25 +128,16 @@ def plot_bps(data: dict, file: Path):
 
     pkt_sizes = [str(pkt_size) for pkt_size in data.keys()]
 
-    # requested_gbps = [data[pkt_size][0][0] / 1e9 for pkt_size in data.keys()]
-    # stdev_requested_gbps = [data[pkt_size][0][1] / 1e9 for pkt_size in data.keys()]
+    pktgen_gbps = [data[pkt_size].pktgen_bps[0] / 1e9 for pkt_size in data.keys()]
+    stdev_pktgen_gbps = [data[pkt_size].pktgen_bps[1] / 1e9 for pkt_size in data.keys()]
 
-    pktgen_gbps = [data[pkt_size][1][0] / 1e9 for pkt_size in data.keys()]
-    stdev_pktgen_gbps = [data[pkt_size][1][1] / 1e9 for pkt_size in data.keys()]
-
-    # pktgen_pps = [data[pkt_size][2][0] for pkt_size in data.keys()]
-    # stdev_pktgen_pps = [data[pkt_size][2][1] for pkt_size in data.keys()]
-
-    tput_gbps = [data[pkt_size][3][0] / 1e9 for pkt_size in data.keys()]
-    stdev_tput_gbps = [data[pkt_size][3][1] / 1e9 for pkt_size in data.keys()]
-
-    # tput_pps = [data[pkt_size][4][0] for pkt_size in data.keys()]
-    # stdev_tput_pps = [data[pkt_size][4][1] for pkt_size in data.keys()]
+    avg_tg_egress_gbps = [data[pkt_size].dut_ingress_bps[0] / 1e9 for pkt_size in data.keys()]
+    stdev_tg_egress_gbps = [data[pkt_size].dut_ingress_bps[1] / 1e9 for pkt_size in data.keys()]
 
     data_to_show = {
-        "Pktgen (Gbps)": (pktgen_gbps, stdev_pktgen_gbps),
-        "Pktgen (30xGbps)": ([30 * v for v in pktgen_gbps], [30 * v for v in stdev_pktgen_gbps]),
-        "Tput (Gbps)": (tput_gbps, stdev_tput_gbps),
+        "Pktgen": (pktgen_gbps, stdev_pktgen_gbps),
+        "Pktgen (30x)": ([30 * v for v in pktgen_gbps], [30 * v for v in stdev_pktgen_gbps]),
+        "TG egress": (avg_tg_egress_gbps, stdev_tg_egress_gbps),
     }
 
     bar_width = 0.25
@@ -133,7 +160,7 @@ def plot_bps(data: dict, file: Path):
     plt.savefig(str(fig_file_pdf))
 
 
-def plot_pps(data: dict, file: Path):
+def plot_pps(data: dict[int, Data], file: Path):
     fig, ax = plt.subplots()
 
     ax.set_ylim(ymin=0, ymax=3000)
@@ -146,25 +173,16 @@ def plot_pps(data: dict, file: Path):
 
     pkt_sizes = [str(pkt_size) for pkt_size in data.keys()]
 
-    # requested_gbps = [data[pkt_size][0][0] / 1e9 for pkt_size in data.keys()]
-    # stdev_requested_gbps = [data[pkt_size][0][1] / 1e9 for pkt_size in data.keys()]
+    pktgen_mpps = [data[pkt_size].pktgen_pps[0] / 1e6 for pkt_size in data.keys()]
+    stdev_pktgen_mpps = [data[pkt_size].pktgen_pps[1] / 1e6 for pkt_size in data.keys()]
 
-    # pktgen_gbps = [data[pkt_size][1][0] / 1e9 for pkt_size in data.keys()]
-    # stdev_pktgen_gbps = [data[pkt_size][1][1] / 1e9 for pkt_size in data.keys()]
-
-    pktgen_mpps = [data[pkt_size][2][0] / 1e6 for pkt_size in data.keys()]
-    stdev_pktgen_mpps = [data[pkt_size][2][1] / 1e6 for pkt_size in data.keys()]
-
-    # tput_gbps = [data[pkt_size][3][0] / 1e9 for pkt_size in data.keys()]
-    # stdev_tput_gbps = [data[pkt_size][3][1] / 1e9 for pkt_size in data.keys()]
-
-    tput_mpps = [data[pkt_size][4][0] / 1e6 for pkt_size in data.keys()]
-    stdev_tput_mpps = [data[pkt_size][4][1] / 1e6 for pkt_size in data.keys()]
+    avg_tg_egress_mpps = [data[pkt_size].dut_ingress_pps[0] / 1e6 for pkt_size in data.keys()]
+    stdev_tg_egress_mpps = [data[pkt_size].dut_ingress_pps[1] / 1e6 for pkt_size in data.keys()]
 
     data_to_show = {
-        "Pktgen (Gpps)": (pktgen_mpps, stdev_pktgen_mpps),
-        "Pktgen (30xGpps)": ([30 * v for v in pktgen_mpps], [30 * v for v in stdev_pktgen_mpps]),
-        "Tput (Gpps)": (tput_mpps, stdev_tput_mpps),
+        "Pktgen": (pktgen_mpps, stdev_pktgen_mpps),
+        "Pktgen (30x)": ([30 * v for v in pktgen_mpps], [30 * v for v in stdev_pktgen_mpps]),
+        "TG egress": (avg_tg_egress_mpps, stdev_tg_egress_mpps),
     }
 
     bar_width = 0.25
