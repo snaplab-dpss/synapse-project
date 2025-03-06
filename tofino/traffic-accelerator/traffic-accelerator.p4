@@ -164,7 +164,7 @@ control Ingress(
 		hdr.bridge_metadata.bypass_egress = 1;
 	}
 
-	Register<bit<16>, _>(1, 3) rate_multiplier_register;
+	Register<bit<16>, _>(1, 1) rate_multiplier_register;
 	RegisterAction<bit<16>, bit<16>, bit<16>>(rate_multiplier_register) read_rate_multiplier_action = {
 		void apply(inout bit<16> value, out bit<16> out_value) {
 			out_value = value;

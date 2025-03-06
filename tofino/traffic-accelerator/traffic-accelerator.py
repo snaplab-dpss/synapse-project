@@ -458,6 +458,21 @@ class Counters:
         )
 
 
+class RateMultiplierRegister:
+    def __init__(self, bfrt_info):
+        self.rate_multiplier_register = bfrt_info.table_get("Ingress.rate_multiplier_register")
+
+    def set_multiplier(self, multiplier):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        self.rate_multiplier_register.entry_mod(
+            target,
+            [self.rate_multiplier_register.make_key([gc.KeyTuple("$REGISTER_INDEX", 0)])],
+            [self.rate_multiplier_register.make_data([gc.DataTuple("Ingress.rate_multiplier_register.f1", multiplier)])],
+            {"from_hw": True},
+        )
+
+
 def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
     router = Router(bfrt_info)
     multicaster = Multicaster(bfrt_info)
@@ -521,6 +536,12 @@ def run_setup_get(ports: Ports):
         )
 
 
+def run_setup_set_multiplier(bfrt_info, multiplier):
+    rate_multiplier_register = RateMultiplierRegister(bfrt_info)
+    rate_multiplier_register.set_multiplier(multiplier)
+    print("Set rate multiplier to {}".format(multiplier))
+
+
 def run_stats(bfrt_info, ports, op, from_ports_meta_table):
     counters = Counters(bfrt_info)
 
@@ -568,8 +589,9 @@ if __name__ == "__main__":
     setup_set_parser.add_argument("--broadcast", type=int, nargs="+", default=[])
     setup_set_parser.add_argument("--symmetric", type=int, nargs="+", default=[])
     setup_set_parser.add_argument("--route", type=int, nargs=2, action="append", default=[])
-
     setup_get_parser = setup_subparsers.add_parser("get")
+    setup_set_mul_parser = setup_subparsers.add_parser("set-multiplier")
+    setup_set_mul_parser.add_argument("multiplier", type=int)
 
     stats_parser = subparsers.add_parser("stats")
     stats_parser.add_argument("op", choices=["get", "clear"])
@@ -617,6 +639,8 @@ if __name__ == "__main__":
             run_setup_set(bfrt_info, ports, config["broadcast"], config["symmetric"], config["route"])
         elif args.setup_operation == "get":
             run_setup_get(ports)
+        elif args.setup_operation == "set-multiplier":
+            run_setup_set_multiplier(bfrt_info, args.multiplier)
     elif args.operation == "stats":
         run_stats(bfrt_info, ports, args.op, args.meta)
     else:
