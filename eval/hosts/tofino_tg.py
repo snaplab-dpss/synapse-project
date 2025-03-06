@@ -67,6 +67,14 @@ class TofinoTGController:
         self.app_name = APP_NAME
         self.broadcast_ports = []
 
+        self.env_vars = " ".join(
+            [
+                f"SDE={self.sde}",
+                f"SDE_INSTALL={self.sde}/install",
+                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
+            ]
+        )
+
         self.host.test_connection()
 
         if not self.host.remote_dir_exists(self.repo):
@@ -82,15 +90,7 @@ class TofinoTGController:
 
         target_dir = self.repo / "tofino" / self.app_name
 
-        env_vars = " ".join(
-            [
-                f"SDE={self.sde}",
-                f"SDE_INSTALL={self.sde}/install",
-                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
-            ]
-        )
-
-        cmd = f"{env_vars} ./{self.app_name}.py setup set"
+        cmd = f"{self.env_vars} ./{self.app_name}.py setup set"
         if broadcast:
             cmd += f" --broadcast {' '.join(map(str, broadcast))}"
         if symmetric:
@@ -109,15 +109,7 @@ class TofinoTGController:
     def get_ports_state(self) -> dict[int, PortState]:
         target_dir = self.repo / "tofino" / self.app_name
 
-        env_vars = " ".join(
-            [
-                f"SDE={self.sde}",
-                f"SDE_INSTALL={self.sde}/install",
-                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
-            ]
-        )
-
-        cmd = f"{env_vars} ./{self.app_name}.py setup get"
+        cmd = f"{self.env_vars} ./{self.app_name}.py setup get"
 
         command = self.host.run_command(cmd, dir=target_dir)
         output = command.watch()
@@ -164,15 +156,7 @@ class TofinoTGController:
     def get_port_stats_from_meta_table(self) -> dict[int, MetaPortStats]:
         target_dir = self.repo / "tofino" / self.app_name
 
-        env_vars = " ".join(
-            [
-                f"SDE={self.sde}",
-                f"SDE_INSTALL={self.sde}/install",
-                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
-            ]
-        )
-
-        cmd = f"{env_vars} ./{self.app_name}.py stats get --meta"
+        cmd = f"{self.env_vars} ./{self.app_name}.py stats get --meta"
 
         command = self.host.run_command(cmd, dir=target_dir)
         output = command.watch()
@@ -191,7 +175,14 @@ class TofinoTGController:
                     start_parsing = True
                 continue
 
-            port, FramesReceivedOK, FramesTransmittedOK = map(int, line.split(":"))
+            result = re.search(r"(\d+):(\d+):(\d+)", line)
+            if not result:
+                continue
+
+            port = int(result.group(1))
+            FramesReceivedOK = int(result.group(2))
+            FramesTransmittedOK = int(result.group(3))
+
             port_stats = MetaPortStats(FramesReceivedOK, FramesTransmittedOK)
             stats[port] = port_stats
 
@@ -200,15 +191,7 @@ class TofinoTGController:
     def get_port_stats(self) -> dict[int, PortStats]:
         target_dir = self.repo / "tofino" / self.app_name
 
-        env_vars = " ".join(
-            [
-                f"SDE={self.sde}",
-                f"SDE_INSTALL={self.sde}/install",
-                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
-            ]
-        )
-
-        cmd = f"{env_vars} ./{self.app_name}.py stats get"
+        cmd = f"{self.env_vars} ./{self.app_name}.py stats get"
 
         command = self.host.run_command(cmd, dir=target_dir)
         output = command.watch()
@@ -236,15 +219,7 @@ class TofinoTGController:
     def reset_stats(self) -> None:
         target_dir = self.repo / "tofino" / self.app_name
 
-        env_vars = " ".join(
-            [
-                f"SDE={self.sde}",
-                f"SDE_INSTALL={self.sde}/install",
-                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
-            ]
-        )
-
-        cmd = f"{env_vars} ./{self.app_name}.py stats clear"
+        cmd = f"{self.env_vars} ./{self.app_name}.py stats clear"
 
         command = self.host.run_command(cmd, dir=target_dir)
         command.watch()
@@ -253,3 +228,12 @@ class TofinoTGController:
         if code != 0:
             self.host.crash(f"{self.app_name} controller exited with code != 0.")
             exit(1)
+
+    def reset_to_default_acceleration(self) -> None:
+        pass
+
+    def set_acceleration(self, multiplier: int) -> None:
+        pass
+
+    def get_pktgen_rate_for_true_rate(self, rate: int) -> int:
+        return rate

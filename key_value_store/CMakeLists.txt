@@ -15,7 +15,6 @@ set(PROG "server")
 include(${CMAKE_SOURCE_DIR}/cmake/find_dpdk.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_json.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/find_libnf.cmake)
 
 add_executable(${PROG}
 	${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp

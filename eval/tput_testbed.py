@@ -8,6 +8,7 @@ from pathlib import Path
 from experiments.tput import ThroughputHosts
 from experiments.tput_per_pkt_sz import ThroughputPerPacketSize
 from experiments.experiment import ExperimentTracker
+from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
 PKT_SIZES = [64, 128, 256, 512, 1024, 1280, 1500]
@@ -22,6 +23,8 @@ def main():
 
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
+    
+    kill_hosts_on_sigint(config)
 
     log_file = config["logs"]["experiment"]
 

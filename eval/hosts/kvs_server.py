@@ -1,4 +1,3 @@
-import re
 import itertools
 
 from paramiko import ssh_exception
@@ -20,7 +19,7 @@ class KVSServer:
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
-        self.server_dir = Path(repo) / "tofino" / "netcache" / "server"
+        self.server_dir = Path(repo) / "key_value_store"
         self.server_exe = self.server_dir / "build" / "release" / "server"
         self.pcie_dev = pcie_dev
         self.nb_cores = nb_cores

@@ -17,7 +17,7 @@ from hosts.netcache import NetCache, NetCacheController
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-DELAY_NS_VALUES = [0, 100, 200, 500, 700, 1000]
+DELAY_NS_VALUES = [0, 100, 200, 500, 700, 1000, 1200]
 
 
 class KVSThroughput(Experiment):
@@ -62,7 +62,7 @@ class KVSThroughput(Experiment):
         self._sync()
 
     def _sync(self):
-        header = f"#it, delay (ns), requested (bps), pktgen tput (bps), pktgen tput (pps), DUT ingress (bps), DUT ingress (pps) DUT egress (bps) DUT egress (pps)\n"
+        header = "#it, delay (ns), requested (bps), pktgen tput (bps), pktgen tput (pps), DUT ingress (bps), DUT ingress (pps), DUT egress (bps), DUT egress (pps)\n"
 
         self.experiment_tracker = set()
         self.save_name.parent.mkdir(parents=True, exist_ok=True)
@@ -76,12 +76,7 @@ class KVSThroughput(Experiment):
                     cols = row.split(",")
                     i = int(cols[0])
                     delay_ns = int(cols[1])
-                    self.experiment_tracker.add(
-                        (
-                            i,
-                            delay_ns,
-                        )
-                    )
+                    self.experiment_tracker.add((i, delay_ns))
         else:
             with open(self.save_name, "w") as f:
                 f.write(header)

@@ -21,6 +21,7 @@ MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5  # seconds
 THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
+WARMUP_PORT_PRECISION = 0.1  # 10%
 WARMUP_TIME_SEC = 5  # seconds
 WARMUP_RATE = 1  # 1 Mbps
 REST_TIME_SEC = 2  # seconds
@@ -97,14 +98,16 @@ class Experiment:
         tg_controller: TofinoTGController,
         pktgen: Pktgen,
     ) -> None:
+        tg_controller.set_acceleration(1)
+        pktgen.set_rate(WARMUP_RATE)
+
         ports_are_ready = False
         while not ports_are_ready:
-            tg_controller.wait_for_ports()
             ports_are_ready = True
 
+            tg_controller.wait_for_ports()
             meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
 
-            pktgen.set_rate(WARMUP_RATE)
             pktgen.start()
             sleep(WARMUP_TIME_SEC)
             pktgen.stop()
@@ -123,14 +126,18 @@ class Experiment:
                 if tx_reference is None and tx != 0:
                     tx_reference = tx
 
-                if tx_reference is not None and abs(tx - tx_reference) / tx_reference > MAX_ACCEPTABLE_LOSS:
-                    ports_are_ready = False
-                    self.log(f"Port {port} is not ready yet. Retrying...")
-                    sleep(1)
-                    break
+                if tx_reference is not None:
+                    rel_diff = abs(tx - tx_reference) / tx_reference
+                    if rel_diff > WARMUP_PORT_PRECISION:
+                        ports_are_ready = False
+                        self.log(f"Port {port} is not ready yet ({rel_diff} > {WARMUP_PORT_PRECISION}). Retrying...")
+                        sleep(1)
+                        break
 
         self.log("Ports are ready now.")
         self.log()
+
+        tg_controller.reset_to_default_acceleration()
 
     def find_stable_throughput(
         self,
@@ -161,8 +168,7 @@ class Experiment:
 
         current_rate = rate_upper
 
-        # We iteratively refine the bounds until the difference between them is
-        # less than the specified precision.
+        # We iteratively refine the bounds until the difference between them is less than the specified precision.
         for i in range(iterations):
             # There's no point in continuing this search.
             if rate_upper == 0 or current_rate == 0:
@@ -170,10 +176,6 @@ class Experiment:
 
             self.log()
             self.log(f"[{i+1}/{iterations}] Trying rate {current_rate:,} Mbps")
-
-            # pktgen.set_rate(WARMUP_RATE)
-            # pktgen.start()
-            # sleep(WARMUP_TIME_SEC)
 
             tg_controller.reset_stats()
             pktgen.reset_stats()
