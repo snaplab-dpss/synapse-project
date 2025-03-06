@@ -132,8 +132,9 @@ control Ingress(
   action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
     key = { ig_intr_md.ingress_port: exact; }
-    actions = { set_ingress_dev; }
+    actions = { set_ingress_dev; drop; }
     size = 32;
+    const default_action = drop();
   }
 
   bool trigger_forward = false;

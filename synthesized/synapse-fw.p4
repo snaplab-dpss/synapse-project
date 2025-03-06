@@ -176,8 +176,9 @@ control Ingress(
   action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
     key = { ig_intr_md.ingress_port: exact; }
-    actions = { set_ingress_dev; }
+    actions = { set_ingress_dev; drop; }
     size = 32;
+    const default_action = drop();
   }
 
   bool trigger_forward = false;
@@ -340,7 +341,7 @@ control Ingress(
             // BDD node 140:vector_return(vector:(w64 1074075704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074089600)[(ReadLSB w32 (w32 0) vector_data_512)])
             // EP node  232
             // BDD node 141:if ((Eq (w32 0) (ReadLSB w32 (w32 0) vector_data_512))
-            if (32w0x00000000 == vector_table_1074075704_139_get_value_param_0) {
+            if ((32w0x00000000) == (vector_table_1074075704_139_get_value_param_0)) {
               // EP node  233
               // BDD node 141:if ((Eq (w32 0) (ReadLSB w32 (w32 0) vector_data_512))
               // EP node  812
@@ -374,7 +375,7 @@ control Ingress(
                 // BDD node 150:vector_return(vector:(w64 1074092920), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074106816)[(ReadLSB w16 (w32 0) vector_data_640)])
                 // EP node  4970
                 // BDD node 154:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
-                if (16w0xffff != vector_table_1074092920_149_get_value_param_0) {
+                if ((16w0xffff) != (vector_table_1074092920_149_get_value_param_0)) {
                   // EP node  4971
                   // BDD node 154:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
                   // EP node  5262
@@ -422,7 +423,7 @@ control Ingress(
                 // BDD node 182:vector_return(vector:(w64 1074092920), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074106816)[(ReadLSB w16 (w32 0) vector_data_640)])
                 // EP node  2963
                 // BDD node 186:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
-                if (16w0xffff != vector_table_1074092920_181_get_value_param_0) {
+                if ((16w0xffff) != (vector_table_1074092920_181_get_value_param_0)) {
                   // EP node  2964
                   // BDD node 186:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
                   // EP node  3409

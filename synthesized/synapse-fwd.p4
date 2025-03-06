@@ -132,8 +132,9 @@ control Ingress(
   action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
     key = { ig_intr_md.ingress_port: exact; }
-    actions = { set_ingress_dev; }
+    actions = { set_ingress_dev; drop; }
     size = 32;
+    const default_action = drop();
   }
 
   bool trigger_forward = false;
@@ -177,7 +178,7 @@ control Ingress(
       // BDD node 66:vector_return(vector:(w64 1074012584), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074026480)[(ReadLSB w16 (w32 0) vector_data_128)])
       // EP node  30
       // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
-      if (16w0xffff != vector_table_1074012584_65_get_value_param_0) {
+      if ((16w0xffff) != (vector_table_1074012584_65_get_value_param_0)) {
         // EP node  31
         // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
         // EP node  70

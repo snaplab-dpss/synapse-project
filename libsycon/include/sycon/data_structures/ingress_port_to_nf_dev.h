@@ -16,8 +16,16 @@ public:
     buffer_t data(2);
     data.set(0, 2, nf_dev);
 
-    assert(actions.size() == 1);
-    Table::add_entry(key, actions[0].name, {data});
+    std::optional<table_action_t> set_ingress_dev;
+    for (const table_action_t &action : actions) {
+      if (action.name.find("set_ingress_dev") != std::string::npos) {
+        set_ingress_dev = action;
+        break;
+      }
+    }
+    assert(set_ingress_dev.has_value());
+
+    Table::add_entry(key, set_ingress_dev->name, {data});
   }
 };
 
