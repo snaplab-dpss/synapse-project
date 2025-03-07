@@ -38,6 +38,10 @@ public:
         {"SwitchIngress.set_key_idx", &actions.set_key_idx},
         {"SwitchIngress.set_cache_miss", &actions.set_cache_miss},
     });
+
+    init_data_with_actions({
+        {"key_idx", {actions.set_key_idx, &data_fields.key_idx}},
+    });
   }
 
   void add_entry(uint8_t *cache_key, uint16_t key_idx) {
