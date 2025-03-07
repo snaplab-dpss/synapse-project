@@ -162,6 +162,12 @@ public:
     const uint16_t server_port     = args.server_port;
     const uint16_t server_dev_port = ports.get_dev_port(server_port, 0);
 
+	#ifdef DEBUG
+		LOG("CPU port %u", cpu_port);
+		LOG("server port %u", server_port);
+		LOG("server dev port %u", server_dev_port);
+	#endif
+
     is_client_packet.add_not_client_port(server_dev_port);
     is_client_packet.add_not_client_port(cpu_port);
 
@@ -209,12 +215,11 @@ public:
 	} while (++i != 0);
 
     // Insert k initial entries in the switch's KV store.
-
 	/*
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    std::uniform_int_distribution<> dis(1, conf.kv.store_size);
+    std::uniform_int_distribution<> dis(0, conf.kv.store_size);
     std::unordered_set<int> elems;
 
     while (elems.size() < conf.kv.initial_entries) {
@@ -227,7 +232,9 @@ public:
 		// Pick a value from the set of available keys.
 		// Use that value as the index for the k/v to insert in the data plane.
 		auto it = available_keys.begin();
-		std::advance(it, i);
+		if (i < static_cast<int>(available_keys.size())) {
+			std::advance(it, i);
+		}
 
 		// Add the index/key to the controller map.
 		std::array<uint8_t, 16> key = {};
@@ -243,8 +250,8 @@ public:
 
 		// Remove the selected value from the set.
 		available_keys.erase(it);
+		*/
 	}
-	*/
   }
 
 public:

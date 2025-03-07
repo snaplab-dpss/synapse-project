@@ -158,7 +158,11 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
 
 			// If the data plane value counter < the HH report counter,
 			// Evict the data plane key/value and send the HH report to the server.
-			if (sampl_vec[smallest_idx][1] < *nc_hdr->val) {
+			uint32_t val = 0;
+			for (size_t i = 0; i < 4; ++i) {
+				val |= (static_cast<uint32_t>(nc_hdr->val[124 + i]) << (i * 8));
+			}
+			if (sampl_vec[smallest_idx][1] < val) {
 				// Remove the key from the keys table and the controller map.
 				// Insert the corresponding index to the available_keys set.
 

@@ -28,14 +28,10 @@ void ProcessQuery::update_cache(struct netcache_hdr_t *nc_hdr) {
     return;
   }
 
-	#ifndef DEBUG
-		std::cout << "reply.key " << nc_hdr->key << "\n";
-		std::cout << "reply.val " << nc_hdr->val << "\n";
-	#endif
-
 	// Check if the set is not empty.
 	if (Controller::controller->available_keys.empty()) {
 		std::cout << "Error: no empty positions in the data plane cache.";
+		return;
 	}
 
 	// Pick a value from the set (i.e., the first).
