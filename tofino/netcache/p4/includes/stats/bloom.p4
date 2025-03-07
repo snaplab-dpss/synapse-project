@@ -90,6 +90,8 @@ control c_bloom(inout header_t hdr, out bit<1> bloom_result) {
 		// to the controller with high probability.
 		if (val_bloom_0 == 1 && val_bloom_1 == 1 && val_bloom_2 == 1) {
 			bloom_result = 1;
+		} else {
+			bloom_result = 0;
 		}
 	}
 }

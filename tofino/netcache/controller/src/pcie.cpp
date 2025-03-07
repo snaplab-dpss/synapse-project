@@ -121,10 +121,6 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     return BF_SUCCESS;
   }
 
-#ifdef DEBUG
-  pkt_hdr->pretty_print_base();
-#endif
-
   valid = (packet_size >= (pkt_hdr->get_l2_size() + pkt_hdr->get_l3_size() + pkt_hdr->get_l4_size() + pkt_hdr->get_netcache_hdr_size()));
 
   if (!valid) {
@@ -134,6 +130,11 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
 
     return BF_SUCCESS;
   }
+
+#ifdef DEBUG
+  pkt_hdr->pretty_print_base();
+  pkt_hdr->pretty_print_netcache();
+#endif
 
   auto nc_hdr = pkt_hdr->get_netcache_hdr();
 

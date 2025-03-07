@@ -74,22 +74,6 @@ void setup_controller(const conf_t &conf, const args_t &args);
 
 struct bfrt_info_t;
 
-struct hash_key_128 {
-  std::size_t operator()(const std::array<uint8_t, 16> &key) const {
-    std::size_t hash = 0;
-    for (int i = 0; i < 16; ++i) {
-      hash ^= std::hash<uint8_t>()(key[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-    }
-    return hash;
-  }
-};
-
-struct hash_key_128_equal {
-  bool operator()(const std::array<uint8_t, 16> &key1, const std::array<uint8_t, 16> &key2) const {
-    return std::memcmp(key1.data(), key2.data(), 16) == 0;
-  }
-};
-
 class Controller {
 public:
   static std::shared_ptr<Controller> controller;
@@ -149,7 +133,6 @@ public:
   RegBloom1 reg_bloom_1;
   RegBloom2 reg_bloom_2;
 
-  std::unordered_map<std::array<uint8_t, KV_KEY_SIZE>, uint16_t, hash_key_128, hash_key_128_equal> hash_key;
   std::map<uint16_t, std::array<uint8_t, 16>> key_storage;
   std::unordered_set<uint16_t> available_keys;
 
@@ -227,19 +210,41 @@ public:
 
     // Insert k initial entries in the switch's KV store.
 
-    // std::random_device rd;
-    // std::mt19937 gen(rd());
+	/*
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
-    // std::uniform_int_distribution<> dis(1, conf.kv.store_size);
-    // std::unordered_set<int> elems;
+    std::uniform_int_distribution<> dis(1, conf.kv.store_size);
+    std::unordered_set<int> elems;
 
-    // while (elems.size() < conf.kv.initial_entries) {
-    //   elems.insert(dis(gen));
-    // }
+    while (elems.size() < conf.kv.initial_entries) {
+      elems.insert(dis(gen));
+    }
 
-    // std::vector<int> sampl_index(elems.begin(), elems.end());
+    std::vector<int> sampl_idx(elems.begin(), elems.end());
 
-    // for (int i: sampl_index) { reg_vtable.allocate((uint32_t) i, 0); }
+    for (int i: sampl_idx) {
+		// Pick a value from the set of available keys.
+		// Use that value as the index for the k/v to insert in the data plane.
+		auto it = available_keys.begin();
+		std::advance(it, i);
+
+		// Add the index/key to the controller map.
+		std::array<uint8_t, 16> key = {};
+		key[0] = static_cast<uint8_t>(*it & 0xFF);
+		key[1] = static_cast<uint8_t>((*it >> 8) & 0xFF);
+		key_storage[*it] = key;
+
+		// Add the index/key to the data plane keys table and reset the key_count[index] register.
+		uint8_t key_dp[16];
+		std::copy(key.begin(), key.end(), key_dp);
+		keys.add_entry(key_dp, *it);
+		reg_key_count.allocate(*it, 0);
+
+		// Remove the selected value from the set.
+		available_keys.erase(it);
+	}
+	*/
   }
 
 public:

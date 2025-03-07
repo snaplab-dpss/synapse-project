@@ -59,7 +59,7 @@ const bit<16> NC_PORT = 670;
 #define BLOOM_IDX_WIDTH				10
 #define BLOOM_ENTRIES				(1 << BLOOM_IDX_WIDTH)
 // Heavy hitter threshold
-#define HH_THRES					128
+#define HH_THRES					127
 
 typedef bit<NC_KEY_WIDTH>			key_t;
 typedef bit<NC_KEY_IDX_WIDTH>		keyIdx_t;
