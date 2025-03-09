@@ -215,7 +215,7 @@ public:
 	} while (++i != 0);
 
     // Insert k initial entries in the switch's KV store.
-	/*
+	/*	
     std::random_device rd;
     std::mt19937 gen(rd());
 
@@ -250,8 +250,8 @@ public:
 
 		// Remove the selected value from the set.
 		available_keys.erase(it);
-		*/
 	}
+	*/
   }
 
 public:
