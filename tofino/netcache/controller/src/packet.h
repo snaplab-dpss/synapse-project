@@ -116,14 +116,14 @@ struct pkt_hdr_t {
     switch (l4_hdr.second) {
     case IP_PROTO_TCP: {
       tcp_hdr_t *tcp_hdr = (tcp_hdr_t *)l4_hdr.first;
-      if (ntohs(tcp_hdr->src_port) == 50000 || ntohs(tcp_hdr->dst_port) == 50000) {
+      if (ntohs(tcp_hdr->src_port) == 670 || ntohs(tcp_hdr->dst_port) == 670) {
         return true;
       } else
         return false;
     } break;
     case IP_PROTO_UDP: {
       udp_hdr_t *udp_hdr = (udp_hdr_t *)l4_hdr.first;
-      if (ntohs(udp_hdr->src_port) == 50000 || ntohs(udp_hdr->dst_port) == 50000) {
+      if (ntohs(udp_hdr->src_port) == 670 || ntohs(udp_hdr->dst_port) == 670) {
         return true;
       } else
         return false;
@@ -216,20 +216,22 @@ struct pkt_hdr_t {
     if (!has_valid_protocol()) {
       return;
     }
-    pretty_print_base();
     auto nc_hdr = get_netcache_hdr();
 
     printf("###[ NetCache ]###\n");
-    printf("  op		%u\n", ntohl(nc_hdr->op));
-    printf("  key		%u%u%u%u\n", nc_hdr->key[0], nc_hdr->key[1], nc_hdr->key[2], nc_hdr->key[3]);
-    printf("  val		%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u\n", nc_hdr->val[0], nc_hdr->val[1],
-           nc_hdr->val[2], nc_hdr->val[3], nc_hdr->val[4], nc_hdr->val[5], nc_hdr->val[6], nc_hdr->val[7], nc_hdr->val[8], nc_hdr->val[9],
-           nc_hdr->val[10], nc_hdr->val[11], nc_hdr->val[12], nc_hdr->val[13], nc_hdr->val[14], nc_hdr->val[15], nc_hdr->val[16],
-           nc_hdr->val[17], nc_hdr->val[18], nc_hdr->val[19], nc_hdr->val[20], nc_hdr->val[21], nc_hdr->val[22], nc_hdr->val[23],
-           nc_hdr->val[24], nc_hdr->val[25], nc_hdr->val[26], nc_hdr->val[27], nc_hdr->val[28], nc_hdr->val[29], nc_hdr->val[30],
-           nc_hdr->val[31]);
-    printf("  status	%u\n", ntohl(nc_hdr->status));
-    printf("  port		%u\n", ntohl(nc_hdr->port));
+    printf("  op		%u\n", nc_hdr->op);
+    printf("  key		");
+	for (size_t i = 0; i < 16; ++i) {
+        printf("%u", nc_hdr->key[i]);
+    }
+	printf("\n");
+    printf("  val		");
+	for (size_t i = 0; i < 128; ++i) {
+        printf("%u", nc_hdr->val[i]);
+    }
+	printf("\n");
+    printf("  status	%u\n", nc_hdr->status);
+    printf("  port		%u\n", ntohs(nc_hdr->port));
   }
 } __attribute__((packed));
 

@@ -1,6 +1,6 @@
 {
 	"kv": {
-		"store_size": 65535,
+		"store_size": 65536,
 		"initial_entries": 50
 	},
 	"key_cntr": {

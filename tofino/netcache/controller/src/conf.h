@@ -10,7 +10,7 @@ namespace netcache {
 
 struct kv_t {
   uint32_t store_size;
-  uint16_t initial_entries;
+  uint32_t initial_entries;
 };
 
 struct key_cntr_t {

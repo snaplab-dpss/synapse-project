@@ -395,12 +395,11 @@ control SwitchEgress(
 						// Update cm sketch.
 						cm.apply(hdr, cm_result);
 						// Check cm result against threshold (HH_THRES).
-						if (cm_result[15:7] != 0) {
+						if (cm_result > HH_THRES) {
 							// Check against bloom filter.
 							bloom.apply(hdr, bloom_result);
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
-								hdr.netcache.key = (bit<NC_KEY_WIDTH>)hdr.bridged_md.key_idx;
 								hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
 								set_mirror();
 							}
