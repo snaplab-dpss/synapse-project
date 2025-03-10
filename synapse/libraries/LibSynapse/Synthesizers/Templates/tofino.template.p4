@@ -147,6 +147,7 @@ control Ingress(
     if (hdr.cpu.isValid()) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
       hdr.cpu.setInvalid();
+      trigger_forward = true;
     } else if (hdr.recirc.isValid()) {
 /*@{INGRESS_CONTROL_APPLY_RECIRC}@*/      
     } else {

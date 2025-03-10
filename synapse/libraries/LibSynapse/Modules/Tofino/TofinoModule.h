@@ -24,6 +24,7 @@ struct map_table_data_t {
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> hit;
+  TimeAware time_aware;
 };
 
 struct vector_table_data_t {

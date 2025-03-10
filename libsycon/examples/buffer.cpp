@@ -12,6 +12,10 @@ int main(int argc, char **argv) {
   std::cerr << "a: " << a << " (0x" << std::hex << a.get(0, 4) << ")"
             << "\n";
 
+  a = a.reverse();
+  std::cerr << "reversed: " << a << " (0x" << std::hex << a.get(0, 4) << ")"
+            << "\n";
+
   a[0] = 1;
   a[1] = 0;
   a[2] = 0;

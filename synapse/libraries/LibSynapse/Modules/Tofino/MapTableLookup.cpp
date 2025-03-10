@@ -25,6 +25,7 @@ map_table_data_t get_map_table_data(const Context &ctx, const LibBDD::Call *call
       .keys        = Table::build_keys(key),
       .value       = value_out,
       .hit         = map_has_this_key,
+      .time_aware  = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
   };
 
   return data;

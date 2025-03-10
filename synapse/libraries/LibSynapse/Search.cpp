@@ -112,6 +112,7 @@ void peek_search_space(const std::vector<impl_t> &new_implementations, const std
 void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show_on_backtrack) {
   if (pause_and_show_on_backtrack) {
     std::cerr << "Backtracked to " << ep->get_id() << "\n";
+    ep->debug();
     LibBDD::BDDViz::visualize(ep->get_bdd(), false);
     // EPViz::visualize(ep, false);
     SSVisualizer::visualize(search_space, ep, true);

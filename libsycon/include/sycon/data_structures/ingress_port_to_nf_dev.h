@@ -13,8 +13,8 @@ public:
     buffer_t key(2);
     key.set(0, 2, ingress_port);
 
-    buffer_t data(2);
-    data.set(0, 2, nf_dev);
+    buffer_t data(4);
+    data.set(0, 4, nf_dev);
 
     std::optional<table_action_t> set_ingress_dev;
     for (const table_action_t &action : actions) {

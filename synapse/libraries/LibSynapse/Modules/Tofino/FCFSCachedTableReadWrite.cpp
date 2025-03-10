@@ -203,6 +203,7 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
   LibBDD::Node *on_cache_write_failed;
   std::optional<std::vector<klee::ref<klee::Expr>>> deleted_branch_constraints;
 
+  panic("TODO: Remove vector key operations (and do the same for the other data structures)");
   std::unique_ptr<LibBDD::BDD> new_bdd =
       branch_bdd_on_cache_write_success(new_ep, node, fcfs_cached_table_data, cache_write_success_condition, map_objs,
                                         on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);

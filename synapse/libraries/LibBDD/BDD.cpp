@@ -395,7 +395,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
 
       if (!on_true_root || !on_false_root) {
         std::stringstream ss;
-        const LibBDD::call_paths_view_t &failed_group = on_true_root == nullptr ? on_true : on_false;
+        const call_paths_view_t &failed_group = on_true_root == nullptr ? on_true : on_false;
         ss << "Failed to build nodes for the call paths:\n";
         for (const call_path_t *cp : failed_group.data) {
           ss << "  " << cp->file_name << "\n";
@@ -559,6 +559,54 @@ next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators, a
   }
 
   return candidates;
+}
+
+addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map, const std::unordered_set<addr_t> &vectors) {
+  std::vector<const Call *> vector_borrows = bdd->get_root()->get_future_functions({"vector_borrow"});
+
+  for (const Call *vector_borrow : vector_borrows) {
+    const call_t &vb = vector_borrow->get_call();
+
+    klee::ref<klee::Expr> vector_expr     = vb.args.at("vector").expr;
+    klee::ref<klee::Expr> value_addr_expr = vb.args.at("val_out").out;
+
+    addr_t vector_obj = LibCore::expr_addr_to_obj_addr(vector_expr);
+    addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
+
+    if (vectors.find(vector_obj) == vectors.end()) {
+      continue;
+    }
+
+    std::vector<const Call *> map_puts = vector_borrow->get_future_functions({"map_put"});
+
+    bool is_vector_key = false;
+    for (const Call *map_put : map_puts) {
+      const call_t &mp = map_put->get_call();
+
+      klee::ref<klee::Expr> map_expr      = mp.args.at("map").expr;
+      klee::ref<klee::Expr> key_addr_expr = mp.args.at("key").expr;
+
+      addr_t map_obj  = LibCore::expr_addr_to_obj_addr(map_expr);
+      addr_t key_addr = LibCore::expr_addr_to_obj_addr(key_addr_expr);
+
+      if (map_obj != map) {
+        continue;
+      }
+
+      if (key_addr == value_addr) {
+        is_vector_key = true;
+        break;
+      }
+    }
+
+    if (!is_vector_key) {
+      continue;
+    }
+
+    return vector_obj;
+  }
+
+  panic("Vector key not found");
 }
 
 } // namespace
@@ -1231,6 +1279,90 @@ BDD::inspection_report_t BDD::inspect() const {
   });
 
   return report;
+}
+
+void BDD::delete_vector_key_operations(const map_coalescing_objs_t &map_objs) {
+  std::unordered_set<const Node *> candidates;
+  LibCore::Symbols key_symbols;
+
+  addr_t vector_key = get_vector_obj_storing_map_key(this, map_objs.map, map_objs.vectors);
+
+  root->visit_nodes([vector_key, &candidates, &key_symbols](const Node *node) {
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call    = call_node->get_call();
+
+    if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
+      return NodeVisitAction::Continue;
+    }
+
+    klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
+    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+
+    if (obj != vector_key) {
+      return NodeVisitAction::Continue;
+    }
+
+    if (call.function_name == "vector_borrow") {
+      key_symbols.add(call_node->get_local_symbols());
+    }
+
+    candidates.insert(node);
+
+    return NodeVisitAction::Continue;
+  });
+
+  bool used = false;
+  root->visit_nodes([&used, &candidates, &key_symbols](const Node *node) {
+    if (node->get_type() != NodeType::Call) {
+      return NodeVisitAction::Continue;
+    }
+
+    if (candidates.find(node) != candidates.end()) {
+      return NodeVisitAction::Continue;
+    }
+
+    const LibCore::Symbols symbols = node->get_used_symbols();
+    if (!symbols.intersect(key_symbols).empty()) {
+      used = true;
+      return NodeVisitAction::Stop;
+    }
+
+    return NodeVisitAction::Continue;
+  });
+
+  if (used) {
+    return;
+  }
+
+  for (const Node *node : candidates) {
+    delete_non_branch(node->get_id());
+  }
+
+  for (const Call *call : init) {
+    if (call->get_call().function_name != "vector_allocate") {
+      continue;
+    }
+
+    klee::ref<klee::Expr> obj_expr = call->get_call().args.at("vector_out").out;
+    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+
+    if (obj != vector_key) {
+      continue;
+    }
+
+    delete_init_node(call->get_id());
+    break;
+  }
+
+  // Just to double check that we didn't break anything...
+  LibBDD::BDD::inspection_report_t report = inspect();
+  if (report.status != LibBDD::BDD::InspectionStatus::Ok) {
+    panic("BDD inspection failed: %s", report.message.c_str());
+  }
 }
 
 } // namespace LibBDD

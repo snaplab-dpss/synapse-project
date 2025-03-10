@@ -92,7 +92,7 @@ MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
   DS_ID id = "map_table_" + std::to_string(data.obj);
 
   MapTable *map_table = new MapTable(id, data.num_entries, key_size);
-  map_table->add_table(node->get_id(), keys_size);
+  map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
   if (!tofino_ctx->check_placement(ep, node, map_table)) {
     delete map_table;
@@ -132,7 +132,7 @@ bool can_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table
     keys_size.push_back(key->getWidth());
   }
 
-  clone->add_table(node->get_id(), keys_size);
+  clone->add_table(node->get_id(), keys_size, data.time_aware);
   map_table = clone;
 
   bool can_place = tofino_ctx->check_placement(ep, node, map_table);
@@ -153,7 +153,7 @@ MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
     keys_size.push_back(key->getWidth());
   }
 
-  map_table->add_table(node->get_id(), keys_size);
+  map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
   if (!tofino_ctx->check_placement(ep, node, map_table)) {
     return nullptr;

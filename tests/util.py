@@ -1,21 +1,17 @@
-#!/usr/bin/env python3
-
+from sys import exit
+from binascii import hexlify, unhexlify
 from dataclasses import dataclass
+from socket import socket, AF_PACKET, SOCK_RAW, ntohs, inet_aton
+from select import select
 from random import randint
+from typing import Optional
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, UDP
 from scapy.packet import Packet
 
-from socket import socket, AF_PACKET, SOCK_RAW, ntohs
-from select import select
-
-import os
-import binascii
 
 ETH_P_ALL = 3
 PACKET_RECEIVE_TIMEOUT = 1  # seconds
-RECIRCULATION_PORT = 6
-LAN_PORTS = [p for p in range(3, 33)]
 
 SRC_MAC = "02:00:00:DD:EE:FF"
 DST_MAC = "02:00:00:AA:BB:CC"
@@ -68,7 +64,7 @@ class Ports:
             packets: list[Packet] = []
 
             while data:
-                if data[:6] != binascii.unhexlify(DST_MAC.replace(":", "")):
+                if data[:6] != unhexlify(DST_MAC.replace(":", "")):
                     data = data[1:]
                     continue
 
@@ -98,6 +94,38 @@ class Ports:
         return result
 
 
+def expect_no_packet(ports: Ports) -> None:
+    data = ports.poll()
+    if data:
+        print("*** ASSERTION FAILED ***")
+        print(f"Expected no packets, got packets from ports {list(data.keys())}")
+        exit(1)
+
+
+def expect_packet_from_port(ports: Ports, port: int, pkt: Packet) -> Packet:
+    data = ports.poll()
+
+    if len(data.keys()) != 1 or port not in data:
+        print("*** ASSERTION FAILED ***")
+        print(f"Expected a packet from port {port}, but got packets from ports {list(data.keys())}")
+        exit(1)
+
+    if len(data[port]) != 1:
+        print("*** ASSERTION FAILED ***")
+        print(f"Expected a single packet, got {len(data[port])} packets")
+        assert False and "Expected a single packet"
+
+    recv_pkt = data[port][0]
+    if recv_pkt.build() != pkt.build():
+        print("*** ASSERTION FAILED ***")
+        print(f"Packet comparison failed!")
+        print(f"Expected: {pkt.build().hex()}")
+        print(f"Received: {recv_pkt.build().hex()}")
+        exit(1)
+
+    return recv_pkt
+
+
 @dataclass
 class Flow:
     src_addr: str
@@ -105,14 +133,42 @@ class Flow:
     src_port: int
     dst_port: int
 
+    def __str__(self) -> str:
+        return f"{self.src_addr}:{self.src_port} -> {self.dst_addr}:{self.dst_port}"
 
-def build_random_flow() -> Flow:
-    return Flow(
-        src_addr=f"{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}",
-        dst_addr=f"{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}",
-        src_port=randint(0, 0xFFFF),
-        dst_port=randint(0, 0xFFFF),
-    )
+    def __repr__(self) -> str:
+        return str(self)
+
+    def invert(self) -> "Flow":
+        return Flow(
+            src_addr=self.dst_addr,
+            dst_addr=self.src_addr,
+            src_port=self.dst_port,
+            dst_port=self.src_port,
+        )
+
+    def hex(self) -> str:
+        src_addr = hexlify(inet_aton(self.src_addr)).decode()
+        dst_addr = hexlify(inet_aton(self.dst_addr)).decode()
+        return f"{src_addr}:{self.src_port:04X} -> {dst_addr}:{self.dst_port:04X}"
+
+
+def build_flow(
+    src_addr: Optional[str] = None,
+    dst_addr: Optional[str] = None,
+    src_port: Optional[int] = None,
+    dst_port: Optional[int] = None,
+) -> Flow:
+    if not src_addr:
+        src_addr = f"{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}"
+    if not dst_addr:
+        dst_addr = f"{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}"
+    if not src_port:
+        src_port = randint(0, 0xFFFF)
+    if not dst_port:
+        dst_port = randint(0, 0xFFFF)
+
+    return Flow(src_addr=src_addr, dst_addr=dst_addr, src_port=src_port, dst_port=dst_port)
 
 
 def build_packet(flow: Flow) -> Packet:
@@ -120,34 +176,8 @@ def build_packet(flow: Flow) -> Packet:
     pkt /= IP(src=flow.src_addr, dst=flow.dst_addr)
     pkt /= UDP(sport=flow.src_port, dport=flow.dst_port)
 
-    # Pad packet to 60 bytes
+    # Pad packet to minimum ethernet frame without CRC (60B)
     if len(pkt) < 60:
         pkt /= b"\0" * (60 - len(pkt))
 
     return pkt
-
-
-def main():
-    ports = Ports(LAN_PORTS)
-
-    for port in LAN_PORTS:
-        print(f"[*] Testing port {port}...")
-
-        flow = build_random_flow()
-        pkt = build_packet(flow)
-
-        ports.send(port, pkt)
-        data = ports.poll()
-
-        assert len(data.keys()) == 1
-        assert port in data
-        assert len(data[port]) == 1
-        assert data[port][0].build() == pkt.build()
-
-
-if __name__ == "__main__":
-    if os.geteuid() != 0:
-        print("Run with sudo.")
-        exit(1)
-
-    main()

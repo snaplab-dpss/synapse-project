@@ -166,13 +166,14 @@ control Ingress(
     if (hdr.cpu.isValid()) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
       hdr.cpu.setInvalid();
+      trigger_forward = true;
     } else if (hdr.recirc.isValid()) {
       
     } else {
       ingress_port_to_nf_dev.apply();
       // EP node  1
       // BDD node 65:vector_borrow(vector:(w64 1074012584), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074081984)[ -> (w64 1074026480)])
-      vector_table_1074012584_65_key_0 = (bit<32>)(vector_table_1074012584_65_key_0[15:0]);
+      vector_table_1074012584_65_key_0 = (bit<32>)(meta.dev[15:0]);
       vector_table_1074012584_65.apply();
       // EP node  13
       // BDD node 66:vector_return(vector:(w64 1074012584), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074026480)[(ReadLSB w16 (w32 0) vector_data_128)])

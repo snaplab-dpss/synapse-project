@@ -11,13 +11,16 @@
 namespace LibSynapse {
 namespace Tofino {
 
+enum class TimeAware { Yes, No };
+
 struct Table : public DS {
   u32 num_entries;
   std::vector<bits_t> keys;
   std::vector<bits_t> params;
+  TimeAware time_aware;
 
-  Table(DS_ID id, u32 num_entries, const std::vector<bits_t> &keys, const std::vector<bits_t> &params);
-
+  Table(DS_ID id, u32 num_entries, const std::vector<bits_t> &keys, const std::vector<bits_t> &params,
+        TimeAware time_aware = TimeAware::No);
   Table(const Table &other);
 
   DS *clone() const override;

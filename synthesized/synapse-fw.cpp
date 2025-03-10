@@ -13,7 +13,7 @@ struct state_t {
   state_t()
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
-      map_table_1074043296("Ingress", {"map_table_1074043296_157","map_table_1074043296_142",}),
+      map_table_1074043296("Ingress", {"map_table_1074043296_157","map_table_1074043296_142",}, 1000LL),
       dchain_table_1074075280("Ingress", {"dchain_table_1074075280_180","dchain_table_1074075280_148",}, 1000LL),
       vector_table_1074075704("Ingress", {"vector_table_1074075704_139",}),
       vector_table_1074092920("Ingress", {"vector_table_1074092920_181","vector_table_1074092920_149",})

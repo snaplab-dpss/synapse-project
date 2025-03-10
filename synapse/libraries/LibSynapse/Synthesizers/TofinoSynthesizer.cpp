@@ -580,7 +580,7 @@ void TofinoSynthesizer::transpile_action_decl(coder_t &coder, const std::string 
 }
 
 void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                                             const std::vector<klee::ref<klee::Expr>> &values, TimeAware time_aware) {
+                                             const std::vector<klee::ref<klee::Expr>> &values) {
   const code_t action_name = table->id + "_get_value";
   if (!values.empty()) {
     transpile_action_decl(coder, action_name, values);
@@ -642,7 +642,7 @@ void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
   coder.indent();
   coder << "size = " << table->num_entries << ";\n";
 
-  if (time_aware == TimeAware::Yes) {
+  if (table->time_aware == TimeAware::Yes) {
     coder.indent();
     coder << "idle_timeout = true;\n";
   }
@@ -814,7 +814,7 @@ void TofinoSynthesizer::transpile_register_write_action_decl(coder_t &coder, con
 void TofinoSynthesizer::transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table,
                                                          const klee::ref<klee::Expr> key, const klee::ref<klee::Expr> value) {
   for (const Table &table : fcfs_cached_table->tables) {
-    transpile_table_decl(coder, &table, {key}, {value}, TimeAware::No);
+    transpile_table_decl(coder, &table, {key}, {value});
   }
 
   std::cerr << coder.dump();
@@ -844,8 +844,18 @@ void TofinoSynthesizer::var_t::declare(coder_t &coder, std::optional<code_t> ass
 TofinoSynthesizer::var_t TofinoSynthesizer::var_t::get_slice(bits_t offset, bits_t size) const {
   assert(offset + size <= expr->getWidth() && "Invalid slice");
 
-  const bits_t lo                  = offset;
-  const bits_t hi                  = offset + size - 1;
+  bits_t lo;
+  bits_t hi;
+
+  if (!is_header_field) {
+    lo = offset;
+    hi = offset + size - 1;
+  } else {
+    bits_t expr_width = expr->getWidth();
+    lo                = expr_width - (offset + size);
+    hi                = expr_width - offset - 1;
+  }
+
   const code_t slice_name          = name + "[" + std::to_string(hi) + ":" + std::to_string(lo) + "]";
   klee::ref<klee::Expr> slice_expr = LibCore::solver_toolbox.exprBuilder->Extract(expr, offset, size);
 
@@ -897,8 +907,8 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
 
-    bits_t expr_size = expr->getWidth();
-    bits_t var_size  = var.expr->getWidth();
+    const bits_t expr_size = expr->getWidth();
+    const bits_t var_size  = var.expr->getWidth();
 
     if (expr_size > var_size) {
       continue;
@@ -1204,11 +1214,7 @@ TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_nam
   if (option & HEADER) {
     hdrs_stacks.insert_back(var);
   } else {
-    if (option & LOCAL) {
-      ingress_vars.insert_back(var);
-    } else {
-      ingress_vars.insert_front(var);
-    }
+    ingress_vars.insert_back(var);
   }
 
   return var;
@@ -1223,6 +1229,11 @@ code_path_t TofinoSynthesizer::alloc_recirc_coder() {
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) {
   coder_t &ingress_apply          = get(MARKER_INGRESS_CONTROL_APPLY);
   const LibCore::Symbols &symbols = node->get_symbols();
+
+  ingress_apply.indent();
+  ingress_apply << "send_to_controller(";
+  ingress_apply << ep_node->get_id();
+  ingress_apply << ");\n";
 
   for (const LibCore::symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
@@ -1242,11 +1253,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << var->name;
     ingress_apply << ";\n";
   }
-
-  ingress_apply.indent();
-  ingress_apply << "send_to_controller(";
-  ingress_apply << ep_node->get_id();
-  ingress_apply << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1588,7 +1594,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (declared_ds.find(table->id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, keys, {value}, TimeAware::No);
+    transpile_table_decl(ingress, table, keys, {value});
     ingress << "\n";
     declared_ds.insert(table->id);
   }
@@ -1629,16 +1635,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Table *table        = vector_table->get_table(node_id);
   assert(table && "Table not found");
 
+  code_t transpiled_key = transpiler.transpile(key);
+
   if (declared_ds.find(table->id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, {key}, {value}, TimeAware::No);
+    transpile_table_decl(ingress, table, {key}, {value});
     ingress << "\n";
     declared_ds.insert(table->id);
   }
 
   std::optional<var_t> key_var = ingress_vars.get(key);
   assert(key_var && "Key is not a variable");
-
-  code_t transpiled_key = transpiler.transpile(key);
 
   ingress_apply.indent();
   ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
@@ -1663,16 +1669,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Table *table        = dchain_table->get_table(node_id);
   assert(table && "Table not found");
 
+  code_t transpiled_key = transpiler.transpile(key);
+
   if (declared_ds.find(table->id) == declared_ds.end()) {
-    transpile_table_decl(ingress, table, {key}, {}, TimeAware::Yes);
+    transpile_table_decl(ingress, table, {key}, {});
     ingress << "\n";
     declared_ds.insert(table->id);
   }
 
   std::optional<var_t> key_var = ingress_vars.get(key);
   assert(key_var && "Key is not a variable");
-
-  code_t transpiled_key = transpiler.transpile(key);
 
   ingress_apply.indent();
   ingress_apply << key_var->name << " = " << transpiled_key << ";\n";

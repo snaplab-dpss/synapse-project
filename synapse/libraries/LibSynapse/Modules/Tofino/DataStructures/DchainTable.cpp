@@ -62,7 +62,7 @@ const Table *DchainTable::get_table(LibBDD::node_id_t op) const {
 }
 
 std::optional<DS_ID> DchainTable::add_table(LibBDD::node_id_t op) {
-  Table new_table(build_table_name(id, op), capacity, {key_size}, {});
+  Table new_table(build_table_name(id, op), capacity, {key_size}, {}, TimeAware::Yes);
   tables.push_back(new_table);
   return new_table.id;
 }

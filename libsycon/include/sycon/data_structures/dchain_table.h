@@ -4,10 +4,13 @@
 #include <optional>
 #include <unordered_set>
 
+#include "../config.h"
 #include "../constants.h"
 #include "../primitives/table.h"
 #include "../time.h"
 #include "../field.h"
+#include "map_table.h"
+#include "vector_table.h"
 
 namespace sycon {
 
@@ -29,13 +32,16 @@ public:
     capacity = tables.back().get_capacity();
 
     for (u32 i = 0; i < capacity; i++) {
-      free_indexes.insert(i);
+      free_indexes.insert(capacity - i - 1);
     }
 
-    for (Table &table : tables) {
-      assert(table.get_capacity() == capacity);
-      table.set_notify_mode(timeout, this, DchainTable::expiration_callback, true);
+    if (timeout < TOFINO_MODEL_MIN_EXPIRATION_TIME) {
+      DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
+      timeout = TOFINO_MODEL_MIN_EXPIRATION_TIME;
     }
+
+    Table &chosen_expiration_table = tables.front();
+    chosen_expiration_table.set_notify_mode(timeout, this, DchainTable::expiration_callback, true);
   }
 
   bool is_index_allocated(u32 index) const {
@@ -62,6 +68,7 @@ public:
 
     for (Table &table : tables) {
       table.mod_entry(key);
+      DEBUG("[%s] Refreshed index %u", table.get_name().c_str(), index);
     }
   }
 
@@ -69,17 +76,19 @@ public:
     assert(index < capacity && "Invalid index");
 
     if (free_indexes.empty()) {
+      DEBUG("No free indexes available");
       return false;
     }
 
     index = *free_indexes.begin();
-    free_indexes.erase(free_indexes.begin());
+    free_indexes.erase(free_indexes.cbegin());
 
     buffer_t key(4);
     key.set(0, 4, index);
 
     for (Table &table : tables) {
       table.add_entry(key);
+      DEBUG("[%s] Allocated index %u", table.get_name().c_str(), index);
     }
 
     cache.insert(index);
@@ -100,6 +109,7 @@ public:
 
     for (Table &table : tables) {
       table.del_entry(key);
+      DEBUG("[%s] Freed index %u", table.get_name().c_str(), index);
     }
 
     cache.erase(found_it);
@@ -157,8 +167,6 @@ private:
     u64 key_value;
     status = key->getValue(key_field.id, &key_value);
     ASSERT_BF_STATUS(status);
-
-    DEBUG("[%s] Expiring index %lu", table_name.c_str(), key_value);
 
     u32 index = static_cast<u32>(key_value);
     dchain_table->free_index(index);

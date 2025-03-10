@@ -5,8 +5,6 @@
 
 namespace sycon {
 
-// Buffer that dynamically allocates memory for byte arrays.
-// Data is stored in network byte order.
 struct buffer_t {
   u8 *data;
   bytes_t size;
@@ -35,11 +33,12 @@ struct buffer_t {
       return *this;
     }
 
-    if (size < other.size) {
+    if (data != nullptr) {
       delete[] data;
-      size = other.size;
-      data = new u8[size];
     }
+
+    size = other.size;
+    data = new u8[size];
 
     std::memset(data, 0, size);
     std::copy(other.data, other.data + other.size, data + (size - other.size));
@@ -47,7 +46,28 @@ struct buffer_t {
     return *this;
   }
 
-  u8 &operator[](bytes_t i) { return data[i]; }
+  buffer_t &operator=(buffer_t &&other) {
+    if (this == &other) {
+      return *this;
+    }
+
+    if (data != nullptr) {
+      delete[] data;
+    }
+
+    data = other.data;
+    size = other.size;
+
+    other.data = nullptr;
+    other.size = 0;
+
+    return *this;
+  }
+
+  u8 &operator[](bytes_t i) {
+    assert(i < size);
+    return data[i];
+  }
 
   // Get the value of a buffer at a given offset and width.
   // Returned value is little-endian.
@@ -58,11 +78,23 @@ struct buffer_t {
 
     u64 value = 0;
     for (bytes_t i = 0; i < width; i++) {
+      bytes_t index = offset + i;
+      assert(index < size);
+
       value <<= 8;
-      value |= data[offset + i];
+      value |= data[index];
     }
 
     return value;
+  }
+
+  buffer_t get_slice(bytes_t offset, bytes_t width) const {
+    assert(width > 0 && "Width must be greater than 0");
+    assert(offset + width <= size && "Offset and width must be within buffer bounds");
+
+    buffer_t slice(width);
+    std::copy(data + offset, data + offset + width, slice.data);
+    return slice;
   }
 
   // Set the value of a buffer at a given offset and width.
@@ -73,9 +105,27 @@ struct buffer_t {
     assert(width <= 8 && "Width must be less than or equal to 8 bytes");
 
     for (bytes_t i = 0; i < width; i++) {
-      data[width - 1 - (offset + i)] = value & 0xFF;
+      bytes_t index = size - 1 - (offset + i);
+      assert(index < size);
+      data[index] = value & 0xFF;
       value >>= 8;
     }
+  }
+
+  buffer_t reverse() const {
+    buffer_t reversed(size);
+    for (bytes_t i = 0; i < size; i++) {
+      reversed.data[i] = data[size - 1 - i];
+    }
+    return reversed;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const buffer_t &buffer);
+
+  std::string to_string() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
   }
 };
 

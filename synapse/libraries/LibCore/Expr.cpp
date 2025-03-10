@@ -22,13 +22,13 @@ public:
     assert(expr->getKind() == klee::Expr::Constant && "Not a constant");
     assert(expr->getWidth() <= 64 && "Unsupported width");
 
-    auto constant  = dynamic_cast<const klee::ConstantExpr *>(expr.get());
-    auto width     = constant->getWidth();
-    auto value     = constant->getZExtValue();
-    auto new_value = 0;
+    const klee::ConstantExpr *constant = dynamic_cast<const klee::ConstantExpr *>(expr.get());
+    bits_t width                       = constant->getWidth();
+    u64 value                          = constant->getZExtValue();
+    u64 new_value                      = 0;
 
-    for (auto i = 0u; i < width; i += 8) {
-      auto byte = (value >> i) & 0xff;
+    for (u32 i = 0; i < width; i += 8) {
+      u8 byte   = (value >> i) & 0xff;
       new_value = (new_value << 8) | byte;
     }
 
@@ -42,22 +42,21 @@ public:
     klee::ref<klee::Expr> lhs = expr->getKid(0);
     klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-    auto lhs_is_pkt_read = is_packet_readLSB(lhs);
-    auto rhs_is_pkt_read = is_packet_readLSB(rhs);
+    bool lhs_is_pkt_read = is_packet_readLSB(lhs);
+    bool rhs_is_pkt_read = is_packet_readLSB(rhs);
 
-    // If they are either both packet reads or neither one is, then we are not
-    // interested.
+    // If they are either both packet reads or neither one is, then we are not interested.
     if (!(lhs_is_pkt_read ^ rhs_is_pkt_read)) {
       return nullptr;
     }
 
-    auto pkt_read     = lhs_is_pkt_read ? lhs : rhs;
-    auto not_pkt_read = lhs_is_pkt_read ? rhs : lhs;
+    klee::ref<klee::Expr> pkt_read     = lhs_is_pkt_read ? lhs : rhs;
+    klee::ref<klee::Expr> not_pkt_read = lhs_is_pkt_read ? rhs : lhs;
 
     // TODO: we should consider the other types
     assert(not_pkt_read->getKind() == klee::Expr::Constant && "Not a constant");
 
-    auto new_constant = swap_const_endianness(not_pkt_read);
+    klee::ref<klee::Expr> new_constant = swap_const_endianness(not_pkt_read);
 
     klee::ref<klee::Expr> new_kids[2] = {pkt_read, new_constant};
     return expr->rebuild(new_kids);

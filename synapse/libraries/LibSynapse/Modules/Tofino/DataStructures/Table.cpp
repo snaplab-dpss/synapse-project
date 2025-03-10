@@ -6,13 +6,14 @@
 namespace LibSynapse {
 namespace Tofino {
 
-Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params)
-    : DS(DSType::TABLE, true, _id), num_entries(_num_entries), keys(_keys), params(_params) {
+Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware)
+    : DS(DSType::TABLE, true, _id), num_entries(_num_entries), keys(_keys), params(_params), time_aware(_time_aware) {
   assert(_num_entries > 0 && "Table entries must be greater than 0");
 }
 
 Table::Table(const Table &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys(other.keys), params(other.params) {}
+    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys(other.keys), params(other.params),
+      time_aware(other.time_aware) {}
 
 DS *Table::clone() const { return new Table(*this); }
 
@@ -48,6 +49,7 @@ void Table::debug() const {
   std::cerr << "]\n";
   std::cerr << "Xbar:      " << get_match_xbar_consume() / 8 << " B\n";
   std::cerr << "SRAM:      " << get_consumed_sram() / 8 << " B\n";
+  std::cerr << "Timed:     " << ((time_aware == TimeAware::Yes) ? "yes" : "no") << "\n";
   std::cerr << "==============================\n";
 }
 

@@ -65,8 +65,8 @@ const Table *MapTable::get_table(LibBDD::node_id_t op) const {
   return nullptr;
 }
 
-std::optional<DS_ID> MapTable::add_table(LibBDD::node_id_t op, const std::vector<bits_t> &keys_sizes) {
-  Table new_table(build_table_name(id, op), capacity, keys_sizes, {param_size});
+std::optional<DS_ID> MapTable::add_table(LibBDD::node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
+  Table new_table(build_table_name(id, op), capacity, keys_sizes, {param_size}, time_aware);
   tables.push_back(new_table);
   return new_table.id;
 }

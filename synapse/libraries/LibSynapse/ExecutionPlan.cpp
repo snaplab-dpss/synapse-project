@@ -64,137 +64,6 @@ pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> es
 
 ep_id_t ep_id_counter = 0;
 
-addr_t get_vector_obj_storing_map_key(const LibBDD::BDD *bdd, const LibBDD::map_coalescing_objs_t &map_coalescing_objs) {
-  std::vector<const LibBDD::Call *> vector_borrows = bdd->get_root()->get_future_functions({"vector_borrow"});
-
-  for (const LibBDD::Call *vector_borrow : vector_borrows) {
-    const LibBDD::call_t &vb = vector_borrow->get_call();
-
-    klee::ref<klee::Expr> vector_expr     = vb.args.at("vector").expr;
-    klee::ref<klee::Expr> value_addr_expr = vb.args.at("val_out").out;
-
-    addr_t vector_obj = LibCore::expr_addr_to_obj_addr(vector_expr);
-    addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
-
-    if (map_coalescing_objs.vectors.find(vector_obj) == map_coalescing_objs.vectors.end()) {
-      continue;
-    }
-
-    std::vector<const LibBDD::Call *> map_puts = vector_borrow->get_future_functions({"map_put"});
-
-    bool is_vector_key = false;
-    for (const LibBDD::Call *map_put : map_puts) {
-      const LibBDD::call_t &mp = map_put->get_call();
-
-      klee::ref<klee::Expr> map_expr      = mp.args.at("map").expr;
-      klee::ref<klee::Expr> key_addr_expr = mp.args.at("key").expr;
-
-      addr_t map_obj  = LibCore::expr_addr_to_obj_addr(map_expr);
-      addr_t key_addr = LibCore::expr_addr_to_obj_addr(key_addr_expr);
-
-      if (map_obj != map_coalescing_objs.map) {
-        continue;
-      }
-
-      if (key_addr == value_addr) {
-        is_vector_key = true;
-        break;
-      }
-    }
-
-    if (!is_vector_key) {
-      continue;
-    }
-
-    return vector_obj;
-  }
-
-  panic("Vector key not found");
-}
-
-void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd, addr_t map) {
-  LibBDD::map_coalescing_objs_t map_coalescing_data;
-  if (!bdd->get_map_coalescing_objs(map, map_coalescing_data)) {
-    return;
-  }
-
-  addr_t vector_key = get_vector_obj_storing_map_key(bdd, map_coalescing_data);
-
-  std::unordered_set<const LibBDD::Node *> candidates;
-  LibCore::Symbols key_symbols;
-
-  bdd->get_root()->visit_nodes([map_coalescing_data, vector_key, &candidates, &key_symbols](const LibBDD::Node *node) {
-    if (node->get_type() != LibBDD::NodeType::Call) {
-      return LibBDD::NodeVisitAction::Continue;
-    }
-
-    const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-    const LibBDD::call_t &call    = call_node->get_call();
-
-    if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
-      return LibBDD::NodeVisitAction::Continue;
-    }
-
-    klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
-
-    if (obj != vector_key) {
-      return LibBDD::NodeVisitAction::Continue;
-    }
-
-    if (call.function_name == "vector_borrow") {
-      key_symbols.add(call_node->get_local_symbols());
-    }
-
-    candidates.insert(node);
-
-    return LibBDD::NodeVisitAction::Continue;
-  });
-
-  bool used = false;
-  bdd->get_root()->visit_nodes([&used, &candidates, &key_symbols](const LibBDD::Node *node) {
-    if (node->get_type() != LibBDD::NodeType::Call) {
-      return LibBDD::NodeVisitAction::Continue;
-    }
-
-    if (candidates.find(node) != candidates.end()) {
-      return LibBDD::NodeVisitAction::Continue;
-    }
-
-    const LibCore::Symbols symbols = node->get_used_symbols();
-    if (!symbols.intersect(key_symbols).empty()) {
-      used = true;
-      return LibBDD::NodeVisitAction::Stop;
-    }
-
-    return LibBDD::NodeVisitAction::Continue;
-  });
-
-  if (used) {
-    return;
-  }
-
-  for (const LibBDD::Node *node : candidates) {
-    bdd->delete_non_branch(node->get_id());
-  }
-
-  for (const LibBDD::Call *call : bdd->get_init()) {
-    if (call->get_call().function_name != "vector_allocate") {
-      continue;
-    }
-
-    klee::ref<klee::Expr> obj_expr = call->get_call().args.at("vector_out").out;
-    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
-
-    if (obj != vector_key) {
-      continue;
-    }
-
-    bdd->delete_init_node(call->get_id());
-    break;
-  }
-}
-
 void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   // 1. Get all map operations.
   // 2. Remove all vector operations storing the key.
@@ -224,21 +93,17 @@ void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   // the entire BDD every single time), but this is a quick and dirty way of
   // doing it.
   for (addr_t map : maps) {
-    delete_all_unused_vector_key_operations_from_bdd(bdd, map);
+    LibBDD::map_coalescing_objs_t map_objs;
+    if (!bdd->get_map_coalescing_objs(map, map_objs)) {
+      continue;
+    }
+    bdd->delete_vector_key_operations(map_objs);
   }
 }
 
 LibBDD::BDD *setup_bdd(const LibBDD::BDD &bdd) {
   LibBDD::BDD *new_bdd = new LibBDD::BDD(bdd);
-
   delete_all_unused_vector_key_operations_from_bdd(new_bdd);
-
-  // Just to double check that we didn't break anything...
-  LibBDD::BDD::inspection_report_t report = new_bdd->inspect();
-  if (report.status != LibBDD::BDD::InspectionStatus::Ok) {
-    panic("BDD inspection failed: %s", report.message.c_str());
-  }
-
   return new_bdd;
 }
 

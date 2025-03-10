@@ -64,6 +64,18 @@ template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   return dynamic_cast<const T *>(ds);
 }
 
+time_ns_t get_expiration_time(const Context &ctx) {
+  const std::optional<expiration_data_t> expiration_data = ctx.get_expiration_data();
+  assert(expiration_data.has_value() && "Expiration data not found");
+
+  // Tofino limitation: expiration time must be >= 100ms
+  if (expiration_data->expiration_time < 100'000'000LL) {
+    panic("Expiration time is too low (%lu)", expiration_data->expiration_time);
+  }
+
+  return expiration_data->expiration_time;
+}
+
 } // namespace
 
 ControllerSynthesizer::Transpiler::Transpiler(const ControllerSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
@@ -1080,7 +1092,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocate *node) {
   const addr_t obj                = node->get_obj();
-  const time_ns_t expiration_time = node->get_expiration_time();
+  const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
 
   const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
 
@@ -1627,7 +1639,10 @@ void ControllerSynthesizer::transpile_register_decl(const Tofino::Register *reg)
 void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map_table) {
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
-  const code_t name = assert_unique_name(map_table->id);
+  const code_t name                  = assert_unique_name(map_table->id);
+  const time_ns_t expiration_time    = get_expiration_time(ep->get_ctx());
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+  bool time_aware                    = false;
 
   state_fields.indent();
   state_fields << "MapTable " << name << ";\n";
@@ -1639,8 +1654,16 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   member_init_list << "{";
   for (const Tofino::Table &table : map_table->tables) {
     member_init_list << "\"" << table.id << "\",";
+    if (table.time_aware == Tofino::TimeAware::Yes) {
+      time_aware = true;
+    }
   }
   member_init_list << "}";
+
+  if (time_aware) {
+    member_init_list << ", " << expiration_time_ms << "LL";
+  }
+
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }

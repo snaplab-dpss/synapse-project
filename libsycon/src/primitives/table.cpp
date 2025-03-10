@@ -81,6 +81,10 @@ std::vector<table_action_t> build_actions(const bfrt::BfRtTable *table) {
       bf_status = table->dataFieldNameGet(data_id, action_id, &data_name);
       ASSERT_BF_STATUS(bf_status);
 
+      if (data_name == DATA_FIELD_NAME_ENTRY_TTL || data_name == DATA_FIELD_NAME_ENTRY_HIT_STATE) {
+        continue;
+      }
+
       size_t size;
       bf_status = table->dataFieldSizeGet(data_id, action_id, &size);
       ASSERT_BF_STATUS(bf_status);
@@ -362,8 +366,7 @@ void dump_data(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableDa
 
     ASSERT_BF_STATUS(bf_status);
 
-    // Apparently, the ENTRY HIT STATE data is only available for tables
-    // configured with POLL MODE, not NOTIFY MODE.
+    // Apparently, the ENTRY HIT STATE data is only available for tables configured with POLL MODE, not NOTIFY MODE.
     if (data_field_name == DATA_FIELD_NAME_ENTRY_HIT_STATE && time_aware) {
       continue;
     }
@@ -541,10 +544,10 @@ size_t Table::get_usage() const {
 const std::vector<table_field_t> &Table::get_key_fields() const { return key_fields; }
 const std::vector<table_action_t> &Table::get_actions() const { return actions; }
 
-void Table::add_entry(const buffer_t &k) {
+void Table::add_entry(const buffer_t &k, bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
   set_data();
 
   uint64_t flags;
@@ -555,10 +558,10 @@ void Table::add_entry(const buffer_t &k) {
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Table::add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params) {
+void Table::add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params, bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
   set_data(action_name, params);
 
   uint64_t flags;
@@ -569,10 +572,10 @@ void Table::add_entry(const buffer_t &k, const std::string &action_name, const s
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Table::mod_entry(const buffer_t &k) {
+void Table::mod_entry(const buffer_t &k, bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
   set_data();
 
   uint64_t flags;
@@ -583,20 +586,20 @@ void Table::mod_entry(const buffer_t &k) {
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Table::mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params) {
+void Table::mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params, bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
   set_data(action_name, params);
 
   bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Table::add_or_mod_entry(const buffer_t &k) {
+void Table::add_or_mod_entry(const buffer_t &k, bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
   set_data();
 
   uint64_t flags;
@@ -607,10 +610,11 @@ void Table::add_or_mod_entry(const buffer_t &k) {
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Table::add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params) {
+void Table::add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params,
+                             bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
   set_data(action_name, params);
 
   uint64_t flags;
@@ -622,10 +626,10 @@ void Table::add_or_mod_entry(const buffer_t &k, const std::string &action_name, 
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Table::del_entry(const buffer_t &k) {
+void Table::del_entry(const buffer_t &k, bool reverse_key_fields) {
   bf_status_t bf_status;
 
-  set_key(k);
+  set_key(k, reverse_key_fields);
 
   uint64_t flags;
   BF_RT_FLAG_INIT(flags);
@@ -672,7 +676,7 @@ struct kd_t {
   }
 };
 
-void Table::set_key(const buffer_t &k) {
+void Table::set_key(const buffer_t &k, bool reverse_key_fields) {
   bf_status_t bf_status;
 
   bf_status = table->keyReset(key.get());
@@ -681,6 +685,8 @@ void Table::set_key(const buffer_t &k) {
   bytes_t offset = 0;
   for (const table_field_t &field : key_fields) {
     const bytes_t size = field.size / 8;
+
+    assert(k.size >= offset + size && "Key size is smaller than field size");
 
     bfrt::DataType data_type;
     table->keyFieldDataTypeGet(field.id, &data_type);
@@ -692,9 +698,11 @@ void Table::set_key(const buffer_t &k) {
       ASSERT_BF_STATUS(bf_status);
     } break;
     case bfrt::DataType::BYTE_STREAM: {
-      buffer_t stream(size);
-      stream    = k;
-      bf_status = key->setValue(field.id, stream.data, size);
+      buffer_t slice = k.get_slice(offset, size);
+      if (reverse_key_fields) {
+        slice = slice.reverse();
+      }
+      bf_status = key->setValue(field.id, slice.data, size);
       ASSERT_BF_STATUS(bf_status);
     } break;
     default: {
@@ -741,6 +749,8 @@ void Table::set_data(const std::string &action_name, const std::vector<buffer_t>
     const buffer_t &param      = params[i];
     const bytes_t size         = field.size / 8;
 
+    assert(param.size >= size && "Parameter size is smaller than field size");
+
     bfrt::DataType data_type;
     bf_status = table->dataFieldDataTypeGet(field.id, action.action_id, &data_type);
     ASSERT_BF_STATUS(bf_status);
@@ -752,9 +762,8 @@ void Table::set_data(const std::string &action_name, const std::vector<buffer_t>
       ASSERT_BF_STATUS(bf_status);
     } break;
     case bfrt::DataType::BYTE_STREAM: {
-      buffer_t stream(size);
-      stream    = param;
-      bf_status = data->setValue(field.id, stream.data, size);
+      buffer_t slice = param.get_slice(0, size);
+      bf_status      = data->setValue(field.id, slice.data, size);
       ASSERT_BF_STATUS(bf_status);
     } break;
     default: {
@@ -823,6 +832,60 @@ void Table::dump(std::ostream &os) const {
 
   os << "  Entries: " << std::dec << total_entries << "\n";
   os << "================================================\n";
+}
+
+buffer_t Table::get_key_value(const bfrt::BfRtTableKey *key, bool reverse_key_fields) const {
+  bf_status_t bf_status;
+
+  bytes_t key_size = 0;
+  for (const table_field_t &field : key_fields) {
+    key_size += field.size / 8;
+  }
+
+  buffer_t key_buffer(key_size);
+
+  bytes_t offset = 0;
+  for (const table_field_t &table_field : key_fields) {
+    const bytes_t field_size = table_field.size / 8;
+
+    bfrt::DataType key_field_data_type;
+    bf_status = table->keyFieldDataTypeGet(table_field.id, &key_field_data_type);
+    ASSERT_BF_STATUS(bf_status);
+
+    bfrt::KeyFieldType key_field_type;
+    bf_status = table->keyFieldTypeGet(table_field.id, &key_field_type);
+    ASSERT_BF_STATUS(bf_status);
+    assert(key_field_type == bfrt::KeyFieldType::EXACT);
+
+    switch (key_field_data_type) {
+    case bfrt::DataType::UINT64: {
+      u64 key_field_value;
+      bf_status = key->getValue(table_field.id, &key_field_value);
+      ASSERT_BF_STATUS(bf_status);
+      key_buffer.set(offset, field_size, key_field_value);
+    } break;
+    case bfrt::DataType::BYTE_STREAM: {
+      std::vector<u8> value(field_size);
+      bf_status = key->getValue(table_field.id, field_size, value.data());
+      ASSERT_BF_STATUS(bf_status);
+
+      for (size_t i = 0; i < field_size; i++) {
+        if (reverse_key_fields) {
+          key_buffer.set(key_size - 1 - (offset + i), 1, value[field_size - i - 1]);
+        } else {
+          key_buffer.set(key_size - 1 - (offset + i), 1, value[i]);
+        }
+      }
+    } break;
+    default: {
+      ERROR("Unexpected key field data type: %d", static_cast<int>(key_field_data_type));
+    }
+    }
+
+    offset += field_size;
+  }
+
+  return key_buffer;
 }
 
 } // namespace sycon

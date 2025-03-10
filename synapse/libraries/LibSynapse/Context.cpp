@@ -247,7 +247,13 @@ const LibBDD::tb_config_t &Context::get_tb_config(addr_t addr) const {
 
 std::optional<LibBDD::map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj) const {
   for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
-    if (candidate.map == obj || candidate.dchain == obj || candidate.vectors.find(obj) != candidate.vectors.end()) {
+    bool match = false;
+
+    match = match || candidate.map == obj;
+    match = match || candidate.dchain == obj;
+    match = match || candidate.vectors.find(obj) != candidate.vectors.end();
+
+    if (match) {
       return candidate;
     }
   }

@@ -5,7 +5,7 @@ using namespace sycon;
 struct state_t {
   MapTable map_table;
 
-  state_t() : map_table("Ingress", {"map_table_0", "map_table_1"}) {}
+  state_t() : map_table("Ingress", {"map_table_0", "map_table_1"}, 1000) {}
 };
 
 std::unique_ptr<state_t> state;
