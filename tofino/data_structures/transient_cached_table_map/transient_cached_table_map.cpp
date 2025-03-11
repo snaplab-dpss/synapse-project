@@ -56,13 +56,12 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   (void)eth_hdr;
 
-  map_key_t flow({SWAP_ENDIAN_32(ipv4_hdr->src_ip), SWAP_ENDIAN_32(ipv4_hdr->dst_ip), SWAP_ENDIAN_16(tcpudp_hdr->src_port),
-                  SWAP_ENDIAN_16(tcpudp_hdr->dst_port)});
+  map_key_t flow({bswap32(ipv4_hdr->src_ip), bswap32(ipv4_hdr->dst_ip), bswap16(tcpudp_hdr->src_port), bswap16(tcpudp_hdr->dst_port)});
 
   map_value_t out_port({cfg.out_dev_port});
 
   state->map.put(flow, out_port);
-  cpu_hdr->out_port = SWAP_ENDIAN_16(cfg.out_dev_port);
+  cpu_hdr->out_port = bswap16(cfg.out_dev_port);
 
   return true;
 }

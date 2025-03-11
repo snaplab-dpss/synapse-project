@@ -59,12 +59,13 @@ public:
     value.set(0, 4, v);
 
     for (Table &table : tables) {
+      DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
+
       const std::vector<table_action_t> &actions = table.get_actions();
       assert(actions.size() == 1);
 
       const table_action_t &set_param_action = actions[0];
-      table.add_or_mod_entry(k, set_param_action.name, {value}, true);
-      DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
+      table.add_or_mod_entry(k, set_param_action.name, {value});
     }
 
     cache[k] = v;
@@ -77,8 +78,8 @@ public:
     }
 
     for (Table &table : tables) {
-      table.del_entry(k, true);
-      DEBUG("[%s] Freed key %s", table.get_name().c_str(), k.to_string().c_str());
+      DEBUG("[%s] Free key %s", table.get_name().c_str(), k.to_string().c_str());
+      table.del_entry(k);
     }
 
     cache.erase(found_it);
@@ -123,7 +124,7 @@ private:
     for (const Table &target_table : map_table->tables) {
       if (target_table.get_full_name() == table_name) {
         target_table_found = true;
-        key_buffer         = target_table.get_key_value(key, true);
+        key_buffer         = target_table.get_key_value(key);
         break;
       }
     }
@@ -133,8 +134,6 @@ private:
     }
 
     map_table->del(key_buffer);
-
-    map_table->dump();
 
     cfg.end_transaction();
   }

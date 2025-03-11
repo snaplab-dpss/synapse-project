@@ -1,4 +1,6 @@
 #include <LibCore/kQuery.h>
+#include <LibCore/Expr.h>
+#include <LibCore/Solver.h>
 
 #include <iostream>
 #include <assert.h>
@@ -10,7 +12,7 @@ LibCore::kQuery_t parse(const std::string &kQueryStr, LibCore::SymbolManager *ma
   return kQuery;
 }
 
-int main() {
+void test1() {
   const std::string query = "array loop_termination[4] : w32 -> w8 = symbolic\n"
                             "array starting_time[8] : w32 -> w8 = symbolic\n"
                             "(query [(Sle (w64 0) N0:(ReadLSB w64 (w32 0) starting_time)) (Eq "
@@ -50,6 +52,122 @@ int main() {
   std::cerr << kQuery.dump(&manager) << "\n";
 
   std::cerr << "========================================\n";
+}
 
+// (Extract w16 0 (Or w32 (Shl w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 255)) (w32 8)) (AShr w32 (And w32 (ZExt
+// w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 65280)) (w32 8))))
+void test2() {
+  const std::string query =
+      "array packet_chunks[1280] : w32 -> w8 = symbolic\n"
+      "(query [] false [(Extract w16 0 (Or w32 (Shl w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 255)) (w32 8)) "
+      "(AShr w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 65280)) (w32 8))))])\n";
+
+  LibCore::SymbolManager manager;
+  LibCore::kQuery_t kQuery = parse(query, &manager);
+
+  std::cerr << "\n========================================\n";
+  std::cerr << "Query:\n";
+  std::cerr << query << "\n";
+
+  assert(manager.get_arrays().size() == 1);
+  assert(kQuery.values.size() == 1);
+  assert(kQuery.constraints.size() == 0);
+
+  klee::ref<klee::Expr> expr = kQuery.values[0];
+
+  std::cerr << "Expr: " << LibCore::expr_to_string(expr) << "\n";
+
+  klee::ref<klee::Expr> target;
+  bool is_endian_swap = LibCore::match_endian_swap_pattern(expr, target);
+
+  std::cerr << "Is endian swap: " << is_endian_swap << "\n";
+
+  if (is_endian_swap) {
+    std::cerr << "Target: " << LibCore::expr_to_string(target) << "\n";
+  }
+
+  std::cerr << "========================================\n";
+}
+
+void test3() {
+  const std::string query =
+      "array packet_chunks[1280] : w32 -> w8 = symbolic\n"
+      "(query [] false [(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 "
+      "(w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 "
+      "(Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) "
+      "(Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))\n(Concat w104 (Read w8 (w32 265) "
+      "packet_chunks) (Concat w96 (ReadLSB w64 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks)))])\n";
+
+  LibCore::SymbolManager manager;
+  LibCore::kQuery_t kQuery = parse(query, &manager);
+
+  std::cerr << "\n========================================\n";
+  std::cerr << "Query:\n";
+  std::cerr << query << "\n";
+
+  assert(manager.get_arrays().size() == 1);
+  assert(kQuery.values.size() == 2);
+  assert(kQuery.constraints.size() == 0);
+
+  klee::ref<klee::Expr> expr0 = kQuery.values[0];
+  klee::ref<klee::Expr> expr1 = kQuery.values[1];
+
+  std::cerr << "Expr0: " << LibCore::expr_to_string(expr0) << "\n";
+  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr0)) << "\n";
+  std::cerr << "\n";
+  std::cerr << "Expr1: " << LibCore::expr_to_string(expr1) << "\n";
+  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr1)) << "\n";
+
+  for (const auto &group : LibCore::get_expr_groups(expr0)) {
+    std::cerr << "\n";
+    std::cerr << "has symbol? " << group.has_symbol << "\n";
+    if (group.has_symbol) {
+      std::cerr << "symbol: " << group.symbol << "\n";
+    }
+    std::cerr << "offset: " << group.offset << "\n";
+    std::cerr << "size: " << group.size << "\n";
+    std::cerr << "expr: " << LibCore::expr_to_string(group.expr) << "\n";
+  }
+
+  std::cerr << "========================================\n";
+
+  std::cerr << "eq? " << LibCore::solver_toolbox.are_exprs_always_equal(expr0, expr1) << "\n";
+}
+
+void test4() {
+  const std::string query =
+      "array packet_chunks[1280] : w32 -> w8 = symbolic\n"
+      "(query [] false [\n(ReadLSB w32 (w32 512) packet_chunks)\n(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 "
+      "514) packet_chunks) (Concat w16 (Read w8 (w32 513) packet_chunks) (Read w8 (w32 512) packet_chunks))))])\n";
+
+  LibCore::SymbolManager manager;
+  LibCore::kQuery_t kQuery = parse(query, &manager);
+
+  std::cerr << "\n========================================\n";
+  std::cerr << "Query:\n";
+  std::cerr << query << "\n";
+
+  assert(manager.get_arrays().size() == 1);
+  assert(kQuery.values.size() == 2);
+  assert(kQuery.constraints.size() == 0);
+
+  klee::ref<klee::Expr> expr0 = kQuery.values[0];
+  klee::ref<klee::Expr> expr1 = kQuery.values[1];
+
+  std::cerr << "Expr0: " << LibCore::expr_to_string(expr0) << "\n";
+  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr0)) << "\n";
+
+  std::cerr << "\n";
+  std::cerr << "Expr1: " << LibCore::expr_to_string(expr1) << "\n";
+  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr1)) << "\n";
+
+  std::cerr << "========================================\n";
+}
+
+int main() {
+  // test1();
+  // test2();
+  test3();
+  // test4();
   return 0;
 }

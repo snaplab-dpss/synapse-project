@@ -40,10 +40,6 @@ public:
 
     buffer_t value(value_size / 8);
     cache.resize(capacity, value);
-
-    for (u32 i = 0; i < capacity; i++) {
-      write(i, value);
-    }
   }
 
   void read(u32 index, buffer_t &v) const {
@@ -56,6 +52,8 @@ public:
     key.set(0, 4, index);
 
     for (Table &table : tables) {
+      DEBUG("[%s] Write index %u value %s", table.get_name().c_str(), index, value.to_string().c_str());
+
       const std::vector<table_action_t> &actions = table.get_actions();
       assert(actions.size() == 1);
 

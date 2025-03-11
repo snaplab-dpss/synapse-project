@@ -25,10 +25,10 @@ private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
   private:
     std::stack<coder_t> coders;
-    const TofinoSynthesizer *synthesizer;
+    TofinoSynthesizer *synthesizer;
 
   public:
-    Transpiler(const TofinoSynthesizer *synthesizer);
+    Transpiler(TofinoSynthesizer *synthesizer);
 
     code_t transpile(klee::ref<klee::Expr> expr);
 
@@ -139,12 +139,13 @@ private:
 
   using alloc_opt_t = u32;
 
-  static constexpr const alloc_opt_t LOCAL        = 0b000001;
-  static constexpr const alloc_opt_t GLOBAL       = 0b000010;
-  static constexpr const alloc_opt_t EXACT_NAME   = 0b000100;
-  static constexpr const alloc_opt_t HEADER       = 0b001000;
-  static constexpr const alloc_opt_t HEADER_FIELD = 0b010000;
-  static constexpr const alloc_opt_t FORCE_BOOL   = 0b100000;
+  static constexpr const alloc_opt_t LOCAL            = 0b0000001;
+  static constexpr const alloc_opt_t GLOBAL           = 0b0000010;
+  static constexpr const alloc_opt_t SKIP_STACK_ALLOC = 0b0000100;
+  static constexpr const alloc_opt_t EXACT_NAME       = 0b0001000;
+  static constexpr const alloc_opt_t HEADER           = 0b0010000;
+  static constexpr const alloc_opt_t HEADER_FIELD     = 0b0100000;
+  static constexpr const alloc_opt_t FORCE_BOOL       = 0b1000000;
 
   std::unordered_map<code_t, int> var_prefix_usage;
 
@@ -200,7 +201,7 @@ private:
   void transpile_action_decl(coder_t &coder, const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params);
 
   void transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                            const std::vector<klee::ref<klee::Expr>> &values);
+                            const std::vector<klee::ref<klee::Expr>> &values, std::vector<var_t> &keys_vars);
 
   void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
   void transpile_register_read_action_decl(coder_t &coder, const Register *reg, const code_t &name);

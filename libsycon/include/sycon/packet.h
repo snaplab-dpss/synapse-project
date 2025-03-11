@@ -32,6 +32,25 @@ struct ipv4_hdr_t {
   ipv4_addr_t dst_ip;
 } __attribute__((packed));
 
+struct udp_hdr_t {
+  u16 src_port;
+  u16 dst_port;
+  u16 dgram_len;
+  u16 dgram_cksum;
+} __attribute__((packed));
+
+struct tcp_hdr_t {
+  u16 src_port;
+  u16 dst_port;
+  u32 sent_seq;
+  u32 recv_ack;
+  u8 data_off;
+  u8 tcp_flags;
+  u16 rx_win;
+  u16 cksum;
+  u16 tcp_urp;
+} __attribute__((packed));
+
 struct tcpudp_hdr_t {
   port_t src_port;
   port_t dst_port;
@@ -57,7 +76,6 @@ void packet_log(const ipv4_hdr_t *ipv4_hdr);
 void packet_log(const tcpudp_hdr_t *tcpudp_hdr);
 
 unsigned ether_addr_hash(mac_addr_t addr);
-u16 ipv4_cksum(const ipv4_hdr_t *ipv4_hdr);
-u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr, const void *l4_hdr);
+void update_ipv4_tcpudp_checksums(void *ipv4_hdr, void *l4_hdr);
 
 } // namespace sycon

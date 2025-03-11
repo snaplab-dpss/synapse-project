@@ -88,6 +88,8 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
 
   expr = LibCore::simplify(expr);
 
+  klee::ref<klee::Expr> endian_swap_target;
+
   if (LibCore::is_constant(expr)) {
     assert(expr->getWidth() <= 64 && "Unsupported constant width");
     u64 value = LibCore::solver_toolbox.value_from_expr(expr);
@@ -97,6 +99,15 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
         coder << "U";
       }
       coder << "LL";
+    }
+  } else if (LibCore::match_endian_swap_pattern(expr, endian_swap_target)) {
+    bits_t size = endian_swap_target->getWidth();
+    if (size == 16) {
+      coder << "bswap16(" << transpile(endian_swap_target) << ")";
+    } else if (size == 32) {
+      coder << "bswap32(" << transpile(endian_swap_target) << ")";
+    } else {
+      panic("FIXME: incompatible endian swap size %d\n", size);
     }
   } else {
     visit(expr);
@@ -846,7 +857,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   coder.indent();
   coder << ((code_paths.size() == 1) ? "if " : "else if ");
-  coder << "(SWAP_ENDIAN_16(cpu_hdr->code_path) == " << ep_node->get_id() << ") {\n";
+  coder << "(bswap16(cpu_hdr->code_path) == " << ep_node->get_id() << ") {\n";
 
   coder.inc();
   visit(ep, next_node);
@@ -891,11 +902,24 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   assert(hdr.has_value() && "Header not found");
 
   for (const LibCore::expr_mod_t &mod : changes) {
-    assert(mod.width == 8 && "Unsupported width");
-    coder.indent();
-    coder << hdr.value().name << "[" << mod.offset / 8 << "] = ";
-    coder << transpiler.transpile(mod.expr);
-    coder << ";\n";
+    LibCore::symbolic_reads_t symbolic_reads = LibCore::get_unique_symbolic_reads(mod.expr, "checksum");
+    if (!symbolic_reads.empty()) {
+      continue;
+    }
+
+    bytes_t size = mod.width / 8;
+    for (bytes_t i = 0; i < size; i++) {
+      coder.indent();
+      coder << hdr.value().name << "[" << ((mod.offset / 8) + i) << "] = ";
+
+      if (size == 1) {
+        coder << transpiler.transpile(mod.expr);
+      } else {
+        coder << transpiler.transpile(LibCore::solver_toolbox.exprBuilder->Extract(mod.expr, i * 8, 8));
+      }
+
+      coder << ";\n";
+    }
   }
 
   return EPVisitor::Action::doChildren;
@@ -914,14 +938,12 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   assert(ip_hdr.has_value() && "IP header not found");
   assert(l4_hdr.has_value() && "L4 header not found");
 
-  var_t checksum_var = alloc_var("checksum", checksum.expr, {}, NO_OPTION);
-
   coder.indent();
-  coder << "u16 " << checksum_var.name << " = ";
-  coder << "update_ipv4_tcpudp_checksums(";
-  coder << "(ipv4_hdr_t *)" << ip_hdr.value().name;
-  coder << ", (void *)" << l4_hdr.value().name;
-  coder << ");\n";
+  coder << "trigger_update_ipv4_tcpudp_checksums = true;\n";
+  coder.indent();
+  coder << "l3_hdr = (void *)" << ip_hdr.value().name << ";\n";
+  coder.indent();
+  coder << "l4_hdr = (void *)" << l4_hdr.value().name << ";\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -976,7 +998,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
 
   coder.indent();
-  coder << "cpu_hdr->egress_dev = SWAP_ENDIAN_16(";
+  coder << "cpu_hdr->egress_dev = bswap16(";
   coder << transpiler.transpile(dst_device);
   coder << ");\n";
 
@@ -1330,12 +1352,13 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << ", " << value_var.name;
   coder << ");\n";
 
+  bytes_t size = new_value->getWidth() / 8;
   for (const LibCore::expr_mod_t &mod : modifications) {
     bytes_t offset = mod.offset / 8;
     for (klee::ref<klee::Expr> byte_expr : LibCore::bytes_in_expr(mod.expr)) {
       coder.indent();
       coder << value_var.name;
-      coder << "[" << offset << "] = ";
+      coder << "[" << (size - 1 - offset) << "] = ";
       coder << transpiler.transpile(byte_expr);
       coder << ";\n";
       offset++;
@@ -1522,6 +1545,8 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
       .is_buffer = (opt & IS_BUFFER) ? true : false,
   };
 
+  bool skip_alloc = ((opt & SKIP_ALLOC) != 0);
+
   if (opt & IS_CPU_HDR) {
     var_t cpu_hdr_var = var;
 
@@ -1530,10 +1555,10 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
       cpu_hdr_var.name = "cpu_hdr->" + var.name;
     } break;
     case 16: {
-      cpu_hdr_var.name = "SWAP_ENDIAN_16(cpu_hdr->" + var.name + ")";
+      cpu_hdr_var.name = "bswap16(cpu_hdr->" + var.name + ")";
     } break;
     case 32: {
-      cpu_hdr_var.name = "SWAP_ENDIAN_32(cpu_hdr->" + var.name + ")";
+      cpu_hdr_var.name = "bswap32(cpu_hdr->" + var.name + ")";
     } break;
     case 64: {
       cpu_hdr_var.name = "SWAP_ENDIAN_64(cpu_hdr->" + var.name + ")";
@@ -1543,7 +1568,9 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
     } break;
     }
 
-    vars.insert_back(cpu_hdr_var);
+    if (!skip_alloc) {
+      vars.insert_back(cpu_hdr_var);
+    }
   } else if (opt & IS_CPU_HDR_EXTRA) {
     var_t cpu_hdr_extra_var = var;
 
@@ -1553,10 +1580,10 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
 
     switch (width) {
     case 16: {
-      cpu_hdr_extra_var.name = "SWAP_ENDIAN_16(cpu_hdr_extra->" + var.name + ")";
+      cpu_hdr_extra_var.name = "bswap16(cpu_hdr_extra->" + var.name + ")";
     } break;
     case 32: {
-      cpu_hdr_extra_var.name = "SWAP_ENDIAN_32(cpu_hdr_extra->" + var.name + ")";
+      cpu_hdr_extra_var.name = "bswap32(cpu_hdr_extra->" + var.name + ")";
     } break;
     case 64: {
       cpu_hdr_extra_var.name = "SWAP_ENDIAN_64(cpu_hdr_extra->" + var.name + ")";
@@ -1566,9 +1593,13 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
     } break;
     }
 
-    vars.insert_back(cpu_hdr_extra_var);
+    if (!skip_alloc) {
+      vars.insert_back(cpu_hdr_extra_var);
+    }
   } else {
-    vars.insert_back(var);
+    if (!skip_alloc) {
+      vars.insert_back(var);
+    }
   }
 
   return var;
@@ -1735,21 +1766,20 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
 
 ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name,
                                                                                   klee::ref<klee::Expr> expr) {
-  std::vector<code_t> network_order_bytes;
-  for (klee::ref<klee::Expr> byte : LibCore::bytes_in_expr(expr)) {
-    // Swapping endianness!
-    network_order_bytes.insert(network_order_bytes.begin(), transpiler.transpile(byte));
+  std::vector<code_t> bytes;
+  for (klee::ref<klee::Expr> byte : LibCore::bytes_in_expr(expr, true)) {
+    bytes.push_back(transpiler.transpile(byte));
   }
 
   const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER);
   const bytes_t size = expr->getWidth() / 8;
-  assert(size == network_order_bytes.size() && "Size mismatch");
+  assert(size == bytes.size() && "Size mismatch");
 
   coder.indent();
   coder << "buffer_t " << var.name << "(" << size << ");\n";
   for (bytes_t i = 0; i < size; i++) {
     coder.indent();
-    coder << var.name << "[" << i << "] = " << network_order_bytes[i] << ";\n";
+    coder << var.name << "[" << i << "] = " << bytes[i] << ";\n";
   }
 
   return var;

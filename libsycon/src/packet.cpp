@@ -5,6 +5,9 @@
 #include <iomanip>
 #include <sstream>
 
+#include <netinet/in.h>
+#include <rte_ip.h>
+
 namespace sycon {
 
 bytes_t packet_consumed;
@@ -27,8 +30,8 @@ void packet_log(const cpu_hdr_t *cpu_hdr) {
   assert(cpu_hdr);
 
   LOG("###[ CPU ]###");
-  LOG("code path   %u", SWAP_ENDIAN_16(cpu_hdr->code_path));
-  LOG("egress dev  %u", SWAP_ENDIAN_16(cpu_hdr->egress_dev));
+  LOG("code path   %u", bswap16(cpu_hdr->code_path));
+  LOG("egress dev  %u", bswap16(cpu_hdr->egress_dev));
 }
 
 void packet_log(const eth_hdr_t *eth_hdr) {
@@ -47,12 +50,12 @@ void packet_log(const ipv4_hdr_t *ipv4_hdr) {
   LOG("version %u", (ipv4_hdr->version_ihl & 0xf0) >> 4);
   LOG("ihl     %u", (ipv4_hdr->version_ihl & 0x0f));
   LOG("tos     %u", ipv4_hdr->ecn_dscp);
-  LOG("len     %u", SWAP_ENDIAN_16(ipv4_hdr->tot_len));
-  LOG("id      %u", SWAP_ENDIAN_16(ipv4_hdr->id));
-  LOG("off     %u", SWAP_ENDIAN_16(ipv4_hdr->frag_off));
+  LOG("len     %u", bswap16(ipv4_hdr->tot_len));
+  LOG("id      %u", bswap16(ipv4_hdr->id));
+  LOG("off     %u", bswap16(ipv4_hdr->frag_off));
   LOG("ttl     %u", ipv4_hdr->ttl);
   LOG("proto   %u", ipv4_hdr->protocol);
-  LOG("chksum  0x%x", SWAP_ENDIAN_16(ipv4_hdr->check));
+  LOG("chksum  0x%x", bswap16(ipv4_hdr->check));
   LOG("src     %u.%u.%u.%u", (ipv4_hdr->src_ip >> 0) & 0xff, (ipv4_hdr->src_ip >> 8) & 0xff, (ipv4_hdr->src_ip >> 16) & 0xff,
       (ipv4_hdr->src_ip >> 24) & 0xff);
   LOG("dst     %u.%u.%u.%u", (ipv4_hdr->dst_ip >> 0) & 0xff, (ipv4_hdr->dst_ip >> 8) & 0xff, (ipv4_hdr->dst_ip >> 16) & 0xff,
@@ -61,8 +64,8 @@ void packet_log(const ipv4_hdr_t *ipv4_hdr) {
 
 void packet_log(const tcpudp_hdr_t *tcpudp_hdr) {
   LOG("###[ TCP/UDP ]###");
-  LOG("sport   %u", SWAP_ENDIAN_16(tcpudp_hdr->src_port));
-  LOG("dport   %u", SWAP_ENDIAN_16(tcpudp_hdr->dst_port));
+  LOG("sport   %u", bswap16(tcpudp_hdr->src_port));
+  LOG("dport   %u", bswap16(tcpudp_hdr->dst_port));
 }
 
 unsigned ether_addr_hash(mac_addr_t addr) {
@@ -83,77 +86,19 @@ unsigned ether_addr_hash(mac_addr_t addr) {
   return hash;
 }
 
-u32 __raw_cksum(const void *buf, size_t len, u32 sum) {
-  /* workaround gcc strict-aliasing warning */
-  uintptr_t ptr = (uintptr_t)buf;
-  typedef u16 __attribute__((__may_alias__)) u16_p;
-  const u16_p *u16_buf = (const u16_p *)ptr;
-
-  while (len >= (sizeof(*u16_buf) * 4)) {
-    sum += u16_buf[0];
-    sum += u16_buf[1];
-    sum += u16_buf[2];
-    sum += u16_buf[3];
-    len -= sizeof(*u16_buf) * 4;
-    u16_buf += 4;
+void update_ipv4_tcpudp_checksums(void *l3, void *l4) {
+  ipv4_hdr_t *ipv4_hdr = (ipv4_hdr_t *)l3;
+  ipv4_hdr->check      = 0; // Assumed by cksum calculation
+  if (ipv4_hdr->protocol == IPPROTO_TCP) {
+    tcp_hdr_t *tcp_header = (tcp_hdr_t *)l4;
+    tcp_header->cksum     = 0; // Assumed by cksum calculation
+    tcp_header->cksum     = rte_ipv4_udptcp_cksum((rte_ipv4_hdr *)ipv4_hdr, tcp_header);
+  } else if (ipv4_hdr->protocol == IPPROTO_UDP) {
+    udp_hdr_t *udp_header   = (udp_hdr_t *)l4;
+    udp_header->dgram_cksum = 0; // Assumed by cksum calculation
+    udp_header->dgram_cksum = rte_ipv4_udptcp_cksum((rte_ipv4_hdr *)ipv4_hdr, udp_header);
   }
-  while (len >= sizeof(*u16_buf)) {
-    sum += *u16_buf;
-    len -= sizeof(*u16_buf);
-    u16_buf += 1;
-  }
-
-  /* if length is in odd bytes */
-  if (len == 1) {
-    u16 left     = 0;
-    *(u8 *)&left = *(const u8 *)u16_buf;
-    sum += left;
-  }
-
-  return sum;
-}
-
-u16 __raw_cksum_reduce(u32 sum) {
-  sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
-  sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
-  return (u16)sum;
-}
-
-u16 raw_cksum(const void *buf, size_t len) {
-  u32 sum;
-
-  sum = __raw_cksum(buf, len, 0);
-  return __raw_cksum_reduce(sum);
-}
-
-u16 ipv4_cksum(const ipv4_hdr_t *ipv4_hdr) {
-  u16 cksum;
-  cksum = raw_cksum(ipv4_hdr, sizeof(ipv4_hdr_t));
-  return (u16)~cksum;
-}
-
-u16 update_ipv4_tcpudp_checksums(const ipv4_hdr_t *ipv4_hdr, const void *l4_hdr) {
-  u32 cksum;
-  u32 l3_len, l4_len;
-
-  l3_len = __bswap_16(ipv4_hdr->tot_len);
-  if (l3_len < sizeof(ipv4_hdr_t))
-    return 0;
-
-  l4_len = l3_len - sizeof(ipv4_hdr_t);
-
-  cksum = raw_cksum(l4_hdr, l4_len);
-  cksum += ipv4_cksum(ipv4_hdr);
-
-  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
-  cksum = (~cksum) & 0xffff;
-
-  // Per RFC 768: if the computed checksum is zero for UDP, it is transmitted
-  // as all ones (the equivalent in one's complement arithmetic).
-  if (cksum == 0 && ipv4_hdr->protocol == IP_PROTO_UDP)
-    cksum = 0xffff;
-
-  return (u16)cksum;
+  ipv4_hdr->check = rte_ipv4_cksum((rte_ipv4_hdr *)ipv4_hdr);
 }
 
 void packet_hexdump(u8 *pkt, u16 size) {

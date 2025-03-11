@@ -102,7 +102,20 @@ def expect_no_packet(ports: Ports) -> None:
         exit(1)
 
 
-def expect_packet_from_port(ports: Ports, port: int, pkt: Packet) -> Packet:
+def check_checksum_only_diff(pkt1: Packet, pkt2: Packet) -> bool:
+    pkt1_copy = pkt1.copy()
+    pkt2_copy = pkt2.copy()
+
+    pkt1_copy[IP].chksum = 0
+    pkt2_copy[IP].chksum = 0
+
+    pkt1_copy[UDP].chksum = 0
+    pkt2_copy[UDP].chksum = 0
+
+    return pkt1_copy.build() == pkt2_copy.build()
+
+
+def expect_packet_from_port(ports: Ports, port: int, pkt: Packet, relax_checksum_comparison=True) -> Packet:
     data = ports.poll()
 
     if len(data.keys()) != 1 or port not in data:
@@ -116,11 +129,33 @@ def expect_packet_from_port(ports: Ports, port: int, pkt: Packet) -> Packet:
         assert False and "Expected a single packet"
 
     recv_pkt = data[port][0]
-    if recv_pkt.build() != pkt.build():
+
+    if relax_checksum_comparison and check_checksum_only_diff(pkt, recv_pkt):
+        return recv_pkt
+
+    recv_pkt_bytes = recv_pkt.build()
+    expected_pkt_bytes = pkt.build()
+
+    if recv_pkt_bytes != expected_pkt_bytes:
         print("*** ASSERTION FAILED ***")
         print(f"Packet comparison failed!")
-        print(f"Expected: {pkt.build().hex()}")
-        print(f"Received: {recv_pkt.build().hex()}")
+
+        print()
+        print("Expected:")
+        pkt.show()
+
+        print()
+        print("Received:")
+        recv_pkt.show()
+
+        print()
+        print("Hexdump:")
+        print(f"  Expected: {expected_pkt_bytes.hex()}")
+        print(f"  Received: {recv_pkt_bytes.hex()}")
+
+        if check_checksum_only_diff(pkt, recv_pkt):
+            print("Note: checksums are different, but the rest of the packet is the same.")
+
         exit(1)
 
     return recv_pkt
@@ -138,6 +173,19 @@ class Flow:
 
     def __repr__(self) -> str:
         return str(self)
+
+    def clone(
+        self,
+        new_src_addr: Optional[str] = None,
+        new_dst_addr: Optional[str] = None,
+        new_src_port: Optional[int] = None,
+        new_dst_port: Optional[int] = None,
+    ) -> "Flow":
+        src_addr = new_src_addr if new_src_addr is not None else self.src_addr
+        dst_addr = new_dst_addr if new_dst_addr is not None else self.dst_addr
+        src_port = new_src_port if new_src_port is not None else self.src_port
+        dst_port = new_dst_port if new_dst_port is not None else self.dst_port
+        return Flow(src_addr=src_addr, dst_addr=dst_addr, src_port=src_port, dst_port=dst_port)
 
     def invert(self) -> "Flow":
         return Flow(
@@ -180,4 +228,15 @@ def build_packet(flow: Flow) -> Packet:
     if len(pkt) < 60:
         pkt /= b"\0" * (60 - len(pkt))
 
+    # Force population of fields
+    pkt = Ether(pkt.build())
+
     return pkt
+
+
+def bswap16(n: int) -> int:
+    return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8)
+
+
+def bswap32(n: int) -> int:
+    return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24)

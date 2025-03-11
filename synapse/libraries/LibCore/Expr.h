@@ -21,6 +21,7 @@ bool is_bool(klee::ref<klee::Expr> expr);
 bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
 bool is_conditional(klee::ref<klee::Expr> expr);
+bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
@@ -45,7 +46,7 @@ struct expr_mod_t {
 };
 
 std::vector<expr_mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
-std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr);
+std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr, bool force_big_endian_for_constants = false);
 
 struct expr_byte_swap_t {
   bytes_t byte0;

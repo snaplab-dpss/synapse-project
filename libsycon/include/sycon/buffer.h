@@ -13,6 +13,8 @@ struct buffer_t {
 
   buffer_t(bytes_t _size) : data(new u8[_size]), size(_size) { std::memset(data, 0, size); }
 
+  buffer_t(u8 *_data, bytes_t _size) : data(new u8[_size]), size(_size) { std::copy(_data, _data + size, data); }
+
   buffer_t(const buffer_t &other) : buffer_t(other.size) { std::copy(other.data, other.data + size, data); }
 
   buffer_t(buffer_t &&other) : data(other.data), size(other.size) {

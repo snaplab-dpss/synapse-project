@@ -31,14 +31,14 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, uint16_t size) {
   cpu_hdr_t *cpu_hdr             = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
 
-  u16 in_dev_port  = SWAP_ENDIAN_16(cpu_hdr_extra->ingress_dev);
+  u16 in_dev_port  = bswap16(cpu_hdr_extra->ingress_dev);
   u16 in_port      = asic_get_front_panel_port_from_dev_port(in_dev_port);
   u16 out_port     = state->port_connections.at(in_port);
   u16 out_dev_port = asic_get_dev_port(out_port);
 
   DEBUG("In dev port %u, in port %u, out port %u, out dev port %u", in_dev_port, in_port, out_port, out_dev_port);
 
-  cpu_hdr->egress_dev = SWAP_ENDIAN_16(out_dev_port);
+  cpu_hdr->egress_dev = bswap16(out_dev_port);
   return true;
 }
 

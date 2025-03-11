@@ -1089,12 +1089,20 @@ std::vector<expr_byte_swap_t> get_expr_byte_swaps(klee::ref<klee::Expr> before, 
   return byte_swaps;
 }
 
-std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr) {
+std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr, bool force_big_endian_for_constants) {
   std::vector<klee::ref<klee::Expr>> bytes;
+
+  bool is_const = is_constant(expr);
 
   bytes_t size = expr->getWidth() / 8;
   for (bytes_t i = 0; i < size; i++) {
-    bytes.push_back(solver_toolbox.exprBuilder->Extract(expr, i * 8, 8));
+    bits_t offset = i * 8;
+
+    if (is_const && force_big_endian_for_constants) {
+      offset = (size - i - 1) * 8;
+    }
+
+    bytes.push_back(solver_toolbox.exprBuilder->Extract(expr, offset, 8));
   }
 
   return bytes;
@@ -1732,6 +1740,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
       {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
   };
 
+  klee::ref<klee::Expr> original_expr = expr;
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
 
   while (true) {
@@ -1745,14 +1754,25 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
     //   std::cerr << "New expr: " << expr_to_string(simplified) << std::endl;
     // }
 
+    bool changed = true;
     for (klee::ref<klee::Expr> prev : prev_exprs) {
       if (!simplified->compare(*prev.get())) {
-        return expr;
+        changed = false;
+        break;
       }
+    }
+
+    if (!changed) {
+      break;
     }
 
     prev_exprs.push_back(simplified);
     expr = simplified;
+  }
+
+  if (!solver_toolbox.are_exprs_always_equal(original_expr, expr)) {
+    panic("*** Bug in simplification! ***\nOriginal: %s\nSimplified: %s\n", expr_to_string(original_expr).c_str(),
+          expr_to_string(expr).c_str());
   }
 
   return expr;
@@ -1832,6 +1852,84 @@ std::string expr_to_ascii(klee::ref<klee::Expr> expr) {
   }
 
   return str;
+}
+bool match_endian_swap_16_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target) {
+  /*
+  (Extract w16 0
+    (Or w32
+        (Shl w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 255)) (w32 8))
+        (AShr w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 65280)) (w32 8))
+    )
+  )
+  */
+  if (expr->getKind() != klee::Expr::Extract) {
+    return false;
+  }
+
+  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(expr.get());
+  if (extract->width != 16 || extract->expr->getKind() != klee::Expr::Or) {
+    return false;
+  }
+
+  klee::OrExpr *or_expr = dynamic_cast<klee::OrExpr *>(extract->expr.get());
+  if (or_expr->getWidth() != 32 || or_expr->left->getKind() != klee::Expr::Shl || or_expr->right->getKind() != klee::Expr::AShr) {
+    return false;
+  }
+
+  klee::ShlExpr *shl_expr   = dynamic_cast<klee::ShlExpr *>(or_expr->left.get());
+  klee::AShrExpr *ashr_expr = dynamic_cast<klee::AShrExpr *>(or_expr->right.get());
+
+  if (shl_expr->left->getKind() != klee::Expr::And || ashr_expr->left->getKind() != klee::Expr::And) {
+    return false;
+  }
+
+  u64 shl_right_const;
+  if (!solver_toolbox.strict_value_from_expr(shl_expr->right, shl_right_const) || shl_right_const != 8) {
+    return false;
+  }
+
+  u64 ashr_right_const;
+  if (!solver_toolbox.strict_value_from_expr(ashr_expr->right, ashr_right_const) || ashr_right_const != 8) {
+    return false;
+  }
+
+  klee::AndExpr *and_lhs = dynamic_cast<klee::AndExpr *>(shl_expr->left.get());
+  klee::AndExpr *and_rhs = dynamic_cast<klee::AndExpr *>(ashr_expr->left.get());
+
+  if (and_lhs->left->getKind() != klee::Expr::ZExt || and_rhs->left->getKind() != klee::Expr::ZExt) {
+    return false;
+  }
+
+  u64 and_lhs_right_const;
+  if (!solver_toolbox.strict_value_from_expr(and_lhs->right, and_lhs_right_const) || and_lhs_right_const != 0xff) {
+    return false;
+  }
+
+  u64 and_rhs_right_const;
+  if (!solver_toolbox.strict_value_from_expr(and_rhs->right, and_rhs_right_const) || and_rhs_right_const != 0xff00) {
+    return false;
+  }
+
+  klee::ZExtExpr *zext_lhs = dynamic_cast<klee::ZExtExpr *>(and_lhs->left.get());
+  klee::ZExtExpr *zext_rhs = dynamic_cast<klee::ZExtExpr *>(and_rhs->left.get());
+
+  if (!solver_toolbox.are_exprs_always_equal(zext_lhs->src, zext_rhs->src)) {
+    return false;
+  }
+
+  target = zext_lhs->src;
+
+  return true;
+}
+
+bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target) {
+  if (match_endian_swap_16_pattern(expr, target)) {
+    return true;
+  }
+
+  // TODO: detect 32 bit endian swaps.
+
+  return false;
 }
 
 } // namespace LibCore

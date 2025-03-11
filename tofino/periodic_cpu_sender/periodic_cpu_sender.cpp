@@ -66,7 +66,7 @@ void sycon::nf_user_signal_handler() {
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
-  cpu_hdr->out_port  = SWAP_ENDIAN_16(cfg.out_dev_port);
+  cpu_hdr->out_port  = bswap16(cfg.out_dev_port);
 
   // An active waiting loop to simulate CPU processing (with some assembly
   // to prevent the compiler from optimizing it away)

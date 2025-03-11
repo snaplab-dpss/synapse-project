@@ -68,16 +68,15 @@ public:
 
   void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 
-  void add_entry(const buffer_t &k, bool reverse_key_fields = false);
-  void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params, bool reverse_key_fields = false);
-  void mod_entry(const buffer_t &k, bool reverse_key_fields = false);
-  void mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params, bool reverse_key_fields = false);
-  void add_or_mod_entry(const buffer_t &k, bool reverse_key_fields = false);
-  void add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params,
-                        bool reverse_key_fields = false);
-  void del_entry(const buffer_t &k, bool reverse_key_fields = false);
+  void add_entry(const buffer_t &k);
+  void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
+  void mod_entry(const buffer_t &k);
+  void mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
+  void add_or_mod_entry(const buffer_t &k);
+  void add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
+  void del_entry(const buffer_t &k);
 
-  buffer_t get_key_value(const bfrt::BfRtTableKey *key, bool reverse_key_fields = false) const;
+  buffer_t get_key_value(const bfrt::BfRtTableKey *key) const;
 
   void dump_data_fields() const;
   void dump_data_fields(std::ostream &) const;
@@ -88,7 +87,7 @@ public:
   static void dump_table_names(const bfrt::BfRtInfo *bfrtInfo);
 
 protected:
-  void set_key(const buffer_t &k, bool reverse_key_fields = false);
+  void set_key(const buffer_t &k);
   void set_data();
   void set_data(const std::string &action_name, const std::vector<buffer_t> &params);
 };

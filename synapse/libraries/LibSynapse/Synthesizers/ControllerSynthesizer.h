@@ -225,6 +225,7 @@ private:
   static constexpr const var_alloc_opt_t IS_CPU_HDR_EXTRA = 0b000100;
   static constexpr const var_alloc_opt_t IS_PTR           = 0b001000;
   static constexpr const var_alloc_opt_t IS_BUFFER        = 0b010000;
+  static constexpr const var_alloc_opt_t SKIP_ALLOC       = 0b100000;
 
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr, var_alloc_opt_t opt);
   code_path_t alloc_recirc_coder();

@@ -117,6 +117,35 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1, klee:
   return is_expr_always_true(eq);
 }
 
+bool solver_toolbox_t::strict_value_from_expr(klee::ref<klee::Expr> expr, u64 &value) const {
+  assert(expr->getWidth() <= 64 && "Width too big");
+
+  if (expr->getKind() == klee::Expr::Kind::Constant) {
+    klee::ConstantExpr *constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    value                             = constant_expr->getZExtValue();
+    return true;
+  }
+
+  struct expr_hash_t {
+    std::size_t operator()(klee::ref<klee::Expr> expr) const { return expr->hash(); }
+  };
+
+  klee::ConstraintManager no_constraints;
+  klee::Query sat_query(no_constraints, expr);
+
+  klee::ref<klee::ConstantExpr> value_expr;
+  bool success = solver->getValue(sat_query, value_expr);
+  assert(success && "Failed to get value from expr");
+
+  value = value_expr->getZExtValue();
+
+  if (!is_expr_always_true(exprBuilder->Eq(expr, exprBuilder->Constant(value, expr->getWidth())))) {
+    return false;
+  }
+
+  return true;
+}
+
 u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
   assert(expr->getWidth() <= 64 && "Width too big");
 

@@ -97,8 +97,19 @@ struct cpu_hdr_extra_t {
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   bool forward = true;
+  bool trigger_update_ipv4_tcpudp_checksums = false;
+  void* l3_hdr = nullptr;
+  void* l4_hdr = nullptr;
+
   cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
+  DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
+
+
+
+  if (trigger_update_ipv4_tcpudp_checksums) {
+    update_ipv4_tcpudp_checksums(l3_hdr, l4_hdr);
+  }
 
   return forward;
 }

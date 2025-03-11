@@ -1,5 +1,6 @@
 # File containing all the relevant paths
 paths.sh
+paths-container.sh
 
 # Python stuff
 env
