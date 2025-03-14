@@ -22,16 +22,22 @@ public:
 
   virtual void synthesize() override final;
 
+  using transpiler_opt_t = u32;
+
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_NO_OPTION      = 0b0;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_INVERT_HEADERS = 0b1;
+
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
   private:
     std::stack<coder_t> coders;
     const ControllerSynthesizer *synthesizer;
+    transpiler_opt_t loaded_opt;
 
   public:
     Transpiler(const ControllerSynthesizer *synthesizer);
 
-    code_t transpile(klee::ref<klee::Expr> expr);
+    code_t transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION);
 
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
@@ -77,8 +83,9 @@ private:
     std::optional<addr_t> addr;
     bool is_ptr;
     bool is_buffer;
+    bool is_header;
 
-    code_t get_slice(bits_t offset, bits_t size) const;
+    code_t get_slice(bits_t offset, bits_t size, transpiler_opt_t opt) const;
     code_t get_stem() const;
   };
 
@@ -97,7 +104,7 @@ private:
     void push(const Stack &stack);
     void clear();
 
-    std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const;
     std::optional<var_t> get_by_addr(addr_t addr) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
     std::vector<var_t> get_all() const;
@@ -124,7 +131,7 @@ private:
     void insert_back(const Stack &stack);
 
     Stack squash() const;
-    std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const;
     std::optional<var_t> get_by_addr(addr_t addr) const;
     std::vector<Stack> get_all() const;
   };
@@ -219,18 +226,19 @@ private:
 
   using var_alloc_opt_t = u32;
 
-  static constexpr const var_alloc_opt_t NO_OPTION        = 0b000000;
-  static constexpr const var_alloc_opt_t EXACT_NAME       = 0b000001;
-  static constexpr const var_alloc_opt_t IS_CPU_HDR       = 0b000010;
-  static constexpr const var_alloc_opt_t IS_CPU_HDR_EXTRA = 0b000100;
-  static constexpr const var_alloc_opt_t IS_PTR           = 0b001000;
-  static constexpr const var_alloc_opt_t IS_BUFFER        = 0b010000;
-  static constexpr const var_alloc_opt_t SKIP_ALLOC       = 0b100000;
+  static constexpr const var_alloc_opt_t NO_OPTION        = 0b0000000;
+  static constexpr const var_alloc_opt_t EXACT_NAME       = 0b0000001;
+  static constexpr const var_alloc_opt_t IS_CPU_HDR       = 0b0000010;
+  static constexpr const var_alloc_opt_t IS_CPU_HDR_EXTRA = 0b0000100;
+  static constexpr const var_alloc_opt_t IS_PTR           = 0b0001000;
+  static constexpr const var_alloc_opt_t IS_BUFFER        = 0b0010000;
+  static constexpr const var_alloc_opt_t IS_HEADER        = 0b0100000;
+  static constexpr const var_alloc_opt_t SKIP_ALLOC       = 0b1000000;
 
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr, var_alloc_opt_t opt);
   code_path_t alloc_recirc_coder();
 
-  var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr);
+  var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc);
   void transpile_table_decl(const Tofino::Table *table);
   void transpile_register_decl(const Tofino::Register *reg);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);

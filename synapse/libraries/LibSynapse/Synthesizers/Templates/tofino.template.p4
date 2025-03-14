@@ -129,7 +129,7 @@ control Ingress(
   #define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
   #define bswap16(x) (x[7:0] ++ x[15:8])
 
-  action set_ingress_dev(bit<32> nf_dev) { meta.dev[31:16] = nf_dev[15:0]; }
+  action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
     key = { ig_intr_md.ingress_port: exact; }
     actions = { set_ingress_dev; drop; }

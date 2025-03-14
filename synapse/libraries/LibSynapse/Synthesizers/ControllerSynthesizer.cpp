@@ -80,7 +80,9 @@ time_ns_t get_expiration_time(const Context &ctx) {
 
 ControllerSynthesizer::Transpiler::Transpiler(const ControllerSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
-ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
+ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
+  loaded_opt = opt;
+
   std::cerr << "Transpiling " << LibCore::expr_to_string(expr, false) << "\n";
 
   coders.emplace();
@@ -103,9 +105,9 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
   } else if (LibCore::match_endian_swap_pattern(expr, endian_swap_target)) {
     bits_t size = endian_swap_target->getWidth();
     if (size == 16) {
-      coder << "bswap16(" << transpile(endian_swap_target) << ")";
+      coder << "bswap16(" << transpile(endian_swap_target, loaded_opt) << ")";
     } else if (size == 32) {
-      coder << "bswap32(" << transpile(endian_swap_target) << ")";
+      coder << "bswap32(" << transpile(endian_swap_target, loaded_opt) << ")";
     } else {
       panic("FIXME: incompatible endian swap size %d\n", size);
     }
@@ -159,7 +161,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitRead(const kle
 
   coder_t &coder = coders.top();
 
-  if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr)) {
+  if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
     coder << var->name;
     return Action::skipChildren();
   }
@@ -185,7 +187,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitConcat(const k
   klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
   coder_t &coder             = coders.top();
 
-  if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr)) {
+  if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
     if (var->is_ptr) {
       coder << "*(" << type_from_size(expr->getWidth()) << "*)";
       coder << var->name;
@@ -213,7 +215,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitExtract(const 
   klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
   coder_t &coder             = coders.top();
 
-  if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr)) {
+  if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
     coder << var->name;
     return Action::skipChildren();
   }
@@ -231,7 +233,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitZExt(const kle
   coder << type_from_expr(arg);
   coder << ")";
   coder << "(";
-  coder << transpile(arg);
+  coder << transpile(arg, loaded_opt);
   coder << ")";
 
   return Action::skipChildren();
@@ -248,9 +250,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitAdd(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " + ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -261,9 +263,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSub(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " - ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -304,9 +306,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitAnd(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " & ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -317,9 +319,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitOr(const klee:
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " | ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -361,9 +363,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitEq(const klee:
     var_expr   = lhs;
   }
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " == ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -385,9 +387,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitNe(const klee:
     var_expr   = lhs;
   }
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " != ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -398,9 +400,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUlt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " < ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -411,9 +413,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUle(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " <= ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -424,9 +426,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUgt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " > ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -437,9 +439,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitUge(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " >= ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -450,9 +452,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSlt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " < ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -463,9 +465,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSle(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " <= ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -476,9 +478,9 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSgt(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " > ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
@@ -489,17 +491,21 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSge(const klee
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs) << ")";
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
   coder << " >= ";
-  coder << "(" << transpile(rhs) << ")";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
 
   return Action::skipChildren();
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::var_t::get_slice(bits_t offset, bits_t size) const {
+ControllerSynthesizer::code_t ControllerSynthesizer::var_t::get_slice(bits_t offset, bits_t size, transpiler_opt_t opt) const {
   assert(offset + size <= expr->getWidth() && "Out of bounds");
 
   coder_t coder;
+
+  if (is_header && (opt & TRANSPILER_OPT_INVERT_HEADERS)) {
+    offset = expr->getWidth() - (offset + size);
+  }
 
   if (is_ptr) {
     coder << "*(";
@@ -574,7 +580,7 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get_ex
   return std::nullopt;
 }
 
-std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(klee::ref<klee::Expr> expr) const {
+std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
   if (std::optional<var_t> var = get_exact(expr)) {
     return var;
   }
@@ -594,11 +600,12 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(kl
 
       if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         const var_t out_var = {
-            .name      = var.get_slice(offset, expr_size),
+            .name      = var.get_slice(offset, expr_size, opt),
             .expr      = var_slice,
             .addr      = std::nullopt,
             .is_ptr    = false,
             .is_buffer = false,
+            .is_header = false,
         };
 
         return out_var;
@@ -639,7 +646,7 @@ ControllerSynthesizer::Stack ControllerSynthesizer::Stacks::squash() const {
   return squashed;
 }
 
-std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get(klee::ref<klee::Expr> expr) const {
+std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
   for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
     if (std::optional<var_t> var = stack_it->get_exact(expr)) {
       return var;
@@ -647,7 +654,7 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get(k
   }
 
   for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
-    if (std::optional<var_t> var = stack_it->get(expr)) {
+    if (std::optional<var_t> var = stack_it->get(expr, opt)) {
       return var;
     }
   }
@@ -820,7 +827,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
     assert(width >= 8 && "Unexpected width (less than 8)");
 
-    if (vars.get(symbol.expr).has_value()) {
+    if (vars.get(symbol.expr, TRANSPILER_OPT_NO_OPTION).has_value()) {
       continue;
     }
 
@@ -880,7 +887,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   klee::ref<klee::Expr> chunk  = node->get_chunk();
   klee::ref<klee::Expr> length = node->get_length();
 
-  var_t hdr = alloc_var("hdr", chunk, chunk_addr, IS_PTR);
+  var_t hdr = alloc_var("hdr", chunk, chunk_addr, IS_PTR | IS_HEADER);
 
   coder.indent();
   coder << "u8* " << hdr.name << " = ";
@@ -1042,7 +1049,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
 
-  var_t key_var = transpile_buffer_decl_and_set(coder, "key", key);
+  var_t key_var = transpile_buffer_decl_and_set(coder, map_table->id + "_key", key, true);
 
   coder.indent();
   coder << "state->" << map_table->id << ".put(";
@@ -1101,7 +1108,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
 
-  var_t value_var = transpile_buffer_decl_and_set(coder, "value", value);
+  var_t value_var = transpile_buffer_decl_and_set(coder, vector_table->id + "_value", value, true);
 
   coder.indent();
   coder << "state->" << vector_table->id << ".write(";
@@ -1541,8 +1548,9 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
       .name      = (opt & EXACT_NAME) ? assert_unique_name(proposed_name) : create_unique_name(proposed_name),
       .expr      = expr,
       .addr      = addr,
-      .is_ptr    = (opt & IS_PTR) ? true : false,
-      .is_buffer = (opt & IS_BUFFER) ? true : false,
+      .is_ptr    = (opt & IS_PTR) != 0,
+      .is_buffer = (opt & IS_BUFFER) != 0,
+      .is_header = (opt & IS_HEADER) != 0,
   };
 
   bool skip_alloc = ((opt & SKIP_ALLOC) != 0);
@@ -1561,7 +1569,7 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
       cpu_hdr_var.name = "bswap32(cpu_hdr->" + var.name + ")";
     } break;
     case 64: {
-      cpu_hdr_var.name = "SWAP_ENDIAN_64(cpu_hdr->" + var.name + ")";
+      cpu_hdr_var.name = "bswap64(cpu_hdr->" + var.name + ")";
     } break;
     default: {
       panic("Unexpected width in cpu hdr (%d bits)", var.expr->getWidth());
@@ -1586,7 +1594,7 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
       cpu_hdr_extra_var.name = "bswap32(cpu_hdr_extra->" + var.name + ")";
     } break;
     case 64: {
-      cpu_hdr_extra_var.name = "SWAP_ENDIAN_64(cpu_hdr_extra->" + var.name + ")";
+      cpu_hdr_extra_var.name = "bswap64(cpu_hdr_extra->" + var.name + ")";
     } break;
     default: {
       cpu_hdr_extra_var.name = "cpu_hdr_extra->" + var.name;
@@ -1765,13 +1773,13 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
 }
 
 ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name,
-                                                                                  klee::ref<klee::Expr> expr) {
+                                                                                  klee::ref<klee::Expr> expr, bool skip_alloc) {
   std::vector<code_t> bytes;
   for (klee::ref<klee::Expr> byte : LibCore::bytes_in_expr(expr, true)) {
     bytes.push_back(transpiler.transpile(byte));
   }
 
-  const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER);
+  const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER | (skip_alloc ? SKIP_ALLOC : NO_OPTION));
   const bytes_t size = expr->getWidth() / 8;
   assert(size == bytes.size() && "Size mismatch");
 

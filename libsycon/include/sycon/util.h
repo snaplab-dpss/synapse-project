@@ -10,7 +10,7 @@
 
 #define bswap16(v) __builtin_bswap16((v))
 #define bswap32(v) __builtin_bswap32((v))
-#define SWAP_ENDIAN_64(v) __builtin_bswap64((v))
+#define bswap64(v) __builtin_bswap64((v))
 
 #define WAIT_FOR_ENTER(msg)                                                                                                                \
   do {                                                                                                                                     \

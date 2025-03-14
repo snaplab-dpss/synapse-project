@@ -132,7 +132,7 @@ control Ingress(
   #define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
   #define bswap16(x) (x[7:0] ++ x[15:8])
 
-  action set_ingress_dev(bit<32> nf_dev) { meta.dev[31:16] = nf_dev[15:0]; }
+  action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
     key = { ig_intr_md.ingress_port: exact; }
     actions = { set_ingress_dev; drop; }
@@ -176,7 +176,7 @@ control Ingress(
       ingress_port_to_nf_dev.apply();
       // EP node  1
       // BDD node 65:vector_borrow(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074082720)[ -> (w64 1074027216)])
-      vector_table_1074013320_65_key_0 = (bit<32>)(meta.dev[31:16]);
+      vector_table_1074013320_65_key_0 = meta.dev;
       vector_table_1074013320_65.apply();
       // EP node  13
       // BDD node 66:vector_return(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074027216)[(ReadLSB w16 (w32 0) vector_data_128)])

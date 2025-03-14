@@ -21,16 +21,23 @@ public:
 
   virtual void synthesize() override final;
 
+  using transpiler_opt_t = u32;
+
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_NO_OPTION           = 0b00;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_HDR_ENDIANNESS = 0b01;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_REVERSE_VAR_BYTES   = 0b10;
+
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
   private:
     std::stack<coder_t> coders;
     TofinoSynthesizer *synthesizer;
+    transpiler_opt_t loaded_opt;
 
   public:
     Transpiler(TofinoSynthesizer *synthesizer);
 
-    code_t transpile(klee::ref<klee::Expr> expr);
+    code_t transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION);
 
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
@@ -71,14 +78,24 @@ private:
   };
 
   struct var_t {
+    code_t original_name;
+    klee::ref<klee::Expr> original_expr;
+    bits_t original_size;
     code_t name;
     klee::ref<klee::Expr> expr;
+    bits_t size;
     bool force_bool;
     bool is_header_field;
+    bool is_buffer;
 
     var_t() = default;
-    var_t(const code_t &_name, klee::ref<klee::Expr> _expr, bool _force_bool = false, bool _is_header_field = false)
-        : name(_name), expr(_expr), force_bool(_force_bool), is_header_field(_is_header_field) {}
+    var_t(const code_t &_name, klee::ref<klee::Expr> _expr, bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
+        : original_name(_name), original_expr(_expr), original_size(_size), name(_name), expr(_expr), size(_size), force_bool(_force_bool),
+          is_header_field(_is_header_field), is_buffer(_is_buffer) {}
+    var_t(const code_t &_original_name, klee::ref<klee::Expr> _original_expr, bits_t _original_size, const code_t &_name,
+          klee::ref<klee::Expr> _expr, bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
+        : original_name(_original_name), original_expr(_original_expr), original_size(_original_size), name(_name), expr(_expr),
+          size(_size), force_bool(_force_bool), is_header_field(_is_header_field), is_buffer(_is_buffer) {}
 
     var_t(const var_t &other)            = default;
     var_t(var_t &&other)                 = default;
@@ -86,9 +103,11 @@ private:
 
     code_t get_type() const;
     bool is_bool() const;
-    var_t get_slice(bits_t offset, bits_t size) const;
+    var_t get_slice(bits_t offset, bits_t size, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     code_t get_stem() const;
     void declare(coder_t &coder, std::optional<code_t> assignment = std::nullopt) const;
+    bool is_slice() const { return original_name != name || original_expr != expr || original_size != size; }
+    std::string to_string() const;
   };
 
   class Stack {
@@ -106,8 +125,10 @@ private:
     void push(const Stack &stack);
     void clear();
 
-    std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
+    std::optional<var_t> get_exact_hdr(klee::ref<klee::Expr> expr) const;
     std::vector<var_t> get_all() const;
   };
 
@@ -133,19 +154,21 @@ private:
 
     Stack squash() const;
     Stack squash_hdrs_only() const;
-    std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
+    std::optional<var_t> get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::vector<Stack> get_all() const;
   };
 
   using alloc_opt_t = u32;
 
-  static constexpr const alloc_opt_t LOCAL            = 0b0000001;
-  static constexpr const alloc_opt_t GLOBAL           = 0b0000010;
-  static constexpr const alloc_opt_t SKIP_STACK_ALLOC = 0b0000100;
-  static constexpr const alloc_opt_t EXACT_NAME       = 0b0001000;
-  static constexpr const alloc_opt_t HEADER           = 0b0010000;
-  static constexpr const alloc_opt_t HEADER_FIELD     = 0b0100000;
-  static constexpr const alloc_opt_t FORCE_BOOL       = 0b1000000;
+  static constexpr const alloc_opt_t LOCAL            = 0b00000001;
+  static constexpr const alloc_opt_t GLOBAL           = 0b00000010;
+  static constexpr const alloc_opt_t SKIP_STACK_ALLOC = 0b00000100;
+  static constexpr const alloc_opt_t EXACT_NAME       = 0b00001000;
+  static constexpr const alloc_opt_t HEADER           = 0b00010000;
+  static constexpr const alloc_opt_t HEADER_FIELD     = 0b00100000;
+  static constexpr const alloc_opt_t BUFFER           = 0b01000000;
+  static constexpr const alloc_opt_t FORCE_BOOL       = 0b10000000;
 
   std::unordered_map<code_t, int> var_prefix_usage;
 
@@ -198,10 +221,10 @@ private:
 
   code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
   void transpile_parser(const Parser &parser);
-  void transpile_action_decl(coder_t &coder, const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params);
-
+  void transpile_action_decl(coder_t &coder, const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params,
+                             bool params_are_buffers);
   void transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                            const std::vector<klee::ref<klee::Expr>> &values, std::vector<var_t> &keys_vars);
+                            const std::vector<klee::ref<klee::Expr>> &values, bool values_are_buffers, std::vector<var_t> &keys_vars);
 
   void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
   void transpile_register_read_action_decl(coder_t &coder, const Register *reg, const code_t &name);
