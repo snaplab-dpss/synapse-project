@@ -1,5 +1,6 @@
 import re
 import itertools
+import enum
 
 from paramiko import ssh_exception
 
@@ -11,6 +12,11 @@ from .dpdk_config import DpdkConfig
 
 MIN_NUM_TX_CORES = 2
 PKTGEN_PROMPT = "Pktgen> "
+
+
+class TrafficDist(enum.Enum):
+    UNIFORM = "uniform"
+    ZIPF = "zipf"
 
 
 class Pktgen:
@@ -74,6 +80,8 @@ class Pktgen:
     def launch(
         self,
         nb_flows: int = 10_000,
+        traffic_dist: TrafficDist = TrafficDist.UNIFORM,
+        zipf_param: float = 1.26,
         pkt_size: int = 64,
         exp_time_us: int = 0,
         crc_unique_flows: bool = False,
@@ -93,6 +101,8 @@ class Pktgen:
 
         pktgen_options_list = [
             f"--total-flows {nb_flows}",
+            f"--dist {traffic_dist.value}",
+            f"--zipf-param {zipf_param}",
             f"--pkt-size {pkt_size}",
             f"--tx {tx_port}",
             f"--rx {rx_port}",
