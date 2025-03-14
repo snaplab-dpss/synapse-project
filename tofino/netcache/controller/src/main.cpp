@@ -17,6 +17,7 @@
 #include "process_query.h"
 #include "pcie.h"
 #include "args.h"
+#include "log.h"
 
 volatile bool stop_reset_timer = false;
 
@@ -38,9 +39,7 @@ void reset_counters() {
     if (elapsed_time_key.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
       netcache::Controller::controller->reg_key_count.set_all_false();
       last_ts_key = cur_ts;
-#ifndef NDEBUG
-      std::cout << "Reset timer: data plane reg_key_count." << std::endl;
-#endif
+      DEBUG("Reset timer: data plane reg_key_count.");
     }
 
     if (elapsed_time_key.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
@@ -49,12 +48,10 @@ void reset_counters() {
       netcache::Controller::controller->reg_cm_2.set_all_false();
       netcache::Controller::controller->reg_cm_3.set_all_false();
       last_ts_cm = cur_ts;
-#ifndef NDEBUG
-      std::cout << "Reset timer: data plane reg_cm_0." << std::endl;
-      std::cout << "Reset timer: data plane reg_cm_1." << std::endl;
-      std::cout << "Reset timer: data plane reg_cm_2." << std::endl;
-      std::cout << "Reset timer: data plane reg_cm_3." << std::endl;
-#endif
+      DEBUG("Reset timer: data plane reg_cm_0.");
+      DEBUG("Reset timer: data plane reg_cm_1.");
+      DEBUG("Reset timer: data plane reg_cm_2.");
+      DEBUG("Reset timer: data plane reg_cm_3.");
     }
 
     if (elapsed_time_bloom.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
@@ -62,11 +59,9 @@ void reset_counters() {
       netcache::Controller::controller->reg_bloom_1.set_all_false();
       netcache::Controller::controller->reg_bloom_2.set_all_false();
       last_ts_bloom = cur_ts;
-#ifndef NDEBUG
-      std::cout << "Reset timer: data plane reg_bloom_0." << std::endl;
-      std::cout << "Reset timer: data plane reg_bloom_1." << std::endl;
-      std::cout << "Reset timer: data plane reg_bloom_2." << std::endl;
-#endif
+      DEBUG("Reset timer: data plane reg_bloom_0.");
+      DEBUG("Reset timer: data plane reg_bloom_1.");
+      DEBUG("Reset timer: data plane reg_bloom_2.");
     }
   }
 }

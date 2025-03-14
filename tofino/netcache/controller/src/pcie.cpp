@@ -111,6 +111,8 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
 
   auto pkt_hdr = (pkt_hdr_t *)(packet);
 
+  DEBUG("Received packet");
+
   bool valid = pkt_hdr->has_valid_protocol();
 
   if (!valid) {
@@ -131,15 +133,14 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     return BF_SUCCESS;
   }
 
-#ifdef DEBUG
-  pkt_hdr->pretty_print_base();
-  pkt_hdr->pretty_print_netcache();
-#endif
+  // pkt_hdr->pretty_print_base();
+  // pkt_hdr->pretty_print_netcache();
 
   auto nc_hdr = pkt_hdr->get_netcache_hdr();
 
   // If pkt doesn't have the status flag set, then it is a HH report sent from the data plane.
   if (nc_hdr->status == 0) {
+    DEBUG("It's an HH report packet");
     if (Controller::controller->available_keys.empty()) {
       // Obtain a vector of sampled values from the data plane.
       std::vector<std::vector<uint32_t>> sampl_vec = netcache::ProcessQuery::process_query->sample_values();
@@ -215,17 +216,17 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
       nc_hdr->status = 1;
       pkt_tx         = true;
     }
-    // Else: pkt has the status flag set, so it is a server reply.
   } else {
+    // Else: pkt has the status flag set, so it is a server reply.
+    DEBUG("Server reply");
     netcache::ProcessQuery::process_query->update_cache(nc_hdr);
   }
 
   // End transaction.
   bool block_until_complete = true;
   bf_status                 = Controller::controller->session->commitTransaction(block_until_complete);
-  if (bf_status != BF_SUCCESS) {
-    exit(1);
-  }
+  ASSERT_BF_STATUS(bf_status);
+  
   unlock();
 
   if (pkt_tx) {

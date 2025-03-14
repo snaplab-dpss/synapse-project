@@ -162,11 +162,9 @@ public:
     const uint16_t server_port     = args.server_port;
     const uint16_t server_dev_port = ports.get_dev_port(server_port, 0);
 
-	#ifdef DEBUG
 		LOG("CPU port %u", cpu_port);
 		LOG("server port %u", server_port);
 		LOG("server dev port %u", server_dev_port);
-	#endif
 
     is_client_packet.add_not_client_port(server_dev_port);
     is_client_packet.add_not_client_port(cpu_port);

@@ -33,21 +33,7 @@ extern "C" {
 #define SWITCH_PACKET_MAX_BUFFER_SIZE 10000
 #define SWITCH_MEMCPY memcpy
 
-#define IN_VIRTUAL_IFACE "veth251"
-
 #define CPU_PORT_TOFINO_MODEL 64
-
-#define BFN_T10_032D_CONF_FILE "../../config/BFN-T10-032D.conf"
-
-// BFN-T10-032D
-// BFN-T10-032D-024
-// BFN-T10-032D-020
-// BFN-T10-032D-018
-#define CPU_PORT_2_PIPES 192
-
-// BFN-T10-064Q
-// BFN-T10-032Q
-#define CPU_PORT_4_PIPES 192
 
 #define SWITCH_PKT_ERROR(fmt, arg...) bf_sys_log_and_trace(BF_MOD_SWITCHAPI, BF_LOG_ERR, "%s:%d: " fmt, __FUNCTION__, __LINE__, ##arg)
 #define SWITCH_PKT_DEBUG(fmt, arg...) bf_sys_log_and_trace(BF_MOD_SWITCHAPI, BF_LOG_DBG, "%s:%d " fmt, __FUNCTION__, __LINE__, ##arg)
