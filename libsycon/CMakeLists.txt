@@ -95,16 +95,11 @@ set_target_properties(${PROJECT_NAME}
 # Configure external projects
 ###############################################################################
 
-include(${CMAKE_SOURCE_DIR}/cmake/find_dpdk.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_pcap.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_sde.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_absl.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
-
-target_compile_options(${PROJECT_NAME} PRIVATE ${DPDK_CFLAGS_OTHER})
-target_include_directories(${PROJECT_NAME} PRIVATE ${DPDK_INCLUDE_DIRS})
-target_link_directories(${PROJECT_NAME} PRIVATE ${DPDK_LIBRARY_DIRS})
 
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -116,7 +111,6 @@ target_link_libraries(${PROJECT_NAME}
         absl::synchronization
         ${PCAP_LIBRARIES}
         ${SDE_LIBRARIES}
-        DPDK::DPDK
 
         # This fixes the requirement for LD_LIBRARY_PATH update when running the final binaries.
         # https://stackoverflow.com/questions/58997230/cmake-project-fails-to-find-shared-library
