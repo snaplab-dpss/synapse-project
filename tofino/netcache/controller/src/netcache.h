@@ -53,7 +53,6 @@
 #include "registers/reg_bloom_0.h"
 #include "registers/reg_bloom_1.h"
 #include "registers/reg_bloom_2.h"
-#include "conf.h"
 #include "args.h"
 #include "ports.h"
 
@@ -70,9 +69,23 @@ namespace netcache {
 
 bf_switchd_context_t *init_bf_switchd(bool bf_prompt, int tna_version);
 void run_cli(bf_switchd_context_t *switchd_main_ctx);
-void setup_controller(const conf_t &conf, const args_t &args);
+void setup_controller(const args_t &args);
 
 struct bfrt_info_t;
+
+// DPDK's implementation of an atomic 16b compare and set operation.
+static inline int atomic16_cmpset(volatile uint16_t *dst, uint16_t exp, uint16_t src) {
+  uint8_t res;
+  asm volatile("lock ; "
+               "cmpxchgw %[src], %[dst];"
+               "sete %[res];"
+               : [res] "=a"(res), /* output */
+                 [dst] "=m"(*dst)
+               : [src] "r"(src), /* input */
+                 "a"(exp), "m"(*dst)
+               : "memory"); /* no-clobber list */
+  return res;
+}
 
 class Controller {
 public:
@@ -83,8 +96,9 @@ public:
   bf_rt_target_t dev_tgt;
   Ports ports;
 
-  conf_t conf;
   args_t args;
+
+  volatile int16_t atom;
 
   // Switch tables
   Fwd fwd;
@@ -136,24 +150,23 @@ public:
   std::map<uint16_t, std::array<uint8_t, 16>> key_storage;
   std::unordered_set<uint16_t> available_keys;
 
-  Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const conf_t &_conf,
-             const args_t &_args)
-      : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), conf(_conf), args(_args),
-        fwd(_info, _session, _dev_tgt), keys(_info, _session, _dev_tgt),
-		is_client_packet(_info, _session, _dev_tgt), reg_v0_31(_info, _session, _dev_tgt),
-        reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt), reg_v96_127(_info, _session, _dev_tgt),
-        reg_v128_159(_info, _session, _dev_tgt), reg_v160_191(_info, _session, _dev_tgt), reg_v192_223(_info, _session, _dev_tgt),
-        reg_v224_255(_info, _session, _dev_tgt), reg_v256_287(_info, _session, _dev_tgt), reg_v288_319(_info, _session, _dev_tgt),
-        reg_v320_351(_info, _session, _dev_tgt), reg_v352_383(_info, _session, _dev_tgt), reg_v384_415(_info, _session, _dev_tgt),
-        reg_v416_447(_info, _session, _dev_tgt), reg_v448_479(_info, _session, _dev_tgt), reg_v480_511(_info, _session, _dev_tgt),
-        reg_v512_543(_info, _session, _dev_tgt), reg_v544_575(_info, _session, _dev_tgt), reg_v576_607(_info, _session, _dev_tgt),
-        reg_v608_639(_info, _session, _dev_tgt), reg_v640_671(_info, _session, _dev_tgt), reg_v672_703(_info, _session, _dev_tgt),
-        reg_v704_735(_info, _session, _dev_tgt), reg_v736_767(_info, _session, _dev_tgt), reg_v768_799(_info, _session, _dev_tgt),
-        reg_v800_831(_info, _session, _dev_tgt), reg_v832_863(_info, _session, _dev_tgt), reg_v864_895(_info, _session, _dev_tgt),
-        reg_v896_927(_info, _session, _dev_tgt), reg_v928_959(_info, _session, _dev_tgt), reg_v960_991(_info, _session, _dev_tgt),
-        reg_v992_1023(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt),
-        reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt),
-        reg_bloom_0(_info, _session, _dev_tgt), reg_bloom_1(_info, _session, _dev_tgt), reg_bloom_2(_info, _session, _dev_tgt) {
+  Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &_args)
+      : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), args(_args), atom(0),
+        fwd(_info, _session, _dev_tgt), keys(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt),
+        reg_v0_31(_info, _session, _dev_tgt), reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt),
+        reg_v96_127(_info, _session, _dev_tgt), reg_v128_159(_info, _session, _dev_tgt), reg_v160_191(_info, _session, _dev_tgt),
+        reg_v192_223(_info, _session, _dev_tgt), reg_v224_255(_info, _session, _dev_tgt), reg_v256_287(_info, _session, _dev_tgt),
+        reg_v288_319(_info, _session, _dev_tgt), reg_v320_351(_info, _session, _dev_tgt), reg_v352_383(_info, _session, _dev_tgt),
+        reg_v384_415(_info, _session, _dev_tgt), reg_v416_447(_info, _session, _dev_tgt), reg_v448_479(_info, _session, _dev_tgt),
+        reg_v480_511(_info, _session, _dev_tgt), reg_v512_543(_info, _session, _dev_tgt), reg_v544_575(_info, _session, _dev_tgt),
+        reg_v576_607(_info, _session, _dev_tgt), reg_v608_639(_info, _session, _dev_tgt), reg_v640_671(_info, _session, _dev_tgt),
+        reg_v672_703(_info, _session, _dev_tgt), reg_v704_735(_info, _session, _dev_tgt), reg_v736_767(_info, _session, _dev_tgt),
+        reg_v768_799(_info, _session, _dev_tgt), reg_v800_831(_info, _session, _dev_tgt), reg_v832_863(_info, _session, _dev_tgt),
+        reg_v864_895(_info, _session, _dev_tgt), reg_v896_927(_info, _session, _dev_tgt), reg_v928_959(_info, _session, _dev_tgt),
+        reg_v960_991(_info, _session, _dev_tgt), reg_v992_1023(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt),
+        reg_cm_0(_info, _session, _dev_tgt), reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt),
+        reg_cm_3(_info, _session, _dev_tgt), reg_bloom_0(_info, _session, _dev_tgt), reg_bloom_1(_info, _session, _dev_tgt),
+        reg_bloom_2(_info, _session, _dev_tgt) {
     if (!args.run_tofino_model) {
       config_ports();
     }
@@ -162,9 +175,9 @@ public:
     const uint16_t server_port     = args.server_port;
     const uint16_t server_dev_port = ports.get_dev_port(server_port, 0);
 
-		LOG("CPU port %u", cpu_port);
-		LOG("server port %u", server_port);
-		LOG("server dev port %u", server_dev_port);
+    LOG("CPU port %u", cpu_port);
+    LOG("server port %u", server_port);
+    LOG("server dev port %u", server_dev_port);
 
     is_client_packet.add_not_client_port(server_dev_port);
     is_client_packet.add_not_client_port(cpu_port);
@@ -204,52 +217,11 @@ public:
       return;
     }
 
-	// Initialize the key storage map and available keys set.
-
-	uint16_t i = 0;
-	do {
-		key_storage[i] = {0};
-		available_keys.insert(i);
-	} while (++i != 0);
-
-    // Insert k initial entries in the switch's KV store.
-	/*	
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    std::uniform_int_distribution<> dis(0, conf.kv.store_size);
-    std::unordered_set<int> elems;
-
-    while (elems.size() < conf.kv.initial_entries) {
-      elems.insert(dis(gen));
+    // Initialize the key storage map and available keys set.
+    for (uint64_t i = 0; i < args.store_size; ++i) {
+      key_storage[i] = {0};
+      available_keys.insert(i);
     }
-
-    std::vector<int> sampl_idx(elems.begin(), elems.end());
-
-    for (int i: sampl_idx) {
-		// Pick a value from the set of available keys.
-		// Use that value as the index for the k/v to insert in the data plane.
-		auto it = available_keys.begin();
-		if (i < static_cast<int>(available_keys.size())) {
-			std::advance(it, i);
-		}
-
-		// Add the index/key to the controller map.
-		std::array<uint8_t, 16> key = {};
-		key[0] = static_cast<uint8_t>(*it & 0xFF);
-		key[1] = static_cast<uint8_t>((*it >> 8) & 0xFF);
-		key_storage[*it] = key;
-
-		// Add the index/key to the data plane keys table and reset the key_count[index] register.
-		uint8_t key_dp[16];
-		std::copy(key.begin(), key.end(), key_dp);
-		keys.add_entry(key_dp, *it);
-		reg_key_count.allocate(*it, 0);
-
-		// Remove the selected value from the set.
-		available_keys.erase(it);
-	}
-	*/
   }
 
 public:
@@ -269,7 +241,6 @@ public:
 
   uint16_t get_dev_port(uint16_t front_panel_port, uint16_t lane) { return ports.get_dev_port(front_panel_port, lane); }
 
-  conf_t get_conf() const { return conf; }
   std::vector<uint16_t> get_client_ports() const { return args.client_ports; }
   bool get_use_tofino_model() const { return args.run_tofino_model; }
 
@@ -327,8 +298,33 @@ public:
     return BF_SUCCESS;
   }
 
-  static void init(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const conf_t &conf,
-                   const args_t &args);
+  void lock() {
+    while (!atomic16_cmpset((volatile uint16_t *)&atom, 0, 1)) {
+      // prevent the compiler from removing this loop
+      __asm__ __volatile__("");
+    }
+  }
+
+  void unlock() { atom = 0; }
+
+  void begin_transaction() {
+    lock();
+    const bool atomic     = true;
+    bf_status_t bf_status = session->beginTransaction(atomic);
+    ASSERT_BF_STATUS(bf_status);
+  }
+
+  void end_transaction() {
+    const bool block_until_complete = true;
+    bf_status_t bf_status           = session->commitTransaction(block_until_complete);
+
+    ASSERT_BF_STATUS(bf_status);
+    unlock();
+  }
+
+  bool process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size);
+
+  static void init(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &args);
 };
 
 } // namespace netcache

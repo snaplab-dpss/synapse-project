@@ -1,4 +1,5 @@
 #include <pcap.h>
+#include <unistd.h>
 
 #include <bf_rt/bf_rt.hpp>
 #include <iostream>
@@ -134,7 +135,7 @@ bf_switchd_context_t *init_bf_switchd(bool bf_prompt, int tna_version) {
   return switchd_main_ctx;
 }
 
-void setup_controller(const conf_t &conf, const args_t &args) {
+void setup_controller(const args_t &args) {
   bf_rt_target_t dev_tgt;
   dev_tgt.dev_id  = 0;
   dev_tgt.pipe_id = ALL_PIPES;
@@ -150,7 +151,7 @@ void setup_controller(const conf_t &conf, const args_t &args) {
   // Create a session object
   auto session = bfrt::BfRtSession::sessionCreate();
 
-  Controller::init(info, session, dev_tgt, conf, args);
+  Controller::init(info, session, dev_tgt, args);
 }
 
 } // namespace netcache

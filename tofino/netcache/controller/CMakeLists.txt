@@ -74,7 +74,6 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_sde.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_absl.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/find_json.cmake)
 
 target_link_libraries(${PROG}
     PUBLIC
@@ -82,7 +81,6 @@ target_link_libraries(${PROG}
     PRIVATE
         Threads::Threads
         absl::synchronization
-        nlohmann_json::nlohmann_json
         ${SDE_LIBRARIES}
 
         # This fixes the requirement for LD_LIBRARY_PATH update when running the final binaries.

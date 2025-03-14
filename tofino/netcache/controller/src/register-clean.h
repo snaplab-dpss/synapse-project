@@ -18,22 +18,15 @@ protected:
   }
 
   void set(uint16_t i, uint32_t value) {
-    session->beginBatch();
-
     key_setup(i);
     data_setup(value);
 
     auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
 
     ASSERT_BF_STATUS(bf_status);
-
-    auto block = true;
-    session->endBatch(block);
   }
 
   uint32_t get(uint16_t i, bool from_hw = false) {
-    session->beginBatch();
-
     auto hw_flag = from_hw ? bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW : bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
 
     key_setup(i);
@@ -47,16 +40,11 @@ protected:
     ASSERT_BF_STATUS(bf_status);
     auto size = value.size();
 
-    auto block = true;
-    session->endBatch(block);
-
     return (uint32_t)value[0];
   }
 
   void overwrite_all_entries(uint32_t value) {
     auto size = get_size();
-    session->beginBatch();
-
     data_setup(value);
 
     for (size_t i = 0; i < size; i++) {
@@ -65,9 +53,6 @@ protected:
       auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
       ASSERT_BF_STATUS(bf_status);
     }
-
-    auto block = true;
-    session->endBatch(block);
   }
 
 private:

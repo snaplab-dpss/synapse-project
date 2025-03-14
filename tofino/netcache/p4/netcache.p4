@@ -384,8 +384,8 @@ control SwitchEgress(
 
 	apply {
 		if (hdr.bridged_md.isValid()) {
-			// Packet is a HH report going from/to controller<->server or a server READ reply.
-			if (hdr.bridged_md.is_client_packet == 1 && hdr.netcache.op == READ_QUERY) {
+			// Packet is a HH report going from/to controller<->server
+			if (hdr.bridged_md.is_client_packet == 1) {
 				sampl_check();
 				if (sampl_cur == 1) {
 					if (hdr.bridged_md.cache_hit == 1) {

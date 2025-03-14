@@ -96,20 +96,20 @@ class NetCacheController:
     def launch(
         self,
         disable_cache: bool = False,
+        cache_size: int = 65536,
+        sample_size: int = 50,
+        reset_timers_sec: int = 5,
     ) -> None:
         self._compile()
 
-        config_file = self.path_to_controller / "conf" / "conf.json"
-
-        if not self.host.remote_file_exists(config_file):
-            self.host.crash(f"NetCache config file {config_file} not found on remote host {self.host}")
-
         cmd = f"sudo -E ./build/Release/netcache-controller"
-        cmd += f" --config {config_file}"
         cmd += f" --tna {self.tofino_version}"
         cmd += f" --wait-ports"
         cmd += f" --client-ports {' '.join(map(str, self.client_ports))}"
         cmd += f" --server-port {self.server_port}"
+        cmd += f" --cache-size {cache_size}"
+        cmd += f" --sample-size {sample_size}"
+        cmd += f" --reset-timers {reset_timers_sec}"
 
         if disable_cache:
             cmd += " --disable-cache"

@@ -11,10 +11,6 @@ extern "C" {
 
 namespace sycon {
 
-typedef struct {
-  volatile int16_t n;
-} atom_t;
-
 // DPDK's implementation of an atomic 16b compare and set operation.
 static inline int atomic16_cmpset(volatile uint16_t *dst, uint16_t exp, uint16_t src) {
   uint8_t res;

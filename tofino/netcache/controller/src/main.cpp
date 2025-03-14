@@ -36,13 +36,13 @@ void reset_counters() {
     auto elapsed_time_cm    = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts_cm);
     auto elapsed_time_bloom = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts_bloom);
 
-    if (elapsed_time_key.count() >= netcache::Controller::controller->conf.key_cntr.reset_timer) {
+    if (elapsed_time_key.count() >= netcache::Controller::controller->args.reset_timer_sec) {
+      netcache::Controller::controller->begin_transaction();
+
       netcache::Controller::controller->reg_key_count.set_all_false();
       last_ts_key = cur_ts;
       DEBUG("Reset timer: data plane reg_key_count.");
-    }
 
-    if (elapsed_time_key.count() >= netcache::Controller::controller->conf.cm.reset_timer) {
       netcache::Controller::controller->reg_cm_0.set_all_false();
       netcache::Controller::controller->reg_cm_1.set_all_false();
       netcache::Controller::controller->reg_cm_2.set_all_false();
@@ -52,9 +52,7 @@ void reset_counters() {
       DEBUG("Reset timer: data plane reg_cm_1.");
       DEBUG("Reset timer: data plane reg_cm_2.");
       DEBUG("Reset timer: data plane reg_cm_3.");
-    }
 
-    if (elapsed_time_bloom.count() >= netcache::Controller::controller->conf.bloom.reset_timer) {
       netcache::Controller::controller->reg_bloom_0.set_all_false();
       netcache::Controller::controller->reg_bloom_1.set_all_false();
       netcache::Controller::controller->reg_bloom_2.set_all_false();
@@ -62,6 +60,8 @@ void reset_counters() {
       DEBUG("Reset timer: data plane reg_bloom_0.");
       DEBUG("Reset timer: data plane reg_bloom_1.");
       DEBUG("Reset timer: data plane reg_bloom_2.");
+
+      netcache::Controller::controller->end_transaction();
     }
   }
 }
@@ -73,15 +73,17 @@ int main(int argc, char **argv) {
   bool dry_run{false};
   bool disable_cache{false};
 
-  app.add_option("--config", args.conf_file_path, "Configuration file")->required();
+  app.add_option("--client-ports", args.client_ports, "Frontend client ports")->required();
+  app.add_option("--server-port", args.server_port, "Frontend server port")->required();
   app.add_flag("--disable-cache", disable_cache, "Disable cache");
   app.add_flag("--ucli", args.run_ucli, "Interactive user CLI");
   app.add_flag("--wait-ports", args.wait_for_ports,
                "Wait for the ports to be up and running (only relevant when running with the ASIC, not with the model)");
   app.add_flag("--model", args.run_tofino_model, "Run for the tofino model");
   app.add_option("--tna", args.tna_version, "TNA version");
-  app.add_option("--client-ports", args.client_ports, "Frontend client ports")->required();
-  app.add_option("--server-port", args.server_port, "Frontend server port")->required();
+  app.add_option("--cache-size", args.store_size, "Cache size")->default_val(65536);
+  app.add_option("--sample-size", args.sample_size, "Number of entries periodically probed from the data plane")->default_val(50);
+  app.add_option("--reset-timers", args.reset_timer_sec, "Reset timer in seconds")->default_val(10);
   app.add_flag("--dry-run", dry_run, "Dry run");
 
   CLI11_PARSE(app, argc, argv);
@@ -91,14 +93,12 @@ int main(int argc, char **argv) {
 
   args.dump();
 
-  netcache::conf_t conf = netcache::parse_conf_file(args.conf_file_path);
-
   if (dry_run) {
     return 0;
   }
 
   bf_switchd_context_t *switchd_ctx = netcache::init_bf_switchd(args.run_ucli, args.tna_version);
-  netcache::setup_controller(conf, args);
+  netcache::setup_controller(args);
 
   if (args.cache_activated) {
     netcache::register_pcie_pkt_ops();

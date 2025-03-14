@@ -15,6 +15,9 @@ struct args_t {
   bool wait_for_ports;
   bool run_tofino_model;
   int tna_version;
+  uint32_t store_size;
+  uint32_t sample_size;
+  int64_t reset_timer_sec;
 
   args_t() : cache_activated(true), run_ucli(false), wait_for_ports(false), run_tofino_model(false), tna_version(2) {}
 
@@ -32,6 +35,9 @@ struct args_t {
     std::cout << "  Wait for ports: " << wait_for_ports << "\n";
     std::cout << "  Run Tofino model: " << run_tofino_model << "\n";
     std::cout << "  TNA version: " << tna_version << "\n";
+    std::cout << "  Store size: " << store_size << "\n";
+    std::cout << "  Sample size: " << sample_size << "\n";
+    std::cout << "  Reset timer (sec): " << reset_timer_sec << "\n";
   }
 };
 
