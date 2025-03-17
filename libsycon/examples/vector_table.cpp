@@ -5,7 +5,7 @@ using namespace sycon;
 struct state_t {
   VectorTable vector_table;
 
-  state_t() : vector_table("Ingress", {"vector_table_0", "vector_table_1"}) {}
+  state_t() : vector_table({"Ingress.vector_table_0", "Ingress.vector_table_1"}) {}
 };
 
 std::unique_ptr<state_t> state;

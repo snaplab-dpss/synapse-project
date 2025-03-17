@@ -8,7 +8,7 @@ private:
   const std::string nat_action_name;
 
 public:
-  IpRoute() : Table("SwitchIngress", "ipRoute"), route_action_name("route"), nat_action_name("nat") {}
+  IpRoute() : Table("SwitchIngress.ipRoute"), route_action_name("route"), nat_action_name("nat") {}
 
 public:
   void add_entry_nat(u16 vrf, u32 dst_addr, u32 data_src_addr, u32 data_dst_addr, u16 data_dst_port) {

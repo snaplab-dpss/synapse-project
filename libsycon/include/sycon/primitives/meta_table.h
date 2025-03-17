@@ -29,7 +29,7 @@ protected:
   std::unique_ptr<bfrt::BfRtTableData> data;
 
 public:
-  MetaTable(const std::string &_control_name, const std::string &_table_name);
+  MetaTable(const std::string &name);
   MetaTable(const MetaTable &other);
   MetaTable(MetaTable &&other) = delete;
 

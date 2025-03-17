@@ -30,7 +30,7 @@ private:
   std::unordered_map<u16, u16> dev_port_to_front_panel_port;
 
 public:
-  Ports() : MetaTable("", "$PORT") {
+  Ports() : MetaTable("$PORT") {
     init_key({
         {"$DEV_PORT", &DEV_PORT},
     });

@@ -6,7 +6,7 @@ namespace sycon {
 
 class IngressPortToNFDev : public Table {
 public:
-  IngressPortToNFDev() : Table("Ingress", "ingress_port_to_nf_dev") {}
+  IngressPortToNFDev() : Table("Ingress.ingress_port_to_nf_dev") {}
 
 public:
   void add_entry(u16 ingress_port, u16 nf_dev) {

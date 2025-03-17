@@ -4,17 +4,9 @@
 
 namespace sycon {
 
-namespace {
-
-std::string append_control(const std::string &control_name, const std::string &name) {
-  return control_name.size() ? control_name + "." + name : name;
-}
-
-} // namespace
-
-Register::Register(const std::string &control_name, const std::string &register_name) : MetaTable(control_name, register_name) {
+Register::Register(const std::string &_name) : MetaTable(_name) {
   init_key({{"$REGISTER_INDEX", &index_id}});
-  init_data({{append_control(control_name, register_name) + ".f1", &value_id}});
+  init_data({{_name + ".f1", &value_id}});
 
   bf_status_t bf_status = table->dataFieldSizeGet(value_id, &value_size);
   ASSERT_BF_STATUS(bf_status);
@@ -23,7 +15,7 @@ Register::Register(const std::string &control_name, const std::string &register_
 Register::Register(const Register &other)
     : MetaTable(other), index_id(other.index_id), value_id(other.value_id), value_size(other.value_size), pipes(other.pipes) {
   init_key({{"$REGISTER_INDEX", &index_id}});
-  init_data({{append_control(control, name) + ".f1", &value_id}});
+  init_data({{name + ".f1", &value_id}});
 }
 
 u32 Register::get(u32 i) {

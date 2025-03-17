@@ -113,7 +113,7 @@ private:
   data_fields_t data_fields;
 
 public:
-  Port_Stat() : MetaTable("", "$PORT_STAT") {
+  Port_Stat() : MetaTable("$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
     });

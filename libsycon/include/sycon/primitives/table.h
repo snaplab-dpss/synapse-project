@@ -30,8 +30,7 @@ struct table_action_t {
 
 class Table {
 protected:
-  const std::string control_name;
-  const std::string table_name;
+  const std::string name;
 
   const bf_rt_target_t dev_tgt;
   const bfrt::BfRtInfo *info;
@@ -52,7 +51,7 @@ protected:
   time_ms_t entry_ttl;
 
 public:
-  Table(const std::string &_control_name, const std::string &_table_name);
+  Table(const std::string &name);
   Table(const Table &other);
   Table(Table &&other) = delete;
 

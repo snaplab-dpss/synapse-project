@@ -20,11 +20,11 @@ private:
   bits_t key_size;
 
 public:
-  MapTable(const std::string &control_name, const std::vector<std::string> &table_names, time_ms_t timeout) : capacity(0), key_size(0) {
+  MapTable(const std::vector<std::string> &table_names, time_ms_t timeout) : capacity(0), key_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
-      tables.emplace_back(control_name, table_name);
+      tables.emplace_back(table_name);
       capacity = tables.back().get_capacity();
       for (const table_field_t &field : tables.back().get_key_fields()) {
         key_size += field.size;

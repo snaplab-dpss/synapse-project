@@ -7,7 +7,7 @@ using namespace sycon;
 struct state_t {
   DchainTable dchain_table;
 
-  state_t() : dchain_table("Ingress", {"dchain_table_0", "dchain_table_1"}, 1000) {}
+  state_t() : dchain_table({"Ingress.dchain_table_0", "Ingress.dchain_table_1"}, 1000) {}
 };
 
 std::unique_ptr<state_t> state;

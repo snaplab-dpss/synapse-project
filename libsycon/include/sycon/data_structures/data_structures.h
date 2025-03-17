@@ -7,3 +7,4 @@
 #include "vector_table.h"
 #include "dchain_table.h"
 #include "vector_register.h"
+#include "hh_table.h"

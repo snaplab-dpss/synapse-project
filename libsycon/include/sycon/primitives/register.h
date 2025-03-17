@@ -12,7 +12,7 @@ private:
   size_t pipes;
 
 public:
-  Register(const std::string &control_name, const std::string &register_name);
+  Register(const std::string &name);
   Register(const Register &other);
   Register(Register &&other) = delete;
 

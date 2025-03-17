@@ -19,11 +19,11 @@ private:
   bits_t value_size;
 
 public:
-  VectorRegister(const std::string &control_register_name, const std::vector<std::string> &register_names) : capacity(0), value_size(0) {
+  VectorRegister(const std::vector<std::string> &register_names) : capacity(0), value_size(0) {
     assert(!register_names.empty() && "Register names must not be empty");
 
     for (const std::string &name : register_names) {
-      registers.emplace_back(control_register_name, name);
+      registers.emplace_back(name);
       capacity = registers.back().get_capacity();
       value_size += registers.back().get_value_size();
     }

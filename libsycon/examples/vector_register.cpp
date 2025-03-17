@@ -5,7 +5,7 @@ using namespace sycon;
 struct state_t {
   VectorRegister vector_register;
 
-  state_t() : vector_register("Ingress", {"reg0", "reg1", "reg2"}) {}
+  state_t() : vector_register({"Ingress.reg0", "Ingress.reg1", "Ingress.reg2"}) {}
 };
 
 std::unique_ptr<state_t> state;

@@ -19,11 +19,11 @@ private:
   bits_t value_size;
 
 public:
-  VectorTable(const std::string &control_name, const std::vector<std::string> &table_names) : capacity(0), value_size(0) {
+  VectorTable(const std::vector<std::string> &table_names) : capacity(0), value_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
-      tables.emplace_back(control_name, table_name);
+      tables.emplace_back(table_name);
       capacity = tables.back().get_capacity();
 
       const std::vector<sycon::table_action_t> &actions = tables.back().get_actions();

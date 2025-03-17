@@ -22,22 +22,17 @@ private:
   u32 capacity;
 
 public:
-  DchainTable(const std::string &control_name, const std::vector<std::string> &table_names, time_ms_t timeout) : capacity(0) {
+  DchainTable(const std::vector<std::string> &table_names, time_ms_t timeout) : capacity(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
-      tables.emplace_back(control_name, table_name);
+      tables.emplace_back(table_name);
     }
 
     capacity = tables.back().get_capacity();
 
     for (u32 i = 0; i < capacity; i++) {
       free_indexes.insert(capacity - i - 1);
-    }
-
-    if (timeout < TOFINO_MODEL_MIN_EXPIRATION_TIME) {
-      DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
-      timeout = TOFINO_MODEL_MIN_EXPIRATION_TIME;
     }
 
     Table &chosen_expiration_table = tables.front();

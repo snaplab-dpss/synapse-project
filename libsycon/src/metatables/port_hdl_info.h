@@ -19,7 +19,7 @@ private:
   bf_rt_id_t DEV_PORT;
 
 public:
-  Port_HDL_Info() : MetaTable("", "$PORT_HDL_INFO") {
+  Port_HDL_Info() : MetaTable("$PORT_HDL_INFO") {
     init_key({
         {"$CONN_ID", &CONN_ID},
         {"$CHNL_ID", &CHNL_ID},

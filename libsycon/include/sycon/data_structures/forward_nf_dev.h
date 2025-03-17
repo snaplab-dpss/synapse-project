@@ -6,7 +6,7 @@ namespace sycon {
 
 class ForwardNFDev : public Table {
 public:
-  ForwardNFDev() : Table("Ingress", "forward_nf_dev") {}
+  ForwardNFDev() : Table("Ingress.forward_nf_dev") {}
 
   void add_entry(u32 nf_dev, u16 dev_port) {
     buffer_t key(4);

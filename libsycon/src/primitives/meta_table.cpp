@@ -11,15 +11,9 @@ namespace sycon {
 
 namespace {
 
-const bfrt::BfRtTable *build_table(const bf_rt_target_t dev_tgt, const bfrt::BfRtInfo *info, const std::string &control,
-                                   const std::string &name) {
-  std::string full_name = name;
-  if (control.size()) {
-    full_name = control + "." + full_name;
-  }
-
+const bfrt::BfRtTable *build_table(const bf_rt_target_t dev_tgt, const bfrt::BfRtInfo *info, const std::string &name) {
   const bfrt::BfRtTable *table;
-  bf_status_t bf_status = info->bfrtTableFromNameGet(full_name, &table);
+  bf_status_t bf_status = info->bfrtTableFromNameGet(name, &table);
   ASSERT_BF_STATUS(bf_status);
 
   return table;
@@ -334,9 +328,9 @@ void dump_entry(std::ostream &os, const bfrt::BfRtTable *table, bfrt::BfRtTableK
 
 } // namespace
 
-MetaTable::MetaTable(const std::string &_control, const std::string &_name)
-    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), control(_control), name(_name),
-      table(build_table(dev_tgt, info, control, name)), capacity(get_capacity_from_hw(dev_tgt, session, table)) {
+MetaTable::MetaTable(const std::string &_name)
+    : dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), name(_name), table(build_table(dev_tgt, info, name)),
+      capacity(get_capacity_from_hw(dev_tgt, session, table)) {
   bf_status_t bf_status;
 
   std::vector<bf_dev_pipe_t> key_fields_ids;

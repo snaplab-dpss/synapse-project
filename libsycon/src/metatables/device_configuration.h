@@ -29,7 +29,7 @@ private:
   bf_rt_id_t selector_member_order;
 
 public:
-  Device_Configuration() : MetaTable(TOFINO_ARCH(args.tna_version) + ".dev", "device_configuration") {
+  Device_Configuration() : MetaTable(TOFINO_ARCH(args.tna_version) + ".dev.device_configuration") {
     init_data({{"sku", &sku},
                {"num_pipes", &num_pipes},
                {"num_stages", &num_stages},
