@@ -70,4 +70,7 @@ const bit<8> READ_QUERY = 0x00;
 const bit<8> WRITE_QUERY = 0x01;
 const bit<8> DELETE_QUERY = 0x02;
 
+const bit<8> NC_STATUS_HIT = 1;
+const bit<8> NC_STATUS_MISS = 0;
+
 #endif

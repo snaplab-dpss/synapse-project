@@ -7,7 +7,6 @@
 namespace netcache {
 
 struct args_t {
-  std::filesystem::path conf_file_path;
   std::vector<uint16_t> client_ports;
   uint16_t server_port;
   bool cache_activated;
@@ -23,7 +22,6 @@ struct args_t {
 
   void dump() const {
     std::cout << "Arguments:\n";
-    std::cout << "  Configuration file path: " << conf_file_path << "\n";
     std::cout << "  Frontend client ports: ";
     for (const auto &port : client_ports) {
       std::cout << port << " ";

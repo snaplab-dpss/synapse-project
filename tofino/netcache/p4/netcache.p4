@@ -143,10 +143,12 @@ control SwitchIngress(
 	action set_key_idx(bit<16> key_idx) {
 		ig_md.key_idx = key_idx;
 		ig_md.cache_hit = 1;
+		hdr.netcache.status = NC_STATUS_HIT;
 	}
 
 	action set_cache_miss() {
 		ig_md.cache_hit = 0;
+		hdr.netcache.status = NC_STATUS_MISS;
 	}
 
 	table keys {
@@ -175,20 +177,6 @@ control SwitchIngress(
 		bit<16> port_src_tmp = hdr.udp.src_port;
 		hdr.udp.src_port = hdr.udp.dst_port;
 		hdr.udp.dst_port = port_src_tmp;
-	}
-
-	action update_pkt_tcp() {
-		bit<48> mac_src_tmp = hdr.ethernet.src_addr;
-		hdr.ethernet.src_addr = hdr.ethernet.dst_addr;
-		hdr.ethernet.dst_addr = mac_src_tmp;
-
-		bit<32> ip_src_tmp = hdr.ipv4.src_addr;
-		hdr.ipv4.src_addr = hdr.ipv4.dst_addr;
-		hdr.ipv4.dst_addr = ip_src_tmp;
-
-		bit<16> port_src_tmp = hdr.tcp.src_port;
-		hdr.tcp.src_port = hdr.tcp.dst_port;
-		hdr.tcp.dst_port = port_src_tmp;
 	}
 
 	action set_normal_pkt() {

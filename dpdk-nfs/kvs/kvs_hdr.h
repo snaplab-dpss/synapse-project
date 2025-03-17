@@ -12,8 +12,8 @@ enum kvs_op {
 };
 
 enum kvs_status {
-  KVS_STATUS_CACHE_HIT  = 0,
-  KVS_STATUS_CACHE_MISS = 1,
+  KVS_STATUS_MISS = 0,
+  KVS_STATUS_HIT  = 1,
 };
 
 struct kvs_hdr {
