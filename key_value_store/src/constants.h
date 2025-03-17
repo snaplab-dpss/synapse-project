@@ -4,8 +4,8 @@
 
 #define READ_QUERY 0
 #define WRITE_QUERY 1
-#define KVS_SUCCESS 0
-#define KVS_FAILURE 1
+#define KVS_FAILURE 0
+#define KVS_SUCCESS 1
 #define KVSTORE_PORT 670
 #define KVSTORE_CAPACITY (1 << 20)
 

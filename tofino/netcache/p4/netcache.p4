@@ -192,8 +192,6 @@ control SwitchIngress(
 		ig_tm_md.ucast_egress_port = port;
 	}
 
-	action miss() {}
-
 	action set_client_packet() {
 		ig_md.is_client_packet = 1;
 		hdr.netcache.port = (bit<16>)ig_intr_md.ingress_port;
@@ -222,11 +220,11 @@ control SwitchIngress(
 			ig_md.cache_hit: exact;
 			hdr.netcache.port: ternary;
 		}
+
 		actions = {
 			set_out_port;
-			miss;
 		}
-		const default_action = miss;
+
 		size = 1024;
 	}
 
@@ -388,6 +386,8 @@ control SwitchEgress(
 							bloom.apply(hdr, bloom_result);
 							// If confirmed HH, inform the controller through mirroring.
 							if (bloom_result == 0) {
+								// FIXME: we should get these values from the control plane.
+								// Otherwise, we lose the PUT value.
 								hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
 								set_mirror();
 							}

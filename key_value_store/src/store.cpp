@@ -50,8 +50,7 @@ void Store::run() {
     }
 
     for (uint16_t n = 0; n < nb_rx; n++) {
-      LOG_DEBUG();
-      LOG_DEBUG("Grabbing packet %u/%u.", n + 1, nb_rx);
+      LOG_DEBUG("Packet received (now=%lu)", now());
 
       if (!check_pkt(rx_mbufs[n])) {
         LOG_DEBUG("Not a NetCache packet, dropping!");
@@ -152,6 +151,8 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
       std::memcpy(it->second.data(), nc_hdr->val, KV_VAL_SIZE);
     }
     nc_hdr->status = KVS_SUCCESS;
+  } else {
+    LOG_DEBUG("Unknown query type...");
   }
 }
 

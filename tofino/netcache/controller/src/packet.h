@@ -212,7 +212,6 @@ struct pkt_hdr_t {
   }
 
   void pretty_print_netcache() {
-
     if (!has_valid_protocol()) {
       return;
     }
@@ -221,15 +220,15 @@ struct pkt_hdr_t {
     printf("###[ NetCache ]###\n");
     printf("  op		%u\n", nc_hdr->op);
     printf("  key		");
-	for (size_t i = 0; i < 16; ++i) {
-        printf("%u", nc_hdr->key[i]);
+    for (size_t i = 0; i < KV_KEY_SIZE; ++i) {
+      printf("%02x", nc_hdr->key[i]);
     }
-	printf("\n");
+    printf("\n");
     printf("  val		");
-	for (size_t i = 0; i < 128; ++i) {
-        printf("%u", nc_hdr->val[i]);
+    for (size_t i = 0; i < KV_VAL_SIZE; ++i) {
+      printf("%02x", nc_hdr->val[i]);
     }
-	printf("\n");
+    printf("\n");
     printf("  status	%u\n", nc_hdr->status);
     printf("  port		%u\n", ntohs(nc_hdr->port));
   }

@@ -37,29 +37,23 @@ void reset_counters() {
     auto elapsed_time_bloom = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts_bloom);
 
     if (elapsed_time_key.count() >= netcache::Controller::controller->args.reset_timer_sec) {
+      DEBUG("Resetting timers");
+
       netcache::Controller::controller->begin_transaction();
 
       netcache::Controller::controller->reg_key_count.set_all_false();
       last_ts_key = cur_ts;
-      DEBUG("Reset timer: data plane reg_key_count.");
 
       netcache::Controller::controller->reg_cm_0.set_all_false();
       netcache::Controller::controller->reg_cm_1.set_all_false();
       netcache::Controller::controller->reg_cm_2.set_all_false();
       netcache::Controller::controller->reg_cm_3.set_all_false();
       last_ts_cm = cur_ts;
-      DEBUG("Reset timer: data plane reg_cm_0.");
-      DEBUG("Reset timer: data plane reg_cm_1.");
-      DEBUG("Reset timer: data plane reg_cm_2.");
-      DEBUG("Reset timer: data plane reg_cm_3.");
 
       netcache::Controller::controller->reg_bloom_0.set_all_false();
       netcache::Controller::controller->reg_bloom_1.set_all_false();
       netcache::Controller::controller->reg_bloom_2.set_all_false();
       last_ts_bloom = cur_ts;
-      DEBUG("Reset timer: data plane reg_bloom_0.");
-      DEBUG("Reset timer: data plane reg_bloom_1.");
-      DEBUG("Reset timer: data plane reg_bloom_2.");
 
       netcache::Controller::controller->end_transaction();
     }
