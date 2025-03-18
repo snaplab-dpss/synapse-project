@@ -859,7 +859,7 @@ buffer_t Table::get_key_value(const bfrt::BfRtTableKey *key) const {
       ASSERT_BF_STATUS(bf_status);
 
       for (size_t i = 0; i < field_size; i++) {
-        key_buffer.set(key_size - 1 - (offset + i), 1, value[i]);
+        key_buffer.set_big_endian(offset + i, 1, value[i]);
       }
     } break;
     default: {

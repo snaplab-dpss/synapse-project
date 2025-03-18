@@ -114,7 +114,8 @@ parser IngressParser(
 	}
 }
 
-#define HH_TABLE_SIZE 1000
+// #define HH_TABLE_SIZE 1000
+#define HH_TABLE_SIZE 32
 #define HH_TABLE_COLUMNS 1024
 #define HH_TABLE_HASH_SIZE 10
 typedef bit<HH_TABLE_HASH_SIZE> hash_t;
@@ -235,71 +236,58 @@ control Ingress(
 		}
 	};
 
-	bit<32> nf_dev = 0;
-	table forward_nf_dev {
-		key = { nf_dev: exact; }
-		actions = { forward; }
-		size = 64;
-	}
-
 	apply {
 		bool hh_table_hit = hh_table.apply().hit;
 		if (hh_table_hit) {
 			hh_table_cached_counters_update.execute(hh_table_key_index);
-			nf_dev = 2;
+			forward(ig_intr_md.ingress_port);
 		} else {
-			nf_dev = 1;
-		}
-	
-		hash_t hash0 = hash0_calculator.get({
-			hdr.ipv4.src_addr,
-			hdr.ipv4.dst_addr,
-			hdr.udp.src_port,
-			hdr.udp.dst_port,
-			HASH_SALT_0
-		});
+			drop();
 
-		hash_t hash1 = hash1_calculator.get({
-			hdr.ipv4.src_addr,
-			hdr.ipv4.dst_addr,
-			hdr.udp.src_port,
-			hdr.udp.dst_port,
-			HASH_SALT_1
-		});
+			hash_t hash0 = hash0_calculator.get({
+				hdr.ipv4.src_addr,
+				hdr.ipv4.dst_addr,
+				hdr.udp.src_port,
+				hdr.udp.dst_port,
+				HASH_SALT_0
+			});
 
-		hash_t hash2 = hash2_calculator.get({
-			hdr.ipv4.src_addr,
-			hdr.ipv4.dst_addr,
-			hdr.udp.src_port,
-			hdr.udp.dst_port,
-			HASH_SALT_2
-		});
+			hash_t hash1 = hash1_calculator.get({
+				hdr.ipv4.src_addr,
+				hdr.ipv4.dst_addr,
+				hdr.udp.src_port,
+				hdr.udp.dst_port,
+				HASH_SALT_1
+			});
 
-		bit<32> hh_table_cms_min0 = hh_table_cms_row0_inc.execute(hash0);
-		bit<32> hh_table_cms_min1 = min(hh_table_cms_min0, hh_table_cms_row1_inc.execute(hash1));
-		bit<32> hh_table_cms_min2 = min(hh_table_cms_min1, hh_table_cms_row2_inc.execute(hash2));
+			hash_t hash2 = hash2_calculator.get({
+				hdr.ipv4.src_addr,
+				hdr.ipv4.dst_addr,
+				hdr.udp.src_port,
+				hdr.udp.dst_port,
+				HASH_SALT_2
+			});
 
-		hh_table_threshold_value_to_compare = hh_table_cms_min2;
-		bit<32> threshold_diff = hh_table_threshold_diff.execute(0);
+			bit<32> hh_table_cms_min0 = hh_table_cms_row0_inc.execute(hash0);
+			bit<32> hh_table_cms_min1 = min(hh_table_cms_min0, hh_table_cms_row1_inc.execute(hash1));
+			bit<32> hh_table_cms_min2 = min(hh_table_cms_min1, hh_table_cms_row2_inc.execute(hash2));
 
-		// hh_table_cms_min2 >= hh_table_threshold
-		if (threshold_diff[31:31] == 0) {
-			bit<8> hh_table_bloom_filter_counter = 0;
-			hh_table_bloom_filter_counter = hh_table_bloom_filter_counter + hh_table_bloom_filter_row0_get_and_set.execute(hash0);
-			hh_table_bloom_filter_counter = hh_table_bloom_filter_counter + hh_table_bloom_filter_row1_get_and_set.execute(hash1);
-			hh_table_bloom_filter_counter = hh_table_bloom_filter_counter + hh_table_bloom_filter_row2_get_and_set.execute(hash2);
-			bool match = false;
-			if (hh_table_bloom_filter_counter == 3) {
-				match = true;
-			}
+			hh_table_threshold_value_to_compare = hh_table_cms_min2;
+			bit<32> threshold_diff = hh_table_threshold_diff.execute(0);
 
-			if (!match) {
-				// Warn the controller!
-				ig_dprsr_md.digest_type = 1;
+			// hh_table_cms_min2 >= hh_table_threshold
+			if (threshold_diff[31:31] == 0) {
+				bit<8> hh_table_bloom_filter_counter = 0;
+				hh_table_bloom_filter_counter = hh_table_bloom_filter_counter + hh_table_bloom_filter_row0_get_and_set.execute(hash0);
+				hh_table_bloom_filter_counter = hh_table_bloom_filter_counter + hh_table_bloom_filter_row1_get_and_set.execute(hash1);
+				hh_table_bloom_filter_counter = hh_table_bloom_filter_counter + hh_table_bloom_filter_row2_get_and_set.execute(hash2);
+
+				if (hh_table_bloom_filter_counter != 3) {
+					// Warn the controller!
+					ig_dprsr_md.digest_type = 1;
+				}
 			}
 		}
-
-		forward_nf_dev.apply();
 
 		// No need for egress processing, skip it and use empty controls for egress.
 		ig_tm_md.bypass_egress = 1w1;

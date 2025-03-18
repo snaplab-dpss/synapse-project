@@ -16,7 +16,7 @@ namespace sycon {
 class HHTable {
 private:
   constexpr const static u32 TOTAL_PROBES{50};
-  constexpr const static u32 THRESHOLD{10'000};
+  constexpr const static u32 THRESHOLD{100};
   constexpr const static time_s_t RESET_TIMER{10};
 
   constexpr const static u32 HASH_SALT_0{0xfbc31fc7};

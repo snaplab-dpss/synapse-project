@@ -76,6 +76,7 @@ public:
       u64 digest_field_value;
       bf_status = data->getValue(field.id, &digest_field_value);
       ASSERT_BF_STATUS(bf_status);
+
       digest_buffer.set(offset, field_size, digest_field_value);
 
       offset += field_size;

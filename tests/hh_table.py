@@ -13,13 +13,9 @@ def main():
     ports = Ports(PORTS)
 
     in_port = 3
-    miss_port = 4
-    hit_port = 5
 
-    total_heavy_hitter_flows = 2
+    total_heavy_hitter_flows = 60
     total_mice_flows = 20
-
-    total_packets = 1000
 
     heavy_hitter_flows = [build_flow() for _ in range(total_heavy_hitter_flows)]
     mice_flows = [build_flow() for _ in range(total_mice_flows)]
@@ -28,7 +24,9 @@ def main():
     for i, flow in enumerate(heavy_hitter_flows):
         print(f"[({i+1}) Flow: {flow} ({flow.hex()})")
 
-    for i in range(total_packets):
+    print("Sending traffic, press Ctrl+C to stop...")
+
+    while True:
         packets = [build_packet(choice(heavy_hitter_flows)) for _ in range(10)]
         packets += build_packet(choice(mice_flows))
 
