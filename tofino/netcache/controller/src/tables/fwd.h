@@ -34,7 +34,7 @@ public:
     init_key({
         {"ig_intr_md.ingress_port", &key_fields.ig_port},
         {"ig_md.cache_hit", &key_fields.cache_hit},
-        {"hdr.netcache.port", &key_fields.nc_port},
+        {"ig_md.original_nc_port", &key_fields.nc_port},
     });
 
     init_actions({

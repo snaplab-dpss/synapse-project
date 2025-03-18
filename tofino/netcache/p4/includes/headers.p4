@@ -54,6 +54,7 @@ header netcache_t {
 }
 
 struct ingress_metadata_t {
+	bit<16>	original_nc_port;
 	bit<8> is_client_packet;
 	bit<16> key_idx;
 	bit<8> cache_hit;

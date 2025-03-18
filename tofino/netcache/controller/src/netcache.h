@@ -100,6 +100,9 @@ public:
 
   volatile int16_t atom;
 
+  const uint16_t cpu_port;
+  const uint16_t server_dev_port;
+
   // Switch tables
   Fwd fwd;
   Keys keys;
@@ -152,6 +155,7 @@ public:
 
   Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &_args)
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), args(_args), atom(0),
+        cpu_port(args.tna_version == 1 ? CPU_PORT_TNA1 : CPU_PORT_TNA2), server_dev_port(ports.get_dev_port(args.server_port, 0)),
         fwd(_info, _session, _dev_tgt), keys(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt),
         reg_v0_31(_info, _session, _dev_tgt), reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt),
         reg_v96_127(_info, _session, _dev_tgt), reg_v128_159(_info, _session, _dev_tgt), reg_v160_191(_info, _session, _dev_tgt),
@@ -171,12 +175,8 @@ public:
       config_ports();
     }
 
-    const uint16_t cpu_port        = args.tna_version == 1 ? CPU_PORT_TNA1 : CPU_PORT_TNA2;
-    const uint16_t server_port     = args.server_port;
-    const uint16_t server_dev_port = ports.get_dev_port(server_port, 0);
-
     LOG("CPU port %u", cpu_port);
-    LOG("server port %u", server_port);
+    LOG("server port %u", args.server_port);
     LOG("server dev port %u", server_dev_port);
 
     is_client_packet.add_not_client_port(server_dev_port);
@@ -191,7 +191,7 @@ public:
 
       LOG("Frontend client port %u -> device port %u", port, dev_port);
 
-      if (port != server_port) {
+      if (port != args.server_port) {
         // Read cache hit.
         fwd.add_entry(dev_port, 1, 0, 0x0, dev_port);
         // Read cache miss (request).

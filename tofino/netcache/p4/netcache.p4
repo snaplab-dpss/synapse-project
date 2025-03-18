@@ -194,7 +194,6 @@ control SwitchIngress(
 
 	action set_client_packet() {
 		ig_md.is_client_packet = 1;
-		hdr.netcache.port = (bit<16>)ig_intr_md.ingress_port;
 	}
 
 	action set_not_client_packet() {
@@ -218,7 +217,7 @@ control SwitchIngress(
 		key = {
 			ig_intr_md.ingress_port: exact;
 			ig_md.cache_hit: exact;
-			hdr.netcache.port: ternary;
+			ig_md.original_nc_port: ternary;
 		}
 
 		actions = {
@@ -229,6 +228,9 @@ control SwitchIngress(
 	}
 
 	apply {
+		ig_md.original_nc_port = hdr.netcache.port;
+		hdr.netcache.port = (bit<16>)ig_intr_md.ingress_port;
+
 		is_client_packet.apply();
 		keys.apply();
 
