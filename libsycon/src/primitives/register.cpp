@@ -18,19 +18,35 @@ Register::Register(const Register &other)
   init_data({{name + ".f1", &value_id}});
 }
 
-u32 Register::get(u32 i) {
+std::vector<u32> Register::get_per_pipe(u32 i) {
   key_setup(i);
   data_reset();
 
-  bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW;
+  bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
   bf_status_t bf_status                  = table->tableEntryGet(*session, dev_tgt, *key, flag, data.get());
   ASSERT_BF_STATUS(bf_status);
 
-  u64 value;
-  bf_status = data->getValue(value_id, &value);
+  std::vector<u64> values_per_pipe;
+  bf_status = data->getValue(value_id, &values_per_pipe);
   ASSERT_BF_STATUS(bf_status);
+  assert(!values_per_pipe.empty());
 
-  return value;
+  std::vector<u32> values_per_pipe_32b;
+  for (u64 value : values_per_pipe) {
+    values_per_pipe_32b.push_back(static_cast<u32>(value));
+  }
+
+  return values_per_pipe_32b;
+}
+
+u32 Register::get_max(u32 i) {
+  std::vector<u32> values_per_pipe = get_per_pipe(i);
+  return *std::max_element(values_per_pipe.begin(), values_per_pipe.end());
+}
+
+u32 Register::get_min(u32 i) {
+  std::vector<u32> values_per_pipe = get_per_pipe(i);
+  return *std::min_element(values_per_pipe.begin(), values_per_pipe.end());
 }
 
 void Register::set(u32 i, u32 value) {

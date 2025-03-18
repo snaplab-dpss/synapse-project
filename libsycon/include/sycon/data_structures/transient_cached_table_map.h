@@ -103,7 +103,7 @@ private:
   static bf_status_t internal_digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,
                                               std::vector<std::unique_ptr<bfrt::BfRtLearnData>> data,
                                               bf_rt_learn_msg_hdl *const learn_msg_hdl, const void *cookie) {
-    DEBUG("RECEIVED %lu DIGESTS!", data.size());
+    LOG_DEBUG("RECEIVED %lu DIGESTS!", data.size());
 
     TransientCachedTableMap *tctm = (TransientCachedTableMap *)(cookie);
 

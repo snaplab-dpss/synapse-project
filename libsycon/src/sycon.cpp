@@ -48,7 +48,7 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
     case SIGINT:
     case SIGQUIT:
     case SIGTERM:
-      DEBUG("~~~ NF exit ~~~");
+      LOG_DEBUG("~~~ NF exit ~~~");
       nf_exit();
       bf_switchd_exit_sighandler(signum);
       exit(0);
@@ -58,7 +58,7 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
       LOG("~~~ USR1 signal processing done ~~~");
       break;
     default:
-      DEBUG("~~~ Received unknown signal %d (%s) ~~~", signum, strsignal(signum));
+      LOG_DEBUG("~~~ Received unknown signal %d (%s) ~~~", signum, strsignal(signum));
       break;
     }
   }

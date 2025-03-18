@@ -9,12 +9,6 @@
 
 namespace sycon {
 
-// Extra app data sent to the CPU.
-struct app_t;
-
-// App header printer (for debugging).
-extern void print(const struct app_t *);
-
 // Function responsible for initializing NF state.
 extern void nf_init();
 

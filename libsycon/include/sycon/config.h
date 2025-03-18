@@ -48,8 +48,8 @@ extern struct config_t {
   void unlock() { atom = 0; }
 
   void begin_transaction() {
-    const bool atomic = true;
     lock();
+    const bool atomic     = true;
     bf_status_t bf_status = session->beginTransaction(atomic);
     ASSERT_BF_STATUS(bf_status);
   }

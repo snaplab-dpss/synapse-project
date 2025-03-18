@@ -158,14 +158,14 @@ void configure_dev() {
   update_dev_configuration();
 
   if (!args.model) {
-    DEBUG("");
-    DEBUG("**********************************************************");
-    DEBUG("*                                                        *");
-    DEBUG("*                        WARNING                         *");
-    DEBUG("* Running in hardware mode but compiled with debug flags *");
-    DEBUG("*                                                        *");
-    DEBUG("**********************************************************");
-    DEBUG("");
+    LOG_DEBUG("");
+    LOG_DEBUG("**********************************************************");
+    LOG_DEBUG("*                                                        *");
+    LOG_DEBUG("*                        WARNING                         *");
+    LOG_DEBUG("* Running in hardware mode but compiled with debug flags *");
+    LOG_DEBUG("*                                                        *");
+    LOG_DEBUG("**********************************************************");
+    LOG_DEBUG("");
   }
 }
 

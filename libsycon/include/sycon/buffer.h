@@ -101,15 +101,26 @@ struct buffer_t {
     return slice;
   }
 
-  // Set the value of a buffer at a given offset and width.
-  // Value is stored in network byte order, i.e., most significant byte first.
   void set(bytes_t offset, bytes_t width, u64 value) {
     assert(width > 0 && "Width must be greater than 0");
     assert(offset + width <= size && "Offset and width must be within buffer bounds");
     assert(width <= 8 && "Width must be less than or equal to 8 bytes");
 
     for (bytes_t i = 0; i < width; i++) {
-      const bytes_t index = size - 1 - (offset + i);
+      const bytes_t index = offset + width - 1 - i;
+      assert(index < size);
+      data[index] = value & 0xFF;
+      value >>= 8;
+    }
+  }
+
+  void set_big_endian(bytes_t offset, bytes_t width, u64 value) {
+    assert(width > 0 && "Width must be greater than 0");
+    assert(offset + width <= size && "Offset and width must be within buffer bounds");
+    assert(width <= 8 && "Width must be less than or equal to 8 bytes");
+
+    for (bytes_t i = 0; i < width; i++) {
+      const bytes_t index = offset + i;
       assert(index < size);
       data[index] = value & 0xFF;
       value >>= 8;

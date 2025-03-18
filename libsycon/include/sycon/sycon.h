@@ -12,6 +12,7 @@
 #include "util.h"
 #include "buffer.h"
 #include "field.h"
+#include "hash.h"
 
 namespace sycon {
 
@@ -33,7 +34,7 @@ void run_bench_cli();
   } else if (args.bench_mode) {                                                                                                            \
     run_bench_cli();                                                                                                                       \
   } else {                                                                                                                                 \
-    DEBUG("Warning: running in debug mode");                                                                                               \
+    LOG_DEBUG("Warning: running in debug mode");                                                                                           \
     WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");                                                                    \
   }                                                                                                                                        \
   nf_exit();

@@ -37,13 +37,15 @@ class Ports:
             self.port_to_socket[port] = s
             self.socket_to_port[s] = port
 
-    def send(self, port: int, pkt: Packet) -> None:
+    def send(self, port: int, pkt: Packet, quiet: bool = False) -> None:
         src_addr = pkt[IP].src
         dst_addr = pkt[IP].dst
         src_port = pkt[UDP].sport
         dst_port = pkt[UDP].dport
 
-        print(f"Sent {port}: {src_addr}:{src_port} -> {dst_addr}:{dst_port}")
+        if not quiet:
+            print(f"Sent {port}: {src_addr}:{src_port} -> {dst_addr}:{dst_port}")
+
         self.port_to_socket[port].send(pkt.build())
 
     def poll(self) -> dict[int, list[Packet]]:

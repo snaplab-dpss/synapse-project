@@ -52,7 +52,7 @@ public:
     key.set(0, 4, index);
 
     for (Table &table : tables) {
-      DEBUG("[%s] Write index %u value %s", table.get_name().c_str(), index, value.to_string().c_str());
+      LOG_DEBUG("[%s] Write index %u value %s", table.get_name().c_str(), index, value.to_string().c_str());
 
       const std::vector<table_action_t> &actions = table.get_actions();
       assert(actions.size() == 1);

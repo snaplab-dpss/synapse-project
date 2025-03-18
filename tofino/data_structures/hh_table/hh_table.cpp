@@ -7,8 +7,22 @@ struct state_t {
   HHTable hh_table;
 
   state_t()
-      : forward_nf_dev(), hh_table({"Ingress.map_table"}, "Ingress.hh_table_cached_counters", "Ingress.hh_table_threshold",
-                                   "IngressDeparser.hh_table_digest", 1000) {}
+      : forward_nf_dev(), hh_table(
+                              {
+                                  "Ingress.hh_table",
+                              },
+                              "Ingress.hh_table_cached_counters",
+                              {
+                                  "Ingress.hh_table_bloom_filter_row0",
+                                  "Ingress.hh_table_bloom_filter_row1",
+                                  "Ingress.hh_table_bloom_filter_row2",
+                              },
+                              {
+                                  "Ingress.hh_table_cms_row0",
+                                  "Ingress.hh_table_cms_row1",
+                                  "Ingress.hh_table_cms_row2",
+                              },
+                              "Ingress.hh_table_threshold", "IngressDeparser.hh_table_digest", 1000) {}
 };
 
 std::unique_ptr<state_t> state;

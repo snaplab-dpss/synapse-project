@@ -63,7 +63,7 @@ public:
 
     for (Table &table : tables) {
       table.mod_entry(key);
-      DEBUG("[%s] Refreshed index %u", table.get_name().c_str(), index);
+      LOG_DEBUG("[%s] Refreshed index %u", table.get_name().c_str(), index);
     }
   }
 
@@ -71,7 +71,7 @@ public:
     assert(index < capacity && "Invalid index");
 
     if (free_indexes.empty()) {
-      DEBUG("No free indexes available");
+      LOG_DEBUG("No free indexes available");
       return false;
     }
 
@@ -83,7 +83,7 @@ public:
 
     for (Table &table : tables) {
       table.add_entry(key);
-      DEBUG("[%s] Allocated index %u", table.get_name().c_str(), index);
+      LOG_DEBUG("[%s] Allocated index %u", table.get_name().c_str(), index);
     }
 
     cache.insert(index);
@@ -104,7 +104,7 @@ public:
 
     for (Table &table : tables) {
       table.del_entry(key);
-      DEBUG("[%s] Freed index %u", table.get_name().c_str(), index);
+      LOG_DEBUG("[%s] Freed index %u", table.get_name().c_str(), index);
     }
 
     cache.erase(found_it);

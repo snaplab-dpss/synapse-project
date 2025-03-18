@@ -67,7 +67,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     pkt_len = bf_pkt_get_pkt_size(pkt);
 
     if ((packet_size + pkt_len) > SWITCH_PACKET_MAX_BUFFER_SIZE) {
-      DEBUG("Packet too large to transmit - skipping");
+      LOG_DEBUG("Packet too large to transmit - skipping");
       break;
     }
 
@@ -80,7 +80,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   time_ns_t now = get_time();
   u8 *packet    = reinterpret_cast<u8 *>(&in_packet);
 
-  DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
+  LOG_DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
 
   packet_init(packet_size);
 

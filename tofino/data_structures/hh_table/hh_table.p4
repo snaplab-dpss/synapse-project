@@ -114,7 +114,7 @@ parser IngressParser(
 	}
 }
 
-#define HH_TABLE_SIZE 65536
+#define HH_TABLE_SIZE 4
 #define HH_TABLE_COLUMNS 1024
 #define HH_TABLE_HASH_SIZE 10
 typedef bit<HH_TABLE_HASH_SIZE> hash_t;
@@ -142,13 +142,13 @@ control Ingress(
 		ig_tm_md.ucast_egress_port = port;
 	}
 
-	bit<32> map_table_key_index = 0;
-	action map_table_hit(bit<32> _map_table_key_index) {
-		map_table_key_index = _map_table_key_index;
+	bit<32> hh_table_key_index = 0;
+	action hh_table_hit(bit<32> _hh_table_key_index) {
+		hh_table_key_index = _hh_table_key_index;
 	}
 
-	bit<32> map_table_key_0 = 32w0;
-	table map_table {
+	bit<32> hh_table_key_0 = 32w0;
+	table hh_table {
 		key = {
 			hdr.ipv4.src_addr: exact;
 			hdr.ipv4.dst_addr: exact;
@@ -156,7 +156,7 @@ control Ingress(
 			hdr.udp.dst_port: exact;
 		}
 		actions = {
-			map_table_hit;
+			hh_table_hit;
 		}
 		size = HH_TABLE_SIZE;
 		idle_timeout = true;
@@ -243,10 +243,10 @@ control Ingress(
 	}
 
 	apply {
-		bool map_table_hit = map_table.apply().hit;
-		if (map_table_hit) {
-			hh_table_cached_counters_update.execute(map_table_key_index);
-			nf_dev = 0;
+		bool hh_table_hit = hh_table.apply().hit;
+		if (hh_table_hit) {
+			hh_table_cached_counters_update.execute(hh_table_key_index);
+			nf_dev = 2;
 		} else {
 			nf_dev = 1;
 		}

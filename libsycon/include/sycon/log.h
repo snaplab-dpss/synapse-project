@@ -8,7 +8,7 @@ extern "C" {
 }
 
 #ifdef NDEBUG
-#define DEBUG(...)
+#define LOG_DEBUG(...)
 
 #define ASSERT_BF_STATUS(status)                                                                                                           \
   ({                                                                                                                                       \
@@ -18,16 +18,16 @@ extern "C" {
   })
 
 #else
-#define DEBUG(fmt, ...)                                                                                                                    \
+#define LOG_DEBUG(fmt, ...)                                                                                                                \
   ({                                                                                                                                       \
-    fprintf(stderr, "DEBUG: " fmt "\n", ##__VA_ARGS__);                                                                                    \
+    fprintf(stderr, "LOG_DEBUG: " fmt "\n", ##__VA_ARGS__);                                                                                \
     fflush(stderr);                                                                                                                        \
   })
 
 #define ASSERT_BF_STATUS(status)                                                                                                           \
   ({                                                                                                                                       \
     if (unlikely((status) != BF_SUCCESS)) {                                                                                                \
-      DEBUG("BF function failed (%s)", bf_err_str((status)));                                                                              \
+      LOG_DEBUG("BF function failed (%s)", bf_err_str((status)));                                                                          \
     }                                                                                                                                      \
     assert((status) == BF_SUCCESS);                                                                                                        \
   })

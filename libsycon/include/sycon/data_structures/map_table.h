@@ -36,7 +36,7 @@ public:
     }
 
     if (timeout < TOFINO_MODEL_MIN_EXPIRATION_TIME) {
-      DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
+      LOG_DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
       timeout = TOFINO_MODEL_MIN_EXPIRATION_TIME;
     }
 
@@ -59,7 +59,7 @@ public:
     value.set(0, 4, v);
 
     for (Table &table : tables) {
-      DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
+      LOG_DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
 
       const std::vector<table_action_t> &actions = table.get_actions();
       assert(actions.size() == 1);
@@ -78,7 +78,7 @@ public:
     }
 
     for (Table &table : tables) {
-      DEBUG("[%s] Free key %s", table.get_name().c_str(), k.to_string().c_str());
+      LOG_DEBUG("[%s] Free key %s", table.get_name().c_str(), k.to_string().c_str());
       table.del_entry(k);
     }
 

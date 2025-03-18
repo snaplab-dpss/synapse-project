@@ -78,8 +78,6 @@ public:
       ASSERT_BF_STATUS(bf_status);
       digest_buffer.set(offset, field_size, digest_field_value);
 
-      DEBUG("Set field %s (id=%u) to %lu", field.name.c_str(), field.id, digest_field_value);
-
       offset += field_size;
     }
 

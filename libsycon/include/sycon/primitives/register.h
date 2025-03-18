@@ -16,7 +16,10 @@ public:
   Register(const Register &other);
   Register(Register &&other) = delete;
 
-  u32 get(u32 i);
+  std::vector<u32> get_per_pipe(u32 i);
+  u32 get_max(u32 i);
+  u32 get_min(u32 i);
+
   void set(u32 i, u32 value);
   void overwrite_all_entries(u32 value);
 

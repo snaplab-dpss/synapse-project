@@ -40,11 +40,11 @@ std::vector<table_field_t> build_key_fields(const bfrt::BfRtTable *table) {
 
   std::string name;
   table->tableNameGet(&name);
-  DEBUG("");
-  DEBUG("Table: %s", name.c_str());
-  DEBUG("Keys:");
+  LOG_DEBUG("");
+  LOG_DEBUG("Table: %s", name.c_str());
+  LOG_DEBUG("Keys:");
   for (auto k : key_fields) {
-    DEBUG("  %s (%lu bits) (id=%u)", k.name.c_str(), k.size, k.id);
+    LOG_DEBUG("  %s (%lu bits) (id=%u)", k.name.c_str(), k.size, k.id);
   }
 
   return key_fields;
@@ -99,11 +99,11 @@ std::vector<table_action_t> build_actions(const bfrt::BfRtTable *table) {
     action_fields.push_back({name, action_id, data_fields});
   }
 
-  DEBUG("Actions:");
+  LOG_DEBUG("Actions:");
   for (auto a : action_fields) {
-    DEBUG("  %s (id=%u)", a.name.c_str(), a.action_id);
+    LOG_DEBUG("  %s (id=%u)", a.name.c_str(), a.action_id);
     for (auto d : a.data_fields) {
-      DEBUG("    %s (id=%d)", d.name.c_str(), d.id);
+      LOG_DEBUG("    %s (id=%d)", d.name.c_str(), d.id);
     }
   }
 
@@ -487,10 +487,10 @@ Table::Table(const Table &other)
 void Table::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { session = _session; }
 
 void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable) {
-  DEBUG("Set timeouts state for table %s: %d", name.c_str(), enable);
+  LOG_DEBUG("Set timeouts state for table %s: %d", name.c_str(), enable);
 
   if (timeout < TOFINO_MODEL_MIN_EXPIRATION_TIME) {
-    DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
+    LOG_DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
     timeout = TOFINO_MODEL_MIN_EXPIRATION_TIME;
   }
 
