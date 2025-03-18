@@ -114,7 +114,7 @@ parser IngressParser(
 	}
 }
 
-#define HH_TABLE_SIZE 4
+#define HH_TABLE_SIZE 1000
 #define HH_TABLE_COLUMNS 1024
 #define HH_TABLE_HASH_SIZE 10
 typedef bit<HH_TABLE_HASH_SIZE> hash_t;

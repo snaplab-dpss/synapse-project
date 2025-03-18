@@ -73,6 +73,7 @@ file(GLOB SOURCES
     ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/*.cpp
     ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/metatables/*.cpp
     ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/primitives/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/data_structures/*.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
