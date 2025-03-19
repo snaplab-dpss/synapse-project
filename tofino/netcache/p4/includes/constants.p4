@@ -37,6 +37,7 @@ const pkt_type_t PKT_TYPE_NORMAL = 1;
 const pkt_type_t PKT_TYPE_MIRROR = 2;
 
 typedef bit<4> mirror_type_t;
+const mirror_type_t MIRROR_TYPE_I2E = 1;
 const mirror_type_t MIRROR_TYPE_E2E = 2;
 
 // NetCache
@@ -50,7 +51,7 @@ const bit<16> NC_PORT = 670;
 // Size of the vtable index (used to access the vtable register)
 #define NC_VTABLE_SIZE_WIDTH		16
 // Number of entries in the vtable register
-#define NC_KEY_IDX_WIDTH			16
+#define NC_KEY_IDX_WIDTH			13
 #define NC_ENTRIES                  (1 << NC_KEY_IDX_WIDTH)
 // Hash size (bits) for the CM registers
 #define SKETCH_IDX_WIDTH			10

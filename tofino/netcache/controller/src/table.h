@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <assert.h>
 #include <iomanip>
 #include <iostream>
@@ -96,6 +95,7 @@ protected:
     }
   }
 
+public:
   size_t get_size() const {
     size_t size;
     auto bf_status = table->tableSizeGet(*session, dev_tgt, &size);
@@ -110,7 +110,6 @@ protected:
     return usage;
   }
 
-public:
   void dump_data_fields();
   void dump_data_fields(std::ostream &);
 

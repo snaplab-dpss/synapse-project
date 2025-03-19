@@ -47,12 +47,18 @@ void ProcessQuery::update_cache(netcache_hdr_t *nc_hdr) {
     return;
   }
 
+  // Add the index/key to the data plane keys table and reset the key_count[index] register.
+  bool successfuly_added_key = Controller::controller->keys.try_add_entry(nc_hdr->key, *it);
+
+  if (!successfuly_added_key) {
+    DEBUG("Failed to add key to the keys table");
+    return;
+  }
+
+  Controller::controller->reg_key_count.allocate(*it, 0);
+
   Controller::controller->key_storage[*it] = key;
   Controller::controller->cached_keys.insert(key);
-
-  // Add the index/key to the data plane keys table and reset the key_count[index] register.
-  Controller::controller->keys.add_entry(nc_hdr->key, *it);
-  Controller::controller->reg_key_count.allocate(*it, 0);
 
   // Add the value to the value registers in the index position.
   uint32_t update_v0_31, update_v32_63, update_v64_95, update_v96_127;
@@ -139,7 +145,7 @@ std::vector<std::vector<uint32_t>> ProcessQuery::sample_values() {
 
   // Generate k random indexes.
 
-  std::uniform_int_distribution<> dis(1, Controller::controller->args.store_size);
+  std::uniform_int_distribution<> dis(0, Controller::controller->get_cache_capacity() - 1);
   std::unordered_set<int> elems;
 
   while (elems.size() < Controller::controller->args.sample_size) {
@@ -152,7 +158,7 @@ std::vector<std::vector<uint32_t>> ProcessQuery::sample_values() {
   std::vector<std::vector<uint32_t>> sampl_vec;
 
   for (int i : sampl_index) {
-    sampl_vec.push_back({(uint16_t)i, Controller::controller->reg_key_count.retrieve(i, false)});
+    sampl_vec.push_back({(uint16_t)i, Controller::controller->reg_key_count.retrieve(i, true)});
   }
 
   return sampl_vec;

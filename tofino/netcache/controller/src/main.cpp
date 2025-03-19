@@ -24,38 +24,31 @@ volatile bool stop_reset_timer = false;
 std::shared_ptr<netcache::ProcessQuery> netcache::ProcessQuery::process_query;
 
 void reset_counters() {
-  auto last_ts_key   = std::chrono::steady_clock::now();
-  auto last_ts_cm    = std::chrono::steady_clock::now();
-  auto last_ts_bloom = std::chrono::steady_clock::now();
+  auto last_ts = std::chrono::steady_clock::now();
 
   while (!stop_reset_timer) {
-    // Check if the reset timers have elapsed.
-    // If so, reset the respective counters.
-    auto cur_ts             = std::chrono::steady_clock::now();
-    auto elapsed_time_key   = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts_key);
-    auto elapsed_time_cm    = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts_cm);
-    auto elapsed_time_bloom = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts_bloom);
+    auto cur_ts       = std::chrono::steady_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(cur_ts - last_ts);
 
-    if (elapsed_time_key.count() >= netcache::Controller::controller->args.reset_timer_sec) {
+    if (elapsed_time.count() >= netcache::Controller::controller->args.reset_timer_sec) {
       DEBUG("Resetting timers");
 
       netcache::Controller::controller->begin_transaction();
 
       netcache::Controller::controller->reg_key_count.set_all_false();
-      last_ts_key = cur_ts;
 
       netcache::Controller::controller->reg_cm_0.set_all_false();
       netcache::Controller::controller->reg_cm_1.set_all_false();
       netcache::Controller::controller->reg_cm_2.set_all_false();
       netcache::Controller::controller->reg_cm_3.set_all_false();
-      last_ts_cm = cur_ts;
 
       netcache::Controller::controller->reg_bloom_0.set_all_false();
       netcache::Controller::controller->reg_bloom_1.set_all_false();
       netcache::Controller::controller->reg_bloom_2.set_all_false();
-      last_ts_bloom = cur_ts;
 
       netcache::Controller::controller->end_transaction();
+
+      last_ts = cur_ts;
     }
   }
 }
@@ -75,7 +68,6 @@ int main(int argc, char **argv) {
                "Wait for the ports to be up and running (only relevant when running with the ASIC, not with the model)");
   app.add_flag("--model", args.run_tofino_model, "Run for the tofino model");
   app.add_option("--tna", args.tna_version, "TNA version");
-  app.add_option("--cache-size", args.store_size, "Cache size")->default_val(65536);
   app.add_option("--sample-size", args.sample_size, "Number of entries periodically probed from the data plane")->default_val(50);
   app.add_option("--reset-timers", args.reset_timer_sec, "Reset timer in seconds")->default_val(10);
   app.add_flag("--dry-run", dry_run, "Dry run");

@@ -235,7 +235,7 @@ public:
     }
 
     // Initialize the key storage map and available keys set.
-    for (uint64_t i = 0; i < args.store_size; ++i) {
+    for (uint64_t i = 0; i < get_cache_capacity(); ++i) {
       key_storage[i] = {0};
       available_keys.insert(i);
     }
@@ -260,6 +260,17 @@ public:
 
   std::vector<uint16_t> get_client_ports() const { return args.client_ports; }
   bool get_use_tofino_model() const { return args.run_tofino_model; }
+
+  size_t get_cache_capacity() const {
+    size_t capacity = keys.get_size();
+
+    if (capacity > 1024) {
+      // Actually, we usually only get 90% of usage from the dataplane tables.
+      // Higher than that and we start getting collisions, and errors trying to insert new entries.
+      capacity *= 0.9;
+    }
+    return capacity;
+  }
 
   bf_status_t configure_mirroring(uint16_t session_id_val, uint64_t eg_port) {
     const bfrt::BfRtTable *mirror_cfg = nullptr;
@@ -300,7 +311,7 @@ public:
 
     bf_status = mirror_cfg_data->setValue(session_enabled, true);
     ASSERT_BF_STATUS(bf_status);
-    bf_status = mirror_cfg_data->setValue(direction, std::string("EGRESS"));
+    bf_status = mirror_cfg_data->setValue(direction, std::string("INGRESS"));
     ASSERT_BF_STATUS(bf_status);
     bf_status = mirror_cfg_data->setValue(ucast_egress_port, eg_port);
     ASSERT_BF_STATUS(bf_status);

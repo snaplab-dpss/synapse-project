@@ -142,13 +142,7 @@ control SwitchIngress(
 
 	action set_key_idx(bit<16> key_idx) {
 		ig_md.key_idx = key_idx;
-		ig_md.cache_hit = 1;
 		hdr.netcache.status = NC_STATUS_HIT;
-	}
-
-	action set_cache_miss() {
-		ig_md.cache_hit = 0;
-		hdr.netcache.status = NC_STATUS_MISS;
 	}
 
 	table keys {
@@ -157,10 +151,7 @@ control SwitchIngress(
 		}
 		actions = {
 			set_key_idx;
-			set_cache_miss;
 		}
-
-		const default_action = set_cache_miss;
 
 		size = NC_ENTRIES;
 	}
@@ -177,15 +168,6 @@ control SwitchIngress(
 		bit<16> port_src_tmp = hdr.udp.src_port;
 		hdr.udp.src_port = hdr.udp.dst_port;
 		hdr.udp.dst_port = port_src_tmp;
-	}
-
-	action set_normal_pkt() {
-		hdr.bridged_md.setValid();
-		hdr.bridged_md.pkt_type = PKT_TYPE_NORMAL;
-		hdr.bridged_md.key_idx = ig_md.key_idx;
-		hdr.bridged_md.ingress_port = (bit<16>)ig_intr_md.ingress_port;
-		hdr.bridged_md.is_client_packet = ig_md.is_client_packet;
-		hdr.bridged_md.cache_hit = ig_md.cache_hit;
 	}
 
 	action set_out_port(PortId_t port) {
@@ -227,12 +209,65 @@ control SwitchIngress(
 		size = 1024;
 	}
 
+	c_cm()      cm;
+	c_bloom()   bloom;
+
+	Register<bit<8>, bit<1>>(1) reg_sampl;
+	Register<bit<32>, bit<NC_KEY_WIDTH>>(NC_ENTRIES) reg_key_count;
+
+	bit<8>  sampl_cur;
+	bit<16> cm_result;
+	bit<1>  bloom_result;
+
+	RegisterAction<bit<8>, bit<8>, bit<8>>(reg_sampl) ract_sampl = {
+		void apply(inout bit<8> val, out bit<8> res) {
+			res = 0;
+			if (val < 3) {
+				val = val + 1;
+			} else {
+				val = 0;
+				res = 1;
+			}
+		}
+	};
+
+	RegisterAction<_, bit<16>, bit<32>>(reg_key_count) ract_key_count_incr = {
+		void apply(inout bit<32> val) {
+			val = val + 1;
+		}
+	};
+
+	action sampl_check() {
+		sampl_cur = ract_sampl.execute(0);
+	}
+
+	action key_count_incr() {
+		ract_key_count_incr.execute(ig_md.key_idx);
+	}
+
+	action set_normal_pkt() {
+		hdr.bridged_md.setValid();
+		hdr.bridged_md.pkt_type = PKT_TYPE_NORMAL;
+	}
+
+	action set_mirror_pkt() {
+		ig_dprsr_md.mirror_type = MIRROR_TYPE_I2E;
+		ig_md.pkt_type = PKT_TYPE_MIRROR;
+		ig_md.mirror_session = 128;
+	}
+
 	apply {
 		ig_md.original_nc_port = hdr.netcache.port;
 		hdr.netcache.port = (bit<16>)ig_intr_md.ingress_port;
 
 		is_client_packet.apply();
-		keys.apply();
+		bool cache_hit = keys.apply().hit;
+
+		if (cache_hit) {
+			ig_md.cache_hit = 1;
+		} else {
+			ig_md.cache_hit = 0;
+		}
 
 		// Check if packet is not a HH report going from/to controller<->server.
 		if (ig_md.is_client_packet == 1 && ig_md.cache_hit == 1) {
@@ -309,6 +344,32 @@ control SwitchIngress(
 			update_pkt_udp();
 		}
 
+		// Packet is a HH report going from/to controller<->server
+		if (ig_md.is_client_packet == 1) {
+			sampl_check();
+			if (sampl_cur == 1) {
+				if (ig_md.cache_hit == 1) {
+					// Update cache counter.
+					key_count_incr();
+				} else {
+					// Update cm sketch.
+					cm.apply(hdr, cm_result);
+					// Check cm result against threshold (HH_THRES).
+					if (cm_result > HH_THRES) {
+						// Check against bloom filter.
+						bloom.apply(hdr, bloom_result);
+						// If confirmed HH, inform the controller through mirroring.
+						if (bloom_result == 0) {
+							// FIXME: we should get these values from the control plane.
+							// Otherwise, we lose the PUT value.
+							hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
+							set_mirror_pkt();
+						}
+					}
+				}
+			}
+		}
+
 		fwd.apply();
 		set_normal_pkt();
 	}
@@ -325,79 +386,9 @@ control SwitchEgress(
 		in egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
 		inout egress_intrinsic_metadata_for_deparser_t eg_dprsr_md,
 		inout egress_intrinsic_metadata_for_output_port_t eg_intr_md_for_oport) {
-
-	c_cm()      cm;
-	c_bloom()   bloom;
-
-	Register<bit<8>, bit<1>>(1) reg_sampl;
-	Register<bit<32>, bit<NC_KEY_WIDTH>>(NC_ENTRIES) reg_key_count;
-
-	bit<8>  sampl_cur;
-	bit<16> cm_result;
-	bit<1>  bloom_result;
-
-	RegisterAction<bit<8>, bit<8>, bit<8>>(reg_sampl) ract_sampl = {
-		void apply(inout bit<8> val, out bit<8> res) {
-			res = 0;
-			if (val < 3) {
-				val = val + 1;
-			} else {
-				val = 0;
-				res = 1;
-			}
-		}
-	};
-
-	RegisterAction<_, bit<16>, bit<32>>(reg_key_count) ract_key_count_incr = {
-		void apply(inout bit<32> val) {
-			val = val + 1;
-		}
-	};
-
-	action sampl_check() {
-		sampl_cur = ract_sampl.execute(0);
-	}
-
-	action key_count_incr() {
-		ract_key_count_incr.execute(hdr.bridged_md.key_idx);
-	}
-
-	action set_mirror() {
-		// eg_md.egr_mir_ses = hdr.bridged_md.egr_mir_ses;
-		eg_md.egr_mir_ses = 128;
-		eg_md.pkt_type = PKT_TYPE_MIRROR;
-		eg_dprsr_md.mirror_type = MIRROR_TYPE_E2E;
-		eg_dprsr_md.mirror_io_select = 1;
-	}
-
+	
 	apply {
 		if (hdr.bridged_md.isValid()) {
-			// Packet is a HH report going from/to controller<->server
-			if (hdr.bridged_md.is_client_packet == 1) {
-				sampl_check();
-				if (sampl_cur == 1) {
-					if (hdr.bridged_md.cache_hit == 1) {
-						// Update cache counter.
-						key_count_incr();
-					} else {
-						// Update cm sketch.
-						cm.apply(hdr, cm_result);
-						// Check cm result against threshold (HH_THRES).
-						if (cm_result > HH_THRES) {
-							// Check against bloom filter.
-							bloom.apply(hdr, bloom_result);
-							// If confirmed HH, inform the controller through mirroring.
-							if (bloom_result == 0) {
-								// FIXME: we should get these values from the control plane.
-								// Otherwise, we lose the PUT value.
-								hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
-								set_mirror();
-							}
-						}
-					}
-				}
-			}
-
 			hdr.bridged_md.setInvalid();
 		}
 	}

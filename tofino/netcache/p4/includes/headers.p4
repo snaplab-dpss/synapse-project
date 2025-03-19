@@ -58,16 +58,14 @@ struct ingress_metadata_t {
 	bit<8> is_client_packet;
 	bit<16> key_idx;
 	bit<8> cache_hit;
+	pkt_type_t pkt_type;
+	MirrorId_t mirror_session;
 }
 
 header mirror_bridged_metadata_h {
 	pkt_type_t pkt_type;
 	@flexible bit<1> do_egr_mirroring;	// Enable egress mirroring
 	@flexible MirrorId_t egr_mir_ses;	// Egress mirror session ID
-	@flexible bit<16> key_idx;
-	@flexible bit<16> ingress_port;
-	@flexible bit<8> is_client_packet;
-	@flexible bit<8> cache_hit;
 }
 
 header mirror_h {

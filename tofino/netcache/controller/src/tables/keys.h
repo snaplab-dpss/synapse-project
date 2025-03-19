@@ -20,7 +20,6 @@ private:
   struct actions_t {
     // Actions ids
     bf_rt_id_t set_key_idx;
-    bf_rt_id_t set_cache_miss;
   };
 
   key_fields_t key_fields;
@@ -36,7 +35,6 @@ public:
 
     init_actions({
         {"SwitchIngress.set_key_idx", &actions.set_key_idx},
-        {"SwitchIngress.set_cache_miss", &actions.set_cache_miss},
     });
 
     init_data_with_actions({
@@ -50,6 +48,14 @@ public:
 
     auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
     ASSERT_BF_STATUS(bf_status);
+  }
+
+  bool try_add_entry(uint8_t *cache_key, uint16_t key_idx) {
+    key_setup(cache_key);
+    data_setup(key_idx, actions.set_key_idx);
+
+    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
+    return bf_status == BF_SUCCESS;
   }
 
   void del_entry(uint8_t *cache_key) {
