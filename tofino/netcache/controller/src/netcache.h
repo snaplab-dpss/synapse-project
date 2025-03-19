@@ -150,8 +150,25 @@ public:
   RegBloom1 reg_bloom_1;
   RegBloom2 reg_bloom_2;
 
-  std::map<uint16_t, std::array<uint8_t, 16>> key_storage;
+  struct key_hash_t {
+    std::size_t operator()(const std::array<uint8_t, KV_KEY_SIZE> &key) const {
+      unsigned long long hash = 0;
+      unsigned long long *k   = (unsigned long long *)key.data();
+      hash                    = __builtin_ia32_crc32di(hash, *k);
+      hash                    = __builtin_ia32_crc32di(hash, *(k + 1));
+      return hash;
+    }
+  };
+
+  struct key_cmp_t {
+    bool operator()(const std::array<uint8_t, KV_KEY_SIZE> &key1, const std::array<uint8_t, KV_KEY_SIZE> &key2) const {
+      return std::memcmp(key1.data(), key2.data(), KV_KEY_SIZE) == 0;
+    }
+  };
+
+  std::map<uint16_t, std::array<uint8_t, KV_KEY_SIZE>> key_storage;
   std::unordered_set<uint16_t> available_keys;
+  std::unordered_set<std::array<uint8_t, KV_KEY_SIZE>, key_hash_t, key_cmp_t> cached_keys;
 
   Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &_args)
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), args(_args), atom(0),

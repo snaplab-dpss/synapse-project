@@ -121,11 +121,12 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
     // Remove the key from the keys table and the controller map.
     // Insert the corresponding index to the available_keys set.
 
-    std::array<uint8_t, 16> key_tmp = key_storage[sampl_vec[smallest_idx][0]];
+    const std::array<uint8_t, KV_KEY_SIZE> &key_tmp = key_storage[sampl_vec[smallest_idx][0]];
     uint8_t key[KV_KEY_SIZE];
     std::memcpy(key, key_tmp.data(), sizeof(key_tmp));
 
     keys.del_entry(key);
+    cached_keys.erase(key_tmp);
     key_storage[sampl_vec[smallest_idx][0]] = {0};
     available_keys.insert(sampl_vec[smallest_idx][0]);
 
@@ -164,6 +165,8 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
     reg_v960_991.allocate(sampl_vec[smallest_idx][0], 0);
     reg_v992_1023.allocate(sampl_vec[smallest_idx][0], 0);
   }
+
+  ProcessQuery::process_query->update_cache(nc_hdr);
 
   return false;
 }

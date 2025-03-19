@@ -33,6 +33,7 @@ ENDIF()
 add_compile_options(
     -Wall -Wextra -Werror -Wfatal-errors
     -Wno-unused-variable -Wno-unused-parameter
+    -msse4.2
 )
 
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)

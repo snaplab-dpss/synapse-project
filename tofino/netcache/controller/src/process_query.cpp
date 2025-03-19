@@ -39,9 +39,16 @@ void ProcessQuery::update_cache(netcache_hdr_t *nc_hdr) {
   auto it = Controller::controller->available_keys.begin();
 
   // Add the index/key to the controller map.
-  std::array<uint8_t, 16> key;
+  std::array<uint8_t, KV_KEY_SIZE> key;
   std::memcpy(key.data(), nc_hdr->key, sizeof(nc_hdr->key));
+
+  if (Controller::controller->cached_keys.find(key) != Controller::controller->cached_keys.end()) {
+    DEBUG("Key already in cache");
+    return;
+  }
+
   Controller::controller->key_storage[*it] = key;
+  Controller::controller->cached_keys.insert(key);
 
   // Add the index/key to the data plane keys table and reset the key_count[index] register.
   Controller::controller->keys.add_entry(nc_hdr->key, *it);
