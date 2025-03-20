@@ -18,7 +18,7 @@ struct table_data_t {
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> read_value;
   LibCore::symbol_t map_has_this_key;
-  int num_entries;
+  int capacity;
 
   table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
     const LibBDD::call_t &call = map_get->get_call();
@@ -29,7 +29,7 @@ struct table_data_t {
     table_keys       = Table::build_keys(key);
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    num_entries      = ctx.get_map_config(obj).capacity;
+    capacity         = ctx.get_map_config(obj).capacity;
   }
 };
 } // namespace

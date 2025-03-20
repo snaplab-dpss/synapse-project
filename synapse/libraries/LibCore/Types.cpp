@@ -73,4 +73,13 @@ std::string tput2str(u64 thpt, std::string units, bool human_readable) {
   return ss.str();
 }
 
+bits_t bits_from_pow2_capacity(size_t capacity) {
+  assert((capacity & (capacity - 1)) == 0 && "Size must be a power of 2");
+  bits_t size = 0;
+  while (capacity >>= 1) {
+    size++;
+  }
+  return size;
+}
+
 } // namespace LibCore

@@ -565,6 +565,30 @@ void Table::add_entry(const buffer_t &k, const std::string &action_name, const s
   ASSERT_BF_STATUS(bf_status);
 }
 
+bool Table::try_add_entry(const buffer_t &k) {
+  set_key(k);
+  set_data();
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
+  return bf_status == BF_SUCCESS;
+}
+
+bool Table::try_add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params) {
+  set_key(k);
+  set_data(action_name, params);
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status_t bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
+  return bf_status == BF_SUCCESS;
+}
+
 void Table::mod_entry(const buffer_t &k) {
   bf_status_t bf_status;
 

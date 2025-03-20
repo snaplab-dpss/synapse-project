@@ -69,6 +69,8 @@ public:
 
   void add_entry(const buffer_t &k);
   void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
+  bool try_add_entry(const buffer_t &k);
+  bool try_add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
   void mod_entry(const buffer_t &k);
   void mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
   void add_or_mod_entry(const buffer_t &k);

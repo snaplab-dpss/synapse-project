@@ -11,7 +11,7 @@ struct fcfs_cached_table_data_t {
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> read_value;
   LibCore::symbol_t map_has_this_key;
-  u32 num_entries;
+  u32 capacity;
 
   fcfs_cached_table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
     const LibBDD::call_t &call = map_get->get_call();
@@ -20,14 +20,14 @@ struct fcfs_cached_table_data_t {
     key              = call.args.at("key").in;
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    num_entries      = ctx.get_map_config(obj).capacity;
+    capacity         = ctx.get_map_config(obj).capacity;
   }
 };
 
 EP *concretize_cached_table_read(const EP *ep, const LibBDD::Node *node, const LibBDD::map_coalescing_objs_t &map_objs,
                                  const fcfs_cached_table_data_t &cached_table_data, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.num_entries, cache_capacity);
+      ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -118,7 +118,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
 
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get);
 
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
     EP *new_ep = concretize_cached_table_read(ep, node, map_objs, cached_table_data, cache_capacity);

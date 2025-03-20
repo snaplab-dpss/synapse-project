@@ -547,6 +547,18 @@ TofinoSynthesizer::code_t TofinoSynthesizer::build_register_action_name(const EP
   case RegisterActionType::SWAP:
     coder << "update";
     break;
+  case RegisterActionType::INC:
+    coder << "inc";
+    break;
+  case RegisterActionType::DEC:
+    coder << "dec";
+    break;
+  case RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE:
+    coder << "read_and_set";
+    break;
+  case RegisterActionType::INC_AND_RETURN_NEW_VALUE:
+    coder << "inc_and_read";
+    break;
   }
   coder << "_";
   coder << node->get_id();
@@ -663,7 +675,7 @@ void TofinoSynthesizer::transpile_table_decl(coder_t &coder, const Table *table,
   coder << "}\n";
 
   coder.indent();
-  coder << "size = " << table->num_entries << ";\n";
+  coder << "size = " << table->capacity << ";\n";
 
   if (table->time_aware == TimeAware::Yes) {
     coder.indent();
@@ -725,7 +737,7 @@ void TofinoSynthesizer::transpile_register_decl(coder_t &coder, const Register *
   coder << ",_>";
 
   coder << "(";
-  coder << reg->num_entries;
+  coder << reg->capacity;
   coder << ", ";
   coder << init_value;
   coder << ")";

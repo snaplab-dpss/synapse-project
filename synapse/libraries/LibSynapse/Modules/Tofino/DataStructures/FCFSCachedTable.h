@@ -15,14 +15,14 @@ constexpr const char *const FCFS_CACHED_TABLE_CACHE_SIZE_PARAM = "cache_size";
 
 struct FCFSCachedTable : public DS {
   u32 cache_capacity;
-  u32 num_entries;
+  u32 capacity;
   std::vector<bits_t> keys_sizes;
 
   std::vector<Table> tables;
   Register cache_expirator;
   std::vector<Register> cache_keys;
 
-  FCFSCachedTable(const TNAProperties &properties, DS_ID id, u32 op, u32 cache_capacity, u32 num_entries,
+  FCFSCachedTable(const TNAProperties &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity,
                   const std::vector<bits_t> &keys_sizes);
 
   FCFSCachedTable(const FCFSCachedTable &other);

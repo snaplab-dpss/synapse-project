@@ -18,10 +18,10 @@ dchain_table_data_t get_dchain_table_data(const Context &ctx, const LibBDD::Call
   const LibBDD::dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
 
   dchain_table_data_t data = {
-      .obj         = dchain_addr,
-      .num_entries = static_cast<u32>(cfg.index_range),
-      .key         = index,
-      .hit         = std::nullopt,
+      .obj      = dchain_addr,
+      .capacity = static_cast<u32>(cfg.index_range),
+      .key      = index,
+      .hit      = std::nullopt,
   };
 
   if (call.function_name == "dchain_is_index_allocated") {

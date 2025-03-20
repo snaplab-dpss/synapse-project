@@ -51,7 +51,7 @@ klee::ref<klee::Expr> build_min_estimate_check_cond(const EP *ep, const LibCore:
   assert(ds->type == DSType::HH_TABLE && "Not a heavy hitter table");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(ds);
 
-  u32 topk                             = hh_table->num_entries;
+  u32 topk                             = hh_table->capacity;
   u64 threshold                        = ep->get_ctx().get_profiler().get_bdd_profile()->threshold_top_k_flows(map, topk);
   klee::ref<klee::Expr> threshold_expr = LibCore::solver_toolbox.exprBuilder->Constant(threshold, 32);
   klee::ref<klee::Expr> condition      = LibCore::solver_toolbox.exprBuilder->Ugt(min_estimate.expr, threshold_expr);

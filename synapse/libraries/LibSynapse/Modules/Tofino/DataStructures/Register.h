@@ -15,18 +15,22 @@ namespace Tofino {
 struct TNAProperties;
 
 enum class RegisterActionType {
-  READ,  // No modification
-  WRITE, // Overwrites the current value
-  SWAP,  // Overwrites the current value and returns the old one
+  READ,
+  WRITE,
+  SWAP,
+  INC,
+  DEC,
+  SET_TO_ONE_AND_RETURN_OLD_VALUE,
+  INC_AND_RETURN_NEW_VALUE,
 };
 
 struct Register : public DS {
-  u32 num_entries;
+  u32 capacity;
   bits_t index_size;
   bits_t value_size;
   std::unordered_set<RegisterActionType> actions;
 
-  Register(const TNAProperties &properties, DS_ID id, u32 num_entries, bits_t index_size, bits_t value_size,
+  Register(const TNAProperties &properties, DS_ID id, u32 capacity, bits_t index_size, bits_t value_size,
            const std::unordered_set<RegisterActionType> &actions);
 
   Register(const Register &other);

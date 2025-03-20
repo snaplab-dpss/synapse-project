@@ -4,6 +4,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/Register.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Meter.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Hash.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Digest.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/FCFSCachedTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/HHTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/CountMinSketch.h>

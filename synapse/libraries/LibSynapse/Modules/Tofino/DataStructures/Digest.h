@@ -11,12 +11,11 @@
 namespace LibSynapse {
 namespace Tofino {
 
-struct Hash : public DS {
-  std::vector<bits_t> keys;
-  bits_t size;
+struct Digest : public DS {
+  std::vector<bits_t> fields;
 
-  Hash(DS_ID id, const std::vector<bits_t> &keys, bits_t size);
-  Hash(const Hash &other);
+  Digest(DS_ID id, const std::vector<bits_t> &fields);
+  Digest(const Digest &other);
 
   DS *clone() const override;
   void debug() const override;

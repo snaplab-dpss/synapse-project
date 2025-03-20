@@ -350,6 +350,18 @@ public:
     unlock();
   }
 
+  void begin_batch() {
+    lock();
+    bf_status_t bf_status = session->beginBatch();
+    ASSERT_BF_STATUS(bf_status);
+  }
+
+  void end_batch() {
+    bf_status_t bf_status = session->endBatch(true);
+    ASSERT_BF_STATUS(bf_status);
+    unlock();
+  }
+
   bool process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size);
 
   static void init(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &args);

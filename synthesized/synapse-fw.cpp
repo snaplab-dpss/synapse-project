@@ -13,10 +13,10 @@ struct state_t {
   state_t()
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
-      map_table_1074044032("Ingress", {"map_table_1074044032_157","map_table_1074044032_142",}, 1000LL),
-      dchain_table_1074076016("Ingress", {"dchain_table_1074076016_180",}, 1000LL),
-      vector_table_1074076440("Ingress", {"vector_table_1074076440_139",}),
-      vector_table_1074093656("Ingress", {"vector_table_1074093656_181","vector_table_1074093656_149",})
+      map_table_1074044032({"Ingress.map_table_1074044032_157","Ingress.map_table_1074044032_142",}, 1000LL),
+      dchain_table_1074076016({"Ingress.dchain_table_1074076016_180",}, 1000LL),
+      vector_table_1074076440({"Ingress.vector_table_1074076440_139",}),
+      vector_table_1074093656({"Ingress.vector_table_1074093656_181","Ingress.vector_table_1074093656_149",})
     {}
 };
 
@@ -696,7 +696,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
-  DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
+  LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
   if (bswap16(cpu_hdr->code_path) == 573) {
     // EP node  5557

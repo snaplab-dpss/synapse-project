@@ -86,9 +86,9 @@ class Pktgen:
         exp_time_us: int = 0,
         crc_unique_flows: bool = False,
         crc_bits: int = 16,
-        seed: int = 0,
         mark_warmup_packets: bool = False,
         kvs_mode: bool = False,
+        seed: Optional[int] = None,
     ) -> None:
         assert not self.pktgen_active
 
@@ -108,8 +108,10 @@ class Pktgen:
             f"--rx {rx_port}",
             f"--tx-cores {self.nb_tx_cores}",
             f"--exp-time {exp_time_us}",
-            f"--seed {seed}",
         ]
+
+        if seed is not None:
+            pktgen_options_list.append(f"--seed {seed}")
 
         if crc_unique_flows:
             pktgen_options_list.append(f"--crc-unique-flows")

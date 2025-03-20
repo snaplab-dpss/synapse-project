@@ -19,6 +19,7 @@ enum class DSType {
   REGISTER,
   METER,
   HASH,
+  DIGEST,
 
   // ========================
   // Compositional types

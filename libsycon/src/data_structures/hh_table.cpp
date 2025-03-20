@@ -48,12 +48,7 @@ bool HHTable::insert(const buffer_t &key) {
     return false;
   }
 
-  u32 index = *free_indices.begin();
-  free_indices.erase(index);
-  used_indices.insert(index);
-
-  cached_index_to_key.insert({index, key});
-  cached_key_to_index.insert({key, index});
+  const u32 index = *free_indices.begin();
 
   buffer_t param(4);
   param.set(0, 4, index);
@@ -63,8 +58,17 @@ bool HHTable::insert(const buffer_t &key) {
     assert(actions.size() == 1);
     const table_action_t &set_index_action = actions[0];
 
-    table.add_entry(key, set_index_action.name, {param});
+    if (!table.try_add_entry(key, set_index_action.name, {param})) {
+      LOG_DEBUG("Failed to add entry to table %s", table.get_name().c_str());
+      return false;
+    }
   }
+
+  free_indices.erase(index);
+  used_indices.insert(index);
+
+  cached_index_to_key.insert({index, key});
+  cached_key_to_index.insert({key, index});
 
   reg_cached_counters.set(index, 0);
 
@@ -230,6 +234,13 @@ u32 HHTable::get_capacity(const std::vector<Table> &tables) {
   for (const Table &table : tables) {
     assert(table.get_capacity() == capacity);
   }
+
+  if (capacity > 1024) {
+    // Actually, we usually only get around 90% of usage from the dataplane tables.
+    // Higher than that and we start getting collisions, and errors trying to insert new entries.
+    capacity *= 0.9;
+  }
+
   return capacity;
 }
 

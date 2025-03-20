@@ -7,17 +7,11 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-bits_t index_size_from_width(u32 width) {
-  // Log base 2 of the cache capacity
-  // Assert cache capacity is a power of 2
-  assert((width & (width - 1)) == 0 && "Cache capacity must be a power of 2");
-  return bits_t(log2(width));
-}
 
-std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &keys) {
+std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &keys, bits_t hash_size) {
   std::vector<Hash> hashes;
   for (size_t i = 0; i < height; i++) {
-    Hash hash(id + "_hash_" + std::to_string(i), keys);
+    Hash hash(id + "_hash_" + std::to_string(i), keys, hash_size);
     hashes.push_back(hash);
   }
 
@@ -26,8 +20,8 @@ std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &
 
 std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 width, u32 height) {
   std::vector<Register> rows;
-  bits_t hash_size    = index_size_from_width(width);
-  bits_t counter_size = 32;
+  const bits_t hash_size    = LibCore::bits_from_pow2_capacity(width);
+  const bits_t counter_size = 32;
 
   for (size_t i = 0; i < height; i++) {
     Register row(properties, id + "_row_" + std::to_string(i), width, hash_size, counter_size,
@@ -37,10 +31,12 @@ std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 
 
   return rows;
 }
+
 } // namespace
 
 CountMinSketch::CountMinSketch(const TNAProperties &properties, DS_ID _id, const std::vector<bits_t> &_keys, u32 _width, u32 _height)
-    : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height), hashes(build_hashes(_id, _height, _keys)),
+    : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height),
+      hashes(build_hashes(_id, _height, _keys, LibCore::bits_from_pow2_capacity(_width))),
       rows(build_rows(properties, _id, _width, _height)) {}
 
 CountMinSketch::CountMinSketch(const CountMinSketch &other)

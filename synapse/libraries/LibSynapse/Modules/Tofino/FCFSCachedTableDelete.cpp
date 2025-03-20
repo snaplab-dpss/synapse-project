@@ -14,15 +14,15 @@ namespace {
 struct fcfs_cached_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
-  u32 num_entries;
+  u32 capacity;
 
   fcfs_cached_table_data_t(const Context &ctx, const LibBDD::Call *map_erase) {
     const LibBDD::call_t &call = map_erase->get_call();
     assert(call.function_name == "map_erase" && "Expected map_erase");
 
-    obj         = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
-    key         = call.args.at("key").in;
-    num_entries = ctx.get_map_config(obj).capacity;
+    obj      = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+    key      = call.args.at("key").in;
+    capacity = ctx.get_map_config(obj).capacity;
   }
 };
 
@@ -110,7 +110,7 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
                                    const fcfs_cached_table_data_t &cached_table_data, const LibCore::symbol_t &cache_delete_failed,
                                    u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, map_erase, cached_table_data.obj, cached_table_data.key, cached_table_data.num_entries, cache_capacity);
+      ep, map_erase, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -210,7 +210,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
 
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
 
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
   hit_rate_t chosen_cache_success_probability = 0;
   u32 chosen_cache_capacity                   = 0;
@@ -221,7 +221,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   for (u32 cache_capacity : allowed_cache_capacities) {
     hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.num_entries,
+    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
                                             cache_capacity)) {
       break;
     }
@@ -291,7 +291,7 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
 
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
   LibCore::symbol_t cache_delete_failed     = symbol_manager->create_symbol("cache_delete_failed", 32);
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
     EP *new_ep = concretize_cached_table_delete(ep, map_erase, map_objs, cached_table_data, cache_delete_failed, cache_capacity);

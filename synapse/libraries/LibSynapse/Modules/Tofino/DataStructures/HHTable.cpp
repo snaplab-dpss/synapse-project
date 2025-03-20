@@ -6,22 +6,96 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-std::string build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
-std::string build_cms_name(DS_ID id) { return id + "_cms"; }
+std::string build_table_name(DS_ID id, u32 table_num) { return id + "_hh_table_" + std::to_string(table_num); }
+
+Register build_cached_counters(const TNAProperties &properties, DS_ID id, u32 capacity) {
+  const DS_ID reg_id              = id + "_hh_table_cached_counters";
+  const bits_t index_size         = 32;
+  const bits_t value_size         = 32;
+  const RegisterActionType action = RegisterActionType::INC;
+  return Register(properties, reg_id, capacity, index_size, value_size, {action});
+}
+
+std::vector<Hash> build_hashes(DS_ID id, std::vector<bits_t> keys_sizes, u32 total_hashes, bits_t hash_size) {
+  assert(!keys_sizes.empty() && "Keys sizes must not be empty");
+
+  keys_sizes.push_back(32); // Add the hash salt
+
+  std::vector<Hash> hashes;
+  for (u32 i = 0; i < total_hashes; i++) {
+    hashes.emplace_back(id + "_hh_table_hash_" + std::to_string(i), keys_sizes, hash_size);
+  }
+
+  return hashes;
+}
+
+std::vector<Register> build_bloom_filter(const TNAProperties &properties, DS_ID id, u32 bloom_width, u32 bloom_height, bits_t index_size) {
+  const bits_t value_size         = 8;
+  const RegisterActionType action = RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE;
+
+  std::vector<Register> bloom_filter;
+  for (u32 i = 0; i < bloom_height; i++) {
+    const DS_ID row_id = id + "_hh_table_bloom_filter_row" + std::to_string(i);
+    Register row(properties, row_id, bloom_width, index_size, value_size, {action});
+    bloom_filter.push_back(row);
+  }
+
+  return bloom_filter;
+}
+
+std::vector<Register> build_count_min_sketch(const TNAProperties &properties, DS_ID id, u32 cms_width, u32 cms_height, bits_t index_size) {
+  const bits_t value_size         = 32;
+  const RegisterActionType action = RegisterActionType::INC_AND_RETURN_NEW_VALUE;
+
+  std::vector<Register> count_min_sketch;
+  for (u32 i = 0; i < cms_height; i++) {
+    const DS_ID row_id = id + "_hh_table_count_min_sketch_row" + std::to_string(i);
+    Register row(properties, row_id, cms_width, index_size, value_size, {action});
+    count_min_sketch.push_back(row);
+  }
+
+  return count_min_sketch;
+}
+
+Register build_threshold(const TNAProperties &properties, DS_ID id, u32 capacity) {
+  const DS_ID reg_id              = id + "_hh_table_threshold";
+  const bits_t index_size         = 1;
+  const bits_t value_size         = 32;
+  const RegisterActionType action = RegisterActionType::READ;
+  return Register(properties, reg_id, capacity, index_size, value_size, {action});
+}
+
+Digest build_digest(DS_ID id, const std::vector<bits_t> &fields) {
+  const DS_ID digest_id = id + "_hh_table_digest";
+  return Digest(digest_id, fields);
+}
+
 } // namespace
 
-HHTable::HHTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _num_entries, const std::vector<bits_t> &_keys_sizes,
-                 u32 _cms_width, u32 _cms_height)
-    : DS(DSType::HH_TABLE, false, _id), num_entries(_num_entries), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
-      cms(properties, build_cms_name(id), keys_sizes, cms_width, cms_height) {
-  assert(num_entries > 0 && "HH Table entries must be greater than 0");
+HHTable::HHTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes,
+                 u32 _bloom_width, u32 _bloom_height, u32 _cms_width, u32 _cms_height)
+    : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), bloom_width(_bloom_width),
+      bloom_height(_bloom_height), cms_width(_cms_width), cms_height(_cms_height),
+      hash_size(LibCore::bits_from_pow2_capacity(_bloom_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
+      hashes(build_hashes(id, _keys_sizes, _bloom_height, hash_size)),
+      bloom_filter(build_bloom_filter(properties, _id, _bloom_width, _bloom_height, hash_size)),
+      count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)),
+      threshold(build_threshold(properties, _id, _capacity)), digest(build_digest(_id, _keys_sizes)) {
+  assert(_keys_sizes.size() > 0 && "HH Table keys sizes must not be empty");
+  assert(_bloom_height == _cms_height && "Bloom filter and CMS heights must be equal");
+  assert(_bloom_width == _cms_width && "Bloom filter and CMS widths must be equal");
+  assert(_bloom_height > 0 && "Bloom filter and CMS heights must be greater than 0");
+  assert(_bloom_width > 0 && "Bloom filter width must be greater than 0");
+  assert(capacity > 0 && "HH Table entries must be greater than 0");
   add_table(_op);
 }
 
 HHTable::HHTable(const HHTable &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys_sizes(other.keys_sizes), tables(other.tables),
-      cms_width(other.cms_width), cms_height(other.cms_height), cms(other.cms) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys_sizes(other.keys_sizes), bloom_width(other.bloom_width),
+      bloom_height(other.bloom_height), cms_width(other.cms_width), cms_height(other.cms_height), hash_size(other.hash_size),
+      tables(other.tables), cached_counters(other.cached_counters), hashes(other.hashes), bloom_filter(other.bloom_filter),
+      count_min_sketch(other.count_min_sketch), threshold(other.threshold), digest(other.digest) {}
 
 DS *HHTable::clone() const { return new HHTable(*this); }
 
@@ -30,7 +104,9 @@ void HHTable::debug() const {
   std::cerr << "=========== HH TABLE ============\n";
   std::cerr << "ID:        " << id << "\n";
   std::cerr << "Primitive: " << primitive << "\n";
-  std::cerr << "Entries:   " << num_entries << "\n";
+  std::cerr << "Entries:   " << capacity << "\n";
+  std::cerr << "Hashes:    " << hashes.size() << " (" << hash_size << " bits)\n";
+  std::cerr << "Bloom:     " << bloom_width << "x" << bloom_height << "\n";
   std::cerr << "CMS:       " << cms_width << "x" << cms_height << "\n";
   std::cerr << "=================================\n";
 }
@@ -39,11 +115,23 @@ std::vector<std::unordered_set<const DS *>> HHTable::get_internal() const {
   std::vector<std::unordered_set<const DS *>> internal_ds;
 
   internal_ds.emplace_back();
-
-  internal_ds.back().insert(&cms);
   for (const Table &table : tables) {
     internal_ds.back().insert(&table);
   }
+
+  internal_ds.emplace_back();
+  internal_ds.back().insert(&cached_counters);
+  for (const Hash &hash : hashes) {
+    internal_ds.back().insert(&hash);
+  }
+  for (const Register &row : bloom_filter) {
+    internal_ds.back().insert(&row);
+  }
+  for (const Register &row : count_min_sketch) {
+    internal_ds.back().insert(&row);
+  }
+  internal_ds.back().insert(&threshold);
+  internal_ds.back().insert(&digest);
 
   return internal_ds;
 }
@@ -58,7 +146,7 @@ bool HHTable::has_table(u32 op) const {
 }
 
 DS_ID HHTable::add_table(u32 op) {
-  Table new_table(build_table_name(id, op), num_entries, keys_sizes, {});
+  Table new_table(build_table_name(id, op), capacity, keys_sizes, {});
   tables.push_back(new_table);
   return new_table.id;
 }

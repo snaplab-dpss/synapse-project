@@ -1652,8 +1652,7 @@ void ControllerSynthesizer::transpile_table_decl(const Tofino::Table *table) {
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"Ingress\", ";
-  member_init_list << "\"" << table->id << "\"";
+  member_init_list << "\"Ingress." << table->id << "\"";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }
@@ -1669,8 +1668,7 @@ void ControllerSynthesizer::transpile_register_decl(const Tofino::Register *reg)
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"Ingress\", ";
-  member_init_list << "\"" << reg->id << "\"";
+  member_init_list << "\"Ingress." << reg->id << "\"";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }
@@ -1689,10 +1687,9 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"Ingress\", ";
   member_init_list << "{";
   for (const Tofino::Table &table : map_table->tables) {
-    member_init_list << "\"" << table.id << "\",";
+    member_init_list << "\"Ingress." << table.id << "\",";
     if (table.time_aware == Tofino::TimeAware::Yes) {
       time_aware = true;
     }
@@ -1718,10 +1715,9 @@ void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTabl
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"Ingress\", ";
   member_init_list << "{";
   for (const Tofino::Table &table : vector_table->tables) {
-    member_init_list << "\"" << table.id << "\",";
+    member_init_list << "\"Ingress." << table.id << "\",";
   }
   member_init_list << "}";
   member_init_list << ")";
@@ -1740,10 +1736,9 @@ void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTabl
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"Ingress\", ";
   member_init_list << "{";
   for (const Tofino::Table &table : dchain_table->tables) {
-    member_init_list << "\"" << table.id << "\",";
+    member_init_list << "\"Ingress." << table.id << "\",";
   }
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";
@@ -1762,10 +1757,9 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"Ingress\", ";
   member_init_list << "{";
   for (const Tofino::Register &reg : vector_register->regs) {
-    member_init_list << "\"" << reg.id << "\",";
+    member_init_list << "\"Ingress." << reg.id << "\",";
   }
   member_init_list << "}";
   member_init_list << ")";

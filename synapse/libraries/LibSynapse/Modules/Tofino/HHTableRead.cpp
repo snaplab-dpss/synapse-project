@@ -11,7 +11,7 @@ struct hh_table_data_t {
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> read_value;
   LibCore::symbol_t map_has_this_key;
-  u32 num_entries;
+  u32 capacity;
 
   hh_table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
     const LibBDD::call_t &call = map_get->get_call();
@@ -24,7 +24,7 @@ struct hh_table_data_t {
     table_keys       = Table::build_keys(key);
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_has_this_key_symbol;
-    num_entries      = ctx.get_map_config(obj).capacity;
+    capacity         = ctx.get_map_config(obj).capacity;
   }
 };
 
@@ -72,7 +72,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
 
   hh_table_data_t table_data(ep->get_ctx(), map_get);
 
-  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT)) {
+  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, CMS_WIDTH, CMS_HEIGHT)) {
     return std::nullopt;
   }
 
@@ -80,7 +80,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
   new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable);
   new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable);
 
-  update_map_get_success_hit_rate(new_ctx, map_get, table_data.key, table_data.num_entries, mpsc);
+  update_map_get_success_hit_rate(new_ctx, map_get, table_data.key, table_data.capacity, mpsc);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -116,8 +116,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
 
   hh_table_data_t table_data(ep->get_ctx(), map_get);
 
-  HHTable *hh_table =
-      build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.num_entries, CMS_WIDTH, CMS_HEIGHT);
+  HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, CMS_WIDTH, CMS_HEIGHT);
 
   if (!hh_table) {
     return impls;
@@ -137,7 +136,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs.map, hh_table);
 
-  update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get, table_data.key, table_data.num_entries, mpsc);
+  update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get, table_data.key, table_data.capacity, mpsc);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

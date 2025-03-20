@@ -6,13 +6,13 @@
 namespace LibSynapse {
 namespace Tofino {
 
-Table::Table(DS_ID _id, u32 _num_entries, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware)
-    : DS(DSType::TABLE, true, _id), num_entries(_num_entries), keys(_keys), params(_params), time_aware(_time_aware) {
-  assert(_num_entries > 0 && "Table entries must be greater than 0");
+Table::Table(DS_ID _id, u32 _capacity, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware)
+    : DS(DSType::TABLE, true, _id), capacity(_capacity), keys(_keys), params(_params), time_aware(_time_aware) {
+  assert(_capacity > 0 && "Table entries must be greater than 0");
 }
 
 Table::Table(const Table &other)
-    : DS(other.type, other.primitive, other.id), num_entries(other.num_entries), keys(other.keys), params(other.params),
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys(other.keys), params(other.params),
       time_aware(other.time_aware) {}
 
 DS *Table::clone() const { return new Table(*this); }
@@ -30,7 +30,7 @@ bits_t Table::get_consumed_sram() const {
     consumed += key_size;
   for (bits_t param_size : params)
     consumed += param_size;
-  return consumed * num_entries;
+  return consumed * capacity;
 }
 
 void Table::debug() const {
@@ -38,7 +38,7 @@ void Table::debug() const {
   std::cerr << "=========== TABLE ============\n";
   std::cerr << "ID:        " << id << "\n";
   std::cerr << "Primitive: " << primitive << "\n";
-  std::cerr << "Entries:   " << num_entries << "\n";
+  std::cerr << "Entries:   " << capacity << "\n";
   std::cerr << "Keys:      [";
   for (bits_t key_size : keys)
     std::cerr << key_size << " ";

@@ -19,10 +19,10 @@ vector_table_data_t get_vector_table_data(const Context &ctx, const LibBDD::Call
   const LibBDD::vector_config_t &cfg = ctx.get_vector_config(obj);
 
   vector_table_data_t data = {
-      .obj         = obj,
-      .num_entries = static_cast<u32>(cfg.capacity),
-      .key         = index,
-      .value       = cell,
+      .obj      = obj,
+      .capacity = static_cast<u32>(cfg.capacity),
+      .key      = index,
+      .value    = cell,
   };
 
   return data;

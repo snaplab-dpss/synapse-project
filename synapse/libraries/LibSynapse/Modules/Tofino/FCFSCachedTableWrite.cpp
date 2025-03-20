@@ -13,7 +13,7 @@ struct fcfs_cached_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> write_value;
-  u32 num_entries;
+  u32 capacity;
 
   fcfs_cached_table_data_t(const Context &ctx, std::vector<const LibBDD::Call *> future_map_puts) {
     assert(!future_map_puts.empty() && "No future map puts");
@@ -24,7 +24,7 @@ struct fcfs_cached_table_data_t {
     obj         = LibCore::expr_addr_to_obj_addr(put_call.args.at("map").expr);
     key         = put_call.args.at("key").in;
     write_value = put_call.args.at("value").expr;
-    num_entries = ctx.get_map_config(obj).capacity;
+    capacity    = ctx.get_map_config(obj).capacity;
   }
 };
 
@@ -162,7 +162,7 @@ EP *concretize_cached_table_write(const EP *ep, const LibBDD::Node *node, const 
                                   const fcfs_cached_table_data_t &cached_table_data, const LibCore::symbol_t &cache_write_failed,
                                   u32 cache_capacity, const std::vector<const LibBDD::Call *> &future_map_puts) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.num_entries, cache_capacity);
+      ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -266,7 +266,7 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
 
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), future_map_puts);
 
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
   hit_rate_t chosen_success_estimation = 0;
   u32 chosen_cache_capacity            = 0;
@@ -277,7 +277,7 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   for (u32 cache_capacity : allowed_cache_capacities) {
     hit_rate_t success_estimation = get_cache_success_estimation_rel(ep, node, future_map_puts[0], cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.num_entries,
+    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
                                             cache_capacity)) {
       break;
     }
@@ -351,7 +351,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
 
   LibCore::symbol_t cache_write_failed = symbol_manager->create_symbol("cache_write_failed", 32);
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), future_map_puts);
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.num_entries);
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
     EP *new_ep = concretize_cached_table_write(ep, node, map_objs, cached_table_data, cache_write_failed, cache_capacity, future_map_puts);

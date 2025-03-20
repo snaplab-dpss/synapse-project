@@ -10,7 +10,7 @@ struct state_t {
   state_t()
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
-      vector_table_1074013320("Ingress", {"vector_table_1074013320_65",})
+      vector_table_1074013320({"Ingress.vector_table_1074013320_65",})
     {}
 };
 
@@ -363,7 +363,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
-  DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
+  LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
 
 

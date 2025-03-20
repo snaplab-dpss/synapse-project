@@ -91,7 +91,7 @@ MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
 
   DS_ID id = "map_table_" + std::to_string(data.obj);
 
-  MapTable *map_table = new MapTable(id, data.num_entries, key_size);
+  MapTable *map_table = new MapTable(id, data.capacity, key_size);
   map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
   if (!tofino_ctx->check_placement(ep, node, map_table)) {
@@ -170,7 +170,7 @@ VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const ve
 
   DS_ID id = "vector_table_" + std::to_string(data.obj);
 
-  VectorTable *vector_table = new VectorTable(id, data.num_entries, param_size);
+  VectorTable *vector_table = new VectorTable(id, data.capacity, param_size);
   vector_table->add_table(node->get_id());
 
   if (!tofino_ctx->check_placement(ep, node, vector_table)) {
@@ -238,7 +238,7 @@ DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
 
   DS_ID id = "dchain_table_" + std::to_string(data.obj);
 
-  DchainTable *dchain_table = new DchainTable(id, data.num_entries);
+  DchainTable *dchain_table = new DchainTable(id, data.capacity);
   dchain_table->add_table(node->get_id());
 
   if (!tofino_ctx->check_placement(ep, node, dchain_table)) {
@@ -313,7 +313,7 @@ VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, co
 
   const DS_ID id = "vector_register_" + std::to_string(data.obj);
 
-  VectorRegister *vector_register = new VectorRegister(properties, id, data.num_entries, data.index->getWidth(), values_sizes);
+  VectorRegister *vector_register = new VectorRegister(properties, id, data.capacity, data.index->getWidth(), values_sizes);
 
   if (!tofino_ctx->check_placement(ep, node, vector_register)) {
     delete vector_register;
@@ -339,7 +339,7 @@ VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, cons
   return dynamic_cast<VectorRegister *>(vr);
 }
 
-FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 num_entries,
+FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
                                          u32 cache_capacity) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -354,7 +354,7 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
     keys_sizes.push_back(key->getWidth());
   }
 
-  FCFSCachedTable *cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, num_entries, keys_sizes);
+  FCFSCachedTable *cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes);
 
   if (!tofino_ctx->check_placement(ep, node, cached_table)) {
     delete cached_table;
@@ -391,7 +391,7 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
   return cached_table;
 }
 
-HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries,
+HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
                         u32 cms_width, u32 cms_height) {
 
   DS_ID id = "hh_table_" + std::to_string(cms_width) + "x" + std::to_string(cms_height) + "_" + std::to_string(obj);
@@ -404,7 +404,7 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
     keys_sizes.push_back(key->getWidth());
   }
 
-  HHTable *hh_table = new HHTable(properties, id, node->get_id(), num_entries, keys_sizes, cms_width, cms_height);
+  HHTable *hh_table = new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, cms_width, cms_height);
 
   if (!tofino_ctx->check_placement(ep, node, hh_table)) {
     delete hh_table;
@@ -642,7 +642,7 @@ bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const
 }
 
 FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                                       klee::ref<klee::Expr> key, u32 num_entries, u32 cache_capacity) {
+                                                                       klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
@@ -651,7 +651,7 @@ FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP 
   if (already_placed) {
     cached_table = reuse_fcfs_cached_table(ep, node, obj);
   } else {
-    cached_table = build_fcfs_cached_table(ep, node, obj, key, num_entries, cache_capacity);
+    cached_table = build_fcfs_cached_table(ep, node, obj, key, capacity, cache_capacity);
   }
 
   return cached_table;
@@ -674,7 +674,7 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
 }
 
 bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                             u32 num_entries, u32 cache_capacity) {
+                                                             u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
@@ -691,7 +691,7 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
     return true;
   }
 
-  cached_table = build_fcfs_cached_table(ep, node, obj, key, num_entries, cache_capacity);
+  cached_table = build_fcfs_cached_table(ep, node, obj, key, capacity, cache_capacity);
 
   if (!cached_table) {
     return false;
@@ -719,11 +719,11 @@ LibCore::Symbols TofinoModuleFactory::get_dataplane_state(const EP *ep, const Li
   return generated_symbols.intersect(future_used_symbols);
 }
 
-std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 num_entries) {
+std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 capacity) {
   std::vector<u32> capacities;
 
   u32 cache_capacity = 8;
-  while (cache_capacity < num_entries) {
+  while (cache_capacity < capacity) {
     capacities.push_back(cache_capacity);
     cache_capacity *= 2;
 
@@ -753,21 +753,21 @@ hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, 
 }
 
 HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width,
+                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width,
                                                       u32 cms_height) {
   HHTable *hh_table = nullptr;
 
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     hh_table = reuse_hh_table(ep, node, obj);
   } else {
-    hh_table = build_hh_table(ep, node, obj, keys, num_entries, cms_width, cms_height);
+    hh_table = build_hh_table(ep, node, obj, keys, capacity, cms_width, cms_height);
   }
 
   return hh_table;
 }
 
 bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width,
+                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width,
                                                       u32 cms_height) {
   HHTable *hh_table = nullptr;
 
@@ -795,7 +795,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
     return true;
   }
 
-  hh_table = build_hh_table(ep, node, obj, keys, num_entries, cms_width, cms_height);
+  hh_table = build_hh_table(ep, node, obj, keys, capacity, cms_width, cms_height);
 
   if (!hh_table) {
     return false;

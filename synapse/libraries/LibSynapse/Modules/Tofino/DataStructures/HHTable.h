@@ -2,7 +2,9 @@
 
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructure.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
-#include <LibSynapse/Modules/Tofino/DataStructures/CountMinSketch.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Register.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Hash.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Digest.h>
 #include <LibCore/Types.h>
 
 #include <vector>
@@ -14,16 +16,24 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct HHTable : public DS {
-  u32 num_entries;
+  u32 capacity;
   std::vector<bits_t> keys_sizes;
-  std::vector<Table> tables;
-
+  u32 bloom_width;
+  u32 bloom_height;
   u32 cms_width;
   u32 cms_height;
-  CountMinSketch cms;
+  bits_t hash_size;
 
-  HHTable(const TNAProperties &properties, DS_ID id, u32 op, u32 num_entries, const std::vector<bits_t> &keys_sizes, u32 cms_width,
-          u32 cms_height);
+  std::vector<Table> tables;
+  Register cached_counters;
+  std::vector<Hash> hashes;
+  std::vector<Register> bloom_filter;
+  std::vector<Register> count_min_sketch;
+  Register threshold;
+  Digest digest;
+
+  HHTable(const TNAProperties &properties, DS_ID id, u32 op, u32 capacity, const std::vector<bits_t> &keys_sizes, u32 bloom_width,
+          u32 bloom_height, u32 cms_width, u32 cms_height);
 
   HHTable(const HHTable &other);
 

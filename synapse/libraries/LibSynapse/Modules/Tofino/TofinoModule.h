@@ -20,7 +20,7 @@ public:
 
 struct map_table_data_t {
   addr_t obj;
-  u32 num_entries;
+  u32 capacity;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> hit;
@@ -29,21 +29,21 @@ struct map_table_data_t {
 
 struct vector_table_data_t {
   addr_t obj;
-  u32 num_entries;
+  u32 capacity;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
 };
 
 struct dchain_table_data_t {
   addr_t obj;
-  u32 num_entries;
+  u32 capacity;
   klee::ref<klee::Expr> key;
   std::optional<LibCore::symbol_t> hit;
 };
 
 struct vector_register_data_t {
   addr_t obj;
-  u32 num_entries;
+  u32 capacity;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value;
   klee::ref<klee::Expr> write_value;
@@ -101,10 +101,10 @@ public:
 
   static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj);
   static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                           u32 num_entries, u32 cache_capacity);
+                                                           u32 capacity, u32 cache_capacity);
   static bool can_get_or_build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                 u32 num_entries, u32 cache_capacity);
-  static std::vector<u32> enum_fcfs_cache_cap(u32 num_entries);
+                                                 u32 capacity, u32 cache_capacity);
+  static std::vector<u32> enum_fcfs_cache_cap(u32 capacity);
   static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key,
                                                 u32 cache_capacity);
 
@@ -113,9 +113,9 @@ public:
   // ======================================================================
 
   static bool can_build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width, u32 cms_height);
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height);
   static HHTable *build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 num_entries, u32 cms_width, u32 cms_height);
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height);
   static hit_rate_t get_hh_table_hit_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key, u32 capacity);
 
   // ======================================================================

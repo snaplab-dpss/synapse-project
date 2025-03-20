@@ -14,7 +14,7 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD
 
   vector_register_data_t vector_register_data = {
       .obj         = obj,
-      .num_entries = static_cast<u32>(cfg.capacity),
+      .capacity    = static_cast<u32>(cfg.capacity),
       .index       = vb.args.at("index").expr,
       .value       = vb.extra_vars.at("borrowed_cell").second,
       .write_value = vr.args.at("value").in,

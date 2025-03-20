@@ -47,6 +47,7 @@ void reset_counters() {
       netcache::Controller::controller->reg_bloom_2.set_all_false();
 
       netcache::Controller::controller->end_transaction();
+      DEBUG("Reset timers done");
 
       last_ts = cur_ts;
     }
@@ -69,7 +70,7 @@ int main(int argc, char **argv) {
   app.add_flag("--model", args.run_tofino_model, "Run for the tofino model");
   app.add_option("--tna", args.tna_version, "TNA version");
   app.add_option("--sample-size", args.sample_size, "Number of entries periodically probed from the data plane")->default_val(50);
-  app.add_option("--reset-timers", args.reset_timer_sec, "Reset timer in seconds")->default_val(10);
+  app.add_option("--reset-timers", args.reset_timer_sec, "Reset timer in seconds")->default_val(3);
   app.add_flag("--dry-run", dry_run, "Dry run");
 
   CLI11_PARSE(app, argc, argv);

@@ -14,11 +14,11 @@ struct state_t {
   state_t()
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
-      map_table_1074053088("Ingress", {"map_table_1074053088_165",}, 1000LL),
-      vector_table_1074066912("Ingress", {"vector_table_1074066912_144",}),
-      dchain_table_1074085072("Ingress", {"dchain_table_1074085072_142","dchain_table_1074085072_185",}, 1000LL),
-      vector_register_1074085496("Ingress", {"vector_register_1074085496_0",}),
-      vector_table_1074102712("Ingress", {"vector_table_1074102712_187","vector_table_1074102712_149",})
+      map_table_1074053088({"Ingress.map_table_1074053088_165",}, 1000LL),
+      vector_table_1074066912({"Ingress.vector_table_1074066912_144",}),
+      dchain_table_1074085072({"Ingress.dchain_table_1074085072_142","Ingress.dchain_table_1074085072_185",}, 1000LL),
+      vector_register_1074085496({"Ingress.vector_register_1074085496_0",}),
+      vector_table_1074102712({"Ingress.vector_table_1074102712_187","Ingress.vector_table_1074102712_149",})
     {}
 };
 
@@ -732,7 +732,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   cpu_hdr_t *cpu_hdr = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
-  DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
+  LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
   if (bswap16(cpu_hdr->code_path) == 573) {
     // EP node  8470

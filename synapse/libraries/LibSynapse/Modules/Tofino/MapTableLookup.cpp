@@ -20,12 +20,12 @@ map_table_data_t get_map_table_data(const Context &ctx, const LibBDD::Call *call
   const LibBDD::map_config_t &cfg = ctx.get_map_config(obj);
 
   map_table_data_t data = {
-      .obj         = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .num_entries = static_cast<u32>(cfg.capacity),
-      .keys        = Table::build_keys(key),
-      .value       = value_out,
-      .hit         = map_has_this_key,
-      .time_aware  = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
+      .obj        = LibCore::expr_addr_to_obj_addr(map_addr_expr),
+      .capacity   = static_cast<u32>(cfg.capacity),
+      .keys       = Table::build_keys(key),
+      .value      = value_out,
+      .hit        = map_has_this_key,
+      .time_aware = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
   };
 
   return data;
