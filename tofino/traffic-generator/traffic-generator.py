@@ -352,31 +352,6 @@ class Multicaster:
             )
 
 
-class PacketModifier:
-    def __init__(self, bfrt_info):
-        self.packet_modifier = bfrt_info.table_get("Egress.packet_modifier_tbl")
-
-    def clear(self):
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        for _, key in self.packet_modifier.entry_get(target, [], {"from_hw": False}):
-            if key:
-                self.packet_modifier.entry_del(target, [key])
-
-    def set_prefix(self, dev_port, prefix):
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-        self.packet_modifier.entry_add(
-            target,
-            [
-                self.packet_modifier.make_key(
-                    [
-                        gc.KeyTuple("eg_intr_md.egress_port", dev_port),
-                    ]
-                )
-            ],
-            [self.packet_modifier.make_data([gc.DataTuple("prefix", prefix)], "Egress.set_prefix")],
-        )
-
-
 class Counters:
     def __init__(self, bfrt_info):
         self.in_counter = bfrt_info.table_get("Ingress.in_counter")
@@ -461,15 +436,13 @@ class Counters:
 def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
     router = Router(bfrt_info)
     multicaster = Multicaster(bfrt_info)
-    packet_modifier = PacketModifier(bfrt_info)
 
     for port in FRONT_PANEL_PORTS:
         ports.add_port(port, DEFAULT_PORT_SPEED)
     print("Configured ports: {}".format(FRONT_PANEL_PORTS))
 
     router.clear()
-    packet_modifier.clear()
-    print("Cleared the router and packet modifier tables")
+    print("Cleared the router table")
 
     tg_dev_port = ports.get_dev_port(TG_PORT)
     router.add_route_tg_entry(tg_dev_port)
@@ -489,12 +462,6 @@ def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
         egress_dev_port = ports.get_dev_port(egress_port)
         router.add_forward_entry(ingress_dev_port, egress_dev_port)
         print("Added forwarding rule: {} -> {}".format(ingress_port, egress_port))
-
-    for port in broadcast + [egress_port for _, egress_port in route]:
-        dev_port = ports.get_dev_port(port)
-        prefix = port
-        packet_modifier.set_prefix(dev_port, prefix)
-        print("Set prefix {} for egress port {} (dev={})".format(prefix, port, dev_port))
 
 
 def run_setup_get(ports: Ports):

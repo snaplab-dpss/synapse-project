@@ -324,30 +324,8 @@ control Egress(
 ) {
 	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) out_counter;
 
-	action set_prefix(bit<6> prefix) {
-		hdr.recirc.setInvalid();
-		hdr.ipv4.src_addr[31:26] = prefix;
-	}
-
-	table packet_modifier_tbl {
-		key = {
-			eg_intr_md.egress_port: exact;
-		}
-
-		actions = {
-			set_prefix;
-		}
-
-		size = 32;
-	}
-
 	apply {
 		out_counter.count(eg_intr_md.egress_port);
-
-		if (hdr.bridge_metadata.bypass_egress == 0) {
-			packet_modifier_tbl.apply();
-		}
-
 		hdr.bridge_metadata.setInvalid();
 	}
 }
