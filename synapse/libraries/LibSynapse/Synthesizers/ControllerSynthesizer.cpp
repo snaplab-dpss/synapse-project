@@ -1049,7 +1049,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
 
-  var_t key_var = transpile_buffer_decl_and_set(coder, map_table->id + "_key", key, true);
+  const var_t key_var = transpile_buffer_decl_and_set(coder, map_table->id + "_key", key, true);
 
   coder.indent();
   coder << "state->" << map_table->id << ".put(";
@@ -1108,7 +1108,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
 
-  var_t value_var = transpile_buffer_decl_and_set(coder, vector_table->id + "_value", value, true);
+  const var_t value_var = transpile_buffer_decl_and_set(coder, vector_table->id + "_value", value, true);
 
   coder.indent();
   coder << "state->" << vector_table->id << ".write(";
@@ -1340,37 +1340,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterUpdate *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t obj                                      = node->get_obj();
-  const klee::ref<klee::Expr> index                     = node->get_index();
-  const klee::ref<klee::Expr> old_value                 = node->get_old_value();
-  const klee::ref<klee::Expr> new_value                 = node->get_new_value();
-  const std::vector<LibCore::expr_mod_t> &modifications = node->get_modifications();
+  const addr_t obj                      = node->get_obj();
+  const klee::ref<klee::Expr> index     = node->get_index();
+  const klee::ref<klee::Expr> old_value = node->get_old_value();
+  const klee::ref<klee::Expr> new_value = node->get_new_value();
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
-  const var_t value_var = alloc_var("value", new_value, {}, NO_OPTION);
-
-  coder.indent();
-  coder << "buffer_t " << value_var.name << ";\n";
-
-  coder.indent();
-  coder << "state->" << vector_register->id << ".get(";
-  coder << transpiler.transpile(index);
-  coder << ", " << value_var.name;
-  coder << ");\n";
-
-  bytes_t size = new_value->getWidth() / 8;
-  for (const LibCore::expr_mod_t &mod : modifications) {
-    bytes_t offset = mod.offset / 8;
-    for (klee::ref<klee::Expr> byte_expr : LibCore::bytes_in_expr(mod.expr)) {
-      coder.indent();
-      coder << value_var.name;
-      coder << "[" << (size - 1 - offset) << "] = ";
-      coder << transpiler.transpile(byte_expr);
-      coder << ";\n";
-      offset++;
-    }
-  }
+  const var_t value_var = transpile_buffer_decl_and_set(coder, vector_register->id + "_value", new_value, true);
 
   coder.indent();
   coder << "state->" << vector_register->id << ".put(";

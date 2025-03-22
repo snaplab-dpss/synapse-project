@@ -117,8 +117,8 @@ private:
   }
 
   static std::string hit_rate_to_blue(hit_rate_t node_hit_rate) {
-    u8 r = 0xff * (1 - node_hit_rate);
-    u8 g = 0xff * (1 - node_hit_rate);
+    u8 r = 0xff * (1 - node_hit_rate.value);
+    u8 g = 0xff * (1 - node_hit_rate.value);
     u8 b = 0xff;
     u8 o = 0xff * 0.5;
 
@@ -127,9 +127,9 @@ private:
   }
 
   static std::string hit_rate_to_blue_red_scale(hit_rate_t node_hit_rate) {
-    u8 r = 0xff * node_hit_rate;
+    u8 r = 0xff * node_hit_rate.value;
     u8 g = 0;
-    u8 b = 0xff * (1 - node_hit_rate);
+    u8 b = 0xff * (1 - node_hit_rate).value;
     u8 o = 0xff * 0.33;
 
     LibCore::rgb_t color(r, g, b, o);

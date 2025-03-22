@@ -1683,8 +1683,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<LibCore::expr_mod_t> &changes     = node->get_changes();
   const std::vector<LibCore::expr_byte_swap_t> &swaps = node->get_swaps();
 
-  std::cerr << "hdr_var: " << hdr_var->to_string() << "\n";
-
   for (const LibCore::expr_byte_swap_t &byte_swap : swaps) {
     ingress_apply.indent();
     ingress_apply << "swap(";

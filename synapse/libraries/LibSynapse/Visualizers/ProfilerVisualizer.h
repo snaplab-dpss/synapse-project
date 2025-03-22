@@ -74,44 +74,44 @@ private:
   }
 
   static std::string hit_rate_to_rainbow(hit_rate_t fraction) {
-    LibCore::rgb_t blue(0, 0, 1);
-    LibCore::rgb_t cyan(0, 1, 1);
-    LibCore::rgb_t green(0, 1, 0);
-    LibCore::rgb_t yellow(1, 1, 0);
-    LibCore::rgb_t red(1, 0, 0);
+    const LibCore::rgb_t blue(0, 0, 1);
+    const LibCore::rgb_t cyan(0, 1, 1);
+    const LibCore::rgb_t green(0, 1, 0);
+    const LibCore::rgb_t yellow(1, 1, 0);
+    const LibCore::rgb_t red(1, 0, 0);
 
-    std::vector<LibCore::rgb_t> palette{blue, cyan, green, yellow, red};
+    const std::vector<LibCore::rgb_t> palette{blue, cyan, green, yellow, red};
 
-    hit_rate_t value = fraction * (palette.size() - 1);
-    int idx1         = (int)std::floor(value);
-    int idx2         = (int)idx1 + 1;
-    hit_rate_t frac  = value - idx1;
+    double value = fraction.value * (palette.size() - 1);
+    int idx1     = std::floor(value);
+    int idx2     = idx1 + 1;
+    double frac  = value - idx1;
 
-    u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
-    u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
-    u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
+    const u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
+    const u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
+    const u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
 
-    LibCore::rgb_t color(r, g, b);
+    const LibCore::rgb_t color(r, g, b);
     return color.to_gv_repr();
   }
 
   static std::string hit_rate_to_blue(hit_rate_t fraction) {
-    u8 r = 0xff * (1 - fraction);
-    u8 g = 0xff * (1 - fraction);
-    u8 b = 0xff;
-    u8 o = 0xff * 0.5;
+    const u8 r = 0xff * (1 - fraction.value);
+    const u8 g = 0xff * (1 - fraction.value);
+    const u8 b = 0xff;
+    const u8 o = 0xff * 0.5;
 
-    LibCore::rgb_t color(r, g, b, o);
+    const LibCore::rgb_t color(r, g, b, o);
     return color.to_gv_repr();
   }
 
   static std::string hit_rate_to_blue_red_scale(hit_rate_t fraction) {
-    u8 r = 0xff * fraction;
-    u8 g = 0;
-    u8 b = 0xff * (1 - fraction);
-    u8 o = 0xff * 0.33;
+    const u8 r = 0xff * fraction.value;
+    const u8 g = 0;
+    const u8 b = 0xff * (1 - fraction.value);
+    const u8 o = 0xff * 0.33;
 
-    LibCore::rgb_t color(r, g, b, o);
+    const LibCore::rgb_t color(r, g, b, o);
     return color.to_gv_repr();
   }
 };

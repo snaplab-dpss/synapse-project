@@ -1008,15 +1008,15 @@ std::vector<translated_symbol_t> pull_candidate(BDD *bdd, const mutable_vector_t
   return translated_symbols;
 }
 
-hit_rate_t estimate_reorder(const BDD *bdd, const Node *anchor) {
-  static std::unordered_map<std::string, hit_rate_t> cache;
-  static hit_rate_t total_max = 0;
+double estimate_reorder(const BDD *bdd, const Node *anchor) {
+  static std::unordered_map<std::string, double> cache;
+  static double total_max = 0;
 
   if (!anchor) {
     return 0;
   }
 
-  hit_rate_t total = 0;
+  double total     = 0;
   std::string hash = anchor->hash(true);
 
   if (cache.find(hash) != cache.end()) {
@@ -1026,8 +1026,8 @@ hit_rate_t estimate_reorder(const BDD *bdd, const Node *anchor) {
   if (anchor->get_type() == NodeType::Branch) {
     const Branch *branch = dynamic_cast<const Branch *>(anchor);
 
-    hit_rate_t lhs = estimate_reorder(bdd, branch->get_on_true());
-    hit_rate_t rhs = estimate_reorder(bdd, branch->get_on_false());
+    double lhs = estimate_reorder(bdd, branch->get_on_true());
+    double rhs = estimate_reorder(bdd, branch->get_on_false());
 
     if (lhs == 0 || rhs == 0) {
       total += lhs + rhs;
@@ -1355,9 +1355,9 @@ reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info, no
   return result;
 }
 
-hit_rate_t estimate_reorder(const BDD *bdd) {
-  const Node *root    = bdd->get_root();
-  hit_rate_t estimate = 1 + estimate_reorder(bdd, root);
+double estimate_reorder(const BDD *bdd) {
+  const Node *root = bdd->get_root();
+  double estimate  = 1 + estimate_reorder(bdd, root);
   std::cerr << "\n";
   return estimate;
 }
