@@ -96,9 +96,8 @@ class NetCacheController:
     def launch(
         self,
         disable_cache: bool = False,
-        cache_size: int = 65536,
         sample_size: int = 50,
-        reset_timers_sec: int = 5,
+        reset_timers_sec: int = 3,
     ) -> None:
         self._compile()
 
@@ -107,7 +106,6 @@ class NetCacheController:
         cmd += f" --wait-ports"
         cmd += f" --client-ports {' '.join(map(str, self.client_ports))}"
         cmd += f" --server-port {self.server_port}"
-        cmd += f" --cache-size {cache_size}"
         cmd += f" --sample-size {sample_size}"
         cmd += f" --reset-timers {reset_timers_sec}"
 

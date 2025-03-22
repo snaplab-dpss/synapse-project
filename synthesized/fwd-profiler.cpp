@@ -826,15 +826,15 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
   inc_path_counter(66);
   // Node 67
   inc_path_counter(67);
-  if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33)))) {
+  if ((65535) != (*(uint16_t*)vector_value_out33)) {
     // Node 68
     inc_path_counter(68);
-    forwarding_stats_per_route_op[68].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33)));
-    return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33));
+    forwarding_stats_per_route_op[68].inc_fwd(*(uint16_t*)vector_value_out33);
+    return *(uint16_t*)vector_value_out33;
   } else {
     // Node 69
     inc_path_counter(69);
     forwarding_stats_per_route_op[69].inc_drop();
     return DROP;
-  } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out33)))
+  } // (65535) != (*(uint16_t*)vector_value_out33)
 }

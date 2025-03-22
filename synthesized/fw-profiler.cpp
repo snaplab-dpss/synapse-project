@@ -922,9 +922,9 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  stats_per_map[1074043808].init(170);
-  stats_per_map[1074043808].init(157);
-  stats_per_map[1074043808].init(142);
+  stats_per_map[1074044032].init(170);
+  stats_per_map[1074044032].init(157);
+  stats_per_map[1074044032].init(142);
   forwarding_stats_per_route_op.insert({188, PortStats{}});
   forwarding_stats_per_route_op.insert({187, PortStats{}});
   forwarding_stats_per_route_op.insert({179, PortStats{}});
@@ -1031,7 +1031,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       inc_path_counter(140);
       // Node 141
       inc_path_counter(141);
-      if ((0) == ((uint8_t)((bool)((0) != (*(uint32_t*)vector_value_out65))))) {
+      if ((0) == (*(uint32_t*)vector_value_out65)) {
         // Node 142
         inc_path_counter(142);
         uint8_t key[13];
@@ -1050,7 +1050,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074043808].update(142, key, 13, now);
+        stats_per_map[1074044032].update(142, key, 13, now);
         // Node 143
         inc_path_counter(143);
         if ((0) == (map_hit)) {
@@ -1088,17 +1088,17 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
           packet_return_chunk(buffer, hdr);
           // Node 154
           inc_path_counter(154);
-          if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66)))) {
+          if ((65535) != (*(uint16_t*)vector_value_out66)) {
             // Node 155
             inc_path_counter(155);
-            forwarding_stats_per_route_op[155].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66)));
-            return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66));
+            forwarding_stats_per_route_op[155].inc_fwd(*(uint16_t*)vector_value_out66);
+            return *(uint16_t*)vector_value_out66;
           } else {
             // Node 156
             inc_path_counter(156);
             forwarding_stats_per_route_op[156].inc_drop();
             return DROP;
-          } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out66)))
+          } // (65535) != (*(uint16_t*)vector_value_out66)
         } // (0) == (map_hit)
       } else {
         // Node 157
@@ -1119,7 +1119,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key2[12] = *(hdr2+9);
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
-        stats_per_map[1074043808].update(157, key2, 13, now);
+        stats_per_map[1074044032].update(157, key2, 13, now);
         // Node 158
         inc_path_counter(158);
         if ((0) == (map_hit2)) {
@@ -1147,17 +1147,17 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             packet_return_chunk(buffer, hdr);
             // Node 166
             inc_path_counter(166);
-            if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67)))) {
+            if ((65535) != (*(uint16_t*)vector_value_out67)) {
               // Node 167
               inc_path_counter(167);
-              forwarding_stats_per_route_op[167].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67)));
-              return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67));
+              forwarding_stats_per_route_op[167].inc_fwd(*(uint16_t*)vector_value_out67);
+              return *(uint16_t*)vector_value_out67;
             } else {
               // Node 168
               inc_path_counter(168);
               forwarding_stats_per_route_op[168].inc_drop();
               return DROP;
-            } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out67)))
+            } // (65535) != (*(uint16_t*)vector_value_out67)
           } else {
             // Node 169
             inc_path_counter(169);
@@ -1167,7 +1167,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(170);
             memcpy((void*)vector_value_out68, (void*)key2, 13);
             map_put(map, vector_value_out68, index);
-            stats_per_map[1074043808].update(170, vector_value_out68, 13, now);
+            stats_per_map[1074044032].update(170, vector_value_out68, 13, now);
             // Node 171
             inc_path_counter(171);
             // Node 172
@@ -1187,17 +1187,17 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             packet_return_chunk(buffer, hdr);
             // Node 177
             inc_path_counter(177);
-            if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out69)))) {
+            if ((65535) != (*(uint16_t*)vector_value_out69)) {
               // Node 178
               inc_path_counter(178);
-              forwarding_stats_per_route_op[178].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out69)));
-              return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out69));
+              forwarding_stats_per_route_op[178].inc_fwd(*(uint16_t*)vector_value_out69);
+              return *(uint16_t*)vector_value_out69;
             } else {
               // Node 179
               inc_path_counter(179);
               forwarding_stats_per_route_op[179].inc_drop();
               return DROP;
-            } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out69)))
+            } // (65535) != (*(uint16_t*)vector_value_out69)
           } // (0) == (not_out_of_space)
         } else {
           // Node 180
@@ -1220,19 +1220,19 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
           packet_return_chunk(buffer, hdr);
           // Node 186
           inc_path_counter(186);
-          if ((65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out70)))) {
+          if ((65535) != (*(uint16_t*)vector_value_out70)) {
             // Node 187
             inc_path_counter(187);
-            forwarding_stats_per_route_op[187].inc_fwd((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out70)));
-            return (uint32_t)((uint16_t)(*(uint16_t*)vector_value_out70));
+            forwarding_stats_per_route_op[187].inc_fwd(*(uint16_t*)vector_value_out70);
+            return *(uint16_t*)vector_value_out70;
           } else {
             // Node 188
             inc_path_counter(188);
             forwarding_stats_per_route_op[188].inc_drop();
             return DROP;
-          } // (65535) != ((uint32_t)((uint16_t)(*(uint16_t*)vector_value_out70)))
+          } // (65535) != (*(uint16_t*)vector_value_out70)
         } // (0) == (map_hit2)
-      } // (0) == ((uint8_t)((bool)((0) != (*(uint32_t*)vector_value_out65))))
+      } // (0) == (*(uint32_t*)vector_value_out65)
     } else {
       // Node 189
       inc_path_counter(189);

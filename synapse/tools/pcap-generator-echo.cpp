@@ -15,6 +15,11 @@
 
 #include <CLI/CLI.hpp>
 
+using LibCore::TrafficGenerator;
+using device_t    = TrafficGenerator::device_t;
+using config_t    = TrafficGenerator::config_t;
+using TrafficType = TrafficGenerator::TrafficType;
+
 LibCore::flow_t random_flow() {
   LibCore::flow_t flow;
   flow.src_ip   = LibCore::random_addr();
@@ -33,7 +38,7 @@ LibCore::flow_t invert_flow(const LibCore::flow_t &flow) {
   return inverted_flow;
 }
 
-std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::config_t &config) {
+std::vector<LibCore::flow_t> get_base_flows(const config_t &config) {
   std::vector<LibCore::flow_t> flows;
   flows.reserve(config.total_flows);
 
@@ -44,7 +49,7 @@ std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::con
   return flows;
 }
 
-class EchoTrafficGenerator : public LibCore::TrafficGenerator {
+class EchoTrafficGenerator : public TrafficGenerator {
 private:
   std::vector<LibCore::flow_t> flows;
 
@@ -57,7 +62,7 @@ public:
     flows[flow_idx] = random_flow();
   }
 
-  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) override {
+  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
     pkt_t pkt                   = template_packet;
     const LibCore::flow_t &flow = flows[flow_idx];
     pkt.ip_hdr.src_addr         = flow.src_ip;
@@ -67,41 +72,35 @@ public:
     return pkt;
   }
 
-  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) override { panic("We should never need to generate a WAN packet."); }
-
-  virtual bool expects_response(u16 lan_dev, flow_idx_t flow_idx) const override { return false; }
+  virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return std::nullopt; }
 };
 
 int main(int argc, char *argv[]) {
   CLI::App app{"Traffic generator for the echo nf."};
 
-  LibCore::TrafficGenerator::config_t config;
+  config_t config;
 
-  std::vector<u16> devs;
-
-  app.add_option("--out", config.out_dir, "Output directory.")->default_val(LibCore::TrafficGenerator::DEFAULT_OUTPUT_DIR);
-  app.add_option("--packets", config.total_packets, "Total packets.")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_PACKETS);
-  app.add_option("--flows", config.total_flows, "Total flows.")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_FLOWS);
-  app.add_option("--packet-size", config.packet_size, "Packet size (bytes).")->default_val(LibCore::TrafficGenerator::DEFAULT_PACKET_SIZE);
-  app.add_option("--churn", config.churn_fpm, "Total churn (fpm).")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_CHURN_FPM);
+  app.add_option("--out", config.out_dir, "Output directory.")->default_val(TrafficGenerator::DEFAULT_OUTPUT_DIR);
+  app.add_option("--packets", config.total_packets, "Total packets.")->default_val(TrafficGenerator::DEFAULT_TOTAL_PACKETS);
+  app.add_option("--flows", config.total_flows, "Total flows.")->default_val(TrafficGenerator::DEFAULT_TOTAL_FLOWS);
+  app.add_option("--packet-size", config.packet_size, "Packet size (bytes).")->default_val(TrafficGenerator::DEFAULT_PACKET_SIZE);
+  app.add_option("--churn", config.churn, "Total churn (fpm).")->default_val(TrafficGenerator::DEFAULT_TOTAL_CHURN_FPM);
   app.add_option("--traffic", config.traffic_type, "Traffic distribution.")
-      ->default_val(LibCore::TrafficGenerator::DEFAULT_TRAFFIC_TYPE)
+      ->default_val(TrafficGenerator::DEFAULT_TRAFFIC_TYPE)
       ->transform(CLI::CheckedTransformer(
-          std::unordered_map<std::string, LibCore::TrafficGenerator::TrafficType>{
-              {"uniform", LibCore::TrafficGenerator::TrafficType::Uniform},
-              {"zipf", LibCore::TrafficGenerator::TrafficType::Zipf},
+          std::unordered_map<std::string, TrafficType>{
+              {"uniform", TrafficType::Uniform},
+              {"zipf", TrafficType::Zipf},
           },
           CLI::ignore_case));
-  app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(LibCore::TrafficGenerator::DEFAULT_ZIPF_PARAM);
-  app.add_option("--devs", devs, "Devices.")->required();
+  app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(TrafficGenerator::DEFAULT_ZIPF_PARAM);
+  app.add_option("--devs", config.devices, "Devices.")->required();
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
   app.add_flag("--dry-run", config.dry_run, "Print out the configuration values without generating the pcaps.")->default_val(false);
 
   CLI11_PARSE(app, argc, argv);
 
-  for (u16 dev : devs) {
-    config.lan_wan_pairs.push_back({dev, dev});
-  }
+  config.client_devices = config.devices;
 
   srand(config.random_seed);
 

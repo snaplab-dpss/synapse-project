@@ -163,7 +163,7 @@ def plot_bps(data: dict[int, Data], file: Path):
 def plot_pps(data: dict[int, Data], file: Path):
     fig, ax = plt.subplots()
 
-    ax.set_ylim(ymin=0, ymax=3000)
+    ax.set_ylim(ymin=0, ymax=3500)
 
     ax.set_ylabel("Throughput (pps)")
     ax.set_xlabel("Packet size (B)")

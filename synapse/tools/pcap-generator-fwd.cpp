@@ -15,6 +15,11 @@
 
 #include <CLI/CLI.hpp>
 
+using LibCore::TrafficGenerator;
+using device_t    = TrafficGenerator::device_t;
+using config_t    = TrafficGenerator::config_t;
+using TrafficType = TrafficGenerator::TrafficType;
+
 LibCore::flow_t random_flow() {
   LibCore::flow_t flow;
   flow.src_ip   = LibCore::random_addr();
@@ -33,7 +38,7 @@ LibCore::flow_t invert_flow(const LibCore::flow_t &flow) {
   return inverted_flow;
 }
 
-std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::config_t &config) {
+std::vector<LibCore::flow_t> get_base_flows(const config_t &config) {
   std::vector<LibCore::flow_t> flows;
   flows.reserve(config.total_flows);
 
@@ -44,29 +49,42 @@ std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::con
   return flows;
 }
 
-class FwdTrafficGenerator : public LibCore::TrafficGenerator {
+class FwdTrafficGenerator : public TrafficGenerator {
 private:
+  const std::vector<std::pair<device_t, device_t>> lan_wan_pairs;
+  const std::unordered_map<device_t, device_t> connections;
+  const std::unordered_set<device_t> lan_devs;
+
   std::vector<LibCore::flow_t> flows;
 
 public:
-  FwdTrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
-      : TrafficGenerator("fwd", _config), flows(_base_flows) {
+  FwdTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
+                      const std::vector<LibCore::flow_t> &_base_flows)
+      : TrafficGenerator("fwd", _config), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
+        lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
     for (LibCore::flow_t &flow : flows) {
-      u16 lan_dev = get_current_lan_dev();
-      u16 wan_dev = lan_to_wan_dev.at(lan_dev);
-      advance_lan_dev();
+      const device_t lan_dev = get_current_client_dev();
+      const device_t wan_dev = connections.at(lan_dev);
+      advance_client_dev();
 
       flow.src_ip = mask_addr_from_dev(flow.src_ip, lan_dev);
       flow.dst_ip = mask_addr_from_dev(flow.dst_ip, wan_dev);
     }
 
-    reset_lan_dev();
+    reset_client_dev();
   }
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
-    u16 lan_dev = flows_to_lan_dev.at(flow_idx);
-    u16 wan_dev = lan_to_wan_dev.at(lan_dev);
+
+    device_t dev = flows_to_dev.at(flow_idx);
+    if (!lan_devs.contains(dev)) {
+      dev = connections.at(dev);
+      assert(lan_devs.contains(dev));
+    }
+
+    const device_t lan_dev = get_flow_lan_dev(flow_idx);
+    const device_t wan_dev = connections.at(lan_dev);
 
     LibCore::flow_t new_flow = random_flow();
     new_flow.src_ip          = mask_addr_from_dev(new_flow.src_ip, lan_dev);
@@ -75,54 +93,82 @@ public:
     flows[flow_idx] = new_flow;
   }
 
-  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx) override {
-    pkt_t pkt                   = template_packet;
-    const LibCore::flow_t &flow = flows[flow_idx];
-    pkt.ip_hdr.src_addr         = flow.src_ip;
-    pkt.ip_hdr.dst_addr         = flow.dst_ip;
-    pkt.udp_hdr.src_port        = flow.src_port;
-    pkt.udp_hdr.dst_port        = flow.dst_port;
+  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
+    pkt_t pkt = template_packet;
+
+    LibCore::flow_t flow = flows[flow_idx];
+    if (!lan_devs.contains(dev)) {
+      flow = invert_flow(flow);
+    }
+
+    pkt.ip_hdr.src_addr  = flow.src_ip;
+    pkt.ip_hdr.dst_addr  = flow.dst_ip;
+    pkt.udp_hdr.src_port = flow.src_port;
+    pkt.udp_hdr.dst_port = flow.dst_port;
+
     return pkt;
   }
 
-  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx) override {
-    pkt_t pkt                     = template_packet;
-    const LibCore::flow_t &flow   = flows[flow_idx];
-    LibCore::flow_t inverted_flow = invert_flow(flow);
-    pkt.ip_hdr.src_addr           = inverted_flow.src_ip;
-    pkt.ip_hdr.dst_addr           = inverted_flow.dst_ip;
-    pkt.udp_hdr.src_port          = inverted_flow.src_port;
-    pkt.udp_hdr.dst_port          = inverted_flow.dst_port;
-    return pkt;
+  virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return connections.at(dev); }
+
+private:
+  static std::unordered_map<device_t, device_t> build_connections(const std::vector<std::pair<device_t, device_t>> &lan_wan_pairs) {
+    std::unordered_map<device_t, device_t> connections;
+    for (const auto &[lan_dev, wan_dev] : lan_wan_pairs) {
+      connections[lan_dev] = wan_dev;
+      connections[wan_dev] = lan_dev;
+    }
+    return connections;
   }
 
-  virtual bool expects_response(u16 lan_dev, flow_idx_t flow_idx) const override { return true; }
+  static std::unordered_set<device_t> build_lan_devices(const std::vector<std::pair<device_t, device_t>> &lan_wan_pairs) {
+    std::unordered_set<device_t> lan_devs;
+    for (const auto &[lan_dev, _] : lan_wan_pairs) {
+      lan_devs.insert(lan_dev);
+    }
+    return lan_devs;
+  }
+
+  device_t get_flow_lan_dev(flow_idx_t flow_idx) const {
+    const device_t dev = flows_to_dev.at(flow_idx);
+    if (lan_devs.contains(dev)) {
+      return dev;
+    }
+    return connections.at(dev);
+  }
 };
 
 int main(int argc, char *argv[]) {
   CLI::App app{"Traffic generator for the fwd nf."};
 
-  LibCore::TrafficGenerator::config_t config;
+  config_t config;
+  std::vector<std::pair<device_t, device_t>> lan_wan_pairs;
 
-  app.add_option("--out", config.out_dir, "Output directory.")->default_val(LibCore::TrafficGenerator::DEFAULT_OUTPUT_DIR);
-  app.add_option("--packets", config.total_packets, "Total packets.")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_PACKETS);
-  app.add_option("--flows", config.total_flows, "Total flows.")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_FLOWS);
-  app.add_option("--packet-size", config.packet_size, "Packet size (bytes).")->default_val(LibCore::TrafficGenerator::DEFAULT_PACKET_SIZE);
-  app.add_option("--churn", config.churn_fpm, "Total churn (fpm).")->default_val(LibCore::TrafficGenerator::DEFAULT_TOTAL_CHURN_FPM);
+  app.add_option("--out", config.out_dir, "Output directory.")->default_val(TrafficGenerator::DEFAULT_OUTPUT_DIR);
+  app.add_option("--packets", config.total_packets, "Total packets.")->default_val(TrafficGenerator::DEFAULT_TOTAL_PACKETS);
+  app.add_option("--flows", config.total_flows, "Total flows.")->default_val(TrafficGenerator::DEFAULT_TOTAL_FLOWS);
+  app.add_option("--packet-size", config.packet_size, "Packet size (bytes).")->default_val(TrafficGenerator::DEFAULT_PACKET_SIZE);
+  app.add_option("--churn", config.churn, "Total churn (fpm).")->default_val(TrafficGenerator::DEFAULT_TOTAL_CHURN_FPM);
   app.add_option("--traffic", config.traffic_type, "Traffic distribution.")
-      ->default_val(LibCore::TrafficGenerator::DEFAULT_TRAFFIC_TYPE)
+      ->default_val(TrafficGenerator::DEFAULT_TRAFFIC_TYPE)
       ->transform(CLI::CheckedTransformer(
-          std::unordered_map<std::string, LibCore::TrafficGenerator::TrafficType>{
-              {"uniform", LibCore::TrafficGenerator::TrafficType::Uniform},
-              {"zipf", LibCore::TrafficGenerator::TrafficType::Zipf},
+          std::unordered_map<std::string, TrafficType>{
+              {"uniform", TrafficType::Uniform},
+              {"zipf", TrafficType::Zipf},
           },
           CLI::ignore_case));
-  app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(LibCore::TrafficGenerator::DEFAULT_ZIPF_PARAM);
-  app.add_option("--devs", config.lan_wan_pairs, "LAN/WAN pairs.")->delimiter(',')->required();
+  app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(TrafficGenerator::DEFAULT_ZIPF_PARAM);
+  app.add_option("--devs", lan_wan_pairs, "LAN/WAN pairs.")->delimiter(',')->required();
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
   app.add_flag("--dry-run", config.dry_run, "Print out the configuration values without generating the pcaps.")->default_val(false);
 
   CLI11_PARSE(app, argc, argv);
+
+  for (const auto &[lan_dev, wan_dev] : lan_wan_pairs) {
+    config.devices.push_back(lan_dev);
+    config.devices.push_back(wan_dev);
+    config.client_devices.push_back(lan_dev);
+  }
 
   srand(config.random_seed);
 
@@ -132,7 +178,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<LibCore::flow_t> base_flows = get_base_flows(config);
-  FwdTrafficGenerator generator(config, base_flows);
+  FwdTrafficGenerator generator(config, lan_wan_pairs, base_flows);
 
   generator.generate();
 

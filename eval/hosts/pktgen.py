@@ -83,7 +83,7 @@ class Pktgen:
         traffic_dist: TrafficDist = TrafficDist.UNIFORM,
         zipf_param: float = 1.26,
         pkt_size: int = 64,
-        exp_time_us: int = 0,
+        exp_time_us: int = 1000,
         crc_unique_flows: bool = False,
         crc_bits: int = 16,
         mark_warmup_packets: bool = False,
@@ -98,6 +98,9 @@ class Pktgen:
         # grab the last digit from he PCIe ID and use it as the port ID.
         tx_port = int(self.tx_pcie_dev.split(".")[-1])
         rx_port = int(self.rx_pcie_dev.split(".")[-1])
+
+        if zipf_param == 0:
+            traffic_dist = TrafficDist.UNIFORM
 
         pktgen_options_list = [
             f"--total-flows {nb_flows}",

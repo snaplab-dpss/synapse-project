@@ -31,8 +31,8 @@ using Bps_t = u64;
 using fpm_t = u64;
 using fps_t = u64;
 
-using hit_rate_t                            = double;
-constexpr const hit_rate_t HIT_RATE_EPSILON = 1e-6;
+using hit_rate_t               = double;
+constexpr const double EPSILON = 1e-6;
 
 constexpr const u64 TRILLION = 1000000000000LLU;
 constexpr const u64 BILLION  = 1000000000LLU;
@@ -60,7 +60,7 @@ bits_t bits_from_pow2_capacity(size_t capacity);
 inline hit_rate_t clamp(hit_rate_t fraction) {
   fraction = std::max(0.0, fraction);
   fraction = std::min(1.0, fraction);
-  if (fraction < HIT_RATE_EPSILON) {
+  if (fraction < EPSILON) {
     fraction = 0;
   }
   return fraction;

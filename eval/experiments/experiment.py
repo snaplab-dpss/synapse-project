@@ -1,5 +1,4 @@
 from time import sleep
-from random import randint
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
@@ -22,10 +21,12 @@ MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5  # seconds
 THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
-WARMUP_PORT_PRECISION = 0.1  # 10%
+PORT_SETUP_PRECISION = 0.1  # 10%
+PORT_SETUP_TIME_SEC = 5  # seconds
+PORT_SETUP_RATE = 1  # 1 Mbps
 WARMUP_TIME_SEC = 5  # seconds
 WARMUP_RATE = 1  # 1 Mbps
-REST_TIME_SEC = 2  # seconds
+REST_TIME_SEC = 5  # seconds
 EXPERIMENT_ITERATIONS = 5
 
 
@@ -100,7 +101,7 @@ class Experiment:
         pktgen: Pktgen,
     ) -> None:
         tg_controller.set_acceleration(1)
-        pktgen.set_rate(WARMUP_RATE)
+        pktgen.set_rate(PORT_SETUP_RATE)
 
         ports_are_ready = False
         while not ports_are_ready:
@@ -110,7 +111,7 @@ class Experiment:
             meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
 
             pktgen.start()
-            sleep(WARMUP_TIME_SEC)
+            sleep(PORT_SETUP_TIME_SEC)
             pktgen.stop()
 
             meta_port_stats_new = tg_controller.get_port_stats_from_meta_table()
@@ -129,9 +130,9 @@ class Experiment:
 
                 if tx_reference is not None:
                     rel_diff = abs(tx - tx_reference) / tx_reference
-                    if rel_diff > WARMUP_PORT_PRECISION:
+                    if rel_diff > PORT_SETUP_PRECISION:
                         ports_are_ready = False
-                        self.log(f"Port {port} is not ready yet ({rel_diff} > {WARMUP_PORT_PRECISION}). Retrying...")
+                        self.log(f"Port {port} is not ready yet ({rel_diff} > {PORT_SETUP_PRECISION}). Retrying...")
                         sleep(1)
                         break
 
@@ -150,8 +151,6 @@ class Experiment:
         self.log("Warming up ports...")
         self.warmup_ports(tg_controller, pktgen)
         sleep(REST_TIME_SEC)
-
-        pktgen.set_churn(churn)
 
         rate_lower = 0
         rate_upper = MAX_THROUGHPUT
@@ -181,10 +180,18 @@ class Experiment:
             tg_controller.reset_stats()
             pktgen.reset_stats()
 
-            pktgen.set_rate(current_rate)
+            pktgen.set_rate(WARMUP_RATE)
+            pktgen.set_churn(0)
 
             sleep(REST_TIME_SEC)
             pktgen.start()
+            sleep(WARMUP_TIME_SEC)
+
+            tg_controller.reset_stats()
+            pktgen.reset_stats()
+            pktgen.set_churn(churn)
+            pktgen.set_rate(current_rate)
+
             sleep(ITERATION_DURATION_SEC)
             pktgen.stop()
             sleep(REST_TIME_SEC)

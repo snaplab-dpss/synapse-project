@@ -2,6 +2,7 @@
 
 import argparse
 import tomli
+import itertools
 
 from pathlib import Path
 
@@ -14,21 +15,25 @@ from experiments.tput import TGHosts
 from experiments.experiment import Experiment, ExperimentTracker
 from hosts.kvs_server import KVSServer
 from hosts.netcache import NetCache, NetCacheController
+from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-EXPERIMENT_NAME = "KVS server tput/delay_ns"
-DATA_FILE_NAME = "tput_kvs_server.csv"
-DELAY_NS_VALUES = [0, 100, 200, 500, 700, 1000, 1200]
+EXPERIMENT_NAME = "NetCache throughput"
+DATA_FILE_NAME = "tput_netcache.csv"
+STORAGE_SERVER_DELAY_NS = 0
+TOTAL_FLOWS = 100_000
+CHURN_FPM = [0, 10_000, 100_000, 1_000_000, 10_000_000]
+ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
 
 
-class KVSThroughput(Experiment):
+class NetCacheThroughput(Experiment):
     def __init__(
         self,
         # Experiment parameters
         name: str,
         save_name: Path,
-        delay_values_ns: list[int],
+        delay_ns: int,
         # Hosts
         tg_hosts: TGHosts,
         netcache: NetCache,
@@ -38,6 +43,10 @@ class KVSThroughput(Experiment):
         broadcast: list[int],
         symmetric: list[int],
         route: list[tuple[int, int]],
+        # Pktgen
+        total_flows: int,
+        zipf_params: list[float],
+        churn_values_fpm: list[int],
         # Logs
         experiment_log_file: Optional[str] = None,
         console: Console = Console(),
@@ -46,7 +55,7 @@ class KVSThroughput(Experiment):
 
         # Experiment parameters
         self.save_name = save_name
-        self.delay_values_ns = delay_values_ns
+        self.delay_ns = delay_ns
 
         # Hosts
         self.tg_hosts = tg_hosts
@@ -59,12 +68,17 @@ class KVSThroughput(Experiment):
         self.symmetric = symmetric
         self.route = route
 
+        # Pktgen
+        self.total_flows = total_flows
+        self.zipf_params = zipf_params
+        self.churn_values_fpm = churn_values_fpm
+
         self.console = console
 
         self._sync()
 
     def _sync(self):
-        header = "#it,delay (ns)"
+        header = "#it,s,churn (fpm)"
         header += ",requested (bps),pktgen tput (bps),pktgen tput (pps),DUT ingress (bps),DUT ingress (pps),DUT egress (bps),DUT egress (pps)\n"
 
         self.experiment_tracker = set()
@@ -78,8 +92,9 @@ class KVSThroughput(Experiment):
                 for row in f.readlines():
                     cols = row.split(",")
                     i = int(cols[0])
-                    delay_ns = int(cols[1])
-                    self.experiment_tracker.add((i, delay_ns))
+                    s = float(cols[1])
+                    churn_fpm = int(cols[2])
+                    self.experiment_tracker.add((i, s, churn_fpm))
         else:
             with open(self.save_name, "w") as f:
                 f.write(header)
@@ -89,14 +104,16 @@ class KVSThroughput(Experiment):
         step_progress: Progress,
         current_iter: int,
     ) -> None:
-        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(self.delay_values_ns))
+        combinations = list(itertools.product(self.zipf_params, self.churn_values_fpm))
+        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(combinations))
 
         # Check if we already have everything before running all the programs.
         completed = True
-        for delay_ns in self.delay_values_ns:
+        for s, churn_fpm in combinations:
             exp_key = (
                 current_iter,
-                delay_ns,
+                s,
+                churn_fpm,
             )
             if exp_key not in self.experiment_tracker:
                 completed = False
@@ -114,7 +131,7 @@ class KVSThroughput(Experiment):
         self.netcache.install()
 
         self.log("Launching NetCache controller")
-        self.netcache_controller.launch(disable_cache=True)
+        self.netcache_controller.launch()
 
         self.log("Launching pktgen")
         self.tg_hosts.pktgen.launch(kvs_mode=True)
@@ -134,24 +151,25 @@ class KVSThroughput(Experiment):
 
         self.log("Starting experiment")
 
-        for delay_ns in self.delay_values_ns:
+        for s, churn_fpm in combinations:
             exp_key = (
                 current_iter,
-                delay_ns,
+                s,
+                churn_fpm,
             )
 
-            description = f"{self.name} (it={current_iter} delay={delay_ns:,}ns)"
+            description = f"{self.name} (it={current_iter} s={s} churn={churn_fpm:,}fpm)"
 
             if exp_key in self.experiment_tracker:
-                self.console.log(f"[orange1]Skipping: iteration {current_iter} delay {delay_ns:,}ns")
+                self.console.log(f"[orange1]Skipping: iteration={current_iter} s={s} churn={churn_fpm:,}fpm")
                 step_progress.update(task_id, description=description, advance=1)
                 continue
 
             step_progress.update(task_id, description=description)
 
-            self.log(f"Launching and waiting for KVS server (delay={delay_ns:,}ns)")
+            self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
             self.kvs_server.kill_server()
-            self.kvs_server.launch(delay_ns=delay_ns)
+            self.kvs_server.launch(delay_ns=self.delay_ns)
             self.kvs_server.wait_launch()
 
             self.log("Waiting for NetCache controller")
@@ -159,19 +177,25 @@ class KVSThroughput(Experiment):
 
             self.log("Launching pktgen")
             self.tg_hosts.pktgen.close()
-            self.tg_hosts.pktgen.launch(kvs_mode=True)
+            self.tg_hosts.pktgen.launch(
+                nb_flows=self.total_flows,
+                traffic_dist=TrafficDist.ZIPF,
+                zipf_param=s,
+                kvs_mode=True,
+            )
 
             self.tg_hosts.pktgen.wait_launch()
 
             report = self.find_stable_throughput(
                 tg_controller=self.tg_hosts.tg_controller,
                 pktgen=self.tg_hosts.pktgen,
-                churn=0,
+                churn=churn_fpm,
             )
 
             with open(self.save_name, "a") as f:
                 f.write(f"{current_iter}")
-                f.write(f",{delay_ns}")
+                f.write(f",{s}")
+                f.write(f",{churn_fpm}")
                 f.write(f",{report.requested_bps}")
                 f.write(f",{report.pktgen_bps}")
                 f.write(f",{report.pktgen_pps}")
@@ -234,10 +258,10 @@ def main():
     )
 
     exp_tracker.add_experiment(
-        KVSThroughput(
+        NetCacheThroughput(
             name=EXPERIMENT_NAME,
             save_name=DATA_DIR / DATA_FILE_NAME,
-            delay_values_ns=DELAY_NS_VALUES,
+            delay_ns=STORAGE_SERVER_DELAY_NS,
             tg_hosts=tg_hosts,
             netcache=netcache,
             netcache_controller=netcache_controller,
@@ -245,6 +269,9 @@ def main():
             broadcast=config["devices"]["switch_tg"]["dut_ports"],
             symmetric=[],
             route=[],
+            total_flows=TOTAL_FLOWS,
+            zipf_params=ZIPF_PARAMS,
+            churn_values_fpm=CHURN_FPM,
             experiment_log_file=log_file,
         )
     )

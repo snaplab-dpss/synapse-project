@@ -714,6 +714,6 @@ bool nf_init() {
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
   // Node 0
   inc_path_counter(0);
-  forwarding_stats_per_route_op[0].inc_fwd((uint32_t)((uint16_t)(device & 65535)));
-  return (uint32_t)((uint16_t)(device & 65535));
+  forwarding_stats_per_route_op[0].inc_fwd(device & 65535);
+  return device & 65535;
 }

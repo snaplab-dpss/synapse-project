@@ -39,8 +39,8 @@ generate_pcaps_echo() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000000 10000000 \
-        ::: "uniform" "zipf --zipf-param 0.9" "zipf --zipf-param 0.99" "zipf --zipf-param 1.26"
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
 }
 
 #########################
@@ -62,8 +62,8 @@ generate_pcaps_fwd() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000000 10000000 \
-        ::: "uniform" "zipf --zipf-param 0.9" "zipf --zipf-param 0.99" "zipf --zipf-param 1.26"
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
 }
 
 ###################
@@ -85,8 +85,8 @@ generate_pcaps_fw() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000000 10000000 \
-        ::: "uniform" "zipf --zipf-param 0.9" "zipf --zipf-param 0.99" "zipf --zipf-param 1.26"
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
 }
 
 ##############################
@@ -108,29 +108,34 @@ generate_pcaps_nat() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000000 10000000 \
-        ::: "uniform" "zipf --zipf-param 0.9" "zipf --zipf-param 0.99" "zipf --zipf-param 1.26"
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
 }
 
 ###################
 # Key Value Store #
 ###################
 
-# Uses more flows than the other NFs to have more flows than cache capacity.
-
-# FIXME:
-# generate_pcaps_kvs() {
-#     parallel \
-#         -j $(nproc) \
-#         eval \
-#         $SYNAPSE_DIR/build/bin/pcap-generator-kvs \
-#         --seed 0 --packets $TOTAL_PACKETS --flows 100000 --churn {1} {2} \
-#         ::: 0 1000000 10000000 \
-#         ::: "--uniform" "--zipf --zipf-param 0.9" "--zipf --zipf-param 0.99" "--zipf --zipf-param 1.26"
-# }
+generate_pcaps_kvs() {
+    flows=100000 # Uses more flows than the other NFs to have more flows than cache capacity.
+    devs="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31"
+    parallel \
+        -j $(nproc) \
+        eval \
+        $SYNAPSE_DIR/build/bin/pcap-generator-kvs \
+        --out $PCAPS_DIR \
+        --packets $TOTAL_PACKETS \
+        --flows $flows \
+        --churn {1} \
+        --traffic {2} \
+        --devs $devs \
+        --seed 0 \
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+}
 
 generate_pcaps_echo
 generate_pcaps_fwd
 generate_pcaps_fw
 generate_pcaps_nat
-# generate_pcaps_kvs
+generate_pcaps_kvs

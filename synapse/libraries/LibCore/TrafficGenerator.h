@@ -8,7 +8,10 @@ namespace LibCore {
 
 class TrafficGenerator {
 public:
-  enum class Dev { WAN, LAN };
+  using device_t     = u16;
+  using flow_idx_t   = size_t;
+  using device_idx_t = size_t;
+
   enum class TrafficType { Uniform = 0, Zipf = 1 };
 
   static constexpr const char *const DEFAULT_OUTPUT_DIR   = ".";
@@ -28,17 +31,18 @@ public:
     u64 total_flows;
     bytes_t packet_size;
     bps_t rate;
-    u64 churn_fpm;
+    fpm_t churn;
     TrafficType traffic_type;
     double zipf_param;
-    std::vector<std::pair<u16, u16>> lan_wan_pairs;
+    std::vector<device_t> devices;
+    std::vector<device_t> client_devices;
     u32 random_seed;
     bool dry_run;
 
     config_t()
         : out_dir(DEFAULT_OUTPUT_DIR), total_packets(DEFAULT_TOTAL_PACKETS), total_flows(DEFAULT_TOTAL_FLOWS),
-          packet_size(DEFAULT_PACKET_SIZE), rate(DEFAULT_RATE), churn_fpm(DEFAULT_TOTAL_CHURN_FPM), traffic_type(DEFAULT_TRAFFIC_TYPE),
-          zipf_param(DEFAULT_ZIPF_PARAM), lan_wan_pairs(), random_seed(0), dry_run(false) {}
+          packet_size(DEFAULT_PACKET_SIZE), rate(DEFAULT_RATE), churn(DEFAULT_TOTAL_CHURN_FPM), traffic_type(DEFAULT_TRAFFIC_TYPE),
+          zipf_param(DEFAULT_ZIPF_PARAM), devices(), client_devices(), random_seed(0), dry_run(false) {}
 
     void print() const;
   };
@@ -53,15 +57,10 @@ public:
 protected:
   const std::string nf;
   const config_t config;
-  const std::unordered_map<u16, u16> lan_to_wan_dev;
-  const std::unordered_map<u16, u16> wan_to_lan_dev;
-  const std::vector<u16> lan_devices;
-  const std::vector<u16> wan_devices;
   const pkt_t template_packet;
 
-  std::unordered_map<u16, LibCore::PcapWriter> lan_warmup_writers;
-  std::unordered_map<u16, LibCore::PcapWriter> lan_writers;
-  std::unordered_map<u16, LibCore::PcapWriter> wan_writers;
+  std::unordered_map<device_t, LibCore::PcapWriter> warmup_writers;
+  std::unordered_map<device_t, LibCore::PcapWriter> writers;
 
   LibCore::RandomUniformEngine uniform_rand;
   LibCore::RandomZipfEngine zipf_rand;
@@ -69,11 +68,9 @@ protected:
   pcap_t *pd;
   pcap_dumper_t *pdumper;
 
-  u16 current_lan_dev_it;
+  device_idx_t client_dev_it;
 
-  using flow_idx_t = size_t;
-  std::unordered_map<flow_idx_t, Dev> flows_dev_turn;
-  std::unordered_map<flow_idx_t, u16> flows_to_lan_dev;
+  std::unordered_map<flow_idx_t, device_t> flows_to_dev;
   std::unordered_map<flow_idx_t, u64> counters;
   u64 flows_swapped;
 
@@ -98,14 +95,18 @@ protected:
 
     ss << nf;
     ss << "-f" << config.total_flows;
-    ss << "-c" << config.churn_fpm;
+    ss << "-c" << config.churn;
     switch (config.traffic_type) {
-    case TrafficType::Uniform:
+    case TrafficType::Uniform: {
       ss << "-unif";
-      break;
-    case TrafficType::Zipf:
-      ss << "-zipf" << config.zipf_param;
-      break;
+    } break;
+    case TrafficType::Zipf: {
+      std::string s = std::to_string(config.zipf_param);
+      s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+      s.erase(s.find_last_not_of('.') + 1, std::string::npos);
+      std::replace(s.begin(), s.end(), '.', '_');
+      ss << "-zipf" << s;
+    } break;
     }
 
     return ss.str();
@@ -127,50 +128,17 @@ protected:
     return config.out_dir / ss.str();
   }
 
-  static std::unordered_map<u16, u16> build_lan_to_wan(const std::vector<std::pair<u16, u16>> &lan_wan_pairs) {
-    std::unordered_map<u16, u16> lan_to_wan_dev;
-    for (const auto &[lan, wan] : lan_wan_pairs) {
-      lan_to_wan_dev[lan] = wan;
-    }
-    return lan_to_wan_dev;
-  }
-
-  static std::unordered_map<u16, u16> build_wan_to_lan(const std::vector<std::pair<u16, u16>> &lan_wan_pairs) {
-    std::unordered_map<u16, u16> wan_to_lan_dev;
-    for (const auto &[lan, wan] : lan_wan_pairs) {
-      wan_to_lan_dev[wan] = lan;
-    }
-    return wan_to_lan_dev;
-  }
-
-  static std::vector<u16> build_lan_devices(const std::vector<std::pair<u16, u16>> &lan_wan_pairs) {
-    std::vector<u16> lan_devices;
-    for (const auto &[lan, _] : lan_wan_pairs) {
-      lan_devices.push_back(lan);
-    }
-    return lan_devices;
-  }
-
-  static std::vector<u16> build_wan_devices(const std::vector<std::pair<u16, u16>> &lan_wan_pairs) {
-    std::vector<u16> wan_devices;
-    for (const auto &[_, wan] : lan_wan_pairs) {
-      wan_devices.push_back(wan);
-    }
-    return wan_devices;
-  }
-
   static in_addr_t mask_addr_from_dev(in_addr_t addr, u16 dev) { return LibCore::ipv4_set_prefix(addr, dev, 6); }
 
-  void advance_lan_dev() { current_lan_dev_it = (current_lan_dev_it + 1) % lan_devices.size(); }
-  void reset_lan_dev() { current_lan_dev_it = 0; }
-  u16 get_current_lan_dev() const { return lan_devices.at(current_lan_dev_it); }
+  void advance_client_dev() { client_dev_it = (client_dev_it + 1) % config.client_devices.size(); }
+  void reset_client_dev() { client_dev_it = 0; }
+  device_t get_current_client_dev() const { return config.client_devices.at(client_dev_it); }
 
   void report() const;
 
-  virtual void random_swap_flow(flow_idx_t flow_idx)                    = 0;
-  virtual pkt_t build_lan_packet(u16 lan_dev, flow_idx_t flow_idx)      = 0;
-  virtual pkt_t build_wan_packet(u16 wan_dev, flow_idx_t flow_idx)      = 0;
-  virtual bool expects_response(u16 lan_dev, flow_idx_t flow_idx) const = 0;
+  virtual void random_swap_flow(flow_idx_t flow_idx)                                        = 0;
+  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx)                             = 0;
+  virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const = 0;
 
   void tick() {
     // To obtain the time in seconds:

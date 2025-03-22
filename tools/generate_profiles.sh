@@ -22,12 +22,21 @@ SYNAPSE_DIR=$PROJECT_DIR/synapse
 # Everything will be done inside the synthesized directory
 cd $SYNTHESIZED_DIR
 
+export TOOLS_DIR
+export SYNTHESIZED_DIR
+export PCAPS_DIR
+export PROFILES_DIR
+export BDDS_DIR
+export SYNAPSE_DIR
+
 log_and_run() {
     echo
     echo "[*] Running cmd: $@"
     echo
     eval $@
 }
+
+export -f log_and_run
 
 gen_and_build_profiler() {
     nf=$1
@@ -43,13 +52,20 @@ gen_and_build_profiler() {
 profile_echo() {
     flows=$1
     churn=$2
-    distribution=$3
-    zipf_param=$4
+    zipf_param=$3
+
+    distribution="unif"
+    if [ "$zipf_param" != "0" ]; then
+        distribution="zipf"
+    fi
 
     pcap="echo-f$flows-c$churn-$distribution"
     if [ "$distribution" == "zipf" ]; then
-        pcap="$pcap$zipf_param"
+        s=$(python -c "print(str(int($zipf_param) if int($zipf_param) == $zipf_param else $zipf_param).replace('.','_'))")
+        pcap="$pcap${s}"
     fi
+
+    echo "Generating profile for $pcap"
 
     report=$pcap
 
@@ -92,16 +108,25 @@ profile_echo() {
         --out $PROFILES_DIR/$report.dot
 }
 
+export -f profile_echo
+
 profile_fwd() {
     flows=$1
     churn=$2
-    distribution=$3
-    zipf_param=$4
+    zipf_param=$3
+
+    distribution="unif"
+    if [ "$zipf_param" != "0" ]; then
+        distribution="zipf"
+    fi
 
     pcap="fwd-f$flows-c$churn-$distribution"
     if [ "$distribution" == "zipf" ]; then
-        pcap="$pcap$zipf_param"
+        s=$(python -c "print(str(int($zipf_param) if int($zipf_param) == $zipf_param else $zipf_param).replace('.','_'))")
+        pcap="$pcap${s}"
     fi
+
+    echo "Generating profile for $pcap"
 
     report=$pcap
 
@@ -144,16 +169,25 @@ profile_fwd() {
         --out $PROFILES_DIR/$report.dot
 }
 
+export -f profile_fwd
+
 profile_fw() {
     flows=$1
     churn=$2
-    distribution=$3
-    zipf_param=$4
+    zipf_param=$3
+
+    distribution="unif"
+    if [ "$zipf_param" != "0" ]; then
+        distribution="zipf"
+    fi
 
     pcap="fw-f$flows-c$churn-$distribution"
     if [ "$distribution" == "zipf" ]; then
-        pcap="$pcap$zipf_param"
+        s=$(python -c "print(str(int($zipf_param) if int($zipf_param) == $zipf_param else $zipf_param).replace('.','_'))")
+        pcap="$pcap${s}"
     fi
+
+    echo "Generating profile for $pcap"
 
     report=$pcap
 
@@ -211,16 +245,25 @@ profile_fw() {
         --out $PROFILES_DIR/$report.dot
 }
 
+export -f profile_fw
+
 profile_nat() {
     flows=$1
     churn=$2
-    distribution=$3
-    zipf_param=$4
+    zipf_param=$3
+
+    distribution="unif"
+    if [ "$zipf_param" != "0" ]; then
+        distribution="zipf"
+    fi
 
     pcap="nat-f$flows-c$churn-$distribution"
     if [ "$distribution" == "zipf" ]; then
-        pcap="$pcap$zipf_param"
+        s=$(python -c "print(str(int($zipf_param) if int($zipf_param) == $zipf_param else $zipf_param).replace('.','_'))")
+        pcap="$pcap${s}"
     fi
+
+    echo "Generating profile for $pcap"
 
     report=$pcap
 
@@ -278,25 +321,90 @@ profile_nat() {
         --out $PROFILES_DIR/$report.dot
 }
 
-profile_kvs() {
-    keys=$1
-    churn=$2
-    distribution=$3
-    zipf_param=$4
+export -f profile_nat
 
-    pcap="kvs-k$keys-c$churn-$distribution"
-    if [ "$distribution" == "zipf" ]; then
-        pcap="$pcap$zipf_param"
+profile_kvs() {
+    flows=$1
+    churn=$2
+    zipf_param=$3
+
+    distribution="unif"
+    if [ "$zipf_param" != "0" ]; then
+        distribution="zipf"
     fi
 
-    warmup_pcap=$pcap-warmup
-    pcap_dev_0=$pcap
+    pcap="kvs-f$flows-c$churn-$distribution"
+    if [ "$distribution" == "zipf" ]; then
+        s=$(python -c "print(str(int($zipf_param) if int($zipf_param) == $zipf_param else $zipf_param).replace('.','_'))")
+        pcap="$pcap${s}"
+    fi
+
+    echo "Generating profile for $pcap"
+
     report=$pcap
-    
+
     log_and_run $SYNTHESIZED_DIR/build/kvs-profiler \
         $PROFILES_DIR/$report.json \
-        --warmup 0:$PCAPS_DIR/$warmup_pcap.pcap \
-        0:$PCAPS_DIR/$pcap_dev_0.pcap
+        --warmup 2:$PCAPS_DIR/$pcap-dev2-warmup.pcap \
+        --warmup 3:$PCAPS_DIR/$pcap-dev3-warmup.pcap \
+        --warmup 4:$PCAPS_DIR/$pcap-dev4-warmup.pcap \
+        --warmup 5:$PCAPS_DIR/$pcap-dev5-warmup.pcap \
+        --warmup 6:$PCAPS_DIR/$pcap-dev6-warmup.pcap \
+        --warmup 7:$PCAPS_DIR/$pcap-dev7-warmup.pcap \
+        --warmup 8:$PCAPS_DIR/$pcap-dev8-warmup.pcap \
+        --warmup 9:$PCAPS_DIR/$pcap-dev9-warmup.pcap \
+        --warmup 10:$PCAPS_DIR/$pcap-dev10-warmup.pcap \
+        --warmup 11:$PCAPS_DIR/$pcap-dev11-warmup.pcap \
+        --warmup 12:$PCAPS_DIR/$pcap-dev12-warmup.pcap \
+        --warmup 13:$PCAPS_DIR/$pcap-dev13-warmup.pcap \
+        --warmup 14:$PCAPS_DIR/$pcap-dev14-warmup.pcap \
+        --warmup 15:$PCAPS_DIR/$pcap-dev15-warmup.pcap \
+        --warmup 16:$PCAPS_DIR/$pcap-dev16-warmup.pcap \
+        --warmup 17:$PCAPS_DIR/$pcap-dev17-warmup.pcap \
+        --warmup 18:$PCAPS_DIR/$pcap-dev18-warmup.pcap \
+        --warmup 19:$PCAPS_DIR/$pcap-dev19-warmup.pcap \
+        --warmup 20:$PCAPS_DIR/$pcap-dev20-warmup.pcap \
+        --warmup 21:$PCAPS_DIR/$pcap-dev21-warmup.pcap \
+        --warmup 22:$PCAPS_DIR/$pcap-dev22-warmup.pcap \
+        --warmup 23:$PCAPS_DIR/$pcap-dev23-warmup.pcap \
+        --warmup 24:$PCAPS_DIR/$pcap-dev24-warmup.pcap \
+        --warmup 25:$PCAPS_DIR/$pcap-dev25-warmup.pcap \
+        --warmup 26:$PCAPS_DIR/$pcap-dev26-warmup.pcap \
+        --warmup 27:$PCAPS_DIR/$pcap-dev27-warmup.pcap \
+        --warmup 28:$PCAPS_DIR/$pcap-dev28-warmup.pcap \
+        --warmup 29:$PCAPS_DIR/$pcap-dev29-warmup.pcap \
+        --warmup 30:$PCAPS_DIR/$pcap-dev30-warmup.pcap \
+        --warmup 31:$PCAPS_DIR/$pcap-dev31-warmup.pcap \
+        2:$PCAPS_DIR/$pcap-dev2.pcap \
+        3:$PCAPS_DIR/$pcap-dev3.pcap \
+        4:$PCAPS_DIR/$pcap-dev4.pcap \
+        5:$PCAPS_DIR/$pcap-dev5.pcap \
+        6:$PCAPS_DIR/$pcap-dev6.pcap \
+        7:$PCAPS_DIR/$pcap-dev7.pcap \
+        8:$PCAPS_DIR/$pcap-dev8.pcap \
+        9:$PCAPS_DIR/$pcap-dev9.pcap \
+        10:$PCAPS_DIR/$pcap-dev10.pcap \
+        11:$PCAPS_DIR/$pcap-dev11.pcap \
+        12:$PCAPS_DIR/$pcap-dev12.pcap \
+        13:$PCAPS_DIR/$pcap-dev13.pcap \
+        14:$PCAPS_DIR/$pcap-dev14.pcap \
+        15:$PCAPS_DIR/$pcap-dev15.pcap \
+        16:$PCAPS_DIR/$pcap-dev16.pcap \
+        17:$PCAPS_DIR/$pcap-dev17.pcap \
+        18:$PCAPS_DIR/$pcap-dev18.pcap \
+        19:$PCAPS_DIR/$pcap-dev19.pcap \
+        20:$PCAPS_DIR/$pcap-dev20.pcap \
+        21:$PCAPS_DIR/$pcap-dev21.pcap \
+        22:$PCAPS_DIR/$pcap-dev22.pcap \
+        23:$PCAPS_DIR/$pcap-dev23.pcap \
+        24:$PCAPS_DIR/$pcap-dev24.pcap \
+        25:$PCAPS_DIR/$pcap-dev25.pcap \
+        26:$PCAPS_DIR/$pcap-dev26.pcap \
+        27:$PCAPS_DIR/$pcap-dev27.pcap \
+        28:$PCAPS_DIR/$pcap-dev28.pcap \
+        29:$PCAPS_DIR/$pcap-dev29.pcap \
+        30:$PCAPS_DIR/$pcap-dev30.pcap \
+        31:$PCAPS_DIR/$pcap-dev31.pcap
     
     log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
         --in $BDDS_DIR/kvs.bdd \
@@ -304,56 +412,66 @@ profile_kvs() {
         --out $PROFILES_DIR/$report.dot
 }
 
+export -f profile_kvs
+
 generate_profiles_echo() {
     gen_and_build_profiler echo
-    profile_echo 10000 0 unif 0
+
+    flows=10000
+
+    parallel \
+        -j $(nproc) \
+        profile_echo $flows \
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
 }
 
 generate_profiles_fwd() {
     gen_and_build_profiler fwd
-    profile_fwd 10000 0 unif 0
+
+    flows=10000
+    
+    parallel \
+        -j $(nproc) \
+        profile_fwd $flows \
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
 }
 
 generate_profiles_fw() {
     gen_and_build_profiler fw
 
-    profile_fw 10000 0 unif 0
-    profile_fw 10000 0 zipf 0.9
-    profile_fw 10000 0 zipf 0.99
-    profile_fw 10000 0 zipf 1.26
+    flows=10000
 
-    profile_fw 10000 1000000 unif 0
-    profile_fw 10000 1000000 zipf 0.9
-    profile_fw 10000 1000000 zipf 0.99
-    profile_fw 10000 1000000 zipf 1.26
+    parallel \
+        -j $(nproc) \
+        profile_fw $flows \
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
 }
 
 generate_profiles_nat() {
     gen_and_build_profiler nat
 
-    profile_nat 10000 0 unif 0
-    profile_nat 10000 0 zipf 0.9
-    profile_nat 10000 0 zipf 0.99
-    profile_nat 10000 0 zipf 1.26
+    flows=10000
 
-    profile_nat 10000 1000000 unif 0
-    profile_nat 10000 1000000 zipf 0.9
-    profile_nat 10000 1000000 zipf 0.99
-    profile_nat 10000 1000000 zipf 1.26
+    parallel \
+        -j $(nproc) \
+        profile_nat $flows \
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
 }
 
 generate_profiles_kvs() {
     gen_and_build_profiler kvs
 
-    profile_kvs 100000 0 unif 0
-    profile_kvs 100000 0 zipf 0.9
-    profile_kvs 100000 0 zipf 0.99
-    profile_kvs 100000 0 zipf 1.26
+    flows=100000
 
-    profile_kvs 100000 1000000 unif 0
-    profile_kvs 100000 1000000 zipf 0.9
-    profile_kvs 100000 1000000 zipf 0.99
-    profile_kvs 100000 1000000 zipf 1.26
+    parallel \
+        -j $(nproc) \
+        profile_kvs $flows \
+        ::: 0 10000 100000 1000000 10000000 \
+        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
 }
 
 generate_profiles_pol() {
@@ -362,7 +480,7 @@ generate_profiles_pol() {
 
 # generate_profiles_echo
 # generate_profiles_fwd
-generate_profiles_fw
+# generate_profiles_fw
 # generate_profiles_nat
-# generate_profiles_kvs
+generate_profiles_kvs
 # generate_profiles_pol

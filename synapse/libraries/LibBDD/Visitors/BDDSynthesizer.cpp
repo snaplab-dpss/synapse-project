@@ -1982,11 +1982,34 @@ bool BDDSynthesizer::stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> ex
         if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
           out_var = build_var(v.name + "_slice", var_slice);
 
-          coder.indent();
-          coder << transpiler.type_from_expr(out_var.expr) << " " << out_var.name;
-          coder << " = ";
-          coder << slice_var(v, offset, expr_bits);
-          coder << ";\n";
+          if (expr_bits <= 64) {
+            coder.indent();
+            coder << transpiler.type_from_expr(out_var.expr) << " " << out_var.name;
+            coder << " = ";
+            coder << slice_var(v, offset, expr_bits);
+            coder << ";\n";
+          } else {
+            coder.indent();
+            coder << "uint8_t " << out_var.name << "[" << expr_bits / 8 << "];\n";
+
+            if (!v.addr.isNull()) {
+              coder.indent();
+              coder << "memcpy(";
+              coder << "(void*)" << out_var.name << ", ";
+              coder << "(void*)" << slice_var(v, offset, expr_bits);
+              coder << ", ";
+              coder << expr_bits / 8;
+              coder << ");\n";
+            } else {
+              for (bytes_t b = 0; b < expr_bits / 8; b++) {
+                klee::ref<klee::Expr> byte = LibCore::solver_toolbox.exprBuilder->Extract(v.expr, offset + b * 8, 8);
+                coder.indent();
+                coder << out_var.name << "[" << b << "] = ";
+                coder << transpiler.transpile(byte);
+                coder << ";\n";
+              }
+            }
+          }
 
           stack_add(out_var);
           return true;
@@ -2053,9 +2076,8 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
 
   var_t stack_value;
   if (stack_find_or_create_tmp_slice_var(value, coder, stack_value)) {
-    if (stack_value.addr.isNull()) {
-      bits_t width = stack_value.expr->getWidth();
-      assert(width <= klee::Expr::Int64 && "Invalid width");
+    const bits_t width = stack_value.expr->getWidth();
+    if (width <= 64) {
       coder.indent();
       coder << "*(" << Transpiler::type_from_size(width) << "*)";
       coder << var.name;

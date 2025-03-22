@@ -15,9 +15,9 @@ private:
   // This is the product of the bind expression below.
   using Generator = std::_Bind<std::uniform_int_distribution<i32>(std::mt19937)>;
 
-  u32 rand_seed;
-  std::mt19937 gen;
-  std::uniform_int_distribution<i32> random_dist;
+  const u32 rand_seed;
+  const std::mt19937 gen;
+  const std::uniform_int_distribution<i32> random_dist;
   Generator generator;
 
 public:
@@ -52,11 +52,11 @@ class RandomRealEngine {
 private:
   // What a mouth full...
   // This is the product of the bind expression below.
-  typedef std::_Bind<std::uniform_real_distribution<>(std::mt19937)> Generator;
+  using Generator = std::_Bind<std::uniform_real_distribution<>(std::mt19937)>;
 
-  unsigned rand_seed;
-  std::mt19937 gen;
-  std::uniform_real_distribution<> random_dist;
+  const u32 rand_seed;
+  const std::mt19937 gen;
+  const std::uniform_real_distribution<> random_dist;
   Generator generator;
 
 public:
@@ -77,12 +77,12 @@ public:
 class RandomZipfEngine {
 private:
   RandomRealEngine rand;
-  double zipf_param;
-  u64 range;
+  const double zipf_param;
+  const u64 range;
 
 public:
   RandomZipfEngine(unsigned _random_seed, double _zipf_param, u64 _range)
-      : rand(_random_seed, 0, 1), zipf_param(_zipf_param), range(_range) {}
+      : rand(_random_seed, 0, 1), zipf_param(fix_zipf_param(_zipf_param)), range(_range) {}
 
   RandomZipfEngine(const RandomZipfEngine &)            = default;
   RandomZipfEngine(RandomZipfEngine &&)                 = default;
@@ -92,34 +92,43 @@ public:
   // Source:
   // https://github.com/nal-epfl/castan/blob/master/scripts/pcap_tools/create_zipfian_distribution_pcap.py
   u64 generate() {
-    double probability = rand.generate();
+    const double probability = rand.generate();
     assert(probability >= 0 && probability <= 1 && "Invalid probability");
 
-    double p         = probability;
-    u64 N            = range + 1;
-    double s         = zipf_param;
-    double tolerance = 0.01;
-    double x         = (double)N / 2.0;
+    const double p         = probability;
+    const u64 N            = range + 1;
+    const double s         = zipf_param;
+    const double tolerance = 0.01;
+    double x               = (double)N / 2.0;
 
-    double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
+    const double D = p * (12.0 * (pow(N, 1.0 - s) - 1) / (1.0 - s) + 6.0 - 6.0 * pow(N, -s) + s - pow(N, -1.0 - s) * s);
 
     while (true) {
-      double m    = pow(x, -2 - s);
-      double mx   = m * x;
-      double mxx  = mx * x;
-      double mxxx = mxx * x;
+      const double m    = pow(x, -2 - s);
+      const double mx   = m * x;
+      const double mxx  = mx * x;
+      const double mxxx = mxx * x;
 
-      double a    = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) + (s - (mx * s)) - D;
-      double b    = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
-      double newx = std::max(1.0, x - a / b);
+      const double a    = 12.0 * (mxxx - 1) / (1.0 - s) + 6.0 * (1.0 - mxx) + (s - (mx * s)) - D;
+      const double b    = 12.0 * mxx + 6.0 * (s * mx) + (m * s * (s + 1.0));
+      const double newx = std::max(1.0, x - a / b);
 
       if (std::abs(newx - x) <= tolerance) {
-        u64 i = newx - 1;
+        const u64 i = newx - 1;
         assert(i < range && "Invalid index");
         return i;
       }
 
       x = newx;
+    }
+  }
+
+private:
+  static double fix_zipf_param(double zipf_param) {
+    if (zipf_param != 0 && zipf_param != 1) {
+      return zipf_param;
+    } else {
+      return zipf_param + EPSILON;
     }
   }
 };
