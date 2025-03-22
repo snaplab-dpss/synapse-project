@@ -178,6 +178,10 @@ bool SymbolManager::manages(klee::ref<klee::Expr> expr) const {
 }
 
 klee::ref<klee::Expr> SymbolManager::translate(klee::ref<klee::Expr> expr, std::unordered_map<std::string, std::string> translations) {
+  if (expr.isNull()) {
+    return expr;
+  }
+
   SymbolRenamer renamer(this, translations);
   return renamer.rename(expr);
 }

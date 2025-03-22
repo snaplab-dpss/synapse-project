@@ -291,21 +291,42 @@ Node *Node::get_mutable_node_by_id(node_id_t node_id) {
 void Node::recursive_translate_symbol(LibCore::SymbolManager *symbol_manager, const LibCore::symbol_t &old_symbol,
                                       const LibCore::symbol_t &new_symbol) {
   visit_mutable_nodes([symbol_manager, old_symbol, new_symbol](Node *node) -> NodeVisitAction {
-    if (node->get_type() != NodeType::Call)
-      return NodeVisitAction::Continue;
+    switch (node->get_type()) {
+    case NodeType::Branch: {
+      Branch *branch_node                 = dynamic_cast<Branch *>(node);
+      klee::ref<klee::Expr> condition     = branch_node->get_condition();
+      klee::ref<klee::Expr> new_condition = symbol_manager->translate(condition, {{old_symbol.name, new_symbol.name}});
+      branch_node->set_condition(new_condition);
+    } break;
+    case NodeType::Call: {
+      Call *call_node = dynamic_cast<Call *>(node);
 
-    Call *call_node = dynamic_cast<Call *>(node);
+      const call_t &call = call_node->get_call();
+      call_t new_call    = rename_call_symbols(symbol_manager, call, {{old_symbol.name, new_symbol.name}});
+      call_node->set_call(new_call);
 
-    const call_t &call = call_node->get_call();
-    call_t new_call    = rename_call_symbols(symbol_manager, call, {{old_symbol.name, new_symbol.name}});
-    call_node->set_call(new_call);
-
-    LibCore::Symbols generated_symbols = call_node->get_local_symbols();
-    if (generated_symbols.has(old_symbol.name)) {
-      generated_symbols.remove(old_symbol.name);
-      generated_symbols.add(new_symbol);
-      call_node->set_locally_generated_symbols(generated_symbols);
+      LibCore::Symbols generated_symbols = call_node->get_local_symbols();
+      if (generated_symbols.has(old_symbol.name)) {
+        generated_symbols.remove(old_symbol.name);
+        generated_symbols.add(new_symbol);
+        call_node->set_local_symbols(generated_symbols);
+      }
+    } break;
+    case NodeType::Route: {
+      Route *route_node                    = dynamic_cast<Route *>(node);
+      klee::ref<klee::Expr> dst_device     = route_node->get_dst_device();
+      klee::ref<klee::Expr> new_dst_device = symbol_manager->translate(dst_device, {{old_symbol.name, new_symbol.name}});
+      route_node->set_dst_device(new_dst_device);
+    } break;
     }
+
+    const klee::ConstraintManager &old_constraints = node->get_constraints();
+    klee::ConstraintManager new_constraints;
+    for (klee::ref<klee::Expr> constraint : old_constraints) {
+      klee::ref<klee::Expr> new_constraint = symbol_manager->translate(constraint, {{old_symbol.name, new_symbol.name}});
+      new_constraints.addConstraint(new_constraint);
+    }
+    node->set_constraints(new_constraints);
 
     return NodeVisitAction::Continue;
   });

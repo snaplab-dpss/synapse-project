@@ -33,12 +33,28 @@ struct anchor_info_t {
   bool direction; // When the anchor is a branch, this field indicates the
                   // direction of the branch (true or false). The reordering
                   // operation will respect this direction.
+
+  std::string to_string() const {
+    std::stringstream ss;
+    ss << "anchor{id=" << id << ",direction=" << direction << "}";
+    return ss.str();
+  }
 };
 
 struct reorder_op_t {
   anchor_info_t anchor_info;
   node_id_t evicted_id;
   candidate_info_t candidate_info;
+
+  std::string to_string() const {
+    std::stringstream ss;
+    ss << "reorder{";
+    ss << anchor_info.to_string();
+    ss << ",evicted=" << evicted_id;
+    ss << ",candidate=" << candidate_info.id;
+    ss << "}";
+    return ss.str();
+  }
 };
 
 struct reordered_bdd_t {

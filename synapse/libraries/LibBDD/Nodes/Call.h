@@ -30,7 +30,7 @@ public:
   const LibCore::Symbols &get_local_symbols() const;
   bool has_local_symbol(const std::string &base) const;
 
-  void set_locally_generated_symbols(const LibCore::Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
+  void set_local_symbols(const LibCore::Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
 
   Node *clone(NodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;

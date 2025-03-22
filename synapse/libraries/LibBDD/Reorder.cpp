@@ -954,11 +954,11 @@ void translate_symbols(BDD *bdd, Node *candidate) {
   if (candidate->get_type() != NodeType::Call)
     return;
 
-  Call *candidate_call                      = dynamic_cast<Call *>(candidate);
+  const Call *candidate_call                = dynamic_cast<Call *>(candidate);
   const LibCore::Symbols &candidate_symbols = candidate_call->get_local_symbols();
 
   for (const LibCore::symbol_t &candidate_symbol : candidate_symbols.get()) {
-    LibCore::symbol_t new_symbol = get_collision_free_symbol(candidate_symbol, bdd->get_mutable_symbol_manager());
+    const LibCore::symbol_t new_symbol = get_collision_free_symbol(candidate_symbol, bdd->get_mutable_symbol_manager());
     candidate->recursive_translate_symbol(bdd->get_mutable_symbol_manager(), candidate_symbol, new_symbol);
   }
 }
@@ -1251,6 +1251,16 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op) {
 
   pull_candidate(bdd.get(), anchor, candidate, siblings);
 
+  const BDD::inspection_report_t inspection_report = bdd->inspect();
+  if (inspection_report.status != LibBDD::BDD::InspectionStatus::Ok) {
+    const std::string old_bdd_filename = "bdd_reorder_bug_old_bdd.bdd";
+    const std::string new_bdd_filename = "bdd_reorder_bug_new_bdd.bdd";
+    original_bdd->serialize(old_bdd_filename);
+    bdd->serialize(new_bdd_filename);
+    panic("BDD reorder bug: %s (%s).\nDumping \"%s\" and \"%s\" for analysis.", inspection_report.message.c_str(), op.to_string().c_str(),
+          old_bdd_filename.c_str(), new_bdd_filename.c_str());
+  }
+
   return bdd;
 }
 
@@ -1297,7 +1307,6 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, const anchor_info_t &anchor
   std::vector<reordered_bdd_t> bdds;
 
   std::vector<reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, allow_shape_altering_ops);
-
   for (const reorder_op_t &op : ops) {
     bdds.push_back({reorder(bdd, op), op, {}});
   }

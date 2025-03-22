@@ -57,6 +57,7 @@ public:
   node_id_t get_id() const { return id; }
 
   const klee::ConstraintManager &get_constraints() const { return constraints; }
+  void set_constraints(const klee::ConstraintManager &_constraints) { constraints = _constraints; }
   std::vector<klee::ref<klee::Expr>> get_ordered_branch_constraints() const;
 
   Node *get_mutable_next() { return next; }

@@ -28,6 +28,8 @@ public:
   RouteOp get_operation() const { return operation; }
   klee::ref<klee::Expr> get_dst_device() const { return dst_device; }
 
+  void set_dst_device(klee::ref<klee::Expr> _dst_device) { dst_device = _dst_device; }
+
   virtual Node *clone(NodeManager &manager, bool recursive = false) const override;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;
 };
