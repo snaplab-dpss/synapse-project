@@ -4,6 +4,7 @@
 #include <LibCore/Graphviz.h>
 
 #include <vector>
+#include <filesystem>
 
 namespace LibSynapse {
 
@@ -12,6 +13,7 @@ public:
   EPViz();
 
   static void visualize(const EP *ep, bool interrupt);
+  static void dump_to_file(const EP *ep, const std::filesystem::path &file_name);
 
   void visit(const EP *ep) override;
   void visit(const EP *ep, const EPNode *ep_node) override;

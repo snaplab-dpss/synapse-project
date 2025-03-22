@@ -115,6 +115,14 @@ void EPViz::visualize(const EP *ep, bool interrupt) {
   visualizer.show(interrupt);
 }
 
+void EPViz::dump_to_file(const EP *ep, const std::filesystem::path &file_name) {
+  assert(ep && "Invalid EP");
+  EPViz visualizer;
+  visualizer.fpath = file_name;
+  visualizer.visit(ep);
+  visualizer.write();
+}
+
 void EPViz::visit(const EP *ep) {
   assert(ep && "Invalid EP");
   ss << "digraph EP {\n";

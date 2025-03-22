@@ -178,21 +178,23 @@ control Ingress(
       // BDD node 65:vector_borrow(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074082720)[ -> (w64 1074027216)])
       vector_table_1074013320_65_key_0 = meta.dev;
       vector_table_1074013320_65.apply();
-      // EP node  13
-      // BDD node 66:vector_return(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074027216)[(ReadLSB w16 (w32 0) vector_data_128)])
-      // EP node  30
+      // EP node  15
       // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
       if ((16w0xffff) != (vector_table_1074013320_65_get_value_param_0)) {
-        // EP node  31
+        // EP node  16
         // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
-        // EP node  70
+        // EP node  44
+        // BDD node 66:vector_return(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074027216)[(ReadLSB w16 (w32 0) vector_data_128)])
+        // EP node  84
         // BDD node 68:FORWARD
         nf_dev[15:0] = vector_table_1074013320_65_get_value_param_0;
         trigger_forward = true;
       } else {
-        // EP node  32
+        // EP node  17
         // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
-        // EP node  112
+        // EP node  120
+        // BDD node 70:vector_return(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074027216)[(ReadLSB w16 (w32 0) vector_data_128)])
+        // EP node  174
         // BDD node 69:DROP
         drop();
       }

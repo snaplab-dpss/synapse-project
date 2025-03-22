@@ -262,4 +262,12 @@ void SSVisualizer::visualize(const SearchSpace *search_space, const EP *highligh
   visualizer.show(interrupt);
 }
 
+void SSVisualizer::dump_to_file(const SearchSpace *search_space, const std::filesystem::path &file_name) {
+  assert(search_space && "Search space is null");
+  SSVisualizer visualizer;
+  visualizer.fpath = file_name;
+  visualizer.visit(search_space);
+  visualizer.write();
+}
+
 } // namespace LibSynapse
