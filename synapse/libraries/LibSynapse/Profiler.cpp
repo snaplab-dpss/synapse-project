@@ -402,10 +402,20 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
     klee::ConstraintManager manager;
     manager.addConstraint(current->constraint);
 
-    bool always_true  = LibCore::solver_toolbox.is_expr_always_true(manager, cnstr);
-    bool always_false = LibCore::solver_toolbox.is_expr_always_false(manager, cnstr);
+    const bool always_true  = LibCore::solver_toolbox.is_expr_always_true(manager, cnstr);
+    const bool always_false = LibCore::solver_toolbox.is_expr_always_false(manager, cnstr);
 
-    assert((always_true || always_false) && "Invalid profiler node");
+    if (!always_true && !always_false) {
+      std::cerr << "\n";
+      std::cerr << "Constraints:\n";
+      for (const klee::ref<klee::Expr> &c : constraints) {
+        std::cerr << "  " << LibCore::pretty_print_expr(c, true) << "\n";
+      }
+      std::cerr << "Current constraints:\n";
+      std::cerr << "  " << LibCore::pretty_print_expr(current->constraint, true) << "\n";
+      debug();
+      panic("Could find profiler node (invalid constraints).");
+    }
 
     if (always_true) {
       current = current->on_true;
@@ -655,6 +665,32 @@ void Profiler::clone_tree_if_shared() {
   }
 
   root = std::shared_ptr<ProfilerNode>(root->clone(true));
+}
+
+void Profiler::translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
+  clone_tree_if_shared();
+
+  std::unordered_map<std::string, std::string> translations;
+  for (const auto &[old_symbol, new_symbol] : translated_symbols) {
+    translations[old_symbol.name] = new_symbol.name;
+  }
+
+  std::vector<ProfilerNode *> nodes{root.get()};
+
+  while (!nodes.empty()) {
+    ProfilerNode *node = nodes.back();
+    nodes.pop_back();
+
+    node->constraint = symbol_manager->translate(node->constraint, translations);
+
+    if (node->on_true) {
+      nodes.push_back(node->on_true);
+    }
+
+    if (node->on_false) {
+      nodes.push_back(node->on_false);
+    }
+  }
 }
 
 void Profiler::replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> constraint) {

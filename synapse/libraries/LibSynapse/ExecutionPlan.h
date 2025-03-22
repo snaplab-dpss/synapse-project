@@ -4,6 +4,7 @@
 #include <LibSynapse/Meta.h>
 #include <LibSynapse/Context.h>
 #include <LibBDD/BDD.h>
+#include <LibBDD/Reorder.h>
 #include <LibCore/Types.h>
 
 #include <unordered_map>
@@ -63,7 +64,8 @@ public:
   void process_leaf(const LibBDD::Node *next_node);
 
   void replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translator_t &next_nodes_translator = translator_t(),
-                   const translator_t &processed_nodes_translator = translator_t());
+                   const translator_t &processed_nodes_translator                     = translator_t(),
+                   const std::vector<LibBDD::translated_symbol_t> &translated_symbols = {});
 
   ep_id_t get_id() const;
   const LibBDD::BDD *get_bdd() const;

@@ -334,7 +334,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
 }
 
 void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translator_t &next_nodes_translator,
-                     const translator_t &processed_nodes_translator) {
+                     const translator_t &processed_nodes_translator, const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
   auto translate_next_node = [&next_nodes_translator](LibBDD::node_id_t id) {
     auto found_it = next_nodes_translator.find(id);
     return (found_it != next_nodes_translator.end()) ? found_it->second : id;
@@ -350,36 +350,36 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translator_t &n
 
     LibBDD::node_id_t new_id     = translate_next_node(leaf.next->get_id());
     const LibBDD::Node *new_node = new_bdd->get_node_by_id(new_id);
-    assert(new_node && "New node not found in the new LibBDD::BDD.");
+    assert(new_node && "New node not found in the new BDD.");
 
     leaf.next = new_node;
   }
 
-  if (!root) {
-    return;
+  if (root) {
+    root->visit_mutable_nodes([&new_bdd, translate_processed_node](EPNode *node) {
+      Module *module = node->get_mutable_module();
+
+      const LibBDD::Node *node_bdd = module->get_node();
+      LibBDD::node_id_t target_id  = translate_processed_node(node_bdd->get_id());
+
+      const LibBDD::Node *new_node = new_bdd->get_node_by_id(target_id);
+      assert(new_node && "Node not found in the new BDD");
+
+      module->set_node(new_node);
+
+      return EPNodeVisitAction::Continue;
+    });
   }
-
-  root->visit_mutable_nodes([&new_bdd, translate_processed_node](EPNode *node) {
-    Module *module = node->get_mutable_module();
-
-    const LibBDD::Node *node_bdd = module->get_node();
-    LibBDD::node_id_t target_id  = translate_processed_node(node_bdd->get_id());
-
-    const LibBDD::Node *new_node = new_bdd->get_node_by_id(target_id);
-    assert(new_node && "LibBDD::Node not found in the new LibBDD::BDD");
-
-    module->set_node(new_node);
-
-    return EPNodeVisitAction::Continue;
-  });
 
   meta.update_total_bdd_nodes(new_bdd.get());
 
-  // Replacing the LibBDD::BDD might change the hit rate estimations.
+  // Replacing the BDD might change the hit rate estimations.
   ctx.get_profiler().clear_cache();
 
-  // Reset the LibBDD::BDD only here, because we might lose the final reference to it
-  // and we needed the old nodes to find the new ones.
+  // Translating Profiler symbols.
+  ctx.get_mutable_profiler().translate(new_bdd->get_mutable_symbol_manager(), translated_symbols);
+
+  // Reset the BDD only here, because we might lose the final reference to it and we needed the old nodes to find the new ones.
   bdd = std::move(new_bdd);
 
   sort_leaves();

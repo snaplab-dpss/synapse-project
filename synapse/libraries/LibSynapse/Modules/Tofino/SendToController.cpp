@@ -1,5 +1,6 @@
 #include <LibSynapse/Modules/Tofino/SendToController.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibBDD/Visitors/BDDVisualizer.h>
 
 namespace LibSynapse {
 namespace Tofino {

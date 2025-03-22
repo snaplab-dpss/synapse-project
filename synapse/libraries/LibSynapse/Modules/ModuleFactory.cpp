@@ -2,6 +2,9 @@
 #include <LibSynapse/Target.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibBDD/Reorder.h>
+#include <LibBDD/Visitors/BDDVisualizer.h>
+#include <LibCore/Expr.h>
+#include <LibCore/Debug.h>
 
 namespace LibSynapse {
 
@@ -86,7 +89,7 @@ std::vector<EP *> get_reordered(const EP *ep) {
     build_node_translations(next_nodes_translator, processed_nodes_translator, bdd, new_bdd.op);
     assert(!new_bdd.op2.has_value() && "Not supported");
 
-    new_ep->replace_bdd(std::move(new_bdd.bdd), next_nodes_translator, processed_nodes_translator);
+    new_ep->replace_bdd(std::move(new_bdd.bdd), next_nodes_translator, processed_nodes_translator, new_bdd.translated_symbols);
     new_ep->assert_integrity();
 
     reordered.push_back(new_ep);

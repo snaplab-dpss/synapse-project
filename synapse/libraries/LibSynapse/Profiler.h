@@ -1,9 +1,10 @@
 #pragma once
 
-#include <LibCore/Types.h>
+#include <LibSynapse/EPNode.h>
 #include <LibBDD/BDD.h>
 #include <LibBDD/Profile.h>
-#include <LibSynapse/EPNode.h>
+#include <LibBDD/Reorder.h>
+#include <LibCore/Types.h>
 
 #include <optional>
 #include <vector>
@@ -99,6 +100,7 @@ public:
   // WARNING: this should be called before processing the leaf.
   void insert_relative(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr, hit_rate_t rel_hr_on_true);
 
+  void translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols);
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t factor);
