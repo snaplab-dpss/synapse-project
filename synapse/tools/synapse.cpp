@@ -178,9 +178,9 @@ int main(int argc, char **argv) {
   }
 
   if (!args.out_dir.empty()) {
-    LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
     LibSynapse::EPViz::dump_to_file(report.ep.get(), args.out_dir / (args.name + "-ep.dot"));
     LibSynapse::SSVisualizer::dump_to_file(report.search_space.get(), args.out_dir / (args.name + "-ss.dot"));
+    LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
   }
 
   return 0;

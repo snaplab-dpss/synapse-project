@@ -38,8 +38,8 @@ struct search_step_report_t {
 };
 
 void log_search_iteration(const search_step_report_t &report, const search_meta_t &search_meta) {
-  TargetType platform = report.chosen->get_active_target();
-  const EPMeta &meta  = report.chosen->get_meta();
+  const TargetType platform = report.chosen->get_active_target();
+  const EPMeta &meta        = report.chosen->get_meta();
 
   std::cerr << "\n";
   std::cerr << "==========================================================\n";
@@ -89,8 +89,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
 
   if (report.targets.size() == 0) {
     std::cerr << "\n";
-    std::cerr << "**DEAD END**: No module can handle this BDD node"
-                 " in the current context.\n";
+    std::cerr << "**DEAD END**: No module can handle this BDD node in the current context.\n";
     std::cerr << "Deleting solution from search space.\n";
   }
 

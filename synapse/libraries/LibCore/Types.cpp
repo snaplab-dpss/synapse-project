@@ -9,9 +9,9 @@ namespace LibCore {
 namespace {
 constexpr const char THOUSANDS_SEPARATOR = '\'';
 
-std::pair<hit_rate_t, std::string> n2hr(u64 n) {
+std::pair<u64, std::string> n2hr(u64 n) {
   if (n < 1e3) {
-    return {(hit_rate_t)n, ""};
+    return {n, ""};
   }
 
   if (n < 1e6) {
@@ -49,14 +49,14 @@ std::string tput2str(u64 thpt, std::string units, bool human_readable) {
   std::stringstream ss;
 
   if (human_readable) {
-    auto [n, m] = n2hr(thpt);
+    auto [n, multiplier] = n2hr(thpt);
 
     ss.setf(std::ios::fixed);
     ss.precision(2);
 
     ss << n;
     ss << " ";
-    ss << m;
+    ss << multiplier;
   } else {
     std::string str = std::to_string(thpt);
 

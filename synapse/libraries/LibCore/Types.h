@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <klee/Expr.h>
 
+#include <iomanip>
+
 using u64 = __UINT64_TYPE__;
 using u32 = __UINT32_TYPE__;
 using u16 = __UINT16_TYPE__;
@@ -46,9 +48,11 @@ struct hit_rate_t {
   double value;
 
   hit_rate_t() : value(0) {}
-  hit_rate_t(double value) : value(value) { clamp(); }
+  hit_rate_t(double numerator, double denominator) : hit_rate_t(denominator == 0 ? 0.0 : numerator / denominator) {}
   hit_rate_t(const hit_rate_t &other) : value(other.value) { clamp(); }
   hit_rate_t(hit_rate_t &&other) : value(std::move(other.value)) { clamp(); }
+
+  explicit hit_rate_t(double value) : value(value) { clamp(); }
 
   hit_rate_t &operator=(const hit_rate_t &other) {
     value = other.value;
@@ -62,48 +66,29 @@ struct hit_rate_t {
     return *this;
   }
 
-  pps_t operator*(const pps_t rate) const { return value * rate; }
-  pps_t operator/(const pps_t rate) const { return value / rate; }
-
   hit_rate_t operator+(const hit_rate_t other) const { return hit_rate_t(value + other.value); }
   hit_rate_t operator-(const hit_rate_t other) const { return hit_rate_t(value - other.value); }
   hit_rate_t operator*(const hit_rate_t other) const { return hit_rate_t(value * other.value); }
   hit_rate_t operator/(const hit_rate_t other) const { return hit_rate_t(value / other.value); }
 
-  hit_rate_t &operator+=(const hit_rate_t &other) {
-    value += other.value;
-    clamp();
-    return *this;
-  }
+  hit_rate_t operator+(const double n) const { return hit_rate_t(value + n); }
+  hit_rate_t operator-(const double n) const { return hit_rate_t(value - n); }
+  hit_rate_t operator*(const double n) const { return hit_rate_t(value * n); }
+  hit_rate_t operator/(const double n) const { return hit_rate_t(value / n); }
 
-  hit_rate_t &operator-=(const hit_rate_t &other) {
-    value -= other.value;
-    clamp();
-    return *this;
-  }
-
-  hit_rate_t &operator*=(const hit_rate_t &other) {
-    value *= other.value;
-    clamp();
-    return *this;
-  }
-
-  hit_rate_t &operator/=(const hit_rate_t &other) {
-    value /= other.value;
-    clamp();
-    return *this;
-  }
-
-  bool operator==(const hit_rate_t &other) const {
-    const double diff = std::abs(value - other.value);
-    return diff <= EPSILON;
-  }
-
-  bool operator!=(const hit_rate_t &other) const { return !(*this != other); }
+  bool operator==(const hit_rate_t &other) const { return std::abs(value - other.value) <= EPSILON; }
+  bool operator!=(const hit_rate_t &other) const { return !(*this == other); }
   bool operator<(const hit_rate_t &other) const { return value < other.value; }
   bool operator>(const hit_rate_t &other) const { return !((*this < other) || (*this == other)); }
   bool operator<=(const hit_rate_t &other) const { return (*this < other) || (*this == other); }
   bool operator>=(const hit_rate_t &other) const { return !(*this < other); }
+
+  bool operator==(const double n) const { return std::abs(value - n) <= EPSILON; }
+  bool operator!=(const double n) const { return !(*this == n); }
+  bool operator<(const double n) const { return value < n; }
+  bool operator>(const double n) const { return !((*this < n) || (*this == n)); }
+  bool operator<=(const double n) const { return (*this < n) || (*this == n); }
+  bool operator>=(const double n) const { return !(*this < n); }
 
   hit_rate_t pow(const double exp) const { return hit_rate_t(std::pow(value, exp)); }
   hit_rate_t pow(const int exp) const { return hit_rate_t(std::pow(value, exp)); }
@@ -117,15 +102,18 @@ struct hit_rate_t {
   }
 };
 
-inline hit_rate_t operator+(const double value, const hit_rate_t hr) { return hr + hit_rate_t(value); }
-inline hit_rate_t operator-(const double value, const hit_rate_t hr) { return hr - hit_rate_t(value); }
-inline hit_rate_t operator*(const double value, const hit_rate_t hr) { return hr * hit_rate_t(value); }
-inline hit_rate_t operator/(const double value, const hit_rate_t hr) { return hr / hit_rate_t(value); }
+inline hit_rate_t operator"" _hr(long double n) { return hit_rate_t(n); }
+inline hit_rate_t operator"" _hr(unsigned long long n) { return hit_rate_t(static_cast<double>(n)); }
 
-inline pps_t operator*(const pps_t value, const hit_rate_t hr) { return hr.value * value; }
-inline pps_t operator/(const pps_t value, const hit_rate_t hr) { return hr.value / value; }
+inline hit_rate_t operator+(const double n, const hit_rate_t hr) { return hit_rate_t(n + hr.value); }
+inline hit_rate_t operator-(const double n, const hit_rate_t hr) { return hit_rate_t(n - hr.value); }
+inline hit_rate_t operator*(const double n, const hit_rate_t hr) { return hit_rate_t(n * hr.value); }
+inline hit_rate_t operator/(const double n, const hit_rate_t hr) { return hit_rate_t(n / hr.value); }
 
-inline std::ostream &operator<<(std::ostream &os, const hit_rate_t &hr) { return os << hr.value; }
+inline std::ostream &operator<<(std::ostream &os, const hit_rate_t &hr) {
+  os << std::fixed << std::setprecision(6) << hr.value;
+  return os;
+}
 
 struct rw_fractions_t {
   hit_rate_t read;

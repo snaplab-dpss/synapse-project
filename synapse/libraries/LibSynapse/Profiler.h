@@ -42,6 +42,14 @@ struct fwd_stats_t {
   }
 
   bool is_fwd_only() const { return (drop == 0) && (flood == 0); }
+
+  hit_rate_t calculate_total_hr() const {
+    hit_rate_t total_hr = drop + flood;
+    for (const auto &[_, hr] : ports) {
+      total_hr = total_hr + hr;
+    }
+    return total_hr;
+  }
 };
 
 struct ProfilerNode {
@@ -103,7 +111,7 @@ public:
   void translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols);
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
-  void scale(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t factor);
+  void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);
   void set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr);
 
   hit_rate_t get_hr(const EPNode *node) const;

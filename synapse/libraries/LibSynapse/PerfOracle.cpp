@@ -91,8 +91,8 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
   controller = controller + other.controller;
 
   for (const auto &[rport_depth_pair, hr] : other.recirc) {
-    int rport = rport_depth_pair.first;
-    int depth = rport_depth_pair.second;
+    const int rport = rport_depth_pair.first;
+    const int depth = rport_depth_pair.second;
 
     assert(rport >= 0 && "Recirculation port must be non-negative");
     assert(depth >= 1 && "Recirculation depth must be at least 1");
@@ -100,7 +100,8 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
     if (recirc.find(rport_depth_pair) == recirc.end()) {
       recirc.insert({rport_depth_pair, hr});
     } else {
-      recirc.at(rport_depth_pair) += hr;
+      hit_rate_t &recirc_hr = recirc.at(rport_depth_pair);
+      recirc_hr             = recirc_hr + hr;
     }
   }
 
@@ -111,7 +112,7 @@ hit_rate_t port_ingress_t::get_total_hr() const {
   hit_rate_t total_hr = global + controller;
 
   for (const auto &[rport_depth_pair, hr] : recirc) {
-    total_hr += hr;
+    total_hr = total_hr + hr;
   }
 
   return total_hr;
@@ -130,11 +131,11 @@ int port_ingress_t::get_max_recirc_depth() const {
 hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
   assert(depth > 0 && "Recirculation depth must be at least 1");
 
-  hit_rate_t total_hr = 0;
+  hit_rate_t total_hr = 0_hr;
 
   for (const auto &[rport_depth_pair, hr] : recirc) {
     if (rport_depth_pair.second == depth) {
-      total_hr += hr;
+      total_hr = total_hr + hr;
     }
   }
 
@@ -237,7 +238,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_in
   assert(port < (int)recirculation_ports_capacities.size() && "Invalid port");
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
-  const bps_t Tin = LibCore::pps2bps(global_ingress * usage.global, avg_pkt_bytes);
+  const bps_t Tin = LibCore::pps2bps(global_ingress * usage.global.value, avg_pkt_bytes);
   const bps_t Cr  = recirculation_ports_capacities[port];
 
   if (Tin == 0) {
@@ -330,14 +331,14 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
 
   // 2. Then we calculate the controller throughput (as it can be a bottleneck).
   // The controller can receive traffic from both global ingress and recirculation ports.
-  pps_t controller_tput = ingress * controller_ingress.global;
+  pps_t controller_tput = ingress * controller_ingress.global.value;
   for (const auto &[port_depth_pair, hr] : controller_ingress.recirc) {
     int rport = port_depth_pair.first;
     int depth = port_depth_pair.second;
     assert(rport >= 0 && "Invalid recirculation port");
     assert(depth > 0 && "Invalid recirculation depth");
     assert(depth <= (int)recirc_egress[rport].size() && "Invalid recirculation depth");
-    controller_tput += recirc_egress[rport][depth - 1] * hr;
+    controller_tput += recirc_egress[rport][depth - 1] * hr.value;
   }
   controller_tput = std::min(controller_tput, controller_capacity);
 
@@ -348,12 +349,12 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   const hit_rate_t total_controller_hr = controller_ingress.get_total_hr();
 
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
-    pps_t port_tput = ingress * port_ingress.global;
+    pps_t port_tput = ingress * port_ingress.global.value;
 
     if (total_controller_hr > 0) {
       const hit_rate_t rel_ctrl_hr = port_ingress.controller / total_controller_hr;
-      port_tput += controller_tput * rel_ctrl_hr;
-      unaccounted_controller_hr -= port_ingress.controller;
+      port_tput += controller_tput * rel_ctrl_hr.value;
+      unaccounted_controller_hr = unaccounted_controller_hr - port_ingress.controller;
     }
 
     for (const auto &[port_depth_pair, hr] : port_ingress.recirc) {
@@ -362,7 +363,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
       assert(rport >= 0 && "Invalid recirculation port");
       assert(depth > 0 && "Invalid recirculation depth");
       assert(depth <= (int)recirc_egress[rport].size() && "Invalid recirculation depth");
-      port_tput += recirc_egress[rport][depth - 1] * hr;
+      port_tput += recirc_egress[rport][depth - 1] * hr.value;
     }
 
     const pps_t port_capacity = LibCore::bps2pps(front_panel_ports_capacities[fwd_port], avg_pkt_bytes);
@@ -373,25 +374,25 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // Let's optimistically steer it to a mock port and count it as throughput.
   if (unaccounted_controller_hr > 0) {
     const hit_rate_t rel_ctrl_hr = unaccounted_controller_hr / total_controller_hr;
-    tput += controller_tput * rel_ctrl_hr;
+    tput += controller_tput * rel_ctrl_hr.value;
   }
 
   const hit_rate_t remaining_hr = unaccounted_ingress - unaccounted_controller_hr;
-  tput += remaining_hr * ingress;
+  tput += ingress * remaining_hr.value;
 
   assert(tput <= ingress);
   return tput;
 }
 
 void PerfOracle::assert_final_state() const {
-  hit_rate_t egress_hr = 0;
+  hit_rate_t egress_hr = 0_hr;
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
     egress_hr = egress_hr + port_ingress.get_total_hr();
   }
 
   hit_rate_t unaccounted_controller_hr = controller_ingress.get_total_hr() - controller_dropped_ingress;
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
-    unaccounted_controller_hr -= port_ingress.controller;
+    unaccounted_controller_hr = unaccounted_controller_hr - port_ingress.controller;
   }
 
   assert(unaccounted_ingress == 0);

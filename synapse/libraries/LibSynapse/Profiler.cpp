@@ -10,10 +10,6 @@ namespace LibSynapse {
 
 namespace {
 
-hit_rate_t calc_hit_rate(u64 counter, u64 max_count) {
-  return max_count == 0 ? hit_rate_t(0) : hit_rate_t(static_cast<double>(counter) / max_count);
-}
-
 ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_profile_t *bdd_profile, u64 max_count) {
   ProfilerNode *prof_node = nullptr;
 
@@ -21,9 +17,9 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
     switch (node->get_type()) {
     case LibBDD::NodeType::Call: {
       if (!node->get_next()) {
-        u64 counter   = bdd_profile->counters.at(node->get_id());
-        hit_rate_t hr = calc_hit_rate(counter, max_count);
-        prof_node     = new ProfilerNode(nullptr, hr, node->get_id());
+        const u64 counter   = bdd_profile->counters.at(node->get_id());
+        const hit_rate_t hr = hit_rate_t(counter, max_count);
+        prof_node           = new ProfilerNode(nullptr, hr, node->get_id());
       }
       node = node->get_next();
     } break;
@@ -33,9 +29,9 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
       const LibBDD::Node *on_false    = branch->get_on_false();
       klee::ref<klee::Expr> condition = branch->get_condition();
 
-      u64 counter   = bdd_profile->counters.at(node->get_id());
-      hit_rate_t hr = calc_hit_rate(counter, max_count);
-      prof_node     = new ProfilerNode(condition, hr, node->get_id());
+      const u64 counter   = bdd_profile->counters.at(node->get_id());
+      const hit_rate_t hr = hit_rate_t(counter, max_count);
+      prof_node           = new ProfilerNode(condition, hr, node->get_id());
 
       if (on_true) {
         prof_node->on_true = build_profiler_tree(on_true, bdd_profile, max_count);
@@ -49,15 +45,15 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
     } break;
     case LibBDD::NodeType::Route: {
       assert(bdd_profile->forwarding_stats.find(node->get_id()) != bdd_profile->forwarding_stats.end());
-      u64 counter   = bdd_profile->counters.at(node->get_id());
-      hit_rate_t hr = calc_hit_rate(counter, max_count);
-      prof_node     = new ProfilerNode(nullptr, hr, node->get_id());
+      const u64 counter = bdd_profile->counters.at(node->get_id());
+      const hit_rate_t hr(counter, max_count);
+      prof_node = new ProfilerNode(nullptr, hr, node->get_id());
 
       prof_node->forwarding_stats.emplace();
-      prof_node->forwarding_stats->drop  = calc_hit_rate(bdd_profile->forwarding_stats.at(node->get_id()).drop, max_count);
-      prof_node->forwarding_stats->flood = calc_hit_rate(bdd_profile->forwarding_stats.at(node->get_id()).flood, max_count);
+      prof_node->forwarding_stats->drop  = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).drop, max_count);
+      prof_node->forwarding_stats->flood = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).flood, max_count);
       for (const auto &[device, dev_counter] : bdd_profile->forwarding_stats.at(node->get_id()).ports) {
-        prof_node->forwarding_stats->ports[device] = calc_hit_rate(dev_counter, max_count);
+        prof_node->forwarding_stats->ports[device] = hit_rate_t(dev_counter, max_count);
       }
 
       node = node->get_next();
@@ -165,14 +161,31 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
   }
 
   const hit_rate_t old_fraction = node->fraction;
-  const hit_rate_t new_fraction = parent_old_fraction != 0 ? (parent_new_fraction / parent_old_fraction) * node->fraction : 0;
 
-  assert(false && "TODO: update forwarding stats");
+  if (parent_old_fraction == 0) {
+    assert(parent_new_fraction == 0 && "Invalid parent fractions");
+    node->fraction = 0_hr;
+  } else {
+    const double dhr = parent_new_fraction.value / parent_old_fraction.value;
+    node->fraction   = node->fraction * dhr;
 
-  node->fraction = new_fraction;
+    if (node->forwarding_stats.has_value()) {
+      fwd_stats_t &fwd_stats = node->forwarding_stats.value();
+      fwd_stats.drop         = fwd_stats.drop * dhr;
+      fwd_stats.flood        = fwd_stats.flood * dhr;
+      for (auto &[_, hr] : fwd_stats.ports) {
+        hr = hr * dhr;
+      }
+      assert(node->fraction == fwd_stats.calculate_total_hr());
+    }
+  }
 
-  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
-  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
+  recursive_update_fractions(node->on_true, old_fraction, node->fraction);
+  recursive_update_fractions(node->on_false, old_fraction, node->fraction);
+
+  if (node->on_true && node->on_false) {
+    assert(node->on_true->fraction + node->on_false->fraction == node->fraction);
+  }
 }
 } // namespace
 
@@ -465,7 +478,7 @@ ProfilerNode *Profiler::get_node(const EPNode *node) const {
 void Profiler::replace_root(klee::ref<klee::Expr> constraint, hit_rate_t fraction) {
   panic("Attempted to replace Profiler root node");
 
-  ProfilerNode *new_node = new ProfilerNode(constraint, 1.0);
+  ProfilerNode *new_node = new ProfilerNode(constraint, 1_hr);
 
   ProfilerNode *node = root.get();
   root               = std::shared_ptr<ProfilerNode>(new_node);
@@ -538,7 +551,7 @@ void Profiler::remove(ProfilerNode *node) {
   family_t family = get_family(node);
 
   assert(family.parent && "Cannot remove the root node");
-  hit_rate_t parent_fraction = family.parent->fraction;
+  const hit_rate_t parent_fraction = family.parent->fraction;
 
   // By removing the current node, the parent is no longer needed (its purpose
   // was to differentiate between the on_true and on_false nodes, but now only
@@ -562,8 +575,8 @@ void Profiler::remove(ProfilerNode *node) {
   node->on_false = nullptr;
   delete node;
 
-  hit_rate_t old_fraction = family.sibling->fraction;
-  hit_rate_t new_fraction = parent_fraction;
+  const hit_rate_t old_fraction = family.sibling->fraction;
+  const hit_rate_t new_fraction = parent_fraction;
 
   family.sibling->fraction = new_fraction;
 
@@ -580,12 +593,12 @@ void Profiler::remove(const std::vector<klee::ref<klee::Expr>> &constraints) {
 void Profiler::insert_relative(const std::vector<klee::ref<klee::Expr>> &constraints, klee::ref<klee::Expr> constraint,
                                hit_rate_t rel_fraction_on_true) {
   clone_tree_if_shared();
-  ProfilerNode *node  = get_node(constraints);
-  hit_rate_t fraction = rel_fraction_on_true * node->fraction;
+  ProfilerNode *node        = get_node(constraints);
+  const hit_rate_t fraction = rel_fraction_on_true * node->fraction;
   append(node, constraint, fraction);
 }
 
-void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t factor) {
+void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor) {
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
 

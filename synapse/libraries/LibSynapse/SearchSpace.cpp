@@ -75,7 +75,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
         .description = get_bdd_node_description(leaf.next),
     };
 
-    std::vector<std::pair<std::string, std::string>> metadata = {
+    const std::vector<std::pair<std::string, std::string>> metadata = {
         {"Tput", build_meta_tput_estimate(ep)},
         {"Spec", build_meta_tput_speculation(ep)},
     };

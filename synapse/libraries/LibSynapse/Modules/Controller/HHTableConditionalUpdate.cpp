@@ -52,9 +52,9 @@ struct table_data_t {
 // }
 
 hit_rate_t get_new_hh_probability(const EP *ep, const LibBDD::Node *node, addr_t map) {
-  hit_rate_t node_hr  = ep->get_ctx().get_profiler().get_hr(node);
-  int capacity        = ep->get_ctx().get_map_config(map).capacity;
-  hit_rate_t churn_hr = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map, capacity);
+  const hit_rate_t node_hr  = ep->get_ctx().get_profiler().get_hr(node);
+  const u64 capacity        = ep->get_ctx().get_map_config(map).capacity;
+  const hit_rate_t churn_hr = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map, capacity);
   return node_hr * churn_hr;
 }
 
@@ -98,7 +98,7 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
     return std::nullopt;
   }
 
-  hit_rate_t new_hh_hr = get_new_hh_probability(ep, node, map_objs.map);
+  const hit_rate_t new_hh_hr = get_new_hh_probability(ep, node, map_objs.map);
 
   Context new_ctx = ctx;
 

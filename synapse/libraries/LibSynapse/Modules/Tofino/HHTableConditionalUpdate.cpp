@@ -165,10 +165,10 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
     return std::nullopt;
   }
 
-  hit_rate_t node_hr            = ep->get_ctx().get_profiler().get_hr(node);
-  u32 capacity                  = ep->get_ctx().get_map_config(map_objs.map).capacity;
-  hit_rate_t new_hh_probability = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
-  hit_rate_t new_hh_hr          = node_hr * new_hh_probability;
+  const hit_rate_t node_hr            = ep->get_ctx().get_profiler().get_hr(node);
+  const u32 capacity                  = ep->get_ctx().get_map_config(map_objs.map).capacity;
+  const hit_rate_t new_hh_probability = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
+  const hit_rate_t new_hh_hr          = node_hr * new_hh_probability;
 
   Context new_ctx = ctx;
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(new_hh_hr);
@@ -275,8 +275,8 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
 
   hh_table_update_node->set_prev(send_to_controller_node);
 
-  u32 capacity                  = ep->get_ctx().get_map_config(map_objs.map).capacity;
-  hit_rate_t new_hh_probability = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
+  const u32 capacity                  = ep->get_ctx().get_map_config(map_objs.map).capacity;
+  const hit_rate_t new_hh_probability = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map_objs.map, capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), min_estimate_cond,
                                                                    new_hh_probability);
@@ -299,7 +299,7 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
-  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
+  const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
 
   return impls;

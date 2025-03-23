@@ -32,7 +32,7 @@ std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBD
 std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   Context new_ctx = ctx;
 
-  hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
+  const hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
@@ -73,7 +73,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   // TODO: How do we recalculate the estimated throughput after a forwarding decision is made?
   assert((!ep->get_active_leaf().node || !ep->get_active_leaf().node->forwarding_decision_already_made()) && "TODO");
 
-  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);
+  const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, s2c_node));
 
   // FIXME: missing custom packet parsing for the SyNAPSE header.

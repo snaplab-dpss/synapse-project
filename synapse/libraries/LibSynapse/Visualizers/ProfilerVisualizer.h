@@ -13,14 +13,14 @@ namespace LibSynapse {
 class ProfilerViz : public LibBDD::BDDViz {
 public:
   static void visualize(const LibBDD::BDD *bdd, const Profiler &profiler, bool interrupt) {
-    std::unordered_map<LibBDD::node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+    const std::unordered_map<LibBDD::node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
 
     LibBDD::bdd_visualizer_opts_t opts;
 
     opts.colors_per_node      = get_colors_per_node(hrpn);
     opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
-    opts.default_color.second = fraction_to_color(0);
+    opts.default_color.second = fraction_to_color(0_hr);
 
     LibBDD::BDDViz::visualize(bdd, interrupt, opts);
   }
@@ -31,7 +31,7 @@ private:
     const LibBDD::Node *root = bdd->get_root();
 
     root->visit_nodes([&fractions_per_node, profiler](const LibBDD::Node *node) {
-      hit_rate_t fraction                = profiler.get_hr(node);
+      const hit_rate_t fraction          = profiler.get_hr(node);
       fractions_per_node[node->get_id()] = fraction;
       return LibBDD::NodeVisitAction::Continue;
     });
@@ -44,11 +44,33 @@ private:
                            const std::unordered_map<LibBDD::node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<LibBDD::node_id_t, std::string> annocations_per_node;
 
-    for (const auto &[node, fraction] : hrpn) {
-      std::string color = fraction_to_color(fraction);
+    for (const auto &[node_id, fraction] : hrpn) {
       std::stringstream ss;
-      ss << "HR: " << std::fixed << fraction;
-      annocations_per_node[node] = ss.str();
+      ss << "HR=" << fraction;
+
+      const LibBDD::Node *bdd_node = bdd->get_node_by_id(node_id);
+      if (bdd_node->get_type() == LibBDD::NodeType::Route) {
+        const LibSynapse::fwd_stats_t fwd_stats = profiler.get_fwd_stats(bdd_node);
+        ss << "\n";
+        ss << "Fwd={";
+        int i = 0;
+        for (const auto &[port, hr] : fwd_stats.ports) {
+          if (hr == 0) {
+            continue;
+          }
+          if (i != 0) {
+            ss << ",";
+          }
+          if (i % 4 == 0) {
+            ss << "\n";
+          }
+          ss << port << ":" << hr;
+          i++;
+        }
+        ss << "}";
+      }
+
+      annocations_per_node[node_id] = ss.str();
     }
 
     return annocations_per_node;
@@ -59,18 +81,17 @@ private:
     std::unordered_map<LibBDD::node_id_t, std::string> colors_per_node;
 
     for (const auto &[node, fraction] : fraction_per_node) {
-      std::string color     = fraction_to_color(fraction);
-      colors_per_node[node] = color;
+      const std::string color = fraction_to_color(fraction);
+      colors_per_node[node]   = color;
     }
 
     return colors_per_node;
   }
 
   static std::string fraction_to_color(hit_rate_t fraction) {
-    // std::string color = hit_rate_to_rainbow(fraction);
-    // std::string color = hit_rate_to_blue(fraction);
-    std::string color = hit_rate_to_blue_red_scale(fraction);
-    return color;
+    // return hit_rate_to_rainbow(fraction);
+    // return hit_rate_to_blue(fraction);
+    return hit_rate_to_blue_red_scale(fraction);
   }
 
   static std::string hit_rate_to_rainbow(hit_rate_t fraction) {

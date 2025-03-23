@@ -44,16 +44,15 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const LibBDD::Node *no
   assert(node->get_type() == LibBDD::NodeType::Call && "Unexpected node type");
   const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
 
-  hit_rate_t hr        = ep->get_ctx().get_profiler().get_hr(map_get);
-  rw_fractions_t rw_hr = ep->get_ctx().get_profiler().get_cond_map_put_rw_profile_fractions(map_get);
+  const hit_rate_t hr        = ep->get_ctx().get_profiler().get_hr(map_get);
+  const rw_fractions_t rw_hr = ep->get_ctx().get_profiler().get_cond_map_put_rw_profile_fractions(map_get);
 
-  hit_rate_t rp = rw_hr.read / hr;
-  hit_rate_t wp = rw_hr.write / hr;
+  const hit_rate_t rp = rw_hr.read / hr;
+  const hit_rate_t wp = rw_hr.write / hr;
   // hit_rate_t failed_writes = rw_hr.write_attempt - rw_hr.write;
 
-  hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
-
-  hit_rate_t probability = rp + wp * cache_hit_rate;
+  const hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
+  const hit_rate_t probability    = rp + wp * cache_hit_rate;
 
   return probability;
 }
@@ -233,7 +232,7 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
 
   send_to_controller_node->set_prev(else_node);
 
-  hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, fcfs_cached_table_data.key, cache_capacity);
+  const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, fcfs_cached_table_data.key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(),
                                                                    cache_write_success_condition, cache_success_probability);
@@ -256,7 +255,7 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
-  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
+  const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
 
   return new_ep;
@@ -287,16 +286,16 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
 
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get, future_map_puts);
 
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
-  hit_rate_t chosen_success_probability = 0;
+  hit_rate_t chosen_success_probability = 0_hr;
   u32 chosen_cache_capacity             = 0;
   bool successfully_placed              = false;
 
   // We can use a different method for picking the right estimation depending
   // on the time it takes to find a solution.
   for (u32 cache_capacity : allowed_cache_capacities) {
-    hit_rate_t success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
+    const hit_rate_t success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
     if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
                                             cache_capacity)) {
@@ -317,12 +316,12 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
 
   Context new_ctx = ctx;
 
-  hit_rate_t hr         = new_ctx.get_profiler().get_hr(node);
-  hit_rate_t on_fail_hr = hr * (1 - chosen_success_probability);
+  const hit_rate_t hr         = new_ctx.get_profiler().get_hr(node);
+  const hit_rate_t on_fail_hr = hr * (1 - chosen_success_probability);
 
   // FIXME: not using profiler cache.
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  new_ctx.get_mutable_profiler().scale(constraints, chosen_success_probability);
+  new_ctx.get_mutable_profiler().scale(constraints, chosen_success_probability.value);
   new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 

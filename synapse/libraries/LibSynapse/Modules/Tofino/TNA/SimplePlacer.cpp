@@ -163,11 +163,14 @@ PlacementStatus SimplePlacer::find_placements(const DS *ds, const std::unordered
   case DSType::HASH:
     status = find_placements_hash(dynamic_cast<const Hash *>(ds), deps, placements);
     break;
+  case DSType::DIGEST:
+    status = PlacementStatus::SUCCESS;
+    break;
   case DSType::LPM:
     status = find_placements_lpm(dynamic_cast<const LPM *>(ds), deps, placements);
     break;
   default:
-    panic("Unsupported DS type");
+    panic("Unsupported DS type: %s", ds->id.c_str());
   }
 
   return status;

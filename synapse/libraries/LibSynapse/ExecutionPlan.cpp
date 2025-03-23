@@ -473,7 +473,7 @@ hit_rate_t EP::get_active_leaf_hit_rate() const {
   EPLeaf active_leaf = get_active_leaf();
 
   if (!active_leaf.node) {
-    return 1;
+    return 1_hr;
   }
 
   return ctx.get_profiler().get_hr(active_leaf.node);
@@ -495,8 +495,8 @@ void EP::sort_leaves() {
       return true;
     }
 
-    hit_rate_t l1_hr = ctx.get_profiler().get_hr(l1.node);
-    hit_rate_t l2_hr = ctx.get_profiler().get_hr(l2.node);
+    const hit_rate_t l1_hr = ctx.get_profiler().get_hr(l1.node);
+    const hit_rate_t l2_hr = ctx.get_profiler().get_hr(l2.node);
 
     return l1_hr > l2_hr;
   };
@@ -673,12 +673,12 @@ pps_t EP::speculate_tput_pps() const {
     return *cached_tput_speculation;
   }
 
-  std::vector<spec_impl_t> speculations;
-  LibBDD::node_ids_t skip;
+  const pps_t ingress             = estimate_tput_pps();
+  const TargetType initial_target = targets.get_initial_target().type;
 
-  pps_t ingress             = estimate_tput_pps();
-  Context spec_ctx          = ctx;
-  TargetType initial_target = targets.get_initial_target().type;
+  std::vector<spec_impl_t> speculations;
+  Context spec_ctx = ctx;
+  LibBDD::node_ids_t skip;
 
   for (const EPLeaf &leaf : active_leaves) {
     if (leaf.node && leaf.node->get_module()->get_next_target() != initial_target) {
@@ -696,7 +696,7 @@ pps_t EP::speculate_tput_pps() const {
         return LibBDD::NodeVisitAction::Continue;
       }
 
-      spec_impl_t speculation = get_best_speculation(node, initial_target, spec_ctx, skip, ingress);
+      const spec_impl_t speculation = get_best_speculation(node, initial_target, spec_ctx, skip, ingress);
       speculations.push_back(speculation);
 
       spec_ctx = speculation.ctx;
@@ -714,16 +714,16 @@ pps_t EP::speculate_tput_pps() const {
   auto egress_estimation_from_ingress = [&spec_ctx](pps_t ingress) {
     const PerfOracle &perf_oracle = spec_ctx.get_perf_oracle();
 
-    tput_estimation_t estimation = {
+    const tput_estimation_t estimation = {
         .ingress           = ingress,
         .egress_estimation = perf_oracle.estimate_tput(ingress),
-        .unavoidable_drop  = static_cast<bps_t>(ingress * perf_oracle.get_dropped_ingress()),
+        .unavoidable_drop  = static_cast<pps_t>(ingress * perf_oracle.get_dropped_ingress().value),
     };
 
     return estimation;
   };
 
-  pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
+  const pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
 
   cached_tput_speculation = egress;
 
@@ -760,21 +760,21 @@ pps_t EP::estimate_tput_pps() const {
     return *cached_tput_estimation;
   }
 
-  pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
+  const pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
 
   auto egress_estimation_from_ingress = [this](pps_t ingress) {
     const PerfOracle &perf_oracle = ctx.get_perf_oracle();
 
-    tput_estimation_t estimation = {
+    const tput_estimation_t estimation = {
         .ingress           = ingress,
         .egress_estimation = perf_oracle.estimate_tput(ingress),
-        .unavoidable_drop  = static_cast<bps_t>(ingress * perf_oracle.get_dropped_ingress()),
+        .unavoidable_drop  = static_cast<pps_t>(ingress * perf_oracle.get_dropped_ingress().value),
     };
 
     return estimation;
   };
 
-  pps_t egress           = find_stable_tput(max_ingress, egress_estimation_from_ingress);
+  const pps_t egress     = find_stable_tput(max_ingress, egress_estimation_from_ingress);
   cached_tput_estimation = egress;
 
   return egress;
@@ -786,8 +786,8 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, std::vector<int> past_recircul
   if (past_recirculations.empty()) {
     egress.global = hr;
   } else {
-    int rport = past_recirculations[0];
-    int depth = 1;
+    const int rport = past_recirculations[0];
+    int depth       = 1;
 
     for (size_t i = 1; i < past_recirculations.size(); i++) {
       if (past_recirculations[i] == rport) {
@@ -815,8 +815,8 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   if (past_recirculations.empty()) {
     egress.global = hr;
   } else {
-    int rport = past_recirculations[0];
-    int depth = 1;
+    const int rport = past_recirculations[0];
+    int depth       = 1;
 
     for (size_t i = 1; i < past_recirculations.size(); i++) {
       if (past_recirculations[i] == rport) {

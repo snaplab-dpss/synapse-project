@@ -27,7 +27,7 @@ struct fcfs_cached_table_data_t {
 };
 
 hit_rate_t get_cache_op_success_probability(const EP *ep, const LibBDD::Node *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
-  hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
+  const hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
   return cache_hit_rate;
 }
 
@@ -157,7 +157,7 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
 
   send_to_controller_node->set_prev(else_node);
 
-  hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, map_erase, cached_table_data.key, cache_capacity);
+  const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, map_erase, cached_table_data.key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(),
                                                                    cache_delete_success_condition, cache_success_probability);
@@ -180,7 +180,7 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
-  hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
+  const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
 
   return new_ep;
@@ -210,16 +210,16 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
 
   fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
 
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
-  hit_rate_t chosen_cache_success_probability = 0;
+  hit_rate_t chosen_cache_success_probability = 0_hr;
   u32 chosen_cache_capacity                   = 0;
   bool successfully_placed                    = false;
 
   // We can use a different method for picking the right estimation depending
   // on the time it takes to find a solution.
   for (u32 cache_capacity : allowed_cache_capacities) {
-    hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
+    const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
     if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
                                             cache_capacity)) {
@@ -241,13 +241,13 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   Context new_ctx          = ctx;
   const Profiler &profiler = new_ctx.get_profiler();
 
-  hit_rate_t fraction         = profiler.get_hr(node);
-  hit_rate_t on_fail_fraction = fraction * (1 - chosen_cache_success_probability);
+  const hit_rate_t fraction         = profiler.get_hr(node);
+  const hit_rate_t on_fail_fraction = fraction * (1 - chosen_cache_success_probability);
 
   // FIXME: not using profiler cache.
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
 
-  new_ctx.get_mutable_profiler().scale(constraints, chosen_cache_success_probability);
+  new_ctx.get_mutable_profiler().scale(constraints, chosen_cache_success_probability.value);
   new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 

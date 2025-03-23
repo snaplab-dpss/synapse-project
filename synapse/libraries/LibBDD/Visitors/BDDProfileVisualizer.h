@@ -16,7 +16,7 @@ public:
       : BDDViz(bdd_visualizer_opts_t{
             .fname                = fname,
             .colors_per_node      = get_colors_per_node(profile.counters),
-            .default_color        = {true, hit_rate_to_color(0)},
+            .default_color        = {true, hit_rate_to_color(0_hr)},
             .annotations_per_node = get_annocations_per_node(profile),
             .processed            = processed_t(),
         }) {}
@@ -27,7 +27,7 @@ public:
     opts.colors_per_node      = get_colors_per_node(profile.counters);
     opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(profile);
-    opts.default_color.second = hit_rate_to_color(0);
+    opts.default_color.second = hit_rate_to_color(0_hr);
 
     BDDViz::visualize(bdd, interrupt, opts);
   }
@@ -42,14 +42,13 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string> get_annocations_per_node(const bdd_profile_t &profile) {
-
-    u64 total_counter = get_total_counter(profile.counters);
+    const u64 total_counter = get_total_counter(profile.counters);
     std::unordered_map<node_id_t, std::string> annocations_per_node;
 
     for (auto it = profile.counters.begin(); it != profile.counters.end(); it++) {
-      node_id_t node           = it->first;
-      u64 counter              = it->second;
-      hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
+      const node_id_t node = it->first;
+      const u64 counter    = it->second;
+      const hit_rate_t node_hit_rate(counter, total_counter);
 
       std::stringstream ss;
       ss << "HR: " << std::fixed << node_hit_rate;
@@ -72,14 +71,14 @@ private:
   }
 
   static std::unordered_map<node_id_t, std::string> get_colors_per_node(const std::unordered_map<node_id_t, u64> &counters) {
-    u64 total_counter = get_total_counter(counters);
+    const u64 total_counter = get_total_counter(counters);
     std::unordered_map<node_id_t, std::string> colors_per_node;
 
     for (auto it = counters.begin(); it != counters.end(); it++) {
-      node_id_t node           = it->first;
-      u64 counter              = it->second;
-      hit_rate_t node_hit_rate = (hit_rate_t)counter / total_counter;
-      std::string color        = hit_rate_to_color(node_hit_rate);
+      const node_id_t node = it->first;
+      const u64 counter    = it->second;
+      const hit_rate_t node_hit_rate(counter, total_counter);
+      const std::string color = hit_rate_to_color(node_hit_rate);
 
       colors_per_node[node] = color;
     }
@@ -88,51 +87,50 @@ private:
   }
 
   static std::string hit_rate_to_color(hit_rate_t node_hit_rate) {
-    // std::string color = hit_rate_to_rainbow(node_hit_rate);
-    // std::string color = hit_rate_to_blue(node_hit_rate);
-    std::string color = hit_rate_to_blue_red_scale(node_hit_rate);
-    return color;
+    // return hit_rate_to_rainbow(node_hit_rate);
+    // return hit_rate_to_blue(node_hit_rate);
+    return hit_rate_to_blue_red_scale(node_hit_rate);
   }
 
   static std::string hit_rate_to_rainbow(hit_rate_t node_hit_rate) {
-    LibCore::rgb_t blue(0, 0, 1);
-    LibCore::rgb_t cyan(0, 1, 1);
-    LibCore::rgb_t green(0, 1, 0);
-    LibCore::rgb_t yellow(1, 1, 0);
-    LibCore::rgb_t red(1, 0, 0);
+    const LibCore::rgb_t blue(0, 0, 1);
+    const LibCore::rgb_t cyan(0, 1, 1);
+    const LibCore::rgb_t green(0, 1, 0);
+    const LibCore::rgb_t yellow(1, 1, 0);
+    const LibCore::rgb_t red(1, 0, 0);
 
-    std::vector<LibCore::rgb_t> palette{blue, cyan, green, yellow, red};
+    const std::vector<LibCore::rgb_t> palette{blue, cyan, green, yellow, red};
 
-    double value = node_hit_rate * (palette.size() - 1);
-    int idx1     = (int)std::floor(value);
-    int idx2     = (int)idx1 + 1;
-    double frac  = value - idx1;
+    const double value = node_hit_rate.value * (palette.size() - 1);
+    const int idx1     = std::floor(value);
+    const int idx2     = idx1 + 1;
+    const double frac  = value - idx1;
 
-    u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
-    u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
-    u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
+    const u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
+    const u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
+    const u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
 
-    LibCore::rgb_t color(r, g, b);
+    const LibCore::rgb_t color(r, g, b);
     return color.to_gv_repr();
   }
 
   static std::string hit_rate_to_blue(hit_rate_t node_hit_rate) {
-    u8 r = 0xff * (1 - node_hit_rate.value);
-    u8 g = 0xff * (1 - node_hit_rate.value);
-    u8 b = 0xff;
-    u8 o = 0xff * 0.5;
+    const u8 r = 0xff * (1.0 - node_hit_rate.value);
+    const u8 g = 0xff * (1.0 - node_hit_rate.value);
+    const u8 b = 0xff;
+    const u8 o = 0xff * 0.5;
 
-    LibCore::rgb_t color(r, g, b, o);
+    const LibCore::rgb_t color(r, g, b, o);
     return color.to_gv_repr();
   }
 
   static std::string hit_rate_to_blue_red_scale(hit_rate_t node_hit_rate) {
-    u8 r = 0xff * node_hit_rate.value;
-    u8 g = 0;
-    u8 b = 0xff * (1 - node_hit_rate).value;
-    u8 o = 0xff * 0.33;
+    const u8 r = 0xff * node_hit_rate.value;
+    const u8 g = 0;
+    const u8 b = 0xff * (1.0 - node_hit_rate).value;
+    const u8 o = 0xff * 0.33;
 
-    LibCore::rgb_t color(r, g, b, o);
+    const LibCore::rgb_t color(r, g, b, o);
     return color.to_gv_repr();
   }
 };

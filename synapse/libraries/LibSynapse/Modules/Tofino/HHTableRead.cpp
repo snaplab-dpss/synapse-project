@@ -1,5 +1,6 @@
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibSynapse/Visualizers/ProfilerVisualizer.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -30,13 +31,13 @@ struct hh_table_data_t {
 
 void update_map_get_success_hit_rate(Context &ctx, const LibBDD::Node *map_get, klee::ref<klee::Expr> key, u32 capacity,
                                      const LibBDD::branch_direction_t &mgsc) {
-  hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
+  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const LibBDD::Node *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
   const LibBDD::Node *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
 
-  hit_rate_t branch_hr = ctx.get_profiler().get_hr(mgsc.branch);
+  const hit_rate_t branch_hr = ctx.get_profiler().get_hr(mgsc.branch);
 
   ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), branch_hr * success_rate);
   ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), branch_hr * (1 - success_rate));

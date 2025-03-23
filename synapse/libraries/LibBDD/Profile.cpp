@@ -162,10 +162,10 @@ fpm_t bdd_profile_t::churn_top_k_flows(u64 map, u32 k) const {
 }
 
 hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
-  hit_rate_t avg_churn_hr = 0;
-  size_t total_epochs     = 0;
+  double avg_churn_hr = 0;
+  size_t total_epochs = 0;
 
-  for (const auto &epoch : stats_per_map.at(map).epochs) {
+  for (const LibBDD::bdd_profile_t::map_stats_t::epoch_t &epoch : stats_per_map.at(map).epochs) {
     if (epoch.warmup) {
       continue;
     }
@@ -184,14 +184,14 @@ hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
       }
     }
 
-    avg_churn_hr += static_cast<hit_rate_t>(top_k_new_flows) / epoch.pkts;
+    avg_churn_hr += (top_k_new_flows / static_cast<double>(epoch.pkts));
   }
 
   if (total_epochs > 0) {
     avg_churn_hr /= total_epochs;
   }
 
-  return avg_churn_hr;
+  return hit_rate_t(avg_churn_hr);
 }
 
 u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
