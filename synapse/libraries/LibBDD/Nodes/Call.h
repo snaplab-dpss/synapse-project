@@ -41,6 +41,7 @@ public:
   bool is_vector_read() const;
   bool is_vector_write() const;
   bool is_vector_borrow_value_ignored() const;
+  u32 get_vector_borrow_value_future_usage() const;
   bool is_vector_return_without_modifications() const;
   branch_direction_t find_branch_checking_index_alloc() const;
   branch_direction_t get_map_get_success_check() const;

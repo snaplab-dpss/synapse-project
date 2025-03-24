@@ -11,18 +11,20 @@ private:
   addr_t obj;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value;
+  bool can_be_inlined;
 
 public:
-  VectorRegisterLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
+  VectorRegisterLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value,
+                       bool _can_be_inlined)
       : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), id(_id), obj(_obj), index(_index),
-        value(_value) {}
+        value(_value), can_be_inlined(_can_be_inlined) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterLookup(node, id, obj, index, value);
+    Module *cloned = new VectorRegisterLookup(node, id, obj, index, value, can_be_inlined);
     return cloned;
   }
 
@@ -30,6 +32,7 @@ public:
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_value() const { return value; }
+  bool get_can_be_inlined() const { return can_be_inlined; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {id}; }
 };

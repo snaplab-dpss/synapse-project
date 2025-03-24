@@ -161,6 +161,8 @@ control Ingress(
     if (trigger_forward) {
       forward_nf_dev.apply();
     }
+
+    ig_tm_md.bypass_egress = 1;
   }
 }
 

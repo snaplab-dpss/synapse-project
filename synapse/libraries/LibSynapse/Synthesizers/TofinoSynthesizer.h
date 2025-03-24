@@ -107,6 +107,7 @@ private:
     code_t get_stem() const;
     void declare(coder_t &coder, std::optional<code_t> assignment = std::nullopt) const;
     bool is_slice() const { return original_name != name || original_expr != expr || original_size != size; }
+    code_t get_hdr_name() const;
     std::string to_string() const;
   };
 
@@ -221,17 +222,16 @@ private:
 
   code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
   void transpile_parser(const Parser &parser);
-  void transpile_action_decl(coder_t &coder, const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params,
-                             bool params_are_buffers);
-  void transpile_table_decl(coder_t &coder, const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
+  void transpile_action_decl(const std::string action_name, const std::vector<code_t> &body);
+  void transpile_action_decl(const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
+  void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
                             const std::vector<klee::ref<klee::Expr>> &values, bool values_are_buffers, std::vector<var_t> &keys_vars);
 
-  void transpile_register_decl(coder_t &coder, const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
-  void transpile_register_read_action_decl(coder_t &coder, const Register *reg, const code_t &name);
-  void transpile_register_write_action_decl(coder_t &coder, const Register *reg, const code_t &name, const var_t &write_value);
-  void transpile_fcfs_cached_table_decl(coder_t &coder, const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key,
-                                        klee::ref<klee::Expr> value);
-  void transpile_lpm_decl(coder_t &coder, const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
+  void transpile_register_decl(const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
+  void transpile_register_read_action_decl(const Register *reg, const code_t &name);
+  void transpile_register_write_action_decl(const Register *reg, const code_t &name, const var_t &write_value);
+  void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
+  void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
 
   void dbg_vars() const;
 

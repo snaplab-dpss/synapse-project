@@ -134,9 +134,10 @@ int main(int argc, char **argv) {
 
   LibCore::SingletonRandomEngine::seed(args.seed);
   LibCore::SymbolManager symbol_manager;
-  LibBDD::BDD bdd               = LibBDD::BDD(args.input_bdd_file, &symbol_manager);
-  toml::table targets_config    = parse_targets_config(args.targets_config_file);
-  LibSynapse::Profiler profiler = args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
+  const LibBDD::BDD bdd            = LibBDD::BDD(args.input_bdd_file, &symbol_manager);
+  const toml::table targets_config = parse_targets_config(args.targets_config_file);
+  const LibSynapse::Profiler profiler =
+      args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
 
   if (args.show_prof) {
     profiler.debug();
@@ -144,7 +145,25 @@ int main(int argc, char **argv) {
   }
 
   LibSynapse::SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config);
-  LibSynapse::search_report_t report = engine.search();
+  const LibSynapse::search_report_t report = engine.search();
+
+  if (args.show_ep) {
+    LibSynapse::EPViz::visualize(report.ep.get(), false);
+  }
+
+  if (args.show_ss) {
+    LibSynapse::SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
+  }
+
+  if (args.show_bdd) {
+    LibSynapse::ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
+  }
+
+  if (!args.out_dir.empty()) {
+    LibSynapse::EPViz::dump_to_file(report.ep.get(), args.out_dir / (args.name + "-ep.dot"));
+    LibSynapse::SSVisualizer::dump_to_file(report.search_space.get(), args.out_dir / (args.name + "-ss.dot"));
+    LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
+  }
 
   report.ep->get_ctx().debug();
 
@@ -164,24 +183,6 @@ int main(int argc, char **argv) {
   std::cout << "  Winner:           " << report.score << "\n";
   std::cout << "  Throughput:       " << report.tput_estimation << "\n";
   std::cout << "\n";
-
-  if (args.show_ep) {
-    LibSynapse::EPViz::visualize(report.ep.get(), false);
-  }
-
-  if (args.show_ss) {
-    LibSynapse::SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
-  }
-
-  if (args.show_bdd) {
-    LibSynapse::ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
-  }
-
-  if (!args.out_dir.empty()) {
-    LibSynapse::EPViz::dump_to_file(report.ep.get(), args.out_dir / (args.name + "-ep.dot"));
-    LibSynapse::SSVisualizer::dump_to_file(report.search_space.get(), args.out_dir / (args.name + "-ss.dot"));
-    LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
-  }
 
   return 0;
 }

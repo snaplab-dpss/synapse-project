@@ -202,13 +202,36 @@ bool Call::is_vector_borrow_value_ignored() const {
     return true;
   }
 
-  LibCore::symbol_t value = get_local_symbol("vector_data");
-  bool used               = false;
+  return get_vector_borrow_value_future_usage() == 0;
+}
 
-  next->visit_nodes([&value, &used](const Node *node) {
+u32 Call::get_vector_borrow_value_future_usage() const {
+  u32 total_usage = 0;
+
+  if (call.function_name != "vector_borrow" || next == nullptr) {
+    return total_usage;
+  }
+
+  const LibCore::symbol_t value = get_local_symbol("vector_data");
+  const addr_t vector           = LibCore::expr_addr_to_obj_addr(call.args.at("vector").expr);
+
+  next->visit_nodes([&value, &total_usage, vector](const Node *node) {
+    if (node->get_type() == NodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "vector_return") {
+        const addr_t vb_vector = LibCore::expr_addr_to_obj_addr(call.args.at("vector").expr);
+
+        if (vb_vector == vector) {
+          return NodeVisitAction::Continue;
+        }
+      }
+    }
+
     for (const LibCore::symbol_t &symbol : node->get_used_symbols().get()) {
       if (symbol.name == value.name) {
-        used = true;
+        total_usage++;
         return NodeVisitAction::Stop;
       }
     }
@@ -216,7 +239,7 @@ bool Call::is_vector_borrow_value_ignored() const {
     return NodeVisitAction::Continue;
   });
 
-  return !used;
+  return total_usage;
 }
 
 bool Call::is_vector_return_without_modifications() const { return call.function_name == "vector_return" && is_vector_read(); }

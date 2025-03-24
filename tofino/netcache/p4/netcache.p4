@@ -59,7 +59,7 @@ control SwitchIngress(
 	#define VAL_READ(msb, lsb) \
 		RegisterAction<bit<32>, bit<16>, bit<32>>(reg##_v##lsb##_##msb) read_v##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
-				res = hdr.netcache.val[msb:lsb]; \
+				res = val; \
 			} \
 		};
 
