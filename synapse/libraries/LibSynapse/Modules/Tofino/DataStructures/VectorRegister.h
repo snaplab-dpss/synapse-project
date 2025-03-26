@@ -17,7 +17,7 @@ struct VectorRegister : public DS {
   std::vector<bits_t> values_sizes;
   std::vector<Register> regs;
 
-  VectorRegister(const TNAProperties &properties, DS_ID id, u32 capacity, bits_t index_size, const std::vector<bits_t> &values_sizes);
+  VectorRegister(const tna_properties_t &properties, DS_ID id, u32 capacity, bits_t index_size, const std::vector<bits_t> &values_sizes);
   VectorRegister(const VectorRegister &other);
 
   DS *clone() const override;

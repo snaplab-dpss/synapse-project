@@ -300,8 +300,8 @@ DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
 }
 
 VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const tna_properties_t &properties = tofino_ctx->get_tna().get_properties();
 
   std::vector<klee::ref<klee::Expr>> partitions = Register::partition_value(properties, data.value);
 
@@ -341,10 +341,10 @@ VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, cons
 
 FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
                                          u32 cache_capacity) {
-  const Context &ctx              = ep->get_ctx();
-  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const TNA &tna                  = tofino_ctx->get_tna();
-  const TNAProperties &properties = tna.get_properties();
+  const Context &ctx                 = ep->get_ctx();
+  const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
+  const TNA &tna                     = tofino_ctx->get_tna();
+  const tna_properties_t &properties = tna.get_properties();
 
   DS_ID id = "fcfs_cached_table_" + std::to_string(cache_capacity) + "_" + std::to_string(obj);
 
@@ -396,8 +396,8 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
 
   DS_ID id = "hh_table_" + std::to_string(cms_width) + "x" + std::to_string(cms_height) + "_" + std::to_string(obj);
 
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const tna_properties_t &properties = tofino_ctx->get_tna().get_properties();
 
   std::vector<bits_t> keys_sizes;
   for (klee::ref<klee::Expr> key : keys) {
@@ -440,8 +440,8 @@ CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, co
                           u32 height) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  DS_ID id                        = "cms_" + std::to_string(width) + "x" + std::to_string(height) + "_" + std::to_string(obj);
-  const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
+  DS_ID id                           = "cms_" + std::to_string(width) + "x" + std::to_string(height) + "_" + std::to_string(obj);
+  const tna_properties_t &properties = tofino_ctx->get_tna().get_properties();
 
   std::vector<bits_t> keys_sizes;
   for (klee::ref<klee::Expr> key : keys) {
@@ -873,9 +873,9 @@ CountMinSketch *TofinoModuleFactory::build_or_reuse_cms(const EP *ep, const LibB
 }
 
 LPM *TofinoModuleFactory::build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  const DS_ID id                  = "lpm_" + std::to_string(obj);
-  const TNAProperties &properties = tofino_ctx->get_tna().get_properties();
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const DS_ID id                     = "lpm_" + std::to_string(obj);
+  const tna_properties_t &properties = tofino_ctx->get_tna().get_properties();
 
   LPM *lpm = new LPM(id, properties.total_ports);
 

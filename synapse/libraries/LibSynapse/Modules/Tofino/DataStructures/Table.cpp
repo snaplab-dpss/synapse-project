@@ -1,5 +1,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibCore/Expr.h>
+#include <LibCore/Solver.h>
+#include <LibCore/Debug.h>
 
 #include <iostream>
 
@@ -56,9 +58,21 @@ void Table::debug() const {
 std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key) {
   std::vector<klee::ref<klee::Expr>> keys;
 
-  std::vector<LibCore::expr_group_t> groups = LibCore::get_expr_groups(key);
+  const bytes_t max_group_size = 4;
+
+  const std::vector<LibCore::expr_group_t> groups = LibCore::get_expr_groups(key);
   for (const LibCore::expr_group_t &group : groups) {
-    keys.push_back(group.expr);
+    bytes_t processed_bytes = 0;
+    while (processed_bytes != group.size) {
+      const bytes_t sub_group_size = std::min(max_group_size, group.size - processed_bytes);
+      const bytes_t offset         = group.size - processed_bytes - sub_group_size;
+
+      klee::ref<klee::Expr> sub_group = LibCore::solver_toolbox.exprBuilder->Extract(group.expr, offset * 8, sub_group_size * 8);
+      sub_group                       = LibCore::simplify(sub_group);
+
+      keys.push_back(sub_group);
+      processed_bytes += sub_group_size;
+    }
   }
 
   return keys;

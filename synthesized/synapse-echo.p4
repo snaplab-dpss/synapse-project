@@ -162,12 +162,14 @@ control Ingress(
       // BDD node 0:FORWARD
       nf_dev[15:0] = meta.dev[15:0];
       trigger_forward = true;
-      ig_tm_md.bypass_egress = 1;
+
     }
 
     if (trigger_forward) {
       forward_nf_dev.apply();
     }
+
+    ig_tm_md.bypass_egress = 1;
   }
 }
 

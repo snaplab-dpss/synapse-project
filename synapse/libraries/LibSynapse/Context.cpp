@@ -84,8 +84,8 @@ std::optional<expiration_data_t> build_expiration_data(const LibBDD::BDD *bdd) {
 }
 } // namespace
 
-Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const toml::table &config, const Profiler &_profiler)
-    : profiler(_profiler), perf_oracle(config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
+Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &_profiler)
+    : profiler(_profiler), perf_oracle(targets_config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
   for (const TargetView &target : targets.elements) {
     target_ctxs[target.type] = target.base_ctx->clone();
   }

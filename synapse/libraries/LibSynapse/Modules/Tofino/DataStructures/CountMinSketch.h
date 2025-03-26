@@ -26,7 +26,7 @@ struct CountMinSketch : public DS {
   std::vector<Hash> hashes;
   std::vector<Register> rows;
 
-  CountMinSketch(const TNAProperties &properties, DS_ID id, const std::vector<bits_t> &keys, u32 width, u32 height);
+  CountMinSketch(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &keys, u32 width, u32 height);
 
   CountMinSketch(const CountMinSketch &other);
 

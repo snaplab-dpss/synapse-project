@@ -1,7 +1,6 @@
 #pragma once
 
 #include <unordered_map>
-#include <toml++/toml.hpp>
 
 #include <LibSynapse/PerfOracle.h>
 #include <LibSynapse/Profiler.h>
@@ -90,7 +89,7 @@ private:
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
-  Context(const LibBDD::BDD *bdd, const TargetsView &targets, const toml::table &config, const Profiler &profiler);
+  Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 

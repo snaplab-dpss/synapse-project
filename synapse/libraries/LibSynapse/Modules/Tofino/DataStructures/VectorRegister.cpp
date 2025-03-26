@@ -8,7 +8,7 @@ namespace Tofino {
 
 namespace {
 
-std::vector<Register> build_registers(const TNAProperties &properties, DS_ID id, u32 capacity, bits_t index_size,
+std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID id, u32 capacity, bits_t index_size,
                                       const std::vector<bits_t> &values_sizes) {
   std::vector<Register> rows;
 
@@ -23,7 +23,7 @@ std::vector<Register> build_registers(const TNAProperties &properties, DS_ID id,
 
 } // namespace
 
-VectorRegister::VectorRegister(const TNAProperties &properties, DS_ID _id, u32 _capacity, bits_t _index_size,
+VectorRegister::VectorRegister(const tna_properties_t &properties, DS_ID _id, u32 _capacity, bits_t _index_size,
                                const std::vector<bits_t> &_values_sizes)
     : DS(DSType::VECTOR_REGISTER, false, _id), capacity(_capacity), index_size(_index_size), values_sizes(_values_sizes),
       regs(build_registers(properties, _id, _capacity, _index_size, _values_sizes)) {}

@@ -1113,14 +1113,14 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
 
   auto process_read = [&groups](klee::ref<klee::Expr> read_expr) {
     assert(read_expr->getKind() == klee::Expr::Read && "Not a read");
-    klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
+    const klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(read_expr);
 
     klee::ref<klee::Expr> index = read->index;
     const std::string symbol    = read->updates.root->name;
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
-    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
-    bytes_t current_byte            = index_const->getZExtValue();
+    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    const bytes_t current_byte            = index_const->getZExtValue();
 
     bool appended_to_group = false;
     if (groups.size()) {
@@ -1184,6 +1184,9 @@ bool symbolic_read_equal_t::operator()(const symbolic_read_t &a, const symbolic_
 }
 
 symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter) {
+  if (expr.isNull()) {
+    return {};
+  }
   SymbolicReadsRetriever retriever(symbol_filter);
   retriever.visit(expr);
   return retriever.get_symbolic_reads();
@@ -1219,46 +1222,49 @@ bool simplify_extract_of_concats(klee::ref<klee::Expr> extract_expr, klee::ref<k
     return false;
   }
 
-  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
-  u32 offset                 = extract->offset;
-  klee::ref<klee::Expr> expr = extract->expr;
-  bits_t size                = extract->width;
+  const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  bits_t offset                    = extract->offset;
+  klee::ref<klee::Expr> expr       = extract->expr;
+  const bits_t size                = extract->width;
 
   if (expr->getKind() != klee::Expr::Kind::Concat) {
     return false;
   }
 
-  // concats
+  std::vector<klee::ref<klee::Expr>> concatenated_exprs;
+
   while (expr->getKind() == klee::Expr::Kind::Concat) {
     klee::ref<klee::Expr> lhs = expr->getKid(0);
     klee::ref<klee::Expr> rhs = expr->getKid(1);
+    concatenated_exprs.push_back(lhs);
+    expr = rhs;
+  }
 
-    klee::Expr::Width rhs_size = rhs->getWidth();
+  // Adding the final rhs
+  concatenated_exprs.push_back(expr);
 
-    if (offset >= rhs_size) {
-      // completely on the left side
-      offset -= rhs_size;
-      expr = lhs;
-    } else if (rhs_size >= offset + size) {
-      // completely on the right side
-      expr = rhs;
+  std::vector<klee::ref<klee::Expr>> target_exprs;
+  bits_t current_offset = 0;
+  for (auto it = concatenated_exprs.rbegin(); it != concatenated_exprs.rend(); it++) {
+    klee::ref<klee::Expr> current_expr = *it;
+
+    if (current_offset >= offset && current_offset + current_expr->getWidth() <= offset + size) {
+      target_exprs.push_back(current_expr);
+    }
+
+    current_offset += current_expr->getWidth();
+  }
+
+  out = nullptr;
+  for (klee::ref<klee::Expr> target_expr : target_exprs) {
+    if (out.isNull()) {
+      out = target_expr;
     } else {
-      // between the two
-      break;
+      out = solver_toolbox.exprBuilder->Concat(target_expr, out);
     }
   }
 
-  assert(!expr.isNull() && "Null expr");
-  assert(size <= expr->getWidth() && "Size too big");
-
-  if (offset == 0 && size == expr->getWidth()) {
-    out = expr;
-    return true;
-  }
-
-  out = solver_toolbox.exprBuilder->Extract(expr, offset, size);
-
-  return true;
+  return !out.isNull();
 }
 
 bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
@@ -1266,10 +1272,10 @@ bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Ex
     return false;
   }
 
-  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
-  u32 offset                 = extract->offset;
-  klee::ref<klee::Expr> expr = extract->expr;
-  bits_t size                = extract->width;
+  const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  bits_t offset                    = extract->offset;
+  klee::ref<klee::Expr> expr       = extract->expr;
+  bits_t size                      = extract->width;
 
   if (offset != 0) {
     return false;
@@ -1301,6 +1307,29 @@ bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Ex
   }
 
   out = solver_toolbox.exprBuilder->Extract(src, offset, size);
+
+  return true;
+}
+
+bool simplify_extract_read(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
+  if (extract_expr->getKind() != klee::Expr::Extract) {
+    return false;
+  }
+
+  const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  const bits_t offset              = extract->offset;
+  const bits_t size                = extract->width;
+  klee::ref<klee::Expr> expr       = extract->expr;
+
+  if (offset != 0 || size != 8) {
+    return false;
+  }
+
+  if (expr->getKind() != klee::Expr::Kind::Read) {
+    return false;
+  }
+
+  out = expr;
 
   return true;
 }
@@ -1626,6 +1655,7 @@ using simplifier_fn = std::function<bool(klee::ref<klee::Expr>, klee::ref<klee::
 enum class simplifier_type_t {
   EXTRACT_0_ZEXT_CONDITIONAL,
   EXTRACT_CONCATS,
+  EXTRACT_READ,
   EXTRACT_EXT,
   CMP_EQ_0,
   CMP_ZEXT_EQ_SIZE,
@@ -1640,6 +1670,9 @@ std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
     break;
   case simplifier_type_t::EXTRACT_CONCATS:
     os << "EXTRACT_CONCATS";
+    break;
+  case simplifier_type_t::EXTRACT_READ:
+    os << "EXTRACT_READ";
     break;
   case simplifier_type_t::EXTRACT_EXT:
     os << "EXTRACT_EXT";
@@ -1733,6 +1766,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
   const simplifiers_t simplifiers{
       {simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL, simplify_extract_0_zext_conditional},
       {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
+      {simplifier_type_t::EXTRACT_READ, simplify_extract_read},
       {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
       {simplifier_type_t::CMP_EQ_0, simplify_cmp_eq_0},
       {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
@@ -1930,6 +1964,36 @@ bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
   // TODO: detect 32 bit endian swaps.
 
   return false;
+}
+
+klee::ref<klee::Expr> concat_exprs(const std::vector<klee::ref<klee::Expr>> &exprs, bool left_to_right) {
+  klee::ref<klee::Expr> result;
+
+  if (exprs.empty()) {
+    return result;
+  }
+
+  std::vector<klee::ref<klee::Expr>> target_exprs;
+
+  if (left_to_right) {
+    for (auto it = exprs.rbegin(); it != exprs.rend(); it++) {
+      klee::ref<klee::Expr> expr = *it;
+      target_exprs.push_back(expr);
+    }
+  } else {
+    target_exprs = exprs;
+  }
+
+  for (auto it = target_exprs.rbegin(); it != target_exprs.rend(); it++) {
+    klee::ref<klee::Expr> expr = *it;
+    if (result.isNull()) {
+      result = expr;
+    } else {
+      result = solver_toolbox.exprBuilder->Concat(expr, result);
+    }
+  }
+
+  return result;
 }
 
 } // namespace LibCore

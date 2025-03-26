@@ -137,7 +137,7 @@ void test3() {
 void test4() {
   const std::string query =
       "array packet_chunks[1280] : w32 -> w8 = symbolic\n"
-      "(query [] false [\n(ReadLSB w32 (w32 512) packet_chunks)\n(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 "
+      "(query [] false [(ReadLSB w32 (w32 512) packet_chunks)\n(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 "
       "514) packet_chunks) (Concat w16 (Read w8 (w32 513) packet_chunks) (Read w8 (w32 512) packet_chunks))))])\n";
 
   LibCore::SymbolManager manager;
@@ -164,10 +164,36 @@ void test4() {
   std::cerr << "========================================\n";
 }
 
+void test5() {
+  const std::string query = "array packet_chunks[1280] : w32 -> w8 = symbolic\n"
+                            "(query [] false [(ReadLSB w128 (w32 769) packet_chunks)])";
+
+  LibCore::SymbolManager manager;
+  LibCore::kQuery_t kQuery = parse(query, &manager);
+
+  std::cerr << "\n========================================\n";
+  std::cerr << "Query:\n";
+  std::cerr << query << "\n";
+
+  assert(manager.get_arrays().size() == 1);
+  assert(kQuery.values.size() == 1);
+  assert(kQuery.constraints.size() == 0);
+
+  klee::ref<klee::Expr> expr = kQuery.values[0];
+  expr                       = LibCore::solver_toolbox.exprBuilder->Extract(expr, 96, 32);
+
+  std::cerr << "\n";
+  std::cerr << "Expr: " << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr)) << "\n";
+
+  std::cerr << "========================================\n";
+}
+
 int main() {
   // test1();
   // test2();
-  test3();
+  // test3();
   // test4();
+  test5();
   return 0;
 }

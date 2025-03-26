@@ -6,7 +6,6 @@
 
 #include <unordered_map>
 #include <optional>
-#include <toml++/toml.hpp>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -18,7 +17,7 @@ private:
   std::unordered_map<DS_ID, DS *> id_to_ds;
 
 public:
-  TofinoContext(const toml::table &config);
+  TofinoContext(const tna_config_t &tna_config);
   TofinoContext(const TofinoContext &other);
 
   ~TofinoContext();

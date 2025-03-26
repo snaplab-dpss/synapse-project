@@ -90,7 +90,7 @@ const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep, const LibBDD::
 }
 } // namespace
 
-TofinoContext::TofinoContext(const toml::table &config) : tna(config) {}
+TofinoContext::TofinoContext(const tna_config_t &tna_config) : tna(tna_config) {}
 
 TofinoContext::TofinoContext(const TofinoContext &other) : tna(other.tna) {
   for (const auto &kv : other.obj_to_ds) {

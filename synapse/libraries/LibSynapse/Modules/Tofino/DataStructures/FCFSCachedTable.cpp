@@ -10,13 +10,13 @@ namespace {
 
 std::string build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
-Register build_cache_expirator(const TNAProperties &properties, DS_ID id, u32 cache_capacity) {
+Register build_cache_expirator(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
   const bits_t hash_size      = LibCore::bits_from_pow2_capacity(cache_capacity);
   const bits_t timestamp_size = 32;
   return Register(properties, id + "_reg_expirator", cache_capacity, hash_size, timestamp_size, {RegisterActionType::WRITE});
 }
 
-std::vector<Register> build_cache_keys(const TNAProperties &properties, DS_ID id, const std::vector<bits_t> &keys_sizes,
+std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &keys_sizes,
                                        u32 cache_capacity) {
   std::vector<Register> cache_keys;
 
@@ -34,7 +34,7 @@ std::vector<Register> build_cache_keys(const TNAProperties &properties, DS_ID id
 }
 } // namespace
 
-FCFSCachedTable::FCFSCachedTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
+FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                                  const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::FCFS_CACHED_TABLE, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
       cache_expirator(build_cache_expirator(properties, id, cache_capacity)),

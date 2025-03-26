@@ -32,6 +32,7 @@ klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::string> &allowed_symbols);
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> condition);
+klee::ref<klee::Expr> concat_exprs(const std::vector<klee::ref<klee::Expr>> &exprs, bool left_to_right = true);
 std::string expr_to_ascii(klee::ref<klee::Expr> expr);
 
 struct expr_mod_t {

@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
-#include <toml++/toml.hpp>
 
 namespace LibSynapse {
 
@@ -53,7 +52,7 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
 
 public:
-  EP(const LibBDD::BDD &bdd, const TargetsView &targets, const toml::table &config, const Profiler &profiler);
+  EP(const LibBDD::BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;

@@ -6,163 +6,163 @@ model = "AS9516-32D"
 ########################################################
 
 [[switch.front_panel_ports]]
-vport = -1 # Unused
-pport = 1
+vport        = -1              # Unused
+pport        = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = -1 # Unused
-pport = 2
+vport        = -1              # Unused
+pport        = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 0
-pport = 3
+vport        = 2
+pport        = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 1
-pport = 4
+vport        = 3
+pport        = 4
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 2
-pport = 5
+vport        = 4
+pport        = 5
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 3
-pport = 6
+vport        = 5
+pport        = 6
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 4
-pport = 7
+vport        = 6
+pport        = 7
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 5
-pport = 8
+vport        = 7
+pport        = 8
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 6
-pport = 9
+vport        = 8
+pport        = 9
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 7
-pport = 10
+vport        = 9
+pport        = 10
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 8
-pport = 11
+vport        = 10
+pport        = 11
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 9
-pport = 12
+vport        = 11
+pport        = 12
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 10
-pport = 13
+vport        = 12
+pport        = 13
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 11
-pport = 14
+vport        = 13
+pport        = 14
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 12
-pport = 15
+vport        = 14
+pport        = 15
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 13
-pport = 16
+vport        = 15
+pport        = 16
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 14
-pport = 17
+vport        = 16
+pport        = 17
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 15
-pport = 18
+vport        = 17
+pport        = 18
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 16
-pport = 19
+vport        = 18
+pport        = 19
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 17
-pport = 20
+vport        = 19
+pport        = 20
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 18
-pport = 21
+vport        = 20
+pport        = 21
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 19
-pport = 22
+vport        = 21
+pport        = 22
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 20
-pport = 23
+vport        = 22
+pport        = 23
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 21
-pport = 24
+vport        = 23
+pport        = 24
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 22
-pport = 25
+vport        = 24
+pport        = 25
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 23
-pport = 26
+vport        = 25
+pport        = 26
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 24
-pport = 27
+vport        = 26
+pport        = 27
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 25
-pport = 28
+vport        = 27
+pport        = 28
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 26
-pport = 29
+vport        = 28
+pport        = 29
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 27
-pport = 30
+vport        = 29
+pport        = 30
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 28
-pport = 31
+vport        = 30
+pport        = 31
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport = 29
-pport = 32
+vport        = 31
+pport        = 32
 capacity_bps = 100_000_000_000 # 100G
 
 ########################################################
@@ -170,19 +170,19 @@ capacity_bps = 100_000_000_000 # 100G
 ########################################################
 
 [[switch.recirculation_ports]]
-dev = 0
+dev_port     = 0
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
-dev = 1
+dev_port     = 1
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
-dev = 2
+dev_port     = 2
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
-dev = 3
+dev_port     = 3
 capacity_bps = 125_000_000_000 # 125G
 
 ########################################################
@@ -190,25 +190,25 @@ capacity_bps = 125_000_000_000 # 125G
 ########################################################
 
 [switch.arch]
-name = "Tofino 2"
-max_packet_bytes_in_condition = 4
-pipes = 4
-stages = 20
-sram_per_stage = 10485760                       # 128 * 1024 * 80 bits
-tcam_per_stage = 540672                         # 44 * 512 * 24 bits
-map_ram_per_stage = 6291456                     # 128 * 1024 * 48 bits
-max_logical_tcam_tables_per_stage = 8
+name                                       = "Tofino 2"
+max_packet_bytes_in_condition              = 4
+pipes                                      = 4
+stages                                     = 20
+sram_per_stage                             = 10485760   # 128 * 1024 * 80 bits
+tcam_per_stage                             = 540672     # 44 * 512 * 24 bits
+map_ram_per_stage                          = 6291456    # 128 * 1024 * 48 bits
+max_logical_tcam_tables_per_stage          = 8
 max_logical_sram_and_tcam_tables_per_stage = 16
-phv_size = 5000                                 # bits
-phv_8bit_containers = 80
-phv_16bit_containers = 120
-phv_32bit_containers = 80
-packet_buffer_size = 512000000                  # 64e6 * 8 bits
-exact_match_xbar_per_stage = 1024               # 128 * 8 bits
-max_exact_match_keys = 16
-ternary_match_xbar = 528                        # 66 * 8 bits
-max_ternary_match_keys = 8
-max_salu_size = 32                              # TNA2 actually can supposedly support 64b, but it keeps crashing the compiler...
+phv_size                                   = 5000       # bits
+phv_8bit_containers                        = 80
+phv_16bit_containers                       = 120
+phv_32bit_containers                       = 80
+packet_buffer_size                         = 512000000  # 64e6 * 8 bits
+exact_match_xbar_per_stage                 = 1024       # 128 * 8 bits
+max_exact_match_keys                       = 16
+ternary_match_xbar                         = 528        # 66 * 8 bits
+max_ternary_match_keys                     = 8
+max_salu_size                              = 32         # TNA2 actually can supposedly support 64b, but it keeps crashing the compiler...
 
 [controller]
 capacity_pps = 100_000 # pps

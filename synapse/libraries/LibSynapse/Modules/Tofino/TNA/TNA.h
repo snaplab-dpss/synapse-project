@@ -5,13 +5,12 @@
 #include <LibSynapse/Modules/Tofino/TNA/Parser.h>
 #include <LibCore/Types.h>
 
-#include <toml++/toml.hpp>
 #include <unordered_map>
 
 namespace LibSynapse {
 namespace Tofino {
 
-struct TNAProperties {
+struct tna_properties_t {
   int total_ports;
   int total_recirc_ports;
   int max_packet_bytes_in_condition;
@@ -34,26 +33,37 @@ struct TNAProperties {
   bits_t max_salu_size;
 };
 
-struct TofinoPort {
+struct tofino_port_t {
   u16 nf_device;
   u16 front_panel_port;
-  u16 tofino_device;
+  bps_t capacity;
+};
+
+struct tofino_recirculation_port_t {
+  u16 dev_port;
+  bps_t capacity;
+};
+
+struct tna_config_t {
+  tna_properties_t properties;
+  std::vector<tofino_port_t> ports;
+  std::vector<tofino_recirculation_port_t> recirculation_ports;
 };
 
 class TNA {
 private:
-  const TNAProperties properties;
-  const std::vector<TofinoPort> ports;
+  const tna_properties_t properties;
+  const std::vector<tofino_port_t> ports;
   SimplePlacer simple_placer;
 
 public:
   Parser parser;
 
-  TNA(const toml::table &config);
+  TNA(const tna_config_t &config);
   TNA(const TNA &other);
 
-  const TNAProperties &get_properties() const { return properties; }
-  const std::vector<TofinoPort> &get_ports() const { return ports; }
+  const tna_properties_t &get_properties() const { return properties; }
+  const std::vector<tofino_port_t> &get_ports() const { return ports; }
 
   // Tofino compiler complains if we access more than 4 bytes of the packet on
   // the same if statement.

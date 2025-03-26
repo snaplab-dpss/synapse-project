@@ -51,8 +51,8 @@ TargetView TargetsView::get_initial_target() const {
   return elements[0];
 }
 
-Targets::Targets(const toml::table &config) {
-  elements.push_back(std::move(std::make_unique<Tofino::TofinoTarget>(config)));
+Targets::Targets(const targets_config_t &targets_config) {
+  elements.push_back(std::move(std::make_unique<Tofino::TofinoTarget>(targets_config.tofino_config)));
   elements.push_back(std::move(std::make_unique<Controller::ControllerTarget>()));
   elements.push_back(std::move(std::make_unique<x86::x86Target>()));
 }

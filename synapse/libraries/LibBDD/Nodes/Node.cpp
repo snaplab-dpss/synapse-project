@@ -564,9 +564,9 @@ LibCore::Symbols Node::get_used_symbols() const {
 
   switch (type) {
   case NodeType::Branch: {
-    const Branch *branch_node             = dynamic_cast<const Branch *>(this);
-    klee::ref<klee::Expr> expr            = branch_node->get_condition();
-    std::unordered_set<std::string> names = LibCore::symbol_t::get_symbols_names(expr);
+    const Branch *branch_node                   = dynamic_cast<const Branch *>(this);
+    klee::ref<klee::Expr> expr                  = branch_node->get_condition();
+    const std::unordered_set<std::string> names = LibCore::symbol_t::get_symbols_names(expr);
     for (const std::string &name : names) {
       symbols.add(symbol_manager->get_symbol(name));
     }
@@ -600,11 +600,55 @@ LibCore::Symbols Node::get_used_symbols() const {
       }
     }
   } break;
-  case NodeType::Route:
-    break;
+  case NodeType::Route: {
+    const Route *route_node                     = dynamic_cast<const Route *>(this);
+    klee::ref<klee::Expr> dst_device            = route_node->get_dst_device();
+    const std::unordered_set<std::string> names = LibCore::symbol_t::get_symbols_names(dst_device);
+    for (const std::string &name : names) {
+      symbols.add(symbol_manager->get_symbol(name));
+    }
+  } break;
   }
 
   return symbols;
+}
+
+LibCore::symbolic_reads_t Node::get_used_symbolic_reads() const {
+  LibCore::symbolic_reads_t symbolic_reads;
+
+  switch (type) {
+  case NodeType::Branch: {
+    const Branch *branch_node  = dynamic_cast<const Branch *>(this);
+    klee::ref<klee::Expr> expr = branch_node->get_condition();
+    symbolic_reads             = LibCore::get_unique_symbolic_reads(expr);
+  } break;
+  case NodeType::Call: {
+    const Call *call_node = dynamic_cast<const Call *>(this);
+    const call_t &call    = call_node->get_call();
+
+    for (const auto &[arg_name, arg] : call.args) {
+      for (LibCore::symbolic_read_t read : LibCore::get_unique_symbolic_reads(arg.expr)) {
+        symbolic_reads.insert(read);
+      }
+
+      for (LibCore::symbolic_read_t read : LibCore::get_unique_symbolic_reads(arg.in)) {
+        symbolic_reads.insert(read);
+      }
+    }
+
+    for (const auto &[extra_var_name, extra_var] : call.extra_vars) {
+      for (LibCore::symbolic_read_t read : LibCore::get_unique_symbolic_reads(extra_var.first)) {
+        symbolic_reads.insert(read);
+      }
+    }
+  } break;
+  case NodeType::Route: {
+    const Route *route_node = dynamic_cast<const Route *>(this);
+    symbolic_reads          = LibCore::get_unique_symbolic_reads(route_node->get_dst_device());
+  } break;
+  }
+
+  return symbolic_reads;
 }
 
 bool Node::is_packet_drop_code_path() const {

@@ -119,7 +119,7 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
 }
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const LibBDD::BDD &bdd, const Targets &targets,
-                                           const toml::table &targets_config, const Profiler &profiler) {
+                                           const targets_config_t &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> cfg;
 
   switch (hopt) {
@@ -153,8 +153,8 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 }
 } // namespace
 
-SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const toml::table &_targets_config,
-                           const search_config_t &_search_config)
+SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler,
+                           const targets_config_t &_targets_config, const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config)), profiler(_profiler),
       heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 

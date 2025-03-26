@@ -36,16 +36,16 @@ struct PlacementRequest {
   std::unordered_set<DS_ID> deps;
 };
 
-struct TNAProperties;
+struct tna_properties_t;
 
 class SimplePlacer {
 private:
-  const TNAProperties *properties;
+  const tna_properties_t *properties;
   std::vector<Stage> stages;
   std::vector<PlacementRequest> placement_requests;
 
 public:
-  SimplePlacer(const TNAProperties *properties);
+  SimplePlacer(const tna_properties_t *properties);
   SimplePlacer(const SimplePlacer &other);
   ~SimplePlacer();
 

@@ -32,7 +32,7 @@ struct HHTable : public DS {
   Register threshold;
   Digest digest;
 
-  HHTable(const TNAProperties &properties, DS_ID id, u32 op, u32 capacity, const std::vector<bits_t> &keys_sizes, u32 bloom_width,
+  HHTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 capacity, const std::vector<bits_t> &keys_sizes, u32 bloom_width,
           u32 bloom_height, u32 cms_width, u32 cms_height);
 
   HHTable(const HHTable &other);

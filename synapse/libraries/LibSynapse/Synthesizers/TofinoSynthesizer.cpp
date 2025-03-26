@@ -186,7 +186,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitConcat(const klee:
   std::cerr << LibCore::expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitConcat");
+  panic("TODO: visitConcat: %s", LibCore::expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -1667,23 +1667,30 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserExtraction *node) {
-  const klee::ref<klee::Expr> expr = node->get_hdr();
+  const klee::ref<klee::Expr> hdr_expr                       = node->get_hdr();
+  const std::vector<klee::ref<klee::Expr>> &hdr_fields_guess = node->get_hdr_fields_guess();
 
-  // On header valid only.
   ingress_vars.push();
   hdrs_stacks.push();
 
   const code_t hdr_name = create_unique_name("hdr");
-  const var_t hdr       = alloc_var("hdr." + hdr_name, expr, LOCAL | EXACT_NAME | HEADER);
-  const var_t hdr_data  = alloc_var("hdr." + hdr_name + ".data", expr, LOCAL | EXACT_NAME | HEADER_FIELD);
+  const var_t hdr       = alloc_var("hdr." + hdr_name, hdr_expr, LOCAL | EXACT_NAME | HEADER);
+
+  std::vector<var_t> hdr_data;
+  for (klee::ref<klee::Expr> field : hdr_fields_guess) {
+    const var_t var = alloc_var("hdr." + hdr_name + ".data" + std::to_string(hdr_data.size()), field, LOCAL | EXACT_NAME | HEADER_FIELD);
+    hdr_data.push_back(var);
+  }
 
   coder_t &custom_hdrs = get(MARKER_CUSTOM_HEADERS);
   custom_hdrs.indent();
   custom_hdrs << "header " << hdr_name << "_h {\n";
 
   custom_hdrs.inc();
-  custom_hdrs.indent();
-  custom_hdrs << TofinoSynthesizer::Transpiler::type_from_expr(expr) << " " << hdr_data.get_stem() << ";\n";
+  for (const var_t &field : hdr_data) {
+    custom_hdrs.indent();
+    custom_hdrs << TofinoSynthesizer::Transpiler::type_from_expr(field.expr) << " " << field.get_stem() << ";\n";
+  }
 
   custom_hdrs.dec();
   custom_hdrs.indent();
@@ -1719,20 +1726,27 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  klee::ref<klee::Expr> hdr    = node->get_hdr();
-  std::optional<var_t> hdr_var = ingress_vars.get_hdr(hdr);
-  assert(hdr_var && "Header not found");
+  klee::ref<klee::Expr> hdr = node->get_hdr();
 
   const std::vector<LibCore::expr_mod_t> &changes     = node->get_changes();
   const std::vector<LibCore::expr_byte_swap_t> &swaps = node->get_swaps();
 
   std::unordered_set<bytes_t> bytes_already_dealt_with;
   for (const LibCore::expr_byte_swap_t &byte_swap : swaps) {
+    klee::ref<klee::Expr> byte0_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte0 * 8, 8);
+    klee::ref<klee::Expr> byte1_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte1 * 8, 8);
+
+    std::optional<var_t> byte0_var = ingress_vars.get_hdr(byte0_expr);
+    std::optional<var_t> byte1_var = ingress_vars.get_hdr(byte1_expr);
+
+    assert(byte0_var.has_value() && "Byte0 not found");
+    assert(byte1_var.has_value() && "Byte1 not found");
+
     ingress_apply.indent();
     ingress_apply << "swap(";
-    ingress_apply << hdr_var->get_slice(byte_swap.byte0 * 8, 8).name;
+    ingress_apply << byte0_var->name;
     ingress_apply << ", ";
-    ingress_apply << hdr_var->get_slice(byte_swap.byte1 * 8, 8).name;
+    ingress_apply << byte1_var->name;
     ingress_apply << ");\n";
 
     bytes_already_dealt_with.insert(byte_swap.byte0);
@@ -1764,24 +1778,33 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       }
 
       if (matching_bytes == var->original_size / 8) {
-        coder_t assignment;
-        assignment << hdr_var->get_slice(mod.offset, var->original_size).name;
-        assignment << " = ";
-        assignment << var->original_name;
-        assignment << ";";
+        klee::ref<klee::Expr> target_hdr_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, mod.offset, var->original_size);
+        std::optional<var_t> target_hdr_var   = ingress_vars.get_hdr(target_hdr_expr);
 
-        assignments.push_back(assignment.dump());
+        if (target_hdr_var.has_value()) {
+          coder_t assignment;
+          assignment << target_hdr_var->name;
+          assignment << " = ";
+          assignment << var->original_name;
+          assignment << ";";
 
-        for (bytes_t b = 0; b < matching_bytes; b++) {
-          bytes_already_dealt_with.insert(changes[b + i].offset / 8);
+          assignments.push_back(assignment.dump());
+
+          for (bytes_t b = 0; b < matching_bytes; b++) {
+            bytes_already_dealt_with.insert(changes[b + i].offset / 8);
+          }
+
+          continue;
         }
-
-        continue;
       }
     }
 
+    klee::ref<klee::Expr> target_hdr_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, mod.offset, mod.width);
+    std::optional<var_t> target_hdr_var   = ingress_vars.get_hdr(target_hdr_expr);
+    assert(target_hdr_var.has_value() && "Target hdr field not found");
+
     coder_t assignment;
-    assignment << hdr_var->get_slice(mod.offset, mod.width).name;
+    assignment << target_hdr_var->name;
     assignment << " = ";
     assignment << transpiler.transpile(mod.expr);
     assignment << ";";

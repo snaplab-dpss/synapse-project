@@ -10,8 +10,8 @@ namespace {
 using LibSynapse::Tofino::DS;
 using LibSynapse::Tofino::DS_ID;
 using LibSynapse::Tofino::TNA;
+using LibSynapse::Tofino::tofino_port_t;
 using LibSynapse::Tofino::TofinoContext;
-using LibSynapse::Tofino::TofinoPort;
 
 constexpr const char *const MARKER_STATE_FIELDS           = "STATE_FIELDS";
 constexpr const char *const MARKER_STATE_MEMBER_INIT_LIST = "STATE_MEMBER_INIT_LIST";
@@ -725,7 +725,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                  = tofino_ctx->get_tna();
 
-  for (const TofinoPort &port : tna.get_ports()) {
+  for (const tofino_port_t &port : tna.get_ports()) {
     nf_init.indent();
     nf_init << "state->ingress_port_to_nf_dev.add_entry(";
     nf_init << "asic_get_dev_port(" << port.front_panel_port << "), ";

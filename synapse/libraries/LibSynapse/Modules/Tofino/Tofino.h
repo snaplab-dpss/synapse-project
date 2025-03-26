@@ -1,7 +1,5 @@
 #pragma once
 
-#include <toml++/toml.hpp>
-
 #include <LibSynapse/Target.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
@@ -43,7 +41,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct TofinoTarget : public Target {
-  TofinoTarget(const toml::table &config)
+  TofinoTarget(const tna_config_t &tna_config)
       : Target(
             TargetType::Tofino,
             []() -> std::vector<std::unique_ptr<ModuleFactory>> {
@@ -82,7 +80,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<LPMLookupFactory>());
               return f;
             }(),
-            std::make_unique<TofinoContext>(config)) {}
+            std::make_unique<TofinoContext>(tna_config)) {}
 };
 
 } // namespace Tofino

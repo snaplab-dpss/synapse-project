@@ -24,13 +24,101 @@ std::string nf_name_from_bdd(const std::string &bdd_fname) {
   return nf_name;
 }
 
-toml::table parse_targets_config(const std::filesystem::path &targets_config_file) {
-  toml::table targets_config;
+LibSynapse::targets_config_t parse_targets_config(const std::filesystem::path &targets_config_file) {
+  toml::table config;
+
   try {
-    targets_config = toml::parse_file(targets_config_file.string());
+    config = toml::parse_file(targets_config_file.string());
   } catch (const toml::parse_error &err) {
     panic("Parsing failed: %s\n", err.what());
   }
+
+  assert(config.contains("switch") && "Switch configuration not found");
+  assert(config["switch"].as_table()->contains("arch") && "Arch configuration not found");
+
+  LibSynapse::targets_config_t targets_config;
+
+  targets_config.tofino_config.properties = {
+      .total_ports                                = static_cast<int>(config["switch"]["front_panel_ports"].as_array()->size()),
+      .total_recirc_ports                         = static_cast<int>(config["switch"]["recirculation_ports"].as_array()->size()),
+      .max_packet_bytes_in_condition              = *config["switch"]["arch"]["max_packet_bytes_in_condition"].value<int>(),
+      .pipes                                      = *config["switch"]["arch"]["pipes"].value<int>(),
+      .stages                                     = *config["switch"]["arch"]["stages"].value<int>(),
+      .sram_per_stage                             = *config["switch"]["arch"]["sram_per_stage"].value<bits_t>(),
+      .tcam_per_stage                             = *config["switch"]["arch"]["tcam_per_stage"].value<bits_t>(),
+      .map_ram_per_stage                          = *config["switch"]["arch"]["map_ram_per_stage"].value<bits_t>(),
+      .max_logical_tcam_tables_per_stage          = *config["switch"]["arch"]["max_logical_tcam_tables_per_stage"].value<int>(),
+      .max_logical_sram_and_tcam_tables_per_stage = *config["switch"]["arch"]["max_logical_sram_and_tcam_tables_per_stage"].value<int>(),
+      .phv_size                                   = *config["switch"]["arch"]["phv_size"].value<bits_t>(),
+      .phv_8bit_containers                        = *config["switch"]["arch"]["phv_8bit_containers"].value<int>(),
+      .phv_16bit_containers                       = *config["switch"]["arch"]["phv_16bit_containers"].value<int>(),
+      .phv_32bit_containers                       = *config["switch"]["arch"]["phv_32bit_containers"].value<int>(),
+      .packet_buffer_size                         = *config["switch"]["arch"]["packet_buffer_size"].value<bits_t>(),
+      .exact_match_xbar_per_stage                 = *config["switch"]["arch"]["exact_match_xbar_per_stage"].value<bits_t>(),
+      .max_exact_match_keys                       = *config["switch"]["arch"]["max_exact_match_keys"].value<int>(),
+      .ternary_match_xbar                         = *config["switch"]["arch"]["ternary_match_xbar"].value<bits_t>(),
+      .max_ternary_match_keys                     = *config["switch"]["arch"]["max_ternary_match_keys"].value<int>(),
+      .max_salu_size                              = *config["switch"]["arch"]["max_salu_size"].value<bits_t>(),
+  };
+
+  std::unordered_set<u16> nf_devices;
+  std::unordered_set<u16> front_panel_ports;
+
+  for (auto &&elem : *config["switch"]["front_panel_ports"].as_array()) {
+    int virtual_port  = *elem.at_path("vport").value<int>();
+    int physical_port = *elem.at_path("pport").value<int>();
+    bps_t capacity    = *elem.at_path("capacity_bps").value<bps_t>();
+
+    if (virtual_port < 0) {
+      continue;
+    }
+
+    if (nf_devices.find(virtual_port) != nf_devices.end()) {
+      panic("Invalid config file: repeated vport %d", virtual_port);
+    }
+
+    if (front_panel_ports.find(physical_port) != front_panel_ports.end()) {
+      panic("Invalid config file: repeated pport %d", physical_port);
+    }
+
+    nf_devices.insert(virtual_port);
+    front_panel_ports.insert(physical_port);
+
+    LibSynapse::Tofino::tofino_port_t port{
+        .nf_device        = static_cast<u16>(virtual_port),
+        .front_panel_port = static_cast<u16>(physical_port),
+        .capacity         = capacity,
+    };
+
+    targets_config.tofino_config.ports.push_back(port);
+  }
+
+  std::unordered_set<u16> dev_ports;
+
+  for (auto &&elem : *config["switch"]["recirculation_ports"].as_array()) {
+    int dev_port   = *elem.at_path("dev_port").value<int>();
+    bps_t capacity = *elem.at_path("capacity_bps").value<bps_t>();
+
+    if (dev_port < 0) {
+      continue;
+    }
+
+    if (dev_ports.find(dev_port) != dev_ports.end()) {
+      panic("Invalid config file: repeated dev port %d", dev_port);
+    }
+
+    dev_ports.insert(dev_port);
+
+    LibSynapse::Tofino::tofino_recirculation_port_t recirc_port{
+        .dev_port = static_cast<u16>(dev_port),
+        .capacity = capacity,
+    };
+
+    targets_config.tofino_config.recirculation_ports.push_back(recirc_port);
+  }
+
+  targets_config.controller_capacity = *config["controller"]["capacity_pps"].value<pps_t>();
+
   return targets_config;
 }
 
@@ -59,7 +147,8 @@ struct args_t {
       return "Unknown";
     };
 
-    LibSynapse::Targets targets(parse_targets_config(targets_config_file));
+    const LibSynapse::targets_config_t targets_config = parse_targets_config(targets_config_file);
+    LibSynapse::Targets targets(targets_config);
 
     std::cout << "====================== Args ======================\n";
     std::cout << "Input BDD file:   " << input_bdd_file << "\n";
@@ -134,8 +223,8 @@ int main(int argc, char **argv) {
 
   LibCore::SingletonRandomEngine::seed(args.seed);
   LibCore::SymbolManager symbol_manager;
-  const LibBDD::BDD bdd            = LibBDD::BDD(args.input_bdd_file, &symbol_manager);
-  const toml::table targets_config = parse_targets_config(args.targets_config_file);
+  const LibBDD::BDD bdd                             = LibBDD::BDD(args.input_bdd_file, &symbol_manager);
+  const LibSynapse::targets_config_t targets_config = parse_targets_config(args.targets_config_file);
   const LibSynapse::Profiler profiler =
       args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
 

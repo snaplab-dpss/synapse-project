@@ -1,6 +1,6 @@
 #pragma once
 
-#include <toml++/toml.hpp>
+#include <LibSynapse/Modules/Tofino/TNA/TNA.h>
 
 #include <memory>
 #include <vector>
@@ -14,6 +14,11 @@ enum class TargetType { x86, Tofino, Controller };
 
 std::ostream &operator<<(std::ostream &os, TargetType target);
 std::string to_string(TargetType target);
+
+struct targets_config_t {
+  Tofino::tna_config_t tofino_config;
+  bps_t controller_capacity;
+};
 
 struct TargetView {
   TargetType type;
@@ -51,7 +56,7 @@ struct TargetsView {
 struct Targets {
   std::vector<std::unique_ptr<Target>> elements;
 
-  Targets(const toml::table &config);
+  Targets(const targets_config_t &config);
   Targets(const Targets &other) = delete;
   Targets(Targets &&other)      = delete;
 

@@ -40,10 +40,11 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
 
   // Relevant for IPv4 options, but left for future work.
   assert(!call_node->is_hdr_parse_with_var_len() && "Not implemented");
-  bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
-  addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
+  const bytes_t length                                      = LibCore::solver_toolbox.value_from_expr(length_expr);
+  const addr_t hdr_addr                                     = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
+  const std::vector<klee::ref<klee::Expr>> hdr_fields_guess = call_node->guess_header_fields_from_packet_borrow();
 
-  Module *module  = new ParserExtraction(node, hdr_addr, hdr, length);
+  Module *module  = new ParserExtraction(node, hdr_addr, hdr, length, hdr_fields_guess);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -74,10 +75,11 @@ std::unique_ptr<Module> ParserExtractionFactory::create(const LibBDD::BDD *bdd, 
   klee::ref<klee::Expr> hdr           = call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> length_expr   = call.args.at("length").expr;
 
-  addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
-  bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
+  const addr_t hdr_addr                                     = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
+  const bytes_t length                                      = LibCore::solver_toolbox.value_from_expr(length_expr);
+  const std::vector<klee::ref<klee::Expr>> hdr_fields_guess = call_node->guess_header_fields_from_packet_borrow();
 
-  return std::make_unique<ParserExtraction>(node, hdr_addr, hdr, length);
+  return std::make_unique<ParserExtraction>(node, hdr_addr, hdr, length, hdr_fields_guess);
 }
 
 } // namespace Tofino

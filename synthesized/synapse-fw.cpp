@@ -106,11 +106,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 8:vector_return(vector:(w64 1074093656), index:(w32 0), value:(w64 1074107552)[(w16 1)])
   // Module VectorRegisterUpdate
-  buffer_t value_0;
-  state->vector_register_1074093656.get(0, value_0);
-  value_0[1] = 1;
-  value_0[0] = 0;
-  state->vector_register_1074093656.put(0, value_0);
+  buffer_t vector_register_1074093656_value_0(2);
+  vector_register_1074093656_value_0[0] = 0;
+  vector_register_1074093656_value_0[1] = 1;
+  state->vector_register_1074093656.put(0, vector_register_1074093656_value_0);
   // BDD node 9:vector_borrow(vector:(w64 1074076440), index:(w32 1), val_out:(w64 1074043640)[ -> (w64 1074090360)])
   // Module Ignore
   // BDD node 10:vector_return(vector:(w64 1074076440), index:(w32 1), value:(w64 1074090360)[(w32 0)])
@@ -125,11 +124,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 12:vector_return(vector:(w64 1074093656), index:(w32 1), value:(w64 1074107576)[(w16 0)])
   // Module VectorRegisterUpdate
-  buffer_t value_1;
-  state->vector_register_1074093656.get(1, value_1);
-  value_1[1] = 0;
-  value_1[0] = 0;
-  state->vector_register_1074093656.put(1, value_1);
+  buffer_t vector_register_1074093656_value_1(2);
+  vector_register_1074093656_value_1[0] = 0;
+  vector_register_1074093656_value_1[1] = 0;
+  state->vector_register_1074093656.put(1, vector_register_1074093656_value_1);
   // BDD node 13:vector_borrow(vector:(w64 1074076440), index:(w32 2), val_out:(w64 1074043640)[ -> (w64 1074090384)])
   // Module Ignore
   // BDD node 14:vector_return(vector:(w64 1074076440), index:(w32 2), value:(w64 1074090384)[(w32 1)])
@@ -144,11 +142,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 16:vector_return(vector:(w64 1074093656), index:(w32 2), value:(w64 1074107600)[(w16 3)])
   // Module VectorRegisterUpdate
-  buffer_t value_2;
-  state->vector_register_1074093656.get(2, value_2);
-  value_2[1] = 3;
-  value_2[0] = 0;
-  state->vector_register_1074093656.put(2, value_2);
+  buffer_t vector_register_1074093656_value_2(2);
+  vector_register_1074093656_value_2[0] = 0;
+  vector_register_1074093656_value_2[1] = 3;
+  state->vector_register_1074093656.put(2, vector_register_1074093656_value_2);
   // BDD node 17:vector_borrow(vector:(w64 1074076440), index:(w32 3), val_out:(w64 1074043640)[ -> (w64 1074090408)])
   // Module Ignore
   // BDD node 18:vector_return(vector:(w64 1074076440), index:(w32 3), value:(w64 1074090408)[(w32 0)])
@@ -163,11 +160,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 20:vector_return(vector:(w64 1074093656), index:(w32 3), value:(w64 1074107624)[(w16 2)])
   // Module VectorRegisterUpdate
-  buffer_t value_3;
-  state->vector_register_1074093656.get(3, value_3);
-  value_3[1] = 2;
-  value_3[0] = 0;
-  state->vector_register_1074093656.put(3, value_3);
+  buffer_t vector_register_1074093656_value_3(2);
+  vector_register_1074093656_value_3[0] = 0;
+  vector_register_1074093656_value_3[1] = 2;
+  state->vector_register_1074093656.put(3, vector_register_1074093656_value_3);
   // BDD node 21:vector_borrow(vector:(w64 1074076440), index:(w32 4), val_out:(w64 1074043640)[ -> (w64 1074090432)])
   // Module Ignore
   // BDD node 22:vector_return(vector:(w64 1074076440), index:(w32 4), value:(w64 1074090432)[(w32 1)])
@@ -182,11 +178,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 24:vector_return(vector:(w64 1074093656), index:(w32 4), value:(w64 1074107648)[(w16 5)])
   // Module VectorRegisterUpdate
-  buffer_t value_4;
-  state->vector_register_1074093656.get(4, value_4);
-  value_4[1] = 5;
-  value_4[0] = 0;
-  state->vector_register_1074093656.put(4, value_4);
+  buffer_t vector_register_1074093656_value_4(2);
+  vector_register_1074093656_value_4[0] = 0;
+  vector_register_1074093656_value_4[1] = 5;
+  state->vector_register_1074093656.put(4, vector_register_1074093656_value_4);
   // BDD node 25:vector_borrow(vector:(w64 1074076440), index:(w32 5), val_out:(w64 1074043640)[ -> (w64 1074090456)])
   // Module Ignore
   // BDD node 26:vector_return(vector:(w64 1074076440), index:(w32 5), value:(w64 1074090456)[(w32 0)])
@@ -201,11 +196,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 28:vector_return(vector:(w64 1074093656), index:(w32 5), value:(w64 1074107672)[(w16 4)])
   // Module VectorRegisterUpdate
-  buffer_t value_5;
-  state->vector_register_1074093656.get(5, value_5);
-  value_5[1] = 4;
-  value_5[0] = 0;
-  state->vector_register_1074093656.put(5, value_5);
+  buffer_t vector_register_1074093656_value_5(2);
+  vector_register_1074093656_value_5[0] = 0;
+  vector_register_1074093656_value_5[1] = 4;
+  state->vector_register_1074093656.put(5, vector_register_1074093656_value_5);
   // BDD node 29:vector_borrow(vector:(w64 1074076440), index:(w32 6), val_out:(w64 1074043640)[ -> (w64 1074090480)])
   // Module Ignore
   // BDD node 30:vector_return(vector:(w64 1074076440), index:(w32 6), value:(w64 1074090480)[(w32 1)])
@@ -220,11 +214,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 32:vector_return(vector:(w64 1074093656), index:(w32 6), value:(w64 1074107696)[(w16 7)])
   // Module VectorRegisterUpdate
-  buffer_t value_6;
-  state->vector_register_1074093656.get(6, value_6);
-  value_6[1] = 7;
-  value_6[0] = 0;
-  state->vector_register_1074093656.put(6, value_6);
+  buffer_t vector_register_1074093656_value_6(2);
+  vector_register_1074093656_value_6[0] = 0;
+  vector_register_1074093656_value_6[1] = 7;
+  state->vector_register_1074093656.put(6, vector_register_1074093656_value_6);
   // BDD node 33:vector_borrow(vector:(w64 1074076440), index:(w32 7), val_out:(w64 1074043640)[ -> (w64 1074090504)])
   // Module Ignore
   // BDD node 34:vector_return(vector:(w64 1074076440), index:(w32 7), value:(w64 1074090504)[(w32 0)])
@@ -239,11 +232,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 36:vector_return(vector:(w64 1074093656), index:(w32 7), value:(w64 1074107720)[(w16 6)])
   // Module VectorRegisterUpdate
-  buffer_t value_7;
-  state->vector_register_1074093656.get(7, value_7);
-  value_7[1] = 6;
-  value_7[0] = 0;
-  state->vector_register_1074093656.put(7, value_7);
+  buffer_t vector_register_1074093656_value_7(2);
+  vector_register_1074093656_value_7[0] = 0;
+  vector_register_1074093656_value_7[1] = 6;
+  state->vector_register_1074093656.put(7, vector_register_1074093656_value_7);
   // BDD node 37:vector_borrow(vector:(w64 1074076440), index:(w32 8), val_out:(w64 1074043640)[ -> (w64 1074090528)])
   // Module Ignore
   // BDD node 38:vector_return(vector:(w64 1074076440), index:(w32 8), value:(w64 1074090528)[(w32 1)])
@@ -258,11 +250,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 40:vector_return(vector:(w64 1074093656), index:(w32 8), value:(w64 1074107744)[(w16 9)])
   // Module VectorRegisterUpdate
-  buffer_t value_8;
-  state->vector_register_1074093656.get(8, value_8);
-  value_8[1] = 9;
-  value_8[0] = 0;
-  state->vector_register_1074093656.put(8, value_8);
+  buffer_t vector_register_1074093656_value_8(2);
+  vector_register_1074093656_value_8[0] = 0;
+  vector_register_1074093656_value_8[1] = 9;
+  state->vector_register_1074093656.put(8, vector_register_1074093656_value_8);
   // BDD node 41:vector_borrow(vector:(w64 1074076440), index:(w32 9), val_out:(w64 1074043640)[ -> (w64 1074090552)])
   // Module Ignore
   // BDD node 42:vector_return(vector:(w64 1074076440), index:(w32 9), value:(w64 1074090552)[(w32 0)])
@@ -277,11 +268,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 44:vector_return(vector:(w64 1074093656), index:(w32 9), value:(w64 1074107768)[(w16 8)])
   // Module VectorRegisterUpdate
-  buffer_t value_9;
-  state->vector_register_1074093656.get(9, value_9);
-  value_9[1] = 8;
-  value_9[0] = 0;
-  state->vector_register_1074093656.put(9, value_9);
+  buffer_t vector_register_1074093656_value_9(2);
+  vector_register_1074093656_value_9[0] = 0;
+  vector_register_1074093656_value_9[1] = 8;
+  state->vector_register_1074093656.put(9, vector_register_1074093656_value_9);
   // BDD node 45:vector_borrow(vector:(w64 1074076440), index:(w32 10), val_out:(w64 1074043640)[ -> (w64 1074090576)])
   // Module Ignore
   // BDD node 46:vector_return(vector:(w64 1074076440), index:(w32 10), value:(w64 1074090576)[(w32 1)])
@@ -296,11 +286,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 48:vector_return(vector:(w64 1074093656), index:(w32 10), value:(w64 1074107792)[(w16 11)])
   // Module VectorRegisterUpdate
-  buffer_t value_10;
-  state->vector_register_1074093656.get(10, value_10);
-  value_10[1] = 11;
-  value_10[0] = 0;
-  state->vector_register_1074093656.put(10, value_10);
+  buffer_t vector_register_1074093656_value_10(2);
+  vector_register_1074093656_value_10[0] = 0;
+  vector_register_1074093656_value_10[1] = 11;
+  state->vector_register_1074093656.put(10, vector_register_1074093656_value_10);
   // BDD node 49:vector_borrow(vector:(w64 1074076440), index:(w32 11), val_out:(w64 1074043640)[ -> (w64 1074090600)])
   // Module Ignore
   // BDD node 50:vector_return(vector:(w64 1074076440), index:(w32 11), value:(w64 1074090600)[(w32 0)])
@@ -315,11 +304,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 52:vector_return(vector:(w64 1074093656), index:(w32 11), value:(w64 1074107816)[(w16 10)])
   // Module VectorRegisterUpdate
-  buffer_t value_11;
-  state->vector_register_1074093656.get(11, value_11);
-  value_11[1] = 10;
-  value_11[0] = 0;
-  state->vector_register_1074093656.put(11, value_11);
+  buffer_t vector_register_1074093656_value_11(2);
+  vector_register_1074093656_value_11[0] = 0;
+  vector_register_1074093656_value_11[1] = 10;
+  state->vector_register_1074093656.put(11, vector_register_1074093656_value_11);
   // BDD node 53:vector_borrow(vector:(w64 1074076440), index:(w32 12), val_out:(w64 1074043640)[ -> (w64 1074090624)])
   // Module Ignore
   // BDD node 54:vector_return(vector:(w64 1074076440), index:(w32 12), value:(w64 1074090624)[(w32 1)])
@@ -334,11 +322,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 56:vector_return(vector:(w64 1074093656), index:(w32 12), value:(w64 1074107840)[(w16 13)])
   // Module VectorRegisterUpdate
-  buffer_t value_12;
-  state->vector_register_1074093656.get(12, value_12);
-  value_12[1] = 13;
-  value_12[0] = 0;
-  state->vector_register_1074093656.put(12, value_12);
+  buffer_t vector_register_1074093656_value_12(2);
+  vector_register_1074093656_value_12[0] = 0;
+  vector_register_1074093656_value_12[1] = 13;
+  state->vector_register_1074093656.put(12, vector_register_1074093656_value_12);
   // BDD node 57:vector_borrow(vector:(w64 1074076440), index:(w32 13), val_out:(w64 1074043640)[ -> (w64 1074090648)])
   // Module Ignore
   // BDD node 58:vector_return(vector:(w64 1074076440), index:(w32 13), value:(w64 1074090648)[(w32 0)])
@@ -353,11 +340,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 60:vector_return(vector:(w64 1074093656), index:(w32 13), value:(w64 1074107864)[(w16 12)])
   // Module VectorRegisterUpdate
-  buffer_t value_13;
-  state->vector_register_1074093656.get(13, value_13);
-  value_13[1] = 12;
-  value_13[0] = 0;
-  state->vector_register_1074093656.put(13, value_13);
+  buffer_t vector_register_1074093656_value_13(2);
+  vector_register_1074093656_value_13[0] = 0;
+  vector_register_1074093656_value_13[1] = 12;
+  state->vector_register_1074093656.put(13, vector_register_1074093656_value_13);
   // BDD node 61:vector_borrow(vector:(w64 1074076440), index:(w32 14), val_out:(w64 1074043640)[ -> (w64 1074090672)])
   // Module Ignore
   // BDD node 62:vector_return(vector:(w64 1074076440), index:(w32 14), value:(w64 1074090672)[(w32 1)])
@@ -372,11 +358,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 64:vector_return(vector:(w64 1074093656), index:(w32 14), value:(w64 1074107888)[(w16 15)])
   // Module VectorRegisterUpdate
-  buffer_t value_14;
-  state->vector_register_1074093656.get(14, value_14);
-  value_14[1] = 15;
-  value_14[0] = 0;
-  state->vector_register_1074093656.put(14, value_14);
+  buffer_t vector_register_1074093656_value_14(2);
+  vector_register_1074093656_value_14[0] = 0;
+  vector_register_1074093656_value_14[1] = 15;
+  state->vector_register_1074093656.put(14, vector_register_1074093656_value_14);
   // BDD node 65:vector_borrow(vector:(w64 1074076440), index:(w32 15), val_out:(w64 1074043640)[ -> (w64 1074090696)])
   // Module Ignore
   // BDD node 66:vector_return(vector:(w64 1074076440), index:(w32 15), value:(w64 1074090696)[(w32 0)])
@@ -391,11 +376,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 68:vector_return(vector:(w64 1074093656), index:(w32 15), value:(w64 1074107912)[(w16 14)])
   // Module VectorRegisterUpdate
-  buffer_t value_15;
-  state->vector_register_1074093656.get(15, value_15);
-  value_15[1] = 14;
-  value_15[0] = 0;
-  state->vector_register_1074093656.put(15, value_15);
+  buffer_t vector_register_1074093656_value_15(2);
+  vector_register_1074093656_value_15[0] = 0;
+  vector_register_1074093656_value_15[1] = 14;
+  state->vector_register_1074093656.put(15, vector_register_1074093656_value_15);
   // BDD node 69:vector_borrow(vector:(w64 1074076440), index:(w32 16), val_out:(w64 1074043640)[ -> (w64 1074090720)])
   // Module Ignore
   // BDD node 70:vector_return(vector:(w64 1074076440), index:(w32 16), value:(w64 1074090720)[(w32 1)])
@@ -410,11 +394,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 72:vector_return(vector:(w64 1074093656), index:(w32 16), value:(w64 1074107936)[(w16 17)])
   // Module VectorRegisterUpdate
-  buffer_t value_16;
-  state->vector_register_1074093656.get(16, value_16);
-  value_16[1] = 17;
-  value_16[0] = 0;
-  state->vector_register_1074093656.put(16, value_16);
+  buffer_t vector_register_1074093656_value_16(2);
+  vector_register_1074093656_value_16[0] = 0;
+  vector_register_1074093656_value_16[1] = 17;
+  state->vector_register_1074093656.put(16, vector_register_1074093656_value_16);
   // BDD node 73:vector_borrow(vector:(w64 1074076440), index:(w32 17), val_out:(w64 1074043640)[ -> (w64 1074090744)])
   // Module Ignore
   // BDD node 74:vector_return(vector:(w64 1074076440), index:(w32 17), value:(w64 1074090744)[(w32 0)])
@@ -429,11 +412,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 76:vector_return(vector:(w64 1074093656), index:(w32 17), value:(w64 1074107960)[(w16 16)])
   // Module VectorRegisterUpdate
-  buffer_t value_17;
-  state->vector_register_1074093656.get(17, value_17);
-  value_17[1] = 16;
-  value_17[0] = 0;
-  state->vector_register_1074093656.put(17, value_17);
+  buffer_t vector_register_1074093656_value_17(2);
+  vector_register_1074093656_value_17[0] = 0;
+  vector_register_1074093656_value_17[1] = 16;
+  state->vector_register_1074093656.put(17, vector_register_1074093656_value_17);
   // BDD node 77:vector_borrow(vector:(w64 1074076440), index:(w32 18), val_out:(w64 1074043640)[ -> (w64 1074090768)])
   // Module Ignore
   // BDD node 78:vector_return(vector:(w64 1074076440), index:(w32 18), value:(w64 1074090768)[(w32 1)])
@@ -448,11 +430,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 80:vector_return(vector:(w64 1074093656), index:(w32 18), value:(w64 1074107984)[(w16 19)])
   // Module VectorRegisterUpdate
-  buffer_t value_18;
-  state->vector_register_1074093656.get(18, value_18);
-  value_18[1] = 19;
-  value_18[0] = 0;
-  state->vector_register_1074093656.put(18, value_18);
+  buffer_t vector_register_1074093656_value_18(2);
+  vector_register_1074093656_value_18[0] = 0;
+  vector_register_1074093656_value_18[1] = 19;
+  state->vector_register_1074093656.put(18, vector_register_1074093656_value_18);
   // BDD node 81:vector_borrow(vector:(w64 1074076440), index:(w32 19), val_out:(w64 1074043640)[ -> (w64 1074090792)])
   // Module Ignore
   // BDD node 82:vector_return(vector:(w64 1074076440), index:(w32 19), value:(w64 1074090792)[(w32 0)])
@@ -467,11 +448,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 84:vector_return(vector:(w64 1074093656), index:(w32 19), value:(w64 1074108008)[(w16 18)])
   // Module VectorRegisterUpdate
-  buffer_t value_19;
-  state->vector_register_1074093656.get(19, value_19);
-  value_19[1] = 18;
-  value_19[0] = 0;
-  state->vector_register_1074093656.put(19, value_19);
+  buffer_t vector_register_1074093656_value_19(2);
+  vector_register_1074093656_value_19[0] = 0;
+  vector_register_1074093656_value_19[1] = 18;
+  state->vector_register_1074093656.put(19, vector_register_1074093656_value_19);
   // BDD node 85:vector_borrow(vector:(w64 1074076440), index:(w32 20), val_out:(w64 1074043640)[ -> (w64 1074090816)])
   // Module Ignore
   // BDD node 86:vector_return(vector:(w64 1074076440), index:(w32 20), value:(w64 1074090816)[(w32 1)])
@@ -486,11 +466,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 88:vector_return(vector:(w64 1074093656), index:(w32 20), value:(w64 1074108032)[(w16 21)])
   // Module VectorRegisterUpdate
-  buffer_t value_20;
-  state->vector_register_1074093656.get(20, value_20);
-  value_20[1] = 21;
-  value_20[0] = 0;
-  state->vector_register_1074093656.put(20, value_20);
+  buffer_t vector_register_1074093656_value_20(2);
+  vector_register_1074093656_value_20[0] = 0;
+  vector_register_1074093656_value_20[1] = 21;
+  state->vector_register_1074093656.put(20, vector_register_1074093656_value_20);
   // BDD node 89:vector_borrow(vector:(w64 1074076440), index:(w32 21), val_out:(w64 1074043640)[ -> (w64 1074090840)])
   // Module Ignore
   // BDD node 90:vector_return(vector:(w64 1074076440), index:(w32 21), value:(w64 1074090840)[(w32 0)])
@@ -505,11 +484,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 92:vector_return(vector:(w64 1074093656), index:(w32 21), value:(w64 1074108056)[(w16 20)])
   // Module VectorRegisterUpdate
-  buffer_t value_21;
-  state->vector_register_1074093656.get(21, value_21);
-  value_21[1] = 20;
-  value_21[0] = 0;
-  state->vector_register_1074093656.put(21, value_21);
+  buffer_t vector_register_1074093656_value_21(2);
+  vector_register_1074093656_value_21[0] = 0;
+  vector_register_1074093656_value_21[1] = 20;
+  state->vector_register_1074093656.put(21, vector_register_1074093656_value_21);
   // BDD node 93:vector_borrow(vector:(w64 1074076440), index:(w32 22), val_out:(w64 1074043640)[ -> (w64 1074090864)])
   // Module Ignore
   // BDD node 94:vector_return(vector:(w64 1074076440), index:(w32 22), value:(w64 1074090864)[(w32 1)])
@@ -524,11 +502,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 96:vector_return(vector:(w64 1074093656), index:(w32 22), value:(w64 1074108080)[(w16 23)])
   // Module VectorRegisterUpdate
-  buffer_t value_22;
-  state->vector_register_1074093656.get(22, value_22);
-  value_22[1] = 23;
-  value_22[0] = 0;
-  state->vector_register_1074093656.put(22, value_22);
+  buffer_t vector_register_1074093656_value_22(2);
+  vector_register_1074093656_value_22[0] = 0;
+  vector_register_1074093656_value_22[1] = 23;
+  state->vector_register_1074093656.put(22, vector_register_1074093656_value_22);
   // BDD node 97:vector_borrow(vector:(w64 1074076440), index:(w32 23), val_out:(w64 1074043640)[ -> (w64 1074090888)])
   // Module Ignore
   // BDD node 98:vector_return(vector:(w64 1074076440), index:(w32 23), value:(w64 1074090888)[(w32 0)])
@@ -543,11 +520,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 100:vector_return(vector:(w64 1074093656), index:(w32 23), value:(w64 1074108104)[(w16 22)])
   // Module VectorRegisterUpdate
-  buffer_t value_23;
-  state->vector_register_1074093656.get(23, value_23);
-  value_23[1] = 22;
-  value_23[0] = 0;
-  state->vector_register_1074093656.put(23, value_23);
+  buffer_t vector_register_1074093656_value_23(2);
+  vector_register_1074093656_value_23[0] = 0;
+  vector_register_1074093656_value_23[1] = 22;
+  state->vector_register_1074093656.put(23, vector_register_1074093656_value_23);
   // BDD node 101:vector_borrow(vector:(w64 1074076440), index:(w32 24), val_out:(w64 1074043640)[ -> (w64 1074090912)])
   // Module Ignore
   // BDD node 102:vector_return(vector:(w64 1074076440), index:(w32 24), value:(w64 1074090912)[(w32 1)])
@@ -562,11 +538,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 104:vector_return(vector:(w64 1074093656), index:(w32 24), value:(w64 1074108128)[(w16 25)])
   // Module VectorRegisterUpdate
-  buffer_t value_24;
-  state->vector_register_1074093656.get(24, value_24);
-  value_24[1] = 25;
-  value_24[0] = 0;
-  state->vector_register_1074093656.put(24, value_24);
+  buffer_t vector_register_1074093656_value_24(2);
+  vector_register_1074093656_value_24[0] = 0;
+  vector_register_1074093656_value_24[1] = 25;
+  state->vector_register_1074093656.put(24, vector_register_1074093656_value_24);
   // BDD node 105:vector_borrow(vector:(w64 1074076440), index:(w32 25), val_out:(w64 1074043640)[ -> (w64 1074090936)])
   // Module Ignore
   // BDD node 106:vector_return(vector:(w64 1074076440), index:(w32 25), value:(w64 1074090936)[(w32 0)])
@@ -581,11 +556,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 108:vector_return(vector:(w64 1074093656), index:(w32 25), value:(w64 1074108152)[(w16 24)])
   // Module VectorRegisterUpdate
-  buffer_t value_25;
-  state->vector_register_1074093656.get(25, value_25);
-  value_25[1] = 24;
-  value_25[0] = 0;
-  state->vector_register_1074093656.put(25, value_25);
+  buffer_t vector_register_1074093656_value_25(2);
+  vector_register_1074093656_value_25[0] = 0;
+  vector_register_1074093656_value_25[1] = 24;
+  state->vector_register_1074093656.put(25, vector_register_1074093656_value_25);
   // BDD node 109:vector_borrow(vector:(w64 1074076440), index:(w32 26), val_out:(w64 1074043640)[ -> (w64 1074090960)])
   // Module Ignore
   // BDD node 110:vector_return(vector:(w64 1074076440), index:(w32 26), value:(w64 1074090960)[(w32 1)])
@@ -600,11 +574,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 112:vector_return(vector:(w64 1074093656), index:(w32 26), value:(w64 1074108176)[(w16 27)])
   // Module VectorRegisterUpdate
-  buffer_t value_26;
-  state->vector_register_1074093656.get(26, value_26);
-  value_26[1] = 27;
-  value_26[0] = 0;
-  state->vector_register_1074093656.put(26, value_26);
+  buffer_t vector_register_1074093656_value_26(2);
+  vector_register_1074093656_value_26[0] = 0;
+  vector_register_1074093656_value_26[1] = 27;
+  state->vector_register_1074093656.put(26, vector_register_1074093656_value_26);
   // BDD node 113:vector_borrow(vector:(w64 1074076440), index:(w32 27), val_out:(w64 1074043640)[ -> (w64 1074090984)])
   // Module Ignore
   // BDD node 114:vector_return(vector:(w64 1074076440), index:(w32 27), value:(w64 1074090984)[(w32 0)])
@@ -619,11 +592,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 116:vector_return(vector:(w64 1074093656), index:(w32 27), value:(w64 1074108200)[(w16 26)])
   // Module VectorRegisterUpdate
-  buffer_t value_27;
-  state->vector_register_1074093656.get(27, value_27);
-  value_27[1] = 26;
-  value_27[0] = 0;
-  state->vector_register_1074093656.put(27, value_27);
+  buffer_t vector_register_1074093656_value_27(2);
+  vector_register_1074093656_value_27[0] = 0;
+  vector_register_1074093656_value_27[1] = 26;
+  state->vector_register_1074093656.put(27, vector_register_1074093656_value_27);
   // BDD node 117:vector_borrow(vector:(w64 1074076440), index:(w32 28), val_out:(w64 1074043640)[ -> (w64 1074091008)])
   // Module Ignore
   // BDD node 118:vector_return(vector:(w64 1074076440), index:(w32 28), value:(w64 1074091008)[(w32 1)])
@@ -638,11 +610,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 120:vector_return(vector:(w64 1074093656), index:(w32 28), value:(w64 1074108224)[(w16 29)])
   // Module VectorRegisterUpdate
-  buffer_t value_28;
-  state->vector_register_1074093656.get(28, value_28);
-  value_28[1] = 29;
-  value_28[0] = 0;
-  state->vector_register_1074093656.put(28, value_28);
+  buffer_t vector_register_1074093656_value_28(2);
+  vector_register_1074093656_value_28[0] = 0;
+  vector_register_1074093656_value_28[1] = 29;
+  state->vector_register_1074093656.put(28, vector_register_1074093656_value_28);
   // BDD node 121:vector_borrow(vector:(w64 1074076440), index:(w32 29), val_out:(w64 1074043640)[ -> (w64 1074091032)])
   // Module Ignore
   // BDD node 122:vector_return(vector:(w64 1074076440), index:(w32 29), value:(w64 1074091032)[(w32 0)])
@@ -657,11 +628,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 124:vector_return(vector:(w64 1074093656), index:(w32 29), value:(w64 1074108248)[(w16 28)])
   // Module VectorRegisterUpdate
-  buffer_t value_29;
-  state->vector_register_1074093656.get(29, value_29);
-  value_29[1] = 28;
-  value_29[0] = 0;
-  state->vector_register_1074093656.put(29, value_29);
+  buffer_t vector_register_1074093656_value_29(2);
+  vector_register_1074093656_value_29[0] = 0;
+  vector_register_1074093656_value_29[1] = 28;
+  state->vector_register_1074093656.put(29, vector_register_1074093656_value_29);
   // BDD node 125:vector_borrow(vector:(w64 1074076440), index:(w32 30), val_out:(w64 1074043640)[ -> (w64 1074091056)])
   // Module Ignore
   // BDD node 126:vector_return(vector:(w64 1074076440), index:(w32 30), value:(w64 1074091056)[(w32 1)])
@@ -676,11 +646,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 128:vector_return(vector:(w64 1074093656), index:(w32 30), value:(w64 1074108272)[(w16 31)])
   // Module VectorRegisterUpdate
-  buffer_t value_30;
-  state->vector_register_1074093656.get(30, value_30);
-  value_30[1] = 31;
-  value_30[0] = 0;
-  state->vector_register_1074093656.put(30, value_30);
+  buffer_t vector_register_1074093656_value_30(2);
+  vector_register_1074093656_value_30[0] = 0;
+  vector_register_1074093656_value_30[1] = 31;
+  state->vector_register_1074093656.put(30, vector_register_1074093656_value_30);
   // BDD node 129:vector_borrow(vector:(w64 1074076440), index:(w32 31), val_out:(w64 1074043640)[ -> (w64 1074091080)])
   // Module Ignore
   // BDD node 130:vector_return(vector:(w64 1074076440), index:(w32 31), value:(w64 1074091080)[(w32 0)])
@@ -695,11 +664,10 @@ void sycon::nf_init() {
   // Module Ignore
   // BDD node 132:vector_return(vector:(w64 1074093656), index:(w32 31), value:(w64 1074108296)[(w16 30)])
   // Module VectorRegisterUpdate
-  buffer_t value_31;
-  state->vector_register_1074093656.get(31, value_31);
-  value_31[1] = 30;
-  value_31[0] = 0;
-  state->vector_register_1074093656.put(31, value_31);
+  buffer_t vector_register_1074093656_value_31(2);
+  vector_register_1074093656_value_31[0] = 0;
+  vector_register_1074093656_value_31[1] = 30;
+  state->vector_register_1074093656.put(31, vector_register_1074093656_value_31);
 
 }
 

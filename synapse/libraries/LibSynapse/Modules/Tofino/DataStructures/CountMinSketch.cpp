@@ -18,7 +18,7 @@ std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &
   return hashes;
 }
 
-std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 width, u32 height) {
+std::vector<Register> build_rows(const tna_properties_t &properties, DS_ID id, u32 width, u32 height) {
   std::vector<Register> rows;
   const bits_t hash_size    = LibCore::bits_from_pow2_capacity(width);
   const bits_t counter_size = 32;
@@ -34,7 +34,7 @@ std::vector<Register> build_rows(const TNAProperties &properties, DS_ID id, u32 
 
 } // namespace
 
-CountMinSketch::CountMinSketch(const TNAProperties &properties, DS_ID _id, const std::vector<bits_t> &_keys, u32 _width, u32 _height)
+CountMinSketch::CountMinSketch(const tna_properties_t &properties, DS_ID _id, const std::vector<bits_t> &_keys, u32 _width, u32 _height)
     : DS(DSType::COUNT_MIN_SKETCH, false, _id), width(_width), height(_height),
       hashes(build_hashes(_id, _height, _keys, LibCore::bits_from_pow2_capacity(_width))),
       rows(build_rows(properties, _id, _width, _height)) {}

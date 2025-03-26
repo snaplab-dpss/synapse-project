@@ -118,8 +118,8 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 }
 } // namespace
 
-EP::EP(const LibBDD::BDD &_bdd, const TargetsView &_targets, const toml::table &_config, const Profiler &_profiler)
-    : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _config, _profiler),
+EP::EP(const LibBDD::BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
+    : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
       meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = LibBDD::node_ids_t({bdd->get_root()->get_id()});

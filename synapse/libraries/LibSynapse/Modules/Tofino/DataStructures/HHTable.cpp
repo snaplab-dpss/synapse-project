@@ -9,7 +9,7 @@ namespace {
 
 std::string build_table_name(DS_ID id, u32 table_num) { return id + "_hh_table_" + std::to_string(table_num); }
 
-Register build_cached_counters(const TNAProperties &properties, DS_ID id, u32 capacity) {
+Register build_cached_counters(const tna_properties_t &properties, DS_ID id, u32 capacity) {
   const DS_ID reg_id              = id + "_hh_table_cached_counters";
   const bits_t index_size         = 32;
   const bits_t value_size         = 32;
@@ -30,7 +30,8 @@ std::vector<Hash> build_hashes(DS_ID id, std::vector<bits_t> keys_sizes, u32 tot
   return hashes;
 }
 
-std::vector<Register> build_bloom_filter(const TNAProperties &properties, DS_ID id, u32 bloom_width, u32 bloom_height, bits_t index_size) {
+std::vector<Register> build_bloom_filter(const tna_properties_t &properties, DS_ID id, u32 bloom_width, u32 bloom_height,
+                                         bits_t index_size) {
   const bits_t value_size         = 8;
   const RegisterActionType action = RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE;
 
@@ -44,7 +45,8 @@ std::vector<Register> build_bloom_filter(const TNAProperties &properties, DS_ID 
   return bloom_filter;
 }
 
-std::vector<Register> build_count_min_sketch(const TNAProperties &properties, DS_ID id, u32 cms_width, u32 cms_height, bits_t index_size) {
+std::vector<Register> build_count_min_sketch(const tna_properties_t &properties, DS_ID id, u32 cms_width, u32 cms_height,
+                                             bits_t index_size) {
   const bits_t value_size         = 32;
   const RegisterActionType action = RegisterActionType::INC_AND_RETURN_NEW_VALUE;
 
@@ -58,7 +60,7 @@ std::vector<Register> build_count_min_sketch(const TNAProperties &properties, DS
   return count_min_sketch;
 }
 
-Register build_threshold(const TNAProperties &properties, DS_ID id, u32 capacity) {
+Register build_threshold(const tna_properties_t &properties, DS_ID id, u32 capacity) {
   const DS_ID reg_id              = id + "_hh_table_threshold";
   const bits_t index_size         = 1;
   const bits_t value_size         = 32;
@@ -73,7 +75,7 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields) {
 
 } // namespace
 
-HHTable::HHTable(const TNAProperties &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes,
+HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes,
                  u32 _bloom_width, u32 _bloom_height, u32 _cms_width, u32 _cms_height)
     : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), bloom_width(_bloom_width),
       bloom_height(_bloom_height), cms_width(_cms_width), cms_height(_cms_height),

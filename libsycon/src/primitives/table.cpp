@@ -29,8 +29,6 @@ std::vector<table_field_t> build_key_fields(const bfrt::BfRtTable *table) {
     ASSERT_BF_STATUS(bf_status);
 
     assert(size > 0);
-    assert(size <= 64);
-
     if (size % 8 != 0) {
       size += 8 - (size % 8);
     }
@@ -487,7 +485,7 @@ Table::Table(const Table &other)
 void Table::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { session = _session; }
 
 void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable) {
-  LOG_DEBUG("Set timeouts state for table %s: %d", name.c_str(), enable);
+  LOG_DEBUG("Set timeouts state for table %s: %ldms (enabled=%d)", name.c_str(), timeout, enable);
 
   if (timeout < TOFINO_MODEL_MIN_EXPIRATION_TIME) {
     LOG_DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);

@@ -7,7 +7,7 @@
 namespace LibSynapse {
 namespace Tofino {
 
-Register::Register(const TNAProperties &properties, DS_ID _id, u32 _capacity, bits_t _index_size, bits_t _value_size,
+Register::Register(const tna_properties_t &properties, DS_ID _id, u32 _capacity, bits_t _index_size, bits_t _value_size,
                    const std::unordered_set<RegisterActionType> &_actions)
     : DS(DSType::REGISTER, true, _id), capacity(_capacity), index_size(_index_size), value_size(_value_size), actions(_actions) {
   assert(_capacity > 0 && "Register entries must be greater than 0");
@@ -76,7 +76,7 @@ void Register::debug() const {
   std::cerr << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>> Register::partition_value(const TNAProperties &properties, klee::ref<klee::Expr> value) {
+std::vector<klee::ref<klee::Expr>> Register::partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value) {
   std::vector<klee::ref<klee::Expr>> partitions;
 
   bits_t value_width     = value->getWidth();

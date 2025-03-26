@@ -63,6 +63,10 @@ bool symbol_t::is_symbol(klee::ref<klee::Expr> expr) {
 }
 
 std::unordered_set<std::string> symbol_t::get_symbols_names(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return {};
+  }
+
   SymbolNamesRetriever retriever;
   retriever.visit(expr);
   return retriever.get_names();

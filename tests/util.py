@@ -3,18 +3,55 @@ from binascii import hexlify, unhexlify
 from dataclasses import dataclass
 from socket import socket, AF_PACKET, SOCK_RAW, ntohs, inet_aton
 from select import select
-from random import randint
+from random import randint, getrandbits
 from typing import Optional
+
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, UDP
-from scapy.packet import Packet
-
+from scapy.packet import Packet, bind_layers
+from scapy.fields import ByteField, StrFixedLenField, ShortField
 
 ETH_P_ALL = 3
-PACKET_RECEIVE_TIMEOUT = 1  # seconds
+PACKET_RECEIVE_TIMEOUT = 0.1  # seconds
 
 SRC_MAC = "02:00:00:DD:EE:FF"
 DST_MAC = "02:00:00:AA:BB:CC"
+
+KVS_PORT = 670
+KVS_KEY_SIZE_BYTES = 16
+KVS_VALUE_SIZE_BYTES = 128
+KVS_OP_GET = 0
+KVS_OP_PUT = 1
+KVS_STATUS_OK = 1
+KVS_STATUS_FAIL = 0
+
+
+class KVSHeader(Packet):
+    name = "KVSHeader"
+    fields_desc = [
+        ByteField("op", 0),
+        StrFixedLenField("key", b"\x00" * KVS_KEY_SIZE_BYTES, KVS_KEY_SIZE_BYTES),
+        StrFixedLenField("value", b"\x00" * KVS_VALUE_SIZE_BYTES, KVS_VALUE_SIZE_BYTES),
+        ByteField("status", 0),
+        ShortField("port", 0),
+    ]
+
+    @staticmethod
+    def guess_payload_class(pkt, **kargs):
+        return KVSHeader if isinstance(pkt, UDP) and pkt.dport == KVS_PORT else None
+
+
+bind_layers(UDP, KVSHeader)
+
+
+def pkt_to_string(pkt: Packet) -> str:
+    assert IP in pkt
+    assert UDP in pkt
+
+    if KVSHeader in pkt:
+        return f"KVS{{key={pkt[KVSHeader].key.hex()}, value={pkt[KVSHeader].value.hex()}}}"
+    else:
+        return f"{pkt[IP].src}:{pkt[UDP].sport} -> {pkt[IP].dst}:{pkt[UDP].dport}"
 
 
 class Ports:
@@ -38,13 +75,8 @@ class Ports:
             self.socket_to_port[s] = port
 
     def send(self, port: int, pkt: Packet, quiet: bool = False) -> None:
-        src_addr = pkt[IP].src
-        dst_addr = pkt[IP].dst
-        src_port = pkt[UDP].sport
-        dst_port = pkt[UDP].dport
-
         if not quiet:
-            print(f"Sent {port}: {src_addr}:{src_port} -> {dst_addr}:{dst_port}")
+            print(f"Sent {port}: {pkt_to_string(pkt)}")
 
         self.port_to_socket[port].send(pkt.build())
 
@@ -82,11 +114,7 @@ class Ports:
                 data = data[pktlen:]
 
             for pkt in packets:
-                src_addr = pkt[IP].src
-                dst_addr = pkt[IP].dst
-                src_port = pkt[UDP].sport
-                dst_port = pkt[UDP].dport
-                print(f"Recv {port}: {src_addr}:{src_port} -> {dst_addr}:{dst_port}")
+                print(f"Recv {port}: {pkt_to_string(pkt)}")
 
                 if port not in result:
                     result[port] = []
@@ -221,14 +249,44 @@ def build_flow(
     return Flow(src_addr=src_addr, dst_addr=dst_addr, src_port=src_port, dst_port=dst_port)
 
 
-def build_packet(flow: Flow) -> Packet:
-    pkt = Ether(dst=DST_MAC, src=SRC_MAC)
-    pkt /= IP(src=flow.src_addr, dst=flow.dst_addr)
-    pkt /= UDP(sport=flow.src_port, dport=flow.dst_port)
+def build_kvs_hdr(
+    op: Optional[int] = None,
+    key: Optional[bytes] = None,
+    value: Optional[bytes] = None,
+    status: Optional[int] = None,
+    port: Optional[int] = None,
+) -> KVSHeader:
+    if not op:
+        op = KVS_OP_PUT
+    if not key:
+        key = bytes(getrandbits(8) for _ in range(KVS_KEY_SIZE_BYTES))
+    if not value:
+        value = bytes(getrandbits(8) for _ in range(KVS_VALUE_SIZE_BYTES))
+    if not status:
+        status = KVS_STATUS_FAIL
+    if not port:
+        port = 0
 
-    # Pad packet to minimum ethernet frame without CRC (60B)
-    if len(pkt) < 60:
-        pkt /= b"\0" * (60 - len(pkt))
+    return KVSHeader(op=op, key=key, value=value, status=status, port=port)
+
+
+def build_packet(flow: Optional[Flow] = None, kvs_hdr: Optional[KVSHeader] = None) -> Packet:
+    pkt = Ether(dst=DST_MAC, src=SRC_MAC)
+
+    if flow is not None:
+        pkt /= IP(src=flow.src_addr, dst=flow.dst_addr)
+        pkt /= UDP(sport=flow.src_port, dport=flow.dst_port)
+    else:
+        pkt /= IP()
+        pkt /= UDP()
+
+    if kvs_hdr is not None:
+        pkt[UDP].dport = KVS_PORT
+        pkt /= kvs_hdr
+    else:
+        # Pad packet to minimum ethernet frame without CRC (60B)
+        if len(pkt) < 60:
+            pkt /= b"\0" * (60 - len(pkt))
 
     # Force population of fields
     pkt = Ether(pkt.build())

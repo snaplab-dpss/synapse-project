@@ -31,7 +31,7 @@ int get_soonest_available_stage(const std::vector<Stage> &stages, const std::uno
   return -1;
 }
 
-std::vector<Stage> create_stages(const TNAProperties *properties) {
+std::vector<Stage> create_stages(const tna_properties_t *properties) {
   std::vector<Stage> stages;
 
   for (int stage_id = 0; stage_id < properties->stages; stage_id++) {
@@ -82,7 +82,7 @@ std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   return os;
 }
 
-SimplePlacer::SimplePlacer(const TNAProperties *_properties) : properties(_properties), stages(create_stages(_properties)) {}
+SimplePlacer::SimplePlacer(const tna_properties_t *_properties) : properties(_properties), stages(create_stages(_properties)) {}
 
 SimplePlacer::SimplePlacer(const SimplePlacer &other) : properties(other.properties), stages(other.stages) {
   for (const PlacementRequest &req : other.placement_requests) {

@@ -11,7 +11,6 @@
 #include <memory>
 #include <vector>
 #include <unordered_set>
-#include <toml++/toml.hpp>
 
 namespace LibSynapse {
 
@@ -56,7 +55,7 @@ struct search_config_t {
 
 class SearchEngine {
 private:
-  const toml::table targets_config;
+  const targets_config_t &targets_config;
   const search_config_t search_config;
 
   LibBDD::BDD bdd;
@@ -65,7 +64,7 @@ private:
   std::unique_ptr<Heuristic> heuristic;
 
 public:
-  SearchEngine(const LibBDD::BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const toml::table &targets_config,
+  SearchEngine(const LibBDD::BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
                const search_config_t &search_config);
 
   SearchEngine(const SearchEngine &)            = delete;

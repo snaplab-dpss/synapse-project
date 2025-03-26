@@ -3,6 +3,7 @@
 #include <LibBDD/Config.h>
 #include <LibCore/Types.h>
 #include <LibCore/SymbolManager.h>
+#include <LibCore/Expr.h>
 
 #include <functional>
 #include <iostream>
@@ -86,6 +87,7 @@ public:
   size_t count_children(bool recursive) const;
   size_t count_code_paths() const;
   LibCore::Symbols get_used_symbols() const;
+  LibCore::symbolic_reads_t get_used_symbolic_reads() const;
   LibCore::Symbols get_prev_symbols(const node_ids_t &stop_nodes = node_ids_t()) const;
   std::vector<const Call *> get_prev_functions(const std::unordered_set<std::string> &functions_names,
                                                const node_ids_t &stop_nodes = node_ids_t()) const;

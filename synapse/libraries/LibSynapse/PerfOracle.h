@@ -4,9 +4,9 @@
 #include <optional>
 #include <map>
 #include <unordered_map>
-#include <toml++/toml.hpp>
 
 #include <LibCore/Types.h>
+#include <LibSynapse/Target.h>
 
 namespace LibSynapse {
 
@@ -37,10 +37,10 @@ std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress);
 
 class PerfOracle {
 private:
-  std::vector<bps_t> front_panel_ports_capacities;
-  std::vector<bps_t> recirculation_ports_capacities;
+  std::unordered_map<u16, bps_t> front_panel_ports_capacities;
+  std::unordered_map<u16, bps_t> recirculation_ports_capacities;
   pps_t controller_capacity;
-  int avg_pkt_bytes;
+  bytes_t avg_pkt_size;
 
   // All traffic is either (1) forwarded or (2) dropped. Even controller traffic
   // is, sooner or later, forwarded throught the switch. As such, unaccounted
@@ -49,11 +49,11 @@ private:
   hit_rate_t unaccounted_ingress;
 
   // Typical front-panel ports on the switch.
-  std::unordered_map<int, port_ingress_t> ports_ingress;
+  std::unordered_map<u16, port_ingress_t> ports_ingress;
 
   // Recirculation ports. These don't count towards the accounted traffic. They
   // serve only to calculate the throughput bottlenecks inside the switch.
-  std::unordered_map<int, port_ingress_t> recirc_ports_ingress;
+  std::unordered_map<u16, port_ingress_t> recirc_ports_ingress;
 
   // Similarly to the recirculation ports, this serves only to calculate the
   // controller bottleneck, and does not count towards the egress traffic.
@@ -64,18 +64,18 @@ private:
   hit_rate_t controller_dropped_ingress;
 
 public:
-  PerfOracle(const toml::table &config, int avg_pkt_bytes);
+  PerfOracle(const targets_config_t &targest_config, bytes_t avg_pkt_size);
 
   PerfOracle(const PerfOracle &other);
   PerfOracle(PerfOracle &&other);
 
   PerfOracle &operator=(const PerfOracle &other);
 
-  void add_fwd_traffic(int port, const port_ingress_t &ingress);
-  void add_fwd_traffic(int port, hit_rate_t hr);
+  void add_fwd_traffic(u16 port, const port_ingress_t &ingress);
+  void add_fwd_traffic(u16 port, hit_rate_t hr);
 
-  void add_recirculated_traffic(int port, const port_ingress_t &ingress);
-  void add_recirculated_traffic(int port, hit_rate_t hr);
+  void add_recirculated_traffic(u16 port, const port_ingress_t &ingress);
+  void add_recirculated_traffic(u16 port, hit_rate_t hr);
 
   void add_controller_traffic(const port_ingress_t &ingress);
   void add_controller_traffic(hit_rate_t hr);
@@ -108,7 +108,7 @@ public:
   void assert_final_state() const;
 
 private:
-  std::vector<pps_t> get_recirculated_egress(int port, pps_t ingress) const;
+  std::vector<pps_t> get_recirculated_egress(u16 port, pps_t ingress) const;
 };
 
 } // namespace LibSynapse

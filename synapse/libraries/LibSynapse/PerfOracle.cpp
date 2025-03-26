@@ -11,28 +11,6 @@ namespace {
 constexpr const int NEWTON_MAX_ITERATIONS{10};
 constexpr const double NEWTON_PRECISION{1e-3};
 
-std::vector<bps_t> parse_front_panel_ports(const toml::table &config) {
-  std::vector<bps_t> ports;
-
-  for (const auto &port : *config["switch"]["front_panel_ports"].as_array()) {
-    bps_t capacity = *port.as_table()->at("capacity_bps").value<bps_t>();
-    ports.push_back(capacity);
-  }
-
-  return ports;
-}
-
-std::vector<bps_t> parse_recirculation_ports(const toml::table &config) {
-  std::vector<bps_t> ports;
-
-  for (const auto &port : *config["switch"]["recirculation_ports"].as_array()) {
-    bps_t capacity = *port.as_table()->at("capacity_bps").value<bps_t>();
-    ports.push_back(capacity);
-  }
-
-  return ports;
-}
-
 // Coefficients are in increasing order: x^0, x^1, x^2, ...
 // min and max are inclusive
 double newton_root_finder(const std::vector<double> &coefficients, u64 min, u64 max) {
@@ -62,6 +40,23 @@ double newton_root_finder(const std::vector<double> &coefficients, u64 min, u64 
 
   return x;
 }
+
+std::unordered_map<u16, bps_t> get_front_panel_port_capacities(const Tofino::tna_config_t tna_config) {
+  std::unordered_map<u16, bps_t> capacities;
+  for (const Tofino::tofino_port_t &port : tna_config.ports) {
+    capacities.insert({port.nf_device, port.capacity});
+  }
+  return capacities;
+}
+
+std::unordered_map<u16, bps_t> get_recirculation_port_capacities(const Tofino::tna_config_t tna_config) {
+  std::unordered_map<u16, bps_t> capacities;
+  for (const Tofino::tofino_recirculation_port_t &port : tna_config.recirculation_ports) {
+    capacities.insert({port.dev_port, port.capacity});
+  }
+  return capacities;
+}
+
 } // namespace
 
 port_ingress_t::port_ingress_t() : global(0), controller(0) {}
@@ -142,30 +137,31 @@ hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
   return total_hr;
 }
 
-PerfOracle::PerfOracle(const toml::table &config, int _avg_pkt_bytes)
-    : front_panel_ports_capacities(parse_front_panel_ports(config)), recirculation_ports_capacities(parse_recirculation_ports(config)),
-      controller_capacity(*config["controller"]["capacity_pps"].value<pps_t>()), avg_pkt_bytes(_avg_pkt_bytes), unaccounted_ingress(1),
-      dropped_ingress(0), controller_dropped_ingress(0) {
-  for (size_t port = 0; port < front_panel_ports_capacities.size(); port++) {
+PerfOracle::PerfOracle(const targets_config_t &targets_config, bytes_t _avg_pkt_size)
+    : front_panel_ports_capacities(get_front_panel_port_capacities(targets_config.tofino_config)),
+      recirculation_ports_capacities(get_recirculation_port_capacities(targets_config.tofino_config)),
+      controller_capacity(targets_config.controller_capacity), avg_pkt_size(_avg_pkt_size), unaccounted_ingress(1), dropped_ingress(0),
+      controller_dropped_ingress(0) {
+  for (auto [port, capacity] : front_panel_ports_capacities) {
     ports_ingress[port] = port_ingress_t();
   }
 
-  for (size_t rport = 0; rport < recirculation_ports_capacities.size(); rport++) {
-    recirc_ports_ingress[rport] = port_ingress_t();
+  for (auto [dev_port, capacity] : recirculation_ports_capacities) {
+    recirc_ports_ingress[dev_port] = port_ingress_t();
   }
 }
 
 PerfOracle::PerfOracle(const PerfOracle &other)
     : front_panel_ports_capacities(other.front_panel_ports_capacities),
       recirculation_ports_capacities(other.recirculation_ports_capacities), controller_capacity(other.controller_capacity),
-      avg_pkt_bytes(other.avg_pkt_bytes), unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
+      avg_pkt_size(other.avg_pkt_size), unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
       recirc_ports_ingress(other.recirc_ports_ingress), controller_ingress(other.controller_ingress),
       dropped_ingress(other.dropped_ingress), controller_dropped_ingress(other.controller_dropped_ingress) {}
 
 PerfOracle::PerfOracle(PerfOracle &&other)
     : front_panel_ports_capacities(std::move(other.front_panel_ports_capacities)),
       recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)),
-      controller_capacity(std::move(other.controller_capacity)), avg_pkt_bytes(std::move(other.avg_pkt_bytes)),
+      controller_capacity(std::move(other.controller_capacity)), avg_pkt_size(std::move(other.avg_pkt_size)),
       unaccounted_ingress(std::move(other.unaccounted_ingress)), ports_ingress(std::move(other.ports_ingress)),
       recirc_ports_ingress(std::move(other.recirc_ports_ingress)), controller_ingress(std::move(other.controller_ingress)),
       dropped_ingress(std::move(other.dropped_ingress)), controller_dropped_ingress(std::move(other.controller_dropped_ingress)) {}
@@ -178,7 +174,7 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   front_panel_ports_capacities   = other.front_panel_ports_capacities;
   recirculation_ports_capacities = other.recirculation_ports_capacities;
   controller_capacity            = other.controller_capacity;
-  avg_pkt_bytes                  = other.avg_pkt_bytes;
+  avg_pkt_size                   = other.avg_pkt_size;
   unaccounted_ingress            = other.unaccounted_ingress;
   ports_ingress                  = other.ports_ingress;
   recirc_ports_ingress           = other.recirc_ports_ingress;
@@ -189,8 +185,12 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   return *this;
 }
 
-void PerfOracle::add_fwd_traffic(int port, const port_ingress_t &ingress) {
-  assert(port < (int)front_panel_ports_capacities.size() && "Invalid port");
+void PerfOracle::add_fwd_traffic(u16 port, const port_ingress_t &ingress) {
+  if (ingress.get_total_hr() == 0) {
+    return;
+  }
+
+  assert(front_panel_ports_capacities.find(port) != front_panel_ports_capacities.end() && "Invalid port");
   ports_ingress[port] += ingress;
   unaccounted_ingress = unaccounted_ingress - ingress.get_total_hr();
 }
@@ -205,8 +205,12 @@ void PerfOracle::add_controller_dropped_traffic(hit_rate_t hr) {
   controller_dropped_ingress = controller_dropped_ingress + hr;
 }
 
-void PerfOracle::add_fwd_traffic(int port, hit_rate_t hr) {
-  assert(port < (int)front_panel_ports_capacities.size() && "Invalid port");
+void PerfOracle::add_fwd_traffic(u16 port, hit_rate_t hr) {
+  if (hr == 0_hr) {
+    return;
+  }
+
+  assert(front_panel_ports_capacities.find(port) != front_panel_ports_capacities.end() && "Invalid port");
   port_ingress_t ingress;
   ingress.global = hr;
   add_fwd_traffic(port, ingress);
@@ -220,26 +224,26 @@ void PerfOracle::add_controller_traffic(hit_rate_t hr) {
   add_controller_traffic(ingress);
 }
 
-void PerfOracle::add_recirculated_traffic(int port, const port_ingress_t &ingress) {
-  assert(port >= 0 && "Invalid port");
-  assert(port < (int)recirculation_ports_capacities.size() && "Invalid port");
+void PerfOracle::add_recirculated_traffic(u16 port, const port_ingress_t &ingress) {
+  assert(recirc_ports_ingress.find(port) != recirc_ports_ingress.end() && "Invalid port");
   recirc_ports_ingress[port] += ingress;
 }
 
-void PerfOracle::add_recirculated_traffic(int port, hit_rate_t hr) {
-  assert(port >= 0 && "Invalid port");
-  assert(port < (int)recirculation_ports_capacities.size() && "Invalid port");
+void PerfOracle::add_recirculated_traffic(u16 port, hit_rate_t hr) {
+  assert(recirc_ports_ingress.find(port) != recirc_ports_ingress.end() && "Invalid port");
   port_ingress_t ingress;
   ingress.global = hr;
   add_recirculated_traffic(port, ingress);
 }
 
-std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_ingress) const {
-  assert(port < (int)recirculation_ports_capacities.size() && "Invalid port");
+std::vector<pps_t> PerfOracle::get_recirculated_egress(u16 port, pps_t global_ingress) const {
+  assert(recirc_ports_ingress.find(port) != recirc_ports_ingress.end() && "Invalid port");
+  assert(recirculation_ports_capacities.find(port) != recirculation_ports_capacities.end() && "Invalid port");
+
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
-  const bps_t Tin = LibCore::pps2bps(global_ingress * usage.global.value, avg_pkt_bytes);
-  const bps_t Cr  = recirculation_ports_capacities[port];
+  const bps_t Tin = LibCore::pps2bps(global_ingress * usage.global.value, avg_pkt_size);
+  const bps_t Cr  = recirculation_ports_capacities.at(port);
 
   if (Tin == 0) {
     return {0};
@@ -306,7 +310,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_in
 
   std::vector<pps_t> Tout_pps(Tout.size());
   for (size_t i = 0; i < Tout.size(); i++) {
-    Tout_pps[i] = LibCore::bps2pps(Tout[i], avg_pkt_bytes);
+    Tout_pps[i] = LibCore::bps2pps(Tout[i], avg_pkt_size);
   }
 
   return Tout_pps;
@@ -314,18 +318,18 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(int port, pps_t global_in
 
 bps_t PerfOracle::get_max_input_bps() const {
   bps_t Tin_max = 0;
-  for (bps_t capacity : front_panel_ports_capacities)
+  for (auto [_, capacity] : front_panel_ports_capacities)
     Tin_max += capacity;
   return Tin_max;
 }
 
-pps_t PerfOracle::get_max_input_pps() const { return LibCore::bps2pps(get_max_input_bps(), avg_pkt_bytes); }
+pps_t PerfOracle::get_max_input_pps() const { return LibCore::bps2pps(get_max_input_bps(), avg_pkt_size); }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // 1. First we calculate the recirculation egress for each recirculation port and recirculation depth.
   // Recirculation traffic can only come from global ingress and other recirculation ports.
   std::unordered_map<int, std::vector<pps_t>> recirc_egress;
-  for (size_t rport = 0; rport < recirculation_ports_capacities.size(); rport++) {
+  for (auto [rport, _] : recirc_ports_ingress) {
     recirc_egress[rport] = get_recirculated_egress(rport, ingress);
   }
 
@@ -366,7 +370,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
       port_tput += recirc_egress[rport][depth - 1] * hr.value;
     }
 
-    const pps_t port_capacity = LibCore::bps2pps(front_panel_ports_capacities[fwd_port], avg_pkt_bytes);
+    const pps_t port_capacity = LibCore::bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
     tput += std::min(port_tput, port_capacity);
   }
 
