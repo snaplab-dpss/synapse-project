@@ -109,6 +109,7 @@ private:
     bool is_slice() const { return original_name != name || original_expr != expr || original_size != size; }
     code_t get_hdr_name() const;
     std::string to_string() const;
+    code_t flatten_name() const;
   };
 
   class Stack {

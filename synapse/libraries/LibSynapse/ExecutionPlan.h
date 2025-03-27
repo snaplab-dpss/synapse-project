@@ -62,9 +62,15 @@ public:
   void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node = true);
   void process_leaf(const LibBDD::Node *next_node);
 
-  void replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translator_t &next_nodes_translator = translator_t(),
-                   const translator_t &processed_nodes_translator                     = translator_t(),
-                   const std::vector<LibBDD::translated_symbol_t> &translated_symbols = {});
+  struct translation_data_t {
+    const LibBDD::Node *reordered_node;
+    translator_t next_nodes_translator;
+    translator_t processed_nodes_translator;
+    std::vector<LibBDD::translated_symbol_t> translated_symbols;
+  };
+
+  void replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd);
+  void replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_data_t &translation_data);
 
   ep_id_t get_id() const;
   const LibBDD::BDD *get_bdd() const;

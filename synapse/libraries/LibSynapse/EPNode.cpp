@@ -163,8 +163,8 @@ void EPNode::visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn) 
   }
 }
 
-std::vector<int> EPNode::get_past_recirculations() const {
-  std::vector<int> past_recirculations;
+std::vector<u16> EPNode::get_past_recirculations() const {
+  std::vector<u16> past_recirculations;
 
   const EPNode *node = this;
   while ((node = node->get_prev())) {

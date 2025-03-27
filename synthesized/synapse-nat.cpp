@@ -16,9 +16,9 @@ struct state_t {
       forward_nf_dev(),
       map_table_1074053088({"Ingress.map_table_1074053088_165",}, 1000LL),
       vector_table_1074066912({"Ingress.vector_table_1074066912_144",}),
-      dchain_table_1074085072({"Ingress.dchain_table_1074085072_142",}, 1000LL),
+      dchain_table_1074085072({"Ingress.dchain_table_1074085072_185","Ingress.dchain_table_1074085072_142",}, 1000LL),
       vector_table_1074085496({"Ingress.vector_table_1074085496_139",}),
-      vector_table_1074102712({"Ingress.vector_table_1074102712_187",})
+      vector_table_1074102712({"Ingress.vector_table_1074102712_187","Ingress.vector_table_1074102712_149",})
     {}
 };
 
@@ -26,66 +26,66 @@ std::unique_ptr<state_t> state;
 
 void sycon::nf_init() {
   state = std::make_unique<state_t>();
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(3), 0);
-  state->forward_nf_dev.add_entry(0, asic_get_dev_port(3));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(4), 1);
-  state->forward_nf_dev.add_entry(1, asic_get_dev_port(4));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(5), 2);
-  state->forward_nf_dev.add_entry(2, asic_get_dev_port(5));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(6), 3);
-  state->forward_nf_dev.add_entry(3, asic_get_dev_port(6));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(7), 4);
-  state->forward_nf_dev.add_entry(4, asic_get_dev_port(7));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(8), 5);
-  state->forward_nf_dev.add_entry(5, asic_get_dev_port(8));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(9), 6);
-  state->forward_nf_dev.add_entry(6, asic_get_dev_port(9));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(10), 7);
-  state->forward_nf_dev.add_entry(7, asic_get_dev_port(10));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(11), 8);
-  state->forward_nf_dev.add_entry(8, asic_get_dev_port(11));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(12), 9);
-  state->forward_nf_dev.add_entry(9, asic_get_dev_port(12));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(13), 10);
-  state->forward_nf_dev.add_entry(10, asic_get_dev_port(13));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(14), 11);
-  state->forward_nf_dev.add_entry(11, asic_get_dev_port(14));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(15), 12);
-  state->forward_nf_dev.add_entry(12, asic_get_dev_port(15));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(16), 13);
-  state->forward_nf_dev.add_entry(13, asic_get_dev_port(16));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(17), 14);
-  state->forward_nf_dev.add_entry(14, asic_get_dev_port(17));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(18), 15);
-  state->forward_nf_dev.add_entry(15, asic_get_dev_port(18));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(19), 16);
-  state->forward_nf_dev.add_entry(16, asic_get_dev_port(19));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(20), 17);
-  state->forward_nf_dev.add_entry(17, asic_get_dev_port(20));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(21), 18);
-  state->forward_nf_dev.add_entry(18, asic_get_dev_port(21));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(22), 19);
-  state->forward_nf_dev.add_entry(19, asic_get_dev_port(22));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(23), 20);
-  state->forward_nf_dev.add_entry(20, asic_get_dev_port(23));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(24), 21);
-  state->forward_nf_dev.add_entry(21, asic_get_dev_port(24));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(25), 22);
-  state->forward_nf_dev.add_entry(22, asic_get_dev_port(25));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(26), 23);
-  state->forward_nf_dev.add_entry(23, asic_get_dev_port(26));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(27), 24);
-  state->forward_nf_dev.add_entry(24, asic_get_dev_port(27));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(28), 25);
-  state->forward_nf_dev.add_entry(25, asic_get_dev_port(28));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(29), 26);
-  state->forward_nf_dev.add_entry(26, asic_get_dev_port(29));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(30), 27);
-  state->forward_nf_dev.add_entry(27, asic_get_dev_port(30));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(31), 28);
-  state->forward_nf_dev.add_entry(28, asic_get_dev_port(31));
-  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 29);
-  state->forward_nf_dev.add_entry(29, asic_get_dev_port(32));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(3), 2);
+  state->forward_nf_dev.add_entry(2, asic_get_dev_port(3));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(4), 3);
+  state->forward_nf_dev.add_entry(3, asic_get_dev_port(4));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(5), 4);
+  state->forward_nf_dev.add_entry(4, asic_get_dev_port(5));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(6), 5);
+  state->forward_nf_dev.add_entry(5, asic_get_dev_port(6));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(7), 6);
+  state->forward_nf_dev.add_entry(6, asic_get_dev_port(7));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(8), 7);
+  state->forward_nf_dev.add_entry(7, asic_get_dev_port(8));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(9), 8);
+  state->forward_nf_dev.add_entry(8, asic_get_dev_port(9));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(10), 9);
+  state->forward_nf_dev.add_entry(9, asic_get_dev_port(10));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(11), 10);
+  state->forward_nf_dev.add_entry(10, asic_get_dev_port(11));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(12), 11);
+  state->forward_nf_dev.add_entry(11, asic_get_dev_port(12));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(13), 12);
+  state->forward_nf_dev.add_entry(12, asic_get_dev_port(13));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(14), 13);
+  state->forward_nf_dev.add_entry(13, asic_get_dev_port(14));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(15), 14);
+  state->forward_nf_dev.add_entry(14, asic_get_dev_port(15));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(16), 15);
+  state->forward_nf_dev.add_entry(15, asic_get_dev_port(16));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(17), 16);
+  state->forward_nf_dev.add_entry(16, asic_get_dev_port(17));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(18), 17);
+  state->forward_nf_dev.add_entry(17, asic_get_dev_port(18));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(19), 18);
+  state->forward_nf_dev.add_entry(18, asic_get_dev_port(19));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(20), 19);
+  state->forward_nf_dev.add_entry(19, asic_get_dev_port(20));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(21), 20);
+  state->forward_nf_dev.add_entry(20, asic_get_dev_port(21));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(22), 21);
+  state->forward_nf_dev.add_entry(21, asic_get_dev_port(22));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(23), 22);
+  state->forward_nf_dev.add_entry(22, asic_get_dev_port(23));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(24), 23);
+  state->forward_nf_dev.add_entry(23, asic_get_dev_port(24));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(25), 24);
+  state->forward_nf_dev.add_entry(24, asic_get_dev_port(25));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(26), 25);
+  state->forward_nf_dev.add_entry(25, asic_get_dev_port(26));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(27), 26);
+  state->forward_nf_dev.add_entry(26, asic_get_dev_port(27));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(28), 27);
+  state->forward_nf_dev.add_entry(27, asic_get_dev_port(28));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(29), 28);
+  state->forward_nf_dev.add_entry(28, asic_get_dev_port(29));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(30), 29);
+  state->forward_nf_dev.add_entry(29, asic_get_dev_port(30));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(31), 30);
+  state->forward_nf_dev.add_entry(30, asic_get_dev_port(31));
+  state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
+  state->forward_nf_dev.add_entry(31, asic_get_dev_port(32));
   // BDD node 0:map_allocate(capacity:(w32 65536), key_size:(w32 13), map_out:(w64 1074052824)[(w64 0) -> (w64 1074053088)])
   // Module MapTableAllocate
   // BDD node 1:vector_allocate(elem_size:(w32 13), capacity:(w32 65536), vector_out:(w64 1074052832)[(w64 0) -> (w64 1074066912)])
@@ -688,7 +688,6 @@ void sycon::nf_user_signal_handler() {
 }
 
 struct cpu_hdr_extra_t {
-  u16 vector_data_r47;
   u32 DEVICE;
 
 } __attribute__((packed));
@@ -703,147 +702,100 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
   LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
-  if (bswap16(cpu_hdr->code_path) == 1654) {
-    // EP node  14268
+  if (bswap16(cpu_hdr->code_path) == 5353) {
+    // EP node  9015
     // BDD node 261:packet_borrow_next_chunk(p:(w64 1074206600), length:(w32 14), chunk:(w64 1074217352)[ -> (w64 1073763264)])
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  14386
+    // EP node  9071
     // BDD node 262:packet_borrow_next_chunk(p:(w64 1074206600), length:(w32 20), chunk:(w64 1074218088)[ -> (w64 1073763520)])
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  14506
-    // BDD node 167:dchain_allocate_new_index(chain:(w64 1074085072), index_out:(w64 1074223792)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index_r14)], time:(ReadLSB w64 (w32 0) next_time))
-    u32 allocated_index_0;
-    bool success_0 = state->dchain_table_1074085072.allocate_new_index(allocated_index_0);
-    // EP node  14689
+    // EP node  9128
     // BDD node 263:packet_borrow_next_chunk(p:(w64 1074206600), length:(w32 4), chunk:(w64 1074218744)[ -> (w64 1073763776)])
     u8* hdr_2 = packet_consume(pkt, 4);
-    // EP node  14813
-    // BDD node 168:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_r14))
+    // EP node  9186
+    // BDD node 167:dchain_allocate_new_index(chain:(w64 1074085072), index_out:(w64 1074223792)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
+    u32 allocated_index_0;
+    bool success_0 = state->dchain_table_1074085072.allocate_new_index(allocated_index_0);
+    // EP node  9245
+    // BDD node 168:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
     if ((0) == (success_0)) {
-      // EP node  14814
-      // BDD node 168:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_r14))
-      // EP node  16093
+      // EP node  9246
+      // BDD node 168:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
+      // EP node  9688
       // BDD node 172:DROP
       forward = false;
     } else {
-      // EP node  14815
-      // BDD node 168:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_r14))
-      // EP node  14943
-      // BDD node 173:vector_borrow(vector:(w64 1074066912), index:(ReadLSB w32 (w32 0) new_index_r14), val_out:(w64 1074223816)[ -> (w64 1074080808)])
-      // EP node  15141
-      // BDD node 182:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_r47)))
-      if ((65535) != (bswap16(cpu_hdr_extra->vector_data_r47))) {
-        // EP node  15142
-        // BDD node 182:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_r47)))
-        // EP node  15279
-        // BDD node 178:vector_return(vector:(w64 1074102712), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074116608)[(ReadLSB w16 (w32 0) vector_data_r47)])
-        // EP node  15349
-        // BDD node 174:map_put(map:(w64 1074053088), key:(w64 1074080808)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks)))))))))) -> (Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))], value:(ReadLSB w32 (w32 0) new_index_r14))
-        buffer_t map_table_1074053088_key_0(13);
-        map_table_1074053088_key_0[0] = *(u8*)(hdr_2 + 0);
-        map_table_1074053088_key_0[1] = *(u8*)(hdr_2 + 1);
-        map_table_1074053088_key_0[2] = *(u8*)(hdr_2 + 2);
-        map_table_1074053088_key_0[3] = *(u8*)(hdr_2 + 3);
-        map_table_1074053088_key_0[4] = *(u8*)(hdr_1 + 12);
-        map_table_1074053088_key_0[5] = *(u8*)(hdr_1 + 13);
-        map_table_1074053088_key_0[6] = *(u8*)(hdr_1 + 14);
-        map_table_1074053088_key_0[7] = *(u8*)(hdr_1 + 15);
-        map_table_1074053088_key_0[8] = *(u8*)(hdr_1 + 16);
-        map_table_1074053088_key_0[9] = *(u8*)(hdr_1 + 17);
-        map_table_1074053088_key_0[10] = *(u8*)(hdr_1 + 18);
-        map_table_1074053088_key_0[11] = *(u8*)(hdr_1 + 19);
-        map_table_1074053088_key_0[12] = *(u8*)(hdr_1 + 9);
-        state->map_table_1074053088.put(map_table_1074053088_key_0, allocated_index_0);
-        // EP node  15420
-        // BDD node 175:vector_return(vector:(w64 1074066912), index:(ReadLSB w32 (w32 0) new_index_r14), value:(w64 1074080808)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))])
-        buffer_t vector_table_1074066912_value_0(13);
-        vector_table_1074066912_value_0[0] = *(u8*)(hdr_2 + 0);
-        vector_table_1074066912_value_0[1] = *(u8*)(hdr_2 + 1);
-        vector_table_1074066912_value_0[2] = *(u8*)(hdr_2 + 2);
-        vector_table_1074066912_value_0[3] = *(u8*)(hdr_2 + 3);
-        vector_table_1074066912_value_0[4] = *(u8*)(hdr_1 + 12);
-        vector_table_1074066912_value_0[5] = *(u8*)(hdr_1 + 13);
-        vector_table_1074066912_value_0[6] = *(u8*)(hdr_1 + 14);
-        vector_table_1074066912_value_0[7] = *(u8*)(hdr_1 + 15);
-        vector_table_1074066912_value_0[8] = *(u8*)(hdr_1 + 16);
-        vector_table_1074066912_value_0[9] = *(u8*)(hdr_1 + 17);
-        vector_table_1074066912_value_0[10] = *(u8*)(hdr_1 + 18);
-        vector_table_1074066912_value_0[11] = *(u8*)(hdr_1 + 19);
-        vector_table_1074066912_value_0[12] = *(u8*)(hdr_1 + 9);
-        state->vector_table_1074066912.write(allocated_index_0, vector_table_1074066912_value_0);
-        // EP node  15564
-        // BDD node 176:nf_set_rte_ipv4_udptcp_checksum(ip_header:(w64 1073763520), l4_header:(w64 1073763776), packet:(w64 1074155224))
-        trigger_update_ipv4_tcpudp_checksums = true;
-        l3_hdr = (void *)hdr_1;
-        l4_hdr = (void *)hdr_2;
-        // EP node  15638
-        // BDD node 179:packet_return_chunk(p:(w64 1074206600), the_chunk:(w64 1073763776)[(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 514) packet_chunks) (ReadLSB w16 (w32 0) new_index_r14)))])
-        hdr_2[0] = allocated_index_0 & 255;
-        hdr_2[1] = (allocated_index_0>>8) & 255;
-        // EP node  15713
-        // BDD node 180:packet_return_chunk(p:(w64 1074206600), the_chunk:(w64 1073763520)[(Concat w160 (Read w8 (w32 275) packet_chunks) (Concat w152 (Read w8 (w32 274) packet_chunks) (Concat w144 (Read w8 (w32 273) packet_chunks) (Concat w136 (Read w8 (w32 272) packet_chunks) (Concat w128 (w8 4) (Concat w120 (w8 3) (Concat w112 (w8 2) (Concat w104 (w8 1) (Concat w96 (Read w8 (w32 1) checksum) (Concat w88 (Read w8 (w32 0) checksum) (ReadLSB w80 (w32 256) packet_chunks)))))))))))])
-        hdr_1[12] = 1;
-        hdr_1[13] = 2;
-        hdr_1[14] = 3;
-        hdr_1[15] = 4;
-        // EP node  15864
+      // EP node  9247
+      // BDD node 168:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
+      // EP node  9369
+      // BDD node 173:vector_borrow(vector:(w64 1074066912), index:(ReadLSB w32 (w32 0) new_index), val_out:(w64 1074223816)[ -> (w64 1074080808)])
+      // EP node  9495
+      // BDD node 174:map_put(map:(w64 1074053088), key:(w64 1074080808)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks)))))))))) -> (Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))], value:(ReadLSB w32 (w32 0) new_index))
+      buffer_t map_table_1074053088_key_0(13);
+      map_table_1074053088_key_0[0] = *(u8*)(hdr_2 + 0);
+      map_table_1074053088_key_0[1] = *(u8*)(hdr_2 + 1);
+      map_table_1074053088_key_0[2] = *(u8*)(hdr_2 + 2);
+      map_table_1074053088_key_0[3] = *(u8*)(hdr_2 + 3);
+      map_table_1074053088_key_0[4] = *(u8*)(hdr_1 + 12);
+      map_table_1074053088_key_0[5] = *(u8*)(hdr_1 + 13);
+      map_table_1074053088_key_0[6] = *(u8*)(hdr_1 + 14);
+      map_table_1074053088_key_0[7] = *(u8*)(hdr_1 + 15);
+      map_table_1074053088_key_0[8] = *(u8*)(hdr_1 + 16);
+      map_table_1074053088_key_0[9] = *(u8*)(hdr_1 + 17);
+      map_table_1074053088_key_0[10] = *(u8*)(hdr_1 + 18);
+      map_table_1074053088_key_0[11] = *(u8*)(hdr_1 + 19);
+      map_table_1074053088_key_0[12] = *(u8*)(hdr_1 + 9);
+      state->map_table_1074053088.put(map_table_1074053088_key_0, allocated_index_0);
+      // EP node  9623
+      // BDD node 175:vector_return(vector:(w64 1074066912), index:(ReadLSB w32 (w32 0) new_index), value:(w64 1074080808)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))])
+      buffer_t vector_table_1074066912_value_0(13);
+      vector_table_1074066912_value_0[0] = *(u8*)(hdr_2 + 0);
+      vector_table_1074066912_value_0[1] = *(u8*)(hdr_2 + 1);
+      vector_table_1074066912_value_0[2] = *(u8*)(hdr_2 + 2);
+      vector_table_1074066912_value_0[3] = *(u8*)(hdr_2 + 3);
+      vector_table_1074066912_value_0[4] = *(u8*)(hdr_1 + 12);
+      vector_table_1074066912_value_0[5] = *(u8*)(hdr_1 + 13);
+      vector_table_1074066912_value_0[6] = *(u8*)(hdr_1 + 14);
+      vector_table_1074066912_value_0[7] = *(u8*)(hdr_1 + 15);
+      vector_table_1074066912_value_0[8] = *(u8*)(hdr_1 + 16);
+      vector_table_1074066912_value_0[9] = *(u8*)(hdr_1 + 17);
+      vector_table_1074066912_value_0[10] = *(u8*)(hdr_1 + 18);
+      vector_table_1074066912_value_0[11] = *(u8*)(hdr_1 + 19);
+      vector_table_1074066912_value_0[12] = *(u8*)(hdr_1 + 9);
+      state->vector_table_1074066912.write(allocated_index_0, vector_table_1074066912_value_0);
+      // EP node  9820
+      // BDD node 176:nf_set_rte_ipv4_udptcp_checksum(ip_header:(w64 1073763520), l4_header:(w64 1073763776), packet:(w64 1074155224))
+      trigger_update_ipv4_tcpudp_checksums = true;
+      l3_hdr = (void *)hdr_1;
+      l4_hdr = (void *)hdr_2;
+      // EP node  9821
+      // BDD node 177:vector_borrow(vector:(w64 1074102712), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074225608)[ -> (w64 1074116608)])
+      buffer_t value_0;
+      state->vector_table_1074102712.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_0);
+      // EP node  9889
+      // BDD node 178:vector_return(vector:(w64 1074102712), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074116608)[(ReadLSB w16 (w32 0) vector_data_640)])
+      // EP node  10027
+      // BDD node 179:packet_return_chunk(p:(w64 1074206600), the_chunk:(w64 1073763776)[(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 514) packet_chunks) (ReadLSB w16 (w32 0) new_index)))])
+      hdr_2[0] = allocated_index_0 & 255;
+      hdr_2[1] = (allocated_index_0>>8) & 255;
+      // EP node  10098
+      // BDD node 180:packet_return_chunk(p:(w64 1074206600), the_chunk:(w64 1073763520)[(Concat w160 (Read w8 (w32 275) packet_chunks) (Concat w152 (Read w8 (w32 274) packet_chunks) (Concat w144 (Read w8 (w32 273) packet_chunks) (Concat w136 (Read w8 (w32 272) packet_chunks) (Concat w128 (w8 4) (Concat w120 (w8 3) (Concat w112 (w8 2) (Concat w104 (w8 1) (Concat w96 (Read w8 (w32 1) checksum) (Concat w88 (Read w8 (w32 0) checksum) (ReadLSB w80 (w32 256) packet_chunks)))))))))))])
+      hdr_1[12] = 1;
+      hdr_1[13] = 2;
+      hdr_1[14] = 3;
+      hdr_1[15] = 4;
+      // EP node  10170
+      // BDD node 182:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
+      if ((65535) != ((u16)value_0.get(0, 2))) {
+        // EP node  10171
+        // BDD node 182:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
+        // EP node  10318
         // BDD node 183:FORWARD
-        cpu_hdr->egress_dev = bswap16(bswap16(cpu_hdr_extra->vector_data_r47));
+        cpu_hdr->egress_dev = bswap16((u16)value_0.get(0, 2));
       } else {
-        // EP node  15143
-        // BDD node 182:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_r47)))
-        // EP node  16247
-        // BDD node 272:vector_return(vector:(w64 1074102712), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074116608)[(ReadLSB w16 (w32 0) vector_data_r47)])
-        // EP node  16325
-        // BDD node 269:map_put(map:(w64 1074053088), key:(w64 1074080808)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks)))))))))) -> (Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))], value:(ReadLSB w32 (w32 0) new_index_r14))
-        buffer_t map_table_1074053088_key_1(13);
-        map_table_1074053088_key_1[0] = *(u8*)(hdr_2 + 0);
-        map_table_1074053088_key_1[1] = *(u8*)(hdr_2 + 1);
-        map_table_1074053088_key_1[2] = *(u8*)(hdr_2 + 2);
-        map_table_1074053088_key_1[3] = *(u8*)(hdr_2 + 3);
-        map_table_1074053088_key_1[4] = *(u8*)(hdr_1 + 12);
-        map_table_1074053088_key_1[5] = *(u8*)(hdr_1 + 13);
-        map_table_1074053088_key_1[6] = *(u8*)(hdr_1 + 14);
-        map_table_1074053088_key_1[7] = *(u8*)(hdr_1 + 15);
-        map_table_1074053088_key_1[8] = *(u8*)(hdr_1 + 16);
-        map_table_1074053088_key_1[9] = *(u8*)(hdr_1 + 17);
-        map_table_1074053088_key_1[10] = *(u8*)(hdr_1 + 18);
-        map_table_1074053088_key_1[11] = *(u8*)(hdr_1 + 19);
-        map_table_1074053088_key_1[12] = *(u8*)(hdr_1 + 9);
-        state->map_table_1074053088.put(map_table_1074053088_key_1, allocated_index_0);
-        // EP node  16404
-        // BDD node 270:vector_return(vector:(w64 1074066912), index:(ReadLSB w32 (w32 0) new_index_r14), value:(w64 1074080808)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))])
-        buffer_t vector_table_1074066912_value_1(13);
-        vector_table_1074066912_value_1[0] = *(u8*)(hdr_2 + 0);
-        vector_table_1074066912_value_1[1] = *(u8*)(hdr_2 + 1);
-        vector_table_1074066912_value_1[2] = *(u8*)(hdr_2 + 2);
-        vector_table_1074066912_value_1[3] = *(u8*)(hdr_2 + 3);
-        vector_table_1074066912_value_1[4] = *(u8*)(hdr_1 + 12);
-        vector_table_1074066912_value_1[5] = *(u8*)(hdr_1 + 13);
-        vector_table_1074066912_value_1[6] = *(u8*)(hdr_1 + 14);
-        vector_table_1074066912_value_1[7] = *(u8*)(hdr_1 + 15);
-        vector_table_1074066912_value_1[8] = *(u8*)(hdr_1 + 16);
-        vector_table_1074066912_value_1[9] = *(u8*)(hdr_1 + 17);
-        vector_table_1074066912_value_1[10] = *(u8*)(hdr_1 + 18);
-        vector_table_1074066912_value_1[11] = *(u8*)(hdr_1 + 19);
-        vector_table_1074066912_value_1[12] = *(u8*)(hdr_1 + 9);
-        state->vector_table_1074066912.write(allocated_index_0, vector_table_1074066912_value_1);
-        // EP node  16564
-        // BDD node 271:nf_set_rte_ipv4_udptcp_checksum(ip_header:(w64 1073763520), l4_header:(w64 1073763776), packet:(w64 1074155224))
-        trigger_update_ipv4_tcpudp_checksums = true;
-        l3_hdr = (void *)hdr_1;
-        l4_hdr = (void *)hdr_2;
-        // EP node  16646
-        // BDD node 273:packet_return_chunk(p:(w64 1074206600), the_chunk:(w64 1073763776)[(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 514) packet_chunks) (ReadLSB w16 (w32 0) new_index_r14)))])
-        hdr_2[0] = allocated_index_0 & 255;
-        hdr_2[1] = (allocated_index_0>>8) & 255;
-        // EP node  16729
-        // BDD node 274:packet_return_chunk(p:(w64 1074206600), the_chunk:(w64 1073763520)[(Concat w160 (Read w8 (w32 275) packet_chunks) (Concat w152 (Read w8 (w32 274) packet_chunks) (Concat w144 (Read w8 (w32 273) packet_chunks) (Concat w136 (Read w8 (w32 272) packet_chunks) (Concat w128 (w8 4) (Concat w120 (w8 3) (Concat w112 (w8 2) (Concat w104 (w8 1) (Concat w96 (Read w8 (w32 1) checksum) (Concat w88 (Read w8 (w32 0) checksum) (ReadLSB w80 (w32 256) packet_chunks)))))))))))])
-        hdr_1[12] = 1;
-        hdr_1[13] = 2;
-        hdr_1[14] = 3;
-        hdr_1[15] = 4;
-        // EP node  16813
+        // EP node  10172
+        // BDD node 182:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))
+        // EP node  10319
         // BDD node 184:DROP
         forward = false;
       }

@@ -3,19 +3,19 @@
 namespace LibSynapse {
 namespace Tofino {
 
-TNA::TNA(const tna_config_t &config) : properties(config.properties), ports(config.ports), simple_placer(&properties) {}
+TNA::TNA(const tna_config_t &_tna_config) : tna_config(_tna_config), simple_placer(&tna_config.properties) {}
 
-TNA::TNA(const TNA &other) : properties(other.properties), ports(other.ports), simple_placer(other.simple_placer), parser(other.parser) {}
+TNA::TNA(const TNA &other) : tna_config(other.tna_config), simple_placer(other.simple_placer), parser(other.parser) {}
 
 bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
-  int total_packet_bytes_read          = 0;
+  bytes_t total_packet_bytes_read      = 0U;
   LibCore::symbolic_reads_t bytes_read = LibCore::get_unique_symbolic_reads(expr);
   for (const LibCore::symbolic_read_t &byte_read : bytes_read) {
     if (byte_read.symbol == "packet_chunks") {
       total_packet_bytes_read += 1;
     }
   }
-  return total_packet_bytes_read <= properties.max_packet_bytes_in_condition;
+  return total_packet_bytes_read <= tna_config.properties.max_packet_bytes_in_condition;
 }
 
 void TNA::place(const DS *ds, const std::unordered_set<DS_ID> &deps) { simple_placer.place(ds, deps); }

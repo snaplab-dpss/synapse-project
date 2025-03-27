@@ -84,6 +84,7 @@ private:
 
   std::vector<LibBDD::map_coalescing_objs_t> coalescing_candidates;
   std::optional<expiration_data_t> expiration_data;
+  std::vector<LibBDD::header_t> headers;
 
   std::unordered_map<addr_t, DSImpl> ds_impls;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
@@ -111,6 +112,7 @@ public:
 
   std::optional<LibBDD::map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
+  const std::vector<LibBDD::header_t> &get_headers() const;
 
   template <class TCtx> const TCtx *get_target_ctx() const;
   template <class TCtx> TCtx *get_mutable_target_ctx();

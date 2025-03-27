@@ -9,6 +9,11 @@ namespace LibBDD {
 
 struct branch_direction_t;
 
+struct header_t {
+  klee::ref<klee::Expr> expr;
+  std::vector<klee::ref<klee::Expr>> fields;
+};
+
 class Call : public Node {
 private:
   call_t call;
@@ -48,7 +53,7 @@ public:
   bool is_hdr_parse_with_var_len() const;
   bool is_tb_tracing_check_followed_by_update_on_true(const Call *&tb_update_and_check) const;
   const Call *packet_borrow_from_return() const;
-  std::vector<klee::ref<klee::Expr>> guess_header_fields_from_packet_borrow() const;
+  bool guess_header_fields_from_packet_borrow(header_t &header) const;
 
   // Tries to find the pattern of a map_get followed by map_puts, but only when
   // the map_get is not successful (i.e. the key is not found).

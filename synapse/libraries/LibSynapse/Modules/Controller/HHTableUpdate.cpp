@@ -15,13 +15,13 @@ struct table_data_t {
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> value;
 
-  table_data_t(const LibBDD::Call *map_put) {
+  table_data_t(const Context &ctx, const LibBDD::Call *map_put) {
     const LibBDD::call_t &call = map_put->get_call();
     assert(call.function_name == "map_put" && "Not a map_put call");
 
     obj        = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key        = call.args.at("key").in;
-    table_keys = Table::build_keys(key);
+    table_keys = Table::build_keys(key, ctx.get_headers());
     value      = call.args.at("value").expr;
   }
 };
@@ -92,7 +92,7 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const LibBD
   }
 
   LibCore::symbol_t min_estimate = get_min_estimate(ep);
-  table_data_t table_data(map_put);
+  table_data_t table_data(ep->get_ctx(), map_put);
 
   Module *module  = new HHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value, min_estimate);
   EPNode *ep_node = new EPNode(module);
@@ -125,7 +125,7 @@ std::unique_ptr<Module> HHTableUpdateFactory::create(const LibBDD::BDD *bdd, con
     return {};
   }
 
-  table_data_t table_data(map_put);
+  table_data_t table_data(ctx, map_put);
   LibCore::symbol_t mock_min_estimate;
 
   return std::make_unique<HHTableUpdate>(node, table_data.obj, table_data.table_keys, table_data.value, mock_min_estimate);

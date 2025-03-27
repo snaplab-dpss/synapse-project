@@ -17,8 +17,8 @@ DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-void get_data(const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value,
-              std::optional<LibCore::symbol_t> &hit) {
+void get_data(const Context &ctx, const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+              klee::ref<klee::Expr> &value, std::optional<LibCore::symbol_t> &hit) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "map_get" && "Not a map_get call");
 
@@ -29,7 +29,7 @@ void get_data(const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<
   LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr);
-  keys  = Table::build_keys(key);
+  keys  = Table::build_keys(key, ctx.get_headers());
   value = value_out;
   hit   = map_has_this_key;
 }
@@ -76,7 +76,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> found;
-  get_data(call_node, obj, keys, value, found);
+  get_data(ep->get_ctx(), call_node, obj, keys, value, found);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return impls;
@@ -112,7 +112,7 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bd
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> found;
-  get_data(call_node, obj, keys, value, found);
+  get_data(ctx, call_node, obj, keys, value, found);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};

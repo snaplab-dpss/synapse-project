@@ -83,13 +83,17 @@ std::vector<EP *> get_reordered(const EP *ep) {
     bool is_ancestor = false;
     EP *new_ep       = new EP(*ep, is_ancestor);
 
-    translator_t next_nodes_translator;
-    translator_t processed_nodes_translator;
+    EP::translation_data_t translation_data = {
+        .reordered_node             = new_bdd.bdd->get_node_by_id(new_bdd.op.candidate_info.id),
+        .next_nodes_translator      = {},
+        .processed_nodes_translator = {},
+        .translated_symbols         = new_bdd.translated_symbols,
+    };
 
-    build_node_translations(next_nodes_translator, processed_nodes_translator, bdd, new_bdd.op);
+    build_node_translations(translation_data.next_nodes_translator, translation_data.processed_nodes_translator, bdd, new_bdd.op);
     assert(!new_bdd.op2.has_value() && "Not supported");
 
-    new_ep->replace_bdd(std::move(new_bdd.bdd), next_nodes_translator, processed_nodes_translator, new_bdd.translated_symbols);
+    new_ep->replace_bdd(std::move(new_bdd.bdd), translation_data);
     new_ep->assert_integrity();
 
     reordered.push_back(new_ep);

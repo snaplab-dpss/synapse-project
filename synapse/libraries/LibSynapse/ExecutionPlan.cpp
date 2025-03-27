@@ -124,7 +124,6 @@ EP::EP(const LibBDD::BDD &_bdd, const TargetsView &_targets, const targets_confi
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = LibBDD::node_ids_t({bdd->get_root()->get_id()});
 
-  // TargetType initial_target = targets.
   for (const TargetView &target : targets.elements) {
     if (target.type != initial_target) {
       targets_roots[target.type] = LibBDD::node_ids_t();
@@ -333,16 +332,53 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
   sort_leaves();
 }
 
-void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translator_t &next_nodes_translator,
-                     const translator_t &processed_nodes_translator, const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
-  auto translate_next_node = [&next_nodes_translator](LibBDD::node_id_t id) {
-    auto found_it = next_nodes_translator.find(id);
-    return (found_it != next_nodes_translator.end()) ? found_it->second : id;
+void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
+  for (EPLeaf &leaf : active_leaves) {
+    assert(leaf.next && "Active leaf without a next node");
+
+    const LibBDD::node_id_t leaf_id = leaf.next->get_id();
+    const LibBDD::Node *new_node    = new_bdd->get_node_by_id(leaf_id);
+    assert(new_node && "New node not found in the new BDD.");
+
+    leaf.next = new_node;
+  }
+
+  if (root) {
+    root->visit_mutable_nodes([&new_bdd](EPNode *node) {
+      Module *module = node->get_mutable_module();
+
+      const LibBDD::Node *node_bdd      = module->get_node();
+      const LibBDD::node_id_t target_id = node_bdd->get_id();
+
+      const LibBDD::Node *new_node = new_bdd->get_node_by_id(target_id);
+      assert(new_node && "Node not found in the new BDD");
+
+      module->set_node(new_node);
+
+      return EPNodeVisitAction::Continue;
+    });
+  }
+
+  meta.update_total_bdd_nodes(new_bdd.get());
+
+  // Replacing the BDD might change the hit rate estimations.
+  ctx.get_profiler().clear_cache();
+
+  // Reset the BDD only here, because we might lose the final reference to it and we needed the old nodes to find the new ones.
+  bdd = std::move(new_bdd);
+
+  sort_leaves();
+}
+
+void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_data_t &translation_data) {
+  auto translate_next_node = [&translation_data](LibBDD::node_id_t id) {
+    auto found_it = translation_data.next_nodes_translator.find(id);
+    return (found_it != translation_data.next_nodes_translator.end()) ? found_it->second : id;
   };
 
-  auto translate_processed_node = [&processed_nodes_translator](LibBDD::node_id_t id) {
-    auto found_it = processed_nodes_translator.find(id);
-    return (found_it != processed_nodes_translator.end()) ? found_it->second : id;
+  auto translate_processed_node = [&translation_data](LibBDD::node_id_t id) {
+    auto found_it = translation_data.processed_nodes_translator.find(id);
+    return (found_it != translation_data.processed_nodes_translator.end()) ? found_it->second : id;
   };
 
   for (EPLeaf &leaf : active_leaves) {
@@ -377,7 +413,8 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translator_t &n
   ctx.get_profiler().clear_cache();
 
   // Translating Profiler symbols.
-  ctx.get_mutable_profiler().translate(new_bdd->get_mutable_symbol_manager(), translated_symbols);
+  ctx.get_mutable_profiler().translate(new_bdd->get_mutable_symbol_manager(), translation_data.reordered_node,
+                                       translation_data.translated_symbols);
 
   // Reset the BDD only here, because we might lose the final reference to it and we needed the old nodes to find the new ones.
   bdd = std::move(new_bdd);
@@ -810,12 +847,12 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
     return egress;
   }
 
-  std::vector<int> past_recirculations = node->get_past_recirculations();
+  std::vector<u16> past_recirculations = node->get_past_recirculations();
 
   if (past_recirculations.empty()) {
     egress.global = hr;
   } else {
-    const int rport = past_recirculations[0];
+    const u16 rport = past_recirculations[0];
     int depth       = 1;
 
     for (size_t i = 1; i < past_recirculations.size(); i++) {

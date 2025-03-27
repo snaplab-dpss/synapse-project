@@ -170,11 +170,11 @@ capacity_bps = 100_000_000_000 # 100G
 ########################################################
 
 [[switch.recirculation_ports]]
-dev_port     = 0
+dev_port     = 68
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
-dev_port     = 1
+dev_port     = 196
 capacity_bps = 125_000_000_000 # 125G
 
 ########################################################

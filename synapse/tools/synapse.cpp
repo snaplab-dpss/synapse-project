@@ -41,7 +41,7 @@ LibSynapse::targets_config_t parse_targets_config(const std::filesystem::path &t
   targets_config.tofino_config.properties = {
       .total_ports                                = static_cast<int>(config["switch"]["front_panel_ports"].as_array()->size()),
       .total_recirc_ports                         = static_cast<int>(config["switch"]["recirculation_ports"].as_array()->size()),
-      .max_packet_bytes_in_condition              = *config["switch"]["arch"]["max_packet_bytes_in_condition"].value<int>(),
+      .max_packet_bytes_in_condition              = *config["switch"]["arch"]["max_packet_bytes_in_condition"].value<bytes_t>(),
       .pipes                                      = *config["switch"]["arch"]["pipes"].value<int>(),
       .stages                                     = *config["switch"]["arch"]["stages"].value<int>(),
       .sram_per_stage                             = *config["switch"]["arch"]["sram_per_stage"].value<bits_t>(),
@@ -118,6 +118,11 @@ LibSynapse::targets_config_t parse_targets_config(const std::filesystem::path &t
   }
 
   targets_config.controller_capacity = *config["controller"]["capacity_pps"].value<pps_t>();
+
+  if (targets_config.tofino_config.properties.total_recirc_ports !=
+      static_cast<int>(targets_config.tofino_config.recirculation_ports.size())) {
+    panic("Invalid config file: total_recirc_ports size does not match the number of provided recirculation ports.");
+  }
 
   return targets_config;
 }

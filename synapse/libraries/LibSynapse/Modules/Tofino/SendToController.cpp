@@ -67,6 +67,12 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
     new_ep->replace_bdd(std::move(new_bdd));
   }
 
+  if (ep->get_id() == 241) {
+    get_mutable_tofino_ctx(new_ep)->debug();
+    std::cerr << "node: " << node->dump(true) << "\n";
+    LibBDD::BDDViz::visualize(ep->get_bdd(), false);
+  }
+
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->parser_accept(ep, node);
 

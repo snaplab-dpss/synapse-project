@@ -13,7 +13,7 @@ namespace Tofino {
 struct tna_properties_t {
   int total_ports;
   int total_recirc_ports;
-  int max_packet_bytes_in_condition;
+  bytes_t max_packet_bytes_in_condition;
   int pipes;
   int stages;
   bits_t sram_per_stage;
@@ -52,8 +52,7 @@ struct tna_config_t {
 
 class TNA {
 private:
-  const tna_properties_t properties;
-  const std::vector<tofino_port_t> ports;
+  const tna_config_t tna_config;
   SimplePlacer simple_placer;
 
 public:
@@ -62,8 +61,7 @@ public:
   TNA(const tna_config_t &config);
   TNA(const TNA &other);
 
-  const tna_properties_t &get_properties() const { return properties; }
-  const std::vector<tofino_port_t> &get_ports() const { return ports; }
+  const tna_config_t &get_tna_config() const { return tna_config; }
 
   // Tofino compiler complains if we access more than 4 bytes of the packet on
   // the same if statement.

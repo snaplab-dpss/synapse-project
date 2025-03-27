@@ -486,48 +486,41 @@ klee::ref<klee::Expr> Call::get_obj() const {
   return nullptr;
 }
 
-std::vector<klee::ref<klee::Expr>> Call::guess_header_fields_from_packet_borrow() const {
-  std::vector<klee::ref<klee::Expr>> hdr_fields;
-
+bool Call::guess_header_fields_from_packet_borrow(header_t &header) const {
   if (call.function_name != "packet_borrow_next_chunk") {
-    return hdr_fields;
+    return false;
   }
-
-  klee::ref<klee::Expr> hdr = call.extra_vars.at("the_chunk").second;
-
-  std::vector<LibCore::expr_group_t> groups = LibCore::get_expr_groups(hdr);
-  assert(groups.size() == 1 && "Multiple groups found on a single header");
-
-  const bytes_t hdr_offset = groups[0].offset;
-  const bytes_t hdr_size   = groups[0].size;
 
   if (next == nullptr) {
-    return hdr_fields;
+    return false;
   }
 
+  header.expr = call.extra_vars.at("the_chunk").second;
+
+  const std::vector<LibCore::expr_group_t> hdr_groups = LibCore::get_expr_groups(header.expr);
+  assert(hdr_groups.size() == 1 && "Multiple groups found on a single header");
+  assert(hdr_groups[0].has_symbol && hdr_groups[0].symbol == "packet_chunks" && "No packet_chunks group found");
+
+  const bytes_t hdr_offset = hdr_groups[0].offset;
+  const bytes_t hdr_size   = hdr_groups[0].size;
+
   struct hdr_field_candidate_t {
-    bits_t offset;
-    bits_t size;
+    bytes_t offset;
+    bytes_t size;
   };
 
-  auto build_hdr_field_candidates = [hdr](std::set<bytes_t> used_bytes) -> std::vector<hdr_field_candidate_t> {
+  auto candidates_from_groups = [hdr_offset, hdr_size](const LibCore::expr_groups_t &groups) -> std::vector<hdr_field_candidate_t> {
     std::vector<hdr_field_candidate_t> candidates;
 
-    if (used_bytes.empty()) {
-      return candidates;
-    }
-
-    for (bytes_t used_byte : used_bytes) {
-      if (candidates.empty()) {
-        candidates.emplace_back(used_byte * 8, 8);
+    for (const LibCore::expr_group_t &group : groups) {
+      if (!group.has_symbol || group.symbol != "packet_chunks") {
         continue;
       }
 
-      if (candidates.back().offset + candidates.back().size == used_byte * 8) {
-        candidates.back().size += 8;
-        continue;
-      } else {
-        candidates.emplace_back(used_byte * 8, 8);
+      if (group.offset >= hdr_offset && group.offset < hdr_offset + hdr_size) {
+        const bytes_t offset = group.offset - hdr_offset;
+        const bytes_t size   = std::min(group.size, hdr_offset + hdr_size - group.offset);
+        candidates.emplace_back(offset, size);
       }
     }
 
@@ -547,8 +540,8 @@ std::vector<klee::ref<klee::Expr>> Call::guess_header_fields_from_packet_borrow(
     size_t i = 0;
     while (i + 1 < result.size()) {
       if (result[i].offset == result[i + 1].offset) {
-        const bits_t max_size = std::max(result[i].size, result[i + 1].size);
-        const bits_t min_size = std::min(result[i].size, result[i + 1].size);
+        const bytes_t max_size = std::max(result[i].size, result[i + 1].size);
+        const bytes_t min_size = std::min(result[i].size, result[i + 1].size);
 
         if (max_size == min_size) {
           result.erase(result.begin() + i + 1);
@@ -571,47 +564,32 @@ std::vector<klee::ref<klee::Expr>> Call::guess_header_fields_from_packet_borrow(
     return result;
   };
 
-  std::set<bytes_t> hdr_bytes;
-  for (bytes_t i = hdr_offset; i < hdr_offset + hdr_size; i++) {
-    hdr_bytes.insert(i);
-  }
+  std::vector<hdr_field_candidate_t> best_candidates = candidates_from_groups(hdr_groups);
 
-  std::vector<hdr_field_candidate_t> best_candidates = build_hdr_field_candidates(hdr_bytes);
+  next->visit_nodes([hdr_offset, hdr_size, candidates_from_groups, merge_hdr_field_candidates, &best_candidates](const Node *node) {
+    const std::vector<LibCore::expr_groups_t> groups = node->get_expr_groups();
 
-  next->visit_nodes([&hdr_fields, &build_hdr_field_candidates, &merge_hdr_field_candidates, &best_candidates, hdr_offset, hdr_size,
-                     hdr](const Node *node) {
-    LibCore::symbolic_reads_t reads = node->get_used_symbolic_reads();
-
-    std::set<bytes_t> packet_chunks_bytes_read;
-    for (const LibCore::symbolic_read_t &read : reads) {
-      if (read.symbol != "packet_chunks") {
-        continue;
-      }
-
-      if (read.byte >= hdr_offset && read.byte < hdr_offset + hdr_size) {
-        packet_chunks_bytes_read.insert(read.byte);
-      }
+    for (const LibCore::expr_groups_t &subgroup : groups) {
+      const std::vector<hdr_field_candidate_t> candidates = candidates_from_groups(subgroup);
+      best_candidates                                     = merge_hdr_field_candidates(best_candidates, candidates);
     }
-
-    const std::vector<hdr_field_candidate_t> candidates = build_hdr_field_candidates(packet_chunks_bytes_read);
-    best_candidates                                     = merge_hdr_field_candidates(best_candidates, candidates);
 
     return NodeVisitAction::Continue;
   });
 
   for (const hdr_field_candidate_t &candidate : best_candidates) {
-    klee::ref<klee::Expr> extracted = LibCore::solver_toolbox.exprBuilder->Extract(hdr, candidate.offset - hdr_offset * 8, candidate.size);
+    klee::ref<klee::Expr> extracted = LibCore::solver_toolbox.exprBuilder->Extract(header.expr, candidate.offset * 8, candidate.size * 8);
     klee::ref<klee::Expr> candidate_expr = LibCore::simplify(extracted);
-    hdr_fields.push_back(candidate_expr);
+    header.fields.push_back(candidate_expr);
   }
 
-  klee::ref<klee::Expr> reconstructed_hdr = LibCore::concat_exprs(hdr_fields);
-  if (!LibCore::solver_toolbox.are_exprs_always_equal(hdr, reconstructed_hdr)) {
-    panic("*** Bug in header field extraction ***\nHdr: %s\nReconstructed: %s\n", LibCore::expr_to_string(hdr, true).c_str(),
+  klee::ref<klee::Expr> reconstructed_hdr = LibCore::concat_exprs(header.fields);
+  if (!LibCore::solver_toolbox.are_exprs_always_equal(header.expr, reconstructed_hdr)) {
+    panic("*** Bug in header field extraction ***\nHdr: %s\nReconstructed: %s\n", LibCore::expr_to_string(header.expr, true).c_str(),
           LibCore::expr_to_string(reconstructed_hdr, true).c_str());
   }
 
-  return hdr_fields;
+  return true;
 }
 
 } // namespace LibBDD

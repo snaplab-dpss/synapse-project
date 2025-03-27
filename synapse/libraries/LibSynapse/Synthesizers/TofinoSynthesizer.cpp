@@ -934,6 +934,30 @@ TofinoSynthesizer::code_t TofinoSynthesizer::var_t::get_stem() const {
   return name.substr(pos + 1);
 }
 
+TofinoSynthesizer::code_t TofinoSynthesizer::var_t::flatten_name() const {
+  const std::vector<char> forbidden_chars{'(', ')'};
+
+  bool found_forbidden_char = false;
+  for (char c : forbidden_chars) {
+    if (name.find(c) != std::string::npos) {
+      found_forbidden_char = true;
+      break;
+    }
+  }
+
+  if (!found_forbidden_char) {
+    return get_stem();
+  }
+
+  const std::vector<char> escape_chars{'(', ')', '.'};
+  code_t flat_name = name;
+  for (char c : escape_chars) {
+    std::replace(flat_name.begin(), flat_name.end(), c, '_');
+  }
+
+  return flat_name;
+}
+
 TofinoSynthesizer::code_t TofinoSynthesizer::var_t::get_hdr_name() const {
   assert(is_header_field && "Not a header field");
   std::vector<code_t> subnames;
@@ -1478,28 +1502,30 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   Stacks stack_backup = ingress_vars;
 
   std::vector<var_t> recirc_vars;
-  for (const var_t &var : ingress_vars.squash().get_all()) {
+  for (var_t var : ingress_vars.squash().get_all()) {
     var_t recirc_var = var;
+    recirc_var.name  = recirc_var.flatten_name();
 
     if (var.is_header_field) {
       recirc_vars.push_back(recirc_var);
       continue;
     }
 
-    recirc_var.name = "hdr.recirc." + var.get_stem();
+    var_t local_recirc_var = recirc_var;
+    local_recirc_var.name  = "hdr.recirc." + recirc_var.name;
 
-    recirc_hdr_vars.push(var);
-    recirc_vars.push_back(recirc_var);
+    recirc_hdr_vars.push(recirc_var);
+    recirc_vars.push_back(local_recirc_var);
 
     ingress_apply.indent();
-    ingress_apply << recirc_var.name;
+    ingress_apply << local_recirc_var.name;
     ingress_apply << " = ";
     ingress_apply << var.name;
     ingress_apply << ";\n";
   }
 
   // 3. Forward to recirculation port
-  int port = node->get_recirc_port();
+  u16 port = node->get_recirc_port();
   ingress_apply.indent();
   ingress_apply << "fwd(" << port << ");\n";
 

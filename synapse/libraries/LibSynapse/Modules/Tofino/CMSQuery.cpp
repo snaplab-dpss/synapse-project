@@ -27,7 +27,7 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const LibBDD
   }
 
   const LibBDD::cms_config_t &cfg         = ep->get_ctx().get_cms_config(cms_addr);
-  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
+  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key, ctx.get_headers());
 
   if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height)) {
     return std::nullopt;
@@ -64,7 +64,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
   }
 
   const LibBDD::cms_config_t &cfg         = ep->get_ctx().get_cms_config(cms_addr);
-  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key);
+  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key, ep->get_ctx().get_headers());
 
   CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height);
 

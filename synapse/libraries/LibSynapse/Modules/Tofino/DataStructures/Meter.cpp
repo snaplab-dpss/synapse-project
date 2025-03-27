@@ -44,16 +44,5 @@ void Meter::debug() const {
   std::cerr << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>> Meter::build_keys(klee::ref<klee::Expr> key) {
-  std::vector<klee::ref<klee::Expr>> keys;
-
-  std::vector<LibCore::expr_group_t> groups = LibCore::get_expr_groups(key);
-  for (const LibCore::expr_group_t &group : groups) {
-    keys.push_back(group.expr);
-  }
-
-  return keys;
-}
-
 } // namespace Tofino
 } // namespace LibSynapse

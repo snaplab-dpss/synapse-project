@@ -674,7 +674,8 @@ void Profiler::clone_tree_if_shared() {
   root = std::shared_ptr<ProfilerNode>(root->clone(true));
 }
 
-void Profiler::translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
+void Profiler::translate(LibCore::SymbolManager *symbol_manager, const LibBDD::Node *reordered_node,
+                         const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
   clone_tree_if_shared();
 
   std::unordered_map<std::string, std::string> translations;
@@ -682,7 +683,7 @@ void Profiler::translate(LibCore::SymbolManager *symbol_manager, const std::vect
     translations[old_symbol.name] = new_symbol.name;
   }
 
-  std::vector<ProfilerNode *> nodes{root.get()};
+  std::vector<ProfilerNode *> nodes{get_node(reordered_node)};
 
   while (!nodes.empty()) {
     ProfilerNode *node = nodes.back();

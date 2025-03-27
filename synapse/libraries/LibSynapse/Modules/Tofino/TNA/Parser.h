@@ -395,7 +395,12 @@ private:
       return;
     }
 
-    assert(old_next_state->type == ParserStateType::TERMINATE && "Invalid parser");
+    // This can happen and it's not a big deal. It just means that on the same branch side we sometimes parse a header and other times send
+    // to the controller.
+    if (old_next_state->type != ParserStateType::TERMINATE) {
+      return;
+    }
+
     assert(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true && "Invalid parser");
 
     switch (new_state->type) {

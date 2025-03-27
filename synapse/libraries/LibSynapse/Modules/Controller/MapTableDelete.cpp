@@ -13,7 +13,7 @@ struct map_table_data_t {
   std::vector<klee::ref<klee::Expr>> keys;
 };
 
-map_table_data_t get_table_delete_data(const LibBDD::Call *call_node) {
+map_table_data_t get_table_delete_data(const Context &ctx, const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
@@ -22,7 +22,7 @@ map_table_data_t get_table_delete_data(const LibBDD::Call *call_node) {
 
   map_table_data_t data = {
       .obj  = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .keys = Table::build_keys(key),
+      .keys = Table::build_keys(key, ctx.get_headers()),
   };
 
   return data;
@@ -42,7 +42,7 @@ std::optional<spec_impl_t> MapTableDeleteFactory::speculate(const EP *ep, const 
     return std::nullopt;
   }
 
-  map_table_data_t data = get_table_delete_data(map_erase);
+  map_table_data_t data = get_table_delete_data(ctx, map_erase);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
     return std::nullopt;
@@ -66,7 +66,7 @@ std::vector<impl_t> MapTableDeleteFactory::process_node(const EP *ep, const LibB
     return impls;
   }
 
-  map_table_data_t data = get_table_delete_data(map_erase);
+  map_table_data_t data = get_table_delete_data(ep->get_ctx(), map_erase);
 
   if (!ep->get_ctx().check_ds_impl(data.obj, DSImpl::Tofino_MapTable)) {
     return impls;
@@ -96,7 +96,7 @@ std::unique_ptr<Module> MapTableDeleteFactory::create(const LibBDD::BDD *bdd, co
     return {};
   }
 
-  map_table_data_t data = get_table_delete_data(map_erase);
+  map_table_data_t data = get_table_delete_data(ctx, map_erase);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable)) {
     return {};

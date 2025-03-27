@@ -23,13 +23,14 @@ header recirc_h {
 };
 
 header hdr0_h {
-  bit<96> data0;
-  bit<16> data1;
+  bit<48> data0;
+  bit<48> data1;
+  bit<16> data2;
 }
 header hdr1_h {
-  bit<72> data0;
-  bit<8> data1;
-  bit<80> data2;
+  bit<96> data0;
+  bit<32> data1;
+  bit<32> data2;
 }
 header hdr2_h {
   bit<16> data0;
@@ -131,7 +132,7 @@ parser IngressParser(
     transition parser_6;
   }
   state parser_6 {
-    transition select (hdr.hdr0.data1) {
+    transition select (hdr.hdr0.data2) {
       2048: parser_7;
       default: parser_73;
     }
@@ -144,7 +145,7 @@ parser IngressParser(
     transition reject;
   }
   state parser_8 {
-    transition select (hdr.hdr1.data1) {
+    transition select (hdr.hdr1.data0[23:16]) {
       17: parser_9;
       default: parser_71;
     }
@@ -741,18 +742,18 @@ control Ingress(
                       swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
                       // EP node  6433
                       // BDD node 43:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759744)[(Concat w160 (Read w8 (w32 271) packet_chunks) (Concat w152 (Read w8 (w32 270) packet_chunks) (Concat w144 (Read w8 (w32 269) packet_chunks) (Concat w136 (Read w8 (w32 268) packet_chunks) (Concat w128 (Read w8 (w32 275) packet_chunks) (Concat w120 (Read w8 (w32 274) packet_chunks) (Concat w112 (Read w8 (w32 273) packet_chunks) (Concat w104 (Read w8 (w32 272) packet_chunks) (ReadLSB w96 (w32 256) packet_chunks)))))))))])
-                      swap(hdr.hdr1.data2[63:56], hdr.hdr1.data2[31:24]);
-                      swap(hdr.hdr1.data2[55:48], hdr.hdr1.data2[23:16]);
-                      swap(hdr.hdr1.data2[47:40], hdr.hdr1.data2[15:8]);
-                      swap(hdr.hdr1.data2[39:32], hdr.hdr1.data2[7:0]);
+                      swap(hdr.hdr1.data1[31:24], hdr.hdr1.data2[31:24]);
+                      swap(hdr.hdr1.data1[23:16], hdr.hdr1.data2[23:16]);
+                      swap(hdr.hdr1.data1[15:8], hdr.hdr1.data2[15:8]);
+                      swap(hdr.hdr1.data1[7:0], hdr.hdr1.data2[7:0]);
                       // EP node  7632
                       // BDD node 44:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759488)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (Read w8 (w32 5) packet_chunks) (Concat w88 (Read w8 (w32 4) packet_chunks) (Concat w80 (Read w8 (w32 3) packet_chunks) (Concat w72 (Read w8 (w32 2) packet_chunks) (Concat w64 (Read w8 (w32 1) packet_chunks) (Concat w56 (Read w8 (w32 0) packet_chunks) (ReadLSB w48 (w32 6) packet_chunks)))))))))])
-                      swap(hdr.hdr0.data0[95:88], hdr.hdr0.data0[47:40]);
-                      swap(hdr.hdr0.data0[87:80], hdr.hdr0.data0[39:32]);
-                      swap(hdr.hdr0.data0[79:72], hdr.hdr0.data0[31:24]);
-                      swap(hdr.hdr0.data0[71:64], hdr.hdr0.data0[23:16]);
-                      swap(hdr.hdr0.data0[63:56], hdr.hdr0.data0[15:8]);
-                      swap(hdr.hdr0.data0[55:48], hdr.hdr0.data0[7:0]);
+                      swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+                      swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+                      swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+                      swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+                      swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+                      swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
                       // EP node  8586
                       // BDD node 45:FORWARD
                       nf_dev[15:0] = meta.dev[15:0];
@@ -803,18 +804,18 @@ control Ingress(
                       swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
                       // EP node  7944
                       // BDD node 50:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759744)[(Concat w160 (Read w8 (w32 271) packet_chunks) (Concat w152 (Read w8 (w32 270) packet_chunks) (Concat w144 (Read w8 (w32 269) packet_chunks) (Concat w136 (Read w8 (w32 268) packet_chunks) (Concat w128 (Read w8 (w32 275) packet_chunks) (Concat w120 (Read w8 (w32 274) packet_chunks) (Concat w112 (Read w8 (w32 273) packet_chunks) (Concat w104 (Read w8 (w32 272) packet_chunks) (ReadLSB w96 (w32 256) packet_chunks)))))))))])
-                      swap(hdr.hdr1.data2[63:56], hdr.hdr1.data2[31:24]);
-                      swap(hdr.hdr1.data2[55:48], hdr.hdr1.data2[23:16]);
-                      swap(hdr.hdr1.data2[47:40], hdr.hdr1.data2[15:8]);
-                      swap(hdr.hdr1.data2[39:32], hdr.hdr1.data2[7:0]);
+                      swap(hdr.hdr1.data1[31:24], hdr.hdr1.data2[31:24]);
+                      swap(hdr.hdr1.data1[23:16], hdr.hdr1.data2[23:16]);
+                      swap(hdr.hdr1.data1[15:8], hdr.hdr1.data2[15:8]);
+                      swap(hdr.hdr1.data1[7:0], hdr.hdr1.data2[7:0]);
                       // EP node  8971
                       // BDD node 51:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759488)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (Read w8 (w32 5) packet_chunks) (Concat w88 (Read w8 (w32 4) packet_chunks) (Concat w80 (Read w8 (w32 3) packet_chunks) (Concat w72 (Read w8 (w32 2) packet_chunks) (Concat w64 (Read w8 (w32 1) packet_chunks) (Concat w56 (Read w8 (w32 0) packet_chunks) (ReadLSB w48 (w32 6) packet_chunks)))))))))])
-                      swap(hdr.hdr0.data0[95:88], hdr.hdr0.data0[47:40]);
-                      swap(hdr.hdr0.data0[87:80], hdr.hdr0.data0[39:32]);
-                      swap(hdr.hdr0.data0[79:72], hdr.hdr0.data0[31:24]);
-                      swap(hdr.hdr0.data0[71:64], hdr.hdr0.data0[23:16]);
-                      swap(hdr.hdr0.data0[63:56], hdr.hdr0.data0[15:8]);
-                      swap(hdr.hdr0.data0[55:48], hdr.hdr0.data0[7:0]);
+                      swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+                      swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+                      swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+                      swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+                      swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+                      swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
                       // EP node  9363
                       // BDD node 52:FORWARD
                       nf_dev[15:0] = meta.dev[15:0];
@@ -866,18 +867,18 @@ control Ingress(
                     swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
                     // EP node  1557
                     // BDD node 57:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759744)[(Concat w160 (Read w8 (w32 271) packet_chunks) (Concat w152 (Read w8 (w32 270) packet_chunks) (Concat w144 (Read w8 (w32 269) packet_chunks) (Concat w136 (Read w8 (w32 268) packet_chunks) (Concat w128 (Read w8 (w32 275) packet_chunks) (Concat w120 (Read w8 (w32 274) packet_chunks) (Concat w112 (Read w8 (w32 273) packet_chunks) (Concat w104 (Read w8 (w32 272) packet_chunks) (ReadLSB w96 (w32 256) packet_chunks)))))))))])
-                    swap(hdr.hdr1.data2[63:56], hdr.hdr1.data2[31:24]);
-                    swap(hdr.hdr1.data2[55:48], hdr.hdr1.data2[23:16]);
-                    swap(hdr.hdr1.data2[47:40], hdr.hdr1.data2[15:8]);
-                    swap(hdr.hdr1.data2[39:32], hdr.hdr1.data2[7:0]);
+                    swap(hdr.hdr1.data1[31:24], hdr.hdr1.data2[31:24]);
+                    swap(hdr.hdr1.data1[23:16], hdr.hdr1.data2[23:16]);
+                    swap(hdr.hdr1.data1[15:8], hdr.hdr1.data2[15:8]);
+                    swap(hdr.hdr1.data1[7:0], hdr.hdr1.data2[7:0]);
                     // EP node  1743
                     // BDD node 58:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759488)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (Read w8 (w32 5) packet_chunks) (Concat w88 (Read w8 (w32 4) packet_chunks) (Concat w80 (Read w8 (w32 3) packet_chunks) (Concat w72 (Read w8 (w32 2) packet_chunks) (Concat w64 (Read w8 (w32 1) packet_chunks) (Concat w56 (Read w8 (w32 0) packet_chunks) (ReadLSB w48 (w32 6) packet_chunks)))))))))])
-                    swap(hdr.hdr0.data0[95:88], hdr.hdr0.data0[47:40]);
-                    swap(hdr.hdr0.data0[87:80], hdr.hdr0.data0[39:32]);
-                    swap(hdr.hdr0.data0[79:72], hdr.hdr0.data0[31:24]);
-                    swap(hdr.hdr0.data0[71:64], hdr.hdr0.data0[23:16]);
-                    swap(hdr.hdr0.data0[63:56], hdr.hdr0.data0[15:8]);
-                    swap(hdr.hdr0.data0[55:48], hdr.hdr0.data0[7:0]);
+                    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+                    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+                    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+                    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+                    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+                    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
                     // EP node  1935
                     // BDD node 59:FORWARD
                     nf_dev[15:0] = meta.dev[15:0];

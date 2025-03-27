@@ -34,22 +34,22 @@ def main():
         print("========================================")
 
         print()
-        print(f"[*] Testing wan packet (port={wan_port}) is dropped...")
+        print(f"[{lan_port}<->{wan_port}] Testing wan packet (port={wan_port}) is dropped...")
         ports.send(wan_port, wan_pkt)
         expect_no_packet(ports)
 
         print()
-        print(f"[*] Testing lan packet (port={lan_port}) is forwarded...")
+        print(f"[{lan_port}<->{wan_port}] Testing lan packet (port={lan_port}) is forwarded...")
         ports.send(lan_port, lan_pkt)
         expect_packet_from_port(ports, wan_port, lan_pkt)
 
         print()
-        print(f"[*] Testing wan packet (port={wan_port}) is now allowed...")
+        print(f"[{lan_port}<->{wan_port}] Testing wan packet (port={wan_port}) is now allowed...")
         ports.send(wan_port, wan_pkt)
         expect_packet_from_port(ports, lan_port, wan_pkt)
 
         print()
-        print(f"[*] Testing flow rejuvenation...")
+        print(f"[{lan_port}<->{wan_port}] Testing flow rejuvenation...")
         elapsed = 0
         start = time()
         while elapsed < EXPIRATION_TIME_SEC:
@@ -61,7 +61,7 @@ def main():
             elapsed = time() - start
 
         print()
-        print(f"[*] Testing flow expiration...")
+        print(f"[{lan_port}<->{wan_port}] Testing flow expiration...")
         sleep(EXPIRATION_TIME_SEC * 2)
         ports.send(wan_port, wan_pkt)
         expect_no_packet(ports)

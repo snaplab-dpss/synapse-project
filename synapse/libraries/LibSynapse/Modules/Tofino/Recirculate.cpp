@@ -7,22 +7,15 @@ namespace Tofino {
 constexpr const char *RECIRCULATION_PORT_PARAM = "recirc_port";
 
 namespace {
-EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbols &symbols, int recirc_port,
-                    const std::vector<int> &past_recirculations) {
-  int port_recirculations = 1;
-  for (int p : past_recirculations) {
-    if (p == recirc_port) {
-      port_recirculations++;
-    }
-  }
-
-  u32 code_path = node->get_id();
-
+EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbols &symbols, u16 recirc_port,
+                    const std::vector<u16> &past_recirculations) {
   EP *new_ep = new EP(*ep);
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(ep->get_active_leaf().node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port,
                                                                                ep->get_node_egress(hr, ep->get_active_leaf().node));
+
+  const u32 code_path = node->get_id();
 
   Module *module  = new Recirculate(node, symbols, recirc_port, code_path);
   EPNode *ep_node = new EPNode(module);
@@ -35,12 +28,12 @@ EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbo
   return new_ep;
 }
 
-EP *concretize_single_port_recirc(const EP *ep, const LibBDD::Node *node, const std::vector<int> &past_recirc, int rport,
+EP *concretize_single_port_recirc(const EP *ep, const LibBDD::Node *node, const std::vector<u16> &past_recirc, u16 rport,
                                   const LibCore::Symbols &symbols) {
   bool marked           = false;
   bool returning_recirc = false;
 
-  for (int past_rport : past_recirc) {
+  for (u16 past_rport : past_recirc) {
     if (marked && past_rport != rport) {
       returning_recirc = true;
       break;
@@ -84,12 +77,15 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD:
   // decision is made?
   assert((!ep->get_active_leaf().node || !ep->get_active_leaf().node->forwarding_decision_already_made()) && "TODO");
 
-  int total_recirc_ports       = get_tofino_ctx(ep)->get_tna().get_properties().total_recirc_ports;
-  std::vector<int> past_recirc = active_leaf.node->get_past_recirculations();
+  std::vector<u16> available_recirculation_ports;
+  for (const tofino_recirculation_port_t &port : tofino_ctx->get_tna().get_tna_config().recirculation_ports) {
+    available_recirculation_ports.push_back(port.dev_port);
+  }
 
-  LibCore::Symbols symbols = get_dataplane_state(ep, node);
+  const std::vector<u16> past_recirc = active_leaf.node->get_past_recirculations();
+  const LibCore::Symbols symbols     = get_dataplane_state(ep, node);
 
-  for (int rport = 0; rport < total_recirc_ports; rport++) {
+  for (u16 rport : available_recirculation_ports) {
     EP *new_ep = concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);
     if (new_ep) {
       impl_t impl = implement(ep, node, new_ep, {{RECIRCULATION_PORT_PARAM, rport}});

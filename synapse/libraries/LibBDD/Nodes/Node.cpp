@@ -730,4 +730,36 @@ std::vector<const Call *> Node::get_coalescing_nodes_from_key(klee::ref<klee::Ex
   return filtered_nodes;
 }
 
+std::vector<LibCore::expr_groups_t> Node::get_expr_groups() const {
+  std::vector<LibCore::expr_groups_t> groups;
+
+  switch (type) {
+  case NodeType::Branch: {
+    const Branch *branch_node  = dynamic_cast<const Branch *>(this);
+    klee::ref<klee::Expr> expr = branch_node->get_condition();
+    groups.push_back(LibCore::get_expr_groups(expr));
+  } break;
+  case NodeType::Call: {
+    const Call *call_node = dynamic_cast<const Call *>(this);
+    const call_t &call    = call_node->get_call();
+
+    for (const auto &[arg_name, arg] : call.args) {
+      groups.push_back(LibCore::get_expr_groups(arg.expr));
+      groups.push_back(LibCore::get_expr_groups(arg.in));
+    }
+
+    for (const auto &[extra_var_name, extra_var] : call.extra_vars) {
+      groups.push_back(LibCore::get_expr_groups(extra_var.first));
+    }
+  } break;
+  case NodeType::Route: {
+    const Route *route_node    = dynamic_cast<const Route *>(this);
+    klee::ref<klee::Expr> expr = route_node->get_dst_device();
+    groups.push_back(LibCore::get_expr_groups(expr));
+  } break;
+  }
+
+  return groups;
+}
+
 } // namespace LibBDD

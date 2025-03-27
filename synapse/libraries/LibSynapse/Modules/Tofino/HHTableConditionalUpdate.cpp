@@ -17,13 +17,13 @@ struct hh_table_data_t {
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> value;
 
-  hh_table_data_t(const LibBDD::Call *map_put) {
+  hh_table_data_t(const Context &ctx, const LibBDD::Call *map_put) {
     const LibBDD::call_t &call = map_put->get_call();
     assert(call.function_name == "map_put" && "Not a map_put call");
 
     obj        = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key        = call.args.at("key").in;
-    table_keys = Table::build_keys(key);
+    table_keys = Table::build_keys(key, ctx.get_headers());
     value      = call.args.at("value").expr;
   }
 };
@@ -158,7 +158,7 @@ std::optional<spec_impl_t> HHTableConditionalUpdateFactory::speculate(const EP *
   const LibBDD::Call *map_put = get_future_map_put(node, map_objs.map);
   assert(map_put && "map_put not found");
 
-  hh_table_data_t table_data(map_put);
+  hh_table_data_t table_data(ctx, map_put);
 
   if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
       !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
@@ -236,7 +236,7 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
   const LibBDD::Call *map_put = get_future_map_put(node, map_objs.map);
   assert(map_put && "map_put not found");
 
-  hh_table_data_t table_data(map_put);
+  hh_table_data_t table_data(ep->get_ctx(), map_put);
 
   klee::ref<klee::Expr> min_estimate_cond = build_min_estimate_check_cond(ep, min_estimate, map_objs.map);
 

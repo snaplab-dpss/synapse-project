@@ -297,7 +297,7 @@ public:
   Action visitConcat(const klee::ConcatExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
-    std::vector<expr_group_t> groups = get_expr_groups(eref);
+    expr_groups_t groups = get_expr_groups(eref);
 
     if (groups.size() == 1 && groups[0].has_symbol && groups[0].offset == 0 && groups[0].size == (eref->getWidth() / 8)) {
       result = groups[0].symbol;
@@ -747,7 +747,7 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
     return false;
   }
 
-  std::vector<expr_group_t> groups = get_expr_groups(expr);
+  expr_groups_t groups = get_expr_groups(expr);
 
   if (groups.empty()) {
     return false;
@@ -782,7 +782,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &siz
     return false;
   }
 
-  std::vector<expr_group_t> groups = get_expr_groups(expr);
+  expr_groups_t groups = get_expr_groups(expr);
 
   if (groups.size() != 1) {
     return false;
@@ -1108,8 +1108,12 @@ std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr, boo
   return bytes;
 }
 
-std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
-  std::vector<expr_group_t> groups;
+expr_groups_t get_expr_groups(klee::ref<klee::Expr> expr) {
+  expr_groups_t groups;
+
+  if (expr.isNull()) {
+    return groups;
+  }
 
   auto process_read = [&groups](klee::ref<klee::Expr> read_expr) {
     assert(read_expr->getKind() == klee::Expr::Read && "Not a read");
@@ -1134,16 +1138,17 @@ std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr) {
     }
 
     if (!appended_to_group) {
-      bytes_t size = read_expr->getWidth() / 8;
+      const bytes_t size = read_expr->getWidth() / 8;
       groups.emplace_back(true, symbol, current_byte, size, read_expr);
     }
   };
 
   auto process_not_read = [&groups](klee::ref<klee::Expr> not_read_expr) {
     assert(not_read_expr->getKind() != klee::Expr::Read && "Non read is actually a read");
-    bits_t size = not_read_expr->getWidth();
-    assert(size % 8 == 0 && "Size not multiple of 8");
-    groups.emplace_back(false, "", 0, size / 8, not_read_expr);
+    const bits_t size = not_read_expr->getWidth();
+    if (size % 8 == 0) {
+      groups.emplace_back(false, "", 0, size / 8, not_read_expr);
+    }
   };
 
   if (expr->getKind() == klee::Expr::Extract) {
@@ -1223,9 +1228,13 @@ bool simplify_extract_of_concats(klee::ref<klee::Expr> extract_expr, klee::ref<k
   }
 
   const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
-  bits_t offset                    = extract->offset;
+  const bits_t offset              = extract->offset;
   klee::ref<klee::Expr> expr       = extract->expr;
   const bits_t size                = extract->width;
+
+  if (size % 8 != 0) {
+    return false;
+  }
 
   if (expr->getKind() != klee::Expr::Kind::Concat) {
     return false;
@@ -1994,6 +2003,53 @@ klee::ref<klee::Expr> concat_exprs(const std::vector<klee::ref<klee::Expr>> &exp
   }
 
   return result;
+}
+
+bool is_smaller_expr_contained_in_expr(klee::ref<klee::Expr> smaller_expr, klee::ref<klee::Expr> expr, expr_pos_t &pos) {
+  const bits_t smaller_size = smaller_expr->getWidth();
+  const bits_t bigger_size  = expr->getWidth();
+
+  if (smaller_size >= bigger_size) {
+    return false;
+  }
+
+  for (bits_t i = 0; i < bigger_size - smaller_size; i += 8) {
+    klee::ref<klee::Expr> sub_expr = solver_toolbox.exprBuilder->Extract(expr, i, smaller_size);
+    if (solver_toolbox.are_exprs_always_equal(sub_expr, smaller_expr)) {
+      pos.offset = i;
+      pos.size   = smaller_size;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::vector<klee::ref<klee::Expr>> split_expr(klee::ref<klee::Expr> expr, expr_pos_t pos) {
+  assert(!expr.isNull() && "Invalid expr");
+
+  const bits_t size = expr->getWidth();
+  assert(pos.offset < size && "Offset greater than size");
+  assert(pos.size > 0 && "Zero size");
+  assert(pos.size <= size && "Size is too big");
+  assert(pos.offset + pos.size <= size && "Out of bounds");
+
+  std::vector<klee::ref<klee::Expr>> sub_exprs;
+
+  if (pos.offset > 0) {
+    klee::ref<klee::Expr> left = solver_toolbox.exprBuilder->Extract(expr, 0, pos.offset);
+    sub_exprs.insert(sub_exprs.begin(), left);
+  }
+
+  klee::ref<klee::Expr> middle = solver_toolbox.exprBuilder->Extract(expr, pos.offset, pos.size);
+  sub_exprs.insert(sub_exprs.begin(), middle);
+
+  if (pos.offset + pos.size < size) {
+    klee::ref<klee::Expr> right = solver_toolbox.exprBuilder->Extract(expr, pos.offset + pos.size, size - pos.offset - pos.size);
+    sub_exprs.insert(sub_exprs.begin(), right);
+  }
+
+  return sub_exprs;
 }
 
 } // namespace LibCore

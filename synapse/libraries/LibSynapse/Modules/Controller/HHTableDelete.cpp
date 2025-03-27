@@ -7,13 +7,15 @@ namespace Controller {
 using Tofino::Table;
 
 namespace {
-void get_map_erase_data(const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
+
+void get_map_erase_data(const Context &ctx, const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
   obj  = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
-  keys = Table::build_keys(call.args.at("key").in);
+  keys = Table::build_keys(call.args.at("key").in, ctx.get_headers());
 }
+
 } // namespace
 
 std::optional<spec_impl_t> HHTableDeleteFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
@@ -55,7 +57,7 @@ std::vector<impl_t> HHTableDeleteFactory::process_node(const EP *ep, const LibBD
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  get_map_erase_data(call_node, obj, keys);
+  get_map_erase_data(ep->get_ctx(), call_node, obj, keys);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
@@ -87,7 +89,7 @@ std::unique_ptr<Module> HHTableDeleteFactory::create(const LibBDD::BDD *bdd, con
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  get_map_erase_data(call_node, obj, keys);
+  get_map_erase_data(ctx, call_node, obj, keys);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return {};

@@ -26,7 +26,7 @@ struct table_data_t {
 
     obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
-    table_keys       = Table::build_keys(key);
+    table_keys       = Table::build_keys(key, ctx.get_headers());
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     capacity         = ctx.get_map_config(obj).capacity;

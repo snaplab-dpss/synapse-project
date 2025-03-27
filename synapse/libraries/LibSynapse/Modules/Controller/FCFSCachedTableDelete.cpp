@@ -18,7 +18,7 @@ DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-void get_map_erase_data(const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
+void get_map_erase_data(const Context &ctx, const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
@@ -26,7 +26,7 @@ void get_map_erase_data(const LibBDD::Call *call_node, addr_t &obj, std::vector<
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   obj  = LibCore::expr_addr_to_obj_addr(map_addr_expr);
-  keys = Table::build_keys(key);
+  keys = Table::build_keys(key, ctx.get_headers());
 }
 } // namespace
 
@@ -69,7 +69,7 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  get_map_erase_data(call_node, obj, keys);
+  get_map_erase_data(ep->get_ctx(), call_node, obj, keys);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return impls;
@@ -103,7 +103,7 @@ std::unique_ptr<Module> FCFSCachedTableDeleteFactory::create(const LibBDD::BDD *
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  get_map_erase_data(call_node, obj, keys);
+  get_map_erase_data(ctx, call_node, obj, keys);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};

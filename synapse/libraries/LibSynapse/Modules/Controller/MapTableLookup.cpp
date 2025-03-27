@@ -16,7 +16,7 @@ struct map_table_data_t {
   std::optional<LibCore::symbol_t> found;
 };
 
-map_table_data_t table_data_from_map_op(const LibBDD::Call *call_node) {
+map_table_data_t table_data_from_map_op(const Context &ctx, const LibBDD::Call *call_node) {
   const LibBDD::call_t &call = call_node->get_call();
   assert(call.function_name == "map_get" && "Not a map_get call");
 
@@ -28,7 +28,7 @@ map_table_data_t table_data_from_map_op(const LibBDD::Call *call_node) {
 
   map_table_data_t data = {
       .obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .keys  = Table::build_keys(key),
+      .keys  = Table::build_keys(key, ctx.get_headers()),
       .value = value_out,
       .found = map_has_this_key,
   };
@@ -50,7 +50,7 @@ std::optional<spec_impl_t> MapTableLookupFactory::speculate(const EP *ep, const 
     return std::nullopt;
   }
 
-  map_table_data_t data = table_data_from_map_op(map_get);
+  map_table_data_t data = table_data_from_map_op(ctx, map_get);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
     return std::nullopt;
@@ -74,7 +74,7 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const LibB
     return impls;
   }
 
-  map_table_data_t data = table_data_from_map_op(map_get);
+  map_table_data_t data = table_data_from_map_op(ep->get_ctx(), map_get);
 
   if (!ep->get_ctx().check_ds_impl(data.obj, DSImpl::Tofino_MapTable)) {
     return impls;
@@ -104,7 +104,7 @@ std::unique_ptr<Module> MapTableLookupFactory::create(const LibBDD::BDD *bdd, co
     return {};
   }
 
-  map_table_data_t data = table_data_from_map_op(map_get);
+  map_table_data_t data = table_data_from_map_op(ctx, map_get);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable)) {
     return {};

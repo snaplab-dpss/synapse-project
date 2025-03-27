@@ -35,6 +35,14 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> condition);
 klee::ref<klee::Expr> concat_exprs(const std::vector<klee::ref<klee::Expr>> &exprs, bool left_to_right = true);
 std::string expr_to_ascii(klee::ref<klee::Expr> expr);
 
+struct expr_pos_t {
+  bits_t offset;
+  bits_t size;
+};
+
+bool is_smaller_expr_contained_in_expr(klee::ref<klee::Expr> smaller_expr, klee::ref<klee::Expr> expr, expr_pos_t &pos);
+std::vector<klee::ref<klee::Expr>> split_expr(klee::ref<klee::Expr> expr, expr_pos_t pos);
+
 struct expr_mod_t {
   bits_t offset;
   bits_t width;
@@ -64,6 +72,8 @@ struct expr_group_t {
   klee::ref<klee::Expr> expr;
 };
 
+using expr_groups_t = std::vector<expr_group_t>;
+
 std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr);
 
 struct symbolic_read_t {
@@ -79,7 +89,7 @@ struct symbolic_read_equal_t {
   bool operator()(const symbolic_read_t &a, const symbolic_read_t &b) const noexcept;
 };
 
-typedef std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t> symbolic_reads_t;
+using symbolic_reads_t = std::unordered_set<symbolic_read_t, symbolic_read_hash_t, symbolic_read_equal_t>;
 
 symbolic_reads_t get_unique_symbolic_reads(klee::ref<klee::Expr> expr, std::optional<std::string> symbol_filter = std::nullopt);
 

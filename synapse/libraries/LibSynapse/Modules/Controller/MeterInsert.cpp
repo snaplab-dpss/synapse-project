@@ -7,7 +7,9 @@ namespace Controller {
 using Tofino::Table;
 
 namespace {
-void get_tb_data(const LibBDD::Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &success) {
+
+void get_tb_data(const Context &ctx, const LibBDD::Call *tb_trace, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys,
+                 klee::ref<klee::Expr> &success) {
   const LibBDD::call_t &call = tb_trace->get_call();
 
   klee::ref<klee::Expr> tb_addr_expr        = call.args.at("tb").expr;
@@ -15,9 +17,10 @@ void get_tb_data(const LibBDD::Call *tb_trace, addr_t &obj, std::vector<klee::re
   klee::ref<klee::Expr> successfuly_tracing = call.ret;
 
   obj     = LibCore::expr_addr_to_obj_addr(tb_addr_expr);
-  keys    = Table::build_keys(key);
+  keys    = Table::build_keys(key, ctx.get_headers());
   success = successfuly_tracing;
 }
+
 } // namespace
 
 std::optional<spec_impl_t> MeterInsertFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
@@ -59,7 +62,7 @@ std::vector<impl_t> MeterInsertFactory::process_node(const EP *ep, const LibBDD:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> success;
-  get_tb_data(tb_trace, obj, keys, success);
+  get_tb_data(ep->get_ctx(), tb_trace, obj, keys, success);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_Meter)) {
     return impls;
@@ -92,7 +95,7 @@ std::unique_ptr<Module> MeterInsertFactory::create(const LibBDD::BDD *bdd, const
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> success;
-  get_tb_data(tb_trace, obj, keys, success);
+  get_tb_data(ctx, tb_trace, obj, keys, success);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_Meter)) {
     return {};

@@ -55,23 +55,58 @@ void Table::debug() const {
   std::cerr << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key) {
+std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key, const std::vector<LibBDD::header_t> &headers) {
   std::vector<klee::ref<klee::Expr>> keys;
 
-  const bytes_t max_group_size = 4;
+  for (const LibCore::expr_group_t &group : LibCore::get_expr_groups(key)) {
+    std::vector<klee::ref<klee::Expr>> subgroups{group.expr};
 
-  const std::vector<LibCore::expr_group_t> groups = LibCore::get_expr_groups(key);
-  for (const LibCore::expr_group_t &group : groups) {
-    bytes_t processed_bytes = 0;
-    while (processed_bytes != group.size) {
-      const bytes_t sub_group_size = std::min(max_group_size, group.size - processed_bytes);
-      const bytes_t offset         = group.size - processed_bytes - sub_group_size;
+    bool split = true;
+    while (split) {
+      split = false;
 
-      klee::ref<klee::Expr> sub_group = LibCore::solver_toolbox.exprBuilder->Extract(group.expr, offset * 8, sub_group_size * 8);
-      sub_group                       = LibCore::simplify(sub_group);
+      std::vector<klee::ref<klee::Expr>> subgroups_copy = subgroups;
+      subgroups.clear();
 
-      keys.push_back(sub_group);
-      processed_bytes += sub_group_size;
+      for (klee::ref<klee::Expr> expr : subgroups_copy) {
+        for (const LibBDD::header_t &header : headers) {
+          for (klee::ref<klee::Expr> field : header.fields) {
+            LibCore::expr_pos_t pos;
+            if (LibCore::is_smaller_expr_contained_in_expr(field, expr, pos)) {
+              const std::vector<klee::ref<klee::Expr>> slices = LibCore::split_expr(expr, pos);
+              subgroups.insert(subgroups.end(), slices.begin(), slices.end());
+              split = true;
+              break;
+            }
+          }
+
+          if (split) {
+            break;
+          }
+        }
+
+        if (!split) {
+          subgroups.push_back(expr);
+        }
+      }
+    }
+
+    const bytes_t max_group_size = 4;
+
+    for (klee::ref<klee::Expr> subgroup : subgroups) {
+      const bytes_t total_size = subgroup->getWidth() / 8;
+
+      bytes_t processed_bytes = 0;
+      while (processed_bytes != total_size) {
+        const bytes_t target_size = std::min(max_group_size, total_size - processed_bytes);
+        const bytes_t offset      = total_size - processed_bytes - target_size;
+
+        klee::ref<klee::Expr> subsubgroup = LibCore::solver_toolbox.exprBuilder->Extract(subgroup, offset * 8, target_size * 8);
+        subsubgroup                       = LibCore::simplify(subsubgroup);
+
+        keys.push_back(subsubgroup);
+        processed_bytes += target_size;
+      }
     }
   }
 

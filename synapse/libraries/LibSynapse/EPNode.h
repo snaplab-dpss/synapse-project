@@ -51,7 +51,7 @@ public:
 
   std::string dump() const;
   EPNode *clone(bool recursive = false) const;
-  std::vector<int> get_past_recirculations() const;
+  std::vector<u16> get_past_recirculations() const;
   bool forwarding_decision_already_made() const;
 
   void visit_nodes(std::function<EPNodeVisitAction(const EPNode *)> fn) const;
