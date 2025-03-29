@@ -31,7 +31,7 @@ tb_data_t get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, con
   tb_data_t data = {
       .obj     = LibCore::expr_addr_to_obj_addr(tb_addr_expr),
       .cfg     = ctx.get_tb_config(LibCore::expr_addr_to_obj_addr(tb_addr_expr)),
-      .keys    = Table::build_keys(key, ctx.get_headers()),
+      .keys    = Table::build_keys(key, ctx.get_expr_structs()),
       .pkt_len = call_update.args.at("pkt_len").expr,
       .hit     = is_tracing,
       .pass    = call_update.ret,

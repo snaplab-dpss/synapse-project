@@ -232,7 +232,7 @@ u32 Call::get_vector_borrow_value_future_usage() const {
     for (const LibCore::symbol_t &symbol : node->get_used_symbols().get()) {
       if (symbol.name == value.name) {
         total_usage++;
-        return NodeVisitAction::Stop;
+        break;
       }
     }
 
@@ -486,55 +486,97 @@ klee::ref<klee::Expr> Call::get_obj() const {
   return nullptr;
 }
 
-bool Call::guess_header_fields_from_packet_borrow(header_t &header) const {
+bool Call::guess_header_fields_from_packet_borrow(LibCore::expr_struct_t &header) const {
   if (call.function_name != "packet_borrow_next_chunk") {
     return false;
   }
 
+  klee::ref<klee::Expr> expr = call.extra_vars.at("the_chunk").second;
+
+  return guess_struct_fields_from_expr(expr, header);
+}
+
+bool Call::guess_value_fields_from_vector_borrow(LibCore::expr_struct_t &value_struct) const {
+  if (call.function_name != "vector_borrow") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> expr = call.extra_vars.at("borrowed_cell").second;
+
+  return guess_struct_fields_from_expr(expr, value_struct);
+}
+
+bool Call::guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, LibCore::expr_struct_t &expr_struct) const {
   if (next == nullptr) {
     return false;
   }
 
-  header.expr = call.extra_vars.at("the_chunk").second;
+  expr_struct.expr = expr;
 
-  const std::vector<LibCore::expr_group_t> hdr_groups = LibCore::get_expr_groups(header.expr);
-  assert(hdr_groups.size() == 1 && "Multiple groups found on a single header");
-  assert(hdr_groups[0].has_symbol && hdr_groups[0].symbol == "packet_chunks" && "No packet_chunks group found");
+  const std::vector<LibCore::expr_group_t> groups = LibCore::get_expr_groups(expr);
+  assert(groups.size() == 1 && "Multiple groups found on a single header");
+  assert(groups[0].has_symbol && "No symbol found");
 
-  const bytes_t hdr_offset = hdr_groups[0].offset;
-  const bytes_t hdr_size   = hdr_groups[0].size;
+  const std::string &target_symbol = groups[0].symbol;
+  const bytes_t expr_offset        = groups[0].offset;
+  const bytes_t expr_size          = groups[0].size;
 
-  struct hdr_field_candidate_t {
+  struct field_candidate_t {
     bytes_t offset;
     bytes_t size;
   };
 
-  auto candidates_from_groups = [hdr_offset, hdr_size](const LibCore::expr_groups_t &groups) -> std::vector<hdr_field_candidate_t> {
-    std::vector<hdr_field_candidate_t> candidates;
+  auto candidates_sorter = [](const field_candidate_t &a, const field_candidate_t &b) { return a.offset < b.offset; };
+
+  auto sorted_candidates_from_groups = [target_symbol, expr_offset, expr_size,
+                                        candidates_sorter](const LibCore::expr_groups_t &groups) -> std::vector<field_candidate_t> {
+    std::vector<field_candidate_t> sorted_candidates;
 
     for (const LibCore::expr_group_t &group : groups) {
-      if (!group.has_symbol || group.symbol != "packet_chunks") {
+      if (!group.has_symbol || group.symbol != target_symbol) {
         continue;
       }
 
-      if (group.offset >= hdr_offset && group.offset < hdr_offset + hdr_size) {
-        const bytes_t offset = group.offset - hdr_offset;
-        const bytes_t size   = std::min(group.size, hdr_offset + hdr_size - group.offset);
-        candidates.emplace_back(offset, size);
+      if (group.offset >= expr_offset && group.offset < expr_offset + expr_size) {
+        const bytes_t offset = group.offset - expr_offset;
+        const bytes_t size   = std::min(group.size, expr_offset + expr_size - group.offset);
+
+        sorted_candidates.emplace_back(offset, size);
       }
     }
 
-    return candidates;
+    std::sort(sorted_candidates.begin(), sorted_candidates.end(), candidates_sorter);
+
+    std::vector<field_candidate_t> sorted_complete_candidates;
+
+    bytes_t offset = 0;
+    for (const field_candidate_t &candidate : sorted_candidates) {
+      if (candidate.offset == offset) {
+        sorted_complete_candidates.push_back(candidate);
+        offset += candidate.size;
+      } else {
+        assert(candidate.offset > offset && "Candidate offset is not greater than current offset");
+        const bytes_t size = candidate.offset - offset;
+        sorted_complete_candidates.emplace_back(offset, size);
+        offset += size;
+      }
+    }
+
+    if (offset < expr_size) {
+      const bytes_t size = expr_size - offset;
+      sorted_complete_candidates.emplace_back(offset, size);
+    }
+
+    return sorted_complete_candidates;
   };
 
-  auto merge_hdr_field_candidates = [](const std::vector<hdr_field_candidate_t> &a,
-                                       const std::vector<hdr_field_candidate_t> &b) -> std::vector<hdr_field_candidate_t> {
-    std::vector<hdr_field_candidate_t> result;
-
-    auto candidates_sorter = [](const hdr_field_candidate_t &a, const hdr_field_candidate_t &b) { return a.offset < b.offset; };
+  auto merge_sorted_candidates = [candidates_sorter](const std::vector<field_candidate_t> &a,
+                                                     const std::vector<field_candidate_t> &b) -> std::vector<field_candidate_t> {
+    std::vector<field_candidate_t> result;
 
     result.insert(result.end(), a.begin(), a.end());
     result.insert(result.end(), b.begin(), b.end());
+
     std::sort(result.begin(), result.end(), candidates_sorter);
 
     size_t i = 0;
@@ -564,29 +606,29 @@ bool Call::guess_header_fields_from_packet_borrow(header_t &header) const {
     return result;
   };
 
-  std::vector<hdr_field_candidate_t> best_candidates = candidates_from_groups(hdr_groups);
+  std::vector<field_candidate_t> best_candidates = sorted_candidates_from_groups(groups);
 
-  next->visit_nodes([hdr_offset, hdr_size, candidates_from_groups, merge_hdr_field_candidates, &best_candidates](const Node *node) {
+  next->visit_nodes([expr_offset, expr_size, sorted_candidates_from_groups, merge_sorted_candidates, &best_candidates](const Node *node) {
     const std::vector<LibCore::expr_groups_t> groups = node->get_expr_groups();
 
     for (const LibCore::expr_groups_t &subgroup : groups) {
-      const std::vector<hdr_field_candidate_t> candidates = candidates_from_groups(subgroup);
-      best_candidates                                     = merge_hdr_field_candidates(best_candidates, candidates);
+      const std::vector<field_candidate_t> sorted_candidates = sorted_candidates_from_groups(subgroup);
+      best_candidates                                        = merge_sorted_candidates(best_candidates, sorted_candidates);
     }
 
     return NodeVisitAction::Continue;
   });
 
-  for (const hdr_field_candidate_t &candidate : best_candidates) {
-    klee::ref<klee::Expr> extracted = LibCore::solver_toolbox.exprBuilder->Extract(header.expr, candidate.offset * 8, candidate.size * 8);
+  for (const field_candidate_t &candidate : best_candidates) {
+    klee::ref<klee::Expr> extracted      = LibCore::solver_toolbox.exprBuilder->Extract(expr, candidate.offset * 8, candidate.size * 8);
     klee::ref<klee::Expr> candidate_expr = LibCore::simplify(extracted);
-    header.fields.push_back(candidate_expr);
+    expr_struct.fields.push_back(candidate_expr);
   }
 
-  klee::ref<klee::Expr> reconstructed_hdr = LibCore::concat_exprs(header.fields);
-  if (!LibCore::solver_toolbox.are_exprs_always_equal(header.expr, reconstructed_hdr)) {
-    panic("*** Bug in header field extraction ***\nHdr: %s\nReconstructed: %s\n", LibCore::expr_to_string(header.expr, true).c_str(),
-          LibCore::expr_to_string(reconstructed_hdr, true).c_str());
+  klee::ref<klee::Expr> reconstructed_expr = LibCore::concat_exprs(expr_struct.fields);
+  if (!LibCore::solver_toolbox.are_exprs_always_equal(expr, reconstructed_expr)) {
+    panic("*** Bug in struct field extraction ***\nHdr: %s\nReconstructed: %s\n", LibCore::expr_to_string(expr, true).c_str(),
+          LibCore::expr_to_string(reconstructed_expr, true).c_str());
   }
 
   return true;

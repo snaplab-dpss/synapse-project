@@ -13,7 +13,7 @@ void get_map_erase_data(const Context &ctx, const LibBDD::Call *call_node, addr_
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
   obj  = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
-  keys = Table::build_keys(call.args.at("key").in, ctx.get_headers());
+  keys = Table::build_keys(call.args.at("key").in, ctx.get_expr_structs());
 }
 
 } // namespace

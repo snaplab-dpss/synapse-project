@@ -84,7 +84,7 @@ private:
 
   std::vector<LibBDD::map_coalescing_objs_t> coalescing_candidates;
   std::optional<expiration_data_t> expiration_data;
-  std::vector<LibBDD::header_t> headers;
+  std::vector<LibCore::expr_struct_t> expr_structs;
 
   std::unordered_map<addr_t, DSImpl> ds_impls;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
@@ -112,7 +112,7 @@ public:
 
   std::optional<LibBDD::map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
-  const std::vector<LibBDD::header_t> &get_headers() const;
+  const std::vector<LibCore::expr_struct_t> &get_expr_structs() const;
 
   template <class TCtx> const TCtx *get_target_ctx() const;
   template <class TCtx> TCtx *get_mutable_target_ctx();
@@ -123,6 +123,8 @@ public:
   DSImpl get_ds_impl(addr_t obj) const;
   bool check_ds_impl(addr_t obj, DSImpl impl) const;
   bool can_impl_ds(addr_t obj, DSImpl impl) const;
+
+  void translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols);
 
   void debug() const;
 };

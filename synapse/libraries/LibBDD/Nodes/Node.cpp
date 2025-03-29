@@ -737,7 +737,7 @@ std::vector<LibCore::expr_groups_t> Node::get_expr_groups() const {
   case NodeType::Branch: {
     const Branch *branch_node  = dynamic_cast<const Branch *>(this);
     klee::ref<klee::Expr> expr = branch_node->get_condition();
-    groups.push_back(LibCore::get_expr_groups(expr));
+    groups.push_back(LibCore::get_expr_groups_from_condition(expr));
   } break;
   case NodeType::Call: {
     const Call *call_node = dynamic_cast<const Call *>(this);

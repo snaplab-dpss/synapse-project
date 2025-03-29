@@ -26,7 +26,7 @@ void get_map_erase_data(const Context &ctx, const LibBDD::Call *call_node, addr_
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   obj  = LibCore::expr_addr_to_obj_addr(map_addr_expr);
-  keys = Table::build_keys(key, ctx.get_headers());
+  keys = Table::build_keys(key, ctx.get_expr_structs());
 }
 } // namespace
 

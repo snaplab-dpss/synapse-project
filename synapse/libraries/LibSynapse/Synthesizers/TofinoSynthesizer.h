@@ -43,6 +43,7 @@ private:
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
     static code_t transpile_literal(u64 value, bits_t size);
     static code_t transpile_constant(klee::ref<klee::Expr> expr);
+    static code_t swap_endianness(const code_t &expr, bits_t size);
 
     Action visitNotOptimized(const klee::NotOptimizedExpr &e);
     Action visitRead(const klee::ReadExpr &e);
@@ -189,6 +190,7 @@ private:
   Transpiler transpiler;
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
+  void log(const EPNode *node) const override final;
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) override final;

@@ -14,15 +14,15 @@ map_table_data_t get_map_table_data(const Context &ctx, const LibBDD::Call *call
   klee::ref<klee::Expr> key           = call.args.at("key").in;
   klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
 
-  LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
-  addr_t obj                         = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  const LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
+  const addr_t obj                         = LibCore::expr_addr_to_obj_addr(map_addr_expr);
 
   const LibBDD::map_config_t &cfg = ctx.get_map_config(obj);
 
-  map_table_data_t data = {
+  const map_table_data_t data = {
       .obj        = LibCore::expr_addr_to_obj_addr(map_addr_expr),
       .capacity   = static_cast<u32>(cfg.capacity),
-      .keys       = Table::build_keys(key, ctx.get_headers()),
+      .keys       = Table::build_keys(key, ctx.get_expr_structs()),
       .value      = value_out,
       .hit        = map_has_this_key,
       .time_aware = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
@@ -45,7 +45,7 @@ std::optional<spec_impl_t> MapTableLookupFactory::speculate(const EP *ep, const 
     return std::nullopt;
   }
 
-  map_table_data_t data = get_map_table_data(ep->get_ctx(), map_get);
+  const map_table_data_t data = get_map_table_data(ep->get_ctx(), map_get);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
     return std::nullopt;
@@ -76,7 +76,7 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const LibB
     return impls;
   }
 
-  map_table_data_t data = get_map_table_data(ep->get_ctx(), map_get);
+  const map_table_data_t data = get_map_table_data(ep->get_ctx(), map_get);
 
   if (!ep->get_ctx().can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
     return impls;

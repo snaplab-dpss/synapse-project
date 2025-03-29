@@ -26,7 +26,7 @@ std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const Li
     return std::nullopt;
   }
 
-  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key, ctx.get_headers());
+  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key, ctx.get_expr_structs());
   const LibBDD::cms_config_t &cfg         = ep->get_ctx().get_cms_config(cms_addr);
 
   if (!can_build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height)) {
@@ -64,7 +64,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const LibBDD
   }
 
   const LibBDD::cms_config_t &cfg         = ep->get_ctx().get_cms_config(cms_addr);
-  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key, ep->get_ctx().get_headers());
+  std::vector<klee::ref<klee::Expr>> keys = Table::build_keys(key, ep->get_ctx().get_expr_structs());
 
   CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_addr, keys, cfg.width, cfg.height);
 

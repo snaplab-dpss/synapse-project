@@ -86,6 +86,22 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee
   return code.dump();
 }
 
+TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::swap_endianness(const code_t &expr, bits_t size) {
+  coder_t code;
+
+  if (size == 16) {
+    code << "bswap16(" << expr << ")";
+  } else if (size == 32) {
+    code << "bswap32(" << expr << ")";
+  } else if (size == 64) {
+    code << "bswap64(" << expr << ")";
+  } else {
+    panic("FIXME: incompatible endian swap size %d\n", size);
+  }
+
+  return code.dump();
+}
+
 TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
@@ -101,14 +117,10 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<kle
   if (LibCore::is_constant(expr)) {
     coder << transpile_constant(expr);
   } else if (LibCore::match_endian_swap_pattern(expr, endian_swap_target)) {
-    bits_t size = endian_swap_target->getWidth();
-    if (size == 16) {
-      coder << "bswap16(" << transpile(endian_swap_target, loaded_opt) << ")";
-    } else if (size == 32) {
-      coder << "bswap32(" << transpile(endian_swap_target, loaded_opt) << ")";
-    } else {
-      panic("FIXME: incompatible endian swap size %d\n", size);
-    }
+    const bits_t size = endian_swap_target->getWidth();
+    coder << swap_endianness(transpile(endian_swap_target, loaded_opt), size);
+  } else if (std::optional<var_t> var = synthesizer->ingress_vars.get(expr, loaded_opt)) {
+    coder << var->name;
   } else {
     visit(expr);
 
@@ -641,8 +653,7 @@ void TofinoSynthesizer::transpile_table_decl(const Table *table, const std::vect
     transpile_action_decl(action_name, values, values_are_buffers);
   }
 
-  for (auto it = keys.rbegin(); it != keys.rend(); it++) {
-    klee::ref<klee::Expr> key  = *it;
+  for (klee::ref<klee::Expr> key : keys) {
     const std::string key_name = table->id + "_key";
     const var_t key_var        = alloc_var(key_name, key, GLOBAL | SKIP_STACK_ALLOC);
     keys_vars.push_back(key_var);
@@ -1037,16 +1048,15 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact_hdr(
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
   if (std::optional<var_t> var = get_exact(expr)) {
     if (var->is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
-      if (var->size == 16) {
-        var->name = "bswap16(" + var->name + ")";
-      } else if (var->size == 32) {
-        var->name = "bswap32(" + var->name + ")";
-      } else {
-        panic("FIXME: incompatible endian swap size %d\n", var->size);
-      }
+      var->name = Transpiler::swap_endianness(var->name, var->size);
     }
 
     return var;
+  }
+
+  // No point in looking for a slice if the expression is 1 bit.
+  if (expr->getWidth() == 1) {
+    return std::nullopt;
   }
 
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
@@ -1066,13 +1076,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
         var_t slice = var.get_slice(offset, expr_size, opt);
 
         if (slice.is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
-          if (slice.size == 16) {
-            slice.name = "bswap16(" + slice.name + ")";
-          } else if (slice.size == 32) {
-            slice.name = "bswap32(" + slice.name + ")";
-          } else {
-            panic("FIXME: incompatible endian swap size %d\n", slice.size);
-          }
+          slice.name = Transpiler::swap_endianness(slice.name, slice.size);
         }
 
         return slice;
@@ -1087,13 +1091,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::
   if (std::optional<var_t> var = get_exact(expr)) {
     if (var->is_header_field) {
       if (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) {
-        if (var->size == 16) {
-          var->name = "bswap16(" + var->name + ")";
-        } else if (var->size == 32) {
-          var->name = "bswap32(" + var->name + ")";
-        } else {
-          panic("FIXME: incompatible endian swap size %d\n", var->size);
-        }
+        var->name = Transpiler::swap_endianness(var->name, var->size);
       }
 
       return var;
@@ -1121,13 +1119,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::
         var_t slice = var.get_slice(offset, expr_size, opt);
 
         if (slice.is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
-          if (slice.size == 16) {
-            slice.name = "bswap16(" + slice.name + ")";
-          } else if (slice.size == 32) {
-            slice.name = "bswap32(" + slice.name + ")";
-          } else {
-            panic("FIXME: incompatible endian swap size %d\n", slice.size);
-          }
+          slice.name = Transpiler::swap_endianness(slice.name, slice.size);
         }
 
         return slice;
@@ -1171,12 +1163,6 @@ TofinoSynthesizer::Stack TofinoSynthesizer::Stacks::squash_hdrs_only() const {
 }
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stacks::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
-  for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
-    if (std::optional<var_t> var = stack_it->get_exact(expr)) {
-      return var;
-    }
-  }
-
   for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
     if (std::optional<var_t> var = stack_it->get(expr, opt)) {
       return var;
@@ -1302,11 +1288,12 @@ void TofinoSynthesizer::synthesize() {
 void TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  if (ep_node->get_module()->get_target() == TargetType::Tofino) {
+  const Module *module = ep_node->get_module();
+  if (module->get_target() == TargetType::Tofino) {
     ingress_apply.indent();
-    ingress_apply << "// EP node  " << ep_node->get_id() << "\n";
+    ingress_apply << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
     ingress_apply.indent();
-    ingress_apply << "// BDD node " << ep_node->get_module()->get_node()->dump(true) << "\n";
+    ingress_apply << "// BDD node " << module->get_node()->dump(true) << "\n";
   }
 
   EPVisitor::visit(ep, ep_node);
@@ -1484,6 +1471,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) {
+  const LibCore::Symbols &symbols = node->get_symbols();
+
   assert(ep_node->get_children().size() == 1);
   const EPNode *next = ep_node->get_children()[0];
 
@@ -1495,6 +1484,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   // 2. Build the recirculation header and populate it with the current stack
   ingress_apply.indent();
+  ingress_apply << "meta.recirculate = true;\n";
+  ingress_apply.indent();
   ingress_apply << "hdr.recirc.setValid();\n";
   ingress_apply.indent();
   ingress_apply << "hdr.recirc.code_path = " << code_path << ";\n";
@@ -1502,11 +1493,18 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   Stacks stack_backup = ingress_vars;
 
   std::vector<var_t> recirc_vars;
-  for (var_t var : ingress_vars.squash().get_all()) {
-    var_t recirc_var = var;
+  for (const LibCore::symbol_t &symbol : symbols.get()) {
+    std::optional<var_t> var = ingress_vars.get(symbol.expr);
+
+    if (!var.has_value()) {
+      dbg_vars();
+      panic("Recirculation variable %s not found in stack\n", LibCore::expr_to_string(symbol.expr, true).c_str());
+    }
+
+    var_t recirc_var = *var;
     recirc_var.name  = recirc_var.flatten_name();
 
-    if (var.is_header_field) {
+    if (var->is_header_field) {
       recirc_vars.push_back(recirc_var);
       continue;
     }
@@ -1520,7 +1518,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << local_recirc_var.name;
     ingress_apply << " = ";
-    ingress_apply << var.name;
+    ingress_apply << var->name;
     ingress_apply << ";\n";
   }
 
@@ -1942,7 +1940,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Table *table        = dchain_table->get_table(node_id);
   assert(table && "Table not found");
 
-  code_t transpiled_key = transpiler.transpile(key, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS);
+  const code_t transpiled_key = transpiler.transpile(key, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS);
 
   std::vector<var_t> keys_vars;
   if (declared_ds.find(table->id) == declared_ds.end()) {
@@ -2004,7 +2002,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     transpile_register_read_action_decl(reg, action_name);
 
     const klee::ref<klee::Expr> entry_expr = LibCore::solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
-    const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index) + ")";
+    const code_t assignment = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
 
     if (can_be_inlined) {
       const var_t value_var = alloc_var(assignment, entry_expr, LOCAL | EXACT_NAME);
@@ -2194,6 +2192,11 @@ void TofinoSynthesizer::dbg_vars() const {
     }
   }
   std::cerr << "======================================== \n";
+}
+
+void TofinoSynthesizer::log(const EPNode *node) const {
+  std::cerr << "[TofinoSynthesizer] ";
+  EPVisitor::log(node);
 }
 
 } // namespace Tofino

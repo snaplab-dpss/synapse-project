@@ -149,6 +149,7 @@ private:
   void synthesize_state_member_init_list();
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
+  void log(const EPNode *node) const override final;
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
 

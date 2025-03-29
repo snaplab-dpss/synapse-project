@@ -55,6 +55,16 @@ struct expr_mod_t {
 };
 
 std::vector<expr_mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after);
+
+struct expr_struct_t {
+  klee::ref<klee::Expr> expr;
+  std::vector<klee::ref<klee::Expr>> fields;
+};
+
+std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::ref<klee::Expr> expr,
+                                                                        const std::vector<expr_struct_t> &expr_struct,
+                                                                        const bytes_t max_chunk_size);
+
 std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr, bool force_big_endian_for_constants = false);
 
 struct expr_byte_swap_t {
@@ -75,6 +85,7 @@ struct expr_group_t {
 using expr_groups_t = std::vector<expr_group_t>;
 
 std::vector<expr_group_t> get_expr_groups(klee::ref<klee::Expr> expr);
+std::vector<expr_group_t> get_expr_groups_from_condition(klee::ref<klee::Expr> expr);
 
 struct symbolic_read_t {
   bytes_t byte;

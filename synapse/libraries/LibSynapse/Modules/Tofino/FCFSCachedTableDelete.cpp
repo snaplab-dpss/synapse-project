@@ -132,7 +132,7 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
       branch_bdd_on_cache_delete_success(new_ep, map_erase, cached_table_data, cache_delete_success_condition, on_cache_delete_success,
                                          on_cache_delete_failed, deleted_branch_constraints);
 
-  LibCore::Symbols symbols = TofinoModuleFactory::get_dataplane_state(ep, map_erase);
+  LibCore::Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, map_erase);
 
   Module *if_module                 = new If(map_erase, cache_delete_success_condition, {cache_delete_success_condition});
   Module *then_module               = new Then(map_erase);

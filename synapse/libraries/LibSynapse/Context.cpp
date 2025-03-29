@@ -6,7 +6,8 @@
 namespace LibSynapse {
 
 namespace {
-void log_bdd_pre_processing(const std::vector<LibBDD::map_coalescing_objs_t> &coalescing_candidates) {
+void log_bdd_pre_processing(const std::vector<LibBDD::map_coalescing_objs_t> &coalescing_candidates,
+                            const std::vector<LibCore::expr_struct_t> &expr_structs) {
   std::cerr << "***** BDD pre-processing: *****\n";
   for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
     std::stringstream ss;
@@ -26,6 +27,18 @@ void log_bdd_pre_processing(const std::vector<LibBDD::map_coalescing_objs_t> &co
     }
 
     ss << "]\n";
+
+    ss << "Structural estimations:\n";
+    for (const LibCore::expr_struct_t &expr_struct : expr_structs) {
+      ss << "--------------------------------\n";
+      ss << "Expr: " << LibCore::expr_to_string(expr_struct.expr, true) << "\n";
+      ss << "Fields:\n";
+      for (const klee::ref<klee::Expr> &field : expr_struct.fields) {
+        ss << "  " << LibCore::expr_to_string(field, true) << "\n";
+      }
+      ss << "--------------------------------\n";
+    }
+
     std::cerr << ss.str();
   }
   std::cerr << "*******************************\n";
@@ -158,25 +171,47 @@ Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targe
     const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
     const LibBDD::call_t &call    = call_node->get_call();
 
-    if (call.function_name != "packet_borrow_next_chunk") {
-      return LibBDD::NodeVisitAction::Continue;
-    }
+    if (call.function_name == "packet_borrow_next_chunk") {
+      LibCore::expr_struct_t header;
+      if (call_node->guess_header_fields_from_packet_borrow(header)) {
+        expr_structs.push_back(header);
+      }
+    } else if (call.function_name == "vector_borrow") {
+      LibCore::expr_struct_t value_struct;
+      if (call_node->guess_value_fields_from_vector_borrow(value_struct)) {
+        bool found = false;
+        for (LibCore::expr_struct_t &existing_struct : expr_structs) {
+          const bool same_expr = LibCore::solver_toolbox.are_exprs_always_equal(existing_struct.expr, value_struct.expr);
 
-    LibBDD::header_t header;
-    if (call_node->guess_header_fields_from_packet_borrow(header)) {
-      headers.push_back(header);
+          if (!same_expr) {
+            continue;
+          }
+
+          found = true;
+
+          if (existing_struct.fields.size() < value_struct.fields.size()) {
+            existing_struct.fields = value_struct.fields;
+          }
+
+          break;
+        }
+
+        if (!found) {
+          expr_structs.push_back(value_struct);
+        }
+      }
     }
 
     return LibBDD::NodeVisitAction::Continue;
   });
 
-  log_bdd_pre_processing(coalescing_candidates);
+  log_bdd_pre_processing(coalescing_candidates, expr_structs);
 }
 
 Context::Context(const Context &other)
     : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
       dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), cht_configs(other.cht_configs), tb_configs(other.tb_configs),
-      coalescing_candidates(other.coalescing_candidates), expiration_data(other.expiration_data), headers(other.headers),
+      coalescing_candidates(other.coalescing_candidates), expiration_data(other.expiration_data), expr_structs(other.expr_structs),
       ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -188,7 +223,7 @@ Context::Context(Context &&other)
       vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)),
       cms_configs(std::move(other.cms_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)), expiration_data(std::move(other.expiration_data)),
-      headers(std::move(other.headers)), ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
+      expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -221,7 +256,7 @@ Context &Context::operator=(const Context &other) {
   tb_configs            = other.tb_configs;
   coalescing_candidates = other.coalescing_candidates;
   expiration_data       = other.expiration_data;
-  headers               = other.headers;
+  expr_structs          = other.expr_structs;
   ds_impls              = other.ds_impls;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
@@ -285,7 +320,7 @@ std::optional<LibBDD::map_coalescing_objs_t> Context::get_map_coalescing_objs(ad
 
 const std::optional<expiration_data_t> &Context::get_expiration_data() const { return expiration_data; }
 
-const std::vector<LibBDD::header_t> &Context::get_headers() const { return headers; }
+const std::vector<LibCore::expr_struct_t> &Context::get_expr_structs() const { return expr_structs; }
 
 void Context::save_ds_impl(addr_t obj, DSImpl impl) {
   assert(can_impl_ds(obj, impl) && "Incompatible implementation");
@@ -398,6 +433,20 @@ void Context::debug() const {
 
   std::cerr << "\n";
   std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+}
+
+void Context::translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
+  std::unordered_map<std::string, std::string> translations;
+  for (const auto &[old_symbol, new_symbol] : translated_symbols) {
+    translations[old_symbol.name] = new_symbol.name;
+  }
+
+  for (LibCore::expr_struct_t &expr_struct : expr_structs) {
+    expr_struct.expr = symbol_manager->translate(expr_struct.expr, translations);
+    for (klee::ref<klee::Expr> &field : expr_struct.fields) {
+      field = symbol_manager->translate(field, translations);
+    }
+  }
 }
 
 } // namespace LibSynapse

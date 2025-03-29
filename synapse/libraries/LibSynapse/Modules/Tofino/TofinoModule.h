@@ -64,7 +64,7 @@ public:
   static const TNA &get_tna(const EP *ep);
   static TNA &get_mutable_tna(EP *ep);
 
-  static LibCore::Symbols get_dataplane_state(const EP *ep, const LibBDD::Node *node);
+  static LibCore::Symbols get_relevant_dataplane_state(const EP *ep, const LibBDD::Node *node);
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
 
   // ======================================================================

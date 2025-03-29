@@ -184,7 +184,7 @@ EP *concretize_cached_table_write(const EP *ep, const LibBDD::Node *node, const 
       branch_bdd_on_cache_write_success(new_ep, node, cached_table_data, cache_write_success_condition, map_objs, on_cache_write_success,
                                         on_cache_write_failed, deleted_branch_constraints);
 
-  LibCore::Symbols symbols = TofinoModuleFactory::get_dataplane_state(ep, node);
+  LibCore::Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
 
   Module *if_module                 = new If(node, cache_write_success_condition, {cache_write_success_condition});
   Module *then_module               = new Then(node);

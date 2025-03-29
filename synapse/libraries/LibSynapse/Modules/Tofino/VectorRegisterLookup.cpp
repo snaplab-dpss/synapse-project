@@ -17,7 +17,7 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD
 
   const LibBDD::vector_config_t &cfg = ctx.get_vector_config(obj);
 
-  vector_register_data_t vector_register_data = {
+  const vector_register_data_t vector_register_data = {
       .obj         = obj,
       .capacity    = static_cast<u32>(cfg.capacity),
       .index       = index,
@@ -43,7 +43,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return std::nullopt;
   }
 
-  vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow);
+  const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow);
 
   if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return std::nullopt;

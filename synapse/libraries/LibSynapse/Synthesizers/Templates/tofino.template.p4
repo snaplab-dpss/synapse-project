@@ -3,11 +3,15 @@
 #if __TARGET_TOFINO__ == 2
   #include <t2na.p4>
   #define CPU_PCIE_PORT 0
-  #define RECIRCULATION_PORT 6
+  #define RECIRCULATION_PORT_0 6
+  #define RECIRCULATION_PORT_1 128
+  #define RECIRCULATION_PORT_2 256
+  #define RECIRCULATION_PORT_3 384
 #else
   #include <tna.p4>
   #define CPU_PCIE_PORT 192
-  #define RECIRCULATION_PORT 320
+  #define RECIRCULATION_PORT_0 68
+  #define RECIRCULATION_PORT_1 196
 #endif
 
 header cpu_h {
@@ -32,6 +36,7 @@ struct synapse_ingress_headers_t {
 struct synapse_ingress_metadata_t {
   bit<32> dev;
   bit<32> time;
+  bool recirculate;
 /*@{INGRESS_METADATA}@*/
 }
 
@@ -82,10 +87,16 @@ parser IngressParser(
 
     meta.dev = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
+    meta.recirculate = false;
     
     transition select(ig_intr_md.ingress_port) {
       CPU_PCIE_PORT: parse_cpu;
-      RECIRCULATION_PORT: parse_recirc;
+      RECIRCULATION_PORT_0: parse_recirc;
+      RECIRCULATION_PORT_1: parse_recirc;
+#if __TARGET_TOFINO__ == 2
+      RECIRCULATION_PORT_2: parse_recirc;
+      RECIRCULATION_PORT_3: parse_recirc;
+#endif
       default: parser_init;
     }
   }
@@ -160,6 +171,10 @@ control Ingress(
 
     if (trigger_forward) {
       forward_nf_dev.apply();
+    }
+
+    if (!meta.recirculate) {
+      hdr.recirc.setInvalid();
     }
 
     ig_tm_md.bypass_egress = 1;

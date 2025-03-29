@@ -18,8 +18,8 @@ void EPVisitor::visit(const EP *ep) {
 void EPVisitor::visit(const EP *ep, const EPNode *node) {
   log(node);
 
-  const Module *module     = node->get_module();
-  EPVisitor::Action action = module->visit(*this, ep, node);
+  const Module *module           = node->get_module();
+  const EPVisitor::Action action = module->visit(*this, ep, node);
 
   if (action == EPVisitor::Action::skipChildren) {
     return;

@@ -17,7 +17,7 @@ void get_tb_data(const Context &ctx, const LibBDD::Call *tb_trace, addr_t &obj, 
   klee::ref<klee::Expr> successfuly_tracing = call.ret;
 
   obj     = LibCore::expr_addr_to_obj_addr(tb_addr_expr);
-  keys    = Table::build_keys(key, ctx.get_headers());
+  keys    = Table::build_keys(key, ctx.get_expr_structs());
   success = successfuly_tracing;
 }
 

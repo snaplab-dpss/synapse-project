@@ -46,8 +46,8 @@ public:
 
     bytes_t offset = 0;
     for (Register &reg : registers) {
-      bytes_t reg_value_size = reg.get_value_size() / 8;
-      u32 value              = v.get(offset, reg_value_size);
+      const bytes_t reg_value_size = reg.get_value_size() / 8;
+      const u32 value              = v.get(offset, reg_value_size);
       reg.set(index, value);
 
       offset += reg_value_size;

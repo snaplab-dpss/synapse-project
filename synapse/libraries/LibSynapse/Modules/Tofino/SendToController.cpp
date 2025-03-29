@@ -45,11 +45,18 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
                                                           LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
-  // We can always send to the controller, at any point in time.
+  const EPLeaf active_leaf = ep->get_active_leaf();
+
+  // We can't send to the controller if a forwarding decision was already made.
+  if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
+    return impls;
+  }
+
+  // Otherwise we can always send to the controller, at any point in time.
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  LibCore::Symbols symbols = get_dataplane_state(ep, node);
+  const LibCore::Symbols symbols = get_relevant_dataplane_state(ep, node);
 
   Module *module   = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);
@@ -67,22 +74,11 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
     new_ep->replace_bdd(std::move(new_bdd));
   }
 
-  if (ep->get_id() == 241) {
-    get_mutable_tofino_ctx(new_ep)->debug();
-    std::cerr << "node: " << node->dump(true) << "\n";
-    LibBDD::BDDViz::visualize(ep->get_bdd(), false);
-  }
-
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->parser_accept(ep, node);
 
-  // TODO: How do we recalculate the estimated throughput after a forwarding decision is made?
-  assert((!ep->get_active_leaf().node || !ep->get_active_leaf().node->forwarding_decision_already_made()) && "TODO");
-
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, s2c_node));
-
-  // FIXME: missing custom packet parsing for the SyNAPSE header.
 
   return impls;
 }

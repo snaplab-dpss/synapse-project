@@ -76,24 +76,11 @@ void Register::debug() const {
   std::cerr << "==============================\n";
 }
 
-std::vector<klee::ref<klee::Expr>> Register::partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value) {
-  std::vector<klee::ref<klee::Expr>> partitions;
-
-  bits_t value_width     = value->getWidth();
-  bits_t partition_width = properties.max_salu_size;
-
-  bits_t offset = 0;
-  while (offset < value_width) {
-    if (offset + partition_width > value_width) {
-      partition_width = value_width - offset;
-    }
-
-    klee::ref<klee::Expr> partition = LibCore::solver_toolbox.exprBuilder->Extract(value, offset, partition_width);
-    partitions.push_back(partition);
-
-    offset += partition_width;
-  }
-
+std::vector<klee::ref<klee::Expr>> Register::partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value,
+                                                             const std::vector<LibCore::expr_struct_t> &expr_structs) {
+  const bits_t max_partition_width = properties.max_salu_size;
+  const std::vector<klee::ref<klee::Expr>> partitions =
+      LibCore::break_expr_into_structs_aware_chunks(value, expr_structs, max_partition_width / 8);
   return partitions;
 }
 

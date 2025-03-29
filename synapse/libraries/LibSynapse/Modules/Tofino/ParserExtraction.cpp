@@ -43,9 +43,9 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
   const bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
   const addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
 
-  const std::vector<LibBDD::header_t> &headers = ep->get_ctx().get_headers();
+  const std::vector<LibCore::expr_struct_t> &headers = ep->get_ctx().get_expr_structs();
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
-  for (const LibBDD::header_t &header : headers) {
+  for (const LibCore::expr_struct_t &header : headers) {
     if (LibCore::solver_toolbox.are_exprs_always_equal(header.expr, hdr)) {
       hdr_fields_guess = header.fields;
       break;
@@ -86,9 +86,9 @@ std::unique_ptr<Module> ParserExtractionFactory::create(const LibBDD::BDD *bdd, 
   const addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
   const bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
 
-  const std::vector<LibBDD::header_t> &headers = ctx.get_headers();
+  const std::vector<LibCore::expr_struct_t> &headers = ctx.get_expr_structs();
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
-  for (const LibBDD::header_t &header : headers) {
+  for (const LibCore::expr_struct_t &header : headers) {
     if (LibCore::solver_toolbox.are_exprs_always_equal(header.expr, hdr)) {
       hdr_fields_guess = header.fields;
       break;

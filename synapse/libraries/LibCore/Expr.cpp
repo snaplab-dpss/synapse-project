@@ -1179,6 +1179,96 @@ expr_groups_t get_expr_groups(klee::ref<klee::Expr> expr) {
   return groups;
 }
 
+std::vector<expr_group_t> get_expr_groups_from_condition(klee::ref<klee::Expr> expr) {
+  expr_groups_t groups;
+
+  if (expr.isNull()) {
+    return groups;
+  }
+
+  const std::unordered_set<klee::Expr::Kind> conditional_expr_kinds = {
+      klee::Expr::Eq,  klee::Expr::Ne,  klee::Expr::Ult, klee::Expr::Ule, klee::Expr::Ugt, klee::Expr::Uge, klee::Expr::Slt,
+      klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge, klee::Expr::And, klee::Expr::Or,  klee::Expr::Not,
+  };
+
+  auto is_conditional = [&conditional_expr_kinds](klee::ref<klee::Expr> expr) {
+    return (conditional_expr_kinds.find(expr->getKind()) != conditional_expr_kinds.end()) || (expr->getWidth() == 1);
+  };
+
+  auto process_read = [&groups](klee::ref<klee::Expr> expr) {
+    assert(expr->getKind() == klee::Expr::Read && "Not a read");
+    const klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
+
+    klee::ref<klee::Expr> index = read->index;
+    const std::string symbol    = read->updates.root->name;
+
+    assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
+    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    const bytes_t current_byte            = index_const->getZExtValue();
+
+    bool appended_to_group = false;
+    if (groups.size()) {
+      expr_group_t &last_group = groups.back();
+      if (last_group.has_symbol && last_group.symbol == symbol && last_group.offset == current_byte + 1) {
+        last_group.size++;
+        last_group.offset = current_byte;
+        last_group.expr   = concat_lsb(last_group.expr, expr);
+        appended_to_group = true;
+      }
+    }
+
+    if (!appended_to_group) {
+      const bytes_t size = expr->getWidth() / 8;
+      groups.emplace_back(true, symbol, current_byte, size, expr);
+    }
+  };
+
+  auto process_conditional = [&groups](klee::ref<klee::Expr> expr) {
+    for (size_t i = 0; i < expr->getNumKids(); i++) {
+      klee::ref<klee::Expr> kid      = expr->getKid(i);
+      const expr_groups_t kid_groups = get_expr_groups_from_condition(kid);
+      groups.insert(groups.end(), kid_groups.begin(), kid_groups.end());
+    }
+  };
+
+  auto process_not_read_not_conditional = [&groups](klee::ref<klee::Expr> expr) {
+    assert(expr->getKind() != klee::Expr::Read && "Non read is actually a read");
+    const bits_t size = expr->getWidth();
+    assert(size % 8 == 0 && "Not a byte aligned expr");
+  };
+
+  if (expr->getKind() == klee::Expr::Extract) {
+    expr = simplify(expr);
+  }
+
+  while (expr->getKind() == klee::Expr::Concat) {
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
+
+    assert(lhs->getKind() != klee::Expr::Concat && "Nested concats");
+
+    if (lhs->getKind() == klee::Expr::Read) {
+      process_read(lhs);
+    } else if (is_conditional(lhs)) {
+      process_conditional(lhs);
+    } else {
+      process_not_read_not_conditional(lhs);
+    }
+
+    expr = rhs;
+  }
+
+  if (expr->getKind() == klee::Expr::Read) {
+    process_read(expr);
+  } else if (is_conditional(expr)) {
+    process_conditional(expr);
+  } else {
+    process_not_read_not_conditional(expr);
+  }
+
+  return groups;
+}
+
 std::size_t symbolic_read_hash_t::operator()(const symbolic_read_t &s) const noexcept {
   std::hash<std::string> hash_fn;
   return hash_fn(s.symbol + std::to_string(s.byte));
@@ -2038,18 +2128,96 @@ std::vector<klee::ref<klee::Expr>> split_expr(klee::ref<klee::Expr> expr, expr_p
 
   if (pos.offset > 0) {
     klee::ref<klee::Expr> left = solver_toolbox.exprBuilder->Extract(expr, 0, pos.offset);
-    sub_exprs.insert(sub_exprs.begin(), left);
+    sub_exprs.insert(sub_exprs.begin(), simplify(left));
   }
 
   klee::ref<klee::Expr> middle = solver_toolbox.exprBuilder->Extract(expr, pos.offset, pos.size);
-  sub_exprs.insert(sub_exprs.begin(), middle);
+  sub_exprs.insert(sub_exprs.begin(), simplify(middle));
 
   if (pos.offset + pos.size < size) {
     klee::ref<klee::Expr> right = solver_toolbox.exprBuilder->Extract(expr, pos.offset + pos.size, size - pos.offset - pos.size);
-    sub_exprs.insert(sub_exprs.begin(), right);
+    sub_exprs.insert(sub_exprs.begin(), simplify(right));
   }
 
   return sub_exprs;
+}
+
+std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::ref<klee::Expr> target_expr,
+                                                                        const std::vector<expr_struct_t> &expr_structs,
+                                                                        const bytes_t max_chunk_size) {
+  std::vector<klee::ref<klee::Expr>> chunks;
+
+  for (const expr_group_t &group : get_expr_groups(target_expr)) {
+    std::vector<klee::ref<klee::Expr>> subgroups{group.expr};
+
+    bool changes = true;
+    while (changes) {
+      changes = false;
+
+      std::vector<klee::ref<klee::Expr>> subgroups_copy = subgroups;
+      subgroups.clear();
+
+      for (klee::ref<klee::Expr> expr : subgroups_copy) {
+
+        bool split = false;
+        for (const expr_struct_t &expr_struct : expr_structs) {
+          for (klee::ref<klee::Expr> field : expr_struct.fields) {
+            expr_pos_t pos;
+            if (is_smaller_expr_contained_in_expr(field, expr, pos)) {
+              const std::vector<klee::ref<klee::Expr>> slices = split_expr(expr, pos);
+              subgroups.insert(subgroups.end(), slices.begin(), slices.end());
+
+              split   = true;
+              changes = true;
+
+              break;
+            }
+          }
+
+          if (split) {
+            break;
+          }
+        }
+
+        if (!split) {
+          subgroups.push_back(expr);
+        }
+      }
+    }
+
+    for (klee::ref<klee::Expr> subgroup : subgroups) {
+      const bytes_t total_size = subgroup->getWidth() / 8;
+
+      bytes_t processed_bytes = 0;
+      while (processed_bytes != total_size) {
+        const bytes_t target_size = std::min(max_chunk_size, total_size - processed_bytes);
+        const bytes_t offset      = total_size - processed_bytes - target_size;
+
+        klee::ref<klee::Expr> subsubgroup = solver_toolbox.exprBuilder->Extract(subgroup, offset * 8, target_size * 8);
+        subsubgroup                       = simplify(subsubgroup);
+
+        chunks.push_back(subsubgroup);
+        processed_bytes += target_size;
+      }
+    }
+  }
+
+  std::reverse(chunks.begin(), chunks.end());
+
+  klee::ref<klee::Expr> merged = LibCore::concat_exprs(chunks);
+  if (!solver_toolbox.are_exprs_always_equal(merged, target_expr)) {
+    std::stringstream ss;
+    ss << "***** Bug in break_expr_into_structs_aware_chunks *****\n";
+    ss << "Target expr: " << expr_to_string(target_expr) << "\n";
+    ss << "Chunks:\n";
+    for (klee::ref<klee::Expr> chunk : chunks) {
+      ss << "  " << expr_to_string(chunk, true) << "\n";
+    }
+    ss << "Merged expr: " << expr_to_string(merged) << "\n";
+    panic("%s", ss.str().c_str());
+  }
+
+  return chunks;
 }
 
 } // namespace LibCore

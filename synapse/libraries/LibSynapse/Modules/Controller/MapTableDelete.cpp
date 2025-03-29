@@ -22,7 +22,7 @@ map_table_data_t get_table_delete_data(const Context &ctx, const LibBDD::Call *c
 
   map_table_data_t data = {
       .obj  = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .keys = Table::build_keys(key, ctx.get_headers()),
+      .keys = Table::build_keys(key, ctx.get_expr_structs()),
   };
 
   return data;

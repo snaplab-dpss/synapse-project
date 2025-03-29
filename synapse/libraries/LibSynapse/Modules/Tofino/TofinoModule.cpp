@@ -303,7 +303,7 @@ VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, co
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
   const tna_properties_t &properties = tofino_ctx->get_tna().get_tna_config().properties;
 
-  std::vector<klee::ref<klee::Expr>> partitions = Register::partition_value(properties, data.value);
+  const std::vector<klee::ref<klee::Expr>> partitions = Register::partition_value(properties, data.value, ep->get_ctx().get_expr_structs());
 
   std::vector<bits_t> values_sizes;
   for (klee::ref<klee::Expr> partition : partitions) {
@@ -346,9 +346,9 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
   const TNA &tna                     = tofino_ctx->get_tna();
   const tna_properties_t &properties = tna.get_tna_config().properties;
 
-  DS_ID id = "fcfs_cached_table_" + std::to_string(cache_capacity) + "_" + std::to_string(obj);
+  const DS_ID id                                = "fcfs_cached_table_" + std::to_string(cache_capacity) + "_" + std::to_string(obj);
+  const std::vector<klee::ref<klee::Expr>> keys = Register::partition_value(properties, key, ctx.get_expr_structs());
 
-  std::vector<klee::ref<klee::Expr>> keys = Register::partition_value(properties, key);
   std::vector<bits_t> keys_sizes;
   for (klee::ref<klee::Expr> key : keys) {
     keys_sizes.push_back(key->getWidth());
@@ -701,7 +701,7 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
   return true;
 }
 
-LibCore::Symbols TofinoModuleFactory::get_dataplane_state(const EP *ep, const LibBDD::Node *node) {
+LibCore::Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const LibBDD::Node *node) {
   const LibBDD::node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
 
   LibCore::Symbols generated_symbols = node->get_prev_symbols(roots);
@@ -711,7 +711,8 @@ LibCore::Symbols TofinoModuleFactory::get_dataplane_state(const EP *ep, const Li
   LibCore::Symbols future_used_symbols;
   if (node->get_next()) {
     node->get_next()->visit_nodes([&future_used_symbols](const LibBDD::Node *node) {
-      future_used_symbols.add(node->get_used_symbols());
+      const LibCore::Symbols local_future_symbols = node->get_used_symbols();
+      future_used_symbols.add(local_future_symbols);
       return LibBDD::NodeVisitAction::Continue;
     });
   }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <LibCore/Types.h>
-#include <LibBDD/Nodes/Call.h>
+#include <LibCore/Expr.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructure.h>
 
 #include <vector>
@@ -29,7 +29,7 @@ struct Table : public DS {
   bits_t get_match_xbar_consume() const;
   bits_t get_consumed_sram() const;
 
-  static std::vector<klee::ref<klee::Expr>> build_keys(klee::ref<klee::Expr> key, const std::vector<LibBDD::header_t> &headers);
+  static std::vector<klee::ref<klee::Expr>> build_keys(klee::ref<klee::Expr> key, const std::vector<LibCore::expr_struct_t> &headers);
 };
 
 } // namespace Tofino

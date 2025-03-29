@@ -23,7 +23,7 @@ struct hh_table_data_t {
 
     obj        = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key        = call.args.at("key").in;
-    table_keys = Table::build_keys(key, ctx.get_headers());
+    table_keys = Table::build_keys(key, ctx.get_expr_structs());
     value      = call.args.at("value").expr;
   }
 };
@@ -240,7 +240,7 @@ std::vector<impl_t> HHTableConditionalUpdateFactory::process_node(const EP *ep, 
 
   klee::ref<klee::Expr> min_estimate_cond = build_min_estimate_check_cond(ep, min_estimate, map_objs.map);
 
-  LibCore::Symbols symbols = get_dataplane_state(ep, node);
+  const LibCore::Symbols symbols = get_relevant_dataplane_state(ep, node);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));

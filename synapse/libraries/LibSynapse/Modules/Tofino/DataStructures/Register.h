@@ -2,6 +2,7 @@
 
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructure.h>
 #include <LibCore/Types.h>
+#include <LibCore/Expr.h>
 
 #include <vector>
 #include <optional>
@@ -41,7 +42,8 @@ struct Register : public DS {
   bits_t get_consumed_sram() const;
   u32 get_num_logical_ids() const;
 
-  static std::vector<klee::ref<klee::Expr>> partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value);
+  static std::vector<klee::ref<klee::Expr>> partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value,
+                                                            const std::vector<LibCore::expr_struct_t> &expr_structs);
 };
 
 } // namespace Tofino

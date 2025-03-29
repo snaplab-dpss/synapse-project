@@ -28,7 +28,7 @@ map_table_data_t table_data_from_map_op(const Context &ctx, const LibBDD::Call *
 
   map_table_data_t data = {
       .obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .keys  = Table::build_keys(key, ctx.get_headers()),
+      .keys  = Table::build_keys(key, ctx.get_expr_structs()),
       .value = value_out,
       .found = map_has_this_key,
   };

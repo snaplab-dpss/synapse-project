@@ -1778,5 +1778,10 @@ void ControllerSynthesizer::dbg_vars() const {
   std::cerr << "======================================== \n";
 }
 
+void ControllerSynthesizer::log(const EPNode *node) const {
+  std::cerr << "[ControllerSynthesizer] ";
+  EPVisitor::log(node);
+}
+
 } // namespace Controller
 } // namespace LibSynapse

@@ -20,8 +20,7 @@ EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbo
   Module *module  = new Recirculate(node, symbols, recirc_port, code_path);
   EPNode *ep_node = new EPNode(module);
 
-  // Note that we don't point to the next LibBDD::BDD node, as it was not actually
-  // implemented.
+  // Note that we don't point to the next BDD node, as it was not actually implemented.
   EPLeaf leaf(ep_node, node);
   new_ep->process_leaf(ep_node, {leaf}, false);
 
@@ -44,8 +43,7 @@ EP *concretize_single_port_recirc(const EP *ep, const LibBDD::Node *node, const 
     }
   }
 
-  // We don't support returning back to a past recirculation port after
-  // being sent to a different one.
+  // We don't support returning back to a past recirculation port after being sent to a different one.
   if (returning_recirc) {
     return nullptr;
   }
@@ -65,17 +63,17 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD:
   const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
   std::unordered_set<DS_ID> deps  = tofino_ctx->get_stateful_deps(ep, node);
 
-  // We can only recirculate if a stateful operation was implemented since the
-  // last recirculation.
+  // We can only recirculate if a stateful operation was implemented since the last recirculation.
   if (deps.empty()) {
     return impls;
   }
 
-  EPLeaf active_leaf = ep->get_active_leaf();
+  const EPLeaf active_leaf = ep->get_active_leaf();
 
-  // TODO: How do we recalculate the estimated throughput after a forwarding
-  // decision is made?
-  assert((!ep->get_active_leaf().node || !ep->get_active_leaf().node->forwarding_decision_already_made()) && "TODO");
+  // We can't recirculate if a forwarding decision was already made.
+  if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
+    return impls;
+  }
 
   std::vector<u16> available_recirculation_ports;
   for (const tofino_recirculation_port_t &port : tofino_ctx->get_tna().get_tna_config().recirculation_ports) {
@@ -83,7 +81,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD:
   }
 
   const std::vector<u16> past_recirc = active_leaf.node->get_past_recirculations();
-  const LibCore::Symbols symbols     = get_dataplane_state(ep, node);
+  const LibCore::Symbols symbols     = get_relevant_dataplane_state(ep, node);
 
   for (u16 rport : available_recirculation_ports) {
     EP *new_ep = concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);

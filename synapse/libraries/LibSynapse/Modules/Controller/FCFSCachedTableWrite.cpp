@@ -28,7 +28,7 @@ void get_data(const Context &ctx, const LibBDD::Call *call_node, addr_t &obj, st
   value                               = call.args.at("value").expr;
 
   obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr);
-  keys  = Table::build_keys(key, ctx.get_headers());
+  keys  = Table::build_keys(key, ctx.get_expr_structs());
   value = value;
 }
 } // namespace

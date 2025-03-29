@@ -26,7 +26,7 @@ struct table_data_t {
 
     obj        = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key        = call.args.at("key").in;
-    table_keys = Table::build_keys(key, ctx.get_headers());
+    table_keys = Table::build_keys(key, ctx.get_expr_structs());
     value      = call.args.at("value").expr;
   }
 };

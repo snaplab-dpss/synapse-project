@@ -409,6 +409,9 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_dat
 
   meta.update_total_bdd_nodes(new_bdd.get());
 
+  // Translating the symbols stored by the context.
+  ctx.translate(new_bdd->get_mutable_symbol_manager(), translation_data.translated_symbols);
+
   // Replacing the BDD might change the hit rate estimations.
   ctx.get_profiler().clear_cache();
 
