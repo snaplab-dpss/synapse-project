@@ -719,8 +719,7 @@ control Ingress(
                     // EP node  2103:Else
                     // BDD node 15:if ((Eq (w8 1) (Read w8 (w32 768) packet_chunks))
                     // EP node  3219:ModifyHeader
-                    // BDD node 33:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 1) DEVICE) (Concat w1176 (Read w8 (w32 0) DEVICE) (Concat w1168 (w8 0) (ReadLSB w1160 (w32 768) packet_chunks))))])
-                    hdr.hdr3.data3 = 8w0x00;
+                    // BDD node 33:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 1) DEVICE) (Concat w1176 (Read w8 (w32 0) DEVICE) (ReadLSB w1168 (w32 768) packet_chunks)))])
                     hdr.hdr3.data4[15:8] = meta.dev[7:0];
                     hdr.hdr3.data4[7:0] = meta.dev[15:8];
                     // EP node  8262:Forward

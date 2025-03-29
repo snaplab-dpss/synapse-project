@@ -5,6 +5,7 @@ from socket import socket, AF_PACKET, SOCK_RAW, ntohs, inet_aton
 from select import select
 from random import randint, getrandbits
 from typing import Optional
+from enum import Enum
 
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, UDP
@@ -24,6 +25,12 @@ KVS_OP_GET = 0
 KVS_OP_PUT = 1
 KVS_STATUS_OK = 1
 KVS_STATUS_FAIL = 0
+
+
+class HeaderField(Enum):
+    IP_CHECKSUM = 0
+    UDP_CHECKSUM = 1
+    KVS_CLIENT_PORT = 2
 
 
 class KVSHeader(Packet):
@@ -98,7 +105,7 @@ class Ports:
             packets: list[Packet] = []
 
             while data:
-                if data[:6] != unhexlify(DST_MAC.replace(":", "")):
+                if data[:6] != unhexlify(DST_MAC.replace(":", "")) and data[:6] != unhexlify(SRC_MAC.replace(":", "")):
                     data = data[1:]
                     continue
 
@@ -132,20 +139,53 @@ def expect_no_packet(ports: Ports) -> None:
         exit(1)
 
 
-def check_checksum_only_diff(pkt1: Packet, pkt2: Packet) -> bool:
+def assert_equal_packets(pkt1: Packet, pkt2: Packet, ignore_fields: list[HeaderField]):
     pkt1_copy = pkt1.copy()
     pkt2_copy = pkt2.copy()
 
-    pkt1_copy[IP].chksum = 0
-    pkt2_copy[IP].chksum = 0
+    for field in ignore_fields:
+        if field == HeaderField.IP_CHECKSUM:
+            assert IP in pkt1_copy and IP in pkt2_copy
+            pkt1_copy[IP].chksum = 0
+            pkt2_copy[IP].chksum = 0
+        elif field == HeaderField.UDP_CHECKSUM:
+            assert UDP in pkt1_copy and UDP in pkt2_copy
+            pkt1_copy[UDP].chksum = 0
+            pkt2_copy[UDP].chksum = 0
+        elif field == HeaderField.KVS_CLIENT_PORT:
+            assert KVSHeader in pkt1_copy and KVSHeader in pkt2_copy
+            pkt1_copy[KVSHeader].port = 0
+            pkt2_copy[KVSHeader].port = 0
 
-    pkt1_copy[UDP].chksum = 0
-    pkt2_copy[UDP].chksum = 0
+    pkt1_bytes = pkt1_copy.build()
+    pkt2_bytes = pkt2_copy.build()
 
-    return pkt1_copy.build() == pkt2_copy.build()
+    if pkt1_bytes != pkt2_bytes:
+        print("*** ASSERTION FAILED ***")
+        print(f"Packet comparison failed!")
+
+        print()
+        print("Expected:")
+        pkt1_copy.show()
+
+        print()
+        print("Received:")
+        pkt2_copy.show()
+
+        print()
+        print("Hexdump:")
+        print(f"  Expected: {pkt1_bytes.hex()}")
+        print(f"  Received: {pkt2_bytes.hex()}")
+
+        exit(1)
 
 
-def expect_packet_from_port(ports: Ports, port: int, pkt: Packet, relax_checksum_comparison=True) -> Packet:
+def expect_packet_from_port(
+    ports: Ports,
+    port: int,
+    pkt: Packet,
+    ignore_fields: list[HeaderField] = [HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM],
+) -> Packet:
     data = ports.poll()
 
     if len(data.keys()) != 1 or port not in data:
@@ -159,34 +199,7 @@ def expect_packet_from_port(ports: Ports, port: int, pkt: Packet, relax_checksum
         assert False and "Expected a single packet"
 
     recv_pkt = data[port][0]
-
-    if relax_checksum_comparison and check_checksum_only_diff(pkt, recv_pkt):
-        return recv_pkt
-
-    recv_pkt_bytes = recv_pkt.build()
-    expected_pkt_bytes = pkt.build()
-
-    if recv_pkt_bytes != expected_pkt_bytes:
-        print("*** ASSERTION FAILED ***")
-        print(f"Packet comparison failed!")
-
-        print()
-        print("Expected:")
-        pkt.show()
-
-        print()
-        print("Received:")
-        recv_pkt.show()
-
-        print()
-        print("Hexdump:")
-        print(f"  Expected: {expected_pkt_bytes.hex()}")
-        print(f"  Received: {recv_pkt_bytes.hex()}")
-
-        if check_checksum_only_diff(pkt, recv_pkt):
-            print("Note: checksums are different, but the rest of the packet is the same.")
-
-        exit(1)
+    assert_equal_packets(pkt, recv_pkt, ignore_fields)
 
     return recv_pkt
 
@@ -237,13 +250,13 @@ def build_flow(
     src_port: Optional[int] = None,
     dst_port: Optional[int] = None,
 ) -> Flow:
-    if not src_addr:
+    if src_addr is None:
         src_addr = f"{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}"
-    if not dst_addr:
+    if dst_addr is None:
         dst_addr = f"{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}.{randint(0, 0xFF)}"
-    if not src_port:
+    if src_port is None:
         src_port = randint(0, 0xFFFF)
-    if not dst_port:
+    if dst_port is None:
         dst_port = randint(0, 0xFFFF)
 
     return Flow(src_addr=src_addr, dst_addr=dst_addr, src_port=src_port, dst_port=dst_port)
@@ -256,32 +269,33 @@ def build_kvs_hdr(
     status: Optional[int] = None,
     port: Optional[int] = None,
 ) -> KVSHeader:
-    if not op:
+    if op is None:
         op = KVS_OP_PUT
-    if not key:
+    if key is None:
         key = bytes(getrandbits(8) for _ in range(KVS_KEY_SIZE_BYTES))
-    if not value:
+    if value is None:
         value = bytes(getrandbits(8) for _ in range(KVS_VALUE_SIZE_BYTES))
-    if not status:
+    if status is None:
         status = KVS_STATUS_FAIL
-    if not port:
+    if port is None:
         port = 0
 
     return KVSHeader(op=op, key=key, value=value, status=status, port=port)
 
 
-def build_packet(flow: Optional[Flow] = None, kvs_hdr: Optional[KVSHeader] = None) -> Packet:
-    pkt = Ether(dst=DST_MAC, src=SRC_MAC)
+def build_packet(
+    src_mac: str = SRC_MAC,
+    dst_mac: str = DST_MAC,
+    flow: Optional[Flow] = None,
+    kvs_hdr: Optional[KVSHeader] = None,
+) -> Packet:
+    flow = flow if flow is not None else build_flow()
 
-    if flow is not None:
-        pkt /= IP(src=flow.src_addr, dst=flow.dst_addr)
-        pkt /= UDP(sport=flow.src_port, dport=flow.dst_port)
-    else:
-        pkt /= IP()
-        pkt /= UDP()
+    pkt = Ether(dst=dst_mac, src=src_mac)
+    pkt /= IP(src=flow.src_addr, dst=flow.dst_addr)
+    pkt /= UDP(sport=flow.src_port, dport=flow.dst_port)
 
     if kvs_hdr is not None:
-        pkt[UDP].dport = KVS_PORT
         pkt /= kvs_hdr
     else:
         # Pad packet to minimum ethernet frame without CRC (60B)

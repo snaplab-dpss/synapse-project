@@ -143,8 +143,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       // EP node  9951
       // BDD node 17:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
       // EP node  10078
-      // BDD node 18:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 1) DEVICE) (Concat w1176 (Read w8 (w32 0) DEVICE) (Concat w1168 (w8 0) (ReadLSB w1160 (w32 768) packet_chunks))))])
-      hdr_3[145] = 0;
+      // BDD node 18:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 1) DEVICE) (Concat w1176 (Read w8 (w32 0) DEVICE) (ReadLSB w1168 (w32 768) packet_chunks)))])
       hdr_3[146] = bswap32(cpu_hdr_extra->DEVICE) & 255;
       hdr_3[147] = (bswap32(cpu_hdr_extra->DEVICE)>>8) & 255;
       // EP node  10339
@@ -308,38 +307,26 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       vector_register_1073956208_value_0[127] = *(u8*)(hdr_3 + 144);
       state->vector_register_1073956208.put(allocated_index_0, vector_register_1073956208_value_0);
       // EP node  10679
-      // BDD node 28:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 915) packet_chunks) (Concat w1176 (Read w8 (w32 914) packet_chunks) (Concat w1168 (w8 0) (ReadLSB w1160 (w32 768) packet_chunks))))])
-      hdr_3[145] = 0;
+      // BDD node 28:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 915) packet_chunks) (Concat w1176 (Read w8 (w32 914) packet_chunks) (Concat w1168 (w8 1) (ReadLSB w1160 (w32 768) packet_chunks))))])
+      hdr_3[145] = 1;
       // EP node  10750
       // BDD node 29:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760000)[(Concat w64 (Read w8 (w32 519) packet_chunks) (Concat w56 (Read w8 (w32 518) packet_chunks) (Concat w48 (Read w8 (w32 517) packet_chunks) (Concat w40 (Read w8 (w32 516) packet_chunks) (Concat w32 (Read w8 (w32 513) packet_chunks) (Concat w24 (Read w8 (w32 512) packet_chunks) (ReadLSB w16 (w32 514) packet_chunks)))))))])
-      hdr_2[0] = *(u8*)(hdr_2 + 2);
-      hdr_2[1] = *(u8*)(hdr_2 + 3);
-      hdr_2[2] = *(u8*)(hdr_2 + 0);
-      hdr_2[3] = *(u8*)(hdr_2 + 1);
+      std::swap(hdr_2[0], hdr_2[2]);
+      std::swap(hdr_2[1], hdr_2[3]);
       // EP node  10822
       // BDD node 30:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759744)[(Concat w160 (Read w8 (w32 271) packet_chunks) (Concat w152 (Read w8 (w32 270) packet_chunks) (Concat w144 (Read w8 (w32 269) packet_chunks) (Concat w136 (Read w8 (w32 268) packet_chunks) (Concat w128 (Read w8 (w32 275) packet_chunks) (Concat w120 (Read w8 (w32 274) packet_chunks) (Concat w112 (Read w8 (w32 273) packet_chunks) (Concat w104 (Read w8 (w32 272) packet_chunks) (ReadLSB w96 (w32 256) packet_chunks)))))))))])
-      hdr_1[12] = *(u8*)(hdr_1 + 16);
-      hdr_1[13] = *(u8*)(hdr_1 + 17);
-      hdr_1[14] = *(u8*)(hdr_1 + 18);
-      hdr_1[15] = *(u8*)(hdr_1 + 19);
-      hdr_1[16] = *(u8*)(hdr_1 + 12);
-      hdr_1[17] = *(u8*)(hdr_1 + 13);
-      hdr_1[18] = *(u8*)(hdr_1 + 14);
-      hdr_1[19] = *(u8*)(hdr_1 + 15);
+      std::swap(hdr_1[12], hdr_1[16]);
+      std::swap(hdr_1[13], hdr_1[17]);
+      std::swap(hdr_1[14], hdr_1[18]);
+      std::swap(hdr_1[15], hdr_1[19]);
       // EP node  10895
       // BDD node 31:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073759488)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (Read w8 (w32 5) packet_chunks) (Concat w88 (Read w8 (w32 4) packet_chunks) (Concat w80 (Read w8 (w32 3) packet_chunks) (Concat w72 (Read w8 (w32 2) packet_chunks) (Concat w64 (Read w8 (w32 1) packet_chunks) (Concat w56 (Read w8 (w32 0) packet_chunks) (ReadLSB w48 (w32 6) packet_chunks)))))))))])
-      hdr_0[0] = *(u8*)(hdr_0 + 6);
-      hdr_0[1] = *(u8*)(hdr_0 + 7);
-      hdr_0[2] = *(u8*)(hdr_0 + 8);
-      hdr_0[3] = *(u8*)(hdr_0 + 9);
-      hdr_0[4] = *(u8*)(hdr_0 + 10);
-      hdr_0[5] = *(u8*)(hdr_0 + 11);
-      hdr_0[6] = *(u8*)(hdr_0 + 0);
-      hdr_0[7] = *(u8*)(hdr_0 + 1);
-      hdr_0[8] = *(u8*)(hdr_0 + 2);
-      hdr_0[9] = *(u8*)(hdr_0 + 3);
-      hdr_0[10] = *(u8*)(hdr_0 + 4);
-      hdr_0[11] = *(u8*)(hdr_0 + 5);
+      std::swap(hdr_0[0], hdr_0[6]);
+      std::swap(hdr_0[1], hdr_0[7]);
+      std::swap(hdr_0[2], hdr_0[8]);
+      std::swap(hdr_0[3], hdr_0[9]);
+      std::swap(hdr_0[4], hdr_0[10]);
+      std::swap(hdr_0[5], hdr_0[11]);
       // EP node  10969
       // BDD node 32:FORWARD
       cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);

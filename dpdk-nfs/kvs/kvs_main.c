@@ -126,12 +126,11 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     return device;
   }
 
-  kvs_hdr->status = KVS_STATUS_MISS;
-
   bool cache_updated = kvs_on_cache_miss(kvs_state, now, kvs_hdr->op, kvs_hdr->key, kvs_hdr->value);
 
   if (cache_updated) {
     invert_flow(ether_hdr, ipv4_hdr, udp_hdr);
+    kvs_hdr->status = KVS_STATUS_HIT;
     return device;
   }
 

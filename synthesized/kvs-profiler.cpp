@@ -867,7 +867,6 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               if ((0) == (not_out_of_space)) {
                 // Node 18
                 inc_path_counter(18);
-                hdr4[145] = 0;
                 hdr4[146] = device & 255;
                 hdr4[147] = (device>>8) & 255;
                 packet_return_chunk(buffer, hdr4);
@@ -907,7 +906,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 memcpy((void*)vector_value_out2, (void*)&hdr4_slice2, 128);
                 // Node 28
                 inc_path_counter(28);
-                hdr4[145] = 0;
+                hdr4[145] = 1;
                 packet_return_chunk(buffer, hdr4);
                 // Node 29
                 inc_path_counter(29);
@@ -950,7 +949,6 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             } else {
               // Node 33
               inc_path_counter(33);
-              hdr4[145] = 0;
               hdr4[146] = device & 255;
               hdr4[147] = (device>>8) & 255;
               packet_return_chunk(buffer, hdr4);

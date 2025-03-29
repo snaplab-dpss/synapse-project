@@ -1744,8 +1744,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  klee::ref<klee::Expr> hdr = node->get_hdr();
-
+  klee::ref<klee::Expr> hdr                           = node->get_hdr();
   const std::vector<LibCore::expr_mod_t> &changes     = node->get_changes();
   const std::vector<LibCore::expr_byte_swap_t> &swaps = node->get_swaps();
 

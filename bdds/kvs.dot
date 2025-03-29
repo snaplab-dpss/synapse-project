@@ -7,7 +7,7 @@ digraph mygraph {
 	20 -> 21;
 	19 [label="19:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760000[packet_chunks[512:520]])", fillcolor="cornflowerblue"];
 	19 -> 20;
-	18 [label="18:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760256[DEVICE[0:2]++0++packet_chunks[768:913]])", fillcolor="cornflowerblue"];
+	18 [label="18:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760256[DEVICE[0:2]++packet_chunks[768:914]])", fillcolor="cornflowerblue"];
 	18 -> 19;
 	32 [label="32:fwd(DEVICE)", fillcolor="chartreuse2"];
 	31 [label="31:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073759488[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])", fillcolor="cornflowerblue"];
@@ -16,7 +16,7 @@ digraph mygraph {
 	30 -> 31;
 	29 [label="29:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760000[packet_chunks[516:520]++packet_chunks[512:514]++packet_chunks[514:516]])", fillcolor="cornflowerblue"];
 	29 -> 30;
-	28 [label="28:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760256[packet_chunks[914:916]++0++packet_chunks[768:913]])", fillcolor="cornflowerblue"];
+	28 [label="28:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760256[packet_chunks[914:916]++1++packet_chunks[768:913]])", fillcolor="cornflowerblue"];
 	28 -> 29;
 	27 [label="27:vector_return(\l  vector:1073956208,\l  index:new_index,\l  value:1073970104[packet_chunks[785:913]])", fillcolor="cornflowerblue"];
 	27 -> 28;
@@ -40,7 +40,7 @@ digraph mygraph {
 	35 -> 36;
 	34 [label="34:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760000[packet_chunks[512:520]])", fillcolor="cornflowerblue"];
 	34 -> 35;
-	33 [label="33:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760256[DEVICE[0:2]++0++packet_chunks[768:913]])", fillcolor="cornflowerblue"];
+	33 [label="33:packet_return_chunk(\l  p:1074049376,\l  the_chunk:1073760256[DEVICE[0:2]++packet_chunks[768:914]])", fillcolor="cornflowerblue"];
 	33 -> 34;
 	15 [shape=Mdiamond, label="15:(1 == packet_chunks[768])", fillcolor="yellow"];
 	15 -> 16 [label="True"];

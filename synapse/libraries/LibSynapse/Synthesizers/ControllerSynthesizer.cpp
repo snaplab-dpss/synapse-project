@@ -902,11 +902,25 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t chunk_addr                        = node->get_chunk_addr();
-  const std::vector<LibCore::expr_mod_t> changes = node->get_changes();
+  const addr_t chunk_addr                             = node->get_chunk_addr();
+  const std::vector<LibCore::expr_mod_t> &changes     = node->get_changes();
+  const std::vector<LibCore::expr_byte_swap_t> &swaps = node->get_swaps();
 
   const std::optional<var_t> hdr = vars.get_by_addr(chunk_addr);
   assert(hdr.has_value() && "Header not found");
+
+  std::unordered_set<bytes_t> bytes_already_dealt_with;
+  for (const LibCore::expr_byte_swap_t &byte_swap : swaps) {
+    coder.indent();
+    coder << "std::swap(";
+    coder << hdr.value().name << "[" << byte_swap.byte0 << "]";
+    coder << ", ";
+    coder << hdr.value().name << "[" << byte_swap.byte1 << "]";
+    coder << ");\n";
+
+    bytes_already_dealt_with.insert(byte_swap.byte0);
+    bytes_already_dealt_with.insert(byte_swap.byte1);
+  }
 
   for (const LibCore::expr_mod_t &mod : changes) {
     LibCore::symbolic_reads_t symbolic_reads = LibCore::get_unique_symbolic_reads(mod.expr, "checksum");
@@ -914,7 +928,11 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
       continue;
     }
 
-    bytes_t size = mod.width / 8;
+    if (bytes_already_dealt_with.find(mod.offset / 8) != bytes_already_dealt_with.end()) {
+      continue;
+    }
+
+    const bytes_t size = mod.width / 8;
     for (bytes_t i = 0; i < size; i++) {
       coder.indent();
       coder << hdr.value().name << "[" << ((mod.offset / 8) + i) << "] = ";
