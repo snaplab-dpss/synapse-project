@@ -456,5 +456,13 @@ private:
   }
 };
 
+struct parser_selection_t {
+  klee::ref<klee::Expr> target;
+  std::vector<int> values;
+  bool negated;
+
+  parser_selection_t() : negated(false) {}
+};
+
 } // namespace Tofino
 } // namespace LibSynapse

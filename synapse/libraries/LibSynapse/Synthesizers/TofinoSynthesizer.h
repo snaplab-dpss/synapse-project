@@ -108,7 +108,7 @@ private:
     code_t get_stem() const;
     void declare(coder_t &coder, std::optional<code_t> assignment = std::nullopt) const;
     bool is_slice() const { return original_name != name || original_expr != expr || original_size != size; }
-    code_t get_hdr_name() const;
+    std::vector<code_t> split_by_dot() const;
     std::string to_string() const;
     code_t flatten_name() const;
   };
@@ -164,25 +164,22 @@ private:
 
   using alloc_opt_t = u32;
 
-  static constexpr const alloc_opt_t LOCAL            = 0b00000001;
-  static constexpr const alloc_opt_t GLOBAL           = 0b00000010;
-  static constexpr const alloc_opt_t SKIP_STACK_ALLOC = 0b00000100;
-  static constexpr const alloc_opt_t EXACT_NAME       = 0b00001000;
-  static constexpr const alloc_opt_t HEADER           = 0b00010000;
-  static constexpr const alloc_opt_t HEADER_FIELD     = 0b00100000;
-  static constexpr const alloc_opt_t BUFFER           = 0b01000000;
-  static constexpr const alloc_opt_t FORCE_BOOL       = 0b10000000;
+  static constexpr const alloc_opt_t SKIP_STACK_ALLOC = 0b000001;
+  static constexpr const alloc_opt_t EXACT_NAME       = 0b000010;
+  static constexpr const alloc_opt_t HEADER           = 0b000100;
+  static constexpr const alloc_opt_t HEADER_FIELD     = 0b001000;
+  static constexpr const alloc_opt_t BUFFER           = 0b010000;
+  static constexpr const alloc_opt_t FORCE_BOOL       = 0b100000;
 
   std::unordered_map<code_t, int> var_prefix_usage;
 
   Stacks ingress_vars;
-  Stacks hdrs_stacks;
+  Stack hdr_vars;
   Stack cpu_hdr_vars;
   Stack recirc_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
   std::unordered_map<LibBDD::node_id_t, Stack> parser_vars;
-  std::unordered_map<LibBDD::node_id_t, Stack> parser_hdrs;
   std::vector<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
 

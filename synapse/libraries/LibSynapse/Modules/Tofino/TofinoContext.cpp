@@ -9,39 +9,6 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
-const LibBDD::Node *get_last_parser_state_op(const EP *ep, std::optional<bool> &direction) {
-  EPLeaf leaf = ep->get_active_leaf();
-
-  const EPNode *node = leaf.node;
-  const EPNode *next = nullptr;
-
-  while (node) {
-    const Module *module = node->get_module();
-    assert(module && "Module not found");
-
-    if (module->get_type() == ModuleType::Tofino_ParserCondition) {
-      assert((next && next->get_module()) && "Next node not found");
-      const Module *next_module = next->get_module();
-
-      if (next_module->get_type() == ModuleType::Tofino_Then) {
-        direction = true;
-      } else {
-        direction = false;
-      }
-
-      return module->get_node();
-    }
-
-    if (module->get_type() == ModuleType::Tofino_ParserExtraction) {
-      return module->get_node();
-    }
-
-    next = node;
-    node = node->get_prev();
-  }
-
-  return nullptr;
-}
 
 const EPNode *get_ep_node_from_bdd_node(const EP *ep, const LibBDD::Node *node) {
   std::vector<EPLeaf> active_leaves = ep->get_active_leaves();
@@ -151,65 +118,54 @@ const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
   return it->second;
 }
 
-void TofinoContext::parser_select(const EP *ep, const LibBDD::Node *node, klee::ref<klee::Expr> field, const std::vector<int> &values,
-                                  bool negate) {
-  LibBDD::node_id_t id = node->get_id();
+void TofinoContext::parser_select(const LibBDD::Node *node, const parser_selection_t &selection, const LibBDD::Node *last_parser_op,
+                                  std::optional<bool> direction) {
+  const LibBDD::node_id_t id = node->get_id();
 
-  std::optional<bool> direction;
-  const LibBDD::Node *last_op = get_last_parser_state_op(ep, direction);
-
-  if (!last_op) {
+  if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.add_select(id, field, values, negate);
+    tna.parser.add_select(id, selection.target, selection.values, selection.negated);
     return;
   }
 
-  LibBDD::node_id_t leaf_id = last_op->get_id();
-  tna.parser.add_select(leaf_id, id, field, values, direction, negate);
+  const LibBDD::node_id_t leaf_id = last_parser_op->get_id();
+  tna.parser.add_select(leaf_id, id, selection.target, selection.values, direction, selection.negated);
 }
 
-void TofinoContext::parser_transition(const EP *ep, const LibBDD::Node *node, klee::ref<klee::Expr> hdr) {
-  LibBDD::node_id_t id = node->get_id();
+void TofinoContext::parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op,
+                                      std::optional<bool> direction) {
+  const LibBDD::node_id_t id = node->get_id();
 
-  std::optional<bool> direction;
-  const LibBDD::Node *last_op = get_last_parser_state_op(ep, direction);
-
-  if (!last_op) {
+  if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
     tna.parser.add_extract(id, hdr);
     return;
   }
 
-  LibBDD::node_id_t leaf_id = last_op->get_id();
+  const LibBDD::node_id_t leaf_id = last_parser_op->get_id();
   tna.parser.add_extract(leaf_id, id, hdr, direction);
 }
 
-void TofinoContext::parser_accept(const EP *ep, const LibBDD::Node *node) {
-  LibBDD::node_id_t id = node->get_id();
+void TofinoContext::parser_accept(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction) {
+  const LibBDD::node_id_t id = node->get_id();
 
-  std::optional<bool> direction;
-  const LibBDD::Node *last_op = get_last_parser_state_op(ep, direction);
-
-  if (!last_op) {
+  if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
     tna.parser.accept(id);
   } else {
-    LibBDD::node_id_t leaf_id = last_op->get_id();
+    const LibBDD::node_id_t leaf_id = last_parser_op->get_id();
     tna.parser.accept(leaf_id, id, direction);
   }
 }
 
-void TofinoContext::parser_reject(const EP *ep, const LibBDD::Node *node) {
-  LibBDD::node_id_t id = node->get_id();
+void TofinoContext::parser_reject(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction) {
+  const LibBDD::node_id_t id = node->get_id();
 
-  std::optional<bool> direction;
-  const LibBDD::Node *last_op = get_last_parser_state_op(ep, direction);
-
-  if (!last_op) {
+  if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
     tna.parser.reject(id);
   } else {
-    LibBDD::node_id_t leaf_id = last_op->get_id();
+    const LibBDD::node_id_t leaf_id = last_parser_op->get_id();
     tna.parser.reject(leaf_id, id, direction);
   }
 }
@@ -327,13 +283,13 @@ void TofinoContext::debug() const {
 } // namespace Tofino
 
 template <> const Tofino::TofinoContext *Context::get_target_ctx<Tofino::TofinoContext>() const {
-  TargetType type = TargetType::Tofino;
+  const TargetType type = TargetType::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");
   return dynamic_cast<const Tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
 template <> Tofino::TofinoContext *Context::get_mutable_target_ctx<Tofino::TofinoContext>() {
-  TargetType type = TargetType::Tofino;
+  const TargetType type = TargetType::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");
   return dynamic_cast<Tofino::TofinoContext *>(target_ctxs.at(type));
 }

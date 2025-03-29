@@ -3,11 +3,15 @@
 #if __TARGET_TOFINO__ == 2
   #include <t2na.p4>
   #define CPU_PCIE_PORT 0
-  #define RECIRCULATION_PORT 6
+  #define RECIRCULATION_PORT_0 6
+  #define RECIRCULATION_PORT_1 128
+  #define RECIRCULATION_PORT_2 256
+  #define RECIRCULATION_PORT_3 384
 #else
   #include <tna.p4>
   #define CPU_PCIE_PORT 192
-  #define RECIRCULATION_PORT 320
+  #define RECIRCULATION_PORT_0 68
+  #define RECIRCULATION_PORT_1 196
 #endif
 
 header cpu_h {
@@ -32,6 +36,7 @@ struct synapse_ingress_headers_t {
 struct synapse_ingress_metadata_t {
   bit<32> dev;
   bit<32> time;
+  bool recirculate;
 
 }
 
@@ -82,10 +87,16 @@ parser IngressParser(
 
     meta.dev = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
+    meta.recirculate = false;
     
     transition select(ig_intr_md.ingress_port) {
       CPU_PCIE_PORT: parse_cpu;
-      RECIRCULATION_PORT: parse_recirc;
+      RECIRCULATION_PORT_0: parse_recirc;
+      RECIRCULATION_PORT_1: parse_recirc;
+#if __TARGET_TOFINO__ == 2
+      RECIRCULATION_PORT_2: parse_recirc;
+      RECIRCULATION_PORT_3: parse_recirc;
+#endif
       default: parser_init;
     }
   }
@@ -148,15 +159,15 @@ control Ingress(
     size = 64;
   }
 
-  bit<16> vector_table_1074013320_65_get_value_param_0 = 16w0;
-  action vector_table_1074013320_65_get_value(bit<16> _vector_table_1074013320_65_get_value_param_0) {
-    vector_table_1074013320_65_get_value_param_0 = _vector_table_1074013320_65_get_value_param_0;
+  bit<16> vector_table_1074013320_65_get_value_param0 = 16w0;
+  action vector_table_1074013320_65_get_value(bit<16> _vector_table_1074013320_65_get_value_param0) {
+    vector_table_1074013320_65_get_value_param0 = _vector_table_1074013320_65_get_value_param0;
   }
 
-  bit<32> vector_table_1074013320_65_key_0 = 32w0;
+  bit<32> vector_table_1074013320_65_key0 = 32w0;
   table vector_table_1074013320_65 {
     key = {
-      vector_table_1074013320_65_key_0: exact;
+      vector_table_1074013320_65_key0: exact;
     }
     actions = {
       vector_table_1074013320_65_get_value;
@@ -174,36 +185,42 @@ control Ingress(
       
     } else {
       ingress_port_to_nf_dev.apply();
-      // EP node  1
+      // EP node  1:VectorTableLookup
       // BDD node 65:vector_borrow(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074082720)[ -> (w64 1074027216)])
-      vector_table_1074013320_65_key_0 = meta.dev;
+      vector_table_1074013320_65_key0 = meta.dev;
       vector_table_1074013320_65.apply();
-      // EP node  15
+      // EP node  15:If
       // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
-      if ((16w0xffff) != (vector_table_1074013320_65_get_value_param_0)) {
-        // EP node  16
+      if ((16w0xffff) != (vector_table_1074013320_65_get_value_param0)) {
+        // EP node  16:Then
         // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
-        // EP node  44
+        // EP node  44:Ignore
         // BDD node 66:vector_return(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074027216)[(ReadLSB w16 (w32 0) vector_data_128)])
-        // EP node  84
+        // EP node  84:Forward
         // BDD node 68:FORWARD
-        nf_dev[15:0] = vector_table_1074013320_65_get_value_param_0;
+        nf_dev[15:0] = vector_table_1074013320_65_get_value_param0;
         trigger_forward = true;
       } else {
-        // EP node  17
+        // EP node  17:Else
         // BDD node 67:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_128)))
-        // EP node  120
+        // EP node  120:Ignore
         // BDD node 70:vector_return(vector:(w64 1074013320), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074027216)[(ReadLSB w16 (w32 0) vector_data_128)])
-        // EP node  174
+        // EP node  174:Drop
         // BDD node 69:DROP
         drop();
       }
-      ig_tm_md.bypass_egress = 1;
+
     }
 
     if (trigger_forward) {
       forward_nf_dev.apply();
     }
+
+    if (!meta.recirculate) {
+      hdr.recirc.setInvalid();
+    }
+
+    ig_tm_md.bypass_egress = 1;
   }
 }
 

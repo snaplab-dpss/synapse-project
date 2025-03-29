@@ -33,12 +33,12 @@ public:
   const DS *get_ds_from_id(DS_ID id) const;
   void save_ds(addr_t addr, DS *ds);
 
-  void parser_transition(const EP *ep, const LibBDD::Node *node, klee::ref<klee::Expr> hdr);
-
-  void parser_select(const EP *ep, const LibBDD::Node *node, klee::ref<klee::Expr> field, const std::vector<int> &values, bool negate);
-
-  void parser_accept(const EP *ep, const LibBDD::Node *node);
-  void parser_reject(const EP *ep, const LibBDD::Node *node);
+  void parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op,
+                         std::optional<bool> direction);
+  void parser_select(const LibBDD::Node *node, const parser_selection_t &selection, const LibBDD::Node *last_parser_op,
+                     std::optional<bool> direction);
+  void parser_accept(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
+  void parser_reject(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
 
   std::unordered_set<DS_ID> get_stateful_deps(const EP *ep, const LibBDD::Node *node) const;
 

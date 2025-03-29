@@ -172,7 +172,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitRead(const klee::R
   std::cerr << LibCore::expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitRead");
+  panic("TODO: visitRead: %s", LibCore::expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -603,7 +603,7 @@ void TofinoSynthesizer::transpile_action_decl(const std::string action_name, con
 
   for (klee::ref<klee::Expr> param : params) {
     const std::string param_name = action_name + "_param";
-    const var_t param_value_var  = alloc_var(param_name, param, GLOBAL | (params_are_buffers ? BUFFER : 0));
+    const var_t param_value_var  = alloc_var(param_name, param, (params_are_buffers ? BUFFER : 0));
 
     params_vars.push_back(param_value_var);
     param_value_var.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, param->getWidth()));
@@ -655,7 +655,7 @@ void TofinoSynthesizer::transpile_table_decl(const Table *table, const std::vect
 
   for (klee::ref<klee::Expr> key : keys) {
     const std::string key_name = table->id + "_key";
-    const var_t key_var        = alloc_var(key_name, key, GLOBAL | SKIP_STACK_ALLOC);
+    const var_t key_var        = alloc_var(key_name, key, SKIP_STACK_ALLOC);
     keys_vars.push_back(key_var);
   }
 
@@ -725,7 +725,7 @@ void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr>
   transpile_action_decl(action_name, {device}, false);
 
   const std::string key_name = "ipv4_addr";
-  const var_t key_var        = alloc_var(key_name, addr, GLOBAL);
+  const var_t key_var        = alloc_var(key_name, addr);
 
   key_var.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key_var.expr->getWidth()));
 
@@ -969,8 +969,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::var_t::flatten_name() const {
   return flat_name;
 }
 
-TofinoSynthesizer::code_t TofinoSynthesizer::var_t::get_hdr_name() const {
-  assert(is_header_field && "Not a header field");
+std::vector<TofinoSynthesizer::code_t> TofinoSynthesizer::var_t::split_by_dot() const {
   std::vector<code_t> subnames;
 
   code_t name_copy = original_name;
@@ -985,8 +984,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::var_t::get_hdr_name() const {
     }
   }
 
-  assert(subnames.size() >= 2);
-  return subnames[subnames.size() - 2];
+  return subnames;
 }
 
 std::string TofinoSynthesizer::var_t::to_string() const {
@@ -1224,8 +1222,8 @@ void TofinoSynthesizer::synthesize() {
   LibCore::symbol_t device = bdd->get_device();
   LibCore::symbol_t time   = bdd->get_time();
 
-  alloc_var("meta.dev", device.expr, GLOBAL | EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
+  alloc_var("meta.dev", device.expr, EXACT_NAME);
+  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), EXACT_NAME);
 
   ingress_vars.push();
 
@@ -1234,13 +1232,10 @@ void TofinoSynthesizer::synthesize() {
   // Transpile the parser after the whole EP has been visited so we have all the headers available.
 
   ingress_vars.clear();
-  hdrs_stacks.clear();
-
   ingress_vars.push();
-  hdrs_stacks.push();
 
-  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), GLOBAL | EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), GLOBAL | EXACT_NAME);
+  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), EXACT_NAME);
+  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), EXACT_NAME);
 
   ingress_vars.push();
 
@@ -1310,17 +1305,11 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
     states.erase(states.begin());
 
     ingress_vars.push();
-    hdrs_stacks.push();
 
     for (LibBDD::node_id_t id : state->ids) {
       if (parser_vars.find(id) != parser_vars.end()) {
         const Stack &vars = parser_vars.at(id);
         ingress_vars.insert_back(vars);
-      }
-
-      if (parser_hdrs.find(id) != parser_hdrs.end()) {
-        const Stack &vars = parser_hdrs.at(id);
-        hdrs_stacks.insert_back(vars);
       }
     }
 
@@ -1329,7 +1318,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       const ParserStateExtract *extract = dynamic_cast<const ParserStateExtract *>(state);
       const code_t state_name           = get_parser_state_name(state, state_init);
 
-      std::optional<var_t> hdr_var = parser_hdrs.at(*extract->ids.begin()).get(extract->hdr);
+      std::optional<var_t> hdr_var = hdr_vars.get(extract->hdr);
       assert(hdr_var && "Header not found");
 
       assert(extract->next && "Next state not found");
@@ -1410,21 +1399,18 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
     }
 
     ingress_vars.pop();
-    hdrs_stacks.pop();
 
     state_init = false;
   }
 }
 
 TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, alloc_opt_t option) {
-  assert(option & (LOCAL | GLOBAL) && "Neither LOCAL nor GLOBAL specified");
-
   const code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
   const var_t var(name, expr, expr->getWidth(), option & FORCE_BOOL, option & (HEADER | HEADER_FIELD), option & BUFFER);
 
   if (!(option & SKIP_STACK_ALLOC)) {
     if (option & HEADER) {
-      hdrs_stacks.insert_back(var);
+      hdr_vars.push(var);
     } else {
       ingress_vars.insert_back(var);
     }
@@ -1599,7 +1585,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     return EPVisitor::Action::skipChildren;
   }
 
-  const var_t cond_var = alloc_var("cond", LibCore::solver_toolbox.exprBuilder->True(), LOCAL | FORCE_BOOL);
+  const var_t cond_var = alloc_var("cond", LibCore::solver_toolbox.exprBuilder->True(), FORCE_BOOL);
   cond_var.declare(ingress, "false");
 
   for (klee::ref<klee::Expr> condition : conditions) {
@@ -1648,7 +1634,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *node) {
   parser_vars[node->get_node()->get_id()] = ingress_vars.squash_hdrs_only();
-  parser_hdrs[node->get_node()->get_id()] = hdrs_stacks.squash();
   return EPVisitor::Action::doChildren;
 }
 
@@ -1695,34 +1680,45 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<klee::ref<klee::Expr>> &hdr_fields_guess = node->get_hdr_fields_guess();
 
   ingress_vars.push();
-  hdrs_stacks.push();
 
-  const code_t hdr_name = create_unique_name("hdr");
-  const var_t hdr       = alloc_var("hdr." + hdr_name, hdr_expr, LOCAL | EXACT_NAME | HEADER);
+  var_t hdr;
+  bool already_allocated = false;
+
+  if (std::optional<var_t> allocated_hdr = hdr_vars.get_exact(hdr_expr)) {
+    hdr               = *allocated_hdr;
+    already_allocated = true;
+  } else {
+    const code_t hdr_name = create_unique_name("hdr");
+    hdr                   = alloc_var("hdr." + hdr_name, hdr_expr, EXACT_NAME | HEADER);
+  }
+
+  const code_t hdr_name = hdr.split_by_dot()[1];
 
   std::vector<var_t> hdr_data;
   for (klee::ref<klee::Expr> field : hdr_fields_guess) {
-    const var_t var = alloc_var("hdr." + hdr_name + ".data" + std::to_string(hdr_data.size()), field, LOCAL | EXACT_NAME | HEADER_FIELD);
+    const var_t var = alloc_var("hdr." + hdr_name + ".data" + std::to_string(hdr_data.size()), field, EXACT_NAME | HEADER_FIELD);
     hdr_data.push_back(var);
   }
 
-  coder_t &custom_hdrs = get(MARKER_CUSTOM_HEADERS);
-  custom_hdrs.indent();
-  custom_hdrs << "header " << hdr_name << "_h {\n";
-
-  custom_hdrs.inc();
-  for (const var_t &field : hdr_data) {
+  if (!already_allocated) {
+    coder_t &custom_hdrs = get(MARKER_CUSTOM_HEADERS);
     custom_hdrs.indent();
-    custom_hdrs << TofinoSynthesizer::Transpiler::type_from_expr(field.expr) << " " << field.get_stem() << ";\n";
+    custom_hdrs << "header " << hdr_name << "_h {\n";
+
+    custom_hdrs.inc();
+    for (const var_t &field : hdr_data) {
+      custom_hdrs.indent();
+      custom_hdrs << TofinoSynthesizer::Transpiler::type_from_expr(field.expr) << " " << field.get_stem() << ";\n";
+    }
+
+    custom_hdrs.dec();
+    custom_hdrs.indent();
+    custom_hdrs << "}\n";
+
+    coder_t &ingress_hdrs = get(MARKER_INGRESS_HEADERS);
+    ingress_hdrs.indent();
+    ingress_hdrs << hdr_name << "_h " << hdr_name << ";\n";
   }
-
-  custom_hdrs.dec();
-  custom_hdrs.indent();
-  custom_hdrs << "}\n";
-
-  coder_t &ingress_hdrs = get(MARKER_INGRESS_HEADERS);
-  ingress_hdrs.indent();
-  ingress_hdrs << hdr_name << "_h " << hdr_name << ";\n";
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   ingress_apply.indent();
@@ -1731,7 +1727,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.inc();
 
   parser_vars[node->get_node()->get_id()] = ingress_vars.squash_hdrs_only();
-  parser_hdrs[node->get_node()->get_id()] = hdrs_stacks.squash();
 
   assert(ep_node->get_children().size() == 1 && "ParserExtraction must have 1 child");
   visit(ep, ep_node->get_children()[0]);
@@ -1742,7 +1737,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "}\n";
 
   ingress_vars.pop();
-  hdrs_stacks.pop();
 
   return EPVisitor::Action::skipChildren;
 }
@@ -1881,7 +1875,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (hit) {
-    var_t hit_var = alloc_var("hit", hit->expr, LOCAL | FORCE_BOOL);
+    var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
     hit_var.declare(ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
@@ -1956,7 +1950,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << key_var.name << " = " << transpiled_key << ";\n";
 
   if (hit) {
-    var_t hit_var = alloc_var("hit", hit->expr, LOCAL | FORCE_BOOL);
+    var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
     hit_var.declare(ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
@@ -2005,10 +1999,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     const code_t assignment = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
 
     if (can_be_inlined) {
-      const var_t value_var = alloc_var(assignment, entry_expr, LOCAL | EXACT_NAME);
+      const var_t value_var = alloc_var(assignment, entry_expr, EXACT_NAME);
     } else {
       const std::string value_prefix_name = "vector_reg_value";
-      const var_t value_var               = alloc_var(value_prefix_name, entry_expr, LOCAL);
+      const var_t value_var               = alloc_var(value_prefix_name, entry_expr);
 
       ingress << "\n";
       value_var.declare(ingress_apply, assignment);
@@ -2120,7 +2114,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
 
-  var_t hit_var = alloc_var("hit", match, LOCAL | FORCE_BOOL);
+  var_t hit_var = alloc_var("hit", match, FORCE_BOOL);
   hit_var.declare(ingress_apply, lpm_id + ".apply().hit");
 
   return EPVisitor::Action::doChildren;
@@ -2176,20 +2170,17 @@ void TofinoSynthesizer::dbg_vars() const {
   std::cerr << "============================================ \n";
 
   std::cerr << "================== Headers ================= \n";
-  for (const Stack &stack : hdrs_stacks.get_all()) {
-    std::cerr << "------------------------------------------\n";
-    for (const var_t &var : stack.get_all()) {
-      std::cerr << var.name;
-      if (var.is_bool()) {
-        std::cerr << " (bool)";
-      }
-      if (var.is_header_field) {
-        std::cerr << " (header)";
-      }
-      std::cerr << ": ";
-      std::cerr << LibCore::expr_to_string(var.expr, true);
-      std::cerr << "\n";
+  for (const var_t &var : hdr_vars.get_all()) {
+    std::cerr << var.name;
+    if (var.is_bool()) {
+      std::cerr << " (bool)";
     }
+    if (var.is_header_field) {
+      std::cerr << " (header)";
+    }
+    std::cerr << ": ";
+    std::cerr << LibCore::expr_to_string(var.expr, true);
+    std::cerr << "\n";
   }
   std::cerr << "======================================== \n";
 }

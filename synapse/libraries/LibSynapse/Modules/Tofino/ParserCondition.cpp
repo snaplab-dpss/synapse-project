@@ -8,29 +8,20 @@
 namespace LibSynapse {
 namespace Tofino {
 
-namespace {
-struct selection_t {
-  klee::ref<klee::Expr> target;
-  std::vector<int> values;
-  bool negated;
-
-  selection_t() : negated(false) {}
-};
-
-selection_t build_parser_select(klee::ref<klee::Expr> condition) {
+parser_selection_t ParserConditionFactory::build_parser_select(klee::ref<klee::Expr> condition) {
   condition = LibCore::filter(condition, {"packet_chunks", "DEVICE"});
   condition = LibCore::swap_packet_endianness(condition);
   condition = LibCore::simplify(condition);
 
-  selection_t selection;
+  parser_selection_t selection;
 
   switch (condition->getKind()) {
   case klee::Expr::Kind::Or: {
     klee::ref<klee::Expr> lhs = condition->getKid(0);
     klee::ref<klee::Expr> rhs = condition->getKid(1);
 
-    selection_t lhs_sel = build_parser_select(lhs);
-    selection_t rhs_sel = build_parser_select(rhs);
+    parser_selection_t lhs_sel = build_parser_select(lhs);
+    parser_selection_t rhs_sel = build_parser_select(rhs);
 
     assert(LibCore::solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target) && "Not implemented");
     assert((selection.target.isNull() || LibCore::solver_toolbox.are_exprs_always_equal(lhs_sel.target, selection.target)) &&
@@ -80,7 +71,6 @@ selection_t build_parser_select(klee::ref<klee::Expr> condition) {
 
   return selection;
 }
-} // namespace
 
 std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Branch) {
@@ -111,7 +101,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   }
 
   klee::ref<klee::Expr> original_condition = branch_node->get_condition();
-  selection_t selection                    = build_parser_select(original_condition);
+  const parser_selection_t selection       = build_parser_select(original_condition);
 
   const LibBDD::Node *on_true  = branch_node->get_on_true();
   const LibBDD::Node *on_false = branch_node->get_on_false();
@@ -166,9 +156,6 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   EPLeaf else_leaf(else_node, branch_node->get_on_false());
 
   new_ep->process_leaf(if_node, {then_leaf, else_leaf});
-
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_select(ep, node, selection.target, selection.values, selection.negated);
 
   return impls;
 }

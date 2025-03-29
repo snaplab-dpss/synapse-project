@@ -157,12 +157,12 @@ parser IngressParser(
   }
   state parser_138 {
     pkt.extract(hdr.hdr2);
-    transition parser_187;
+    transition parser_147;
   }
   state parser_191 {
     transition reject;
   }
-  state parser_187 {
+  state parser_147 {
     transition accept;
   }
 

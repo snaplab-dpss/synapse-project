@@ -177,12 +177,12 @@ parser IngressParser(
   }
   state parser_11 {
     pkt.extract(hdr.hdr3);
-    transition parser_59;
+    transition parser_64;
   }
   state parser_68 {
     transition reject;
   }
-  state parser_59 {
+  state parser_64 {
     transition accept;
   }
 

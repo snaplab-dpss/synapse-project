@@ -1,4 +1,6 @@
 #include <LibSynapse/Context.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
+#include <LibSynapse/Modules/Tofino/ParserCondition.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
@@ -6,43 +8,6 @@
 namespace LibSynapse {
 
 namespace {
-void log_bdd_pre_processing(const std::vector<LibBDD::map_coalescing_objs_t> &coalescing_candidates,
-                            const std::vector<LibCore::expr_struct_t> &expr_structs) {
-  std::cerr << "***** BDD pre-processing: *****\n";
-  for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
-    std::stringstream ss;
-    ss << "Coalescing candidate:";
-    ss << " map=" << candidate.map;
-    ss << ", ";
-    ss << "dchain=" << candidate.dchain;
-    ss << ", ";
-    ss << "vectors=[";
-
-    size_t i = 0;
-    for (addr_t vector : candidate.vectors) {
-      if (i++ > 0) {
-        ss << ", ";
-      }
-      ss << vector;
-    }
-
-    ss << "]\n";
-
-    ss << "Structural estimations:\n";
-    for (const LibCore::expr_struct_t &expr_struct : expr_structs) {
-      ss << "--------------------------------\n";
-      ss << "Expr: " << LibCore::expr_to_string(expr_struct.expr, true) << "\n";
-      ss << "Fields:\n";
-      for (const klee::ref<klee::Expr> &field : expr_struct.fields) {
-        ss << "  " << LibCore::expr_to_string(field, true) << "\n";
-      }
-      ss << "--------------------------------\n";
-    }
-
-    std::cerr << ss.str();
-  }
-  std::cerr << "*******************************\n";
-}
 
 time_ns_t exp_time_from_expire_items_single_map_time(const LibBDD::BDD *bdd, klee::ref<klee::Expr> time) {
   assert(time->getKind() == klee::Expr::Kind::Add && "Invalid time expression");
@@ -95,14 +60,32 @@ std::optional<expiration_data_t> build_expiration_data(const LibBDD::BDD *bdd) {
 
   return expiration_data;
 }
+
 } // namespace
 
-Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &_profiler)
-    : profiler(_profiler), perf_oracle(targets_config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
-  for (const TargetView &target : targets.elements) {
-    target_ctxs[target.type] = target.base_ctx->clone();
-  }
+void Context::bdd_pre_processing_get_coalescing_candidates(const LibBDD::BDD *bdd) {
+  const std::vector<LibBDD::Call *> &init = bdd->get_init();
 
+  for (const LibBDD::Call *call_node : init) {
+    const LibBDD::call_t &call = call_node->get_call();
+
+    if (call.function_name == "map_allocate") {
+      klee::ref<klee::Expr> obj = call.args.at("map_out").out;
+      addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);
+      LibBDD::map_config_t cfg  = get_map_config_from_bdd(*bdd, addr);
+      map_configs[addr]         = cfg;
+
+      LibBDD::map_coalescing_objs_t candidate;
+      if (bdd->get_map_coalescing_objs(addr, candidate)) {
+        coalescing_candidates.push_back(candidate);
+      }
+
+      continue;
+    }
+  }
+}
+
+void Context::bdd_pre_processing_get_ds_configs(const LibBDD::BDD *bdd) {
   const std::vector<LibBDD::Call *> &init = bdd->get_init();
 
   for (const LibBDD::Call *call_node : init) {
@@ -162,7 +145,9 @@ Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targe
       continue;
     }
   }
+}
 
+void Context::bdd_pre_processing_get_structural_fields(const LibBDD::BDD *bdd) {
   bdd->get_root()->visit_nodes([this](const LibBDD::Node *node) {
     if (node->get_type() != LibBDD::NodeType::Call) {
       return LibBDD::NodeVisitAction::Continue;
@@ -204,8 +189,155 @@ Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targe
 
     return LibBDD::NodeVisitAction::Continue;
   });
+}
 
-  log_bdd_pre_processing(coalescing_candidates, expr_structs);
+void Context::bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd) {
+  const TargetType type = TargetType::Tofino;
+
+  if (target_ctxs.find(type) == target_ctxs.end()) {
+    return;
+  }
+
+  Tofino::TofinoContext *tofino_ctx = dynamic_cast<Tofino::TofinoContext *>(target_ctxs.at(type));
+
+  struct parser_operations_t : LibBDD::cookie_t {
+    std::vector<const LibBDD::Node *> nodes;
+
+    parser_operations_t() {}
+    parser_operations_t(const parser_operations_t &other) : nodes(other.nodes) {}
+
+    const LibBDD::Node *get_last_op(const LibBDD::Node *node, std::optional<bool> &direction) {
+      if (nodes.empty()) {
+        return nullptr;
+      }
+
+      const LibBDD::Node *last_op = nodes.back();
+
+      if (last_op->get_type() == LibBDD::NodeType::Branch) {
+        const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(last_op);
+
+        const LibBDD::Node *on_true  = branch_node->get_on_true();
+        const LibBDD::Node *on_false = branch_node->get_on_false();
+
+        if (node->is_reachable(on_true->get_id())) {
+          direction = true;
+        } else if (node->is_reachable(on_false->get_id())) {
+          direction = false;
+        } else {
+          panic("Invalid parser state: node %lu is not reachable from last parser state %lu", node->get_id(), last_op->get_id());
+        }
+      }
+
+      return last_op;
+    }
+
+    std::unique_ptr<cookie_t> clone() const override { return std::make_unique<parser_operations_t>(*this); }
+  };
+
+  bdd->get_root()->visit_nodes(
+      [this, tofino_ctx](const LibBDD::Node *node, LibBDD::cookie_t *cookie) {
+        parser_operations_t *parser_ops = dynamic_cast<parser_operations_t *>(cookie);
+
+        switch (node->get_type()) {
+        case LibBDD::NodeType::Call: {
+          const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+          const LibBDD::call_t &call    = call_node->get_call();
+
+          if (call.function_name == "packet_borrow_next_chunk") {
+            klee::ref<klee::Expr> hdr = call.extra_vars.at("the_chunk").second;
+
+            std::optional<bool> direction;
+            const LibBDD::Node *last_parser_op = parser_ops->get_last_op(node, direction);
+
+            tofino_ctx->parser_transition(node, hdr, last_parser_op, direction);
+            parser_ops->nodes.push_back(node);
+          }
+
+        } break;
+        case LibBDD::NodeType::Branch: {
+          const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+          klee::ref<klee::Expr> condition   = branch_node->get_condition();
+
+          if (branch_node->is_parser_condition()) {
+            const Tofino::parser_selection_t selection = Tofino::ParserConditionFactory::build_parser_select(condition);
+
+            std::optional<bool> direction;
+            const LibBDD::Node *last_parser_op = parser_ops->get_last_op(node, direction);
+
+            tofino_ctx->parser_select(node, selection, last_parser_op, direction);
+            parser_ops->nodes.push_back(node);
+          }
+        } break;
+        case LibBDD::NodeType::Route: {
+          const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
+
+          std::optional<bool> direction;
+          const LibBDD::Node *last_parser_op = parser_ops->get_last_op(node, direction);
+
+          if (route_node->get_operation() == LibBDD::RouteOp::Drop && last_parser_op &&
+              last_parser_op->get_type() == LibBDD::NodeType::Branch) {
+            tofino_ctx->parser_reject(node, last_parser_op, direction);
+          } else {
+            tofino_ctx->parser_accept(node, last_parser_op, direction);
+          }
+
+          parser_ops->nodes.push_back(node);
+        } break;
+        }
+
+        return LibBDD::NodeVisitAction::Continue;
+      },
+      std::make_unique<parser_operations_t>());
+}
+
+void Context::bdd_pre_processing_log() {
+  std::cerr << "***** BDD pre-processing: *****\n";
+  for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
+    std::stringstream ss;
+    ss << "Coalescing candidate:";
+    ss << " map=" << candidate.map;
+    ss << ", ";
+    ss << "dchain=" << candidate.dchain;
+    ss << ", ";
+    ss << "vectors=[";
+
+    size_t i = 0;
+    for (addr_t vector : candidate.vectors) {
+      if (i++ > 0) {
+        ss << ", ";
+      }
+      ss << vector;
+    }
+
+    ss << "]\n";
+
+    ss << "Structural estimations:\n";
+    for (const LibCore::expr_struct_t &expr_struct : expr_structs) {
+      ss << "--------------------------------\n";
+      ss << "Expr: " << LibCore::expr_to_string(expr_struct.expr, true) << "\n";
+      ss << "Fields:\n";
+      for (const klee::ref<klee::Expr> &field : expr_struct.fields) {
+        ss << "  " << LibCore::expr_to_string(field, true) << "\n";
+      }
+      ss << "--------------------------------\n";
+    }
+
+    std::cerr << ss.str();
+  }
+  std::cerr << "*******************************\n";
+}
+
+Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &_profiler)
+    : profiler(_profiler), perf_oracle(targets_config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
+  for (const TargetView &target : targets.elements) {
+    target_ctxs[target.type] = target.base_ctx->clone();
+  }
+
+  bdd_pre_processing_get_coalescing_candidates(bdd);
+  bdd_pre_processing_get_ds_configs(bdd);
+  bdd_pre_processing_get_structural_fields(bdd);
+  bdd_pre_processing_build_tofino_parser(bdd);
+  bdd_pre_processing_log();
 }
 
 Context::Context(const Context &other)

@@ -29,6 +29,8 @@ class ParserConditionFactory : public TofinoModuleFactory {
 public:
   ParserConditionFactory() : TofinoModuleFactory(ModuleType::Tofino_ParserCondition, "ParserCondition") {}
 
+  static parser_selection_t build_parser_select(klee::ref<klee::Expr> condition);
+
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;

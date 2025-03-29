@@ -127,6 +127,13 @@ public:
   void translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols);
 
   void debug() const;
+
+private:
+  void bdd_pre_processing_get_coalescing_candidates(const LibBDD::BDD *bdd);
+  void bdd_pre_processing_get_ds_configs(const LibBDD::BDD *bdd);
+  void bdd_pre_processing_get_structural_fields(const LibBDD::BDD *bdd);
+  void bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd);
+  void bdd_pre_processing_log();
 };
 
 } // namespace LibSynapse

@@ -58,9 +58,6 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_transition(ep, node, hdr);
-
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 

@@ -43,9 +43,6 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const LibBDD::N
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_accept(ep, node);
-
   Module *module  = new Broadcast(node);
   EPNode *ep_node = new EPNode(module);
 

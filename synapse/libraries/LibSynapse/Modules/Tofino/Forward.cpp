@@ -54,9 +54,6 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   EPLeaf leaf(fwd_node, node->get_next());
   new_ep->process_leaf(fwd_node, {leaf});
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_accept(ep, node);
-
   LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
   assert(fwd_stats.is_fwd_only());
   for (const auto &[device, dev_hr] : fwd_stats.ports) {

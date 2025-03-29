@@ -70,9 +70,6 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.get_mutable_perf_oracle().add_dropped_traffic(ctx.get_profiler().get_hr(node));
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_reject(ep, node);
-
   return impls;
 }
 

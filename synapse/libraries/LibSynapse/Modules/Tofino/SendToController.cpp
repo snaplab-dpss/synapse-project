@@ -74,9 +74,6 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
     new_ep->replace_bdd(std::move(new_bdd));
   }
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->parser_accept(ep, node);
-
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, s2c_node));
 
