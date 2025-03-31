@@ -1076,14 +1076,13 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
     return false;
   }
 
-  branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
+  const branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
 
   if (!index_alloc_check.branch) {
     return false;
   }
 
-  klee::ref<klee::Expr> condition = index_alloc_check.branch->get_condition();
-
+  klee::ref<klee::Expr> condition           = index_alloc_check.branch->get_condition();
   std::vector<const Call *> future_map_puts = dchain_allocate_new_index->get_future_functions({"map_put"});
 
   klee::ref<klee::Expr> key;
@@ -1097,7 +1096,7 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
     klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
     klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
 
-    addr_t map = LibCore::expr_addr_to_obj_addr(map_expr);
+    const addr_t map = LibCore::expr_addr_to_obj_addr(map_expr);
 
     if (map != map_objs.map) {
       continue;
@@ -1116,7 +1115,9 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
     }
 
     klee::ConstraintManager constraints = map_put->get_constraints();
-    if (!LibCore::solver_toolbox.is_expr_always_true(constraints, condition)) {
+
+    if ((index_alloc_check.direction && !LibCore::solver_toolbox.is_expr_always_true(constraints, condition)) ||
+        (!index_alloc_check.direction && !LibCore::solver_toolbox.is_expr_always_false(constraints, condition))) {
       return false;
     }
 

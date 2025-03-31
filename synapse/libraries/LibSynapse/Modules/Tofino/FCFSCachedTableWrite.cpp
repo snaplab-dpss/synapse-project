@@ -32,7 +32,7 @@ hit_rate_t get_cache_success_estimation_rel(const EP *ep, const LibBDD::Node *no
                                             u32 cache_capacity) {
   const hit_rate_t fraction                 = ep->get_ctx().get_profiler().get_hr(node);
   const hit_rate_t expected_cached_fraction = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), map_put, key, cache_capacity);
-  return fraction * expected_cached_fraction;
+  return hit_rate_t{fraction * expected_cached_fraction};
 }
 
 std::vector<const LibBDD::Node *> get_nodes_to_speculatively_ignore(const EP *ep, const LibBDD::Call *dchain_allocate_new_index,
@@ -299,7 +299,7 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   const Profiler &profiler = new_ctx.get_profiler();
 
   const hit_rate_t fraction         = profiler.get_hr(node);
-  const hit_rate_t on_fail_fraction = fraction * (1 - chosen_success_estimation);
+  const hit_rate_t on_fail_fraction = hit_rate_t{fraction * (1 - chosen_success_estimation)};
 
   // FIXME: not using profiler cache.
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();

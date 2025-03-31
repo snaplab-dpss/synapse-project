@@ -21,8 +21,6 @@ BPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps.pdf"
 PPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps.pdf"
 HEATMAP_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_heatmap.pdf"
 
-INTERPOLATE = True
-
 
 @dataclass(frozen=True)
 class Keys:
@@ -93,8 +91,10 @@ class Data:
 def parse_data_file(file: Path) -> Data:
     data = Data()
     with open(file, "r") as f:
-        lines = f.readlines()
-        for line in lines[1:]:
+        for line in f.readlines():
+            if line.startswith("#"):
+                continue
+
             parts = line.split(",")
 
             keys = Keys(
@@ -214,7 +214,7 @@ def plot_heatmap(data: Data, file: Path):
     # - rainbow
 
     fig, ax = plt.subplots()
-    im = ax.imshow(matrix, vmin=0, vmax=3000, cmap="plasma", interpolation="spline36" if INTERPOLATE else "", aspect="auto")
+    im = ax.imshow(matrix, vmin=0, vmax=3000, cmap="plasma", interpolation="spline36", aspect="auto")
 
     # Create colorbar
     assert ax.figure
@@ -233,12 +233,69 @@ def plot_heatmap(data: Data, file: Path):
 
     ax.grid(False)
 
-    if not INTERPOLATE:
-        ax.spines[:].set_visible(False)
-        ax.set_xticks(np.arange(matrix.shape[1] + 1) - 0.5, minor=True)
-        ax.set_yticks(np.arange(matrix.shape[0] + 1) - 0.5, minor=True)
-        ax.grid(which="minor", color="w", linestyle="-", linewidth=1)
-        ax.tick_params(which="minor", bottom=False, left=False)
+    fig.set_size_inches(width * 0.5, height * 0.8)
+    fig.tight_layout()
+
+    print("-> ", file)
+    plt.savefig(str(file))
+
+
+def plot_heatmap_v2(data: Data, file: Path):
+    avg_data = data.get_avg_values()
+    keys = avg_data.keys()
+    all_s = sorted(set([key.s for key in keys]))
+    all_churn = sorted(set([key.churn_fpm for key in keys]), reverse=True)
+
+    matrix = np.zeros((len(all_churn), len(all_s)))
+    for key in keys:
+        i = all_churn.index(key.churn_fpm)
+        j = all_s.index(key.s)
+        matrix[i, j] = avg_data[key].dut_egress_bps / 1e9
+
+    s_labels = [f"{s:.2f}" for s in all_s]
+    churn_labels = [f"{whole_number_to_label(c)}" for c in all_churn]
+
+    # Nice colormaps:
+    # https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    # - plasma
+    # - viridis
+    # - rainbow
+    # - Blues
+    # - Reds
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(matrix, vmin=0, vmax=3000, cmap="Blues", aspect="auto")
+
+    # Show all ticks and label them with the respective list entries
+    ax.set_xticks(range(len(all_s)), labels=s_labels)
+    ax.set_yticks(range(len(all_churn)), labels=churn_labels)
+
+    ax.set_xlabel("Zipf parameter")
+    ax.set_ylabel("Churn (fpm)")
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    ax.grid(False)
+
+    ax.spines[:].set_visible(False)
+    ax.set_xticks(np.arange(matrix.shape[1] + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(matrix.shape[0] + 1) - 0.5, minor=True)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    for key in keys:
+        i = all_churn.index(key.churn_fpm)
+        j = all_s.index(key.s)
+        bps = int(avg_data[key].dut_egress_bps)
+        err = int(data.get_stdev_values()[key].dut_egress_bps)
+        label = f"{whole_number_to_label(bps)}"
+        label += f"\n±{whole_number_to_label(err)}"
+
+        color = "black" if bps < 1.5e12 else "white"
+
+        text = ax.text(j, i, label, ha="center", va="center", color=color)
+        text.set_fontsize(5)
+        text.set_fontweight("bold")
 
     fig.set_size_inches(width * 0.5, height * 0.8)
     fig.tight_layout()
@@ -251,7 +308,8 @@ def main():
     data = parse_data_file(DATA_FILE)
     plot_bps(data, BPS_OUTPUT_FILE)
     plot_pps(data, PPS_OUTPUT_FILE)
-    plot_heatmap(data, HEATMAP_OUTPUT_FILE)
+    # plot_heatmap(data, HEATMAP_OUTPUT_FILE)
+    plot_heatmap_v2(data, HEATMAP_OUTPUT_FILE)
 
 
 if __name__ == "__main__":

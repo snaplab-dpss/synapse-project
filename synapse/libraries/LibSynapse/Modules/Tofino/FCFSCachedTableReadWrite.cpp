@@ -47,8 +47,8 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const LibBDD::Node *no
   const hit_rate_t hr        = ep->get_ctx().get_profiler().get_hr(map_get);
   const rw_fractions_t rw_hr = ep->get_ctx().get_profiler().get_cond_map_put_rw_profile_fractions(map_get);
 
-  const hit_rate_t rp = rw_hr.read / hr;
-  const hit_rate_t wp = rw_hr.write / hr;
+  const hit_rate_t rp = hit_rate_t{rw_hr.read / hr};
+  const hit_rate_t wp = hit_rate_t{rw_hr.write / hr};
   // hit_rate_t failed_writes = rw_hr.write_attempt - rw_hr.write;
 
   const hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
@@ -317,7 +317,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   Context new_ctx = ctx;
 
   const hit_rate_t hr         = new_ctx.get_profiler().get_hr(node);
-  const hit_rate_t on_fail_hr = hr * (1 - chosen_success_probability);
+  const hit_rate_t on_fail_hr = hit_rate_t{hr * (1 - chosen_success_probability)};
 
   // FIXME: not using profiler cache.
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();

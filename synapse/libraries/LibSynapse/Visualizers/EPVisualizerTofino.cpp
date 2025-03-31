@@ -348,8 +348,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableConditionalUpdate *node) {
-  panic("TODO: HHTableConditionalUpdate");
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) {
+  panic("TODO: HHTableOutOfBandUpdate");
 }
 
 SHOW_MODULE_NAME(Tofino::IntegerAllocatorRejuvenate)

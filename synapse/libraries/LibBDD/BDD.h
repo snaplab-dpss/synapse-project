@@ -5,6 +5,7 @@
 #include <LibBDD/Nodes/Nodes.h>
 #include <LibBDD/Nodes/NodeManager.h>
 #include <LibBDD/Config.h>
+#include <LibBDD/Visitors/BDDVisualizer.h>
 
 namespace LibBDD {
 

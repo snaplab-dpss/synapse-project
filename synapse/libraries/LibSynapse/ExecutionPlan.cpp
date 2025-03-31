@@ -663,6 +663,11 @@ spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType curren
         continue;
       }
 
+      // if (node->get_id() == 16) {
+      //   std::cerr << "Speculation for " << node->dump(true) << "\n";
+      //   std::cerr << "  " << spec2str(*spec, bdd.get()) << "\n";
+      // }
+
       spec->skip.insert(skip.begin(), skip.end());
 
       if (!best.has_value()) {
@@ -751,7 +756,7 @@ pps_t EP::speculate_tput_pps() const {
     });
   }
 
-  auto egress_estimation_from_ingress = [&spec_ctx](pps_t ingress) {
+  auto egress_estimation_from_ingress = [&spec_ctx](pps_t ingress) -> tput_estimation_t {
     const PerfOracle &perf_oracle = spec_ctx.get_perf_oracle();
 
     const tput_estimation_t estimation = {
@@ -767,23 +772,16 @@ pps_t EP::speculate_tput_pps() const {
 
   cached_tput_speculation = egress;
 
-  // if (id == 0) {
+  // if (id == 26) {
   //   std::cerr << speculations2str(this, speculations);
   //   spec_ctx.debug();
-  //   std::cerr << "Ingress: "
-  //             << tput2str(
-  //                    pps2bps(ingress,
-  //                    ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
-  //             << "\n";
-  //   std::cerr << "Egress from ingress: "
-  //             << tput2str(pps2bps(egress_from_ingress(ingress),
-  //                                 ctx.get_profiler().get_avg_pkt_bytes()),
-  //                         "bps", true)
-  //             << "\n";
-  //   std::cerr << "Stable egress: "
-  //             << tput2str(
-  //                    pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()),
+  //   std::cerr << "Ingress: " << LibCore::tput2str(LibCore::pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) <<
+  //   "\n"; std::cerr << "Egress from ingress: "
+  //             << LibCore::tput2str(
+  //                    LibCore::pps2bps(egress_estimation_from_ingress(ingress).egress_estimation, ctx.get_profiler().get_avg_pkt_bytes()),
   //                    "bps", true)
+  //             << "\n";
+  //   std::cerr << "Stable egress: " << LibCore::tput2str(LibCore::pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
   //             << "\n";
   //   // BDDViz::visualize(bdd.get(), false);
   //   // EPViz::visualize(this, false);

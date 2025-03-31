@@ -266,7 +266,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(u16 port, pps_t global_in
     // Recirculation surplus.
     // s is relative to the first recirculation.
 
-    const double s = (usage.get_hr_at_recirc_depth(1) / usage.global).value;
+    const double s = usage.get_hr_at_recirc_depth(1) / usage.global;
     const pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * (Tin * s))) / 2;
 
     Tout[0] = (Tin / static_cast<double>(Tin + Ts)) * Cr * (1.0 - s);
@@ -287,8 +287,8 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(u16 port, pps_t global_in
       break;
     }
 
-    const double s0 = (hr_depth_1 / usage.global).value;
-    const double s1 = (hr_depth_2 / hr_depth_1).value;
+    const double s0 = hr_depth_1 / usage.global;
+    const double s1 = hr_depth_2 / hr_depth_1;
 
     const double a = (s1 / s0) * (1.0 / Tin);
     const double b = 1;
@@ -356,8 +356,8 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     pps_t port_tput = ingress * port_ingress.global.value;
 
     if (total_controller_hr > 0) {
-      const hit_rate_t rel_ctrl_hr = port_ingress.controller / total_controller_hr;
-      port_tput += controller_tput * rel_ctrl_hr.value;
+      const double rel_ctrl_hr = port_ingress.controller / total_controller_hr;
+      port_tput += controller_tput * rel_ctrl_hr;
       unaccounted_controller_hr = unaccounted_controller_hr - port_ingress.controller;
     }
 
@@ -377,8 +377,8 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // There's controller traffic which has not yet been forwarded to any front-panel port.
   // Let's optimistically steer it to a mock port and count it as throughput.
   if (unaccounted_controller_hr > 0) {
-    const hit_rate_t rel_ctrl_hr = unaccounted_controller_hr / total_controller_hr;
-    tput += controller_tput * rel_ctrl_hr.value;
+    const double rel_ctrl_hr = unaccounted_controller_hr / total_controller_hr;
+    tput += controller_tput * rel_ctrl_hr;
   }
 
   const hit_rate_t remaining_hr = unaccounted_ingress - unaccounted_controller_hr;

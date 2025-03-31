@@ -55,7 +55,7 @@ hit_rate_t get_new_hh_probability(const EP *ep, const LibBDD::Node *node, addr_t
   const hit_rate_t node_hr  = ep->get_ctx().get_profiler().get_hr(node);
   const u64 capacity        = ep->get_ctx().get_map_config(map).capacity;
   const hit_rate_t churn_hr = ep->get_ctx().get_profiler().get_bdd_profile()->churn_hit_rate_top_k_flows(map, capacity);
-  return node_hr * churn_hr;
+  return hit_rate_t{node_hr * churn_hr};
 }
 
 // const LibBDD::Call*get_future_map_put(const LibBDD::Node *node,addr_t map) {

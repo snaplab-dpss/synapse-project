@@ -1,4 +1,5 @@
 #include <LibBDD/Visitors/BDDSynthesizer.h>
+#include <LibBDD/BDD.h>
 #include <LibCore/Debug.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>

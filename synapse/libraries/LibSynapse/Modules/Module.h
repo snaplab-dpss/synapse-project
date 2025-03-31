@@ -3,6 +3,10 @@
 #include <LibBDD/BDD.h>
 #include <LibSynapse/Visitor.h>
 
+// For debugging
+#include <LibCore/Debug.h>
+#include <LibSynapse/Visualizers/ProfilerVisualizer.h>
+
 #include <string>
 
 namespace LibSynapse {
@@ -42,7 +46,7 @@ enum class ModuleType {
   Tofino_FCFSCachedTableDelete,
   Tofino_MeterUpdate,
   Tofino_HHTableRead,
-  Tofino_HHTableConditionalUpdate,
+  Tofino_HHTableOutOfBandUpdate,
   Tofino_IntegerAllocatorRejuvenate,
   Tofino_IntegerAllocatorAllocate,
   Tofino_IntegerAllocatorIsAllocated,
@@ -229,8 +233,8 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_HHTableRead:
     os << "Tofino_HHTableRead";
     break;
-  case ModuleType::Tofino_HHTableConditionalUpdate:
-    os << "Tofino_HHTableConditionalUpdate";
+  case ModuleType::Tofino_HHTableOutOfBandUpdate:
+    os << "Tofino_HHTableOutOfBandUpdate";
     break;
   case ModuleType::Tofino_IntegerAllocatorRejuvenate:
     os << "Tofino_IntegerAllocatorRejuvenate";

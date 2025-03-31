@@ -68,8 +68,10 @@ struct hit_rate_t {
 
   hit_rate_t operator+(const hit_rate_t other) const { return hit_rate_t(value + other.value); }
   hit_rate_t operator-(const hit_rate_t other) const { return hit_rate_t(value - other.value); }
-  hit_rate_t operator*(const hit_rate_t other) const { return hit_rate_t(value * other.value); }
-  hit_rate_t operator/(const hit_rate_t other) const { return hit_rate_t(value / other.value); }
+
+  // Multiplication and division between hit rates result in a scaler.
+  double operator*(const hit_rate_t other) const { return value * other.value; }
+  double operator/(const hit_rate_t other) const { return value / other.value; }
 
   hit_rate_t operator+(const double n) const { return hit_rate_t(value + n); }
   hit_rate_t operator-(const double n) const { return hit_rate_t(value - n); }

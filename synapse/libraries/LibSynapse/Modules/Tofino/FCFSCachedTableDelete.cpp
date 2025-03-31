@@ -242,7 +242,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   const Profiler &profiler = new_ctx.get_profiler();
 
   const hit_rate_t fraction         = profiler.get_hr(node);
-  const hit_rate_t on_fail_fraction = fraction * (1 - chosen_cache_success_probability);
+  const hit_rate_t on_fail_fraction = hit_rate_t{fraction * (1 - chosen_cache_success_probability)};
 
   // FIXME: not using profiler cache.
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();

@@ -28,7 +28,7 @@
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableDelete.h>
 #include <LibSynapse/Modules/Tofino/MeterUpdate.h>
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
-#include <LibSynapse/Modules/Tofino/HHTableConditionalUpdate.h>
+#include <LibSynapse/Modules/Tofino/HHTableOutOfBandUpdate.h>
 #include <LibSynapse/Modules/Tofino/IntegerAllocatorAllocate.h>
 #include <LibSynapse/Modules/Tofino/IntegerAllocatorIsAllocated.h>
 #include <LibSynapse/Modules/Tofino/IntegerAllocatorRejuvenate.h>
@@ -69,8 +69,8 @@ struct TofinoTarget : public Target {
               // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
               // f.push_back(std::make_unique<MeterUpdateFactory>());
-              // f.push_back(std::make_unique<HHTableReadFactory>());
-              // f.push_back(std::make_unique<HHTableConditionalUpdateFactory>());
+              f.push_back(std::make_unique<HHTableReadFactory>());
+              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());

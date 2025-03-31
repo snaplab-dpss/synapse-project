@@ -6,9 +6,10 @@
 namespace LibSynapse {
 namespace Controller {
 
+namespace {
+
 using Tofino::Table;
 
-namespace {
 struct table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
@@ -26,26 +27,7 @@ struct table_data_t {
   }
 };
 
-LibCore::symbol_t get_min_estimate(const EP *ep) {
-  EPLeaf leaf        = ep->get_active_leaf();
-  const EPNode *node = leaf.node;
-
-  while (node) {
-    if (node->get_module()->get_type() == ModuleType::Tofino_HHTableRead) {
-      const Tofino::HHTableRead *hh_table_read = dynamic_cast<const Tofino::HHTableRead *>(node->get_module());
-      return hh_table_read->get_min_estimate();
-    } else if (node->get_module()->get_type() == ModuleType::Controller_HHTableRead) {
-      const Controller::HHTableRead *hh_table_read = dynamic_cast<const Controller::HHTableRead *>(node->get_module());
-      return hh_table_read->get_min_estimate();
-    }
-    node = node->get_prev();
-  }
-
-  panic("TODO: HHTableRead not found, so we should query the CMS for the min estimate");
-}
 } // namespace
-
-using Tofino::Table;
 
 std::optional<spec_impl_t> HHTableUpdateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -85,16 +67,15 @@ std::vector<impl_t> HHTableUpdateFactory::process_node(const EP *ep, const LibBD
   }
 
   klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-  addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
   }
 
-  LibCore::symbol_t min_estimate = get_min_estimate(ep);
-  table_data_t table_data(ep->get_ctx(), map_put);
+  const table_data_t table_data(ep->get_ctx(), map_put);
 
-  Module *module  = new HHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value, min_estimate);
+  Module *module  = new HHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -119,16 +100,15 @@ std::unique_ptr<Module> HHTableUpdateFactory::create(const LibBDD::BDD *bdd, con
   }
 
   klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-  addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  table_data_t table_data(ctx, map_put);
-  LibCore::symbol_t mock_min_estimate;
+  const table_data_t table_data(ctx, map_put);
 
-  return std::make_unique<HHTableUpdate>(node, table_data.obj, table_data.table_keys, table_data.value, mock_min_estimate);
+  return std::make_unique<HHTableUpdate>(node, table_data.obj, table_data.table_keys, table_data.value);
 }
 
 } // namespace Controller

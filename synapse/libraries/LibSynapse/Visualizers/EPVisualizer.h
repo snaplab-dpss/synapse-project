@@ -46,7 +46,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableConditionalUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorRejuvenate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorIsAllocated *node) override final;

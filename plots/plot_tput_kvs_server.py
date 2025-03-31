@@ -34,8 +34,10 @@ class Data:
 def parse_data_file(file: Path) -> dict[int, Data]:
     raw_data = {}
     with open(file, "r") as f:
-        lines = f.readlines()
-        for line in lines[1:]:
+        for line in f.readlines():
+            if line.startswith("#"):
+                continue
+
             parts = line.split(",")
             assert len(parts) == 9
             delay_ns = int(parts[1])

@@ -10,27 +10,23 @@ private:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
-  LibCore::symbol_t min_estimate;
 
 public:
-  HHTableUpdate(const LibBDD::Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value,
-                const LibCore::symbol_t &_min_estimate)
-      : ControllerModule(ModuleType::Controller_HHTableUpdate, "HHTableUpdate", node), obj(_obj), keys(_keys), value(_value),
-        min_estimate(_min_estimate) {}
+  HHTableUpdate(const LibBDD::Node *node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType::Controller_HHTableUpdate, "HHTableUpdate", node), obj(_obj), keys(_keys), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
     return visitor.visit(ep, ep_node, this);
   }
 
   virtual Module *clone() const override {
-    Module *cloned = new HHTableUpdate(node, obj, keys, value, min_estimate);
+    Module *cloned = new HHTableUpdate(node, obj, keys, value);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
   std::vector<klee::ref<klee::Expr>> get_keys() const { return keys; }
   klee::ref<klee::Expr> get_value() const { return value; }
-  const LibCore::symbol_t &get_min_estimate() const { return min_estimate; }
 };
 
 class HHTableUpdateFactory : public ControllerModuleFactory {

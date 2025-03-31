@@ -1,7 +1,7 @@
 #pragma once
 
-#include <LibBDD/BDD.h>
 #include <LibCore/Synthesizer.h>
+#include <LibBDD/Nodes/Node.h>
 
 #include <klee/util/ExprVisitor.h>
 
@@ -10,6 +10,9 @@
 #include <optional>
 
 namespace LibBDD {
+
+class BDD;
+class Call;
 
 enum class BDDSynthesizerTarget { NF, PROFILER };
 

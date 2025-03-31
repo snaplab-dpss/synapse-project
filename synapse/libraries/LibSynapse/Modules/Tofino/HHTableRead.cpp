@@ -18,7 +18,7 @@ struct hh_table_data_t {
     const LibBDD::call_t &call = map_get->get_call();
     assert(call.function_name == "map_get" && "Not a map_get call");
 
-    LibCore::symbol_t map_has_this_key_symbol = map_get->get_local_symbol("map_has_this_key");
+    const LibCore::symbol_t map_has_this_key_symbol = map_get->get_local_symbol("map_has_this_key");
 
     obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
@@ -37,10 +37,12 @@ void update_map_get_success_hit_rate(Context &ctx, const LibBDD::Node *map_get, 
   const LibBDD::Node *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
   const LibBDD::Node *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
 
-  const hit_rate_t branch_hr = ctx.get_profiler().get_hr(mgsc.branch);
+  const hit_rate_t branch_hr      = ctx.get_profiler().get_hr(mgsc.branch);
+  const hit_rate_t new_success_hr = hit_rate_t{branch_hr * success_rate};
+  const hit_rate_t new_failure_hr = hit_rate_t{branch_hr * (1 - success_rate)};
 
-  ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), branch_hr * success_rate);
-  ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), branch_hr * (1 - success_rate));
+  ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), new_success_hr);
+  ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), new_failure_hr);
 }
 } // namespace
 
@@ -71,7 +73,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  hh_table_data_t table_data(ep->get_ctx(), map_get);
+  const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, CMS_WIDTH, CMS_HEIGHT)) {
     return std::nullopt;
@@ -115,7 +117,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  hh_table_data_t table_data(ep->get_ctx(), map_get);
+  const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, CMS_WIDTH, CMS_HEIGHT);
 
@@ -123,10 +125,9 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  LibCore::symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
-  Module *module                 = new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
-                                                   table_data.map_has_this_key, min_estimate);
-  EPNode *ep_node                = new EPNode(module);
+  Module *module =
+      new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key);
+  EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
@@ -172,15 +173,14 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  hh_table_data_t table_data(ctx, map_get);
-  LibCore::symbol_t mock_min_estimate;
+  const hh_table_data_t table_data(ctx, map_get);
 
   const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs.map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
 
   return std::make_unique<HHTableRead>(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
-                                       table_data.map_has_this_key, mock_min_estimate);
+                                       table_data.map_has_this_key);
 }
 
 } // namespace Tofino

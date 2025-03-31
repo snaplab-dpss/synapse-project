@@ -32,7 +32,7 @@ class FCFSCachedTableWrite;
 class FCFSCachedTableDelete;
 class MeterUpdate;
 class HHTableRead;
-class HHTableConditionalUpdate;
+class HHTableOutOfBandUpdate;
 class IntegerAllocatorRejuvenate;
 class IntegerAllocatorAllocate;
 class IntegerAllocatorIsAllocated;
@@ -182,7 +182,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableConditionalUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorRejuvenate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorIsAllocated *m) { return Action::doChildren; }

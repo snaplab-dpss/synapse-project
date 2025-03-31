@@ -251,7 +251,7 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     return index_alloc_check;
   }
 
-  LibCore::symbol_t not_out_of_space = get_local_symbol("not_out_of_space");
+  const LibCore::symbol_t not_out_of_space = get_local_symbol("not_out_of_space");
 
   visit_nodes([&not_out_of_space, &index_alloc_check](const Node *node) {
     if (node->get_type() != NodeType::Branch) {

@@ -6,6 +6,6 @@ def whole_number_to_label(n: int) -> str:
     elif n < 1e9:
         return f"{int(round(n / 1e6, 2))}M"
     elif n < 1e12:
-        return f"{int(round(n / 1e9, 2))}B"
+        return f"{int(round(n / 1e9, 2))}G"
     else:
         return f"{int(round(n / 1e12, 2))}T"

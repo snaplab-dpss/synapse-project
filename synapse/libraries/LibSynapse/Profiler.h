@@ -1,6 +1,5 @@
 #pragma once
 
-#include <LibSynapse/EPNode.h>
 #include <LibBDD/BDD.h>
 #include <LibBDD/Profile.h>
 #include <LibBDD/Reorder.h>
@@ -12,6 +11,7 @@
 namespace LibSynapse {
 
 class EP;
+class EPNode;
 
 struct flow_stats_t {
   klee::ref<klee::Expr> flow_id;

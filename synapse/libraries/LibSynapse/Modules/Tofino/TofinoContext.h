@@ -33,6 +33,12 @@ public:
   const DS *get_ds_from_id(DS_ID id) const;
   void save_ds(addr_t addr, DS *ds);
 
+  template <class DS_T> const DS_T *get_single_ds(addr_t addr) const {
+    const std::unordered_set<DS *> &ds = get_ds(addr);
+    assert(ds.size() == 1 && "Expected exactly one DS");
+    return dynamic_cast<const DS_T *>(*ds.begin());
+  }
+
   void parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op,
                          std::optional<bool> direction);
   void parser_select(const LibBDD::Node *node, const parser_selection_t &selection, const LibBDD::Node *last_parser_op,

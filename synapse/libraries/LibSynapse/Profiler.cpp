@@ -1,4 +1,5 @@
 #include <LibSynapse/Profiler.h>
+#include <LibSynapse/EPNode.h>
 #include <LibCore/Debug.h>
 #include <LibCore/RandomEngine.h>
 #include <LibCore/Expr.h>
@@ -155,19 +156,16 @@ LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
   return bdd_profile;
 }
 
-void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction) {
+void update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
   if (!node) {
     return;
   }
 
   const hit_rate_t old_fraction = node->fraction;
+  node->fraction                = new_fraction;
 
-  if (parent_old_fraction == 0) {
-    assert(parent_new_fraction == 0 && "Invalid parent fractions");
-    node->fraction = 0_hr;
-  } else {
-    const double dhr = parent_new_fraction.value / parent_old_fraction.value;
-    node->fraction   = node->fraction * dhr;
+  if (new_fraction != 0_hr) {
+    const double dhr = new_fraction.value / old_fraction.value;
 
     if (node->forwarding_stats.has_value()) {
       fwd_stats_t &fwd_stats = node->forwarding_stats.value();
@@ -179,12 +177,25 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
       assert(node->fraction == fwd_stats.calculate_total_hr());
     }
   }
+}
 
-  recursive_update_fractions(node->on_true, old_fraction, node->fraction);
-  recursive_update_fractions(node->on_false, old_fraction, node->fraction);
+void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction) {
+  if (!node) {
+    return;
+  }
+
+  const double dhr = parent_new_fraction == 0_hr ? 0 : parent_new_fraction / parent_old_fraction;
+
+  const hit_rate_t old_fraction = node->fraction;
+  const hit_rate_t new_fraction = old_fraction * dhr;
+
+  update_fractions(node, new_fraction);
+
+  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
+  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 
   if (node->on_true && node->on_false) {
-    assert(node->on_true->fraction + node->on_false->fraction == node->fraction);
+    assert(node->on_true->fraction + node->on_false->fraction == new_fraction);
   }
 }
 } // namespace
@@ -578,7 +589,7 @@ void Profiler::remove(ProfilerNode *node) {
   const hit_rate_t old_fraction = family.sibling->fraction;
   const hit_rate_t new_fraction = parent_fraction;
 
-  family.sibling->fraction = new_fraction;
+  update_fractions(family.sibling, new_fraction);
 
   recursive_update_fractions(family.sibling->on_true, old_fraction, new_fraction);
   recursive_update_fractions(family.sibling->on_false, old_fraction, new_fraction);
@@ -594,7 +605,7 @@ void Profiler::insert_relative(const std::vector<klee::ref<klee::Expr>> &constra
                                hit_rate_t rel_fraction_on_true) {
   clone_tree_if_shared();
   ProfilerNode *node        = get_node(constraints);
-  const hit_rate_t fraction = rel_fraction_on_true * node->fraction;
+  const hit_rate_t fraction = hit_rate_t{rel_fraction_on_true * node->fraction};
   append(node, constraint, fraction);
 }
 
@@ -605,7 +616,7 @@ void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, doub
   const hit_rate_t old_fraction = node->fraction;
   const hit_rate_t new_fraction = node->fraction * factor;
 
-  node->fraction = new_fraction;
+  update_fractions(node, new_fraction);
 
   recursive_update_fractions(node->on_true, old_fraction, new_fraction);
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
@@ -618,7 +629,7 @@ void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_ra
   const hit_rate_t old_fraction = node->fraction;
   const hit_rate_t new_fraction = new_hr;
 
-  node->fraction = new_fraction;
+  update_fractions(node, new_fraction);
 
   recursive_update_fractions(node->on_true, old_fraction, new_fraction);
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
