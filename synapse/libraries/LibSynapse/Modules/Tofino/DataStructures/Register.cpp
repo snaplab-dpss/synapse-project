@@ -64,6 +64,9 @@ void Register::debug() const {
     case RegisterActionType::INC_AND_RETURN_NEW_VALUE:
       ss << "INC_AND_RETURN_NEW_VALUE";
       break;
+    case RegisterActionType::CALCULATE_DIFF:
+      ss << "CALCULATE_DIFF";
+      break;
     }
     first = false;
   }

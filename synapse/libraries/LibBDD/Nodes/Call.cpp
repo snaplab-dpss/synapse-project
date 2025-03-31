@@ -475,11 +475,18 @@ const Call *Call::packet_borrow_from_return() const {
 }
 
 klee::ref<klee::Expr> Call::get_obj() const {
-  const std::set<std::string> obj_candidates = {"map", "vector", "tb", "dchain", "cht", "cms", "lpm"};
+  const std::set<std::string> in_obj_candidates  = {"map", "vector", "tb", "chain", "cht", "cms", "lpm"};
+  const std::set<std::string> out_obj_candidates = {"map_out", "vector_out", "tb_out", "chain_out", "cms_out", "lpm_out"};
 
-  for (const std::string &obj_candidate : obj_candidates) {
+  for (const std::string &obj_candidate : in_obj_candidates) {
     if (call.args.find(obj_candidate) != call.args.end()) {
       return call.args.at(obj_candidate).expr;
+    }
+  }
+
+  for (const std::string &obj_candidate : out_obj_candidates) {
+    if (call.args.find(obj_candidate) != call.args.end()) {
+      return call.args.at(obj_candidate).out;
     }
   }
 

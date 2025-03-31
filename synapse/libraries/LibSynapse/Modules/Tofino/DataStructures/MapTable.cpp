@@ -48,7 +48,7 @@ std::vector<std::unordered_set<const DS *>> MapTable::get_internal() const {
 }
 
 bool MapTable::has_table(LibBDD::node_id_t op) const {
-  std::string table_id = build_table_name(id, op);
+  const std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
       return true;
@@ -57,7 +57,7 @@ bool MapTable::has_table(LibBDD::node_id_t op) const {
 }
 
 const Table *MapTable::get_table(LibBDD::node_id_t op) const {
-  std::string table_id = build_table_name(id, op);
+  const std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
       return &table;

@@ -81,6 +81,26 @@ Synthesizer::coder_t &Synthesizer::coder_t::operator<<(i64 n) {
   return *this;
 }
 
+Synthesizer::Synthesizer::code_t Synthesizer::coder_t::hex(u64 n) {
+  std::stringstream ss;
+  ss << "0x";
+  ss << std::hex;
+  ss << std::setw(16);
+  ss << std::setfill('0');
+  ss << n;
+  return ss.str();
+}
+
+Synthesizer::Synthesizer::code_t Synthesizer::coder_t::hex(u32 n) {
+  std::stringstream ss;
+  ss << "0x";
+  ss << std::hex;
+  ss << std::setw(8);
+  ss << std::setfill('0');
+  ss << n;
+  return ss.str();
+}
+
 Synthesizer::coder_t &Synthesizer::get(const std::string &marker) {
   auto it = coders.find(marker);
   assert(it != coders.end() && "Marker not found");
@@ -107,6 +127,18 @@ void Synthesizer::dump() const {
   std::ofstream out(out_file);
   out << template_str;
   out.flush();
+}
+
+std::vector<Synthesizer::code_t> Synthesizer::coder_t::split_lines() const {
+  std::vector<code_t> lines;
+  std::stringstream ss(stream.str());
+  code_t line;
+
+  while (std::getline(ss, line, '\n')) {
+    lines.push_back(line);
+  }
+
+  return lines;
 }
 
 void Synthesizer::dbg_code() const {

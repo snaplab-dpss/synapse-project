@@ -35,7 +35,7 @@ std::vector<Stage> create_stages(const tna_properties_t *properties) {
   std::vector<Stage> stages;
 
   for (int stage_id = 0; stage_id < properties->stages; stage_id++) {
-    Stage s = {
+    const Stage s{
         .stage_id                   = stage_id,
         .available_sram             = properties->sram_per_stage,
         .available_tcam             = properties->tcam_per_stage,
@@ -75,6 +75,9 @@ std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   case PlacementStatus::SELF_DEPENDENCE:
     os << "SELF_DEPENDENCE";
     break;
+  case PlacementStatus::NOT_ENOUGH_DIGESTS:
+    os << "NOT_ENOUGH_DIGESTS";
+    break;
   case PlacementStatus::UNKNOWN:
     os << "UNKNOWN";
     break;
@@ -82,9 +85,11 @@ std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   return os;
 }
 
-SimplePlacer::SimplePlacer(const tna_properties_t *_properties) : properties(_properties), stages(create_stages(_properties)) {}
+SimplePlacer::SimplePlacer(const tna_properties_t *_properties)
+    : properties(_properties), stages(create_stages(_properties)), used_digests(0) {}
 
-SimplePlacer::SimplePlacer(const SimplePlacer &other) : properties(other.properties), stages(other.stages) {
+SimplePlacer::SimplePlacer(const SimplePlacer &other)
+    : properties(other.properties), stages(other.stages), used_digests(other.used_digests) {
   for (const PlacementRequest &req : other.placement_requests) {
     placement_requests.push_back({req.ds->clone(), req.deps});
   }
@@ -96,6 +101,8 @@ SimplePlacer::~SimplePlacer() {
   }
 }
 
+u8 SimplePlacer::get_used_digests() const { return used_digests; }
+
 struct SimplePlacer::placement_t {
   int stage_id;
   bits_t sram;
@@ -104,6 +111,7 @@ struct SimplePlacer::placement_t {
   bits_t xbar;
   int logical_ids;
   DS_ID obj;
+  DSType type;
 };
 
 void SimplePlacer::concretize_placement(Stage &stage, const SimplePlacer::placement_t &placement) {
@@ -118,6 +126,10 @@ void SimplePlacer::concretize_placement(Stage &stage, const SimplePlacer::placem
   stage.available_exact_match_xbar -= placement.xbar;
   stage.available_logical_ids -= placement.logical_ids;
   stage.tables.insert(placement.obj);
+
+  if (placement.type == DSType::DIGEST) {
+    used_digests++;
+  }
 }
 
 bool SimplePlacer::is_placed(DS_ID ds_id) const {
@@ -164,7 +176,7 @@ PlacementStatus SimplePlacer::find_placements(const DS *ds, const std::unordered
     status = find_placements_hash(dynamic_cast<const Hash *>(ds), deps, placements);
     break;
   case DSType::DIGEST:
-    status = PlacementStatus::SUCCESS;
+    status = find_placements_digest(dynamic_cast<const Digest *>(ds), deps, placements);
     break;
   case DSType::LPM:
     status = find_placements_lpm(dynamic_cast<const LPM *>(ds), deps, placements);
@@ -217,7 +229,7 @@ PlacementStatus SimplePlacer::find_placements_table(const Table *table, const st
     // This is not actually how it happens, but this is a VERY simple placer.
     bits_t amount_placed = std::min(requested_sram, stage.available_sram);
 
-    placement_t placement = {
+    const placement_t placement = {
         .stage_id    = stage_id,
         .sram        = amount_placed,
         .tcam        = 0,
@@ -225,6 +237,7 @@ PlacementStatus SimplePlacer::find_placements_table(const Table *table, const st
         .xbar        = requested_xbar,
         .logical_ids = 1,
         .obj         = table->id,
+        .type        = table->type,
     };
 
     requested_sram -= amount_placed;
@@ -280,7 +293,7 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std
       continue;
     }
 
-    placement_t placement = {
+    const placement_t placement = {
         .stage_id    = stage_id,
         .sram        = requested_sram,
         .tcam        = 0,
@@ -288,6 +301,7 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std
         .xbar        = requested_xbar,
         .logical_ids = requested_logical_ids,
         .obj         = reg->id,
+        .type        = reg->type,
     };
 
     requested_sram = 0;
@@ -342,9 +356,9 @@ PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter, const st
     }
 
     // This is not actually how it happens, but this is a VERY simple placer.
-    bits_t amount_placed = std::min(requested_sram, stage.available_sram);
+    const bits_t amount_placed = std::min(requested_sram, stage.available_sram);
 
-    placement_t placement = {
+    const placement_t placement = {
         .stage_id    = stage_id,
         .sram        = amount_placed,
         .tcam        = 0,
@@ -352,6 +366,7 @@ PlacementStatus SimplePlacer::find_placements_meter(const Meter *meter, const st
         .xbar        = requested_xbar,
         .logical_ids = 1,
         .obj         = meter->id,
+        .type        = meter->type,
     };
 
     requested_sram -= amount_placed;
@@ -388,7 +403,7 @@ PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::
     return PlacementStatus::NO_AVAILABLE_STAGE;
   }
 
-  bits_t requested_xbar = align_to_byte(hash->get_match_xbar_consume());
+  const bits_t requested_xbar = align_to_byte(hash->get_match_xbar_consume());
 
   int total_stages = stages.size();
   for (int stage_id = soonest_stage_id; stage_id < total_stages; stage_id++) {
@@ -402,7 +417,7 @@ PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::
       continue;
     }
 
-    placement_t placement = {
+    const placement_t placement = {
         .stage_id    = stage_id,
         .sram        = 0,
         .tcam        = 0,
@@ -410,11 +425,36 @@ PlacementStatus SimplePlacer::find_placements_hash(const Hash *hash, const std::
         .xbar        = requested_xbar,
         .logical_ids = 1,
         .obj         = hash->id,
+        .type        = hash->type,
     };
 
     placements.push_back(placement);
     break;
   }
+
+  return PlacementStatus::SUCCESS;
+}
+
+PlacementStatus SimplePlacer::find_placements_digest(const Digest *digest, const std::unordered_set<DS_ID> &deps,
+                                                     std::vector<placement_t> &placements) const {
+  assert(!is_placed(digest->id) && "Digest already placed");
+
+  if (used_digests >= properties->max_digests) {
+    return PlacementStatus::NOT_ENOUGH_DIGESTS;
+  }
+
+  const placement_t placement = {
+      .stage_id    = 0,
+      .sram        = 0,
+      .tcam        = 0,
+      .map_ram     = 0,
+      .xbar        = 0,
+      .logical_ids = 0,
+      .obj         = digest->id,
+      .type        = digest->type,
+  };
+
+  placements.push_back(placement);
 
   return PlacementStatus::SUCCESS;
 }
@@ -454,9 +494,9 @@ PlacementStatus SimplePlacer::find_placements_lpm(const LPM *lpm, const std::uno
     }
 
     // This is not actually how it happens, but this is a VERY simple placer.
-    bits_t amount_placed = std::min(requested_tcam, stage.available_tcam);
+    const bits_t amount_placed = std::min(requested_tcam, stage.available_tcam);
 
-    placement_t placement = {
+    const placement_t placement = {
         .stage_id    = stage_id,
         .sram        = 0,
         .tcam        = amount_placed,
@@ -464,6 +504,7 @@ PlacementStatus SimplePlacer::find_placements_lpm(const LPM *lpm, const std::uno
         .xbar        = requested_xbar,
         .logical_ids = 1,
         .obj         = lpm->id,
+        .type        = lpm->type,
     };
 
     requested_tcam -= amount_placed;
@@ -549,7 +590,7 @@ void SimplePlacer::place_primitive_ds(const DS *ds, const std::unordered_set<DS_
   }
 
   std::vector<placement_t> placements;
-  PlacementStatus status = find_placements(ds, deps, placements);
+  const PlacementStatus status = find_placements(ds, deps, placements);
   assert(status == PlacementStatus::SUCCESS && "Cannot place ds");
 
   for (const placement_t &placement : placements) {
@@ -668,17 +709,17 @@ void SimplePlacer::debug() const {
 
     std::stringstream ss;
 
-    double sram_usage    = 100.0 - (stage.available_sram * 100.0) / properties->sram_per_stage;
-    bits_t sram_consumed = properties->sram_per_stage - stage.available_sram;
+    const double sram_usage    = 100.0 - (stage.available_sram * 100.0) / properties->sram_per_stage;
+    const bits_t sram_consumed = properties->sram_per_stage - stage.available_sram;
 
-    double tcam_usage    = 100.0 - (stage.available_tcam * 100.0) / properties->tcam_per_stage;
-    bits_t tcam_consumed = properties->tcam_per_stage - stage.available_tcam;
+    const double tcam_usage    = 100.0 - (stage.available_tcam * 100.0) / properties->tcam_per_stage;
+    const bits_t tcam_consumed = properties->tcam_per_stage - stage.available_tcam;
 
-    double map_ram_usage    = 100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
-    bits_t map_ram_consumed = properties->map_ram_per_stage - stage.available_map_ram;
+    const double map_ram_usage    = 100.0 - (stage.available_map_ram * 100.0) / properties->map_ram_per_stage;
+    const bits_t map_ram_consumed = properties->map_ram_per_stage - stage.available_map_ram;
 
-    double xbar_usage    = 100.0 - (stage.available_exact_match_xbar * 100.0) / properties->exact_match_xbar_per_stage;
-    bits_t xbar_consumed = properties->exact_match_xbar_per_stage - stage.available_exact_match_xbar;
+    const double xbar_usage    = 100.0 - (stage.available_exact_match_xbar * 100.0) / properties->exact_match_xbar_per_stage;
+    const bits_t xbar_consumed = properties->exact_match_xbar_per_stage - stage.available_exact_match_xbar;
 
     ss << "-------------------------------------\n";
     ss << "Stage " << stage.stage_id;

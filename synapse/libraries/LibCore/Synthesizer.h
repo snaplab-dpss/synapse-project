@@ -29,10 +29,15 @@ protected:
     void dec();
     void indent();
     code_t dump() const;
+    std::vector<code_t> split_lines() const;
 
     coder_t &operator<<(const coder_t &coder);
     coder_t &operator<<(const code_t &code);
     coder_t &operator<<(i64 n);
+    coder_t &operator<<(std::ios_base &ios_base);
+
+    static code_t hex(u64 n);
+    static code_t hex(u32 n);
   };
 
 private:

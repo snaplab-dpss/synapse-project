@@ -960,7 +960,7 @@ Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> con
 }
 
 bool BDD::get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const {
-  std::vector<const Call *> index_allocators = root->get_future_functions({"dchain_allocate_new_index"});
+  const std::vector<const Call *> index_allocators = root->get_future_functions({"dchain_allocate_new_index"});
 
   if (index_allocators.empty()) {
     return false;
@@ -997,6 +997,7 @@ bool BDD::get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing
     panic("No map argument");
   }
 
+  std::cerr << "Object: " << obj << "\n";
   return get_map_coalescing_objs(obj, map_objs);
 }
 

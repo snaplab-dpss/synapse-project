@@ -13,8 +13,9 @@ namespace Tofino {
 
 struct Digest : public DS {
   std::vector<bits_t> fields;
+  u8 digest_type;
 
-  Digest(DS_ID id, const std::vector<bits_t> &fields);
+  Digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type);
   Digest(const Digest &other);
 
   DS *clone() const override;

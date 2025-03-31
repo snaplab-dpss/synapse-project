@@ -19,14 +19,12 @@ private:
   constexpr const static u32 THRESHOLD{127};
   constexpr const static time_s_t RESET_TIMER{3};
 
-  constexpr const static u32 HASH_SALT_0{0xfbc31fc7};
-  constexpr const static u32 HASH_SALT_1{0x2681580b};
-  constexpr const static u32 HASH_SALT_2{0x486d7e2f};
+  static const std::vector<u32> HASH_SALTS;
 
   std::vector<Table> tables;
   Register reg_cached_counters;
-  std::vector<Register> bloom_filter;
   std::vector<Register> count_min_sketch;
+  std::vector<Register> bloom_filter;
   Register reg_threshold;
   Digest digest;
 
@@ -44,7 +42,7 @@ private:
 
 public:
   HHTable(const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
-          const std::vector<std::string> &bloom_filter_reg_names, const std::vector<std::string> &count_min_sketch_reg_names,
+          const std::vector<std::string> &count_min_sketch_reg_names, const std::vector<std::string> &bloom_filter_reg_names,
           const std::string &reg_threshold_name, const std::string &digest_name, time_ms_t timeout);
 
   bool insert(const buffer_t &key);
@@ -64,7 +62,7 @@ private:
   static u32 get_capacity(const std::vector<Table> &tables);
   static bits_t get_key_size(const std::vector<Table> &tables);
   static u32 build_hash_mask(const std::vector<Register> &bloom_filter, const std::vector<Register> &count_min_sketch);
-  static std::vector<buffer_t> build_hash_salts();
+  static std::vector<buffer_t> build_hash_salts(const std::vector<Register> &count_min_sketch, const std::vector<Register> &bloom_filter);
 
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie);
   static bf_status_t digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,

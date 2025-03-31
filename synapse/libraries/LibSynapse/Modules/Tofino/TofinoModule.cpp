@@ -393,8 +393,7 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
 
 HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
                         u32 cms_width, u32 cms_height) {
-
-  DS_ID id = "hh_table_" + std::to_string(cms_width) + "x" + std::to_string(cms_height) + "_" + std::to_string(obj);
+  const DS_ID id = "hh_table_" + std::to_string(obj);
 
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
   const tna_properties_t &properties = tofino_ctx->get_tna().get_tna_config().properties;
@@ -404,7 +403,9 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
     keys_sizes.push_back(key->getWidth());
   }
 
-  HHTable *hh_table = new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, cms_width, cms_height);
+  const u8 used_digests = tofino_ctx->get_tna().get_simple_placer().get_used_digests() + 1;
+  HHTable *hh_table =
+      new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, cms_width, cms_height, used_digests);
 
   if (!tofino_ctx->check_placement(ep, node, hh_table)) {
     delete hh_table;

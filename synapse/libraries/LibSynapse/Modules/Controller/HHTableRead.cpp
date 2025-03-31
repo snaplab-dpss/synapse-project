@@ -46,13 +46,15 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+  const table_data_t table_data(ep->get_ctx(), map_get);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return std::nullopt;
   }
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
   }
 
@@ -73,18 +75,19 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+  const table_data_t table_data(ep->get_ctx(), map_get);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return impls;
   }
 
-  if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ep->get_ctx().check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
   }
 
-  table_data_t table_data(ep->get_ctx(), map_get);
-  LibCore::symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
+  const LibCore::symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
 
   Module *module =
       new HHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key, min_estimate);
@@ -111,18 +114,19 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!bdd->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+  const table_data_t table_data(ctx, map_get);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  table_data_t table_data(ctx, map_get);
-  LibCore::symbol_t mock_min_estimate;
+  const LibCore::symbol_t mock_min_estimate;
 
   return std::make_unique<HHTableRead>(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key,
                                        mock_min_estimate);

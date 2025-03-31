@@ -750,6 +750,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
     }
 
     if (candidate_modules.empty()) {
+      ctx.debug();
       panic("No module found for call node %s", call_node->dump(true).c_str());
     } else if (candidate_modules.size() > 1) {
       std::stringstream err_msg;
@@ -1405,9 +1406,13 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::HHTableAllocate");
+  const addr_t obj                = node->get_obj();
+  const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
+
+  const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, obj);
+
+  transpile_hh_table_decl(hh_table, expiration_time);
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -1757,6 +1762,41 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
     member_init_list << "\"Ingress." << reg.id << "\",";
   }
   member_init_list << "}";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                  = assert_unique_name(hh_table->id);
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+
+  state_fields.indent();
+  state_fields << "HHTable " << name << ";\n";
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "{";
+  for (const Tofino::Table &table : hh_table->tables) {
+    member_init_list << "\"Ingress." << table.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", \"Ingress." << hh_table->cached_counters.id << "\"";
+  member_init_list << ", {";
+  for (const Tofino::Register &cms_row : hh_table->count_min_sketch) {
+    member_init_list << "\"Ingress." << cms_row.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", {";
+  for (const Tofino::Register &bloom_row : hh_table->bloom_filter) {
+    member_init_list << "\"Ingress." << bloom_row.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", \"Ingress." << hh_table->threshold.id << "\"";
+  member_init_list << ", \"IngressDeparser." << hh_table->digest.id << "\"";
+  member_init_list << ", " << expiration_time_ms << "LL";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }

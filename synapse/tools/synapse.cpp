@@ -59,6 +59,7 @@ LibSynapse::targets_config_t parse_targets_config(const std::filesystem::path &t
       .ternary_match_xbar                         = *config["switch"]["arch"]["ternary_match_xbar"].value<bits_t>(),
       .max_ternary_match_keys                     = *config["switch"]["arch"]["max_ternary_match_keys"].value<int>(),
       .max_salu_size                              = *config["switch"]["arch"]["max_salu_size"].value<bits_t>(),
+      .max_digests                                = *config["switch"]["arch"]["max_digests"].value<u8>(),
   };
 
   std::unordered_set<u16> nf_devices;

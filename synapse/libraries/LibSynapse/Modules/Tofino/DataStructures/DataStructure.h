@@ -35,6 +35,37 @@ enum class DSType {
   LPM,
 };
 
+inline std::string ds_type_to_string(DSType type) {
+  switch (type) {
+  case DSType::TABLE:
+    return "Table";
+  case DSType::REGISTER:
+    return "Register";
+  case DSType::METER:
+    return "Meter";
+  case DSType::HASH:
+    return "Hash";
+  case DSType::DIGEST:
+    return "Digest";
+  case DSType::MAP_TABLE:
+    return "MapTable";
+  case DSType::VECTOR_TABLE:
+    return "VectorTable";
+  case DSType::DCHAIN_TABLE:
+    return "DchainTable";
+  case DSType::VECTOR_REGISTER:
+    return "VectorRegister";
+  case DSType::FCFS_CACHED_TABLE:
+    return "FCFSCachedTable";
+  case DSType::HH_TABLE:
+    return "HHTable";
+  case DSType::COUNT_MIN_SKETCH:
+    return "CountMinSketch";
+  case DSType::LPM:
+    return "LPM";
+  }
+}
+
 struct DS {
   DSType type;
   bool primitive;

@@ -209,6 +209,7 @@ max_exact_match_keys                       = 16
 ternary_match_xbar                         = 528        # 66 * 8 bits
 max_ternary_match_keys                     = 8
 max_salu_size                              = 32         # TNA2 actually can supposedly support 64b, but it keeps crashing the compiler...
+max_digests                                = 8
 
 [controller]
 capacity_pps = 100_000 # pps

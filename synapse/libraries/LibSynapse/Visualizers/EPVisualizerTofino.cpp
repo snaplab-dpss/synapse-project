@@ -348,9 +348,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) {
-  panic("TODO: HHTableOutOfBandUpdate");
-}
+SHOW_MODULE_NAME(Tofino::HHTableOutOfBandUpdate)
 
 SHOW_MODULE_NAME(Tofino::IntegerAllocatorRejuvenate)
 SHOW_MODULE_NAME(Tofino::IntegerAllocatorAllocate)
@@ -359,4 +357,5 @@ SHOW_MODULE_NAME(Tofino::IntegerAllocatorIsAllocated)
 SHOW_MODULE_NAME(Tofino::CMSQuery)
 SHOW_MODULE_NAME(Tofino::CMSIncrement)
 SHOW_MODULE_NAME(Tofino::CMSIncAndQuery)
+
 } // namespace LibSynapse

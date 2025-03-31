@@ -58,30 +58,30 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+  const hh_table_data_t table_data(ep->get_ctx(), map_get);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
   }
 
-  LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
+  const LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return std::nullopt;
   }
-
-  const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, CMS_WIDTH, CMS_HEIGHT)) {
     return std::nullopt;
   }
 
   Context new_ctx = ctx;
-  new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable);
-  new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable);
+  new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
+  new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
   update_map_get_success_hit_rate(new_ctx, map_get, table_data.key, table_data.capacity, mpsc);
 
@@ -102,13 +102,15 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return impls;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+  const hh_table_data_t table_data(ep->get_ctx(), map_get);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return impls;
   }
 
-  if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ep->get_ctx().can_impl_ds(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
   }
 
@@ -116,8 +118,6 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   if (!mpsc.branch) {
     return impls;
   }
-
-  const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, CMS_WIDTH, CMS_HEIGHT);
 
@@ -132,11 +132,11 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  new_ep->get_mutable_ctx().save_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable);
-  new_ep->get_mutable_ctx().save_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable);
+  new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
+  new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, map_objs.map, hh_table);
+  tofino_ctx->place(new_ep, node, map_objs->map, hh_table);
 
   update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get, table_data.key, table_data.capacity, mpsc);
 
@@ -158,24 +158,24 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!bdd->get_map_coalescing_objs_from_map_op(map_get, map_objs)) {
+  const hh_table_data_t table_data(ctx, map_get);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
+  const LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return {};
   }
 
-  const hh_table_data_t table_data(ctx, map_get);
-
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs.map);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
 

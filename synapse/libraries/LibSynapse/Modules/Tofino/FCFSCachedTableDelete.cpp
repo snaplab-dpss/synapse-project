@@ -199,16 +199,17 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
     return std::nullopt;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_erase, map_objs)) {
+  const fcfs_cached_table_data_t cached_table_data(ctx, map_erase);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cached_table_data.obj);
+  if (!map_objs.has_value()) {
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
   }
-
-  fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
 
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
@@ -248,14 +249,14 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
 
   new_ctx.get_mutable_profiler().scale(constraints, chosen_cache_success_probability.value);
-  new_ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  new_ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
-  std::vector<const LibBDD::Node *> ignore_nodes = get_future_related_nodes(ep, node, map_objs);
+  std::vector<const LibBDD::Node *> ignore_nodes = get_future_related_nodes(ep, node, map_objs.value());
 
   for (const LibBDD::Node *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
@@ -279,22 +280,23 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
     return impls;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_erase, map_objs)) {
+  const fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(cached_table_data.obj);
+  if (!map_objs.has_value()) {
     return impls;
   }
 
-  if (!ep->get_ctx().can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ep->get_ctx().can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return impls;
   }
 
-  fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
-  LibCore::symbol_t cache_delete_failed     = symbol_manager->create_symbol("cache_delete_failed", 32);
-  std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
+  const LibCore::symbol_t cache_delete_failed     = symbol_manager->create_symbol("cache_delete_failed", 32);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
   for (u32 cache_capacity : allowed_cache_capacities) {
-    EP *new_ep = concretize_cached_table_delete(ep, map_erase, map_objs, cached_table_data, cache_delete_failed, cache_capacity);
+    EP *new_ep = concretize_cached_table_delete(ep, map_erase, map_objs.value(), cached_table_data, cache_delete_failed, cache_capacity);
 
     if (new_ep) {
       impl_t impl = implement(ep, map_erase, new_ep, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
@@ -317,20 +319,21 @@ std::unique_ptr<Module> FCFSCachedTableDeleteFactory::create(const LibBDD::BDD *
     return {};
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!bdd->get_map_coalescing_objs_from_map_op(map_erase, map_objs)) {
+  const fcfs_cached_table_data_t cached_table_data(ctx, map_erase);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cached_table_data.obj);
+  if (!map_objs.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  fcfs_cached_table_data_t cached_table_data(ctx, map_erase);
-  LibCore::symbol_t mock_cache_delete_failed;
+  const LibCore::symbol_t mock_cache_delete_failed;
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs.map);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 

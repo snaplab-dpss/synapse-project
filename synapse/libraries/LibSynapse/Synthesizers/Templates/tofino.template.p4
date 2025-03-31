@@ -187,8 +187,9 @@ control IngressDeparser(
   in    synapse_ingress_metadata_t meta,
   in    ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md
 ) {
-  apply {
 /*@{INGRESS_DEPARSER}@*/
+  apply {
+/*@{INGRESS_DEPARSER_APPLY}@*/
   }
 }
 

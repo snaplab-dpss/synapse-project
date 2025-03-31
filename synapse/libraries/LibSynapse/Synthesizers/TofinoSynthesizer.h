@@ -41,7 +41,7 @@ private:
 
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
-    static code_t transpile_literal(u64 value, bits_t size);
+    static code_t transpile_literal(u64 value, bits_t size, bool hex = false);
     static code_t transpile_constant(klee::ref<klee::Expr> expr);
     static code_t swap_endianness(const code_t &expr, bits_t size);
 
@@ -211,6 +211,8 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
 
   coder_t &get(const std::string &marker) override final;
@@ -221,15 +223,17 @@ private:
   code_path_t alloc_recirc_coder();
 
   code_t build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const;
+
   void transpile_parser(const Parser &parser);
-  void transpile_action_decl(const std::string action_name, const std::vector<code_t> &body);
-  void transpile_action_decl(const std::string action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
+  void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
+  void transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
   void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
                             const std::vector<klee::ref<klee::Expr>> &values, bool values_are_buffers, std::vector<var_t> &keys_vars);
-
-  void transpile_register_decl(const Register *reg, klee::ref<klee::Expr> index, klee::ref<klee::Expr> value);
-  void transpile_register_read_action_decl(const Register *reg, const code_t &name);
-  void transpile_register_write_action_decl(const Register *reg, const code_t &name, const var_t &write_value);
+  void transpile_register_decl(const Register *reg);
+  void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type,
+                                      std::optional<var_t> write_value);
+  void transpile_hash_decl(const Hash *hash);
+  void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
 

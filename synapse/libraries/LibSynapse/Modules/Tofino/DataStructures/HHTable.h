@@ -16,6 +16,8 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct HHTable : public DS {
+  static const std::vector<u32> HASH_SALTS;
+
   u32 capacity;
   std::vector<bits_t> keys_sizes;
   u32 bloom_width;
@@ -33,7 +35,7 @@ struct HHTable : public DS {
   Digest digest;
 
   HHTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 capacity, const std::vector<bits_t> &keys_sizes, u32 bloom_width,
-          u32 bloom_height, u32 cms_width, u32 cms_height);
+          u32 bloom_height, u32 cms_width, u32 cms_height, u8 digest_type);
 
   HHTable(const HHTable &other);
 
@@ -43,6 +45,7 @@ struct HHTable : public DS {
 
   bool has_table(u32 op) const;
   DS_ID add_table(u32 op);
+  const Table *get_table(u32 op) const;
 };
 
 } // namespace Tofino

@@ -16,6 +16,7 @@ enum class PlacementStatus {
   NO_AVAILABLE_STAGE,
   INCONSISTENT_PLACEMENT,
   SELF_DEPENDENCE,
+  NOT_ENOUGH_DIGESTS,
   UNKNOWN,
 };
 
@@ -42,6 +43,7 @@ class SimplePlacer {
 private:
   const tna_properties_t *properties;
   std::vector<Stage> stages;
+  u8 used_digests;
   std::vector<PlacementRequest> placement_requests;
 
 public:
@@ -51,6 +53,7 @@ public:
 
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
   PlacementStatus can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  u8 get_used_digests() const;
 
   void debug() const;
 
@@ -71,6 +74,8 @@ private:
   PlacementStatus find_placements_meter(const Meter *table, const std::unordered_set<DS_ID> &deps,
                                         std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_digest(const Digest *digest, const std::unordered_set<DS_ID> &deps,
+                                         std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_lpm(const LPM *lpm, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
 
   void concretize_placement(Stage &stage, const placement_t &placement);

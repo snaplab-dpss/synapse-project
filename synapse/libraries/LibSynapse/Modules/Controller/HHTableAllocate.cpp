@@ -48,12 +48,14 @@ std::optional<spec_impl_t> HHTableAllocateFactory::speculate(const EP *ep, const
     return std::nullopt;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_allocate, map_objs)) {
+  const hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return std::nullopt;
   }
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
   }
 
@@ -75,16 +77,16 @@ std::vector<impl_t> HHTableAllocateFactory::process_node(const EP *ep, const Lib
     return impls;
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_map_op(map_allocate, map_objs)) {
+  const hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
+
+  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return impls;
   }
 
-  if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return impls;
   }
-
-  hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
 
   Module *module  = new HHTableAllocate(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
   EPNode *ep_node = new EPNode(module);
@@ -110,16 +112,16 @@ std::unique_ptr<Module> HHTableAllocateFactory::create(const LibBDD::BDD *bdd, c
     return {};
   }
 
-  LibBDD::map_coalescing_objs_t map_objs;
-  if (!bdd->get_map_coalescing_objs_from_map_op(map_allocate, map_objs)) {
+  const hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
+
+  std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  if (!map_objs.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
-
-  hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
 
   return std::make_unique<HHTableAllocate>(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
 }

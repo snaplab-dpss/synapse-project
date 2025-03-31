@@ -23,6 +23,14 @@ enum class RegisterActionType {
   DEC,
   SET_TO_ONE_AND_RETURN_OLD_VALUE,
   INC_AND_RETURN_NEW_VALUE,
+  CALCULATE_DIFF,
+};
+
+const std::unordered_set<RegisterActionType> register_action_types_with_out_value = {
+    RegisterActionType::READ,
+    RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE,
+    RegisterActionType::INC_AND_RETURN_NEW_VALUE,
+    RegisterActionType::CALCULATE_DIFF,
 };
 
 struct Register : public DS {

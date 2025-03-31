@@ -31,6 +31,7 @@ struct tna_properties_t {
   bits_t ternary_match_xbar;
   int max_ternary_match_keys;
   bits_t max_salu_size;
+  u8 max_digests;
 };
 
 struct tofino_port_t {
@@ -62,6 +63,7 @@ public:
   TNA(const TNA &other);
 
   const tna_config_t &get_tna_config() const { return tna_config; }
+  const SimplePlacer &get_simple_placer() const { return simple_placer; }
 
   // Tofino compiler complains if we access more than 4 bytes of the packet on
   // the same if statement.

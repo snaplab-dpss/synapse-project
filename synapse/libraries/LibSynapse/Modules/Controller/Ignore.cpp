@@ -64,14 +64,14 @@ bool should_ignore_coalesced_state_allocation(const Context &ctx, const LibBDD::
     return false;
   }
 
-  addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
 
   if (!ctx.has_ds_impl(obj)) {
     return false;
   }
 
-  DSImpl impl   = ctx.get_ds_impl(obj);
-  auto found_it = ignored_alloc_functions_per_ds.find(impl);
+  const DSImpl impl = ctx.get_ds_impl(obj);
+  auto found_it     = ignored_alloc_functions_per_ds.find(impl);
   if (found_it == ignored_alloc_functions_per_ds.end()) {
     return false;
   }
