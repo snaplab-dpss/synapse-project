@@ -3,7 +3,7 @@
 import os
 import statistics
 
-from utils.util import whole_number_to_label
+from utils.util import *
 from utils.plot_config import *
 from dataclasses import dataclass
 from pathlib import Path
@@ -329,16 +329,19 @@ def plot_heatmap_v2(data: Data, file: Path):
         j = all_s.index(key.s)
         bps = int(avg_data[key].dut_egress_bps)
         err = int(data.get_stdev_values()[key].dut_egress_bps)
-        label = f"{whole_number_to_label(bps)}"
-        label += f"\n±{whole_number_to_label(err)}"
+
+        # label = f"{whole_number_to_label(bps)}\n±{whole_number_to_label(err)}"
+
+        avg_label, err_label, suffix_label = avg_err_precision_to_label(bps, err)
+        label = f"{avg_label}±{err_label}\n{suffix_label}bps"
 
         color = "black" if bps < 1.5e12 else "white"
 
         text = ax.text(j, i, label, ha="center", va="center", color=color)
-        text.set_fontsize(5)
+        text.set_fontsize(7)
         text.set_fontweight("bold")
 
-    fig.set_size_inches(width * 0.5, height * 0.8)
+    fig.set_size_inches(width * 0.7, height * 1)
     fig.tight_layout()
 
     print("-> ", file)
