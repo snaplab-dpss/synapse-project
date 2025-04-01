@@ -122,9 +122,27 @@ def plot_bps(data: Data, file: Path):
     keys = avg_data.keys()
     all_s = sorted(set([key.s for key in keys]))
     all_churn = sorted(set([key.churn_fpm for key in keys]))
+    churn_labels = [whole_number_to_label(churn) for churn in all_churn]
+    fig, axs = plt.subplots(math.ceil(len(all_s) / 2), 2)
 
-    for s in all_s:
-        fig, ax = plt.subplots()
+    for i in range(len(all_s)):
+        ax = axs[int(i / 2), i % 2]
+        s = all_s[i]
+
+        ax.set_title(f"Zipf parameter: {s:.2f}")
+
+        avg_tput_gbps = [avg_data[Keys(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
+        stdev_tput_gbps = [data.get_stdev_values()[Keys(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
+
+        ax.errorbar(churn_labels, avg_tput_gbps, yerr=stdev_tput_gbps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
+        ax.bar(churn_labels, avg_tput_gbps)
+
+    for i in range(len(axs.flat)):
+        ax = axs.flat[i]
+
+        if i >= len(all_s):
+            fig.delaxes(ax)
+            continue
 
         ax.set_ylim(ymin=0, ymax=3000)
 
@@ -134,20 +152,17 @@ def plot_bps(data: Data, file: Path):
         ax.set_yticks([600, 1200, 1800, 2400, 3000], labels=["600G", "1.2T", "1.8T", "2.4T", "3T"])
         ax.yaxis.set_minor_locator(MultipleLocator(300))
 
-        churn_labels = [whole_number_to_label(churn) for churn in all_churn]
-        avg_tput_gbps = [avg_data[Keys(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
-        stdev_tput_gbps = [data.get_stdev_values()[Keys(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for ax in axs.flat:
+        ax.label_outer()
 
-        ax.errorbar(churn_labels, avg_tput_gbps, yerr=stdev_tput_gbps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
-        ax.bar(churn_labels, avg_tput_gbps)
+    # fig.set_size_inches(width * 0.4, height * 3)
+    # fig.set_figwidth(width * 0.6)
+    fig.tight_layout(pad=0.1)
 
-        fig.set_size_inches(width * 0.6, height)
-        fig.tight_layout(pad=0.1)
-
-        fig_file_pdf = Path(file)
-        fig_file_pdf = fig_file_pdf.with_name(fig_file_pdf.stem + f"_s_{str(s).replace('.', '_')}" + fig_file_pdf.suffix)
-        print("-> ", fig_file_pdf)
-        plt.savefig(str(fig_file_pdf))
+    fig_file_pdf = Path(file)
+    print("-> ", fig_file_pdf)
+    plt.savefig(str(fig_file_pdf))
 
 
 def plot_pps(data: Data, file: Path):
@@ -155,9 +170,28 @@ def plot_pps(data: Data, file: Path):
     keys = avg_data.keys()
     all_s = sorted(set([key.s for key in keys]))
     all_churn = sorted(set([key.churn_fpm for key in keys]))
+    churn_labels = [whole_number_to_label(churn) for churn in all_churn]
+    fig, axs = plt.subplots(math.ceil(len(all_s) / 2), 2)
 
-    for s in all_s:
-        fig, ax = plt.subplots()
+    for i in range(len(all_s)):
+        ax = axs[int(i / 2), i % 2]
+        s = all_s[i]
+
+        ax.set_title(f"Zipf parameter: {s:.2f}")
+
+        churn_labels = [whole_number_to_label(churn) for churn in all_churn]
+        avg_tput_mpps = [avg_data[Keys(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
+        stdev_tput_mpps = [data.get_stdev_values()[Keys(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
+
+        ax.errorbar(churn_labels, avg_tput_mpps, yerr=stdev_tput_mpps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
+        ax.bar(churn_labels, avg_tput_mpps)
+
+    for i in range(len(axs.flat)):
+        ax = axs.flat[i]
+
+        if i >= len(all_s):
+            fig.delaxes(ax)
+            continue
 
         ax.set_ylim(ymin=0, ymax=3500)
 
@@ -167,20 +201,17 @@ def plot_pps(data: Data, file: Path):
         ax.set_yticks([500, 1000, 1500, 2000, 2500, 3000, 3500], labels=["500M", "1G", "1.5G", "2G", "2.5G", "3G", "3.5G"])
         ax.yaxis.set_minor_locator(MultipleLocator(250))
 
-        churn_labels = [whole_number_to_label(churn) for churn in all_churn]
-        avg_tput_mpps = [avg_data[Keys(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
-        stdev_tput_mpps = [data.get_stdev_values()[Keys(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for ax in axs.flat:
+        ax.label_outer()
 
-        ax.errorbar(churn_labels, avg_tput_mpps, yerr=stdev_tput_mpps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
-        ax.bar(churn_labels, avg_tput_mpps)
+    # fig.set_size_inches(width * 0.4, height * 3)
+    # fig.set_figwidth(width * 0.6)
+    fig.tight_layout(pad=0.1)
 
-        fig.set_size_inches(width * 0.6, height)
-        fig.tight_layout(pad=0.1)
-
-        fig_file_pdf = Path(file)
-        fig_file_pdf = fig_file_pdf.with_name(fig_file_pdf.stem + f"_s_{str(s).replace('.', '_')}" + fig_file_pdf.suffix)
-        print("-> ", fig_file_pdf)
-        plt.savefig(str(fig_file_pdf))
+    fig_file_pdf = Path(file)
+    print("-> ", fig_file_pdf)
+    plt.savefig(str(fig_file_pdf))
 
 
 def discrete(data, ax):
@@ -309,7 +340,7 @@ def main():
     plot_bps(data, BPS_OUTPUT_FILE)
     plot_pps(data, PPS_OUTPUT_FILE)
     # plot_heatmap(data, HEATMAP_OUTPUT_FILE)
-    plot_heatmap_v2(data, HEATMAP_OUTPUT_FILE)
+    # plot_heatmap_v2(data, HEATMAP_OUTPUT_FILE)
 
 
 if __name__ == "__main__":
