@@ -19,6 +19,8 @@ DATA_FILE = DATA_DIR / "tput_netcache.csv"
 
 BPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps.pdf"
 PPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps.pdf"
+BPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps_scatter.pdf"
+PPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps_scatter.pdf"
 HEATMAP_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_heatmap.pdf"
 
 
@@ -48,8 +50,14 @@ class Data:
             self.raw_data[key] = []
         self.raw_data[key].append(values)
 
+    def get_raw(self) -> dict[Keys, list[Values]]:
+        return self.raw_data
+
     def get_keys(self) -> list[Keys]:
         return list(self.raw_data.keys())
+
+    def get_values(self, key: Keys) -> list[Values]:
+        return self.raw_data[key]
 
     def get_avg_values(self) -> dict[Keys, Values]:
         data: dict[Keys, Values] = {}
@@ -335,10 +343,64 @@ def plot_heatmap_v2(data: Data, file: Path):
     plt.savefig(str(file))
 
 
+def plot_bps_scatter(data: Data, file: Path):
+    raw_data = data.get_raw()
+    keys = data.get_keys()
+    all_s = sorted(set([key.s for key in keys]))
+    all_churn = sorted(set([key.churn_fpm for key in keys]))
+    churn_labels = [whole_number_to_label(churn) for churn in all_churn]
+    fig, axs = plt.subplots(math.ceil(len(all_s) / 2), 2)
+
+    for i in range(len(all_s)):
+        ax = axs[int(i / 2), i % 2]
+        s = all_s[i]
+
+        x = []
+        y = []
+        for j in range(len(all_churn)):
+            chunk = all_churn[j]
+            key = Keys(s, chunk)
+            values = [v.dut_egress_bps for v in raw_data[key]]
+            x.extend([j for _ in range(len(values))])
+            y.extend(values)
+
+        ax.set_title(f"Zipf parameter: {s:.2f}")
+        ax.scatter(x, y)
+
+    for i in range(len(axs.flat)):
+        ax = axs.flat[i]
+
+        if i >= len(all_s):
+            fig.delaxes(ax)
+            continue
+
+        ax.set_ylim(ymin=0, ymax=3000)
+
+        ax.set_ylabel("Throughput (bps)")
+        ax.set_xlabel("Churn (fpm)")
+        ax.set_xticks(range(len(all_churn)), labels=churn_labels)
+
+        ax.set_yticks([600, 1200, 1800, 2400, 3000], labels=["600G", "1.2T", "1.8T", "2.4T", "3T"])
+        ax.yaxis.set_minor_locator(MultipleLocator(300))
+
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for ax in axs.flat:
+        ax.label_outer()
+
+    # fig.set_size_inches(width * 0.4, height * 3)
+    # fig.set_figwidth(width * 0.6)
+    fig.tight_layout(pad=0.1)
+
+    fig_file_pdf = Path(file)
+    print("-> ", fig_file_pdf)
+    plt.savefig(str(fig_file_pdf))
+
+
 def main():
     data = parse_data_file(DATA_FILE)
-    plot_bps(data, BPS_OUTPUT_FILE)
-    plot_pps(data, PPS_OUTPUT_FILE)
+    # plot_bps(data, BPS_OUTPUT_FILE)
+    # plot_pps(data, PPS_OUTPUT_FILE)
+    plot_bps_scatter(data, BPS_SCATTER_OUTPUT_FILE)
     # plot_heatmap(data, HEATMAP_OUTPUT_FILE)
     # plot_heatmap_v2(data, HEATMAP_OUTPUT_FILE)
 
