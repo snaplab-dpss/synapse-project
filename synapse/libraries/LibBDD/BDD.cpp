@@ -287,8 +287,8 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
     if (on_false.data.empty()) {
       call_paths_view = on_true;
 
-      call_t call                        = get_successful_call(call_paths_view.data);
-      LibCore::Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
+      const call_t call                        = get_successful_call(call_paths_view.data);
+      const LibCore::Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
 
       std::cerr << "\n";
       std::cerr << "==================================\n";
@@ -500,8 +500,8 @@ next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) 
       klee::ref<klee::Expr> map   = call.args.at("map").expr;
       klee::ref<klee::Expr> value = call.args.at("value").expr;
 
-      addr_t map_addr = LibCore::expr_addr_to_obj_addr(map);
-      bool same_index = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
+      const addr_t map_addr = LibCore::expr_addr_to_obj_addr(map);
+      bool same_index       = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
 
       if (same_index) {
         candidates.maps.insert({map_addr, call_node});
@@ -510,8 +510,8 @@ next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) 
       klee::ref<klee::Expr> vector = call.args.at("vector").expr;
       klee::ref<klee::Expr> value  = call.args.at("index").expr;
 
-      addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector);
-      bool same_index    = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
+      const addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector);
+      bool same_index          = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
 
       if (same_index) {
         candidates.vectors.insert({vector_addr, call_node});
@@ -532,7 +532,7 @@ next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators, a
 
     klee::ref<klee::Expr> allocated_index = allocator_call.args.at("index_out").out;
     klee::ref<klee::Expr> dchain          = allocator_call.args.at("chain").expr;
-    addr_t dchain_addr                    = LibCore::expr_addr_to_obj_addr(dchain);
+    const addr_t dchain_addr              = LibCore::expr_addr_to_obj_addr(dchain);
 
     // We expect the coalescing candidates to be the same regardless of
     // where in the BDD we are. In case there is some discrepancy, then it
@@ -561,8 +561,8 @@ next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators, a
   return candidates;
 }
 
-addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map, const std::unordered_set<addr_t> &vectors) {
-  std::vector<const Call *> vector_borrows = bdd->get_root()->get_future_functions({"vector_borrow"});
+addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map) {
+  const std::vector<const Call *> vector_borrows = bdd->get_root()->get_future_functions({"vector_borrow"});
 
   for (const Call *vector_borrow : vector_borrows) {
     const call_t &vb = vector_borrow->get_call();
@@ -570,14 +570,10 @@ addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map, const std::uno
     klee::ref<klee::Expr> vector_expr     = vb.args.at("vector").expr;
     klee::ref<klee::Expr> value_addr_expr = vb.args.at("val_out").out;
 
-    addr_t vector_obj = LibCore::expr_addr_to_obj_addr(vector_expr);
-    addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
+    const addr_t vector_obj = LibCore::expr_addr_to_obj_addr(vector_expr);
+    const addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
 
-    if (vectors.find(vector_obj) == vectors.end()) {
-      continue;
-    }
-
-    std::vector<const Call *> map_puts = vector_borrow->get_future_functions({"map_put"});
+    const std::vector<const Call *> map_puts = vector_borrow->get_future_functions({"map_put"});
 
     bool is_vector_key = false;
     for (const Call *map_put : map_puts) {
@@ -586,8 +582,8 @@ addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map, const std::uno
       klee::ref<klee::Expr> map_expr      = mp.args.at("map").expr;
       klee::ref<klee::Expr> key_addr_expr = mp.args.at("key").expr;
 
-      addr_t map_obj  = LibCore::expr_addr_to_obj_addr(map_expr);
-      addr_t key_addr = LibCore::expr_addr_to_obj_addr(key_addr_expr);
+      const addr_t map_obj  = LibCore::expr_addr_to_obj_addr(map_expr);
+      const addr_t key_addr = LibCore::expr_addr_to_obj_addr(key_addr_expr);
 
       if (map_obj != map) {
         continue;
@@ -966,7 +962,7 @@ bool BDD::get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const
     return false;
   }
 
-  next_t candidates = get_allowed_coalescing_objs(index_allocators, obj);
+  const next_t candidates = get_allowed_coalescing_objs(index_allocators, obj);
 
   if (candidates.size() == 0) {
     return false;
@@ -997,7 +993,6 @@ bool BDD::get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing
     panic("No map argument");
   }
 
-  std::cerr << "Object: " << obj << "\n";
   return get_map_coalescing_objs(obj, map_objs);
 }
 
@@ -1283,11 +1278,11 @@ BDD::inspection_report_t BDD::inspect() const {
   return report;
 }
 
-void BDD::delete_vector_key_operations(const map_coalescing_objs_t &map_objs) {
+void BDD::delete_vector_key_operations(addr_t map) {
   std::unordered_set<const Node *> candidates;
   LibCore::Symbols key_symbols;
 
-  addr_t vector_key = get_vector_obj_storing_map_key(this, map_objs.map, map_objs.vectors);
+  const addr_t vector_key = get_vector_obj_storing_map_key(this, map);
 
   root->visit_nodes([vector_key, &candidates, &key_symbols](const Node *node) {
     if (node->get_type() != NodeType::Call) {
@@ -1302,7 +1297,7 @@ void BDD::delete_vector_key_operations(const map_coalescing_objs_t &map_objs) {
     }
 
     klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+    const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
 
     if (obj != vector_key) {
       return NodeVisitAction::Continue;
@@ -1350,7 +1345,7 @@ void BDD::delete_vector_key_operations(const map_coalescing_objs_t &map_objs) {
     }
 
     klee::ref<klee::Expr> obj_expr = call->get_call().args.at("vector_out").out;
-    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+    const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
 
     if (obj != vector_key) {
       continue;
@@ -1361,7 +1356,7 @@ void BDD::delete_vector_key_operations(const map_coalescing_objs_t &map_objs) {
   }
 
   // Just to double check that we didn't break anything...
-  LibBDD::BDD::inspection_report_t report = inspect();
+  const LibBDD::BDD::inspection_report_t report = inspect();
   if (report.status != LibBDD::BDD::InspectionStatus::Ok) {
     panic("BDD inspection failed: %s", report.message.c_str());
   }

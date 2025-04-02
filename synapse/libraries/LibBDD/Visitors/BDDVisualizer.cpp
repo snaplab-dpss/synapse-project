@@ -76,13 +76,23 @@ std::string BDDViz::get_color(const Node *node) const {
 }
 
 void BDDViz::visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts) {
+  assert(bdd && "Invalid BDD");
   BDDViz visualizer(opts);
   visualizer.visit(bdd);
   log_visualization(bdd, visualizer.fpath);
   visualizer.show(interrupt);
 }
 
+void BDDViz::dump_to_file(const BDD *bdd, const std::filesystem::path &file_name) {
+  assert(bdd && "Invalid BDD");
+  BDDViz visualizer;
+  visualizer.fpath = file_name;
+  visualizer.visit(bdd);
+  visualizer.write();
+}
+
 void BDDViz::visit(const BDD *bdd) {
+  assert(bdd && "Invalid BDD");
   const Node *root = bdd->get_root();
 
   ss << "digraph mygraph {\n";

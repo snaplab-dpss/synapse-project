@@ -50,6 +50,7 @@ private:
 
   mutable std::optional<pps_t> cached_tput_estimation;
   mutable std::optional<pps_t> cached_tput_speculation;
+  mutable std::optional<std::vector<spec_impl_t>> cached_speculations;
 
 public:
   EP(const LibBDD::BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
@@ -108,6 +109,7 @@ public:
   void debug_placements() const;
   void debug_hit_rate() const;
   void debug_active_leaves() const;
+  void debug_speculations() const;
   void assert_integrity() const;
 
 private:

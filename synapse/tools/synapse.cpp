@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
   }
 
   if (args.show_ss) {
-    LibSynapse::SSVisualizer::visualize(report.search_space.get(), report.ep.get(), false);
+    LibSynapse::SSViz::visualize(report.search_space.get(), report.ep.get(), false);
   }
 
   if (args.show_bdd) {
@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
 
   if (!args.out_dir.empty()) {
     LibSynapse::EPViz::dump_to_file(report.ep.get(), args.out_dir / (args.name + "-ep.dot"));
-    LibSynapse::SSVisualizer::dump_to_file(report.search_space.get(), args.out_dir / (args.name + "-ss.dot"));
+    LibSynapse::SSViz::dump_to_file(report.search_space.get(), args.out_dir / (args.name + "-ss.dot"));
     LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
   }
 

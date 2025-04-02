@@ -87,9 +87,9 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "Unfinished EPs:   " << LibCore::int2hr(search_meta.unfinished_eps) << "\n";
   std::cerr << "Finished EPs:     " << LibCore::int2hr(search_meta.finished_eps) << "\n";
 
-  if (report.targets.size() == 0) {
+  if (report.gen_ep_ids.empty()) {
     std::cerr << "\n";
-    std::cerr << "**DEAD END**: No module can handle this BDD node in the current context.\n";
+    std::cerr << "*** DEAD END ***: No module can handle this BDD node in the current context.\n";
     std::cerr << "Deleting solution from search space.\n";
   }
 
@@ -103,7 +103,7 @@ void peek_search_space(const std::vector<impl_t> &new_implementations, const std
       impl.result->debug();
       LibBDD::BDDViz::visualize(impl.result->get_bdd(), false);
       EPViz::visualize(impl.result, false);
-      SSVisualizer::visualize(search_space, impl.result, true);
+      SSViz::visualize(search_space, impl.result, true);
     }
   }
 }
@@ -114,7 +114,7 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
     ep->debug();
     LibBDD::BDDViz::visualize(ep->get_bdd(), false);
     // EPViz::visualize(ep, false);
-    SSVisualizer::visualize(search_space, ep, true);
+    SSViz::visualize(search_space, ep, true);
   }
 }
 
@@ -159,13 +159,13 @@ SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const
       heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
-  auto start_search                         = std::chrono::steady_clock::now();
+  const auto start_search                   = std::chrono::steady_clock::now();
   std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   search_meta_t meta;
   std::unordered_map<LibBDD::node_id_t, int> node_depth;
   bdd.get_root()->visit_nodes([this, &meta, &node_depth](const LibBDD::Node *node) {
-    LibBDD::node_id_t id           = node->get_id();
+    const LibBDD::node_id_t id     = node->get_id();
     meta.avg_children_per_node[id] = 0;
     meta.visits_per_node[id]       = 0;
     node_depth[id]                 = bdd.get_node_depth(id);
@@ -235,6 +235,25 @@ search_report_t SearchEngine::search() {
 
     log_search_iteration(report, meta);
     peek_search_space(new_implementations, search_config.peek, search_space.get());
+
+    if (new_implementations.empty() && search_config.no_deadends) {
+      ep->debug();
+
+      const std::filesystem::path bdd_path{"deadend-bdd.dot"};
+      const std::filesystem::path ep_path{"deadend-ep.dot"};
+      const std::filesystem::path ss_path{"deadend-ss.dot"};
+
+      LibBDD::BDDViz::dump_to_file(ep->get_bdd(), bdd_path);
+      EPViz::dump_to_file(ep.get(), ep_path);
+      SSViz::dump_to_file(search_space.get(), ep.get(), ss_path);
+
+      panic("Dead end reached! No module can handle this BDD node in the current context.\n"
+            "Dumping:\n"
+            "  BDD: %s\n"
+            "  EP:  %s\n"
+            "  SS:  %s\n",
+            bdd_path.string().c_str(), ep_path.string().c_str(), ss_path.string().c_str());
+    }
 
     heuristic->add(std::move(new_implementations));
   }

@@ -13,7 +13,7 @@ std::string get_bdd_node_description(const LibBDD::Node *node) {
   std::stringstream description;
 
   description << node->get_id();
-  description << ": ";
+  description << ":";
 
   switch (node->get_type()) {
   case LibBDD::NodeType::Call: {
@@ -23,7 +23,7 @@ std::string get_bdd_node_description(const LibBDD::Node *node) {
   case LibBDD::NodeType::Branch: {
     const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
     klee::ref<klee::Expr> condition   = branch_node->get_condition();
-    description << "if (";
+    description << "if(";
     description << LibCore::pretty_print_expr(condition);
     description << ")";
   } break;

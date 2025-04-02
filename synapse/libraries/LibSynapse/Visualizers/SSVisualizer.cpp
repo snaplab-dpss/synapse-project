@@ -218,15 +218,15 @@ void log_visualization(const SearchSpace *search_space, const std::string &fname
 }
 } // namespace
 
-SSVisualizer::SSVisualizer() {}
+SSViz::SSViz() {}
 
-SSVisualizer::SSVisualizer(const EP *_highlight) {
+SSViz::SSViz(const EP *_highlight) {
   const std::set<ep_id_t> &ancestors = _highlight->get_ancestors();
   highlight.insert(ancestors.begin(), ancestors.end());
   highlight.insert(_highlight->get_id());
 }
 
-void SSVisualizer::visit(const SearchSpace *search_space) {
+void SSViz::visit(const SearchSpace *search_space) {
   ss << "digraph SearchSpace {\n";
 
   ss << "\tlayout=\"dot\";\n";
@@ -246,25 +246,35 @@ void SSVisualizer::visit(const SearchSpace *search_space) {
   ss.flush();
 }
 
-void SSVisualizer::visualize(const SearchSpace *search_space, bool interrupt) {
+void SSViz::visualize(const SearchSpace *search_space, bool interrupt) {
   assert(search_space && "Search space is null");
-  SSVisualizer visualizer;
+  SSViz visualizer;
   visualizer.visit(search_space);
   log_visualization(search_space, visualizer.fpath);
   visualizer.show(interrupt);
 }
 
-void SSVisualizer::visualize(const SearchSpace *search_space, const EP *highlight, bool interrupt) {
+void SSViz::visualize(const SearchSpace *search_space, const EP *highlight, bool interrupt) {
   assert(search_space && "Search space is null");
-  SSVisualizer visualizer(highlight);
+  assert(highlight && "EP is null");
+  SSViz visualizer(highlight);
   visualizer.visit(search_space);
   log_visualization(search_space, visualizer.fpath, highlight);
   visualizer.show(interrupt);
 }
 
-void SSVisualizer::dump_to_file(const SearchSpace *search_space, const std::filesystem::path &file_name) {
+void SSViz::dump_to_file(const SearchSpace *search_space, const std::filesystem::path &file_name) {
   assert(search_space && "Search space is null");
-  SSVisualizer visualizer;
+  SSViz visualizer;
+  visualizer.fpath = file_name;
+  visualizer.visit(search_space);
+  visualizer.write();
+}
+
+void SSViz::dump_to_file(const SearchSpace *search_space, const EP *highlight, const std::filesystem::path &file_name) {
+  assert(search_space && "Search space is null");
+  assert(highlight && "EP is null");
+  SSViz visualizer(highlight);
   visualizer.fpath = file_name;
   visualizer.visit(search_space);
   visualizer.write();

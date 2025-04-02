@@ -8,19 +8,21 @@
 
 namespace LibSynapse {
 
-class SSVisualizer : public LibCore::Graphviz {
+class SSViz : public LibCore::Graphviz {
 private:
   std::set<ep_id_t> highlight;
 
-  SSVisualizer();
-  SSVisualizer(const EP *highlight);
+  SSViz();
+  SSViz(const EP *highlight);
 
   void visit(const SearchSpace *search_space);
 
 public:
   static void visualize(const SearchSpace *search_space, bool interrupt);
   static void visualize(const SearchSpace *search_space, const EP *highlight, bool interrupt);
+
   static void dump_to_file(const SearchSpace *search_space, const std::filesystem::path &file_name);
+  static void dump_to_file(const SearchSpace *search_space, const EP *highlight, const std::filesystem::path &file_name);
 };
 
 } // namespace LibSynapse

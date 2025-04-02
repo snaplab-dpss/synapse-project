@@ -44,6 +44,7 @@ public:
   std::string get_color(const Node *node) const;
 
   static void visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts = {});
+  static void dump_to_file(const BDD *bdd, const std::filesystem::path &file_name);
 
   void visit(const BDD *bdd) override final;
   void visitRoot(const Node *root) override final;

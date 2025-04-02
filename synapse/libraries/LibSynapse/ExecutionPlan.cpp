@@ -82,22 +82,17 @@ void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
     }
 
     klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-    addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+    const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
 
     maps.insert(obj);
 
     return LibBDD::NodeVisitAction::Continue;
   });
 
-  // There are more efficient ways of doing this (that don't involve traversing
-  // the entire BDD every single time), but this is a quick and dirty way of
-  // doing it.
+  // There are more efficient ways of doing this (that don't involve traversing the entire BDD every single time), but this is a quick and
+  // dirty way of doing it.
   for (addr_t map : maps) {
-    LibBDD::map_coalescing_objs_t map_objs;
-    if (!bdd->get_map_coalescing_objs(map, map_objs)) {
-      continue;
-    }
-    bdd->delete_vector_key_operations(map_objs);
+    bdd->delete_vector_key_operations(map);
   }
 }
 
@@ -116,6 +111,35 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
 
   return ancestors;
 }
+
+std::string spec2str(const spec_impl_t &speculation, const LibBDD::BDD *bdd) {
+  std::stringstream ss;
+
+  ss << speculation.decision.module;
+  ss << " ";
+  if (!speculation.skip.empty()) {
+    ss << "skip={";
+    for (LibBDD::node_id_t skip : speculation.skip)
+      ss << skip << ",";
+    ss << "} ";
+  }
+  ss << "(" << bdd->get_node_by_id(speculation.decision.node)->dump(true, true) << ")";
+
+  return ss.str();
+}
+
+std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &speculations) {
+  std::stringstream ss;
+
+  ss << "Speculating EP " << ep->get_id() << ":\n";
+  for (const spec_impl_t &speculation : speculations) {
+    ss << "  " << spec2str(speculation, ep->get_bdd()) << "\n";
+  }
+  ss << "\n";
+
+  return ss.str();
+}
+
 } // namespace
 
 EP::EP(const LibBDD::BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
@@ -435,6 +459,7 @@ void EP::debug() const {
   debug_hit_rate();
   debug_placements();
   debug_active_leaves();
+  debug_speculations();
   ctx.debug();
 }
 
@@ -461,6 +486,12 @@ void EP::debug_active_leaves() const {
       std::cerr << " | " << leaf.node->dump();
       std::cerr << " | HR=" << profiler.get_hr(leaf.node) << "\n";
     }
+  }
+}
+
+void EP::debug_speculations() const {
+  if (cached_speculations.has_value()) {
+    std::cerr << speculations2str(this, cached_speculations.value());
   }
 }
 
@@ -542,34 +573,6 @@ void EP::sort_leaves() {
   };
 
   std::sort(active_leaves.begin(), active_leaves.end(), prioritize_switch_and_hot_paths);
-}
-
-std::string spec2str(const spec_impl_t &speculation, const LibBDD::BDD *bdd) {
-  std::stringstream ss;
-
-  ss << speculation.decision.module;
-  ss << " ";
-  if (!speculation.skip.empty()) {
-    ss << "skip={";
-    for (LibBDD::node_id_t skip : speculation.skip)
-      ss << skip << ",";
-    ss << "} ";
-  }
-  ss << "(" << bdd->get_node_by_id(speculation.decision.node)->dump(true, true) << ")";
-
-  return ss.str();
-}
-
-std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &speculations) {
-  std::stringstream ss;
-
-  ss << "Speculating EP " << ep->get_id() << ":\n";
-  for (const spec_impl_t &speculation : speculations) {
-    ss << "  " << spec2str(speculation, ep->get_bdd()) << "\n";
-  }
-  ss << "\n";
-
-  return ss.str();
 }
 
 spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor,
@@ -702,17 +705,13 @@ spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType curren
 }
 
 // Sources of error:
-// 1. Speculative performance is calculated as we make the speculative
-// decisions, so local speculative decisions don't take into consideration
-// future speculative decisions.
+// 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into
+// consideration future speculative decisions.
 //   - This makes the speculative performance optimistic.
-//   - Fixing this would require a recalculation of the speculative performance
-//   after all decisions were made.
-// 2. Speculative decisions that would perform LibBDD::BDD manipulations don't actually
-// make them. Newer parts of the LibBDD::BDD are abandoned during speculation, along
-// with their hit rates.
-//   - This makes the speculation pessismistic, as part of the traffic will be
-//  lost.
+//   - Fixing this would require a recalculation of the speculative performance after all decisions were made.
+// 2. Speculative decisions that would perform BDD manipulations don't actually make them. Newer parts of the BDD are
+// abandoned during speculation, along with their hit rates.
+//   - This makes the speculation pessismistic, as part of the traffic will be lost.
 pps_t EP::speculate_tput_pps() const {
   if (cached_tput_speculation.has_value()) {
     return *cached_tput_speculation;
@@ -771,6 +770,7 @@ pps_t EP::speculate_tput_pps() const {
   const pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
 
   cached_tput_speculation = egress;
+  cached_speculations     = speculations;
 
   // if (id == 26) {
   //   std::cerr << speculations2str(this, speculations);

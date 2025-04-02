@@ -49,8 +49,9 @@ struct search_config_t {
   std::vector<ep_id_t> peek;
   bool pause_and_show_on_backtrack;
   bool not_greedy;
+  bool no_deadends;
 
-  search_config_t() : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false) {}
+  search_config_t() : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false), no_deadends(true) {}
 };
 
 class SearchEngine {

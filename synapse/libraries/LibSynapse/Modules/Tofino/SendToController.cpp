@@ -32,6 +32,11 @@ std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBD
 std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   Context new_ctx = ctx;
 
+  // Don't send to the controller if the node is already a route.
+  if (node->get_type() == LibBDD::NodeType::Route) {
+    return {};
+  }
+
   const hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
 
@@ -49,6 +54,11 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
 
   // We can't send to the controller if a forwarding decision was already made.
   if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
+    return impls;
+  }
+
+  // Don't send to the controller if the node is already a route.
+  if (node->get_type() == LibBDD::NodeType::Route) {
     return impls;
   }
 

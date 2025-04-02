@@ -20,8 +20,8 @@ time_ns_t exp_time_from_expire_items_single_map_time(const LibBDD::BDD *bdd, kle
   const LibCore::symbol_t &time_symbol = bdd->get_time();
   assert(LibCore::solver_toolbox.are_exprs_always_equal(rhs, time_symbol.expr) && "Invalid time expression");
 
-  u64 unsigned_exp_time = LibCore::solver_toolbox.value_from_expr(lhs);
-  time_ns_t exp_time    = ~unsigned_exp_time + 1;
+  const u64 unsigned_exp_time = LibCore::solver_toolbox.value_from_expr(lhs);
+  const time_ns_t exp_time    = ~unsigned_exp_time + 1;
 
   return exp_time;
 }
@@ -44,11 +44,11 @@ std::optional<expiration_data_t> build_expiration_data(const LibBDD::BDD *bdd) {
     }
 
     klee::ref<klee::Expr> time = call.args.at("time").expr;
-    time_ns_t exp_time         = exp_time_from_expire_items_single_map_time(bdd, time);
+    const time_ns_t exp_time   = exp_time_from_expire_items_single_map_time(bdd, time);
 
-    LibCore::symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
+    const LibCore::symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
 
-    expiration_data_t data = {
+    const expiration_data_t data{
         .expiration_time       = exp_time,
         .number_of_freed_flows = number_of_freed_flows,
     };
@@ -71,16 +71,12 @@ void Context::bdd_pre_processing_get_coalescing_candidates(const LibBDD::BDD *bd
 
     if (call.function_name == "map_allocate") {
       klee::ref<klee::Expr> obj = call.args.at("map_out").out;
-      addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::map_config_t cfg  = get_map_config_from_bdd(*bdd, addr);
-      map_configs[addr]         = cfg;
+      const addr_t addr         = LibCore::expr_addr_to_obj_addr(obj);
 
       LibBDD::map_coalescing_objs_t candidate;
       if (bdd->get_map_coalescing_objs(addr, candidate)) {
         coalescing_candidates.push_back(candidate);
       }
-
-      continue;
     }
   }
 }
@@ -92,56 +88,50 @@ void Context::bdd_pre_processing_get_ds_configs(const LibBDD::BDD *bdd) {
     const LibBDD::call_t &call = call_node->get_call();
 
     if (call.function_name == "map_allocate") {
-      klee::ref<klee::Expr> obj = call.args.at("map_out").out;
-      addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::map_config_t cfg  = get_map_config_from_bdd(*bdd, addr);
-      map_configs[addr]         = cfg;
-
-      LibBDD::map_coalescing_objs_t candidate;
-      if (bdd->get_map_coalescing_objs(addr, candidate)) {
-        coalescing_candidates.push_back(candidate);
-      }
-
+      klee::ref<klee::Expr> obj      = call.args.at("map_out").out;
+      const addr_t addr              = LibCore::expr_addr_to_obj_addr(obj);
+      const LibBDD::map_config_t cfg = get_map_config_from_bdd(*bdd, addr);
+      map_configs[addr]              = cfg;
       continue;
     }
 
     if (call.function_name == "vector_allocate") {
-      klee::ref<klee::Expr> obj   = call.args.at("vector_out").out;
-      addr_t addr                 = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::vector_config_t cfg = get_vector_config_from_bdd(*bdd, addr);
-      vector_configs[addr]        = cfg;
+      klee::ref<klee::Expr> obj         = call.args.at("vector_out").out;
+      const addr_t addr                 = LibCore::expr_addr_to_obj_addr(obj);
+      const LibBDD::vector_config_t cfg = get_vector_config_from_bdd(*bdd, addr);
+      vector_configs[addr]              = cfg;
       continue;
     }
 
     if (call.function_name == "dchain_allocate") {
-      klee::ref<klee::Expr> obj   = call.args.at("chain_out").out;
-      addr_t addr                 = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::dchain_config_t cfg = get_dchain_config_from_bdd(*bdd, addr);
-      dchain_configs[addr]        = cfg;
+      klee::ref<klee::Expr> obj         = call.args.at("chain_out").out;
+      const addr_t addr                 = LibCore::expr_addr_to_obj_addr(obj);
+      const LibBDD::dchain_config_t cfg = get_dchain_config_from_bdd(*bdd, addr);
+      dchain_configs[addr]              = cfg;
       continue;
     }
 
     if (call.function_name == "cms_allocate") {
-      klee::ref<klee::Expr> obj = call.args.at("cms_out").out;
-      addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::cms_config_t cfg  = get_cms_config_from_bdd(*bdd, addr);
-      cms_configs[addr]         = cfg;
+      klee::ref<klee::Expr> obj      = call.args.at("cms_out").out;
+      const addr_t addr              = LibCore::expr_addr_to_obj_addr(obj);
+      const LibBDD::cms_config_t cfg = get_cms_config_from_bdd(*bdd, addr);
+      cms_configs[addr]              = cfg;
       continue;
     }
 
     if (call.function_name == "cht_fill_cht") {
-      klee::ref<klee::Expr> obj = call.args.at("cht").expr;
-      addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::cht_config_t cfg  = get_cht_config_from_bdd(*bdd, addr);
-      cht_configs[addr]         = cfg;
+      klee::ref<klee::Expr> obj      = call.args.at("cht").expr;
+      const addr_t addr              = LibCore::expr_addr_to_obj_addr(obj);
+      const LibBDD::cht_config_t cfg = get_cht_config_from_bdd(*bdd, addr);
+      cht_configs[addr]              = cfg;
       continue;
     }
 
     if (call.function_name == "tb_allocate") {
-      klee::ref<klee::Expr> obj = call.args.at("tb_out").out;
-      addr_t addr               = LibCore::expr_addr_to_obj_addr(obj);
-      LibBDD::tb_config_t cfg   = get_tb_config_from_bdd(*bdd, addr);
-      tb_configs[addr]          = cfg;
+      klee::ref<klee::Expr> obj     = call.args.at("tb_out").out;
+      const addr_t addr             = LibCore::expr_addr_to_obj_addr(obj);
+      const LibBDD::tb_config_t cfg = get_tb_config_from_bdd(*bdd, addr);
+      tb_configs[addr]              = cfg;
       continue;
     }
   }
@@ -292,38 +282,32 @@ void Context::bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd) {
 
 void Context::bdd_pre_processing_log() {
   std::cerr << "***** BDD pre-processing: *****\n";
+  std::cerr << "Coalescing candidates:\n";
   for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
-    std::stringstream ss;
-    ss << "Coalescing candidate:";
-    ss << " map=" << candidate.map;
-    ss << ", ";
-    ss << "dchain=" << candidate.dchain;
-    ss << ", ";
-    ss << "vectors=[";
-
+    std::cerr << "  ";
+    std::cerr << " map=" << candidate.map << ", dchain=" << candidate.dchain << ", vectors=[";
     size_t i = 0;
     for (addr_t vector : candidate.vectors) {
       if (i++ > 0) {
-        ss << ", ";
+        std::cerr << ", ";
       }
-      ss << vector;
+      std::cerr << vector;
     }
-
-    ss << "]\n";
-
-    ss << "Structural estimations:\n";
-    for (const LibCore::expr_struct_t &expr_struct : expr_structs) {
-      ss << "--------------------------------\n";
-      ss << "Expr: " << LibCore::expr_to_string(expr_struct.expr, true) << "\n";
-      ss << "Fields:\n";
-      for (const klee::ref<klee::Expr> &field : expr_struct.fields) {
-        ss << "  " << LibCore::expr_to_string(field, true) << "\n";
-      }
-      ss << "--------------------------------\n";
-    }
-
-    std::cerr << ss.str();
+    std::cerr << "]\n";
   }
+
+  std::cerr << "\n";
+  std::cerr << "Structural estimations:\n";
+  for (const LibCore::expr_struct_t &expr_struct : expr_structs) {
+    std::cerr << "--------------------------------\n";
+    std::cerr << "Expr: " << LibCore::expr_to_string(expr_struct.expr, true) << "\n";
+    std::cerr << "Fields:\n";
+    for (const klee::ref<klee::Expr> &field : expr_struct.fields) {
+      std::cerr << "  " << LibCore::expr_to_string(field, true) << "\n";
+    }
+    std::cerr << "--------------------------------\n";
+  }
+
   std::cerr << "*******************************\n";
 }
 
