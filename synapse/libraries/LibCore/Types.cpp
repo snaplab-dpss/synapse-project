@@ -33,7 +33,7 @@ std::pair<u64, std::string> n2hr(u64 n) {
 pps_t bps2pps(bps_t bps, bytes_t pkt_size) { return bps / ((PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8); }
 bps_t pps2bps(pps_t pps, bytes_t pkt_size) { return pps * (PREAMBLE_SIZE_BYTES + pkt_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES) * 8; }
 
-std::string int2hr(u64 value) {
+std::string int2hr(i64 value) {
   std::stringstream ss;
   std::string str = std::to_string(value);
 

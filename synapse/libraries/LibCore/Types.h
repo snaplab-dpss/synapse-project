@@ -127,7 +127,7 @@ namespace LibCore {
 
 pps_t bps2pps(bps_t bps, bytes_t pkt_size);
 bps_t pps2bps(pps_t pps, bytes_t pkt_size);
-std::string int2hr(u64 value);
+std::string int2hr(i64 value);
 std::string tput2str(u64 thpt, std::string units, bool human_readable = false);
 bits_t bits_from_pow2_capacity(size_t capacity);
 

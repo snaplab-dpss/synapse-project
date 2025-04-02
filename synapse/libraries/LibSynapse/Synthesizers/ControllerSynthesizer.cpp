@@ -691,9 +691,7 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::pat
                   _out_file),
       ep(_ep), transpiler(this) {}
 
-ControllerSynthesizer::coder_t &ControllerSynthesizer::get_current_coder() {
-  return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS);
-}
+ControllerSynthesizer::coder_t &ControllerSynthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
 
 ControllerSynthesizer::coder_t &ControllerSynthesizer::get(const std::string &marker) { return Synthesizer::get(marker); }
 
@@ -1043,7 +1041,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableAllocate *node) {
   const addr_t obj                  = node->get_obj();
   const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
 
@@ -1052,14 +1050,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableLookup *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::MapTableLookup");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                  = node->get_obj();
@@ -1079,14 +1077,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapTableDelete *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::MapTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableAllocate *node) {
   const addr_t obj                        = node->get_obj();
   const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
 
@@ -1095,7 +1093,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableLookup *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableLookup *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                  = node->get_obj();
@@ -1118,7 +1116,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorTableUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableUpdate *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                  = node->get_obj();
@@ -1138,7 +1136,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocate *node) {
   const addr_t obj                = node->get_obj();
   const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
 
@@ -1149,7 +1147,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableIsIndexAllocated *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableIsIndexAllocated *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                     = node->get_obj();
@@ -1170,7 +1168,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableRefreshIndex *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableRefreshIndex *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj            = node->get_obj();
@@ -1187,7 +1185,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableAllocateNewIndex *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocateNewIndex *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                      = node->get_obj();
@@ -1212,7 +1210,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainTableFreeIndex *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableFreeIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::DchainTableFreeIndex");
@@ -1324,7 +1322,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *node) {
   addr_t obj = node->get_obj();
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
@@ -1333,7 +1331,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterLookup *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                  = node->get_obj();
@@ -1356,7 +1354,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRegisterUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *node) {
   coder_t &coder = get_current_coder();
 
   const addr_t obj                      = node->get_obj();
@@ -1377,35 +1375,35 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::FCFSCachedTableAllocate");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableRead *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::FCFSCachedTableRead");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableWrite *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::FCFSCachedTableWrite");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FCFSCachedTableDelete *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::FCFSCachedTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) {
   const addr_t obj                = node->get_obj();
   const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
 
@@ -1416,28 +1414,28 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableRead *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::HHTableRead");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableConditionalUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableConditionalUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::HHTableConditionalUpdate");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableUpdate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::HHTableUpdate");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HHTableDelete *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::HHTableDelete");
@@ -1479,28 +1477,28 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MeterAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::MeterAllocate");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MeterInsert *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::MeterInsert");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorAllocate *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::IntegerAllocatorAllocate");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::IntegerAllocatorFreeIndex *node) {
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: Controller::IntegerAllocatorFreeIndex");
@@ -1542,8 +1540,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr,
-                                                              std::optional<addr_t> addr, var_alloc_opt_t opt) {
+ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr,
+                                                              var_alloc_opt_t opt) {
   const var_t var{
       .name      = (opt & EXACT_NAME) ? assert_unique_name(proposed_name) : create_unique_name(proposed_name),
       .expr      = expr,

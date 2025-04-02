@@ -260,8 +260,7 @@ std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<Modul
 }
 
 bool EP::has_target(TargetType type) const {
-  auto found_it =
-      std::find_if(targets.elements.begin(), targets.elements.end(), [type](const TargetView &target) { return target.type == type; });
+  auto found_it = std::find_if(targets.elements.begin(), targets.elements.end(), [type](const TargetView &target) { return target.type == type; });
 
   return found_it != targets.elements.end();
 }
@@ -315,8 +314,8 @@ void EP::process_leaf(const LibBDD::Node *next_node) {
 }
 
 void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node) {
-  TargetType current_target = get_active_target();
-  EPLeaf active_leaf        = pop_active_leaf();
+  const TargetType current_target = get_active_target();
+  const EPLeaf active_leaf        = pop_active_leaf();
 
   if (!root) {
     root = new_node;
@@ -338,9 +337,9 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
       meta.update(active_leaf, new_leaf.node, process_node);
     }
 
-    const Module *module           = new_leaf.node->get_module();
-    TargetType next_target         = module->get_next_target();
-    LibBDD::node_id_t next_node_id = new_leaf.next->get_id();
+    const Module *module                 = new_leaf.node->get_module();
+    const TargetType next_target         = module->get_next_target();
+    const LibBDD::node_id_t next_node_id = new_leaf.next->get_id();
 
     if (next_target != current_target) {
       targets_roots[next_target].insert(next_node_id);
@@ -440,8 +439,7 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_dat
   ctx.get_profiler().clear_cache();
 
   // Translating Profiler symbols.
-  ctx.get_mutable_profiler().translate(new_bdd->get_mutable_symbol_manager(), translation_data.reordered_node,
-                                       translation_data.translated_symbols);
+  ctx.get_mutable_profiler().translate(new_bdd->get_mutable_symbol_manager(), translation_data.reordered_node, translation_data.translated_symbols);
 
   // Reset the BDD only here, because we might lose the final reference to it and we needed the old nodes to find the new ones.
   bdd = std::move(new_bdd);
@@ -575,8 +573,8 @@ void EP::sort_leaves() {
   std::sort(active_leaves.begin(), active_leaves.end(), prioritize_switch_and_hot_paths);
 }
 
-spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor,
-                                                  LibBDD::node_ids_t future_nodes, TargetType current_target, pps_t ingress) const {
+spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor, LibBDD::node_ids_t future_nodes,
+                                                  TargetType current_target, pps_t ingress) const {
   future_nodes.erase(anchor->get_id());
 
   spec_impl_t speculation = base_speculation;
@@ -650,8 +648,8 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   return new_pps > old_pps;
 }
 
-spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &ctx,
-                                     const LibBDD::node_ids_t &skip, pps_t ingress) const {
+spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &ctx, const LibBDD::node_ids_t &skip,
+                                     pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
   for (const TargetView &target : targets.elements) {

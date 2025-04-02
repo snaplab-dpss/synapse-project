@@ -9,8 +9,7 @@ namespace {
 std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBDD::Node *node, const LibBDD::Node *&next) {
   std::vector<const LibBDD::Call *> prev_borrows =
       node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const LibBDD::Call *> prev_returns =
-      node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const LibBDD::Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const LibBDD::Node *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
@@ -46,8 +45,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
   return spec_impl;
 }
 
-std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                          LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   const EPLeaf active_leaf = ep->get_active_leaf();

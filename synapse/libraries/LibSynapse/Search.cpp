@@ -56,8 +56,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
 
   std::cerr << "Node:       " << report.current->dump(true) << "\n";
 
-  assert((report.targets.size() == report.name.size() && report.targets.size() == report.gen_ep_ids.size()) &&
-         "Mismatch in the number of targets");
+  assert((report.targets.size() == report.name.size() && report.targets.size() == report.gen_ep_ids.size()) && "Mismatch in the number of targets");
 
   for (size_t i = 0; i < report.targets.size(); i++) {
     std::stringstream ep_ids;
@@ -71,8 +70,8 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     }
     ep_ids << "]";
 
-    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> " << report.gen_ep_ids[i].size() << " ("
-              << ep_ids.str() << ") EPs\n";
+    std::cerr << "MATCH:      " << report.targets[i] << "::" << report.name[i] << " -> " << report.gen_ep_ids[i].size() << " (" << ep_ids.str()
+              << ") EPs\n";
   }
 
   std::cerr << "------------------------------------------\n";
@@ -120,41 +119,16 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const LibBDD::BDD &bdd, const Targets &targets,
                                            const targets_config_t &targets_config, const Profiler &profiler) {
-  std::unique_ptr<HeuristicCfg> cfg;
-
-  switch (hopt) {
-  case HeuristicOption::BFS:
-    cfg = std::make_unique<BFSCfg>();
-    break;
-  case HeuristicOption::DFS:
-    cfg = std::make_unique<DFSCfg>();
-    break;
-  case HeuristicOption::RANDOM:
-    cfg = std::make_unique<RandomCfg>();
-    break;
-  case HeuristicOption::GALLIUM:
-    cfg = std::make_unique<GalliumCfg>();
-    break;
-  case HeuristicOption::GREEDY:
-    cfg = std::make_unique<GreedyCfg>();
-    break;
-  case HeuristicOption::MAX_TPUT:
-    cfg = std::make_unique<MaxTputCfg>();
-    break;
-  case HeuristicOption::DS_PREF:
-    cfg = std::make_unique<DSPrefCfg>();
-    break;
-  }
-
-  std::unique_ptr<EP> starting_ep      = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
-  std::unique_ptr<Heuristic> heuristic = std::make_unique<Heuristic>(std::move(cfg), std::move(starting_ep), !not_greedy);
+  std::unique_ptr<HeuristicCfg> heuristic_cfg = build_heuristic_cfg(hopt);
+  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
+  std::unique_ptr<Heuristic> heuristic        = std::make_unique<Heuristic>(std::move(heuristic_cfg), std::move(starting_ep), !not_greedy);
 
   return heuristic;
 }
 } // namespace
 
-SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler,
-                           const targets_config_t &_targets_config, const search_config_t &_search_config)
+SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
+                           const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config)), profiler(_profiler),
       heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 
@@ -199,8 +173,7 @@ search_report_t SearchEngine::search() {
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
-        const std::vector<impl_t> implementations =
-            factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
+        const std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 
         search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
         report.save(factory.get(), implementations);

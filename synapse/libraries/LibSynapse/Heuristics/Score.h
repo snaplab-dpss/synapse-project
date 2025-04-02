@@ -17,8 +17,8 @@ public:
   inline bool operator<(const Score &other) {
     assert(values.size() == other.values.size() && "Scores have different sizes");
     for (size_t i = 0; i < values.size(); i++) {
-      i64 this_score  = values[i];
-      i64 other_score = other.values[i];
+      const i64 this_score  = values[i];
+      const i64 other_score = other.values[i];
 
       if (this_score > other_score) {
         return false;
@@ -35,8 +35,8 @@ public:
   inline bool operator==(const Score &other) {
     assert(values.size() == other.values.size() && "Scores have different sizes");
     for (size_t i = 0; i < values.size(); i++) {
-      i64 this_score  = values[i];
-      i64 other_score = other.values[i];
+      const i64 this_score  = values[i];
+      const i64 other_score = other.values[i];
 
       if (this_score != other_score) {
         return false;
@@ -54,7 +54,7 @@ public:
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Score &score) {
-  size_t N = score.values.size();
+  const size_t N = score.values.size();
 
   os << "<";
 

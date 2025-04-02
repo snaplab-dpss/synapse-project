@@ -6,7 +6,7 @@
 #include <functional>
 #include <vector>
 
-#define BUILD_METRIC(cls, name, obj)                                                                                                       \
+#define BUILD_METRIC(cls, name, obj)                                                                                                                 \
   { std::bind(&cls::name, this, std::placeholders::_1), Metric::Objective::obj }
 
 namespace LibSynapse {
@@ -35,7 +35,7 @@ public:
     const size_t N = metrics.size();
     std::vector<i64> values(N);
 
-    for (size_t i = 0; i < N; i++) {
+    for (size_t i = 0; i < metrics.size(); i++) {
       values[i] = (metrics[i].computer)(e);
       if (metrics[i].objective == Metric::Objective::MIN) {
         values[i] *= -1;

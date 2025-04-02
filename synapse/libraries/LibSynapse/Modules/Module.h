@@ -69,34 +69,41 @@ enum class ModuleType {
   Controller_Forward,
   Controller_Broadcast,
   Controller_Drop,
-  Controller_MapTableAllocate,
-  Controller_MapTableLookup,
-  Controller_MapTableUpdate,
-  Controller_MapTableDelete,
-  Controller_VectorTableAllocate,
-  Controller_VectorTableLookup,
-  Controller_VectorTableUpdate,
-  Controller_DchainTableAllocate,
-  Controller_DchainTableIsIndexAllocated,
-  Controller_DchainTableAllocateNewIndex,
-  Controller_DchainTableFreeIndex,
-  Controller_DchainTableRefreshIndex,
-  Controller_FCFSCachedTableAllocate,
-  Controller_FCFSCachedTableRead,
-  Controller_FCFSCachedTableWrite,
-  Controller_FCFSCachedTableDelete,
-  Controller_HHTableAllocate,
-  Controller_HHTableRead,
-  Controller_HHTableConditionalUpdate,
-  Controller_HHTableUpdate,
-  Controller_HHTableDelete,
+
+  Controller_DataplaneMapTableAllocate,
+  Controller_DataplaneMapTableLookup,
+  Controller_DataplaneMapTableUpdate,
+  Controller_DataplaneMapTableDelete,
+  Controller_DataplaneVectorTableAllocate,
+  Controller_DataplaneVectorTableLookup,
+  Controller_DataplaneVectorTableUpdate,
+  Controller_DataplaneDchainTableAllocate,
+  Controller_DataplaneDchainTableIsIndexAllocated,
+  Controller_DataplaneDchainTableAllocateNewIndex,
+  Controller_DataplaneDchainTableFreeIndex,
+  Controller_DataplaneDchainTableRefreshIndex,
+  Controller_DataplaneVectorRegisterAllocate,
+  Controller_DataplaneVectorRegisterLookup,
+  Controller_DataplaneVectorRegisterUpdate,
+  Controller_DataplaneFCFSCachedTableAllocate,
+  Controller_DataplaneFCFSCachedTableRead,
+  Controller_DataplaneFCFSCachedTableWrite,
+  Controller_DataplaneFCFSCachedTableDelete,
+  Controller_DataplaneHHTableAllocate,
+  Controller_DataplaneHHTableRead,
+  Controller_DataplaneHHTableConditionalUpdate,
+  Controller_DataplaneHHTableUpdate,
+  Controller_DataplaneHHTableDelete,
+  Controller_DataplaneIntegerAllocatorAllocate,
+  Controller_DataplaneIntegerAllocatorFreeIndex,
+  Controller_DataplaneMeterAllocate,
+  Controller_DataplaneMeterInsert,
+
   Controller_DchainAllocate,
   Controller_DchainAllocateNewIndex,
   Controller_DchainRejuvenateIndex,
   Controller_DchainIsIndexAllocated,
   Controller_DchainFreeIndex,
-  Controller_IntegerAllocatorAllocate,
-  Controller_IntegerAllocatorFreeIndex,
   Controller_VectorAllocate,
   Controller_VectorRead,
   Controller_VectorWrite,
@@ -107,16 +114,11 @@ enum class ModuleType {
   Controller_ChtAllocate,
   Controller_ChtFindBackend,
   Controller_HashObj,
-  Controller_VectorRegisterAllocate,
-  Controller_VectorRegisterLookup,
-  Controller_VectorRegisterUpdate,
   Controller_TokenBucketAllocate,
   Controller_TokenBucketIsTracing,
   Controller_TokenBucketTrace,
   Controller_TokenBucketUpdateAndCheck,
   Controller_TokenBucketExpire,
-  Controller_MeterAllocate,
-  Controller_MeterInsert,
   Controller_CMSAllocate,
   Controller_CMSUpdate,
   Controller_CMSQuery,
@@ -290,68 +292,68 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_Drop:
     os << "Controller_Drop";
     break;
-  case ModuleType::Controller_MapTableAllocate:
-    os << "Controller_MapTableAllocate";
+  case ModuleType::Controller_DataplaneMapTableAllocate:
+    os << "Controller_DataplaneMapTableAllocate";
     break;
-  case ModuleType::Controller_MapTableLookup:
-    os << "Controller_MapTableLookup";
+  case ModuleType::Controller_DataplaneMapTableLookup:
+    os << "Controller_DataplaneMapTableLookup";
     break;
-  case ModuleType::Controller_MapTableUpdate:
-    os << "Controller_MapTableUpdate";
+  case ModuleType::Controller_DataplaneMapTableUpdate:
+    os << "Controller_DataplaneMapTableUpdate";
     break;
-  case ModuleType::Controller_MapTableDelete:
-    os << "Controller_MapTableDelete";
+  case ModuleType::Controller_DataplaneMapTableDelete:
+    os << "Controller_DataplaneMapTableDelete";
     break;
-  case ModuleType::Controller_DchainTableAllocate:
-    os << "Controller_DchainTableAllocate";
+  case ModuleType::Controller_DataplaneDchainTableAllocate:
+    os << "Controller_DataplaneDchainTableAllocate";
     break;
-  case ModuleType::Controller_DchainTableIsIndexAllocated:
-    os << "Controller_DchainTableIsIndexAllocated";
+  case ModuleType::Controller_DataplaneDchainTableIsIndexAllocated:
+    os << "Controller_DataplaneDchainTableIsIndexAllocated";
     break;
-  case ModuleType::Controller_DchainTableAllocateNewIndex:
-    os << "Controller_DchainTableAllocateNewIndex";
+  case ModuleType::Controller_DataplaneDchainTableAllocateNewIndex:
+    os << "Controller_DataplaneDchainTableAllocateNewIndex";
     break;
-  case ModuleType::Controller_DchainTableFreeIndex:
-    os << "Controller_DchainTableFreeIndex";
+  case ModuleType::Controller_DataplaneDchainTableFreeIndex:
+    os << "Controller_DataplaneDchainTableFreeIndex";
     break;
-  case ModuleType::Controller_DchainTableRefreshIndex:
-    os << "Controller_DchainTableRefreshIndex";
+  case ModuleType::Controller_DataplaneDchainTableRefreshIndex:
+    os << "Controller_DataplaneDchainTableRefreshIndex";
     break;
-  case ModuleType::Controller_VectorTableAllocate:
-    os << "Controller_VectorTableAllocate";
+  case ModuleType::Controller_DataplaneVectorTableAllocate:
+    os << "Controller_DataplaneVectorTableAllocate";
     break;
-  case ModuleType::Controller_VectorTableLookup:
-    os << "Controller_VectorTableLookup";
+  case ModuleType::Controller_DataplaneVectorTableLookup:
+    os << "Controller_DataplaneVectorTableLookup";
     break;
-  case ModuleType::Controller_VectorTableUpdate:
-    os << "Controller_VectorTableUpdate";
+  case ModuleType::Controller_DataplaneVectorTableUpdate:
+    os << "Controller_DataplaneVectorTableUpdate";
     break;
-  case ModuleType::Controller_FCFSCachedTableAllocate:
-    os << "Controller_FCFSCachedTableAllocate";
+  case ModuleType::Controller_DataplaneFCFSCachedTableAllocate:
+    os << "Controller_DataplaneFCFSCachedTableAllocate";
     break;
-  case ModuleType::Controller_FCFSCachedTableRead:
-    os << "Controller_FCFSCachedTableRead";
+  case ModuleType::Controller_DataplaneFCFSCachedTableRead:
+    os << "Controller_DataplaneFCFSCachedTableRead";
     break;
-  case ModuleType::Controller_FCFSCachedTableWrite:
-    os << "Controller_FCFSCachedTableWrite";
+  case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
+    os << "Controller_DataplaneFCFSCachedTableWrite";
     break;
-  case ModuleType::Controller_FCFSCachedTableDelete:
-    os << "Controller_FCFSCachedTableDelete";
+  case ModuleType::Controller_DataplaneFCFSCachedTableDelete:
+    os << "Controller_DataplaneFCFSCachedTableDelete";
     break;
-  case ModuleType::Controller_HHTableAllocate:
-    os << "Controller_HHTableAllocate";
+  case ModuleType::Controller_DataplaneHHTableAllocate:
+    os << "Controller_DataplaneHHTableAllocate";
     break;
-  case ModuleType::Controller_HHTableRead:
-    os << "Controller_HHTableRead";
+  case ModuleType::Controller_DataplaneHHTableRead:
+    os << "Controller_DataplaneHHTableRead";
     break;
-  case ModuleType::Controller_HHTableConditionalUpdate:
-    os << "Controller_HHTableConditionalUpdate";
+  case ModuleType::Controller_DataplaneHHTableConditionalUpdate:
+    os << "Controller_DataplaneHHTableConditionalUpdate";
     break;
-  case ModuleType::Controller_HHTableUpdate:
-    os << "Controller_HHTableUpdate";
+  case ModuleType::Controller_DataplaneHHTableUpdate:
+    os << "Controller_DataplaneHHTableUpdate";
     break;
-  case ModuleType::Controller_HHTableDelete:
-    os << "Controller_HHTableDelete";
+  case ModuleType::Controller_DataplaneHHTableDelete:
+    os << "Controller_DataplaneHHTableDelete";
     break;
   case ModuleType::Controller_DchainAllocate:
     os << "Controller_DchainAllocate";
@@ -368,11 +370,11 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DchainFreeIndex:
     os << "Controller_DchainFreeIndex";
     break;
-  case ModuleType::Controller_IntegerAllocatorAllocate:
-    os << "Controller_IntegerAllocatorAllocate";
+  case ModuleType::Controller_DataplaneIntegerAllocatorAllocate:
+    os << "Controller_DataplaneIntegerAllocatorAllocate";
     break;
-  case ModuleType::Controller_IntegerAllocatorFreeIndex:
-    os << "Controller_IntegerAllocatorFreeIndex";
+  case ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex:
+    os << "Controller_DataplaneIntegerAllocatorFreeIndex";
     break;
   case ModuleType::Controller_VectorAllocate:
     os << "Controller_VectorAllocate";
@@ -404,14 +406,14 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_HashObj:
     os << "Controller_HashObj";
     break;
-  case ModuleType::Controller_VectorRegisterAllocate:
-    os << "Controller_VectorRegisterAllocate";
+  case ModuleType::Controller_DataplaneVectorRegisterAllocate:
+    os << "Controller_DataplaneVectorRegisterAllocate";
     break;
-  case ModuleType::Controller_VectorRegisterLookup:
-    os << "Controller_VectorRegisterLookup";
+  case ModuleType::Controller_DataplaneVectorRegisterLookup:
+    os << "Controller_DataplaneVectorRegisterLookup";
     break;
-  case ModuleType::Controller_VectorRegisterUpdate:
-    os << "Controller_VectorRegisterUpdate";
+  case ModuleType::Controller_DataplaneVectorRegisterUpdate:
+    os << "Controller_DataplaneVectorRegisterUpdate";
     break;
   case ModuleType::Controller_TokenBucketAllocate:
     os << "Controller_TokenBucketAllocate";
@@ -428,11 +430,11 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_TokenBucketExpire:
     os << "Controller_TokenBucketExpire";
     break;
-  case ModuleType::Controller_MeterAllocate:
-    os << "Controller_MeterAllocate";
+  case ModuleType::Controller_DataplaneMeterAllocate:
+    os << "Controller_DataplaneMeterAllocate";
     break;
-  case ModuleType::Controller_MeterInsert:
-    os << "Controller_MeterInsert";
+  case ModuleType::Controller_DataplaneMeterInsert:
+    os << "Controller_DataplaneMeterInsert";
     break;
   case ModuleType::Controller_CMSAllocate:
     os << "Controller_CMSAllocate";

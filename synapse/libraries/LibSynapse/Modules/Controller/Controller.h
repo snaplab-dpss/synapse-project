@@ -13,18 +13,18 @@
 #include <LibSynapse/Modules/Controller/Forward.h>
 #include <LibSynapse/Modules/Controller/Broadcast.h>
 #include <LibSynapse/Modules/Controller/Drop.h>
-#include <LibSynapse/Modules/Controller/MapTableAllocate.h>
-#include <LibSynapse/Modules/Controller/MapTableLookup.h>
-#include <LibSynapse/Modules/Controller/MapTableUpdate.h>
-#include <LibSynapse/Modules/Controller/MapTableDelete.h>
-#include <LibSynapse/Modules/Controller/VectorTableAllocate.h>
-#include <LibSynapse/Modules/Controller/VectorTableLookup.h>
-#include <LibSynapse/Modules/Controller/VectorTableUpdate.h>
-#include <LibSynapse/Modules/Controller/DchainTableAllocate.h>
-#include <LibSynapse/Modules/Controller/DchainTableAllocateNewIndex.h>
-#include <LibSynapse/Modules/Controller/DchainTableFreeIndex.h>
-#include <LibSynapse/Modules/Controller/DchainTableIsIndexAllocated.h>
-#include <LibSynapse/Modules/Controller/DchainTableRefreshIndex.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapTableDelete.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneDchainTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneDchainTableAllocateNewIndex.h>
+#include <LibSynapse/Modules/Controller/DataplaneDchainTableFreeIndex.h>
+#include <LibSynapse/Modules/Controller/DataplaneDchainTableIsIndexAllocated.h>
+#include <LibSynapse/Modules/Controller/DataplaneDchainTableRefreshIndex.h>
 #include <LibSynapse/Modules/Controller/DchainAllocate.h>
 #include <LibSynapse/Modules/Controller/DchainAllocateNewIndex.h>
 #include <LibSynapse/Modules/Controller/DchainIsIndexAllocated.h>
@@ -41,27 +41,27 @@
 #include <LibSynapse/Modules/Controller/ChtAllocate.h>
 #include <LibSynapse/Modules/Controller/ChtFindBackend.h>
 #include <LibSynapse/Modules/Controller/HashObj.h>
-#include <LibSynapse/Modules/Controller/VectorRegisterAllocate.h>
-#include <LibSynapse/Modules/Controller/VectorRegisterLookup.h>
-#include <LibSynapse/Modules/Controller/VectorRegisterUpdate.h>
-#include <LibSynapse/Modules/Controller/FCFSCachedTableAllocate.h>
-#include <LibSynapse/Modules/Controller/FCFSCachedTableRead.h>
-#include <LibSynapse/Modules/Controller/FCFSCachedTableWrite.h>
-#include <LibSynapse/Modules/Controller/FCFSCachedTableDelete.h>
-#include <LibSynapse/Modules/Controller/HHTableAllocate.h>
-#include <LibSynapse/Modules/Controller/HHTableRead.h>
-#include <LibSynapse/Modules/Controller/HHTableUpdate.h>
-#include <LibSynapse/Modules/Controller/HHTableConditionalUpdate.h>
-#include <LibSynapse/Modules/Controller/HHTableDelete.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorRegisterAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorRegisterLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorRegisterUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableRead.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableWrite.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableDelete.h>
+#include <LibSynapse/Modules/Controller/DataplaneHHTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
+#include <LibSynapse/Modules/Controller/DataplaneHHTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneHHTableConditionalUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneHHTableDelete.h>
 #include <LibSynapse/Modules/Controller/TokenBucketAllocate.h>
 #include <LibSynapse/Modules/Controller/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/Controller/TokenBucketTrace.h>
 #include <LibSynapse/Modules/Controller/TokenBucketUpdateAndCheck.h>
 #include <LibSynapse/Modules/Controller/TokenBucketExpire.h>
-#include <LibSynapse/Modules/Controller/MeterAllocate.h>
-#include <LibSynapse/Modules/Controller/MeterInsert.h>
-#include <LibSynapse/Modules/Controller/IntegerAllocatorAllocate.h>
-#include <LibSynapse/Modules/Controller/IntegerAllocatorFreeIndex.h>
+#include <LibSynapse/Modules/Controller/DataplaneMeterAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneMeterInsert.h>
+#include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorFreeIndex.h>
 #include <LibSynapse/Modules/Controller/CMSAllocate.h>
 #include <LibSynapse/Modules/Controller/CMSUpdate.h>
 #include <LibSynapse/Modules/Controller/CMSQuery.h>
@@ -87,18 +87,18 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<BroadcastFactory>());
               f.push_back(std::make_unique<DropFactory>());
-              f.push_back(std::make_unique<MapTableAllocateFactory>());
-              f.push_back(std::make_unique<MapTableLookupFactory>());
-              f.push_back(std::make_unique<MapTableUpdateFactory>());
-              f.push_back(std::make_unique<MapTableDeleteFactory>());
-              f.push_back(std::make_unique<VectorTableAllocateFactory>());
-              f.push_back(std::make_unique<VectorTableLookupFactory>());
-              f.push_back(std::make_unique<VectorTableUpdateFactory>());
-              f.push_back(std::make_unique<DchainTableAllocateFactory>());
-              f.push_back(std::make_unique<DchainTableAllocateNewIndexFactory>());
-              f.push_back(std::make_unique<DchainTableFreeIndexFactory>());
-              f.push_back(std::make_unique<DchainTableIsIndexAllocatedFactory>());
-              f.push_back(std::make_unique<DchainTableRefreshIndexFactory>());
+              f.push_back(std::make_unique<DataplaneMapTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneMapTableLookupFactory>());
+              f.push_back(std::make_unique<DataplaneMapTableUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneMapTableDeleteFactory>());
+              f.push_back(std::make_unique<DataplaneVectorTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneVectorTableLookupFactory>());
+              f.push_back(std::make_unique<DataplaneVectorTableUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneDchainTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneDchainTableAllocateNewIndexFactory>());
+              f.push_back(std::make_unique<DataplaneDchainTableFreeIndexFactory>());
+              f.push_back(std::make_unique<DataplaneDchainTableIsIndexAllocatedFactory>());
+              f.push_back(std::make_unique<DataplaneDchainTableRefreshIndexFactory>());
               f.push_back(std::make_unique<DchainAllocateFactory>());
               f.push_back(std::make_unique<DchainAllocateNewIndexFactory>());
               f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>());
@@ -114,27 +114,27 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<ChtAllocateFactory>());
               f.push_back(std::make_unique<ChtFindBackendFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
-              f.push_back(std::make_unique<VectorRegisterAllocateFactory>());
-              f.push_back(std::make_unique<VectorRegisterLookupFactory>());
-              f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableAllocateFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
-              f.push_back(std::make_unique<HHTableAllocateFactory>());
-              f.push_back(std::make_unique<HHTableReadFactory>());
-              f.push_back(std::make_unique<HHTableUpdateFactory>());
-              f.push_back(std::make_unique<HHTableConditionalUpdateFactory>());
-              f.push_back(std::make_unique<HHTableDeleteFactory>());
+              f.push_back(std::make_unique<DataplaneVectorRegisterAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneVectorRegisterLookupFactory>());
+              f.push_back(std::make_unique<DataplaneVectorRegisterUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableReadFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableWriteFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableDeleteFactory>());
+              f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneHHTableReadFactory>());
+              f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneHHTableConditionalUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>());
               f.push_back(std::make_unique<TokenBucketAllocateFactory>());
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>());
               f.push_back(std::make_unique<TokenBucketTraceFactory>());
               f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>());
               f.push_back(std::make_unique<TokenBucketExpireFactory>());
-              f.push_back(std::make_unique<MeterAllocateFactory>());
-              f.push_back(std::make_unique<MeterInsertFactory>());
-              f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
-              f.push_back(std::make_unique<IntegerAllocatorFreeIndexFactory>());
+              f.push_back(std::make_unique<DataplaneMeterAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneMeterInsertFactory>());
+              f.push_back(std::make_unique<DataplaneIntegerAllocatorAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneIntegerAllocatorFreeIndexFactory>());
               f.push_back(std::make_unique<CMSAllocateFactory>());
               f.push_back(std::make_unique<CMSUpdateFactory>());
               f.push_back(std::make_unique<CMSQueryFactory>());

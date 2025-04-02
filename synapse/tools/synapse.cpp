@@ -14,7 +14,7 @@ const std::unordered_map<std::string, LibSynapse::HeuristicOption> heuristic_opt
     {"bfs", LibSynapse::HeuristicOption::BFS},         {"dfs", LibSynapse::HeuristicOption::DFS},
     {"random", LibSynapse::HeuristicOption::RANDOM},   {"gallium", LibSynapse::HeuristicOption::GALLIUM},
     {"greedy", LibSynapse::HeuristicOption::GREEDY},   {"max-tput", LibSynapse::HeuristicOption::MAX_TPUT},
-    {"ds-pref", LibSynapse::HeuristicOption::DS_PREF},
+    {"ds-pref", LibSynapse::HeuristicOption::DS_PREF}, {"max-controller", LibSynapse::HeuristicOption::MAX_CONTROLLER},
 };
 
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
@@ -120,8 +120,7 @@ LibSynapse::targets_config_t parse_targets_config(const std::filesystem::path &t
 
   targets_config.controller_capacity = *config["controller"]["capacity_pps"].value<pps_t>();
 
-  if (targets_config.tofino_config.properties.total_recirc_ports !=
-      static_cast<int>(targets_config.tofino_config.recirculation_ports.size())) {
+  if (targets_config.tofino_config.properties.total_recirc_ports != static_cast<int>(targets_config.tofino_config.recirculation_ports.size())) {
     panic("Invalid config file: total_recirc_ports size does not match the number of provided recirculation ports.");
   }
 
@@ -231,8 +230,7 @@ int main(int argc, char **argv) {
   LibCore::SymbolManager symbol_manager;
   const LibBDD::BDD bdd                             = LibBDD::BDD(args.input_bdd_file, &symbol_manager);
   const LibSynapse::targets_config_t targets_config = parse_targets_config(args.targets_config_file);
-  const LibSynapse::Profiler profiler =
-      args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
+  const LibSynapse::Profiler profiler = args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
 
   if (args.show_prof) {
     profiler.debug();

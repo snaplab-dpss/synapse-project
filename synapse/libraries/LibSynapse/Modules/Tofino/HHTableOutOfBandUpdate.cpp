@@ -1,10 +1,4 @@
 #include <LibSynapse/Modules/Tofino/HHTableOutOfBandUpdate.h>
-#include <LibSynapse/Modules/Tofino/If.h>
-#include <LibSynapse/Modules/Tofino/Then.h>
-#include <LibSynapse/Modules/Tofino/Else.h>
-#include <LibSynapse/Modules/Tofino/SendToController.h>
-#include <LibSynapse/Modules/Tofino/HHTableRead.h>
-#include <LibSynapse/Modules/Controller/HHTableUpdate.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -79,8 +73,7 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
 
   hh_table_data_t table_data(ctx, map_put);
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
   }
 
@@ -90,8 +83,7 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
   const LibBDD::branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
 
-  const LibBDD::Node *on_hh =
-      index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
+  const LibBDD::Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
   std::vector<const LibBDD::Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs);
 
   // Ignore all coalescing nodes if the index allocation is successful (i.e. it is a heavy hitter).
@@ -163,9 +155,9 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
     assert(new_next_node && "Next node not found");
   }
 
-  const std::vector<klee::ref<klee::Expr>> on_succesful_allocation =
-      index_alloc_check.direction ? index_alloc_check.branch->get_on_true()->get_ordered_branch_constraints()
-                                  : index_alloc_check.branch->get_on_false()->get_ordered_branch_constraints();
+  const std::vector<klee::ref<klee::Expr>> on_succesful_allocation = index_alloc_check.direction
+                                                                         ? index_alloc_check.branch->get_on_true()->get_ordered_branch_constraints()
+                                                                         : index_alloc_check.branch->get_on_false()->get_ordered_branch_constraints();
 
   new_ep->get_mutable_ctx().get_mutable_profiler().remove(on_succesful_allocation);
 

@@ -21,6 +21,7 @@ struct EPMeta {
   size_t reordered_nodes;
 
   std::unordered_map<TargetType, size_t> steps_per_target;
+  std::unordered_map<ModuleType, size_t> modules_counter;
   std::unordered_set<ep_node_id_t> processed_leaves;
   std::unordered_set<ep_node_id_t> visited_ep_nodes;
   LibBDD::node_ids_t processed_nodes;
@@ -37,14 +38,14 @@ struct EPMeta {
 
   EPMeta(const EPMeta &other)
       : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes), reordered_nodes(other.reordered_nodes),
-        steps_per_target(other.steps_per_target), processed_leaves(other.processed_leaves), visited_ep_nodes(other.visited_ep_nodes),
-        processed_nodes(other.processed_nodes), random_number(LibCore::SingletonRandomEngine::generate()) {}
+        steps_per_target(other.steps_per_target), modules_counter(other.modules_counter), processed_leaves(other.processed_leaves),
+        visited_ep_nodes(other.visited_ep_nodes), processed_nodes(other.processed_nodes), random_number(LibCore::SingletonRandomEngine::generate()) {}
 
   EPMeta(EPMeta &&other)
       : total_bdd_nodes(other.total_bdd_nodes), depth(other.depth), nodes(other.nodes), reordered_nodes(other.reordered_nodes),
-        steps_per_target(std::move(other.steps_per_target)), processed_leaves(std::move(other.processed_leaves)),
-        visited_ep_nodes(std::move(other.visited_ep_nodes)), processed_nodes(std::move(other.processed_nodes)),
-        random_number(LibCore::SingletonRandomEngine::generate()) {}
+        steps_per_target(std::move(other.steps_per_target)), modules_counter(std::move(other.modules_counter)),
+        processed_leaves(std::move(other.processed_leaves)), visited_ep_nodes(std::move(other.visited_ep_nodes)),
+        processed_nodes(std::move(other.processed_nodes)), random_number(LibCore::SingletonRandomEngine::generate()) {}
 
   EPMeta &operator=(const EPMeta &other) {
     if (this == &other) {
@@ -55,6 +56,7 @@ struct EPMeta {
     nodes            = other.nodes;
     reordered_nodes  = other.reordered_nodes;
     steps_per_target = other.steps_per_target;
+    modules_counter  = other.modules_counter;
     processed_leaves = other.processed_leaves;
     visited_ep_nodes = other.visited_ep_nodes;
     processed_nodes  = other.processed_nodes;
