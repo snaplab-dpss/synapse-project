@@ -710,13 +710,11 @@ LibCore::Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep,
   generated_symbols.add(ep->get_bdd()->get_time());
 
   LibCore::Symbols future_used_symbols;
-  if (node->get_next()) {
-    node->get_next()->visit_nodes([&future_used_symbols](const LibBDD::Node *node) {
-      const LibCore::Symbols local_future_symbols = node->get_used_symbols();
-      future_used_symbols.add(local_future_symbols);
-      return LibBDD::NodeVisitAction::Continue;
-    });
-  }
+  node->visit_nodes([&future_used_symbols](const LibBDD::Node *node) {
+    const LibCore::Symbols local_future_symbols = node->get_used_symbols();
+    future_used_symbols.add(local_future_symbols);
+    return LibBDD::NodeVisitAction::Continue;
+  });
 
   return generated_symbols.intersect(future_used_symbols);
 }

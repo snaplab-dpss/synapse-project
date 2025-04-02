@@ -255,8 +255,14 @@ int main(int argc, char **argv) {
   }
 
   if (!args.out_dir.empty()) {
-    LibSynapse::EPViz::dump_to_file(report.ep.get(), args.out_dir / (args.name + "-ep.dot"));
-    LibSynapse::SSViz::dump_to_file(report.search_space.get(), args.out_dir / (args.name + "-ss.dot"));
+    const std::filesystem::path bdd_fpath = args.out_dir / (args.name + "-bdd.dot");
+    const std::filesystem::path ep_fpath  = args.out_dir / (args.name + "-ep.dot");
+    const std::filesystem::path ss_fpath  = args.out_dir / (args.name + "-ss.dot");
+
+    LibBDD::BDDViz::dump_to_file(report.ep->get_bdd(), bdd_fpath);
+    LibSynapse::EPViz::dump_to_file(report.ep.get(), ep_fpath);
+    LibSynapse::SSViz::dump_to_file(report.search_space.get(), ss_fpath);
+
     LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
   }
 

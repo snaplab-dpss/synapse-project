@@ -106,9 +106,9 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::swap_endianness(const c
 TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
-  std::cerr << "Transpiling " << LibCore::expr_to_string(expr, false) << "\n";
+  std::cerr << "Transpiling: " << LibCore::expr_to_string(expr) << "\n";
   expr = LibCore::simplify(expr);
-  std::cerr << "Simplified to " << LibCore::expr_to_string(expr, false) << "\n";
+  std::cerr << "Simplified:  " << LibCore::expr_to_string(expr) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
@@ -2180,12 +2180,20 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress << "\n";
   }
 
-  int i         = 0;
   bits_t offset = 0;
   for (const Register *reg : regs) {
     const klee::ref<klee::Expr> reg_write_expr = LibCore::solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
     std::optional<var_t> reg_write_var         = ingress_vars.get(reg_write_expr);
-    assert(reg_write_var && "Register write value is not a variable");
+
+    if (!reg_write_var) {
+      const code_t write_expr       = transpiler.transpile(reg_write_expr);
+      const var_t new_reg_write_var = alloc_var("reg_write", reg_write_expr);
+
+      ingress_apply.indent();
+      ingress_apply << new_reg_write_var.name << " = " << write_expr << ";\n";
+
+      reg_write_var = new_reg_write_var;
+    }
 
     const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::WRITE);
     transpile_register_action_decl(reg, action_name, RegisterActionType::WRITE, reg_write_var);
@@ -2194,7 +2202,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << action_name;
     ingress_apply << ".execute(" << transpiler.transpile(index) << ");\n";
 
-    i++;
     offset += reg->value_size;
   }
 

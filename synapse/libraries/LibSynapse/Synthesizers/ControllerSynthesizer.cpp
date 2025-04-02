@@ -83,12 +83,12 @@ ControllerSynthesizer::Transpiler::Transpiler(const ControllerSynthesizer *_synt
 ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
-  std::cerr << "Transpiling " << LibCore::expr_to_string(expr, false) << "\n";
+  std::cerr << "Transpiling: " << LibCore::expr_to_string(expr) << "\n";
+  expr = LibCore::simplify(expr);
+  std::cerr << "Simplified:  " << LibCore::expr_to_string(expr) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
-
-  expr = LibCore::simplify(expr);
 
   klee::ref<klee::Expr> endian_swap_target;
 
@@ -817,13 +817,13 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const std::vector<EPNode *> &children = ep_node->get_children();
   assert(children.size() == 1 && "Expected single child");
 
-  const EPNode *next_node = children[0];
-  ep_node_id_t code_path  = ep_node->get_id();
+  const EPNode *next_node      = children[0];
+  const ep_node_id_t code_path = ep_node->get_id();
   code_paths.push_back(code_path);
 
   const LibCore::Symbols &symbols = node->get_symbols();
   for (const LibCore::symbol_t &symbol : symbols.get()) {
-    bits_t width = symbol.expr->getWidth();
+    const bits_t width = symbol.expr->getWidth();
 
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
     assert(width >= 8 && "Unexpected width (less than 8)");

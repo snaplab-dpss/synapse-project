@@ -832,21 +832,21 @@ bool is_constant(klee::ref<klee::Expr> expr) {
     return true;
   }
 
-  std::unordered_set<std::string> symbols_names = symbol_t::get_symbols_names(expr);
+  const std::unordered_set<std::string> symbols_names = symbol_t::get_symbols_names(expr);
   if (!symbols_names.empty()) {
     return false;
   }
 
-  u64 value                         = solver_toolbox.value_from_expr(expr);
-  bits_t width                      = expr->getWidth();
+  const u64 value                   = solver_toolbox.value_from_expr(expr);
+  const bits_t width                = expr->getWidth();
   klee::ref<klee::Expr> const_value = solver_toolbox.exprBuilder->Constant(value, width);
-  bool is_always_eq                 = solver_toolbox.are_exprs_always_equal(const_value, expr);
+  const bool is_always_eq           = solver_toolbox.are_exprs_always_equal(const_value, expr);
 
   return is_always_eq;
 }
 
 bool is_constant_signed(klee::ref<klee::Expr> expr) {
-  bits_t size = expr->getWidth();
+  const bits_t size = expr->getWidth();
 
   if (!is_constant(expr)) {
     return false;
@@ -854,8 +854,8 @@ bool is_constant_signed(klee::ref<klee::Expr> expr) {
 
   assert(size <= 64 && "Size too big");
 
-  u64 value    = solver_toolbox.value_from_expr(expr);
-  u64 sign_bit = value >> (size - 1);
+  const u64 value    = solver_toolbox.value_from_expr(expr);
+  const u64 sign_bit = value >> (size - 1);
 
   return sign_bit == 1;
 }
@@ -1312,6 +1312,27 @@ bool simplify_extract_0_zext_conditional(klee::ref<klee::Expr> extract_expr, kle
   return true;
 }
 
+bool simplify_extract_0_same_width(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
+  if (extract_expr->getKind() != klee::Expr::Extract) {
+    return false;
+  }
+
+  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+
+  if (extract->offset != 0) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> arg = extract->expr;
+
+  if (arg->getWidth() != extract->width) {
+    return false;
+  }
+
+  out = arg;
+  return true;
+}
+
 bool simplify_extract_of_concats(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
   if (extract_expr->getKind() != klee::Expr::Extract) {
     return false;
@@ -1749,10 +1770,91 @@ bool simplify_cmp_zext_eq_size(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
   return true;
 }
 
+bool simplify_add_neg_sext(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
+  if (expr->getKind() != klee::Expr::Add) {
+    return false;
+  }
+
+  assert(expr->getNumKids() == 2 && "Invalid expr");
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
+
+  klee::ref<klee::Expr> negative_constant;
+  klee::ref<klee::Expr> sext;
+
+  if (is_constant_signed(lhs)) {
+    negative_constant = lhs;
+    sext              = rhs;
+  } else {
+    negative_constant = rhs;
+    sext              = lhs;
+  }
+
+  if (!is_constant_signed(negative_constant) || sext->getKind() != klee::Expr::SExt) {
+    return false;
+  }
+
+  const i64 n = get_constant_signed(negative_constant);
+
+  klee::ref<klee::Expr> sext_src     = sext->getKid(0);
+  klee::ref<klee::Expr> new_constant = solver_toolbox.exprBuilder->Constant(-n, sext_src->getWidth());
+
+  if (solver_toolbox.value_from_expr(new_constant) != static_cast<u64>(-n)) {
+    return false;
+  }
+
+  out = solver_toolbox.exprBuilder->ZExt(solver_toolbox.exprBuilder->Sub(sext_src, new_constant), expr->getWidth());
+
+  return true;
+}
+
+bool simplify_add_non_neg_sext(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
+  if (expr->getKind() != klee::Expr::Add) {
+    return false;
+  }
+
+  assert(expr->getNumKids() == 2 && "Invalid expr");
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
+
+  klee::ref<klee::Expr> non_negative_constant;
+  klee::ref<klee::Expr> sext;
+
+  if (is_constant(lhs)) {
+    non_negative_constant = lhs;
+    sext                  = rhs;
+  } else {
+    non_negative_constant = rhs;
+    sext                  = lhs;
+  }
+
+  if (!is_constant(non_negative_constant) || sext->getKind() != klee::Expr::SExt) {
+    return false;
+  }
+
+  if (is_constant_signed(non_negative_constant)) {
+    return false;
+  }
+
+  const u64 n = solver_toolbox.value_from_expr(non_negative_constant);
+
+  klee::ref<klee::Expr> sext_src     = sext->getKid(0);
+  klee::ref<klee::Expr> new_constant = solver_toolbox.exprBuilder->Constant(n, sext_src->getWidth());
+
+  if (solver_toolbox.value_from_expr(new_constant) != n) {
+    return false;
+  }
+
+  out = solver_toolbox.exprBuilder->ZExt(solver_toolbox.exprBuilder->Add(sext_src, new_constant), expr->getWidth());
+
+  return true;
+}
+
 using simplifier_fn = std::function<bool(klee::ref<klee::Expr>, klee::ref<klee::Expr> &)>;
 
 enum class simplifier_type_t {
   EXTRACT_0_ZEXT_CONDITIONAL,
+  EXTRACT_0_SAME_WIDTH,
   EXTRACT_CONCATS,
   EXTRACT_READ,
   EXTRACT_EXT,
@@ -1760,12 +1862,17 @@ enum class simplifier_type_t {
   CMP_ZEXT_EQ_SIZE,
   NOT_EQ,
   CMP_NE_0,
+  ADD_NEG_SEXT,
+  ADD_NON_NEG_SEXT,
 };
 
 std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
   switch (type) {
   case simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL:
     os << "EXTRACT_0_ZEXT_CONDITIONAL";
+    break;
+  case simplifier_type_t::EXTRACT_0_SAME_WIDTH:
+    os << "EXTRACT_0_SAME_WIDTH";
     break;
   case simplifier_type_t::EXTRACT_CONCATS:
     os << "EXTRACT_CONCATS";
@@ -1787,6 +1894,12 @@ std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
     break;
   case simplifier_type_t::CMP_NE_0:
     os << "CMP_NE_0";
+    break;
+  case simplifier_type_t::ADD_NEG_SEXT:
+    os << "ADD_NEG_SEXT";
+    break;
+  case simplifier_type_t::ADD_NON_NEG_SEXT:
+    os << "ADD_NON_NEG_SEXT";
     break;
   }
 
@@ -1813,7 +1926,7 @@ std::vector<simplifier_type_t> apply_simplifiers(const simplifiers_t &simplifier
     }
   }
 
-  u32 num_kids = expr->getNumKids();
+  const u32 num_kids = expr->getNumKids();
   std::vector<klee::ref<klee::Expr>> new_kids(num_kids);
 
   bool simplified                 = false;
@@ -1864,6 +1977,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
 
   const simplifiers_t simplifiers{
       {simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL, simplify_extract_0_zext_conditional},
+      {simplifier_type_t::EXTRACT_0_SAME_WIDTH, simplify_extract_0_same_width},
       {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
       {simplifier_type_t::EXTRACT_READ, simplify_extract_read},
       {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
@@ -1871,6 +1985,9 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
       {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
       {simplifier_type_t::NOT_EQ, simplify_not_eq},
       {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
+      {simplifier_type_t::ADD_NEG_SEXT, simplify_add_neg_sext},
+      {simplifier_type_t::ADD_NON_NEG_SEXT, simplify_add_non_neg_sext},
+      {simplifier_type_t::ADD_NON_NEG_SEXT, simplify_add_non_neg_sext},
   };
 
   klee::ref<klee::Expr> original_expr = expr;
@@ -1920,11 +2037,13 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
 
   const simplifiers_t simplifiers{
       {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
+      {simplifier_type_t::EXTRACT_0_SAME_WIDTH, simplify_extract_0_same_width},
       {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
       {simplifier_type_t::CMP_EQ_0, simplify_cmp_eq_0},
       {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
       {simplifier_type_t::NOT_EQ, simplify_not_eq},
       {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
+      {simplifier_type_t::ADD_NEG_SEXT, simplify_add_neg_sext},
   };
 
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
