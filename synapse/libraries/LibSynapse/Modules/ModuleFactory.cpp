@@ -83,7 +83,7 @@ std::vector<EP *> get_reordered(const EP *ep) {
     bool is_ancestor = false;
     EP *new_ep       = new EP(*ep, is_ancestor);
 
-    EP::translation_data_t translation_data = {
+    EP::translation_data_t translation_data{
         .reordered_node             = new_bdd.bdd->get_node_by_id(new_bdd.op.candidate_info.id),
         .next_nodes_translator      = {},
         .processed_nodes_translator = {},

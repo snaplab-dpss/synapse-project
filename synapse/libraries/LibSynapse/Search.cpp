@@ -262,12 +262,12 @@ search_report_t SearchEngine::search() {
   meta.unfinished_eps = heuristic->unfinished_size();
   meta.finished_eps   = heuristic->finished_size();
 
-  std::unique_ptr<const EP> winner  = heuristic->pop_best_finished();
-  const Score score                 = heuristic->get_score(winner.get());
-  const std::string tput_estimation = SearchSpace::build_meta_tput_estimate(winner.get());
+  std::unique_ptr<const EP> winner                       = heuristic->pop_best_finished();
+  const Score score                                      = heuristic->get_score(winner.get());
+  const std::vector<heuristic_metadata_t> heuristic_meta = heuristic->get_cfg()->get_metadata(winner.get());
 
   search_report_t report{
-      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, tput_estimation, meta,
+      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, heuristic_meta, meta,
   };
 
   return report;

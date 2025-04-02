@@ -163,7 +163,7 @@ void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, c
 
   // Metadata rows
 
-  for (const auto &[name, value] : ssnode->metadata) {
+  for (const heuristic_metadata_t &meta : ssnode->metadata) {
     indent(3);
     ss << "<tr>\n";
 
@@ -173,8 +173,8 @@ void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, c
     // ss << " bgcolor=\"" << target_color << "\"";
     ss << " colspan=\"2\"";
     ss << ">";
-    ss << bold(name + ": ");
-    ss << value;
+    ss << bold(meta.name + ": ");
+    ss << meta.description;
     ss << "</td>\n";
 
     indent(3);

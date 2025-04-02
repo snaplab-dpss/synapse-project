@@ -11,6 +11,11 @@
 
 namespace LibSynapse {
 
+struct heuristic_metadata_t {
+  std::string name;
+  std::string description;
+};
+
 class HeuristicCfg {
 protected:
   struct Metric {
@@ -27,7 +32,7 @@ public:
   virtual ~HeuristicCfg() = default;
 
   Score score(const EP *e) const {
-    size_t N = metrics.size();
+    const size_t N = metrics.size();
     std::vector<i64> values(N);
 
     for (size_t i = 0; i < N; i++) {
@@ -42,6 +47,11 @@ public:
 
   virtual bool operator()(const EP *e1, const EP *e2) const { return score(e1) > score(e2); }
   virtual bool mutates(const EP *ep) const { return false; }
+  virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const { return {}; }
+
+protected:
+  static heuristic_metadata_t build_meta_tput_estimate(const EP *ep);
+  static heuristic_metadata_t build_meta_tput_speculation(const EP *ep);
 };
 
 } // namespace LibSynapse

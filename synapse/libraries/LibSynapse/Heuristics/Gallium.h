@@ -17,6 +17,12 @@ public:
     return *this;
   }
 
+  virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const override {
+    return {
+        build_meta_tput_estimate(ep),
+    };
+  }
+
 private:
   i64 get_switch_progression_nodes(const EP *ep) const {
     i64 tofino_decisions = 0;

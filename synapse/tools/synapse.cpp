@@ -281,8 +281,10 @@ int main(int argc, char **argv) {
   std::cout << "  Unfinished EPs:   " << LibCore::int2hr(report.meta.unfinished_eps) << "\n";
   std::cout << "  Solutions:        " << LibCore::int2hr(report.meta.finished_eps) << "\n";
   std::cout << "Winner EP:\n";
-  std::cout << "  Winner:           " << report.score << "\n";
-  std::cout << "  Throughput:       " << report.tput_estimation << "\n";
+  std::cout << "  Score: " << report.score << "\n";
+  for (const LibSynapse::heuristic_metadata_t &meta : report.heuristic_meta) {
+    std::cout << "  " << meta.name << ": " << meta.description << "\n";
+  }
   std::cout << "\n";
 
   return 0;

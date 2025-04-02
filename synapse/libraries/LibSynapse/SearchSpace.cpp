@@ -62,23 +62,20 @@ std::string get_bdd_node_description(const LibBDD::Node *node) {
 } // namespace
 
 void SearchSpace::activate_leaf(const EP *ep) {
-  ep_id_t ep_id = ep->get_id();
+  const ep_id_t ep_id = ep->get_id();
 
   if (!root) {
-    ss_node_id_t id   = node_id_counter++;
-    Score score       = hcfg->score(ep);
-    EPLeaf leaf       = ep->get_active_leaf();
-    TargetType target = ep->get_active_target();
+    const ss_node_id_t id   = node_id_counter++;
+    const Score score       = hcfg->score(ep);
+    const EPLeaf leaf       = ep->get_active_leaf();
+    const TargetType target = ep->get_active_target();
 
-    bdd_node_data_t next_bdd_node_data = {
+    const bdd_node_data_t next_bdd_node_data{
         .id          = leaf.next->get_id(),
         .description = get_bdd_node_description(leaf.next),
     };
 
-    const std::vector<std::pair<std::string, std::string>> metadata = {
-        {"Tput", build_meta_tput_estimate(ep)},
-        {"Spec", build_meta_tput_speculation(ep)},
-    };
+    const std::vector<heuristic_metadata_t> metadata = hcfg->get_metadata(ep);
 
     root        = new SSNode(id, ep_id, score, target, next_bdd_node_data, metadata);
     active_leaf = root;
@@ -97,51 +94,15 @@ void SearchSpace::activate_leaf(const EP *ep) {
   last_eps.clear();
 }
 
-std::string SearchSpace::build_meta_tput_estimate(const EP *ep) {
-  const Context &ctx       = ep->get_ctx();
-  const Profiler &profiler = ctx.get_profiler();
-  bytes_t avg_pkt_size     = profiler.get_avg_pkt_bytes();
-
-  pps_t estimate_pps = ep->estimate_tput_pps();
-  bps_t estimate_bps = LibCore::pps2bps(estimate_pps, avg_pkt_size);
-
-  std::stringstream ss;
-  ss << LibCore::tput2str(estimate_bps, "bps", true);
-
-  ss << " (";
-  ss << LibCore::tput2str(estimate_pps, "pps", true);
-  ss << ")";
-
-  return ss.str();
-}
-
-std::string SearchSpace::build_meta_tput_speculation(const EP *ep) {
-  const Context &ctx       = ep->get_ctx();
-  const Profiler &profiler = ctx.get_profiler();
-  bytes_t avg_pkt_size     = profiler.get_avg_pkt_bytes();
-
-  pps_t speculation_pps = ep->speculate_tput_pps();
-  bps_t speculation_bps = LibCore::pps2bps(speculation_pps, avg_pkt_size);
-
-  std::stringstream ss;
-  ss << LibCore::tput2str(speculation_bps, "bps", true);
-
-  ss << " (";
-  ss << LibCore::tput2str(speculation_pps, "pps", true);
-  ss << ")";
-
-  return ss.str();
-}
-
 void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, const ModuleFactory *modgen,
                                      const std::vector<impl_t> &implementations) {
   assert(active_leaf && "Active leaf not set");
 
   for (const impl_t &impl : implementations) {
-    ss_node_id_t id          = node_id_counter++;
-    ep_id_t ep_id            = impl.result->get_id();
-    Score score              = hcfg->score(impl.result);
-    TargetType target        = modgen->get_target();
+    const ss_node_id_t id    = node_id_counter++;
+    const ep_id_t ep_id      = impl.result->get_id();
+    const Score score        = hcfg->score(impl.result);
+    const TargetType target  = modgen->get_target();
     const LibBDD::Node *next = impl.result->get_next_node();
 
     std::stringstream description_ss;
@@ -149,7 +110,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
       description_ss << key << "=" << value << " ";
     }
 
-    module_data_t module_data = {
+    const module_data_t module_data{
         .type          = modgen->get_type(),
         .name          = modgen->get_name(),
         .description   = description_ss.str(),
@@ -157,7 +118,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
         .hit_rate      = ep->get_active_leaf_hit_rate(),
     };
 
-    bdd_node_data_t bdd_node_data = {
+    const bdd_node_data_t bdd_node_data{
         .id          = node->get_id(),
         .description = get_bdd_node_description(node),
     };
@@ -170,10 +131,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
       };
     }
 
-    const std::vector<std::pair<std::string, std::string>> metadata = {
-        {"Tput", build_meta_tput_estimate(impl.result)},
-        {"Spec", build_meta_tput_speculation(impl.result)},
-    };
+    const std::vector<heuristic_metadata_t> metadata = hcfg->get_metadata(ep);
 
     SSNode *new_node = new SSNode(id, ep_id, score, target, module_data, bdd_node_data, next_bdd_node_data, metadata);
 
