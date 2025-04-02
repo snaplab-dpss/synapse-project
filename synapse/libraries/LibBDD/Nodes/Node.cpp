@@ -406,7 +406,7 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)
     std::unique_ptr<cookie_t> node_cookie = std::move(nodes[0].second);
     nodes.erase(nodes.begin());
 
-    NodeVisitAction action = fn(node, node_cookie.get());
+    const NodeVisitAction action = fn(node, node_cookie.get());
 
     if (action == NodeVisitAction::Stop) {
       return;

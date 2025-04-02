@@ -93,7 +93,7 @@ int limit_clients(struct flow *flow, time_ns_t now) {
   }
 
   cms_increment(state->cms, &client);
-  uint64_t count = cms_count_min(state->cms, &client);
+  int count = cms_count_min(state->cms, &client);
 
   if (count > config.max_clients) {
     return 0;

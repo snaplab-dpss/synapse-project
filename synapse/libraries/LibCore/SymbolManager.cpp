@@ -43,7 +43,7 @@ public:
       : klee::ExprVisitor::ExprVisitor(true) {
     for (const auto &[old_name, new_name] : _translations) {
       const symbol_t &old = manager->get_symbol(old_name);
-      bits_t size         = old.expr->getWidth();
+      const bits_t size   = old.expr->getWidth();
       manager->create_symbol(new_name, size);
       translations.insert({old_name, manager->get_array(new_name)});
     }
@@ -82,10 +82,10 @@ std::string base_from_name(const std::string &name) {
     return name;
   }
 
-  size_t delim = name.rfind("_");
+  const size_t delim = name.rfind("_");
   assert(delim != std::string::npos && "Invalid name");
 
-  std::string base = name.substr(0, delim);
+  const std::string base = name.substr(0, delim);
   return base;
 }
 } // namespace
@@ -94,7 +94,7 @@ symbol_t SymbolManager::store_clone(const klee::Array *array) {
   auto symbols_it = symbols.find(array->name);
 
   if (symbols_it == symbols.end()) {
-    bits_t size = array->size * 8;
+    const bits_t size = array->size * 8;
     return create_symbol(array->name, size);
   }
 

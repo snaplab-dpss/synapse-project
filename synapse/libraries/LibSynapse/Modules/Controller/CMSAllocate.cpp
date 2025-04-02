@@ -92,7 +92,7 @@ std::unique_ptr<Module> CMSAllocateFactory::create(const LibBDD::BDD *bdd, const
   klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out          = call.args.at("cms_out").out;
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_out);
+  const addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_out);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};

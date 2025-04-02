@@ -1551,7 +1551,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_count_min(coder_t &coder
   var_t me = build_var("min_estimate", min_estimate);
 
   coder.indent();
-  coder << "uint64_t " << me.name << " = ";
+  coder << "int " << me.name << " = ";
   coder << "cms_count_min(";
   coder << stack_get(cms_addr).name << ", ";
   coder << k.name;

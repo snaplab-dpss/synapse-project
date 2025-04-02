@@ -78,7 +78,7 @@ std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Co
   klee::ref<klee::Expr> key           = call.args.at("key").in;
   LibCore::symbol_t min_estimate      = call_node->get_local_symbol("min_estimate");
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
     return {};

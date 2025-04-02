@@ -71,7 +71,7 @@ void cms_increment(struct CMS *cms, void *key) {
   klee_trace_param_tagged_ptr(key, cms->key_size, "key", cms->key_type, TD_BOTH);
 }
 
-uint64_t cms_count_min(struct CMS *cms, void *key) {
+int cms_count_min(struct CMS *cms, void *key) {
   klee_trace_ret();
   klee_trace_param_u64((uint64_t)cms, "cms");
   klee_trace_param_tagged_ptr(key, cms->key_size, "key", cms->key_type, TD_BOTH);

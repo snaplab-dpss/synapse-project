@@ -70,8 +70,8 @@ void cms_increment(struct CMS *cms, void *key) {
   }
 }
 
-uint64_t cms_count_min(struct CMS *cms, void *key) {
-  uint64_t min_val = 0;
+int cms_count_min(struct CMS *cms, void *key) {
+  int min_val = INT32_MAX;
 
   for (uint32_t h = 0; h < cms->height; h++) {
     unsigned hash   = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
@@ -79,11 +79,7 @@ uint64_t cms_count_min(struct CMS *cms, void *key) {
 
     struct cms_bucket *bucket = 0;
     vector_borrow(cms->buckets, offset, (void **)&bucket);
-
-    if (h == 0 || bucket->value < min_val) {
-      min_val = bucket->value;
-    }
-
+    min_val = min(min_val, bucket->value);
     vector_return(cms->buckets, offset, bucket);
   }
 
