@@ -183,16 +183,17 @@ class Experiment:
             pktgen.set_rate(WARMUP_RATE)
             pktgen.set_churn(0)
 
-            sleep(REST_TIME_SEC)
             pktgen.start()
             sleep(WARMUP_TIME_SEC)
 
-            tg_controller.reset_stats()
-            pktgen.reset_stats()
             pktgen.set_churn(churn)
             pktgen.set_rate(current_rate)
+            sleep(WARMUP_TIME_SEC / 2)
 
+            tg_controller.reset_stats()
+            pktgen.reset_stats()
             sleep(ITERATION_DURATION_SEC)
+
             pktgen.stop()
             sleep(REST_TIME_SEC)
 

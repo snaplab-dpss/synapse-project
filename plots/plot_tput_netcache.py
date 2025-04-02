@@ -16,8 +16,8 @@ CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"
 DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
 
-DATA_FILE = DATA_DIR / "tput_netcache-old.csv"
-# DATA_FILE = DATA_DIR / "tput_netcache.csv"
+# DATA_FILE = DATA_DIR / "tput_netcache-old.csv"
+DATA_FILE = DATA_DIR / "tput_netcache.csv"
 
 BPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps.pdf"
 PPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps.pdf"

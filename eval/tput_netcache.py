@@ -134,7 +134,7 @@ class NetCacheThroughput(Experiment):
         self.netcache_controller.launch()
 
         self.log("Launching pktgen")
-        self.tg_hosts.pktgen.launch(kvs_mode=True, seed=0)
+        self.tg_hosts.pktgen.launch(kvs_mode=True)
 
         self.log("Waiting for Tofino TG")
         self.tg_hosts.tg_switch.wait_ready()
