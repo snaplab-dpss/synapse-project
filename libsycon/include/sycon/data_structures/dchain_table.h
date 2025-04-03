@@ -68,8 +68,6 @@ public:
   }
 
   bool allocate_new_index(u32 &index) {
-    assert(index < capacity && "Invalid index");
-
     if (free_indexes.empty()) {
       LOG_DEBUG("No free indexes available");
       return false;
