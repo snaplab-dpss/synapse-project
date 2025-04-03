@@ -235,16 +235,10 @@ control Ingress(
     map_table_1073923128_13_get_value_param0 = _map_table_1073923128_13_get_value_param0;
   }
 
-  bit<32> map_table_1073923128_13_key0 = 32w0;
-  bit<32> map_table_1073923128_13_key1 = 32w0;
-  bit<32> map_table_1073923128_13_key2 = 32w0;
-  bit<32> map_table_1073923128_13_key3 = 32w0;
+  bit<128> map_table_1073923128_13_key0 = 128w0;
   table map_table_1073923128_13 {
     key = {
       map_table_1073923128_13_key0: exact;
-      map_table_1073923128_13_key1: exact;
-      map_table_1073923128_13_key2: exact;
-      map_table_1073923128_13_key3: exact;
     }
     actions = {
       map_table_1073923128_13_get_value;
@@ -721,10 +715,7 @@ control Ingress(
             if(hdr.hdr3.isValid()) {
               // EP node  159:MapTableLookup
               // BDD node 13:map_get(map:(w64 1073923128), key:(w64 1073760257)[(ReadLSB w128 (w32 769) packet_chunks) -> (ReadLSB w128 (w32 769) packet_chunks)], value_out:(w64 1074059392)[(w32 2880154539) -> (ReadLSB w32 (w32 0) allocated_index_r1)])
-              map_table_1073923128_13_key0 = hdr.hdr3.data1[127:96];
-              map_table_1073923128_13_key1 = hdr.hdr3.data1[95:64];
-              map_table_1073923128_13_key2 = hdr.hdr3.data1[63:32];
-              map_table_1073923128_13_key3 = hdr.hdr3.data1[31:0];
+              map_table_1073923128_13_key0 = hdr.hdr3.data1;
               bool hit0 = map_table_1073923128_13.apply().hit;
               // EP node  348:VectorRegisterLookup
               // BDD node 53:vector_borrow(vector:(w64 1073956208), index:(ReadLSB w32 (w32 0) allocated_index_r1), val_out:(w64 1074062672)[ -> (w64 1073970104)])

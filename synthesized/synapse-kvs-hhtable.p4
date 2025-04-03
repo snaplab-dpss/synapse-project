@@ -49,10 +49,7 @@ header hdr3_h {
   bit<16> data4;
 }
 header hh_table_1073923128_digest_hdr {
-  bit<32> data0;
-  bit<32> data1;
-  bit<32> data2;
-  bit<32> data3;
+  bit<128> data0;
 }
 
 
@@ -241,16 +238,10 @@ control Ingress(
     hh_table_1073923128_table_13_get_value_param0 = _hh_table_1073923128_table_13_get_value_param0;
   }
 
-  bit<32> hh_table_1073923128_table_13_key0 = 32w0;
-  bit<32> hh_table_1073923128_table_13_key1 = 32w0;
-  bit<32> hh_table_1073923128_table_13_key2 = 32w0;
-  bit<32> hh_table_1073923128_table_13_key3 = 32w0;
+  bit<128> hh_table_1073923128_table_13_key0 = 128w0;
   table hh_table_1073923128_table_13 {
     key = {
       hh_table_1073923128_table_13_key0: exact;
-      hh_table_1073923128_table_13_key1: exact;
-      hh_table_1073923128_table_13_key2: exact;
-      hh_table_1073923128_table_13_key3: exact;
     }
     actions = {
       hh_table_1073923128_table_13_get_value;
@@ -349,9 +340,6 @@ control Ingress(
   action hh_table_1073923128_hash_calc_0_value_calc() {
     bit<10> hh_table_1073923128_hash_calc_0_value = hh_table_1073923128_hash_calc_0.get({
       hh_table_1073923128_table_13_key0,
-      hh_table_1073923128_table_13_key1,
-      hh_table_1073923128_table_13_key2,
-      hh_table_1073923128_table_13_key3,
       32w0xfbc31fc7
     });
   }
@@ -359,9 +347,6 @@ control Ingress(
   action hh_table_1073923128_hash_calc_1_value_calc() {
     bit<10> hh_table_1073923128_hash_calc_1_value = hh_table_1073923128_hash_calc_1.get({
       hh_table_1073923128_table_13_key0,
-      hh_table_1073923128_table_13_key1,
-      hh_table_1073923128_table_13_key2,
-      hh_table_1073923128_table_13_key3,
       32w0x2681580b
     });
   }
@@ -369,9 +354,6 @@ control Ingress(
   action hh_table_1073923128_hash_calc_2_value_calc() {
     bit<10> hh_table_1073923128_hash_calc_2_value = hh_table_1073923128_hash_calc_2.get({
       hh_table_1073923128_table_13_key0,
-      hh_table_1073923128_table_13_key1,
-      hh_table_1073923128_table_13_key2,
-      hh_table_1073923128_table_13_key3,
       32w0x486d7e2f
     });
   }
@@ -379,9 +361,6 @@ control Ingress(
   action hh_table_1073923128_hash_calc_3_value_calc() {
     bit<10> hh_table_1073923128_hash_calc_3_value = hh_table_1073923128_hash_calc_3.get({
       hh_table_1073923128_table_13_key0,
-      hh_table_1073923128_table_13_key1,
-      hh_table_1073923128_table_13_key2,
-      hh_table_1073923128_table_13_key3,
       32w0x1f3a2b4d
     });
   }
@@ -846,10 +825,7 @@ control Ingress(
                 // BDD node 12:if ((Eq false (Eq (w16 0) (ReadLSB w16 (w32 0) DEVICE)))
                 // EP node  248:HHTableRead
                 // BDD node 13:map_get(map:(w64 1073923128), key:(w64 1073760257)[(ReadLSB w128 (w32 769) packet_chunks) -> (ReadLSB w128 (w32 769) packet_chunks)], value_out:(w64 1074059392)[(w32 2880154539) -> (ReadLSB w32 (w32 0) allocated_index)])
-                hh_table_1073923128_table_13_key0 = hdr.hdr3.data1[127:96];
-                hh_table_1073923128_table_13_key1 = hdr.hdr3.data1[95:64];
-                hh_table_1073923128_table_13_key2 = hdr.hdr3.data1[63:32];
-                hh_table_1073923128_table_13_key3 = hdr.hdr3.data1[31:0];
+                hh_table_1073923128_table_13_key0 = hdr.hdr3.data1;
                 bool hit0 = hh_table_1073923128_table_13.apply().hit;
                 if (hit0) {
                   hh_table_1073923128_cached_counters_inc_248.execute(hh_table_1073923128_table_13_get_value_param0);
@@ -1126,10 +1102,7 @@ control IngressDeparser(
   apply {
     if (ig_dprsr_md.digest_type == 1) {
       hh_table_1073923128_digest.pack({
-        hdr.hdr3.data1[127:96],
-        hdr.hdr3.data1[95:64],
-        hdr.hdr3.data1[63:32],
-        hdr.hdr3.data1[31:0],
+        hdr.hdr3.data1,
       });
     }
 

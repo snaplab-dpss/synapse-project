@@ -62,11 +62,11 @@ public:
     return expr->rebuild(new_kids);
   }
 
-#define VISIT_BINARY_CMP_OP(T)                                                                                                             \
-  Action visit##T(const klee::T##Expr &e) {                                                                                                \
-    klee::ref<klee::Expr> expr = const_cast<klee::T##Expr *>(&e);                                                                          \
-    auto new_expr              = visit_binary_expr(expr);                                                                                  \
-    return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);                                                          \
+#define VISIT_BINARY_CMP_OP(T)                                                                                                                       \
+  Action visit##T(const klee::T##Expr &e) {                                                                                                          \
+    klee::ref<klee::Expr> expr = const_cast<klee::T##Expr *>(&e);                                                                                    \
+    auto new_expr              = visit_binary_expr(expr);                                                                                            \
+    return new_expr.isNull() ? Action::doChildren() : Action::changeTo(new_expr);                                                                    \
   }
 
   VISIT_BINARY_CMP_OP(Eq)
@@ -888,8 +888,8 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
 }
 
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) {
-  auto found_it = std::find_if(constraints.begin(), constraints.end(),
-                               [&](klee::ref<klee::Expr> e) { return solver_toolbox.are_exprs_always_equal(e, expr); });
+  auto found_it =
+      std::find_if(constraints.begin(), constraints.end(), [&](klee::ref<klee::Expr> e) { return solver_toolbox.are_exprs_always_equal(e, expr); });
   return found_it != constraints.end();
 }
 
@@ -991,8 +991,7 @@ std::vector<expr_mod_t> build_expr_mods(klee::ref<klee::Expr> before, klee::ref<
     bits_t msb_width = after->getKid(0)->getWidth();
     bits_t lsb_width = after->getWidth() - msb_width;
 
-    std::vector<expr_mod_t> msb_groups =
-        build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
+    std::vector<expr_mod_t> msb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, lsb_width, msb_width), after->getKid(0));
     std::vector<expr_mod_t> lsb_groups = build_expr_mods(solver_toolbox.exprBuilder->Extract(before, 0, lsb_width), after->getKid(1));
     std::vector<expr_mod_t> &groups    = lsb_groups;
 
@@ -2021,8 +2020,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
   }
 
   if (!solver_toolbox.are_exprs_always_equal(original_expr, expr)) {
-    panic("*** Bug in simplification! ***\nOriginal: %s\nSimplified: %s\n", expr_to_string(original_expr).c_str(),
-          expr_to_string(expr).c_str());
+    panic("*** Bug in simplification! ***\nOriginal: %s\nSimplified: %s\n", expr_to_string(original_expr).c_str(), expr_to_string(expr).c_str());
   }
 
   return expr;
@@ -2263,7 +2261,7 @@ std::vector<klee::ref<klee::Expr>> split_expr(klee::ref<klee::Expr> expr, expr_p
 
 std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::ref<klee::Expr> target_expr,
                                                                         const std::vector<expr_struct_t> &expr_structs,
-                                                                        const bytes_t max_chunk_size) {
+                                                                        std::optional<bytes_t> max_chunk_size) {
   std::vector<klee::ref<klee::Expr>> chunks;
 
   for (const expr_group_t &group : get_expr_groups(target_expr)) {
@@ -2305,11 +2303,16 @@ std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::re
     }
 
     for (klee::ref<klee::Expr> subgroup : subgroups) {
+      if (!max_chunk_size.has_value()) {
+        chunks.push_back(subgroup);
+        continue;
+      }
+
       const bytes_t total_size = subgroup->getWidth() / 8;
 
       bytes_t processed_bytes = 0;
       while (processed_bytes != total_size) {
-        const bytes_t target_size = std::min(max_chunk_size, total_size - processed_bytes);
+        const bytes_t target_size = std::min(max_chunk_size.value(), total_size - processed_bytes);
         const bytes_t offset      = total_size - processed_bytes - target_size;
 
         klee::ref<klee::Expr> subsubgroup = solver_toolbox.exprBuilder->Extract(subgroup, offset * 8, target_size * 8);

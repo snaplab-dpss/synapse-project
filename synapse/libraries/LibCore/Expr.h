@@ -61,9 +61,8 @@ struct expr_struct_t {
   std::vector<klee::ref<klee::Expr>> fields;
 };
 
-std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::ref<klee::Expr> expr,
-                                                                        const std::vector<expr_struct_t> &expr_struct,
-                                                                        const bytes_t max_chunk_size);
+std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::ref<klee::Expr> expr, const std::vector<expr_struct_t> &expr_struct,
+                                                                        std::optional<bytes_t> max_chunk_size = std::nullopt);
 
 std::vector<klee::ref<klee::Expr>> bytes_in_expr(klee::ref<klee::Expr> expr, bool force_big_endian_for_constants = false);
 

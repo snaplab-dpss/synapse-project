@@ -14,8 +14,7 @@ Table::Table(DS_ID _id, u32 _capacity, const std::vector<bits_t> &_keys, const s
 }
 
 Table::Table(const Table &other)
-    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys(other.keys), params(other.params),
-      time_aware(other.time_aware) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys(other.keys), params(other.params), time_aware(other.time_aware) {}
 
 DS *Table::clone() const { return new Table(*this); }
 
@@ -56,7 +55,7 @@ void Table::debug() const {
 }
 
 std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key, const std::vector<LibCore::expr_struct_t> &headers) {
-  const std::vector<klee::ref<klee::Expr>> &keys = LibCore::break_expr_into_structs_aware_chunks(key, headers, 4);
+  const std::vector<klee::ref<klee::Expr>> &keys = LibCore::break_expr_into_structs_aware_chunks(key, headers);
   return keys;
 }
 
