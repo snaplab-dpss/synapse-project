@@ -31,7 +31,7 @@ private:
   }
 
   i64 get_ds_score(const EP *ep) const {
-    std::unordered_map<DSImpl, int> ds_scores = {
+    const std::unordered_map<DSImpl, int> ds_scores{
         {DSImpl::Tofino_HeavyHitterTable, 1},
     };
 

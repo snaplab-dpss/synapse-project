@@ -372,7 +372,7 @@ def plot_bps_scatter(data: Data, file: Path):
             total_values = len(values)
             dx = x_span / (total_values + 1)
 
-            xs = [j - (x_span / 2) + dx * k for k in range(total_values)]
+            xs = [j - (x_span / 2) + dx * k for k in range(1, total_values + 1)]
             ys = values
 
             ax.bar(j, avg_value, alpha=0.2, color="black", width=x_span, align="center", edgecolor="black")

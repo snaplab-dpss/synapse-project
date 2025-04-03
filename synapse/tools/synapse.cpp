@@ -10,13 +10,6 @@
 #include <CLI/CLI.hpp>
 #include <toml++/toml.hpp>
 
-const std::unordered_map<std::string, LibSynapse::HeuristicOption> heuristic_opt_converter{
-    {"bfs", LibSynapse::HeuristicOption::BFS},         {"dfs", LibSynapse::HeuristicOption::DFS},
-    {"random", LibSynapse::HeuristicOption::RANDOM},   {"gallium", LibSynapse::HeuristicOption::GALLIUM},
-    {"greedy", LibSynapse::HeuristicOption::GREEDY},   {"max-tput", LibSynapse::HeuristicOption::MAX_TPUT},
-    {"ds-pref", LibSynapse::HeuristicOption::DS_PREF}, {"max-controller", LibSynapse::HeuristicOption::MAX_CONTROLLER},
-};
-
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
   nf_name             = nf_name.substr(nf_name.find_last_of("/") + 1);
@@ -135,7 +128,7 @@ struct args_t {
   LibSynapse::HeuristicOption heuristic_opt;
   std::filesystem::path profile_file;
   LibSynapse::search_config_t search_config;
-  u32 seed{0};
+  u32 seed;
   bool show_prof{false};
   bool show_ep{false};
   bool show_ss{false};
@@ -143,25 +136,16 @@ struct args_t {
   bool dry_run{false};
 
   void print() const {
-    auto heuristic_to_str = [](LibSynapse::HeuristicOption h) -> std::string {
-      for (const auto &[str, opt] : heuristic_opt_converter) {
-        if (opt == h) {
-          return str;
-        }
-      }
-      return "Unknown";
-    };
-
     const LibSynapse::targets_config_t targets_config = parse_targets_config(targets_config_file);
-    LibSynapse::Targets targets(targets_config);
+    const LibSynapse::Targets targets(targets_config);
 
     std::cout << "====================== Args ======================\n";
-    std::cout << "Input BDD file:   " << input_bdd_file << "\n";
-    std::cout << "Output directory: " << out_dir << "\n";
+    std::cout << "Input BDD file:   " << input_bdd_file.string() << "\n";
+    std::cout << "Output directory: " << out_dir.string() << "\n";
     std::cout << "Name:             " << name << "\n";
-    std::cout << "Targets config:   " << targets_config_file << "\n";
-    std::cout << "Heuristic:        " << heuristic_to_str(heuristic_opt) << "\n";
-    std::cout << "Profile file:     " << profile_file << "\n";
+    std::cout << "Targets config:   " << targets_config_file.string() << "\n";
+    std::cout << "Heuristic:        " << LibSynapse::heuristic_opt_to_str.at(heuristic_opt) << "\n";
+    std::cout << "Profile file:     " << profile_file.string() << "\n";
     std::cout << "Seed:             " << seed << "\n";
     std::cout << "Targets:          ";
     for (const LibSynapse::TargetView &target : targets.get_view().elements) {
@@ -200,7 +184,7 @@ int main(int argc, char **argv) {
   app.add_option("--name", args.name, "Synthesized filenames (without extensions) (defaults to \"synapse-{bdd filename}\").");
   app.add_option("--config", args.targets_config_file, "Configuration file.")->required();
   app.add_option("--heuristic", args.heuristic_opt, "Chosen heuristic.")
-      ->transform(CLI::CheckedTransformer(heuristic_opt_converter, CLI::ignore_case))
+      ->transform(CLI::CheckedTransformer(LibSynapse::str_to_heuristic_opt, CLI::ignore_case))
       ->required();
   app.add_option("--profile", args.profile_file, "BDD profile_file JSON.");
   app.add_option("--seed", args.seed, "Random seed.")->default_val(std::random_device()());
@@ -217,7 +201,13 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   if (args.name.empty()) {
-    args.name = "synapse-" + nf_name_from_bdd(args.input_bdd_file);
+    args.name = "synapse";
+    args.name += "-" + nf_name_from_bdd(args.input_bdd_file);
+    args.name += "-" + LibSynapse::heuristic_opt_to_str.at(args.heuristic_opt);
+    args.name += "-" + std::to_string(args.seed);
+    if (!args.profile_file.empty()) {
+      args.name += "-" + args.profile_file.stem().string();
+    }
   }
 
   args.print();
@@ -228,7 +218,7 @@ int main(int argc, char **argv) {
 
   LibCore::SingletonRandomEngine::seed(args.seed);
   LibCore::SymbolManager symbol_manager;
-  const LibBDD::BDD bdd                             = LibBDD::BDD(args.input_bdd_file, &symbol_manager);
+  const LibBDD::BDD bdd(args.input_bdd_file, &symbol_manager);
   const LibSynapse::targets_config_t targets_config = parse_targets_config(args.targets_config_file);
   const LibSynapse::Profiler profiler = args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
 
@@ -259,7 +249,7 @@ int main(int argc, char **argv) {
 
     LibBDD::BDDViz::dump_to_file(report.ep->get_bdd(), bdd_fpath);
     LibSynapse::EPViz::dump_to_file(report.ep.get(), ep_fpath);
-    LibSynapse::SSViz::dump_to_file(report.search_space.get(), ss_fpath);
+    LibSynapse::SSViz::dump_to_file(report.search_space.get(), report.ep.get(), ss_fpath);
 
     LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
   }

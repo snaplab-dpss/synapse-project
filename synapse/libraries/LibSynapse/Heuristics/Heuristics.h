@@ -14,12 +14,12 @@ namespace LibSynapse {
 enum class HeuristicOption {
   BFS,
   DFS,
-  GALLIUM,
-  GREEDY,
-  MAX_TPUT,
-  RANDOM,
-  DS_PREF,
-  MAX_CONTROLLER,
+  Gallium,
+  Greedy,
+  MaxTput,
+  Random,
+  DSPref,
+  MaxController,
 };
 
 inline std::unique_ptr<HeuristicCfg> build_heuristic_cfg(HeuristicOption hopt) {
@@ -32,27 +32,50 @@ inline std::unique_ptr<HeuristicCfg> build_heuristic_cfg(HeuristicOption hopt) {
   case HeuristicOption::DFS:
     cfg = std::make_unique<DFSCfg>();
     break;
-  case HeuristicOption::RANDOM:
+  case HeuristicOption::Random:
     cfg = std::make_unique<RandomCfg>();
     break;
-  case HeuristicOption::GALLIUM:
+  case HeuristicOption::Gallium:
     cfg = std::make_unique<GalliumCfg>();
     break;
-  case HeuristicOption::GREEDY:
+  case HeuristicOption::Greedy:
     cfg = std::make_unique<GreedyCfg>();
     break;
-  case HeuristicOption::MAX_TPUT:
+  case HeuristicOption::MaxTput:
     cfg = std::make_unique<MaxTputCfg>();
     break;
-  case HeuristicOption::DS_PREF:
+  case HeuristicOption::DSPref:
     cfg = std::make_unique<DSPrefCfg>();
     break;
-  case HeuristicOption::MAX_CONTROLLER:
+  case HeuristicOption::MaxController:
     cfg = std::make_unique<MaxControllerCfg>();
     break;
   }
 
   return cfg;
 }
+
+constexpr const char *const BFS_NAME            = "bfs";
+constexpr const char *const DFS_NAME            = "dfs";
+constexpr const char *const RANDOM_NAME         = "random";
+constexpr const char *const GALLIUM_NAME        = "gallium";
+constexpr const char *const GREEDY_NAME         = "greedy";
+constexpr const char *const MAX_TPUT_NAME       = "max-tput";
+constexpr const char *const DS_PREF_NAME        = "ds-pref";
+constexpr const char *const MAX_CONTROLLER_NAME = "max-controller";
+
+const std::unordered_map<std::string, HeuristicOption> str_to_heuristic_opt{
+    {BFS_NAME, HeuristicOption::BFS},        {DFS_NAME, HeuristicOption::DFS},
+    {RANDOM_NAME, HeuristicOption::Random},  {GALLIUM_NAME, HeuristicOption::Gallium},
+    {GREEDY_NAME, HeuristicOption::Greedy},  {MAX_TPUT_NAME, HeuristicOption::MaxTput},
+    {DS_PREF_NAME, HeuristicOption::DSPref}, {MAX_CONTROLLER_NAME, HeuristicOption::MaxController},
+};
+
+const std::unordered_map<HeuristicOption, std::string> heuristic_opt_to_str{
+    {HeuristicOption::BFS, BFS_NAME},        {HeuristicOption::DFS, DFS_NAME},
+    {HeuristicOption::Random, RANDOM_NAME},  {HeuristicOption::Gallium, GALLIUM_NAME},
+    {HeuristicOption::Greedy, GREEDY_NAME},  {HeuristicOption::MaxTput, MAX_TPUT_NAME},
+    {HeuristicOption::DSPref, DS_PREF_NAME}, {HeuristicOption::MaxController, MAX_CONTROLLER_NAME},
+};
 
 } // namespace LibSynapse

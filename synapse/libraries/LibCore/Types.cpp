@@ -9,7 +9,7 @@ namespace LibCore {
 namespace {
 constexpr const char THOUSANDS_SEPARATOR = '\'';
 
-std::pair<u64, std::string> n2hr(u64 n) {
+std::pair<double, std::string> n2hr(u64 n) {
   if (n < 1e3) {
     return {n, ""};
   }
