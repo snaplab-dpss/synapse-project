@@ -21,8 +21,8 @@ private:
   bits_t key_size;
 
   // For the transactional rollback/commit
-  std::unordered_map<buffer_t, u32, buffer_hash_t> new_entries_on_hold;
-  std::unordered_map<buffer_t, u32, buffer_hash_t> modified_entries_backup;
+  std::unordered_set<buffer_t, buffer_hash_t> new_entries_on_hold;
+  std::unordered_map<buffer_t, u32, buffer_hash_t> deleted_entries_on_hold;
 
 public:
   MapTable(const std::string &_name, const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt)
@@ -31,14 +31,14 @@ public:
 
     for (const std::string &table_name : table_names) {
       tables.emplace_back(table_name);
-      capacity = tables.back().get_capacity();
+      capacity = tables.back().get_effective_capacity();
       for (const table_field_t &field : tables.back().get_key_fields()) {
         key_size += field.size;
       }
     }
 
     for (const Table &table : tables) {
-      assert(table.get_capacity() == capacity);
+      assert(table.get_effective_capacity() == capacity);
     }
 
     if (timeout.has_value()) {
@@ -72,15 +72,8 @@ public:
     if (found_it != cache.end()) {
       duplicate_request_detected = true;
       return;
-    }
-
-    if (found_it == cache.end()) {
-      new_entries_on_hold[k] = v;
     } else {
-      auto modified_entry_it = modified_entries_backup.find(k);
-      if (modified_entry_it == modified_entries_backup.end()) {
-        modified_entries_backup[k] = v;
-      }
+      new_entries_on_hold.insert(k);
     }
 
     for (Table &table : tables) {
@@ -103,11 +96,8 @@ public:
     if (found_it == cache.end()) {
       duplicate_request_detected = true;
       return;
-    }
-
-    auto modified_entry_it = modified_entries_backup.find(k);
-    if (modified_entry_it == modified_entries_backup.end()) {
-      modified_entries_backup[k] = found_it->second;
+    } else {
+      deleted_entries_on_hold[k] = found_it->second;
     }
 
     for (Table &table : tables) {
@@ -138,32 +128,32 @@ public:
   }
 
   virtual void rollback() override final {
-    if (new_entries_on_hold.empty() && modified_entries_backup.empty()) {
+    if (new_entries_on_hold.empty() && deleted_entries_on_hold.empty()) {
       return;
     }
 
     LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
 
-    for (const auto &[k, v] : new_entries_on_hold) {
+    for (const auto &k : new_entries_on_hold) {
       cache.erase(k);
     }
 
-    for (const auto &[k, v] : modified_entries_backup) {
+    for (const auto &[k, v] : deleted_entries_on_hold) {
       cache[k] = v;
     }
 
     new_entries_on_hold.clear();
-    modified_entries_backup.clear();
+    deleted_entries_on_hold.clear();
   }
 
   virtual void commit() override final {
     new_entries_on_hold.clear();
-    modified_entries_backup.clear();
+    deleted_entries_on_hold.clear();
   }
 
 private:
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
-    cfg.begin_transaction();
+    cfg.begin_dataplane_notification_transaction();
 
     MapTable *map_table = reinterpret_cast<MapTable *>(cookie);
     assert(map_table && "Invalid cookie");
@@ -190,15 +180,17 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
+    assert(map_table->cache.find(key_buffer) != map_table->cache.end() && "Key not found in cache");
+
     bool duplicate_request_detected;
     map_table->del(key_buffer, duplicate_request_detected);
 
     if (duplicate_request_detected) {
       map_table->rollback();
-      cfg.abort_transaction();
+      cfg.abort_dataplane_notification_transaction();
     } else {
       map_table->commit();
-      cfg.commit_transaction();
+      cfg.commit_dataplane_notification_transaction();
     }
   }
 };

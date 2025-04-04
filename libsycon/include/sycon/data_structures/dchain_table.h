@@ -15,7 +15,6 @@ namespace sycon {
 
 class DchainTable : public SynapseDS {
 private:
-  std::unordered_set<u32> allocated_indexes;
   std::unordered_set<u32> free_indexes;
   std::vector<Table> tables;
   u32 capacity;
@@ -32,7 +31,7 @@ public:
       tables.emplace_back(table_name);
     }
 
-    capacity = tables.back().get_capacity();
+    capacity = tables.back().get_effective_capacity();
 
     for (u32 i = 0; i < capacity; i++) {
       free_indexes.insert(capacity - i - 1);
@@ -45,8 +44,7 @@ public:
   bool is_index_allocated(u32 index) const {
     assert(index < capacity && "Invalid index");
 
-    auto found_it = allocated_indexes.find(index);
-    if (found_it == allocated_indexes.end()) {
+    if (free_indexes.find(index) != free_indexes.end()) {
       return false;
     }
 
@@ -56,8 +54,7 @@ public:
   void refresh_index(u32 index) {
     assert(index < capacity && "Invalid index");
 
-    auto found_it = allocated_indexes.find(index);
-    if (found_it == allocated_indexes.end()) {
+    if (free_indexes.find(index) != free_indexes.end()) {
       return;
     }
 
@@ -77,7 +74,6 @@ public:
     }
 
     index = *free_indexes.begin();
-    free_indexes.erase(free_indexes.cbegin());
 
     buffer_t key(4);
     key.set(0, 4, index);
@@ -87,7 +83,7 @@ public:
       LOG_DEBUG("[%s] Allocated index %u", table.get_name().c_str(), index);
     }
 
-    allocated_indexes.insert(index);
+    free_indexes.erase(index);
     allocated_indexes_on_hold.insert(index);
 
     return true;
@@ -98,8 +94,7 @@ public:
 
     duplicate_request_detected = false;
 
-    auto found_it = allocated_indexes.find(index);
-    if (found_it == allocated_indexes.end()) {
+    if (free_indexes.find(index) != free_indexes.end()) {
       duplicate_request_detected = true;
       return;
     }
@@ -112,7 +107,7 @@ public:
       LOG_DEBUG("[%s] Freed index %u", table.get_name().c_str(), index);
     }
 
-    allocated_indexes.erase(found_it);
+    free_indexes.insert(index);
     free_indexes_on_hold.insert(index);
   }
 
@@ -124,9 +119,9 @@ public:
 
   void dump(std::ostream &os) const {
     os << "================================================\n";
-    os << "Dchain Table allocated_indexes:\n";
-    for (u32 k : allocated_indexes) {
-      os << "  key=" << k << "\n";
+    os << "Dchain Table free indexes:\n";
+    for (u32 k : free_indexes) {
+      os << "  index=" << k << "\n";
     }
     os << "================================================\n";
 
@@ -143,13 +138,11 @@ public:
     LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
 
     for (u32 index : allocated_indexes_on_hold) {
-      allocated_indexes.erase(index);
       free_indexes.insert(index);
     }
 
     for (u32 index : free_indexes_on_hold) {
       free_indexes.erase(index);
-      allocated_indexes.insert(index);
     }
 
     allocated_indexes_on_hold.clear();
@@ -163,7 +156,7 @@ public:
 
 private:
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
-    cfg.begin_transaction();
+    cfg.begin_dataplane_notification_transaction();
 
     DchainTable *dchain_table = reinterpret_cast<DchainTable *>(cookie);
     assert(dchain_table && "Invalid cookie");
@@ -202,10 +195,10 @@ private:
 
     if (duplicated_request_detected) {
       dchain_table->rollback();
-      cfg.abort_transaction();
+      cfg.abort_dataplane_notification_transaction();
     } else {
       dchain_table->commit();
-      cfg.commit_transaction();
+      cfg.commit_dataplane_notification_transaction();
     }
   }
 };

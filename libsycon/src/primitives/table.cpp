@@ -525,6 +525,8 @@ std::string Table::get_full_name() const { return "pipe." + name; }
 
 size_t Table::get_capacity() const { return capacity; }
 
+size_t Table::get_effective_capacity() const { return static_cast<size_t>(capacity * CAPACITY_EFFICIENCY); }
+
 size_t Table::get_usage() const {
   u32 usage;
   bf_status_t bf_status = table->tableUsageGet(*session, dev_tgt, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW, &usage);
@@ -741,8 +743,8 @@ void Table::set_data() {
 void Table::set_data(const std::string &action_name, const std::vector<buffer_t> &params) {
   bf_status_t bf_status;
 
-  auto found_it = std::find_if(actions.begin(), actions.end(),
-                               [this, &action_name](const table_action_t &action) { return action.name == action_name; });
+  auto found_it =
+      std::find_if(actions.begin(), actions.end(), [this, &action_name](const table_action_t &action) { return action.name == action_name; });
 
   if (found_it == actions.end()) {
     ERROR("Action %s not found", action_name.c_str());

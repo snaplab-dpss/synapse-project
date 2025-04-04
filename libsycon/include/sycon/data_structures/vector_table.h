@@ -28,7 +28,7 @@ public:
 
     for (const std::string &table_name : table_names) {
       tables.emplace_back(table_name);
-      capacity = tables.back().get_capacity();
+      capacity = tables.back().get_effective_capacity();
 
       const std::vector<sycon::table_action_t> &actions = tables.back().get_actions();
       assert(actions.size() == 1);
@@ -39,7 +39,7 @@ public:
     }
 
     for (const Table &table : tables) {
-      assert(table.get_capacity() == capacity);
+      assert(table.get_effective_capacity() == capacity);
     }
 
     buffer_t value(value_size / 8);

@@ -30,6 +30,10 @@ struct table_action_t {
 
 class Table {
 protected:
+  // Actually, we usually only get around 90% of usage from the dataplane tables.
+  // Higher than that and we start getting collisions, and errors trying to insert new entries.
+  constexpr const static double CAPACITY_EFFICIENCY{0.9};
+
   const std::string name;
 
   const bf_rt_target_t dev_tgt;
@@ -60,6 +64,7 @@ public:
   std::string get_name() const;
   std::string get_full_name() const;
   size_t get_capacity() const;
+  size_t get_effective_capacity() const;
   size_t get_usage() const;
 
   const std::vector<table_field_t> &get_key_fields() const;

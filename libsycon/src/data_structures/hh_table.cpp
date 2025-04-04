@@ -266,15 +266,9 @@ std::vector<Register> HHTable::build_count_min_sketch(const std::vector<std::str
 }
 
 u32 HHTable::get_capacity(const std::vector<Table> &tables) {
-  u32 capacity = tables.back().get_capacity();
+  const u32 capacity = tables.back().get_effective_capacity();
   for (const Table &table : tables) {
-    assert(table.get_capacity() == capacity);
-  }
-
-  if (capacity > 1024) {
-    // Actually, we usually only get around 90% of usage from the dataplane tables.
-    // Higher than that and we start getting collisions, and errors trying to insert new entries.
-    capacity *= 0.9;
+    assert(table.get_effective_capacity() == capacity);
   }
 
   return capacity;
@@ -342,7 +336,7 @@ std::vector<buffer_t> HHTable::build_hash_salts(const std::vector<Register> &cou
 }
 
 void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
-  cfg.begin_transaction();
+  cfg.begin_dataplane_notification_transaction();
 
   HHTable *hh_table = reinterpret_cast<HHTable *>(cookie);
   assert(hh_table && "Invalid cookie");
@@ -374,10 +368,10 @@ void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfR
 
   if (duplicate_request_detected) {
     hh_table->rollback();
-    cfg.abort_transaction();
+    cfg.abort_dataplane_notification_transaction();
   } else {
     hh_table->commit();
-    cfg.commit_transaction();
+    cfg.commit_dataplane_notification_transaction();
   }
 }
 
@@ -388,7 +382,7 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
   HHTable *hh_table = const_cast<HHTable *>(reinterpret_cast<const HHTable *>(cookie));
   assert(hh_table && "Invalid cookie");
 
-  cfg.begin_transaction();
+  cfg.begin_dataplane_notification_transaction();
 
   bool duplicate_request_detected;
 
@@ -412,10 +406,10 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
 
   if (duplicate_request_detected) {
     hh_table->rollback();
-    cfg.abort_transaction();
+    cfg.abort_dataplane_notification_transaction();
   } else {
     hh_table->commit();
-    cfg.commit_transaction();
+    cfg.commit_dataplane_notification_transaction();
   }
 
   return BF_SUCCESS;
