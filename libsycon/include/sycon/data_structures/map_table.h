@@ -9,18 +9,24 @@
 #include "../primitives/table.h"
 #include "../time.h"
 #include "../field.h"
+#include "synapse_ds.h"
 
 namespace sycon {
 
-class MapTable {
+class MapTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   std::vector<Table> tables;
   u32 capacity;
   bits_t key_size;
 
+  // For the transactional rollback/commit
+  std::unordered_map<buffer_t, u32, buffer_hash_t> new_entries_on_hold;
+  std::unordered_map<buffer_t, u32, buffer_hash_t> modified_entries_backup;
+
 public:
-  MapTable(const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt) : capacity(0), key_size(0) {
+  MapTable(const std::string &_name, const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt)
+      : SynapseDS(_name), capacity(0), key_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
@@ -55,9 +61,27 @@ public:
     return true;
   }
 
-  void put(const buffer_t &k, u32 v) {
+  void put(const buffer_t &k, u32 v, bool &duplicate_request_detected) {
+    duplicate_request_detected = false;
+
     buffer_t value(4);
     value.set(0, 4, v);
+
+    auto found_it = cache.find(k);
+
+    if (found_it != cache.end()) {
+      duplicate_request_detected = true;
+      return;
+    }
+
+    if (found_it == cache.end()) {
+      new_entries_on_hold[k] = v;
+    } else {
+      auto modified_entry_it = modified_entries_backup.find(k);
+      if (modified_entry_it == modified_entries_backup.end()) {
+        modified_entries_backup[k] = v;
+      }
+    }
 
     for (Table &table : tables) {
       LOG_DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
@@ -72,10 +96,18 @@ public:
     cache[k] = v;
   }
 
-  void del(const buffer_t &k) {
+  void del(const buffer_t &k, bool &duplicate_request_detected) {
+    duplicate_request_detected = false;
+
     auto found_it = cache.find(k);
     if (found_it == cache.end()) {
+      duplicate_request_detected = true;
       return;
+    }
+
+    auto modified_entry_it = modified_entries_backup.find(k);
+    if (modified_entry_it == modified_entries_backup.end()) {
+      modified_entries_backup[k] = found_it->second;
     }
 
     for (Table &table : tables) {
@@ -103,6 +135,30 @@ public:
     for (const Table &table : tables) {
       table.dump(os);
     }
+  }
+
+  virtual void rollback() override final {
+    if (new_entries_on_hold.empty() && modified_entries_backup.empty()) {
+      return;
+    }
+
+    LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
+
+    for (const auto &[k, v] : new_entries_on_hold) {
+      cache.erase(k);
+    }
+
+    for (const auto &[k, v] : modified_entries_backup) {
+      cache[k] = v;
+    }
+
+    new_entries_on_hold.clear();
+    modified_entries_backup.clear();
+  }
+
+  virtual void commit() override final {
+    new_entries_on_hold.clear();
+    modified_entries_backup.clear();
   }
 
 private:
@@ -134,9 +190,16 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    map_table->del(key_buffer);
+    bool duplicate_request_detected;
+    map_table->del(key_buffer, duplicate_request_detected);
 
-    cfg.end_transaction();
+    if (duplicate_request_detected) {
+      map_table->rollback();
+      cfg.abort_transaction();
+    } else {
+      map_table->commit();
+      cfg.commit_transaction();
+    }
   }
 };
 

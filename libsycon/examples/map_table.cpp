@@ -2,16 +2,23 @@
 
 using namespace sycon;
 
-struct state_t {
+struct state_t : public nf_state_t {
   MapTable map_table;
 
-  state_t() : map_table({"Ingress.map_table_0", "Ingress.map_table_1"}, 1000) {}
+  state_t() : map_table("map_table", {"Ingress.map_table_0", "Ingress.map_table_1"}, 1000) {}
+
+  virtual void rollback() override final { map_table.rollback(); }
+
+  virtual void commit() override final { map_table.commit(); }
 };
 
-std::unique_ptr<state_t> state;
+state_t *state = nullptr;
 
 void sycon::nf_init() {
-  state = std::make_unique<state_t>();
+  nf_state = std::make_unique<state_t>();
+  state    = dynamic_cast<state_t *>(nf_state.get());
+
+  bool duplicate_request_detected;
 
   buffer_t key(8);
   key[0] = 0x00;
@@ -29,17 +36,17 @@ void sycon::nf_init() {
   state->map_table.dump();
 
   LOG("******** New entry ********");
-  state->map_table.put(key, value);
+  state->map_table.put(key, value, duplicate_request_detected);
   state->map_table.dump();
 
   value = 0xcafebabe;
 
   LOG("******** Entry mod ********");
-  state->map_table.put(key, value);
+  state->map_table.put(key, value, duplicate_request_detected);
   state->map_table.dump();
 
   LOG("******** Entry del ********");
-  state->map_table.del(key);
+  state->map_table.del(key, duplicate_request_detected);
   state->map_table.dump();
 }
 
@@ -49,6 +56,9 @@ void sycon::nf_user_signal_handler() {}
 
 void sycon::nf_args(CLI::App &app) {}
 
-bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) { return true; }
+nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  nf_process_result_t result;
+  return result;
+}
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

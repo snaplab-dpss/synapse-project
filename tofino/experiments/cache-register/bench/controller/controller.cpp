@@ -31,47 +31,47 @@ extern "C" {
 #define SWITCH_PACKET_MAX_BUFFER_SIZE 10000
 #define MTU 1500
 
-#define bswap16(v)                                                                                                                         \
+#define bswap16(v)                                                                                                                                   \
   { (v) = __bswap_16((v)); }
-#define bswap32(v)                                                                                                                         \
+#define bswap32(v)                                                                                                                                   \
   { (v) = __bswap_32((v)); }
 
-#define LOG_BF_STATUS(status, fmt, ...)                                                                                                    \
-  if ((status) != BF_SUCCESS) {                                                                                                            \
-    fprintf(stderr, "%d: [WARN] " fmt "\nStatus: %s\n", __LINE__, ##__VA_ARGS__, bf_err_str(status));                                      \
-    fflush(stderr);                                                                                                                        \
+#define LOG_BF_STATUS(status, fmt, ...)                                                                                                              \
+  if ((status) != BF_SUCCESS) {                                                                                                                      \
+    fprintf(stderr, "%d: [WARN] " fmt "\nStatus: %s\n", __LINE__, ##__VA_ARGS__, bf_err_str(status));                                                \
+    fflush(stderr);                                                                                                                                  \
   }
 
-#define ASSERT_BF_STATUS(status, fmt, ...)                                                                                                 \
-  if ((status) != BF_SUCCESS) {                                                                                                            \
-    fprintf(stderr, "%d: [ERROR] " fmt "\nStatus: %s\n", __LINE__, ##__VA_ARGS__, bf_err_str(status));                                     \
-    fflush(stderr);                                                                                                                        \
-    exit(1);                                                                                                                               \
+#define ASSERT_BF_STATUS(status, fmt, ...)                                                                                                           \
+  if ((status) != BF_SUCCESS) {                                                                                                                      \
+    fprintf(stderr, "%d: [ERROR] " fmt "\nStatus: %s\n", __LINE__, ##__VA_ARGS__, bf_err_str(status));                                               \
+    fflush(stderr);                                                                                                                                  \
+    exit(1);                                                                                                                                         \
   }
 
 #ifndef NDEBUG
-#define LOG_DEBUG(fmt, ...)                                                                                                                \
-  {                                                                                                                                        \
-    fprintf(stderr, "[DEBUG] " fmt, ##__VA_ARGS__);                                                                                        \
-    fflush(stderr);                                                                                                                        \
+#define LOG_DEBUG(fmt, ...)                                                                                                                          \
+  {                                                                                                                                                  \
+    fprintf(stderr, "[DEBUG] " fmt, ##__VA_ARGS__);                                                                                                  \
+    fflush(stderr);                                                                                                                                  \
   }
 #else
 #define LOG_DEBUG(fmt, ...)
 #endif
 
-#define LOG(fmt, ...)                                                                                                                      \
-  {                                                                                                                                        \
-    fprintf(stderr, fmt, ##__VA_ARGS__);                                                                                                   \
-    fflush(stderr);                                                                                                                        \
+#define LOG(fmt, ...)                                                                                                                                \
+  {                                                                                                                                                  \
+    fprintf(stderr, fmt, ##__VA_ARGS__);                                                                                                             \
+    fflush(stderr);                                                                                                                                  \
   }
 
 #define PROGRAM "cache"
 
-#define WAIT_FOR_ENTER(msg)                                                                                                                \
-  {                                                                                                                                        \
-    std::cout << msg;                                                                                                                      \
-    fflush(stdout);                                                                                                                        \
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                                    \
+#define WAIT_FOR_ENTER(msg)                                                                                                                          \
+  {                                                                                                                                                  \
+    std::cout << msg;                                                                                                                                \
+    fflush(stdout);                                                                                                                                  \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                                              \
   }
 
 #define likely(x) __builtin_expect((x), 1)
@@ -717,8 +717,7 @@ protected:
 
     std::unique_ptr<bfrt::BfRtTableAttributes> attr;
 
-    auto bf_status =
-        table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME, bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
+    auto bf_status = table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME, bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
 
     ASSERT_BF_STATUS(bf_status, "Failed to allocate attribute for table %s", table_name.c_str())
 
@@ -1811,8 +1810,7 @@ public:
 
   static std::unique_ptr<Map> build(const std::vector<std::string> &tables_names) { return std::unique_ptr<Map>(new Map(tables_names)); }
 
-  static std::unique_ptr<Map> build(const std::vector<std::string> &tables_names, const std::string &timeout_table_name,
-                                    time_ms_t timeout) {
+  static std::unique_ptr<Map> build(const std::vector<std::string> &tables_names, const std::string &timeout_table_name, time_ms_t timeout) {
     return std::unique_ptr<Map>(new Map(tables_names, timeout_table_name, timeout));
   }
 

@@ -19,7 +19,8 @@ struct cpu_hdr_extra_t {
   u32 ingress_dev;
 } __attribute__((packed));
 
-bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  nf_process_result_t result;
   cpu_hdr_t *cpu_hdr             = packet_consume<cpu_hdr_t>(pkt);
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
 
@@ -28,7 +29,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   // packet_hexdump(pkt, size);
   packet_log(cpu_hdr);
 
-  return true;
+  return result;
 }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

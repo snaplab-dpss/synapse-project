@@ -1,19 +1,24 @@
 #include <sycon/sycon.h>
 
-#include <unistd.h>
-
 using namespace sycon;
 
-struct state_t {
+struct state_t : public nf_state_t {
   DchainTable dchain_table;
 
-  state_t() : dchain_table("Ingress", {"dchain_table_0", "dchain_table_1"}, 1000) {}
+  state_t() : dchain_table("dchain_table", {"Ingress.dchain_table_0", "Ingress.dchain_table_1"}, 1000) {}
+
+  virtual void rollback() override final { dchain_table.rollback(); }
+
+  virtual void commit() override final { dchain_table.commit(); }
 };
 
-std::unique_ptr<state_t> state;
+state_t *state = nullptr;
 
 void sycon::nf_init() {
-  state = std::make_unique<state_t>();
+  nf_state = std::make_unique<state_t>();
+  state    = dynamic_cast<state_t *>(nf_state.get());
+
+  bool duplicate_request_detected;
 
   LOG("***** Empty dchain table *****");
   state->dchain_table.dump();
@@ -29,7 +34,7 @@ void sycon::nf_init() {
   LOG("Is index %u allocated %d", new_index, is_allocated);
 
   LOG("******** Free index ********");
-  state->dchain_table.free_index(new_index);
+  state->dchain_table.free_index(new_index, duplicate_request_detected);
   state->dchain_table.dump();
 
   LOG("******** Allocate and expire index ********");
@@ -66,6 +71,9 @@ void sycon::nf_user_signal_handler() {}
 
 void sycon::nf_args(CLI::App &app) {}
 
-bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) { return true; }
+nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  nf_process_result_t result;
+  return result;
+}
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

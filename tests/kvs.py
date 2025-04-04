@@ -48,21 +48,39 @@ def main():
             ignore_fields=[HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM, HeaderField.KVS_CLIENT_PORT],
         )
 
-        print(f"[{client_port}] Sending cached GET request")
+        print(f"[{client_port}] Sending cached GET requests")
 
-        kvs_req = build_kvs_hdr(op=KVS_OP_GET, key=kvs_hdr.key, value=kvs_hdr.value)
-        ksv_res = build_kvs_hdr(op=KVS_OP_GET, key=kvs_hdr.key, value=kvs_hdr.value, status=KVS_STATUS_OK)
+        for i in range(5):
+            kvs_req = build_kvs_hdr(op=KVS_OP_GET, key=kvs_hdr.key, value=kvs_hdr.value)
+            ksv_res = build_kvs_hdr(op=KVS_OP_GET, key=kvs_hdr.key, value=kvs_hdr.value, status=KVS_STATUS_OK)
 
-        client_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_req)
-        res_pkt = build_packet(src_mac=DST_MAC, dst_mac=SRC_MAC, flow=inverted_flow, kvs_hdr=ksv_res)
+            client_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_req)
+            res_pkt = build_packet(src_mac=DST_MAC, dst_mac=SRC_MAC, flow=inverted_flow, kvs_hdr=ksv_res)
 
-        ports.send(client_port, client_pkt)
-        expect_packet_from_port(
-            ports,
-            client_port,
-            res_pkt,
-            ignore_fields=[HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM, HeaderField.KVS_CLIENT_PORT],
-        )
+            ports.send(client_port, client_pkt)
+            expect_packet_from_port(
+                ports,
+                client_port,
+                res_pkt,
+                ignore_fields=[HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM, HeaderField.KVS_CLIENT_PORT],
+            )
+
+        print(f"[{client_port}] Sending cached PUT requests")
+
+        for i in range(5):
+            kvs_req = build_kvs_hdr(op=KVS_OP_PUT, key=kvs_hdr.key)
+            ksv_res = build_kvs_hdr(op=KVS_OP_PUT, key=kvs_hdr.key, value=kvs_req.value, status=KVS_STATUS_OK)
+
+            client_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_req)
+            res_pkt = build_packet(src_mac=DST_MAC, dst_mac=SRC_MAC, flow=inverted_flow, kvs_hdr=ksv_res)
+
+            ports.send(client_port, client_pkt)
+            expect_packet_from_port(
+                ports,
+                client_port,
+                res_pkt,
+                ignore_fields=[HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM, HeaderField.KVS_CLIENT_PORT],
+            )
 
 
 if __name__ == "__main__":

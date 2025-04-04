@@ -6,15 +6,22 @@ constexpr const u32 HASH_SALT_0{0xfbc31fc7};
 constexpr const u32 HASH_SALT_1{0x2681580b};
 constexpr const u32 HASH_SALT_2{0x486d7e2f};
 
-struct state_t {
+struct state_t : public nf_state_t {
   CRC32 crc32;
 
   state_t() {}
+
+  virtual void rollback() override final {}
+
+  virtual void commit() override final {}
 };
 
-std::unique_ptr<state_t> state;
+state_t *state = nullptr;
 
-void sycon::nf_init() { state = std::make_unique<state_t>(); }
+void sycon::nf_init() {
+  nf_state = std::make_unique<state_t>();
+  state    = dynamic_cast<state_t *>(nf_state.get());
+}
 
 void sycon::nf_exit() {}
 
@@ -29,7 +36,8 @@ struct app_t {
   u32 hash2;
 } __attribute__((packed));
 
-bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  nf_process_result_t result;
   eth_hdr_t *eth = packet_consume<eth_hdr_t>(pkt);
   ipv4_hdr_t *ip = packet_consume<ipv4_hdr_t>(pkt);
   udp_hdr_t *udp = packet_consume<udp_hdr_t>(pkt);
@@ -85,7 +93,8 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   printf("local hash:     %08x\n", state->crc32.hash(input_hash2));
   printf("========================================\n");
 
-  return false;
+  result.forward = false;
+  return result;
 }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

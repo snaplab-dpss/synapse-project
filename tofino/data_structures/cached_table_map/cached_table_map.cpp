@@ -47,7 +47,8 @@ void sycon::nf_user_signal_handler() {
   LOG("Total: %lu", total_packets)
 }
 
-bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
+  nf_process_result_t result;
   cpu_hdr_t *cpu_hdr       = packet_consume<cpu_hdr_t>(pkt);
   eth_hdr_t *eth_hdr       = packet_consume<eth_hdr_t>(pkt);
   ipv4_hdr_t *ipv4_hdr     = packet_consume<ipv4_hdr_t>(pkt);
@@ -62,7 +63,7 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   state->map.put(flow, out_port);
   cpu_hdr->out_port = bswap16(cfg.out_dev_port);
 
-  return true;
+  return result;
 }
 
 int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }

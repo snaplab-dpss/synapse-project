@@ -49,14 +49,21 @@ extern struct config_t {
 
   void begin_transaction() {
     lock();
-    const bool atomic     = true;
+    const bool atomic{true};
     bf_status_t bf_status = session->beginTransaction(atomic);
     ASSERT_BF_STATUS(bf_status);
   }
 
-  void end_transaction() {
-    const bool block_until_complete = true;
-    bf_status_t bf_status           = session->commitTransaction(block_until_complete);
+  void abort_transaction() {
+    LOG_DEBUG("***** Aborting transaction *****");
+    bf_status_t bf_status = session->abortTransaction();
+    ASSERT_BF_STATUS(bf_status);
+    unlock();
+  }
+
+  void commit_transaction() {
+    const bool block_until_complete{true};
+    bf_status_t bf_status = session->commitTransaction(block_until_complete);
     ASSERT_BF_STATUS(bf_status);
     unlock();
   }

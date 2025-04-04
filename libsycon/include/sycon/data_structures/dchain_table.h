@@ -9,20 +9,23 @@
 #include "../primitives/table.h"
 #include "../time.h"
 #include "../field.h"
-#include "map_table.h"
-#include "vector_table.h"
+#include "synapse_ds.h"
 
 namespace sycon {
 
-class DchainTable {
+class DchainTable : public SynapseDS {
 private:
-  std::unordered_set<u32> cache;
+  std::unordered_set<u32> allocated_indexes;
   std::unordered_set<u32> free_indexes;
   std::vector<Table> tables;
   u32 capacity;
 
+  // For the transactional rollback/commit
+  std::unordered_set<u32> allocated_indexes_on_hold;
+  std::unordered_set<u32> free_indexes_on_hold;
+
 public:
-  DchainTable(const std::vector<std::string> &table_names, time_ms_t timeout) : capacity(0) {
+  DchainTable(const std::string &_name, const std::vector<std::string> &table_names, time_ms_t timeout) : SynapseDS(_name), capacity(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
@@ -42,8 +45,8 @@ public:
   bool is_index_allocated(u32 index) const {
     assert(index < capacity && "Invalid index");
 
-    auto found_it = cache.find(index);
-    if (found_it == cache.end()) {
+    auto found_it = allocated_indexes.find(index);
+    if (found_it == allocated_indexes.end()) {
       return false;
     }
 
@@ -53,8 +56,8 @@ public:
   void refresh_index(u32 index) {
     assert(index < capacity && "Invalid index");
 
-    auto found_it = cache.find(index);
-    if (found_it == cache.end()) {
+    auto found_it = allocated_indexes.find(index);
+    if (found_it == allocated_indexes.end()) {
       return;
     }
 
@@ -84,16 +87,20 @@ public:
       LOG_DEBUG("[%s] Allocated index %u", table.get_name().c_str(), index);
     }
 
-    cache.insert(index);
+    allocated_indexes.insert(index);
+    allocated_indexes_on_hold.insert(index);
 
     return true;
   }
 
-  void free_index(u32 index) {
+  void free_index(u32 index, bool &duplicate_request_detected) {
     assert(index < capacity && "Invalid index");
 
-    auto found_it = cache.find(index);
-    if (found_it == cache.end()) {
+    duplicate_request_detected = false;
+
+    auto found_it = allocated_indexes.find(index);
+    if (found_it == allocated_indexes.end()) {
+      duplicate_request_detected = true;
       return;
     }
 
@@ -105,7 +112,8 @@ public:
       LOG_DEBUG("[%s] Freed index %u", table.get_name().c_str(), index);
     }
 
-    cache.erase(found_it);
+    allocated_indexes.erase(found_it);
+    free_indexes_on_hold.insert(index);
   }
 
   void dump() const {
@@ -116,8 +124,8 @@ public:
 
   void dump(std::ostream &os) const {
     os << "================================================\n";
-    os << "Dchain Table Cache:\n";
-    for (u32 k : cache) {
+    os << "Dchain Table allocated_indexes:\n";
+    for (u32 k : allocated_indexes) {
       os << "  key=" << k << "\n";
     }
     os << "================================================\n";
@@ -125,6 +133,32 @@ public:
     for (const Table &table : tables) {
       table.dump(os);
     }
+  }
+
+  virtual void rollback() override final {
+    if (allocated_indexes_on_hold.empty() && free_indexes_on_hold.empty()) {
+      return;
+    }
+
+    LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
+
+    for (u32 index : allocated_indexes_on_hold) {
+      allocated_indexes.erase(index);
+      free_indexes.insert(index);
+    }
+
+    for (u32 index : free_indexes_on_hold) {
+      free_indexes.erase(index);
+      allocated_indexes.insert(index);
+    }
+
+    allocated_indexes_on_hold.clear();
+    free_indexes_on_hold.clear();
+  }
+
+  virtual void commit() override final {
+    allocated_indexes_on_hold.clear();
+    free_indexes_on_hold.clear();
   }
 
 private:
@@ -162,9 +196,17 @@ private:
     ASSERT_BF_STATUS(status);
 
     u32 index = static_cast<u32>(key_value);
-    dchain_table->free_index(index);
 
-    cfg.end_transaction();
+    bool duplicated_request_detected;
+    dchain_table->free_index(index, duplicated_request_detected);
+
+    if (duplicated_request_detected) {
+      dchain_table->rollback();
+      cfg.abort_transaction();
+    } else {
+      dchain_table->commit();
+      cfg.commit_transaction();
+    }
   }
 };
 

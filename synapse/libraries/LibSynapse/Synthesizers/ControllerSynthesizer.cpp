@@ -15,6 +15,8 @@ using LibSynapse::Tofino::TofinoContext;
 
 constexpr const char *const MARKER_STATE_FIELDS           = "STATE_FIELDS";
 constexpr const char *const MARKER_STATE_MEMBER_INIT_LIST = "STATE_MEMBER_INIT_LIST";
+constexpr const char *const MARKER_STATE_ROLLBACK         = "STATE_ROLLBACK";
+constexpr const char *const MARKER_STATE_COMMIT           = "STATE_COMMIT";
 constexpr const char *const MARKER_NF_INIT                = "NF_INIT";
 constexpr const char *const MARKER_NF_EXIT                = "NF_EXIT";
 constexpr const char *const MARKER_NF_ARGS                = "NF_ARGS";
@@ -681,6 +683,8 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::pat
                   {
                       {MARKER_STATE_FIELDS, 1},
                       {MARKER_STATE_MEMBER_INIT_LIST, 3},
+                      {MARKER_STATE_ROLLBACK, 2},
+                      {MARKER_STATE_COMMIT, 2},
                       {MARKER_NF_INIT, 1},
                       {MARKER_NF_EXIT, 1},
                       {MARKER_NF_ARGS, 1},
@@ -712,6 +716,8 @@ void ControllerSynthesizer::synthesize() {
 
   synthesize_nf_process();
   synthesize_state_member_init_list();
+  synthesize_state_rollback();
+  synthesize_state_commit();
   Synthesizer::dump();
 }
 
@@ -784,14 +790,36 @@ void ControllerSynthesizer::synthesize_nf_process() {
 void ControllerSynthesizer::synthesize_state_member_init_list() {
   coder_t &coder = get(MARKER_STATE_MEMBER_INIT_LIST);
 
-  if (state_member_init_list.empty()) {
-    return;
-  }
-
-  for (size_t i = 0; i < state_member_init_list.size(); i++) {
+  for (const code_t &member : state_member_init_list) {
     coder << ",\n";
     coder.indent();
-    coder << state_member_init_list[i];
+    coder << member;
+  }
+}
+
+void ControllerSynthesizer::synthesize_state_rollback() {
+  coder_t &coder = get(MARKER_STATE_ROLLBACK);
+
+  for (size_t i = 0; i < synapse_data_structures_instances.size(); i++) {
+    const code_t &name = synapse_data_structures_instances[i];
+    coder.indent();
+    coder << name << ".rollback();";
+    if (i < synapse_data_structures_instances.size() - 1) {
+      coder << "\n";
+    }
+  }
+}
+
+void ControllerSynthesizer::synthesize_state_commit() {
+  coder_t &coder = get(MARKER_STATE_COMMIT);
+
+  for (size_t i = 0; i < synapse_data_structures_instances.size(); i++) {
+    const code_t &name = synapse_data_structures_instances[i];
+    coder.indent();
+    coder << name << ".commit();";
+    if (i < synapse_data_structures_instances.size() - 1) {
+      coder << "\n";
+    }
   }
 }
 
@@ -1037,7 +1065,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  coder << "forward = false;\n";
+  coder << "result.forward = false;\n";
   return EPVisitor::Action::doChildren;
 }
 
@@ -1072,7 +1100,17 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "state->" << map_table->id << ".put(";
   coder << key_var.name;
   coder << ", " << transpiler.transpile(value);
+  coder << ", result.abort_transaction";
   coder << ");\n";
+
+  coder.indent();
+  coder << "if (result.abort_transaction) {\n";
+  coder.inc();
+  coder.indent();
+  coder << "return result;\n";
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1131,7 +1169,17 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "state->" << vector_table->id << ".write(";
   coder << transpiler.transpile(key);
   coder << ", " << value_var.name;
+  coder << ", result.abort_transaction";
   coder << ");\n";
+
+  coder.indent();
+  coder << "if (result.abort_transaction) {\n";
+  coder.inc();
+  coder.indent();
+  coder << "return result;\n";
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1370,7 +1418,17 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "state->" << vector_register->id << ".put(";
   coder << transpiler.transpile(index);
   coder << ", " << value_var.name;
+  coder << ", result.abort_transaction";
   coder << ");\n";
+
+  coder.indent();
+  coder << "if (result.abort_transaction) {\n";
+  coder.inc();
+  coder.indent();
+  coder << "return result;\n";
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1637,40 +1695,6 @@ ControllerSynthesizer::code_t ControllerSynthesizer::assert_unique_name(const co
   return name;
 }
 
-void ControllerSynthesizer::transpile_table_decl(const Tofino::Table *table) {
-  coder_t &state_fields = get(MARKER_STATE_FIELDS);
-
-  const u64 nb_keys   = table->keys.size();
-  const u64 nb_values = table->params.size();
-  const code_t name   = assert_unique_name(table->id);
-
-  state_fields.indent();
-  state_fields << "Table<" << nb_keys << "," << nb_values << "> " << name << ";\n";
-
-  coder_t member_init_list;
-  member_init_list << name;
-  member_init_list << "(";
-  member_init_list << "\"Ingress." << table->id << "\"";
-  member_init_list << ")";
-  state_member_init_list.push_back(member_init_list.dump());
-}
-
-void ControllerSynthesizer::transpile_register_decl(const Tofino::Register *reg) {
-  coder_t &state_fields = get(MARKER_STATE_FIELDS);
-
-  const code_t name = assert_unique_name(reg->id);
-
-  state_fields.indent();
-  state_fields << "PrimitiveRegister " << name << ";\n";
-
-  coder_t member_init_list;
-  member_init_list << name;
-  member_init_list << "(";
-  member_init_list << "\"Ingress." << reg->id << "\"";
-  member_init_list << ")";
-  state_member_init_list.push_back(member_init_list.dump());
-}
-
 void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map_table) {
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
@@ -1682,9 +1706,12 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   state_fields.indent();
   state_fields << "MapTable " << name << ";\n";
 
+  synapse_data_structures_instances.push_back(name);
+
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : map_table->tables) {
     member_init_list << "\"Ingress." << table.id << "\",";
@@ -1710,9 +1737,12 @@ void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTabl
   state_fields.indent();
   state_fields << "VectorTable " << name << ";\n";
 
+  synapse_data_structures_instances.push_back(name);
+
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : vector_table->tables) {
     member_init_list << "\"Ingress." << table.id << "\",";
@@ -1731,9 +1761,12 @@ void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTabl
   state_fields.indent();
   state_fields << "DchainTable " << name << ";\n";
 
+  synapse_data_structures_instances.push_back(name);
+
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : dchain_table->tables) {
     member_init_list << "\"Ingress." << table.id << "\",";
@@ -1752,9 +1785,12 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
   state_fields.indent();
   state_fields << "VectorRegister " << name << ";\n";
 
+  synapse_data_structures_instances.push_back(name);
+
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Register &reg : vector_register->regs) {
     member_init_list << "\"Ingress." << reg.id << "\",";
@@ -1773,9 +1809,12 @@ void ControllerSynthesizer::transpile_hh_table_decl(const Tofino::HHTable *hh_ta
   state_fields.indent();
   state_fields << "HHTable " << name << ";\n";
 
+  synapse_data_structures_instances.push_back(name);
+
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : hh_table->tables) {
     member_init_list << "\"Ingress." << table.id << "\", ";

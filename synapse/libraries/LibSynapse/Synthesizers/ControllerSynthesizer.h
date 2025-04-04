@@ -138,6 +138,7 @@ private:
 
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
+  std::vector<code_t> synapse_data_structures_instances;
   std::vector<code_t> state_member_init_list;
   std::vector<ep_node_id_t> code_paths;
 
@@ -147,6 +148,8 @@ private:
   void synthesize_nf_init();
   void synthesize_nf_process();
   void synthesize_state_member_init_list();
+  void synthesize_state_rollback();
+  void synthesize_state_commit();
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
   void log(const EPNode *node) const override final;
@@ -240,8 +243,6 @@ private:
   code_path_t alloc_recirc_coder();
 
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc);
-  void transpile_table_decl(const Tofino::Table *table);
-  void transpile_register_decl(const Tofino::Register *reg);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
   void transpile_vector_table_decl(const Tofino::VectorTable *vector_table);
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);

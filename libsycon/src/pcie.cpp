@@ -21,6 +21,8 @@ extern "C" {
 
 namespace sycon {
 
+std::unique_ptr<nf_state_t> nf_state;
+
 static void pcie_tx(bf_dev_id_t device, u8 *pkt, u32 packet_size) {
   bf_pkt *tx_pkt = nullptr;
 
@@ -85,10 +87,17 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   packet_init(packet_size);
 
   cfg.begin_transaction();
-  bool fwd = nf_process(now, packet, packet_size);
-  cfg.end_transaction();
+  nf_process_result_t result = nf_process(now, packet, packet_size);
 
-  if (fwd) {
+  if (result.abort_transaction) {
+    nf_state->rollback();
+    cfg.abort_transaction();
+  } else {
+    nf_state->commit();
+    cfg.commit_transaction();
+  }
+
+  if (result.forward) {
     pcie_tx(device, packet, packet_size);
   }
 

@@ -8,18 +8,22 @@
 #include "../primitives/table.h"
 #include "../time.h"
 #include "../field.h"
+#include "synapse_ds.h"
 
 namespace sycon {
 
-class VectorTable {
+class VectorTable : public SynapseDS {
 private:
   std::vector<buffer_t> cache;
   std::vector<Table> tables;
   u32 capacity;
   bits_t value_size;
 
+  // For the transactional rollback/commit
+  std::unordered_map<size_t, buffer_t> modified_entries_backup;
+
 public:
-  VectorTable(const std::vector<std::string> &table_names) : capacity(0), value_size(0) {
+  VectorTable(const std::string &_name, const std::vector<std::string> &table_names) : SynapseDS(_name), capacity(0), value_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
@@ -47,9 +51,23 @@ public:
     v = cache.at(index);
   }
 
-  void write(u32 index, const buffer_t &value) {
+  void write(u32 index, const buffer_t &value, bool &duplicate_request_detected) {
+    assert(index < capacity && "Index out of bounds");
+
+    duplicate_request_detected = false;
+
     buffer_t key(4);
     key.set(0, 4, index);
+
+    if (cache.at(index) == value) {
+      duplicate_request_detected = true;
+      return;
+    }
+
+    auto modified_entry_it = modified_entries_backup.find(index);
+    if (modified_entry_it == modified_entries_backup.end()) {
+      modified_entries_backup[index] = value;
+    }
 
     for (Table &table : tables) {
       LOG_DEBUG("[%s] Write index %u value %s", table.get_name().c_str(), index, value.to_string().c_str());
@@ -82,6 +100,22 @@ public:
       table.dump(os);
     }
   }
+
+  virtual void rollback() override final {
+    if (modified_entries_backup.empty()) {
+      return;
+    }
+
+    LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
+
+    for (const auto &[k, v] : modified_entries_backup) {
+      cache[k] = v;
+    }
+
+    modified_entries_backup.clear();
+  }
+
+  virtual void commit() override final { modified_entries_backup.clear(); }
 };
 
 } // namespace sycon

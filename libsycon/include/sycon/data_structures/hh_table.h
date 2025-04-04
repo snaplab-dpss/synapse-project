@@ -10,10 +10,11 @@
 #include "../time.h"
 #include "../field.h"
 #include "../hash.h"
+#include "synapse_ds.h"
 
 namespace sycon {
 
-class HHTable {
+class HHTable : public SynapseDS {
 private:
   constexpr const static u32 TOTAL_PROBES{50};
   constexpr const static u32 THRESHOLD{127};
@@ -35,21 +36,30 @@ private:
   const u32 hash_mask;
   const CRC32 crc32;
 
-  std::unordered_map<buffer_t, u32, buffer_hash_t> cached_key_to_index;
-  std::unordered_map<u32, buffer_t> cached_index_to_key;
+  std::unordered_map<buffer_t, u32, buffer_hash_t> key_to_index;
+  std::unordered_map<u32, buffer_t> index_to_key;
   std::unordered_set<u32> free_indices;
   std::unordered_set<u32> used_indices;
 
+  // For the transactional rollback/commit
+  std::unordered_map<buffer_t, u32, buffer_hash_t> new_entries_on_hold;
+  std::unordered_map<buffer_t, u32, buffer_hash_t> modified_entries_backup;
+  std::unordered_set<u32> free_indexes_on_hold;
+  std::unordered_set<u32> used_indexes_on_hold;
+
 public:
-  HHTable(const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
+  HHTable(const std::string &name, const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
           const std::vector<std::string> &count_min_sketch_reg_names, const std::vector<std::string> &bloom_filter_reg_names,
           const std::string &reg_threshold_name, const std::string &digest_name, time_ms_t timeout);
 
-  bool insert(const buffer_t &key);
-  void replace(u32 index, const buffer_t &key);
-  void probabilistic_replace(const buffer_t &key);
-  void remove(const buffer_t &key);
+  bool insert(const buffer_t &key, bool &duplicate_request_detected);
+  void replace(u32 index, const buffer_t &key, bool &duplicate_request_detected);
+  void probabilistic_replace(const buffer_t &key, bool &duplicate_request_detected);
+  void remove(const buffer_t &key, bool &duplicate_request_detected);
   void clear_counters();
+
+  virtual void rollback() override final;
+  virtual void commit() override final;
 
 private:
   std::vector<u32> calculate_hashes(const buffer_t &key);

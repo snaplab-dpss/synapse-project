@@ -11,14 +11,14 @@ namespace sycon {
 const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
                                               0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
-HHTable::HHTable(const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
+HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
                  const std::vector<std::string> &count_min_sketch_reg_names, const std::vector<std::string> &bloom_filter_reg_names,
                  const std::string &reg_threshold_name, const std::string &digest_name, time_ms_t timeout)
-    : tables(build_tables(table_names)), reg_cached_counters(reg_cached_counters_name),
+    : SynapseDS(_name), tables(build_tables(table_names)), reg_cached_counters(reg_cached_counters_name),
       count_min_sketch(build_count_min_sketch(count_min_sketch_reg_names)), bloom_filter(build_bloom_filter(bloom_filter_reg_names)),
       reg_threshold(reg_threshold_name), digest(digest_name), capacity(get_capacity(tables)), key_size(get_key_size(tables)),
       hash_salts(build_hash_salts(count_min_sketch, bloom_filter)), hash_mask(build_hash_mask(bloom_filter, count_min_sketch)), crc32(),
-      cached_key_to_index(capacity), cached_index_to_key(capacity), free_indices(capacity), used_indices(capacity) {
+      key_to_index(capacity), index_to_key(capacity), free_indices(capacity), used_indices(capacity) {
   assert(hash_salts.size() == bloom_filter.size() && "Number of salts must match the number of bloom filter registers");
   assert(hash_salts.size() == count_min_sketch.size() && "Number of salts must match the number of CMS registers");
 
@@ -38,15 +38,19 @@ HHTable::HHTable(const std::vector<std::string> &table_names, const std::string 
       std::this_thread::sleep_for(std::chrono::seconds(RESET_TIMER));
       cfg.begin_transaction();
       clear_counters();
-      cfg.end_transaction();
+      commit();
+      cfg.commit_transaction();
     }
   }).detach();
 }
 
-bool HHTable::insert(const buffer_t &key) {
+bool HHTable::insert(const buffer_t &key, bool &duplicate_request_detected) {
   LOG_DEBUG("Inserting key %s", key.to_string(true).c_str());
 
-  if (cached_key_to_index.find(key) != cached_key_to_index.end()) {
+  duplicate_request_detected = false;
+
+  if (key_to_index.find(key) != key_to_index.end()) {
+    duplicate_request_detected = true;
     return false;
   }
 
@@ -55,6 +59,11 @@ bool HHTable::insert(const buffer_t &key) {
   }
 
   const u32 index = *free_indices.begin();
+
+  used_indexes_on_hold.insert(index);
+  if (new_entries_on_hold.find(key) != new_entries_on_hold.end()) {
+    new_entries_on_hold[key] = index;
+  }
 
   buffer_t param(4);
   param.set(0, 4, index);
@@ -73,27 +82,39 @@ bool HHTable::insert(const buffer_t &key) {
   free_indices.erase(index);
   used_indices.insert(index);
 
-  cached_index_to_key.insert({index, key});
-  cached_key_to_index.insert({key, index});
+  index_to_key.insert({index, key});
+  key_to_index.insert({key, index});
 
   reg_cached_counters.set(index, 0);
 
   return true;
 }
 
-void HHTable::replace(u32 index, const buffer_t &key) {
+void HHTable::replace(u32 index, const buffer_t &key, bool &duplicate_request_detected) {
   LOG_DEBUG("Replacing index %u with key %s", index, key.to_string(true).c_str());
 
-  assert(cached_key_to_index.find(key) == cached_key_to_index.end() && "Key already exists in cache");
+  assert(key_to_index.find(key) == key_to_index.end() && "Key already exists in cache");
 
-  auto found_it = cached_index_to_key.find(index);
-  assert(found_it != cached_index_to_key.end() && "Index not found in cache");
+  duplicate_request_detected = false;
+
+  auto found_it = index_to_key.find(index);
+  assert(found_it != index_to_key.end() && "Index not found in cache");
 
   const buffer_t old_key = found_it->second;
-  found_it->second       = key;
 
-  cached_key_to_index.erase(old_key);
-  cached_key_to_index.insert({key, index});
+  if (old_key == key) {
+    duplicate_request_detected = true;
+    return;
+  }
+
+  if (modified_entries_backup.find(key) != modified_entries_backup.end()) {
+    modified_entries_backup[old_key] = index;
+  }
+
+  found_it->second = key;
+
+  key_to_index.erase(old_key);
+  key_to_index.insert({key, index});
 
   buffer_t param(4);
   param.set(0, 4, index);
@@ -110,17 +131,26 @@ void HHTable::replace(u32 index, const buffer_t &key) {
   reg_cached_counters.set(index, 0);
 }
 
-void HHTable::remove(const buffer_t &key) {
+void HHTable::remove(const buffer_t &key, bool &duplicate_request_detected) {
   LOG_DEBUG("Removing key %s", key.to_string(true).c_str());
 
-  auto found_it = cached_key_to_index.find(key);
-  if (found_it == cached_key_to_index.end()) {
+  duplicate_request_detected = false;
+
+  auto found_it = key_to_index.find(key);
+  if (found_it == key_to_index.end()) {
+    duplicate_request_detected = true;
     return;
   }
 
   const u32 index = found_it->second;
-  cached_key_to_index.erase(key);
-  cached_index_to_key.erase(index);
+
+  free_indexes_on_hold.insert(index);
+  if (modified_entries_backup.find(key) != modified_entries_backup.end()) {
+    modified_entries_backup[key] = index;
+  }
+
+  key_to_index.erase(key);
+  index_to_key.erase(index);
 
   free_indices.insert(index);
   used_indices.erase(index);
@@ -130,7 +160,7 @@ void HHTable::remove(const buffer_t &key) {
   }
 }
 
-void HHTable::probabilistic_replace(const buffer_t &key) {
+void HHTable::probabilistic_replace(const buffer_t &key, bool &duplicate_request_detected) {
   const std::vector<u32> hashes   = calculate_hashes(key);
   const u32 key_counter           = cms_get_min(hashes);
   const size_t total_used_indices = used_indices.size();
@@ -140,8 +170,8 @@ void HHTable::probabilistic_replace(const buffer_t &key) {
   for (size_t i = 0; i < TOTAL_PROBES; i++) {
     const u32 probe_index = rand() % total_used_indices;
 
-    auto found_it = cached_index_to_key.find(probe_index);
-    assert(found_it != cached_index_to_key.end() && "Index not found in cache");
+    auto found_it = index_to_key.find(probe_index);
+    assert(found_it != index_to_key.end() && "Index not found in cache");
 
     const buffer_t &probe_key = found_it->second;
     const u32 probe_counter   = reg_cached_counters.get_max(probe_index);
@@ -149,7 +179,7 @@ void HHTable::probabilistic_replace(const buffer_t &key) {
     LOG_DEBUG("Probe index %u counter: %u", probe_index, probe_counter);
 
     if (key_counter > probe_counter) {
-      replace(cached_key_to_index.at(probe_key), key);
+      replace(key_to_index.at(probe_key), key, duplicate_request_detected);
       return;
     }
   }
@@ -339,9 +369,16 @@ void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfR
     ERROR("Target table %s not found", table_name.c_str());
   }
 
-  hh_table->remove(key_buffer);
+  bool duplicate_request_detected;
+  hh_table->remove(key_buffer, duplicate_request_detected);
 
-  cfg.end_transaction();
+  if (duplicate_request_detected) {
+    hh_table->rollback();
+    cfg.abort_transaction();
+  } else {
+    hh_table->commit();
+    cfg.commit_transaction();
+  }
 }
 
 bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,
@@ -353,22 +390,75 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
 
   cfg.begin_transaction();
 
+  bool duplicate_request_detected;
+
   for (const std::unique_ptr<bfrt::BfRtLearnData> &data_entry : learn_data) {
     const buffer_t key = hh_table->digest.get_value(data_entry.get());
 
     LOG_DEBUG("[%s] Digest callback invoked (data=%s)", hh_table->digest.get_name().c_str(), key.to_string(true).c_str());
 
     if (!hh_table->free_indices.empty()) {
-      hh_table->insert(key);
+      hh_table->insert(key, duplicate_request_detected);
     } else {
-      hh_table->probabilistic_replace(key);
+      hh_table->probabilistic_replace(key, duplicate_request_detected);
+    }
+
+    if (duplicate_request_detected) {
+      break;
     }
   }
 
   hh_table->digest.notify_ack(learn_msg_hdl);
-  cfg.end_transaction();
+
+  if (duplicate_request_detected) {
+    hh_table->rollback();
+    cfg.abort_transaction();
+  } else {
+    hh_table->commit();
+    cfg.commit_transaction();
+  }
 
   return BF_SUCCESS;
+}
+
+void HHTable::rollback() {
+  if (new_entries_on_hold.empty() && modified_entries_backup.empty() && free_indexes_on_hold.empty() && used_indexes_on_hold.empty()) {
+    return;
+  }
+
+  LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
+
+  for (const auto &[key, index] : new_entries_on_hold) {
+    key_to_index.erase(key);
+    index_to_key.erase(index);
+  }
+
+  for (const auto &[key, index] : modified_entries_backup) {
+    key_to_index[key]   = index;
+    index_to_key[index] = key;
+  }
+
+  for (u32 index : free_indexes_on_hold) {
+    free_indices.erase(index);
+    used_indices.insert(index);
+  }
+
+  for (u32 index : used_indexes_on_hold) {
+    used_indices.erase(index);
+    free_indices.insert(index);
+  }
+
+  new_entries_on_hold.clear();
+  modified_entries_backup.clear();
+  free_indexes_on_hold.clear();
+  used_indexes_on_hold.clear();
+}
+
+void HHTable::commit() {
+  new_entries_on_hold.clear();
+  modified_entries_backup.clear();
+  free_indexes_on_hold.clear();
+  used_indexes_on_hold.clear();
 }
 
 } // namespace sycon
