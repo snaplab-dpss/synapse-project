@@ -15,8 +15,6 @@ using LibSynapse::Tofino::TofinoContext;
 
 constexpr const char *const MARKER_STATE_FIELDS           = "STATE_FIELDS";
 constexpr const char *const MARKER_STATE_MEMBER_INIT_LIST = "STATE_MEMBER_INIT_LIST";
-constexpr const char *const MARKER_STATE_ROLLBACK         = "STATE_ROLLBACK";
-constexpr const char *const MARKER_STATE_COMMIT           = "STATE_COMMIT";
 constexpr const char *const MARKER_NF_INIT                = "NF_INIT";
 constexpr const char *const MARKER_NF_EXIT                = "NF_EXIT";
 constexpr const char *const MARKER_NF_ARGS                = "NF_ARGS";
@@ -683,8 +681,6 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::pat
                   {
                       {MARKER_STATE_FIELDS, 1},
                       {MARKER_STATE_MEMBER_INIT_LIST, 3},
-                      {MARKER_STATE_ROLLBACK, 2},
-                      {MARKER_STATE_COMMIT, 2},
                       {MARKER_NF_INIT, 1},
                       {MARKER_NF_EXIT, 1},
                       {MARKER_NF_ARGS, 1},
@@ -716,8 +712,6 @@ void ControllerSynthesizer::synthesize() {
 
   synthesize_nf_process();
   synthesize_state_member_init_list();
-  synthesize_state_rollback();
-  synthesize_state_commit();
   Synthesizer::dump();
 }
 
@@ -794,32 +788,6 @@ void ControllerSynthesizer::synthesize_state_member_init_list() {
     coder << ",\n";
     coder.indent();
     coder << member;
-  }
-}
-
-void ControllerSynthesizer::synthesize_state_rollback() {
-  coder_t &coder = get(MARKER_STATE_ROLLBACK);
-
-  for (size_t i = 0; i < synapse_data_structures_instances.size(); i++) {
-    const code_t &name = synapse_data_structures_instances[i];
-    coder.indent();
-    coder << name << ".rollback();";
-    if (i < synapse_data_structures_instances.size() - 1) {
-      coder << "\n";
-    }
-  }
-}
-
-void ControllerSynthesizer::synthesize_state_commit() {
-  coder_t &coder = get(MARKER_STATE_COMMIT);
-
-  for (size_t i = 0; i < synapse_data_structures_instances.size(); i++) {
-    const code_t &name = synapse_data_structures_instances[i];
-    coder.indent();
-    coder << name << ".commit();";
-    if (i < synapse_data_structures_instances.size() - 1) {
-      coder << "\n";
-    }
   }
 }
 
@@ -1100,17 +1068,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "state->" << map_table->id << ".put(";
   coder << key_var.name;
   coder << ", " << transpiler.transpile(value);
-  coder << ", result.abort_transaction";
   coder << ");\n";
-
-  coder.indent();
-  coder << "if (result.abort_transaction) {\n";
-  coder.inc();
-  coder.indent();
-  coder << "return result;\n";
-  coder.dec();
-  coder.indent();
-  coder << "}\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1169,17 +1127,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "state->" << vector_table->id << ".write(";
   coder << transpiler.transpile(key);
   coder << ", " << value_var.name;
-  coder << ", result.abort_transaction";
   coder << ");\n";
-
-  coder.indent();
-  coder << "if (result.abort_transaction) {\n";
-  coder.inc();
-  coder.indent();
-  coder << "return result;\n";
-  coder.dec();
-  coder.indent();
-  coder << "}\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1418,17 +1366,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "state->" << vector_register->id << ".put(";
   coder << transpiler.transpile(index);
   coder << ", " << value_var.name;
-  coder << ", result.abort_transaction";
   coder << ");\n";
-
-  coder.indent();
-  coder << "if (result.abort_transaction) {\n";
-  coder.inc();
-  coder.indent();
-  coder << "return result;\n";
-  coder.dec();
-  coder.indent();
-  coder << "}\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1857,6 +1795,15 @@ ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_se
   }
 
   return var;
+}
+
+void ControllerSynthesizer::abort_transaction(coder_t &coder) {
+  coder.indent();
+  coder << "result.abort_transaction = true;\n";
+  coder.indent();
+  coder << "cpu_hdr->trigger_dataplane_execution = 1;\n";
+  coder.indent();
+  coder << "return result;\n";
 }
 
 void ControllerSynthesizer::dbg_vars() const {

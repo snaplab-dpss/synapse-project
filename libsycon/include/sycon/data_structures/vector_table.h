@@ -19,9 +19,6 @@ private:
   u32 capacity;
   bits_t value_size;
 
-  // For the transactional rollback/commit
-  std::unordered_map<size_t, buffer_t> modified_entries_backup;
-
 public:
   VectorTable(const std::string &_name, const std::vector<std::string> &table_names) : SynapseDS(_name), capacity(0), value_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
@@ -51,22 +48,14 @@ public:
     v = cache.at(index);
   }
 
-  void write(u32 index, const buffer_t &value, bool &duplicate_request_detected) {
+  void write(u32 index, const buffer_t &value) {
     assert(index < capacity && "Index out of bounds");
-
-    duplicate_request_detected = false;
 
     buffer_t key(4);
     key.set(0, 4, index);
 
     if (cache.at(index) == value) {
-      duplicate_request_detected = true;
       return;
-    }
-
-    auto modified_entry_it = modified_entries_backup.find(index);
-    if (modified_entry_it == modified_entries_backup.end()) {
-      modified_entries_backup[index] = value;
     }
 
     for (Table &table : tables) {
@@ -100,22 +89,6 @@ public:
       table.dump(os);
     }
   }
-
-  virtual void rollback() override final {
-    if (modified_entries_backup.empty()) {
-      return;
-    }
-
-    LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
-
-    for (const auto &[k, v] : modified_entries_backup) {
-      cache[k] = v;
-    }
-
-    modified_entries_backup.clear();
-  }
-
-  virtual void commit() override final { modified_entries_backup.clear(); }
 };
 
 } // namespace sycon

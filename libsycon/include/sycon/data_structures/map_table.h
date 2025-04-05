@@ -20,10 +20,6 @@ private:
   u32 capacity;
   bits_t key_size;
 
-  // For the transactional rollback/commit
-  std::unordered_set<buffer_t, buffer_hash_t> new_entries_on_hold;
-  std::unordered_map<buffer_t, u32, buffer_hash_t> deleted_entries_on_hold;
-
 public:
   MapTable(const std::string &_name, const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt)
       : SynapseDS(_name), capacity(0), key_size(0) {
@@ -61,19 +57,12 @@ public:
     return true;
   }
 
-  void put(const buffer_t &k, u32 v, bool &duplicate_request_detected) {
-    duplicate_request_detected = false;
-
+  void put(const buffer_t &k, u32 v) {
     buffer_t value(4);
     value.set(0, 4, v);
 
-    auto found_it = cache.find(k);
-
-    if (found_it != cache.end()) {
-      duplicate_request_detected = true;
+    if (cache.find(k) != cache.end()) {
       return;
-    } else {
-      new_entries_on_hold.insert(k);
     }
 
     for (Table &table : tables) {
@@ -89,15 +78,10 @@ public:
     cache[k] = v;
   }
 
-  void del(const buffer_t &k, bool &duplicate_request_detected) {
-    duplicate_request_detected = false;
-
+  void del(const buffer_t &k) {
     auto found_it = cache.find(k);
     if (found_it == cache.end()) {
-      duplicate_request_detected = true;
       return;
-    } else {
-      deleted_entries_on_hold[k] = found_it->second;
     }
 
     for (Table &table : tables) {
@@ -125,30 +109,6 @@ public:
     for (const Table &table : tables) {
       table.dump(os);
     }
-  }
-
-  virtual void rollback() override final {
-    if (new_entries_on_hold.empty() && deleted_entries_on_hold.empty()) {
-      return;
-    }
-
-    LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
-
-    for (const auto &k : new_entries_on_hold) {
-      cache.erase(k);
-    }
-
-    for (const auto &[k, v] : deleted_entries_on_hold) {
-      cache[k] = v;
-    }
-
-    new_entries_on_hold.clear();
-    deleted_entries_on_hold.clear();
-  }
-
-  virtual void commit() override final {
-    new_entries_on_hold.clear();
-    deleted_entries_on_hold.clear();
   }
 
 private:
@@ -182,16 +142,9 @@ private:
 
     assert(map_table->cache.find(key_buffer) != map_table->cache.end() && "Key not found in cache");
 
-    bool duplicate_request_detected;
-    map_table->del(key_buffer, duplicate_request_detected);
+    map_table->del(key_buffer);
 
-    if (duplicate_request_detected) {
-      map_table->rollback();
-      cfg.abort_dataplane_notification_transaction();
-    } else {
-      map_table->commit();
-      cfg.commit_dataplane_notification_transaction();
-    }
+    cfg.commit_dataplane_notification_transaction();
   }
 };
 

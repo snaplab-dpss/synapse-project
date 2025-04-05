@@ -79,8 +79,8 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     pkt = bf_pkt_get_nextseg(pkt);
   } while (pkt);
 
-  time_ns_t now = get_time();
-  u8 *packet    = reinterpret_cast<u8 *>(&in_packet);
+  const time_ns_t now = get_time();
+  u8 *packet          = reinterpret_cast<u8 *>(&in_packet);
 
   LOG_DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
 
@@ -90,10 +90,8 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   nf_process_result_t result = nf_process(now, packet, packet_size);
 
   if (result.abort_transaction) {
-    nf_state->rollback();
     cfg.abort_transaction();
   } else {
-    nf_state->commit();
     cfg.commit_transaction();
   }
 
@@ -101,7 +99,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
     pcie_tx(device, packet, packet_size);
   }
 
-  int fail = bf_pkt_free(device, orig_pkt);
+  const int fail = bf_pkt_free(device, orig_pkt);
   assert(fail == 0);
 
   return BF_SUCCESS;

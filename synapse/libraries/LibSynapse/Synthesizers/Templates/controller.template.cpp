@@ -10,14 +10,6 @@ struct state_t : public nf_state_t {
     : ingress_port_to_nf_dev(),
       forward_nf_dev()/*@{STATE_MEMBER_INIT_LIST}@*/
     {}
-  
-  virtual void rollback() override final {
-/*@{STATE_ROLLBACK}@*/
-  }
-
-  virtual void commit() override final {
-/*@{STATE_COMMIT}@*/
-  }
 };
 
 state_t *state = nullptr;
@@ -54,10 +46,17 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
   LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
+  cpu_hdr->egress_dev = 0;
+  cpu_hdr->trigger_dataplane_execution = 0;
+
 /*@{NF_PROCESS}@*/
 
   if (trigger_update_ipv4_tcpudp_checksums) {
     update_ipv4_tcpudp_checksums(l3_hdr, l4_hdr);
+  }
+
+  if (result.abort_transaction) {
+    cpu_hdr->trigger_dataplane_execution = true;
   }
 
   return result;

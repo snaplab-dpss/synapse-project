@@ -45,6 +45,35 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
   return spec_impl;
 }
 
+std::vector<EPNode *> get_current_state(const EPLeaf active_leaf) {
+  std::vector<EPNode *> nodes_reading_state;
+
+  struct prev_node_t {
+    const EPNode *node;
+    size_t chosen_child;
+  };
+
+  std::vector<prev_node_t> previous_nodes;
+  const EPNode *prev_node = active_leaf.node;
+  while (prev_node) {
+    prev_node_t current_prev_node{.node = prev_node, .chosen_child = 0};
+
+    const std::vector<EPNode *> &prev_node_children = current_prev_node.node->get_children();
+    for (size_t i = 0; i < prev_node_children.size(); i++) {
+      if (prev_node_children[i] == prev_node) {
+        current_prev_node.chosen_child = i;
+        break;
+      }
+    }
+
+    previous_nodes.insert(previous_nodes.begin(), current_prev_node);
+
+    prev_node = prev_node->get_prev();
+  }
+
+  return nodes_reading_state;
+}
+
 std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 

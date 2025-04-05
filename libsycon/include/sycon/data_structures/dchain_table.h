@@ -9,7 +9,6 @@
 #include "../primitives/table.h"
 #include "../time.h"
 #include "../field.h"
-#include "synapse_ds.h"
 
 namespace sycon {
 
@@ -18,10 +17,6 @@ private:
   std::unordered_set<u32> free_indexes;
   std::vector<Table> tables;
   u32 capacity;
-
-  // For the transactional rollback/commit
-  std::unordered_set<u32> allocated_indexes_on_hold;
-  std::unordered_set<u32> free_indexes_on_hold;
 
 public:
   DchainTable(const std::string &_name, const std::vector<std::string> &table_names, time_ms_t timeout) : SynapseDS(_name), capacity(0) {
@@ -84,18 +79,14 @@ public:
     }
 
     free_indexes.erase(index);
-    allocated_indexes_on_hold.insert(index);
 
     return true;
   }
 
-  void free_index(u32 index, bool &duplicate_request_detected) {
+  void free_index(u32 index) {
     assert(index < capacity && "Invalid index");
 
-    duplicate_request_detected = false;
-
     if (free_indexes.find(index) != free_indexes.end()) {
-      duplicate_request_detected = true;
       return;
     }
 
@@ -108,7 +99,6 @@ public:
     }
 
     free_indexes.insert(index);
-    free_indexes_on_hold.insert(index);
   }
 
   void dump() const {
@@ -128,30 +118,6 @@ public:
     for (const Table &table : tables) {
       table.dump(os);
     }
-  }
-
-  virtual void rollback() override final {
-    if (allocated_indexes_on_hold.empty() && free_indexes_on_hold.empty()) {
-      return;
-    }
-
-    LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
-
-    for (u32 index : allocated_indexes_on_hold) {
-      free_indexes.insert(index);
-    }
-
-    for (u32 index : free_indexes_on_hold) {
-      free_indexes.erase(index);
-    }
-
-    allocated_indexes_on_hold.clear();
-    free_indexes_on_hold.clear();
-  }
-
-  virtual void commit() override final {
-    allocated_indexes_on_hold.clear();
-    free_indexes_on_hold.clear();
   }
 
 private:
@@ -190,16 +156,9 @@ private:
 
     u32 index = static_cast<u32>(key_value);
 
-    bool duplicated_request_detected;
-    dchain_table->free_index(index, duplicated_request_detected);
+    dchain_table->free_index(index);
 
-    if (duplicated_request_detected) {
-      dchain_table->rollback();
-      cfg.abort_dataplane_notification_transaction();
-    } else {
-      dchain_table->commit();
-      cfg.commit_dataplane_notification_transaction();
-    }
+    cfg.commit_dataplane_notification_transaction();
   }
 };
 

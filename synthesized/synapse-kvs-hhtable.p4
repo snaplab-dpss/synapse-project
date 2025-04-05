@@ -15,8 +15,9 @@
 #endif
 
 header cpu_h {
-  bit<16> code_path;
-  bit<16> egress_dev;
+  bit<16> code_path;                  // Written by the data plane
+  bit<16> egress_dev;                 // Written by the control plane
+  bit<8> trigger_dataplane_execution; // Written by the control plane
 
 }
 
@@ -784,7 +785,7 @@ control Ingress(
 
 
   apply {
-    if (hdr.cpu.isValid()) {
+    if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
       hdr.cpu.setInvalid();
       trigger_forward = true;

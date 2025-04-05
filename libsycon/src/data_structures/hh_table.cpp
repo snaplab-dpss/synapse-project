@@ -38,19 +38,15 @@ HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table
       std::this_thread::sleep_for(std::chrono::seconds(RESET_TIMER));
       cfg.begin_transaction();
       clear_counters();
-      commit();
       cfg.commit_transaction();
     }
   }).detach();
 }
 
-bool HHTable::insert(const buffer_t &key, bool &duplicate_request_detected) {
+bool HHTable::insert(const buffer_t &key) {
   LOG_DEBUG("Inserting key %s", key.to_string(true).c_str());
 
-  duplicate_request_detected = false;
-
   if (key_to_index.find(key) != key_to_index.end()) {
-    duplicate_request_detected = true;
     return false;
   }
 
@@ -59,11 +55,6 @@ bool HHTable::insert(const buffer_t &key, bool &duplicate_request_detected) {
   }
 
   const u32 index = *free_indices.begin();
-
-  used_indexes_on_hold.insert(index);
-  if (new_entries_on_hold.find(key) != new_entries_on_hold.end()) {
-    new_entries_on_hold[key] = index;
-  }
 
   buffer_t param(4);
   param.set(0, 4, index);
@@ -90,12 +81,10 @@ bool HHTable::insert(const buffer_t &key, bool &duplicate_request_detected) {
   return true;
 }
 
-void HHTable::replace(u32 index, const buffer_t &key, bool &duplicate_request_detected) {
+void HHTable::replace(u32 index, const buffer_t &key) {
   LOG_DEBUG("Replacing index %u with key %s", index, key.to_string(true).c_str());
 
   assert(key_to_index.find(key) == key_to_index.end() && "Key already exists in cache");
-
-  duplicate_request_detected = false;
 
   auto found_it = index_to_key.find(index);
   assert(found_it != index_to_key.end() && "Index not found in cache");
@@ -103,12 +92,7 @@ void HHTable::replace(u32 index, const buffer_t &key, bool &duplicate_request_de
   const buffer_t old_key = found_it->second;
 
   if (old_key == key) {
-    duplicate_request_detected = true;
     return;
-  }
-
-  if (modified_entries_backup.find(key) != modified_entries_backup.end()) {
-    modified_entries_backup[old_key] = index;
   }
 
   found_it->second = key;
@@ -131,23 +115,15 @@ void HHTable::replace(u32 index, const buffer_t &key, bool &duplicate_request_de
   reg_cached_counters.set(index, 0);
 }
 
-void HHTable::remove(const buffer_t &key, bool &duplicate_request_detected) {
+void HHTable::remove(const buffer_t &key) {
   LOG_DEBUG("Removing key %s", key.to_string(true).c_str());
-
-  duplicate_request_detected = false;
 
   auto found_it = key_to_index.find(key);
   if (found_it == key_to_index.end()) {
-    duplicate_request_detected = true;
     return;
   }
 
   const u32 index = found_it->second;
-
-  free_indexes_on_hold.insert(index);
-  if (modified_entries_backup.find(key) != modified_entries_backup.end()) {
-    modified_entries_backup[key] = index;
-  }
 
   key_to_index.erase(key);
   index_to_key.erase(index);
@@ -160,7 +136,7 @@ void HHTable::remove(const buffer_t &key, bool &duplicate_request_detected) {
   }
 }
 
-void HHTable::probabilistic_replace(const buffer_t &key, bool &duplicate_request_detected) {
+void HHTable::probabilistic_replace(const buffer_t &key) {
   const std::vector<u32> hashes   = calculate_hashes(key);
   const u32 key_counter           = cms_get_min(hashes);
   const size_t total_used_indices = used_indices.size();
@@ -179,7 +155,7 @@ void HHTable::probabilistic_replace(const buffer_t &key, bool &duplicate_request
     LOG_DEBUG("Probe index %u counter: %u", probe_index, probe_counter);
 
     if (key_counter > probe_counter) {
-      replace(key_to_index.at(probe_key), key, duplicate_request_detected);
+      replace(key_to_index.at(probe_key), key);
       return;
     }
   }
@@ -363,16 +339,9 @@ void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfR
     ERROR("Target table %s not found", table_name.c_str());
   }
 
-  bool duplicate_request_detected;
-  hh_table->remove(key_buffer, duplicate_request_detected);
+  hh_table->remove(key_buffer);
 
-  if (duplicate_request_detected) {
-    hh_table->rollback();
-    cfg.abort_dataplane_notification_transaction();
-  } else {
-    hh_table->commit();
-    cfg.commit_dataplane_notification_transaction();
-  }
+  cfg.commit_dataplane_notification_transaction();
 }
 
 bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,
@@ -384,75 +353,23 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
 
   cfg.begin_dataplane_notification_transaction();
 
-  bool duplicate_request_detected;
-
   for (const std::unique_ptr<bfrt::BfRtLearnData> &data_entry : learn_data) {
     const buffer_t key = hh_table->digest.get_value(data_entry.get());
 
     LOG_DEBUG("[%s] Digest callback invoked (data=%s)", hh_table->digest.get_name().c_str(), key.to_string(true).c_str());
 
     if (!hh_table->free_indices.empty()) {
-      hh_table->insert(key, duplicate_request_detected);
+      hh_table->insert(key);
     } else {
-      hh_table->probabilistic_replace(key, duplicate_request_detected);
-    }
-
-    if (duplicate_request_detected) {
-      break;
+      hh_table->probabilistic_replace(key);
     }
   }
 
   hh_table->digest.notify_ack(learn_msg_hdl);
 
-  if (duplicate_request_detected) {
-    hh_table->rollback();
-    cfg.abort_dataplane_notification_transaction();
-  } else {
-    hh_table->commit();
-    cfg.commit_dataplane_notification_transaction();
-  }
+  cfg.commit_dataplane_notification_transaction();
 
   return BF_SUCCESS;
-}
-
-void HHTable::rollback() {
-  if (new_entries_on_hold.empty() && modified_entries_backup.empty() && free_indexes_on_hold.empty() && used_indexes_on_hold.empty()) {
-    return;
-  }
-
-  LOG_DEBUG("[%s] Aborted tx: rolling back state", name.c_str());
-
-  for (const auto &[key, index] : new_entries_on_hold) {
-    key_to_index.erase(key);
-    index_to_key.erase(index);
-  }
-
-  for (const auto &[key, index] : modified_entries_backup) {
-    key_to_index[key]   = index;
-    index_to_key[index] = key;
-  }
-
-  for (u32 index : free_indexes_on_hold) {
-    free_indices.erase(index);
-    used_indices.insert(index);
-  }
-
-  for (u32 index : used_indexes_on_hold) {
-    used_indices.erase(index);
-    free_indices.insert(index);
-  }
-
-  new_entries_on_hold.clear();
-  modified_entries_backup.clear();
-  free_indexes_on_hold.clear();
-  used_indexes_on_hold.clear();
-}
-
-void HHTable::commit() {
-  new_entries_on_hold.clear();
-  modified_entries_backup.clear();
-  free_indexes_on_hold.clear();
-  used_indexes_on_hold.clear();
 }
 
 } // namespace sycon

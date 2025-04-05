@@ -10,8 +10,7 @@
 namespace sycon {
 
 struct nf_state_t {
-  virtual void rollback() = 0;
-  virtual void commit()   = 0;
+  virtual ~nf_state_t() = default;
 };
 
 extern std::unique_ptr<nf_state_t> nf_state;

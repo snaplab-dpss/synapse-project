@@ -11,6 +11,7 @@ typedef u16 port_t;
 struct cpu_hdr_t {
   u16 code_path;
   u16 egress_dev;
+  u8 trigger_dataplane_execution;
 } __attribute__((packed));
 
 struct eth_hdr_t {

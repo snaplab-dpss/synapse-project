@@ -16,18 +16,6 @@ struct state_t : public nf_state_t {
       vector_register_1073956208("vector_register_1073956208",{"Ingress.vector_register_1073956208_0","Ingress.vector_register_1073956208_1","Ingress.vector_register_1073956208_2","Ingress.vector_register_1073956208_3","Ingress.vector_register_1073956208_4","Ingress.vector_register_1073956208_5","Ingress.vector_register_1073956208_6","Ingress.vector_register_1073956208_7","Ingress.vector_register_1073956208_8","Ingress.vector_register_1073956208_9","Ingress.vector_register_1073956208_10","Ingress.vector_register_1073956208_11","Ingress.vector_register_1073956208_12","Ingress.vector_register_1073956208_13","Ingress.vector_register_1073956208_14","Ingress.vector_register_1073956208_15","Ingress.vector_register_1073956208_16","Ingress.vector_register_1073956208_17","Ingress.vector_register_1073956208_18","Ingress.vector_register_1073956208_19","Ingress.vector_register_1073956208_20","Ingress.vector_register_1073956208_21","Ingress.vector_register_1073956208_22","Ingress.vector_register_1073956208_23","Ingress.vector_register_1073956208_24","Ingress.vector_register_1073956208_25","Ingress.vector_register_1073956208_26","Ingress.vector_register_1073956208_27","Ingress.vector_register_1073956208_28","Ingress.vector_register_1073956208_29","Ingress.vector_register_1073956208_30","Ingress.vector_register_1073956208_31",}),
       dchain_table_1073989720("dchain_table_1073989720",{"Ingress.dchain_table_1073989720_38",}, 1000LL)
     {}
-  
-  virtual void rollback() override final {
-    map_table_1073923128.rollback();
-    vector_register_1073956208.rollback();
-    dchain_table_1073989720.rollback();
-  }
-
-  virtual void commit() override final {
-    map_table_1073923128.commit();
-    vector_register_1073956208.commit();
-    dchain_table_1073989720.commit();
-  }
 };
 
 state_t *state = nullptr;
@@ -133,6 +121,9 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
   LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
+  cpu_hdr->egress_dev = 0;
+  cpu_hdr->trigger_dataplane_execution = 0;
+
   if (bswap16(cpu_hdr->code_path) == 755) {
     // EP node  9127
     // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989720), index_out:(w64 1074063120)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index_r2)], time:(ReadLSB w64 (w32 0) next_time))
@@ -195,10 +186,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       map_table_1073923128_key_0[13] = *(u8*)(hdr_6 + 14);
       map_table_1073923128_key_0[14] = *(u8*)(hdr_6 + 15);
       map_table_1073923128_key_0[15] = *(u8*)(hdr_6 + 16);
-      state->map_table_1073923128.put(map_table_1073923128_key_0, allocated_index_0, result.abort_transaction);
-      if (result.abort_transaction) {
-        return result;
-      }
+      state->map_table_1073923128.put(map_table_1073923128_key_0, allocated_index_0);
       // EP node  10735
       // BDD node 27:vector_return(vector:(w64 1073956208), index:(ReadLSB w32 (w32 0) new_index_r2), value:(w64 1073970104)[(ReadLSB w1024 (w32 785) packet_chunks)])
       buffer_t vector_register_1073956208_value_0(128);
@@ -330,10 +318,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       vector_register_1073956208_value_0[125] = *(u8*)(hdr_6 + 142);
       vector_register_1073956208_value_0[126] = *(u8*)(hdr_6 + 143);
       vector_register_1073956208_value_0[127] = *(u8*)(hdr_6 + 144);
-      state->vector_register_1073956208.put(allocated_index_0, vector_register_1073956208_value_0, result.abort_transaction);
-      if (result.abort_transaction) {
-        return result;
-      }
+      state->vector_register_1073956208.put(allocated_index_0, vector_register_1073956208_value_0);
       // EP node  10808
       // BDD node 28:packet_return_chunk(p:(w64 1074049376), the_chunk:(w64 1073760256)[(Concat w1184 (Read w8 (w32 915) packet_chunks) (Concat w1176 (Read w8 (w32 914) packet_chunks) (Concat w1168 (w8 1) (ReadLSB w1160 (w32 768) packet_chunks))))])
       hdr_6[145] = 1;
@@ -364,6 +349,10 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   if (trigger_update_ipv4_tcpudp_checksums) {
     update_ipv4_tcpudp_checksums(l3_hdr, l4_hdr);
+  }
+
+  if (result.abort_transaction) {
+    cpu_hdr->trigger_dataplane_execution = true;
   }
 
   return result;
