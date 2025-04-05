@@ -28,7 +28,6 @@ control Ingress(inout header_t hdr,
 	Register<bit<32>, _>(1) insertions_counter;
 	Register<bit<32>, _>(1) expired_entry_table_1;
 	Register<bit<32>, _>(1) expired_entry_table_2;
-	Register<bit<32>, _>(1) valid_entry_table_2;
 	Register<bit<32>, _>(1) table_2_match_counter;
 	Register<bit<32>, _>(1) table_1_match_counter;
 	Register<bit<32>, _>(1) swap_creation;
@@ -62,11 +61,6 @@ control Ingress(inout header_t hdr,
 	bit<16> entry_ts_2	= 0;
 
 	/* Bloom declarations */
-
-	Register<bit<16>, _>(SWAP_BLOOM_FILTER_SIZE)	swap_transient;
-	Register<bit<16>, _>(SWAP_BLOOM_FILTER_SIZE)	swapped_transient;
-	Register<bloom_filter_t, _>(BLOOM_FILTER_SIZE)	ordering_bf;
-	Register<bit<16>, _>(BLOOM_FILTER_SIZE)			flow_count;
 
 	Register<bit<32>, _>(1) insert_counter_on_bloom;
 	Register<bit<32>, _>(1) wait_counter_on_bloom;
@@ -289,121 +283,47 @@ control Ingress(inout header_t hdr,
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(cuckoo_recirculated_packets)
 			cuckoo_recirculated_packets_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(insertions_counter) insertions_counter_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(expired_entry_table_1)
 			expired_entry_table_1_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(expired_entry_table_2)
 			expired_entry_table_2_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(table_2_match_counter)
 			table_2_match_counter_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(table_1_match_counter)
 			table_1_match_counter_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(swap_creation) swap_creation_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			val = val + 1;
-		}
-	};
-
-	/* BLOOM: SWAP TRANSIENT */
-	/* Lookup Actions */
-
-	RegisterAction<bit<16>, _, bit<16>>(swap_transient) swap_transient_increment = {
-		void apply(inout bit<16> val, out bit<16> res) {
-			val = val |+| 1;
-		}
-	};
-
-	/* BLOOM: SWAPPED TRANSIENT */
-	/* Lookup Actions */
-
-	RegisterAction<bit<16>, _, bit<16>>(swapped_transient) swapped_transient_increment = {
-		void apply(inout bit<16> val, out bit<16> res) {
-			val = val |+| 1;
-		}
-	};
-
-	/* BLOOM: ORDERING BF */
-	/* Lookup Actions */
-
-	RegisterAction<bloom_filter_t, _, bit<16>>(ordering_bf) ordering_bf_lookup = {
-		void apply(inout bloom_filter_t val, out bit<16> res) {
-			if (val.bloom_counter != 0) {
-				val.bloom_counter = val.bloom_counter |+| 1;
-			}
-
-			res = val.bloom_counter;
-		}
-	};
-
-	/* BLOOM: Increment/Decrement Actions */
-	RegisterAction<bloom_filter_t, _, bit<16>>(ordering_bf) ordering_bf_read_and_increment = {
-		void apply(inout bloom_filter_t val, out bit<16> res) {
-			if (val.bloom_counter == 0) {
-				val.packet_to_send_out = 0;
-			}
-
-			res					= val.bloom_counter;
-			val.bloom_counter	= val.bloom_counter |+| 1;
-		}
-	};
-
-	RegisterAction<bloom_filter_t, _, bit<16>>(ordering_bf)
-			decrement_ordering_bf_and_packet_to_send_out_lookup = {
-		void apply(inout bloom_filter_t val, out bit<16> res) {
-			res = val.packet_to_send_out;
-			if (val.packet_to_send_out == hdr.cuckoo_counter.assigned_counter) {
-				val.packet_to_send_out	= val.packet_to_send_out |+| 1;
-				val.bloom_counter		= val.bloom_counter |-| 1;
-			} else if (hdr.cuckoo_counter.recirc_counter == MAX_LOOPS_WAIT) {
-				val.packet_to_send_out	= hdr.cuckoo_counter.assigned_counter |+| 1;
-				val.bloom_counter		= val.bloom_counter |-| 2;
-			}
-		}
-	};
-
-	/* BLOOM: FLOW COUNT */
-	/* Init/Increment Actions */
-
-	RegisterAction<bit<16>, _, bit<16>>(flow_count) flow_count_init = {
-		void apply(inout bit<16> val, out bit<16> res) {
-			res = 0;
-			val = 1;
-		}
-	};
-
-	RegisterAction<bit<16>, _, bit<16>>(flow_count) flow_count_read_and_increment = {
-		void apply(inout bit<16> val, out bit<16> res) {
-			res = val;
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
@@ -412,89 +332,89 @@ control Ingress(inout header_t hdr,
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(bloom_packets_sent_out)
 			bloom_packets_sent_out_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(wait_max_loops_on_bloom)
 			wait_max_loops_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(insert_max_loops_on_bloom)
 			insert_max_loops_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(from_insert_to_lookup_swap)
 			from_insert_to_lookup_swap_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(from_insert_to_lookup_bloom)
 			from_insert_to_lookup_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(wait_counter_on_bloom)
 			wait_counter_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(insert_counter_on_bloom)
 			insert_counter_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(swap_counter_on_bloom)
 			swap_counter_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(swapped_counter_on_bloom)
 			swapped_counter_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(nop_counter_on_bloom)
 			nop_counter_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(lookup_counter_on_bloom)
 			lookup_counter_on_bloom_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(swap_dropped) swap_dropped_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
 
 	RegisterAction<bit<32>, bit<1>, bit<32>>(from_nop_to_wait) from_nop_to_wait_increment = {
-		void apply(inout bit<32> val, out bit<32> res) {
+		void apply(inout bit<32> val) {
 			val = val + 1;
 		}
 	};
@@ -766,9 +686,8 @@ control Ingress(inout header_t hdr,
 				bit<32> table_2_2_entry = table_2_2_swap.execute(idx_table_2_r);
 				bit<32> table_2_3_entry = table_2_3_swap.execute(idx_table_2_r);
 
-				
 				ig_md.carry_swap_entry.entry_value	= table_2_4_swap.execute(idx_table_2_r);
-				ig_md.carry_swap_entry.ts				= table_2_5_swap.execute(idx_table_2_r);
+				ig_md.carry_swap_entry.ts			= table_2_5_swap.execute(idx_table_2_r);
 				ig_md.carry_swap_entry.ts_2			= table_2_6_swap.execute(idx_table_2_r);
 
 				if (ig_md.carry_swap_entry.ts_2 != 0) {
