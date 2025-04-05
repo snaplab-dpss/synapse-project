@@ -22,10 +22,6 @@ struct state_t : public nf_state_t {
                      "Ingress.hh_table_bloom_filter_row2",
                  },
                  "Ingress.hh_table_threshold", "IngressDeparser.hh_table_digest", 1000) {}
-
-  virtual void rollback() override final { hh_table.rollback(); }
-
-  virtual void commit() override final { hh_table.commit(); }
 };
 
 state_t *state = nullptr;

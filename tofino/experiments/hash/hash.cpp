@@ -10,10 +10,6 @@ struct state_t : public nf_state_t {
   CRC32 crc32;
 
   state_t() {}
-
-  virtual void rollback() override final {}
-
-  virtual void commit() override final {}
 };
 
 state_t *state = nullptr;

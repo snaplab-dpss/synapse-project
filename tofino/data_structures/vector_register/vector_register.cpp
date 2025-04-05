@@ -6,10 +6,6 @@ struct state_t : public nf_state_t {
   VectorRegister vector_register;
 
   state_t() : vector_register("vector_register", {"Ingress.reg0", "Ingress.reg1", "Ingress.reg2"}) {}
-
-  virtual void rollback() override final { vector_register.rollback(); }
-
-  virtual void commit() override final { vector_register.commit(); }
 };
 
 state_t *state = nullptr;
@@ -18,15 +14,13 @@ void sycon::nf_init() {
   nf_state = std::make_unique<state_t>();
   state    = dynamic_cast<state_t *>(nf_state.get());
 
-  bool duplicate_request_detected;
-
   buffer_t buffer(7);
   buffer.set(0, 7, 0x01020304050607);
 
   std::cerr << "In buffer: " << buffer << "(" << buffer.get(0, 7) << ")" << std::endl;
   LOG("Value: 0x%lx", buffer.get(0, 7));
 
-  state->vector_register.put(0, buffer, duplicate_request_detected);
+  state->vector_register.put(0, buffer);
   state->vector_register.dump();
 
   buffer_t out_buffer;

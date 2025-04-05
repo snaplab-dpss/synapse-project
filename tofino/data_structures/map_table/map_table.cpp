@@ -6,10 +6,6 @@ struct state_t : public nf_state_t {
   MapTable map_table;
 
   state_t() : map_table("map_table", {"Ingress.map_table_0", "Ingress.map_table_1"}) {}
-
-  virtual void rollback() override final { map_table.rollback(); }
-
-  virtual void commit() override final { map_table.commit(); }
 };
 
 state_t *state = nullptr;
@@ -17,8 +13,6 @@ state_t *state = nullptr;
 void sycon::nf_init() {
   nf_state = std::make_unique<state_t>();
   state    = dynamic_cast<state_t *>(nf_state.get());
-
-  bool duplicate_request_detected;
 
   buffer_t key(8);
   key[0] = 0x00;
@@ -36,17 +30,17 @@ void sycon::nf_init() {
   state->map_table.dump();
 
   LOG("******** New entry ********");
-  state->map_table.put(key, value, duplicate_request_detected);
+  state->map_table.put(key, value);
   state->map_table.dump();
 
   value = 0xcafebabe;
 
   LOG("******** Entry mod ********");
-  state->map_table.put(key, value, duplicate_request_detected);
+  state->map_table.put(key, value);
   state->map_table.dump();
 
   LOG("******** Entry del ********");
-  state->map_table.del(key, duplicate_request_detected);
+  state->map_table.del(key);
   state->map_table.dump();
 }
 
