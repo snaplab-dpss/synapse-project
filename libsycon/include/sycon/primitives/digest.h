@@ -66,18 +66,18 @@ public:
       ASSERT_BF_STATUS(bf_status);
 
       if (is_ptr) {
-        LOG("[%s] Digest field is a pointer\n", name.c_str());
-        LOG("Field name: %s\n", field.name.c_str());
-        LOG("Field size: %lu\n", field.size);
-        LOG("Field ID: %u\n", field.id);
-        ERROR("Implement this!");
+        std::vector<u8> value(field_size);
+        bf_status = data->getValue(field.id, field_size, value.data());
+        ASSERT_BF_STATUS(bf_status);
+        for (size_t i = 0; i < field_size; i++) {
+          digest_buffer.set_big_endian(offset + i, 1, value[i]);
+        }
+      } else {
+        u64 digest_field_value;
+        bf_status = data->getValue(field.id, &digest_field_value);
+        ASSERT_BF_STATUS(bf_status);
+        digest_buffer.set(offset, field_size, digest_field_value);
       }
-
-      u64 digest_field_value;
-      bf_status = data->getValue(field.id, &digest_field_value);
-      ASSERT_BF_STATUS(bf_status);
-
-      digest_buffer.set(offset, field_size, digest_field_value);
 
       offset += field_size;
     }
@@ -110,7 +110,6 @@ private:
       ASSERT_BF_STATUS(bf_status);
 
       assert(size > 0);
-      assert(size <= 64);
 
       if (size % 8 != 0) {
         size += 8 - (size % 8);

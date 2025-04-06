@@ -8,10 +8,27 @@
 namespace LibSynapse {
 namespace Tofino {
 
-parser_selection_t ParserConditionFactory::build_parser_select(klee::ref<klee::Expr> condition) {
+void add_selection(std::vector<parser_selection_t> &selections, const parser_selection_t &new_selection) {
+  for (parser_selection_t &selection : selections) {
+    if ((selection.target.isNull() && new_selection.target.isNull()) ||
+        (LibCore::solver_toolbox.are_exprs_always_equal(selection.target, new_selection.target))) {
+      selection.values.insert(selection.values.end(), new_selection.values.begin(), new_selection.values.end());
+      return;
+    }
+  }
+
+  selections.push_back(new_selection);
+}
+
+void add_selections(std::vector<parser_selection_t> &selections, const std::vector<parser_selection_t> &new_selections) {
+  for (const parser_selection_t &new_selection : new_selections) {
+    add_selection(selections, new_selection);
+  }
+}
+
+std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee::ref<klee::Expr> condition) {
   condition = LibCore::filter(condition, {"packet_chunks", "DEVICE"});
-  condition = LibCore::swap_packet_endianness(condition);
-  condition = LibCore::simplify(condition);
+  condition = LibCore::simplify_conditional(condition);
 
   parser_selection_t selection;
 
@@ -20,16 +37,13 @@ parser_selection_t ParserConditionFactory::build_parser_select(klee::ref<klee::E
     klee::ref<klee::Expr> lhs = condition->getKid(0);
     klee::ref<klee::Expr> rhs = condition->getKid(1);
 
-    parser_selection_t lhs_sel = build_parser_select(lhs);
-    parser_selection_t rhs_sel = build_parser_select(rhs);
+    const std::vector<parser_selection_t> lhs_sel = build_parser_select(lhs);
+    const std::vector<parser_selection_t> rhs_sel = build_parser_select(rhs);
 
-    assert(LibCore::solver_toolbox.are_exprs_always_equal(lhs_sel.target, rhs_sel.target) && "Not implemented");
-    assert((selection.target.isNull() || LibCore::solver_toolbox.are_exprs_always_equal(lhs_sel.target, selection.target)) &&
-           "Not implemented");
-
-    selection.target = lhs_sel.target;
-    selection.values.insert(selection.values.end(), lhs_sel.values.begin(), lhs_sel.values.end());
-    selection.values.insert(selection.values.end(), rhs_sel.values.begin(), rhs_sel.values.end());
+    std::vector<parser_selection_t> selections;
+    add_selections(selections, lhs_sel);
+    add_selections(selections, rhs_sel);
+    return selections;
   } break;
   case klee::Expr::Kind::Ne:
     selection.negated = true;
@@ -38,8 +52,8 @@ parser_selection_t ParserConditionFactory::build_parser_select(klee::ref<klee::E
     klee::ref<klee::Expr> lhs = condition->getKid(0);
     klee::ref<klee::Expr> rhs = condition->getKid(1);
 
-    bool lhs_is_readLSB = LibCore::is_readLSB(lhs);
-    bool rhs_is_readLSB = LibCore::is_readLSB(rhs);
+    const bool lhs_is_readLSB = LibCore::is_readLSB(lhs);
+    const bool rhs_is_readLSB = LibCore::is_readLSB(rhs);
 
     assert((lhs_is_readLSB || rhs_is_readLSB) && "Not implemented");
     assert((lhs_is_readLSB != rhs_is_readLSB) && "Not implemented");
@@ -50,26 +64,21 @@ parser_selection_t ParserConditionFactory::build_parser_select(klee::ref<klee::E
       selection.target = target;
     }
 
-    bool lhs_is_target = LibCore::solver_toolbox.are_exprs_always_equal(lhs, target);
-    bool rhs_is_target = LibCore::solver_toolbox.are_exprs_always_equal(rhs, target);
+    const bool lhs_is_target = LibCore::solver_toolbox.are_exprs_always_equal(lhs, target);
+    const bool rhs_is_target = LibCore::solver_toolbox.are_exprs_always_equal(rhs, target);
     assert((lhs_is_target || rhs_is_target) && "Not implemented");
 
     klee::ref<klee::Expr> value_expr = lhs_is_target ? rhs : lhs;
-    assert(value_expr->getKind() == klee::Expr::Kind::Constant && "Not implemented");
+    assert(LibCore::is_constant(value_expr) && "Not implemented");
 
-    selection.values.push_back(LibCore::solver_toolbox.value_from_expr(value_expr));
-  } break;
-  case klee::Expr::Kind::Not: {
-    klee::ref<klee::Expr> kid = condition->getKid(0);
-    selection                 = build_parser_select(kid);
-    selection.negated         = !selection.negated;
+    selection.values.push_back(value_expr);
   } break;
   default: {
-    panic("Not implemented");
+    panic("Parser condition not implemented: %s", LibCore::expr_to_string(condition).c_str());
   }
   }
 
-  return selection;
+  return {selection};
 }
 
 std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
@@ -86,8 +95,7 @@ std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                         LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Branch) {
@@ -101,7 +109,6 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   }
 
   klee::ref<klee::Expr> original_condition = branch_node->get_condition();
-  const parser_selection_t selection       = build_parser_select(original_condition);
 
   const LibBDD::Node *on_true  = branch_node->get_on_true();
   const LibBDD::Node *on_false = branch_node->get_on_false();

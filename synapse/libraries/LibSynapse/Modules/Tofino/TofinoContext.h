@@ -39,9 +39,8 @@ public:
     return dynamic_cast<const DS_T *>(*ds.begin());
   }
 
-  void parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op,
-                         std::optional<bool> direction);
-  void parser_select(const LibBDD::Node *node, const parser_selection_t &selection, const LibBDD::Node *last_parser_op,
+  void parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
+  void parser_select(const LibBDD::Node *node, const std::vector<parser_selection_t> &selections, const LibBDD::Node *last_parser_op,
                      std::optional<bool> direction);
   void parser_accept(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
   void parser_reject(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);

@@ -30,8 +30,7 @@ std::vector<Hash> build_hashes(DS_ID id, std::vector<bits_t> keys_sizes, u32 tot
   return hashes;
 }
 
-std::vector<Register> build_bloom_filter(const tna_properties_t &properties, DS_ID id, u32 bloom_width, u32 bloom_height,
-                                         bits_t index_size) {
+std::vector<Register> build_bloom_filter(const tna_properties_t &properties, DS_ID id, u32 bloom_width, u32 bloom_height, bits_t index_size) {
   const bits_t value_size         = 8;
   const RegisterActionType action = RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE;
 
@@ -45,8 +44,7 @@ std::vector<Register> build_bloom_filter(const tna_properties_t &properties, DS_
   return bloom_filter;
 }
 
-std::vector<Register> build_count_min_sketch(const tna_properties_t &properties, DS_ID id, u32 cms_width, u32 cms_height,
-                                             bits_t index_size) {
+std::vector<Register> build_count_min_sketch(const tna_properties_t &properties, DS_ID id, u32 cms_width, u32 cms_height, bits_t index_size) {
   const bits_t value_size         = 32;
   const RegisterActionType action = RegisterActionType::INC_AND_RETURN_NEW_VALUE;
 
@@ -78,12 +76,11 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type)
 const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
                                               0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
-HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes,
-                 u32 _bloom_width, u32 _bloom_height, u32 _cms_width, u32 _cms_height, u8 _digest_type)
-    : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), bloom_width(_bloom_width),
-      bloom_height(_bloom_height), cms_width(_cms_width), cms_height(_cms_height),
-      hash_size(LibCore::bits_from_pow2_capacity(_bloom_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
-      hashes(build_hashes(id, _keys_sizes, _bloom_height, hash_size)),
+HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes, u32 _bloom_width,
+                 u32 _bloom_height, u32 _cms_width, u32 _cms_height, u8 _digest_type)
+    : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), bloom_width(_bloom_width), bloom_height(_bloom_height),
+      cms_width(_cms_width), cms_height(_cms_height), hash_size(LibCore::bits_from_pow2_capacity(_bloom_width)),
+      cached_counters(build_cached_counters(properties, _id, _capacity)), hashes(build_hashes(id, _keys_sizes, _bloom_height, hash_size)),
       bloom_filter(build_bloom_filter(properties, _id, _bloom_width, _bloom_height, hash_size)),
       count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)),
       threshold(build_threshold(properties, _id, _capacity)), digest(build_digest(_id, _keys_sizes, _digest_type)) {
@@ -98,9 +95,9 @@ HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _ca
 
 HHTable::HHTable(const HHTable &other)
     : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys_sizes(other.keys_sizes), bloom_width(other.bloom_width),
-      bloom_height(other.bloom_height), cms_width(other.cms_width), cms_height(other.cms_height), hash_size(other.hash_size),
-      tables(other.tables), cached_counters(other.cached_counters), hashes(other.hashes), bloom_filter(other.bloom_filter),
-      count_min_sketch(other.count_min_sketch), threshold(other.threshold), digest(other.digest) {}
+      bloom_height(other.bloom_height), cms_width(other.cms_width), cms_height(other.cms_height), hash_size(other.hash_size), tables(other.tables),
+      cached_counters(other.cached_counters), hashes(other.hashes), bloom_filter(other.bloom_filter), count_min_sketch(other.count_min_sketch),
+      threshold(other.threshold), digest(other.digest) {}
 
 DS *HHTable::clone() const { return new HHTable(*this); }
 
@@ -151,7 +148,7 @@ bool HHTable::has_table(u32 op) const {
 }
 
 DS_ID HHTable::add_table(u32 op) {
-  Table new_table(build_table_name(id, op), capacity, keys_sizes, {});
+  Table new_table(build_table_name(id, op), capacity, keys_sizes, {}, TimeAware::Yes);
   tables.push_back(new_table);
   return new_table.id;
 }

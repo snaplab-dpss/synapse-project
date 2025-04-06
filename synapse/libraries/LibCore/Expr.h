@@ -27,7 +27,6 @@ i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
 klee::ConstraintManager join_managers(const klee::ConstraintManager &m1, const klee::ConstraintManager &m2);
 addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr);
-klee::ref<klee::Expr> swap_packet_endianness(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::string> &allowed_symbols);
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr);

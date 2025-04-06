@@ -71,7 +71,7 @@ void Store::run() {
   }
 }
 
-bool Store::check_pkt(rte_mbuf *mbuf) {
+bool Store::check_pkt(const rte_mbuf *mbuf) {
   constexpr const uint32_t min_size = sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) + sizeof(rte_udp_hdr) + sizeof(netcache_hdr_t);
 
   if (mbuf->pkt_len < min_size) {
@@ -79,21 +79,21 @@ bool Store::check_pkt(rte_mbuf *mbuf) {
     return false;
   }
 
-  rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, rte_ether_hdr *);
+  const rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, rte_ether_hdr *);
 
   if (rte_be_to_cpu_16(eth_hdr->ether_type) != RTE_ETHER_TYPE_IPV4) {
     LOG_DEBUG("Not IPv4 packet.");
     return false;
   }
 
-  rte_ipv4_hdr *ipv4_hdr = (rte_ipv4_hdr *)((uint8_t *)eth_hdr + sizeof(rte_ether_hdr));
+  const rte_ipv4_hdr *ipv4_hdr = (rte_ipv4_hdr *)((uint8_t *)eth_hdr + sizeof(rte_ether_hdr));
 
   if (ipv4_hdr->next_proto_id != IPPROTO_UDP) {
     LOG_DEBUG("Not a UDP packet.");
     return false;
   }
 
-  rte_udp_hdr *udp_hdr = (rte_udp_hdr *)((uint8_t *)ipv4_hdr + sizeof(rte_ipv4_hdr));
+  const rte_udp_hdr *udp_hdr = (rte_udp_hdr *)((uint8_t *)ipv4_hdr + sizeof(rte_ipv4_hdr));
   if (rte_be_to_cpu_16(udp_hdr->dst_port) != KVSTORE_PORT) {
     LOG_DEBUG("KVS port mismatch (%u).", rte_be_to_cpu_16(udp_hdr->dst_port));
     return false;

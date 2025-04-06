@@ -24,7 +24,7 @@ MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5  # seconds
 PORT_SETUP_RATE = 1  # 1 Mbps
-WARMUP_TIME_SEC = 6  # seconds
+WARMUP_TIME_SEC = 5  # seconds
 WARMUP_RATE = 1  # 1 Mbps
 REST_TIME_SEC = 5  # seconds
 EXPERIMENT_ITERATIONS = 5
@@ -188,7 +188,7 @@ class Experiment:
 
             pktgen.set_churn(churn)
             pktgen.set_rate(current_rate)
-            sleep(WARMUP_TIME_SEC / 2)
+            sleep(WARMUP_TIME_SEC)
 
             tg_controller.reset_stats()
             pktgen.reset_stats()

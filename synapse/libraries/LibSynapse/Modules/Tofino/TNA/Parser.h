@@ -15,9 +15,18 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct ParserState;
+
 using states_t = std::unordered_map<LibBDD::node_id_t, ParserState *>;
 
 enum class ParserStateType { EXTRACT, SELECT, TERMINATE };
+
+struct parser_selection_t {
+  klee::ref<klee::Expr> target;
+  std::vector<klee::ref<klee::Expr>> values;
+  bool negated;
+
+  parser_selection_t() : negated(false) {}
+};
 
 struct ParserState {
   LibBDD::node_ids_t ids;
@@ -91,31 +100,34 @@ struct ParserStateTerminate : public ParserState {
 };
 
 struct ParserStateSelect : public ParserState {
-  klee::ref<klee::Expr> field;
-  std::vector<int> values;
+  std::vector<parser_selection_t> selections;
   ParserState *on_true;
   ParserState *on_false;
-  bool negate;
 
-  ParserStateSelect(LibBDD::node_id_t _id, klee::ref<klee::Expr> _field, const std::vector<int> &_values, bool _negate)
-      : ParserState(_id, ParserStateType::SELECT), field(_field), values(_values), on_true(nullptr), on_false(nullptr), negate(_negate) {}
+  ParserStateSelect(LibBDD::node_id_t _id, const std::vector<parser_selection_t> &_selections)
+      : ParserState(_id, ParserStateType::SELECT), selections(_selections), on_true(nullptr), on_false(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
 
     ss << ParserState::dump(lvl);
-    ss << "select (";
-    ss << "field=";
-    ss << LibCore::expr_to_string(field, true);
-    ss << ", values=[";
-    for (size_t i = 0; i < values.size(); i++) {
-      ss << values[i];
-      if (i < values.size() - 1)
-        ss << ", ";
+    ss << "select ([";
+
+    for (const parser_selection_t &selection : selections) {
+      ss << "{";
+      ss << "field=";
+      ss << LibCore::expr_to_string(selection.target, true);
+      ss << ", values=[";
+      for (size_t i = 0; i < selection.values.size(); i++) {
+        ss << LibCore::expr_to_string(selection.values[i]);
+        if (i < selection.values.size() - 1)
+          ss << ", ";
+      }
+      ss << "]";
+      ss << ", negate=" << selection.negated;
+      ss << "}";
     }
-    ss << "]";
-    ss << ", negate=" << negate;
-    ss << ")\n";
+    ss << "])\n";
 
     lvl++;
 
@@ -148,17 +160,23 @@ struct ParserStateSelect : public ParserState {
 
     const ParserStateSelect *other_select = dynamic_cast<const ParserStateSelect *>(other);
 
-    if (!LibCore::solver_toolbox.are_exprs_always_equal(field, other_select->field)) {
+    if (selections.size() != other_select->selections.size()) {
       return false;
     }
 
-    if (values.size() != other_select->values.size()) {
-      return false;
-    }
-
-    for (size_t i = 0; i < values.size(); i++) {
-      if (values[i] != other_select->values[i]) {
+    for (size_t i = 0; i < selections.size(); i++) {
+      if (!LibCore::solver_toolbox.are_exprs_always_equal(selections[i].target, other_select->selections[i].target)) {
         return false;
+      }
+
+      if (selections[i].values.size() != other_select->selections[i].values.size()) {
+        return false;
+      }
+
+      for (size_t i = 0; i < selections[i].values.size(); i++) {
+        if (!LibCore::solver_toolbox.are_exprs_always_equal(selections[i].values[i], other_select->selections[i].values[i])) {
+          return false;
+        }
       }
     }
 
@@ -178,8 +196,7 @@ struct ParserStateExtract : public ParserState {
   klee::ref<klee::Expr> hdr;
   ParserState *next;
 
-  ParserStateExtract(LibBDD::node_id_t _id, klee::ref<klee::Expr> _hdr)
-      : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
+  ParserStateExtract(LibBDD::node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -258,14 +275,13 @@ public:
     add_state(new_state);
   }
 
-  void add_select(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, klee::ref<klee::Expr> field, const std::vector<int> &values,
-                  std::optional<bool> direction, bool negate) {
-    ParserStateSelect *new_state = new ParserStateSelect(id, field, values, negate);
+  void add_select(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, const std::vector<parser_selection_t> &selections, std::optional<bool> direction) {
+    ParserStateSelect *new_state = new ParserStateSelect(id, selections);
     add_state(leaf_id, new_state, direction);
   }
 
-  void add_select(LibBDD::node_id_t id, klee::ref<klee::Expr> field, const std::vector<int> &values, bool negate) {
-    ParserState *new_state = new ParserStateSelect(id, field, values, negate);
+  void add_select(LibBDD::node_id_t id, const std::vector<parser_selection_t> &selections) {
+    ParserState *new_state = new ParserStateSelect(id, selections);
     add_state(new_state);
   }
 
@@ -454,14 +470,6 @@ private:
     } break;
     }
   }
-};
-
-struct parser_selection_t {
-  klee::ref<klee::Expr> target;
-  std::vector<int> values;
-  bool negated;
-
-  parser_selection_t() : negated(false) {}
 };
 
 } // namespace Tofino

@@ -249,12 +249,12 @@ void Context::bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd) {
           klee::ref<klee::Expr> condition   = branch_node->get_condition();
 
           if (branch_node->is_parser_condition()) {
-            const Tofino::parser_selection_t selection = Tofino::ParserConditionFactory::build_parser_select(condition);
+            const std::vector<Tofino::parser_selection_t> selections = Tofino::ParserConditionFactory::build_parser_select(condition);
 
             std::optional<bool> direction;
             const LibBDD::Node *last_parser_op = parser_ops->get_last_op(node, direction);
 
-            tofino_ctx->parser_select(node, selection, last_parser_op, direction);
+            tofino_ctx->parser_select(node, selections, last_parser_op, direction);
             parser_ops->nodes.push_back(node);
           }
         } break;
@@ -264,8 +264,7 @@ void Context::bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd) {
           std::optional<bool> direction;
           const LibBDD::Node *last_parser_op = parser_ops->get_last_op(node, direction);
 
-          if (route_node->get_operation() == LibBDD::RouteOp::Drop && last_parser_op &&
-              last_parser_op->get_type() == LibBDD::NodeType::Branch) {
+          if (route_node->get_operation() == LibBDD::RouteOp::Drop && last_parser_op && last_parser_op->get_type() == LibBDD::NodeType::Branch) {
             tofino_ctx->parser_reject(node, last_parser_op, direction);
           } else {
             tofino_ctx->parser_accept(node, last_parser_op, direction);
@@ -336,8 +335,8 @@ Context::Context(const Context &other)
 
 Context::Context(Context &&other)
     : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
-      vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)),
-      cms_configs(std::move(other.cms_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
+      vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
+      cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)), expiration_data(std::move(other.expiration_data)),
       expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
 

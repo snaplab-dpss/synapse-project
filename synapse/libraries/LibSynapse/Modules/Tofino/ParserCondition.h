@@ -13,9 +13,7 @@ public:
   ParserCondition(const LibBDD::Node *node, klee::ref<klee::Expr> _condition)
       : TofinoModule(ModuleType::Tofino_ParserCondition, "ParserCondition", node), condition(_condition) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     ParserCondition *cloned = new ParserCondition(node, condition);
@@ -29,7 +27,7 @@ class ParserConditionFactory : public TofinoModuleFactory {
 public:
   ParserConditionFactory() : TofinoModuleFactory(ModuleType::Tofino_ParserCondition, "ParserCondition") {}
 
-  static parser_selection_t build_parser_select(klee::ref<klee::Expr> condition);
+  static std::vector<parser_selection_t> build_parser_select(klee::ref<klee::Expr> condition);
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

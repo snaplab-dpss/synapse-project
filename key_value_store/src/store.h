@@ -48,7 +48,7 @@ public:
   void run();
 
 private:
-  bool check_pkt(struct rte_mbuf *mbuf);
+  bool check_pkt(const struct rte_mbuf *mbuf);
   void process_netcache_query(struct rte_mbuf *mbuf);
 };
 

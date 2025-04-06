@@ -23,9 +23,10 @@ public:
 
   using transpiler_opt_t = u32;
 
-  static constexpr const transpiler_opt_t TRANSPILER_OPT_NO_OPTION           = 0b00;
-  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_HDR_ENDIANNESS = 0b01;
-  static constexpr const transpiler_opt_t TRANSPILER_OPT_REVERSE_VAR_BYTES   = 0b10;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_NO_OPTION             = 0b000;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_HDR_ENDIANNESS   = 0b001;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_CONST_ENDIANNESS = 0b010;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_REVERSE_VAR_BYTES     = 0b100;
 
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
@@ -42,7 +43,7 @@ private:
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
     static code_t transpile_literal(u64 value, bits_t size, bool hex = false);
-    static code_t transpile_constant(klee::ref<klee::Expr> expr);
+    static code_t transpile_constant(klee::ref<klee::Expr> expr, bool swap_endianness);
     static code_t swap_endianness(const code_t &expr, bits_t size);
 
     Action visitNotOptimized(const klee::NotOptimizedExpr &e);
@@ -93,10 +94,10 @@ private:
     var_t(const code_t &_name, klee::ref<klee::Expr> _expr, bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
         : original_name(_name), original_expr(_expr), original_size(_size), name(_name), expr(_expr), size(_size), force_bool(_force_bool),
           is_header_field(_is_header_field), is_buffer(_is_buffer) {}
-    var_t(const code_t &_original_name, klee::ref<klee::Expr> _original_expr, bits_t _original_size, const code_t &_name,
-          klee::ref<klee::Expr> _expr, bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
-        : original_name(_original_name), original_expr(_original_expr), original_size(_original_size), name(_name), expr(_expr),
-          size(_size), force_bool(_force_bool), is_header_field(_is_header_field), is_buffer(_is_buffer) {}
+    var_t(const code_t &_original_name, klee::ref<klee::Expr> _original_expr, bits_t _original_size, const code_t &_name, klee::ref<klee::Expr> _expr,
+          bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
+        : original_name(_original_name), original_expr(_original_expr), original_size(_original_size), name(_name), expr(_expr), size(_size),
+          force_bool(_force_bool), is_header_field(_is_header_field), is_buffer(_is_buffer) {}
 
     var_t(const var_t &other)            = default;
     var_t(var_t &&other)                 = default;
@@ -227,11 +228,10 @@ private:
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
   void transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
-  void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys,
-                            const std::vector<klee::ref<klee::Expr>> &values, bool values_are_buffers, std::vector<var_t> &keys_vars);
+  void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys, const std::vector<klee::ref<klee::Expr>> &values,
+                            bool values_are_buffers, std::vector<var_t> &keys_vars);
   void transpile_register_decl(const Register *reg);
-  void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type,
-                                      std::optional<var_t> write_value);
+  void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type, std::optional<var_t> write_value);
   void transpile_hash_decl(const Hash *hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);

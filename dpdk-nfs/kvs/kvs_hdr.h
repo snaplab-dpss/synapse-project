@@ -39,7 +39,8 @@ static inline struct kvs_hdr *nf_then_get_kvs_header(void *udp_hdr_, uint8_t **p
 
   uint16_t unread_len = packet_get_unread_length(p);
 
-  if ((udp_hdr->dst_port != rte_be_to_cpu_16(KVSTORE_PORT)) | (unread_len < sizeof(struct kvs_hdr))) {
+  if (((udp_hdr->src_port != rte_be_to_cpu_16(KVSTORE_PORT)) & (udp_hdr->dst_port != rte_be_to_cpu_16(KVSTORE_PORT))) |
+      (unread_len < sizeof(struct kvs_hdr))) {
     return NULL;
   }
 

@@ -118,18 +118,18 @@ const DS *TofinoContext::get_ds_from_id(DS_ID id) const {
   return it->second;
 }
 
-void TofinoContext::parser_select(const LibBDD::Node *node, const parser_selection_t &selection, const LibBDD::Node *last_parser_op,
+void TofinoContext::parser_select(const LibBDD::Node *node, const std::vector<parser_selection_t> &selections, const LibBDD::Node *last_parser_op,
                                   std::optional<bool> direction) {
   const LibBDD::node_id_t id = node->get_id();
 
   if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.add_select(id, selection.target, selection.values, selection.negated);
+    tna.parser.add_select(id, selections);
     return;
   }
 
   const LibBDD::node_id_t leaf_id = last_parser_op->get_id();
-  tna.parser.add_select(leaf_id, id, selection.target, selection.values, direction, selection.negated);
+  tna.parser.add_select(leaf_id, id, selections, direction);
 }
 
 void TofinoContext::parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op,

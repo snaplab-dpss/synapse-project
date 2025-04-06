@@ -67,17 +67,18 @@ bool natural_compare(const std::string &a, const std::string &b) {
 
 TofinoSynthesizer::Transpiler::Transpiler(TofinoSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
-TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee::ref<klee::Expr> expr) {
+TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee::ref<klee::Expr> expr, bool swap_endianness) {
   assert(LibCore::is_constant(expr) && "Expected a constant expression");
 
-  bytes_t width = expr->getWidth() / 8;
+  const bytes_t width = expr->getWidth() / 8;
 
   coder_t code;
   code << width * 8 << "w0x";
 
   for (size_t byte = 0; byte < width; byte++) {
-    klee::ref<klee::Expr> extract = LibCore::solver_toolbox.exprBuilder->Extract(expr, (width - byte - 1) * 8, 8);
-    u64 byte_value                = LibCore::solver_toolbox.value_from_expr(extract);
+    const bytes_t offset          = swap_endianness ? byte : width - byte - 1;
+    klee::ref<klee::Expr> extract = LibCore::solver_toolbox.exprBuilder->Extract(expr, offset * 8, 8);
+    const u64 byte_value          = LibCore::solver_toolbox.value_from_expr(extract);
 
     std::stringstream ss;
     ss << std::hex << std::setw(2) << std::setfill('0') << byte_value;
@@ -116,7 +117,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<kle
   klee::ref<klee::Expr> endian_swap_target;
 
   if (LibCore::is_constant(expr)) {
-    coder << transpile_constant(expr);
+    coder << transpile_constant(expr, opt & TRANSPILER_OPT_SWAP_CONST_ENDIANNESS);
   } else if (LibCore::match_endian_swap_pattern(expr, endian_swap_target)) {
     const bits_t size = endian_swap_target->getWidth();
     coder << swap_endianness(transpile(endian_swap_target, loaded_opt), size);
@@ -581,8 +582,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::get_parser_state_name(const ParserS
   return coder.dump();
 }
 
-TofinoSynthesizer::code_t TofinoSynthesizer::build_register_action_name(const EPNode *node, const Register *reg,
-                                                                        RegisterActionType action) const {
+TofinoSynthesizer::code_t TofinoSynthesizer::build_register_action_name(const EPNode *node, const Register *reg, RegisterActionType action) const {
   coder_t coder;
   coder << reg->id;
   coder << "_";
@@ -633,8 +633,7 @@ void TofinoSynthesizer::transpile_action_decl(const code_t &action_name, const s
   ingress << "}\n";
 }
 
-void TofinoSynthesizer::transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params,
-                                              bool params_are_buffers) {
+void TofinoSynthesizer::transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers) {
   assert(!params.empty() && "Empty action");
 
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
@@ -1502,33 +1501,52 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       const ParserStateSelect *select = dynamic_cast<const ParserStateSelect *>(state);
       const code_t state_name         = get_parser_state_name(state, state_init);
 
+      auto get_selection_state_name = [state_name](size_t i) -> code_t { return state_name + "_" + std::to_string(i); };
+
       ingress_parser.indent();
       ingress_parser << "state " << state_name << " {\n";
 
       ingress_parser.inc();
       ingress_parser.indent();
-      ingress_parser << "transition select (" << transpiler.transpile(select->field) << ") {\n";
+      ingress_parser << "transition " << get_selection_state_name(0) << ";\n";
 
-      ingress_parser.inc();
+      ingress_parser.dec();
+      ingress_parser.indent();
+      ingress_parser << "}\n";
 
-      const code_t next_true  = get_parser_state_name(select->on_true, false);
-      const code_t next_false = get_parser_state_name(select->on_false, false);
+      for (size_t i = 0; i < select->selections.size(); i++) {
+        const parser_selection_t &selection = select->selections[i];
+        const code_t selection_state_name   = state_name + "_" + std::to_string(i);
 
-      for (int value : select->values) {
         ingress_parser.indent();
-        ingress_parser << value << ": " << next_true << ";\n";
+        ingress_parser << "state " << get_selection_state_name(i) << " {\n";
+
+        ingress_parser.inc();
+        ingress_parser.indent();
+        ingress_parser << "transition select (" << transpiler.transpile(selection.target) << ") {\n";
+
+        ingress_parser.inc();
+
+        const code_t next_true = get_parser_state_name(select->on_true, false);
+        const code_t next_false =
+            i < select->selections.size() - 1 ? get_selection_state_name(i + 1) : get_parser_state_name(select->on_false, false);
+
+        for (klee::ref<klee::Expr> value : selection.values) {
+          ingress_parser.indent();
+          ingress_parser << transpiler.transpile(value, TRANSPILER_OPT_SWAP_CONST_ENDIANNESS) << ": " << next_true << ";\n";
+        }
+
+        ingress_parser.indent();
+        ingress_parser << "default: " << next_false << ";\n";
+
+        ingress_parser.dec();
+        ingress_parser.indent();
+        ingress_parser << "}\n";
+
+        ingress_parser.dec();
+        ingress_parser.indent();
+        ingress_parser << "}\n";
       }
-
-      ingress_parser.indent();
-      ingress_parser << "default: " << next_false << ";\n";
-
-      ingress_parser.dec();
-      ingress_parser.indent();
-      ingress_parser << "}\n";
-
-      ingress_parser.dec();
-      ingress_parser.indent();
-      ingress_parser << "}\n";
 
       states.push_back(select->on_true);
       states.push_back(select->on_false);
@@ -1700,9 +1718,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::skipChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *node) {
-  return EPVisitor::Action::doChildren;
-}
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *node) { return EPVisitor::Action::doChildren; }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
@@ -1795,20 +1811,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Then *node) {
-  return EPVisitor::Action::doChildren;
-}
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Then *node) { return EPVisitor::Action::doChildren; }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Else *node) {
-  return EPVisitor::Action::doChildren;
-}
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Else *node) { return EPVisitor::Action::doChildren; }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device) << ";\n";
+  ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) << ";\n";
   ingress.indent();
   ingress << "trigger_forward = true;\n";
 
@@ -2135,7 +2147,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     transpile_register_action_decl(reg, action_name, RegisterActionType::READ, {});
 
     const klee::ref<klee::Expr> entry_expr = LibCore::solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
-    const code_t assignment = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
+    const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
 
     if (can_be_inlined) {
       const var_t value_var = alloc_var(assignment, entry_expr, EXACT_NAME);
@@ -2293,7 +2305,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   transpile_register_decl(&hh_table->cached_counters);
   assert(hh_table->cached_counters.actions.size() == 1);
   const RegisterActionType cached_counters_action_type = *hh_table->cached_counters.actions.begin();
-  const code_t cached_counters_action_name = build_register_action_name(ep_node, &hh_table->cached_counters, cached_counters_action_type);
+  const code_t cached_counters_action_name             = build_register_action_name(ep_node, &hh_table->cached_counters, cached_counters_action_type);
   transpile_register_action_decl(&hh_table->cached_counters, cached_counters_action_name, cached_counters_action_type, {});
 
   for (const Hash &hash : hh_table->hashes) {

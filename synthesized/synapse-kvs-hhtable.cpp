@@ -5,14 +5,14 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardNFDev forward_nf_dev;
-  HHTable hh_table_1073923128;
-  VectorRegister vector_register_1073956208;
+  HHTable hh_table_1073923288;
+  VectorRegister vector_register_1073956368;
 
   state_t()
     : ingress_port_to_nf_dev(),
       forward_nf_dev(),
-      hh_table_1073923128("hh_table_1073923128",{"Ingress.hh_table_1073923128_table_13", }, "Ingress.hh_table_1073923128_cached_counters", {"Ingress.hh_table_1073923128_cms_row_0", "Ingress.hh_table_1073923128_cms_row_1", "Ingress.hh_table_1073923128_cms_row_2", "Ingress.hh_table_1073923128_cms_row_3", }, {"Ingress.hh_table_1073923128_bloom_row_0", "Ingress.hh_table_1073923128_bloom_row_1", "Ingress.hh_table_1073923128_bloom_row_2", "Ingress.hh_table_1073923128_bloom_row_3", }, "Ingress.hh_table_1073923128_threshold", "IngressDeparser.hh_table_1073923128_digest", 1000LL),
-      vector_register_1073956208("vector_register_1073956208",{"Ingress.vector_register_1073956208_0","Ingress.vector_register_1073956208_1","Ingress.vector_register_1073956208_2","Ingress.vector_register_1073956208_3","Ingress.vector_register_1073956208_4","Ingress.vector_register_1073956208_5","Ingress.vector_register_1073956208_6","Ingress.vector_register_1073956208_7","Ingress.vector_register_1073956208_8","Ingress.vector_register_1073956208_9","Ingress.vector_register_1073956208_10","Ingress.vector_register_1073956208_11","Ingress.vector_register_1073956208_12","Ingress.vector_register_1073956208_13","Ingress.vector_register_1073956208_14","Ingress.vector_register_1073956208_15","Ingress.vector_register_1073956208_16","Ingress.vector_register_1073956208_17","Ingress.vector_register_1073956208_18","Ingress.vector_register_1073956208_19","Ingress.vector_register_1073956208_20","Ingress.vector_register_1073956208_21","Ingress.vector_register_1073956208_22","Ingress.vector_register_1073956208_23","Ingress.vector_register_1073956208_24","Ingress.vector_register_1073956208_25","Ingress.vector_register_1073956208_26","Ingress.vector_register_1073956208_27","Ingress.vector_register_1073956208_28","Ingress.vector_register_1073956208_29","Ingress.vector_register_1073956208_30","Ingress.vector_register_1073956208_31",})
+      hh_table_1073923288("hh_table_1073923288",{"Ingress.hh_table_1073923288_table_13", }, "Ingress.hh_table_1073923288_cached_counters", {"Ingress.hh_table_1073923288_cms_row_0", "Ingress.hh_table_1073923288_cms_row_1", "Ingress.hh_table_1073923288_cms_row_2", "Ingress.hh_table_1073923288_cms_row_3", }, {"Ingress.hh_table_1073923288_bloom_row_0", "Ingress.hh_table_1073923288_bloom_row_1", "Ingress.hh_table_1073923288_bloom_row_2", "Ingress.hh_table_1073923288_bloom_row_3", }, "Ingress.hh_table_1073923288_threshold", "IngressDeparser.hh_table_1073923288_digest", 1000LL),
+      vector_register_1073956368("vector_register_1073956368",{"Ingress.vector_register_1073956368_0","Ingress.vector_register_1073956368_1","Ingress.vector_register_1073956368_2","Ingress.vector_register_1073956368_3","Ingress.vector_register_1073956368_4","Ingress.vector_register_1073956368_5","Ingress.vector_register_1073956368_6","Ingress.vector_register_1073956368_7","Ingress.vector_register_1073956368_8","Ingress.vector_register_1073956368_9","Ingress.vector_register_1073956368_10","Ingress.vector_register_1073956368_11","Ingress.vector_register_1073956368_12","Ingress.vector_register_1073956368_13","Ingress.vector_register_1073956368_14","Ingress.vector_register_1073956368_15","Ingress.vector_register_1073956368_16","Ingress.vector_register_1073956368_17","Ingress.vector_register_1073956368_18","Ingress.vector_register_1073956368_19","Ingress.vector_register_1073956368_20","Ingress.vector_register_1073956368_21","Ingress.vector_register_1073956368_22","Ingress.vector_register_1073956368_23","Ingress.vector_register_1073956368_24","Ingress.vector_register_1073956368_25","Ingress.vector_register_1073956368_26","Ingress.vector_register_1073956368_27","Ingress.vector_register_1073956368_28","Ingress.vector_register_1073956368_29","Ingress.vector_register_1073956368_30","Ingress.vector_register_1073956368_31",})
     {}
 };
 
@@ -83,11 +83,11 @@ void sycon::nf_init() {
   state->forward_nf_dev.add_entry(30, asic_get_dev_port(31));
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forward_nf_dev.add_entry(31, asic_get_dev_port(32));
-  // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 16), map_out:(w64 1073922856)[(w64 0) -> (w64 1073923128)])
+  // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 16), map_out:(w64 1073923016)[(w64 0) -> (w64 1073923288)])
   // Module DataplaneHHTableAllocate
-  // BDD node 2:vector_allocate(elem_size:(w32 128), capacity:(w32 8192), vector_out:(w64 1073922872)[(w64 0) -> (w64 1073956208)])
+  // BDD node 2:vector_allocate(elem_size:(w32 128), capacity:(w32 8192), vector_out:(w64 1073923032)[(w64 0) -> (w64 1073956368)])
   // Module DataplaneVectorRegisterAllocate
-  // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1073922880)[ -> (w64 1073989720)])
+  // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1073923040)[ -> (w64 1073989880)])
   // Module Ignore
 
 }
