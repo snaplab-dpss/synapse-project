@@ -72,7 +72,7 @@ class TGHosts:
 
 class ThroughputHosts:
     dut_switch: Switch
-    controller: SynapseController
+    dut_controller: SynapseController
     tg_switch: TofinoTG
     tg_controller: TofinoTGController
     pktgen: Pktgen
@@ -90,7 +90,7 @@ class ThroughputHosts:
             log_file=config["logs"]["switch_dut"],
         )
 
-        self.controller = SynapseController(
+        self.dut_controller = SynapseController(
             hostname=config["hosts"]["switch_dut"],
             repo=config["repo"]["switch_dut"],
             sde=config["devices"]["switch_dut"]["sde"],
@@ -140,7 +140,10 @@ class ThroughputHosts:
         )
 
     def terminate(self):
+        self.dut_switch.kill_switchd()
+        self.dut_controller.quit()
         self.tg_switch.kill_switchd()
+        self.pktgen.close()
 
 
 class Throughput(Experiment):
@@ -236,7 +239,7 @@ class Throughput(Experiment):
         self.hosts.tg_switch.launch()
 
         self.log("Launching synapse controller")
-        self.hosts.controller.launch(self.controller_src_in_repo, self.controller_timeout_ms)
+        self.hosts.dut_controller.launch(self.controller_src_in_repo, self.controller_timeout_ms)
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
@@ -259,7 +262,7 @@ class Throughput(Experiment):
         self.hosts.pktgen.wait_launch()
 
         self.log("Waiting for synapse controller")
-        self.hosts.controller.wait_ready()
+        self.hosts.dut_controller.wait_ready()
 
         self.log("Starting experiment")
 
@@ -286,4 +289,4 @@ class Throughput(Experiment):
         step_progress.update(task_id, visible=False)
 
         self.hosts.pktgen.close()
-        self.hosts.controller.stop()
+        self.hosts.dut_controller.stop()

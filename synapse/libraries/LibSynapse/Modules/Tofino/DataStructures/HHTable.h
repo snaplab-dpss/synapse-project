@@ -20,8 +20,6 @@ struct HHTable : public DS {
 
   u32 capacity;
   std::vector<bits_t> keys_sizes;
-  u32 bloom_width;
-  u32 bloom_height;
   u32 cms_width;
   u32 cms_height;
   bits_t hash_size;
@@ -29,13 +27,12 @@ struct HHTable : public DS {
   std::vector<Table> tables;
   Register cached_counters;
   std::vector<Hash> hashes;
-  std::vector<Register> bloom_filter;
   std::vector<Register> count_min_sketch;
   Register threshold;
   Digest digest;
 
-  HHTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 capacity, const std::vector<bits_t> &keys_sizes, u32 bloom_width,
-          u32 bloom_height, u32 cms_width, u32 cms_height, u8 digest_type);
+  HHTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 capacity, const std::vector<bits_t> &keys_sizes, u32 cms_width, u32 cms_height,
+          u8 digest_type);
 
   HHTable(const HHTable &other);
 

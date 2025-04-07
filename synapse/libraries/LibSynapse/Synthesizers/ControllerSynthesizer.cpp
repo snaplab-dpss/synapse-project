@@ -1764,11 +1764,6 @@ void ControllerSynthesizer::transpile_hh_table_decl(const Tofino::HHTable *hh_ta
     member_init_list << "\"Ingress." << cms_row.id << "\", ";
   }
   member_init_list << "}";
-  member_init_list << ", {";
-  for (const Tofino::Register &bloom_row : hh_table->bloom_filter) {
-    member_init_list << "\"Ingress." << bloom_row.id << "\", ";
-  }
-  member_init_list << "}";
   member_init_list << ", \"Ingress." << hh_table->threshold.id << "\"";
   member_init_list << ", \"IngressDeparser." << hh_table->digest.id << "\"";
   member_init_list << ", " << expiration_time_ms << "LL";

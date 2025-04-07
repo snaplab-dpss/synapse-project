@@ -257,6 +257,10 @@ def main():
         log_file=config["logs"]["server"],
     )
 
+    broadcast = config["devices"]["switch_tg"]["dut_ports"]
+    symmetric = []
+    route = []
+
     exp_tracker.add_experiment(
         NetCacheThroughput(
             name=EXPERIMENT_NAME,
@@ -266,7 +270,7 @@ def main():
             netcache=netcache,
             netcache_controller=netcache_controller,
             kvs_server=kvs_server,
-            broadcast=config["devices"]["switch_tg"]["dut_ports"],
+            broadcast=broadcast,
             symmetric=[],
             route=[],
             total_flows=TOTAL_FLOWS,

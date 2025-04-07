@@ -313,7 +313,7 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(8192, 0) hh_table_1073923288_threshold;
+  Register<bit<32>,_>(1, 0) hh_table_1073923288_threshold;
   bit<32> hh_table_1073923288_threshold_diff_248_cmp;
   RegisterAction<bit<32>, bit<1>, bit<32>>(hh_table_1073923288_threshold) hh_table_1073923288_threshold_diff_248 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
@@ -321,65 +321,49 @@ control Ingress(
     }
   };
 
-  Register<bit<8>,_>(1024, 0) hh_table_1073923288_bloom_row_0;
-  RegisterAction<bit<8>, bit<10>, bit<8>>(hh_table_1073923288_bloom_row_0) hh_table_1073923288_bloom_row_0_read_and_set_248 = {
-    void apply(inout bit<8> value, out bit<8> out_value) {
-      out_value = value;
-      value = 1;
-    }
-  };
-
-  Register<bit<8>,_>(1024, 0) hh_table_1073923288_bloom_row_1;
-  RegisterAction<bit<8>, bit<10>, bit<8>>(hh_table_1073923288_bloom_row_1) hh_table_1073923288_bloom_row_1_read_and_set_248 = {
-    void apply(inout bit<8> value, out bit<8> out_value) {
-      out_value = value;
-      value = 1;
-    }
-  };
-
-  Register<bit<8>,_>(1024, 0) hh_table_1073923288_bloom_row_2;
-  RegisterAction<bit<8>, bit<10>, bit<8>>(hh_table_1073923288_bloom_row_2) hh_table_1073923288_bloom_row_2_read_and_set_248 = {
-    void apply(inout bit<8> value, out bit<8> out_value) {
-      out_value = value;
-      value = 1;
-    }
-  };
-
-  Register<bit<8>,_>(1024, 0) hh_table_1073923288_bloom_row_3;
-  RegisterAction<bit<8>, bit<10>, bit<8>>(hh_table_1073923288_bloom_row_3) hh_table_1073923288_bloom_row_3_read_and_set_248 = {
-    void apply(inout bit<8> value, out bit<8> out_value) {
-      out_value = value;
-      value = 1;
-    }
-  };
-
   bit<10> hh_table_1073923288_hash_calc_0_value;
-  action hh_table_1073923288_hash_calc_0_value_calc() {
-    bit<10> hh_table_1073923288_hash_calc_0_value = hh_table_1073923288_hash_calc_0.get({
+  action hh_table_1073923288_hash_calc_0_calc() {
+    hh_table_1073923288_hash_calc_0_value = hh_table_1073923288_hash_calc_0.get({
       hh_table_1073923288_table_13_key0,
       32w0xfbc31fc7
     });
   }
   bit<10> hh_table_1073923288_hash_calc_1_value;
-  action hh_table_1073923288_hash_calc_1_value_calc() {
-    bit<10> hh_table_1073923288_hash_calc_1_value = hh_table_1073923288_hash_calc_1.get({
+  action hh_table_1073923288_hash_calc_1_calc() {
+    hh_table_1073923288_hash_calc_1_value = hh_table_1073923288_hash_calc_1.get({
       hh_table_1073923288_table_13_key0,
       32w0x2681580b
     });
   }
   bit<10> hh_table_1073923288_hash_calc_2_value;
-  action hh_table_1073923288_hash_calc_2_value_calc() {
-    bit<10> hh_table_1073923288_hash_calc_2_value = hh_table_1073923288_hash_calc_2.get({
+  action hh_table_1073923288_hash_calc_2_calc() {
+    hh_table_1073923288_hash_calc_2_value = hh_table_1073923288_hash_calc_2.get({
       hh_table_1073923288_table_13_key0,
       32w0x486d7e2f
     });
   }
   bit<10> hh_table_1073923288_hash_calc_3_value;
-  action hh_table_1073923288_hash_calc_3_value_calc() {
-    bit<10> hh_table_1073923288_hash_calc_3_value = hh_table_1073923288_hash_calc_3.get({
+  action hh_table_1073923288_hash_calc_3_calc() {
+    hh_table_1073923288_hash_calc_3_value = hh_table_1073923288_hash_calc_3.get({
       hh_table_1073923288_table_13_key0,
       32w0x1f3a2b4d
     });
+  }
+  bit<32> hh_table_1073923288_cms_row_0_value;
+  action hh_table_1073923288_cms_row_0_inc_and_read_248_execute() {
+    hh_table_1073923288_cms_row_0_value = hh_table_1073923288_cms_row_0_inc_and_read_248.execute(hh_table_1073923288_hash_calc_0_value);
+  }
+  bit<32> hh_table_1073923288_cms_row_1_value;
+  action hh_table_1073923288_cms_row_1_inc_and_read_248_execute() {
+    hh_table_1073923288_cms_row_1_value = hh_table_1073923288_cms_row_1_inc_and_read_248.execute(hh_table_1073923288_hash_calc_1_value);
+  }
+  bit<32> hh_table_1073923288_cms_row_2_value;
+  action hh_table_1073923288_cms_row_2_inc_and_read_248_execute() {
+    hh_table_1073923288_cms_row_2_value = hh_table_1073923288_cms_row_2_inc_and_read_248.execute(hh_table_1073923288_hash_calc_2_value);
+  }
+  bit<32> hh_table_1073923288_cms_row_3_value;
+  action hh_table_1073923288_cms_row_3_inc_and_read_248_execute() {
+    hh_table_1073923288_cms_row_3_value = hh_table_1073923288_cms_row_3_inc_and_read_248.execute(hh_table_1073923288_hash_calc_3_value);
   }
   Register<bit<32>,_>(8192, 0) vector_register_1073956368_0;
   Register<bit<32>,_>(8192, 0) vector_register_1073956368_1;
@@ -847,25 +831,22 @@ control Ingress(
                 if (hit0) {
                   hh_table_1073923288_cached_counters_inc_248.execute(hh_table_1073923288_table_13_get_value_param0);
                 } else {
-                  hh_table_1073923288_hash_calc_0_value_calc();
-                  hh_table_1073923288_hash_calc_1_value_calc();
-                  hh_table_1073923288_hash_calc_2_value_calc();
-                  hh_table_1073923288_hash_calc_3_value_calc();
-                  bit<32> hh_table_1073923288_cms_min_0 = hh_table_1073923288_cms_row_0_inc_and_read_248.execute(hh_table_1073923288_hash_calc_0_value);
-                  bit<32> hh_table_1073923288_cms_min_1 = min(hh_table_1073923288_cms_min_0, hh_table_1073923288_cms_row_1_inc_and_read_248.execute(hh_table_1073923288_hash_calc_1_value));
-                  bit<32> hh_table_1073923288_cms_min_2 = min(hh_table_1073923288_cms_min_1, hh_table_1073923288_cms_row_2_inc_and_read_248.execute(hh_table_1073923288_hash_calc_2_value));
-                  bit<32> hh_table_1073923288_cms_min_3 = min(hh_table_1073923288_cms_min_2, hh_table_1073923288_cms_row_3_inc_and_read_248.execute(hh_table_1073923288_hash_calc_3_value));
-                  hh_table_1073923288_threshold_diff_248_cmp = hh_table_1073923288_cms_min_3;
+                  hh_table_1073923288_hash_calc_0_calc();
+                  hh_table_1073923288_hash_calc_1_calc();
+                  hh_table_1073923288_hash_calc_2_calc();
+                  hh_table_1073923288_hash_calc_3_calc();
+                  hh_table_1073923288_cms_row_0_inc_and_read_248_execute();
+                  hh_table_1073923288_cms_row_1_inc_and_read_248_execute();
+                  hh_table_1073923288_cms_row_2_inc_and_read_248_execute();
+                  hh_table_1073923288_cms_row_3_inc_and_read_248_execute();
+                  bit<32> hh_table_1073923288_cms_min = hh_table_1073923288_cms_row_0_value;
+                  hh_table_1073923288_cms_min = min(hh_table_1073923288_cms_min, hh_table_1073923288_cms_row_1_value);
+                  hh_table_1073923288_cms_min = min(hh_table_1073923288_cms_min, hh_table_1073923288_cms_row_2_value);
+                  hh_table_1073923288_cms_min = min(hh_table_1073923288_cms_min, hh_table_1073923288_cms_row_3_value);
+                  hh_table_1073923288_threshold_diff_248_cmp = hh_table_1073923288_cms_min;
                   bit<32> hh_table_1073923288_threshold_diff = hh_table_1073923288_threshold_diff_248.execute(0);
                   if (hh_table_1073923288_threshold_diff_248_cmp[31:31] == 0) {
-                    bit<8> hh_table_1073923288_bloom_counter = 0;
-                    hh_table_1073923288_bloom_counter = hh_table_1073923288_bloom_counter + hh_table_1073923288_bloom_row_0_read_and_set_248.execute(hh_table_1073923288_hash_calc_0_value);
-                    hh_table_1073923288_bloom_counter = hh_table_1073923288_bloom_counter + hh_table_1073923288_bloom_row_1_read_and_set_248.execute(hh_table_1073923288_hash_calc_1_value);
-                    hh_table_1073923288_bloom_counter = hh_table_1073923288_bloom_counter + hh_table_1073923288_bloom_row_2_read_and_set_248.execute(hh_table_1073923288_hash_calc_2_value);
-                    hh_table_1073923288_bloom_counter = hh_table_1073923288_bloom_counter + hh_table_1073923288_bloom_row_3_read_and_set_248.execute(hh_table_1073923288_hash_calc_3_value);
-                    if (hh_table_1073923288_bloom_counter != 4) {
-                      ig_dprsr_md.digest_type = 1;
-                    }
+                    ig_dprsr_md.digest_type = 1;
                   }
                 }
                 // EP node  549:If

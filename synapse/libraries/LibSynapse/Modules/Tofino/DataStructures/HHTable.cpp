@@ -30,20 +30,6 @@ std::vector<Hash> build_hashes(DS_ID id, std::vector<bits_t> keys_sizes, u32 tot
   return hashes;
 }
 
-std::vector<Register> build_bloom_filter(const tna_properties_t &properties, DS_ID id, u32 bloom_width, u32 bloom_height, bits_t index_size) {
-  const bits_t value_size         = 8;
-  const RegisterActionType action = RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE;
-
-  std::vector<Register> bloom_filter;
-  for (u32 i = 0; i < bloom_height; i++) {
-    const DS_ID row_id = id + "_bloom_row_" + std::to_string(i);
-    Register row(properties, row_id, bloom_width, index_size, value_size, {action});
-    bloom_filter.push_back(row);
-  }
-
-  return bloom_filter;
-}
-
 std::vector<Register> build_count_min_sketch(const tna_properties_t &properties, DS_ID id, u32 cms_width, u32 cms_height, bits_t index_size) {
   const bits_t value_size         = 32;
   const RegisterActionType action = RegisterActionType::INC_AND_RETURN_NEW_VALUE;
@@ -58,12 +44,12 @@ std::vector<Register> build_count_min_sketch(const tna_properties_t &properties,
   return count_min_sketch;
 }
 
-Register build_threshold(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+Register build_threshold(const tna_properties_t &properties, DS_ID id) {
   const DS_ID reg_id              = id + "_threshold";
   const bits_t index_size         = 1;
   const bits_t value_size         = 32;
   const RegisterActionType action = RegisterActionType::CALCULATE_DIFF;
-  return Register(properties, reg_id, capacity, index_size, value_size, {action});
+  return Register(properties, reg_id, 1, index_size, value_size, {action});
 }
 
 Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type) {
@@ -76,28 +62,22 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type)
 const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
                                               0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
-HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes, u32 _bloom_width,
-                 u32 _bloom_height, u32 _cms_width, u32 _cms_height, u8 _digest_type)
-    : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), bloom_width(_bloom_width), bloom_height(_bloom_height),
-      cms_width(_cms_width), cms_height(_cms_height), hash_size(LibCore::bits_from_pow2_capacity(_bloom_width)),
-      cached_counters(build_cached_counters(properties, _id, _capacity)), hashes(build_hashes(id, _keys_sizes, _bloom_height, hash_size)),
-      bloom_filter(build_bloom_filter(properties, _id, _bloom_width, _bloom_height, hash_size)),
-      count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)),
-      threshold(build_threshold(properties, _id, _capacity)), digest(build_digest(_id, _keys_sizes, _digest_type)) {
+HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes, u32 _cms_width,
+                 u32 _cms_height, u8 _digest_type)
+    : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
+      hash_size(LibCore::bits_from_pow2_capacity(_cms_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
+      hashes(build_hashes(id, _keys_sizes, _cms_height, hash_size)),
+      count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)), threshold(build_threshold(properties, _id)),
+      digest(build_digest(_id, _keys_sizes, _digest_type)) {
   assert(_keys_sizes.size() > 0 && "HH Table keys sizes must not be empty");
-  assert(_bloom_height == _cms_height && "Bloom filter and CMS heights must be equal");
-  assert(_bloom_width == _cms_width && "Bloom filter and CMS widths must be equal");
-  assert(_bloom_height > 0 && "Bloom filter and CMS heights must be greater than 0");
-  assert(_bloom_width > 0 && "Bloom filter width must be greater than 0");
   assert(capacity > 0 && "HH Table entries must be greater than 0");
   add_table(_op);
 }
 
 HHTable::HHTable(const HHTable &other)
-    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys_sizes(other.keys_sizes), bloom_width(other.bloom_width),
-      bloom_height(other.bloom_height), cms_width(other.cms_width), cms_height(other.cms_height), hash_size(other.hash_size), tables(other.tables),
-      cached_counters(other.cached_counters), hashes(other.hashes), bloom_filter(other.bloom_filter), count_min_sketch(other.count_min_sketch),
-      threshold(other.threshold), digest(other.digest) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys_sizes(other.keys_sizes), cms_width(other.cms_width),
+      cms_height(other.cms_height), hash_size(other.hash_size), tables(other.tables), cached_counters(other.cached_counters), hashes(other.hashes),
+      count_min_sketch(other.count_min_sketch), threshold(other.threshold), digest(other.digest) {}
 
 DS *HHTable::clone() const { return new HHTable(*this); }
 
@@ -108,7 +88,6 @@ void HHTable::debug() const {
   std::cerr << "Primitive: " << primitive << "\n";
   std::cerr << "Entries:   " << capacity << "\n";
   std::cerr << "Hashes:    " << hashes.size() << " (" << hash_size << " bits)\n";
-  std::cerr << "Bloom:     " << bloom_width << "x" << bloom_height << "\n";
   std::cerr << "CMS:       " << cms_width << "x" << cms_height << "\n";
   std::cerr << "=================================\n";
 }
@@ -125,9 +104,6 @@ std::vector<std::unordered_set<const DS *>> HHTable::get_internal() const {
   internal_ds.back().insert(&cached_counters);
   for (const Hash &hash : hashes) {
     internal_ds.back().insert(&hash);
-  }
-  for (const Register &row : bloom_filter) {
-    internal_ds.back().insert(&row);
   }
   for (const Register &row : count_min_sketch) {
     internal_ds.back().insert(&row);

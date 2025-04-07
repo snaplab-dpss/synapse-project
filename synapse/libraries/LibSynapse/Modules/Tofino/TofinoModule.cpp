@@ -404,8 +404,7 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
   }
 
   const u8 used_digests = tofino_ctx->get_tna().get_simple_placer().get_used_digests() + 1;
-  HHTable *hh_table =
-      new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, cms_width, cms_height, used_digests);
+  HHTable *hh_table     = new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, used_digests);
 
   if (!tofino_ctx->check_placement(ep, node, hh_table)) {
     delete hh_table;
@@ -437,8 +436,7 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
   return hh_table;
 }
 
-CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
-                          u32 height) {
+CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   DS_ID id                           = "cms_" + std::to_string(width) + "x" + std::to_string(height) + "_" + std::to_string(obj);
@@ -607,8 +605,7 @@ bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const Li
   return true;
 }
 
-VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node,
-                                                                    const vector_register_data_t &data) {
+VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   VectorRegister *vector_register;
 
   const Context &ctx  = ep->get_ctx();
@@ -642,8 +639,8 @@ bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const
   return true;
 }
 
-FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                                       klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
+FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,
+                                                                       u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
@@ -753,8 +750,7 @@ hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, 
 }
 
 HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width,
-                                                      u32 cms_height) {
+                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height) {
   HHTable *hh_table = nullptr;
 
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
@@ -767,8 +763,7 @@ HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const LibBDD
 }
 
 bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width,
-                                                      u32 cms_height) {
+                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height) {
   HHTable *hh_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
@@ -805,8 +800,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
   return true;
 }
 
-hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key,
-                                                              u32 capacity) {
+hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key, u32 capacity) {
   const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
   const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
 
@@ -821,8 +815,8 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx
   return hit_rate;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                 const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
+bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
+                                                 u32 width, u32 height) {
   CountMinSketch *cms = nullptr;
 
   const Context &ctx  = ep->get_ctx();

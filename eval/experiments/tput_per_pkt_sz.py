@@ -115,7 +115,7 @@ class ThroughputPerPacketSize(Experiment):
         self.hosts.tg_switch.launch()
 
         self.log("Launching synapse controller")
-        self.hosts.controller.launch(self.controller_src_in_repo, self.controller_timeout_ms)
+        self.hosts.dut_controller.launch(self.controller_src_in_repo, self.controller_timeout_ms)
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
@@ -138,7 +138,7 @@ class ThroughputPerPacketSize(Experiment):
         self.hosts.pktgen.wait_launch()
 
         self.log("Waiting for synapse controller")
-        self.hosts.controller.wait_ready()
+        self.hosts.dut_controller.wait_ready()
 
         self.log("Waiting for TG ports")
         self.hosts.tg_controller.wait_for_ports()
@@ -191,6 +191,6 @@ class ThroughputPerPacketSize(Experiment):
             step_progress.update(task_id, description=description, advance=1)
 
         self.hosts.pktgen.close()
-        self.hosts.controller.stop()
+        self.hosts.dut_controller.stop()
 
         step_progress.update(task_id, visible=False)

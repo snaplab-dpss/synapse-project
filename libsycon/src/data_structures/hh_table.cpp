@@ -12,14 +12,13 @@ const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f
                                               0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
 HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
-                 const std::vector<std::string> &count_min_sketch_reg_names, const std::vector<std::string> &bloom_filter_reg_names,
-                 const std::string &reg_threshold_name, const std::string &digest_name, time_ms_t timeout)
+                 const std::vector<std::string> &count_min_sketch_reg_names, const std::string &reg_threshold_name, const std::string &digest_name,
+                 time_ms_t timeout)
     : SynapseDS(_name), tables(build_tables(table_names)), reg_cached_counters(reg_cached_counters_name),
-      count_min_sketch(build_count_min_sketch(count_min_sketch_reg_names)), bloom_filter(build_bloom_filter(bloom_filter_reg_names)),
-      reg_threshold(reg_threshold_name), digest(digest_name), capacity(get_capacity(tables)), key_size(get_key_size(tables)),
-      hash_salts(build_hash_salts(count_min_sketch, bloom_filter)), hash_mask(build_hash_mask(bloom_filter, count_min_sketch)), crc32(),
-      key_to_index(capacity), index_to_key(capacity), free_indices(capacity), used_indices(capacity) {
-  assert(hash_salts.size() == bloom_filter.size() && "Number of salts must match the number of bloom filter registers");
+      count_min_sketch(build_count_min_sketch(count_min_sketch_reg_names)), reg_threshold(reg_threshold_name), digest(digest_name),
+      capacity(get_capacity(tables)), key_size(get_key_size(tables)), hash_salts(build_hash_salts(count_min_sketch)),
+      hash_mask(build_hash_mask(count_min_sketch)), crc32(), key_to_index(capacity), index_to_key(capacity), free_indices(capacity),
+      used_indices(capacity) {
   assert(hash_salts.size() == count_min_sketch.size() && "Number of salts must match the number of CMS registers");
 
   reg_threshold.set(0, THRESHOLD);
@@ -168,23 +167,7 @@ void HHTable::clear_counters() {
     reg.overwrite_all_entries(0);
   }
 
-  for (Register &reg : bloom_filter) {
-    reg.overwrite_all_entries(0);
-  }
-
   reg_cached_counters.overwrite_all_entries(0);
-}
-
-bool HHTable::bloom_filter_query(const std::vector<u32> &hashes) {
-  assert(hashes.size() == bloom_filter.size());
-
-  for (size_t i = 0; i < hashes.size(); i++) {
-    if (!bloom_filter[i].get_max(hashes[i])) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 u32 HHTable::cms_get_min(const std::vector<u32> &hashes) {
@@ -217,17 +200,6 @@ std::vector<Table> HHTable::build_tables(const std::vector<std::string> &table_n
   }
 
   return tables;
-}
-
-std::vector<Register> HHTable::build_bloom_filter(const std::vector<std::string> &bloom_filter_reg_names) {
-  assert(!bloom_filter_reg_names.empty() && "Bloom filter register names must not be empty");
-
-  std::vector<Register> bloom_filter;
-  for (const std::string &name : bloom_filter_reg_names) {
-    bloom_filter.emplace_back(name);
-  }
-
-  return bloom_filter;
 }
 
 std::vector<Register> HHTable::build_count_min_sketch(const std::vector<std::string> &cms_reg_names) {
@@ -267,9 +239,8 @@ bits_t HHTable::get_key_size(const std::vector<Table> &tables) {
   return key_size;
 }
 
-u32 HHTable::build_hash_mask(const std::vector<Register> &bloom_filter, const std::vector<Register> &count_min_sketch) {
-  assert(!bloom_filter.empty());
-  assert(bloom_filter.size() == count_min_sketch.size());
+u32 HHTable::build_hash_mask(const std::vector<Register> &count_min_sketch) {
+  assert(!count_min_sketch.empty());
 
   auto hash_size_from_capacity = [](size_t capacity) {
     assert((capacity & (capacity - 1)) == 0 && "Hash size must be a power of 2");
@@ -280,13 +251,9 @@ u32 HHTable::build_hash_mask(const std::vector<Register> &bloom_filter, const st
     return hash_size;
   };
 
-  const size_t capacity  = bloom_filter[0].get_capacity();
+  const size_t capacity  = count_min_sketch[0].get_capacity();
   const bits_t hash_size = hash_size_from_capacity(capacity);
   const u32 hash_mask    = (1ULL << hash_size) - 1;
-
-  for (const Register &reg : bloom_filter) {
-    assert(reg.get_capacity() == capacity);
-  }
 
   for (const Register &reg : count_min_sketch) {
     assert(reg.get_capacity() == capacity);
@@ -295,10 +262,8 @@ u32 HHTable::build_hash_mask(const std::vector<Register> &bloom_filter, const st
   return hash_mask;
 }
 
-std::vector<buffer_t> HHTable::build_hash_salts(const std::vector<Register> &count_min_sketch, const std::vector<Register> &bloom_filter) {
-  assert(bloom_filter.size() == count_min_sketch.size() && "Bloom filter and CMS must have the same number of registers");
-
-  const size_t num_hashes = bloom_filter.size();
+std::vector<buffer_t> HHTable::build_hash_salts(const std::vector<Register> &count_min_sketch) {
+  const size_t num_hashes = count_min_sketch.size();
   assert(HASH_SALTS.size() >= num_hashes && "Not enough hash salts defined");
 
   std::vector<buffer_t> hash_salts;
@@ -357,6 +322,11 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
     const buffer_t key = hh_table->digest.get_value(data_entry.get());
 
     LOG_DEBUG("[%s] Digest callback invoked (data=%s)", hh_table->digest.get_name().c_str(), key.to_string(true).c_str());
+
+    if (hh_table->key_to_index.find(key) != hh_table->key_to_index.end()) {
+      LOG_DEBUG("[%s] key already cached, ignoring digest", hh_table->digest.get_name().c_str());
+      continue;
+    }
 
     if (!hh_table->free_indices.empty()) {
       hh_table->insert(key);

@@ -2331,16 +2331,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress << Transpiler::type_from_size(32) << " " << threshold_value_cmp << ";\n";
   transpile_register_action_decl(&hh_table->threshold, threshold_action_name, threshold_action_type, {});
 
-  std::vector<code_t> bloom_rows_actions;
-  for (const Register &bloom_row : hh_table->bloom_filter) {
-    transpile_register_decl(&bloom_row);
-    assert(bloom_row.actions.size() == 1);
-    const RegisterActionType action_type = *bloom_row.actions.begin();
-    const code_t action_name             = build_register_action_name(ep_node, &bloom_row, action_type);
-    transpile_register_action_decl(&bloom_row, action_name, action_type, {});
-    bloom_rows_actions.push_back(action_name);
-  }
-
   transpile_digest_decl(&hh_table->digest, keys);
 
   for (const var_t &key_var : keys_vars) {
@@ -2364,23 +2354,23 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.inc();
 
   std::vector<code_t> hashes;
+  std::vector<code_t> hash_calculators;
   for (size_t i = 0; i < hh_table->hashes.size(); i++) {
     assert(i < HHTable::HASH_SALTS.size());
     const bits_t hash_salt_size = sizeof(HHTable::HASH_SALTS[i]) * 8;
 
-    const code_t &hash_calculator = hh_table->hashes[i].id;
-    const code_t hash             = hash_calculator + "_value";
+    const code_t &hash      = hh_table->hashes[i].id;
+    const code_t hash_value = hash + "_value";
 
     ingress.indent();
-    ingress << Transpiler::type_from_size(hh_table->hash_size) << " " << hash << ";\n";
+    ingress << Transpiler::type_from_size(hh_table->hash_size) << " " << hash_value << ";\n";
 
-    hashes.push_back(hash);
+    hashes.push_back(hash_value);
 
     coder_t hash_calculation_body;
 
     hash_calculation_body.indent();
-    hash_calculation_body << Transpiler::type_from_size(hh_table->hash_size) << " " << hash << " = ";
-    hash_calculation_body << hash_calculator << ".get({\n";
+    hash_calculation_body << hash_value << " = " << hash << ".get({\n";
 
     hash_calculation_body.inc();
     for (const var_t &key_var : keys_vars) {
@@ -2394,43 +2384,64 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     hash_calculation_body.indent();
     hash_calculation_body << "});\n";
 
-    const code_t hash_calculator_name = hash + "_calc";
-    transpile_action_decl(hash_calculator_name, hash_calculation_body.split_lines());
+    const code_t hash_calculator = hash + "_calc";
+    transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
 
-    ingress_apply.indent();
-    ingress_apply << hash_calculator_name << "();\n";
+    hash_calculators.push_back(hash_calculator);
   }
 
   assert(hashes.size() == cms_rows_actions.size());
   const bits_t cms_value_size = hh_table->count_min_sketch[0].value_size;
 
-  code_t last_min_value;
+  std::vector<code_t> cms_rows_values;
+  std::vector<code_t> cms_rows_values_calculators;
   for (size_t i = 0; i < cms_rows_actions.size(); i++) {
+    const Register &cms_row      = hh_table->count_min_sketch[i];
     const code_t &cms_row_action = cms_rows_actions[i];
     const code_t &hash           = hashes[i];
 
-    const code_t min_value = hh_table_id + "_cms_min_" + std::to_string(i);
+    const code_t cms_row_value = cms_row.id + "_value";
+
+    ingress.indent();
+    ingress << Transpiler::type_from_size(cms_row.value_size) << " " << cms_row_value << ";\n";
+
+    cms_rows_values.push_back(cms_row_value);
+
+    coder_t cms_row_calculation_body;
+
+    cms_row_calculation_body.indent();
+    cms_row_calculation_body << cms_row_value << " = " << cms_row_action << ".execute(" << hash << ");\n";
+
+    const code_t cms_row_calculation = cms_row_action + "_execute";
+    transpile_action_decl(cms_row_calculation, cms_row_calculation_body.split_lines());
+
+    cms_rows_values_calculators.push_back(cms_row_calculation);
+  }
+
+  for (const code_t &hash_calculator : hash_calculators) {
+    ingress_apply.indent();
+    ingress_apply << hash_calculator << "();\n";
+  }
+
+  for (const code_t &cms_row_value_calculator : cms_rows_values_calculators) {
+    ingress_apply.indent();
+    ingress_apply << cms_row_value_calculator << "();\n";
+  }
+
+  const code_t min_value = hh_table_id + "_cms_min";
+  for (size_t i = 0; i < cms_rows_values.size(); i++) {
+    const code_t &cms_row_value = cms_rows_values[i];
 
     ingress_apply.indent();
-    ingress_apply << Transpiler::type_from_size(cms_value_size) << " " << min_value << " = ";
-
     if (i == 0) {
-      ingress_apply << cms_row_action << ".execute(" << hash << ");\n";
+      ingress_apply << Transpiler::type_from_size(hh_table->count_min_sketch[i].value_size) << " " << min_value << " = " << cms_row_value << ";\n";
     } else {
-      const code_t prev_min_value = hh_table_id + "_cms_min_" + std::to_string(i - 1);
-      ingress_apply << "min(";
-      ingress_apply << prev_min_value << ", ";
-      ingress_apply << cms_row_action << ".execute(" << hash << ")";
-      ingress_apply << ");\n";
-    }
-
-    if (i == cms_rows_actions.size() - 1) {
-      last_min_value = min_value;
+      ingress_apply << min_value << " = min(" << min_value << ", " << cms_row_value << ");\n";
     }
   }
 
   ingress_apply.indent();
-  ingress_apply << threshold_value_cmp << " = " << last_min_value << ";\n";
+  ingress_apply << threshold_value_cmp << " = " << min_value << ";\n";
 
   const code_t threshold_diff = hh_table_id + "_threshold_diff";
   ingress_apply.indent();
@@ -2441,32 +2452,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "if (" << threshold_value_cmp << "[31:31] == 0) {\n";
   ingress_apply.inc();
 
-  assert(bloom_rows_actions.size() == hashes.size());
-  const bits_t bloom_value_size = hh_table->bloom_filter[0].value_size;
-  const code_t bloom_counter    = hh_table_id + "_bloom_counter";
-
-  ingress_apply.indent();
-  ingress_apply << Transpiler::type_from_size(bloom_value_size) << " " << bloom_counter << " = 0;\n";
-
-  for (size_t i = 0; i < bloom_rows_actions.size(); i++) {
-    const code_t &bloom_row_action = bloom_rows_actions[i];
-    const code_t &hash             = hashes[i];
-
-    ingress_apply.indent();
-    ingress_apply << bloom_counter << " = " << bloom_counter << " + ";
-    ingress_apply << bloom_row_action << ".execute(" << hash << ");\n";
-  }
-
-  ingress_apply.indent();
-  ingress_apply << "if (" << bloom_counter << " != " << bloom_rows_actions.size() << ") {\n";
-  ingress_apply.inc();
-
   ingress_apply.indent();
   ingress_apply << "ig_dprsr_md.digest_type = " << hh_table->digest.digest_type << ";\n";
-
-  ingress_apply.dec();
-  ingress_apply.indent();
-  ingress_apply << "}\n";
 
   ingress_apply.dec();
   ingress_apply.indent();
