@@ -125,261 +125,275 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
-  if (bswap16(cpu_hdr->code_path) == 763) {
-    // EP node  750
+  if (bswap16(cpu_hdr->code_path) == 787) {
+    // EP node  770
     // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  751
+    // EP node  771
     // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  752
+    // EP node  772
     // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_2 = packet_consume(pkt, 8);
-    // EP node  753
+    // EP node  773
     // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_3 = packet_consume(pkt, 148);
-    // EP node  754
+    // EP node  774
     // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-    buffer_t map_table_1073923288_key_0(16);
-    map_table_1073923288_key_0[0] = *(u8*)(hdr_3 + 1);
-    map_table_1073923288_key_0[1] = *(u8*)(hdr_3 + 2);
-    map_table_1073923288_key_0[2] = *(u8*)(hdr_3 + 3);
-    map_table_1073923288_key_0[3] = *(u8*)(hdr_3 + 4);
-    map_table_1073923288_key_0[4] = *(u8*)(hdr_3 + 5);
-    map_table_1073923288_key_0[5] = *(u8*)(hdr_3 + 6);
-    map_table_1073923288_key_0[6] = *(u8*)(hdr_3 + 7);
-    map_table_1073923288_key_0[7] = *(u8*)(hdr_3 + 8);
-    map_table_1073923288_key_0[8] = *(u8*)(hdr_3 + 9);
-    map_table_1073923288_key_0[9] = *(u8*)(hdr_3 + 10);
-    map_table_1073923288_key_0[10] = *(u8*)(hdr_3 + 11);
-    map_table_1073923288_key_0[11] = *(u8*)(hdr_3 + 12);
-    map_table_1073923288_key_0[12] = *(u8*)(hdr_3 + 13);
-    map_table_1073923288_key_0[13] = *(u8*)(hdr_3 + 14);
-    map_table_1073923288_key_0[14] = *(u8*)(hdr_3 + 15);
-    map_table_1073923288_key_0[15] = *(u8*)(hdr_3 + 16);
-    u32 value_0;
-    bool found_0 = state->map_table_1073923288.get(map_table_1073923288_key_0, value_0);
-    // EP node  755
-    // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-    if ((0) == (found_0)) {
-      // EP node  756
+    if ((0) != (bswap32(cpu_hdr_extra->DEVICE) & 65535)) {
+      // EP node  775
       // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-      // EP node  759
+      // EP node  778
       // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-      if ((1) == (*(u8*)(hdr_3 + 0))) {
-        // EP node  760
+      buffer_t map_table_1073923288_key_0(16);
+      map_table_1073923288_key_0[0] = *(u8*)(hdr_3 + 1);
+      map_table_1073923288_key_0[1] = *(u8*)(hdr_3 + 2);
+      map_table_1073923288_key_0[2] = *(u8*)(hdr_3 + 3);
+      map_table_1073923288_key_0[3] = *(u8*)(hdr_3 + 4);
+      map_table_1073923288_key_0[4] = *(u8*)(hdr_3 + 5);
+      map_table_1073923288_key_0[5] = *(u8*)(hdr_3 + 6);
+      map_table_1073923288_key_0[6] = *(u8*)(hdr_3 + 7);
+      map_table_1073923288_key_0[7] = *(u8*)(hdr_3 + 8);
+      map_table_1073923288_key_0[8] = *(u8*)(hdr_3 + 9);
+      map_table_1073923288_key_0[9] = *(u8*)(hdr_3 + 10);
+      map_table_1073923288_key_0[10] = *(u8*)(hdr_3 + 11);
+      map_table_1073923288_key_0[11] = *(u8*)(hdr_3 + 12);
+      map_table_1073923288_key_0[12] = *(u8*)(hdr_3 + 13);
+      map_table_1073923288_key_0[13] = *(u8*)(hdr_3 + 14);
+      map_table_1073923288_key_0[14] = *(u8*)(hdr_3 + 15);
+      map_table_1073923288_key_0[15] = *(u8*)(hdr_3 + 16);
+      u32 value_0;
+      bool found_0 = state->map_table_1073923288.get(map_table_1073923288_key_0, value_0);
+      // EP node  779
+      // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
+      if ((0) == (found_0)) {
+        // EP node  780
         // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-        // EP node  10961
+        // EP node  783
         // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-        u32 allocated_index_0;
-        bool success_0 = state->dchain_table_1073989880.allocate_new_index(allocated_index_0);
-        // EP node  11103
-        // BDD node 26:vector_borrow(vector:(w64 1073956368), index:(ReadLSB w32 (w32 0) new_index), val_out:(w64 1074063384)[ -> (w64 1073970264)])
-        // EP node  11175
-        // BDD node 17:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
-        if ((0) == (success_0)) {
-          // EP node  11176
+        if ((1) == (*(u8*)(hdr_3 + 0))) {
+          // EP node  784
+          // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
+          // EP node  11793
+          // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
+          u32 allocated_index_0;
+          bool success_0 = state->dchain_table_1073989880.allocate_new_index(allocated_index_0);
+          // EP node  11943
+          // BDD node 26:vector_borrow(vector:(w64 1073956368), index:(ReadLSB w32 (w32 0) new_index), val_out:(w64 1074063384)[ -> (w64 1073970264)])
+          // EP node  12019
           // BDD node 17:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
-          // EP node  11325
-          // BDD node 18:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073760416)[(Concat w1184 (Read w8 (w32 1) DEVICE) (Concat w1176 (Read w8 (w32 0) DEVICE) (ReadLSB w1168 (w32 768) packet_chunks)))])
-          hdr_3[146] = bswap32(cpu_hdr_extra->DEVICE) & 255;
-          hdr_3[147] = (bswap32(cpu_hdr_extra->DEVICE)>>8) & 255;
-          // EP node  11630
-          // BDD node 22:FORWARD
-          cpu_hdr->egress_dev = bswap16(0);
+          if ((0) == (success_0)) {
+            // EP node  12020
+            // BDD node 17:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
+            // EP node  12177
+            // BDD node 18:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073760416)[(Concat w1184 (Read w8 (w32 1) DEVICE) (Concat w1176 (Read w8 (w32 0) DEVICE) (ReadLSB w1168 (w32 768) packet_chunks)))])
+            hdr_3[146] = bswap32(cpu_hdr_extra->DEVICE) & 255;
+            hdr_3[147] = (bswap32(cpu_hdr_extra->DEVICE)>>8) & 255;
+            // EP node  12498
+            // BDD node 22:FORWARD
+            cpu_hdr->egress_dev = bswap16(0);
+          } else {
+            // EP node  12021
+            // BDD node 17:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
+            // EP node  12580
+            // BDD node 24:map_put(map:(w64 1073923288), key:(w64 1073951008)[(ReadLSB w128 (w32 769) packet_chunks) -> (ReadLSB w128 (w32 769) packet_chunks)], value:(ReadLSB w32 (w32 0) new_index))
+            buffer_t map_table_1073923288_key_1(16);
+            map_table_1073923288_key_1[0] = *(u8*)(hdr_3 + 1);
+            map_table_1073923288_key_1[1] = *(u8*)(hdr_3 + 2);
+            map_table_1073923288_key_1[2] = *(u8*)(hdr_3 + 3);
+            map_table_1073923288_key_1[3] = *(u8*)(hdr_3 + 4);
+            map_table_1073923288_key_1[4] = *(u8*)(hdr_3 + 5);
+            map_table_1073923288_key_1[5] = *(u8*)(hdr_3 + 6);
+            map_table_1073923288_key_1[6] = *(u8*)(hdr_3 + 7);
+            map_table_1073923288_key_1[7] = *(u8*)(hdr_3 + 8);
+            map_table_1073923288_key_1[8] = *(u8*)(hdr_3 + 9);
+            map_table_1073923288_key_1[9] = *(u8*)(hdr_3 + 10);
+            map_table_1073923288_key_1[10] = *(u8*)(hdr_3 + 11);
+            map_table_1073923288_key_1[11] = *(u8*)(hdr_3 + 12);
+            map_table_1073923288_key_1[12] = *(u8*)(hdr_3 + 13);
+            map_table_1073923288_key_1[13] = *(u8*)(hdr_3 + 14);
+            map_table_1073923288_key_1[14] = *(u8*)(hdr_3 + 15);
+            map_table_1073923288_key_1[15] = *(u8*)(hdr_3 + 16);
+            state->map_table_1073923288.put(map_table_1073923288_key_1, allocated_index_0);
+            // EP node  12744
+            // BDD node 27:vector_return(vector:(w64 1073956368), index:(ReadLSB w32 (w32 0) new_index), value:(w64 1073970264)[(ReadLSB w1024 (w32 785) packet_chunks)])
+            buffer_t vector_register_1073956368_value_0(128);
+            vector_register_1073956368_value_0[0] = *(u8*)(hdr_3 + 17);
+            vector_register_1073956368_value_0[1] = *(u8*)(hdr_3 + 18);
+            vector_register_1073956368_value_0[2] = *(u8*)(hdr_3 + 19);
+            vector_register_1073956368_value_0[3] = *(u8*)(hdr_3 + 20);
+            vector_register_1073956368_value_0[4] = *(u8*)(hdr_3 + 21);
+            vector_register_1073956368_value_0[5] = *(u8*)(hdr_3 + 22);
+            vector_register_1073956368_value_0[6] = *(u8*)(hdr_3 + 23);
+            vector_register_1073956368_value_0[7] = *(u8*)(hdr_3 + 24);
+            vector_register_1073956368_value_0[8] = *(u8*)(hdr_3 + 25);
+            vector_register_1073956368_value_0[9] = *(u8*)(hdr_3 + 26);
+            vector_register_1073956368_value_0[10] = *(u8*)(hdr_3 + 27);
+            vector_register_1073956368_value_0[11] = *(u8*)(hdr_3 + 28);
+            vector_register_1073956368_value_0[12] = *(u8*)(hdr_3 + 29);
+            vector_register_1073956368_value_0[13] = *(u8*)(hdr_3 + 30);
+            vector_register_1073956368_value_0[14] = *(u8*)(hdr_3 + 31);
+            vector_register_1073956368_value_0[15] = *(u8*)(hdr_3 + 32);
+            vector_register_1073956368_value_0[16] = *(u8*)(hdr_3 + 33);
+            vector_register_1073956368_value_0[17] = *(u8*)(hdr_3 + 34);
+            vector_register_1073956368_value_0[18] = *(u8*)(hdr_3 + 35);
+            vector_register_1073956368_value_0[19] = *(u8*)(hdr_3 + 36);
+            vector_register_1073956368_value_0[20] = *(u8*)(hdr_3 + 37);
+            vector_register_1073956368_value_0[21] = *(u8*)(hdr_3 + 38);
+            vector_register_1073956368_value_0[22] = *(u8*)(hdr_3 + 39);
+            vector_register_1073956368_value_0[23] = *(u8*)(hdr_3 + 40);
+            vector_register_1073956368_value_0[24] = *(u8*)(hdr_3 + 41);
+            vector_register_1073956368_value_0[25] = *(u8*)(hdr_3 + 42);
+            vector_register_1073956368_value_0[26] = *(u8*)(hdr_3 + 43);
+            vector_register_1073956368_value_0[27] = *(u8*)(hdr_3 + 44);
+            vector_register_1073956368_value_0[28] = *(u8*)(hdr_3 + 45);
+            vector_register_1073956368_value_0[29] = *(u8*)(hdr_3 + 46);
+            vector_register_1073956368_value_0[30] = *(u8*)(hdr_3 + 47);
+            vector_register_1073956368_value_0[31] = *(u8*)(hdr_3 + 48);
+            vector_register_1073956368_value_0[32] = *(u8*)(hdr_3 + 49);
+            vector_register_1073956368_value_0[33] = *(u8*)(hdr_3 + 50);
+            vector_register_1073956368_value_0[34] = *(u8*)(hdr_3 + 51);
+            vector_register_1073956368_value_0[35] = *(u8*)(hdr_3 + 52);
+            vector_register_1073956368_value_0[36] = *(u8*)(hdr_3 + 53);
+            vector_register_1073956368_value_0[37] = *(u8*)(hdr_3 + 54);
+            vector_register_1073956368_value_0[38] = *(u8*)(hdr_3 + 55);
+            vector_register_1073956368_value_0[39] = *(u8*)(hdr_3 + 56);
+            vector_register_1073956368_value_0[40] = *(u8*)(hdr_3 + 57);
+            vector_register_1073956368_value_0[41] = *(u8*)(hdr_3 + 58);
+            vector_register_1073956368_value_0[42] = *(u8*)(hdr_3 + 59);
+            vector_register_1073956368_value_0[43] = *(u8*)(hdr_3 + 60);
+            vector_register_1073956368_value_0[44] = *(u8*)(hdr_3 + 61);
+            vector_register_1073956368_value_0[45] = *(u8*)(hdr_3 + 62);
+            vector_register_1073956368_value_0[46] = *(u8*)(hdr_3 + 63);
+            vector_register_1073956368_value_0[47] = *(u8*)(hdr_3 + 64);
+            vector_register_1073956368_value_0[48] = *(u8*)(hdr_3 + 65);
+            vector_register_1073956368_value_0[49] = *(u8*)(hdr_3 + 66);
+            vector_register_1073956368_value_0[50] = *(u8*)(hdr_3 + 67);
+            vector_register_1073956368_value_0[51] = *(u8*)(hdr_3 + 68);
+            vector_register_1073956368_value_0[52] = *(u8*)(hdr_3 + 69);
+            vector_register_1073956368_value_0[53] = *(u8*)(hdr_3 + 70);
+            vector_register_1073956368_value_0[54] = *(u8*)(hdr_3 + 71);
+            vector_register_1073956368_value_0[55] = *(u8*)(hdr_3 + 72);
+            vector_register_1073956368_value_0[56] = *(u8*)(hdr_3 + 73);
+            vector_register_1073956368_value_0[57] = *(u8*)(hdr_3 + 74);
+            vector_register_1073956368_value_0[58] = *(u8*)(hdr_3 + 75);
+            vector_register_1073956368_value_0[59] = *(u8*)(hdr_3 + 76);
+            vector_register_1073956368_value_0[60] = *(u8*)(hdr_3 + 77);
+            vector_register_1073956368_value_0[61] = *(u8*)(hdr_3 + 78);
+            vector_register_1073956368_value_0[62] = *(u8*)(hdr_3 + 79);
+            vector_register_1073956368_value_0[63] = *(u8*)(hdr_3 + 80);
+            vector_register_1073956368_value_0[64] = *(u8*)(hdr_3 + 81);
+            vector_register_1073956368_value_0[65] = *(u8*)(hdr_3 + 82);
+            vector_register_1073956368_value_0[66] = *(u8*)(hdr_3 + 83);
+            vector_register_1073956368_value_0[67] = *(u8*)(hdr_3 + 84);
+            vector_register_1073956368_value_0[68] = *(u8*)(hdr_3 + 85);
+            vector_register_1073956368_value_0[69] = *(u8*)(hdr_3 + 86);
+            vector_register_1073956368_value_0[70] = *(u8*)(hdr_3 + 87);
+            vector_register_1073956368_value_0[71] = *(u8*)(hdr_3 + 88);
+            vector_register_1073956368_value_0[72] = *(u8*)(hdr_3 + 89);
+            vector_register_1073956368_value_0[73] = *(u8*)(hdr_3 + 90);
+            vector_register_1073956368_value_0[74] = *(u8*)(hdr_3 + 91);
+            vector_register_1073956368_value_0[75] = *(u8*)(hdr_3 + 92);
+            vector_register_1073956368_value_0[76] = *(u8*)(hdr_3 + 93);
+            vector_register_1073956368_value_0[77] = *(u8*)(hdr_3 + 94);
+            vector_register_1073956368_value_0[78] = *(u8*)(hdr_3 + 95);
+            vector_register_1073956368_value_0[79] = *(u8*)(hdr_3 + 96);
+            vector_register_1073956368_value_0[80] = *(u8*)(hdr_3 + 97);
+            vector_register_1073956368_value_0[81] = *(u8*)(hdr_3 + 98);
+            vector_register_1073956368_value_0[82] = *(u8*)(hdr_3 + 99);
+            vector_register_1073956368_value_0[83] = *(u8*)(hdr_3 + 100);
+            vector_register_1073956368_value_0[84] = *(u8*)(hdr_3 + 101);
+            vector_register_1073956368_value_0[85] = *(u8*)(hdr_3 + 102);
+            vector_register_1073956368_value_0[86] = *(u8*)(hdr_3 + 103);
+            vector_register_1073956368_value_0[87] = *(u8*)(hdr_3 + 104);
+            vector_register_1073956368_value_0[88] = *(u8*)(hdr_3 + 105);
+            vector_register_1073956368_value_0[89] = *(u8*)(hdr_3 + 106);
+            vector_register_1073956368_value_0[90] = *(u8*)(hdr_3 + 107);
+            vector_register_1073956368_value_0[91] = *(u8*)(hdr_3 + 108);
+            vector_register_1073956368_value_0[92] = *(u8*)(hdr_3 + 109);
+            vector_register_1073956368_value_0[93] = *(u8*)(hdr_3 + 110);
+            vector_register_1073956368_value_0[94] = *(u8*)(hdr_3 + 111);
+            vector_register_1073956368_value_0[95] = *(u8*)(hdr_3 + 112);
+            vector_register_1073956368_value_0[96] = *(u8*)(hdr_3 + 113);
+            vector_register_1073956368_value_0[97] = *(u8*)(hdr_3 + 114);
+            vector_register_1073956368_value_0[98] = *(u8*)(hdr_3 + 115);
+            vector_register_1073956368_value_0[99] = *(u8*)(hdr_3 + 116);
+            vector_register_1073956368_value_0[100] = *(u8*)(hdr_3 + 117);
+            vector_register_1073956368_value_0[101] = *(u8*)(hdr_3 + 118);
+            vector_register_1073956368_value_0[102] = *(u8*)(hdr_3 + 119);
+            vector_register_1073956368_value_0[103] = *(u8*)(hdr_3 + 120);
+            vector_register_1073956368_value_0[104] = *(u8*)(hdr_3 + 121);
+            vector_register_1073956368_value_0[105] = *(u8*)(hdr_3 + 122);
+            vector_register_1073956368_value_0[106] = *(u8*)(hdr_3 + 123);
+            vector_register_1073956368_value_0[107] = *(u8*)(hdr_3 + 124);
+            vector_register_1073956368_value_0[108] = *(u8*)(hdr_3 + 125);
+            vector_register_1073956368_value_0[109] = *(u8*)(hdr_3 + 126);
+            vector_register_1073956368_value_0[110] = *(u8*)(hdr_3 + 127);
+            vector_register_1073956368_value_0[111] = *(u8*)(hdr_3 + 128);
+            vector_register_1073956368_value_0[112] = *(u8*)(hdr_3 + 129);
+            vector_register_1073956368_value_0[113] = *(u8*)(hdr_3 + 130);
+            vector_register_1073956368_value_0[114] = *(u8*)(hdr_3 + 131);
+            vector_register_1073956368_value_0[115] = *(u8*)(hdr_3 + 132);
+            vector_register_1073956368_value_0[116] = *(u8*)(hdr_3 + 133);
+            vector_register_1073956368_value_0[117] = *(u8*)(hdr_3 + 134);
+            vector_register_1073956368_value_0[118] = *(u8*)(hdr_3 + 135);
+            vector_register_1073956368_value_0[119] = *(u8*)(hdr_3 + 136);
+            vector_register_1073956368_value_0[120] = *(u8*)(hdr_3 + 137);
+            vector_register_1073956368_value_0[121] = *(u8*)(hdr_3 + 138);
+            vector_register_1073956368_value_0[122] = *(u8*)(hdr_3 + 139);
+            vector_register_1073956368_value_0[123] = *(u8*)(hdr_3 + 140);
+            vector_register_1073956368_value_0[124] = *(u8*)(hdr_3 + 141);
+            vector_register_1073956368_value_0[125] = *(u8*)(hdr_3 + 142);
+            vector_register_1073956368_value_0[126] = *(u8*)(hdr_3 + 143);
+            vector_register_1073956368_value_0[127] = *(u8*)(hdr_3 + 144);
+            state->vector_register_1073956368.put(allocated_index_0, vector_register_1073956368_value_0);
+            // EP node  12828
+            // BDD node 28:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073760416)[(Concat w1184 (Read w8 (w32 915) packet_chunks) (Concat w1176 (Read w8 (w32 914) packet_chunks) (Concat w1168 (w8 1) (ReadLSB w1160 (w32 768) packet_chunks))))])
+            hdr_3[145] = 1;
+            // EP node  12913
+            // BDD node 29:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073760160)[(Concat w64 (Read w8 (w32 519) packet_chunks) (Concat w56 (Read w8 (w32 518) packet_chunks) (Concat w48 (Read w8 (w32 517) packet_chunks) (Concat w40 (Read w8 (w32 516) packet_chunks) (Concat w32 (Read w8 (w32 513) packet_chunks) (Concat w24 (Read w8 (w32 512) packet_chunks) (ReadLSB w16 (w32 514) packet_chunks)))))))])
+            std::swap(hdr_2[0], hdr_2[2]);
+            std::swap(hdr_2[1], hdr_2[3]);
+            // EP node  12999
+            // BDD node 30:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073759904)[(Concat w160 (Read w8 (w32 271) packet_chunks) (Concat w152 (Read w8 (w32 270) packet_chunks) (Concat w144 (Read w8 (w32 269) packet_chunks) (Concat w136 (Read w8 (w32 268) packet_chunks) (Concat w128 (Read w8 (w32 275) packet_chunks) (Concat w120 (Read w8 (w32 274) packet_chunks) (Concat w112 (Read w8 (w32 273) packet_chunks) (Concat w104 (Read w8 (w32 272) packet_chunks) (ReadLSB w96 (w32 256) packet_chunks)))))))))])
+            std::swap(hdr_1[12], hdr_1[16]);
+            std::swap(hdr_1[13], hdr_1[17]);
+            std::swap(hdr_1[14], hdr_1[18]);
+            std::swap(hdr_1[15], hdr_1[19]);
+            // EP node  13086
+            // BDD node 31:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073759648)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (Read w8 (w32 5) packet_chunks) (Concat w88 (Read w8 (w32 4) packet_chunks) (Concat w80 (Read w8 (w32 3) packet_chunks) (Concat w72 (Read w8 (w32 2) packet_chunks) (Concat w64 (Read w8 (w32 1) packet_chunks) (Concat w56 (Read w8 (w32 0) packet_chunks) (ReadLSB w48 (w32 6) packet_chunks)))))))))])
+            std::swap(hdr_0[0], hdr_0[6]);
+            std::swap(hdr_0[1], hdr_0[7]);
+            std::swap(hdr_0[2], hdr_0[8]);
+            std::swap(hdr_0[3], hdr_0[9]);
+            std::swap(hdr_0[4], hdr_0[10]);
+            std::swap(hdr_0[5], hdr_0[11]);
+            // EP node  13174
+            // BDD node 32:FORWARD
+            cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
+          }
         } else {
-          // EP node  11177
-          // BDD node 17:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_2))
-          // EP node  11708
-          // BDD node 24:map_put(map:(w64 1073923288), key:(w64 1073951008)[(ReadLSB w128 (w32 769) packet_chunks) -> (ReadLSB w128 (w32 769) packet_chunks)], value:(ReadLSB w32 (w32 0) new_index))
-          buffer_t map_table_1073923288_key_1(16);
-          map_table_1073923288_key_1[0] = *(u8*)(hdr_3 + 1);
-          map_table_1073923288_key_1[1] = *(u8*)(hdr_3 + 2);
-          map_table_1073923288_key_1[2] = *(u8*)(hdr_3 + 3);
-          map_table_1073923288_key_1[3] = *(u8*)(hdr_3 + 4);
-          map_table_1073923288_key_1[4] = *(u8*)(hdr_3 + 5);
-          map_table_1073923288_key_1[5] = *(u8*)(hdr_3 + 6);
-          map_table_1073923288_key_1[6] = *(u8*)(hdr_3 + 7);
-          map_table_1073923288_key_1[7] = *(u8*)(hdr_3 + 8);
-          map_table_1073923288_key_1[8] = *(u8*)(hdr_3 + 9);
-          map_table_1073923288_key_1[9] = *(u8*)(hdr_3 + 10);
-          map_table_1073923288_key_1[10] = *(u8*)(hdr_3 + 11);
-          map_table_1073923288_key_1[11] = *(u8*)(hdr_3 + 12);
-          map_table_1073923288_key_1[12] = *(u8*)(hdr_3 + 13);
-          map_table_1073923288_key_1[13] = *(u8*)(hdr_3 + 14);
-          map_table_1073923288_key_1[14] = *(u8*)(hdr_3 + 15);
-          map_table_1073923288_key_1[15] = *(u8*)(hdr_3 + 16);
-          state->map_table_1073923288.put(map_table_1073923288_key_1, allocated_index_0);
-          // EP node  11864
-          // BDD node 27:vector_return(vector:(w64 1073956368), index:(ReadLSB w32 (w32 0) new_index), value:(w64 1073970264)[(ReadLSB w1024 (w32 785) packet_chunks)])
-          buffer_t vector_register_1073956368_value_0(128);
-          vector_register_1073956368_value_0[0] = *(u8*)(hdr_3 + 17);
-          vector_register_1073956368_value_0[1] = *(u8*)(hdr_3 + 18);
-          vector_register_1073956368_value_0[2] = *(u8*)(hdr_3 + 19);
-          vector_register_1073956368_value_0[3] = *(u8*)(hdr_3 + 20);
-          vector_register_1073956368_value_0[4] = *(u8*)(hdr_3 + 21);
-          vector_register_1073956368_value_0[5] = *(u8*)(hdr_3 + 22);
-          vector_register_1073956368_value_0[6] = *(u8*)(hdr_3 + 23);
-          vector_register_1073956368_value_0[7] = *(u8*)(hdr_3 + 24);
-          vector_register_1073956368_value_0[8] = *(u8*)(hdr_3 + 25);
-          vector_register_1073956368_value_0[9] = *(u8*)(hdr_3 + 26);
-          vector_register_1073956368_value_0[10] = *(u8*)(hdr_3 + 27);
-          vector_register_1073956368_value_0[11] = *(u8*)(hdr_3 + 28);
-          vector_register_1073956368_value_0[12] = *(u8*)(hdr_3 + 29);
-          vector_register_1073956368_value_0[13] = *(u8*)(hdr_3 + 30);
-          vector_register_1073956368_value_0[14] = *(u8*)(hdr_3 + 31);
-          vector_register_1073956368_value_0[15] = *(u8*)(hdr_3 + 32);
-          vector_register_1073956368_value_0[16] = *(u8*)(hdr_3 + 33);
-          vector_register_1073956368_value_0[17] = *(u8*)(hdr_3 + 34);
-          vector_register_1073956368_value_0[18] = *(u8*)(hdr_3 + 35);
-          vector_register_1073956368_value_0[19] = *(u8*)(hdr_3 + 36);
-          vector_register_1073956368_value_0[20] = *(u8*)(hdr_3 + 37);
-          vector_register_1073956368_value_0[21] = *(u8*)(hdr_3 + 38);
-          vector_register_1073956368_value_0[22] = *(u8*)(hdr_3 + 39);
-          vector_register_1073956368_value_0[23] = *(u8*)(hdr_3 + 40);
-          vector_register_1073956368_value_0[24] = *(u8*)(hdr_3 + 41);
-          vector_register_1073956368_value_0[25] = *(u8*)(hdr_3 + 42);
-          vector_register_1073956368_value_0[26] = *(u8*)(hdr_3 + 43);
-          vector_register_1073956368_value_0[27] = *(u8*)(hdr_3 + 44);
-          vector_register_1073956368_value_0[28] = *(u8*)(hdr_3 + 45);
-          vector_register_1073956368_value_0[29] = *(u8*)(hdr_3 + 46);
-          vector_register_1073956368_value_0[30] = *(u8*)(hdr_3 + 47);
-          vector_register_1073956368_value_0[31] = *(u8*)(hdr_3 + 48);
-          vector_register_1073956368_value_0[32] = *(u8*)(hdr_3 + 49);
-          vector_register_1073956368_value_0[33] = *(u8*)(hdr_3 + 50);
-          vector_register_1073956368_value_0[34] = *(u8*)(hdr_3 + 51);
-          vector_register_1073956368_value_0[35] = *(u8*)(hdr_3 + 52);
-          vector_register_1073956368_value_0[36] = *(u8*)(hdr_3 + 53);
-          vector_register_1073956368_value_0[37] = *(u8*)(hdr_3 + 54);
-          vector_register_1073956368_value_0[38] = *(u8*)(hdr_3 + 55);
-          vector_register_1073956368_value_0[39] = *(u8*)(hdr_3 + 56);
-          vector_register_1073956368_value_0[40] = *(u8*)(hdr_3 + 57);
-          vector_register_1073956368_value_0[41] = *(u8*)(hdr_3 + 58);
-          vector_register_1073956368_value_0[42] = *(u8*)(hdr_3 + 59);
-          vector_register_1073956368_value_0[43] = *(u8*)(hdr_3 + 60);
-          vector_register_1073956368_value_0[44] = *(u8*)(hdr_3 + 61);
-          vector_register_1073956368_value_0[45] = *(u8*)(hdr_3 + 62);
-          vector_register_1073956368_value_0[46] = *(u8*)(hdr_3 + 63);
-          vector_register_1073956368_value_0[47] = *(u8*)(hdr_3 + 64);
-          vector_register_1073956368_value_0[48] = *(u8*)(hdr_3 + 65);
-          vector_register_1073956368_value_0[49] = *(u8*)(hdr_3 + 66);
-          vector_register_1073956368_value_0[50] = *(u8*)(hdr_3 + 67);
-          vector_register_1073956368_value_0[51] = *(u8*)(hdr_3 + 68);
-          vector_register_1073956368_value_0[52] = *(u8*)(hdr_3 + 69);
-          vector_register_1073956368_value_0[53] = *(u8*)(hdr_3 + 70);
-          vector_register_1073956368_value_0[54] = *(u8*)(hdr_3 + 71);
-          vector_register_1073956368_value_0[55] = *(u8*)(hdr_3 + 72);
-          vector_register_1073956368_value_0[56] = *(u8*)(hdr_3 + 73);
-          vector_register_1073956368_value_0[57] = *(u8*)(hdr_3 + 74);
-          vector_register_1073956368_value_0[58] = *(u8*)(hdr_3 + 75);
-          vector_register_1073956368_value_0[59] = *(u8*)(hdr_3 + 76);
-          vector_register_1073956368_value_0[60] = *(u8*)(hdr_3 + 77);
-          vector_register_1073956368_value_0[61] = *(u8*)(hdr_3 + 78);
-          vector_register_1073956368_value_0[62] = *(u8*)(hdr_3 + 79);
-          vector_register_1073956368_value_0[63] = *(u8*)(hdr_3 + 80);
-          vector_register_1073956368_value_0[64] = *(u8*)(hdr_3 + 81);
-          vector_register_1073956368_value_0[65] = *(u8*)(hdr_3 + 82);
-          vector_register_1073956368_value_0[66] = *(u8*)(hdr_3 + 83);
-          vector_register_1073956368_value_0[67] = *(u8*)(hdr_3 + 84);
-          vector_register_1073956368_value_0[68] = *(u8*)(hdr_3 + 85);
-          vector_register_1073956368_value_0[69] = *(u8*)(hdr_3 + 86);
-          vector_register_1073956368_value_0[70] = *(u8*)(hdr_3 + 87);
-          vector_register_1073956368_value_0[71] = *(u8*)(hdr_3 + 88);
-          vector_register_1073956368_value_0[72] = *(u8*)(hdr_3 + 89);
-          vector_register_1073956368_value_0[73] = *(u8*)(hdr_3 + 90);
-          vector_register_1073956368_value_0[74] = *(u8*)(hdr_3 + 91);
-          vector_register_1073956368_value_0[75] = *(u8*)(hdr_3 + 92);
-          vector_register_1073956368_value_0[76] = *(u8*)(hdr_3 + 93);
-          vector_register_1073956368_value_0[77] = *(u8*)(hdr_3 + 94);
-          vector_register_1073956368_value_0[78] = *(u8*)(hdr_3 + 95);
-          vector_register_1073956368_value_0[79] = *(u8*)(hdr_3 + 96);
-          vector_register_1073956368_value_0[80] = *(u8*)(hdr_3 + 97);
-          vector_register_1073956368_value_0[81] = *(u8*)(hdr_3 + 98);
-          vector_register_1073956368_value_0[82] = *(u8*)(hdr_3 + 99);
-          vector_register_1073956368_value_0[83] = *(u8*)(hdr_3 + 100);
-          vector_register_1073956368_value_0[84] = *(u8*)(hdr_3 + 101);
-          vector_register_1073956368_value_0[85] = *(u8*)(hdr_3 + 102);
-          vector_register_1073956368_value_0[86] = *(u8*)(hdr_3 + 103);
-          vector_register_1073956368_value_0[87] = *(u8*)(hdr_3 + 104);
-          vector_register_1073956368_value_0[88] = *(u8*)(hdr_3 + 105);
-          vector_register_1073956368_value_0[89] = *(u8*)(hdr_3 + 106);
-          vector_register_1073956368_value_0[90] = *(u8*)(hdr_3 + 107);
-          vector_register_1073956368_value_0[91] = *(u8*)(hdr_3 + 108);
-          vector_register_1073956368_value_0[92] = *(u8*)(hdr_3 + 109);
-          vector_register_1073956368_value_0[93] = *(u8*)(hdr_3 + 110);
-          vector_register_1073956368_value_0[94] = *(u8*)(hdr_3 + 111);
-          vector_register_1073956368_value_0[95] = *(u8*)(hdr_3 + 112);
-          vector_register_1073956368_value_0[96] = *(u8*)(hdr_3 + 113);
-          vector_register_1073956368_value_0[97] = *(u8*)(hdr_3 + 114);
-          vector_register_1073956368_value_0[98] = *(u8*)(hdr_3 + 115);
-          vector_register_1073956368_value_0[99] = *(u8*)(hdr_3 + 116);
-          vector_register_1073956368_value_0[100] = *(u8*)(hdr_3 + 117);
-          vector_register_1073956368_value_0[101] = *(u8*)(hdr_3 + 118);
-          vector_register_1073956368_value_0[102] = *(u8*)(hdr_3 + 119);
-          vector_register_1073956368_value_0[103] = *(u8*)(hdr_3 + 120);
-          vector_register_1073956368_value_0[104] = *(u8*)(hdr_3 + 121);
-          vector_register_1073956368_value_0[105] = *(u8*)(hdr_3 + 122);
-          vector_register_1073956368_value_0[106] = *(u8*)(hdr_3 + 123);
-          vector_register_1073956368_value_0[107] = *(u8*)(hdr_3 + 124);
-          vector_register_1073956368_value_0[108] = *(u8*)(hdr_3 + 125);
-          vector_register_1073956368_value_0[109] = *(u8*)(hdr_3 + 126);
-          vector_register_1073956368_value_0[110] = *(u8*)(hdr_3 + 127);
-          vector_register_1073956368_value_0[111] = *(u8*)(hdr_3 + 128);
-          vector_register_1073956368_value_0[112] = *(u8*)(hdr_3 + 129);
-          vector_register_1073956368_value_0[113] = *(u8*)(hdr_3 + 130);
-          vector_register_1073956368_value_0[114] = *(u8*)(hdr_3 + 131);
-          vector_register_1073956368_value_0[115] = *(u8*)(hdr_3 + 132);
-          vector_register_1073956368_value_0[116] = *(u8*)(hdr_3 + 133);
-          vector_register_1073956368_value_0[117] = *(u8*)(hdr_3 + 134);
-          vector_register_1073956368_value_0[118] = *(u8*)(hdr_3 + 135);
-          vector_register_1073956368_value_0[119] = *(u8*)(hdr_3 + 136);
-          vector_register_1073956368_value_0[120] = *(u8*)(hdr_3 + 137);
-          vector_register_1073956368_value_0[121] = *(u8*)(hdr_3 + 138);
-          vector_register_1073956368_value_0[122] = *(u8*)(hdr_3 + 139);
-          vector_register_1073956368_value_0[123] = *(u8*)(hdr_3 + 140);
-          vector_register_1073956368_value_0[124] = *(u8*)(hdr_3 + 141);
-          vector_register_1073956368_value_0[125] = *(u8*)(hdr_3 + 142);
-          vector_register_1073956368_value_0[126] = *(u8*)(hdr_3 + 143);
-          vector_register_1073956368_value_0[127] = *(u8*)(hdr_3 + 144);
-          state->vector_register_1073956368.put(allocated_index_0, vector_register_1073956368_value_0);
-          // EP node  11944
-          // BDD node 28:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073760416)[(Concat w1184 (Read w8 (w32 915) packet_chunks) (Concat w1176 (Read w8 (w32 914) packet_chunks) (Concat w1168 (w8 1) (ReadLSB w1160 (w32 768) packet_chunks))))])
-          hdr_3[145] = 1;
-          // EP node  12025
-          // BDD node 29:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073760160)[(Concat w64 (Read w8 (w32 519) packet_chunks) (Concat w56 (Read w8 (w32 518) packet_chunks) (Concat w48 (Read w8 (w32 517) packet_chunks) (Concat w40 (Read w8 (w32 516) packet_chunks) (Concat w32 (Read w8 (w32 513) packet_chunks) (Concat w24 (Read w8 (w32 512) packet_chunks) (ReadLSB w16 (w32 514) packet_chunks)))))))])
-          std::swap(hdr_2[0], hdr_2[2]);
-          std::swap(hdr_2[1], hdr_2[3]);
-          // EP node  12107
-          // BDD node 30:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073759904)[(Concat w160 (Read w8 (w32 271) packet_chunks) (Concat w152 (Read w8 (w32 270) packet_chunks) (Concat w144 (Read w8 (w32 269) packet_chunks) (Concat w136 (Read w8 (w32 268) packet_chunks) (Concat w128 (Read w8 (w32 275) packet_chunks) (Concat w120 (Read w8 (w32 274) packet_chunks) (Concat w112 (Read w8 (w32 273) packet_chunks) (Concat w104 (Read w8 (w32 272) packet_chunks) (ReadLSB w96 (w32 256) packet_chunks)))))))))])
-          std::swap(hdr_1[12], hdr_1[16]);
-          std::swap(hdr_1[13], hdr_1[17]);
-          std::swap(hdr_1[14], hdr_1[18]);
-          std::swap(hdr_1[15], hdr_1[19]);
-          // EP node  12190
-          // BDD node 31:packet_return_chunk(p:(w64 1074049568), the_chunk:(w64 1073759648)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (Read w8 (w32 5) packet_chunks) (Concat w88 (Read w8 (w32 4) packet_chunks) (Concat w80 (Read w8 (w32 3) packet_chunks) (Concat w72 (Read w8 (w32 2) packet_chunks) (Concat w64 (Read w8 (w32 1) packet_chunks) (Concat w56 (Read w8 (w32 0) packet_chunks) (ReadLSB w48 (w32 6) packet_chunks)))))))))])
-          std::swap(hdr_0[0], hdr_0[6]);
-          std::swap(hdr_0[1], hdr_0[7]);
-          std::swap(hdr_0[2], hdr_0[8]);
-          std::swap(hdr_0[3], hdr_0[9]);
-          std::swap(hdr_0[4], hdr_0[10]);
-          std::swap(hdr_0[5], hdr_0[11]);
-          // EP node  12274
-          // BDD node 32:FORWARD
-          cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
+          // EP node  785
+          // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
+          // EP node  786
+          // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
+          result.abort_transaction = true;
+          cpu_hdr->trigger_dataplane_execution = 1;
+          return result;
         }
       } else {
-        // EP node  761
+        // EP node  781
         // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-        // EP node  762
+        // EP node  782
         // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
         result.abort_transaction = true;
         cpu_hdr->trigger_dataplane_execution = 1;
         return result;
       }
     } else {
-      // EP node  757
+      // EP node  776
       // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
-      // EP node  758
+      // EP node  777
       // BDD node 16:dchain_allocate_new_index(chain:(w64 1073989880), index_out:(w64 1074063328)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))
       result.abort_transaction = true;
       cpu_hdr->trigger_dataplane_execution = 1;

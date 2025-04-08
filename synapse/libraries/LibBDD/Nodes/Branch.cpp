@@ -57,9 +57,10 @@ std::string Branch::dump(bool one_liner, bool id_name_only) const {
 }
 
 bool Branch::is_parser_condition() const {
-  std::vector<const Call *> future_borrows = get_future_functions({"packet_borrow_next_chunk"});
+  std::vector<const Call *> future_borrows_on_true  = next->get_future_functions({"packet_borrow_next_chunk"}, true);
+  std::vector<const Call *> future_borrows_on_false = on_false->get_future_functions({"packet_borrow_next_chunk"}, true);
 
-  if (future_borrows.empty()) {
+  if (future_borrows_on_true.size() == future_borrows_on_false.size()) {
     return false;
   }
 

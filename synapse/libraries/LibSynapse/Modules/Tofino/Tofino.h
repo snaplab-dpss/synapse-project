@@ -69,8 +69,8 @@ struct TofinoTarget : public Target {
               // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
               // f.push_back(std::make_unique<MeterUpdateFactory>());
-              // f.push_back(std::make_unique<HHTableReadFactory>());
-              // f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
+              f.push_back(std::make_unique<HHTableReadFactory>());
+              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());

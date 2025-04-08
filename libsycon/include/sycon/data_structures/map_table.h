@@ -38,10 +38,6 @@ public:
     }
 
     if (timeout.has_value()) {
-      if (timeout.value() < TOFINO_MODEL_MIN_EXPIRATION_TIME) {
-        LOG_DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", TOFINO_MODEL_MIN_EXPIRATION_TIME);
-        timeout = TOFINO_MODEL_MIN_EXPIRATION_TIME;
-      }
       Table &chosen_expiration_table = tables.front();
       chosen_expiration_table.set_notify_mode(timeout.value(), this, MapTable::expiration_callback, true);
     }
