@@ -69,6 +69,7 @@ enum class ModuleType {
   Controller_Forward,
   Controller_Broadcast,
   Controller_Drop,
+  Controller_AbortTransaction,
 
   Controller_DataplaneMapTableAllocate,
   Controller_DataplaneMapTableLookup,
@@ -291,6 +292,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_Drop:
     os << "Controller_Drop";
+    break;
+  case ModuleType::Controller_AbortTransaction:
+    os << "Controller_AbortTransaction";
     break;
   case ModuleType::Controller_DataplaneMapTableAllocate:
     os << "Controller_DataplaneMapTableAllocate";

@@ -38,6 +38,7 @@ struct cpu_hdr_extra_t {
 
 nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   nf_process_result_t result;
+  result.forward = true;
   bool trigger_update_ipv4_tcpudp_checksums = false;
   void* l3_hdr = nullptr;
   void* l4_hdr = nullptr;
@@ -53,10 +54,6 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   if (trigger_update_ipv4_tcpudp_checksums) {
     update_ipv4_tcpudp_checksums(l3_hdr, l4_hdr);
-  }
-
-  if (result.abort_transaction) {
-    cpu_hdr->trigger_dataplane_execution = true;
   }
 
   return result;

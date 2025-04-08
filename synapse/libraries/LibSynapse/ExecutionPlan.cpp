@@ -868,21 +868,4 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   return egress;
 }
 
-const LibBDD::Call *EP::packet_borrow_from_return(const LibBDD::Call *packet_return_chunk) const {
-  const LibBDD::call_t &call = packet_return_chunk->get_call();
-  assert(call.function_name == "packet_return_chunk" && "Unexpected function");
-
-  klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
-
-  std::vector<const LibBDD::Call *> prev_borrows =
-      packet_return_chunk->get_prev_functions({"packet_borrow_next_chunk"}, get_target_roots(get_active_target()));
-  std::vector<const LibBDD::Call *> prev_returns =
-      packet_return_chunk->get_prev_functions({"packet_return_chunk"}, get_target_roots(get_active_target()));
-
-  assert(prev_borrows.size() && "No previous borrows");
-  assert(prev_borrows.size() > prev_returns.size() && "No previous borrow");
-
-  return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
-}
-
 } // namespace LibSynapse

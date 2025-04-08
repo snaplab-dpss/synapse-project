@@ -20,12 +20,13 @@ map_table_data_t get_map_table_data(const Context &ctx, const LibBDD::Call *call
   const LibBDD::map_config_t &cfg = ctx.get_map_config(obj);
 
   const map_table_data_t data = {
-      .obj        = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .capacity   = static_cast<u32>(cfg.capacity),
-      .keys       = Table::build_keys(key, ctx.get_expr_structs()),
-      .value      = value_out,
-      .hit        = map_has_this_key,
-      .time_aware = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
+      .obj          = LibCore::expr_addr_to_obj_addr(map_addr_expr),
+      .capacity     = static_cast<u32>(cfg.capacity),
+      .original_key = key,
+      .keys         = Table::build_keys(key, ctx.get_expr_structs()),
+      .value        = value_out,
+      .hit          = map_has_this_key,
+      .time_aware   = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
   };
 
   return data;
@@ -61,8 +62,7 @@ std::optional<spec_impl_t> MapTableLookupFactory::speculate(const EP *ep, const 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                        LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -88,7 +88,7 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const LibB
     return impls;
   }
 
-  Module *module  = new MapTableLookup(node, map_table->id, data.obj, data.keys, data.value, data.hit);
+  Module *module  = new MapTableLookup(node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -128,7 +128,7 @@ std::unique_ptr<Module> MapTableLookupFactory::create(const LibBDD::BDD *bdd, co
 
   const MapTable *map_table = dynamic_cast<const MapTable *>(*ds.begin());
 
-  return std::make_unique<MapTableLookup>(node, map_table->id, data.obj, data.keys, data.value, data.hit);
+  return std::make_unique<MapTableLookup>(node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
 }
 
 } // namespace Tofino

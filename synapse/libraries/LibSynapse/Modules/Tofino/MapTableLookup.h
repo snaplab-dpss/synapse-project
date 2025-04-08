@@ -9,27 +9,27 @@ class MapTableLookup : public TofinoModule {
 private:
   DS_ID id;
   addr_t obj;
+  klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> hit;
 
 public:
-  MapTableLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-                 klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _hit)
-      : TofinoModule(ModuleType::Tofino_MapTableLookup, "MapTableLookup", node), id(_id), obj(_obj), keys(_keys), value(_value), hit(_hit) {
-  }
+  MapTableLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+                 const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _hit)
+      : TofinoModule(ModuleType::Tofino_MapTableLookup, "MapTableLookup", node), id(_id), obj(_obj), original_key(_original_key), keys(_keys),
+        value(_value), hit(_hit) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapTableLookup(node, id, obj, keys, value, hit);
+    Module *cloned = new MapTableLookup(node, id, obj, original_key, keys, value, hit);
     return cloned;
   }
 
   DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
+  klee::ref<klee::Expr> get_original_key() const { return original_key; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   klee::ref<klee::Expr> get_value() const { return value; }
   std::optional<LibCore::symbol_t> get_hit() const { return hit; }

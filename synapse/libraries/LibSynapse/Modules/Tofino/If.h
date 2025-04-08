@@ -19,15 +19,14 @@ public:
   If(const LibBDD::Node *node, klee::ref<klee::Expr> _original_condition, const std::vector<klee::ref<klee::Expr>> &_conditions)
       : TofinoModule(ModuleType::Tofino_If, "If", node), original_condition(_original_condition), conditions(_conditions) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     If *cloned = new If(node, original_condition, conditions);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_original_condition() const { return original_condition; }
   const std::vector<klee::ref<klee::Expr>> &get_conditions() const { return conditions; }
 };
 

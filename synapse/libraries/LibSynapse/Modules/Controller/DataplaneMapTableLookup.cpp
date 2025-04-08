@@ -11,7 +11,7 @@ namespace {
 
 struct map_table_data_t {
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
   std::optional<LibCore::symbol_t> found;
 };
@@ -28,7 +28,7 @@ map_table_data_t table_data_from_map_op(const Context &ctx, const LibBDD::Call *
 
   const map_table_data_t data = {
       .obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr),
-      .keys  = Table::build_keys(key, ctx.get_expr_structs()),
+      .key   = key,
       .value = value_out,
       .found = map_has_this_key,
   };
@@ -80,7 +80,7 @@ std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, c
     return impls;
   }
 
-  Module *module  = new DataplaneMapTableLookup(node, data.obj, data.keys, data.value, data.found);
+  Module *module  = new DataplaneMapTableLookup(node, data.obj, data.key, data.value, data.found);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -110,7 +110,7 @@ std::unique_ptr<Module> DataplaneMapTableLookupFactory::create(const LibBDD::BDD
     return {};
   }
 
-  return std::make_unique<DataplaneMapTableLookup>(node, data.obj, data.keys, data.value, data.found);
+  return std::make_unique<DataplaneMapTableLookup>(node, data.obj, data.key, data.value, data.found);
 }
 
 } // namespace Controller

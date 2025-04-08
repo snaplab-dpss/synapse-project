@@ -53,6 +53,7 @@ class Else;
 class Forward;
 class Broadcast;
 class Drop;
+class AbortTransaction;
 
 class DataplaneMapTableAllocate;
 class DataplaneMapTableLookup;
@@ -207,6 +208,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Forward *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Broadcast *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::AbortTransaction *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *m) { return Action::doChildren; }

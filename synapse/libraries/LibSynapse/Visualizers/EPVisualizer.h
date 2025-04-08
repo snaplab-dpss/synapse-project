@@ -68,6 +68,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Forward *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Broadcast *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::AbortTransaction *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *node) override final;

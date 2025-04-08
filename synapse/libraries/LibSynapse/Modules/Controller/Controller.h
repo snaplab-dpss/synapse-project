@@ -13,6 +13,7 @@
 #include <LibSynapse/Modules/Controller/Forward.h>
 #include <LibSynapse/Modules/Controller/Broadcast.h>
 #include <LibSynapse/Modules/Controller/Drop.h>
+#include <LibSynapse/Modules/Controller/AbortTransaction.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableUpdate.h>
@@ -87,6 +88,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<BroadcastFactory>());
               f.push_back(std::make_unique<DropFactory>());
+              f.push_back(std::make_unique<AbortTransactionFactory>());
               f.push_back(std::make_unique<DataplaneMapTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneMapTableLookupFactory>());
               f.push_back(std::make_unique<DataplaneMapTableUpdateFactory>());

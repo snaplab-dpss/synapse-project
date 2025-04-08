@@ -99,7 +99,6 @@ public:
   TargetType get_active_target() const;
   EPNode *get_node_by_id(ep_node_id_t id) const;
   hit_rate_t get_active_leaf_hit_rate() const;
-  const LibBDD::Call *packet_borrow_from_return(const LibBDD::Call *packet_return_chunk) const;
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   port_ingress_t get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const;
   pps_t estimate_tput_pps() const;
@@ -114,8 +113,8 @@ public:
 
 private:
   void sort_leaves();
-  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor,
-                                                LibBDD::node_ids_t future_nodes, TargetType current_target, pps_t ingress) const;
+  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor, LibBDD::node_ids_t future_nodes,
+                                                TargetType current_target, pps_t ingress) const;
   spec_impl_t get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &ctx, const LibBDD::node_ids_t &skip,
                                    pps_t ingress) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const LibBDD::Node *node,

@@ -28,8 +28,7 @@ std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const Li
   return std::nullopt;
 }
 
-std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                      LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {
@@ -43,7 +42,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD
     return impls;
   }
 
-  const LibBDD::Call *packet_borrow_chunk = ep->packet_borrow_from_return(packet_return_chunk);
+  const LibBDD::Call *packet_borrow_chunk = packet_return_chunk->packet_borrow_from_return();
   assert(packet_borrow_chunk && "Failed to find packet_borrow_next_chunk from packet_return_chunk");
 
   addr_t hdr_addr                          = LibCore::expr_addr_to_obj_addr(call.args.at("the_chunk").expr);
