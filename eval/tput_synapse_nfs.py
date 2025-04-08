@@ -21,8 +21,7 @@ from utils.constants import *
 STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 100_000
 CHURN_FPM = [0, 10_000, 100_000, 1_000_000, 10_000_000]
-# ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
-ZIPF_PARAMS = [1.2]
+ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
 
 SYNAPSE_NFS = [
     # {
@@ -50,7 +49,7 @@ SYNAPSE_NFS = [
     {
         "name": "synapse-kvs-hhtable",
         "description": "Synapse KVS HHTable",
-        "data_out": "synapse-kvs-hhtable.csv",
+        "data_out": "tput_synapse_kvs_hhtable.csv",
         "kvs_mode": True,
         "tofino": "synthesized/synapse-kvs-hhtable.p4",
         "controller": "synthesized/synapse-kvs-hhtable.cpp",
@@ -80,6 +79,7 @@ class SynapseThroughput(Experiment):
         # Synapse
         p4_src_in_repo: str,
         controller_src_in_repo: str,
+        dut_ports: list[int],
         # Pktgen
         total_flows: int,
         zipf_params: list[float],
@@ -106,6 +106,7 @@ class SynapseThroughput(Experiment):
         # Synapse
         self.p4_src_in_repo = p4_src_in_repo
         self.controller_src_in_repo = controller_src_in_repo
+        self.dut_ports = dut_ports
 
         # Pktgen
         self.total_flows = total_flows
@@ -176,6 +177,7 @@ class SynapseThroughput(Experiment):
         self.log("Launching Synapse controller")
         self.tput_hosts.dut_controller.launch(
             src_in_repo=self.controller_src_in_repo,
+            ports=self.dut_ports,
         )
 
         self.log("Launching pktgen")
@@ -278,7 +280,10 @@ def main():
 
     log_file = config["logs"]["experiment"]
 
-    tput_hosts = ThroughputHosts(config, use_accelerator=False)
+    tput_hosts = ThroughputHosts(
+        config,
+        use_accelerator=False,
+    )
 
     kvs_server = KVSServer(
         hostname=config["hosts"]["server"],
@@ -287,16 +292,22 @@ def main():
         log_file=config["logs"]["server"],
     )
 
-    dut_ports = config["devices"]["switch_tg"]["dut_ports"]
+    tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
     symmetric = []
     route = []
 
     exp_tracker = ExperimentTracker()
 
     for synapse_nf in SYNAPSE_NFS:
-        broadcast = synapse_nf["routing"]["broadcast"](dut_ports)
-        symmetric = synapse_nf["routing"]["symmetric"](dut_ports)
-        route = synapse_nf["routing"]["route"](dut_ports)
+        broadcast = synapse_nf["routing"]["broadcast"](tg_dut_ports)
+        symmetric = synapse_nf["routing"]["symmetric"](tg_dut_ports)
+        route = synapse_nf["routing"]["route"](tg_dut_ports)
+
+        dut_ports = config["devices"]["switch_dut"]["client_ports"]
+        if synapse_nf["kvs_mode"]:
+            server_port = config["devices"]["switch_dut"]["server_port"]
+            dut_ports.append(server_port)
+            dut_ports = sorted(dut_ports)
 
         exp_tracker.add_experiment(
             SynapseThroughput(
@@ -310,6 +321,7 @@ def main():
                 route=route,
                 p4_src_in_repo=synapse_nf["tofino"],
                 controller_src_in_repo=synapse_nf["controller"],
+                dut_ports=dut_ports,
                 total_flows=TOTAL_FLOWS,
                 zipf_params=ZIPF_PARAMS,
                 churn_values_fpm=CHURN_FPM,

@@ -20,14 +20,12 @@ class SynapseController:
         repo: str,
         sde: str,
         tofino_version: int,
-        ports: list[int],
         log_file: Optional[str] = None,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.repo = Path(repo)
         self.sde = Path(sde)
         self.tofino_version = tofino_version
-        self.ports = ports
         self.controller_cmd = None
         self.exe = None
 
@@ -86,7 +84,13 @@ class SynapseController:
         if code != 0:
             self.host.crash(f"Controller compilation failed (app={src.stem}).")
 
-    def launch(self, src_in_repo: str, timeout_ms: int = MIN_TIMEOUT, extra_args: list[tuple[str, Union[str, int, float]]] = []) -> None:
+    def launch(
+        self,
+        src_in_repo: str,
+        ports: list[int],
+        timeout_ms: int = MIN_TIMEOUT,
+        extra_args: list[tuple[str, Union[str, int, float]]] = [],
+    ) -> None:
         if timeout_ms != 0 and timeout_ms < MIN_TIMEOUT:
             raise Exception(f"Timeout value must be 0 or >= {MIN_TIMEOUT}ms (is {timeout_ms}ms)")
 
@@ -101,7 +105,7 @@ class SynapseController:
         cmd += f" --tna {self.tofino_version}"
         cmd += f" --wait-ports"
         cmd += f" --bench"
-        cmd += f" --ports {' '.join(map(str, self.ports))}"
+        cmd += f" --ports {' '.join(map(str, ports))}"
         cmd += f" --expiration-time {timeout_ms}"
 
         for extra_arg in extra_args:
