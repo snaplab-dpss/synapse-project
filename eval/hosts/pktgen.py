@@ -92,6 +92,11 @@ class Pktgen:
     ) -> None:
         assert not self.pktgen_active
 
+        if nb_flows % 2 != 0:
+            nb_flows -= 1
+
+        assert nb_flows > 0
+
         self.kill_pktgen()
 
         # This is kind of lazy, and not sure if even correct, but let's

@@ -522,6 +522,9 @@ def run_setup_set(bfrt_info, ports, broadcast, symmetric, route, kvs_mode):
         router.add_forward_entry(ingress_dev_port, egress_dev_port)
         print("Added forwarding rule: {} -> {}".format(ingress_port, egress_port))
 
+    packet_modifier.clear()
+    print("Cleared the packet modifier table")
+
     for dev_port, front_panel_port in zip(broadcast_dev_ports, broadcast):
         if kvs_mode:
             packet_modifier.add_modify_kvs_hey_entry(dev_port, front_panel_port)
