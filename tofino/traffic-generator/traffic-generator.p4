@@ -13,6 +13,7 @@ typedef bit<32> time_t;
 const bit<16> ETHERTYPE_IPV4 = 0x800;
 const bit<8>  IP_PROTO_TCP   = 6;
 const bit<8>  IP_PROTO_UDP   = 17;
+const bit<16> UDP_PORT_KVS   = 670;
 
 header ethernet_t {
 	bit<48> dstAddr;
@@ -42,10 +43,19 @@ header udp_t {
 	bit<16> checksum;
 }
 
+header netcache_t {
+	bit<8>    op;
+	bit<128>  key;
+	bit<1024> val;
+	bit<8>    status;
+	bit<16>   port;
+}
+
 struct headers_t {
 	ethernet_t ethernet;
 	ipv4_t ipv4;
 	udp_t udp;
+	netcache_t netcache;
 }
 
 struct metadata_t {}
@@ -106,6 +116,15 @@ parser IngressParser(
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
+		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+			(UDP_PORT_KVS, _) : parse_netcache;
+			(_, UDP_PORT_KVS) : parse_netcache;
+			default : accept;
+		}
+	}
+
+	state parse_netcache {
+		pkt.extract(hdr.netcache);
 		transition accept;
 	}
 }
@@ -234,6 +253,15 @@ parser EgressParser(
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
+		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+			(UDP_PORT_KVS, _) : parse_netcache;
+			(_, UDP_PORT_KVS) : parse_netcache;
+			default : accept;
+		}
+	}
+
+	state parse_netcache {
+		pkt.extract(hdr.netcache);
 		transition accept;
 	}
 }
@@ -248,8 +276,32 @@ control Egress(
 ) {
 	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) out_counter;
 
+	action modify_ipv4_src_addr(bit<8> byte) {
+		hdr.ipv4.src_addr[31:24] = byte;
+	}
+
+	action modify_kvs_hey(bit<8> byte) {
+		hdr.netcache.key[127:120] = byte;
+	}
+
+	table packet_modifier_tbl {
+		key = {
+			eg_intr_md.egress_port: exact;
+		}
+
+		actions = {
+			modify_ipv4_src_addr;
+			modify_kvs_hey;
+			NoAction;
+		}
+
+		default_action = NoAction;
+		size = 32;
+	}
+
 	apply {
 		out_counter.count(eg_intr_md.egress_port);
+		packet_modifier_tbl.apply();
 	}
 }
 

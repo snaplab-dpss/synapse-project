@@ -59,6 +59,19 @@ SYNAPSE_NFS = [
             "route": lambda _: [],
         },
     },
+    {
+        "name": "synapse-kvs-maptable",
+        "description": "Synapse KVS MapTable",
+        "data_out": "tput_synapse_kvs_maptable.csv",
+        "kvs_mode": True,
+        "tofino": "synthesized/synapse-kvs-maptable.p4",
+        "controller": "synthesized/synapse-kvs-maptable.cpp",
+        "routing": {
+            "broadcast": lambda ports: ports,
+            "symmetric": lambda _: [],
+            "route": lambda _: [],
+        },
+    },
 ]
 
 
@@ -76,6 +89,7 @@ class SynapseThroughput(Experiment):
         broadcast: list[int],
         symmetric: list[int],
         route: list[tuple[int, int]],
+        kvs_mode: bool,
         # Synapse
         p4_src_in_repo: str,
         controller_src_in_repo: str,
@@ -102,6 +116,7 @@ class SynapseThroughput(Experiment):
         self.broadcast = broadcast
         self.symmetric = symmetric
         self.route = route
+        self.kvs_mode = kvs_mode
 
         # Synapse
         self.p4_src_in_repo = p4_src_in_repo
@@ -113,7 +128,7 @@ class SynapseThroughput(Experiment):
         self.zipf_params = zipf_params
         self.churn_values_fpm = churn_values_fpm
 
-        self.kvs_mode = self.kvs_server is not None
+        assert not self.kvs_mode or (self.kvs_server is not None)
 
         self.console = console
 
@@ -191,6 +206,7 @@ class SynapseThroughput(Experiment):
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
+            kvs_mode=self.kvs_mode,
         )
 
         self.log("Waiting for pktgen")
@@ -227,7 +243,7 @@ class SynapseThroughput(Experiment):
             self.log("Launching pktgen")
             self.tput_hosts.pktgen.close()
             self.tput_hosts.pktgen.launch(
-                nb_flows=self.total_flows,
+                nb_flows=int(self.total_flows / len(self.broadcast)),
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
                 kvs_mode=True,
@@ -238,7 +254,7 @@ class SynapseThroughput(Experiment):
             report = self.find_stable_throughput(
                 tg_controller=self.tput_hosts.tg_controller,
                 pktgen=self.tput_hosts.pktgen,
-                churn=churn_fpm,
+                churn=int(churn_fpm / len(self.broadcast)),
             )
 
             with open(self.save_name, "a") as f:
@@ -319,6 +335,7 @@ def main():
                 broadcast=broadcast,
                 symmetric=symmetric,
                 route=route,
+                kvs_mode=synapse_nf["kvs_mode"],
                 p4_src_in_repo=synapse_nf["tofino"],
                 controller_src_in_repo=synapse_nf["controller"],
                 dut_ports=dut_ports,

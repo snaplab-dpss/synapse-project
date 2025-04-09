@@ -242,7 +242,7 @@ class Throughput(Experiment):
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
-            nb_flows=self.nb_flows,
+            nb_flows=int(self.nb_flows / len(self.broadcast)),
             pkt_size=self.pkt_size,
             exp_time_us=self.controller_timeout_ms * 1000,
         )
@@ -270,7 +270,7 @@ class Throughput(Experiment):
         report = self.find_stable_throughput(
             tg_controller=self.hosts.tg_controller,
             pktgen=self.hosts.pktgen,
-            churn=self.churn,
+            churn=int(self.churn / len(self.broadcast)),
         )
 
         with open(self.save_name, "a") as f:

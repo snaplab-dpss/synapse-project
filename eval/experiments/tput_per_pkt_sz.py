@@ -119,7 +119,7 @@ class ThroughputPerPacketSize(Experiment):
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
-            nb_flows=self.nb_flows,
+            nb_flows=int(self.nb_flows / len(self.broadcast)),
             pkt_size=self.pkt_sizes[0],
             exp_time_us=self.controller_timeout_ms * 1000,
         )
@@ -163,7 +163,7 @@ class ThroughputPerPacketSize(Experiment):
             self.log("Launching pktgen")
             self.hosts.pktgen.close()
             self.hosts.pktgen.launch(
-                nb_flows=self.nb_flows,
+                nb_flows=int(self.nb_flows / len(self.broadcast)),
                 pkt_size=pkt_size,
                 exp_time_us=self.controller_timeout_ms * 1000,
             )

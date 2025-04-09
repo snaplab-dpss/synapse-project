@@ -23,24 +23,28 @@ CONFIGURATIONS = {
         "broadcast": DUT_CONNECTED_PORTS,
         "symmetric": [],
         "route": [],
+        "kvs_mode": False,
     },
     # 30 LANs
     "fwd": {
         "broadcast": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31],
         "symmetric": [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32],
         "route": [],
+        "kvs_mode": False,
     },
     # 15 LANs + 15 WANs
     "fw": {
         "broadcast": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31],
         "symmetric": [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32],
         "route": [],
+        "kvs_mode": False,
     },
     # 15 LANs + 15 WANs
     "nat": {
         "broadcast": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31],
         "symmetric": [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32],
         "route": [],
+        "kvs_mode": False,
     },
     # 30 clients + 1 server
     # The server is connected to the DUT, the clients are connected to the TG.
@@ -48,6 +52,7 @@ CONFIGURATIONS = {
         "broadcast": DUT_CONNECTED_PORTS,
         "symmetric": [],
         "route": [],
+        "kvs_mode": True,
     },
 }
 
@@ -433,6 +438,59 @@ class Counters:
         )
 
 
+class PacketModifier:
+    def __init__(self, bfrt_info):
+        self.packet_modifier = bfrt_info.table_get("Egress.packet_modifier_tbl")
+
+    def clear(self):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+        for _, key in self.packet_modifier.entry_get(target, [], {"from_hw": False}):
+            if key:
+                self.packet_modifier.entry_del(target, [key])
+
+    def add_modify_ipv4_src_addr_entry(self, dev_port, value):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+        self.packet_modifier.entry_add(
+            target,
+            [
+                self.packet_modifier.make_key(
+                    [
+                        gc.KeyTuple("eg_intr_md.egress_port", dev_port),
+                    ]
+                )
+            ],
+            [
+                self.packet_modifier.make_data(
+                    [
+                        gc.DataTuple("byte", value),
+                    ],
+                    "Egress.modify_ipv4_src_addr",
+                )
+            ],
+        )
+
+    def add_modify_kvs_hey_entry(self, dev_port, value):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+        self.packet_modifier.entry_add(
+            target,
+            [
+                self.packet_modifier.make_key(
+                    [
+                        gc.KeyTuple("eg_intr_md.egress_port", dev_port),
+                    ]
+                )
+            ],
+            [
+                self.packet_modifier.make_data(
+                    [
+                        gc.DataTuple("byte", value),
+                    ],
+                    "Egress.modify_kvs_hey",
+                )
+            ],
+        )
+
+
 class RateMultiplierRegister:
     def __init__(self, bfrt_info):
         self.rate_multiplier_register = bfrt_info.table_get("Ingress.rate_multiplier_register")
@@ -448,9 +506,10 @@ class RateMultiplierRegister:
         )
 
 
-def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
+def run_setup_set(bfrt_info, ports, broadcast, symmetric, route, kvs_mode):
     router = Router(bfrt_info)
     multicaster = Multicaster(bfrt_info)
+    packet_modifier = PacketModifier(bfrt_info)
 
     for port in FRONT_PANEL_PORTS:
         ports.add_port(port, DEFAULT_PORT_SPEED)
@@ -477,6 +536,14 @@ def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
         egress_dev_port = ports.get_dev_port(egress_port)
         router.add_forward_entry(ingress_dev_port, egress_dev_port)
         print("Added forwarding rule: {} -> {}".format(ingress_port, egress_port))
+
+    for dev_port, front_panel_port in zip(broadcast_dev_ports, broadcast):
+        if kvs_mode:
+            packet_modifier.add_modify_kvs_hey_entry(dev_port, front_panel_port)
+            print("Added modify kvs key rule: {} -> {}".format(dev_port, front_panel_port))
+        else:
+            packet_modifier.add_modify_ipv4_src_addr_entry(dev_port, front_panel_port)
+            print("Added modify ipv4 src addr rule: {} -> {}".format(dev_port, front_panel_port))
 
 
 def run_setup_get(ports: Ports):
@@ -594,6 +661,7 @@ if __name__ == "__main__":
                     "broadcast": args.broadcast,
                     "symmetric": args.symmetric,
                     "route": [(src, dst) for src, dst in args.route],
+                    "kvs_mode": args.kvs_mode,
                 }
             )
 
@@ -603,7 +671,7 @@ if __name__ == "__main__":
             print("Config: {}".format(config))
             print("==============================")
 
-            run_setup_set(bfrt_info, ports, config["broadcast"], config["symmetric"], config["route"])
+            run_setup_set(bfrt_info, ports, config["broadcast"], config["symmetric"], config["route"], config["kvs_mode"])
         elif args.setup_operation == "get":
             run_setup_get(ports)
         elif args.setup_operation == "set-multiplier":
