@@ -17,16 +17,17 @@ from rich.progress import (
 from hosts.tofino_tg import TofinoTGController
 from hosts.pktgen import Pktgen
 
+MIN_THROUGHPUT = 1_000  # 1 Gbps
 MAX_THROUGHPUT = 100_000  # 100 Gbps
-ITERATION_DURATION_SEC = 5  # seconds
+ITERATION_DURATION_SEC = 5
 THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
-PORT_SETUP_TIME_SEC = 5  # seconds
+PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
-WARMUP_TIME_SEC = 5  # seconds
-WARMUP_RATE = 1  # 1 Mbps
-REST_TIME_SEC = 5  # seconds
+WARMUP_TIME_SEC = 5
+WARMUP_RATE = MIN_THROUGHPUT
+REST_TIME_SEC = 5
 EXPERIMENT_ITERATIONS = 5
 
 
@@ -152,7 +153,7 @@ class Experiment:
         self.warmup_ports(tg_controller, pktgen)
         sleep(REST_TIME_SEC)
 
-        rate_lower = 0
+        rate_lower = MIN_THROUGHPUT
         rate_upper = MAX_THROUGHPUT
 
         winner_report = ThroughputReport(
@@ -245,8 +246,12 @@ class Experiment:
             if report.loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
 
+                if current_rate == MIN_THROUGHPUT:
+                    self.log("Lower bound reached, stopping search.")
+                    break
+
                 # Initial phase, let's quickly find the correct order of magnitude
-                if rate_lower == 0:
+                if rate_lower == MIN_THROUGHPUT:
                     current_rate = int(current_rate / 10)
                     continue
             else:
