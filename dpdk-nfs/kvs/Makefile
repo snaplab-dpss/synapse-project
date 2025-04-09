@@ -4,7 +4,7 @@ NF_FILES := kvs_main.c config.c state.c entry.c loop.c
 
 NF_ARGS := --server $(or $(SERVER),0) \
            --capacity $(or $(CAPACITY),8192) \
-           --expire $(or $(EXPIRE),1000000)
+           --expire $(or $(EXPIRE),100000)
 
 NF_LAYER := 5
 

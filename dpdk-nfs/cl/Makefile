@@ -21,7 +21,7 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --fwd-rule 30,31 --fwd-rule 31,30 \
            --max-flows $(or $(CAPACITY),65536) \
            --max-clients $(or $(MAX_PORTS),64) \
-           --expire $(or $(EXPIRATION_TIME),1000000) \
+           --expire $(or $(EXPIRATION_TIME),100000) \
            --sketch-height $(or $(SKETCH_HEIGHT),4) \
            --sketch-width $(or $(SKETCH_WIDTH),1024) \
            --sketch-cleanup-interval $(or $(SKETCH_CLEANUP_INTERVAL),10000000) 

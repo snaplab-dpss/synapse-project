@@ -230,7 +230,13 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       panic("TODO: implement controller constraints checker logic for FCFSCachedTableRead");
     } break;
     case ModuleType::Tofino_HHTableRead: {
-      panic("TODO: implement controller constraints checker logic for HHTableRead");
+      const HHTableRead *hh_table_read = reinterpret_cast<const HHTableRead *>(prev.module);
+
+      Controller::DataplaneHHTableRead *ctrl_hh_table_read = new Controller::DataplaneHHTableRead(
+          active_leaf.next, hh_table_read->get_obj(), hh_table_read->get_original_key(), hh_table_read->get_value(), hh_table_read->get_hit());
+
+      EPNode *hh_table_read_ep_node = new EPNode(ctrl_hh_table_read);
+      initial_controller_logic.update(hh_table_read_ep_node);
     } break;
     case ModuleType::Tofino_IntegerAllocatorIsAllocated: {
       panic("TODO: implement controller constraints checker logic for IntegerAllocatorIsAllocated");

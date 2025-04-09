@@ -115,6 +115,7 @@ public:
   const std::vector<LibCore::expr_struct_t> &get_expr_structs() const;
 
   template <class TCtx> const TCtx *get_target_ctx() const;
+  template <class TCtx> const TCtx *get_target_ctx_if_available() const;
   template <class TCtx> TCtx *get_mutable_target_ctx();
 
   const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
@@ -138,9 +139,9 @@ private:
 
 } // namespace LibSynapse
 
-#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                                       \
-  namespace NAMESPACE {                                                                                                                    \
-  class TARGET_CTX;                                                                                                                        \
-  }                                                                                                                                        \
-  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                                         \
+#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                                                 \
+  namespace NAMESPACE {                                                                                                                              \
+  class TARGET_CTX;                                                                                                                                  \
+  }                                                                                                                                                  \
+  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                                                   \
   template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();

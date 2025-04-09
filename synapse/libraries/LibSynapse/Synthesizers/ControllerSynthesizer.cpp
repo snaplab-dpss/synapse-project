@@ -1,6 +1,7 @@
 #include <LibSynapse/Synthesizers/ControllerSynthesizer.h>
 #include <LibSynapse/Modules/x86/x86.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 namespace LibSynapse {
 namespace Controller {
@@ -67,12 +68,6 @@ template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
 time_ns_t get_expiration_time(const Context &ctx) {
   const std::optional<expiration_data_t> expiration_data = ctx.get_expiration_data();
   assert(expiration_data.has_value() && "Expiration data not found");
-
-  // Tofino limitation: expiration time must be >= 100ms
-  if (expiration_data->expiration_time < 100'000'000LL) {
-    panic("Expiration time is too low (%lu)", expiration_data->expiration_time);
-  }
-
   return expiration_data->expiration_time;
 }
 

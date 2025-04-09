@@ -65,8 +65,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
   }
 
@@ -126,7 +125,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   }
 
   Module *module =
-      new HHTableRead(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key);
+      new HHTableRead(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -165,8 +164,7 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
@@ -179,7 +177,7 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
   assert(ds.size() == 1 && "Expected exactly one DS");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
 
-  return std::make_unique<HHTableRead>(node, hh_table->id, table_data.obj, table_data.table_keys, table_data.read_value,
+  return std::make_unique<HHTableRead>(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value,
                                        table_data.map_has_this_key);
 }
 

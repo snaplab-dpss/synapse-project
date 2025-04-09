@@ -32,6 +32,7 @@ struct tna_properties_t {
   int max_ternary_match_keys;
   bits_t max_salu_size;
   u8 max_digests;
+  time_ms_t min_expiration_time;
 };
 
 struct tofino_port_t {

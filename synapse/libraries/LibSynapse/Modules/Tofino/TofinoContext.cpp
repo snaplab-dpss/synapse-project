@@ -288,6 +288,14 @@ template <> const Tofino::TofinoContext *Context::get_target_ctx<Tofino::TofinoC
   return dynamic_cast<const Tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
+template <> const Tofino::TofinoContext *Context::get_target_ctx_if_available<Tofino::TofinoContext>() const {
+  const TargetType type = TargetType::Tofino;
+  if (target_ctxs.find(type) == target_ctxs.end()) {
+    return nullptr;
+  }
+  return dynamic_cast<const Tofino::TofinoContext *>(target_ctxs.at(type));
+}
+
 template <> Tofino::TofinoContext *Context::get_mutable_target_ctx<Tofino::TofinoContext>() {
   const TargetType type = TargetType::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");

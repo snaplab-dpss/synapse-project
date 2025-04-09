@@ -15,7 +15,6 @@ namespace {
 struct table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
-  std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> read_value;
   LibCore::symbol_t map_has_this_key;
   int capacity;
@@ -26,7 +25,6 @@ struct table_data_t {
 
     obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
-    table_keys       = Table::build_keys(key, ctx.get_expr_structs());
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     capacity         = ctx.get_map_config(obj).capacity;
@@ -86,10 +84,7 @@ std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, cons
     return impls;
   }
 
-  const LibCore::symbol_t min_estimate = symbol_manager->create_symbol("min_estimate_" + std::to_string(map_get->get_id()), 32);
-
-  Module *module =
-      new DataplaneHHTableRead(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key, min_estimate);
+  Module *module  = new DataplaneHHTableRead(node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -124,10 +119,7 @@ std::unique_ptr<Module> DataplaneHHTableReadFactory::create(const LibBDD::BDD *b
     return {};
   }
 
-  const LibCore::symbol_t mock_min_estimate;
-
-  return std::make_unique<DataplaneHHTableRead>(node, table_data.obj, table_data.table_keys, table_data.read_value, table_data.map_has_this_key,
-                                                mock_min_estimate);
+  return std::make_unique<DataplaneHHTableRead>(node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
 }
 
 } // namespace Controller

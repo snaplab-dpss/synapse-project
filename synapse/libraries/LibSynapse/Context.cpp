@@ -316,6 +316,16 @@ Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targe
     target_ctxs[target.type] = target.base_ctx->clone();
   }
 
+  const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>();
+  if (tofino_ctx) {
+    const time_ns_t expiration_time     = expiration_data->expiration_time;
+    const time_ns_t min_expiration_time = tofino_ctx->get_tna().get_tna_config().properties.min_expiration_time * MILLION;
+
+    if (expiration_time < min_expiration_time) {
+      panic("Expiration time is too low (%luns < %luns)", expiration_time, min_expiration_time);
+    }
+  }
+
   bdd_pre_processing_get_coalescing_candidates(bdd);
   bdd_pre_processing_get_ds_configs(bdd);
   bdd_pre_processing_get_structural_fields(bdd);

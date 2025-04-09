@@ -21,7 +21,7 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --fwd-rule 26,27 --fwd-rule 27,26 \
            --fwd-rule 28,29 --fwd-rule 29,28 \
            --fwd-rule 30,31 --fwd-rule 31,30 \
-           --expire 1000000 \
+           --expire 100000 \
            --max-flows 65536 \
            --extip 1.2.3.4
 

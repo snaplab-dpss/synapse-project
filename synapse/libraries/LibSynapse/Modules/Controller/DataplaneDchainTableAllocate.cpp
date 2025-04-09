@@ -1,5 +1,6 @@
 #include <LibSynapse/Modules/Controller/DataplaneDchainTableAllocate.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 namespace LibSynapse {
 namespace Controller {
@@ -24,11 +25,6 @@ dchain_table_allocation_data_t get_dchain_table_data(const Context &ctx, const L
   const std::optional<expiration_data_t> expiration_data = ctx.get_expiration_data();
   assert(expiration_data.has_value() && "Expiration data not found");
 
-  // Tofino limitation: expiration time must be >= 100ms
-  if (expiration_data->expiration_time < 100'000'000LL) {
-    panic("Expiration time is too low (%lu)", expiration_data->expiration_time);
-  }
-
   dchain_table_allocation_data_t data = {
       .obj             = LibCore::expr_addr_to_obj_addr(chain_out),
       .key_size        = key_size,
@@ -41,8 +37,7 @@ dchain_table_allocation_data_t get_dchain_table_data(const Context &ctx, const L
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneDchainTableAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node,
-                                                                          const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneDchainTableAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   // We don't need this for now.
   return {};
 }
@@ -53,8 +48,7 @@ std::vector<impl_t> DataplaneDchainTableAllocateFactory::process_node(const EP *
   return {};
 }
 
-std::unique_ptr<Module> DataplaneDchainTableAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
-                                                                    const LibBDD::Node *node) const {
+std::unique_ptr<Module> DataplaneDchainTableAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }
