@@ -9,6 +9,8 @@
 #include <LibSynapse/Modules/Controller/Else.h>
 #include <LibSynapse/Modules/Controller/AbortTransaction.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableGuardCheck.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneDchainTableIsIndexAllocated.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableRead.h>
@@ -17,6 +19,8 @@
 #include <LibSynapse/Modules/Tofino/ParserExtraction.h>
 #include <LibSynapse/Modules/Tofino/If.h>
 #include <LibSynapse/Modules/Tofino/MapTableLookup.h>
+#include <LibSynapse/Modules/Tofino/GuardedMapTableLookup.h>
+#include <LibSynapse/Modules/Tofino/GuardedMapTableGuardCheck.h>
 #include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
 #include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
@@ -44,7 +48,7 @@ std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBD
   const LibBDD::BDD *old_bdd = ep->get_bdd();
 
   std::unique_ptr<LibBDD::BDD> new_bdd = std::make_unique<LibBDD::BDD>(*old_bdd);
-  new_bdd->clone_and_add_non_branches(node, hdr_parsing_ops);
+  new_bdd->add_cloned_non_branches(node->get_id(), hdr_parsing_ops);
 
   next = new_bdd->get_node_by_id(node->get_id());
 
@@ -81,6 +85,7 @@ struct initial_controller_logic_t {
     } else {
       assert(tail);
       tail->set_children(ep_node);
+      ep_node->set_prev(tail);
       tail = ep_node;
     }
   }
@@ -122,7 +127,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       prev_modules.insert(prev_modules.begin(), prev_module);
       branch_conditions_found = true;
     } else if (module->get_target() == TargetType::Tofino) {
-      const TofinoModule *tofino_module  = reinterpret_cast<const TofinoModule *>(module);
+      const TofinoModule *tofino_module  = dynamic_cast<const TofinoModule *>(module);
       const std::unordered_set<DS_ID> ds = tofino_module->get_generated_ds();
       if (!ds.empty()) {
         prev_modules.insert(prev_modules.begin(), prev_module);
@@ -135,7 +140,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
   for (const prev_module_t &prev : prev_modules) {
     if (prev.module->get_type() == ModuleType::Tofino_ParserExtraction) {
-      const ParserExtraction *parser_extraction_module = reinterpret_cast<const ParserExtraction *>(prev.module);
+      const ParserExtraction *parser_extraction_module = dynamic_cast<const ParserExtraction *>(prev.module);
 
       klee::ref<klee::Expr> length = LibCore::solver_toolbox.exprBuilder->Constant(parser_extraction_module->get_length(), 16);
 
@@ -162,7 +167,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       // ========================================
 
     case ModuleType::Tofino_If: {
-      const If *if_module = reinterpret_cast<const If *>(prev.module);
+      const If *if_module = dynamic_cast<const If *>(prev.module);
 
       Controller::If *ctrl_if                              = new Controller::If(active_leaf.next, if_module->get_original_condition());
       Controller::Then *ctrl_then                          = new Controller::Then(active_leaf.next);
@@ -174,7 +179,12 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       EPNode *else_ep_node              = new EPNode(ctrl_else);
       EPNode *abort_transaction_ep_node = new EPNode(ctrl_abort_transaction);
 
-      if_ep_node->set_children(then_ep_node, else_ep_node);
+      // Don't pass a constraint to the EP if node, otherwise it will later break the profiler.
+      // We don't really care about it also, this is just boilerplate for correctness.
+      if_ep_node->set_children(nullptr, then_ep_node, else_ep_node);
+      then_ep_node->set_prev(if_ep_node);
+      else_ep_node->set_prev(if_ep_node);
+
       initial_controller_logic.update(if_ep_node);
 
       // If the condition holds no longer true, we abort the transaction.
@@ -182,9 +192,11 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       assert(prev.chosen_child == 0 || prev.chosen_child == 1);
       if (prev.chosen_child == 0) {
         else_ep_node->set_children(abort_transaction_ep_node);
+        abort_transaction_ep_node->set_prev(else_ep_node);
         initial_controller_logic.set_tail(then_ep_node);
       } else {
         then_ep_node->set_children(abort_transaction_ep_node);
+        abort_transaction_ep_node->set_prev(then_ep_node);
         initial_controller_logic.set_tail(else_ep_node);
       }
     } break;
@@ -194,7 +206,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       // ========================================
 
     case ModuleType::Tofino_MapTableLookup: {
-      const MapTableLookup *map_table_lookup = reinterpret_cast<const MapTableLookup *>(prev.module);
+      const MapTableLookup *map_table_lookup = dynamic_cast<const MapTableLookup *>(prev.module);
 
       Controller::DataplaneMapTableLookup *ctrl_map_table_lookup =
           new Controller::DataplaneMapTableLookup(active_leaf.next, map_table_lookup->get_obj(), map_table_lookup->get_original_key(),
@@ -203,9 +215,29 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       EPNode *map_table_lookup_ep_node = new EPNode(ctrl_map_table_lookup);
       initial_controller_logic.update(map_table_lookup_ep_node);
     } break;
+    case ModuleType::Tofino_GuardedMapTableLookup: {
+      const GuardedMapTableLookup *guarded_map_table_lookup = dynamic_cast<const GuardedMapTableLookup *>(prev.module);
+
+      Controller::DataplaneGuardedMapTableLookup *ctrl_guarded_map_table_lookup = new Controller::DataplaneGuardedMapTableLookup(
+          active_leaf.next, guarded_map_table_lookup->get_obj(), guarded_map_table_lookup->get_original_key(), guarded_map_table_lookup->get_value(),
+          guarded_map_table_lookup->get_hit());
+
+      EPNode *guarded_map_table_lookup_ep_node = new EPNode(ctrl_guarded_map_table_lookup);
+      initial_controller_logic.update(guarded_map_table_lookup_ep_node);
+    } break;
+    case ModuleType::Tofino_GuardedMapTableGuardCheck: {
+      const GuardedMapTableGuardCheck *guarded_map_table_guard_check = dynamic_cast<const GuardedMapTableGuardCheck *>(prev.module);
+
+      Controller::DataplaneGuardedMapTableGuardCheck *ctrl_guarded_map_table_guard_check = new Controller::DataplaneGuardedMapTableGuardCheck(
+          active_leaf.next, guarded_map_table_guard_check->get_obj(), guarded_map_table_guard_check->get_guard_allow(),
+          guarded_map_table_guard_check->get_guard_allow_condition());
+
+      EPNode *guarded_map_table_guard_check_ep_node = new EPNode(ctrl_guarded_map_table_guard_check);
+      initial_controller_logic.update(guarded_map_table_guard_check_ep_node);
+    } break;
     case ModuleType::Tofino_VectorTableLookup: {
 
-      const VectorTableLookup *vector_table_lookup = reinterpret_cast<const VectorTableLookup *>(prev.module);
+      const VectorTableLookup *vector_table_lookup = dynamic_cast<const VectorTableLookup *>(prev.module);
 
       Controller::DataplaneVectorTableLookup *ctrl_vector_table_lookup = new Controller::DataplaneVectorTableLookup(
           active_leaf.next, vector_table_lookup->get_obj(), vector_table_lookup->get_key(), vector_table_lookup->get_value());
@@ -214,7 +246,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       initial_controller_logic.update(vector_table_lookup_ep_node);
     } break;
     case ModuleType::Tofino_DchainTableLookup: {
-      const DchainTableLookup *dchain_table_lookup = reinterpret_cast<const DchainTableLookup *>(prev.module);
+      const DchainTableLookup *dchain_table_lookup = dynamic_cast<const DchainTableLookup *>(prev.module);
 
       if (!dchain_table_lookup->get_hit().has_value()) {
         break;
@@ -230,7 +262,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       panic("TODO: implement controller constraints checker logic for FCFSCachedTableRead");
     } break;
     case ModuleType::Tofino_HHTableRead: {
-      const HHTableRead *hh_table_read = reinterpret_cast<const HHTableRead *>(prev.module);
+      const HHTableRead *hh_table_read = dynamic_cast<const HHTableRead *>(prev.module);
 
       Controller::DataplaneHHTableRead *ctrl_hh_table_read = new Controller::DataplaneHHTableRead(
           active_leaf.next, hh_table_read->get_obj(), hh_table_read->get_original_key(), hh_table_read->get_value(), hh_table_read->get_hit());
@@ -289,6 +321,11 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneMapTableLookup:
     case ModuleType::Controller_DataplaneMapTableUpdate:
     case ModuleType::Controller_DataplaneMapTableDelete:
+    case ModuleType::Controller_DataplaneGuardedMapTableAllocate:
+    case ModuleType::Controller_DataplaneGuardedMapTableLookup:
+    case ModuleType::Controller_DataplaneGuardedMapTableGuardCheck:
+    case ModuleType::Controller_DataplaneGuardedMapTableUpdate:
+    case ModuleType::Controller_DataplaneGuardedMapTableDelete:
     case ModuleType::Controller_DataplaneVectorTableAllocate:
     case ModuleType::Controller_DataplaneVectorTableLookup:
     case ModuleType::Controller_DataplaneVectorTableUpdate:
@@ -306,7 +343,6 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneFCFSCachedTableDelete:
     case ModuleType::Controller_DataplaneHHTableAllocate:
     case ModuleType::Controller_DataplaneHHTableRead:
-    case ModuleType::Controller_DataplaneHHTableConditionalUpdate:
     case ModuleType::Controller_DataplaneHHTableUpdate:
     case ModuleType::Controller_DataplaneHHTableDelete:
     case ModuleType::Controller_DataplaneIntegerAllocatorAllocate:

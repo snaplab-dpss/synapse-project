@@ -45,6 +45,8 @@ public:
   Symbols(Symbols &&)                 = default;
   Symbols &operator=(const Symbols &) = default;
 
+  Symbols(const std::vector<symbol_t> &symbols);
+
   void add(const symbol_t &symbol);
   void add(const Symbols &symbols);
 

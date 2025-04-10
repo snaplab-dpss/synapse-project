@@ -106,6 +106,8 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
     } else {
       panic("FIXME: incompatible endian swap size %d\n", size);
     }
+  } else if (std::optional<var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
+    coder << var->name;
   } else {
     visit(expr);
 
@@ -1103,6 +1105,88 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *node) {
+  const addr_t obj                                 = node->get_obj();
+  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
+
+  transpile_guarded_map_table_decl(guarded_map_table);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                             = node->get_obj();
+  const klee::ref<klee::Expr> key              = node->get_key();
+  const klee::ref<klee::Expr> value            = node->get_value();
+  const std::optional<LibCore::symbol_t> found = node->get_found();
+
+  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
+
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, guarded_map_table->id + "_key", key, true);
+  const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << value_var.name << ";\n";
+
+  coder.indent();
+  if (found.has_value()) {
+    const var_t found_var = alloc_var("found", found->expr, {}, NO_OPTION);
+    coder << "bool " << found_var.name << " = ";
+  }
+  coder << "state->" << guarded_map_table->id << ".get(";
+  coder << key_var.name;
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                            = node->get_obj();
+  klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
+
+  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
+
+  const var_t guard_allow_var = alloc_var("guard_allow", guard_allow_condition, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "bool " << guard_allow_var.name << " = ";
+  coder << "state->" << guarded_map_table->id << ".guard_check();\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableUpdate *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+
+  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, guarded_map_table->id + "_key", key, true);
+
+  coder.indent();
+  coder << "state->" << guarded_map_table->id << ".put(";
+  coder << key_var.name;
+  coder << ", " << transpiler.transpile(value);
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableDelete *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::GuardedMapTableDelete");
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableAllocate *node) {
   const addr_t obj                        = node->get_obj();
   const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
@@ -1440,13 +1524,6 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableConditionalUpdate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::HHTableConditionalUpdate");
-  return EPVisitor::Action::doChildren;
-}
-
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
@@ -1681,6 +1758,41 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
     }
   }
   member_init_list << "}";
+
+  if (time_aware) {
+    member_init_list << ", " << expiration_time_ms << "LL";
+  }
+
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                  = assert_unique_name(guarded_map_table->id);
+  const time_ns_t expiration_time    = get_expiration_time(ep->get_ctx());
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+  bool time_aware                    = false;
+
+  state_fields.indent();
+  state_fields << "GuardedMapTable " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "{";
+  for (const Tofino::Table &table : guarded_map_table->tables) {
+    member_init_list << "\"Ingress." << table.id << "\",";
+    if (table.time_aware == Tofino::TimeAware::Yes) {
+      time_aware = true;
+    }
+  }
+  member_init_list << "},";
+  member_init_list << "\"Ingress." << guarded_map_table->guard.id << "\"";
 
   if (time_aware) {
     member_init_list << ", " << expiration_time_ms << "LL";

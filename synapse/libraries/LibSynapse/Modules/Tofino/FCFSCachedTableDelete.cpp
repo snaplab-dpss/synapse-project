@@ -77,21 +77,21 @@ void replicate_hdr_parsing_ops_on_cache_delete_failed(const EP *ep, LibBDD::BDD 
     non_branch_nodes_to_add.push_back(prev_borrow);
   }
 
-  new_on_cache_delete_failed = bdd->clone_and_add_non_branches(on_cache_delete_failed, non_branch_nodes_to_add);
+  new_on_cache_delete_failed = bdd->add_cloned_non_branches(on_cache_delete_failed->get_id(), non_branch_nodes_to_add);
 }
 
-std::unique_ptr<LibBDD::BDD>
-branch_bdd_on_cache_delete_success(const EP *ep, const LibBDD::Node *map_erase, const fcfs_cached_table_data_t &cached_table_data,
-                                   klee::ref<klee::Expr> cache_delete_success_condition, LibBDD::Node *&on_cache_delete_success,
-                                   LibBDD::Node *&on_cache_delete_failed,
-                                   std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
+std::unique_ptr<LibBDD::BDD> branch_bdd_on_cache_delete_success(const EP *ep, const LibBDD::Node *map_erase,
+                                                                const fcfs_cached_table_data_t &cached_table_data,
+                                                                klee::ref<klee::Expr> cache_delete_success_condition,
+                                                                LibBDD::Node *&on_cache_delete_success, LibBDD::Node *&on_cache_delete_failed,
+                                                                std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
   const LibBDD::BDD *old_bdd           = ep->get_bdd();
   std::unique_ptr<LibBDD::BDD> new_bdd = std::make_unique<LibBDD::BDD>(*old_bdd);
 
   const LibBDD::Node *next = map_erase->get_next();
   assert(next && "Next node is null");
 
-  LibBDD::Branch *cache_delete_branch = new_bdd->clone_and_add_branch(next, cache_delete_success_condition);
+  LibBDD::Branch *cache_delete_branch = new_bdd->add_cloned_branch(next->get_id(), cache_delete_success_condition);
 
   on_cache_delete_success = cache_delete_branch->get_mutable_on_true();
   on_cache_delete_failed  = cache_delete_branch->get_mutable_on_false();
@@ -109,8 +109,8 @@ klee::ref<klee::Expr> build_cache_delete_success_condition(const LibCore::symbol
 EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, const LibBDD::map_coalescing_objs_t &map_objs,
                                    const fcfs_cached_table_data_t &cached_table_data, const LibCore::symbol_t &cache_delete_failed,
                                    u32 cache_capacity) {
-  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, map_erase, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity);
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(ep, map_erase, cached_table_data.obj, cached_table_data.key,
+                                                                                        cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -118,8 +118,7 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
 
   klee::ref<klee::Expr> cache_delete_success_condition = build_cache_delete_success_condition(cache_delete_failed);
 
-  Module *module =
-      new FCFSCachedTableDelete(map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
+  Module *module = new FCFSCachedTableDelete(map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
   EPNode *cached_table_delete_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -146,9 +145,8 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
 
   cached_table_delete_node->set_children(if_node);
 
-  if_node->set_constraint(cache_delete_success_condition);
   if_node->set_prev(cached_table_delete_node);
-  if_node->set_children(then_node, else_node);
+  if_node->set_children(cache_delete_success_condition, then_node, else_node);
 
   then_node->set_prev(if_node);
 
@@ -159,8 +157,8 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
 
   const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, map_erase, cached_table_data.key, cache_capacity);
 
-  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(),
-                                                                   cache_delete_success_condition, cache_success_probability);
+  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cache_delete_success_condition,
+                                                                   cache_success_probability);
 
   if (deleted_branch_constraints.has_value()) {
     new_ep->get_mutable_ctx().get_mutable_profiler().remove(deleted_branch_constraints.value());
@@ -206,8 +204,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
   }
 
@@ -222,8 +219,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
-                                            cache_capacity)) {
+    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity)) {
       break;
     }
 
@@ -265,8 +261,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   return spec_impl;
 }
 
-std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                               LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -326,8 +321,7 @@ std::unique_ptr<Module> FCFSCachedTableDeleteFactory::create(const LibBDD::BDD *
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
@@ -337,8 +331,7 @@ std::unique_ptr<Module> FCFSCachedTableDeleteFactory::create(const LibBDD::BDD *
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableDelete>(node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key,
-                                                 mock_cache_delete_failed);
+  return std::make_unique<FCFSCachedTableDelete>(node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key, mock_cache_delete_failed);
 }
 
 } // namespace Tofino

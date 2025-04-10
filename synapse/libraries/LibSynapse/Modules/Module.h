@@ -36,6 +36,8 @@ enum class ModuleType {
   Tofino_ParserReject,
   Tofino_ModifyHeader,
   Tofino_MapTableLookup,
+  Tofino_GuardedMapTableLookup,
+  Tofino_GuardedMapTableGuardCheck,
   Tofino_VectorTableLookup,
   Tofino_DchainTableLookup,
   Tofino_VectorRegisterLookup,
@@ -92,13 +94,17 @@ enum class ModuleType {
   Controller_DataplaneFCFSCachedTableDelete,
   Controller_DataplaneHHTableAllocate,
   Controller_DataplaneHHTableRead,
-  Controller_DataplaneHHTableConditionalUpdate,
   Controller_DataplaneHHTableUpdate,
   Controller_DataplaneHHTableDelete,
   Controller_DataplaneIntegerAllocatorAllocate,
   Controller_DataplaneIntegerAllocatorFreeIndex,
   Controller_DataplaneMeterAllocate,
   Controller_DataplaneMeterInsert,
+  Controller_DataplaneGuardedMapTableAllocate,
+  Controller_DataplaneGuardedMapTableLookup,
+  Controller_DataplaneGuardedMapTableUpdate,
+  Controller_DataplaneGuardedMapTableDelete,
+  Controller_DataplaneGuardedMapTableGuardCheck,
 
   Controller_DchainAllocate,
   Controller_DchainAllocateNewIndex,
@@ -206,6 +212,12 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_MapTableLookup:
     os << "Tofino_MapTableLookup";
     break;
+  case ModuleType::Tofino_GuardedMapTableLookup:
+    os << "Tofino_GuardedMapTableLookup";
+    break;
+  case ModuleType::Tofino_GuardedMapTableGuardCheck:
+    os << "Tofino_GuardedMapTableGuardCheck";
+    break;
   case ModuleType::Tofino_DchainTableLookup:
     os << "Tofino_DchainTableLookup";
     break;
@@ -308,6 +320,21 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DataplaneMapTableDelete:
     os << "Controller_DataplaneMapTableDelete";
     break;
+  case ModuleType::Controller_DataplaneGuardedMapTableAllocate:
+    os << "Controller_DataplaneGuardedMapTableAllocate";
+    break;
+  case ModuleType::Controller_DataplaneGuardedMapTableLookup:
+    os << "Controller_DataplaneGuardedMapTableLookup";
+    break;
+  case ModuleType::Controller_DataplaneGuardedMapTableUpdate:
+    os << "Controller_DataplaneGuardedMapTableUpdate";
+    break;
+  case ModuleType::Controller_DataplaneGuardedMapTableDelete:
+    os << "Controller_DataplaneGuardedMapTableDelete";
+    break;
+  case ModuleType::Controller_DataplaneGuardedMapTableGuardCheck:
+    os << "Controller_DataplaneGuardedMapTableGuardCheck";
+    break;
   case ModuleType::Controller_DataplaneDchainTableAllocate:
     os << "Controller_DataplaneDchainTableAllocate";
     break;
@@ -349,9 +376,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneHHTableRead:
     os << "Controller_DataplaneHHTableRead";
-    break;
-  case ModuleType::Controller_DataplaneHHTableConditionalUpdate:
-    os << "Controller_DataplaneHHTableConditionalUpdate";
     break;
   case ModuleType::Controller_DataplaneHHTableUpdate:
     os << "Controller_DataplaneHHTableUpdate";

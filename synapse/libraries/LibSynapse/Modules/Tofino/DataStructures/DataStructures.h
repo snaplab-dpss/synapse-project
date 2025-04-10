@@ -13,3 +13,4 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/VectorTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/DchainTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/VectorRegister.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/GuardedMapTable.h>

@@ -45,12 +45,6 @@ public:
     assert(index < capacity);
     assert(v.size == value_size / 8);
 
-    if (cache.at(index) == v) {
-      return;
-    }
-
-    cache.at(index) = v;
-
     bytes_t offset = 0;
     for (Register &reg : registers) {
       const bytes_t reg_value_size = reg.get_value_size() / 8;
@@ -59,6 +53,8 @@ public:
 
       offset += reg_value_size;
     }
+
+    cache.at(index) = v;
   }
 
   void dump() const {

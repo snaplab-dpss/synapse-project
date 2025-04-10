@@ -54,10 +54,6 @@ public:
     buffer_t key(4);
     key.set(0, 4, index);
 
-    if (cache.at(index) == value) {
-      return;
-    }
-
     for (Table &table : tables) {
       LOG_DEBUG("[%s] Write index %u value %s", table.get_name().c_str(), index, value.to_string().c_str());
 

@@ -36,6 +36,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;
@@ -72,6 +74,10 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocateNewIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableIsIndexAllocated *node) override final;
@@ -95,7 +101,6 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) override final;

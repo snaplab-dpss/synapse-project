@@ -18,6 +18,11 @@
 #include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableUpdate.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableDelete.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableGuardCheck.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableDelete.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorTableUpdate.h>
@@ -52,7 +57,6 @@
 #include <LibSynapse/Modules/Controller/DataplaneHHTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableUpdate.h>
-#include <LibSynapse/Modules/Controller/DataplaneHHTableConditionalUpdate.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableDelete.h>
 #include <LibSynapse/Modules/Controller/TokenBucketAllocate.h>
 #include <LibSynapse/Modules/Controller/TokenBucketIsTracing.h>
@@ -93,6 +97,11 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneMapTableLookupFactory>());
               f.push_back(std::make_unique<DataplaneMapTableUpdateFactory>());
               f.push_back(std::make_unique<DataplaneMapTableDeleteFactory>());
+              f.push_back(std::make_unique<DataplaneGuardedMapTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneGuardedMapTableLookupFactory>());
+              f.push_back(std::make_unique<DataplaneGuardedMapTableGuardCheckFactory>());
+              f.push_back(std::make_unique<DataplaneGuardedMapTableUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneGuardedMapTableDeleteFactory>());
               f.push_back(std::make_unique<DataplaneVectorTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneVectorTableLookupFactory>());
               f.push_back(std::make_unique<DataplaneVectorTableUpdateFactory>());
@@ -126,7 +135,6 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneHHTableReadFactory>());
               f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>());
-              f.push_back(std::make_unique<DataplaneHHTableConditionalUpdateFactory>());
               f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>());
               f.push_back(std::make_unique<TokenBucketAllocateFactory>());
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>());

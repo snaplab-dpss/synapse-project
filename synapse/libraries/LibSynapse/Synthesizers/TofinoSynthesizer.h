@@ -204,6 +204,8 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;

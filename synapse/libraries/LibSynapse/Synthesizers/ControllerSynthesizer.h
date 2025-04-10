@@ -169,6 +169,11 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableUpdate *node) override final;
@@ -201,7 +206,6 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) override final;
@@ -243,6 +247,7 @@ private:
 
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
+  void transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table);
   void transpile_vector_table_decl(const Tofino::VectorTable *vector_table);
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);

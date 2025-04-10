@@ -57,14 +57,14 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const LibBDD::Node *no
   return probability;
 }
 
-void add_map_get_clone_on_cache_write_failed(const EP *ep, LibBDD::BDD *bdd, const LibBDD::Node *map_get,
-                                             const LibBDD::Branch *cache_write_branch, LibBDD::Node *&new_on_cache_write_failed) {
+void add_map_get_clone_on_cache_write_failed(const EP *ep, LibBDD::BDD *bdd, const LibBDD::Node *map_get, const LibBDD::Branch *cache_write_branch,
+                                             LibBDD::Node *&new_on_cache_write_failed) {
   LibBDD::node_id_t &id                       = bdd->get_mutable_id();
   LibBDD::NodeManager &manager                = bdd->get_mutable_manager();
   LibBDD::Node *map_get_on_cache_write_failed = map_get->clone(manager, false);
   map_get_on_cache_write_failed->recursive_update_ids(id);
 
-  new_on_cache_write_failed = bdd->clone_and_add_non_branches(cache_write_branch->get_on_false(), {map_get_on_cache_write_failed});
+  new_on_cache_write_failed = bdd->add_cloned_non_branches(cache_write_branch->get_on_false()->get_id(), {map_get_on_cache_write_failed});
 }
 
 void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, LibBDD::BDD *bdd, const LibBDD::Branch *cache_write_branch,
@@ -83,12 +83,11 @@ void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, LibBDD::BDD *
     non_branch_nodes_to_add.push_back(prev_borrow);
   }
 
-  new_on_cache_write_failed = bdd->clone_and_add_non_branches(on_cache_write_failed, non_branch_nodes_to_add);
+  new_on_cache_write_failed = bdd->add_cloned_non_branches(on_cache_write_failed->get_id(), non_branch_nodes_to_add);
 }
 
 std::vector<const LibBDD::Node *> get_nodes_to_speculatively_ignore(const EP *ep, const LibBDD::Node *on_success,
-                                                                    const LibBDD::map_coalescing_objs_t &map_objs,
-                                                                    klee::ref<klee::Expr> key) {
+                                                                    const LibBDD::map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key) {
   std::vector<const LibBDD::Call *> coalescing_nodes = on_success->get_coalescing_nodes_from_key(key, map_objs);
 
   std::vector<const LibBDD::Node *> nodes_to_ignore;
@@ -107,8 +106,7 @@ std::vector<const LibBDD::Node *> get_nodes_to_speculatively_ignore(const EP *ep
       if (index_alloc_check.branch) {
         nodes_to_ignore.push_back(index_alloc_check.branch);
 
-        const LibBDD::Node *next =
-            index_alloc_check.direction ? index_alloc_check.branch->get_on_false() : index_alloc_check.branch->get_on_true();
+        const LibBDD::Node *next = index_alloc_check.direction ? index_alloc_check.branch->get_on_false() : index_alloc_check.branch->get_on_true();
 
         next->visit_nodes([&nodes_to_ignore](const LibBDD::Node *node) {
           nodes_to_ignore.push_back(node);
@@ -121,9 +119,8 @@ std::vector<const LibBDD::Node *> get_nodes_to_speculatively_ignore(const EP *ep
   return nodes_to_ignore;
 }
 
-void delete_coalescing_nodes_on_success(const EP *ep, LibBDD::BDD *bdd, LibBDD::Node *on_success,
-                                        const LibBDD::map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
-                                        std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
+void delete_coalescing_nodes_on_success(const EP *ep, LibBDD::BDD *bdd, LibBDD::Node *on_success, const LibBDD::map_coalescing_objs_t &map_objs,
+                                        klee::ref<klee::Expr> key, std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
   const std::vector<const LibBDD::Call *> targets = on_success->get_coalescing_nodes_from_key(key, map_objs);
 
   for (const LibBDD::Node *target : targets) {
@@ -155,26 +152,26 @@ void delete_coalescing_nodes_on_success(const EP *ep, LibBDD::BDD *bdd, LibBDD::
   }
 }
 
-std::unique_ptr<LibBDD::BDD>
-branch_bdd_on_cache_write_success(const EP *ep, const LibBDD::Node *map_get, const fcfs_cached_table_data_t &fcfs_cached_table_data,
-                                  klee::ref<klee::Expr> cache_write_success_condition, const LibBDD::map_coalescing_objs_t &map_objs,
-                                  LibBDD::Node *&on_cache_write_success, LibBDD::Node *&on_cache_write_failed,
-                                  std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
+std::unique_ptr<LibBDD::BDD> branch_bdd_on_cache_write_success(const EP *ep, const LibBDD::Node *map_get,
+                                                               const fcfs_cached_table_data_t &fcfs_cached_table_data,
+                                                               klee::ref<klee::Expr> cache_write_success_condition,
+                                                               const LibBDD::map_coalescing_objs_t &map_objs, LibBDD::Node *&on_cache_write_success,
+                                                               LibBDD::Node *&on_cache_write_failed,
+                                                               std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
   const LibBDD::BDD *old_bdd           = ep->get_bdd();
   std::unique_ptr<LibBDD::BDD> new_bdd = std::make_unique<LibBDD::BDD>(*old_bdd);
 
   const LibBDD::Node *next = map_get->get_next();
   assert(next && "map_get node has no next node");
 
-  LibBDD::Branch *cache_write_branch = new_bdd->clone_and_add_branch(next, cache_write_success_condition);
+  LibBDD::Branch *cache_write_branch = new_bdd->add_cloned_branch(next->get_id(), cache_write_success_condition);
 
   on_cache_write_success = cache_write_branch->get_mutable_on_true();
   add_map_get_clone_on_cache_write_failed(ep, new_bdd.get(), map_get, cache_write_branch, on_cache_write_failed);
 
   replicate_hdr_parsing_ops_on_cache_write_failed(ep, new_bdd.get(), cache_write_branch, on_cache_write_failed);
 
-  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, map_objs, fcfs_cached_table_data.key,
-                                     deleted_branch_constraints);
+  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, map_objs, fcfs_cached_table_data.key, deleted_branch_constraints);
 
   return new_bdd;
 }
@@ -191,9 +188,9 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
 
   klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_failed);
 
-  Module *module = new FCFSCachedTableReadWrite(
-      node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj, fcfs_cached_table_data.key,
-      fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value, fcfs_cached_table_data.map_has_this_key, cache_write_failed);
+  Module *module = new FCFSCachedTableReadWrite(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
+                                                fcfs_cached_table_data.key, fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
+                                                fcfs_cached_table_data.map_has_this_key, cache_write_failed);
   EPNode *cached_table_cond_write_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -204,8 +201,8 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
 
   panic("TODO: Remove vector key operations (and do the same for the other data structures)");
   std::unique_ptr<LibBDD::BDD> new_bdd =
-      branch_bdd_on_cache_write_success(new_ep, node, fcfs_cached_table_data, cache_write_success_condition, map_objs,
-                                        on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);
+      branch_bdd_on_cache_write_success(new_ep, node, fcfs_cached_table_data, cache_write_success_condition, map_objs, on_cache_write_success,
+                                        on_cache_write_failed, deleted_branch_constraints);
 
   LibCore::Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
 
@@ -221,9 +218,8 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
 
   cached_table_cond_write_node->set_children(if_node);
 
-  if_node->set_constraint(cache_write_success_condition);
   if_node->set_prev(cached_table_cond_write_node);
-  if_node->set_children(then_node, else_node);
+  if_node->set_children(cache_write_success_condition, then_node, else_node);
 
   then_node->set_prev(if_node);
 
@@ -234,8 +230,8 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
 
   const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, fcfs_cached_table_data.key, cache_capacity);
 
-  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(),
-                                                                   cache_write_success_condition, cache_success_probability);
+  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cache_write_success_condition,
+                                                                   cache_success_probability);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
@@ -282,8 +278,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
   }
 
@@ -298,8 +293,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
-                                            cache_capacity)) {
+    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity)) {
       break;
     }
 
@@ -383,8 +377,7 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
   return impls;
 }
 
-std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
-                                                                const LibBDD::Node *node) const {
+std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
     return {};
   }
@@ -403,8 +396,7 @@ std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const LibBDD::BD
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 

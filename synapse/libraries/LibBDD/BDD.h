@@ -87,8 +87,9 @@ public:
   void delete_init_node(node_id_t target_id);
   Node *delete_non_branch(node_id_t target_id);
   Node *delete_branch(node_id_t target_id, bool direction_to_keep);
-  Node *clone_and_add_non_branches(const Node *current, const std::vector<const Node *> &new_nodes);
-  Branch *clone_and_add_branch(const Node *current, klee::ref<klee::Expr> condition);
+  Call *add_new_symbol_generator_function(node_id_t target_id, const std::string &fn_name, const LibCore::Symbols &symbols);
+  Node *add_cloned_non_branches(node_id_t target_id, const std::vector<const Node *> &new_nodes);
+  Branch *add_cloned_branch(node_id_t target_id, klee::ref<klee::Expr> condition);
 };
 
 } // namespace LibBDD

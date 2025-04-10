@@ -10,7 +10,7 @@ std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const LibBD
   }
 
   const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const LibBDD::RouteOp op        = route_node->get_operation();
 
   if (op != LibBDD::RouteOp::Broadcast) {
     return std::nullopt;

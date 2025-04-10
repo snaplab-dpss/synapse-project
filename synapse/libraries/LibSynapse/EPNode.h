@@ -39,7 +39,7 @@ public:
 
   void set_id(ep_node_id_t id);
   void set_children(EPNode *child);
-  void set_children(EPNode *on_true, EPNode *on_false);
+  void set_children(klee::ref<klee::Expr> condition, EPNode *on_true, EPNode *on_false);
   void set_prev(EPNode *prev);
 
   const EPNode *get_node_by_id(ep_node_id_t target_id) const;

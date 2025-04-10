@@ -113,8 +113,7 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints,
-                            LibCore::SymbolManager *symbol_manager) {
+Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager) {
   assert(is_routing_function(call) && "Unexpected function");
 
   if (call.function_name == "packet_free") {
@@ -431,6 +430,15 @@ Branch *create_new_branch(BDD *bdd, const Node *current, klee::ref<klee::Expr> c
   return new_branch;
 }
 
+Call *create_new_call(BDD *bdd, const Node *current, const call_t &call, const LibCore::Symbols &generated_symbols) {
+  node_id_t &id                       = bdd->get_mutable_id();
+  NodeManager &manager                = bdd->get_mutable_manager();
+  klee::ConstraintManager constraints = current->get_constraints();
+  Call *new_call                      = new Call(id++, constraints, bdd->get_mutable_symbol_manager(), call, generated_symbols);
+  manager.add_node(new_call);
+  return new_call;
+}
+
 struct next_t {
   struct obj_op_t {
     addr_t obj;
@@ -681,9 +689,7 @@ BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_
   }
 }
 
-BDD::BDD(const std::filesystem::path &fpath, LibCore::SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) {
-  deserialize(fpath);
-}
+BDD::BDD(const std::filesystem::path &fpath, LibCore::SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) { deserialize(fpath); }
 
 BDD::BDD(const BDD &other)
     : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), symbol_manager(other.symbol_manager) {
@@ -845,7 +851,10 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
   return new_current;
 }
 
-Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<const Node *> &new_nodes) {
+Node *BDD::add_cloned_non_branches(node_id_t target_id, const std::vector<const Node *> &new_nodes) {
+  const Node *current = get_node_by_id(target_id);
+  assert(current && "Node not found");
+
   Node *new_current = nullptr;
 
   if (new_nodes.empty()) {
@@ -903,7 +912,10 @@ Node *BDD::clone_and_add_non_branches(const Node *current, const std::vector<con
   return new_current;
 }
 
-Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> condition) {
+Branch *BDD::add_cloned_branch(node_id_t target_id, klee::ref<klee::Expr> condition) {
+  const Node *current = get_node_by_id(target_id);
+  assert(current && "Node not found");
+
   const Node *prev = current->get_prev();
   assert(prev && "No previous node");
 
@@ -953,6 +965,55 @@ Branch *BDD::clone_and_add_branch(const Node *current, klee::ref<klee::Expr> con
   new_branch->set_prev(anchor);
 
   return new_branch;
+}
+
+Call *BDD::add_new_symbol_generator_function(node_id_t target_id, const std::string &fn_name, const LibCore::Symbols &symbols) {
+  const Node *current = get_node_by_id(target_id);
+  assert(current && "Node not found");
+
+  const Node *prev = current->get_prev();
+  assert(prev && "No previous node");
+
+  const call_t call{
+      .function_name = fn_name,
+      .extra_vars    = {},
+      .args          = {},
+      .ret           = {},
+  };
+
+  Call *new_node = create_new_call(this, current, call, symbols);
+
+  node_id_t anchor_id = prev->get_id();
+  Node *anchor        = get_mutable_node_by_id(anchor_id);
+  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
+
+  switch (anchor->get_type()) {
+  case NodeType::Call:
+  case NodeType::Route: {
+    anchor->set_next(new_node);
+  } break;
+  case NodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const Node *on_true  = branch->get_on_true();
+    const Node *on_false = branch->get_on_false();
+
+    assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_node);
+    } else {
+      branch->set_on_false(new_node);
+    }
+
+  } break;
+  }
+
+  new_node->set_prev(anchor);
+  new_node->set_next(anchor_next);
+  anchor_next->set_prev(new_node);
+
+  return new_node;
 }
 
 bool BDD::get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const {
@@ -1171,8 +1232,8 @@ std::vector<u16> BDD::get_devices() const {
   const klee::ConstraintManager &base_constraints = root->get_constraints();
   for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
     bool valid_device_value = LibCore::solver_toolbox.is_expr_always_false(
-        base_constraints, LibCore::solver_toolbox.exprBuilder->Eq(
-                              device.expr, LibCore::solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
+        base_constraints,
+        LibCore::solver_toolbox.exprBuilder->Eq(device.expr, LibCore::solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
 
     if (valid_device_value) {
       break;
@@ -1225,8 +1286,7 @@ BDD::inspection_report_t BDD::inspect() const {
       }
 
       if (!available_symbols.has(used_symbol.name)) {
-        report = {InspectionStatus::MissingSymbol,
-                  "Node " + std::to_string(node->get_id()) + " uses unavailable symbol " + used_symbol.name};
+        report = {InspectionStatus::MissingSymbol, "Node " + std::to_string(node->get_id()) + " uses unavailable symbol " + used_symbol.name};
         return NodeVisitAction::Stop;
       }
     }

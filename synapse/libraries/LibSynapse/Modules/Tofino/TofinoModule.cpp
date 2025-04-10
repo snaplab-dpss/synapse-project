@@ -77,6 +77,10 @@ public:
   Action visitSRem(const klee::SRemExpr &e) override final { return visit_incompatible_op(); }
 };
 
+// ======================================================================
+//  Map Table
+// ======================================================================
+
 MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
@@ -162,6 +166,100 @@ MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
   return map_table;
 }
 
+// ======================================================================
+//  Guarded Map Table
+// ======================================================================
+
+GuardedMapTable *build_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const tna_properties_t &properties = tofino_ctx->get_tna().get_tna_config().properties;
+
+  bits_t key_size = 0;
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    key_size += key->getWidth();
+    keys_size.push_back(key->getWidth());
+  }
+
+  assert(data.value->getWidth() == klee::Expr::Int32);
+
+  const DS_ID id = "guarded_map_table_" + std::to_string(data.obj);
+
+  GuardedMapTable *guarded_map_table = new GuardedMapTable(properties, id, data.capacity, key_size);
+  guarded_map_table->add_table(node->get_id(), keys_size, data.time_aware);
+
+  if (!tofino_ctx->check_placement(ep, node, guarded_map_table)) {
+    delete guarded_map_table;
+    guarded_map_table = nullptr;
+  }
+
+  return guarded_map_table;
+}
+
+GuardedMapTable *get_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+
+  if (!tofino_ctx->has_ds(data.obj)) {
+    return nullptr;
+  }
+
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  assert(!ds.empty() && "No guarded map table found");
+  assert(ds.size() == 1);
+  DS *mt = *ds.begin();
+
+  assert(mt->type == DSType::GUARDED_MAP_TABLE && "Unexpected type");
+  return dynamic_cast<GuardedMapTable *>(mt);
+}
+
+bool can_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, data);
+  assert(guarded_map_table && "Guarded map table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!guarded_map_table->has_table(node->get_id()));
+
+  GuardedMapTable *clone = dynamic_cast<GuardedMapTable *>(guarded_map_table->clone());
+
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    keys_size.push_back(key->getWidth());
+  }
+
+  clone->add_table(node->get_id(), keys_size, data.time_aware);
+  guarded_map_table = clone;
+
+  const bool can_place = tofino_ctx->check_placement(ep, node, guarded_map_table);
+  delete guarded_map_table;
+
+  return can_place;
+}
+
+GuardedMapTable *reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, data);
+  assert(guarded_map_table && "Guarded map table not found");
+
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  assert(!guarded_map_table->has_table(node->get_id()));
+
+  std::vector<bits_t> keys_size;
+  for (klee::ref<klee::Expr> key : data.keys) {
+    keys_size.push_back(key->getWidth());
+  }
+
+  guarded_map_table->add_table(node->get_id(), keys_size, data.time_aware);
+
+  if (!tofino_ctx->check_placement(ep, node, guarded_map_table)) {
+    return nullptr;
+  }
+
+  return guarded_map_table;
+}
+
+// ======================================================================
+//  Vector Table
+// ======================================================================
+
 VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
@@ -231,6 +329,10 @@ VectorTable *reuse_vector_table(const EP *ep, const LibBDD::Node *node, const ve
   return vector_table;
 }
 
+// ======================================================================
+//  Dchain Table
+// ======================================================================
+
 DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
@@ -299,6 +401,10 @@ DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
   return dchain_table;
 }
 
+// ======================================================================
+//  Vector Registers
+// ======================================================================
+
 VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
   const tna_properties_t &properties = tofino_ctx->get_tna().get_tna_config().properties;
@@ -338,6 +444,10 @@ VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, cons
   assert(vr->type == DSType::VECTOR_REGISTER && "Unexpected type");
   return dynamic_cast<VectorRegister *>(vr);
 }
+
+// ======================================================================
+//  FCFS Cached Table
+// ======================================================================
 
 FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
                                          u32 cache_capacity) {
@@ -391,6 +501,10 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
   return cached_table;
 }
 
+// ======================================================================
+//  Heavy Hitter Table
+// ======================================================================
+
 HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
                         u32 cms_width, u32 cms_height) {
   const DS_ID id = "hh_table_" + std::to_string(obj);
@@ -435,6 +549,10 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
 
   return hh_table;
 }
+
+// ======================================================================
+//  Count Min Sketch
+// ======================================================================
 
 CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
@@ -536,6 +654,39 @@ bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const LibBD
   }
 
   delete map_table;
+  return true;
+}
+
+GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  GuardedMapTable *guarded_map_table;
+
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
+
+  if (already_placed) {
+    guarded_map_table = reuse_guarded_map_table(ep, node, data);
+  } else {
+    guarded_map_table = build_guarded_map_table(ep, node, data);
+  }
+
+  return guarded_map_table;
+}
+
+bool TofinoModuleFactory::can_build_or_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+  const Context &ctx  = ep->get_ctx();
+  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
+
+  if (already_placed) {
+    return can_reuse_guarded_map_table(ep, node, data);
+  }
+
+  GuardedMapTable *guarded_map_table = build_guarded_map_table(ep, node, data);
+
+  if (!guarded_map_table) {
+    return false;
+  }
+
+  delete guarded_map_table;
   return true;
 }
 

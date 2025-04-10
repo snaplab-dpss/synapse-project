@@ -76,6 +76,13 @@ public:
   static bool can_build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data);
 
   // ======================================================================
+  //  Guarded Map Table
+  // ======================================================================
+
+  static GuardedMapTable *build_or_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data);
+  static bool can_build_or_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data);
+
+  // ======================================================================
   //  Vector Table
   // ======================================================================
 

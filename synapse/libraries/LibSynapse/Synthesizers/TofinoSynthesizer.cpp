@@ -2020,13 +2020,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const DS_ID map_table_id                       = node->get_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
-  klee::ref<klee::Expr> value                    = node->get_value();
-  std::optional<LibCore::symbol_t> hit           = node->get_hit();
+  const klee::ref<klee::Expr> value              = node->get_value();
+  const std::optional<LibCore::symbol_t> hit     = node->get_hit();
 
   const MapTable *map_table = get_tofino_ds<MapTable>(ep, map_table_id);
 
-  LibBDD::node_id_t node_id = node->get_node()->get_id();
-  const Table *table        = map_table->get_table(node_id);
+  const LibBDD::node_id_t node_id = node->get_node()->get_id();
+  const Table *table              = map_table->get_table(node_id);
   assert(table && "Table not found");
 
   std::vector<var_t> keys_vars;
@@ -2045,6 +2045,92 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
   }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID id                                 = node->get_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const klee::ref<klee::Expr> value              = node->get_value();
+  const std::optional<LibCore::symbol_t> hit     = node->get_hit();
+
+  const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, id);
+
+  const LibBDD::node_id_t node_id = node->get_node()->get_id();
+  const Table *table              = guarded_map_table->get_table(node_id);
+  assert(table && "Table not found");
+
+  std::vector<var_t> keys_vars;
+  transpile_table_decl(table, keys, {value}, false, keys_vars);
+  assert(keys_vars.size() == keys.size());
+
+  const Register &guard = guarded_map_table->guard;
+  transpile_register_decl(&guard);
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  if (hit) {
+    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
+    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  } else {
+    ingress_apply.indent();
+    ingress_apply << table->id << ".apply();\n";
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const LibBDD::node_id_t node_id             = node->get_node()->get_id();
+  const DS_ID id                              = node->get_id();
+  const LibCore::symbol_t &guard_allow        = node->get_guard_allow();
+  klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
+
+  const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, id);
+  const Register &guard                    = guarded_map_table->guard;
+
+  assert(guard.actions.size() == 1);
+  const RegisterActionType action_type      = *guard.actions.begin();
+  const code_t guard_allow_read_action_name = build_register_action_name(ep_node, &guard, action_type);
+  transpile_register_action_decl(&guard, guard_allow_read_action_name, action_type, {});
+
+  const code_t guard_value    = id + "_guard_value_" + std::to_string(node_id);
+  const var_t guard_value_var = alloc_var(guard_value, guard_allow.expr, SKIP_STACK_ALLOC);
+
+  guard_value_var.declare(ingress, "0");
+
+  coder_t guard_allow_check_body;
+  guard_allow_check_body.indent();
+  guard_allow_check_body << guard_value_var.name << " = " << guard_allow_read_action_name << ".execute(0);\n";
+  const code_t guard_allow_check = id + "_guard_check_" + std::to_string(node_id);
+  transpile_action_decl(guard_allow_check, guard_allow_check_body.split_lines());
+
+  ingress_apply.indent();
+  ingress_apply << guard_allow_check << "();\n";
+
+  const code_t guard_allow_value = id + "_guard_allow";
+  const var_t guard_allow_var    = alloc_var(guard_allow_value, guard_allow_condition, FORCE_BOOL);
+
+  guard_allow_var.declare(ingress_apply, "false");
+  ingress_apply.indent();
+  ingress_apply << "if (" << guard_value_var.name << " != 0) {\n";
+
+  ingress_apply.inc();
+  ingress_apply.indent();
+  ingress_apply << guard_allow_var.name << " = true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
 
   return EPVisitor::Action::doChildren;
 }

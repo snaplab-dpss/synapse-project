@@ -17,6 +17,7 @@ namespace LibBDD {
 class BDDVisitor;
 class NodeManager;
 class Call;
+class Route;
 
 using node_id_t  = u64;
 using node_ids_t = std::unordered_set<node_id_t>;
@@ -44,8 +45,7 @@ public:
   Node(node_id_t _id, NodeType _type, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager)
       : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints), symbol_manager(_symbol_manager) {}
 
-  Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints,
-       LibCore::SymbolManager *_symbol_manager)
+  Node(node_id_t _id, NodeType _type, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager)
       : id(_id), type(_type), next(_next), prev(_prev), constraints(_constraints), symbol_manager(_symbol_manager) {}
 
   const Node *get_next() const { return next; }
@@ -75,8 +75,7 @@ public:
   void visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn, std::unique_ptr<cookie_t> cookie);
 
   void recursive_update_ids(node_id_t &new_id);
-  void recursive_translate_symbol(LibCore::SymbolManager *symbol_manager, const LibCore::symbol_t &old_symbol,
-                                  const LibCore::symbol_t &new_symbol);
+  void recursive_translate_symbol(LibCore::SymbolManager *symbol_manager, const LibCore::symbol_t &old_symbol, const LibCore::symbol_t &new_symbol);
   void recursive_add_constraint(klee::ref<klee::Expr> constraint);
   void recursive_free_children(NodeManager &manager);
   std::string recursive_dump(int lvl = 0) const;
@@ -94,6 +93,7 @@ public:
                                                const node_ids_t &stop_nodes = node_ids_t()) const;
   std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;
   std::vector<const Call *> get_coalescing_nodes_from_key(klee::ref<klee::Expr> target_key, const map_coalescing_objs_t &data) const;
+  std::vector<const Route *> get_future_routing_decisions() const;
 
   virtual std::vector<node_id_t> get_leaves() const;
   virtual std::vector<const Node *> get_children(bool recursive = false) const;

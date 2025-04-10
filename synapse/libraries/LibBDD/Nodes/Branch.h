@@ -12,8 +12,7 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  Branch(node_id_t _id, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager,
-         klee::ref<klee::Expr> _condition)
+  Branch(node_id_t _id, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager, klee::ref<klee::Expr> _condition)
       : Node(_id, NodeType::Branch, _constraints, _symbol_manager), on_false(nullptr), condition(_condition) {}
 
   Branch(node_id_t _id, Node *_prev, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager, Node *_on_true,
@@ -60,6 +59,22 @@ struct branch_direction_t {
   branch_direction_t(const branch_direction_t &other)            = default;
   branch_direction_t(branch_direction_t &&other)                 = default;
   branch_direction_t &operator=(const branch_direction_t &other) = default;
+
+  const Node *get_success_node() const {
+    if (direction) {
+      return branch->get_on_true();
+    } else {
+      return branch->get_on_false();
+    }
+  }
+
+  const Node *get_failure_node() const {
+    if (direction) {
+      return branch->get_on_false();
+    } else {
+      return branch->get_on_true();
+    }
+  }
 };
 
 } // namespace LibBDD

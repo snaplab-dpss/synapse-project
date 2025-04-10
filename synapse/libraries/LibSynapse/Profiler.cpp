@@ -56,6 +56,7 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
       for (const auto &[device, dev_counter] : bdd_profile->forwarding_stats.at(node->get_id()).ports) {
         prof_node->forwarding_stats->ports[device] = hit_rate_t(dev_counter, max_count);
       }
+      prof_node->original_forwarding_stats = prof_node->forwarding_stats;
 
       node = node->get_next();
     } break;
@@ -164,18 +165,38 @@ void update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
   const hit_rate_t old_fraction = node->fraction;
   node->fraction                = new_fraction;
 
-  if (new_fraction != 0_hr) {
-    const double dhr = new_fraction.value / old_fraction.value;
+  if (!node->forwarding_stats.has_value()) {
+    return;
+  }
 
-    if (node->forwarding_stats.has_value()) {
-      fwd_stats_t &fwd_stats = node->forwarding_stats.value();
-      fwd_stats.drop         = fwd_stats.drop * dhr;
-      fwd_stats.flood        = fwd_stats.flood * dhr;
-      for (auto &[_, hr] : fwd_stats.ports) {
-        hr = hr * dhr;
-      }
-      assert(node->fraction == fwd_stats.calculate_total_hr());
+  assert(node->original_forwarding_stats.has_value());
+
+  fwd_stats_t &fwd_stats          = node->forwarding_stats.value();
+  fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
+
+  if (old_fraction != 0_hr) {
+    const double dhr = new_fraction / old_fraction;
+
+    fwd_stats.drop  = fwd_stats.drop * dhr;
+    fwd_stats.flood = fwd_stats.flood * dhr;
+    for (auto &[_, hr] : fwd_stats.ports) {
+      hr = hr * dhr;
     }
+
+    assert(new_fraction == fwd_stats.calculate_total_hr());
+  } else if (original_fwd_stats.calculate_total_hr() != 0_hr) {
+    const hit_rate_t total_hr = original_fwd_stats.calculate_total_hr();
+
+    fwd_stats.drop  = new_fraction * (original_fwd_stats.drop / total_hr);
+    fwd_stats.flood = new_fraction * (original_fwd_stats.flood / total_hr);
+
+    for (auto &[port, hr] : original_fwd_stats.ports) {
+      fwd_stats.ports[port] = new_fraction * (hr / total_hr);
+    }
+
+    assert(new_fraction == fwd_stats.calculate_total_hr());
+  } else {
+    assert(new_fraction == 0_hr && "Not enough information for forwarding profiling decisions");
   }
 }
 
@@ -225,8 +246,9 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
     new_node->bdd_node_id = bdd_node_id;
   }
 
-  new_node->flows_stats      = flows_stats;
-  new_node->forwarding_stats = forwarding_stats;
+  new_node->flows_stats               = flows_stats;
+  new_node->forwarding_stats          = forwarding_stats;
+  new_node->original_forwarding_stats = original_forwarding_stats;
 
   if (on_true) {
     new_node->on_true       = on_true->clone(keep_bdd_info);
@@ -337,8 +359,7 @@ fwd_stats_t Profiler::get_fwd_stats(const LibBDD::Node *node) const {
 }
 
 Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_profile)
-    : bdd_profile(new LibBDD::bdd_profile_t(_bdd_profile)), root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts),
-      cache() {
+    : bdd_profile(new LibBDD::bdd_profile_t(_bdd_profile)), root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const LibBDD::Node *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
@@ -381,12 +402,10 @@ Profiler::Profiler(const LibBDD::BDD *bdd) : Profiler(bdd, build_random_bdd_prof
 Profiler::Profiler(const LibBDD::BDD *bdd, const std::filesystem::path &bdd_profile_fname)
     : Profiler(bdd, LibBDD::parse_bdd_profile(bdd_profile_fname)) {}
 
-Profiler::Profiler(const Profiler &other)
-    : bdd_profile(other.bdd_profile), root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
+Profiler::Profiler(const Profiler &other) : bdd_profile(other.bdd_profile), root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
 
 Profiler::Profiler(Profiler &&other)
-    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size),
-      cache(std::move(other.cache)) {
+    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
   other.root = nullptr;
 }
 

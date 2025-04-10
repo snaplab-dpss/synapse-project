@@ -706,8 +706,7 @@ std::vector<const Call *> Node::get_coalescing_nodes_from_key(klee::ref<klee::Ex
     return !same_key;
   };
 
-  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_map_nodes_and_retrieve_index),
-                       filtered_nodes.end());
+  filtered_nodes.erase(std::remove_if(filtered_nodes.begin(), filtered_nodes.end(), filter_map_nodes_and_retrieve_index), filtered_nodes.end());
 
   auto filter_vectors_nodes = [&index](const Node *node) {
     assert(node->get_type() == NodeType::Call && "Unexpected node type");
@@ -760,6 +759,23 @@ std::vector<LibCore::expr_groups_t> Node::get_expr_groups() const {
   }
 
   return groups;
+}
+
+std::vector<const Route *> Node::get_future_routing_decisions() const {
+  std::vector<const Route *> routes;
+
+  visit_nodes([&routes](const Node *node) {
+    if (node->get_type() != NodeType::Route) {
+      return NodeVisitAction::Continue;
+    }
+
+    const Route *route_node = dynamic_cast<const Route *>(node);
+    routes.push_back(route_node);
+
+    return NodeVisitAction::Continue;
+  });
+
+  return routes;
 }
 
 } // namespace LibBDD

@@ -46,10 +46,11 @@ std::vector<Register> build_count_min_sketch(const tna_properties_t &properties,
 
 Register build_threshold(const tna_properties_t &properties, DS_ID id) {
   const DS_ID reg_id              = id + "_threshold";
+  const u32 capacity              = 1;
   const bits_t index_size         = 1;
   const bits_t value_size         = 32;
   const RegisterActionType action = RegisterActionType::CALCULATE_DIFF;
-  return Register(properties, reg_id, 1, index_size, value_size, {action});
+  return Register(properties, reg_id, capacity, index_size, value_size, {action});
 }
 
 Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type) {
@@ -66,7 +67,7 @@ HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _ca
                  u32 _cms_height, u8 _digest_type)
     : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
       hash_size(LibCore::bits_from_pow2_capacity(_cms_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
-      hashes(build_hashes(id, _keys_sizes, _cms_height, hash_size)),
+      hashes(build_hashes(_id, _keys_sizes, _cms_height, hash_size)),
       count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)), threshold(build_threshold(properties, _id)),
       digest(build_digest(_id, _keys_sizes, _digest_type)) {
   assert(_keys_sizes.size() > 0 && "HH Table keys sizes must not be empty");

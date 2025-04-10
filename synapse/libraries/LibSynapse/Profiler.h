@@ -58,6 +58,7 @@ struct ProfilerNode {
   std::optional<LibBDD::node_id_t> bdd_node_id;
   std::vector<flow_stats_t> flows_stats;
   std::optional<fwd_stats_t> forwarding_stats;
+  std::optional<fwd_stats_t> original_forwarding_stats;
 
   ProfilerNode *on_true;
   ProfilerNode *on_false;

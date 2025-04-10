@@ -154,8 +154,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   EPNode *then_node = new EPNode(then_module);
   EPNode *else_node = new EPNode(else_module);
 
-  if_node->set_constraint(original_condition);
-  if_node->set_children(then_node, else_node);
+  if_node->set_children(original_condition, then_node, else_node);
   then_node->set_prev(if_node);
   else_node->set_prev(if_node);
 

@@ -40,8 +40,7 @@ std::string base_from_name(const std::string &name) {
 }
 } // namespace
 
-symbol_t::symbol_t(const std::string &_base, const std::string &_name, klee::ref<klee::Expr> _expr)
-    : base(_base), name(_name), expr(_expr) {}
+symbol_t::symbol_t(const std::string &_base, const std::string &_name, klee::ref<klee::Expr> _expr) : base(_base), name(_name), expr(_expr) {}
 
 symbol_t::symbol_t(klee::ref<klee::Expr> _expr) : expr(_expr) {
   SymbolNamesRetriever retriever;
@@ -77,6 +76,12 @@ std::size_t Symbols::symbol_hash_t::operator()(const symbol_t &s) const noexcept
 }
 
 bool Symbols::symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept { return a.name == b.name; }
+
+Symbols::Symbols(const std::vector<symbol_t> &symbols) {
+  for (const symbol_t &symbol : symbols) {
+    add(symbol);
+  }
+}
 
 void Symbols::add(const symbol_t &symbol) { data.insert(symbol); }
 

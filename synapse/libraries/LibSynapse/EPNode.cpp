@@ -27,7 +27,10 @@ EPNode::~EPNode() {
 
 void EPNode::set_children(EPNode *next) { children = {next}; }
 
-void EPNode::set_children(EPNode *on_true, EPNode *on_false) { children = {on_true, on_false}; }
+void EPNode::set_children(klee::ref<klee::Expr> condition, EPNode *on_true, EPNode *on_false) {
+  children   = {on_true, on_false};
+  constraint = condition;
+}
 
 void EPNode::set_prev(EPNode *_prev) { prev = _prev; }
 

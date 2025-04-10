@@ -19,6 +19,7 @@ enum class DSImpl {
   // ========================================
 
   Tofino_MapTable,
+  Tofino_GuardedMapTable,
   Tofino_VectorTable,
   Tofino_DchainTable,
   Tofino_VectorRegister,

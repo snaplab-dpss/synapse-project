@@ -93,7 +93,10 @@ bool TofinoContext::has_ds(DS_ID id) const { return id_to_ds.find(id) != id_to_d
 
 const std::unordered_set<DS *> &TofinoContext::get_ds(addr_t addr) const {
   auto found_it = obj_to_ds.find(addr);
-  assert(found_it != obj_to_ds.end() && "Data structure not found");
+  if (found_it == obj_to_ds.end()) {
+    debug();
+    panic("Data structure not found with addr %lu", addr);
+  }
   return found_it->second;
 }
 

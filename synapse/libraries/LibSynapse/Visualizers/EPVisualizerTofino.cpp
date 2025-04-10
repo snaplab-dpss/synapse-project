@@ -7,19 +7,19 @@
 #include <cmath>
 #include <unistd.h>
 
-#define SHOW_MODULE_NAME(M)                                                                                                                \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                     \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                        \
-    return EPVisitor::Action::doChildren;                                                                                                  \
+#define SHOW_MODULE_NAME(M)                                                                                                                          \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                               \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                                  \
+    return EPVisitor::Action::doChildren;                                                                                                            \
   }
 
-#define VISIT_BRANCH(M)                                                                                                                    \
-  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                     \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                               \
-    return EPVisitor::Action::doChildren;                                                                                                  \
+#define VISIT_BRANCH(M)                                                                                                                              \
+  EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                               \
+    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                                         \
+    return EPVisitor::Action::doChildren;                                                                                                            \
   }
 
-#define IGNORE_MODULE(M)                                                                                                                   \
+#define IGNORE_MODULE(M)                                                                                                                             \
   EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) { return EPVisitor::Action::doChildren; }
 
 namespace LibSynapse {
@@ -90,6 +90,48 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   addr_t obj                   = node->get_obj();
 
   label_builder << "Map Table Lookup\n";
+  label_builder << "(";
+  label_builder << "tid=";
+  label_builder << tid;
+  label_builder << ", obj=";
+  label_builder << obj;
+  label_builder << ")";
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) {
+  std::stringstream label_builder;
+
+  const LibBDD::Node *bdd_node = node->get_node();
+  TargetType target            = node->get_target();
+  Tofino::DS_ID tid            = node->get_id();
+  addr_t obj                   = node->get_obj();
+
+  label_builder << "Guarded Map Table Lookup\n";
+  label_builder << "(";
+  label_builder << "tid=";
+  label_builder << tid;
+  label_builder << ", obj=";
+  label_builder << obj;
+  label_builder << ")";
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) {
+  std::stringstream label_builder;
+
+  const LibBDD::Node *bdd_node = node->get_node();
+  TargetType target            = node->get_target();
+  Tofino::DS_ID tid            = node->get_id();
+  addr_t obj                   = node->get_obj();
+
+  label_builder << "Guarded Map Table Guard Check\n";
   label_builder << "(";
   label_builder << "tid=";
   label_builder << tid;

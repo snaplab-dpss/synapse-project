@@ -57,10 +57,6 @@ public:
     buffer_t value(4);
     value.set(0, 4, v);
 
-    if (cache.find(k) != cache.end()) {
-      return;
-    }
-
     for (Table &table : tables) {
       LOG_DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
 

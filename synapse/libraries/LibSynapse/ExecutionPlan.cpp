@@ -535,7 +535,10 @@ void EP::assert_integrity() const {
     assert(next == found_next && "Next node not found in the BDD");
   }
 
-  assert(bdd->inspect().status == LibBDD::BDD::InspectionStatus::Ok && "BDD inspection failed");
+  const LibBDD::BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
+  if (bdd_inspection_report.status != LibBDD::BDD::InspectionStatus::Ok) {
+    panic("BDD inspection failed: %s", bdd_inspection_report.message.c_str());
+  }
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {
@@ -564,8 +567,20 @@ void EP::sort_leaves() {
       return true;
     }
 
-    const hit_rate_t l1_hr = ctx.get_profiler().get_hr(l1.node);
-    const hit_rate_t l2_hr = ctx.get_profiler().get_hr(l2.node);
+    if (l1.next == nullptr && l2.next == nullptr) {
+      return true;
+    }
+
+    if (l1.next == nullptr && l2.next != nullptr) {
+      return false;
+    }
+
+    if (l1.next != nullptr && l2.next == nullptr) {
+      return true;
+    }
+
+    const hit_rate_t l1_hr = ctx.get_profiler().get_hr(l1.next);
+    const hit_rate_t l2_hr = ctx.get_profiler().get_hr(l2.next);
 
     return l1_hr > l2_hr;
   };

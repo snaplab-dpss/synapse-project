@@ -18,6 +18,8 @@
 #include <LibSynapse/Modules/Tofino/ParserReject.h>
 #include <LibSynapse/Modules/Tofino/ModifyHeader.h>
 #include <LibSynapse/Modules/Tofino/MapTableLookup.h>
+#include <LibSynapse/Modules/Tofino/GuardedMapTableLookup.h>
+#include <LibSynapse/Modules/Tofino/GuardedMapTableGuardCheck.h>
 #include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
 #include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterLookup.h>
@@ -60,6 +62,8 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<ParserRejectFactory>());
               f.push_back(std::make_unique<ModifyHeaderFactory>());
               f.push_back(std::make_unique<MapTableLookupFactory>());
+              f.push_back(std::make_unique<GuardedMapTableLookupFactory>());
+              f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>());
               f.push_back(std::make_unique<DchainTableLookupFactory>());
               f.push_back(std::make_unique<VectorTableLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());

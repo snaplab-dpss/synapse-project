@@ -22,6 +22,8 @@ class ParserCondition;
 class ParserReject;
 class ModifyHeader;
 class MapTableLookup;
+class GuardedMapTableLookup;
+class GuardedMapTableGuardCheck;
 class DchainTableLookup;
 class VectorTableLookup;
 class VectorRegisterLookup;
@@ -59,6 +61,12 @@ class DataplaneMapTableAllocate;
 class DataplaneMapTableLookup;
 class DataplaneMapTableUpdate;
 class DataplaneMapTableDelete;
+class DataplaneGuardedMapTableAllocate;
+class DataplaneGuardedMapTableLookup;
+class DataplaneGuardedMapTableGuardCheck;
+class GuardedMapTableGuardCheck;
+class DataplaneGuardedMapTableUpdate;
+class DataplaneGuardedMapTableDelete;
 class DataplaneVectorTableAllocate;
 class DataplaneVectorTableLookup;
 class DataplaneVectorTableUpdate;
@@ -76,7 +84,6 @@ class DataplaneFCFSCachedTableWrite;
 class DataplaneFCFSCachedTableDelete;
 class DataplaneHHTableAllocate;
 class DataplaneHHTableRead;
-class DataplaneHHTableConditionalUpdate;
 class DataplaneHHTableUpdate;
 class DataplaneHHTableDelete;
 class DataplaneMeterAllocate;
@@ -175,6 +182,8 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *m) { return Action::doChildren; }
@@ -213,6 +222,11 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableIsIndexAllocated *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocateNewIndex *m) { return Action::doChildren; }
@@ -245,7 +259,6 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableConditionalUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *m) { return Action::doChildren; }
