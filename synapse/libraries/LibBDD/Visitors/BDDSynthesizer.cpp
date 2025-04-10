@@ -1498,6 +1498,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_allocate(coder_t &coder,
   coder_nf_state << ";\n";
 
   coder.indent();
+  coder << "int " << success_var.name << " = ";
   coder << "cms_allocate(";
   coder << transpiler.transpile(height) << ", ";
   coder << transpiler.transpile(width) << ", ";
@@ -1987,6 +1988,9 @@ bool BDDSynthesizer::stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> ex
             coder.indent();
             coder << transpiler.type_from_expr(out_var.expr) << " " << out_var.name;
             coder << " = ";
+            if (!v.addr.isNull() && out_var.addr.isNull()) {
+              coder << "*";
+            }
             coder << slice_var(v, offset, expr_bits);
             coder << ";\n";
           } else {
