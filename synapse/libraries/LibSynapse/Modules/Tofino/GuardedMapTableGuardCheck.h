@@ -2,6 +2,33 @@
 
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 
+/*
+ ============================
+  GuardedMapTableGuardCheck
+ ============================
+
+  - BDD pattern:
+  ┌──────────────────────────┐
+  │dchain_allocate_new_index │
+  └────────────┬─────────────┘
+              │
+    yes┌──────▼──────┐   no
+    ┌──┼out_of_space?┼───┐
+    │  └─────────────┘   │
+    ┌▼┐               ┌───▼───┐
+    │1│               │map_put│
+    └─┘               └───────┘
+
+  - New BDD:
+    yes  ┌─────────────┐ no
+      ┌──┼guard_allows?┼─┐
+      │  └─────────────┘ │
+  ┌────▼─────┐           ┌▼┐
+  │ Old BDD  │           │1│
+  │  pattern │           └─┘
+  └──────────┘
+
+*/
 namespace LibSynapse {
 namespace Tofino {
 
