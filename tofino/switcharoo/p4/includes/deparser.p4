@@ -28,4 +28,3 @@ control EgressDeparser(packet_out pkt,
 }
 
 #endif
-

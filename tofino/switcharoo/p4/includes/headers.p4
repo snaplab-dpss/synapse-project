@@ -22,10 +22,6 @@ header ipv4_h {
 	ipv4_addr_t dst_addr;
 }
 
-header ipv4_options_h {
-	varbit<320> data;
-}
-
 header tcp_h {
 	bit<16> src_port;
 	bit<16> dst_port;
@@ -60,11 +56,11 @@ header swap_entry_h {
 	bit<8>	has_swap;
 }
 
-header cuckoo_counter_h {
-	bit<16> assigned_counter;
-	bit<7>	recirc_counter;
+header cuckoo_cntr_h {
+	bit<16> assigned_cntr;
 	bit<1>	is_assigned;
 	bit<8>	has_swap;
+	bit<7> _padding;
 }
 
 header swap_mirror_h {
@@ -72,7 +68,6 @@ header swap_mirror_h {
 }
 
 struct ingress_metadata_t {
-	bit<1>			first_frag;
 	l4_lookup_t		l4_lookup;
 	MirrorId_t		mirror_session;
 	swap_mirror_h	swap_mirror;
@@ -85,15 +80,14 @@ struct egress_metadata_t {
 }
 
 struct header_t {
-	ethernet_h			ethernet;
-	cuckoo_op_h			cuckoo_op;
-	cuckoo_counter_h	cuckoo_counter;
-	swap_entry_h		swap_entry;
-	swap_entry_h		carry_swap_entry;
-	ipv4_h				ipv4;
-	ipv4_options_h		ipv4_options;
-	tcp_h				tcp;
-	udp_h				udp;
+	ethernet_h		ethernet;
+	cuckoo_op_h		cuckoo_op;
+	cuckoo_cntr_h	cuckoo_cntr;
+	swap_entry_h	swap_entry;
+	swap_entry_h	carry_swap_entry;
+	ipv4_h			ipv4;
+	tcp_h			tcp;
+	udp_h			udp;
 }
 
 #endif
