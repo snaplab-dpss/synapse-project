@@ -12,7 +12,7 @@ std::string build_table_name(DS_ID id, LibBDD::node_id_t table_num) { return id 
 } // namespace
 
 VectorTable::VectorTable(DS_ID _id, u32 _capacity, bits_t _param_size)
-    : DS(DSType::VECTOR_TABLE, false, _id), capacity(_capacity), key_size(32), param_size(_param_size) {
+    : DS(DSType::VectorTable, false, _id), capacity(_capacity), key_size(32), param_size(_param_size) {
   assert(capacity > 0 && "Capacity must be greater than 0");
   assert(param_size > 0 && "Param must be greater than 0");
 }

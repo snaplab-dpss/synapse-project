@@ -9,7 +9,13 @@
 namespace LibSynapse {
 namespace x86 {
 
-enum class ds_type_t { MAP, VECTOR, DCHAIN, CMS, CHT };
+enum class ds_type_t {
+  Map,
+  Vector,
+  Dchain,
+  CMS,
+  CHT,
+};
 
 struct ds_t {
   ds_type_t type;

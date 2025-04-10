@@ -29,8 +29,8 @@ private:
 public:
   MaxTputCfg()
       : HeuristicCfg("MaxTput", {
-                                    BUILD_METRIC(MaxTputCfg, get_bdd_progress, MAX),
-                                    BUILD_METRIC(MaxTputCfg, get_tput_speculation, MAX),
+                                    BUILD_METRIC(MaxTputCfg, get_bdd_progress, Objective::Max),
+                                    BUILD_METRIC(MaxTputCfg, get_tput_speculation, Objective::Max),
                                 }) {}
 
   MaxTputCfg &operator=(const MaxTputCfg &other) {

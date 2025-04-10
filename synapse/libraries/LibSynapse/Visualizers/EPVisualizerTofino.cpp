@@ -235,7 +235,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_ds_from_id(id);
-  assert(ds->type == Tofino::DSType::FCFS_CACHED_TABLE && "Invalid Tofino::DS type");
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Read\n";
@@ -262,7 +262,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_ds_from_id(id);
-  assert(ds->type == Tofino::DSType::FCFS_CACHED_TABLE && "Invalid Tofino::DS type");
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Read/Write\n";
@@ -289,7 +289,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_ds_from_id(id);
-  assert(ds->type == Tofino::DSType::FCFS_CACHED_TABLE && "Invalid Tofino::DS type");
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Write\n";
@@ -316,7 +316,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_ds_from_id(id);
-  assert(ds->type == Tofino::DSType::FCFS_CACHED_TABLE && "Invalid Tofino::DS type");
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
 
   label_builder << "FCFS Cached Table Delete\n";
@@ -372,7 +372,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 
   const Tofino::DS *ds = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_ds_from_id(node->get_hh_table_id());
 
-  assert(ds->type == Tofino::DSType::HH_TABLE && "Invalid Tofino::DS type");
+  assert(ds->type == Tofino::DSType::HHTable && "Invalid Tofino::DS type");
   const Tofino::HHTable *hh_table = dynamic_cast<const Tofino::HHTable *>(ds);
 
   std::stringstream label_builder;

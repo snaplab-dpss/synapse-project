@@ -14,14 +14,14 @@ Register build_guard(const tna_properties_t &properties, DS_ID id) {
   const u32 capacity              = 1;
   const bits_t index_size         = 1;
   const bits_t value_size         = 8;
-  const RegisterActionType action = RegisterActionType::READ;
+  const RegisterActionType action = RegisterActionType::Read;
   return Register(properties, reg_id, capacity, index_size, value_size, {action});
 }
 
 } // namespace
 
 GuardedMapTable::GuardedMapTable(const tna_properties_t &properties, DS_ID _id, u32 _capacity, bits_t _key_size)
-    : DS(DSType::GUARDED_MAP_TABLE, false, _id), capacity(_capacity), key_size(_key_size), param_size(32), guard(build_guard(properties, _id)) {
+    : DS(DSType::GuardedMapTable, false, _id), capacity(_capacity), key_size(_key_size), param_size(32), guard(build_guard(properties, _id)) {
   assert(capacity > 0 && "Capacity must be greater than 0");
   assert(key_size > 0 && "Keys must be greater than 0");
 }

@@ -6,7 +6,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 Digest::Digest(DS_ID _id, const std::vector<bits_t> &_fields, u8 _digest_type)
-    : DS(DSType::DIGEST, true, _id), fields(_fields), digest_type(_digest_type) {}
+    : DS(DSType::Digest, true, _id), fields(_fields), digest_type(_digest_type) {}
 
 Digest::Digest(const Digest &other) : DS(other.type, other.primitive, other.id), fields(other.fields), digest_type(other.digest_type) {}
 

@@ -9,7 +9,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 Table::Table(DS_ID _id, u32 _capacity, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware)
-    : DS(DSType::TABLE, true, _id), capacity(_capacity), keys(_keys), params(_params), time_aware(_time_aware) {
+    : DS(DSType::Table, true, _id), capacity(_capacity), keys(_keys), params(_params), time_aware(_time_aware) {
   assert(_capacity > 0 && "Table entries must be greater than 0");
 }
 

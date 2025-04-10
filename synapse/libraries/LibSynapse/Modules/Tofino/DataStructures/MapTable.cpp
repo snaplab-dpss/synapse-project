@@ -12,7 +12,7 @@ std::string build_table_name(DS_ID id, LibBDD::node_id_t table_num) { return id 
 } // namespace
 
 MapTable::MapTable(DS_ID _id, u32 _capacity, bits_t _key_size)
-    : DS(DSType::MAP_TABLE, false, _id), capacity(_capacity), key_size(_key_size), param_size(32) {
+    : DS(DSType::MapTable, false, _id), capacity(_capacity), key_size(_key_size), param_size(32) {
   assert(capacity > 0 && "Capacity must be greater than 0");
   assert(key_size > 0 && "Keys must be greater than 0");
 }

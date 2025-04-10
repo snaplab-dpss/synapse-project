@@ -9,7 +9,7 @@ namespace Tofino {
 
 Register::Register(const tna_properties_t &properties, DS_ID _id, u32 _capacity, bits_t _index_size, bits_t _value_size,
                    const std::unordered_set<RegisterActionType> &_actions)
-    : DS(DSType::REGISTER, true, _id), capacity(_capacity), index_size(_index_size), value_size(_value_size), actions(_actions) {
+    : DS(DSType::Register, true, _id), capacity(_capacity), index_size(_index_size), value_size(_value_size), actions(_actions) {
   assert(_capacity > 0 && "Register entries must be greater than 0");
   assert(value_size <= properties.max_salu_size && "Register value exceeds SALU size");
 }
@@ -43,28 +43,28 @@ void Register::debug() const {
       ss << ", ";
     }
     switch (action) {
-    case RegisterActionType::READ:
+    case RegisterActionType::Read:
       ss << "READ";
       break;
-    case RegisterActionType::WRITE:
+    case RegisterActionType::Write:
       ss << "WRITE";
       break;
-    case RegisterActionType::SWAP:
+    case RegisterActionType::Swap:
       ss << "SWAP";
       break;
-    case RegisterActionType::INC:
+    case RegisterActionType::Increment:
       ss << "INC";
       break;
-    case RegisterActionType::DEC:
+    case RegisterActionType::Decrement:
       ss << "DEC";
       break;
-    case RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE:
+    case RegisterActionType::SetToOneAndReturnOldValue:
       ss << "SET_TO_ONE_AND_RETURN_OLD_VALUE";
       break;
-    case RegisterActionType::INC_AND_RETURN_NEW_VALUE:
+    case RegisterActionType::IncrementAndReturnNewValue:
       ss << "INC_AND_RETURN_NEW_VALUE";
       break;
-    case RegisterActionType::CALCULATE_DIFF:
+    case RegisterActionType::CalculateDiff:
       ss << "CALCULATE_DIFF";
       break;
     }
@@ -81,9 +81,8 @@ void Register::debug() const {
 
 std::vector<klee::ref<klee::Expr>> Register::partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value,
                                                              const std::vector<LibCore::expr_struct_t> &expr_structs) {
-  const bits_t max_partition_width = properties.max_salu_size;
-  const std::vector<klee::ref<klee::Expr>> partitions =
-      LibCore::break_expr_into_structs_aware_chunks(value, expr_structs, max_partition_width / 8);
+  const bits_t max_partition_width                    = properties.max_salu_size;
+  const std::vector<klee::ref<klee::Expr>> partitions = LibCore::break_expr_into_structs_aware_chunks(value, expr_structs, max_partition_width / 8);
   return partitions;
 }
 

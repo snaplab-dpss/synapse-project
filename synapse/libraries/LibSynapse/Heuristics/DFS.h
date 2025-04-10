@@ -8,7 +8,7 @@ class DFSCfg : public HeuristicCfg {
 public:
   DFSCfg()
       : HeuristicCfg("DFS", {
-                                BUILD_METRIC(DFSCfg, get_depth, MAX),
+                                BUILD_METRIC(DFSCfg, get_depth, Objective::Max),
                             }) {}
 
   DFSCfg &operator=(const DFSCfg &other) {

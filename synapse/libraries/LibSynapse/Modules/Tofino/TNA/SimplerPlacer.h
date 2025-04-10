@@ -9,15 +9,15 @@ namespace LibSynapse {
 namespace Tofino {
 
 enum class PlacementStatus {
-  SUCCESS,
-  TOO_LARGE,
-  TOO_MANY_KEYS,
-  XBAR_CONSUME_EXCEEDS_LIMIT,
-  NO_AVAILABLE_STAGE,
-  INCONSISTENT_PLACEMENT,
-  SELF_DEPENDENCE,
-  NOT_ENOUGH_DIGESTS,
-  UNKNOWN,
+  Success,
+  TooLarge,
+  TooManyKeys,
+  XBarConsumptionExceedsLimit,
+  NoAvailableStage,
+  InconsistentPlacement,
+  SelfDependence,
+  NotEnoughDigests,
+  Unknown,
 };
 
 std::ostream &operator<<(std::ostream &os, const PlacementStatus &status);
@@ -67,15 +67,11 @@ private:
   PlacementStatus is_consistent(DS_ID ds_id, const std::unordered_set<DS_ID> &deps) const;
 
   PlacementStatus find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_table(const Table *table, const std::unordered_set<DS_ID> &deps,
-                                        std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_reg(const Register *reg, const std::unordered_set<DS_ID> &deps,
-                                      std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_meter(const Meter *table, const std::unordered_set<DS_ID> &deps,
-                                        std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_table(const Table *table, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_reg(const Register *reg, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_meter(const Meter *table, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_hash(const Hash *hash, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
-  PlacementStatus find_placements_digest(const Digest *digest, const std::unordered_set<DS_ID> &deps,
-                                         std::vector<placement_t> &placements) const;
+  PlacementStatus find_placements_digest(const Digest *digest, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
   PlacementStatus find_placements_lpm(const LPM *lpm, const std::unordered_set<DS_ID> &deps, std::vector<placement_t> &placements) const;
 
   void concretize_placement(Stage &stage, const placement_t &placement);

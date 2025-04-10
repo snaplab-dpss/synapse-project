@@ -11,7 +11,7 @@ std::string build_table_name(DS_ID id, LibBDD::node_id_t table_num) { return id 
 
 } // namespace
 
-DchainTable::DchainTable(DS_ID _id, u32 _capacity) : DS(DSType::DCHAIN_TABLE, false, _id), capacity(_capacity), key_size(32) {
+DchainTable::DchainTable(DS_ID _id, u32 _capacity) : DS(DSType::DchainTable, false, _id), capacity(_capacity), key_size(32) {
   assert(capacity > 0 && "Capacity must be greater than 0");
 }
 

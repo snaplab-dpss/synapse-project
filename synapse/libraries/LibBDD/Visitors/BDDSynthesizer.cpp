@@ -21,7 +21,7 @@ std::filesystem::path template_from_type(BDDSynthesizerTarget target) {
   case BDDSynthesizerTarget::NF:
     template_file /= NF_TEMPLATE_FILENAME;
     break;
-  case BDDSynthesizerTarget::PROFILER:
+  case BDDSynthesizerTarget::Profiler:
     template_file /= PROFILER_TEMPLATE_FILENAME;
     break;
   }
@@ -30,8 +30,8 @@ std::filesystem::path template_from_type(BDDSynthesizerTarget target) {
 }
 } // namespace
 
-#define TODO(expr)                                                                                                                         \
-  synthesizer->stack_dbg();                                                                                                                \
+#define TODO(expr)                                                                                                                                   \
+  synthesizer->stack_dbg();                                                                                                                          \
   panic("TODO: %s\n", LibCore::expr_to_string(expr).c_str());
 
 BDDSynthesizer::Transpiler::Transpiler(BDDSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
@@ -587,7 +587,7 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitSge(const klee::SgeEx
   return Action::skipChildren();
 }
 
-#define POPULATE_SYNTHESIZER(FNAME)                                                                                                        \
+#define POPULATE_SYNTHESIZER(FNAME)                                                                                                                  \
   { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
 
 BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file)
@@ -671,7 +671,7 @@ void BDDSynthesizer::init_pre_process() {
     }
   }
 
-  if (target == BDDSynthesizerTarget::PROFILER) {
+  if (target == BDDSynthesizerTarget::Profiler) {
     for (u16 device : bdd->get_devices()) {
       coder.indent();
       coder << "ports.push_back(" << device << ");\n";
@@ -682,7 +682,7 @@ void BDDSynthesizer::init_pre_process() {
 void BDDSynthesizer::init_post_process() {
   coder_t &coder = get(MARKER_NF_INIT);
 
-  if (target == BDDSynthesizerTarget::PROFILER) {
+  if (target == BDDSynthesizerTarget::Profiler) {
     for (const auto &[node_id, map_addr] : nodes_to_map) {
       coder.indent();
       coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
@@ -754,7 +754,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
     coder << node->get_id();
     coder << "\n";
 
-    if (target == BDDSynthesizerTarget::PROFILER) {
+    if (target == BDDSynthesizerTarget::Profiler) {
       coder.indent();
       coder << "inc_path_counter(";
       coder << node->get_id();
@@ -814,7 +814,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
       switch (op) {
       case RouteOp::Drop: {
-        if (target == BDDSynthesizerTarget::PROFILER) {
+        if (target == BDDSynthesizerTarget::Profiler) {
           coder.indent();
           coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_drop();\n";
         }
@@ -823,7 +823,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
         coder << "return DROP;\n";
       } break;
       case RouteOp::Broadcast: {
-        if (target == BDDSynthesizerTarget::PROFILER) {
+        if (target == BDDSynthesizerTarget::Profiler) {
           coder.indent();
           coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_flood();\n";
         }
@@ -832,7 +832,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
         coder << "return FLOOD;\n";
       } break;
       case RouteOp::Forward: {
-        if (target == BDDSynthesizerTarget::PROFILER) {
+        if (target == BDDSynthesizerTarget::Profiler) {
           coder.indent();
           coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_fwd(";
           coder << transpiler.transpile(dst_device);
@@ -1055,7 +1055,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::map_get(coder_t &coder, cons
   coder << ")";
   coder << ";\n";
 
-  if (target == BDDSynthesizerTarget::PROFILER) {
+  if (target == BDDSynthesizerTarget::Profiler) {
     nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
     coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
@@ -1099,7 +1099,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::map_put(coder_t &coder, cons
   coder << ")";
   coder << ";\n";
 
-  if (target == BDDSynthesizerTarget::PROFILER) {
+  if (target == BDDSynthesizerTarget::Profiler) {
     nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
     coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
@@ -1143,7 +1143,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::map_erase(coder_t &coder, co
   coder << ")";
   coder << ";\n";
 
-  if (target == BDDSynthesizerTarget::PROFILER) {
+  if (target == BDDSynthesizerTarget::Profiler) {
     nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
     coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
@@ -2048,9 +2048,7 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
   panic("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(), LibCore::expr_to_string(new_expr).c_str());
 }
 
-BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr) {
-  return build_var(name, expr, nullptr);
-}
+BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr) { return build_var(name, expr, nullptr); }
 
 BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr) {
   if (reserved_var_names.find(name) == reserved_var_names.end()) {

@@ -16,21 +16,21 @@ namespace Tofino {
 struct tna_properties_t;
 
 enum class RegisterActionType {
-  READ,
-  WRITE,
-  SWAP,
-  INC,
-  DEC,
-  SET_TO_ONE_AND_RETURN_OLD_VALUE,
-  INC_AND_RETURN_NEW_VALUE,
-  CALCULATE_DIFF,
+  Read,
+  Write,
+  Swap,
+  Increment,
+  Decrement,
+  SetToOneAndReturnOldValue,
+  IncrementAndReturnNewValue,
+  CalculateDiff,
 };
 
 const std::unordered_set<RegisterActionType> register_action_types_with_out_value = {
-    RegisterActionType::READ,
-    RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE,
-    RegisterActionType::INC_AND_RETURN_NEW_VALUE,
-    RegisterActionType::CALCULATE_DIFF,
+    RegisterActionType::Read,
+    RegisterActionType::SetToOneAndReturnOldValue,
+    RegisterActionType::IncrementAndReturnNewValue,
+    RegisterActionType::CalculateDiff,
 };
 
 struct Register : public DS {

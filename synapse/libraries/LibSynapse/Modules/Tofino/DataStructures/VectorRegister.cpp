@@ -14,7 +14,7 @@ std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID 
 
   for (size_t i = 0; i < values_sizes.size(); i++) {
     Register row(properties, id + "_" + std::to_string(i), capacity, index_size, values_sizes[i],
-                 {RegisterActionType::WRITE, RegisterActionType::READ});
+                 {RegisterActionType::Write, RegisterActionType::Read});
     rows.push_back(row);
   }
 
@@ -25,7 +25,7 @@ std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID 
 
 VectorRegister::VectorRegister(const tna_properties_t &properties, DS_ID _id, u32 _capacity, bits_t _index_size,
                                const std::vector<bits_t> &_values_sizes)
-    : DS(DSType::VECTOR_REGISTER, false, _id), capacity(_capacity), index_size(_index_size), values_sizes(_values_sizes),
+    : DS(DSType::VectorRegister, false, _id), capacity(_capacity), index_size(_index_size), values_sizes(_values_sizes),
       regs(build_registers(properties, _id, _capacity, _index_size, _values_sizes)) {}
 
 VectorRegister::VectorRegister(const VectorRegister &other)

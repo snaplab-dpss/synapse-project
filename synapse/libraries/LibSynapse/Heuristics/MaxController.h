@@ -8,8 +8,8 @@ class MaxControllerCfg : public HeuristicCfg {
 public:
   MaxControllerCfg()
       : HeuristicCfg("MaxController", {
-                                          BUILD_METRIC(MaxControllerCfg, get_switch_nodes_besides_sending_to_controller, MIN),
-                                          BUILD_METRIC(MaxControllerCfg, get_bdd_progress, MAX),
+                                          BUILD_METRIC(MaxControllerCfg, get_switch_nodes_besides_sending_to_controller, Objective::Min),
+                                          BUILD_METRIC(MaxControllerCfg, get_bdd_progress, Objective::Max),
                                       }) {}
 
   MaxControllerCfg &operator=(const MaxControllerCfg &other) {

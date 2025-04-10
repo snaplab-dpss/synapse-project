@@ -118,7 +118,7 @@ MapTable *get_map_table(const EP *ep, const LibBDD::Node *node, const map_table_
   assert(ds.size() == 1);
   DS *mt = *ds.begin();
 
-  assert(mt->type == DSType::MAP_TABLE && "Unexpected type");
+  assert(mt->type == DSType::MapTable && "Unexpected type");
   return dynamic_cast<MapTable *>(mt);
 }
 
@@ -208,7 +208,7 @@ GuardedMapTable *get_guarded_map_table(const EP *ep, const LibBDD::Node *node, c
   assert(ds.size() == 1);
   DS *mt = *ds.begin();
 
-  assert(mt->type == DSType::GUARDED_MAP_TABLE && "Unexpected type");
+  assert(mt->type == DSType::GuardedMapTable && "Unexpected type");
   return dynamic_cast<GuardedMapTable *>(mt);
 }
 
@@ -291,7 +291,7 @@ VectorTable *get_vector_table(const EP *ep, const LibBDD::Node *node, const vect
   assert(ds.size() == 1);
   DS *vt = *ds.begin();
 
-  assert(vt->type == DSType::VECTOR_TABLE && "Unexpected type");
+  assert(vt->type == DSType::VectorTable && "Unexpected type");
   return dynamic_cast<VectorTable *>(vt);
 }
 
@@ -363,7 +363,7 @@ DchainTable *get_dchain_table(const EP *ep, const LibBDD::Node *node, const dcha
   assert(ds.size() == 1);
   DS *vt = *ds.begin();
 
-  assert(vt->type == DSType::DCHAIN_TABLE && "Unexpected type");
+  assert(vt->type == DSType::DchainTable && "Unexpected type");
   return dynamic_cast<DchainTable *>(vt);
 }
 
@@ -441,7 +441,7 @@ VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, cons
   assert(ds.size() == 1);
   DS *vr = *ds.begin();
 
-  assert(vr->type == DSType::VECTOR_REGISTER && "Unexpected type");
+  assert(vr->type == DSType::VectorRegister && "Unexpected type");
   return dynamic_cast<VectorRegister *>(vr);
 }
 
@@ -484,7 +484,7 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
-  assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
+  assert((*ds.begin())->type == DSType::FCFSCachedTable && "Invalid DS type");
 
   FCFSCachedTable *cached_table = dynamic_cast<FCFSCachedTable *>(*ds.begin());
 
@@ -539,7 +539,7 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
-  assert((*ds.begin())->type == DSType::HH_TABLE && "Invalid DS type");
+  assert((*ds.begin())->type == DSType::HHTable && "Invalid DS type");
 
   HHTable *hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
@@ -585,7 +585,7 @@ CountMinSketch *reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj) {
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
-  assert((*ds.begin())->type == DSType::COUNT_MIN_SKETCH && "Invalid DS type");
+  assert((*ds.begin())->type == DSType::CountMinSketch && "Invalid DS type");
 
   CountMinSketch *cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
@@ -817,7 +817,7 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
   const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
-  assert((*ds.begin())->type == DSType::FCFS_CACHED_TABLE && "Invalid DS type");
+  assert((*ds.begin())->type == DSType::FCFSCachedTable && "Invalid DS type");
 
   return dynamic_cast<FCFSCachedTable *>(*ds.begin());
 }
@@ -925,7 +925,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
     const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
     assert(ds.size() == 1 && "Invalid number of DS");
-    assert((*ds.begin())->type == DSType::HH_TABLE && "Invalid DS type");
+    assert((*ds.begin())->type == DSType::HHTable && "Invalid DS type");
 
     hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
@@ -978,7 +978,7 @@ bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Nod
     const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
 
     assert(ds.size() == 1 && "Invalid number of DS");
-    assert((*ds.begin())->type == DSType::COUNT_MIN_SKETCH && "Invalid DS type");
+    assert((*ds.begin())->type == DSType::CountMinSketch && "Invalid DS type");
 
     cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 

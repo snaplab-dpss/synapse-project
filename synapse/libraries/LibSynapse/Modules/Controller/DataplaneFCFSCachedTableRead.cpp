@@ -13,7 +13,7 @@ DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
   Tofino::DS *ds = *data_structures.begin();
-  assert(ds->type == Tofino::DSType::FCFS_CACHED_TABLE && "Not a FCFS cached table");
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Not a FCFS cached table");
   return ds->id;
 }
 

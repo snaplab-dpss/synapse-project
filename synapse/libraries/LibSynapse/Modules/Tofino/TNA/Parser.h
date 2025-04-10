@@ -18,7 +18,7 @@ struct ParserState;
 
 using states_t = std::unordered_map<LibBDD::node_id_t, ParserState *>;
 
-enum class ParserStateType { EXTRACT, SELECT, TERMINATE };
+enum class ParserStateType { Extract, Select, Terminate };
 
 struct parser_selection_t {
   klee::ref<klee::Expr> target;
@@ -77,7 +77,7 @@ struct ParserState {
 struct ParserStateTerminate : public ParserState {
   bool accept;
 
-  ParserStateTerminate(LibBDD::node_id_t _id, bool _accept) : ParserState(_id, ParserStateType::TERMINATE), accept(_accept) {}
+  ParserStateTerminate(LibBDD::node_id_t _id, bool _accept) : ParserState(_id, ParserStateType::Terminate), accept(_accept) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -105,7 +105,7 @@ struct ParserStateSelect : public ParserState {
   ParserState *on_false;
 
   ParserStateSelect(LibBDD::node_id_t _id, const std::vector<parser_selection_t> &_selections)
-      : ParserState(_id, ParserStateType::SELECT), selections(_selections), on_true(nullptr), on_false(nullptr) {}
+      : ParserState(_id, ParserStateType::Select), selections(_selections), on_true(nullptr), on_false(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -196,7 +196,7 @@ struct ParserStateExtract : public ParserState {
   klee::ref<klee::Expr> hdr;
   ParserState *next;
 
-  ParserStateExtract(LibBDD::node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::EXTRACT), hdr(_hdr), next(nullptr) {}
+  ParserStateExtract(LibBDD::node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::Extract), hdr(_hdr), next(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -334,7 +334,7 @@ private:
       return false;
     }
 
-    assert(initial_state->type == ParserStateType::TERMINATE && "Invalid parser");
+    assert(initial_state->type == ParserStateType::Terminate && "Invalid parser");
     assert(dynamic_cast<ParserStateTerminate *>(initial_state)->accept == accepted && "Invalid parser");
 
     return true;
@@ -347,17 +347,17 @@ private:
     ParserState *leaf = states[leaf_id];
 
     switch (leaf->type) {
-    case ParserStateType::EXTRACT: {
+    case ParserStateType::Extract: {
       assert(!direction.has_value() && "Invalid parser");
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
 
-      if (!extractor->next || extractor->next->type != ParserStateType::TERMINATE) {
+      if (!extractor->next || extractor->next->type != ParserStateType::Terminate) {
         return false;
       }
 
       assert(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted && "Invalid parser");
     } break;
-    case ParserStateType::SELECT: {
+    case ParserStateType::Select: {
       assert(direction.has_value() && "Invalid parser");
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(leaf);
 
@@ -367,11 +367,11 @@ private:
 
       ParserState *next = *direction ? condition->on_true : condition->on_false;
 
-      if (!next || next->type != ParserStateType::TERMINATE) {
+      if (!next || next->type != ParserStateType::Terminate) {
         return false;
       }
     } break;
-    case ParserStateType::TERMINATE: {
+    case ParserStateType::Terminate: {
       assert(dynamic_cast<ParserStateTerminate *>(leaf)->accept == accepted && "Invalid parser");
     } break;
     }
@@ -413,26 +413,26 @@ private:
 
     // This can happen and it's not a big deal. It just means that on the same branch side we sometimes parse a header and other times send
     // to the controller.
-    if (old_next_state->type != ParserStateType::TERMINATE) {
+    if (old_next_state->type != ParserStateType::Terminate) {
       return;
     }
 
     assert(dynamic_cast<ParserStateTerminate *>(old_next_state)->accept == true && "Invalid parser");
 
     switch (new_state->type) {
-    case ParserStateType::EXTRACT: {
+    case ParserStateType::Extract: {
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(new_state);
       assert(!extractor->next && "Invalid parser");
       extractor->next = old_next_state;
     } break;
-    case ParserStateType::SELECT: {
+    case ParserStateType::Select: {
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(new_state);
       assert(!condition->on_true && "Invalid parser");
       assert(!condition->on_false && "Invalid parser");
       condition->on_true  = next_state;
       condition->on_false = next_state;
     } break;
-    case ParserStateType::TERMINATE: {
+    case ParserStateType::Terminate: {
       panic("Cannot add state to terminating state");
     } break;
     }
@@ -451,12 +451,12 @@ private:
     ParserState *leaf = states[leaf_id];
 
     switch (leaf->type) {
-    case ParserStateType::EXTRACT: {
+    case ParserStateType::Extract: {
       assert(!direction.has_value() && "Invalid parser");
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
       set_next(extractor->next, new_state);
     } break;
-    case ParserStateType::SELECT: {
+    case ParserStateType::Select: {
       assert(direction.has_value() && "Invalid parser");
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(leaf);
       if (*direction) {
@@ -465,7 +465,7 @@ private:
         set_next(condition->on_false, new_state);
       }
     } break;
-    case ParserStateType::TERMINATE: {
+    case ParserStateType::Terminate: {
       panic("Cannot add state to terminating state");
     } break;
     }

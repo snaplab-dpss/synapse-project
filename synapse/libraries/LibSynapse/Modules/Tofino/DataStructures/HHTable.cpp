@@ -13,7 +13,7 @@ Register build_cached_counters(const tna_properties_t &properties, DS_ID id, u32
   const DS_ID reg_id              = id + "_cached_counters";
   const bits_t index_size         = 32;
   const bits_t value_size         = 32;
-  const RegisterActionType action = RegisterActionType::INC;
+  const RegisterActionType action = RegisterActionType::Increment;
   return Register(properties, reg_id, capacity, index_size, value_size, {action});
 }
 
@@ -32,7 +32,7 @@ std::vector<Hash> build_hashes(DS_ID id, std::vector<bits_t> keys_sizes, u32 tot
 
 std::vector<Register> build_count_min_sketch(const tna_properties_t &properties, DS_ID id, u32 cms_width, u32 cms_height, bits_t index_size) {
   const bits_t value_size         = 32;
-  const RegisterActionType action = RegisterActionType::INC_AND_RETURN_NEW_VALUE;
+  const RegisterActionType action = RegisterActionType::IncrementAndReturnNewValue;
 
   std::vector<Register> count_min_sketch;
   for (u32 i = 0; i < cms_height; i++) {
@@ -49,7 +49,7 @@ Register build_threshold(const tna_properties_t &properties, DS_ID id) {
   const u32 capacity              = 1;
   const bits_t index_size         = 1;
   const bits_t value_size         = 32;
-  const RegisterActionType action = RegisterActionType::CALCULATE_DIFF;
+  const RegisterActionType action = RegisterActionType::CalculateDiff;
   return Register(properties, reg_id, capacity, index_size, value_size, {action});
 }
 
@@ -65,7 +65,7 @@ const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f
 
 HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes, u32 _cms_width,
                  u32 _cms_height, u8 _digest_type)
-    : DS(DSType::HH_TABLE, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
+    : DS(DSType::HHTable, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
       hash_size(LibCore::bits_from_pow2_capacity(_cms_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
       hashes(build_hashes(_id, _keys_sizes, _cms_height, hash_size)),
       count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)), threshold(build_threshold(properties, _id)),

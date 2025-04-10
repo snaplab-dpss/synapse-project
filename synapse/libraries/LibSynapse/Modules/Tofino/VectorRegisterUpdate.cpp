@@ -18,7 +18,7 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD
       .index       = vb.args.at("index").expr,
       .value       = vb.extra_vars.at("borrowed_cell").second,
       .write_value = vr.args.at("value").in,
-      .actions     = {RegisterActionType::READ, RegisterActionType::SWAP},
+      .actions     = {RegisterActionType::Read, RegisterActionType::Swap},
   };
 
   return vector_register_data;
@@ -67,8 +67,7 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
   return spec_impl;
 }
 
-std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                              LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -151,7 +150,7 @@ std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const LibBDD::BDD *b
 
   const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(vector_register_data.obj);
   assert(ds.size() == 1);
-  assert((*ds.begin())->type == DSType::VECTOR_REGISTER);
+  assert((*ds.begin())->type == DSType::VectorRegister);
   Tofino::VectorRegister *vector_register = dynamic_cast<Tofino::VectorRegister *>(*ds.begin());
 
   return std::make_unique<VectorRegisterUpdate>(node, vector_register->id, vector_register_data.obj, vector_register_data.index,

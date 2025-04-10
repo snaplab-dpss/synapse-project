@@ -1778,53 +1778,53 @@ bool simplify_add_non_neg_sext(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
 using simplifier_fn = std::function<bool(klee::ref<klee::Expr>, klee::ref<klee::Expr> &)>;
 
 enum class simplifier_type_t {
-  EXTRACT_0_ZEXT_CONDITIONAL,
-  EXTRACT_0_SAME_WIDTH,
-  EXTRACT_CONCATS,
-  EXTRACT_READ,
-  EXTRACT_EXT,
-  CMP_EQ_0,
-  CMP_ZEXT_EQ_SIZE,
-  NOT_EQ,
-  CMP_NE_0,
-  ADD_NEG_SEXT,
-  ADD_NON_NEG_SEXT,
+  ExtractZeroZExtConditional,
+  ExtractZeroSameWidth,
+  ExtractConcats,
+  ExtractRead,
+  ExtractExt,
+  CompareEqZero,
+  CompareZExtEqSize,
+  NotEq,
+  CompareNeZero,
+  AddNegativeSExt,
+  AddNonNegativeSExt,
 };
 
 std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
   switch (type) {
-  case simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL:
-    os << "EXTRACT_0_ZEXT_CONDITIONAL";
+  case simplifier_type_t::ExtractZeroZExtConditional:
+    os << "ExtractZeroZExtConditional";
     break;
-  case simplifier_type_t::EXTRACT_0_SAME_WIDTH:
-    os << "EXTRACT_0_SAME_WIDTH";
+  case simplifier_type_t::ExtractZeroSameWidth:
+    os << "ExtractZeroSameWidth";
     break;
-  case simplifier_type_t::EXTRACT_CONCATS:
-    os << "EXTRACT_CONCATS";
+  case simplifier_type_t::ExtractConcats:
+    os << "ExtractConcats";
     break;
-  case simplifier_type_t::EXTRACT_READ:
-    os << "EXTRACT_READ";
+  case simplifier_type_t::ExtractRead:
+    os << "ExtractRead";
     break;
-  case simplifier_type_t::EXTRACT_EXT:
-    os << "EXTRACT_EXT";
+  case simplifier_type_t::ExtractExt:
+    os << "ExtractExt";
     break;
-  case simplifier_type_t::CMP_EQ_0:
-    os << "CMP_EQ_0";
+  case simplifier_type_t::CompareEqZero:
+    os << "CompareEqZero";
     break;
-  case simplifier_type_t::CMP_ZEXT_EQ_SIZE:
-    os << "CMP_ZEXT_EQ_SIZE";
+  case simplifier_type_t::CompareZExtEqSize:
+    os << "CompareZExtEqSize";
     break;
-  case simplifier_type_t::NOT_EQ:
-    os << "NOT_EQ";
+  case simplifier_type_t::NotEq:
+    os << "NotEq";
     break;
-  case simplifier_type_t::CMP_NE_0:
-    os << "CMP_NE_0";
+  case simplifier_type_t::CompareNeZero:
+    os << "CompareNeZero";
     break;
-  case simplifier_type_t::ADD_NEG_SEXT:
-    os << "ADD_NEG_SEXT";
+  case simplifier_type_t::AddNegativeSExt:
+    os << "AddNegativeSExt";
     break;
-  case simplifier_type_t::ADD_NON_NEG_SEXT:
-    os << "ADD_NON_NEG_SEXT";
+  case simplifier_type_t::AddNonNegativeSExt:
+    os << "AddNonNegativeSExt";
     break;
   }
 
@@ -1901,18 +1901,18 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
   }
 
   const simplifiers_t simplifiers{
-      {simplifier_type_t::EXTRACT_0_ZEXT_CONDITIONAL, simplify_extract_0_zext_conditional},
-      {simplifier_type_t::EXTRACT_0_SAME_WIDTH, simplify_extract_0_same_width},
-      {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
-      {simplifier_type_t::EXTRACT_READ, simplify_extract_read},
-      {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
-      {simplifier_type_t::CMP_EQ_0, simplify_cmp_eq_0},
-      {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
-      {simplifier_type_t::NOT_EQ, simplify_not_eq},
-      {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
-      {simplifier_type_t::ADD_NEG_SEXT, simplify_add_neg_sext},
-      {simplifier_type_t::ADD_NON_NEG_SEXT, simplify_add_non_neg_sext},
-      {simplifier_type_t::ADD_NON_NEG_SEXT, simplify_add_non_neg_sext},
+      {simplifier_type_t::ExtractZeroZExtConditional, simplify_extract_0_zext_conditional},
+      {simplifier_type_t::ExtractZeroSameWidth, simplify_extract_0_same_width},
+      {simplifier_type_t::ExtractConcats, simplify_extract_of_concats},
+      {simplifier_type_t::ExtractRead, simplify_extract_read},
+      {simplifier_type_t::ExtractExt, simplify_extract_ext},
+      {simplifier_type_t::CompareEqZero, simplify_cmp_eq_0},
+      {simplifier_type_t::CompareZExtEqSize, simplify_cmp_zext_eq_size},
+      {simplifier_type_t::NotEq, simplify_not_eq},
+      {simplifier_type_t::CompareNeZero, simplify_cmp_ne_0},
+      {simplifier_type_t::AddNegativeSExt, simplify_add_neg_sext},
+      {simplifier_type_t::AddNonNegativeSExt, simplify_add_non_neg_sext},
+      {simplifier_type_t::AddNonNegativeSExt, simplify_add_non_neg_sext},
   };
 
   klee::ref<klee::Expr> original_expr = expr;
@@ -1960,14 +1960,14 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
   }
 
   const simplifiers_t simplifiers{
-      {simplifier_type_t::EXTRACT_CONCATS, simplify_extract_of_concats},
-      {simplifier_type_t::EXTRACT_0_SAME_WIDTH, simplify_extract_0_same_width},
-      {simplifier_type_t::EXTRACT_EXT, simplify_extract_ext},
-      {simplifier_type_t::CMP_EQ_0, simplify_cmp_eq_0},
-      {simplifier_type_t::CMP_ZEXT_EQ_SIZE, simplify_cmp_zext_eq_size},
-      {simplifier_type_t::NOT_EQ, simplify_not_eq},
-      {simplifier_type_t::CMP_NE_0, simplify_cmp_ne_0},
-      {simplifier_type_t::ADD_NEG_SEXT, simplify_add_neg_sext},
+      {simplifier_type_t::ExtractConcats, simplify_extract_of_concats},
+      {simplifier_type_t::ExtractZeroSameWidth, simplify_extract_0_same_width},
+      {simplifier_type_t::ExtractExt, simplify_extract_ext},
+      {simplifier_type_t::CompareEqZero, simplify_cmp_eq_0},
+      {simplifier_type_t::CompareZExtEqSize, simplify_cmp_zext_eq_size},
+      {simplifier_type_t::NotEq, simplify_not_eq},
+      {simplifier_type_t::CompareNeZero, simplify_cmp_ne_0},
+      {simplifier_type_t::AddNegativeSExt, simplify_add_neg_sext},
   };
 
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};

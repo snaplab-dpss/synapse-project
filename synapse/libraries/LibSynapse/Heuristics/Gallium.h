@@ -8,7 +8,7 @@ class GalliumCfg : public HeuristicCfg {
 public:
   GalliumCfg()
       : HeuristicCfg("Gallium", {
-                                    BUILD_METRIC(GalliumCfg, get_bdd_progress, MAX),
+                                    BUILD_METRIC(GalliumCfg, get_bdd_progress, Objective::Max),
                                 }) {}
 
   GalliumCfg &operator=(const GalliumCfg &other) {

@@ -8,7 +8,7 @@ class BFSCfg : public HeuristicCfg {
 public:
   BFSCfg()
       : HeuristicCfg("BFS", {
-                                BUILD_METRIC(BFSCfg, get_depth, MIN),
+                                BUILD_METRIC(BFSCfg, get_depth, Objective::Min),
                             }) {}
 
   BFSCfg &operator=(const BFSCfg &other) {

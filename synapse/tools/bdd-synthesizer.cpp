@@ -10,7 +10,7 @@
 
 const std::unordered_map<std::string, LibBDD::BDDSynthesizerTarget> target_converter{
     {"nf", LibBDD::BDDSynthesizerTarget::NF},
-    {"profiler", LibBDD::BDDSynthesizerTarget::PROFILER},
+    {"profiler", LibBDD::BDDSynthesizerTarget::Profiler},
 };
 
 int main(int argc, char **argv) {

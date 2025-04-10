@@ -8,7 +8,7 @@ class RandomCfg : public HeuristicCfg {
 public:
   RandomCfg()
       : HeuristicCfg("Random", {
-                                   BUILD_METRIC(RandomCfg, get_random, MAX),
+                                   BUILD_METRIC(RandomCfg, get_random, Objective::Max),
                                }) {}
 
   RandomCfg &operator=(const RandomCfg &other) {

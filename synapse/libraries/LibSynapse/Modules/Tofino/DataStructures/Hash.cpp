@@ -5,7 +5,7 @@
 namespace LibSynapse {
 namespace Tofino {
 
-Hash::Hash(DS_ID _id, const std::vector<bits_t> &_keys, bits_t _size) : DS(DSType::HASH, true, _id), keys(_keys), size(_size) {}
+Hash::Hash(DS_ID _id, const std::vector<bits_t> &_keys, bits_t _size) : DS(DSType::Hash, true, _id), keys(_keys), size(_size) {}
 
 Hash::Hash(const Hash &other) : DS(other.type, other.primitive, other.id), keys(other.keys), size(other.size) {}
 

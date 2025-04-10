@@ -7,7 +7,7 @@
 #include <vector>
 
 #define BUILD_METRIC(cls, name, obj)                                                                                                                 \
-  { std::bind(&cls::name, this, std::placeholders::_1), Metric::Objective::obj }
+  { std::bind(&cls::name, this, std::placeholders::_1), obj }
 
 namespace LibSynapse {
 
@@ -18,9 +18,11 @@ struct heuristic_metadata_t {
 
 class HeuristicCfg {
 protected:
+  enum class Objective { Min, Max };
+
   struct Metric {
     std::function<i64(const EP *)> computer;
-    enum class Objective { MIN, MAX } objective;
+    Objective objective;
   };
 
 public:
@@ -37,8 +39,14 @@ public:
 
     for (size_t i = 0; i < metrics.size(); i++) {
       values[i] = (metrics[i].computer)(e);
-      if (metrics[i].objective == Metric::Objective::MIN) {
+
+      switch (metrics[i].objective) {
+      case Objective::Min: {
         values[i] *= -1;
+      } break;
+      case Objective::Max: {
+        // Do nothing
+      } break;
       }
     }
 

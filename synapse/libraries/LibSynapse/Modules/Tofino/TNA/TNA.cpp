@@ -32,7 +32,7 @@ PlacementStatus TNA::can_place_many(const std::vector<std::unordered_set<DS *>> 
     for (const DS *ds : indep_ds) {
       PlacementStatus status = snapshot.can_place(ds, deps);
 
-      if (status != PlacementStatus::SUCCESS) {
+      if (status != PlacementStatus::Success) {
         return status;
       }
 
@@ -43,7 +43,7 @@ PlacementStatus TNA::can_place_many(const std::vector<std::unordered_set<DS *>> 
     deps.insert(new_deps.begin(), new_deps.end());
   }
 
-  return PlacementStatus::SUCCESS;
+  return PlacementStatus::Success;
 }
 
 void TNA::debug() const { simple_placer.debug(); }

@@ -8,8 +8,8 @@ class GreedyCfg : public HeuristicCfg {
 public:
   GreedyCfg()
       : HeuristicCfg("Greedy", {
-                                   BUILD_METRIC(GreedyCfg, get_bdd_progress, MAX),
-                                   BUILD_METRIC(GreedyCfg, get_tput, MAX),
+                                   BUILD_METRIC(GreedyCfg, get_bdd_progress, Objective::Max),
+                                   BUILD_METRIC(GreedyCfg, get_tput, Objective::Max),
                                }) {}
 
   GreedyCfg &operator=(const GreedyCfg &other) {

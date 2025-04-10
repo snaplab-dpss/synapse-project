@@ -587,28 +587,28 @@ TofinoSynthesizer::code_t TofinoSynthesizer::build_register_action_name(const EP
   coder << reg->id;
   coder << "_";
   switch (action) {
-  case RegisterActionType::READ:
+  case RegisterActionType::Read:
     coder << "read";
     break;
-  case RegisterActionType::WRITE:
+  case RegisterActionType::Write:
     coder << "write";
     break;
-  case RegisterActionType::SWAP:
+  case RegisterActionType::Swap:
     coder << "update";
     break;
-  case RegisterActionType::INC:
+  case RegisterActionType::Increment:
     coder << "inc";
     break;
-  case RegisterActionType::DEC:
+  case RegisterActionType::Decrement:
     coder << "dec";
     break;
-  case RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE:
+  case RegisterActionType::SetToOneAndReturnOldValue:
     coder << "read_and_set";
     break;
-  case RegisterActionType::INC_AND_RETURN_NEW_VALUE:
+  case RegisterActionType::IncrementAndReturnNewValue:
     coder << "inc_and_read";
     break;
-  case RegisterActionType::CALCULATE_DIFF:
+  case RegisterActionType::CalculateDiff:
     coder << "diff";
     break;
   }
@@ -870,7 +870,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
   ingress.inc();
 
   switch (action_type) {
-  case RegisterActionType::READ: {
+  case RegisterActionType::Read: {
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
     ingress.inc();
@@ -882,7 +882,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
-  case RegisterActionType::WRITE: {
+  case RegisterActionType::Write: {
     assert(write_value.has_value() && "Expected a write value");
 
     ingress.indent();
@@ -896,10 +896,10 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
-  case RegisterActionType::SWAP: {
-    panic("TODO: transpile_register_actions_decl(RegisterActionType::SWAP)");
+  case RegisterActionType::Swap: {
+    panic("TODO: transpile_register_actions_decl(RegisterActionType::Swap)");
   } break;
-  case RegisterActionType::INC: {
+  case RegisterActionType::Increment: {
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value) {\n";
 
@@ -911,7 +911,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
-  case RegisterActionType::DEC: {
+  case RegisterActionType::Decrement: {
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value) {\n";
 
@@ -923,7 +923,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
-  case RegisterActionType::SET_TO_ONE_AND_RETURN_OLD_VALUE: {
+  case RegisterActionType::SetToOneAndReturnOldValue: {
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
     ingress.inc();
@@ -937,7 +937,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
-  case RegisterActionType::INC_AND_RETURN_NEW_VALUE: {
+  case RegisterActionType::IncrementAndReturnNewValue: {
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
     ingress.inc();
@@ -951,7 +951,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
-  case RegisterActionType::CALCULATE_DIFF: {
+  case RegisterActionType::CalculateDiff: {
     const code_t value_cmp = action_name + "_cmp";
 
     ingress.indent();
@@ -1471,7 +1471,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
     }
 
     switch (state->type) {
-    case ParserStateType::EXTRACT: {
+    case ParserStateType::Extract: {
       const ParserStateExtract *extract = dynamic_cast<const ParserStateExtract *>(state);
       const code_t state_name           = get_parser_state_name(state, state_init);
 
@@ -1497,7 +1497,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
 
       states.push_back(extract->next);
     } break;
-    case ParserStateType::SELECT: {
+    case ParserStateType::Select: {
       const ParserStateSelect *select = dynamic_cast<const ParserStateSelect *>(state);
       const code_t state_name         = get_parser_state_name(state, state_init);
 
@@ -1551,7 +1551,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       states.push_back(select->on_true);
       states.push_back(select->on_false);
     } break;
-    case ParserStateType::TERMINATE: {
+    case ParserStateType::Terminate: {
       const ParserStateTerminate *terminate = dynamic_cast<const ParserStateTerminate *>(state);
       const code_t state_name               = get_parser_state_name(state, state_init);
 
@@ -2229,8 +2229,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   int i         = 0;
   bits_t offset = 0;
   for (const Register *reg : regs) {
-    const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::READ);
-    transpile_register_action_decl(reg, action_name, RegisterActionType::READ, {});
+    const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::Read);
+    transpile_register_action_decl(reg, action_name, RegisterActionType::Read, {});
 
     const klee::ref<klee::Expr> entry_expr = LibCore::solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
     const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
@@ -2293,8 +2293,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       reg_write_var = new_reg_write_var;
     }
 
-    const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::WRITE);
-    transpile_register_action_decl(reg, action_name, RegisterActionType::WRITE, reg_write_var);
+    const code_t action_name = build_register_action_name(ep_node, reg, RegisterActionType::Write);
+    transpile_register_action_decl(reg, action_name, RegisterActionType::Write, reg_write_var);
 
     ingress_apply.indent();
     ingress_apply << action_name;

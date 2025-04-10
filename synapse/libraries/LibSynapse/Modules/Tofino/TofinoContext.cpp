@@ -238,12 +238,12 @@ bool TofinoContext::check_placement(const EP *ep, const LibBDD::Node *node, cons
 
   PlacementStatus status = tna.can_place(ds, deps);
 
-  if (status != PlacementStatus::SUCCESS) {
+  if (status != PlacementStatus::Success) {
     TargetType target = ep->get_active_target();
     std::cerr << "[" << target << "] Cannot place ds " << ds->id << " (" << status << ")\n";
   }
 
-  return status == PlacementStatus::SUCCESS;
+  return status == PlacementStatus::Success;
 }
 
 bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node, const std::vector<std::unordered_set<DS *>> &ds) const {
@@ -251,7 +251,7 @@ bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node
 
   PlacementStatus status = tna.can_place_many(ds, deps);
 
-  if (status != PlacementStatus::SUCCESS) {
+  if (status != PlacementStatus::Success) {
     TargetType target = ep->get_active_target();
     std::cerr << "[" << target << "] Cannot place objs (" << status << ")\n";
     std::cerr << "  DS:\n";
@@ -266,7 +266,7 @@ bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node
     }
   }
 
-  return status == PlacementStatus::SUCCESS;
+  return status == PlacementStatus::Success;
 }
 
 void TofinoContext::debug() const {

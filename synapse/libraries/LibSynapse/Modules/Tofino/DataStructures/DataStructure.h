@@ -15,54 +15,54 @@ enum class DSType {
   // Primitive types
   // ========================
 
-  TABLE,
-  REGISTER,
-  METER,
-  HASH,
-  DIGEST,
+  Table,
+  Register,
+  Meter,
+  Hash,
+  Digest,
 
   // ========================
   // Compositional types
   // ========================
 
-  MAP_TABLE,
-  GUARDED_MAP_TABLE,
-  VECTOR_TABLE,
-  DCHAIN_TABLE,
-  VECTOR_REGISTER,
-  FCFS_CACHED_TABLE,
-  HH_TABLE,
-  COUNT_MIN_SKETCH,
+  MapTable,
+  GuardedMapTable,
+  VectorTable,
+  DchainTable,
+  VectorRegister,
+  FCFSCachedTable,
+  HHTable,
+  CountMinSketch,
   LPM,
 };
 
 inline std::string ds_type_to_string(DSType type) {
   switch (type) {
-  case DSType::TABLE:
+  case DSType::Table:
     return "Table";
-  case DSType::REGISTER:
+  case DSType::Register:
     return "Register";
-  case DSType::METER:
+  case DSType::Meter:
     return "Meter";
-  case DSType::HASH:
+  case DSType::Hash:
     return "Hash";
-  case DSType::DIGEST:
+  case DSType::Digest:
     return "Digest";
-  case DSType::MAP_TABLE:
+  case DSType::MapTable:
     return "MapTable";
-  case DSType::GUARDED_MAP_TABLE:
+  case DSType::GuardedMapTable:
     return "GuardedMapTable";
-  case DSType::VECTOR_TABLE:
+  case DSType::VectorTable:
     return "VectorTable";
-  case DSType::DCHAIN_TABLE:
+  case DSType::DchainTable:
     return "DchainTable";
-  case DSType::VECTOR_REGISTER:
+  case DSType::VectorRegister:
     return "VectorRegister";
-  case DSType::FCFS_CACHED_TABLE:
+  case DSType::FCFSCachedTable:
     return "FCFSCachedTable";
-  case DSType::HH_TABLE:
+  case DSType::HHTable:
     return "HHTable";
-  case DSType::COUNT_MIN_SKETCH:
+  case DSType::CountMinSketch:
     return "CountMinSketch";
   case DSType::LPM:
     return "LPM";

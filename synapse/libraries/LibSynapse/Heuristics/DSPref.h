@@ -8,8 +8,8 @@ class DSPrefCfg : public HeuristicCfg {
 public:
   DSPrefCfg()
       : HeuristicCfg("DSPref", {
-                                   BUILD_METRIC(DSPrefCfg, get_bdd_progress, MAX),
-                                   BUILD_METRIC(DSPrefCfg, get_ds_score, MAX),
+                                   BUILD_METRIC(DSPrefCfg, get_bdd_progress, Objective::Max),
+                                   BUILD_METRIC(DSPrefCfg, get_ds_score, Objective::Max),
                                }) {}
 
   DSPrefCfg &operator=(const DSPrefCfg &other) {
