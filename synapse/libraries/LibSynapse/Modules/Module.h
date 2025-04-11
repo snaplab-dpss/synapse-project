@@ -105,6 +105,8 @@ enum class ModuleType {
   Controller_DataplaneGuardedMapTableUpdate,
   Controller_DataplaneGuardedMapTableDelete,
   Controller_DataplaneGuardedMapTableGuardCheck,
+  Controller_DataplaneCMSAllocate,
+  Controller_DataplaneCMSQuery,
 
   Controller_DchainAllocate,
   Controller_DchainAllocateNewIndex,
@@ -403,6 +405,12 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex:
     os << "Controller_DataplaneIntegerAllocatorFreeIndex";
+    break;
+  case ModuleType::Controller_DataplaneCMSAllocate:
+    os << "Controller_DataplaneCMSAllocate";
+    break;
+  case ModuleType::Controller_DataplaneCMSQuery:
+    os << "Controller_DataplaneCMSQuery";
     break;
   case ModuleType::Controller_VectorAllocate:
     os << "Controller_VectorAllocate";

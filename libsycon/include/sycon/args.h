@@ -12,7 +12,6 @@ struct args_t {
   std::string p4_prog_name;
   bool run_ucli;
   int tna_version;
-  time_ms_t expiration_time;
   std::vector<u16> ports;
   bool model;
   bool bench_mode;

@@ -90,6 +90,8 @@ class DataplaneMeterAllocate;
 class DataplaneMeterInsert;
 class DataplaneIntegerAllocatorAllocate;
 class DataplaneIntegerAllocatorFreeIndex;
+class DataplaneCMSAllocate;
+class DataplaneCMSQuery;
 
 class DchainAllocate;
 class DchainAllocateNewIndex;
@@ -270,6 +272,8 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *m) { return Action::doChildren; }

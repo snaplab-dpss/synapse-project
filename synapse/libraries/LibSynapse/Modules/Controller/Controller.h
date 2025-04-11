@@ -58,6 +58,8 @@
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableUpdate.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableDelete.h>
+#include <LibSynapse/Modules/Controller/DataplaneCMSAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneCMSQuery.h>
 #include <LibSynapse/Modules/Controller/TokenBucketAllocate.h>
 #include <LibSynapse/Modules/Controller/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/Controller/TokenBucketTrace.h>
@@ -136,6 +138,8 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneHHTableReadFactory>());
               f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>());
               f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>());
+              f.push_back(std::make_unique<DataplaneCMSAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneCMSQueryFactory>());
               f.push_back(std::make_unique<TokenBucketAllocateFactory>());
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>());
               f.push_back(std::make_unique<TokenBucketTraceFactory>());

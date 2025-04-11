@@ -152,19 +152,18 @@ PerfOracle::PerfOracle(const targets_config_t &targets_config, bytes_t _avg_pkt_
 }
 
 PerfOracle::PerfOracle(const PerfOracle &other)
-    : front_panel_ports_capacities(other.front_panel_ports_capacities),
-      recirculation_ports_capacities(other.recirculation_ports_capacities), controller_capacity(other.controller_capacity),
-      avg_pkt_size(other.avg_pkt_size), unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress),
-      recirc_ports_ingress(other.recirc_ports_ingress), controller_ingress(other.controller_ingress),
+    : front_panel_ports_capacities(other.front_panel_ports_capacities), recirculation_ports_capacities(other.recirculation_ports_capacities),
+      controller_capacity(other.controller_capacity), avg_pkt_size(other.avg_pkt_size), unaccounted_ingress(other.unaccounted_ingress),
+      ports_ingress(other.ports_ingress), recirc_ports_ingress(other.recirc_ports_ingress), controller_ingress(other.controller_ingress),
       dropped_ingress(other.dropped_ingress), controller_dropped_ingress(other.controller_dropped_ingress) {}
 
 PerfOracle::PerfOracle(PerfOracle &&other)
     : front_panel_ports_capacities(std::move(other.front_panel_ports_capacities)),
-      recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)),
-      controller_capacity(std::move(other.controller_capacity)), avg_pkt_size(std::move(other.avg_pkt_size)),
-      unaccounted_ingress(std::move(other.unaccounted_ingress)), ports_ingress(std::move(other.ports_ingress)),
-      recirc_ports_ingress(std::move(other.recirc_ports_ingress)), controller_ingress(std::move(other.controller_ingress)),
-      dropped_ingress(std::move(other.dropped_ingress)), controller_dropped_ingress(std::move(other.controller_dropped_ingress)) {}
+      recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)), controller_capacity(std::move(other.controller_capacity)),
+      avg_pkt_size(std::move(other.avg_pkt_size)), unaccounted_ingress(std::move(other.unaccounted_ingress)),
+      ports_ingress(std::move(other.ports_ingress)), recirc_ports_ingress(std::move(other.recirc_ports_ingress)),
+      controller_ingress(std::move(other.controller_ingress)), dropped_ingress(std::move(other.dropped_ingress)),
+      controller_dropped_ingress(std::move(other.controller_dropped_ingress)) {}
 
 PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   if (this == &other) {
@@ -399,9 +398,18 @@ void PerfOracle::assert_final_state() const {
     unaccounted_controller_hr = unaccounted_controller_hr - port_ingress.controller;
   }
 
-  assert(unaccounted_ingress == 0);
-  assert(unaccounted_controller_hr == 0);
-  assert(egress_hr + dropped_ingress == 1);
+  const hit_rate_t accounted_hr = egress_hr + dropped_ingress;
+
+  const bool perf_oracle_correct_final_state = (unaccounted_ingress == 0) && (unaccounted_controller_hr == 0) && (accounted_hr == 1);
+
+  if (!perf_oracle_correct_final_state) {
+    panic("Invalid perf oracle final state\n"
+          "  unaccounted_ingress: %s\n"
+          "  unaccounted_controller_hr: %s\n"
+          "  egress_hr (%s) + dropped_ingress (%s) == %s\n",
+          unaccounted_ingress.to_string().c_str(), unaccounted_controller_hr.to_string().c_str(), egress_hr.to_string().c_str(),
+          dropped_ingress.to_string().c_str(), accounted_hr.to_string().c_str());
+  }
 }
 
 std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress) {

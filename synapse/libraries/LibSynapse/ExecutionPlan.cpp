@@ -448,6 +448,7 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_dat
 }
 
 void EP::debug() const {
+  std::cerr << "\n";
   std::cerr << "ID: " << id << "\n";
   std::cerr << "Ancestors:";
   for (ep_id_t ancestor : ancestors) {

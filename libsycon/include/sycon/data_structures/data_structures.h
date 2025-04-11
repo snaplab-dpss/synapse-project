@@ -8,3 +8,4 @@
 #include "vector_register.h"
 #include "hh_table.h"
 #include "guarded_map_table.h"
+#include "count_min_sketch.h"

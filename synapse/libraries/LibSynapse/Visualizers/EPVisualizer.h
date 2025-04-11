@@ -109,6 +109,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *node) override final;

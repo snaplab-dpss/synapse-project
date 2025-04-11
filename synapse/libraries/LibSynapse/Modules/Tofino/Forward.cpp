@@ -21,7 +21,7 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const LibBDD:
 
   Context new_ctx                   = ctx;
   LibSynapse::fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
-  assert(fwd_stats.is_fwd_only());
+  assert(fwd_stats.operation == LibBDD::RouteOp::Forward);
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
     new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, dev_hr);
   }
@@ -55,7 +55,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   new_ep->process_leaf(fwd_node, {leaf});
 
   LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
-  assert(fwd_stats.is_fwd_only());
+  assert(fwd_stats.operation == LibBDD::RouteOp::Forward);
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, new_ep->get_node_egress(dev_hr, fwd_node));
   }

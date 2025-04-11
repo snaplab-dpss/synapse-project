@@ -80,7 +80,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "Backtracks:       " << LibCore::int2hr(search_meta.backtracks) << "\n";
   std::cerr << "Branching factor: " << search_meta.branching_factor << "\n";
   std::cerr << "Avg BDD size:     " << LibCore::int2hr(search_meta.avg_bdd_size) << "\n";
-  std::cerr << "SS size (est):    " << LibCore::int2hr(search_meta.total_ss_size_estimation) << "\n";
+  std::cerr << "SS size (est):    " << LibCore::scientific(search_meta.total_ss_size_estimation) << "\n";
   std::cerr << "Current SS size:  " << LibCore::int2hr(search_meta.ss_size) << "\n";
   std::cerr << "Search Steps:     " << LibCore::int2hr(search_meta.steps) << "\n";
   std::cerr << "Unfinished EPs:   " << LibCore::int2hr(search_meta.unfinished_eps) << "\n";
@@ -98,11 +98,11 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
 void peek_search_space(const std::vector<impl_t> &new_implementations, const std::vector<ep_id_t> &peek, SearchSpace *search_space) {
   for (const impl_t &impl : new_implementations) {
     if (std::find(peek.begin(), peek.end(), impl.result->get_id()) != peek.end()) {
-      std::cerr << "\n";
       impl.result->debug();
-      LibBDD::BDDViz::visualize(impl.result->get_bdd(), false);
+      ProfilerViz::visualize(impl.result->get_bdd(), impl.result->get_ctx().get_profiler(), false);
       EPViz::visualize(impl.result, false);
-      SSViz::visualize(search_space, impl.result, true);
+      SSViz::visualize(search_space, impl.result, false);
+      dbg_pause();
     }
   }
 }

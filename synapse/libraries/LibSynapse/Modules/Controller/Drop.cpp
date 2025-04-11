@@ -18,7 +18,7 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const LibBDD::No
 
   Context new_ctx                   = ctx;
   LibSynapse::fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
-  assert(fwd_stats.is_drop_only());
+  assert(fwd_stats.operation == LibBDD::RouteOp::Drop);
   new_ctx.get_mutable_perf_oracle().add_controller_dropped_traffic(fwd_stats.drop);
 
   return spec_impl_t(decide(ep, node), new_ctx);
@@ -48,7 +48,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const LibBDD::Node *
   new_ep->process_leaf(ep_node, {leaf});
 
   LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
-  assert(fwd_stats.is_drop_only());
+  assert(fwd_stats.operation == LibBDD::RouteOp::Drop);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_dropped_traffic(fwd_stats.drop);
 
   return impls;

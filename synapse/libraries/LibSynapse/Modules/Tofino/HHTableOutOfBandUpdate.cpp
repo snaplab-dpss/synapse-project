@@ -5,6 +5,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 namespace {
+
 struct hh_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
@@ -45,6 +46,7 @@ std::unique_ptr<LibBDD::BDD> rebuild_bdd(const EP *ep, const LibBDD::Node *node,
 
   return bdd;
 }
+
 } // namespace
 
 std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
@@ -71,7 +73,7 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
   const LibBDD::Call *map_put = get_future_map_put(node, map_objs.map);
   assert(map_put && "map_put not found");
 
-  hh_table_data_t table_data(ctx, map_put);
+  const hh_table_data_t table_data(ctx, map_put);
 
   if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return std::nullopt;
@@ -82,6 +84,11 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
   // Get all nodes executed on a successful index allocation.
   const LibBDD::branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
+
+  const hit_rate_t index_alloc_failure_hr = ep->get_ctx().get_profiler().get_hr(index_alloc_check.get_failure_node());
+  if (index_alloc_failure_hr == 0_hr) {
+    return std::nullopt;
+  }
 
   const LibBDD::Node *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
   std::vector<const LibBDD::Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs);
@@ -121,6 +128,11 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   const LibBDD::branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
 
+  const hit_rate_t index_alloc_failure_hr = ep->get_ctx().get_profiler().get_hr(index_alloc_check.get_failure_node());
+  if (index_alloc_failure_hr == 0_hr) {
+    return impls;
+  }
+
   bool logic_before_dchain_check = false;
   if (dchain_allocate_new_index->get_next() != index_alloc_check.branch) {
     logic_before_dchain_check = true;
@@ -155,9 +167,7 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
     assert(new_next_node && "Next node not found");
   }
 
-  const std::vector<klee::ref<klee::Expr>> on_succesful_allocation = index_alloc_check.direction
-                                                                         ? index_alloc_check.branch->get_on_true()->get_ordered_branch_constraints()
-                                                                         : index_alloc_check.branch->get_on_false()->get_ordered_branch_constraints();
+  const std::vector<klee::ref<klee::Expr>> on_succesful_allocation = index_alloc_check.get_success_node()->get_ordered_branch_constraints();
 
   new_ep->get_mutable_ctx().get_mutable_profiler().remove(on_succesful_allocation);
 

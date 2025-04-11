@@ -102,6 +102,12 @@ struct hit_rate_t {
       value = 0;
     }
   }
+
+  std::string to_string() const {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(6) << value;
+    return oss.str();
+  }
 };
 
 inline hit_rate_t operator"" _hr(long double n) { return hit_rate_t(n); }
@@ -113,7 +119,7 @@ inline hit_rate_t operator*(const double n, const hit_rate_t hr) { return hit_ra
 inline hit_rate_t operator/(const double n, const hit_rate_t hr) { return hit_rate_t(n / hr.value); }
 
 inline std::ostream &operator<<(std::ostream &os, const hit_rate_t &hr) {
-  os << std::fixed << std::setprecision(6) << hr.value;
+  os << hr.to_string();
   return os;
 }
 
@@ -128,6 +134,7 @@ namespace LibCore {
 pps_t bps2pps(bps_t bps, bytes_t pkt_size);
 bps_t pps2bps(pps_t pps, bytes_t pkt_size);
 std::string int2hr(i64 value);
+std::string scientific(double value);
 std::string tput2str(u64 thpt, std::string units, bool human_readable = false);
 bits_t bits_from_pow2_capacity(size_t capacity);
 

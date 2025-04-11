@@ -29,12 +29,12 @@ namespace LibCore {
 #define COLOR_WHITE ""
 #define COLOR_BOLD "\033[1m"
 
-#define panic(fmt, ...)                                                                                                                    \
-  do {                                                                                                                                     \
-    fprintf(stderr, COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                                                 \
-    fflush(stderr);                                                                                                                        \
-    dbg_breakpoint();                                                                                                                      \
-    exit(1);                                                                                                                               \
+#define panic(fmt, ...)                                                                                                                              \
+  do {                                                                                                                                               \
+    fprintf(stderr, "\n" COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                                                      \
+    fflush(stderr);                                                                                                                                  \
+    dbg_breakpoint();                                                                                                                                \
+    exit(1);                                                                                                                                         \
   } while (0)
 
 } // namespace LibCore

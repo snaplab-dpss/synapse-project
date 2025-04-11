@@ -208,6 +208,8 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketTrace *node) override final;
@@ -252,6 +254,7 @@ private:
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
   void transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time);
+  void transpile_cms_decl(const Tofino::CountMinSketch *cms, time_ns_t periodic_cleanup_interval);
 
   void abort_transaction(coder_t &coder);
 

@@ -45,6 +45,14 @@ std::string int2hr(i64 value) {
   return ss.str();
 }
 
+std::string scientific(double value) {
+  std::stringstream ss;
+  ss.setf(std::ios::scientific);
+  ss.precision(2);
+  ss << value;
+  return ss.str();
+}
+
 std::string tput2str(u64 thpt, std::string units, bool human_readable) {
   std::stringstream ss;
 

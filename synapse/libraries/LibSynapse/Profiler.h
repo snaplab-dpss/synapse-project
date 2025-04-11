@@ -21,27 +21,10 @@ struct flow_stats_t {
 };
 
 struct fwd_stats_t {
+  LibBDD::RouteOp operation;
   hit_rate_t drop;
   hit_rate_t flood;
   std::unordered_map<u16, hit_rate_t> ports;
-
-  bool is_drop_only() const {
-    bool drop_only = (flood == 0);
-    for (const auto &[_, hr] : ports) {
-      drop_only &= (hr == 0);
-    }
-    return drop_only;
-  }
-
-  bool is_flood_only() const {
-    bool flood_only = (drop == 0);
-    for (const auto &[_, hr] : ports) {
-      flood_only &= (hr == 0);
-    }
-    return flood_only;
-  }
-
-  bool is_fwd_only() const { return (drop == 0) && (flood == 0); }
 
   hit_rate_t calculate_total_hr() const {
     hit_rate_t total_hr = drop + flood;
@@ -72,6 +55,15 @@ struct ProfilerNode {
   void debug(int lvl = 0) const;
 
   flow_stats_t get_flow_stats(klee::ref<klee::Expr> flow_id) const;
+
+  struct family_t {
+    ProfilerNode *node;
+    ProfilerNode *parent;
+    ProfilerNode *grandparent;
+    ProfilerNode *sibling;
+  };
+
+  family_t get_family();
 };
 
 class Profiler {
@@ -135,15 +127,6 @@ private:
 
   hit_rate_t get_hr(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
   fwd_stats_t get_fwd_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
-
-  struct family_t {
-    ProfilerNode *node;
-    ProfilerNode *parent;
-    ProfilerNode *grandparent;
-    ProfilerNode *sibling;
-  };
-
-  family_t get_family(ProfilerNode *node) const;
 
   void clone_tree_if_shared();
   void append(ProfilerNode *node, klee::ref<klee::Expr> cnstr, hit_rate_t hr);

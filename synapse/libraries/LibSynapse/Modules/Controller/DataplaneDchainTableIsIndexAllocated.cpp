@@ -98,7 +98,7 @@ std::unique_ptr<Module> DataplaneDchainTableIsIndexAllocatedFactory::create(cons
     return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(call_node);
+  const dchain_table_data_t data = get_dchain_table_data(call_node);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable)) {
     return {};

@@ -88,5 +88,7 @@ SHOW_MODULE_NAME(Controller::CMSUpdate)
 SHOW_MODULE_NAME(Controller::CMSQuery)
 SHOW_MODULE_NAME(Controller::CMSIncrement)
 SHOW_MODULE_NAME(Controller::CMSCountMin)
+SHOW_MODULE_NAME(Controller::DataplaneCMSAllocate)
+SHOW_MODULE_NAME(Controller::DataplaneCMSQuery)
 
 } // namespace LibSynapse

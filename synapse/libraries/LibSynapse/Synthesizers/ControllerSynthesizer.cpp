@@ -1636,6 +1636,38 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) {
+  const addr_t obj                          = node->get_obj();
+  const time_ns_t periodic_cleanup_interval = node->get_cleanup_internal();
+
+  const Tofino::CountMinSketch *cms = get_unique_tofino_ds_from_obj<Tofino::CountMinSketch>(ep, obj);
+
+  transpile_cms_decl(cms, periodic_cleanup_interval);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                         = node->get_obj();
+  const klee::ref<klee::Expr> key          = node->get_key();
+  const klee::ref<klee::Expr> min_estimate = node->get_min_estimate();
+
+  const Tofino::CountMinSketch *cms = get_unique_tofino_ds_from_obj<Tofino::CountMinSketch>(ep, obj);
+
+  const var_t key_var          = transpile_buffer_decl_and_set(coder, cms->id + "_key", key, true);
+  const var_t min_estimate_var = alloc_var("min_estimate", min_estimate, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << min_estimate_var.name << " = ";
+  coder << "state->" << cms->id << ".count_min(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
 ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr,
                                                               var_alloc_opt_t opt) {
   const var_t var{
@@ -1902,6 +1934,31 @@ void ControllerSynthesizer::transpile_hh_table_decl(const Tofino::HHTable *hh_ta
   member_init_list << ", \"Ingress." << hh_table->threshold.id << "\"";
   member_init_list << ", \"IngressDeparser." << hh_table->digest.id << "\"";
   member_init_list << ", " << expiration_time_ms << "LL";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_cms_decl(const Tofino::CountMinSketch *cms, time_ns_t periodic_cleanup_interval) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                            = assert_unique_name(cms->id);
+  const time_ms_t periodic_cleanup_interval_ms = periodic_cleanup_interval / MILLION;
+
+  state_fields.indent();
+  state_fields << "CountMinSketch " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "{";
+  for (const Tofino::Register &row : cms->rows) {
+    member_init_list << "\"Ingress." << row.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", " << periodic_cleanup_interval_ms << "LL";
   member_init_list << ")";
   state_member_init_list.push_back(member_init_list.dump());
 }

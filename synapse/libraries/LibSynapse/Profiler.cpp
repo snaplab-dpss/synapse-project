@@ -45,14 +45,19 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
       node = nullptr;
     } break;
     case LibBDD::NodeType::Route: {
+      const LibBDD::Route *route      = dynamic_cast<const LibBDD::Route *>(node);
+      const LibBDD::RouteOp operation = route->get_operation();
+
       assert(bdd_profile->forwarding_stats.find(node->get_id()) != bdd_profile->forwarding_stats.end());
+
       const u64 counter = bdd_profile->counters.at(node->get_id());
       const hit_rate_t hr(counter, max_count);
       prof_node = new ProfilerNode(nullptr, hr, node->get_id());
 
       prof_node->forwarding_stats.emplace();
-      prof_node->forwarding_stats->drop  = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).drop, max_count);
-      prof_node->forwarding_stats->flood = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).flood, max_count);
+      prof_node->forwarding_stats->operation = operation;
+      prof_node->forwarding_stats->drop      = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).drop, max_count);
+      prof_node->forwarding_stats->flood     = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).flood, max_count);
       for (const auto &[device, dev_counter] : bdd_profile->forwarding_stats.at(node->get_id()).ports) {
         prof_node->forwarding_stats->ports[device] = hit_rate_t(dev_counter, max_count);
       }
@@ -128,8 +133,9 @@ LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
       }
 
       const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
+      const LibBDD::RouteOp operation = route_node->get_operation();
 
-      switch (route_node->get_operation()) {
+      switch (operation) {
       case LibBDD::RouteOp::Drop: {
         bdd_profile.forwarding_stats[node->get_id()].drop = current_counter;
       } break;
@@ -139,11 +145,11 @@ LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
       case LibBDD::RouteOp::Forward: {
         klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
         if (LibCore::is_constant(dst_device)) {
-          u16 device = LibCore::solver_toolbox.value_from_expr(dst_device);
+          const u16 device = LibCore::solver_toolbox.value_from_expr(dst_device);
           assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          u16 device                                                 = devices[LibCore::SingletonRandomEngine::generate() % devices.size()];
+          const u16 device                                           = devices[LibCore::SingletonRandomEngine::generate() % devices.size()];
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         }
       } break;
@@ -196,7 +202,19 @@ void update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
 
     assert(new_fraction == fwd_stats.calculate_total_hr());
   } else {
-    assert(new_fraction == 0_hr && "Not enough information for forwarding profiling decisions");
+    switch (fwd_stats.operation) {
+    case LibBDD::RouteOp::Drop: {
+      fwd_stats.drop = new_fraction;
+    } break;
+    case LibBDD::RouteOp::Broadcast: {
+      fwd_stats.flood = new_fraction;
+    } break;
+    case LibBDD::RouteOp::Forward: {
+      // There is not enough information to make profiling forwarding decisions.
+      // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
+      panic("Not enough information to make profiling forwarding decisions");
+    } break;
+    }
   }
 }
 
@@ -205,10 +223,25 @@ void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fracti
     return;
   }
 
-  const double dhr = parent_new_fraction == 0_hr ? 0 : parent_new_fraction / parent_old_fraction;
+  if (parent_old_fraction == parent_new_fraction) {
+    return;
+  }
 
   const hit_rate_t old_fraction = node->fraction;
-  const hit_rate_t new_fraction = old_fraction * dhr;
+
+  hit_rate_t new_fraction;
+  if (parent_old_fraction == 0_hr) {
+    const ProfilerNode::family_t family = node->get_family();
+
+    if (family.sibling) {
+      // There is not enough information to make profiling forwarding decisions.
+      panic("Not enough profiling information: distribution of traffic across siblings is unknown");
+    } else {
+      new_fraction = parent_new_fraction;
+    }
+  } else {
+    new_fraction = node->fraction * (parent_new_fraction / parent_old_fraction);
+  }
 
   update_fractions(node, new_fraction);
 
@@ -561,24 +594,24 @@ void Profiler::append(ProfilerNode *node, klee::ref<klee::Expr> constraint, hit_
   recursive_update_fractions(new_node->on_false, new_node->fraction, fraction_on_false);
 }
 
-Profiler::family_t Profiler::get_family(ProfilerNode *node) const {
+ProfilerNode::family_t ProfilerNode::get_family() {
   family_t family = {
-      .node        = node,
-      .parent      = node->prev,
+      .node        = this,
+      .parent      = prev,
       .grandparent = nullptr,
       .sibling     = nullptr,
   };
 
   if (family.parent) {
     family.grandparent = family.parent->prev;
-    family.sibling     = (family.parent->on_true == node) ? family.parent->on_false : family.parent->on_true;
+    family.sibling     = (family.parent->on_true == this) ? family.parent->on_false : family.parent->on_true;
   }
 
   return family;
 }
 
 void Profiler::remove(ProfilerNode *node) {
-  family_t family = get_family(node);
+  ProfilerNode::family_t family = node->get_family();
 
   assert(family.parent && "Cannot remove the root node");
   const hit_rate_t parent_fraction = family.parent->fraction;

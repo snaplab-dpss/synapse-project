@@ -39,9 +39,8 @@ private:
     return fractions_per_node;
   }
 
-  static std::unordered_map<LibBDD::node_id_t, std::string>
-  get_annocations_per_node(const LibBDD::BDD *bdd, const Profiler &profiler,
-                           const std::unordered_map<LibBDD::node_id_t, hit_rate_t> &hrpn) {
+  static std::unordered_map<LibBDD::node_id_t, std::string> get_annocations_per_node(const LibBDD::BDD *bdd, const Profiler &profiler,
+                                                                                     const std::unordered_map<LibBDD::node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<LibBDD::node_id_t, std::string> annocations_per_node;
 
     for (const auto &[node_id, fraction] : hrpn) {
@@ -52,22 +51,32 @@ private:
       if (bdd_node->get_type() == LibBDD::NodeType::Route) {
         const LibSynapse::fwd_stats_t fwd_stats = profiler.get_fwd_stats(bdd_node);
         ss << "\n";
-        ss << "Fwd={";
-        int i = 0;
-        for (const auto &[port, hr] : fwd_stats.ports) {
-          if (hr == 0) {
-            continue;
+        switch (fwd_stats.operation) {
+        case LibBDD::RouteOp::Drop: {
+          ss << "Drop={" << fwd_stats.drop << "}";
+        } break;
+        case LibBDD::RouteOp::Broadcast: {
+          ss << "Bcast={" << fwd_stats.flood << "}";
+        } break;
+        case LibBDD::RouteOp::Forward: {
+          ss << "Fwd={";
+          int i = 0;
+          for (const auto &[port, hr] : fwd_stats.ports) {
+            if (hr == 0) {
+              continue;
+            }
+            if (i != 0) {
+              ss << ",";
+            }
+            if (i % 4 == 0) {
+              ss << "\n";
+            }
+            ss << port << ":" << hr;
+            i++;
           }
-          if (i != 0) {
-            ss << ",";
-          }
-          if (i % 4 == 0) {
-            ss << "\n";
-          }
-          ss << port << ":" << hr;
-          i++;
+          ss << "}";
+        } break;
         }
-        ss << "}";
       }
 
       annocations_per_node[node_id] = ss.str();

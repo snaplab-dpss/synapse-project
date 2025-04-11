@@ -147,19 +147,17 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
   for (const LibBDD::Route *route : future_routing_decisions) {
     const LibSynapse::fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(route);
+    assert(fwd_stats.operation == route->get_operation());
     switch (route->get_operation()) {
     case LibBDD::RouteOp::Forward: {
-      assert(fwd_stats.is_fwd_only());
       for (const auto &[device, dev_hr] : fwd_stats.ports) {
         new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, dev_hr);
       }
     } break;
     case LibBDD::RouteOp::Drop: {
-      assert(fwd_stats.is_drop_only());
       new_ctx.get_mutable_perf_oracle().add_dropped_traffic(fwd_stats.drop);
     } break;
     case LibBDD::RouteOp::Broadcast: {
-      assert(fwd_stats.is_flood_only());
       for (const auto &[device, _] : fwd_stats.ports) {
         new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, fwd_stats.flood);
       }

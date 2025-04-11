@@ -349,6 +349,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex:
     case ModuleType::Controller_DataplaneMeterAllocate:
     case ModuleType::Controller_DataplaneMeterInsert:
+    case ModuleType::Controller_DataplaneCMSAllocate:
+    case ModuleType::Controller_DataplaneCMSQuery:
     case ModuleType::Controller_DchainAllocate:
     case ModuleType::Controller_DchainAllocateNewIndex:
     case ModuleType::Controller_DchainRejuvenateIndex:

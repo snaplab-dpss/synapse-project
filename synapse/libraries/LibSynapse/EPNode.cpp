@@ -83,12 +83,11 @@ std::vector<klee::ref<klee::Expr>> EPNode::get_constraints() const {
   while (node) {
     klee::ref<klee::Expr> constraint = node->get_constraint();
 
-    if (node->get_children().size() == 2 && node->get_children()[1] == next) {
-      assert(!constraint.isNull() && "No constraint on a conditional node");
-      constraint = LibCore::solver_toolbox.exprBuilder->Not(constraint);
-    }
-
     if (!constraint.isNull()) {
+      if (node->get_children().size() > 1 && node->get_children()[1] == next) {
+        constraint = LibCore::solver_toolbox.exprBuilder->Not(constraint);
+      }
+
       constraints.insert(constraints.begin(), constraint);
     }
 
