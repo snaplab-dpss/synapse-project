@@ -186,8 +186,7 @@ bool get_siblings(const vector_t &anchor, const Node *target, bool find_in_all_b
       if (target_type == NodeType::Branch) {
         const Branch *target_branch = dynamic_cast<const Branch *>(target);
 
-        bool matching_conditions =
-            LibCore::solver_toolbox.are_exprs_always_equal(branch_node->get_condition(), target_branch->get_condition());
+        bool matching_conditions = LibCore::solver_toolbox.are_exprs_always_equal(branch_node->get_condition(), target_branch->get_condition());
 
         if (matching_conditions) {
           siblings.insert(node->get_id());
@@ -233,8 +232,7 @@ bool get_siblings(const vector_t &anchor, const Node *target, bool find_in_all_b
 
         bool matching_route_decisions = route_node->get_operation() == route_target->get_operation();
         assert(false && "TODO: here be dragons");
-        bool matching_output_port =
-            LibCore::solver_toolbox.are_exprs_always_equal(route_node->get_dst_device(), route_target->get_dst_device());
+        bool matching_output_port = LibCore::solver_toolbox.are_exprs_always_equal(route_node->get_dst_device(), route_target->get_dst_device());
 
         if (matching_route_decisions && matching_output_port) {
           siblings.insert(node->get_id());
@@ -368,8 +366,7 @@ bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, co
 
   bool always_eq = LibCore::solver_toolbox.are_exprs_always_equal(between_key, candidate_key, between_constraints, candidate_constraints);
 
-  bool always_diff =
-      LibCore::solver_toolbox.are_exprs_always_not_equal(between_key, candidate_key, between_constraints, candidate_constraints);
+  bool always_diff = LibCore::solver_toolbox.are_exprs_always_not_equal(between_key, candidate_key, between_constraints, candidate_constraints);
 
   if (always_eq) {
     return false;
@@ -429,11 +426,9 @@ bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between,
   klee::ref<klee::Expr> between_index   = between_call.args.at("index").expr;
   klee::ref<klee::Expr> candidate_index = candidate_call.args.at("index").expr;
 
-  bool always_eq =
-      LibCore::solver_toolbox.are_exprs_always_equal(between_index, candidate_index, between_constraints, candidate_constraints);
+  bool always_eq = LibCore::solver_toolbox.are_exprs_always_equal(between_index, candidate_index, between_constraints, candidate_constraints);
 
-  bool always_diff =
-      LibCore::solver_toolbox.are_exprs_always_not_equal(between_index, candidate_index, between_constraints, candidate_constraints);
+  bool always_diff = LibCore::solver_toolbox.are_exprs_always_not_equal(between_index, candidate_index, between_constraints, candidate_constraints);
 
   if (always_eq) {
     return false;
@@ -484,8 +479,7 @@ const std::unordered_map<std::string, can_reorder_stateful_op_fn> can_reorder_ha
     {"tb_update_and_check", tb_can_reorder},
 };
 
-bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate,
-                             klee::ref<klee::Expr> &condition) {
+bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
   assert(candidate->get_type() == NodeType::Call && "Unexpected node type");
 
   const Call *call_node = dynamic_cast<const Call *>(candidate);
@@ -547,8 +541,7 @@ bool rw_check(const BDD *bdd, const Node *anchor, const Node *candidate, klee::r
   return true;
 }
 
-bool condition_check(const vector_t &anchor, const Node *candidate, const std::unordered_set<node_id_t> &siblings,
-                     klee::ref<klee::Expr> condition) {
+bool condition_check(const vector_t &anchor, const Node *candidate, const std::unordered_set<node_id_t> &siblings, klee::ref<klee::Expr> condition) {
   if (condition.isNull())
     return true;
 
@@ -602,9 +595,9 @@ node_id_t get_next_branch(const Node *node) {
   const Node *next = node->get_next();
   assert(next && "Next node not found");
 
-  next->visit_nodes([&next_branch_id](const Node *node) -> NodeVisitAction {
-    if (node->get_type() == NodeType::Branch) {
-      next_branch_id = node->get_id();
+  next->visit_nodes([&next_branch_id](const Node *future_node) -> NodeVisitAction {
+    if (future_node->get_type() == NodeType::Branch) {
+      next_branch_id = future_node->get_id();
       return NodeVisitAction::Stop;
     }
 
@@ -743,16 +736,15 @@ std::unordered_map<Branch *, directions_t> get_branch_candidates(const mutable_v
                                                                  const std::unordered_set<Node *> &siblings) {
   std::unordered_map<Branch *, directions_t> branch_candidates;
 
-  // Contrary to the non-branch case, here we need to consider all siblings
-  // equally.
+  // Contrary to the non-branch case, here we need to consider all siblings equally.
   std::unordered_set<Branch *> candidates{candidate};
   for (Node *sibling : siblings) {
     assert(sibling->get_type() == NodeType::Branch && "Unexpected node type");
     candidates.insert(dynamic_cast<Branch *>(sibling));
   }
 
-  for (Branch *candidate : candidates) {
-    branch_candidates[candidate] = get_directions(anchor.node, candidate);
+  for (Branch *c : candidates) {
+    branch_candidates[c] = get_directions(anchor.node, c);
   }
 
   return branch_candidates;
@@ -816,8 +808,8 @@ leaves_t get_leaves_from_candidates(const std::unordered_map<Branch *, direction
   return leaves;
 }
 
-Node *clone_and_update_nodes(BDD *bdd, Node *candidate, const std::unordered_set<Node *> &siblings, Node *anchor_old_next,
-                             dangling_t &dangling, leaves_t &leaves) {
+Node *clone_and_update_nodes(BDD *bdd, Node *candidate, const std::unordered_set<Node *> &siblings, Node *anchor_old_next, dangling_t &dangling,
+                             leaves_t &leaves) {
   NodeManager &manager = bdd->get_mutable_manager();
   node_id_t &id        = bdd->get_mutable_id();
 
@@ -962,7 +954,7 @@ std::vector<translated_symbol_t> translate_symbols(BDD *bdd, Node *candidate) {
 
   for (const LibCore::symbol_t &candidate_symbol : candidate_symbols.get()) {
     const LibCore::symbol_t new_symbol = get_collision_free_symbol(candidate_symbol, bdd->get_mutable_symbol_manager());
-    candidate->recursive_translate_symbol(bdd->get_mutable_symbol_manager(), candidate_symbol, new_symbol);
+    candidate->recursive_translate_symbol(candidate_symbol, new_symbol);
     translated_symbols.push_back({candidate_symbol, new_symbol});
   }
 
@@ -1282,8 +1274,7 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op, st
           "Dumping for analysis:\n"
           "  Old bdd: %s (%s)\n"
           "  New bdd: %s (%s)\n",
-          inspection_report.message.c_str(), op.to_string().c_str(), old_bdd.c_str(), old_bdd_dot.c_str(), new_bdd.c_str(),
-          new_bdd_dot.c_str());
+          inspection_report.message.c_str(), op.to_string().c_str(), old_bdd.c_str(), old_bdd_dot.c_str(), new_bdd.c_str(), new_bdd_dot.c_str());
   }
 
   return bdd;
@@ -1358,9 +1349,9 @@ reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info, no
 
   std::vector<translated_symbol_t> translated_symbols;
   reordered_bdd_t result{
-      .bdd = (proposed_candidate.status == ReorderingCandidateStatus::Valid) ? reorder(bdd, op, translated_symbols) : nullptr,
-      .op  = op,
-      .op2 = std::nullopt,
+      .bdd                = (proposed_candidate.status == ReorderingCandidateStatus::Valid) ? reorder(bdd, op, translated_symbols) : nullptr,
+      .op                 = op,
+      .op2                = std::nullopt,
       .translated_symbols = translated_symbols,
   };
 

@@ -12,8 +12,8 @@ private:
   klee::ref<klee::Expr> success;
 
 public:
-  DataplaneDchainTableAllocateNewIndex(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _allocated_index, klee::ref<klee::Expr> _success)
-      : ControllerModule(ModuleType::Controller_DataplaneDchainTableAllocateNewIndex, "DataplaneDchainTableAllocateNewIndex", node), obj(_obj),
+  DataplaneDchainTableAllocateNewIndex(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _allocated_index, klee::ref<klee::Expr> _success)
+      : ControllerModule(ModuleType::Controller_DataplaneDchainTableAllocateNewIndex, "DataplaneDchainTableAllocateNewIndex", _node), obj(_obj),
         allocated_index(_allocated_index), success(_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

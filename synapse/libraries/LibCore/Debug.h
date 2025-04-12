@@ -31,7 +31,11 @@ namespace LibCore {
 
 #define panic(fmt, ...)                                                                                                                              \
   do {                                                                                                                                               \
-    fprintf(stderr, "\n" COLOR_RED_BRIGHT fmt "\n" COLOR_RESET, ##__VA_ARGS__);                                                                      \
+    fprintf(stderr,                                                                                                                                  \
+            "\n" COLOR_RED_BRIGHT fmt "\n"                                                                                                           \
+            "%s@%s:%d"                                                                                                                               \
+            "\n" COLOR_RESET,                                                                                                                        \
+            ##__VA_ARGS__, __func__, __FILE__, __LINE__);                                                                                            \
     fflush(stderr);                                                                                                                                  \
     dbg_breakpoint();                                                                                                                                \
     exit(1);                                                                                                                                         \

@@ -10,10 +10,10 @@ namespace Tofino {
 
 class TofinoModule : public Module {
 public:
-  TofinoModule(ModuleType _type, const std::string &_name, const LibBDD::Node *node) : Module(_type, TargetType::Tofino, _name, node) {}
+  TofinoModule(ModuleType _type, const std::string &_name, const LibBDD::Node *_node) : Module(_type, TargetType::Tofino, _name, _node) {}
 
-  TofinoModule(ModuleType _type, TargetType _next_type, const std::string &_name, const LibBDD::Node *node)
-      : Module(_type, TargetType::Tofino, _next_type, _name, node) {}
+  TofinoModule(ModuleType _type, TargetType _next_type, const std::string &_name, const LibBDD::Node *_node)
+      : Module(_type, TargetType::Tofino, _next_type, _name, _node) {}
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const { return {}; }
 };

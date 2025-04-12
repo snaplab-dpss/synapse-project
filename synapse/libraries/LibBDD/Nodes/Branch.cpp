@@ -7,8 +7,7 @@ namespace LibBDD {
 Node *Branch::clone(NodeManager &manager, bool recursive) const {
   Node *clone;
 
-  const Node *on_true  = get_on_true();
-  const Node *on_false = get_on_false();
+  const Node *on_true = get_on_true();
 
   if (recursive) {
     Node *on_true_clone  = on_true ? on_true->clone(manager, true) : nullptr;
@@ -32,11 +31,10 @@ std::vector<node_id_t> Branch::get_leaves() const {
   assert(next && "No on_true node");
   assert(on_false && "No on_false node");
 
-  auto on_true_ids  = next->get_leaves();
-  auto on_false_ids = on_false->get_leaves();
+  const std::vector<LibBDD::node_id_t> on_true_ids  = next->get_leaves();
+  const std::vector<LibBDD::node_id_t> on_false_ids = on_false->get_leaves();
 
   terminating_ids.insert(terminating_ids.end(), on_true_ids.begin(), on_true_ids.end());
-
   terminating_ids.insert(terminating_ids.end(), on_false_ids.begin(), on_false_ids.end());
 
   return terminating_ids;

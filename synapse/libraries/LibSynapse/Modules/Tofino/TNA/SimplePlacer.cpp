@@ -532,9 +532,9 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
 
     bool change = false;
     if (already_placed) {
-      for (const std::unordered_set<const DS *> &indep_ds : ds->get_internal_primitive()) {
-        for (const DS *ds : indep_ds) {
-          if (!is_placed(ds->id)) {
+      for (const std::unordered_set<const DS *> &independent_data_structures : ds->get_internal_primitive()) {
+        for (const DS *independent_ds : independent_data_structures) {
+          if (!is_placed(independent_ds->id)) {
             change = true;
             break;
           }
@@ -558,16 +558,16 @@ void SimplePlacer::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
       return;
     } else {
       std::unordered_set<DS_ID> current_deps = deps;
-      for (const std::unordered_set<const DS *> &indep_ds : ds->get_internal_primitive()) {
+      for (const std::unordered_set<const DS *> &independent_data_structures : ds->get_internal_primitive()) {
         std::unordered_set<DS_ID> new_deps;
 
-        for (const DS *ds : indep_ds) {
-          if (is_placed(ds->id)) {
+        for (const DS *independent_ds : independent_data_structures) {
+          if (is_placed(independent_ds->id)) {
             continue;
           }
 
-          place_primitive_ds(ds, current_deps);
-          new_deps.insert(ds->id);
+          place_primitive_ds(independent_ds, current_deps);
+          new_deps.insert(independent_ds->id);
         }
 
         current_deps.insert(new_deps.begin(), new_deps.end());
@@ -623,9 +623,9 @@ PlacementStatus SimplePlacer::can_place(const DS *ds, const std::unordered_set<D
 
   bool change = false;
   if (already_placed) {
-    for (const std::unordered_set<const DS *> &indep_ds : candidates) {
-      for (const DS *ds : indep_ds) {
-        if (!is_placed(ds->id)) {
+    for (const std::unordered_set<const DS *> &independent_data_structures : candidates) {
+      for (const DS *independent_ds : independent_data_structures) {
+        if (!is_placed(independent_ds->id)) {
           change = true;
           break;
         }
@@ -654,18 +654,18 @@ PlacementStatus SimplePlacer::can_place(const DS *ds, const std::unordered_set<D
     SimplePlacer snapshot = *this;
 
     std::unordered_set<DS_ID> current_deps = deps;
-    for (const std::unordered_set<const DS *> &indep_ds : candidates) {
+    for (const std::unordered_set<const DS *> &independent_data_structures : candidates) {
       std::unordered_set<DS_ID> new_deps;
 
-      for (const DS *ds : indep_ds) {
-        PlacementStatus status = snapshot.can_place(ds, current_deps);
+      for (const DS *independent_ds : independent_data_structures) {
+        status = snapshot.can_place(independent_ds, current_deps);
 
         if (status != PlacementStatus::Success) {
           return status;
         }
 
-        snapshot.place(ds, current_deps);
-        new_deps.insert(ds->id);
+        snapshot.place(independent_ds, current_deps);
+        new_deps.insert(independent_ds->id);
       }
 
       current_deps.insert(new_deps.begin(), new_deps.end());

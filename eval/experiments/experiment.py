@@ -20,7 +20,6 @@ from hosts.pktgen import Pktgen
 MIN_THROUGHPUT = 1_000  # 1 Gbps
 MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5
-THROUGHPUT_SEARCH_STEPS = 10
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
@@ -28,7 +27,9 @@ PORT_SETUP_RATE = 1  # 1 Mbps
 WARMUP_TIME_SEC = 5
 WARMUP_RATE = MIN_THROUGHPUT
 REST_TIME_SEC = 5
-EXPERIMENT_ITERATIONS = 5
+
+DEFAULT_THROUGHPUT_SEARCH_STEPS = 10
+DEFAULT_EXPERIMENT_ITERATIONS = 5
 
 
 @dataclass
@@ -57,7 +58,7 @@ class Experiment:
         self,
         name: str,
         log_file: Optional[str] = None,
-        iterations: int = EXPERIMENT_ITERATIONS,
+        iterations: int = DEFAULT_EXPERIMENT_ITERATIONS,
     ) -> None:
         self.name = name
         self.iterations = iterations
@@ -147,7 +148,7 @@ class Experiment:
         tg_controller: TofinoTGController,
         pktgen: Pktgen,
         churn: int,
-        iterations: int = THROUGHPUT_SEARCH_STEPS,
+        search_steps: int = DEFAULT_THROUGHPUT_SEARCH_STEPS,
     ) -> ThroughputReport:
         self.log("Warming up ports...")
         self.warmup_ports(tg_controller, pktgen)
@@ -170,31 +171,23 @@ class Experiment:
         current_rate = rate_upper
 
         # We iteratively refine the bounds until the difference between them is less than the specified precision.
-        for i in range(iterations):
+        for i in range(search_steps):
             # There's no point in continuing this search.
             if rate_upper == 0 or current_rate == 0:
                 break
 
             self.log()
-            self.log(f"[{i+1}/{iterations}] Trying rate {current_rate:,} Mbps")
-
-            tg_controller.reset_stats()
-            pktgen.reset_stats()
+            self.log(f"[{i+1}/{search_steps}] Trying rate {current_rate:,} Mbps")
 
             pktgen.set_rate(WARMUP_RATE)
             pktgen.set_churn(0)
-
             pktgen.start()
             sleep(WARMUP_TIME_SEC)
-
-            pktgen.set_churn(churn)
             pktgen.set_rate(current_rate)
             sleep(WARMUP_TIME_SEC)
-
             tg_controller.reset_stats()
-            pktgen.reset_stats()
+            pktgen.set_churn(churn)
             sleep(ITERATION_DURATION_SEC)
-
             pktgen.stop()
             sleep(REST_TIME_SEC)
 

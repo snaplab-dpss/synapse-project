@@ -14,14 +14,12 @@ private:
   klee::ref<klee::Expr> write_value;
 
 public:
-  VectorRegisterUpdate(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _read_value,
+  VectorRegisterUpdate(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _read_value,
                        klee::ref<klee::Expr> _write_value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate", node), id(_id), obj(_obj), index(_index),
+      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate", _node), id(_id), obj(_obj), index(_index),
         read_value(_read_value), write_value(_write_value) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new VectorRegisterUpdate(node, id, obj, index, read_value, write_value);

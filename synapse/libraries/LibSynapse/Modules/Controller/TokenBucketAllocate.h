@@ -14,14 +14,12 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  TokenBucketAllocate(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
+  TokenBucketAllocate(const LibBDD::Node *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
                       klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size)
-      : ControllerModule(ModuleType::Controller_TokenBucketAllocate, "TokenBucketAllocate", node), tb_addr(_tb_addr), capacity(_capacity),
+      : ControllerModule(ModuleType::Controller_TokenBucketAllocate, "TokenBucketAllocate", _node), tb_addr(_tb_addr), capacity(_capacity),
         rate(_rate), burst(_burst), key_size(_key_size) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new TokenBucketAllocate(node, tb_addr, capacity, rate, burst, key_size);

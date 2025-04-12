@@ -11,12 +11,10 @@ private:
   addr_t obj;
 
 public:
-  HHTableOutOfBandUpdate(const LibBDD::Node *node, DS_ID _hh_table_id, addr_t _obj)
-      : TofinoModule(ModuleType::Tofino_HHTableOutOfBandUpdate, "HHTableOutOfBandUpdate", node), hh_table_id(_hh_table_id), obj(_obj) {}
+  HHTableOutOfBandUpdate(const LibBDD::Node *_node, DS_ID _hh_table_id, addr_t _obj)
+      : TofinoModule(ModuleType::Tofino_HHTableOutOfBandUpdate, "HHTableOutOfBandUpdate", _node), hh_table_id(_hh_table_id), obj(_obj) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new HHTableOutOfBandUpdate(node, hh_table_id, obj);

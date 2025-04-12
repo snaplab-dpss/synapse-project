@@ -25,7 +25,16 @@ NFS = [
         "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_hhtable_bps_scatter.pdf",
         "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_hhtable_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_hhtable_heatmap.pdf",
-    }
+    },
+    {
+        "title": "GuardedMapTable",
+        "data_file": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_heatmap.pdf",
+    },
 ]
 
 
@@ -332,8 +341,6 @@ def plot_heatmap_v2(data: Data, file: Path):
         j = all_s.index(key.s)
         bps = int(avg_data[key].dut_egress_bps)
         err = int(data.get_stdev_values()[key].dut_egress_bps)
-
-        # label = f"{whole_number_to_label(bps)}\n±{whole_number_to_label(err)}"
 
         avg_label, err_label, suffix_label = avg_err_precision_to_label(bps, err)
         label = f"{avg_label}±{err_label}\n{suffix_label}bps"

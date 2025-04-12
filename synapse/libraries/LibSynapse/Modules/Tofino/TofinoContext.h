@@ -39,11 +39,11 @@ public:
     return dynamic_cast<const DS_T *>(*ds.begin());
   }
 
-  void parser_transition(const LibBDD::Node *node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
-  void parser_select(const LibBDD::Node *node, const std::vector<parser_selection_t> &selections, const LibBDD::Node *last_parser_op,
+  void parser_transition(const LibBDD::Node *_node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
+  void parser_select(const LibBDD::Node *_node, const std::vector<parser_selection_t> &selections, const LibBDD::Node *last_parser_op,
                      std::optional<bool> direction);
-  void parser_accept(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
-  void parser_reject(const LibBDD::Node *node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
+  void parser_accept(const LibBDD::Node *_node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
+  void parser_reject(const LibBDD::Node *_node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
 
   std::unordered_set<DS_ID> get_stateful_deps(const EP *ep, const LibBDD::Node *node) const;
 

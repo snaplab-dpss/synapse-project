@@ -18,13 +18,13 @@ void CallPathsGroup::group_call_paths() {
 
     const call_t &call = cp->calls[0];
 
-    for (call_path_t *cp : call_paths.data) {
-      if (cp->calls.size() && are_calls_equal(cp->calls[0], call)) {
-        on_true.data.push_back(cp);
+    for (call_path_t *other_cp : call_paths.data) {
+      if (other_cp->calls.size() && are_calls_equal(other_cp->calls[0], call)) {
+        on_true.data.push_back(other_cp);
         continue;
       }
 
-      on_false.data.push_back(cp);
+      on_false.data.push_back(other_cp);
     }
 
     // All calls are equal, no need do discriminate
@@ -100,11 +100,11 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
 klee::ref<klee::Expr> CallPathsGroup::find_discriminating_constraint() {
   assert(on_true.data.size() && "No call paths on true");
 
-  auto possible_discriminating_constraints = get_possible_discriminating_constraints();
+  std::vector<klee::ref<klee::Expr>> possible_discriminating_constraints = get_possible_discriminating_constraints();
 
-  for (auto constraint : possible_discriminating_constraints) {
-    if (check_discriminating_constraint(constraint))
-      return constraint;
+  for (klee::ref<klee::Expr> candidate : possible_discriminating_constraints) {
+    if (check_discriminating_constraint(candidate))
+      return candidate;
   }
 
   return klee::ref<klee::Expr>();
@@ -114,41 +114,41 @@ std::vector<klee::ref<klee::Expr>> CallPathsGroup::get_possible_discriminating_c
   std::vector<klee::ref<klee::Expr>> possible_discriminating_constraints;
   assert(on_true.data.size() && "No call paths on true");
 
-  for (auto constraint : on_true.data[0]->constraints) {
-    if (satisfies_constraint(on_true.data, constraint))
-      possible_discriminating_constraints.push_back(constraint);
+  for (klee::ref<klee::Expr> candidate : on_true.data[0]->constraints) {
+    if (satisfies_constraint(on_true.data, candidate))
+      possible_discriminating_constraints.push_back(candidate);
   }
 
   return possible_discriminating_constraints;
 }
 
-bool CallPathsGroup::satisfies_constraint(std::vector<call_path_t *> call_paths, klee::ref<klee::Expr> constraint) const {
-  for (const auto &call_path : call_paths) {
-    if (!satisfies_constraint(call_path, constraint))
+bool CallPathsGroup::satisfies_constraint(std::vector<call_path_t *> cps, klee::ref<klee::Expr> target_constraint) const {
+  for (call_path_t *call_path : cps) {
+    if (!satisfies_constraint(call_path, target_constraint))
       return false;
   }
   return true;
 }
 
-bool CallPathsGroup::satisfies_constraint(call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
-  auto not_constraint = LibCore::solver_toolbox.exprBuilder->Not(constraint);
+bool CallPathsGroup::satisfies_constraint(call_path_t *call_path, klee::ref<klee::Expr> target_constraint) const {
+  klee::ref<klee::Expr> not_constraint = LibCore::solver_toolbox.exprBuilder->Not(target_constraint);
   return LibCore::solver_toolbox.is_expr_always_false(call_path->constraints, not_constraint);
 }
 
-bool CallPathsGroup::satisfies_not_constraint(std::vector<call_path_t *> call_paths, klee::ref<klee::Expr> constraint) const {
-  for (const auto &call_path : call_paths) {
-    if (!satisfies_not_constraint(call_path, constraint))
+bool CallPathsGroup::satisfies_not_constraint(std::vector<call_path_t *> cps, klee::ref<klee::Expr> target_constraint) const {
+  for (call_path_t *call_path : cps) {
+    if (!satisfies_not_constraint(call_path, target_constraint))
       return false;
   }
   return true;
 }
 
-bool CallPathsGroup::satisfies_not_constraint(call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
-  auto not_constraint = LibCore::solver_toolbox.exprBuilder->Not(constraint);
+bool CallPathsGroup::satisfies_not_constraint(call_path_t *call_path, klee::ref<klee::Expr> target_constraint) const {
+  klee::ref<klee::Expr> not_constraint = LibCore::solver_toolbox.exprBuilder->Not(target_constraint);
   return LibCore::solver_toolbox.is_expr_always_true(call_path->constraints, not_constraint);
 }
 
-bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> constraint) {
+bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> target_constraint) {
   assert(on_true.data.size() && "No call paths on true");
   assert(on_false.data.size() && "No call paths on false");
 
@@ -156,14 +156,14 @@ bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> const
   call_paths_view_t _on_false;
 
   for (call_path_t *call_path : on_false.data) {
-    if (satisfies_constraint(call_path, constraint)) {
+    if (satisfies_constraint(call_path, target_constraint)) {
       _on_true.data.push_back(call_path);
     } else {
       _on_false.data.push_back(call_path);
     }
   }
 
-  if (_on_false.data.size() && satisfies_not_constraint(_on_false.data, constraint)) {
+  if (_on_false.data.size() && satisfies_not_constraint(_on_false.data, target_constraint)) {
     on_true  = _on_true;
     on_false = _on_false;
     return true;
@@ -175,9 +175,9 @@ bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> const
 std::vector<klee::ref<klee::Expr>> CallPathsGroup::get_common_constraints() const {
   std::vector<klee::ref<klee::Expr>> common_constraints;
 
-  for (klee::ref<klee::Expr> constraint : on_true.data[0]->constraints) {
-    if (satisfies_constraint(on_true.data, constraint) && satisfies_constraint(on_false.data, constraint)) {
-      common_constraints.push_back(constraint);
+  for (klee::ref<klee::Expr> common_constraint : on_true.data[0]->constraints) {
+    if (satisfies_constraint(on_true.data, common_constraint) && satisfies_constraint(on_false.data, common_constraint)) {
+      common_constraints.push_back(common_constraint);
     }
   }
 

@@ -37,7 +37,6 @@ def kill_hosts(config: dict) -> None:
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
         sde=config["devices"]["switch_dut"]["sde"],
-        ports=config["devices"]["switch_dut"]["client_ports"],
         tofino_version=config["devices"]["switch_dut"]["tofino_version"],
         log_file=config["logs"]["controller_dut"],
     ).stop()

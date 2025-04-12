@@ -11,8 +11,8 @@ private:
   klee::ref<klee::Expr> index_range;
 
 public:
-  DataplaneIntegerAllocatorAllocate(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index_range)
-      : ControllerModule(ModuleType::Controller_DataplaneIntegerAllocatorAllocate, "DataplaneIntegerAllocatorAllocate", node),
+  DataplaneIntegerAllocatorAllocate(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index_range)
+      : ControllerModule(ModuleType::Controller_DataplaneIntegerAllocatorAllocate, "DataplaneIntegerAllocatorAllocate", _node),
         dchain_addr(_dchain_addr), index_range(_index_range) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

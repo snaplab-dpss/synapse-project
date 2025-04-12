@@ -62,7 +62,7 @@ void Graphviz::show(bool interrupt) const {
   const int status      = system(cmd.c_str());
 
   if (status != 0) {
-    panic("Failed to open graph: %s\n", std::strerror(errno));
+    panic("Failed to open graph: %s", std::strerror(errno));
   }
 
   if (interrupt) {

@@ -14,14 +14,12 @@ private:
   bool can_be_inlined;
 
 public:
-  VectorRegisterLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value,
+  VectorRegisterLookup(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value,
                        bool _can_be_inlined)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", node), id(_id), obj(_obj), index(_index),
-        value(_value), can_be_inlined(_can_be_inlined) {}
+      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", _node), id(_id), obj(_obj), index(_index), value(_value),
+        can_be_inlined(_can_be_inlined) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new VectorRegisterLookup(node, id, obj, index, value, can_be_inlined);

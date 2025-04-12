@@ -14,14 +14,12 @@ private:
   klee::ref<klee::Expr> cleanup_interval;
 
 public:
-  CMSAllocate(const LibBDD::Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  CMSAllocate(const LibBDD::Node *_node, addr_t _cms_addr, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
               klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _cleanup_interval)
-      : ControllerModule(ModuleType::Controller_CMSAllocate, "CMSAllocate", node), cms_addr(_cms_addr), height(_height), width(_width),
+      : ControllerModule(ModuleType::Controller_CMSAllocate, "CMSAllocate", _node), cms_addr(_cms_addr), height(_height), width(_width),
         key_size(_key_size), cleanup_interval(_cleanup_interval) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new CMSAllocate(node, cms_addr, height, width, key_size, cleanup_interval);

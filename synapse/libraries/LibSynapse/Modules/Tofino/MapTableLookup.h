@@ -15,9 +15,9 @@ private:
   std::optional<LibCore::symbol_t> hit;
 
 public:
-  MapTableLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+  MapTableLookup(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key,
                  const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _hit)
-      : TofinoModule(ModuleType::Tofino_MapTableLookup, "MapTableLookup", node), id(_id), obj(_obj), original_key(_original_key), keys(_keys),
+      : TofinoModule(ModuleType::Tofino_MapTableLookup, "MapTableLookup", _node), id(_id), obj(_obj), original_key(_original_key), keys(_keys),
         value(_value), hit(_hit) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

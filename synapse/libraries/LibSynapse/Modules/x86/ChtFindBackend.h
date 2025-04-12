@@ -16,15 +16,12 @@ private:
   LibCore::symbol_t found;
 
 public:
-  ChtFindBackend(const LibBDD::Node *node, addr_t _cht_addr, addr_t _backends_addr, klee::ref<klee::Expr> _hash,
-                 klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _backend,
-                 const LibCore::symbol_t &_found)
-      : x86Module(ModuleType::x86_ChtFindBackend, "ChtFindBackend", node), cht_addr(_cht_addr), backends_addr(_backends_addr), hash(_hash),
+  ChtFindBackend(const LibBDD::Node *_node, addr_t _cht_addr, addr_t _backends_addr, klee::ref<klee::Expr> _hash, klee::ref<klee::Expr> _height,
+                 klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _backend, const LibCore::symbol_t &_found)
+      : x86Module(ModuleType::x86_ChtFindBackend, "ChtFindBackend", _node), cht_addr(_cht_addr), backends_addr(_backends_addr), hash(_hash),
         height(_height), capacity(_capacity), backend(_backend), found(_found) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, found);

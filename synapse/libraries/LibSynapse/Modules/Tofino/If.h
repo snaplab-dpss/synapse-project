@@ -16,11 +16,11 @@ private:
   std::vector<klee::ref<klee::Expr>> conditions;
 
 public:
-  If(const LibBDD::Node *node, klee::ref<klee::Expr> _original_condition, const std::vector<klee::ref<klee::Expr>> &_conditions)
-      : TofinoModule(ModuleType::Tofino_If, "If", node), original_condition(_original_condition), conditions(_conditions) {}
+  If(const LibBDD::Node *_node, klee::ref<klee::Expr> _original_condition, const std::vector<klee::ref<klee::Expr>> &_conditions)
+      : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions) {}
 
-  If(const LibBDD::Node *node, klee::ref<klee::Expr> _original_condition)
-      : TofinoModule(ModuleType::Tofino_If, "If", node), original_condition(_original_condition), conditions({_original_condition}) {}
+  If(const LibBDD::Node *_node, klee::ref<klee::Expr> _original_condition)
+      : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions({_original_condition}) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 

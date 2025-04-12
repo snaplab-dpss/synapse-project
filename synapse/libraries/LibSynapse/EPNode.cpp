@@ -81,14 +81,14 @@ std::vector<klee::ref<klee::Expr>> EPNode::get_constraints() const {
   const EPNode *next = this;
 
   while (node) {
-    klee::ref<klee::Expr> constraint = node->get_constraint();
+    klee::ref<klee::Expr> node_constraint = node->get_constraint();
 
-    if (!constraint.isNull()) {
+    if (!node_constraint.isNull()) {
       if (node->get_children().size() > 1 && node->get_children()[1] == next) {
-        constraint = LibCore::solver_toolbox.exprBuilder->Not(constraint);
+        node_constraint = LibCore::solver_toolbox.exprBuilder->Not(node_constraint);
       }
 
-      constraints.insert(constraints.begin(), constraint);
+      constraints.insert(constraints.begin(), node_constraint);
     }
 
     next = node;
@@ -141,8 +141,8 @@ void EPNode::visit_nodes(std::function<EPNodeVisitAction(const EPNode *)> fn) co
     if (action == EPNodeVisitAction::SkipChildren)
       continue;
 
-    const std::vector<EPNode *> &children = node->get_children();
-    nodes.insert(nodes.end(), children.begin(), children.end());
+    const std::vector<EPNode *> &node_children = node->get_children();
+    nodes.insert(nodes.end(), node_children.begin(), node_children.end());
   }
 }
 
@@ -160,8 +160,8 @@ void EPNode::visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn) 
     if (action == EPNodeVisitAction::SkipChildren)
       continue;
 
-    const std::vector<EPNode *> &children = node->get_children();
-    nodes.insert(nodes.end(), children.begin(), children.end());
+    const std::vector<EPNode *> &node_children = node->get_children();
+    nodes.insert(nodes.end(), node_children.begin(), node_children.end());
   }
 }
 
@@ -170,14 +170,14 @@ std::vector<u16> EPNode::get_past_recirculations() const {
 
   const EPNode *node = this;
   while ((node = node->get_prev())) {
-    const Module *module = node->get_module();
+    const Module *node_module = node->get_module();
 
-    if (!module) {
+    if (!node_module) {
       continue;
     }
 
-    if (module->get_type() == ModuleType::Tofino_Recirculate) {
-      const Tofino::Recirculate *recirc_module = dynamic_cast<const Tofino::Recirculate *>(module);
+    if (node_module->get_type() == ModuleType::Tofino_Recirculate) {
+      const Tofino::Recirculate *recirc_module = dynamic_cast<const Tofino::Recirculate *>(node_module);
       past_recirculations.push_back(recirc_module->get_recirc_port());
     }
   }
@@ -188,14 +188,14 @@ std::vector<u16> EPNode::get_past_recirculations() const {
 bool EPNode::forwarding_decision_already_made() const {
   const EPNode *node = this;
   while ((node = node->get_prev())) {
-    const Module *module = node->get_module();
+    const Module *node_module = node->get_module();
 
-    if (!module) {
+    if (!node_module) {
       continue;
     }
 
-    if (module->get_type() == ModuleType::Tofino_Forward || module->get_type() == ModuleType::Tofino_Drop ||
-        module->get_type() == ModuleType::Tofino_Broadcast) {
+    if (node_module->get_type() == ModuleType::Tofino_Forward || node_module->get_type() == ModuleType::Tofino_Drop ||
+        node_module->get_type() == ModuleType::Tofino_Broadcast) {
       return true;
     }
   }

@@ -10,12 +10,10 @@ private:
   klee::ref<klee::Expr> dst_device;
 
 public:
-  Forward(const LibBDD::Node *node, klee::ref<klee::Expr> _dst_device)
-      : ControllerModule(ModuleType::Controller_Forward, "Forward", node), dst_device(_dst_device) {}
+  Forward(const LibBDD::Node *_node, klee::ref<klee::Expr> _dst_device)
+      : ControllerModule(ModuleType::Controller_Forward, "Forward", _node), dst_device(_dst_device) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     Forward *cloned = new Forward(node, dst_device);

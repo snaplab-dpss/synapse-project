@@ -83,7 +83,7 @@ class Pktgen:
         traffic_dist: TrafficDist = TrafficDist.UNIFORM,
         zipf_param: float = 1.26,
         pkt_size: int = 64,
-        exp_time_us: int = 1000,
+        exp_time_us: int = 100_000,
         crc_unique_flows: bool = False,
         crc_bits: int = 16,
         mark_warmup_packets: bool = False,

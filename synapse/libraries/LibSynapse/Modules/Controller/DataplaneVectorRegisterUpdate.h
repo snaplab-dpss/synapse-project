@@ -15,10 +15,10 @@ private:
   std::vector<LibCore::expr_mod_t> modifications;
 
 public:
-  DataplaneVectorRegisterUpdate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
+  DataplaneVectorRegisterUpdate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
                                 klee::ref<klee::Expr> _old_value, klee::ref<klee::Expr> _new_value,
                                 const std::vector<LibCore::expr_mod_t> &_modifications)
-      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterUpdate, "DataplaneVectorRegisterUpdate", node), obj(_obj), index(_index),
+      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterUpdate, "DataplaneVectorRegisterUpdate", _node), obj(_obj), index(_index),
         value_addr(_value_addr), old_value(_old_value), new_value(_new_value), modifications(_modifications) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

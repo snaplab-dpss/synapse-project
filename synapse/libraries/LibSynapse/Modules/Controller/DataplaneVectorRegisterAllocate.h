@@ -12,8 +12,8 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneVectorRegisterAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterAllocate, "DataplaneVectorRegisterAllocate", node), obj(_obj),
+  DataplaneVectorRegisterAllocate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
+      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterAllocate, "DataplaneVectorRegisterAllocate", _node), obj(_obj),
         elem_size(_elem_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

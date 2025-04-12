@@ -12,12 +12,10 @@ private:
   klee::ref<klee::Expr> hash;
 
 public:
-  HashObj(const LibBDD::Node *node, addr_t _obj_addr, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _hash)
-      : x86Module(ModuleType::x86_HashObj, "HashObj", node), obj_addr(_obj_addr), size(_size), hash(_hash) {}
+  HashObj(const LibBDD::Node *_node, addr_t _obj_addr, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _hash)
+      : x86Module(ModuleType::x86_HashObj, "HashObj", _node), obj_addr(_obj_addr), size(_size), hash(_hash) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new HashObj(node, obj_addr, size, hash);

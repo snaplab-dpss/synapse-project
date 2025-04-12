@@ -1116,13 +1116,13 @@ std::vector<expr_group_t> get_expr_groups_from_condition(klee::ref<klee::Expr> e
       klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge, klee::Expr::And, klee::Expr::Or,  klee::Expr::Not,
   };
 
-  auto is_conditional = [&conditional_expr_kinds](klee::ref<klee::Expr> expr) {
-    return (conditional_expr_kinds.find(expr->getKind()) != conditional_expr_kinds.end()) || (expr->getWidth() == 1);
+  auto is_conditional = [&conditional_expr_kinds](klee::ref<klee::Expr> target_expr) {
+    return (conditional_expr_kinds.find(target_expr->getKind()) != conditional_expr_kinds.end()) || (target_expr->getWidth() == 1);
   };
 
-  auto process_read = [&groups](klee::ref<klee::Expr> expr) {
-    assert(expr->getKind() == klee::Expr::Read && "Not a read");
-    const klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
+  auto process_read = [&groups](klee::ref<klee::Expr> target_expr) {
+    assert(target_expr->getKind() == klee::Expr::Read && "Not a read");
+    const klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(target_expr);
 
     klee::ref<klee::Expr> index = read->index;
     const std::string symbol    = read->updates.root->name;
@@ -1137,28 +1137,28 @@ std::vector<expr_group_t> get_expr_groups_from_condition(klee::ref<klee::Expr> e
       if (last_group.has_symbol && last_group.symbol == symbol && last_group.offset == current_byte + 1) {
         last_group.size++;
         last_group.offset = current_byte;
-        last_group.expr   = concat_lsb(last_group.expr, expr);
+        last_group.expr   = concat_lsb(last_group.expr, target_expr);
         appended_to_group = true;
       }
     }
 
     if (!appended_to_group) {
-      const bytes_t size = expr->getWidth() / 8;
-      groups.emplace_back(true, symbol, current_byte, size, expr);
+      const bytes_t size = target_expr->getWidth() / 8;
+      groups.emplace_back(true, symbol, current_byte, size, target_expr);
     }
   };
 
-  auto process_conditional = [&groups](klee::ref<klee::Expr> expr) {
-    for (size_t i = 0; i < expr->getNumKids(); i++) {
-      klee::ref<klee::Expr> kid      = expr->getKid(i);
+  auto process_conditional = [&groups](klee::ref<klee::Expr> target_expr) {
+    for (size_t i = 0; i < target_expr->getNumKids(); i++) {
+      klee::ref<klee::Expr> kid      = target_expr->getKid(i);
       const expr_groups_t kid_groups = get_expr_groups_from_condition(kid);
       groups.insert(groups.end(), kid_groups.begin(), kid_groups.end());
     }
   };
 
-  auto process_not_read_not_conditional = [&groups](klee::ref<klee::Expr> expr) {
-    assert(expr->getKind() != klee::Expr::Read && "Non read is actually a read");
-    const bits_t size = expr->getWidth();
+  auto process_not_read_not_conditional = [&groups](klee::ref<klee::Expr> target_expr) {
+    assert(target_expr->getKind() != klee::Expr::Read && "Non read is actually a read");
+    const bits_t size = target_expr->getWidth();
     assert(size % 8 == 0 && "Not a byte aligned expr");
   };
 

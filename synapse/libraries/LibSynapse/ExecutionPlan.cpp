@@ -394,14 +394,14 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
 }
 
 void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_data_t &translation_data) {
-  auto translate_next_node = [&translation_data](LibBDD::node_id_t id) {
-    auto found_it = translation_data.next_nodes_translator.find(id);
-    return (found_it != translation_data.next_nodes_translator.end()) ? found_it->second : id;
+  auto translate_next_node = [&translation_data](LibBDD::node_id_t node_id) {
+    auto found_it = translation_data.next_nodes_translator.find(node_id);
+    return (found_it != translation_data.next_nodes_translator.end()) ? found_it->second : node_id;
   };
 
-  auto translate_processed_node = [&translation_data](LibBDD::node_id_t id) {
-    auto found_it = translation_data.processed_nodes_translator.find(id);
-    return (found_it != translation_data.processed_nodes_translator.end()) ? found_it->second : id;
+  auto translate_processed_node = [&translation_data](LibBDD::node_id_t node_id) {
+    auto found_it = translation_data.processed_nodes_translator.find(node_id);
+    return (found_it != translation_data.processed_nodes_translator.end()) ? found_it->second : node_id;
   };
 
   for (EPLeaf &leaf : active_leaves) {
@@ -538,7 +538,7 @@ void EP::assert_integrity() const {
 
   const LibBDD::BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
   if (bdd_inspection_report.status != LibBDD::BDD::InspectionStatus::Ok) {
-    panic("BDD inspection failed: %s", bdd_inspection_report.message.c_str());
+    panic("[EP=%lu] BDD inspection failed: %s", id, bdd_inspection_report.message.c_str());
   }
 }
 
@@ -664,7 +664,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   return new_pps > old_pps;
 }
 
-spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &ctx, const LibBDD::node_ids_t &skip,
+spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &spec_ctx, const LibBDD::node_ids_t &skip,
                                      pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
@@ -674,7 +674,7 @@ spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType curren
     }
 
     for (const ModuleFactory *modgen : target.module_factories) {
-      std::optional<spec_impl_t> spec = modgen->speculate(this, node, ctx);
+      std::optional<spec_impl_t> spec = modgen->speculate(this, node, spec_ctx);
 
       if (!spec.has_value()) {
         continue;
@@ -704,14 +704,14 @@ spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType curren
   }
 
   if (!best.has_value()) {
-    ctx.debug();
+    spec_ctx.debug();
     // EPViz::visualize(this, false);
     // BDDViz::visualize(bdd.get(), false);
 
     panic("No module to speculative execute\n"
           "EP:     %lu\n"
           "Target: %s\n"
-          "Node:   %s\n",
+          "Node:   %s",
           id, to_string(current_target).c_str(), node->dump(true).c_str());
   }
 
@@ -769,13 +769,13 @@ pps_t EP::speculate_tput_pps() const {
     });
   }
 
-  auto egress_estimation_from_ingress = [&spec_ctx](pps_t ingress) -> tput_estimation_t {
+  auto egress_estimation_from_ingress = [&spec_ctx](pps_t tput) -> tput_estimation_t {
     const PerfOracle &perf_oracle = spec_ctx.get_perf_oracle();
 
     const tput_estimation_t estimation = {
-        .ingress           = ingress,
-        .egress_estimation = perf_oracle.estimate_tput(ingress),
-        .unavoidable_drop  = static_cast<pps_t>(ingress * perf_oracle.get_dropped_ingress().value),
+        .ingress           = tput,
+        .egress_estimation = perf_oracle.estimate_tput(tput),
+        .unavoidable_drop  = static_cast<pps_t>(tput * perf_oracle.get_dropped_ingress().value),
     };
 
     return estimation;

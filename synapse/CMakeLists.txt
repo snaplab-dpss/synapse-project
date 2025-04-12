@@ -33,7 +33,7 @@ string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_R
 # Setting some complation flags
 ###############################################################################
 
-add_compile_options(
+set(SYNAPSE_COMPILATION_FLAGS
     -Wall
     -Wextra
     -Werror
@@ -45,6 +45,7 @@ add_compile_options(
     -Wmisleading-indentation
     -Wdouble-promotion
     -fno-omit-frame-pointer
+    -Wshadow
 )
 
 if (ENABLE_ADDRESS_SANITIZER)

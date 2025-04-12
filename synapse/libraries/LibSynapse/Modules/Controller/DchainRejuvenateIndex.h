@@ -12,13 +12,11 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  DchainRejuvenateIndex(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
-      : ControllerModule(ModuleType::Controller_DchainRejuvenateIndex, "DchainRejuvenate", node), dchain_addr(_dchain_addr), index(_index),
+  DchainRejuvenateIndex(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
+      : ControllerModule(ModuleType::Controller_DchainRejuvenateIndex, "DchainRejuvenate", _node), dchain_addr(_dchain_addr), index(_index),
         time(_time) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new DchainRejuvenateIndex(node, dchain_addr, index, time);

@@ -52,7 +52,7 @@ struct hit_rate_t {
   hit_rate_t(const hit_rate_t &other) : value(other.value) { clamp(); }
   hit_rate_t(hit_rate_t &&other) : value(std::move(other.value)) { clamp(); }
 
-  explicit hit_rate_t(double value) : value(value) { clamp(); }
+  explicit hit_rate_t(double _value) : value(_value) { clamp(); }
 
   hit_rate_t &operator=(const hit_rate_t &other) {
     value = other.value;

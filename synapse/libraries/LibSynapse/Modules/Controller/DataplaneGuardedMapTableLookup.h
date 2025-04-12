@@ -13,9 +13,9 @@ private:
   std::optional<LibCore::symbol_t> found;
 
 public:
-  DataplaneGuardedMapTableLookup(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+  DataplaneGuardedMapTableLookup(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
                                  std::optional<LibCore::symbol_t> _found)
-      : ControllerModule(ModuleType::Controller_DataplaneGuardedMapTableLookup, "DataplaneGuardedMapTableLookup", node), obj(_obj), key(_key),
+      : ControllerModule(ModuleType::Controller_DataplaneGuardedMapTableLookup, "DataplaneGuardedMapTableLookup", _node), obj(_obj), key(_key),
         value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

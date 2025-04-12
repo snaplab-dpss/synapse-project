@@ -13,14 +13,11 @@ private:
   std::vector<LibCore::expr_byte_swap_t> swaps;
 
 public:
-  ModifyHeader(const LibBDD::Node *node, addr_t _chunk_addr, const std::vector<LibCore::expr_mod_t> &_changes,
+  ModifyHeader(const LibBDD::Node *_node, addr_t _chunk_addr, const std::vector<LibCore::expr_mod_t> &_changes,
                const std::vector<LibCore::expr_byte_swap_t> &_swaps)
-      : ControllerModule(ModuleType::Controller_ModifyHeader, "ModifyHeader", node), chunk_addr(_chunk_addr), changes(_changes),
-        swaps(_swaps) {}
+      : ControllerModule(ModuleType::Controller_ModifyHeader, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes), swaps(_swaps) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     ModifyHeader *cloned = new ModifyHeader(node, chunk_addr, changes, swaps);

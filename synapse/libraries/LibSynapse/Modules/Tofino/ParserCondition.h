@@ -10,8 +10,8 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  ParserCondition(const LibBDD::Node *node, klee::ref<klee::Expr> _condition)
-      : TofinoModule(ModuleType::Tofino_ParserCondition, "ParserCondition", node), condition(_condition) {}
+  ParserCondition(const LibBDD::Node *_node, klee::ref<klee::Expr> _condition)
+      : TofinoModule(ModuleType::Tofino_ParserCondition, "ParserCondition", _node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 

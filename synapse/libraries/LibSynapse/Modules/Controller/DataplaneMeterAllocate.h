@@ -14,9 +14,9 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  DataplaneMeterAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
+  DataplaneMeterAllocate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
                          klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size)
-      : ControllerModule(ModuleType::Controller_DataplaneMeterAllocate, "DataplaneMeterAllocate", node), obj(_obj), capacity(_capacity), rate(_rate),
+      : ControllerModule(ModuleType::Controller_DataplaneMeterAllocate, "DataplaneMeterAllocate", _node), obj(_obj), capacity(_capacity), rate(_rate),
         burst(_burst), key_size(_key_size) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

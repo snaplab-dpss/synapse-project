@@ -11,12 +11,10 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  TokenBucketExpire(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : x86Module(ModuleType::x86_TokenBucketExpire, "TokenBucketExpire", node), tb_addr(_tb_addr), time(_time) {}
+  TokenBucketExpire(const LibBDD::Node *_node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
+      : x86Module(ModuleType::x86_TokenBucketExpire, "TokenBucketExpire", _node), tb_addr(_tb_addr), time(_time) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new TokenBucketExpire(node, tb_addr, time);

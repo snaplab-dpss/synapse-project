@@ -12,13 +12,11 @@ private:
   LibCore::symbol_t checksum;
 
 public:
-  ChecksumUpdate(const LibBDD::Node *node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, LibCore::symbol_t _checksum)
-      : x86Module(ModuleType::x86_ChecksumUpdate, "SetIpChecksum", node), ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr),
-        checksum(_checksum) {}
-
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
+  ChecksumUpdate(const LibBDD::Node *_node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, LibCore::symbol_t _checksum)
+      : x86Module(ModuleType::x86_ChecksumUpdate, "SetIpChecksum", _node), ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {
   }
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);

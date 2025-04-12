@@ -13,18 +13,16 @@ private:
   std::optional<LibCore::symbol_t> not_out_of_space;
 
 public:
-  DchainAllocateNewIndex(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
+  DchainAllocateNewIndex(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                          const LibCore::symbol_t &_out_of_space)
-      : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", node), dchain_addr(_dchain_addr), time(_time),
-        index_out(_index_out), not_out_of_space(_out_of_space) {}
+      : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
+        not_out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
-      : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", node), dchain_addr(_dchain_addr), time(_time),
-        index_out(_index_out), not_out_of_space(std::nullopt) {}
+  DchainAllocateNewIndex(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+      : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
+        not_out_of_space(std::nullopt) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned;

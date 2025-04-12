@@ -460,8 +460,8 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
   const std::vector<klee::ref<klee::Expr>> keys = Register::partition_value(properties, key, ctx.get_expr_structs());
 
   std::vector<bits_t> keys_sizes;
-  for (klee::ref<klee::Expr> key : keys) {
-    keys_sizes.push_back(key->getWidth());
+  for (klee::ref<klee::Expr> k : keys) {
+    keys_sizes.push_back(k->getWidth());
   }
 
   FCFSCachedTable *cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes);
@@ -557,7 +557,7 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
 CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  DS_ID id                           = "cms_" + std::to_string(width) + "x" + std::to_string(height) + "_" + std::to_string(obj);
+  const DS_ID id                     = "cms_" + std::to_string(obj);
   const tna_properties_t &properties = tofino_ctx->get_tna().get_tna_config().properties;
 
   std::vector<bits_t> keys_sizes;
@@ -858,8 +858,8 @@ LibCore::Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep,
   generated_symbols.add(ep->get_bdd()->get_time());
 
   LibCore::Symbols future_used_symbols;
-  node->visit_nodes([&future_used_symbols](const LibBDD::Node *node) {
-    const LibCore::Symbols local_future_symbols = node->get_used_symbols();
+  node->visit_nodes([&future_used_symbols](const LibBDD::Node *future_node) {
+    const LibCore::Symbols local_future_symbols = future_node->get_used_symbols();
     future_used_symbols.add(local_future_symbols);
     return LibBDD::NodeVisitAction::Continue;
   });

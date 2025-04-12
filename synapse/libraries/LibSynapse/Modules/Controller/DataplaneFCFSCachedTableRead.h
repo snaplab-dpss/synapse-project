@@ -16,9 +16,9 @@ private:
   std::optional<LibCore::symbol_t> found;
 
 public:
-  DataplaneFCFSCachedTableRead(const LibBDD::Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+  DataplaneFCFSCachedTableRead(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
                                klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _found)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead", node), id(_id), obj(_obj), keys(_keys),
+      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead", _node), id(_id), obj(_obj), keys(_keys),
         value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

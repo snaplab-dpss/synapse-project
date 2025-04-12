@@ -13,9 +13,9 @@ private:
   LibCore::symbol_t map_has_this_key;
 
 public:
-  DataplaneHHTableRead(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+  DataplaneHHTableRead(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
                        const LibCore::symbol_t &_map_has_this_key)
-      : ControllerModule(ModuleType::Controller_DataplaneHHTableRead, "DataplaneHHTableRead", node), obj(_obj), key(_key), value(_value),
+      : ControllerModule(ModuleType::Controller_DataplaneHHTableRead, "DataplaneHHTableRead", _node), obj(_obj), key(_key), value(_value),
         map_has_this_key(_map_has_this_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

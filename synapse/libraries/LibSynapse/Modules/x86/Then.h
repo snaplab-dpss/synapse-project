@@ -7,11 +7,9 @@ namespace x86 {
 
 class Then : public x86Module {
 public:
-  Then(const LibBDD::Node *node) : x86Module(ModuleType::x86_Then, "Then", node) {}
+  Then(const LibBDD::Node *_node) : x86Module(ModuleType::x86_Then, "Then", _node) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Then *cloned = new Then(node);

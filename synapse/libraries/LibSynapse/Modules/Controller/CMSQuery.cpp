@@ -19,7 +19,7 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const LibBDD
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   addr_t cms_addr                     = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return std::nullopt;
   }
 
@@ -46,7 +46,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
   addr_t cms_addr                = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
   LibCore::symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
-  if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+  if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return impls;
   }
 
@@ -80,7 +80,7 @@ std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Co
 
   const addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
   }
 

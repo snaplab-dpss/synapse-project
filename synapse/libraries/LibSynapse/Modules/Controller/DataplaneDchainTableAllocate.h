@@ -13,9 +13,9 @@ private:
   time_ns_t expiration_time;
 
 public:
-  DataplaneDchainTableAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _capacity,
+  DataplaneDchainTableAllocate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _capacity,
                                time_ns_t _expiration_time)
-      : ControllerModule(ModuleType::Controller_DataplaneDchainTableAllocate, "DataplaneDchainTableAllocate", node), obj(_obj), key_size(_key_size),
+      : ControllerModule(ModuleType::Controller_DataplaneDchainTableAllocate, "DataplaneDchainTableAllocate", _node), obj(_obj), key_size(_key_size),
         capacity(_capacity), expiration_time(_expiration_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

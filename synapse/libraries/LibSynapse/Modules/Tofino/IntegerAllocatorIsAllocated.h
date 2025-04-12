@@ -12,14 +12,11 @@ private:
   LibCore::symbol_t is_allocated;
 
 public:
-  IntegerAllocatorIsAllocated(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
-                              const LibCore::symbol_t &_is_allocated)
-      : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated", node), dchain_addr(_dchain_addr),
-        index(_index), is_allocated(_is_allocated) {}
+  IntegerAllocatorIsAllocated(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const LibCore::symbol_t &_is_allocated)
+      : TofinoModule(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated", _node), dchain_addr(_dchain_addr), index(_index),
+        is_allocated(_is_allocated) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new IntegerAllocatorIsAllocated(node, dchain_addr, index, is_allocated);
@@ -39,8 +36,7 @@ public:
 
 class IntegerAllocatorIsAllocatedFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorIsAllocatedFactory()
-      : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated") {}
+  IntegerAllocatorIsAllocatedFactory() : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorIsAllocated, "IntegerAllocatorIsAllocated") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;

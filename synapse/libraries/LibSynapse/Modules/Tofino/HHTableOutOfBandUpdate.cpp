@@ -94,8 +94,8 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
   std::vector<const LibBDD::Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs);
 
   // Ignore all coalescing nodes if the index allocation is successful (i.e. it is a heavy hitter).
-  for (const LibBDD::Node *target : targets) {
-    spec_impl.skip.insert(target->get_id());
+  for (const LibBDD::Node *tgt : targets) {
+    spec_impl.skip.insert(tgt->get_id());
   }
 
   return spec_impl;

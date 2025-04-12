@@ -72,8 +72,7 @@ bool should_ignore(const Context &ctx, const LibBDD::Node *node) {
   const LibBDD::call_t &call    = call_node->get_call();
 
   const std::unordered_set<std::string> functions_to_always_ignore{
-      "expire_items_single_map", "expire_items_single_map_iteratively", "tb_expire", "nf_set_rte_ipv4_udptcp_checksum",
-      "cms_periodic_cleanup",
+      "expire_items_single_map", "expire_items_single_map_iteratively", "tb_expire", "nf_set_rte_ipv4_udptcp_checksum", "cms_periodic_cleanup",
   };
 
   if (functions_to_always_ignore.find(call.function_name) != functions_to_always_ignore.end()) {

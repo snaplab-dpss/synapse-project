@@ -10,12 +10,10 @@ private:
   LibCore::Symbols symbols;
 
 public:
-  SendToController(const LibBDD::Node *node, LibCore::Symbols _symbols)
-      : TofinoModule(ModuleType::Tofino_SendToController, TargetType::Controller, "SendToController", node), symbols(_symbols) {}
+  SendToController(const LibBDD::Node *_node, LibCore::Symbols _symbols)
+      : TofinoModule(ModuleType::Tofino_SendToController, TargetType::Controller, "SendToController", _node), symbols(_symbols) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     SendToController *cloned = new SendToController(node, symbols);

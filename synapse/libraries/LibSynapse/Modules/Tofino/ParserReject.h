@@ -7,11 +7,9 @@ namespace Tofino {
 
 class ParserReject : public TofinoModule {
 public:
-  ParserReject(const LibBDD::Node *node) : TofinoModule(ModuleType::Tofino_ParserReject, "ParserReject", node) {}
+  ParserReject(const LibBDD::Node *_node) : TofinoModule(ModuleType::Tofino_ParserReject, "ParserReject", _node) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     ParserReject *cloned = new ParserReject(node);

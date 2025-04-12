@@ -13,12 +13,10 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  MapPut(const LibBDD::Node *node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : x86Module(ModuleType::x86_MapPut, "MapPut", node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
+  MapPut(const LibBDD::Node *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+      : x86Module(ModuleType::x86_MapPut, "MapPut", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new MapPut(node, map_addr, key_addr, key, value);

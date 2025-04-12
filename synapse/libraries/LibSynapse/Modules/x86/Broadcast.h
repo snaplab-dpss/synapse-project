@@ -7,11 +7,9 @@ namespace x86 {
 
 class Broadcast : public x86Module {
 public:
-  Broadcast(const LibBDD::Node *node) : x86Module(ModuleType::x86_Broadcast, "Broadcast", node) {}
+  Broadcast(const LibBDD::Node *_node) : x86Module(ModuleType::x86_Broadcast, "Broadcast", _node) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     Broadcast *cloned = new Broadcast(node);

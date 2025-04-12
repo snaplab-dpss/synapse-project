@@ -217,11 +217,11 @@ u32 Call::get_vector_borrow_value_future_usage() const {
 
   next->visit_nodes([&value, &total_usage, vector](const Node *node) {
     if (node->get_type() == NodeType::Call) {
-      const Call *call_node = dynamic_cast<const Call *>(node);
-      const call_t &call    = call_node->get_call();
+      const Call *call_node     = dynamic_cast<const Call *>(node);
+      const call_t &future_call = call_node->get_call();
 
-      if (call.function_name == "vector_return") {
-        const addr_t vb_vector = LibCore::expr_addr_to_obj_addr(call.args.at("vector").expr);
+      if (future_call.function_name == "vector_return") {
+        const addr_t vb_vector = LibCore::expr_addr_to_obj_addr(future_call.args.at("vector").expr);
 
         if (vb_vector == vector) {
           return NodeVisitAction::Continue;
@@ -395,7 +395,7 @@ bool Call::is_map_get_followed_by_map_puts_on_miss(std::vector<const Call *> &ma
     klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
     klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
 
-    addr_t map = LibCore::expr_addr_to_obj_addr(map_expr);
+    const addr_t map = LibCore::expr_addr_to_obj_addr(map_expr);
 
     if (map != obj) {
       continue;
@@ -411,8 +411,8 @@ bool Call::is_map_get_followed_by_map_puts_on_miss(std::vector<const Call *> &ma
       return false;
     }
 
-    klee::ConstraintManager constraints = map_put->get_constraints();
-    if (!LibCore::solver_toolbox.is_expr_always_true(constraints, failed_map_get)) {
+    klee::ConstraintManager map_put_constraints = map_put->get_constraints();
+    if (!LibCore::solver_toolbox.is_expr_always_true(map_put_constraints, failed_map_get)) {
       // Found map_put that happens even if map_get was successful.
       return false;
     }
@@ -435,9 +435,9 @@ bool Call::is_tb_tracing_check_followed_by_update_on_true(const Call *&tb_update
     return false;
   }
 
-  klee::ref<klee::Expr> tb                   = is_tracing_call.args.at("tb").expr;
-  klee::ref<klee::Expr> is_tracing_condition = LibCore::solver_toolbox.exprBuilder->Ne(
-      is_tracing_call.ret, LibCore::solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
+  klee::ref<klee::Expr> tb = is_tracing_call.args.at("tb").expr;
+  klee::ref<klee::Expr> is_tracing_condition =
+      LibCore::solver_toolbox.exprBuilder->Ne(is_tracing_call.ret, LibCore::solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
 
   std::vector<const Call *> tb_update_and_checks = tb_is_tracing->get_future_functions({"tb_update_and_check"});
 
@@ -448,8 +448,8 @@ bool Call::is_tb_tracing_check_followed_by_update_on_true(const Call *&tb_update
       continue;
     }
 
-    klee::ConstraintManager constraints = candidate->get_constraints();
-    if (!LibCore::solver_toolbox.is_expr_always_true(constraints, is_tracing_condition)) {
+    klee::ConstraintManager candidate_constraints = candidate->get_constraints();
+    if (!LibCore::solver_toolbox.is_expr_always_true(candidate_constraints, is_tracing_condition)) {
       continue;
     }
 
@@ -536,10 +536,10 @@ bool Call::guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, LibCore::ex
   auto candidates_sorter = [](const field_candidate_t &a, const field_candidate_t &b) { return a.offset < b.offset; };
 
   auto sorted_candidates_from_groups = [target_symbol, expr_offset, expr_size,
-                                        candidates_sorter](const LibCore::expr_groups_t &groups) -> std::vector<field_candidate_t> {
+                                        candidates_sorter](const LibCore::expr_groups_t &expr_groups) -> std::vector<field_candidate_t> {
     std::vector<field_candidate_t> sorted_candidates;
 
-    for (const LibCore::expr_group_t &group : groups) {
+    for (const LibCore::expr_group_t &group : expr_groups) {
       if (!group.has_symbol || group.symbol != target_symbol) {
         continue;
       }
@@ -616,9 +616,9 @@ bool Call::guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, LibCore::ex
   std::vector<field_candidate_t> best_candidates = sorted_candidates_from_groups(groups);
 
   next->visit_nodes([expr_offset, expr_size, sorted_candidates_from_groups, merge_sorted_candidates, &best_candidates](const Node *node) {
-    const std::vector<LibCore::expr_groups_t> groups = node->get_expr_groups();
+    const std::vector<LibCore::expr_groups_t> expr_groups = node->get_expr_groups();
 
-    for (const LibCore::expr_groups_t &subgroup : groups) {
+    for (const LibCore::expr_groups_t &subgroup : expr_groups) {
       const std::vector<field_candidate_t> sorted_candidates = sorted_candidates_from_groups(subgroup);
       best_candidates                                        = merge_sorted_candidates(best_candidates, sorted_candidates);
     }
@@ -634,7 +634,7 @@ bool Call::guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, LibCore::ex
 
   klee::ref<klee::Expr> reconstructed_expr = LibCore::concat_exprs(expr_struct.fields);
   if (!LibCore::solver_toolbox.are_exprs_always_equal(expr, reconstructed_expr)) {
-    panic("*** Bug in struct field extraction ***\nHdr: %s\nReconstructed: %s\n", LibCore::expr_to_string(expr, true).c_str(),
+    panic("*** Bug in struct field extraction ***\nHdr: %s\nReconstructed: %s", LibCore::expr_to_string(expr, true).c_str(),
           LibCore::expr_to_string(reconstructed_expr, true).c_str());
   }
 

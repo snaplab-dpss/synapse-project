@@ -12,13 +12,10 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSCountMin(const LibBDD::Node *node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
-      : ControllerModule(ModuleType::Controller_CMSCountMin, "CMSCountMin", node), cms_addr(_cms_addr), key(_key),
-        min_estimate(_min_estimate) {}
+  CMSCountMin(const LibBDD::Node *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
+      : ControllerModule(ModuleType::Controller_CMSCountMin, "CMSCountMin", _node), cms_addr(_cms_addr), key(_key), min_estimate(_min_estimate) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new CMSCountMin(node, cms_addr, key, min_estimate);

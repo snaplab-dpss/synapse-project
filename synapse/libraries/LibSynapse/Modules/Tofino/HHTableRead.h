@@ -15,9 +15,9 @@ private:
   LibCore::symbol_t map_has_this_key;
 
 public:
-  HHTableRead(const LibBDD::Node *node, DS_ID _hh_table_id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+  HHTableRead(const LibBDD::Node *_node, DS_ID _hh_table_id, addr_t _obj, klee::ref<klee::Expr> _original_key,
               const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, const LibCore::symbol_t &_map_has_this_key)
-      : TofinoModule(ModuleType::Tofino_HHTableRead, "HHTableRead", node), hh_table_id(_hh_table_id), obj(_obj), original_key(_original_key),
+      : TofinoModule(ModuleType::Tofino_HHTableRead, "HHTableRead", _node), hh_table_id(_hh_table_id), obj(_obj), original_key(_original_key),
         keys(_keys), value(_value), map_has_this_key(_map_has_this_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

@@ -15,14 +15,12 @@ private:
   LibCore::symbol_t map_has_this_key;
 
 public:
-  MapGet(const LibBDD::Node *node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value_out,
+  MapGet(const LibBDD::Node *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value_out,
          klee::ref<klee::Expr> _success, const LibCore::symbol_t &_map_has_this_key)
-      : x86Module(ModuleType::x86_MapGet, "MapGet", node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value_out(_value_out),
+      : x86Module(ModuleType::x86_MapGet, "MapGet", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value_out(_value_out),
         success(_success), map_has_this_key(_map_has_this_key) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);

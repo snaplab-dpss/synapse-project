@@ -224,8 +224,9 @@ search_report_t SearchEngine::search() {
             "Dumping:\n"
             "  BDD: %s\n"
             "  EP:  %s\n"
-            "  SS:  %s\n",
-            bdd_path.string().c_str(), ep_path.string().c_str(), ss_path.string().c_str());
+            "  SS:  %s",
+            std::filesystem::absolute(bdd_path).string().c_str(), std::filesystem::absolute(ep_path).string().c_str(),
+            std::filesystem::absolute(ss_path).string().c_str());
     }
 
     heuristic->add(std::move(new_implementations));

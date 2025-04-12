@@ -12,16 +12,12 @@
 namespace LibSynapse {
 namespace Tofino {
 
-constexpr const char *const CMS_WIDTH_PARAM     = "cms_width";
-constexpr const char *const CMS_HEIGHT_PARAM    = "cms_height";
-constexpr const char *const CMS_THRESHOLD_PARAM = "cms_threshold";
-
-constexpr const u32 CMS_WIDTH  = 1024;
-constexpr const u32 CMS_HEIGHT = 4;
-
 struct CountMinSketch : public DS {
+  static const std::vector<u32> HASH_SALTS;
+
   u32 width;
   u32 height;
+  bits_t hash_size;
 
   std::vector<Hash> hashes;
   std::vector<Register> rows;

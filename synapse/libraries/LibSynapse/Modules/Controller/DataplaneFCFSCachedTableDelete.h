@@ -14,8 +14,8 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneFCFSCachedTableDelete(const LibBDD::Node *node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableDelete, "DataplaneFCFSCachedTableDelete", node), id(_id), obj(_obj),
+  DataplaneFCFSCachedTableDelete(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
+      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableDelete, "DataplaneFCFSCachedTableDelete", _node), id(_id), obj(_obj),
         keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

@@ -13,12 +13,10 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorTableLookup(const LibBDD::Node *node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : TofinoModule(ModuleType::Tofino_VectorTableLookup, "VectorTableLookup", node), id(_id), obj(_obj), key(_key), value(_value) {}
+  VectorTableLookup(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+      : TofinoModule(ModuleType::Tofino_VectorTableLookup, "VectorTableLookup", _node), id(_id), obj(_obj), key(_key), value(_value) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new VectorTableLookup(node, id, obj, key, value);

@@ -10,8 +10,7 @@ namespace Controller {
 
 class ControllerModule : public Module {
 public:
-  ControllerModule(ModuleType _type, const std::string &_name, const LibBDD::Node *node)
-      : Module(_type, TargetType::Controller, _name, node) {}
+  ControllerModule(ModuleType _type, const std::string &_name, const LibBDD::Node *_node) : Module(_type, TargetType::Controller, _name, _node) {}
 };
 
 class ControllerModuleFactory : public ModuleFactory {

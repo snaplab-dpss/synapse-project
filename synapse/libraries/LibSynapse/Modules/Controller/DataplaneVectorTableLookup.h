@@ -12,8 +12,8 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorTableLookup(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_DataplaneVectorTableLookup, "DataplaneVectorTableLookup", node), obj(_obj), index(_index),
+  DataplaneVectorTableLookup(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType::Controller_DataplaneVectorTableLookup, "DataplaneVectorTableLookup", _node), obj(_obj), index(_index),
         value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

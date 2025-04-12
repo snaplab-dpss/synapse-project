@@ -104,7 +104,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
     } else if (size == 32) {
       coder << "bswap32(" << transpile(endian_swap_target, loaded_opt) << ")";
     } else {
-      panic("FIXME: incompatible endian swap size %d\n", size);
+      panic("FIXME: incompatible endian swap size %d", size);
     }
   } else if (std::optional<var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
     coder << var->name;
@@ -143,7 +143,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::type_from_size(
     type = "u64";
     break;
   default:
-    panic("Unknown type (size=%u)\n", size);
+    panic("Unknown type (size=%u)", size);
   }
 
   return type;
@@ -686,7 +686,7 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::pat
                       {MARKER_CPU_HDR_EXTRA, 1},
                   },
                   _out_file),
-      ep(_ep), transpiler(this) {}
+      target_ep(_ep), transpiler(this) {}
 
 ControllerSynthesizer::coder_t &ControllerSynthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
 
@@ -698,7 +698,7 @@ void ControllerSynthesizer::synthesize() {
   vars.clear();
   vars.push();
 
-  const LibBDD::BDD *bdd = ep->get_bdd();
+  const LibBDD::BDD *bdd = target_ep->get_bdd();
 
   LibCore::symbol_t now     = bdd->get_time();
   LibCore::symbol_t device  = bdd->get_device();
@@ -714,9 +714,9 @@ void ControllerSynthesizer::synthesize() {
 
 void ControllerSynthesizer::synthesize_nf_init() {
   coder_t &nf_init       = get(MARKER_NF_INIT);
-  const LibBDD::BDD *bdd = ep->get_bdd();
+  const LibBDD::BDD *bdd = target_ep->get_bdd();
 
-  const Context &ctx              = ep->get_ctx();
+  const Context &ctx              = target_ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                  = tofino_ctx->get_tna();
 
@@ -738,7 +738,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
   for (const LibBDD::Call *call_node : bdd->get_init()) {
     std::vector<std::unique_ptr<Module>> candidate_modules;
     for (const std::unique_ptr<ModuleFactory> &factory : controller_target.module_factories) {
-      std::unique_ptr<Module> module = factory->create(bdd, ep->get_ctx(), call_node);
+      std::unique_ptr<Module> module = factory->create(bdd, target_ep->get_ctx(), call_node);
       if (module) {
         candidate_modules.push_back(std::move(module));
       }
@@ -769,13 +769,13 @@ void ControllerSynthesizer::synthesize_nf_init() {
     nf_init.indent();
     nf_init << "// Module " << module->get_name() << "\n";
 
-    module->visit(*this, ep, nullptr);
+    module->visit(*this, target_ep, nullptr);
   }
 }
 
 void ControllerSynthesizer::synthesize_nf_process() {
   change_to_process_coder();
-  EPVisitor::visit(ep);
+  EPVisitor::visit(target_ep);
 }
 
 void ControllerSynthesizer::synthesize_state_member_init_list() {
@@ -1769,7 +1769,7 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
   const code_t name                  = assert_unique_name(map_table->id);
-  const time_ns_t expiration_time    = get_expiration_time(ep->get_ctx());
+  const time_ns_t expiration_time    = get_expiration_time(target_ep->get_ctx());
   const time_ms_t expiration_time_ms = expiration_time / MILLION;
   bool time_aware                    = false;
 
@@ -1803,7 +1803,7 @@ void ControllerSynthesizer::transpile_guarded_map_table_decl(const Tofino::Guard
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
   const code_t name                  = assert_unique_name(guarded_map_table->id);
-  const time_ns_t expiration_time    = get_expiration_time(ep->get_ctx());
+  const time_ns_t expiration_time    = get_expiration_time(target_ep->get_ctx());
   const time_ms_t expiration_time_ms = expiration_time / MILLION;
   bool time_aware                    = false;
 

@@ -246,16 +246,17 @@ bool TofinoContext::check_placement(const EP *ep, const LibBDD::Node *node, cons
   return status == PlacementStatus::Success;
 }
 
-bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node, const std::vector<std::unordered_set<DS *>> &ds) const {
+bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node,
+                                          const std::vector<std::unordered_set<DS *>> &data_structures) const {
   std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
 
-  PlacementStatus status = tna.can_place_many(ds, deps);
+  PlacementStatus status = tna.can_place_many(data_structures, deps);
 
   if (status != PlacementStatus::Success) {
     TargetType target = ep->get_active_target();
     std::cerr << "[" << target << "] Cannot place objs (" << status << ")\n";
     std::cerr << "  DS:\n";
-    for (const auto &ds_list : ds) {
+    for (const std::unordered_set<LibSynapse::Tofino::DS *> &ds_list : data_structures) {
       for (const DS *ds : ds_list) {
         std::cerr << "   * " << ds->id << "\n";
       }

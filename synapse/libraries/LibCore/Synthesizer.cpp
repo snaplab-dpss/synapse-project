@@ -14,8 +14,7 @@ constexpr const char *const TEMPLATE_MARKER_SUFFIX = "}@*/";
 
 } // namespace
 
-void Synthesizer::assert_markers_in_template(const std::filesystem::path &template_file,
-                                             const std::unordered_map<marker_t, coder_t> &coders) {
+void Synthesizer::assert_markers_in_template(const std::filesystem::path &template_file, const std::unordered_map<marker_t, coder_t> &coders) {
   std::ifstream file(template_file);
 
   std::stringstream buffer;
@@ -25,7 +24,7 @@ void Synthesizer::assert_markers_in_template(const std::filesystem::path &templa
   for (const auto &kv : coders) {
     const marker_t &marker = TEMPLATE_MARKER_AFFIX + kv.first + TEMPLATE_MARKER_SUFFIX;
     if (template_str.find(marker) == std::string::npos) {
-      panic("Marker \"%s\" not found in template: %s\n", marker.c_str(), template_file.c_str());
+      panic("Marker \"%s\" not found in template: %s", marker.c_str(), template_file.c_str());
     }
   }
 
@@ -40,11 +39,10 @@ std::unordered_map<Synthesizer::marker_t, Synthesizer::coder_t> Synthesizer::get
   return coders;
 }
 
-Synthesizer::Synthesizer(std::filesystem::path _template_file, std::unordered_map<marker_t, indent_t> _markers,
-                         std::filesystem::path _out_file)
+Synthesizer::Synthesizer(std::filesystem::path _template_file, std::unordered_map<marker_t, indent_t> _markers, std::filesystem::path _out_file)
     : template_file(_template_file), out_file(_out_file), coders(get_builders(_markers)) {
   if (!std::filesystem::exists(template_file)) {
-    panic("Template file not found: %s\n", template_file.c_str());
+    panic("Template file not found: %s", template_file.c_str());
   }
 
   assert_markers_in_template(template_file, coders);

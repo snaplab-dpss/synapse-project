@@ -11,8 +11,8 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneDchainTableFreeIndex(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index)
-      : ControllerModule(ModuleType::Controller_DataplaneDchainTableFreeIndex, "DataplaneDchainTableFreeIndex", node), obj(_obj), index(_index) {}
+  DataplaneDchainTableFreeIndex(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _index)
+      : ControllerModule(ModuleType::Controller_DataplaneDchainTableFreeIndex, "DataplaneDchainTableFreeIndex", _node), obj(_obj), index(_index) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 

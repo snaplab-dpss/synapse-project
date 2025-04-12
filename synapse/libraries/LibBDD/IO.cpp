@@ -31,13 +31,13 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
   call_stream << call.function_name;
   call_stream << "(";
 
-  bool first = true;
+  bool first_arg = true;
   for (const std::pair<const std::string, arg_t> &arg_pair : call.args) {
     const std::string &arg_name = arg_pair.first;
     const arg_t &arg            = arg_pair.second;
 
-    if (first) {
-      first = false;
+    if (first_arg) {
+      first_arg = false;
     } else {
       call_stream << ",";
     }
@@ -96,15 +96,15 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
   call_stream << ")";
 
   if (call.extra_vars.size()) {
-    bool first = true;
+    bool first_ev = true;
     call_stream << "*{";
 
     for (const std::pair<const std::string, extra_var_t> &extra_var_pair : call.extra_vars) {
       const std::string &extra_var_name = extra_var_pair.first;
       const extra_var_t &extra_var      = extra_var_pair.second;
 
-      if (first) {
-        first = false;
+      if (first_ev) {
+        first_ev = false;
       } else {
         call_stream << ",";
       }
@@ -447,9 +447,8 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   call_t call;
 
   // Cleanup by removing duplicated spaces
-  serialized_call.erase(
-      std::unique(serialized_call.begin(), serialized_call.end(), [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; }),
-      serialized_call.end());
+  serialized_call.erase(std::unique(serialized_call.begin(), serialized_call.end(), [](char lhs, char rhs) { return lhs == rhs && lhs == ' '; }),
+                        serialized_call.end());
 
   size_t delim = serialized_call.find("(");
   assert(delim != std::string::npos && "Invalid call");
@@ -461,7 +460,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
 
   int parenthesis_lvl = 1;
   delim               = 0;
-  std::string arg_str;
+  std::string curr_arg_str;
   for (char c : serialized_call) {
     delim++;
     if (c == '(' || c == '[') {
@@ -470,20 +469,20 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
       parenthesis_lvl--;
 
       if (parenthesis_lvl == 0) {
-        if (arg_str.size()) {
-          args_str.push_back(arg_str);
-          arg_str.clear();
+        if (curr_arg_str.size()) {
+          args_str.push_back(curr_arg_str);
+          curr_arg_str.clear();
         }
         break;
       }
     } else if (c == ',' && parenthesis_lvl == 1) {
-      args_str.push_back(arg_str);
-      arg_str.clear();
+      args_str.push_back(curr_arg_str);
+      curr_arg_str.clear();
 
       continue;
     }
 
-    arg_str += c;
+    curr_arg_str += c;
   }
 
   for (std::string arg_str : args_str) {
@@ -583,8 +582,8 @@ LibCore::Symbols parse_call_symbols(std::string serialized_symbols, std::vector<
   return symbols;
 }
 
-Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager,
-                      std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
+Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager, std::string serialized,
+                      std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   size_t delim = serialized.find("=>");
   assert(delim != std::string::npos && "Invalid call");
 
@@ -599,16 +598,16 @@ Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints, 
   return call_node;
 }
 
-Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager,
-                        std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
+Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager, std::string serialized,
+                        std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   klee::ref<klee::Expr> condition = pop_expr(exprs);
   Branch *branch_node             = new Branch(id, constraints, symbol_manager, condition);
   manager.add_node(branch_node);
   return branch_node;
 }
 
-Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager,
-                       std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
+Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager, std::string serialized,
+                       std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
   Route *route_node;
 
   size_t delim = serialized.find(" ");
@@ -814,7 +813,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
     STATE_ROOT,
   } state = state_t::STATE_START;
 
-  auto get_next_state = [](state_t state, const std::string &line) {
+  auto get_next_state = [](state_t curr_state, const std::string &line) {
     if (line == KQUERY_DELIMITER)
       return state_t::STATE_KQUERY;
     if (line == SYMBOLS_DELIMITER)
@@ -827,7 +826,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       return state_t::STATE_EDGES;
     if (line == ROOT_DELIMITER)
       return state_t::STATE_ROOT;
-    return state;
+    return curr_state;
   };
 
   std::string kQueryStr;

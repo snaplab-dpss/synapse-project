@@ -10,15 +10,13 @@ private:
   addr_t dchain_addr;
 
 public:
-  DchainAllocate(const LibBDD::Node *node, addr_t _dchain_addr)
-      : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", node), dchain_addr(_dchain_addr) {}
+  DchainAllocate(const LibBDD::Node *_node, addr_t _dchain_addr)
+      : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", _node), dchain_addr(_dchain_addr) {}
 
-  DchainAllocate(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
-      : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", node), dchain_addr(_dchain_addr) {}
+  DchainAllocate(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+      : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", _node), dchain_addr(_dchain_addr) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new DchainAllocate(node, dchain_addr);

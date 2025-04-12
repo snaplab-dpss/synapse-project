@@ -12,13 +12,11 @@ private:
   klee::ref<klee::Expr> backend_capacity;
 
 public:
-  ChtAllocate(const LibBDD::Node *node, addr_t _cht_addr, klee::ref<klee::Expr> _cht_height, klee::ref<klee::Expr> _backend_capacity)
-      : ControllerModule(ModuleType::Controller_ChtAllocate, "ChtAllocate", node), cht_addr(_cht_addr), cht_height(_cht_height),
+  ChtAllocate(const LibBDD::Node *_node, addr_t _cht_addr, klee::ref<klee::Expr> _cht_height, klee::ref<klee::Expr> _backend_capacity)
+      : ControllerModule(ModuleType::Controller_ChtAllocate, "ChtAllocate", _node), cht_addr(_cht_addr), cht_height(_cht_height),
         backend_capacity(_backend_capacity) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new ChtAllocate(node, cht_addr, cht_height, backend_capacity);

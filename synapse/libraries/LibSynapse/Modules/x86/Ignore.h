@@ -7,11 +7,9 @@ namespace x86 {
 
 class Ignore : public x86Module {
 public:
-  Ignore(const LibBDD::Node *node) : x86Module(ModuleType::x86_Ignore, "Ignore", node) {}
+  Ignore(const LibBDD::Node *_node) : x86Module(ModuleType::x86_Ignore, "Ignore", _node) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     Ignore *cloned = new Ignore(node);

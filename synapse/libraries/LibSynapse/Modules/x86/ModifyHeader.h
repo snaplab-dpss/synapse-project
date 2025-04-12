@@ -12,12 +12,10 @@ private:
   std::vector<LibCore::expr_mod_t> changes;
 
 public:
-  ModifyHeader(const LibBDD::Node *node, addr_t _chunk_addr, const std::vector<LibCore::expr_mod_t> &_changes)
-      : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", node), chunk_addr(_chunk_addr), changes(_changes) {}
+  ModifyHeader(const LibBDD::Node *_node, addr_t _chunk_addr, const std::vector<LibCore::expr_mod_t> &_changes)
+      : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     ModifyHeader *cloned = new ModifyHeader(node, chunk_addr, changes);

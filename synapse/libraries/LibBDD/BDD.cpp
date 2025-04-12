@@ -1092,14 +1092,14 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
     }
 
     const Call *call_node = dynamic_cast<const Call *>(map_get);
-    const call_t &call    = call_node->get_call();
+    const call_t &mg_call = call_node->get_call();
 
-    if (call.function_name != "map_get") {
+    if (mg_call.function_name != "map_get") {
       map_get = map_get->get_prev();
       continue;
     }
 
-    klee::ref<klee::Expr> obj = call.args.at("map").expr;
+    klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
     if (LibCore::expr_addr_to_obj_addr(obj) != map_objs.map) {
       map_get = map_get->get_prev();
       continue;
@@ -1190,24 +1190,24 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
 
 bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const Node *> &fwd_logic) const {
   bool pattern_found = false;
-  node->visit_nodes([&fwd_logic, &pattern_found](const Node *node) {
-    switch (node->get_type()) {
+  node->visit_nodes([&fwd_logic, &pattern_found](const Node *future_node) {
+    switch (future_node->get_type()) {
     case NodeType::Call: {
       pattern_found = false;
     } break;
     case NodeType::Branch: {
-      const Branch *branch                                = dynamic_cast<const Branch *>(node);
+      const Branch *branch                                = dynamic_cast<const Branch *>(future_node);
       const std::unordered_set<std::string> &used_symbols = branch->get_used_symbols();
       if (used_symbols.size() == 1 && (*used_symbols.begin() == "lpm_lookup_match" || *used_symbols.begin() == "lpm_lookup_result")) {
         pattern_found = true;
-        fwd_logic.push_back(node);
+        fwd_logic.push_back(future_node);
       } else {
         pattern_found = false;
       }
     } break;
     case NodeType::Route: {
       if (pattern_found) {
-        fwd_logic.push_back(node);
+        fwd_logic.push_back(future_node);
       }
     } break;
     }

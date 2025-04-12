@@ -406,7 +406,7 @@ void PerfOracle::assert_final_state() const {
     panic("Invalid perf oracle final state\n"
           "  unaccounted_ingress: %s\n"
           "  unaccounted_controller_hr: %s\n"
-          "  egress_hr (%s) + dropped_ingress (%s) == %s\n",
+          "  egress_hr (%s) + dropped_ingress (%s) == %s",
           unaccounted_ingress.to_string().c_str(), unaccounted_controller_hr.to_string().c_str(), egress_hr.to_string().c_str(),
           dropped_ingress.to_string().c_str(), accounted_hr.to_string().c_str());
   }

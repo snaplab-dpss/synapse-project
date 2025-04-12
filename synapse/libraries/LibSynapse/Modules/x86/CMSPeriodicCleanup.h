@@ -10,12 +10,10 @@ private:
   addr_t cms_addr;
 
 public:
-  CMSPeriodicCleanup(const LibBDD::Node *node, addr_t _cms_addr)
-      : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup", node), cms_addr(_cms_addr) {}
+  CMSPeriodicCleanup(const LibBDD::Node *_node, addr_t _cms_addr)
+      : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup", _node), cms_addr(_cms_addr) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new CMSPeriodicCleanup(node, cms_addr);

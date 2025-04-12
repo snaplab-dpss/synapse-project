@@ -87,7 +87,7 @@ BDDSynthesizer::code_t BDDSynthesizer::Transpiler::type_from_size(bits_t size) {
     type = "uint64_t";
     break;
   default:
-    panic("Unknown type (size=%u)\n", size);
+    panic("Unknown type (size=%u)", size);
   }
 
   return type;
@@ -744,26 +744,26 @@ void BDDSynthesizer::process() {
 void BDDSynthesizer::synthesize(const Node *node) {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
-  node->visit_nodes([this, &coder](const Node *node) {
+  node->visit_nodes([this, &coder](const Node *future_node) {
     NodeVisitAction action = NodeVisitAction::Continue;
 
-    process_nodes.insert(node->get_id());
+    process_nodes.insert(future_node->get_id());
 
     coder.indent();
     coder << "// Node ";
-    coder << node->get_id();
+    coder << future_node->get_id();
     coder << "\n";
 
     if (target == BDDSynthesizerTarget::Profiler) {
       coder.indent();
       coder << "inc_path_counter(";
-      coder << node->get_id();
+      coder << future_node->get_id();
       coder << ");\n";
     }
 
-    switch (node->get_type()) {
+    switch (future_node->get_type()) {
     case NodeType::Branch: {
-      const Branch *branch_node = dynamic_cast<const Branch *>(node);
+      const Branch *branch_node = dynamic_cast<const Branch *>(future_node);
 
       const Node *on_true  = branch_node->get_on_true();
       const Node *on_false = branch_node->get_on_false();
@@ -802,11 +802,11 @@ void BDDSynthesizer::synthesize(const Node *node) {
       action = NodeVisitAction::Stop;
     } break;
     case NodeType::Call: {
-      const Call *call_node = dynamic_cast<const Call *>(node);
+      const Call *call_node = dynamic_cast<const Call *>(future_node);
       synthesize_function(coder, call_node);
     } break;
     case NodeType::Route: {
-      const Route *route_node          = dynamic_cast<const Route *>(node);
+      const Route *route_node          = dynamic_cast<const Route *>(future_node);
       RouteOp op                       = route_node->get_operation();
       klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
@@ -816,7 +816,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
       case RouteOp::Drop: {
         if (target == BDDSynthesizerTarget::Profiler) {
           coder.indent();
-          coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_drop();\n";
+          coder << "forwarding_stats_per_route_op[" << future_node->get_id() << "].inc_drop();\n";
         }
 
         coder.indent();
@@ -825,7 +825,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
       case RouteOp::Broadcast: {
         if (target == BDDSynthesizerTarget::Profiler) {
           coder.indent();
-          coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_flood();\n";
+          coder << "forwarding_stats_per_route_op[" << future_node->get_id() << "].inc_flood();\n";
         }
 
         coder.indent();
@@ -834,7 +834,7 @@ void BDDSynthesizer::synthesize(const Node *node) {
       case RouteOp::Forward: {
         if (target == BDDSynthesizerTarget::Profiler) {
           coder.indent();
-          coder << "forwarding_stats_per_route_op[" << node->get_id() << "].inc_fwd(";
+          coder << "forwarding_stats_per_route_op[" << future_node->get_id() << "].inc_fwd(";
           coder << transpiler.transpile(dst_device);
           coder << ");\n";
         }

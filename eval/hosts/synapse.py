@@ -9,7 +9,6 @@ import re
 
 from .remote import RemoteHost
 
-MIN_TIMEOUT = 10  # miliseconds
 SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon> "
 
 
@@ -86,14 +85,10 @@ class SynapseController:
 
     def launch(
         self,
-        src_in_repo: str,
+        src_in_repo: Union[str, Path],
         ports: list[int],
-        timeout_ms: int = MIN_TIMEOUT,
         extra_args: list[tuple[str, Union[str, int, float]]] = [],
     ) -> None:
-        if timeout_ms != 0 and timeout_ms < MIN_TIMEOUT:
-            raise Exception(f"Timeout value must be 0 or >= {MIN_TIMEOUT}ms (is {timeout_ms}ms)")
-
         src_path = self.repo / src_in_repo
         self._compile(src_path)
 
@@ -106,7 +101,6 @@ class SynapseController:
         cmd += f" --wait-ports"
         cmd += f" --bench"
         cmd += f" --ports {' '.join(map(str, ports))}"
-        cmd += f" --expiration-time {timeout_ms}"
 
         for extra_arg in extra_args:
             cmd += f" {extra_arg[0]} {extra_arg[1]}"

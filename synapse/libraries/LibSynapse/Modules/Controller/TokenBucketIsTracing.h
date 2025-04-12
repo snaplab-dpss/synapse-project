@@ -13,14 +13,12 @@ private:
   klee::ref<klee::Expr> is_tracing;
 
 public:
-  TokenBucketIsTracing(const LibBDD::Node *node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _index_out,
+  TokenBucketIsTracing(const LibBDD::Node *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _index_out,
                        klee::ref<klee::Expr> _is_tracing)
-      : ControllerModule(ModuleType::Controller_TokenBucketIsTracing, "TokenBucketIsTracing", node), tb_addr(_tb_addr), key(_key),
+      : ControllerModule(ModuleType::Controller_TokenBucketIsTracing, "TokenBucketIsTracing", _node), tb_addr(_tb_addr), key(_key),
         index_out(_index_out), is_tracing(_is_tracing) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
     Module *cloned = new TokenBucketIsTracing(node, tb_addr, key, index_out, is_tracing);

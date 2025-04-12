@@ -19,7 +19,7 @@ std::optional<spec_impl_t> CMSUpdateFactory::speculate(const EP *ep, const LibBD
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   addr_t cms_addr                     = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return std::nullopt;
   }
 
@@ -45,7 +45,7 @@ std::vector<impl_t> CMSUpdateFactory::process_node(const EP *ep, const LibBDD::N
 
   addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+  if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return impls;
   }
 
@@ -78,7 +78,7 @@ std::unique_ptr<Module> CMSUpdateFactory::create(const LibBDD::BDD *bdd, const C
 
   addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.check_ds_impl(cms_addr, DSImpl::Tofino_CountMinSketch)) {
+  if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
   }
 

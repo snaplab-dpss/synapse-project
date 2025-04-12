@@ -51,27 +51,27 @@ std::vector<const Call *> get_unfiltered_coalescing_nodes(const Node *node, cons
 
   std::vector<const Call *> unfiltered_nodes = node->get_future_functions(target_functions);
 
-  auto filter_map_objs = [&data](const Node *node) {
-    assert(node->get_type() == NodeType::Call && "Unexpected node type");
+  auto filter_map_objs = [&data](const Node *future_node) {
+    assert(future_node->get_type() == NodeType::Call && "Unexpected node type");
 
-    const Call *call_node = dynamic_cast<const Call *>(node);
+    const Call *call_node = dynamic_cast<const Call *>(future_node);
     const call_t &call    = call_node->get_call();
 
     if (call.args.find("map") != call.args.end()) {
       klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-      addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+      const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
       if (obj != data.map) {
         return true;
       }
     } else if (call.args.find("vector") != call.args.end()) {
       klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-      addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+      const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
       if (data.vectors.find(obj) == data.vectors.end()) {
         return true;
       }
     } else if (call.args.find("chain") != call.args.end()) {
       klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
-      addr_t obj                     = LibCore::expr_addr_to_obj_addr(obj_expr);
+      const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
       if (obj != data.dchain) {
         return true;
       }
@@ -111,10 +111,10 @@ std::vector<const Node *> Node::get_children(bool recursive) const {
   return children;
 }
 
-bool Node::is_reachable(node_id_t id) const {
+bool Node::is_reachable(node_id_t node_id) const {
   const Node *node = this;
   while (node) {
-    if (node->get_id() == id)
+    if (node->get_id() == node_id)
       return true;
     node = node->get_prev();
   }
@@ -154,8 +154,8 @@ size_t Node::count_code_paths() const {
     } break;
     case NodeType::Call:
     case NodeType::Route: {
-      const Node *next = node->get_next();
-      if (!next)
+      const Node *next_node = node->get_next();
+      if (!next_node)
         paths++;
     } break;
     }
@@ -166,29 +166,29 @@ size_t Node::count_code_paths() const {
 }
 
 std::vector<klee::ref<klee::Expr>> Node::get_ordered_branch_constraints() const {
-  std::vector<klee::ref<klee::Expr>> constraints;
+  std::vector<klee::ref<klee::Expr>> ordered_branch_constraints;
 
   const Node *node = this;
   while (node->get_prev()) {
-    const Node *prev = node->get_prev();
+    const Node *prev_node = node->get_prev();
 
-    if (prev->get_type() != NodeType::Branch) {
-      node = prev;
+    if (prev_node->get_type() != NodeType::Branch) {
+      node = prev_node;
       continue;
     }
 
-    const Branch *branch            = dynamic_cast<const Branch *>(prev);
+    const Branch *branch            = dynamic_cast<const Branch *>(prev_node);
     klee::ref<klee::Expr> condition = branch->get_condition();
 
     if (branch->get_on_false() == node) {
       condition = LibCore::solver_toolbox.exprBuilder->Not(condition);
     }
 
-    constraints.insert(constraints.begin(), condition);
-    node = prev;
+    ordered_branch_constraints.insert(ordered_branch_constraints.begin(), condition);
+    node = prev_node;
   }
 
-  return constraints;
+  return ordered_branch_constraints;
 }
 
 std::string Node::recursive_dump(int lvl) const {
@@ -288,9 +288,8 @@ Node *Node::get_mutable_node_by_id(node_id_t node_id) {
   return target;
 }
 
-void Node::recursive_translate_symbol(LibCore::SymbolManager *symbol_manager, const LibCore::symbol_t &old_symbol,
-                                      const LibCore::symbol_t &new_symbol) {
-  visit_mutable_nodes([symbol_manager, old_symbol, new_symbol](Node *node) -> NodeVisitAction {
+void Node::recursive_translate_symbol(const LibCore::symbol_t &old_symbol, const LibCore::symbol_t &new_symbol) {
+  visit_mutable_nodes([this, old_symbol, new_symbol](Node *node) -> NodeVisitAction {
     switch (node->get_type()) {
     case NodeType::Branch: {
       Branch *branch_node                 = dynamic_cast<Branch *>(node);
@@ -380,13 +379,13 @@ void Node::visit_nodes(std::function<NodeVisitAction(const Node *, cookie_t *)> 
     } break;
     case NodeType::Call:
     case NodeType::Route: {
-      const Node *next = node->get_next();
-      if (next && action != NodeVisitAction::SkipChildren) {
+      const Node *next_node = node->get_next();
+      if (next_node && action != NodeVisitAction::SkipChildren) {
         std::unique_ptr<cookie_t> new_cookie;
         if (node_cookie) {
           new_cookie = node_cookie->clone();
         }
-        nodes.push_back({next, std::move(node_cookie)});
+        nodes.push_back({next_node, std::move(node_cookie)});
       }
     } break;
     }
@@ -436,13 +435,13 @@ void Node::visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)
     } break;
     case NodeType::Call:
     case NodeType::Route: {
-      Node *next = node->get_mutable_next();
-      if (next && action != NodeVisitAction::SkipChildren) {
+      Node *next_node = node->get_mutable_next();
+      if (next_node && action != NodeVisitAction::SkipChildren) {
         std::unique_ptr<cookie_t> new_cookie;
         if (node_cookie) {
           new_cookie = node_cookie->clone();
         }
-        nodes.push_back({next, std::move(node_cookie)});
+        nodes.push_back({next_node, std::move(node_cookie)});
       }
     } break;
     }

@@ -76,6 +76,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
 struct initial_controller_logic_t {
   EPNode *head;
   EPNode *tail;
+  LibCore::Symbols extra_symbols;
 
   void update(EPNode *ep_node) {
     assert(ep_node);
@@ -97,7 +98,7 @@ struct initial_controller_logic_t {
 };
 
 initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_leaf) {
-  initial_controller_logic_t initial_controller_logic{.head = nullptr, .tail = nullptr};
+  initial_controller_logic_t initial_controller_logic{.head = nullptr, .tail = nullptr, .extra_symbols = {}};
 
   struct prev_module_t {
     const Module *module;
@@ -169,7 +170,13 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_If: {
       const If *if_module = dynamic_cast<const If *>(prev.module);
 
-      Controller::If *ctrl_if                              = new Controller::If(active_leaf.next, if_module->get_original_condition());
+      const klee::ref<klee::Expr> condition = if_module->get_original_condition();
+      const LibBDD::Node *if_node           = if_module->get_node();
+      assert(if_node);
+
+      initial_controller_logic.extra_symbols.add(if_node->get_used_symbols());
+
+      Controller::If *ctrl_if                              = new Controller::If(active_leaf.next, condition);
       Controller::Then *ctrl_then                          = new Controller::Then(active_leaf.next);
       Controller::Else *ctrl_else                          = new Controller::Else(active_leaf.next);
       Controller::AbortTransaction *ctrl_abort_transaction = new Controller::AbortTransaction(active_leaf.next);
@@ -432,8 +439,10 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   EP *new_ep = new EP(*ep);
   impls.push_back(implement(ep, node, new_ep));
 
-  const LibCore::Symbols symbols                            = get_relevant_dataplane_state(ep, node);
   const initial_controller_logic_t initial_controller_logic = build_initial_controller_logic(active_leaf);
+
+  LibCore::Symbols symbols = get_relevant_dataplane_state(ep, node);
+  symbols.add(initial_controller_logic.extra_symbols);
 
   Module *module   = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);

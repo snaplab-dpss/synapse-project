@@ -23,8 +23,22 @@ def order_mag_to_multiplier(mag: int) -> tuple[int, str]:
     return 12, "T"
 
 
-# Returns (avg, err, multiplier)
+def number_to_multiplier(n: float) -> tuple[int, str]:
+    order_mag = -1
+    while round(n / 10, 1) != 0:
+        n /= 10
+        order_mag += 1
+
+    multiplier, suffix = order_mag_to_multiplier(order_mag)
+    return multiplier, suffix
+
+
+# Returns (avg, err, multiplier suffix)
 def avg_err_precision_to_label(avg: float, err: float) -> tuple[str, str, str]:
+    if err == 0:
+        multiplier, suffix = number_to_multiplier(avg)
+        return str(avg // 10**multiplier), "0", suffix
+
     order_mag = -1
     while round(err / 10, 1) != 0:
         avg /= 10

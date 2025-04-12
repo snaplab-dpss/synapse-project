@@ -142,7 +142,7 @@ private:
   std::vector<code_t> state_member_init_list;
   std::vector<ep_node_id_t> code_paths;
 
-  const EP *ep;
+  const EP *target_ep;
   Transpiler transpiler;
 
   void synthesize_nf_init();

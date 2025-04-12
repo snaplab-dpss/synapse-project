@@ -12,8 +12,8 @@ private:
   LibCore::symbol_t is_allocated;
 
 public:
-  DataplaneDchainTableIsIndexAllocated(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _index, const LibCore::symbol_t &_is_allocated)
-      : ControllerModule(ModuleType::Controller_DataplaneDchainTableIsIndexAllocated, "DataplaneDchainTableIsIndexAllocated", node), obj(_obj),
+  DataplaneDchainTableIsIndexAllocated(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _index, const LibCore::symbol_t &_is_allocated)
+      : ControllerModule(ModuleType::Controller_DataplaneDchainTableIsIndexAllocated, "DataplaneDchainTableIsIndexAllocated", _node), obj(_obj),
         index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

@@ -10,11 +10,9 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If(const LibBDD::Node *node, klee::ref<klee::Expr> _condition) : x86Module(ModuleType::x86_If, "If", node), condition(_condition) {}
+  If(const LibBDD::Node *_node, klee::ref<klee::Expr> _condition) : x86Module(ModuleType::x86_If, "If", _node), condition(_condition) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     If *cloned = new If(node, condition);

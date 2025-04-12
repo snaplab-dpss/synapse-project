@@ -14,9 +14,9 @@ private:
   time_ns_t cleanup_internal;
 
 public:
-  DataplaneCMSAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  DataplaneCMSAllocate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
                        klee::ref<klee::Expr> _key_size, time_ns_t _cleanup_internal)
-      : ControllerModule(ModuleType::Controller_DataplaneCMSAllocate, "DataplaneCMSAllocate", node), obj(_obj), height(_height), width(_width),
+      : ControllerModule(ModuleType::Controller_DataplaneCMSAllocate, "DataplaneCMSAllocate", _node), obj(_obj), height(_height), width(_width),
         key_size(_key_size), cleanup_internal(_cleanup_internal) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

@@ -13,14 +13,11 @@ private:
   std::vector<LibCore::expr_byte_swap_t> swaps;
 
 public:
-  ModifyHeader(const LibBDD::Node *node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, const std::vector<LibCore::expr_mod_t> &_changes,
+  ModifyHeader(const LibBDD::Node *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, const std::vector<LibCore::expr_mod_t> &_changes,
                const std::vector<LibCore::expr_byte_swap_t> &_swaps)
-      : TofinoModule(ModuleType::Tofino_ModifyHeader, "ModifyHeader", node), hdr_addr(_hdr_addr), hdr(_hdr), changes(_changes),
-        swaps(_swaps) {}
+      : TofinoModule(ModuleType::Tofino_ModifyHeader, "ModifyHeader", _node), hdr_addr(_hdr_addr), hdr(_hdr), changes(_changes), swaps(_swaps) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
     ModifyHeader *cloned = new ModifyHeader(node, hdr_addr, hdr, changes, swaps);

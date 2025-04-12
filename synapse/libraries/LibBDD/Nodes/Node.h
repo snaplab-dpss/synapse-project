@@ -75,7 +75,7 @@ public:
   void visit_mutable_nodes(std::function<NodeVisitAction(Node *, cookie_t *)> fn, std::unique_ptr<cookie_t> cookie);
 
   void recursive_update_ids(node_id_t &new_id);
-  void recursive_translate_symbol(LibCore::SymbolManager *symbol_manager, const LibCore::symbol_t &old_symbol, const LibCore::symbol_t &new_symbol);
+  void recursive_translate_symbol(const LibCore::symbol_t &old_symbol, const LibCore::symbol_t &new_symbol);
   void recursive_add_constraint(klee::ref<klee::Expr> constraint);
   void recursive_free_children(NodeManager &manager);
   std::string recursive_dump(int lvl = 0) const;

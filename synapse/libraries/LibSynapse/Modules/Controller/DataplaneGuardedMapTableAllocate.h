@@ -13,9 +13,9 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneGuardedMapTableAllocate(const LibBDD::Node *node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
+  DataplaneGuardedMapTableAllocate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
                                    klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_DataplaneGuardedMapTableAllocate, "DataplaneGuardedMapTableAllocate", node), obj(_obj),
+      : ControllerModule(ModuleType::Controller_DataplaneGuardedMapTableAllocate, "DataplaneGuardedMapTableAllocate", _node), obj(_obj),
         key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }

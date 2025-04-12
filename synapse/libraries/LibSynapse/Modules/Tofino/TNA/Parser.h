@@ -173,7 +173,7 @@ struct ParserStateSelect : public ParserState {
         return false;
       }
 
-      for (size_t i = 0; i < selections[i].values.size(); i++) {
+      for (size_t j = 0; j < selections[i].values.size(); j++) {
         if (!LibCore::solver_toolbox.are_exprs_always_equal(selections[i].values[i], other_select->selections[i].values[i])) {
           return false;
         }

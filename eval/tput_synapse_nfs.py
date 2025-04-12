@@ -4,12 +4,13 @@ import argparse
 import tomli
 import itertools
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from rich.console import Console
 from rich.progress import Progress
 
-from typing import Optional
+from typing import Optional, Union, Callable
 
 from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment, ExperimentTracker
@@ -20,58 +21,72 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 100_000
-CHURN_FPM = [0, 10_000, 100_000, 1_000_000, 10_000_000]
+CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
+ITERATIONS = 5
+# CHURN_FPM = [0]
+# ZIPF_PARAMS = [1.2]
+# ITERATIONS = 5
+
+
+@dataclass
+class SynapseNF:
+    name: str
+    description: str
+    data_out: Path
+    kvs_mode: bool
+    tofino: Path
+    controller: Path
+    broadcast: Callable[[list[int]], list[int]]
+    symmetric: Callable[[list[int]], list[int]]
+    route: Callable[[list[int]], list[tuple[int, int]]]
+
 
 SYNAPSE_NFS = [
-    # {
-    #     "name": "echo",
-    #     "description": "Synapse echo",
-    #     "tofino": "synthesized/synapse-echo.p4",
-    #     "controller": "synthesized/synapse-echo.cpp",
-    #     "routing": {
-    #         "broadcast": DUT_CONNECTED_PORTS,
-    #         "symmetric": [],
-    #         "route": [],
-    #     },
-    # },
-    # {
-    #     "name": "fwd",
-    #     "description": "Synapse NOP",
-    #     "tofino": "synthesized/synapse-fwd.p4",
-    #     "controller": "synthesized/synapse-fwd.cpp",
-    #     "routing": {
-    #         "broadcast": lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #         "symmetric": lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #         "route": lambda _: [],
-    #     },
-    # },
-    {
-        "name": "synapse-kvs-hhtable",
-        "description": "Synapse KVS HHTable",
-        "data_out": "tput_synapse_kvs_hhtable.csv",
-        "kvs_mode": True,
-        "tofino": "synthesized/synapse-kvs-hhtable.p4",
-        "controller": "synthesized/synapse-kvs-hhtable.cpp",
-        "routing": {
-            "broadcast": lambda ports: ports,
-            "symmetric": lambda _: [],
-            "route": lambda _: [],
-        },
-    },
-    {
-        "name": "synapse-kvs-maptable",
-        "description": "Synapse KVS MapTable",
-        "data_out": "tput_synapse_kvs_maptable.csv",
-        "kvs_mode": True,
-        "tofino": "synthesized/synapse-kvs-maptable.p4",
-        "controller": "synthesized/synapse-kvs-maptable.cpp",
-        "routing": {
-            "broadcast": lambda ports: ports,
-            "symmetric": lambda _: [],
-            "route": lambda _: [],
-        },
-    },
+    # SynapseNF(
+    #     name="echo",
+    #     description="Synapse echo",
+    #     data_out=Path("tput_synapse_echo.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-echo.p4"),
+    #     controller=Path("synthesized/synapse-echo.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    # ),
+    # SynapseNF(
+    #     name="fwd",
+    #     description="Synapse forwarder",
+    #     data_out=Path("tput_synapse_fwd.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-fwd.p4"),
+    #     controller=Path("synthesized/synapse-fwd.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
+    SynapseNF(
+        name="synapse-kvs-hhtable",
+        description="Synapse KVS HHTable",
+        data_out=Path("tput_synapse_kvs_hhtable.csv"),
+        kvs_mode=True,
+        tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
+        controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
+        broadcast=lambda ports: ports,
+        symmetric=lambda _: [],
+        route=lambda _: [],
+    ),
+    SynapseNF(
+        name="synapse-kvs-guardedmaptable",
+        description="Synapse KVS GuardedMapTable",
+        data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
+        kvs_mode=True,
+        tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
+        controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
+        broadcast=lambda ports: ports,
+        symmetric=lambda _: [],
+        route=lambda _: [],
+    ),
 ]
 
 
@@ -91,8 +106,8 @@ class SynapseThroughput(Experiment):
         route: list[tuple[int, int]],
         kvs_mode: bool,
         # Synapse
-        p4_src_in_repo: str,
-        controller_src_in_repo: str,
+        p4_src_in_repo: Path,
+        controller_src_in_repo: Path,
         dut_ports: list[int],
         # Pktgen
         total_flows: int,
@@ -102,7 +117,7 @@ class SynapseThroughput(Experiment):
         experiment_log_file: Optional[str] = None,
         console: Console = Console(),
     ) -> None:
-        super().__init__(name, experiment_log_file)
+        super().__init__(name, experiment_log_file, ITERATIONS)
 
         # Experiment parameters
         self.save_name = save_name
@@ -315,29 +330,30 @@ def main():
     exp_tracker = ExperimentTracker()
 
     for synapse_nf in SYNAPSE_NFS:
-        broadcast = synapse_nf["routing"]["broadcast"](tg_dut_ports)
-        symmetric = synapse_nf["routing"]["symmetric"](tg_dut_ports)
-        route = synapse_nf["routing"]["route"](tg_dut_ports)
+        broadcast = synapse_nf.broadcast(tg_dut_ports)
+        symmetric = synapse_nf.symmetric(tg_dut_ports)
+        route = synapse_nf.route(tg_dut_ports)
 
-        dut_ports = config["devices"]["switch_dut"]["client_ports"]
-        if synapse_nf["kvs_mode"]:
+        # Force a copy of the list to avoid modifying the original list.
+        dut_ports = list(config["devices"]["switch_dut"]["client_ports"])
+        if synapse_nf.kvs_mode:
             server_port = config["devices"]["switch_dut"]["server_port"]
             dut_ports.append(server_port)
             dut_ports = sorted(dut_ports)
 
         exp_tracker.add_experiment(
             SynapseThroughput(
-                name=synapse_nf["description"],
-                save_name=DATA_DIR / synapse_nf["data_out"],
+                name=synapse_nf.description,
+                save_name=DATA_DIR / synapse_nf.data_out,
                 delay_ns=STORAGE_SERVER_DELAY_NS,
                 tput_hosts=tput_hosts,
-                kvs_server=kvs_server if synapse_nf["kvs_mode"] else None,
+                kvs_server=kvs_server if synapse_nf.kvs_mode else None,
                 broadcast=broadcast,
                 symmetric=symmetric,
                 route=route,
-                kvs_mode=synapse_nf["kvs_mode"],
-                p4_src_in_repo=synapse_nf["tofino"],
-                controller_src_in_repo=synapse_nf["controller"],
+                kvs_mode=synapse_nf.kvs_mode,
+                p4_src_in_repo=synapse_nf.tofino,
+                controller_src_in_repo=synapse_nf.controller,
                 dut_ports=dut_ports,
                 total_flows=TOTAL_FLOWS,
                 zipf_params=ZIPF_PARAMS,

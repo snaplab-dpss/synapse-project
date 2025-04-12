@@ -14,14 +14,12 @@ private:
   LibCore::symbol_t not_out_of_space;
 
 public:
-  IntegerAllocatorAllocate(const LibBDD::Node *node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
+  IntegerAllocatorAllocate(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                            const LibCore::symbol_t &_out_of_space)
-      : TofinoModule(ModuleType::Tofino_IntegerAllocatorAllocate, "IntegerAllocatorAllocate", node), dchain_addr(_dchain_addr), time(_time),
+      : TofinoModule(ModuleType::Tofino_IntegerAllocatorAllocate, "IntegerAllocatorAllocate", _node), dchain_addr(_dchain_addr), time(_time),
         index_out(_index_out), not_out_of_space(_out_of_space) {}
 
-  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override {
-    return visitor.visit(ep, ep_node, this);
-  }
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override { return new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, not_out_of_space); }
 

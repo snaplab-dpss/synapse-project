@@ -24,7 +24,8 @@ std::vector<Register> build_rows(const tna_properties_t &properties, DS_ID id, u
   const bits_t counter_size = 32;
 
   for (size_t i = 0; i < height; i++) {
-    Register row(properties, id + "_row_" + std::to_string(i), width, hash_size, counter_size, {RegisterActionType::Write, RegisterActionType::Read});
+    Register row(properties, id + "_row_" + std::to_string(i), width, hash_size, counter_size,
+                 {RegisterActionType::Read, RegisterActionType::Increment, RegisterActionType::IncrementAndReturnNewValue});
     rows.push_back(row);
   }
 
@@ -33,12 +34,21 @@ std::vector<Register> build_rows(const tna_properties_t &properties, DS_ID id, u
 
 } // namespace
 
+const std::vector<u32> CountMinSketch::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
+                                                     0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
+
 CountMinSketch::CountMinSketch(const tna_properties_t &properties, DS_ID _id, const std::vector<bits_t> &_keys, u32 _width, u32 _height)
-    : DS(DSType::CountMinSketch, false, _id), width(_width), height(_height),
-      hashes(build_hashes(_id, _height, _keys, LibCore::bits_from_pow2_capacity(_width))), rows(build_rows(properties, _id, _width, _height)) {}
+    : DS(DSType::CountMinSketch, false, _id), width(_width), height(_height), hash_size(LibCore::bits_from_pow2_capacity(_width)),
+      hashes(build_hashes(_id, _height, _keys, hash_size)), rows(build_rows(properties, _id, _width, _height)) {
+  assert(width > 0 && "Width must be greater than 0");
+  assert(height > 0 && "Height must be greater than 0");
+  assert(hashes.size() == height && "Invalid number of hashes");
+  assert(rows.size() == height && "Invalid number of rows");
+}
 
 CountMinSketch::CountMinSketch(const CountMinSketch &other)
-    : DS(other.type, other.primitive, other.id), width(other.width), height(other.height), hashes(other.hashes), rows(other.rows) {}
+    : DS(other.type, other.primitive, other.id), width(other.width), height(other.height), hash_size(other.hash_size), hashes(other.hashes),
+      rows(other.rows) {}
 
 DS *CountMinSketch::clone() const { return new CountMinSketch(*this); }
 
