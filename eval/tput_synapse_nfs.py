@@ -221,7 +221,6 @@ class SynapseThroughput(Experiment):
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
-            kvs_mode=self.kvs_mode,
         )
 
         self.log("Waiting for pktgen")
@@ -258,7 +257,7 @@ class SynapseThroughput(Experiment):
             self.log("Launching pktgen")
             self.tput_hosts.pktgen.close()
             self.tput_hosts.pktgen.launch(
-                nb_flows=int(self.total_flows / len(self.broadcast)),
+                nb_flows=self.total_flows,
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
                 kvs_mode=True,
@@ -269,7 +268,7 @@ class SynapseThroughput(Experiment):
             report = self.find_stable_throughput(
                 tg_controller=self.tput_hosts.tg_controller,
                 pktgen=self.tput_hosts.pktgen,
-                churn=int(churn_fpm / len(self.broadcast)),
+                churn=churn_fpm,
             )
 
             with open(self.save_name, "a") as f:

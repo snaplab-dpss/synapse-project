@@ -85,7 +85,6 @@ class TofinoTGController:
         broadcast: list[int],
         symmetric: list[int],
         route: list[Tuple[int, int]],
-        kvs_mode: bool,
     ) -> None:
         self.broadcast_ports = broadcast
 
@@ -98,8 +97,6 @@ class TofinoTGController:
             cmd += f" --symmetric {' '.join(map(str, symmetric))}"
         for src, dst in route:
             cmd += f" --route {src} {dst}"
-        if kvs_mode:
-            cmd += " --kvs-mode"
 
         command = self.host.run_command(cmd, dir=target_dir)
         command.watch()

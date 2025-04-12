@@ -37,9 +37,8 @@ class TofinoTAController(TofinoTGController):
         broadcast: list[int],
         symmetric: list[int],
         route: list[Tuple[int, int]],
-        kvs_mode: bool,
     ) -> None:
-        super().setup(broadcast, symmetric, route, kvs_mode)
+        super().setup(broadcast, symmetric, route)
         self.reset_to_default_acceleration()
 
     def reset_to_default_acceleration(self) -> None:

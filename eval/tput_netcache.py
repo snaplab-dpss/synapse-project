@@ -144,7 +144,6 @@ class NetCacheThroughput(Experiment):
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
-            kvs_mode=True,
         )
 
         self.log("Waiting for pktgen")
@@ -179,7 +178,7 @@ class NetCacheThroughput(Experiment):
             self.log("Launching pktgen")
             self.tg_hosts.pktgen.close()
             self.tg_hosts.pktgen.launch(
-                nb_flows=int(self.total_flows / len(self.broadcast)),
+                nb_flows=self.total_flows,
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
                 kvs_mode=True,
@@ -190,7 +189,7 @@ class NetCacheThroughput(Experiment):
             report = self.find_stable_throughput(
                 tg_controller=self.tg_hosts.tg_controller,
                 pktgen=self.tg_hosts.pktgen,
-                churn=int(churn_fpm / len(self.broadcast)),
+                churn=churn_fpm,
             )
 
             with open(self.save_name, "a") as f:

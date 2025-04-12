@@ -238,11 +238,11 @@ class Throughput(Experiment):
         self.hosts.tg_switch.launch()
 
         self.log("Launching synapse controller")
-        self.hosts.dut_controller.launch(self.controller_src_in_repo, controller_ports, self.controller_timeout_ms)
+        self.hosts.dut_controller.launch(self.controller_src_in_repo, controller_ports)
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
-            nb_flows=int(self.nb_flows / len(self.broadcast)),
+            nb_flows=self.nb_flows,
             pkt_size=self.pkt_size,
             exp_time_us=self.controller_timeout_ms * 1000,
         )
@@ -270,7 +270,7 @@ class Throughput(Experiment):
         report = self.find_stable_throughput(
             tg_controller=self.hosts.tg_controller,
             pktgen=self.hosts.pktgen,
-            churn=int(self.churn / len(self.broadcast)),
+            churn=self.churn,
         )
 
         with open(self.save_name, "a") as f:

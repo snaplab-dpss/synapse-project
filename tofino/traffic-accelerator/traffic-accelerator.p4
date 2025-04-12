@@ -1,9 +1,13 @@
 #include <core.p4>
 
 #if __TARGET_TOFINO__ == 2
-	#include <t2na.p4>
+  #include <t2na.p4>
+  #define CPU_PCIE_PORT 0
+  #define RECIRCULATION_PORT 6
 #else
-	#include <tna.p4>
+  #include <tna.p4>
+  #define CPU_PCIE_PORT 192
+  #define RECIRCULATION_PORT 68
 #endif
 
 typedef bit<9> port_t;
@@ -13,7 +17,6 @@ typedef bit<32> time_t;
 const bit<16> ETHERTYPE_IPV4 = 0x800;
 const bit<8>  IP_PROTO_TCP   = 6;
 const bit<8>  IP_PROTO_UDP   = 17;
-const bit<16> UDP_PORT_KVS   = 670;
 
 header ethernet_t {
 	bit<48> dstAddr;
@@ -43,19 +46,22 @@ header udp_t {
 	bit<16> checksum;
 }
 
-header netcache_t {
-	bit<8>    op;
-	bit<128>  key;
-	bit<1024> val;
-	bit<8>    status;
-	bit<16>   port;
+header bridge_metadata_t {
+	bit<8> has_recirc_hdr;
+	bit<8> bypass_egress;
+}
+
+header recirc_t {
+	bit<16> max_recirculations;
+	bit<16> recirculation_count;
 }
 
 struct headers_t {
+	bridge_metadata_t bridge_metadata;
+	recirc_t recirc;
 	ethernet_t ethernet;
 	ipv4_t ipv4;
 	udp_t udp;
-	netcache_t netcache;
 }
 
 struct metadata_t {}
@@ -95,6 +101,14 @@ parser IngressParser(
 	/* This is a mandatory state, required by Tofino Architecture */
 	state start {
 		tofino_parser.apply(pkt, hdr, ig_intr_md);
+		transition select (ig_intr_md.ingress_port) {
+			RECIRCULATION_PORT: parse_recirculation_hdr;
+			default: parse_ethernet;
+		}
+	}
+
+	state parse_recirculation_hdr {
+		pkt.extract(hdr.recirc);
 		transition parse_ethernet;
 	}
 
@@ -116,15 +130,6 @@ parser IngressParser(
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
-		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
-			(UDP_PORT_KVS, _) : parse_netcache;
-			(_, UDP_PORT_KVS) : parse_netcache;
-			default : accept;
-		}
-	}
-
-	state parse_netcache {
-		pkt.extract(hdr.netcache);
 		transition accept;
 	}
 }
@@ -271,6 +276,19 @@ parser EgressParser(
 	/* This is a mandatory state, required by Tofino Architecture */
 	state start {
 		tofino_parser.apply(pkt, eg_intr_md);
+		transition parse_bridge_metadata;
+	}
+
+	state parse_bridge_metadata {
+		pkt.extract(hdr.bridge_metadata);
+		transition select(hdr.bridge_metadata.has_recirc_hdr) {
+			0: parse_ethernet;
+			1: parse_recirculation_hdr;
+		}
+	}
+
+	state parse_recirculation_hdr {
+		pkt.extract(hdr.recirc);
 		transition parse_ethernet;
 	}
 
@@ -292,15 +310,6 @@ parser EgressParser(
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
-		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
-			(UDP_PORT_KVS, _) : parse_netcache;
-			(_, UDP_PORT_KVS) : parse_netcache;
-			default : accept;
-		}
-	}
-
-	state parse_netcache {
-		pkt.extract(hdr.netcache);
 		transition accept;
 	}
 }
@@ -315,32 +324,8 @@ control Egress(
 ) {
 	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) out_counter;
 
-	action modify_ipv4_src_addr(bit<8> byte) {
-		hdr.ipv4.src_addr[31:24] = byte;
-	}
-
-	action modify_kvs_hey(bit<8> byte) {
-		hdr.netcache.key[127:120] = byte;
-	}
-
-	table packet_modifier_tbl {
-		key = {
-			eg_intr_md.egress_port: exact;
-		}
-
-		actions = {
-			modify_ipv4_src_addr;
-			modify_kvs_hey;
-			NoAction;
-		}
-
-		default_action = NoAction;
-		size = 32;
-	}
-
 	apply {
 		out_counter.count(eg_intr_md.egress_port);
-		packet_modifier_tbl.apply();
 		hdr.bridge_metadata.setInvalid();
 	}
 }
