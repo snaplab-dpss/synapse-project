@@ -25,7 +25,7 @@ PACKET_SIZE=200
 ####################
 
 generate_pcaps_echo() {
-    flows=20000
+    flows=40000
     devs="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31"
     parallel \
         -j $(nproc) \
@@ -48,7 +48,7 @@ generate_pcaps_echo() {
 #########################
 
 generate_pcaps_fwd() {
-    flows=20000
+    flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \
@@ -71,7 +71,7 @@ generate_pcaps_fwd() {
 ###################
 
 generate_pcaps_fw() {
-    flows=20000
+    flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \
@@ -94,7 +94,7 @@ generate_pcaps_fw() {
 ##############################
 
 generate_pcaps_nat() {
-    flows=20000
+    flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \
@@ -139,7 +139,7 @@ generate_pcaps_kvs() {
 ######################
 
 generate_pcaps_cl() {
-    flows=20000
+    flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
         -j $(nproc) \

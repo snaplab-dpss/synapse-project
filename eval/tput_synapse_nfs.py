@@ -20,7 +20,7 @@ from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
-CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
+CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000, 10_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
 ITERATIONS = 5
 # CHURN_FPM = [0]
@@ -89,7 +89,7 @@ SYNAPSE_NFS = [
         broadcast=lambda ports: ports,
         symmetric=lambda _: [],
         route=lambda _: [],
-        nb_flows=40_000,
+        nb_flows=100_000,
     ),
 ]
 

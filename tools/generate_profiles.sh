@@ -493,7 +493,7 @@ profile_cl() {
 export -f profile_cl
 
 generate_profiles_echo() {
-    flows=20000
+    flows=40000
 
     parallel \
         -j $(nproc) \
@@ -503,7 +503,7 @@ generate_profiles_echo() {
 }
 
 generate_profiles_fwd() {
-    flows=20000
+    flows=40000
     
     parallel \
         -j $(nproc) \
@@ -513,7 +513,7 @@ generate_profiles_fwd() {
 }
 
 generate_profiles_fw() {
-    flows=20000
+    flows=40000
 
     parallel \
         -j $(nproc) \
@@ -523,7 +523,7 @@ generate_profiles_fw() {
 }
 
 generate_profiles_nat() {
-    flows=20000
+    flows=40000
 
     parallel \
         -j $(nproc) \
@@ -543,7 +543,7 @@ generate_profiles_kvs() {
 }
 
 generate_profiles_cl() {
-    flows=20000
+    flows=40000
 
     parallel \
         -j $(nproc) \
