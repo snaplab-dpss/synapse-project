@@ -32,14 +32,14 @@ struct l4_lookup_t {
 
 // Port configuration.
 
-const PortId_t RECIRC_PORT_0 = 0;
-const PortId_t RECIRC_PORT_1 = 1;
-const PortId_t RECIRC_PORT_2 = 2;
-const PortId_t RECIRC_PORT_3 = 3;
+const PortId_t RECIRC_PORT_0 = 6;
+const PortId_t RECIRC_PORT_1 = 128;
+const PortId_t RECIRC_PORT_2 = 256;
+const PortId_t RECIRC_PORT_3 = 384;
 
 const bit<16> CUCKOO_PORT = 670;
 
-#define KEY_WIDTH			96
+#define KEY_WIDTH			128
 #define VAL_WIDTH			128
 
 typedef bit<KEY_WIDTH>		key_t;
@@ -51,11 +51,11 @@ typedef bit<VAL_WIDTH>		val_t;
 #define MAX_LOOPS			20
 
 // Cuckoo Table Size.
-#define CUCKOO_ENTRIES		65536
-#define CUCKOO_IDX_WIDTH	16
+#define CUCKOO_ENTRIES		8192
+#define CUCKOO_IDX_WIDTH	13
 
 // Swap Bloom Table Size.
-#define BLOOM_ENTRIES		65536
-#define BLOOM_IDX_WIDTH		16
+#define BLOOM_ENTRIES		8192
+#define BLOOM_IDX_WIDTH		13
 
 #endif

@@ -21,105 +21,105 @@ control Ingress(inout header_t hdr,
 				inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
 				inout ingress_intrinsic_metadata_for_tm_t ig_tm_md) {
 
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_k0_31;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_k32_63;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_k64_95;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_k96_127;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_k0_31;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_k32_63;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_k64_95;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_k96_127;
 
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_k0_31;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_k32_63;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_k64_95;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_k96_127;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_k0_31;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_k32_63;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_k64_95;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_k96_127;
 
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v0_31;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v32_63;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v64_95;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v96_127;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v128_159;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v160_191;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v192_223;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v224_255;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v256_287;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v288_319;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v320_351;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v352_383;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v384_415;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v416_447;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v448_479;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v480_511;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v512_543;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v544_575;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v576_607;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v608_639;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v640_671;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v672_703;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v704_735;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v736_767;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v768_799;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v800_831;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v832_863;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v864_895;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v896_927;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v928_959;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v960_991;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_1_v992_1023;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v0_31;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v32_63;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v64_95;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v96_127;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v128_159;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v160_191;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v192_223;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v224_255;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v256_287;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v288_319;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v320_351;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v352_383;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v384_415;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v416_447;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v448_479;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v480_511;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v512_543;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v544_575;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v576_607;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v608_639;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v640_671;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v672_703;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v704_735;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v736_767;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v768_799;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v800_831;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v832_863;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v864_895;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v896_927;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v928_959;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v960_991;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_1_v992_1023;
 
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v0_31;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v32_63;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v64_95;
-	Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v96_127;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v128_159;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v160_191;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v192_223;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v224_255;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v256_287;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v288_319;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v320_351;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v352_383;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v384_415;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v416_447;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v448_479;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v480_511;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v512_543;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v544_575;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v576_607;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v608_639;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v640_671;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v672_703;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v704_735;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v736_767;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v768_799;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v800_831;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v832_863;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v864_895;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v896_927;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v928_959;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v960_991;
-	// Register<bit<32>, bit<16>>(CUCKOO_ENTRIES) reg_2_v992_1023;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v0_31;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v32_63;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v64_95;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v96_127;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v128_159;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v160_191;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v192_223;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v224_255;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v256_287;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v288_319;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v320_351;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v352_383;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v384_415;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v416_447;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v448_479;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v480_511;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v512_543;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v544_575;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v576_607;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v608_639;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v640_671;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v672_703;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v704_735;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v736_767;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v768_799;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v800_831;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v832_863;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v864_895;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v896_927;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v928_959;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v960_991;
+	// Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_2_v992_1023;
 
-	Register<bit<32>, _>(CUCKOO_ENTRIES) reg_table_1_ts_1;
-	Register<bit<16>, _>(CUCKOO_ENTRIES) reg_table_1_ts_2;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_table_1_ts_1;
+	Register<bit<16>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_table_1_ts_2;
 
-	Register<bit<32>, _>(CUCKOO_ENTRIES) reg_table_2_ts_1;
-	Register<bit<16>, _>(CUCKOO_ENTRIES) reg_table_2_ts_2;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_table_2_ts_1;
+	Register<bit<16>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES) reg_table_2_ts_2;
 
 	bit<32> table_1_ts_1_entry	= 0;
 	bit<16> table_1_ts_2_entry	= 0;
 	bit<32> table_2_ts_1_entry	= 0;
 	bit<16> table_2_ts_2_entry	= 0;
 
-	Register<bit<16>, _>(BLOOM_ENTRIES) swap_transient;
-	Register<bit<16>, _>(BLOOM_ENTRIES) swapped_transient;
+	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swap_transient;
+	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swapped_transient;
 
 	#define KEY_READ(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_##table##_k##lsb##_##msb) read_##table##_k##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_k##lsb##_##msb) read_##table##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
 				res = val; \
 			} \
 		};
 
 	#define KEY_SWAP_1(msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_1##_k##lsb##_##msb) swap_1##_k##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1##_k##lsb##_##msb) swap_1##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
 				res = val; \
 				val = ig_md.cur_key[msb:lsb]; \
@@ -127,7 +127,7 @@ control Ingress(inout header_t hdr,
 		};
 
 	#define KEY_SWAP_2(msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_2##_k##lsb##_##msb) swap_2##_k##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2##_k##lsb##_##msb) swap_2##_k##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
 				res = val; \
 				val = ig_md.table_1_key[msb:lsb]; \
@@ -135,21 +135,21 @@ control Ingress(inout header_t hdr,
 		};
 
 	#define VAL_READ(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_##table##_v##lsb##_##msb) read_##table##_v##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) read_##table##_v##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
 				res = val; \
 			} \
 		};
 
 	#define VAL_WRITE(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_##table##_v##lsb##_##msb) write_##table##_v##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) write_##table##_v##lsb##_##msb## = { \
 			void apply(inout bit<32> val) { \
 				val = ig_md.cur_val[msb:lsb]; \
 			} \
 		};
 
 	#define VAL_SWAP_1(msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_1##_v##lsb##_##msb) swap_1##_v##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1##_v##lsb##_##msb) swap_1##_v##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
 				res = val; \
 				val = ig_md.cur_val[msb:lsb]; \
@@ -157,7 +157,7 @@ control Ingress(inout header_t hdr,
 		};
 
 	#define VAL_SWAP_2(msb, lsb) \
-		RegisterAction<bit<32>, bit<16>, bit<32>>(reg_2##_v##lsb##_##msb) swap_2##_v##lsb##_##msb## = { \
+		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2##_v##lsb##_##msb) swap_2##_v##lsb##_##msb## = { \
 			void apply(inout bit<32> val, out bit<32> res) { \
 				res = val; \
 				val= ig_md.table_1_val[msb:lsb]; \
@@ -167,22 +167,22 @@ control Ingress(inout header_t hdr,
 	KEY_READ(1, 31, 0)
 	KEY_READ(1, 63, 32)
 	KEY_READ(1, 95, 64)
-	// KEY_READ(1, 127, 96)
+	KEY_READ(1, 127, 96)
 
 	KEY_READ(2, 31, 0)
 	KEY_READ(2, 63, 32)
 	KEY_READ(2, 95, 64)
-	// KEY_READ(2, 127, 96)
+	KEY_READ(2, 127, 96)
 
 	KEY_SWAP_1(31, 0)
 	KEY_SWAP_1(63, 32)
 	KEY_SWAP_1(95, 64)
-	// KEY_SWAP_1(127, 96)
+	KEY_SWAP_1(127, 96)
 
 	KEY_SWAP_2(31, 0)
 	KEY_SWAP_2(63, 32)
 	KEY_SWAP_2(95, 64)
-	// KEY_SWAP_2(127, 96)
+	KEY_SWAP_2(127, 96)
 
 	VAL_READ(1, 31, 0)
 	VAL_READ(1, 63, 32)
@@ -549,7 +549,7 @@ control Ingress(inout header_t hdr,
 		size = 2;
 	}
 
-	CRCPolynomial<bit<CUCKOO_IDX_WIDTH>>(
+	CRCPolynomial<bit<16>>(
 		coeff	 = 0x0589,
 		reversed = false,
 		msb		 = false,
@@ -558,7 +558,7 @@ control Ingress(inout header_t hdr,
 		xor		 = 0x0001
 	) poly_crc_16_dect;
 
-	CRCPolynomial<bit<CUCKOO_IDX_WIDTH>>(
+	CRCPolynomial<bit<16>>(
 		coeff	 = 0x0589,
 		reversed = false,
 		msb		 = false,
@@ -567,11 +567,11 @@ control Ingress(inout header_t hdr,
 		xor		 = 0x0001
 	) poly_crc_16_dect2;
 
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC16)						hash_table_1;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, poly_crc_16_dect)	hash_table_2;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, poly_crc_16_dect2)	hash_table_2_recirc;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC16)  hash_table_1;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, poly_crc_16_dect) hash_table_2;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, poly_crc_16_dect2) hash_table_2_recirc;
 
-	CRCPolynomial<bit<BLOOM_IDX_WIDTH>>(
+	CRCPolynomial<bit<16>>(
 		coeff	 = 0x1021,
 		reversed = true,
 		msb		 = false,
@@ -580,7 +580,7 @@ control Ingress(inout header_t hdr,
 		xor		 = 0x0000
 	) poly_crc_16_riello;
 
-	CRCPolynomial<bit<BLOOM_IDX_WIDTH>>(
+	CRCPolynomial<bit<16>>(
 		coeff	 = 0x1021,
 		reversed = true,
 		msb		 = false,
@@ -589,7 +589,7 @@ control Ingress(inout header_t hdr,
 		xor		 = 0x0000
 	) poly_crc_16_riello2;
 
-	CRCPolynomial<bit<BLOOM_IDX_WIDTH>>(
+	CRCPolynomial<bit<16>>(
 		coeff	 = 0x1021,
 		reversed = true,
 		msb		 = false,
@@ -598,7 +598,7 @@ control Ingress(inout header_t hdr,
 		xor		 = 0x0000
 	) poly_crc_16_riello3;
 
-	CRCPolynomial<bit<BLOOM_IDX_WIDTH>>(
+	CRCPolynomial<bit<16>>(
 		coeff	 = 0x1021,
 		reversed = true,
 		msb		 = false,
@@ -684,7 +684,7 @@ control Ingress(inout header_t hdr,
 			ig_md.table_1_key[31:0]		= swap_1_k0_31.execute(ig_md.hash_table_1);
 			ig_md.table_1_key[63:32]	= swap_1_k32_63.execute(ig_md.hash_table_1);
 			ig_md.table_1_key[95:64]	= swap_1_k64_95.execute(ig_md.hash_table_1);
-			// ig_md.table_1_key[127:96]	= swap_1_k96_127.execute(ig_md.hash_table_1);
+			ig_md.table_1_key[127:96]	= swap_1_k96_127.execute(ig_md.hash_table_1);
 
 			ig_md.table_1_val[31:0]		= swap_1_v0_31.execute(ig_md.hash_table_1);
 			ig_md.table_1_val[63:32]	= swap_1_v32_63.execute(ig_md.hash_table_1);
@@ -725,8 +725,8 @@ control Ingress(inout header_t hdr,
 			if (table_1_ts_1_entry != 0 && table_1_ts_2_entry != 0) {
 				// The entry hasn't yet expired, we need to compare the key.
 				if (ig_md.table_1_key[63:0] != 0) {
-					// if (ig_md.table_1_key[127:64] != 0) {
-					if (ig_md.table_1_key[95:64] != 0) {
+					if (ig_md.table_1_key[127:64] != 0) {
+					// if (ig_md.table_1_key[95:64] != 0) {
 						to_swap_1 = true;
 					}
 				}
@@ -743,7 +743,7 @@ control Ingress(inout header_t hdr,
 				ig_md.table_2_key[31:0]		= swap_2_k0_31.execute(ig_md.hash_table_2);
 				ig_md.table_2_key[63:32]	= swap_2_k32_63.execute(ig_md.hash_table_2);
 				ig_md.table_2_key[95:64]	= swap_2_k64_95.execute(ig_md.hash_table_2);
-				// ig_md.table_2_key[127:96]	= swap_2_k96_127.execute(ig_md.hash_table_2);
+				ig_md.table_2_key[127:96]	= swap_2_k96_127.execute(ig_md.hash_table_2);
 
 				ig_md.table_2_val[31:0]		= swap_2_v0_31.execute(ig_md.hash_table_2_r);
 				ig_md.table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
@@ -781,8 +781,8 @@ control Ingress(inout header_t hdr,
 				if (table_2_ts_1_entry != 0 && table_2_ts_2_entry != 0) {
 					// The entry hasn't yet expired, we need to compare the key.
 					if (ig_md.table_2_key[63:0] != 0) {
-						// if (ig_md.table_2_key[127:64] != 0) {
-						if (ig_md.table_2_key[95:64] != 0) {
+						if (ig_md.table_2_key[127:64] != 0) {
+						// if (ig_md.table_2_key[95:64] != 0) {
 							to_swap_2 = true;
 						}
 					}
@@ -851,12 +851,12 @@ control Ingress(inout header_t hdr,
 				bit<32> table_1_key_0 = read_1_k0_31.execute(ig_md.hash_table_1);
 				bit<32> table_1_key_1 = read_1_k32_63.execute(ig_md.hash_table_1);
 				bit<32> table_1_key_2 = read_1_k64_95.execute(ig_md.hash_table_1);
-				// bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
+				bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
 
 				if (table_1_key_0 == ig_md.cur_key[31:0]) {
 				if (table_1_key_1 == ig_md.cur_key[63:32]) {
 				if (table_1_key_2 == ig_md.cur_key[95:64]) {
-				// if (table_1_key_3 == ig_md.cur_key[127:96]) {
+				if (table_1_key_3 == ig_md.cur_key[127:96]) {
 					if (hdr.kv.op == kv_ops_t.GET) {
 						hdr.kv.val[31:0]	= read_1_v0_31.execute(ig_md.hash_table_1);
 						hdr.kv.val[63:32]	= read_1_v32_63.execute(ig_md.hash_table_1);
@@ -924,7 +924,7 @@ control Ingress(inout header_t hdr,
 						// write_1_v960_991.execute(ig_md.hash_table_1);
 						// write_1_v992_1023.execute(ig_md.hash_table_1);
 					}
-				// }
+				}
 				}
 				}
 				}
@@ -942,12 +942,12 @@ control Ingress(inout header_t hdr,
 					bit<32> table_2_key_0 = read_2_k0_31.execute(ig_md.hash_table_2);
 					bit<32> table_2_key_1 = read_2_k32_63.execute(ig_md.hash_table_2);
 					bit<32> table_2_key_2 = read_2_k64_95.execute(ig_md.hash_table_2);
-					// bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
+					bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
 
 					if (table_2_key_0 == ig_md.cur_key[31:0]) {
 					if (table_2_key_1 == ig_md.cur_key[63:32]) {
 					if (table_2_key_2 == ig_md.cur_key[95:64]) {
-					// if (table_2_key_3 == ig_md.cur_key[127:96]) {
+					if (table_2_key_3 == ig_md.cur_key[127:96]) {
 						if (hdr.kv.op == kv_ops_t.GET) {
 							hdr.kv.val[31:0]	= read_2_v0_31.execute(ig_md.hash_table_2);
 							hdr.kv.val[63:32]	= read_2_v32_63.execute(ig_md.hash_table_2);
@@ -1015,7 +1015,7 @@ control Ingress(inout header_t hdr,
 							// write_2_v960_991.execute(ig_md.hash_table_2);
 							// write_2_v992_1023.execute(ig_md.hash_table_2);
 						}
-					// }
+					}
 					}
 					}
 					}
