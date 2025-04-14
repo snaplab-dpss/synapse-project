@@ -42,49 +42,64 @@ header udp_h {
 	bit<16> checksum;
 }
 
-header cuckoo_op_h {
-	cuckoo_ops_t op;
+header kv_h {
+	bit<8>	op;
+	key_t	key;
+	val_t	val;
+	bit<8>	status;
+	bit<16>	port;
+}
+
+header cuckoo_h {
+	bit<8>	op;
+	bit<8>	recirc_cntr;
 }
 
 header swap_entry_h {
-	bit<32> ip_src_addr;
-	bit<32> ip_dst_addr;
-	bit<32> ports;
-	bit<16> entry_value;
+	bit<8>	op;
+	bit<8>	kv_op;
+	key_t	key;
+	val_t	val;
+	bit<8>	status;
+	bit<16>	port;
 	bit<32> ts;
 	bit<16> ts_2;
-	bit<8>	has_swap;
-}
-
-header cuckoo_cntr_h {
-	bit<16> assigned_cntr;
-	bit<1>	is_assigned;
-	bit<8>	has_swap;
-	bit<7> _padding;
-}
-
-header swap_mirror_h {
-	cuckoo_ops_t op;
+	// bit<32> ip_src_addr;
+	// bit<32> ip_dst_addr;
+	// bit<32> ports;
+	// bit<16> entry_value;
+	// bit<32> ts;
+	// bit<16> ts_2;
+	// bit<8>	has_swap;
 }
 
 struct ingress_metadata_t {
-	l4_lookup_t		l4_lookup;
-	MirrorId_t		mirror_session;
-	swap_mirror_h	swap_mirror;
-	swap_entry_h	carry_swap_entry;
-	bit<1>			has_swap;
+	l4_lookup_t				l4_lookup;
+	bit<1>					has_next_swap;
+	bit<CUCKOO_IDX_WIDTH>	hash_table_1;
+	bit<CUCKOO_IDX_WIDTH>	hash_table_2;
+	bit<CUCKOO_IDX_WIDTH>	hash_table_2_r;
+	key_t					cur_key;
+	val_t					cur_val;
+	key_t					table_1_key;
+	key_t					table_2_key;
+	val_t					table_1_val;
+	val_t					table_2_val;
+	bit<32>					entry_ts;
+	bit<16>					entry_ts_2;
+	key_t					swapped_key;
+	bit<8>					is_server_reply;
+	bit<8>					cur_recirc_port_cntr;
 }
 
-struct egress_metadata_t {
-	swap_mirror_h swap_mirror;
-}
+struct egress_metadata_t {}
 
 struct header_t {
 	ethernet_h		ethernet;
-	cuckoo_op_h		cuckoo_op;
-	cuckoo_cntr_h	cuckoo_cntr;
-	swap_entry_h	swap_entry;
-	swap_entry_h	carry_swap_entry;
+	kv_h			kv;
+	cuckoo_h		cuckoo;
+	swap_entry_h	cur_swap;
+	swap_entry_h	next_swap;
 	ipv4_h			ipv4;
 	tcp_h			tcp;
 	udp_h			udp;

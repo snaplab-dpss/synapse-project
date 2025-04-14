@@ -1,163 +1,61 @@
 #ifndef _CONSTANTS_
 #define _CONSTANTS_
 
-enum bit<16> ether_type_t {
-	IPV4	= 0x0800,
-	CUCKOO	= 0xAAAA
-}
+typedef bit<16> ether_type_t;
+const ether_type_t ETHERTYPE_IPV4 = 16w0x0800;
 
 enum bit<8> ip_proto_t {
 	TCP = 6,
 	UDP = 17
 }
 
+enum bit<8> kv_ops_t {
+	GET	= 0x00,
+	PUT	= 0x01,
+}
+
 enum bit<8> cuckoo_ops_t {
-	INSERT	= 0x12,
-	WAIT	= 0xAA,
-	NOP		= 0xBB,
-	LOOKUP	= 0xCC,
-	SWAPPED = 0xEE,
-	SWAP	= 0XFF
+	LOOKUP	= 0x00,
+	INSERT	= 0x01,
+	SWAP	= 0X02,
+	SWAPPED = 0x03,
+	NOP		= 0x04
 }
 
 typedef bit<48> mac_addr_t;
 typedef bit<32> ipv4_addr_t;
 
-/* Struct to store L4 ports */
 struct l4_lookup_t {
 	bit<16> src_port;
 	bit<16> dst_port;
 }
 
-/* Bloom Filter Entry Struct */
-struct bloom_filter_t {
-	bit<16> bloom_counter;
-	bit<16> packet_to_send_out;
-}
+// Port configuration.
 
-/* Ports configuration */
-const PortId_t RECIRCULATE_PORT_INSERT_IP1_TO_CUCKOO 	= 128;
-const PortId_t RECIRCULATE_PORT_INSERT_IP2_TO_CUCKOO 	= 132;
-const PortId_t RECIRCULATE_PORT_INSERT_IP3_TO_CUCKOO 	= 136;
-const PortId_t RECIRCULATE_PORT_INSERT_IP4_TO_CUCKOO 	= 140;
-const PortId_t RECIRCULATE_PORT_LOOKUP_IP1_TO_CUCKOO 	= 144;
-const PortId_t RECIRCULATE_PORT_LOOKUP_IP2_TO_CUCKOO 	= 148;
-const PortId_t RECIRCULATE_PORT_LOOKUP_IP3_TO_CUCKOO 	= 152;
-const PortId_t RECIRCULATE_PORT_LOOKUP_IP4_TO_CUCKOO 	= 156;
-const PortId_t RECIRCULATE_PORT_SWAP_TO_CUCKOO			= 160;
+const PortId_t RECIRC_PORT_0 = 0;
+const PortId_t RECIRC_PORT_1 = 1;
+const PortId_t RECIRC_PORT_2 = 2;
+const PortId_t RECIRC_PORT_3 = 3;
 
-const PortId_t RECIRCULATE_PORT_WAIT_IN_BLOOM		= 0;
-const PortId_t RECIRCULATE_PORT_INSERT_IP1_TO_BLOOM = 4;
-const PortId_t RECIRCULATE_PORT_INSERT_IP2_TO_BLOOM = 8;
-const PortId_t RECIRCULATE_PORT_INSERT_IP3_TO_BLOOM = 12;
-const PortId_t RECIRCULATE_PORT_INSERT_IP4_TO_BLOOM = 16;
-const PortId_t RECIRCULATE_PORT_WAIT_IP1_TO_BLOOM 	= 20;
-const PortId_t RECIRCULATE_PORT_WAIT_IP2_TO_BLOOM 	= 24;
-const PortId_t RECIRCULATE_PORT_WAIT_IP3_TO_BLOOM 	= 28;
-const PortId_t RECIRCULATE_PORT_WAIT_IP4_TO_BLOOM 	= 32;
-const PortId_t RECIRCULATE_PORT_NOP_IP1_TO_BLOOM 	= 36;
-const PortId_t RECIRCULATE_PORT_NOP_IP2_TO_BLOOM 	= 40;
-const PortId_t RECIRCULATE_PORT_NOP_IP3_TO_BLOOM 	= 44;
-const PortId_t RECIRCULATE_PORT_NOP_IP4_TO_BLOOM 	= 48;
-const PortId_t RECIRCULATE_PORT_SWAPPED_TO_BLOOM 	= 52;
+const bit<16> CUCKOO_PORT = 670;
 
-const PortId_t INGRESS_PORT_1 = 188;
-const PortId_t INGRESS_PORT_2 = 180;
-const PortId_t INGRESS_PORT_3 = 172;
-const PortId_t INGRESS_PORT_4 = 164;
+#define KEY_WIDTH			96
+#define VAL_WIDTH			128
 
-/* Entry Timeout Expiration in nanosecs */
-#ifndef ENTRY_TIMEOUT
-	#define ENTRY_TIMEOUT 50000
-#endif
+typedef bit<KEY_WIDTH>		key_t;
+typedef bit<VAL_WIDTH>		val_t;
 
-/* Max Loops */
-#define MAX_LOOPS_WAIT 10
-#define MAX_LOOPS_INSERT 20
+// Entry Timeout Expiration (ns).
+#define ENTRY_TIMEOUT		50000
 
-/* Cuckoo Table Size */
-#ifndef TABLE_SIZE
-	#define TABLE_SIZE 65536
-#endif
+#define MAX_LOOPS			20
 
-#if TABLE_SIZE==128
-	#define CUCKOO_HASH_BITS 7
-#elif TABLE_SIZE==256
-	#define CUCKOO_HASH_BITS 8
-#elif TABLE_SIZE==512
-	#define CUCKOO_HASH_BITS 9
-#elif TABLE_SIZE==1024
-	#define CUCKOO_HASH_BITS 10
-#elif TABLE_SIZE==2048
-	#define CUCKOO_HASH_BITS 11
-#elif TABLE_SIZE==4096
-	#define CUCKOO_HASH_BITS 12
-#elif TABLE_SIZE==8192
-	#define CUCKOO_HASH_BITS 13
-#elif TABLE_SIZE==16384
-	#define CUCKOO_HASH_BITS 14
-#elif TABLE_SIZE==32768
-	#define CUCKOO_HASH_BITS 15
-#elif TABLE_SIZE==65536
-	#define CUCKOO_HASH_BITS 16
-#endif
+// Cuckoo Table Size.
+#define CUCKOO_ENTRIES		65536
+#define CUCKOO_IDX_WIDTH	16
 
-/* Bloom Table Size */
-#ifndef BLOOM_FILTER_SIZE
-	#define BLOOM_FILTER_SIZE 65536
-#endif
-
-#if BLOOM_FILTER_SIZE==128
-	#define BLOOM_FILTER_HASH_BITS 7
-#elif BLOOM_FILTER_SIZE==256
-	#define BLOOM_FILTER_HASH_BITS 8
-#elif BLOOM_FILTER_SIZE==512
-	#define BLOOM_FILTER_HASH_BITS 9
-#elif BLOOM_FILTER_SIZE==1024
-	#define BLOOM_FILTER_HASH_BITS 10
-#elif BLOOM_FILTER_SIZE==2048
-	#define BLOOM_FILTER_HASH_BITS 11
-#elif BLOOM_FILTER_SIZE==4096
-	#define BLOOM_FILTER_HASH_BITS 12
-#elif BLOOM_FILTER_SIZE==8192
-	#define BLOOM_FILTER_HASH_BITS 13
-#elif BLOOM_FILTER_SIZE==16384
-	#define BLOOM_FILTER_HASH_BITS 14
-#elif BLOOM_FILTER_SIZE==32768
-	#define BLOOM_FILTER_HASH_BITS 15
-#elif BLOOM_FILTER_SIZE==65536
-	#define BLOOM_FILTER_HASH_BITS 16
-#endif
-
-/* Swap Bloom Table Size */
-#ifndef SWAP_BLOOM_FILTER_SIZE
-	#define SWAP_BLOOM_FILTER_SIZE 65536
-#endif
-
-#if SWAP_BLOOM_FILTER_SIZE==128
-	#define SWAP_BLOOM_FILTER_HASH_BITS 7
-#elif SWAP_BLOOM_FILTER_SIZE==256
-	#define SWAP_BLOOM_FILTER_HASH_BITS 8
-#elif SWAP_BLOOM_FILTER_SIZE==512
-	#define SWAP_BLOOM_FILTER_HASH_BITS 9
-#elif SWAP_BLOOM_FILTER_SIZE==1024
-	#define SWAP_BLOOM_FILTER_HASH_BITS 10
-#elif SWAP_BLOOM_FILTER_SIZE==2048
-	#define SWAP_BLOOM_FILTER_HASH_BITS 11
-#elif SWAP_BLOOM_FILTER_SIZE==4096
-	#define SWAP_BLOOM_FILTER_HASH_BITS 12
-#elif SWAP_BLOOM_FILTER_SIZE==8192
-	#define SWAP_BLOOM_FILTER_HASH_BITS 13
-#elif SWAP_BLOOM_FILTER_SIZE==16384
-	#define SWAP_BLOOM_FILTER_HASH_BITS 14
-#elif SWAP_BLOOM_FILTER_SIZE==32768
-	#define SWAP_BLOOM_FILTER_HASH_BITS 15
-#elif SWAP_BLOOM_FILTER_SIZE==65536
-	#define SWAP_BLOOM_FILTER_HASH_BITS 16
-#endif
-
-/* Mirror Configuration */
-const MirrorType_t SWAP_MIRROR = 1;
-const MirrorId_t SWAP_MIRROR_SESSION = 100;
+// Swap Bloom Table Size.
+#define BLOOM_ENTRIES		65536
+#define BLOOM_IDX_WIDTH		16
 
 #endif
