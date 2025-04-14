@@ -566,10 +566,10 @@ generate_profilers() {
 generate_profiles() {
     # generate_profiles_echo
     # generate_profiles_fwd
-    generate_profiles_fw
-    generate_profiles_nat
+    # generate_profiles_fw
+    # generate_profiles_nat
     generate_profiles_kvs
-    generate_profiles_cl
+    # generate_profiles_cl
     # generate_profiles_pol
 }
 

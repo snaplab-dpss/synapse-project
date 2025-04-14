@@ -517,19 +517,6 @@ control Ingress(inout header_t hdr,
 		ig_tm_md.ucast_egress_port = port;
 	}
 
-	table fwd {
-		key = {
-			ig_md.is_server_reply	: exact;
-			hdr.kv.port				: exact;
-			ig_md.has_next_swap		: exact;
-			hdr.cuckoo.recirc_cntr	: ternary;
-		}
-		actions = {
-			set_out_port;
-		}
-		size = 1024;
-	}
-
 	action set_server_reply() {
 		ig_md.is_server_reply = 1;
 	}

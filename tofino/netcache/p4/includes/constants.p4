@@ -47,7 +47,7 @@ const bit<16> NC_PORT = 670;
 // Size of a key field
 #define NC_KEY_WIDTH				128
 // Size of a value field
-#define NC_VAL_WIDTH				1024
+#define NC_VAL_WIDTH				128
 // Size of the vtable index (used to access the vtable register)
 #define NC_VTABLE_SIZE_WIDTH		16
 // Number of entries in the vtable register

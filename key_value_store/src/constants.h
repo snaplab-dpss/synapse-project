@@ -10,7 +10,7 @@
 #define KVSTORE_CAPACITY (1 << 20)
 
 #define KV_KEY_SIZE 16
-#define KV_VAL_SIZE 128
+#define KV_VAL_SIZE 16
 
 // DPDK
 

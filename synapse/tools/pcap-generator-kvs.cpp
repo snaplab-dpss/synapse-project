@@ -22,7 +22,7 @@ using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
 
 constexpr const bytes_t KEY_SIZE_BYTES{16};
-constexpr const bytes_t VALUE_SIZE_BYTES{128};
+constexpr const bytes_t VALUE_SIZE_BYTES{16};
 
 using kv_key_t   = std::array<u8, KEY_SIZE_BYTES>;
 using kv_value_t = std::array<u8, VALUE_SIZE_BYTES>;
@@ -81,8 +81,7 @@ private:
   std::vector<kv_key_t> keys;
 
 public:
-  KVSTrafficGenerator(const config_t &_config, const std::vector<kv_key_t> &_base_keys)
-      : TrafficGenerator("kvs", _config), keys(_base_keys) {}
+  KVSTrafficGenerator(const config_t &_config, const std::vector<kv_key_t> &_base_keys) : TrafficGenerator("kvs", _config), keys(_base_keys) {}
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < keys.size());

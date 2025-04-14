@@ -8,7 +8,7 @@
 #include "lib/util/ether.h"
 
 #define KEY_SIZE_BYTES 16
-#define MAX_VALUE_SIZE_BYTES 128
+#define MAX_VALUE_SIZE_BYTES 16
 
 typedef uint8_t kv_key_t[KEY_SIZE_BYTES];
 typedef uint8_t kv_value_t[MAX_VALUE_SIZE_BYTES];
