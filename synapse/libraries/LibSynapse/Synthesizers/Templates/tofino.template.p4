@@ -4,7 +4,7 @@
   #include <t2na.p4>
   #define CPU_PCIE_PORT 0
   #define RECIRCULATION_PORT_0 6
-  #define RECIRCULATION_PORT_1 128
+  #define RECIRCULATION_PORT_1 134
   #define RECIRCULATION_PORT_2 256
   #define RECIRCULATION_PORT_3 384
 #else

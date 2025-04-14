@@ -174,7 +174,7 @@ dev_port     = 6
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
-dev_port     = 128
+dev_port     = 134
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]

@@ -20,6 +20,7 @@ parser IngressParser(packet_in pkt,
 
 	state meta_init {
 		ig_md.l4_lookup = {0, 0};
+		ig_md.send_to_kvs_server = false;
 		transition parse_ethernet;
 	}
 

@@ -63,14 +63,6 @@ header swap_entry_h {
 	bit<8>	status;
 	bit<16>	port;
 	bit<32> ts;
-	bit<16> ts_2;
-	// bit<32> ip_src_addr;
-	// bit<32> ip_dst_addr;
-	// bit<32> ports;
-	// bit<16> entry_value;
-	// bit<32> ts;
-	// bit<16> ts_2;
-	// bit<8>	has_swap;
 }
 
 struct ingress_metadata_t {
@@ -90,19 +82,19 @@ struct ingress_metadata_t {
 	key_t					swapped_key;
 	bit<8>					is_server_reply;
 	bit<8>					cur_recirc_port_cntr;
+	bool					send_to_kvs_server;
 }
 
 struct egress_metadata_t {}
 
 struct header_t {
 	ethernet_h		ethernet;
-	kv_h			kv;
-	cuckoo_h		cuckoo;
-	swap_entry_h	cur_swap;
-	swap_entry_h	next_swap;
 	ipv4_h			ipv4;
 	tcp_h			tcp;
 	udp_h			udp;
+	kv_h			kv;
+	cuckoo_h		cuckoo;
+	swap_entry_h	cur_swap;
 }
 
 #endif

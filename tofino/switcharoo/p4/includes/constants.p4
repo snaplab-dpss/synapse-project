@@ -40,6 +40,9 @@ const PortId_t RECIRC_PORT_3 = 384;
 // Front-panel port 1
 const PortId_t KVS_SERVER_PORT = 136;
 
+const bit<8> KVS_STATUS_HIT = 1;
+const bit<8> KVS_STATUS_MISS = 0;
+
 const bit<16> CUCKOO_PORT = 670;
 
 #define KEY_WIDTH			128
@@ -48,8 +51,8 @@ const bit<16> CUCKOO_PORT = 670;
 typedef bit<KEY_WIDTH>		key_t;
 typedef bit<VAL_WIDTH>		val_t;
 
-// Entry Timeout Expiration (ns).
-#define ENTRY_TIMEOUT		50000
+// Entry Timeout Expiration (units of 65536 ns).
+#define ENTRY_TIMEOUT		1525 // 100ms
 
 #define MAX_LOOPS			20
 
