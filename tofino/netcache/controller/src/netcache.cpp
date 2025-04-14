@@ -136,34 +136,6 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
     reg_v32_63.allocate(sampl_vec[smallest_idx][0], 0);
     reg_v64_95.allocate(sampl_vec[smallest_idx][0], 0);
     reg_v96_127.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v128_159.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v160_191.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v192_223.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v224_255.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v256_287.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v288_319.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v320_351.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v352_383.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v384_415.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v416_447.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v448_479.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v480_511.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v512_543.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v544_575.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v576_607.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v608_639.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v640_671.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v672_703.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v704_735.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v736_767.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v768_799.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v800_831.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v832_863.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v864_895.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v896_927.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v928_959.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v960_991.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v992_1023.allocate(sampl_vec[smallest_idx][0], 0);
   }
 
   ProcessQuery::process_query->update_cache(nc_hdr);
