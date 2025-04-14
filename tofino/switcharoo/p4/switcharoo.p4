@@ -521,6 +521,8 @@ control Ingress(inout header_t hdr,
 		key = {
 			ig_md.is_server_reply	: exact;
 			hdr.kv.port				: exact;
+			ig_md.has_next_swap		: exact;
+			hdr.cuckoo.recirc_cntr	: ternary;
 		}
 		actions = {
 			set_out_port;
@@ -651,7 +653,7 @@ control Ingress(inout header_t hdr,
 	}
 
 	apply {
-		if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
+		if (hdr.cuckoo.isValid() && hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
 			// If swap pkt, get data from the swap header.
 			ig_md.cur_key		= hdr.cur_swap.key;
 			ig_md.cur_val		= hdr.cur_swap.val;
@@ -670,149 +672,168 @@ control Ingress(inout header_t hdr,
 		ig_md.hash_table_1 = hash_table_1.get({ig_md.cur_key});
 		ig_md.hash_table_2_r = hash_table_2_recirc.get({ig_md.cur_key});
 
-		if (ig_md.is_server_reply == 0 &&
-				(hdr.cuckoo.op == cuckoo_ops_t.INSERT || hdr.cuckoo.op == cuckoo_ops_t.SWAP)) {
-			// Insert the value in Table 1.
-			// If the entry is not empty, swap the old value in Table 2.
-			bool to_swap_1 = false;
-
-			// Insert the current pkt in table 1.
-			// Get the previously values.
-			bit<32> table_1_ts_1 = table_1_ts_1_swap.execute(ig_md.hash_table_1);
-			bit<16> table_1_ts_2 = table_1_ts_2_swap.execute(ig_md.hash_table_1);
-
-			ig_md.table_1_key[31:0]		= swap_1_k0_31.execute(ig_md.hash_table_1);
-			ig_md.table_1_key[63:32]	= swap_1_k32_63.execute(ig_md.hash_table_1);
-			ig_md.table_1_key[95:64]	= swap_1_k64_95.execute(ig_md.hash_table_1);
-			ig_md.table_1_key[127:96]	= swap_1_k96_127.execute(ig_md.hash_table_1);
-
-			ig_md.table_1_val[31:0]		= swap_1_v0_31.execute(ig_md.hash_table_1);
-			ig_md.table_1_val[63:32]	= swap_1_v32_63.execute(ig_md.hash_table_1);
-			ig_md.table_1_val[95:64]	= swap_1_v64_95.execute(ig_md.hash_table_1);
-			ig_md.table_1_val[127:96]	= swap_1_v96_127.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[159:128]	= swap_1_v128_159.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[191:160]	= swap_1_v160_191.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[223:192] 	= swap_1_v192_223.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[255:224] 	= swap_1_v224_255.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[287:256] 	= swap_1_v256_287.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[319:288] 	= swap_1_v288_319.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[351:320] 	= swap_1_v320_351.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[383:352] 	= swap_1_v352_383.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[415:384] 	= swap_1_v384_415.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[447:416] 	= swap_1_v416_447.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[479:448] 	= swap_1_v448_479.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[511:480] 	= swap_1_v480_511.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[543:512] 	= swap_1_v512_543.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[575:544] 	= swap_1_v544_575.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[607:576] 	= swap_1_v576_607.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[639:608] 	= swap_1_v608_639.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[671:640] 	= swap_1_v640_671.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[703:672] 	= swap_1_v672_703.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[735:704] 	= swap_1_v704_735.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[767:736] 	= swap_1_v736_767.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[799:768] 	= swap_1_v768_799.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[831:800] 	= swap_1_v800_831.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[863:832] 	= swap_1_v832_863.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[895:864] 	= swap_1_v864_895.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[927:896] 	= swap_1_v896_927.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[959:928]	= swap_1_v928_959.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[991:960]	= swap_1_v960_991.execute(ig_md.hash_table_1);
-			// ig_md.table_1_val[1023:992]	= swap_1_v992_1023.execute(ig_md.hash_table_1);
-
-			// Compare the previously stored values against the current pkt's.
-			// If the previous stored values haven't expired and they don't match
-			// the current pkt's, we will swap them to Table 2.
-			if (table_1_ts_1_entry != 0 && table_1_ts_2_entry != 0) {
-				// The entry hasn't yet expired, we need to compare the key.
-				if (ig_md.table_1_key[63:0] != 0) {
-					if (ig_md.table_1_key[127:64] != 0) {
-					// if (ig_md.table_1_key[95:64] != 0) {
-						to_swap_1 = true;
-					}
-				}
+		if (ig_md.is_server_reply == 0) {
+			if (!hdr.cuckoo.isValid()) {
+				hdr.cuckoo.setValid();
+				hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+				hdr.cuckoo.recirc_cntr = 0;
 			}
+			
+			if (hdr.cuckoo.op == cuckoo_ops_t.INSERT || hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
+				// Insert the value in Table 1.
+				// If the entry is not empty, swap the old value in Table 2.
+				bool to_swap_1 = false;
 
-			// The previous Table 1 entry was occupied and not yet expired,
-			// so we'll swap it to Table 2.
-			if (to_swap_1) {
-				bool to_swap_2 = false;
+				// Insert the current pkt in table 1.
+				// Get the previously values.
+				bit<32> table_1_ts_1 = table_1_ts_1_swap.execute(ig_md.hash_table_1);
+				bit<16> table_1_ts_2 = table_1_ts_2_swap.execute(ig_md.hash_table_1);
 
-				bit<32> table_2_ts_1 = table_2_ts_1_swap.execute(ig_md.hash_table_2);
-				bit<16> table_2_ts_2 = table_2_ts_2_swap.execute(ig_md.hash_table_2);
+				ig_md.table_1_key[31:0]		= swap_1_k0_31.execute(ig_md.hash_table_1);
+				ig_md.table_1_key[63:32]	= swap_1_k32_63.execute(ig_md.hash_table_1);
+				ig_md.table_1_key[95:64]	= swap_1_k64_95.execute(ig_md.hash_table_1);
+				ig_md.table_1_key[127:96]	= swap_1_k96_127.execute(ig_md.hash_table_1);
 
-				ig_md.table_2_key[31:0]		= swap_2_k0_31.execute(ig_md.hash_table_2);
-				ig_md.table_2_key[63:32]	= swap_2_k32_63.execute(ig_md.hash_table_2);
-				ig_md.table_2_key[95:64]	= swap_2_k64_95.execute(ig_md.hash_table_2);
-				ig_md.table_2_key[127:96]	= swap_2_k96_127.execute(ig_md.hash_table_2);
+				ig_md.table_1_val[31:0]		= swap_1_v0_31.execute(ig_md.hash_table_1);
+				ig_md.table_1_val[63:32]	= swap_1_v32_63.execute(ig_md.hash_table_1);
+				ig_md.table_1_val[95:64]	= swap_1_v64_95.execute(ig_md.hash_table_1);
+				ig_md.table_1_val[127:96]	= swap_1_v96_127.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[159:128]	= swap_1_v128_159.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[191:160]	= swap_1_v160_191.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[223:192] 	= swap_1_v192_223.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[255:224] 	= swap_1_v224_255.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[287:256] 	= swap_1_v256_287.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[319:288] 	= swap_1_v288_319.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[351:320] 	= swap_1_v320_351.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[383:352] 	= swap_1_v352_383.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[415:384] 	= swap_1_v384_415.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[447:416] 	= swap_1_v416_447.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[479:448] 	= swap_1_v448_479.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[511:480] 	= swap_1_v480_511.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[543:512] 	= swap_1_v512_543.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[575:544] 	= swap_1_v544_575.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[607:576] 	= swap_1_v576_607.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[639:608] 	= swap_1_v608_639.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[671:640] 	= swap_1_v640_671.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[703:672] 	= swap_1_v672_703.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[735:704] 	= swap_1_v704_735.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[767:736] 	= swap_1_v736_767.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[799:768] 	= swap_1_v768_799.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[831:800] 	= swap_1_v800_831.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[863:832] 	= swap_1_v832_863.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[895:864] 	= swap_1_v864_895.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[927:896] 	= swap_1_v896_927.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[959:928]	= swap_1_v928_959.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[991:960]	= swap_1_v960_991.execute(ig_md.hash_table_1);
+				// ig_md.table_1_val[1023:992]	= swap_1_v992_1023.execute(ig_md.hash_table_1);
 
-				ig_md.table_2_val[31:0]		= swap_2_v0_31.execute(ig_md.hash_table_2_r);
-				ig_md.table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
-				ig_md.table_2_val[95:64]	= swap_2_v64_95.execute(ig_md.hash_table_2_r);
-				ig_md.table_2_val[127:96]	= swap_2_v96_127.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[159:128]	= swap_2_v128_159.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[191:160]	= swap_2_v160_191.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[223:192] 	= swap_2_v192_223.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[255:224] 	= swap_2_v224_255.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[287:256] 	= swap_2_v256_287.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[319:288] 	= swap_2_v288_319.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[351:320] 	= swap_2_v320_351.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[383:352] 	= swap_2_v352_383.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[415:384] 	= swap_2_v384_415.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[447:416] 	= swap_2_v416_447.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[479:448] 	= swap_2_v448_479.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[511:480] 	= swap_2_v480_511.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[543:512] 	= swap_2_v512_543.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[575:544] 	= swap_2_v544_575.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[607:576] 	= swap_2_v576_607.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[639:608] 	= swap_2_v608_639.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[671:640] 	= swap_2_v640_671.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[703:672] 	= swap_2_v672_703.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[735:704] 	= swap_2_v704_735.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[767:736] 	= swap_2_v736_767.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[799:768] 	= swap_2_v768_799.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[831:800] 	= swap_2_v800_831.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[863:832] 	= swap_2_v832_863.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[895:864] 	= swap_2_v864_895.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[927:896] 	= swap_2_v896_927.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[959:928]	= swap_2_v928_959.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[991:960]	= swap_2_v960_991.execute(ig_md.hash_table_2_r);
-				// ig_md.table_2_val[1023:992]	= swap_2_v992_1023.execute(ig_md.hash_table_2_r);
-
-				if (table_2_ts_1_entry != 0 && table_2_ts_2_entry != 0) {
+				// Compare the previously stored values against the current pkt's.
+				// If the previous stored values haven't expired and they don't match
+				// the current pkt's, we will swap them to Table 2.
+				if (table_1_ts_1_entry != 0 && table_1_ts_2_entry != 0) {
 					// The entry hasn't yet expired, we need to compare the key.
-					if (ig_md.table_2_key[63:0] != 0) {
-						if (ig_md.table_2_key[127:64] != 0) {
-						// if (ig_md.table_2_key[95:64] != 0) {
-							to_swap_2 = true;
+					if (ig_md.table_1_key[63:0] != 0) {
+						if (ig_md.table_1_key[127:64] != 0) {
+						// if (ig_md.table_1_key[95:64] != 0) {
+							to_swap_1 = true;
 						}
 					}
 				}
 
-				// The previous Table 2 entry was occupied and not yet expired,
-				// so we'll recirculate and swap it to Table 1.
-				if (to_swap_2) {
-					// Cur pkt has been sucessfully inserted.
-					// The swap entry will be insert on hdr.next_swap.
-					// During the bloom processing, hdr.next_swap will become hdr.cur_swap.
-					ig_md.has_next_swap	= 1;
-					hdr.cur_swap.key	= ig_md.table_2_key;
-					hdr.cur_swap.val	= ig_md.table_2_val;
-					hdr.cur_swap.ts		= table_2_ts_1;
-					hdr.cur_swap.ts_2	= table_2_ts_2;
-					if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-						// First (re)circulation for the current pkt.
-						// Store the swap entry values and change the op to SWAP.
-						// The packet will be recirculated later.
-						hdr.cuckoo.op = cuckoo_ops_t.SWAP;
-					} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
-						// The current pkt is already a mirrored pkt.
-						// Store the new swap entry values and change the op to SWAPPED.
-						// The packet will be recirculated later.
-						hdr.cuckoo.op		= cuckoo_ops_t.SWAPPED;
-						ig_md.swapped_key	= hdr.cur_swap.key;
+				// The previous Table 1 entry was occupied and not yet expired,
+				// so we'll swap it to Table 2.
+				if (to_swap_1) {
+					bool to_swap_2 = false;
+
+					bit<32> table_2_ts_1 = table_2_ts_1_swap.execute(ig_md.hash_table_2);
+					bit<16> table_2_ts_2 = table_2_ts_2_swap.execute(ig_md.hash_table_2);
+
+					ig_md.table_2_key[31:0]		= swap_2_k0_31.execute(ig_md.hash_table_2);
+					ig_md.table_2_key[63:32]	= swap_2_k32_63.execute(ig_md.hash_table_2);
+					ig_md.table_2_key[95:64]	= swap_2_k64_95.execute(ig_md.hash_table_2);
+					ig_md.table_2_key[127:96]	= swap_2_k96_127.execute(ig_md.hash_table_2);
+
+					ig_md.table_2_val[31:0]		= swap_2_v0_31.execute(ig_md.hash_table_2_r);
+					ig_md.table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
+					ig_md.table_2_val[95:64]	= swap_2_v64_95.execute(ig_md.hash_table_2_r);
+					ig_md.table_2_val[127:96]	= swap_2_v96_127.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[159:128]	= swap_2_v128_159.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[191:160]	= swap_2_v160_191.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[223:192] 	= swap_2_v192_223.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[255:224] 	= swap_2_v224_255.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[287:256] 	= swap_2_v256_287.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[319:288] 	= swap_2_v288_319.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[351:320] 	= swap_2_v320_351.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[383:352] 	= swap_2_v352_383.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[415:384] 	= swap_2_v384_415.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[447:416] 	= swap_2_v416_447.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[479:448] 	= swap_2_v448_479.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[511:480] 	= swap_2_v480_511.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[543:512] 	= swap_2_v512_543.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[575:544] 	= swap_2_v544_575.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[607:576] 	= swap_2_v576_607.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[639:608] 	= swap_2_v608_639.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[671:640] 	= swap_2_v640_671.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[703:672] 	= swap_2_v672_703.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[735:704] 	= swap_2_v704_735.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[767:736] 	= swap_2_v736_767.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[799:768] 	= swap_2_v768_799.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[831:800] 	= swap_2_v800_831.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[863:832] 	= swap_2_v832_863.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[895:864] 	= swap_2_v864_895.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[927:896] 	= swap_2_v896_927.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[959:928]	= swap_2_v928_959.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[991:960]	= swap_2_v960_991.execute(ig_md.hash_table_2_r);
+					// ig_md.table_2_val[1023:992]	= swap_2_v992_1023.execute(ig_md.hash_table_2_r);
+
+					if (table_2_ts_1_entry != 0 && table_2_ts_2_entry != 0) {
+						// The entry hasn't yet expired, we need to compare the key.
+						if (ig_md.table_2_key[63:0] != 0) {
+							if (ig_md.table_2_key[127:64] != 0) {
+							// if (ig_md.table_2_key[95:64] != 0) {
+								to_swap_2 = true;
+							}
+						}
+					}
+
+					// The previous Table 2 entry was occupied and not yet expired,
+					// so we'll recirculate and swap it to Table 1.
+					if (to_swap_2) {
+						// Cur pkt has been sucessfully inserted.
+						// The swap entry will be insert on hdr.next_swap.
+						// During the bloom processing, hdr.next_swap will become hdr.cur_swap.
+						ig_md.has_next_swap	= 1;
+						hdr.cur_swap.key	= ig_md.table_2_key;
+						hdr.cur_swap.val	= ig_md.table_2_val;
+						hdr.cur_swap.ts		= table_2_ts_1;
+						hdr.cur_swap.ts_2	= table_2_ts_2;
+						if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
+							// First (re)circulation for the current pkt.
+							// Store the swap entry values and change the op to SWAP.
+							// The packet will be recirculated later.
+							hdr.cuckoo.op = cuckoo_ops_t.SWAP;
+						} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
+							// The current pkt is already a mirrored pkt.
+							// Store the new swap entry values and change the op to SWAPPED.
+							// The packet will be recirculated later.
+							hdr.cuckoo.op		= cuckoo_ops_t.SWAPPED;
+							ig_md.swapped_key	= hdr.cur_swap.key;
+						}
+					} else {
+						// The previous Table 2 entry was expired/replaced.
+						// In its place is now the cur pkt.
+						if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
+							// Send the current pkt to the bloom filter with op == NOP,
+							// so it'll be sent out.
+							hdr.cuckoo.op = cuckoo_ops_t.NOP;
+						} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
+							// Send the current pkt to the bloom filter with op == SWAPPED,
+							// to update the transient.
+							hdr.cuckoo.op = cuckoo_ops_t.SWAPPED;
+						}
 					}
 				} else {
-					// The previous Table 2 entry was expired/replaced.
+					// The previous Table 1 entry was expired/replaced.
 					// In its place is now the cur pkt.
 					if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
 						// Send the current pkt to the bloom filter with op == NOP,
@@ -824,268 +845,255 @@ control Ingress(inout header_t hdr,
 						hdr.cuckoo.op = cuckoo_ops_t.SWAPPED;
 					}
 				}
-			} else {
-				// The previous Table 1 entry was expired/replaced.
-				// In its place is now the cur pkt.
-				if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-					// Send the current pkt to the bloom filter with op == NOP,
-					// so it'll be sent out.
-					hdr.cuckoo.op = cuckoo_ops_t.NOP;
-				} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
-					// Send the current pkt to the bloom filter with op == SWAPPED,
-					// to update the transient.
-					hdr.cuckoo.op = cuckoo_ops_t.SWAPPED;
-				}
-			}
-		} else if (ig_md.is_server_reply == 0 &&
-				(hdr.cuckoo.op == cuckoo_ops_t.LOOKUP || !hdr.cuckoo.isValid())) {
-			// Add the original ingress port.
-			hdr.kv.port = (bit<16>)ig_intr_md.ingress_port;
-
-			// Update the stored ts values with the current ts.
-			bit<32> stored_ts_1_1 = table_1_ts_1_write.execute(ig_md.hash_table_1);
-			bit<16> stored_ts_1_2 = table_1_ts_2_write.execute(ig_md.hash_table_1);
-
-			if (stored_ts_1_1 != 0 && stored_ts_1_2 != 0) {
-				// Read the value.
-				bit<32> table_1_key_0 = read_1_k0_31.execute(ig_md.hash_table_1);
-				bit<32> table_1_key_1 = read_1_k32_63.execute(ig_md.hash_table_1);
-				bit<32> table_1_key_2 = read_1_k64_95.execute(ig_md.hash_table_1);
-				bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
-
-				if (table_1_key_0 == ig_md.cur_key[31:0]) {
-				if (table_1_key_1 == ig_md.cur_key[63:32]) {
-				if (table_1_key_2 == ig_md.cur_key[95:64]) {
-				if (table_1_key_3 == ig_md.cur_key[127:96]) {
-					if (hdr.kv.op == kv_ops_t.GET) {
-						hdr.kv.val[31:0]	= read_1_v0_31.execute(ig_md.hash_table_1);
-						hdr.kv.val[63:32]	= read_1_v32_63.execute(ig_md.hash_table_1);
-						hdr.kv.val[95:64]	= read_1_v64_95.execute(ig_md.hash_table_1);
-						hdr.kv.val[127:96]	= read_1_v96_127.execute(ig_md.hash_table_1);
-						// hdr.kv.val[159:128]	= read_1_v128_159.execute(ig_md.hash_table_1);
-						// hdr.kv.val[191:160]	= read_1_v160_191.execute(ig_md.hash_table_1);
-						// hdr.kv.val[223:192]	= read_1_v192_223.execute(ig_md.hash_table_1);
-						// hdr.kv.val[255:224]	= read_1_v224_255.execute(ig_md.hash_table_1);
-						// hdr.kv.val[287:256]	= read_1_v256_287.execute(ig_md.hash_table_1);
-						// hdr.kv.val[319:288]	= read_1_v288_319.execute(ig_md.hash_table_1);
-						// hdr.kv.val[351:320]	= read_1_v320_351.execute(ig_md.hash_table_1);
-						// hdr.kv.val[383:352]	= read_1_v352_383.execute(ig_md.hash_table_1);
-						// hdr.kv.val[415:384]	= read_1_v384_415.execute(ig_md.hash_table_1);
-						// hdr.kv.val[447:416]	= read_1_v416_447.execute(ig_md.hash_table_1);
-						// hdr.kv.val[479:448]	= read_1_v448_479.execute(ig_md.hash_table_1);
-						// hdr.kv.val[511:480]	= read_1_v480_511.execute(ig_md.hash_table_1);
-						// hdr.kv.val[543:512]	= read_1_v512_543.execute(ig_md.hash_table_1);
-						// hdr.kv.val[575:544]	= read_1_v544_575.execute(ig_md.hash_table_1);
-						// hdr.kv.val[607:576]	= read_1_v576_607.execute(ig_md.hash_table_1);
-						// hdr.kv.val[639:608]	= read_1_v608_639.execute(ig_md.hash_table_1);
-						// hdr.kv.val[671:640]	= read_1_v640_671.execute(ig_md.hash_table_1);
-						// hdr.kv.val[703:672]	= read_1_v672_703.execute(ig_md.hash_table_1);
-						// hdr.kv.val[735:704]	= read_1_v704_735.execute(ig_md.hash_table_1);
-						// hdr.kv.val[767:736]	= read_1_v736_767.execute(ig_md.hash_table_1);
-						// hdr.kv.val[799:768]	= read_1_v768_799.execute(ig_md.hash_table_1);
-						// hdr.kv.val[831:800]	= read_1_v800_831.execute(ig_md.hash_table_1);
-						// hdr.kv.val[863:832]	= read_1_v832_863.execute(ig_md.hash_table_1);
-						// hdr.kv.val[895:864]	= read_1_v864_895.execute(ig_md.hash_table_1);
-						// hdr.kv.val[927:896]	= read_1_v896_927.execute(ig_md.hash_table_1);
-						// hdr.kv.val[959:928]	= read_1_v928_959.execute(ig_md.hash_table_1);
-						// hdr.kv.val[991:960]	= read_1_v960_991.execute(ig_md.hash_table_1);
-						// hdr.kv.val[1023:992]	= read_1_v992_1023.execute(ig_md.hash_table_1);
-					} else if (hdr.kv.op == kv_ops_t.PUT) {
-						write_1_v0_31.execute(ig_md.hash_table_1);
-						write_1_v32_63.execute(ig_md.hash_table_1);
-						write_1_v64_95.execute(ig_md.hash_table_1);
-						write_1_v96_127.execute(ig_md.hash_table_1);
-						// write_1_v128_159.execute(ig_md.hash_table_1);
-						// write_1_v160_191.execute(ig_md.hash_table_1);
-						// write_1_v192_223.execute(ig_md.hash_table_1);
-						// write_1_v224_255.execute(ig_md.hash_table_1);
-						// write_1_v256_287.execute(ig_md.hash_table_1);
-						// write_1_v288_319.execute(ig_md.hash_table_1);
-						// write_1_v320_351.execute(ig_md.hash_table_1);
-						// write_1_v352_383.execute(ig_md.hash_table_1);
-						// write_1_v384_415.execute(ig_md.hash_table_1);
-						// write_1_v416_447.execute(ig_md.hash_table_1);
-						// write_1_v448_479.execute(ig_md.hash_table_1);
-						// write_1_v480_511.execute(ig_md.hash_table_1);
-						// write_1_v512_543.execute(ig_md.hash_table_1);
-						// write_1_v544_575.execute(ig_md.hash_table_1);
-						// write_1_v576_607.execute(ig_md.hash_table_1);
-						// write_1_v608_639.execute(ig_md.hash_table_1);
-						// write_1_v640_671.execute(ig_md.hash_table_1);
-						// write_1_v672_703.execute(ig_md.hash_table_1);
-						// write_1_v704_735.execute(ig_md.hash_table_1);
-						// write_1_v736_767.execute(ig_md.hash_table_1);
-						// write_1_v768_799.execute(ig_md.hash_table_1);
-						// write_1_v800_831.execute(ig_md.hash_table_1);
-						// write_1_v832_863.execute(ig_md.hash_table_1);
-						// write_1_v864_895.execute(ig_md.hash_table_1);
-						// write_1_v896_927.execute(ig_md.hash_table_1);
-						// write_1_v928_959.execute(ig_md.hash_table_1);
-						// write_1_v960_991.execute(ig_md.hash_table_1);
-						// write_1_v992_1023.execute(ig_md.hash_table_1);
-					}
-				}
-				}
-				}
-				}
-				hdr.cuckoo.op = cuckoo_ops_t.NOP;
-			} else {
-				// Table 2 Lookup.
-				ig_md.hash_table_2 = hash_table_2.get({ig_md.cur_key});
+			} else if (hdr.cuckoo.op == cuckoo_ops_t.LOOKUP) {
+				// Add the original ingress port.
+				hdr.kv.port = (bit<16>)ig_intr_md.ingress_port;
 
 				// Update the stored ts values with the current ts.
-				bit<32> stored_ts_2_1 = table_2_ts_1_write.execute(ig_md.hash_table_2);
-				bit<16> stored_ts_2_2 = table_2_ts_2_write.execute(ig_md.hash_table_2);
+				bit<32> stored_ts_1_1 = table_1_ts_1_write.execute(ig_md.hash_table_1);
+				bit<16> stored_ts_1_2 = table_1_ts_2_write.execute(ig_md.hash_table_1);
 
-				if (stored_ts_2_1 != 0 && stored_ts_2_2 != 0) {
+				if (stored_ts_1_1 != 0 && stored_ts_1_2 != 0) {
 					// Read the value.
-					bit<32> table_2_key_0 = read_2_k0_31.execute(ig_md.hash_table_2);
-					bit<32> table_2_key_1 = read_2_k32_63.execute(ig_md.hash_table_2);
-					bit<32> table_2_key_2 = read_2_k64_95.execute(ig_md.hash_table_2);
-					bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
+					bit<32> table_1_key_0 = read_1_k0_31.execute(ig_md.hash_table_1);
+					bit<32> table_1_key_1 = read_1_k32_63.execute(ig_md.hash_table_1);
+					bit<32> table_1_key_2 = read_1_k64_95.execute(ig_md.hash_table_1);
+					bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
 
-					if (table_2_key_0 == ig_md.cur_key[31:0]) {
-					if (table_2_key_1 == ig_md.cur_key[63:32]) {
-					if (table_2_key_2 == ig_md.cur_key[95:64]) {
-					if (table_2_key_3 == ig_md.cur_key[127:96]) {
+					if (table_1_key_0 == ig_md.cur_key[31:0]) {
+					if (table_1_key_1 == ig_md.cur_key[63:32]) {
+					if (table_1_key_2 == ig_md.cur_key[95:64]) {
+					if (table_1_key_3 == ig_md.cur_key[127:96]) {
 						if (hdr.kv.op == kv_ops_t.GET) {
-							hdr.kv.val[31:0]	= read_2_v0_31.execute(ig_md.hash_table_2);
-							hdr.kv.val[63:32]	= read_2_v32_63.execute(ig_md.hash_table_2);
-							hdr.kv.val[95:64]	= read_2_v64_95.execute(ig_md.hash_table_2);
-							hdr.kv.val[127:96]	= read_2_v96_127.execute(ig_md.hash_table_2);
-							// hdr.kv.val[159:128]	= read_2_v128_159.execute(ig_md.hash_table_2);
-							// hdr.kv.val[191:160]	= read_2_v160_191.execute(ig_md.hash_table_2);
-							// hdr.kv.val[223:192]	= read_2_v192_223.execute(ig_md.hash_table_2);
-							// hdr.kv.val[255:224]	= read_2_v224_255.execute(ig_md.hash_table_2);
-							// hdr.kv.val[287:256]	= read_2_v256_287.execute(ig_md.hash_table_2);
-							// hdr.kv.val[319:288]	= read_2_v288_319.execute(ig_md.hash_table_2);
-							// hdr.kv.val[351:320]	= read_2_v320_351.execute(ig_md.hash_table_2);
-							// hdr.kv.val[383:352]	= read_2_v352_383.execute(ig_md.hash_table_2);
-							// hdr.kv.val[415:384]	= read_2_v384_415.execute(ig_md.hash_table_2);
-							// hdr.kv.val[447:416]	= read_2_v416_447.execute(ig_md.hash_table_2);
-							// hdr.kv.val[479:448]	= read_2_v448_479.execute(ig_md.hash_table_2);
-							// hdr.kv.val[511:480]	= read_2_v480_511.execute(ig_md.hash_table_2);
-							// hdr.kv.val[543:512]	= read_2_v512_543.execute(ig_md.hash_table_2);
-							// hdr.kv.val[575:544]	= read_2_v544_575.execute(ig_md.hash_table_2);
-							// hdr.kv.val[607:576]	= read_2_v576_607.execute(ig_md.hash_table_2);
-							// hdr.kv.val[639:608]	= read_2_v608_639.execute(ig_md.hash_table_2);
-							// hdr.kv.val[671:640]	= read_2_v640_671.execute(ig_md.hash_table_2);
-							// hdr.kv.val[703:672]	= read_2_v672_703.execute(ig_md.hash_table_2);
-							// hdr.kv.val[735:704]	= read_2_v704_735.execute(ig_md.hash_table_2);
-							// hdr.kv.val[767:736]	= read_2_v736_767.execute(ig_md.hash_table_2);
-							// hdr.kv.val[799:768]	= read_2_v768_799.execute(ig_md.hash_table_2);
-							// hdr.kv.val[831:800]	= read_2_v800_831.execute(ig_md.hash_table_2);
-							// hdr.kv.val[863:832]	= read_2_v832_863.execute(ig_md.hash_table_2);
-							// hdr.kv.val[895:864]	= read_2_v864_895.execute(ig_md.hash_table_2);
-							// hdr.kv.val[927:896]	= read_2_v896_927.execute(ig_md.hash_table_2);
-							// hdr.kv.val[959:928]	= read_2_v928_959.execute(ig_md.hash_table_2);
-							// hdr.kv.val[991:960]	= read_2_v960_991.execute(ig_md.hash_table_2);
-							// hdr.kv.val[1023:992]	= read_2_v992_1023.execute(ig_md.hash_table_2);
+							hdr.kv.val[31:0]	= read_1_v0_31.execute(ig_md.hash_table_1);
+							hdr.kv.val[63:32]	= read_1_v32_63.execute(ig_md.hash_table_1);
+							hdr.kv.val[95:64]	= read_1_v64_95.execute(ig_md.hash_table_1);
+							hdr.kv.val[127:96]	= read_1_v96_127.execute(ig_md.hash_table_1);
+							// hdr.kv.val[159:128]	= read_1_v128_159.execute(ig_md.hash_table_1);
+							// hdr.kv.val[191:160]	= read_1_v160_191.execute(ig_md.hash_table_1);
+							// hdr.kv.val[223:192]	= read_1_v192_223.execute(ig_md.hash_table_1);
+							// hdr.kv.val[255:224]	= read_1_v224_255.execute(ig_md.hash_table_1);
+							// hdr.kv.val[287:256]	= read_1_v256_287.execute(ig_md.hash_table_1);
+							// hdr.kv.val[319:288]	= read_1_v288_319.execute(ig_md.hash_table_1);
+							// hdr.kv.val[351:320]	= read_1_v320_351.execute(ig_md.hash_table_1);
+							// hdr.kv.val[383:352]	= read_1_v352_383.execute(ig_md.hash_table_1);
+							// hdr.kv.val[415:384]	= read_1_v384_415.execute(ig_md.hash_table_1);
+							// hdr.kv.val[447:416]	= read_1_v416_447.execute(ig_md.hash_table_1);
+							// hdr.kv.val[479:448]	= read_1_v448_479.execute(ig_md.hash_table_1);
+							// hdr.kv.val[511:480]	= read_1_v480_511.execute(ig_md.hash_table_1);
+							// hdr.kv.val[543:512]	= read_1_v512_543.execute(ig_md.hash_table_1);
+							// hdr.kv.val[575:544]	= read_1_v544_575.execute(ig_md.hash_table_1);
+							// hdr.kv.val[607:576]	= read_1_v576_607.execute(ig_md.hash_table_1);
+							// hdr.kv.val[639:608]	= read_1_v608_639.execute(ig_md.hash_table_1);
+							// hdr.kv.val[671:640]	= read_1_v640_671.execute(ig_md.hash_table_1);
+							// hdr.kv.val[703:672]	= read_1_v672_703.execute(ig_md.hash_table_1);
+							// hdr.kv.val[735:704]	= read_1_v704_735.execute(ig_md.hash_table_1);
+							// hdr.kv.val[767:736]	= read_1_v736_767.execute(ig_md.hash_table_1);
+							// hdr.kv.val[799:768]	= read_1_v768_799.execute(ig_md.hash_table_1);
+							// hdr.kv.val[831:800]	= read_1_v800_831.execute(ig_md.hash_table_1);
+							// hdr.kv.val[863:832]	= read_1_v832_863.execute(ig_md.hash_table_1);
+							// hdr.kv.val[895:864]	= read_1_v864_895.execute(ig_md.hash_table_1);
+							// hdr.kv.val[927:896]	= read_1_v896_927.execute(ig_md.hash_table_1);
+							// hdr.kv.val[959:928]	= read_1_v928_959.execute(ig_md.hash_table_1);
+							// hdr.kv.val[991:960]	= read_1_v960_991.execute(ig_md.hash_table_1);
+							// hdr.kv.val[1023:992]	= read_1_v992_1023.execute(ig_md.hash_table_1);
 						} else if (hdr.kv.op == kv_ops_t.PUT) {
-							write_2_v0_31.execute(ig_md.hash_table_2);
-							write_2_v32_63.execute(ig_md.hash_table_2);
-							write_2_v64_95.execute(ig_md.hash_table_2);
-							write_2_v96_127.execute(ig_md.hash_table_2);
-							// write_2_v128_159.execute(ig_md.hash_table_2);
-							// write_2_v160_191.execute(ig_md.hash_table_2);
-							// write_2_v192_223.execute(ig_md.hash_table_2);
-							// write_2_v224_255.execute(ig_md.hash_table_2);
-							// write_2_v256_287.execute(ig_md.hash_table_2);
-							// write_2_v288_319.execute(ig_md.hash_table_2);
-							// write_2_v320_351.execute(ig_md.hash_table_2);
-							// write_2_v352_383.execute(ig_md.hash_table_2);
-							// write_2_v384_415.execute(ig_md.hash_table_2);
-							// write_2_v416_447.execute(ig_md.hash_table_2);
-							// write_2_v448_479.execute(ig_md.hash_table_2);
-							// write_2_v480_511.execute(ig_md.hash_table_2);
-							// write_2_v512_543.execute(ig_md.hash_table_2);
-							// write_2_v544_575.execute(ig_md.hash_table_2);
-							// write_2_v576_607.execute(ig_md.hash_table_2);
-							// write_2_v608_639.execute(ig_md.hash_table_2);
-							// write_2_v640_671.execute(ig_md.hash_table_2);
-							// write_2_v672_703.execute(ig_md.hash_table_2);
-							// write_2_v704_735.execute(ig_md.hash_table_2);
-							// write_2_v736_767.execute(ig_md.hash_table_2);
-							// write_2_v768_799.execute(ig_md.hash_table_2);
-							// write_2_v800_831.execute(ig_md.hash_table_2);
-							// write_2_v832_863.execute(ig_md.hash_table_2);
-							// write_2_v864_895.execute(ig_md.hash_table_2);
-							// write_2_v896_927.execute(ig_md.hash_table_2);
-							// write_2_v928_959.execute(ig_md.hash_table_2);
-							// write_2_v960_991.execute(ig_md.hash_table_2);
-							// write_2_v992_1023.execute(ig_md.hash_table_2);
+							write_1_v0_31.execute(ig_md.hash_table_1);
+							write_1_v32_63.execute(ig_md.hash_table_1);
+							write_1_v64_95.execute(ig_md.hash_table_1);
+							write_1_v96_127.execute(ig_md.hash_table_1);
+							// write_1_v128_159.execute(ig_md.hash_table_1);
+							// write_1_v160_191.execute(ig_md.hash_table_1);
+							// write_1_v192_223.execute(ig_md.hash_table_1);
+							// write_1_v224_255.execute(ig_md.hash_table_1);
+							// write_1_v256_287.execute(ig_md.hash_table_1);
+							// write_1_v288_319.execute(ig_md.hash_table_1);
+							// write_1_v320_351.execute(ig_md.hash_table_1);
+							// write_1_v352_383.execute(ig_md.hash_table_1);
+							// write_1_v384_415.execute(ig_md.hash_table_1);
+							// write_1_v416_447.execute(ig_md.hash_table_1);
+							// write_1_v448_479.execute(ig_md.hash_table_1);
+							// write_1_v480_511.execute(ig_md.hash_table_1);
+							// write_1_v512_543.execute(ig_md.hash_table_1);
+							// write_1_v544_575.execute(ig_md.hash_table_1);
+							// write_1_v576_607.execute(ig_md.hash_table_1);
+							// write_1_v608_639.execute(ig_md.hash_table_1);
+							// write_1_v640_671.execute(ig_md.hash_table_1);
+							// write_1_v672_703.execute(ig_md.hash_table_1);
+							// write_1_v704_735.execute(ig_md.hash_table_1);
+							// write_1_v736_767.execute(ig_md.hash_table_1);
+							// write_1_v768_799.execute(ig_md.hash_table_1);
+							// write_1_v800_831.execute(ig_md.hash_table_1);
+							// write_1_v832_863.execute(ig_md.hash_table_1);
+							// write_1_v864_895.execute(ig_md.hash_table_1);
+							// write_1_v896_927.execute(ig_md.hash_table_1);
+							// write_1_v928_959.execute(ig_md.hash_table_1);
+							// write_1_v960_991.execute(ig_md.hash_table_1);
+							// write_1_v992_1023.execute(ig_md.hash_table_1);
 						}
 					}
 					}
 					}
 					}
-						hdr.cuckoo.op	= cuckoo_ops_t.NOP;
-					} else {
-						// Lookup failed, recirculate the packet to insert it in the table.
-						hdr.cuckoo.op = cuckoo_ops_t.INSERT;
-				}
-			}
-		}
-
-		if (ig_md.is_server_reply == 0 &&
-					(ig_md.has_next_swap == 1 ||
-					 hdr.cuckoo.op == cuckoo_ops_t.INSERT ||
-					 hdr.cuckoo.op == cuckoo_ops_t.SWAPPED)) {
-			// Handlers for transient states.
-			bit<16> swap_transient_val		= 0;
-			bit<16> swapped_transient_val	= 0;
-
-			if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-				bit<BLOOM_IDX_WIDTH> swap_transient_idx = hash_swap.get({ig_md.cur_key});
-
-				// If we've reached MAX_LOOPS_INSERT recirculations,
-				// then assume that the previous swap pkt is lost and reset the transients.
-				if (hdr.cuckoo.recirc_cntr == MAX_LOOPS) {
-					swap_transient_clear.execute(swap_transient_idx);
-					swapped_transient_clear.execute(swap_transient_idx);
+					hdr.cuckoo.op = cuckoo_ops_t.NOP;
 				} else {
-					// Read the current transient values.
-					swap_transient_val		= swap_transient_read.execute(swap_transient_idx);
-					swapped_transient_val	= swapped_transient_read.execute(swap_transient_idx);
-				}
-			} else if (ig_md.has_next_swap == 0 && hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
-				// If op == SWAPPED and the pkt doesn't have a swap entry,
-				// increment the swapped transient value.
-				swapped_transient_incr.execute(hash_swapped.get({hdr.cur_swap.key}));
-				hdr.cuckoo.op = cuckoo_ops_t.NOP;
-			} else if (ig_md.has_next_swap == 1) {
-				// The current pkt is a swap pkt. It will be recirculated back.
-				// Set the cur_swap hdr with the next_swap hdr values.
-				hdr.cuckoo.op = cuckoo_ops_t.SWAP;
+					// Table 2 Lookup.
+					ig_md.hash_table_2 = hash_table_2.get({ig_md.cur_key});
 
-				// Increment the swap transient.
-				swap_transient_incr.execute(hash_swap_2.get({hdr.cur_swap.key}));
+					// Update the stored ts values with the current ts.
+					bit<32> stored_ts_2_1 = table_2_ts_1_write.execute(ig_md.hash_table_2);
+					bit<16> stored_ts_2_2 = table_2_ts_2_write.execute(ig_md.hash_table_2);
 
-				// Additionally, if op == SWAPPED, increment the swapped transient.
-				if (hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
-					swapped_transient_incr.execute(hash_swapped_2.get({ig_md.swapped_key}));
+					if (stored_ts_2_1 != 0 && stored_ts_2_2 != 0) {
+						// Read the value.
+						bit<32> table_2_key_0 = read_2_k0_31.execute(ig_md.hash_table_2);
+						bit<32> table_2_key_1 = read_2_k32_63.execute(ig_md.hash_table_2);
+						bit<32> table_2_key_2 = read_2_k64_95.execute(ig_md.hash_table_2);
+						bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
+
+						if (table_2_key_0 == ig_md.cur_key[31:0]) {
+						if (table_2_key_1 == ig_md.cur_key[63:32]) {
+						if (table_2_key_2 == ig_md.cur_key[95:64]) {
+						if (table_2_key_3 == ig_md.cur_key[127:96]) {
+							if (hdr.kv.op == kv_ops_t.GET) {
+								hdr.kv.val[31:0]	= read_2_v0_31.execute(ig_md.hash_table_2);
+								hdr.kv.val[63:32]	= read_2_v32_63.execute(ig_md.hash_table_2);
+								hdr.kv.val[95:64]	= read_2_v64_95.execute(ig_md.hash_table_2);
+								hdr.kv.val[127:96]	= read_2_v96_127.execute(ig_md.hash_table_2);
+								// hdr.kv.val[159:128]	= read_2_v128_159.execute(ig_md.hash_table_2);
+								// hdr.kv.val[191:160]	= read_2_v160_191.execute(ig_md.hash_table_2);
+								// hdr.kv.val[223:192]	= read_2_v192_223.execute(ig_md.hash_table_2);
+								// hdr.kv.val[255:224]	= read_2_v224_255.execute(ig_md.hash_table_2);
+								// hdr.kv.val[287:256]	= read_2_v256_287.execute(ig_md.hash_table_2);
+								// hdr.kv.val[319:288]	= read_2_v288_319.execute(ig_md.hash_table_2);
+								// hdr.kv.val[351:320]	= read_2_v320_351.execute(ig_md.hash_table_2);
+								// hdr.kv.val[383:352]	= read_2_v352_383.execute(ig_md.hash_table_2);
+								// hdr.kv.val[415:384]	= read_2_v384_415.execute(ig_md.hash_table_2);
+								// hdr.kv.val[447:416]	= read_2_v416_447.execute(ig_md.hash_table_2);
+								// hdr.kv.val[479:448]	= read_2_v448_479.execute(ig_md.hash_table_2);
+								// hdr.kv.val[511:480]	= read_2_v480_511.execute(ig_md.hash_table_2);
+								// hdr.kv.val[543:512]	= read_2_v512_543.execute(ig_md.hash_table_2);
+								// hdr.kv.val[575:544]	= read_2_v544_575.execute(ig_md.hash_table_2);
+								// hdr.kv.val[607:576]	= read_2_v576_607.execute(ig_md.hash_table_2);
+								// hdr.kv.val[639:608]	= read_2_v608_639.execute(ig_md.hash_table_2);
+								// hdr.kv.val[671:640]	= read_2_v640_671.execute(ig_md.hash_table_2);
+								// hdr.kv.val[703:672]	= read_2_v672_703.execute(ig_md.hash_table_2);
+								// hdr.kv.val[735:704]	= read_2_v704_735.execute(ig_md.hash_table_2);
+								// hdr.kv.val[767:736]	= read_2_v736_767.execute(ig_md.hash_table_2);
+								// hdr.kv.val[799:768]	= read_2_v768_799.execute(ig_md.hash_table_2);
+								// hdr.kv.val[831:800]	= read_2_v800_831.execute(ig_md.hash_table_2);
+								// hdr.kv.val[863:832]	= read_2_v832_863.execute(ig_md.hash_table_2);
+								// hdr.kv.val[895:864]	= read_2_v864_895.execute(ig_md.hash_table_2);
+								// hdr.kv.val[927:896]	= read_2_v896_927.execute(ig_md.hash_table_2);
+								// hdr.kv.val[959:928]	= read_2_v928_959.execute(ig_md.hash_table_2);
+								// hdr.kv.val[991:960]	= read_2_v960_991.execute(ig_md.hash_table_2);
+								// hdr.kv.val[1023:992]	= read_2_v992_1023.execute(ig_md.hash_table_2);
+							} else if (hdr.kv.op == kv_ops_t.PUT) {
+								write_2_v0_31.execute(ig_md.hash_table_2);
+								write_2_v32_63.execute(ig_md.hash_table_2);
+								write_2_v64_95.execute(ig_md.hash_table_2);
+								write_2_v96_127.execute(ig_md.hash_table_2);
+								// write_2_v128_159.execute(ig_md.hash_table_2);
+								// write_2_v160_191.execute(ig_md.hash_table_2);
+								// write_2_v192_223.execute(ig_md.hash_table_2);
+								// write_2_v224_255.execute(ig_md.hash_table_2);
+								// write_2_v256_287.execute(ig_md.hash_table_2);
+								// write_2_v288_319.execute(ig_md.hash_table_2);
+								// write_2_v320_351.execute(ig_md.hash_table_2);
+								// write_2_v352_383.execute(ig_md.hash_table_2);
+								// write_2_v384_415.execute(ig_md.hash_table_2);
+								// write_2_v416_447.execute(ig_md.hash_table_2);
+								// write_2_v448_479.execute(ig_md.hash_table_2);
+								// write_2_v480_511.execute(ig_md.hash_table_2);
+								// write_2_v512_543.execute(ig_md.hash_table_2);
+								// write_2_v544_575.execute(ig_md.hash_table_2);
+								// write_2_v576_607.execute(ig_md.hash_table_2);
+								// write_2_v608_639.execute(ig_md.hash_table_2);
+								// write_2_v640_671.execute(ig_md.hash_table_2);
+								// write_2_v672_703.execute(ig_md.hash_table_2);
+								// write_2_v704_735.execute(ig_md.hash_table_2);
+								// write_2_v736_767.execute(ig_md.hash_table_2);
+								// write_2_v768_799.execute(ig_md.hash_table_2);
+								// write_2_v800_831.execute(ig_md.hash_table_2);
+								// write_2_v832_863.execute(ig_md.hash_table_2);
+								// write_2_v864_895.execute(ig_md.hash_table_2);
+								// write_2_v896_927.execute(ig_md.hash_table_2);
+								// write_2_v928_959.execute(ig_md.hash_table_2);
+								// write_2_v960_991.execute(ig_md.hash_table_2);
+								// write_2_v992_1023.execute(ig_md.hash_table_2);
+							}
+						}
+						}
+						}
+						}
+							hdr.cuckoo.op	= cuckoo_ops_t.NOP;
+						} else {
+							// Lookup failed, recirculate the packet to insert it in the table.
+							hdr.cuckoo.op = cuckoo_ops_t.INSERT;
+					}
 				}
 			}
 
-			if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-				// If op == INSERT, the pkt will recirculate back to the cuckoo pipe.
-				if (swap_transient_val != swapped_transient_val) {
-					// However, if another pkt matching the same bloom idx is already
-					// recirculating, the current pkt will be sent back as a LOOKUP.
-					hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+			if (ig_md.has_next_swap == 1 || hdr.cuckoo.op == cuckoo_ops_t.INSERT || hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
+				// Handlers for transient states.
+				bit<16> swap_transient_val		= 0;
+				bit<16> swapped_transient_val	= 0;
+
+				if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
+					bit<BLOOM_IDX_WIDTH> swap_transient_idx = hash_swap.get({ig_md.cur_key});
+
+					// If we've reached MAX_LOOPS_INSERT recirculations,
+					// then assume that the previous swap pkt is lost and reset the transients.
+					if (hdr.cuckoo.recirc_cntr == MAX_LOOPS) {
+						swap_transient_clear.execute(swap_transient_idx);
+						swapped_transient_clear.execute(swap_transient_idx);
+					} else {
+						// Read the current transient values.
+						swap_transient_val		= swap_transient_read.execute(swap_transient_idx);
+						swapped_transient_val	= swapped_transient_read.execute(swap_transient_idx);
+					}
+				} else if (ig_md.has_next_swap == 0 && hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
+					// If op == SWAPPED and the pkt doesn't have a swap entry,
+					// increment the swapped transient value.
+					swapped_transient_incr.execute(hash_swapped.get({hdr.cur_swap.key}));
+					hdr.cuckoo.op = cuckoo_ops_t.NOP;
+				} else if (ig_md.has_next_swap == 1) {
+					// The current pkt is a swap pkt. It will be recirculated back.
+					// Set the cur_swap hdr with the next_swap hdr values.
+					hdr.cuckoo.op = cuckoo_ops_t.SWAP;
+
+					// Increment the swap transient.
+					swap_transient_incr.execute(hash_swap_2.get({hdr.cur_swap.key}));
+
+					// Additionally, if op == SWAPPED, increment the swapped transient.
+					if (hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
+						swapped_transient_incr.execute(hash_swapped_2.get({ig_md.swapped_key}));
+					}
+				}
+
+				if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
+					// If op == INSERT, the pkt will recirculate back to the cuckoo pipe.
+					if (swap_transient_val != swapped_transient_val) {
+						// However, if another pkt matching the same bloom idx is already
+						// recirculating, the current pkt will be sent back as a LOOKUP.
+						hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+					}
 				}
 			}
-		}
 
-		if (ig_md.is_server_reply == 1 ||
-					hdr.cuckoo.op == cuckoo_ops_t.NOP ||
-					(ig_md.has_next_swap == 1 && hdr.cuckoo.recirc_cntr == MAX_LOOPS)) {
-			fwd.apply();
+			if (hdr.cuckoo.op == cuckoo_ops_t.NOP) {
+				set_out_port((bit<9>)hdr.kv.port);
+			} else if (ig_md.has_next_swap == 1 && hdr.cuckoo.recirc_cntr == MAX_LOOPS) {
+				set_out_port(KVS_SERVER_PORT);
+			} else {
+				hdr.cuckoo.recirc_cntr = hdr.cuckoo.recirc_cntr + 1;
+				recirc_port_cntr();
+				select_recirc_port.apply();
+			}
 		} else {
-			hdr.cuckoo.recirc_cntr = hdr.cuckoo.recirc_cntr + 1;
-			recirc_port_cntr();
-			select_recirc_port.apply();
+			set_out_port((bit<9>)hdr.kv.port);
 		}
+
 	}
 }
 

@@ -37,6 +37,9 @@ const PortId_t RECIRC_PORT_1 = 128;
 const PortId_t RECIRC_PORT_2 = 256;
 const PortId_t RECIRC_PORT_3 = 384;
 
+// Front-panel port 1
+const PortId_t KVS_SERVER_PORT = 136;
+
 const bit<16> CUCKOO_PORT = 670;
 
 #define KEY_WIDTH			128
