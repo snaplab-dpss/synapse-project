@@ -85,9 +85,8 @@ def kill_hosts(config: dict) -> None:
 def signal_handler(sig, frame):
     if config is not None:
         kill_hosts(config)
-        exit(0)
-
-    print("No config provided, therefore, not killing hosts. Exiting.")
+    else:
+        print("No config provided, therefore, not killing hosts")
     exit(1)
 
 
