@@ -115,7 +115,7 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
   // Evict the data plane key/value and send the HH report to the server.
   uint32_t val = 0;
   for (size_t i = 0; i < 4; ++i) {
-    val |= (static_cast<uint32_t>(nc_hdr->val[124 + i]) << (i * 8));
+    val |= (static_cast<uint32_t>(nc_hdr->val[KV_VAL_SIZE - 4 + i]) << (i * 8));
   }
   if (sampl_vec[smallest_idx][1] < val) {
     // Remove the key from the keys table and the controller map.
