@@ -66,8 +66,8 @@ parser IngressParser(packet_in pkt,
 	state parse_kv {
 		pkt.extract(hdr.kv);
 		transition select(hdr.kv.status) {
-			2		: parse_cuckoo;
-			default	: accept;
+			KVS_STATUS_CUCKOO	: parse_cuckoo;
+			default				: accept;
 		}
 	}
 

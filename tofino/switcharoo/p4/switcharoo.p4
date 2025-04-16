@@ -422,31 +422,65 @@ control Ingress(inout header_t hdr,
 	}
 
 	/********** DEBUG VARIABLES **********/
-	DECLARE_DEBUG_VAR(max_recirculations)
-	DECLARE_DEBUG_VAR(state_insert)
-	DECLARE_DEBUG_VAR(state_aborted_insert)
-	DECLARE_DEBUG_VAR(state_insert_from_max_loops)
-	DECLARE_DEBUG_VAR(state_nop)
-	DECLARE_DEBUG_VAR(state_swap)
-	DECLARE_DEBUG_VAR(state_swapped)
-	DECLARE_DEBUG_VAR(table1_insert)
-	DECLARE_DEBUG_VAR(table2_insert)
-	DECLARE_DEBUG_VAR(table1_evict)
-	DECLARE_DEBUG_VAR(table2_evict)
+	DECLARE_DEBUG_VAR_WITH_INC(max_recirculations)
+	DECLARE_DEBUG_VAR_WITH_INC(state_insert)
+	DECLARE_DEBUG_VAR_WITH_INC(state_aborted_insert)
+	DECLARE_DEBUG_VAR_WITH_INC(state_insert_from_max_loops)
+	DECLARE_DEBUG_VAR_WITH_INC(state_nop)
+	DECLARE_DEBUG_VAR_WITH_INC(state_swap)
+	DECLARE_DEBUG_VAR_WITH_INC(state_swapped)
+	DECLARE_DEBUG_VAR_WITH_INC(table1_insert)
+	DECLARE_DEBUG_VAR_WITH_INC(table2_insert)
+	DECLARE_DEBUG_VAR_WITH_INC(table1_evict)
+	DECLARE_DEBUG_VAR_WITH_INC(table2_evict)
+	// DECLARE_DEBUG_VAR_WITH_SET(time_now)
+	// DECLARE_DEBUG_VAR_WITH_SET(time_swap)
 	/*************************************/
 
-	apply {
-		if (hdr.cuckoo.isValid() && hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
-			// If swap pkt, get data from the swap header.
-			ig_md.cur_key		= hdr.cur_swap.key;
-			ig_md.cur_val		= hdr.cur_swap.val;
-			ig_md.entry_ts		= hdr.cur_swap.ts;
-		} else {
-			// Else, get data from the original headers.
-			ig_md.cur_key		= hdr.kv.key;
-			ig_md.cur_val		= hdr.kv.val;
-			ig_md.entry_ts		= ig_prsr_md.global_tstamp[47:16];
+	action set_from_cur_swap() {
+		ig_md.cur_key		= hdr.cur_swap.key;
+		ig_md.cur_val		= hdr.cur_swap.val;
+		ig_md.entry_ts		= hdr.cur_swap.ts;
+	}
+
+	action set_from_not_cur_swap() {
+		ig_md.cur_key		= hdr.kv.key;
+		ig_md.cur_val		= hdr.kv.val;
+		ig_md.entry_ts		= ig_prsr_md.global_tstamp[47:16];
+	}
+
+	table set_keys_values_ts {
+		key = {
+			hdr.cur_swap.isValid(): exact;
 		}
+
+		actions = {
+			set_from_cur_swap;
+			set_from_not_cur_swap;
+		}
+
+		const entries = {
+			true	: set_from_cur_swap();
+			false	: set_from_not_cur_swap();
+		}
+
+		size = 2;
+	}
+
+	apply {
+		// if (hdr.cur_swap.isValid()) {
+		// 	ig_md.cur_key		= hdr.cur_swap.key;
+		// 	ig_md.cur_val		= hdr.cur_swap.val;
+		// 	ig_md.entry_ts		= hdr.cur_swap.ts;
+		// 	debug_time_swap_set(hdr.cur_swap.ts);
+		// } else {
+		// 	ig_md.cur_key		= hdr.kv.key;
+		// 	ig_md.cur_val		= hdr.kv.val;
+		// 	ig_md.entry_ts		= ig_prsr_md.global_tstamp[47:16];
+		// 	debug_time_now_set(ig_prsr_md.global_tstamp[47:16]);
+		// }
+
+		set_keys_values_ts.apply();
 
 		is_server_reply.apply();
 
