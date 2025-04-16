@@ -77,12 +77,13 @@ struct ingress_metadata_t {
 	key_t					table_2_key;
 	val_t					table_1_val;
 	val_t					table_2_val;
-	bit<32>					entry_ts;
-	bit<16>					entry_ts_2;
 	key_t					swapped_key;
 	bit<8>					is_server_reply;
+	bool					was_insert_op;
 	bit<8>					cur_recirc_port_cntr;
 	bool					send_to_kvs_server;
+	bit<32>					entry_ts;
+	bit<16>					swapped_transient_val;
 }
 
 struct egress_metadata_t {}

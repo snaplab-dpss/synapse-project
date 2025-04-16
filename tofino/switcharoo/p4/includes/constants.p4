@@ -42,6 +42,7 @@ const PortId_t KVS_SERVER_PORT = 136;
 
 const bit<8> KVS_STATUS_HIT = 1;
 const bit<8> KVS_STATUS_MISS = 0;
+const bit<8> KVS_STATUS_CUCKOO = 2; // hack
 
 const bit<16> CUCKOO_PORT = 670;
 
@@ -53,8 +54,10 @@ typedef bit<VAL_WIDTH>		val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT		1525 // 100ms
+// #define ENTRY_TIMEOUT		1525000 // 100_000ms
 
 #define MAX_LOOPS			20
+// #define MAX_LOOPS			3
 
 // Cuckoo Table Size.
 #define CUCKOO_ENTRIES		8192
