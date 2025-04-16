@@ -53,15 +53,17 @@ typedef bit<KEY_WIDTH>		key_t;
 typedef bit<VAL_WIDTH>		val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
-#define ENTRY_TIMEOUT		1525 // 100ms
-// #define ENTRY_TIMEOUT		1525000 // 100_000ms
+// #define ENTRY_TIMEOUT		1525 // 100ms
+#define ENTRY_TIMEOUT		15250000 // 1000 seconds
 
-#define MAX_LOOPS			20
+#define MAX_LOOPS			50
 // #define MAX_LOOPS			3
 
 // Cuckoo Table Size.
-#define CUCKOO_ENTRIES		8192
-#define CUCKOO_IDX_WIDTH	13
+// #define CUCKOO_ENTRIES	8192
+// #define CUCKOO_IDX_WIDTH	13
+#define CUCKOO_ENTRIES		8
+#define CUCKOO_IDX_WIDTH	3
 
 // Swap Bloom Table Size.
 #define BLOOM_ENTRIES		8192
