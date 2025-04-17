@@ -181,10 +181,11 @@ control Ingress(inout header_t hdr,
 			bit<32> diff = ig_md.entry_ts - val;
 			if (diff > ENTRY_TIMEOUT) {
 				res = 0;
+				val = 0;
 			} else {
 				res = val;
+				val = ig_md.entry_ts;
 			}
-			val = ig_md.entry_ts;
 		}
 	};
 
@@ -196,8 +197,8 @@ control Ingress(inout header_t hdr,
 				res = 0;
 			} else {
 				res = val;
+				val = ig_md.entry_ts;
 			}
-			val = ig_md.entry_ts;
 		}
 	};
 
@@ -484,12 +485,13 @@ control Ingress(inout header_t hdr,
 
 				// Insert the current pkt in table 1.
 				// Get the previously values.
-				bit<32> table_1_ts = table_1_ts_query_and_swap.execute(ig_md.hash_table_1);
 
 				ig_md.table_1_key[31:0]		= swap_1_k0_31.execute(ig_md.hash_table_1);
 				ig_md.table_1_key[63:32]	= swap_1_k32_63.execute(ig_md.hash_table_1);
 				ig_md.table_1_key[95:64]	= swap_1_k64_95.execute(ig_md.hash_table_1);
 				ig_md.table_1_key[127:96]	= swap_1_k96_127.execute(ig_md.hash_table_1);
+
+				bit<32> table_1_ts = table_1_ts_query_and_swap.execute(ig_md.hash_table_1);
 
 				ig_md.table_1_val[31:0]		= swap_1_v0_31.execute(ig_md.hash_table_1);
 				ig_md.table_1_val[63:32]	= swap_1_v32_63.execute(ig_md.hash_table_1);
@@ -507,12 +509,12 @@ control Ingress(inout header_t hdr,
 
 					ig_md.hash_table_2_r = hash_table_2_recirc.get({ig_md.cur_key});
 					
-					bit<32> table_2_ts = table_2_ts_query_and_swap.execute(ig_md.hash_table_2_r);
-
 					ig_md.table_2_key[31:0]		= swap_2_k0_31.execute(ig_md.hash_table_2_r);
 					ig_md.table_2_key[63:32]	= swap_2_k32_63.execute(ig_md.hash_table_2_r);
 					ig_md.table_2_key[95:64]	= swap_2_k64_95.execute(ig_md.hash_table_2_r);
 					ig_md.table_2_key[127:96]	= swap_2_k96_127.execute(ig_md.hash_table_2_r);
+
+					bit<32> table_2_ts = table_2_ts_query_and_swap.execute(ig_md.hash_table_2_r);
 
 					ig_md.table_2_val[31:0]		= swap_2_v0_31.execute(ig_md.hash_table_2_r);
 					ig_md.table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
@@ -569,34 +571,28 @@ control Ingress(inout header_t hdr,
 
 				table_set_client_port.apply();
 
-				bool table_1_hit = false;
-				bool table_2_hit = false;
+				bit<32> table_1_key_0 = read_1_k0_31.execute(ig_md.hash_table_1);
+				bit<32> table_1_key_1 = read_1_k32_63.execute(ig_md.hash_table_1);
+				bit<32> table_1_key_2 = read_1_k64_95.execute(ig_md.hash_table_1);
+				bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
 
-				bit<32> stored_table_1_ts = 0;
-				if (hdr.kv.op == kv_ops_t.GET) {
-					stored_table_1_ts = table_1_ts_query_and_refresh.execute(ig_md.hash_table_1);
-				} else {
-					stored_table_1_ts = table_1_ts_query.execute(ig_md.hash_table_1);
-				}
-
-				if (stored_table_1_ts != 0) {
-					bit<32> table_1_key_0 = read_1_k0_31.execute(ig_md.hash_table_1);
-					bit<32> table_1_key_1 = read_1_k32_63.execute(ig_md.hash_table_1);
-					bit<32> table_1_key_2 = read_1_k64_95.execute(ig_md.hash_table_1);
-					bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
-
-					bool key_match = false;
-					if (table_1_key_0 == ig_md.cur_key[31:0]) {
-						if (table_1_key_1 == ig_md.cur_key[63:32]) {
-							if (table_1_key_2 == ig_md.cur_key[95:64]) {
-								if (table_1_key_3 == ig_md.cur_key[127:96]) {
-									key_match = true;
-								}
+				bool key_match_1 = false;
+				if (table_1_key_0 == ig_md.cur_key[31:0]) {
+					if (table_1_key_1 == ig_md.cur_key[63:32]) {
+						if (table_1_key_2 == ig_md.cur_key[95:64]) {
+							if (table_1_key_3 == ig_md.cur_key[127:96]) {
+								key_match_1 = true;
 							}
 						}
 					}
+				}
 
-					if (key_match) {
+				bool table_1_hit = false;
+
+				if (key_match_1) {
+					bit<32> stored_table_1_ts = table_1_ts_query_and_refresh.execute(ig_md.hash_table_1);
+
+					if (stored_table_1_ts != 0) {
 						if (hdr.kv.op == kv_ops_t.GET) {
 							hdr.kv.val[31:0]	= read_1_v0_31.execute(ig_md.hash_table_1);
 							hdr.kv.val[63:32]	= read_1_v32_63.execute(ig_md.hash_table_1);
@@ -618,31 +614,28 @@ control Ingress(inout header_t hdr,
 				if (!table_1_hit) {
 					ig_md.hash_table_2 = hash_table_2.get({ig_md.cur_key});
 
-					bit<32> stored_table_2_ts = 0;
-					if (hdr.kv.op == kv_ops_t.GET) {
-						stored_table_2_ts = table_2_ts_query_and_refresh.execute(ig_md.hash_table_2);
-					} else {
-						stored_table_2_ts = table_2_ts_query.execute(ig_md.hash_table_2);
-					}
+					bit<32> table_2_key_0 = read_2_k0_31.execute(ig_md.hash_table_2);
+					bit<32> table_2_key_1 = read_2_k32_63.execute(ig_md.hash_table_2);
+					bit<32> table_2_key_2 = read_2_k64_95.execute(ig_md.hash_table_2);
+					bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
 
-					if (stored_table_2_ts != 0) {
-						bit<32> table_2_key_0 = read_2_k0_31.execute(ig_md.hash_table_2);
-						bit<32> table_2_key_1 = read_2_k32_63.execute(ig_md.hash_table_2);
-						bit<32> table_2_key_2 = read_2_k64_95.execute(ig_md.hash_table_2);
-						bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
-
-						bool key_match = false;
-						if (table_2_key_0 == ig_md.cur_key[31:0]) {
-							if (table_2_key_1 == ig_md.cur_key[63:32]) {
-								if (table_2_key_2 == ig_md.cur_key[95:64]) {
-									if (table_2_key_3 == ig_md.cur_key[127:96]) {
-										key_match = true;
-									}
+					bool key_match_2 = false;
+					if (table_2_key_0 == ig_md.cur_key[31:0]) {
+						if (table_2_key_1 == ig_md.cur_key[63:32]) {
+							if (table_2_key_2 == ig_md.cur_key[95:64]) {
+								if (table_2_key_3 == ig_md.cur_key[127:96]) {
+									key_match_2 = true;
 								}
 							}
 						}
+					}
 
-						if (key_match) {
+					bool table_2_hit = false;
+
+					if (key_match_2) {
+						bit<32> stored_table_2_ts = table_2_ts_query_and_refresh.execute(ig_md.hash_table_2);
+
+						if (stored_table_2_ts != 0) {
 							if (hdr.kv.op == kv_ops_t.GET) {
 								hdr.kv.val[31:0]	= read_2_v0_31.execute(ig_md.hash_table_2);
 								hdr.kv.val[63:32]	= read_2_v32_63.execute(ig_md.hash_table_2);
