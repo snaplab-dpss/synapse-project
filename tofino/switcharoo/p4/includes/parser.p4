@@ -19,7 +19,6 @@ parser IngressParser(packet_in pkt,
 	}
 
 	state meta_init {
-		ig_md.l4_lookup = {0, 0};
 		ig_md.send_to_kvs_server = false;
 		ig_md.was_insert_op = false;
 		ig_md.swapped_transient_val = 0;
@@ -45,7 +44,6 @@ parser IngressParser(packet_in pkt,
 
 	state parse_tcp {
 		pkt.extract(hdr.tcp);
-		ig_md.l4_lookup = {hdr.tcp.src_port, hdr.tcp.dst_port};
 		transition select(hdr.tcp.src_port, hdr.tcp.dst_port) {
 			(CUCKOO_PORT, _)	: parse_kv;
 			(_, CUCKOO_PORT)	: parse_kv;
@@ -55,7 +53,6 @@ parser IngressParser(packet_in pkt,
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
-		ig_md.l4_lookup = {hdr.udp.src_port, hdr.udp.dst_port};
 		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
 			(CUCKOO_PORT, _)	: parse_kv;
 			(_, CUCKOO_PORT)	: parse_kv;
@@ -73,14 +70,6 @@ parser IngressParser(packet_in pkt,
 
 	state parse_cuckoo {
 		pkt.extract(hdr.cuckoo);
-		transition select(hdr.cuckoo.op) {
-			cuckoo_ops_t.SWAP	: parse_cur_swap;
-			default				: accept;
-		}
-	}
-
-	state parse_cur_swap {
-		pkt.extract(hdr.cur_swap);
 		transition accept;
 	}
 }

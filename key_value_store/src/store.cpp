@@ -50,7 +50,7 @@ void Store::run() {
     }
 
     for (uint16_t n = 0; n < nb_rx; n++) {
-      LOG_DEBUG("Packet received (now=%lu)", now());
+      LOG_DEBUG("[now=%lu] Packet received (%uB)", now(), rx_mbufs[n]->pkt_len);
 
       if (!check_pkt(rx_mbufs[n])) {
         LOG_DEBUG("Not a NetCache packet, dropping!");
@@ -128,6 +128,8 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
 
   netcache_hdr_t *nc_hdr = (netcache_hdr_t *)pkt_ptr;
 
+  LOG_DEBUG("Processing KVS packet with status=%u.", nc_hdr->status);
+
   key_t kv_key;
   std::memcpy(kv_key.data(), nc_hdr->key, KV_KEY_SIZE);
 
@@ -154,6 +156,9 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
   } else {
     LOG_DEBUG("Unknown query type...");
   }
+
+  // FIXME:
+  nc_hdr->status = 0xff;
 }
 
 } // namespace netcache

@@ -40,9 +40,9 @@ const PortId_t RECIRC_PORT_3 = 384;
 // Front-panel port 1
 const PortId_t KVS_SERVER_PORT = 136;
 
-const bit<8> KVS_STATUS_HIT = 1;
-const bit<8> KVS_STATUS_MISS = 0;
-const bit<8> KVS_STATUS_CUCKOO = 2; // hack
+const bit<8> KVS_STATUS_HIT		= 1;
+const bit<8> KVS_STATUS_MISS	= 0;
+const bit<8> KVS_STATUS_CUCKOO	= 2; // hack
 
 const bit<16> CUCKOO_PORT = 670;
 
@@ -53,20 +53,20 @@ typedef bit<KEY_WIDTH>		key_t;
 typedef bit<VAL_WIDTH>		val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
-// #define ENTRY_TIMEOUT		1525 // 100ms
-#define ENTRY_TIMEOUT		15250000 // 1000 seconds
+#define ENTRY_TIMEOUT		1525 // 100ms
 
-#define MAX_LOOPS			50
+#define SWAP_MAX_LOOPS		15
+#define MAX_LOOPS			5
 // #define MAX_LOOPS			3
 
 // Cuckoo Table Size.
-// #define CUCKOO_ENTRIES	8192
-// #define CUCKOO_IDX_WIDTH	13
-#define CUCKOO_ENTRIES		2
-#define CUCKOO_IDX_WIDTH	1
+#define CUCKOO_ENTRIES		8192
+#define CUCKOO_IDX_WIDTH	13
+// #define CUCKOO_ENTRIES		8
+// #define CUCKOO_IDX_WIDTH	3
 
 // Swap Bloom Table Size.
-#define BLOOM_ENTRIES		8192
-#define BLOOM_IDX_WIDTH		13
+#define BLOOM_ENTRIES		CUCKOO_ENTRIES
+#define BLOOM_IDX_WIDTH		CUCKOO_IDX_WIDTH
 
 #endif

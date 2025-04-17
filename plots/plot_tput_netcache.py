@@ -25,6 +25,10 @@ BPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps_scatter.pdf"
 PPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps_scatter.pdf"
 HEATMAP_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_heatmap.pdf"
 
+TPUT_GBPS_MIN = 0
+# TPUT_GBPS_MAX = 3000
+TPUT_GBPS_MAX = 1600
+
 
 @dataclass(frozen=True)
 class Keys:
@@ -305,7 +309,7 @@ def plot_heatmap_v2(data: Data, file: Path):
     # - Reds
 
     fig, ax = plt.subplots()
-    im = ax.imshow(matrix, vmin=0, vmax=3000, cmap="Blues", aspect="auto")
+    im = ax.imshow(matrix, vmin=0, vmax=TPUT_GBPS_MAX, cmap="Blues", aspect="auto")
 
     # Show all ticks and label them with the respective list entries
     ax.set_xticks(range(len(all_s)), labels=s_labels)
@@ -335,7 +339,7 @@ def plot_heatmap_v2(data: Data, file: Path):
         avg_label, err_label, suffix_label = avg_err_precision_to_label(bps, err)
         label = f"{avg_label}±{err_label}\n{suffix_label}bps"
 
-        color = "black" if bps < 1.5e12 else "white"
+        color = "black" if bps < TPUT_GBPS_MAX * 1e9 / 2 else "white"
 
         text = ax.text(j, i, label, ha="center", va="center", color=color)
         text.set_fontsize(7)

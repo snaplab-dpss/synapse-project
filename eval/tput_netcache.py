@@ -25,6 +25,10 @@ STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 100_000
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
+ITERATIONS = 5
+# CHURN_FPM = [0]
+# ZIPF_PARAMS = [1.2]
+# ITERATIONS = 5
 
 
 class NetCacheThroughput(Experiment):
@@ -51,7 +55,7 @@ class NetCacheThroughput(Experiment):
         experiment_log_file: Optional[str] = None,
         console: Console = Console(),
     ) -> None:
-        super().__init__(name, experiment_log_file)
+        super().__init__(name, experiment_log_file, ITERATIONS)
 
         # Experiment parameters
         self.save_name = save_name

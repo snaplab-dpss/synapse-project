@@ -53,20 +53,12 @@ header kv_h {
 header cuckoo_h {
 	bit<8>	op;
 	bit<8>	recirc_cntr;
-}
-
-header swap_entry_h {
-	bit<8>	op;
-	bit<8>	kv_op;
 	key_t	key;
 	val_t	val;
-	bit<8>	status;
-	bit<16>	port;
 	bit<32> ts;
 }
 
 struct ingress_metadata_t {
-	l4_lookup_t				l4_lookup;
 	bit<1>					has_next_swap;
 	bit<CUCKOO_IDX_WIDTH>	hash_table_1;
 	bit<CUCKOO_IDX_WIDTH>	hash_table_2;
@@ -95,7 +87,6 @@ struct header_t {
 	udp_h			udp;
 	kv_h			kv;
 	cuckoo_h		cuckoo;
-	swap_entry_h	cur_swap;
 }
 
 #endif
