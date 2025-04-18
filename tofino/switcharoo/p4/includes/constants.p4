@@ -46,6 +46,9 @@ const bit<8> KVS_STATUS_CUCKOO	= 2; // hack
 
 const bit<16> CUCKOO_PORT = 670;
 
+const bit<32> HASH_SALT_1 = 0xfbc31fc7;
+const bit<32> HASH_SALT_2 = 0x2681580b;
+
 #define KEY_WIDTH			128
 #define VAL_WIDTH			128
 
@@ -53,15 +56,18 @@ typedef bit<KEY_WIDTH>		key_t;
 typedef bit<VAL_WIDTH>		val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
-#define ENTRY_TIMEOUT		1525 // 100ms
+// #define ENTRY_TIMEOUT		1525 // 100ms
+// #define ENTRY_TIMEOUT		1024
+#define ENTRY_TIMEOUT		64 // 4ms
+// #define ENTRY_TIMEOUT		65536
+// #define ENTRY_TIMEOUT		152500000 // 1000s
 
-#define SWAP_MAX_LOOPS		15
-#define MAX_LOOPS			5
+#define MAX_LOOPS			20
 // #define MAX_LOOPS			3
 
 // Cuckoo Table Size.
-#define CUCKOO_ENTRIES		8192
-#define CUCKOO_IDX_WIDTH	13
+#define CUCKOO_ENTRIES		16384
+#define CUCKOO_IDX_WIDTH	14
 // #define CUCKOO_ENTRIES		8
 // #define CUCKOO_IDX_WIDTH	3
 
