@@ -351,6 +351,7 @@ control Ingress(inout header_t hdr,
 	DECLARE_DEBUG_VAR_WITH_INC(table2_evict)
 	DECLARE_DEBUG_VAR_WITH_INC(cache_hit)
 	DECLARE_DEBUG_VAR_WITH_INC(expired_entry)
+	DECLARE_DEBUG_VAR_WITH_INC(cache_miss_on_kvs_get)
 	/*************************************/
 
 	action ts_diff(in bit<32> ts, out bit<32> diff) {
@@ -571,6 +572,7 @@ control Ingress(inout header_t hdr,
 						// Lookup failed, recirculate the packet to insert it in the table if it's a write packet.
 						if (hdr.kv.op == kv_ops_t.GET) {
 							ig_md.send_to_kvs_server = true;
+							debug_cache_miss_on_kvs_get_inc();
 						} else {
 							hdr.cuckoo.op = cuckoo_ops_t.INSERT;
 						}
