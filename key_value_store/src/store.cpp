@@ -74,8 +74,9 @@ void Store::run() {
 bool Store::check_pkt(const rte_mbuf *mbuf) {
   constexpr const uint32_t min_size = sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) + sizeof(rte_udp_hdr) + sizeof(netcache_hdr_t);
 
-  if (mbuf->pkt_len < min_size) {
-    LOG_DEBUG("Too small for a netcache packet (%u).", mbuf->pkt_len);
+  if (mbuf->pkt_len != min_size) {
+    LOG_DEBUG("Too small/big for a netcache packet (%u).", mbuf->pkt_len);
+    log_pkt(mbuf);
     return false;
   }
 
@@ -156,9 +157,6 @@ void Store::process_netcache_query(rte_mbuf *mbuf) {
   } else {
     LOG_DEBUG("Unknown query type...");
   }
-
-  // FIXME:
-  nc_hdr->status = 0xff;
 }
 
 } // namespace netcache
