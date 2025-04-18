@@ -86,14 +86,9 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
   DEBUG("It's an HH report packet (available keys: %lu)", available_keys.size());
 
   if (!available_keys.empty()) {
-    if (nc_hdr->op == WRITE_QUERY) {
-      DEBUG("Writing key to cache directly");
-      ProcessQuery::process_query->update_cache(nc_hdr);
-      return false;
-    } else {
-      DEBUG("Asking server the value entry for this key");
-      return true;
-    }
+    DEBUG("Writing key to cache directly");
+    ProcessQuery::process_query->update_cache(nc_hdr);
+    return false;
   }
 
   DEBUG("Cache full, probing some keys...");
