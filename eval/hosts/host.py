@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .commands.command import Command
 
+
 class Host(ABC):
     def __init__(
         self,
@@ -37,7 +38,7 @@ class Host(ABC):
             if host:
                 msg = f"[{host}] {msg}"
             print(msg, file=self.log_file)
-        
+
     def crash(self, msg, host: Optional[str] = None):
         msg = f"ERROR: {msg}"
         if host:
@@ -51,22 +52,22 @@ class Host(ABC):
         self,
         host: str,
         remote_path: Path,
-    ) -> bool: 
+    ) -> bool:
         cp = subprocess.run(
-            [ "ssh", host, "test", "-f", str(remote_path) ],
+            ["ssh", host, "test", "-f", str(remote_path)],
             stdout=sys.stdout,
             stderr=sys.stdout,
         )
 
         return cp.returncode == 0
-    
+
     def remote_dir_exists(
         self,
         host: str,
         remote_path: Path,
-    ) -> bool: 
+    ) -> bool:
         cp = subprocess.run(
-            [ "ssh", host, "test", "-d", str(remote_path) ],
+            ["ssh", host, "test", "-d", str(remote_path)],
             stdout=sys.stdout,
             stderr=sys.stdout,
         )
@@ -84,7 +85,7 @@ class Host(ABC):
             return
 
         cp = subprocess.run(
-            [ "scp", "-r", str(local_path), f"{host}:{str(remote_path)}" ],
+            ["scp", "-r", str(local_path), f"{host}:{str(remote_path)}"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -105,7 +106,7 @@ class Host(ABC):
 
             if device in pcie_dev:
                 return
-        
+
         self.crash(f'Invalid PCIe device "{pcie_dev}"')
 
     def get_device_numa_node(self, pcie_dev: str) -> int:
@@ -131,13 +132,13 @@ class Host(ABC):
         assert result
         total_cpus = int(result.group(1))
 
-        return [ x for x in range(total_cpus) ]
+        return [x for x in range(total_cpus)]
 
     def get_numa_node_cpus(self, node: int):
         cmd = "lscpu"
         cmd = self.run_command(cmd)
         info = cmd.watch()
-        info = [ line for line in info.split("\n") if "NUMA" in line ]
+        info = [line for line in info.split("\n") if "NUMA" in line]
 
         assert len(info) > 0
         total_nodes_match = re.search(r"\D+(\d+)", info[0])
@@ -175,3 +176,16 @@ class Host(ABC):
             self.log_file.write(f"PCIe={pcie_dev} NUMA={numa} CPUs={cpus}\n")
 
         return cpus
+
+    def find(self, name: str, path: Path) -> list[Path]:
+        cmd = f'find {str(path)} -name "{name}"'
+
+        cmd = self.run_command(cmd)
+        info = cmd.watch()
+        code = cmd.recv_exit_status()
+
+        if code != 0:
+            self.crash(f"find command failed with code {code}")
+
+        options = [Path(p) for p in info.split("\n")]
+        return options

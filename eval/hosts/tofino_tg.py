@@ -67,18 +67,33 @@ class TofinoTGController:
         self.app_name = APP_NAME
         self.broadcast_ports = []
 
-        self.env_vars = " ".join(
-            [
-                f"SDE={self.sde}",
-                f"SDE_INSTALL={self.sde}/install",
-                f"PYTHONPATH={self.sde}/install/lib/python3.5/site-packages/tofino:{self.sde}/install/lib/python3.5/site-packages/",
-            ]
-        )
+        sde_install = f"{self.sde}/install"
+        python_path: Optional[str] = None
 
         self.host.test_connection()
 
         if not self.host.remote_dir_exists(self.repo):
             self.host.crash(f"Repo not found on remote host {self.host}")
+
+        sde_python_packages_options = self.host.find("site-packages", Path(sde_install))
+        for sde_python_packages in sde_python_packages_options:
+            self.host.log(f"Found SDE python packages candidate in {sde_python_packages}")
+            tofino_packages = sde_python_packages / "tofino"
+            if self.host.remote_dir_exists(tofino_packages):
+                self.host.log(f"Candidate chosen!")
+                python_path = f"{tofino_packages}:{sde_python_packages}"
+                break
+
+        if python_path is None:
+            self.host.crash("Unable to find SDE python packages")
+
+        self.env_vars = " ".join(
+            [
+                f"SDE={self.sde}",
+                f"SDE_INSTALL={sde_install}",
+                f"PYTHONPATH={python_path}",
+            ]
+        )
 
     def setup(
         self,

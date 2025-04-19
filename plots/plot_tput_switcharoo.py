@@ -10,14 +10,14 @@ CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"
 DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
 
-# DATA_FILE = DATA_DIR / "tput_netcache-old.csv"
-DATA_FILE = DATA_DIR / "tput_netcache.csv"
+# DATA_FILE = DATA_DIR / "tput_switcharoo-old.csv"
+DATA_FILE = DATA_DIR / "tput_switcharoo.csv"
 
-BPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps.pdf"
-PPS_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps.pdf"
-BPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_bps_scatter.pdf"
-PPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_pps_scatter.pdf"
-HEATMAP_OUTPUT_FILE = PLOTS_DIR / "tput_netcache_heatmap.pdf"
+BPS_OUTPUT_FILE = PLOTS_DIR / "tput_switcharoo_bps.pdf"
+PPS_OUTPUT_FILE = PLOTS_DIR / "tput_switcharoo_pps.pdf"
+BPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_switcharoo_bps_scatter.pdf"
+PPS_SCATTER_OUTPUT_FILE = PLOTS_DIR / "tput_switcharoo_pps_scatter.pdf"
+HEATMAP_OUTPUT_FILE = PLOTS_DIR / "tput_switcharoo_heatmap.pdf"
 
 
 def main():

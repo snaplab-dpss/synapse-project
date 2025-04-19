@@ -88,6 +88,7 @@ class Pktgen:
         crc_bits: int = 16,
         mark_warmup_packets: bool = False,
         kvs_mode: bool = False,
+        kvs_get_ratio: float = 0.99,
         seed: Optional[int] = None,
     ) -> None:
         assert not self.pktgen_active
@@ -130,6 +131,7 @@ class Pktgen:
 
         if kvs_mode:
             pktgen_options_list.append(f"--kvs-mode")
+            pktgen_options_list.append(f"--kvs-get-ratio {kvs_get_ratio}")
 
         pktgen_options = " ".join(pktgen_options_list)
 

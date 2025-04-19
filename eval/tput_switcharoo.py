@@ -4,98 +4,34 @@ import argparse
 import tomli
 import itertools
 
-from dataclasses import dataclass
 from pathlib import Path
 
 from rich.console import Console
 from rich.progress import Progress
 
-from typing import Optional, Union, Callable
+from typing import Optional
 
-from experiments.tput import ThroughputHosts
+from experiments.tput import TGHosts
 from experiments.experiment import Experiment, ExperimentTracker
 from hosts.kvs_server import KVSServer
+from hosts.switcharoo import Switcharoo, SwitcharooController
 from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
+EXPERIMENT_NAME = "Switcharoo throughput"
+DATA_FILE_NAME = "tput_switcharoo.csv"
 STORAGE_SERVER_DELAY_NS = 0
+TOTAL_FLOWS = 100_000
 KVS_GET_RATIO = 0.99
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
 ITERATIONS = 3
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
-# ITERATIONS = 3
 
 
-@dataclass
-class SynapseNF:
-    name: str
-    description: str
-    data_out: Path
-    kvs_mode: bool
-    tofino: Path
-    controller: Path
-    broadcast: Callable[[list[int]], list[int]]
-    symmetric: Callable[[list[int]], list[int]]
-    route: Callable[[list[int]], list[tuple[int, int]]]
-    nb_flows: int
-
-
-SYNAPSE_NFS = [
-    # SynapseNF(
-    #     name="echo",
-    #     description="Synapse echo",
-    #     data_out=Path("tput_synapse_echo.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-echo.p4"),
-    #     controller=Path("synthesized/synapse-echo.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    #     nb_flows=40_000,
-    # ),
-    # SynapseNF(
-    #     name="fwd",
-    #     description="Synapse forwarder",
-    #     data_out=Path("tput_synapse_fwd.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-fwd.p4"),
-    #     controller=Path("synthesized/synapse-fwd.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     nb_flows=40_000,
-    # ),
-    SynapseNF(
-        name="synapse-kvs-hhtable",
-        description="Synapse KVS HHTable",
-        data_out=Path("tput_synapse_kvs_hhtable.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
-        controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-        nb_flows=100_000,
-    ),
-    SynapseNF(
-        name="synapse-kvs-guardedmaptable",
-        description="Synapse KVS GuardedMapTable",
-        data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
-        controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-        nb_flows=100_000,
-    ),
-]
-
-
-class SynapseThroughput(Experiment):
+class SwitcharooThroughput(Experiment):
     def __init__(
         self,
         # Experiment parameters
@@ -103,17 +39,14 @@ class SynapseThroughput(Experiment):
         save_name: Path,
         delay_ns: int,
         # Hosts
-        tput_hosts: ThroughputHosts,
-        kvs_server: Optional[KVSServer],
+        tg_hosts: TGHosts,
+        switcharoo: Switcharoo,
+        switcharoo_controller: SwitcharooController,
+        kvs_server: KVSServer,
         # TG controller
         broadcast: list[int],
         symmetric: list[int],
         route: list[tuple[int, int]],
-        kvs_mode: bool,
-        # Synapse
-        p4_src_in_repo: Path,
-        controller_src_in_repo: Path,
-        dut_ports: list[int],
         # Pktgen
         total_flows: int,
         zipf_params: list[float],
@@ -129,26 +62,20 @@ class SynapseThroughput(Experiment):
         self.delay_ns = delay_ns
 
         # Hosts
-        self.tput_hosts = tput_hosts
+        self.tg_hosts = tg_hosts
+        self.switcharoo = switcharoo
+        self.switcharoo_controller = switcharoo_controller
         self.kvs_server = kvs_server
 
         # TG controller
         self.broadcast = broadcast
         self.symmetric = symmetric
         self.route = route
-        self.kvs_mode = kvs_mode
-
-        # Synapse
-        self.p4_src_in_repo = p4_src_in_repo
-        self.controller_src_in_repo = controller_src_in_repo
-        self.dut_ports = dut_ports
 
         # Pktgen
         self.total_flows = total_flows
         self.zipf_params = zipf_params
         self.churn_values_fpm = churn_values_fpm
-
-        assert not self.kvs_mode or (self.kvs_server is not None)
 
         self.console = console
 
@@ -199,37 +126,38 @@ class SynapseThroughput(Experiment):
             return
 
         self.log("Installing Tofino TG")
-        self.tput_hosts.tg_switch.install()
+        self.tg_hosts.tg_switch.install()
 
         self.log("Launching Tofino TG")
-        self.tput_hosts.tg_switch.launch()
+        self.tg_hosts.tg_switch.launch()
 
-        self.log("Installing Synapse P4 program")
-        self.tput_hosts.dut_switch.install(
-            src_in_repo=self.p4_src_in_repo,
-        )
+        self.log("Installing NetCache")
+        self.switcharoo.install()
 
-        self.log("Launching Synapse controller")
-        self.tput_hosts.dut_controller.launch(
-            src_in_repo=self.controller_src_in_repo,
-            ports=self.dut_ports,
-        )
+        self.log("Launching Switcharoo")
+        self.switcharoo.launch()
 
         self.log("Launching pktgen")
-        self.tput_hosts.pktgen.launch(kvs_mode=self.kvs_mode)
+        self.tg_hosts.pktgen.launch(kvs_mode=True)
 
         self.log("Waiting for Tofino TG")
-        self.tput_hosts.tg_switch.wait_ready()
+        self.tg_hosts.tg_switch.wait_ready()
+
+        self.log("Waiting for Switcharoo")
+        self.switcharoo.wait_ready()
+
+        self.log("Setting up Switcharoo")
+        self.switcharoo_controller.setup()
 
         self.log("Configuring Tofino TG")
-        self.tput_hosts.tg_controller.setup(
+        self.tg_hosts.tg_controller.setup(
             broadcast=self.broadcast,
             symmetric=self.symmetric,
             route=self.route,
         )
 
         self.log("Waiting for pktgen")
-        self.tput_hosts.pktgen.wait_launch()
+        self.tg_hosts.pktgen.wait_launch()
 
         self.log("Starting experiment")
 
@@ -249,19 +177,14 @@ class SynapseThroughput(Experiment):
 
             step_progress.update(task_id, description=description)
 
-            if self.kvs_mode:
-                assert self.kvs_server is not None
-                self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
-                self.kvs_server.kill_server()
-                self.kvs_server.launch(delay_ns=self.delay_ns)
-                self.kvs_server.wait_launch()
-
-            self.log("Waiting for the Synapse controller")
-            self.tput_hosts.dut_controller.wait_ready()
+            self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
+            self.kvs_server.kill_server()
+            self.kvs_server.launch(delay_ns=self.delay_ns)
+            self.kvs_server.wait_launch()
 
             self.log("Launching pktgen")
-            self.tput_hosts.pktgen.close()
-            self.tput_hosts.pktgen.launch(
+            self.tg_hosts.pktgen.close()
+            self.tg_hosts.pktgen.launch(
                 nb_flows=self.total_flows,
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
@@ -269,11 +192,11 @@ class SynapseThroughput(Experiment):
                 kvs_get_ratio=KVS_GET_RATIO,
             )
 
-            self.tput_hosts.pktgen.wait_launch()
+            self.tg_hosts.pktgen.wait_launch()
 
             report = self.find_stable_throughput(
-                tg_controller=self.tput_hosts.tg_controller,
-                pktgen=self.tput_hosts.pktgen,
+                tg_controller=self.tg_hosts.tg_controller,
+                pktgen=self.tg_hosts.pktgen,
                 churn=churn_fpm,
             )
 
@@ -292,12 +215,9 @@ class SynapseThroughput(Experiment):
 
             step_progress.update(task_id, description=description, advance=1)
 
-        self.tput_hosts.pktgen.close()
-        self.tput_hosts.dut_controller.quit()
-
-        if self.kvs_mode:
-            assert self.kvs_server is not None
-            self.kvs_server.kill_server()
+        self.tg_hosts.pktgen.close()
+        self.switcharoo.kill_switchd()
+        self.kvs_server.kill_server()
 
         step_progress.update(task_id, visible=False)
 
@@ -316,9 +236,23 @@ def main():
 
     log_file = config["logs"]["experiment"]
 
-    tput_hosts = ThroughputHosts(
-        config,
-        use_accelerator=False,
+    exp_tracker = ExperimentTracker()
+
+    tg_hosts = TGHosts(config, use_accelerator=False)
+
+    switcharoo = Switcharoo(
+        hostname=config["hosts"]["switch_dut"],
+        repo=config["repo"]["switch_dut"],
+        sde=config["devices"]["switch_dut"]["sde"],
+        tofino_version=config["devices"]["switch_dut"]["tofino_version"],
+        log_file=config["logs"]["switch_dut"],
+    )
+
+    switcharoo_controller = SwitcharooController(
+        hostname=config["hosts"]["switch_dut"],
+        repo=config["repo"]["switch_dut"],
+        sde=config["devices"]["switch_dut"]["sde"],
+        log_file=config["logs"]["controller_dut"],
     )
 
     kvs_server = KVSServer(
@@ -328,48 +262,33 @@ def main():
         log_file=config["logs"]["server"],
     )
 
-    tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
+    broadcast = config["devices"]["switch_tg"]["dut_ports"]
     symmetric = []
     route = []
 
-    exp_tracker = ExperimentTracker()
-
-    for synapse_nf in SYNAPSE_NFS:
-        broadcast = synapse_nf.broadcast(tg_dut_ports)
-        symmetric = synapse_nf.symmetric(tg_dut_ports)
-        route = synapse_nf.route(tg_dut_ports)
-
-        # Force a copy of the list to avoid modifying the original list.
-        dut_ports = list(config["devices"]["switch_dut"]["client_ports"])
-        if synapse_nf.kvs_mode:
-            server_port = config["devices"]["switch_dut"]["server_port"]
-            dut_ports.append(server_port)
-            dut_ports = sorted(dut_ports)
-
-        exp_tracker.add_experiment(
-            SynapseThroughput(
-                name=synapse_nf.description,
-                save_name=DATA_DIR / synapse_nf.data_out,
-                delay_ns=STORAGE_SERVER_DELAY_NS,
-                tput_hosts=tput_hosts,
-                kvs_server=kvs_server if synapse_nf.kvs_mode else None,
-                broadcast=broadcast,
-                symmetric=symmetric,
-                route=route,
-                kvs_mode=synapse_nf.kvs_mode,
-                p4_src_in_repo=synapse_nf.tofino,
-                controller_src_in_repo=synapse_nf.controller,
-                dut_ports=dut_ports,
-                total_flows=synapse_nf.nb_flows,
-                zipf_params=ZIPF_PARAMS,
-                churn_values_fpm=CHURN_FPM,
-                experiment_log_file=log_file,
-            )
+    exp_tracker.add_experiment(
+        SwitcharooThroughput(
+            name=EXPERIMENT_NAME,
+            save_name=DATA_DIR / DATA_FILE_NAME,
+            delay_ns=STORAGE_SERVER_DELAY_NS,
+            tg_hosts=tg_hosts,
+            switcharoo=switcharoo,
+            switcharoo_controller=switcharoo_controller,
+            kvs_server=kvs_server,
+            broadcast=broadcast,
+            symmetric=symmetric,
+            route=route,
+            total_flows=TOTAL_FLOWS,
+            zipf_params=ZIPF_PARAMS,
+            churn_values_fpm=CHURN_FPM,
+            experiment_log_file=log_file,
         )
+    )
 
     exp_tracker.run_experiments()
 
-    tput_hosts.terminate()
+    tg_hosts.terminate()
+    switcharoo.kill_switchd()
     kvs_server.kill_server()
 
 

@@ -50,7 +50,7 @@ class NetCacheController:
         self.server_port = server_port
         self.app_name = APP_NAME
 
-        self.path_to_controller = self.repo / "tofino" / "netcache" / "controller"
+        self.path_to_controller = self.repo / "tofino" / self.app_name / "controller"
 
         self.host.test_connection()
 

@@ -23,12 +23,12 @@ EXPERIMENT_NAME = "NetCache throughput"
 DATA_FILE_NAME = "tput_netcache.csv"
 STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 100_000
+KVS_GET_RATIO = 0.99
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
-ITERATIONS = 5
+ITERATIONS = 3
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
-# ITERATIONS = 5
 
 
 class NetCacheThroughput(Experiment):
@@ -176,7 +176,9 @@ class NetCacheThroughput(Experiment):
             self.kvs_server.launch(delay_ns=self.delay_ns)
             self.kvs_server.wait_launch()
 
-            self.log("Waiting for NetCache controller")
+            self.log("Relaunching NetCache")
+            self.netcache_controller.kill_controller()
+            self.netcache_controller.launch()
             self.netcache_controller.wait_ready()
 
             self.log("Launching pktgen")
@@ -186,6 +188,7 @@ class NetCacheThroughput(Experiment):
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
                 kvs_mode=True,
+                kvs_get_ratio=KVS_GET_RATIO,
             )
 
             self.tg_hosts.pktgen.wait_launch()
@@ -275,8 +278,8 @@ def main():
             netcache_controller=netcache_controller,
             kvs_server=kvs_server,
             broadcast=broadcast,
-            symmetric=[],
-            route=[],
+            symmetric=symmetric,
+            route=route,
             total_flows=TOTAL_FLOWS,
             zipf_params=ZIPF_PARAMS,
             churn_values_fpm=CHURN_FPM,
