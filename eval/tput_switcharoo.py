@@ -27,8 +27,9 @@ KVS_GET_RATIO = 0.99
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
 ITERATIONS = 3
-# CHURN_FPM = [0]
-# ZIPF_PARAMS = [1.2]
+# CHURN_FPM = [0, 1_000_000]
+# ZIPF_PARAMS = [0.4]
+# ITERATIONS = 1
 
 
 class SwitcharooThroughput(Experiment):
@@ -177,10 +178,9 @@ class SwitcharooThroughput(Experiment):
 
             step_progress.update(task_id, description=description)
 
-            self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
+            self.log(f"Launching KVS server (delay={self.delay_ns:,}ns)")
             self.kvs_server.kill_server()
             self.kvs_server.launch(delay_ns=self.delay_ns)
-            self.kvs_server.wait_launch()
 
             self.log("Launching pktgen")
             self.tg_hosts.pktgen.close()
@@ -192,7 +192,16 @@ class SwitcharooThroughput(Experiment):
                 kvs_get_ratio=KVS_GET_RATIO,
             )
 
+            self.log("Launching Switcharoo")
+            self.switcharoo.kill_switchd()
+            self.switcharoo.launch()
+
+            self.kvs_server.wait_launch()
             self.tg_hosts.pktgen.wait_launch()
+            self.switcharoo.wait_ready()
+
+            self.log("Setting up Switcharoo")
+            self.switcharoo_controller.setup()
 
             report = self.find_stable_throughput(
                 tg_controller=self.tg_hosts.tg_controller,

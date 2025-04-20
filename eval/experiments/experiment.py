@@ -143,12 +143,12 @@ class Experiment:
 
         tg_controller.reset_to_default_acceleration()
 
-    def find_stable_throughput(
+    def __find_stable_throughput(
         self,
         tg_controller: TofinoTGController,
         pktgen: Pktgen,
         churn: int,
-        search_steps: int = DEFAULT_THROUGHPUT_SEARCH_STEPS,
+        search_steps: int,
     ) -> ThroughputReport:
         self.log("Warming up ports...")
         self.warmup_ports(tg_controller, pktgen)
@@ -179,8 +179,8 @@ class Experiment:
             self.log()
             self.log(f"[{i+1}/{search_steps}] Trying rate {current_rate:,} Mbps")
 
-            pktgen.set_rate(WARMUP_RATE)
             pktgen.set_churn(0)
+            pktgen.set_rate(WARMUP_RATE)
             pktgen.start()
             sleep(WARMUP_TIME_SEC)
             pktgen.set_rate(current_rate)
@@ -259,6 +259,31 @@ class Experiment:
         self.log(f"Winner {winner_report.dut_egress_pps / 1e6:12.5f} Mpps {winner_report.dut_egress_bps / 1e9:12.5f} Gbps")
 
         return winner_report
+
+    def find_stable_throughput(
+        self,
+        tg_controller: TofinoTGController,
+        pktgen: Pktgen,
+        churn: int,
+        search_steps: int = DEFAULT_THROUGHPUT_SEARCH_STEPS,
+    ) -> ThroughputReport:
+        report = self.__find_stable_throughput(
+            tg_controller=tg_controller,
+            pktgen=pktgen,
+            churn=churn,
+            search_steps=search_steps,
+        )
+
+        while report.requested_bps == 0:
+            self.log("That was probably a bogus attempt, trying again...")
+            report = self.__find_stable_throughput(
+                tg_controller=tg_controller,
+                pktgen=pktgen,
+                churn=churn,
+                search_steps=search_steps,
+            )
+
+        return report
 
 
 class ExperimentTracker:
