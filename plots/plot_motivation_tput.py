@@ -97,9 +97,7 @@ def plot(data: dict):
     ax.set_xticks(ind + (3.0 / 2) * bar_width, labels)
 
     ax.legend(bbox_to_anchor=(0.5, 1.4), loc="upper center", ncols=3)
-    # ax.legend(loc='best')
     fig.set_size_inches(width / 2, height * 0.5)
-    # fig.tight_layout(pad=0.1)
 
     print("-> ", OUTPUT_FILE)
     plt.savefig(str(OUTPUT_FILE))
