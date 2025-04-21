@@ -21,31 +21,40 @@ MAX_SKEW = 1
 
 
 @dataclass(frozen=True)
-class Keys:
+class Key:
     s: float
     churn_fpm: int
 
 
 class HeatmapData:
     def __init__(self):
-        self.raw_data: dict[Keys, list[Values]] = {}
+        self.raw_data: dict[Key, list[Values]] = {}
 
-    def add(self, key: Keys, values: Values):
+    def add(self, key: Key, values: Values):
         if key not in self.raw_data:
             self.raw_data[key] = []
         self.raw_data[key].append(values)
 
-    def get_raw(self) -> dict[Keys, list[Values]]:
+    def filter(self, keys: list[Key]):
+        new_heatmap_data = HeatmapData()
+        for key, values in self.raw_data.items():
+            if key not in keys:
+                continue
+            for value in values:
+                new_heatmap_data.add(key, value)
+        return new_heatmap_data
+
+    def get_raw(self) -> dict[Key, list[Values]]:
         return self.raw_data
 
-    def get_keys(self) -> list[Keys]:
+    def get_keys(self) -> list[Key]:
         return list(self.raw_data.keys())
 
-    def get_values(self, key: Keys) -> list[Values]:
+    def get_values(self, key: Key) -> list[Values]:
         return self.raw_data[key]
 
-    def get_avg_values(self) -> dict[Keys, Values]:
-        data: dict[Keys, Values] = {}
+    def get_avg_values(self) -> dict[Key, Values]:
+        data: dict[Key, Values] = {}
         for key in self.raw_data.keys():
             if len(self.raw_data[key]) == 1:
                 data[key] = self.raw_data[key][0]
@@ -62,8 +71,8 @@ class HeatmapData:
 
         return data
 
-    def get_stdev_values(self) -> dict[Keys, Values]:
-        data: dict[Keys, Values] = {}
+    def get_stdev_values(self) -> dict[Key, Values]:
+        data: dict[Key, Values] = {}
         for key in self.raw_data.keys():
             if len(self.raw_data[key]) == 1:
                 data[key] = Values(0, 0, 0, 0, 0, 0, 0)
@@ -90,7 +99,7 @@ def parse_heatmap_data_file(file: Path) -> HeatmapData:
 
             parts = line.split(",")
 
-            keys = Keys(
+            keys = Key(
                 float(parts[1]),
                 int(parts[2]),
             )
@@ -124,8 +133,8 @@ def plot_bps(data: HeatmapData, file: Path):
 
         ax.set_title(f"Zipf parameter: {s:.2f}")
 
-        avg_tput_gbps = [avg_data[Keys(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
-        stdev_tput_gbps = [data.get_stdev_values()[Keys(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
+        avg_tput_gbps = [avg_data[Key(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
+        stdev_tput_gbps = [data.get_stdev_values()[Key(s, churn)].dut_egress_bps / 1e9 for churn in all_churn]
 
         ax.errorbar(churn_labels, avg_tput_gbps, yerr=stdev_tput_gbps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
         ax.bar(churn_labels, avg_tput_gbps)
@@ -173,8 +182,8 @@ def plot_pps(data: HeatmapData, file: Path):
         ax.set_title(f"Zipf parameter: {s:.2f}")
 
         churn_labels = [whole_number_to_label(churn) for churn in all_churn]
-        avg_tput_mpps = [avg_data[Keys(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
-        stdev_tput_mpps = [data.get_stdev_values()[Keys(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
+        avg_tput_mpps = [avg_data[Key(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
+        stdev_tput_mpps = [data.get_stdev_values()[Key(s, churn)].dut_egress_pps / 1e6 for churn in all_churn]
 
         ax.errorbar(churn_labels, avg_tput_mpps, yerr=stdev_tput_mpps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
         ax.bar(churn_labels, avg_tput_mpps)
@@ -287,7 +296,7 @@ def plot_heatmap_v2(data: HeatmapData, file: Path):
     # - Blues
     # - Reds
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(constrained_layout=True)
     im = ax.imshow(matrix, vmin=0, vmax=TPUT_MPPS_MAX, cmap="Blues", aspect="auto")
 
     # Show all ticks and label them with the respective list entries
@@ -325,7 +334,7 @@ def plot_heatmap_v2(data: HeatmapData, file: Path):
         text.set_fontweight("bold")
 
     fig.set_size_inches(width * 0.6, height * 1)
-    fig.tight_layout()
+    # fig.tight_layout(pad=0.1)
 
     print("-> ", file)
     plt.savefig(str(file))
@@ -348,7 +357,7 @@ def plot_bps_scatter(data: HeatmapData, file: Path):
 
         for j in range(len(all_churn)):
             churn = all_churn[j]
-            key = Keys(s, churn)
+            key = Key(s, churn)
             values = [v.dut_egress_bps / 1e9 for v in raw_data[key]]
             avg_value = avg_data[key].dut_egress_bps / 1e9
 
