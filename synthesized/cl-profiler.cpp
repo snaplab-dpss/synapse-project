@@ -44,6 +44,17 @@ extern "C" {
 
 using json = nlohmann::json;
 
+constexpr const uint16_t DROP = ((uint16_t)-1);
+constexpr const uint16_t FLOOD = ((uint16_t)-2);
+
+constexpr const uint16_t MIN_PKT_SIZE_BYTES = 64; // With CRC
+constexpr const uint16_t MAX_PKT_SIZE_BYTES = 1518; // With CRC
+
+constexpr const char* const DEFAULT_SRC_MAC = "90:e2:ba:8e:4f:6c";
+constexpr const char* const DEFAULT_DST_MAC = "90:e2:ba:8e:4f:6d";
+
+constexpr const time_ns_t PROFILING_EXPIRATION_TIME_NS = 1'000'000'000LL; // 1 second
+
 #define NF_INFO(text, ...)                                                                                             \
   printf(text "\n", ##__VA_ARGS__);                                                                                    \
   fflush(stdout);
@@ -56,16 +67,7 @@ using json = nlohmann::json;
 #define NF_DEBUG(...)
 #endif // ENABLE_LOG
 
-#define DROP ((uint16_t)-1)
-#define FLOOD ((uint16_t)-2)
 
-#define MIN_PKT_SIZE 64   // With CRC
-#define MAX_PKT_SIZE 1518 // With CRC
-
-#define DEFAULT_SRC_MAC "90:e2:ba:8e:4f:6c"
-#define DEFAULT_DST_MAC "90:e2:ba:8e:4f:6d"
-
-#define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
 #define PARSE_ERROR(argv, format, ...)                                                                                 \
   nf_config_usage(argv);                                                                                               \
@@ -97,7 +99,7 @@ bool nf_parse_etheraddr(const char *str, struct rte_ether_addr *addr) {
 }
 
 struct pkt_t {
-  uint8_t data[MAX_PKT_SIZE];
+  uint8_t data[MAX_PKT_SIZE_BYTES];
   uint32_t len;
   time_ns_t ts;
 };
@@ -357,6 +359,12 @@ void nf_config_init(int argc, char **argv) {
 
 bool warmup;
 
+int profiler_expire_items_single_map(struct DoubleChain *dchain, struct Vector *vector, struct Map *map, time_ns_t time)  {
+  if (!warmup)
+    return expire_items_single_map(dchain, vector, map, time - PROFILING_EXPIRATION_TIME_NS);
+  return 0;
+}
+
 struct Stats {
   struct key_t {
     uint8_t *data;
@@ -422,7 +430,7 @@ struct MapStats {
   std::vector<epoch_t> epochs;
   time_ns_t epoch_duration;
 
-  MapStats() : epoch_duration(EPOCH_DURATION_NS) {}
+  MapStats() : epoch_duration(PROFILING_EXPIRATION_TIME_NS) {}
 
   void init(int op) { stats_per_node.insert({op, Stats()}); }
 
@@ -1009,7 +1017,7 @@ bool nf_init() {
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
   // Node 134
   inc_path_counter(134);
-  int freed_flows = expire_items_single_map(dchain, vector, map, (-100000000LL) + (now));
+  int freed_flows = profiler_expire_items_single_map(dchain, vector, map, now);
   // Node 135
   inc_path_counter(135);
   int cleanup_success = cms_periodic_cleanup(cms, now);

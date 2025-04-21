@@ -101,6 +101,16 @@ SimplePlacer::~SimplePlacer() {
 
 u8 SimplePlacer::get_used_digests() const { return used_digests; }
 
+u8 SimplePlacer::get_used_stages() const {
+  int used_stages = 0;
+  for (const Stage &stage : stages) {
+    if (!stage.tables.empty()) {
+      used_stages++;
+    }
+  }
+  return used_stages;
+}
+
 struct SimplePlacer::placement_t {
   int stage_id;
   bits_t sram;

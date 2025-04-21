@@ -44,6 +44,7 @@ void update_map_get_success_hit_rate(Context &ctx, const LibBDD::Node *map_get, 
   ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), new_success_hr);
   ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), new_failure_hr);
 }
+
 } // namespace
 
 std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {

@@ -17,6 +17,8 @@ TPUT_GBPS_MAX = 1600
 TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
+MAX_SKEW = 1
+
 
 @dataclass(frozen=True)
 class Keys:
@@ -264,7 +266,7 @@ def plot_heatmap(data: HeatmapData, file: Path):
 
 def plot_heatmap_v2(data: HeatmapData, file: Path):
     avg_data = data.get_avg_values()
-    keys = avg_data.keys()
+    keys = [k for k in avg_data.keys() if k.s <= MAX_SKEW]
     all_s = sorted(set([key.s for key in keys]))
     all_churn = sorted(set([key.churn_fpm for key in keys]), reverse=True)
 
@@ -322,7 +324,7 @@ def plot_heatmap_v2(data: HeatmapData, file: Path):
         text.set_fontsize(7)
         text.set_fontweight("bold")
 
-    fig.set_size_inches(width * 0.7, height * 1)
+    fig.set_size_inches(width * 0.6, height * 1)
     fig.tight_layout()
 
     print("-> ", file)

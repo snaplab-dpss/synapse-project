@@ -42,6 +42,16 @@ HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table
   }).detach();
 }
 
+bool HHTable::get(const buffer_t &k, u32 &v) {
+  auto found_it = key_to_index.find(k);
+  if (found_it == key_to_index.end()) {
+    return false;
+  }
+
+  v = found_it->second;
+  return true;
+}
+
 bool HHTable::insert(const buffer_t &key) {
   LOG_DEBUG("Inserting key %s", key.to_string(true).c_str());
 

@@ -15,7 +15,8 @@ constexpr const u16 ETHERTYPE_LOOPBACK = 0x9000; /* used to test interfaces */
 constexpr const bytes_t CRC_SIZE_BYTES      = 4;
 constexpr const bytes_t PREAMBLE_SIZE_BYTES = 8;
 constexpr const bytes_t IPG_SIZE_BYTES      = 12;
-constexpr const bytes_t MTU_SIZE_BYTES      = 1500;
+constexpr const bytes_t MIN_PKT_SIZE_BYTES  = 64;
+constexpr const bytes_t MAX_PKT_SIZE_BYTES  = 1500;
 
 struct ether_addr_t {
   u8 addr_bytes[6];

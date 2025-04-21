@@ -45,15 +45,17 @@ public:
           const std::vector<std::string> &count_min_sketch_reg_names, const std::string &reg_threshold_name, const std::string &digest_name,
           time_ms_t timeout);
 
+  bool get(const buffer_t &k, u32 &v);
+
+private:
+  std::vector<u32> calculate_hashes(const buffer_t &key);
+  u32 cms_get_min(const std::vector<u32> &hashes);
+
   bool insert(const buffer_t &key);
   void replace(u32 index, const buffer_t &key);
   void probabilistic_replace(const buffer_t &key);
   void remove(const buffer_t &key);
   void clear_counters();
-
-private:
-  std::vector<u32> calculate_hashes(const buffer_t &key);
-  u32 cms_get_min(const std::vector<u32> &hashes);
 
   static std::vector<Table> build_tables(const std::vector<std::string> &table_names);
   static std::vector<Register> build_count_min_sketch(const std::vector<std::string> &cms_reg_names);

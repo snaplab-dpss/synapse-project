@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
   lan_pcap_file += "-lan.pcap";
   wan_pcap_file += "-wan.pcap";
 
-  LibCore::PcapWriter lan_writer(lan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
-  LibCore::PcapWriter wan_writer(wan_pcap_file.c_str(), pcap_reader.assumes_ip(), true);
+  LibCore::PcapWriter lan_writer(lan_pcap_file.c_str(), pcap_reader.assumes_ip());
+  LibCore::PcapWriter wan_writer(wan_pcap_file.c_str(), pcap_reader.assumes_ip());
 
   std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> lan_flows;
   std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> wan_flows;

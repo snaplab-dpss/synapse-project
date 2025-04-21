@@ -440,11 +440,10 @@ private:
   pcap_t *pd;
   pcap_dumper_t *pdumper;
   bool assume_ip;
-  bool compact;
 
 public:
-  PcapWriter(const std::filesystem::path &_output_fname, bool _assume_ip, bool _compact)
-      : output_fname(_output_fname), pd(NULL), pdumper(NULL), assume_ip(_assume_ip), compact(_compact) {
+  PcapWriter(const std::filesystem::path &_output_fname, bool _assume_ip)
+      : output_fname(_output_fname), pd(nullptr), pdumper(nullptr), assume_ip(_assume_ip) {
     if (assume_ip) {
       pd = pcap_open_dead(DLT_RAW, 65535 /* snaplen */);
     } else {
@@ -454,26 +453,52 @@ public:
     pdumper = pcap_dump_open(pd, _output_fname.c_str());
 
     if (pdumper == nullptr) {
-      panic("Unable to open file %s for writing", _output_fname.c_str());
+      panic("Unable to open file %s for writing: %s", _output_fname.c_str(), pcap_geterr(pd));
     }
   }
 
-  PcapWriter(const std::filesystem::path &_output_fname) : PcapWriter(_output_fname, false, true) {}
+  PcapWriter(const std::filesystem::path &_output_fname) : PcapWriter(_output_fname, false) {}
+
+  PcapWriter(const PcapWriter &)            = delete;
+  PcapWriter &operator=(const PcapWriter &) = delete;
+
+  PcapWriter(PcapWriter &&other) : output_fname(other.output_fname), pd(other.pd), pdumper(other.pdumper), assume_ip(other.assume_ip) {
+    other.pd      = nullptr;
+    other.pdumper = nullptr;
+  }
+
+  PcapWriter &operator=(PcapWriter &&other) {
+    if (this != &other) {
+      output_fname = other.output_fname;
+      pd           = other.pd;
+      pdumper      = other.pdumper;
+      assume_ip    = other.assume_ip;
+
+      other.pd      = nullptr;
+      other.pdumper = nullptr;
+    }
+    return *this;
+  }
 
   const std::filesystem::path &get_output_fname() const { return output_fname; }
 
   void write(const u8 *pkt, u16 hdrs_len, u16 total_len, time_ns_t ts) {
-    time_s_t sec   = ts / 1'000'000'000;
-    time_us_t usec = (ts % 1'000'000'000) / 1'000;
-    pcap_pkthdr pcap_hdr{{sec, usec}, hdrs_len, total_len};
-    pcap_dump((u8 *)pdumper, &pcap_hdr, pkt);
+    const time_s_t sec   = ts / 1'000'000'000;
+    const time_us_t usec = (ts % 1'000'000'000) / 1'000;
+    const pcap_pkthdr pcap_hdr{{sec, usec}, hdrs_len, total_len};
+    pcap_dump(reinterpret_cast<u8 *>(pdumper), &pcap_hdr, pkt);
   }
 
   ~PcapWriter() {
-    if (pd)
-      pcap_close(pd);
-    if (pdumper)
+    if (pdumper) {
       pcap_dump_close(pdumper);
+      pdumper = nullptr;
+    }
+
+    if (pd) {
+      pcap_close(pd);
+      pd = nullptr;
+    }
   }
 };
 

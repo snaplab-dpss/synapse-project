@@ -27,6 +27,7 @@ PORT_SETUP_RATE = 1  # 1 Mbps
 WARMUP_TIME_SEC = 5
 WARMUP_RATE = MIN_THROUGHPUT
 REST_TIME_SEC = 5
+BOGUS_RETRIES = 4
 
 DEFAULT_THROUGHPUT_SEARCH_STEPS = 10
 DEFAULT_EXPERIMENT_ITERATIONS = 5
@@ -274,14 +275,22 @@ class Experiment:
             search_steps=search_steps,
         )
 
+        bogus_retry = 0
         while report.requested_bps == 0:
+            if bogus_retry >= BOGUS_RETRIES:
+                self.log("Bogus retry limit reached, stopping search.")
+                break
+
             self.log("That was probably a bogus attempt, trying again...")
+
             report = self.__find_stable_throughput(
                 tg_controller=tg_controller,
                 pktgen=pktgen,
                 churn=churn,
                 search_steps=search_steps,
             )
+
+            bogus_retry += 1
 
         return report
 

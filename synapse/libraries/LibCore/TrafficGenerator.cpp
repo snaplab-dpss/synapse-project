@@ -2,16 +2,16 @@
 
 namespace LibCore {
 
-TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config)
-    : nf(_nf), config(_config), template_packet(build_pkt_template()), uniform_rand(_config.random_seed, 0, _config.total_flows - 1),
-      zipf_rand(_config.random_seed, _config.zipf_param, _config.total_flows), pd(NULL), pdumper(NULL), client_dev_it(0), counters(0),
-      flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
+TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config, bool _assume_ip)
+    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()),
+      uniform_rand(_config.random_seed, 0, _config.total_flows - 1), zipf_rand(_config.random_seed, _config.zipf_param, _config.total_flows),
+      pd(NULL), pdumper(NULL), client_dev_it(0), counters(0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
   for (device_t client_dev : config.client_devices) {
-    warmup_writers.emplace(client_dev, get_warmup_pcap_fname(nf, config, client_dev));
+    warmup_writers.emplace(client_dev, PcapWriter(get_warmup_pcap_fname(nf, config, client_dev), assume_ip));
   }
 
   for (device_t dev : config.devices) {
-    writers.emplace(dev, get_pcap_fname(nf, config, dev));
+    writers.emplace(dev, PcapWriter(get_pcap_fname(nf, config, dev), assume_ip));
   }
 
   for (flow_idx_t i = 0; i < config.total_flows; i++) {
@@ -36,7 +36,7 @@ void TrafficGenerator::config_t::print() const {
   printf("#packets:    %lu\n", total_packets);
   printf("#flows:      %lu\n", total_flows);
   printf("packet size: %u\n", packet_size);
-  printf("rate:        %lu mbps\n", rate / 1'000'000);
+  printf("rate:        %lu Mbps\n", rate / 1'000'000);
   printf("churn:       %lu fpm\n", churn);
   switch (traffic_type) {
   case TrafficType::Uniform:
@@ -91,9 +91,11 @@ TrafficGenerator::pkt_t TrafficGenerator::build_pkt_template() const {
 }
 
 void TrafficGenerator::generate() {
-  const u64 goal = config.total_packets;
-  u64 counter    = 0;
-  int progress   = -1;
+  const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
+  const bytes_t pkt_len  = config.packet_size;
+  const u64 goal         = config.total_packets;
+  u64 counter            = 0;
+  int progress           = -1;
 
   for (const auto &[dev, writer] : writers) {
     printf("Dev %u: %s\n", dev, writer.get_output_fname().c_str());
@@ -127,7 +129,9 @@ void TrafficGenerator::generate() {
 
     const device_t dev = flows_to_dev.at(flow_idx);
     const pkt_t pkt    = build_packet(dev, flow_idx);
-    writers.at(dev).write((const u8 *)&pkt, config.packet_size, config.packet_size, current_time);
+    const u8 *data     = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
+
+    writers.at(dev).write(data, hdrs_len, pkt_len, current_time);
 
     if (std::optional<device_t> res_dev = get_response_dev(dev, flow_idx)) {
       flows_to_dev[flow_idx] = *res_dev;
@@ -188,6 +192,9 @@ void TrafficGenerator::report() const {
 }
 
 void TrafficGenerator::generate_warmup() {
+  const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
+  const bytes_t pkt_len  = config.packet_size;
+
   u64 counter  = 0;
   u64 goal     = config.total_flows;
   int progress = -1;
@@ -203,7 +210,9 @@ void TrafficGenerator::generate_warmup() {
       }
 
       const pkt_t pkt = build_packet(dev, flow_idx);
-      warmup_writer.write((const u8 *)&pkt, config.packet_size, config.packet_size, current_time);
+      const u8 *data  = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
+
+      warmup_writer.write(data, hdrs_len, pkt_len, current_time);
 
       counter++;
       const int current_progress = (counter * 100) / goal;

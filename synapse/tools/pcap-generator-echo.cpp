@@ -55,7 +55,9 @@ private:
 
 public:
   EchoTrafficGenerator(const config_t &_config, const std::vector<LibCore::flow_t> &_base_flows)
-      : TrafficGenerator("echo", _config), flows(_base_flows) {}
+      : TrafficGenerator("echo", _config, true), flows(_base_flows) {}
+
+  virtual bytes_t get_hdrs_len() const override { return sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t); }
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());

@@ -27,13 +27,13 @@ constexpr const bytes_t VALUE_SIZE_BYTES{16};
 using kv_key_t   = std::array<u8, KEY_SIZE_BYTES>;
 using kv_value_t = std::array<u8, VALUE_SIZE_BYTES>;
 
-enum kvs_op {
+enum kvs_op_t {
   KVS_OP_GET = 0,
   KVS_OP_PUT = 1,
   KVS_OP_DEL = 2,
 };
 
-enum kvs_status {
+enum kvs_status_t {
   KVS_STATUS_MISS = 0,
   KVS_STATUS_HIT  = 1,
 };
@@ -76,27 +76,59 @@ std::vector<kv_key_t> get_base_keys(const config_t &config) {
   return keys;
 }
 
+struct kvs_op_ratio_t {
+  u64 get;
+  u64 put;
+};
+
+static kvs_op_ratio_t calculate_kvs_op_ratio(double get_ratio) {
+  struct kvs_op_ratio_t ratio = {.get = 0, .put = 0};
+
+  u64 total = 1;
+
+  double lhs = -1;
+  while (std::modf(get_ratio, &lhs) != 0) {
+    total *= 10;
+    get_ratio *= 10;
+  }
+
+  ratio.get = static_cast<u64>(get_ratio);
+  ratio.put = total - ratio.get;
+
+  assert(ratio.get + ratio.put > 0 && "Invalid KVS ratio");
+
+  return ratio;
+}
+
 class KVSTrafficGenerator : public LibCore::TrafficGenerator {
 private:
+  const kvs_op_ratio_t kvs_op_ratio;
+
   std::vector<kv_key_t> keys;
+  std::vector<u64> kvs_op_seq;
 
 public:
-  KVSTrafficGenerator(const config_t &_config, const std::vector<kv_key_t> &_base_keys) : TrafficGenerator("kvs", _config), keys(_base_keys) {}
+  KVSTrafficGenerator(const config_t &_config, const kvs_op_ratio_t &_kvs_op_ratio, const std::vector<kv_key_t> &_base_keys)
+      : TrafficGenerator("kvs", _config, true), kvs_op_ratio(_kvs_op_ratio), keys(_base_keys), kvs_op_seq(_base_keys.size(), kvs_op_ratio.get) {}
+
+  virtual bytes_t get_hdrs_len() const override { return sizeof(ether_addr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + sizeof(kvs_hdr_t); }
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < keys.size());
-    keys[flow_idx] = random_key();
+    keys[flow_idx]       = random_key();
+    kvs_op_seq[flow_idx] = kvs_op_ratio.get;
     flows_swapped++;
   }
 
   virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
     pkt_t pkt          = template_packet;
     const kv_key_t key = keys[flow_idx];
+    const kvs_op_t op  = get_next_op(flow_idx);
 
     pkt.udp_hdr.dst_port = bswap16(KVSTORE_PORT);
 
-    kvs_hdr_t *kvs_hdr   = (kvs_hdr_t *)pkt.payload;
-    kvs_hdr->op          = KVS_OP_PUT;
+    kvs_hdr_t *kvs_hdr   = reinterpret_cast<kvs_hdr_t *>(pkt.payload);
+    kvs_hdr->op          = op;
     kvs_hdr->status      = KVS_STATUS_MISS;
     kvs_hdr->client_port = 0;
 
@@ -107,12 +139,20 @@ public:
   }
 
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return std::nullopt; }
+
+private:
+  kvs_op_t get_next_op(flow_idx_t flow_idx) {
+    const kvs_op_t op    = kvs_op_seq[flow_idx] < kvs_op_ratio.get ? KVS_OP_GET : KVS_OP_PUT;
+    kvs_op_seq[flow_idx] = (kvs_op_seq[flow_idx] + 1) % (kvs_op_ratio.get + kvs_op_ratio.put);
+    return op;
+  }
 };
 
 int main(int argc, char *argv[]) {
   CLI::App app{"Traffic generator for the kvs nf."};
 
   LibCore::TrafficGenerator::config_t config;
+  double get_ratio{0.99};
 
   app.add_option("--out", config.out_dir, "Output directory.")->default_val(TrafficGenerator::DEFAULT_OUTPUT_DIR);
   app.add_option("--packets", config.total_packets, "Total packets.")->default_val(TrafficGenerator::DEFAULT_TOTAL_PACKETS);
@@ -129,6 +169,7 @@ int main(int argc, char *argv[]) {
   app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(TrafficGenerator::DEFAULT_ZIPF_PARAM);
   app.add_option("--devs", config.devices, "Devices.")->required();
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
+  app.add_option("--get-ratio", get_ratio, "Ratio of GET/PUT requests.");
   app.add_flag("--dry-run", config.dry_run, "Print out the configuration values without generating the pcaps.")->default_val(false);
 
   CLI11_PARSE(app, argc, argv);
@@ -143,8 +184,9 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  const kvs_op_ratio_t kvs_ratio  = calculate_kvs_op_ratio(get_ratio);
   std::vector<kv_key_t> base_keys = get_base_keys(config);
-  KVSTrafficGenerator generator(config, base_keys);
+  KVSTrafficGenerator generator(config, kvs_ratio, base_keys);
 
   generator.generate_warmup();
   generator.generate();

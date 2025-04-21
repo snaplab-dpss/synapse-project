@@ -60,7 +60,7 @@ private:
 public:
   CLTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
                      const std::vector<LibCore::flow_t> &_base_flows)
-      : TrafficGenerator("cl", _config), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
+      : TrafficGenerator("cl", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
         lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
     for (LibCore::flow_t &flow : flows) {
       const device_t lan_dev = get_current_client_dev();
@@ -73,6 +73,8 @@ public:
 
     reset_client_dev();
   }
+
+  virtual bytes_t get_hdrs_len() const override { return sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t); }
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());

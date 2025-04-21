@@ -22,10 +22,10 @@ from utils.constants import *
 STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
+ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1]
 ITERATIONS = 3
 # CHURN_FPM = [0]
-# ZIPF_PARAMS = [1.2]
+# ZIPF_PARAMS = [1]
 # ITERATIONS = 3
 
 

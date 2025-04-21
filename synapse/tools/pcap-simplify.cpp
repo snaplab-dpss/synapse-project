@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   std::filesystem::path filtered_pcap_file = pcap_file.filename().stem();
   filtered_pcap_file += "-filtered.pcap";
 
-  LibCore::PcapWriter filtered_writer(filtered_pcap_file.c_str(), true, true);
+  LibCore::PcapWriter filtered_writer(filtered_pcap_file.c_str(), true);
 
   u64 total_pkts = pcap_reader.get_total_pkts();
   u64 pkt_count  = 0;

@@ -1520,7 +1520,28 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
-  panic("TODO: Controller::HHTableRead");
+
+  const addr_t obj                          = node->get_obj();
+  const klee::ref<klee::Expr> key           = node->get_key();
+  const klee::ref<klee::Expr> value         = node->get_value();
+  const LibCore::symbol_t &map_has_this_key = node->get_hit();
+
+  const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, obj);
+
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, hh_table->id + "_key", key, true);
+  const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << value_var.name << ";\n";
+
+  coder.indent();
+  const var_t found_var = alloc_var("found", map_has_this_key.expr, {}, NO_OPTION);
+  coder << "bool " << found_var.name << " = ";
+  coder << "state->" << hh_table->id << ".get(";
+  coder << key_var.name;
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 

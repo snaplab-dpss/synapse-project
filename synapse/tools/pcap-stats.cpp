@@ -198,8 +198,7 @@ void print_report(const report_t &report) {
   printf("End:                      %s\n", LibCore::fmt_time_hh(report.end).c_str());
   printf("Duration:                 %s\n", LibCore::fmt_time_duration_hh(report.start, report.end).c_str());
   printf("Total packets:            %s\n", LibCore::fmt(report.total_pkts).c_str());
-  printf("Total TCP/UDP packets:    %s (%d%%)\n", LibCore::fmt(report.tcpudp_pkts).c_str(),
-         (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
+  printf("Total TCP/UDP packets:    %s (%d%%)\n", LibCore::fmt(report.tcpudp_pkts).c_str(), (int)(100.0 * report.tcpudp_pkts / report.total_pkts));
   printf("Pkt sizes:                %.2f ± %.2f B\n", report.pkt_sizes_cdf.get_avg(), report.pkt_sizes_cdf.get_stdev());
   printf("Pkt sizes CDF:\n");
   for (const auto &[size, prob] : report.pkt_sizes_cdf.get_cdf()) {

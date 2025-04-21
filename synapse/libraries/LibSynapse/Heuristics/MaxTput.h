@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibSynapse/Heuristics/Heuristic.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 #include <unordered_map>
 
@@ -31,6 +32,7 @@ public:
       : HeuristicCfg("MaxTput", {
                                     BUILD_METRIC(MaxTputCfg, get_bdd_progress, Objective::Max),
                                     BUILD_METRIC(MaxTputCfg, get_tput_speculation, Objective::Max),
+                                    BUILD_METRIC(MaxTputCfg, get_pipeline_usage, Objective::Min),
                                 }) {}
 
   MaxTputCfg &operator=(const MaxTputCfg &other) {
@@ -61,6 +63,10 @@ public:
     return {
         build_meta_tput_estimate(ep),
         build_meta_tput_speculation(ep),
+        heuristic_metadata_t{
+            .name        = "Stages",
+            .description = std::to_string(get_pipeline_usage(ep)),
+        },
     };
   }
 
@@ -71,6 +77,11 @@ private:
   }
 
   i64 get_tput_speculation(const EP *ep) const { return ep->speculate_tput_pps(); }
+
+  i64 get_pipeline_usage(const EP *ep) const {
+    const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();
+    return tna.get_simple_placer().get_used_stages();
+  }
 };
 
 } // namespace LibSynapse

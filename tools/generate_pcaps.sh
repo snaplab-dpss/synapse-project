@@ -17,8 +17,8 @@ SYNAPSE_DIR=$PROJECT_DIR/synapse
 
 mkdir -p $PCAPS_DIR
 
-TOTAL_PACKETS=10000000
-PACKET_SIZE=200
+TOTAL_PACKETS=50000000
+PACKET_SIZE=250
 
 ####################
 #       Echo       #

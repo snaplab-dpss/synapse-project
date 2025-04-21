@@ -4,6 +4,7 @@
 #include <LibCore/RandomEngine.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
+#include <LibCore/Net.h>
 
 #include <iomanip>
 
@@ -61,6 +62,7 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
       for (const auto &[device, dev_counter] : bdd_profile->forwarding_stats.at(node->get_id()).ports) {
         prof_node->forwarding_stats->ports[device] = hit_rate_t(dev_counter, max_count);
       }
+
       prof_node->original_forwarding_stats = prof_node->forwarding_stats;
 
       node = node->get_next();
@@ -75,7 +77,7 @@ LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
   LibBDD::bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = 100'000;
-  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(64, LibCore::SingletonRandomEngine::generate() % 1500);
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, LibCore::SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
 
   const LibBDD::Node *root             = bdd->get_root();
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
@@ -210,9 +212,15 @@ void update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
       fwd_stats.flood = new_fraction;
     } break;
     case LibBDD::RouteOp::Forward: {
-      // There is not enough information to make profiling forwarding decisions.
-      // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
-      panic("Not enough information to make profiling forwarding decisions");
+      if (new_fraction == 0_hr && !original_fwd_stats.ports.empty()) {
+        for (auto &[port, hr] : original_fwd_stats.ports) {
+          fwd_stats.ports[port] = 0_hr;
+        }
+      } else {
+        // There is not enough information to make profiling forwarding decisions.
+        // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
+        panic("Not enough information to make profiling forwarding decisions");
+      }
     } break;
     }
   }

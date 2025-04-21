@@ -956,13 +956,23 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map(code
 
   coder.indent();
   coder << "int " << nfreed.name << " = ";
-  coder << "expire_items_single_map(";
-  coder << stack_get(chain).name << ", ";
-  coder << stack_get(vector).name << ", ";
-  coder << stack_get(map).name << ", ";
-  coder << transpiler.transpile(time);
-  coder << ")";
-  coder << ";\n";
+  if (target == BDDSynthesizerTarget::Profiler) {
+    coder << "profiler_expire_items_single_map(";
+    coder << stack_get(chain).name << ", ";
+    coder << stack_get(vector).name << ", ";
+    coder << stack_get(map).name << ", ";
+    coder << "now"; // FIXME: we should get this from the stack
+    coder << ")";
+    coder << ";\n";
+  } else {
+    coder << "expire_items_single_map(";
+    coder << stack_get(chain).name << ", ";
+    coder << stack_get(vector).name << ", ";
+    coder << stack_get(map).name << ", ";
+    coder << transpiler.transpile(time);
+    coder << ")";
+    coder << ";\n";
+  }
 
   stack_add(nfreed);
 

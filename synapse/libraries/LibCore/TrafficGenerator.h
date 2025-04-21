@@ -17,10 +17,10 @@ public:
   static constexpr const char *const DEFAULT_OUTPUT_DIR   = ".";
   static constexpr const char *const SMAC                 = "02:00:00:ca:fe:ee";
   static constexpr const char *const DMAC                 = "02:00:00:be:ee:ef";
-  static constexpr const u64 DEFAULT_TOTAL_PACKETS        = 1'000'000lu;
+  static constexpr const u64 DEFAULT_TOTAL_PACKETS        = 10'000'000lu;
   static constexpr const u64 DEFAULT_TOTAL_FLOWS          = 65'536lu;
-  static constexpr const bytes_t DEFAULT_PACKET_SIZE      = 200;
-  static constexpr const bps_t DEFAULT_RATE               = 1'000'000'000lu; // 1 Gbps
+  static constexpr const bytes_t DEFAULT_PACKET_SIZE      = 64;
+  static constexpr const bps_t DEFAULT_RATE               = 30'000'000'000lu; // 30 Gbps
   static constexpr const fpm_t DEFAULT_TOTAL_CHURN_FPM    = 0lu;
   static constexpr const TrafficType DEFAULT_TRAFFIC_TYPE = TrafficType::Uniform;
   static constexpr const double DEFAULT_ZIPF_PARAM        = 1.26; // From Castan [SIGCOMM'18]
@@ -40,9 +40,9 @@ public:
     bool dry_run;
 
     config_t()
-        : out_dir(DEFAULT_OUTPUT_DIR), total_packets(DEFAULT_TOTAL_PACKETS), total_flows(DEFAULT_TOTAL_FLOWS),
-          packet_size(DEFAULT_PACKET_SIZE), rate(DEFAULT_RATE), churn(DEFAULT_TOTAL_CHURN_FPM), traffic_type(DEFAULT_TRAFFIC_TYPE),
-          zipf_param(DEFAULT_ZIPF_PARAM), devices(), client_devices(), random_seed(0), dry_run(false) {}
+        : out_dir(DEFAULT_OUTPUT_DIR), total_packets(DEFAULT_TOTAL_PACKETS), total_flows(DEFAULT_TOTAL_FLOWS), packet_size(DEFAULT_PACKET_SIZE),
+          rate(DEFAULT_RATE), churn(DEFAULT_TOTAL_CHURN_FPM), traffic_type(DEFAULT_TRAFFIC_TYPE), zipf_param(DEFAULT_ZIPF_PARAM), devices(),
+          client_devices(), random_seed(0), dry_run(false) {}
 
     void print() const;
   };
@@ -51,12 +51,13 @@ public:
     ether_hdr_t eth_hdr;
     ipv4_hdr_t ip_hdr;
     udp_hdr_t udp_hdr;
-    u8 payload[MTU_SIZE_BYTES - (sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t))];
+    u8 payload[MAX_PKT_SIZE_BYTES - (sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t))];
   } __attribute__((packed));
 
 protected:
   const std::string nf;
   const config_t config;
+  const bool assume_ip;
   const pkt_t template_packet;
 
   std::unordered_map<device_t, LibCore::PcapWriter> warmup_writers;
@@ -79,7 +80,7 @@ protected:
   time_ns_t next_alarm;
 
 public:
-  TrafficGenerator(const std::string &_nf, const config_t &_config);
+  TrafficGenerator(const std::string &_nf, const config_t &_config, bool assume_ip);
   TrafficGenerator(const TrafficGenerator &)            = delete;
   TrafficGenerator(TrafficGenerator &&)                 = delete;
   TrafficGenerator &operator=(const TrafficGenerator &) = delete;
@@ -136,6 +137,7 @@ protected:
 
   void report() const;
 
+  virtual bytes_t get_hdrs_len() const                                                      = 0;
   virtual void random_swap_flow(flow_idx_t flow_idx)                                        = 0;
   virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx)                             = 0;
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const = 0;

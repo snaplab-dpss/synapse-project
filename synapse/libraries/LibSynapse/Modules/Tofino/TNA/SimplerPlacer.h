@@ -54,6 +54,7 @@ public:
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
   PlacementStatus can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   u8 get_used_digests() const;
+  u8 get_used_stages() const;
 
   void debug() const;
 
