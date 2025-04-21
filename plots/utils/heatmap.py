@@ -303,7 +303,7 @@ def plot_heatmap_v2(data: HeatmapData, file: Path):
     ax.set_xticks(range(len(all_s)), labels=s_labels)
     ax.set_yticks(range(len(all_churn)), labels=churn_labels)
 
-    ax.set_xlabel("Zipf parameter")
+    ax.set_xlabel("Skew (Zipf parameter)")
     ax.set_ylabel("Churn (fpm)")
 
     # Rotate the tick labels and set their alignment.

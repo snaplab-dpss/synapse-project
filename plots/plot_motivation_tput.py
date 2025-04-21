@@ -19,14 +19,11 @@ OUTPUT_FILE = PLOTS_DIR / "motivation_throughput.pdf"
 TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
+# SYSTEM_NAME = "Synapse"
+SYSTEM_NAME = "AnonTool"
+
 nf = "KVS"
-# solutions = ["NetCache", "Switcharoo", "Synapse"]
-solutions = ["NetCache", "Switcharoo", "AnonTool"]
-labels = [
-    "Low skew\nLow churn",
-    "Medium skew\nMedium churn",
-    "High skew\nHigh churn",
-]
+solutions = ["NetCache", "Switcharoo", SYSTEM_NAME]
 
 data_files = [
     DATA_DIR / "tput_netcache.csv",
@@ -39,6 +36,8 @@ chosen_workloads = [
     Key(s=0.6, churn_fpm=100_000),
     Key(s=0.8, churn_fpm=1_000_000),
 ]
+
+labels = [f"s={key.s}\n{whole_number_to_label(key.churn_fpm)}fpm" for key in chosen_workloads]
 
 
 def parse_data_files():
@@ -60,11 +59,11 @@ def parse_data_files():
         data[solution]["yerr"] = yerr
 
         # FIXME: this should be automatic
-        if solution == "Synapse":
-            for i in range(len(data[solution]["y"])):
-                if data[solution]["y"][i] < data["Switcharoo"]["y"][i]:
-                    data[solution]["y"][i] = data["Switcharoo"]["y"][i]
-                    data[solution]["yerr"][i] = data["Switcharoo"]["yerr"][i]
+        if solution == SYSTEM_NAME:
+            for i in range(len(data[SYSTEM_NAME]["y"])):
+                if data[SYSTEM_NAME]["y"][i] < data["Switcharoo"]["y"][i]:
+                    data[SYSTEM_NAME]["y"][i] = data["Switcharoo"]["y"][i]
+                    data[SYSTEM_NAME]["yerr"][i] = data["Switcharoo"]["yerr"][i]
 
     return data
 
