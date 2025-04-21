@@ -20,7 +20,8 @@ TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
 nf = "KVS"
-solutions = ["NetCache", "Switcharoo", "Synapse"]
+# solutions = ["NetCache", "Switcharoo", "Synapse"]
+solutions = ["NetCache", "Switcharoo", "AnonTool"]
 labels = [
     "Low skew\nLow churn",
     "Medium skew\nMedium churn",
