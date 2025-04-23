@@ -23,8 +23,8 @@ def main():
         lan_flow = build_flow()
         wan_flow = lan_flow.invert()
 
-        lan_pkt = build_packet(lan_flow)
-        wan_pkt = build_packet(wan_flow)
+        lan_pkt = build_packet(flow=lan_flow)
+        wan_pkt = build_packet(flow=wan_flow)
 
         print()
         print("========================================")

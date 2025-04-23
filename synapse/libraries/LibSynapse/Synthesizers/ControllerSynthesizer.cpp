@@ -106,8 +106,6 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
     } else {
       panic("FIXME: incompatible endian swap size %d", size);
     }
-  } else if (std::optional<var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
-    coder << var->name;
   } else {
     visit(expr);
 
@@ -720,7 +718,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                  = tofino_ctx->get_tna();
 
-  for (const tofino_port_t &port : tna.get_tna_config().ports) {
+  for (const tofino_port_t &port : tna.tna_config.ports) {
     nf_init.indent();
     nf_init << "state->ingress_port_to_nf_dev.add_entry(";
     nf_init << "asic_get_dev_port(" << port.front_panel_port << "), ";
@@ -968,7 +966,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::If *node) {
   coder_t &ingress = get_current_coder();
 
-  klee::ref<klee::Expr> condition       = node->get_condition();
+  const klee::ref<klee::Expr> condition = node->get_condition();
   const std::vector<EPNode *> &children = ep_node->get_children();
   assert(children.size() == 2 && "If node must have 2 children");
 
@@ -2019,6 +2017,16 @@ void ControllerSynthesizer::dbg_vars() const {
   for (const Stack &stack : vars.get_all()) {
     std::cerr << "------------------------------------------\n";
     for (const var_t &var : stack.get_all()) {
+      if (var.is_buffer) {
+        std::cerr << "[buffer]";
+      }
+      if (var.is_ptr) {
+        std::cerr << "[ptr]";
+      }
+      if (var.is_header) {
+        std::cerr << "[header]";
+      }
+      std::cerr << " ";
       std::cerr << var.name;
       std::cerr << ": ";
       std::cerr << LibCore::expr_to_string(var.expr, true);

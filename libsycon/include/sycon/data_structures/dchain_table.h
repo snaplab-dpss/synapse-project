@@ -14,7 +14,7 @@ namespace sycon {
 
 class DchainTable : public SynapseDS {
 private:
-  std::unordered_set<u32> free_indexes;
+  std::set<u32> free_indexes;
   std::vector<Table> tables;
   u32 capacity;
 

@@ -12,7 +12,7 @@ sync() {
     echo "*********************************************"
     echo "Synchronizing host $host"
     echo "*********************************************"
-    ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main && cd $path_to_repo/deps/pktgen && git pull origin main"
+    ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main && git submodule update --init --recursive && cd $path_to_repo/deps/pktgen && git pull origin main && cd $path_to_repo/deps/pcap-replay && git pull origin main"
 }
 
 sync_cfg() {
@@ -57,9 +57,24 @@ force_build_pktgen() {
     ssh $host "cd $pktgen_dir && touch CMakeLists.txt && source $paths_file && ./build.sh"
 }
 
+force_build_pcap_replay() {
+    host=$1
+    path_to_repo=$2
+    pcap_replay_dir=$path_to_repo/deps/pcap-replay
+    paths_file=$path_to_repo/paths.sh
+
+    echo "*********************************************"
+    echo "Building pcap-replay (target: $host)"
+    echo "*********************************************"
+
+    # Touching CMakeLists allows cmake to detect new files (because of glob)
+    ssh $host "cd $pcap_replay_dir && touch CMakeLists.txt && source $paths_file && ./build.sh"
+}
+
 sync tofino1 /root/synapse-project
 sync tofino2 /home/user/synapse-project
 sync geodude ~/synapse-project
 sync graveler ~/synapse-project
 install_libsycon tofino2 /home/user/synapse-project
 force_build_pktgen geodude ~/synapse-project
+force_build_pcap_replay geodude ~/synapse-project

@@ -29,7 +29,7 @@ class PortAllocator:
         assert port in self.allocated
         assert port not in self.available
         self.allocated.remove(port)
-        self.available.append(port)
+        self.available.insert(0, port)
 
 
 def main():
@@ -46,10 +46,10 @@ def main():
         wan_egress_flow = wan_ingress_flow.invert()
         lan_ingress_flow = wan_egress_flow.clone(new_dst_addr=lan_egress_flow.src_addr, new_dst_port=lan_egress_flow.src_port)
 
-        lan_egress_pkt = build_packet(lan_egress_flow)
-        wan_ingress_pkt = build_packet(wan_ingress_flow)
-        wan_egress_pkt = build_packet(wan_egress_flow)
-        lan_ingress_pkt = build_packet(lan_ingress_flow)
+        lan_egress_pkt = build_packet(flow=lan_egress_flow)
+        wan_ingress_pkt = build_packet(flow=wan_ingress_flow)
+        wan_egress_pkt = build_packet(flow=wan_egress_flow)
+        lan_ingress_pkt = build_packet(flow=lan_ingress_flow)
 
         print()
         print("========================================")
@@ -92,6 +92,8 @@ def main():
         sleep(EXPIRATION_TIME_SEC * 2)
         ports.send(wan_port, wan_egress_pkt)
         expect_no_packet(ports)
+
+        port_allocator.free(allocated_port)
 
 
 if __name__ == "__main__":

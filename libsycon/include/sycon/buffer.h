@@ -3,17 +3,19 @@
 #include "log.h"
 #include "util.h"
 
+#include <cstring>
+#include <sstream>
+#include <iomanip>
+
 namespace sycon {
 
 struct buffer_t {
   u8 *data;
   bytes_t size;
 
-  buffer_t() : data(nullptr), size(0) {}
-
-  buffer_t(bytes_t _size) : data(new u8[_size]), size(_size) { std::memset(data, 0, size); }
-
-  buffer_t(u8 *_data, bytes_t _size) : data(new u8[_size]), size(_size) { std::copy(_data, _data + size, data); }
+  explicit buffer_t() : data(nullptr), size(0) {}
+  explicit buffer_t(bytes_t _size) : data(new u8[_size]), size(_size) { std::memset(data, 0, size); }
+  explicit buffer_t(u8 *_data, bytes_t _size) : data(new u8[_size]), size(_size) { std::copy(_data, _data + size, data); }
 
   buffer_t(const buffer_t &other) : buffer_t(other.size) { std::copy(other.data, other.data + size, data); }
 

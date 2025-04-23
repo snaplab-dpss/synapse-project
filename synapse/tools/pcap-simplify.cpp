@@ -35,7 +35,7 @@ pkt_hdr_t build_pkt(const LibCore::flow_t &flow, uint16_t len) {
 }
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Simplify/filter pcap traffic into UDP flows."};
+  CLI::App app{"Simplify/filter pcap traffic into TCP/UDP flows."};
 
   std::filesystem::path pcap_file;
 

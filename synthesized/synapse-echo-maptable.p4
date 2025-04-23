@@ -18,37 +18,37 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
-/*@{CPU_HEADER}@*/
+
 }
 
 header recirc_h {
   bit<16> code_path;
-/*@{RECIRCULATION_HEADER}@*/
+
 };
 
-/*@{CUSTOM_HEADERS}@*/
+
 
 struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
-/*@{INGRESS_HEADERS}@*/
+
 }
 
 struct synapse_ingress_metadata_t {
   bit<32> dev;
   bit<32> time;
   bool recirculate;
-/*@{INGRESS_METADATA}@*/
+
 }
 
 struct synapse_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
-/*@{EGRESS_HEADERS}@*/
+
 }
 
 struct synapse_egress_metadata_t {
-/*@{EGRESS_METADATA}@*/
+
 }
 
 parser TofinoIngressParser(
@@ -112,7 +112,10 @@ parser IngressParser(
     transition parser_init;
   }
 
-/*@{INGRESS_PARSER}@*/
+  state parser_init {
+    transition accept;
+  }
+
 }
 
 control Ingress(
@@ -157,17 +160,21 @@ control Ingress(
     size = 64;
   }
 
-/*@{INGRESS_CONTROL}@*/
+
   apply {
     if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
       hdr.cpu.setInvalid();
       trigger_forward = true;
     } else if (hdr.recirc.isValid()) {
-/*@{INGRESS_CONTROL_APPLY_RECIRC}@*/      
+      
     } else {
       ingress_port_to_nf_dev.apply();
-/*@{INGRESS_CONTROL_APPLY}@*/
+      // EP node  0:Forward
+      // BDD node 0:FORWARD
+      nf_dev[15:0] = meta.dev[15:0];
+      trigger_forward = true;
+
     }
 
     if (trigger_forward) {
@@ -188,9 +195,9 @@ control IngressDeparser(
   in    synapse_ingress_metadata_t meta,
   in    ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md
 ) {
-/*@{INGRESS_DEPARSER}@*/
+
   apply {
-/*@{INGRESS_DEPARSER_APPLY}@*/
+    pkt.emit(hdr);
   }
 }
 

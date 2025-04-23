@@ -29,6 +29,7 @@ struct Table : public DS {
   bits_t get_match_xbar_consume() const;
   bits_t get_consumed_sram() const;
 
+  static u32 adjust_capacity_for_collisions(u32 capacity);
   static std::vector<klee::ref<klee::Expr>> build_keys(klee::ref<klee::Expr> key, const std::vector<LibCore::expr_struct_t> &headers);
 };
 

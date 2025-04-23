@@ -12,8 +12,7 @@ EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbo
   EP *new_ep = new EP(*ep);
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(ep->get_active_leaf().node);
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port,
-                                                                               ep->get_node_egress(hr, ep->get_active_leaf().node));
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port, ep->get_node_egress(hr, ep->get_active_leaf().node));
 
   const u32 code_path = node->get_id();
 
@@ -76,7 +75,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD:
   }
 
   std::vector<u16> available_recirculation_ports;
-  for (const tofino_recirculation_port_t &port : tofino_ctx->get_tna().get_tna_config().recirculation_ports) {
+  for (const tofino_recirculation_port_t &port : tofino_ctx->get_tna().tna_config.recirculation_ports) {
     available_recirculation_ports.push_back(port.dev_port);
   }
 

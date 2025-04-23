@@ -15,7 +15,7 @@ def main():
         print(f"[*] Testing port {port}...")
 
         flow = build_flow()
-        pkt = build_packet(flow)
+        pkt = build_packet(flow=flow)
 
         ports.send(port, pkt)
         expect_packet_from_port(ports, port, pkt)

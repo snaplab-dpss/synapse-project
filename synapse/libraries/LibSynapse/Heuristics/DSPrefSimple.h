@@ -4,15 +4,15 @@
 
 namespace LibSynapse {
 
-class DSPrefCfg : public HeuristicCfg {
+class DSPrefSimpleCfg : public HeuristicCfg {
 public:
-  DSPrefCfg()
-      : HeuristicCfg("DSPref", {
-                                   BUILD_METRIC(DSPrefCfg, get_bdd_progress, Objective::Max),
-                                   BUILD_METRIC(DSPrefCfg, get_ds_score, Objective::Max),
-                               }) {}
+  DSPrefSimpleCfg()
+      : HeuristicCfg("DSPrefSimple", {
+                                         BUILD_METRIC(DSPrefSimpleCfg, get_bdd_progress, Objective::Max),
+                                         BUILD_METRIC(DSPrefSimpleCfg, get_ds_score, Objective::Max),
+                                     }) {}
 
-  DSPrefCfg &operator=(const DSPrefCfg &other) {
+  DSPrefSimpleCfg &operator=(const DSPrefSimpleCfg &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;
@@ -32,7 +32,10 @@ private:
 
   i64 get_ds_score(const EP *ep) const {
     const std::unordered_map<DSImpl, int> ds_scores{
-        {DSImpl::Tofino_HeavyHitterTable, 1},
+        {DSImpl::Tofino_MapTable, 1},
+        {DSImpl::Tofino_VectorTable, 1},
+        {DSImpl::Tofino_DchainTable, 1},
+        {DSImpl::Tofino_CountMinSketch, 1},
     };
 
     i64 score = 0;

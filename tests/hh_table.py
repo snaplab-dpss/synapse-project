@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from os import geteuid
-from time import sleep, time
 from random import choice
 
 from util import *
@@ -27,8 +26,8 @@ def main():
     print("Sending traffic, press Ctrl+C to stop...")
 
     while True:
-        packets = [build_packet(choice(heavy_hitter_flows)) for _ in range(10)]
-        packets += build_packet(choice(mice_flows))
+        packets = [build_packet(flow=choice(heavy_hitter_flows)) for _ in range(10)]
+        packets += build_packet(flow=choice(mice_flows))
 
         for pkt in packets:
             ports.send(in_port, pkt, quiet=True)

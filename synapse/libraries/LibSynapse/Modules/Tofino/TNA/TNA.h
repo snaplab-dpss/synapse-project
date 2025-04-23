@@ -53,8 +53,14 @@ struct tna_config_t {
 };
 
 class TNA {
-private:
+public:
+  // Actually, we usually only get around 90% of usage from the dataplane tables.
+  // Higher than that and we start getting collisions, and errors trying to insert new entries.
+  constexpr const static double TABLE_CAPACITY_EFFICIENCY{0.9};
+
   const tna_config_t tna_config;
+
+private:
   SimplePlacer simple_placer;
 
 public:
@@ -63,7 +69,6 @@ public:
   TNA(const tna_config_t &config);
   TNA(const TNA &other);
 
-  const tna_config_t &get_tna_config() const { return tna_config; }
   const SimplePlacer &get_simple_placer() const { return simple_placer; }
 
   // Tofino compiler complains if we access more than 4 bytes of the packet on

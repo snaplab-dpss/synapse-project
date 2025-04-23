@@ -1401,7 +1401,7 @@ void TofinoSynthesizer::synthesize() {
 
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
   for (const var_t &var : cpu_hdr_vars.get_all()) {
-    bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
+    const bits_t pad = var.is_bool() ? var.expr->getWidth() - 1 : (8 - var.expr->getWidth()) % 8;
 
     if (pad > 0) {
       cpu_hdr.indent();
