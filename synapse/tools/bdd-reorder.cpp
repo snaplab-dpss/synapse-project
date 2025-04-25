@@ -43,7 +43,7 @@ void print(const LibBDD::BDD *bdd, const LibBDD::reorder_op_t &op) {
 }
 
 void list_candidates(const LibBDD::BDD *bdd, const LibBDD::anchor_info_t &anchor_info) {
-  std::vector<LibBDD::reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, false);
+  const std::vector<LibBDD::reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, false);
 
   std::cerr << "Available reordering operations: " << ops.size() << "\n";
   for (const LibBDD::reorder_op_t &op : ops) {
@@ -53,15 +53,15 @@ void list_candidates(const LibBDD::BDD *bdd, const LibBDD::anchor_info_t &anchor
 
 void apply_reordering_ops(const LibBDD::BDD *bdd, const std::vector<std::pair<LibBDD::anchor_info_t, LibBDD::node_id_t>> &ops) {
   for (const std::pair<LibBDD::anchor_info_t, LibBDD::node_id_t> &op : ops) {
-    LibBDD::anchor_info_t anchor_info = op.first;
-    LibBDD::node_id_t candidate_id    = op.second;
+    const LibBDD::anchor_info_t anchor_info = op.first;
+    const LibBDD::node_id_t candidate_id    = op.second;
 
     std::cerr << "-> Reordering op:";
     std::cerr << " anchor=" << anchor_info.id;
     std::cerr << " candidate=" << candidate_id;
     std::cerr << "\n";
 
-    LibBDD::reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
+    const LibBDD::reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
 
     if (reordered_bdd.op.candidate_info.status != LibBDD::ReorderingCandidateStatus::Valid) {
       std::cerr << "Reordering failed: " << reordered_bdd.op.candidate_info.status << "\n";
@@ -122,10 +122,10 @@ int main(int argc, char **argv) {
   LibCore::SymbolManager symbol_manager;
   LibBDD::BDD bdd(input_bdd_file, &symbol_manager);
 
-  // list_candidates(&bdd, {2, true});
-  apply_reordering_ops(&bdd, {
-                                 {{133, true}, 139},
-                             });
+  list_candidates(&bdd, {139, true});
+  // apply_reordering_ops(&bdd, {
+  //                                {{139, true}, 162},
+  //                            });
   // test_reorder(&bdd, 3);
   // estimate(&bdd);
 

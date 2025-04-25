@@ -40,7 +40,7 @@ generate_pcaps_echo() {
         --devs $devs \
         --seed 0 \
         ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
 }
 
 #########################
@@ -63,7 +63,7 @@ generate_pcaps_fwd() {
         --devs $devs \
         --seed 0 \
         ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
 }
 
 ###################
@@ -86,7 +86,7 @@ generate_pcaps_fw() {
         --devs $devs \
         --seed 0 \
         ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
 }
 
 ##############################
@@ -109,7 +109,7 @@ generate_pcaps_nat() {
         --devs $devs \
         --seed 0 \
         ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
 }
 
 ###################
@@ -131,7 +131,7 @@ generate_pcaps_kvs() {
         --devs $devs \
         --seed 0 \
         ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
 }
 
 ######################
@@ -154,12 +154,12 @@ generate_pcaps_cl() {
         --devs $devs \
         --seed 0 \
         ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0" "zipf --zipf-param 1.2"
+        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
 }
 
 # generate_pcaps_echo
 # generate_pcaps_fwd
-# generate_pcaps_fw
-# generate_pcaps_nat
+generate_pcaps_fw
+generate_pcaps_nat
 generate_pcaps_kvs
-# generate_pcaps_cl
+generate_pcaps_cl

@@ -499,7 +499,7 @@ generate_profiles_echo() {
         -j $(nproc) \
         profile_echo $flows \
         ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
+        ::: 0 0.2 0.4 0.6 0.8 1.0
 }
 
 generate_profiles_fwd() {
@@ -509,7 +509,7 @@ generate_profiles_fwd() {
         -j $(nproc) \
         profile_fwd $flows \
         ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
+        ::: 0 0.2 0.4 0.6 0.8 1.0
 }
 
 generate_profiles_fw() {
@@ -519,7 +519,7 @@ generate_profiles_fw() {
         -j $(nproc) \
         profile_fw $flows \
         ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
+        ::: 0 0.2 0.4 0.6 0.8 1.0
 }
 
 generate_profiles_nat() {
@@ -529,7 +529,7 @@ generate_profiles_nat() {
         -j $(nproc) \
         profile_nat $flows \
         ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
+        ::: 0 0.2 0.4 0.6 0.8 1.0
 }
 
 generate_profiles_kvs() {
@@ -539,7 +539,7 @@ generate_profiles_kvs() {
         -j $(nproc) \
         profile_kvs $flows \
         ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
+        ::: 0 0.2 0.4 0.6 0.8 1.0
 }
 
 generate_profiles_cl() {
@@ -549,7 +549,7 @@ generate_profiles_cl() {
         -j $(nproc) \
         profile_cl $flows \
         ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0 1.2
+        ::: 0 0.2 0.4 0.6 0.8 1.0
 }
 
 generate_profiles_pol() {
@@ -568,8 +568,8 @@ generate_profiles() {
     # generate_profiles_fwd
     # generate_profiles_fw
     # generate_profiles_nat
-    generate_profiles_kvs
-    # generate_profiles_cl
+    # generate_profiles_kvs
+    generate_profiles_cl
     # generate_profiles_pol
 }
 

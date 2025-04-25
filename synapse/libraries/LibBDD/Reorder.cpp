@@ -11,38 +11,28 @@
 namespace LibBDD {
 
 namespace {
-const std::map<std::string, bool> fn_has_side_effects_lookup{
-    {"rte_ether_addr_hash", false},
-    {"expire_items_single_map", true},
-    {"expire_items_single_map_iteratively", true},
-    {"packet_borrow_next_chunk", true},
-    {"packet_get_unread_length", true},
-    {"packet_return_chunk", true},
-    {"vector_borrow", false},
-    {"vector_return", true},
-    {"map_get", false},
-    {"map_put", true},
-    {"map_erase", true},
-    {"dchain_allocate_new_index", true},
-    {"dchain_is_index_allocated", false},
-    {"dchain_free_index", true},
-    {"dchain_rejuvenate_index", true},
-    {"cht_find_preferred_available_backend", false},
-    {"LoadBalancedFlow_hash", false},
-    {"cms_increment", true},
-    {"cms_count_min", false},
-    {"cms_periodic_cleanup", true},
-    {"tb_expire", true},
-    {"tb_is_tracing", false},
-    {"tb_trace", true},
-    {"tb_update_and_check", true},
-    {"lpm_from_file", true},
-    {"lpm_lookup", false},
-    {"lpm_update", true},
-    {"hash_obj", false},
+const std::unordered_set<std::string> functions_cannot_cross_branches{
+    "expire_items_single_map",
+    "expire_items_single_map_iteratively",
+    "packet_borrow_next_chunk",
+    "packet_get_unread_length",
+    "packet_return_chunk",
+    "vector_borrow",
+    "vector_return",
+    "map_put",
+    "map_erase",
+    "dchain_allocate_new_index",
+    "dchain_free_index",
+    "dchain_rejuvenate_index",
+    "cms_increment",
+    "cms_periodic_cleanup",
+    "tb_expire",
+    "tb_trace",
+    "tb_update_and_check",
+    "lpm_update",
 };
 
-const std::vector<std::string> fn_cannot_reorder_lookup{
+const std::vector<std::string> functions_cannot_reorder_lookup{
     "nf_set_rte_ipv4_udptcp_checksum",
     "packet_borrow_next_chunk",
     "packet_return_chunk",
@@ -103,15 +93,11 @@ const Node *get_vector_next(const vector_t &vector) {
   return next;
 }
 
-bool fn_has_side_effects(const std::string &fn) {
-  auto found = fn_has_side_effects_lookup.find(fn);
-  assert(found != fn_has_side_effects_lookup.end() && "Function not found");
-  return found->second;
-}
+bool fn_cannot_cross_branches(const std::string &fn) { return functions_cannot_cross_branches.find(fn) != functions_cannot_cross_branches.end(); }
 
 bool fn_can_be_reordered(const std::string &fn) {
-  auto found_it = std::find(fn_cannot_reorder_lookup.begin(), fn_cannot_reorder_lookup.end(), fn);
-  return found_it == fn_cannot_reorder_lookup.end();
+  auto found_it = std::find(functions_cannot_reorder_lookup.begin(), functions_cannot_reorder_lookup.end(), fn);
+  return found_it == functions_cannot_reorder_lookup.end();
 }
 
 bool read_in_chunk(const LibCore::symbolic_read_t &read, klee::ref<klee::Expr> chunk) {
@@ -290,18 +276,18 @@ bool io_check(const Node *node, const LibCore::Symbols &anchor_symbols) {
 
 bool io_check(klee::ref<klee::Expr> expr, const LibCore::Symbols &anchor_symbols) { return are_all_symbols_known(expr, anchor_symbols); }
 
-bool check_no_side_effects(const Node *node) {
-  NodeType type = node->get_type();
+// bool check_no_side_effects(const Node *node) {
+//   NodeType type = node->get_type();
 
-  if (type != NodeType::Call) {
-    return true;
-  }
+//   if (type != NodeType::Call) {
+//     return true;
+//   }
 
-  const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+//   const Call *call_node = dynamic_cast<const Call *>(node);
+//   const call_t &call    = call_node->get_call();
 
-  return !fn_has_side_effects(call.function_name);
-}
+//   return !fn_has_side_effects(call.function_name);
+// }
 
 bool check_obj(const Node *n0, const Node *n1, const std::string &obj_name) {
   NodeType n0_type = n0->get_type();
@@ -324,19 +310,14 @@ bool check_obj(const Node *n0, const Node *n1, const std::string &obj_name) {
     return false;
   }
 
-  klee::ref<klee::Expr> n0_obj = n0_obj_it->second.expr;
-  klee::ref<klee::Expr> n1_obj = n1_obj_it->second.expr;
+  const klee::ref<klee::Expr> n0_obj = n0_obj_it->second.expr;
+  const klee::ref<klee::Expr> n1_obj = n1_obj_it->second.expr;
 
-  bool same_obj = LibCore::solver_toolbox.are_exprs_always_equal(n0_obj, n1_obj);
+  const bool same_obj = LibCore::solver_toolbox.are_exprs_always_equal(n0_obj, n1_obj);
   return same_obj;
 }
 
-bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
-  // Has side effects, but we encountered a branch condition in between.
-  if (between->get_type() == NodeType::Branch) {
-    return false;
-  }
-
+bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   if (between->get_type() != NodeType::Call) {
     return true;
   }
@@ -348,11 +329,10 @@ bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, co
   const klee::ConstraintManager &between_constraints   = between->get_constraints();
   const klee::ConstraintManager &candidate_constraints = candidate->get_constraints();
 
-  const Call *between_call_node   = dynamic_cast<const Call *>(between);
-  const Call *candidate_call_node = dynamic_cast<const Call *>(candidate);
+  const Call *between_call_node = dynamic_cast<const Call *>(between);
 
   const call_t &between_call   = between_call_node->get_call();
-  const call_t &candidate_call = candidate_call_node->get_call();
+  const call_t &candidate_call = candidate->get_call();
 
   auto between_key_it   = between_call.args.find("key");
   auto candidate_key_it = candidate_call.args.find("key");
@@ -361,12 +341,11 @@ bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, co
     return false;
   }
 
-  klee::ref<klee::Expr> between_key   = between_key_it->second.in;
-  klee::ref<klee::Expr> candidate_key = candidate_key_it->second.in;
+  const klee::ref<klee::Expr> between_key   = between_key_it->second.in;
+  const klee::ref<klee::Expr> candidate_key = candidate_key_it->second.in;
 
-  bool always_eq = LibCore::solver_toolbox.are_exprs_always_equal(between_key, candidate_key, between_constraints, candidate_constraints);
-
-  bool always_diff = LibCore::solver_toolbox.are_exprs_always_not_equal(between_key, candidate_key, between_constraints, candidate_constraints);
+  const bool always_eq   = LibCore::solver_toolbox.are_exprs_always_equal(between_key, candidate_key, between_constraints, candidate_constraints);
+  const bool always_diff = LibCore::solver_toolbox.are_exprs_always_not_equal(between_key, candidate_key, between_constraints, candidate_constraints);
 
   if (always_eq) {
     return false;
@@ -378,16 +357,11 @@ bool map_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, co
 
   condition = LibCore::solver_toolbox.exprBuilder->Not(LibCore::solver_toolbox.exprBuilder->Eq(between_key, candidate_key));
 
-  LibCore::Symbols anchor_symbols = bdd->get_generated_symbols(anchor);
+  const LibCore::Symbols anchor_symbols = bdd->get_generated_symbols(anchor);
   return io_check(condition, anchor_symbols);
 }
 
-bool dchain_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
-  // Has side effects, but we encountered a branch condition in between.
-  if (between->get_type() == NodeType::Branch) {
-    return false;
-  }
-
+bool dchain_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   if (between->get_type() != NodeType::Call) {
     return true;
   }
@@ -395,12 +369,7 @@ bool dchain_can_reorder(const BDD *bdd, const Node *anchor, const Node *between,
   return !check_obj(between, candidate, "dchain");
 }
 
-bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
-  // Has side effects, but we encountered a branch condition in between.
-  if (between->get_type() == NodeType::Branch) {
-    return false;
-  }
-
+bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   if (between->get_type() != NodeType::Call) {
     return true;
   }
@@ -412,11 +381,10 @@ bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between,
   const klee::ConstraintManager &between_constraints   = between->get_constraints();
   const klee::ConstraintManager &candidate_constraints = candidate->get_constraints();
 
-  const Call *between_call_node   = dynamic_cast<const Call *>(between);
-  const Call *candidate_call_node = dynamic_cast<const Call *>(candidate);
+  const Call *between_call_node = dynamic_cast<const Call *>(between);
 
   const call_t &between_call   = between_call_node->get_call();
-  const call_t &candidate_call = candidate_call_node->get_call();
+  const call_t &candidate_call = candidate->get_call();
 
   auto between_index_it = between_call.args.find("index");
   if (between_index_it == between_call.args.end()) {
@@ -440,23 +408,25 @@ bool vector_can_reorder(const BDD *bdd, const Node *anchor, const Node *between,
 
   condition = LibCore::solver_toolbox.exprBuilder->Not(LibCore::solver_toolbox.exprBuilder->Eq(between_index, candidate_index));
 
-  LibCore::Symbols anchor_symbols = bdd->get_generated_symbols(anchor);
-  return io_check(condition, anchor_symbols);
+  const LibCore::Symbols anchor_symbols         = bdd->get_generated_symbols(anchor);
+  const bool conditions_symbols_known_at_anchor = io_check(condition, anchor_symbols);
+
+  return conditions_symbols_known_at_anchor;
 }
 
-bool cht_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
+bool cht_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   return true;
 }
 
-bool cms_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
+bool cms_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   return !check_obj(between, candidate, "cms");
 }
 
-bool tb_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate, klee::ref<klee::Expr> &condition) {
+bool tb_can_reorder(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   return !check_obj(between, candidate, "tb");
 }
 
-using can_reorder_stateful_op_fn = bool (*)(const BDD *bdd, const Node *anchor, const Node *between, const Node *candidate,
+using can_reorder_stateful_op_fn = bool (*)(const BDD *bdd, const Node *anchor, const Node *between, const Call *candidate,
                                             klee::ref<klee::Expr> &condition);
 
 const std::unordered_map<std::string, can_reorder_stateful_op_fn> can_reorder_handlers{
@@ -485,8 +455,8 @@ bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor, const Node *bet
   const Call *call_node = dynamic_cast<const Call *>(candidate);
   const call_t &call    = call_node->get_call();
 
-  if (check_no_side_effects(candidate)) {
-    return true;
+  if (between->get_type() == NodeType::Branch && fn_cannot_cross_branches(call.function_name)) {
+    return false;
   }
 
   auto found_it = can_reorder_handlers.find(call.function_name);
@@ -494,7 +464,7 @@ bool can_reorder_stateful_op(const BDD *bdd, const Node *anchor, const Node *bet
     return true;
   }
 
-  return found_it->second(bdd, anchor, between, candidate, condition);
+  return found_it->second(bdd, anchor, between, call_node, condition);
 }
 
 klee::ref<klee::Expr> build_condition(const std::vector<klee::ref<klee::Expr>> &sub_conditions) {
@@ -1076,7 +1046,7 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
   //   candidate_info;
   // }
 
-  // Uncomment this to allow reordering of routing nodes.
+  // Comment this to allow reordering of routing nodes.
   if (proposed_candidate->get_type() == NodeType::Route) {
     candidate_info.status = ReorderingCandidateStatus::NotAllowed;
     return candidate_info;
@@ -1087,7 +1057,7 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
     return candidate_info;
   }
 
-  LibCore::Symbols anchor_symbols = bdd->get_generated_symbols(anchor.node);
+  const LibCore::Symbols anchor_symbols = bdd->get_generated_symbols(anchor.node);
 
   assert(anchor.node && "Anchor node not found");
   assert(proposed_candidate && "Proposed candidate node not found");
@@ -1152,12 +1122,12 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
     return ops;
   }
 
-  node_id_t next_branch = get_next_branch(anchor_node);
+  const node_id_t next_branch = get_next_branch(anchor_node);
 
   auto allow_candidate = [next_branch, allow_shape_altering_ops](const candidate_info_t &candidate_info) {
     if (!allow_shape_altering_ops) {
-      bool is_unexpected_branch = (candidate_info.is_branch && (candidate_info.id != next_branch));
-      bool has_condition        = !candidate_info.condition.isNull();
+      const bool is_unexpected_branch = (candidate_info.is_branch && (candidate_info.id != next_branch));
+      const bool has_condition        = !candidate_info.condition.isNull();
 
       if (is_unexpected_branch || has_condition) {
         return false;
@@ -1168,7 +1138,7 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
   };
 
   next->visit_nodes([&ops, &bdd, anchor, next, anchor_info, allow_candidate](const Node *node) {
-    candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor, node->get_id());
+    const candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor, node->get_id());
 
     if (proposed_candidate.status == ReorderingCandidateStatus::Valid && allow_candidate(proposed_candidate)) {
       ops.push_back({anchor_info, next->get_id(), proposed_candidate});
