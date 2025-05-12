@@ -22,15 +22,8 @@ control Ingress(inout header_t hdr,
 				inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
 				inout ingress_intrinsic_metadata_for_tm_t ig_tm_md) {
 
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k96_127;
-
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k96_127;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k;
 
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v0_31;
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v32_63;
@@ -48,28 +41,31 @@ control Ingress(inout header_t hdr,
 	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swap_transient;
 	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swapped_transient;
 
-	#define KEY_READ(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_k##lsb##_##msb) read_##table##_k##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_k) read_1_k = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+		}
+	};
 
-	#define KEY_SWAP_1(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1##_k##lsb##_##msb) swap_1##_k##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val = ig_md.cur_key[msb:lsb]; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_k) read_2_k = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+		}
+	};
 
-	#define KEY_SWAP_2(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2##_k##lsb##_##msb) swap_2##_k##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val = ig_md.table_1_key[msb:lsb]; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_k) swap_1_k = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = ig_md.cur_key;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_k) swap_2_k = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = ig_md.table_1_key;
+		}
+	};
 
 	#define VAL_READ(table, msb, lsb) \
 		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) read_##table##_v##lsb##_##msb## = { \
@@ -100,26 +96,6 @@ control Ingress(inout header_t hdr,
 				val= ig_md.table_1_val[msb:lsb]; \
 			} \
 		};
-
-	KEY_READ(1, 31, 0)
-	KEY_READ(1, 63, 32)
-	KEY_READ(1, 95, 64)
-	KEY_READ(1, 127, 96)
-
-	KEY_READ(2, 31, 0)
-	KEY_READ(2, 63, 32)
-	KEY_READ(2, 95, 64)
-	KEY_READ(2, 127, 96)
-
-	KEY_SWAP_1(31, 0)
-	KEY_SWAP_1(63, 32)
-	KEY_SWAP_1(95, 64)
-	KEY_SWAP_1(127, 96)
-
-	KEY_SWAP_2(31, 0)
-	KEY_SWAP_2(63, 32)
-	KEY_SWAP_2(95, 64)
-	KEY_SWAP_2(127, 96)
 
 	VAL_READ(1, 31, 0)
 	VAL_READ(1, 63, 32)
@@ -191,9 +167,13 @@ control Ingress(inout header_t hdr,
 		}
 	};
 
-	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swap_transient) swap_transient_read = {
-		void apply(inout bit<16> val, out bit<16> res) {
-			res = val;
+	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bool>(swap_transient) swap_transient_read = {
+		void apply(inout bit<16> val, out bool transient) {
+			if (val <= ig_md.swapped_transient_val) {
+				transient = true;
+			} else {
+				transient = false;
+			}
 		}
 	};
 
@@ -263,11 +243,8 @@ control Ingress(inout header_t hdr,
 	action calc_hash_table_2()		{ ig_md.hash_table_2	= hash_table_2.get({ig_md.cur_key, HASH_SALT_2});	}
 	action calc_hash_table_2_r()	{ ig_md.hash_table_2_r	= hash_table_2_r.get({ig_md.cur_key, HASH_SALT_2});	}
 
-	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swap;
-	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swap_2;
-	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swapped;
-	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swapped_2;
-	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swapped_3;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_old_key;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_new_key;
 
 	table select_recirc_port {
 		key = {
@@ -386,15 +363,13 @@ control Ingress(inout header_t hdr,
 					ig_md.was_insert_op = true;
 				}
 
-				ig_md.table_1_key[31:0]		= swap_1_k0_31.execute(ig_md.hash_table_1);
-				ig_md.table_1_key[63:32]	= swap_1_k32_63.execute(ig_md.hash_table_1);
-				ig_md.table_1_key[95:64]	= swap_1_k64_95.execute(ig_md.hash_table_1);
-				ig_md.table_1_key[127:96]	= swap_1_k96_127.execute(ig_md.hash_table_1);
+				ig_md.table_1_key = swap_1_k.execute(ig_md.hash_table_1);
 
 				bit<32> table_1_ts = table_1_ts_swap.execute(ig_md.hash_table_1);
 
 				bit<32> table_1_ts_diff;
 				ts_diff(table_1_ts, table_1_ts_diff);
+
 
 				ig_md.table_1_val[31:0]		= swap_1_v0_31.execute(ig_md.hash_table_1);
 				ig_md.table_1_val[63:32]	= swap_1_v32_63.execute(ig_md.hash_table_1);
@@ -412,32 +387,29 @@ control Ingress(inout header_t hdr,
 
 					calc_hash_table_2_r();
 					
-					ig_md.table_2_key[31:0]		= swap_2_k0_31.execute(ig_md.hash_table_2_r);
-					ig_md.table_2_key[63:32]	= swap_2_k32_63.execute(ig_md.hash_table_2_r);
-					ig_md.table_2_key[95:64]	= swap_2_k64_95.execute(ig_md.hash_table_2_r);
-					ig_md.table_2_key[127:96]	= swap_2_k96_127.execute(ig_md.hash_table_2_r);
-
+					key_t table_2_key = swap_2_k.execute(ig_md.hash_table_2_r);
 					bit<32> table_2_ts = table_2_ts_swap.execute(ig_md.hash_table_2_r);
 
 					bit<32> table_2_ts_diff;
 					ts_diff(table_2_ts, table_2_ts_diff);
 
-					ig_md.table_2_val[31:0]		= swap_2_v0_31.execute(ig_md.hash_table_2_r);
-					ig_md.table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
-					ig_md.table_2_val[95:64]	= swap_2_v64_95.execute(ig_md.hash_table_2_r);
-					ig_md.table_2_val[127:96]	= swap_2_v96_127.execute(ig_md.hash_table_2_r);
+					val_t table_2_val = 0;
+					table_2_val[31:0]	= swap_2_v0_31.execute(ig_md.hash_table_2_r);
+					table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
+					table_2_val[95:64]	= swap_2_v64_95.execute(ig_md.hash_table_2_r);
+					table_2_val[127:96]	= swap_2_v96_127.execute(ig_md.hash_table_2_r);
 
 					// The previous Table 2 entry was occupied and not yet expired,
 					// so we'll recirculate and swap it to Table 1.
 					if (table_2_ts_diff < ENTRY_TIMEOUT) {
 						debug_table2_evict_inc();
 
-						ig_md.has_next_swap	= 1;
-						ig_md.swapped_key	= hdr.cuckoo.key;
+						ig_md.has_next_swap		= true;
 
-						hdr.cuckoo.key	= ig_md.table_2_key;
-						hdr.cuckoo.val	= ig_md.table_2_val;
+						hdr.cuckoo.key	= table_2_key;
+						hdr.cuckoo.val	= table_2_val;
 						hdr.cuckoo.ts	= table_2_ts;
+
 						if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
 							// First (re)circulation for the current pkt.
 							// Store the swap entry values and change the op to SWAP.
@@ -454,8 +426,8 @@ control Ingress(inout header_t hdr,
 						// The previous Table 2 entry was expired/replaced.
 						// In its place is now the cur pkt.
 						if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-							// Send the current pkt to the bloom filter with op == NOP, so it'll be sent out.
-							hdr.cuckoo.op = cuckoo_ops_t.NOP;
+							// Send the current pkt to the bloom filter with op == DONE, so it'll be sent out.
+							hdr.cuckoo.op = cuckoo_ops_t.DONE;
 						} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
 							// Send the current pkt to the bloom filter with op == SWAPPED, to update the transient.
 							hdr.cuckoo.op = cuckoo_ops_t.SWAPPED;
@@ -467,8 +439,8 @@ control Ingress(inout header_t hdr,
 					// The previous Table 1 entry was expired/replaced.
 					// In its place is now the cur pkt.
 					if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-						// Send the current pkt to the bloom filter with op == NOP, so it'll be sent out.
-						hdr.cuckoo.op = cuckoo_ops_t.NOP;
+						// Send the current pkt to the bloom filter with op == DONE, so it'll be sent out.
+						hdr.cuckoo.op = cuckoo_ops_t.DONE;
 					} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
 						// Send the current pkt to the bloom filter with op == SWAPPED, to update the transient.
 						hdr.cuckoo.op = cuckoo_ops_t.SWAPPED;
@@ -479,25 +451,11 @@ control Ingress(inout header_t hdr,
 
 				table_set_client_port.apply();
 
-				bit<32> table_1_key_0 = read_1_k0_31.execute(ig_md.hash_table_1);
-				bit<32> table_1_key_1 = read_1_k32_63.execute(ig_md.hash_table_1);
-				bit<32> table_1_key_2 = read_1_k64_95.execute(ig_md.hash_table_1);
-				bit<32> table_1_key_3 = read_1_k96_127.execute(ig_md.hash_table_1);
-
-				bool key_match_1 = false;
-				if (table_1_key_0 == ig_md.cur_key[31:0]) {
-					if (table_1_key_1 == ig_md.cur_key[63:32]) {
-						if (table_1_key_2 == ig_md.cur_key[95:64]) {
-							if (table_1_key_3 == ig_md.cur_key[127:96]) {
-								key_match_1 = true;
-							}
-						}
-					}
-				}
+				bit<32> table_1_key = read_1_k.execute(ig_md.hash_table_1);
 
 				bool table_1_hit = false;
 
-				if (key_match_1) {
+				if (table_1_key == ig_md.cur_key) {
 					bit<32> stored_table_1_ts = table_1_ts_query_and_refresh.execute(ig_md.hash_table_1);
 
 					if (stored_table_1_ts != 0) {
@@ -513,7 +471,7 @@ control Ingress(inout header_t hdr,
 							write_1_v96_127.execute(ig_md.hash_table_1);
 						}
 
-						hdr.cuckoo.op = cuckoo_ops_t.NOP;
+						hdr.cuckoo.op = cuckoo_ops_t.DONE;
 						hdr.kv.status = KVS_STATUS_HIT;
 						table_1_hit = true;
 						debug_cache_hit_inc();
@@ -525,25 +483,11 @@ control Ingress(inout header_t hdr,
 				if (!table_1_hit) {
 					calc_hash_table_2();
 
-					bit<32> table_2_key_0 = read_2_k0_31.execute(ig_md.hash_table_2);
-					bit<32> table_2_key_1 = read_2_k32_63.execute(ig_md.hash_table_2);
-					bit<32> table_2_key_2 = read_2_k64_95.execute(ig_md.hash_table_2);
-					bit<32> table_2_key_3 = read_2_k96_127.execute(ig_md.hash_table_2);
-
-					bool key_match_2 = false;
-					if (table_2_key_0 == ig_md.cur_key[31:0]) {
-						if (table_2_key_1 == ig_md.cur_key[63:32]) {
-							if (table_2_key_2 == ig_md.cur_key[95:64]) {
-								if (table_2_key_3 == ig_md.cur_key[127:96]) {
-									key_match_2 = true;
-								}
-							}
-						}
-					}
+					bit<32> table_2_key = read_2_k.execute(ig_md.hash_table_2);
 
 					bool table_2_hit = false;
 
-					if (key_match_2) {
+					if (table_2_key == ig_md.cur_key) {
 						bit<32> stored_table_2_ts = table_2_ts_query_and_refresh.execute(ig_md.hash_table_2);
 
 						if (stored_table_2_ts != 0) {
@@ -559,7 +503,7 @@ control Ingress(inout header_t hdr,
 								write_2_v96_127.execute(ig_md.hash_table_2);
 							}
 							
-							hdr.cuckoo.op = cuckoo_ops_t.NOP;
+							hdr.cuckoo.op = cuckoo_ops_t.DONE;
 							hdr.kv.status = KVS_STATUS_HIT;
 							table_2_hit = true;
 							debug_cache_hit_inc();
@@ -570,10 +514,7 @@ control Ingress(inout header_t hdr,
 					
 					if (!table_2_hit) {
 						// Lookup failed, recirculate the packet to insert it in the table if it's a write packet.
-						if (hdr.kv.op == kv_ops_t.GET) {
-							ig_md.send_to_kvs_server = true;
-							debug_cache_miss_on_kvs_get_inc();
-						} else {
+						if (hdr.kv.op == kv_ops_t.PUT) {
 							hdr.cuckoo.op = cuckoo_ops_t.INSERT;
 						}
 					}
@@ -586,19 +527,33 @@ control Ingress(inout header_t hdr,
 			* 
 			***************************************************************/
 
-			if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
+			bit<BLOOM_IDX_WIDTH> old_key_hash = hash_old_key.get(ig_md.cur_key);
+			bit<BLOOM_IDX_WIDTH> new_key_hash = hash_new_key.get(hdr.cuckoo.key);
+
+			if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
+				if (ig_md.was_insert_op) {
+					swapped_transient_incr.execute(old_key_hash);
+				}
+			} else if (hdr.cuckoo.op == cuckoo_ops_t.LOOKUP) {
+				ig_md.swapped_transient_val	= swapped_transient_read.execute(old_key_hash);
+				bool transient = swap_transient_read.execute(old_key_hash);
+
+				if (!transient) {
+					ig_md.send_to_kvs_server = true;
+					debug_cache_miss_on_kvs_get_inc();
+				}
+			} else if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
 				debug_state_insert_inc();
-				bit<BLOOM_IDX_WIDTH> swap_transient_idx = hash_swap.get({ig_md.cur_key});
 
 				if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
 					// Assume the insertion packet was lost.
-					swapped_transient_incr.execute(swap_transient_idx);
+					swapped_transient_incr.execute(old_key_hash);
 					debug_state_insert_from_max_loops_inc();
 
 					hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
 				} else {
-					ig_md.swapped_transient_val	= swapped_transient_read.execute(swap_transient_idx);
-					bool new_insertion = swap_transient_conditional_inc.execute(swap_transient_idx);
+					ig_md.swapped_transient_val	= swapped_transient_read.execute(old_key_hash);
+					bool new_insertion = swap_transient_conditional_inc.execute(old_key_hash);
 
 					if (!new_insertion) {
 						// However, if another pkt matching the same bloom idx is already recirculating, the current pkt will be sent back as a LOOKUP.
@@ -608,27 +563,24 @@ control Ingress(inout header_t hdr,
 						hdr.cuckoo.recirc_cntr = 0;
 					}
 				}
-			} else if (hdr.cuckoo.op == cuckoo_ops_t.NOP && ig_md.was_insert_op) {
-				swapped_transient_incr.execute(hash_swapped.get({ig_md.cur_key}));
 			} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
 				debug_state_swap_inc();
-				swapped_transient_incr.execute(hash_swapped.get({ig_md.cur_key}));
-				swap_transient_incr.execute(hash_swap_2.get({hdr.cuckoo.key}));
+				swapped_transient_incr.execute(old_key_hash);
+				swap_transient_incr.execute(new_key_hash);
 			} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
 				debug_state_swapped_inc();
-				if (ig_md.has_next_swap == 0) {
-					swapped_transient_incr.execute(hash_swapped_2.get({hdr.cuckoo.key}));
-					hdr.cuckoo.op = cuckoo_ops_t.NOP;
-				} else {
-					swapped_transient_incr.execute(hash_swapped_3.get({ig_md.swapped_key}));
-					swap_transient_incr.execute(hash_swap_2.get({hdr.cuckoo.key}));
+				swapped_transient_incr.execute(old_key_hash);
+				if (ig_md.has_next_swap) {
+					swap_transient_incr.execute(new_key_hash);
 					hdr.cuckoo.op = cuckoo_ops_t.SWAP;
+				} else {
+					hdr.cuckoo.op = cuckoo_ops_t.DONE;
 				}
 			}
 
 			if (ig_md.send_to_kvs_server) {
 				set_out_port(KVS_SERVER_PORT);
-			} else if (hdr.cuckoo.op == cuckoo_ops_t.NOP) {
+			} else if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
 				debug_state_nop_inc();
 				set_out_port((bit<9>)hdr.kv.port);
 			} else if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {

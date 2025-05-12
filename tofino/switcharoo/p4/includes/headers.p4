@@ -59,22 +59,19 @@ header cuckoo_h {
 }
 
 struct ingress_metadata_t {
-	bit<1>					has_next_swap;
 	bit<CUCKOO_IDX_WIDTH>	hash_table_1;
 	bit<CUCKOO_IDX_WIDTH>	hash_table_2;
 	bit<CUCKOO_IDX_WIDTH>	hash_table_2_r;
 	key_t					cur_key;
 	val_t					cur_val;
+	bit<32>					entry_ts;
 	key_t					table_1_key;
-	key_t					table_2_key;
 	val_t					table_1_val;
-	val_t					table_2_val;
-	key_t					swapped_key;
+	bool					has_next_swap;
 	bit<8>					is_server_reply;
 	bool					was_insert_op;
 	bit<8>					cur_recirc_port_cntr;
 	bool					send_to_kvs_server;
-	bit<32>					entry_ts;
 	bit<16>					swapped_transient_val;
 }
 

@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
   app.add_option("--heuristic", args.heuristic_opt, "Chosen heuristic.")
       ->transform(CLI::CheckedTransformer(LibSynapse::str_to_heuristic_opt, CLI::ignore_case))
       ->required();
-  app.add_option("--profile", args.profile_file, "BDD profile_file JSON.");
+  app.add_option("--profile", args.profile_file, "BDD profile file JSON.");
   app.add_option("--seed", args.seed, "Random seed.")->default_val(std::random_device()());
   app.add_option("--peek", args.search_config.peek, "Peek execution plans.");
   app.add_flag("--no-reorder", args.search_config.no_reorder, "Deactivate BDD reordering.");

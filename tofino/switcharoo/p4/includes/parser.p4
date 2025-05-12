@@ -21,6 +21,7 @@ parser IngressParser(packet_in pkt,
 	state meta_init {
 		ig_md.send_to_kvs_server = false;
 		ig_md.was_insert_op = false;
+		ig_md.has_next_swap = false;
 		ig_md.swapped_transient_val = 0;
 		transition parse_ethernet;
 	}

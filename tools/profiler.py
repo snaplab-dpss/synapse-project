@@ -209,7 +209,11 @@ def generate_profile(
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Profiler helper script. This will generate the pcaps and profiles for all the possible combinations of the provided parameters")
+    description = "Profiler helper script. This will generate the pcaps and profiles for all the possible combinations of the provided parameters."
+    description += f" Profiler dir: {PROFILE_DIR}."
+    description += f" Pcap dir: {PCAP_DIR}."
+
+    parser = ArgumentParser(description=description)
 
     parser.add_argument("--nf", type=str, choices=NFs.keys(), required=True, help="Target NFs to profile (BDD)")
     parser.add_argument("--total-packets", type=int, nargs="+", default=DEFAULT_TOTAL_PACKETS, help="Total packets to send")
@@ -241,9 +245,9 @@ if __name__ == "__main__":
     print(f"Zipf params:   {args.zipf_params}")
     print(f"Churn rates:   {args.churn}")
     print("-------------------------------------------------")
-    print(f"Skip pcap generation: {args.skip_pcap_generation}")
+    print(f"Skip pcap generation:     {args.skip_pcap_generation}")
     print(f"Skip profiler generation: {args.skip_profiler_generation}")
-    print(f"Total combinations: {len(combinations)}")
+    print(f"Total combinations:       {len(combinations)}")
     print("=================================================")
 
     nf = NFs[args.nf]

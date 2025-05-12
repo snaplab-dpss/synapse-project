@@ -152,11 +152,16 @@ control Ingress(
     const default_action = drop();
   }
 
+  action fwd_nf_dev(bit<16> port) {
+    hdr.recirc.setInvalid();
+    ig_tm_md.ucast_egress_port = port[8:0];
+  }
+
   bool trigger_forward = false;
   bit<32> nf_dev = 0;
   table forward_nf_dev {
     key = { nf_dev: exact; }
-    actions = { fwd; }
+    actions = { fwd_nf_dev; }
     size = 64;
   }
 
@@ -179,10 +184,6 @@ control Ingress(
 
     if (trigger_forward) {
       forward_nf_dev.apply();
-    }
-
-    if (!meta.recirculate) {
-      hdr.recirc.setInvalid();
     }
 
     ig_tm_md.bypass_egress = 1;

@@ -19,7 +19,7 @@ enum bit<8> cuckoo_ops_t {
 	INSERT	= 0x01,
 	SWAP	= 0X02,
 	SWAPPED = 0x03,
-	NOP		= 0x04
+	DONE	= 0x04
 }
 
 typedef bit<48> mac_addr_t;
@@ -49,7 +49,7 @@ const bit<16> CUCKOO_PORT = 670;
 const bit<32> HASH_SALT_1 = 0xfbc31fc7;
 const bit<32> HASH_SALT_2 = 0x2681580b;
 
-#define KEY_WIDTH			128
+#define KEY_WIDTH			32
 #define VAL_WIDTH			128
 
 typedef bit<KEY_WIDTH>		key_t;

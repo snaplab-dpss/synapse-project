@@ -19,6 +19,9 @@ PROFILES_DIR=$PROJECT_DIR/profiles
 BDDS_DIR=$PROJECT_DIR/bdds
 SYNAPSE_DIR=$PROJECT_DIR/synapse
 
+CHURN="0 1000 10000 100000 1000000"
+TRAFFIC="0 0.2 0.4 0.6 0.8 1.0"
+
 # Everything will be done inside the synthesized directory
 cd $SYNTHESIZED_DIR
 
@@ -496,82 +499,74 @@ generate_profiles_echo() {
     flows=40000
 
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         profile_echo $flows \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0
+        ::: $CHURN \
+        ::: $TRAFFIC
 }
 
 generate_profiles_fwd() {
     flows=40000
     
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         profile_fwd $flows \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0
+        ::: $CHURN \
+        ::: $TRAFFIC
 }
 
 generate_profiles_fw() {
     flows=40000
 
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         profile_fw $flows \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0
+        ::: $CHURN \
+        ::: $TRAFFIC
 }
 
 generate_profiles_nat() {
     flows=40000
 
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         profile_nat $flows \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0
+        ::: $CHURN \
+        ::: $TRAFFIC
 }
 
 generate_profiles_kvs() {
     flows=100000
 
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         profile_kvs $flows \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0
+        ::: $CHURN \
+        ::: $TRAFFIC
 }
 
 generate_profiles_cl() {
     flows=40000
 
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         profile_cl $flows \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: 0 0.2 0.4 0.6 0.8 1.0
+        ::: $CHURN \
+        ::: $TRAFFIC
 }
 
-generate_profiles_pol() {
-    gen_and_build_profiler pol
-}
-
-generate_profilers() {
+main() {
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         gen_and_build_profiler \
         ::: echo fwd fw nat kvs cl
-}
 
-generate_profiles() {
     # generate_profiles_echo
     # generate_profiles_fwd
     # generate_profiles_fw
     # generate_profiles_nat
-    # generate_profiles_kvs
-    generate_profiles_cl
-    # generate_profiles_pol
+    generate_profiles_kvs
+    # generate_profiles_cl
 }
 
-generate_profilers
-generate_profiles
+main

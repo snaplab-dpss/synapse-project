@@ -36,14 +36,15 @@ const bit<32> HASH_SALT_2 = 0x2681580b;
 
 enum bit<8> cuckoo_ops_t {
 	LOOKUP	= 0x00,
-	INSERT	= 0x01,
-	SWAP	= 0x02,
-	SWAPPED = 0x03,
-	DONE	= 0x04,
+	UPDATE  = 0x01,
+	INSERT	= 0x02,
+	SWAP	= 0x03,
+	SWAPPED = 0x04,
+	DONE	= 0x05,
 }
 
-#define KEY_WIDTH 128
-#define VAL_WIDTH 128
+#define KEY_WIDTH 32
+#define VAL_WIDTH 32
 
 typedef bit<KEY_WIDTH> key_t;
 typedef bit<VAL_WIDTH> val_t;
@@ -57,18 +58,22 @@ typedef bit<VAL_WIDTH> val_t;
 #define BLOOM_IDX_WIDTH CUCKOO_IDX_WIDTH
 
 header cpu_h {
-	bit<16> code_path;                  // Written by the data plane
-	bit<16> egress_dev;                 // Written by the control plane
-	bit<8> trigger_dataplane_execution; // Written by the control plane
+	bit<16>	code_path;                   // Written by the data plane
+	bit<16>	egress_dev;                  // Written by the control plane
+	bit<8>	trigger_dataplane_execution; // Written by the control plane
 }
 
 header recirc_h {
-	bit<16> code_path;
-	bit<8>	op;
-	bit<8>	recirc_cntr;
-	key_t	key;
-	val_t	val;
+	bit<16>	 code_path;
+}
+
+header cuckoo_h {
+	bit<8>  op;
+	bit<8>  recirc_cntr;
 	bit<32> ts;
+	key_t   key;
+	val_t   val;
+	key_t   old_key;
 }
 
 header ethernet_h {
@@ -110,6 +115,7 @@ header kvs_h {
 struct headers_t {
 	cpu_h cpu;
 	recirc_h recirc;
+	cuckoo_h cuckoo;
 	ethernet_h ethernet;
 	ipv4_h ipv4;
 	udp_h udp;
@@ -180,6 +186,14 @@ parser IngressParser(
 
 	state parse_recirc {
 		pkt.extract(hdr.recirc);
+		transition select(hdr.recirc.code_path) {
+			0: parse_cuckoo;
+			default: parser_init;
+		}
+	}
+
+	state parse_cuckoo {
+		pkt.extract(hdr.cuckoo);
 		transition parser_init;
 	}
 
@@ -211,6 +225,262 @@ parser IngressParser(
 	state parse_kvs {
 		pkt.extract(hdr.kvs);
 		transition accept;
+	}
+}
+
+control CuckooHashTable(
+	in bit<32> now,
+	inout cuckoo_h cuckoo,
+	out bool has_next_swap,
+	out bool success
+) {
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_1;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2_r;
+
+	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_1;
+	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cucko_hash_1.get({cuckoo.key, HASH_SALT_1});	}
+
+	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_2;
+	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cucko_hash_2.get({cuckoo.key, HASH_SALT_2});	}
+
+	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_2_r;
+	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cucko_hash_2_r.get({cuckoo.key, HASH_SALT_2}); }
+
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k;
+
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v;
+
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_table_1_ts;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_table_2_ts;
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bool>(reg_1_k) read_1_k = {
+		void apply(inout bit<32> val, out bool match) {
+			if (val == cuckoo.key) {
+				match = true;
+			} else {
+				match = false;
+			}
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bool>(reg_2_k) read_2_k = {
+		void apply(inout bit<32> val, out bool match) {
+			if (val == cuckoo.key) {
+				match = true;
+			} else {
+				match = false;
+			}
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_k) swap_1_k = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = cuckoo.key;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_k) swap_2_k = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = cuckoo.key;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_v) read_1_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_v) read_2_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_v) write_1_v = {
+		void apply(inout bit<32> val) {
+			val = cuckoo.val;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_v) write_2_v = {
+		void apply(inout bit<32> val) {
+			val = cuckoo.val;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_v) swap_1_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = cuckoo.val;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_v) swap_2_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = cuckoo.val;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_1_ts) table_1_ts_query_and_refresh = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			bit<32> diff = cuckoo.ts - val;
+			if (diff > ENTRY_TIMEOUT) {
+				res = 0;
+				val = 0;
+			} else {
+				res = val;
+				val = cuckoo.ts;
+			}
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_2_ts) table_2_ts_query_and_refresh = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			bit<32> diff = cuckoo.ts - val;
+			if (diff > ENTRY_TIMEOUT) {
+				res = 0;
+				val = 0;
+			} else {
+				res = val;
+				val = cuckoo.ts;
+			}
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_1_ts) table_1_ts_swap = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = cuckoo.ts;
+		}
+	};
+
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_2_ts) table_2_ts_swap = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = cuckoo.ts;
+		}
+	};
+
+	action ts_diff(in bit<32> ts, out bit<32> diff) {
+		diff = now - ts;
+	}
+
+	apply {
+		calc_cuckoo_hash_1();
+
+		if (cuckoo.op == cuckoo_ops_t.LOOKUP || cuckoo.op == cuckoo_ops_t.UPDATE) {
+			bool key_match_1 = read_1_k.execute(cuckoo_hash_1);
+			success = false;
+
+			if (key_match_1) {
+				bit<32> stored_table_1_ts = table_1_ts_query_and_refresh.execute(cuckoo_hash_1);
+				if (stored_table_1_ts != 0) {
+					/*****************************************
+					* BDD: on map_get hit with table 1
+					*****************************************/
+					
+					success = true;
+
+					if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
+						cuckoo.val = read_1_v.execute(cuckoo_hash_1);
+					} else {
+						write_1_v.execute(cuckoo_hash_1);
+					}
+				}
+			}
+
+			if (!success) {
+				calc_cuckoo_hash_2() ;
+
+				bool key_match_2 = read_2_k.execute(cuckoo_hash_2);
+
+				if (key_match_2) {
+					bit<32> stored_table_2_ts = table_2_ts_query_and_refresh.execute(cuckoo_hash_2);
+					if (stored_table_2_ts != 0) {
+						/*****************************************
+						* BDD: on map_get hit with table 2
+						*****************************************/
+						
+						success = true;
+
+						if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
+							cuckoo.val = read_2_v.execute(cuckoo_hash_2);
+						} else {
+							write_2_v.execute(cuckoo_hash_2);
+						}
+					}
+				}
+			}
+		} else if (cuckoo.op == cuckoo_ops_t.INSERT || cuckoo.op == cuckoo_ops_t.SWAP) {
+			cuckoo.key = swap_1_k.execute(cuckoo_hash_1);
+			cuckoo.ts = table_1_ts_swap.execute(cuckoo_hash_1);
+			cuckoo.val = swap_1_v.execute(cuckoo_hash_1);
+
+			bit<32> table_1_ts_diff;
+			ts_diff(cuckoo.ts, table_1_ts_diff);
+
+			// Compare the previously stored values against the current pkt's.
+			// If the previous stored values haven't expired and they don't match
+			// the current pkt's, we will swap them to Table 2.
+
+			// The previous Table 1 entry was occupied and not yet expired,
+			// so we'll swap it to Table 2.
+			if (table_1_ts_diff < ENTRY_TIMEOUT) {
+				calc_cuckoo_hash_2_r();
+				
+				cuckoo.key = swap_2_k.execute(cuckoo_hash_2_r);
+				cuckoo.ts = table_2_ts_swap.execute(cuckoo_hash_2_r);
+				cuckoo.val = swap_2_v.execute(cuckoo_hash_2_r);
+
+				bit<32> table_2_ts_diff;
+				ts_diff(cuckoo.ts, table_2_ts_diff);
+
+				// The previous Table 2 entry was occupied and not yet expired,
+				// so we'll recirculate and swap it to Table 1.
+				if (table_2_ts_diff < ENTRY_TIMEOUT) {
+					has_next_swap = true;
+
+					if (cuckoo.op == cuckoo_ops_t.INSERT) {
+						// First (re)circulation for the current pkt.
+						// Store the swap entry values and change the op to SWAP.
+						// The packet will be recirculated later.
+						cuckoo.op = cuckoo_ops_t.SWAP;
+					} else if (cuckoo.op == cuckoo_ops_t.SWAP) {
+						// The current pkt is already a mirrored pkt.
+						// Store the new swap entry values and change the op to SWAPPED.
+						// The packet will be recirculated later.
+						cuckoo.op = cuckoo_ops_t.SWAPPED;
+					}
+				} else {
+					// The previous Table 2 entry was expired/replaced.
+					// In its place is now the cur pkt.
+					if (cuckoo.op == cuckoo_ops_t.INSERT) {
+						// Send the current pkt to the bloom filter with op == DONE, so it'll be sent out.
+						cuckoo.op = cuckoo_ops_t.DONE;
+					} else if (cuckoo.op == cuckoo_ops_t.SWAP) {
+						// Send the current pkt to the bloom filter with op == SWAPPED, to update the transient.
+						cuckoo.op = cuckoo_ops_t.SWAPPED;
+					}
+				}
+			} else {
+				// The previous Table 1 entry was expired/replaced.
+				// In its place is now the cur pkt.
+				if (cuckoo.op == cuckoo_ops_t.INSERT) {
+					// Send the current pkt to the bloom filter with op == DONE, so it'll be sent out.
+					cuckoo.op = cuckoo_ops_t.DONE;
+				} else if (cuckoo.op == cuckoo_ops_t.SWAP) {
+					// Send the current pkt to the bloom filter with op == SWAPPED, to update the transient.
+					cuckoo.op = cuckoo_ops_t.SWAPPED;
+				}
+			}
+		}
 	}
 }
 
@@ -256,26 +526,12 @@ control Ingress(
 		size = 64;
 	}
 
-	key_t cur_key = 0;
-	key_t table_1_key = 0;
-	val_t cur_val = 0;
-	val_t table_1_val = 0;
+
 	bit<16> swapped_transient_val = 0;
-	bit<32> entry_ts = 0;
-	cuckoo_ops_t cuckoo_op = cuckoo_ops_t.LOOKUP;
+	bool was_insert_op = false;
+	bool has_next_swap = false;
 
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_1;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2_r;
-
-	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_1;
-	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cucko_hash_1.get({cur_key, HASH_SALT_1});	}
-
-	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_2;
-	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cucko_hash_2.get({cur_key, HASH_SALT_2});	}
-
-	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_2_r;
-	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cucko_hash_2_r.get({cur_key, HASH_SALT_2}); }
+	CuckooHashTable() cuckoo_hash_table;
 
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swap;
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swap_2;
@@ -283,213 +539,82 @@ control Ingress(
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swapped_2;
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_swapped_3;
 
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k96_127;
-
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k96_127;
-
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v96_127;
-
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v96_127;
-
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_table_1_ts;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_table_2_ts;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_old_key;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_new_key;
 
 	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swap_transient;
 	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swapped_transient;
 
-	#define KEY_READ(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bool>(reg_##table##_k##lsb##_##msb) read_##table##_k##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bool match) { \
-				if (val == cur_key[msb:lsb]) { \
-					match = true; \
-				} else { \
-					match = false; \
-				} \
-			} \
-		};
-
-	#define KEY_SWAP_1(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1##_k##lsb##_##msb) swap_1##_k##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val = cur_key[msb:lsb]; \
-			} \
-		};
-
-	#define KEY_SWAP_2(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2##_k##lsb##_##msb) swap_2##_k##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val = table_1_key[msb:lsb]; \
-			} \
-		};
-
-	#define VAL_READ(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) read_##table##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-			} \
-		};
-
-	#define VAL_WRITE(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) write_##table##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val) { \
-				val = cur_val[msb:lsb]; \
-			} \
-		};
-
-	#define VAL_SWAP_1(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1##_v##lsb##_##msb) swap_1##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val = cur_val[msb:lsb]; \
-			} \
-		};
-
-	#define VAL_SWAP_2(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2##_v##lsb##_##msb) swap_2##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val= table_1_val[msb:lsb]; \
-			} \
-		};
-
-	KEY_READ(1, 31, 0)
-	KEY_READ(1, 63, 32)
-	KEY_READ(1, 95, 64)
-	KEY_READ(1, 127, 96)
-
-	KEY_READ(2, 31, 0)
-	KEY_READ(2, 63, 32)
-	KEY_READ(2, 95, 64)
-	KEY_READ(2, 127, 96)
-
-	// KEY_SWAP_1(31, 0)
-	// KEY_SWAP_1(63, 32)
-	// KEY_SWAP_1(95, 64)
-	// KEY_SWAP_1(127, 96)
-
-	// KEY_SWAP_2(31, 0)
-	// KEY_SWAP_2(63, 32)
-	// KEY_SWAP_2(95, 64)
-	// KEY_SWAP_2(127, 96)
-
-	VAL_READ(1, 31, 0)
-	VAL_READ(1, 63, 32)
-	VAL_READ(1, 95, 64)
-	VAL_READ(1, 127, 96)
-
-	VAL_READ(2, 31, 0)
-	VAL_READ(2, 63, 32)
-	VAL_READ(2, 95, 64)
-	VAL_READ(2, 127, 96)
-
-	VAL_WRITE(1, 31, 0)
-	VAL_WRITE(1, 63, 32)
-	VAL_WRITE(1, 95, 64)
-	VAL_WRITE(1, 127, 96)
-
-	VAL_WRITE(2, 31, 0)
-	VAL_WRITE(2, 63, 32)
-	VAL_WRITE(2, 95, 64)
-	VAL_WRITE(2, 127, 96)
-
-	// VAL_SWAP_1(31, 0)
-	// VAL_SWAP_1(63, 32)
-	// VAL_SWAP_1(95, 64)
-	// VAL_SWAP_1(127, 96)
-
-	// VAL_SWAP_2(31, 0)
-	// VAL_SWAP_2(63, 32)
-	// VAL_SWAP_2(95, 64)
-	// VAL_SWAP_2(127, 96)
-
-	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_1_ts) table_1_ts_query_and_refresh = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			bit<32> diff = entry_ts - val;
-			if (diff > ENTRY_TIMEOUT) {
-				res = 0;
-				val = 0;
+	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bool>(swap_transient) swap_transient_read = {
+		void apply(inout bit<16> val, out bool transient) {
+			if (val <= swapped_transient_val) {
+				transient = true;
 			} else {
-				res = val;
-				val = entry_ts;
+				transient = false;
 			}
 		}
 	};
 
-	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_2_ts) table_2_ts_query_and_refresh = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			bit<32> diff = entry_ts - val;
-			if (diff > ENTRY_TIMEOUT) {
-				res = 0;
-				val = 0;
+	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bool>(swap_transient) swap_transient_conditional_inc = {
+		void apply(inout bit<16> val, out bool new_insertion) {
+			if (val <= swapped_transient_val) {
+				val = swapped_transient_val |+| 1;
+				new_insertion = true;
 			} else {
-				res = val;
-				val = entry_ts;
+				new_insertion = false;
 			}
 		}
 	};
 
-	// RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_1_ts) table_1_ts_swap = {
-	// 	void apply(inout bit<32> val, out bit<32> res) {
-	// 		res = val;
-	// 		val = entry_ts;
-	// 	}
-	// };
+	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swap_transient) swap_transient_incr = {
+		void apply(inout bit<16> val) {
+			val = val |+| 1;
+		}
+	};
 
-	// RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_2_ts) table_2_ts_swap = {
-	// 	void apply(inout bit<32> val, out bit<32> res) {
-	// 		res = val;
-	// 		val = entry_ts;
-	// 	}
-	// };
+	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swapped_transient) swapped_transient_incr = {
+		void apply(inout bit<16> val) {
+			val = val |+| 1;
+		}
+	};
 
-	// RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swap_transient) swap_transient_read = {
-	// 	void apply(inout bit<16> val, out bit<16> res) {
-	// 		res = val;
-	// 	}
-	// };
+	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swapped_transient) swapped_transient_read = {
+		void apply(inout bit<16> val, out bit<16> res) {
+			res = val;
+		}
+	};
 
-	// RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bool>(swap_transient) swap_transient_conditional_inc = {
-	// 	void apply(inout bit<16> val, out bool new_insertion) {
-	// 		if (val <= swapped_transient_val) {
-	// 			val = swapped_transient_val |+| 1;
-	// 			new_insertion = true;
-	// 		} else {
-	// 			new_insertion = false;
-	// 		}
-	// 	}
-	// };
+	action set_out_port(bit<9> out_port) {
+		ig_tm_md.ucast_egress_port = out_port;
+	}
 
-	// RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swap_transient) swap_transient_incr = {
-	// 	void apply(inout bit<16> val) {
-	// 		val = val |+| 1;
-	// 	}
-	// };
+	table cuckoo_select_recirc_port {
+		key = {
+			ig_intr_md.ingress_port[8:7] : exact;
+		}
+		actions = {
+			set_out_port;
+		}
+		size = 4;
+		const entries = {
+			0 : set_out_port(RECIRCULATION_PORT_0);
+			1 : set_out_port(RECIRCULATION_PORT_1);
+			#if __TARGET_TOFINO__ == 2
+			2 : set_out_port(RECIRCULATION_PORT_2);
+			3 : set_out_port(RECIRCULATION_PORT_3);
+			#endif
+		}
+	}
 
-	// RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swapped_transient) swapped_transient_incr = {
-	// 	void apply(inout bit<16> val) {
-	// 		val = val |+| 1;
-	// 	}
-	// };
-
-	// RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bit<16>>(swapped_transient) swapped_transient_read = {
-	// 	void apply(inout bit<16> val, out bit<16> res) {
-	// 		res = val;
-	// 	}
-	// };
+	action build_cuckoo_hdr() {
+		hdr.cuckoo.setValid();
+		hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+		hdr.cuckoo.recirc_cntr = 0;
+		hdr.cuckoo.ts = meta.time;
+		hdr.cuckoo.key = hdr.kvs.key;
+		hdr.cuckoo.val = hdr.kvs.val;
+		hdr.cuckoo.old_key = hdr.kvs.key;
+	}
 
 	apply {
 		if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
@@ -497,141 +622,84 @@ control Ingress(
 			hdr.cpu.setInvalid();
 			trigger_forward = true;
 		} else if (hdr.recirc.isValid()) {
-			// TODO: recirculation
-			/*
-				The cuckoo packet can arrive here and be:
-					- Lookup
-					- Insert
-					- Swap
-			*/
+			if (hdr.recirc.code_path == 0) {
+				if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
+					was_insert_op = true;
+				}
+
+				bool success;
+				cuckoo_hash_table.apply(
+					meta.time,
+					hdr.cuckoo,
+					has_next_swap,
+					success
+				);
+
+				if (success) {
+					/*****************************************
+					* BDD: on map_get success
+					*****************************************/
+					if (hdr.kvs.op == KVS_OP_GET) {
+						hdr.kvs.val = hdr.cuckoo.val;
+					}
+					hdr.kvs.status = KVS_STATUS_HIT;
+				} else {
+					if (hdr.kvs.op == KVS_OP_GET) {
+						nf_dev[15:0] = KVS_SERVER_NF_DEV;
+					} else {
+						/*****************************************
+						* BDD: dchain_allocate_new_index + map_put, etc
+						* EP: CuckooHashTableInsert
+						*****************************************/
+						hdr.cuckoo.op = cuckoo_ops_t.INSERT;
+
+						hdr.recirc.setValid();
+						hdr.recirc.code_path = 0;
+						meta.recirculate = true;
+					}
+				}
+			}
 		} else {
 			ingress_port_to_nf_dev.apply();
 
 			if (meta.dev == 0) {
 				nf_dev[15:0] = hdr.kvs.client_port;
 			} else {
-				cur_key = hdr.kvs.key;
-				cur_val = hdr.kvs.val;
-				entry_ts = meta.time;
+				build_cuckoo_hdr();
 
-				calc_cuckoo_hash_1();
-
-				bool key_match_1 = false;
-				if (read_1_k0_31.execute(cuckoo_hash_1)) {
-					if (read_1_k32_63.execute(cuckoo_hash_1)) {
-						if (read_1_k64_95.execute(cuckoo_hash_1)) {
-							if (read_1_k96_127.execute(cuckoo_hash_1)) {
-								key_match_1 = true;
-							}
-						}
-					}
+				if (hdr.kvs.op == KVS_OP_PUT) {
+					hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
 				}
 
-				bool cuckoo_table_1_lookup_success = false;
+				bool success;
+				cuckoo_hash_table.apply(
+					meta.time,
+					hdr.cuckoo,
+					has_next_swap,
+					success
+				);
 
-				if (key_match_1) {
-					bit<32> stored_table_1_ts = table_1_ts_query_and_refresh.execute(cuckoo_hash_1);
-					if (stored_table_1_ts != 0) {
+				if (success) {
+					/*****************************************
+					* BDD: on map_get success
+					*****************************************/
+					if (hdr.kvs.op == KVS_OP_GET) {
+						hdr.kvs.val = hdr.cuckoo.val;
+					}
+					hdr.kvs.status = KVS_STATUS_HIT;
+				} else {
+					if (hdr.kvs.op == KVS_OP_GET) {
+						nf_dev[15:0] = KVS_SERVER_NF_DEV;
+					} else {
 						/*****************************************
-						* BDD: on map_get hit with table 1
+						* BDD: dchain_allocate_new_index + map_put, etc
+						* EP: CuckooHashTableInsert
 						*****************************************/
-						
-						cuckoo_table_1_lookup_success = true;
-						if (hdr.kvs.op == KVS_OP_GET) {
-							hdr.kvs.val[31:0]	= read_1_v0_31.execute(cuckoo_hash_1);
-							hdr.kvs.val[63:32]	= read_1_v32_63.execute(cuckoo_hash_1);
-							hdr.kvs.val[95:64]	= read_1_v64_95.execute(cuckoo_hash_1);
-							hdr.kvs.val[127:96]	= read_1_v96_127.execute(cuckoo_hash_1);
-						} else {
-							write_1_v0_31.execute(cuckoo_hash_1);
-							write_1_v32_63.execute(cuckoo_hash_1);
-							write_1_v64_95.execute(cuckoo_hash_1);
-							write_1_v96_127.execute(cuckoo_hash_1);
-						}
+						hdr.cuckoo.op = cuckoo_ops_t.INSERT;
 
-						hdr.kvs.status = KVS_STATUS_HIT;
-					}
-				}
-
-				if (!cuckoo_table_1_lookup_success) {
-					calc_cuckoo_hash_2() ;
-
-					bool key_match_2 = false;
-					if (read_2_k0_31.execute(cuckoo_hash_2)) {
-						if (read_2_k32_63.execute(cuckoo_hash_2)) {
-							if (read_2_k64_95.execute(cuckoo_hash_2)) {
-								if (read_2_k96_127.execute(cuckoo_hash_2)) {
-									key_match_2 = true;
-								}
-							}
-						}
-					}
-
-					bool cuckoo_table_2_lookup_success = false;
-
-					if (key_match_2) {
-						bit<32> stored_table_2_ts = table_2_ts_query_and_refresh.execute(cuckoo_hash_2);
-						if (stored_table_2_ts != 0) {
-							/*****************************************
-							 * BDD: on map_get hit with table 2
-							 *****************************************/
-							cuckoo_table_2_lookup_success = true;
-							if (hdr.kvs.op == KVS_OP_GET) {
-								hdr.kvs.val[31:0]	= read_2_v0_31.execute(cuckoo_hash_2);
-								hdr.kvs.val[63:32]	= read_2_v32_63.execute(cuckoo_hash_2);
-								hdr.kvs.val[95:64]	= read_2_v64_95.execute(cuckoo_hash_2);
-								hdr.kvs.val[127:96]	= read_2_v96_127.execute(cuckoo_hash_2);
-							} else {
-								write_2_v0_31.execute(cuckoo_hash_2);
-								write_2_v32_63.execute(cuckoo_hash_2);
-								write_2_v64_95.execute(cuckoo_hash_2);
-								write_2_v96_127.execute(cuckoo_hash_2);
-							}
-							
-							hdr.kvs.status = KVS_STATUS_HIT;
-						}
-					}
-
-					if (!cuckoo_table_2_lookup_success) {
-						/*****************************************
-						* BDD: on map_get miss
-						*****************************************/
-						if (hdr.kvs.op == KVS_OP_GET) {
-							nf_dev[15:0] = KVS_SERVER_NF_DEV;
-						} else {
-							/*****************************************
-							* BDD: dchain_allocate_new_index + map_put, etc
-							* EP: CuckooHashTableInsert
-							*****************************************/
-							cuckoo_op = cuckoo_ops_t.INSERT;
-
-							hdr.recirc.setValid();
-							hdr.recirc.code_path = 0;
-							hdr.recirc.op = cuckoo_op;
-							hdr.recirc.recirc_cntr = 0;
-							hdr.recirc.key = cur_key;
-							hdr.recirc.val = cur_val;
-							hdr.recirc.ts = entry_ts;
-							meta.recirculate = true;
-
-							bit<BLOOM_IDX_WIDTH> swap_transient_idx = hash_swap.get({cur_key});
-
-							if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
-								// Assume the insertion packet was lost.
-								swapped_transient_incr.execute(swap_transient_idx);
-								hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
-							} else {
-								ig_md.swapped_transient_val	= swapped_transient_read.execute(swap_transient_idx);
-								bool new_insertion = swap_transient_conditional_inc.execute(swap_transient_idx);
-
-								if (!new_insertion) {
-									// However, if another pkt matching the same bloom idx is already recirculating, the current pkt will be sent back as a LOOKUP.
-									hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
-								} else {
-									hdr.cuckoo.recirc_cntr = 0;
-								}
-							}
-						}
+						hdr.recirc.setValid();
+						hdr.recirc.code_path = 0;
+						meta.recirculate = true;
 					}
 				}
 			}
@@ -642,16 +710,31 @@ control Ingress(
 		* -> Bloom Filter
 		*****************************************/
 
-		if (cuckoo_op == cuckoo_ops_t.INSERT) {
-			bit<BLOOM_IDX_WIDTH> swap_transient_idx = hash_swap.get({cur_key});
+		bit<BLOOM_IDX_WIDTH> old_key_hash = hash_old_key.get(hdr.cuckoo.old_key);
+		bit<BLOOM_IDX_WIDTH> new_key_hash = hash_new_key.get(hdr.cuckoo.key);
 
+		if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
+			if (was_insert_op) {
+				swapped_transient_incr.execute(old_key_hash);
+			}
+		} else if (hdr.cuckoo.op == cuckoo_ops_t.LOOKUP) {
+			swapped_transient_val = swapped_transient_read.execute(old_key_hash);
+			bool transient = swap_transient_read.execute(old_key_hash);
+
+			if (transient) {
+				hdr.recirc.setValid();
+				hdr.recirc.code_path = 0;
+				meta.recirculate = true;
+			}
+		} else if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
 			if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
 				// Assume the insertion packet was lost.
-				swapped_transient_incr.execute(swap_transient_idx);
+				swapped_transient_incr.execute(old_key_hash);
+
 				hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
 			} else {
-				ig_md.swapped_transient_val	= swapped_transient_read.execute(swap_transient_idx);
-				bool new_insertion = swap_transient_conditional_inc.execute(swap_transient_idx);
+				swapped_transient_val = swapped_transient_read.execute(old_key_hash);
+				bool new_insertion = swap_transient_conditional_inc.execute(old_key_hash);
 
 				if (!new_insertion) {
 					// However, if another pkt matching the same bloom idx is already recirculating, the current pkt will be sent back as a LOOKUP.
@@ -660,31 +743,22 @@ control Ingress(
 					hdr.cuckoo.recirc_cntr = 0;
 				}
 			}
-		} else if (hdr.cuckoo.op == cuckoo_ops_t.DONE && ig_md.was_insert_op) {
-			swapped_transient_incr.execute(hash_swapped.get({ig_md.cur_key}));
 		} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
-			swapped_transient_incr.execute(hash_swapped.get({ig_md.cur_key}));
-			swap_transient_incr.execute(hash_swap_2.get({hdr.cuckoo.key}));
+			swapped_transient_incr.execute(old_key_hash);
+			swap_transient_incr.execute(new_key_hash);
 		} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
-			if (ig_md.has_next_swap == 0) {
-				swapped_transient_incr.execute(hash_swapped_2.get({hdr.cuckoo.key}));
-				hdr.cuckoo.op = cuckoo_ops_t.DONE;
-			} else {
-				swapped_transient_incr.execute(hash_swapped_3.get({ig_md.swapped_key}));
-				swap_transient_incr.execute(hash_swap_2.get({hdr.cuckoo.key}));
+			swapped_transient_incr.execute(old_key_hash);
+			if (has_next_swap) {
+				swap_transient_incr.execute(new_key_hash);
 				hdr.cuckoo.op = cuckoo_ops_t.SWAP;
+			} else {
+				hdr.cuckoo.op = cuckoo_ops_t.DONE;
 			}
 		}
 
-		if (ig_md.send_to_kvs_server) {
-			set_out_port(KVS_SERVER_PORT);
-		} else if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
-			set_out_port((bit<9>)hdr.kv.port);
-		} else if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
-			set_out_port(KVS_SERVER_PORT);
-		} else {
+		if (hdr.cuckoo.isValid() && hdr.cuckoo.op != cuckoo_ops_t.DONE) {
 			hdr.cuckoo.recirc_cntr = hdr.cuckoo.recirc_cntr + 1;
-			select_recirc_port.apply();
+			cuckoo_select_recirc_port.apply();
 		}
 
 		// =============================================================================

@@ -7,7 +7,7 @@
 #   That is why we generate pcaps only for devices 2-31 (devices start by 0).
 ########################################################################################################################################
 
-set -euox pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 PROJECT_DIR=$(realpath $SCRIPT_DIR/..)
@@ -19,6 +19,15 @@ mkdir -p $PCAPS_DIR
 
 TOTAL_PACKETS=50000000
 PACKET_SIZE=250
+CHURN="0 1000 10000 100000 1000000"
+TRAFFIC=(
+    "uniform"
+    "zipf --zipf-param 0.2"
+    "zipf --zipf-param 0.4"
+    "zipf --zipf-param 0.6"
+    "zipf --zipf-param 0.8"
+    "zipf --zipf-param 1.0"
+)
 
 ####################
 #       Echo       #
@@ -28,7 +37,7 @@ generate_pcaps_echo() {
     flows=40000
     devs="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31"
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         eval \
         $SYNAPSE_DIR/build/bin/pcap-generator-echo \
         --out $PCAPS_DIR \
@@ -39,8 +48,8 @@ generate_pcaps_echo() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
 }
 
 #########################
@@ -51,7 +60,7 @@ generate_pcaps_fwd() {
     flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         eval \
         $SYNAPSE_DIR/build/bin/pcap-generator-fwd \
         --out $PCAPS_DIR \
@@ -62,8 +71,8 @@ generate_pcaps_fwd() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
 }
 
 ###################
@@ -74,7 +83,7 @@ generate_pcaps_fw() {
     flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         eval \
         $SYNAPSE_DIR/build/bin/pcap-generator-fw \
         --out $PCAPS_DIR \
@@ -85,8 +94,8 @@ generate_pcaps_fw() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
 }
 
 ##############################
@@ -97,7 +106,7 @@ generate_pcaps_nat() {
     flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         eval \
         $SYNAPSE_DIR/build/bin/pcap-generator-nat \
         --out $PCAPS_DIR \
@@ -108,8 +117,8 @@ generate_pcaps_nat() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
 }
 
 ###################
@@ -120,7 +129,7 @@ generate_pcaps_kvs() {
     flows=100000 # Uses more flows than the other NFs to have more flows than cache capacity.
     devs="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31"
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         eval \
         $SYNAPSE_DIR/build/bin/pcap-generator-kvs \
         --out $PCAPS_DIR \
@@ -130,8 +139,8 @@ generate_pcaps_kvs() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
 }
 
 ######################
@@ -142,7 +151,7 @@ generate_pcaps_cl() {
     flows=40000
     devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
     parallel \
-        -j $(nproc) \
+        -j $(nproc) --verbose \
         eval \
         $SYNAPSE_DIR/build/bin/pcap-generator-cl \
         --out $PCAPS_DIR \
@@ -153,13 +162,13 @@ generate_pcaps_cl() {
         --traffic {2} \
         --devs $devs \
         --seed 0 \
-        ::: 0 1000 10000 100000 1000000 \
-        ::: "uniform" "zipf --zipf-param 0.2" "zipf --zipf-param 0.4" "zipf --zipf-param 0.6" "zipf --zipf-param 0.8" "zipf --zipf-param 1.0"
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
 }
 
 # generate_pcaps_echo
 # generate_pcaps_fwd
-generate_pcaps_fw
-generate_pcaps_nat
+# generate_pcaps_fw
+# generate_pcaps_nat
 generate_pcaps_kvs
-generate_pcaps_cl
+# generate_pcaps_cl
