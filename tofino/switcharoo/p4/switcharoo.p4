@@ -168,11 +168,11 @@ control Ingress(inout header_t hdr,
 	};
 
 	RegisterAction<bit<16>, bit<BLOOM_IDX_WIDTH>, bool>(swap_transient) swap_transient_read = {
-		void apply(inout bit<16> val, out bool transient) {
+		void apply(inout bit<16> val, out bool stable) {
 			if (val <= ig_md.swapped_transient_val) {
-				transient = true;
+				stable = true;
 			} else {
-				transient = false;
+				stable = false;
 			}
 		}
 	};
@@ -536,9 +536,7 @@ control Ingress(inout header_t hdr,
 				}
 			} else if (hdr.cuckoo.op == cuckoo_ops_t.LOOKUP) {
 				ig_md.swapped_transient_val	= swapped_transient_read.execute(old_key_hash);
-				bool transient = swap_transient_read.execute(old_key_hash);
-
-				if (!transient) {
+				if (swap_transient_read.execute(old_key_hash)) {
 					ig_md.send_to_kvs_server = true;
 					debug_cache_miss_on_kvs_get_inc();
 				}

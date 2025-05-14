@@ -30,7 +30,7 @@ compile() {
 	p4=$1
 
 	echo "[*] Compiling"
-	$P4_COMPILER --with-tofino2 $p4
+	APP=${p4%.*} P4_COMPILATION_VARS="" make -f $SCRIPT_DIR/Makefile install-tofino2
 }
 
 setup() {
