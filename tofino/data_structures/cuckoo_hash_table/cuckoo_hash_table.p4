@@ -77,6 +77,7 @@ header cuckoo_h {
 	val_t   val;
 	bit<8>  old_op;
 	key_t   old_key;
+	key_t   original_key;
 }
 
 header ethernet_h {
@@ -237,7 +238,7 @@ parser IngressParser(
 control CuckooHashTable(
 	in bit<32> now,
 	inout cuckoo_h cuckoo,
-	out bool hit
+	out bool success
 ) {
 	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_1;
 	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2;
@@ -379,9 +380,8 @@ control CuckooHashTable(
 	apply {
 		calc_cuckoo_hash_1();
 
-		hit = false;
-
 		if (cuckoo.op == cuckoo_ops_t.LOOKUP || cuckoo.op == cuckoo_ops_t.UPDATE) {
+			success = false;
 			if (k_1_read.execute(cuckoo_hash_1)) {
 				if (ts_1_query_and_refresh.execute(cuckoo_hash_1)) {
 					if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
@@ -390,7 +390,7 @@ control CuckooHashTable(
 						v_1_write.execute(cuckoo_hash_1);
 					}
 					cuckoo.op = cuckoo_ops_t.DONE;
-					hit = true;
+					success = true;
 				}
 			}
 
@@ -404,7 +404,7 @@ control CuckooHashTable(
 							v_2_write.execute(cuckoo_hash_2);
 						}
 						cuckoo.op = cuckoo_ops_t.DONE;
-						hit = true;
+						success = true;
 					}
 				}
 			}
@@ -413,6 +413,7 @@ control CuckooHashTable(
 				cuckoo.op = cuckoo_ops_t.INSERT;
 			}
 		} else if (cuckoo.op == cuckoo_ops_t.INSERT || cuckoo.op == cuckoo_ops_t.SWAP) {
+			success = true;
 			cuckoo.old_key = cuckoo.key;
 
 			cuckoo.key = k_1_swap.execute(cuckoo_hash_1);
@@ -435,6 +436,9 @@ control CuckooHashTable(
 				if (ts_2_diff < ENTRY_TIMEOUT) {
 					if (cuckoo.op == cuckoo_ops_t.INSERT) {
 						cuckoo.op = cuckoo_ops_t.SWAP;
+					} else if (cuckoo.key == cuckoo.original_key) {
+						success = false;
+						cuckoo.op = cuckoo_ops_t.DONE;
 					}
 				} else {
 					cuckoo.op = cuckoo_ops_t.DONE;
@@ -612,6 +616,7 @@ control Ingress(
 		hdr.cuckoo.val = hdr.kvs.val;
 		hdr.cuckoo.old_op = hdr.kvs.op;
 		hdr.cuckoo.old_key = hdr.kvs.key;
+		hdr.cuckoo.original_key = hdr.kvs.key;
 	}
 
 	apply {
@@ -622,8 +627,8 @@ control Ingress(
 		} else if (hdr.recirc.isValid()) {
 			// These are all the code paths that use recirculation because of cuckoo logic.
 			if (hdr.recirc.code_path == 0 || hdr.recirc.code_path == 1) {
-				bool cuckoo_hit;
-				cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hit);
+				bool success;
+				cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
 
 				cuckoo_bloom_filter.apply(
 					hdr.recirc.ingress_port,
@@ -635,7 +640,7 @@ control Ingress(
 				if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
 					// Now that we are here, let's check which piece of the code we are in.
 					if (hdr.recirc.code_path == 0) {
-						if (cuckoo_hit) {
+						if (success) {
 							/*****************************************
 							* BDD: on map_get success
 							*****************************************/
@@ -648,9 +653,16 @@ control Ingress(
 							trigger_forward = true;
 						}
 					} else {
-						hdr.kvs.status = KVS_STATUS_HIT;
-						nf_dev = hdr.recirc.dev;
-						trigger_forward = true;
+						if (success) {
+							hdr.kvs.status = KVS_STATUS_HIT;
+							nf_dev = hdr.recirc.dev;
+							trigger_forward = true;
+						} else {
+							hdr.kvs.key = hdr.cuckoo.key; // FIXME: remove this
+							hdr.kvs.val = hdr.cuckoo.val; // FIXME: remove this
+							nf_dev[15:0] = KVS_SERVER_NF_DEV;
+							trigger_forward = true;
+						}
 					}
 				}
 			}
@@ -664,8 +676,8 @@ control Ingress(
 				build_cuckoo_hdr();
 
 				if (hdr.kvs.op == KVS_OP_GET) {
-					bool cuckoo_hit;
-					cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hit);
+					bool success;
+					cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
 
 					cuckoo_bloom_filter.apply(
 						ig_intr_md.ingress_port,
@@ -675,7 +687,7 @@ control Ingress(
 					);
 
 					if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
-						if (cuckoo_hit) {
+						if (success) {
 							/*****************************************
 							* BDD: on map_get success
 							*****************************************/
@@ -696,8 +708,8 @@ control Ingress(
 				} else {
 					hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
 
-					bool cuckoo_hit;
-					cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hit);
+					bool success;
+					cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
 
 					cuckoo_bloom_filter.apply(
 						ig_intr_md.ingress_port,
