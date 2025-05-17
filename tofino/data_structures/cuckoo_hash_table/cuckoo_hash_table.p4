@@ -658,8 +658,6 @@ control Ingress(
 							nf_dev = hdr.recirc.dev;
 							trigger_forward = true;
 						} else {
-							hdr.kvs.key = hdr.cuckoo.key; // FIXME: remove this
-							hdr.kvs.val = hdr.cuckoo.val; // FIXME: remove this
 							nf_dev[15:0] = KVS_SERVER_NF_DEV;
 							trigger_forward = true;
 						}
