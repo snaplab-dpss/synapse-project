@@ -19,16 +19,12 @@
 #include "store.h"
 
 struct args_t {
-  int in_port;
-  int out_port;
   int64_t processing_delay_per_query_ns;
 
-  args_t() : in_port(0), out_port(1), processing_delay_per_query_ns(0) {}
+  args_t() : processing_delay_per_query_ns(0) {}
 
   void dump() const {
     std::cerr << "Configuration:\n";
-    std::cerr << "  Input port: " << in_port << "\n";
-    std::cerr << "  Output port: " << out_port << "\n";
     std::cerr << "  Processing delay per query (ns): " << processing_delay_per_query_ns << "\n";
     std::cerr << "\n";
   }
@@ -138,8 +134,6 @@ void print_port_stats(int) {
 
 struct worker_args_t {
   int64_t processing_delay_per_query_ns;
-  int in_port;
-  int out_port;
   uint16_t rx_queue;
   std::unordered_map<uint16_t, bool> *lcores_ready;
 };
@@ -147,7 +141,7 @@ struct worker_args_t {
 static void worker_main(void *args) {
   worker_args_t worker_args = *(worker_args_t *)args;
 
-  netcache::Store store(worker_args.processing_delay_per_query_ns, worker_args.in_port, worker_args.out_port, worker_args.rx_queue);
+  netcache::Store store(worker_args.processing_delay_per_query_ns, worker_args.rx_queue);
 
   printf("KVS server started on lcore %u\n", rte_lcore_id());
   fflush(stdout);
@@ -186,8 +180,6 @@ int main(int argc, char **argv) {
   args_t args;
   bool dry_run{false};
 
-  app.add_option("--in", args.in_port, "Ingress port.");
-  app.add_option("--out", args.out_port, "Egress port.");
   app.add_option("--delay", args.processing_delay_per_query_ns, "Processing per-query delay (ns).");
   app.add_flag("--dry-run", dry_run, "Don't run, just print out the configuration.");
 
@@ -236,16 +228,12 @@ int main(int argc, char **argv) {
     lcores_ready[lcore_id]         = false;
     lcore_to_worker_args[lcore_id] = worker_args_t{
         .processing_delay_per_query_ns = args.processing_delay_per_query_ns,
-        .in_port                       = args.in_port,
-        .out_port                      = args.out_port,
         .rx_queue                      = lcore_to_rx_queue.at(lcore_id),
         .lcores_ready                  = &lcores_ready,
     };
   }
 
-  RTE_LCORE_FOREACH_WORKER(lcore_id) {
-    rte_eal_remote_launch((lcore_function_t *)worker_main, (void *)&lcore_to_worker_args.at(lcore_id), lcore_id);
-  }
+  RTE_LCORE_FOREACH_WORKER(lcore_id) { rte_eal_remote_launch((lcore_function_t *)worker_main, (void *)&lcore_to_worker_args.at(lcore_id), lcore_id); }
 
   worker_main((void *)&lcore_to_worker_args.at(rte_lcore_id()));
 

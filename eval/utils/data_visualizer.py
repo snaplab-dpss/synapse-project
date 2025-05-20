@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
             data[keys].append(values)
 
-    t = PrettyTable(list(keys_labels) + ["DUT Egress BPS"])
+    t = PrettyTable(list(keys_labels) + ["DUT Egress BPS", "DUT Egress PPS"])
     t.align = "l"
 
     for keys in sorted(data.keys()):
@@ -62,8 +62,9 @@ if __name__ == "__main__":
         first = True
         for values in list_of_values:
             k = [f"{key:,}" for key in keys] if first else [""] * keys_size
-            bps = f"{values.requested_bps:,}"
-            t.add_row(k + [bps])
+            bps = f"{values.dut_egress_bps:,}"
+            pps = f"{values.dut_egress_pps:,}"
+            t.add_row(k + [bps, pps])
             first = False
 
     print(t)

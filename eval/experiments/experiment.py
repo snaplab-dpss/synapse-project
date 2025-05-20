@@ -46,11 +46,11 @@ class ThroughputReport:
 
     def __str__(self):
         s = ""
-        s += f"Requested: {self.requested_bps/1e9:12.5f} Gbps "
-        s += f"Pktgen: {self.pktgen_bps/1e9:12.5f} Gbps {self.pktgen_pps/1e6:12.5f} Mpps "
-        s += f"DUT ingress: {self.dut_ingress_bps/1e9:12.5f} Gbps {self.dut_ingress_pps/1e6:12.5f} Mpps "
-        s += f"DUT egress: {self.dut_egress_bps/1e9:12.5f} Gbps {self.dut_egress_pps/1e6:12.5f} Mpps "
-        s += f"Loss: {self.loss*100:.2f}%"
+        s += f"Requested:   {self.requested_bps/1e9:12.5f} Gbps\n"
+        s += f"Pktgen:      {self.pktgen_bps/1e9:12.5f} Gbps {self.pktgen_pps/1e6:12.5f} Mpps\n"
+        s += f"DUT ingress: {self.dut_ingress_bps/1e9:12.5f} Gbps {self.dut_ingress_pps/1e6:12.5f} Mpps\n"
+        s += f"DUT egress:  {self.dut_egress_bps/1e9:12.5f} Gbps {self.dut_egress_pps/1e6:12.5f} Mpps\n"
+        s += f"Loss:        {self.loss*100:12.5f}%"
         return s
 
 

@@ -61,7 +61,7 @@ class KVSServer:
 
         self.kill_server()
 
-        args = f"--in 0 --out 0 --delay {delay_ns}"
+        args = f"--delay {delay_ns}"
         remote_cmd = f"source {self.setup_env_script} && sudo -E {str(self.server_exe)} {self.dpdk_config} -- {args}"
 
         self.server = self.host.run_command(remote_cmd, pty=True)
