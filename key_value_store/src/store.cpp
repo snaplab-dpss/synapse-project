@@ -72,7 +72,8 @@ void Store::run() {
 }
 
 bool Store::check_pkt(const rte_mbuf *mbuf) {
-  constexpr const uint32_t min_size = sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) + sizeof(rte_udp_hdr) + sizeof(netcache_hdr_t);
+  constexpr const uint32_t min_size = std::max(sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) + sizeof(rte_udp_hdr) + sizeof(netcache_hdr_t),
+                                               static_cast<unsigned long>(MIN_PKT_SIZE - CRC_SIZE));
 
   if (mbuf->pkt_len != min_size) {
     LOG_DEBUG("Too small/big for a netcache packet (%u).", mbuf->pkt_len);

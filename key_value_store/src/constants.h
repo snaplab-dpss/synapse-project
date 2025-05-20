@@ -19,3 +19,5 @@
 #define MBUF_CACHE_SIZE 250
 #define RX_RING_SIZE 2048
 #define TX_RING_SIZE 2048
+#define MIN_PKT_SIZE 64
+#define CRC_SIZE 4
