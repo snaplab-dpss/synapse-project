@@ -25,15 +25,8 @@ control Ingress(inout header_t hdr,
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_k;
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_k;
 
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v96_127;
-
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v0_31;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v32_63;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v64_95;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v96_127;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_1_v;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_2_v;
 
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_table_1_ts;
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_table_2_ts;
@@ -67,65 +60,43 @@ control Ingress(inout header_t hdr,
 		}
 	};
 
-	#define VAL_READ(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) read_##table##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_v) read_1_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+		}
+	};
 
-	#define VAL_WRITE(table, msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_##table##_v##lsb##_##msb) write_##table##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val) { \
-				val = ig_md.cur_val[msb:lsb]; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_v) read_2_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+		}
+	};
 
-	#define VAL_SWAP_1(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1##_v##lsb##_##msb) swap_1##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val = ig_md.cur_val[msb:lsb]; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_v) write_1_v = {
+		void apply(inout bit<32> val) {
+			val = ig_md.cur_val;
+		}
+	};
 
-	#define VAL_SWAP_2(msb, lsb) \
-		RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2##_v##lsb##_##msb) swap_2##_v##lsb##_##msb## = { \
-			void apply(inout bit<32> val, out bit<32> res) { \
-				res = val; \
-				val= ig_md.table_1_val[msb:lsb]; \
-			} \
-		};
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_v) write_2_v = {
+		void apply(inout bit<32> val) {
+			val = ig_md.cur_val;
+		}
+	};
 
-	VAL_READ(1, 31, 0)
-	VAL_READ(1, 63, 32)
-	VAL_READ(1, 95, 64)
-	VAL_READ(1, 127, 96)
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_1_v) swap_1_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val = ig_md.cur_val;
+		}
+	};
 
-	VAL_READ(2, 31, 0)
-	VAL_READ(2, 63, 32)
-	VAL_READ(2, 95, 64)
-	VAL_READ(2, 127, 96)
-
-	VAL_WRITE(1, 31, 0)
-	VAL_WRITE(1, 63, 32)
-	VAL_WRITE(1, 95, 64)
-	VAL_WRITE(1, 127, 96)
-
-	VAL_WRITE(2, 31, 0)
-	VAL_WRITE(2, 63, 32)
-	VAL_WRITE(2, 95, 64)
-	VAL_WRITE(2, 127, 96)
-
-	VAL_SWAP_1(31, 0)
-	VAL_SWAP_1(63, 32)
-	VAL_SWAP_1(95, 64)
-	VAL_SWAP_1(127, 96)
-
-	VAL_SWAP_2(31, 0)
-	VAL_SWAP_2(63, 32)
-	VAL_SWAP_2(95, 64)
-	VAL_SWAP_2(127, 96)
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_2_v) swap_2_v = {
+		void apply(inout bit<32> val, out bit<32> res) {
+			res = val;
+			val= ig_md.table_1_val;
+		}
+	};
 
 	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_table_1_ts) table_1_ts_query_and_refresh = {
 		void apply(inout bit<32> val, out bit<32> res) {
@@ -245,6 +216,7 @@ control Ingress(inout header_t hdr,
 
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_old_key;
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_new_key;
+	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_new_key_2;
 
 	table select_recirc_port {
 		key = {
@@ -371,10 +343,7 @@ control Ingress(inout header_t hdr,
 				ts_diff(table_1_ts, table_1_ts_diff);
 
 
-				ig_md.table_1_val[31:0]		= swap_1_v0_31.execute(ig_md.hash_table_1);
-				ig_md.table_1_val[63:32]	= swap_1_v32_63.execute(ig_md.hash_table_1);
-				ig_md.table_1_val[95:64]	= swap_1_v64_95.execute(ig_md.hash_table_1);
-				ig_md.table_1_val[127:96]	= swap_1_v96_127.execute(ig_md.hash_table_1);
+				ig_md.table_1_val = swap_1_v.execute(ig_md.hash_table_1);
 
 				// Compare the previously stored values against the current pkt's.
 				// If the previous stored values haven't expired and they don't match
@@ -394,10 +363,7 @@ control Ingress(inout header_t hdr,
 					ts_diff(table_2_ts, table_2_ts_diff);
 
 					val_t table_2_val = 0;
-					table_2_val[31:0]	= swap_2_v0_31.execute(ig_md.hash_table_2_r);
-					table_2_val[63:32]	= swap_2_v32_63.execute(ig_md.hash_table_2_r);
-					table_2_val[95:64]	= swap_2_v64_95.execute(ig_md.hash_table_2_r);
-					table_2_val[127:96]	= swap_2_v96_127.execute(ig_md.hash_table_2_r);
+					table_2_val = swap_2_v.execute(ig_md.hash_table_2_r);
 
 					// The previous Table 2 entry was occupied and not yet expired,
 					// so we'll recirculate and swap it to Table 1.
@@ -460,15 +426,9 @@ control Ingress(inout header_t hdr,
 
 					if (stored_table_1_ts != 0) {
 						if (hdr.kv.op == kv_ops_t.GET) {
-							hdr.kv.val[31:0]	= read_1_v0_31.execute(ig_md.hash_table_1);
-							hdr.kv.val[63:32]	= read_1_v32_63.execute(ig_md.hash_table_1);
-							hdr.kv.val[95:64]	= read_1_v64_95.execute(ig_md.hash_table_1);
-							hdr.kv.val[127:96]	= read_1_v96_127.execute(ig_md.hash_table_1);
+							hdr.kv.val = read_1_v.execute(ig_md.hash_table_1);
 						} else {
-							write_1_v0_31.execute(ig_md.hash_table_1);
-							write_1_v32_63.execute(ig_md.hash_table_1);
-							write_1_v64_95.execute(ig_md.hash_table_1);
-							write_1_v96_127.execute(ig_md.hash_table_1);
+							write_1_v.execute(ig_md.hash_table_1);
 						}
 
 						hdr.cuckoo.op = cuckoo_ops_t.DONE;
@@ -492,15 +452,9 @@ control Ingress(inout header_t hdr,
 
 						if (stored_table_2_ts != 0) {
 							if (hdr.kv.op == kv_ops_t.GET) {
-								hdr.kv.val[31:0]	= read_2_v0_31.execute(ig_md.hash_table_2);
-								hdr.kv.val[63:32]	= read_2_v32_63.execute(ig_md.hash_table_2);
-								hdr.kv.val[95:64]	= read_2_v64_95.execute(ig_md.hash_table_2);
-								hdr.kv.val[127:96]	= read_2_v96_127.execute(ig_md.hash_table_2);
+								hdr.kv.val = read_2_v.execute(ig_md.hash_table_2);
 							} else {
-								write_2_v0_31.execute(ig_md.hash_table_2);
-								write_2_v32_63.execute(ig_md.hash_table_2);
-								write_2_v64_95.execute(ig_md.hash_table_2);
-								write_2_v96_127.execute(ig_md.hash_table_2);
+								write_2_v.execute(ig_md.hash_table_2);
 							}
 							
 							hdr.cuckoo.op = cuckoo_ops_t.DONE;
@@ -564,12 +518,12 @@ control Ingress(inout header_t hdr,
 			} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
 				debug_state_swap_inc();
 				swapped_transient_incr.execute(old_key_hash);
-				swap_transient_incr.execute(new_key_hash);
+				swap_transient_incr.execute(hash_new_key_2.get(hdr.cuckoo.key));
 			} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAPPED) {
 				debug_state_swapped_inc();
 				swapped_transient_incr.execute(old_key_hash);
 				if (ig_md.has_next_swap) {
-					swap_transient_incr.execute(new_key_hash);
+					swap_transient_incr.execute(hash_new_key_2.get(hdr.cuckoo.key));
 					hdr.cuckoo.op = cuckoo_ops_t.SWAP;
 				} else {
 					hdr.cuckoo.op = cuckoo_ops_t.DONE;

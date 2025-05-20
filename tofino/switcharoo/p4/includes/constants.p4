@@ -50,7 +50,7 @@ const bit<32> HASH_SALT_1 = 0xfbc31fc7;
 const bit<32> HASH_SALT_2 = 0x2681580b;
 
 #define KEY_WIDTH			32
-#define VAL_WIDTH			128
+#define VAL_WIDTH			32
 
 typedef bit<KEY_WIDTH>		key_t;
 typedef bit<VAL_WIDTH>		val_t;

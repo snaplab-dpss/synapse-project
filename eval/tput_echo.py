@@ -200,10 +200,6 @@ def main():
 
     # Force a copy of the list to avoid modifying the original list.
     dut_ports = list(config["devices"]["switch_dut"]["client_ports"])
-    if echo_nf.kvs_mode:
-        server_port = config["devices"]["switch_dut"]["server_port"]
-        dut_ports.append(server_port)
-        dut_ports = sorted(dut_ports)
 
     exp_tracker.add_experiment(
         SynapseThroughput(

@@ -127,10 +127,7 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
 
     // Remove the corresponding value from the value registers.
 
-    reg_v0_31.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v32_63.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v64_95.allocate(sampl_vec[smallest_idx][0], 0);
-    reg_v96_127.allocate(sampl_vec[smallest_idx][0], 0);
+    reg_v.allocate(sampl_vec[smallest_idx][0], 0);
   }
 
   ProcessQuery::process_query->update_cache(nc_hdr);

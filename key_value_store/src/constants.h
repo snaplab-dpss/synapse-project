@@ -9,8 +9,8 @@
 #define KVSTORE_PORT 670
 #define KVSTORE_CAPACITY (1 << 20)
 
-#define KV_KEY_SIZE 16
-#define KV_VAL_SIZE 16
+#define KV_KEY_SIZE 4
+#define KV_VAL_SIZE 4
 
 // DPDK
 

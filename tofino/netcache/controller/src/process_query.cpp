@@ -61,17 +61,11 @@ void ProcessQuery::update_cache(netcache_hdr_t *nc_hdr) {
   Controller::controller->cached_keys.insert(key);
 
   // Add the value to the value registers in the index position.
-  uint32_t update_v0_31, update_v32_63, update_v64_95, update_v96_127;
-  std::memcpy(&update_v0_31, nc_hdr->val, sizeof(update_v0_31));
-  std::memcpy(&update_v32_63, nc_hdr->val + 4, sizeof(update_v32_63));
-  std::memcpy(&update_v64_95, nc_hdr->val + 8, sizeof(update_v64_95));
-  std::memcpy(&update_v96_127, nc_hdr->val + 12, sizeof(update_v96_127));
+  uint32_t update_v;
+  std::memcpy(&update_v, nc_hdr->val, sizeof(update_v));
 
   // Update the key/value corresponding to the HH report directly on the switch.
-  Controller::controller->reg_v0_31.allocate(*it, update_v0_31);
-  Controller::controller->reg_v32_63.allocate(*it, update_v32_63);
-  Controller::controller->reg_v64_95.allocate(*it, update_v64_95);
-  Controller::controller->reg_v96_127.allocate(*it, update_v96_127);
+  Controller::controller->reg_v.allocate(*it, update_v);
   // Remove the selected value from the set.
   Controller::controller->available_keys.erase(it);
 }

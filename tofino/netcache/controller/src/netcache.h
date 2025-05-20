@@ -13,38 +13,7 @@
 #include "tables/fwd.h"
 #include "tables/keys.h"
 #include "tables/is_client_packet.h"
-#include "registers/reg_v0_31.h"
-#include "registers/reg_v32_63.h"
-#include "registers/reg_v64_95.h"
-#include "registers/reg_v96_127.h"
-#include "registers/reg_v128_159.h"
-#include "registers/reg_v160_191.h"
-#include "registers/reg_v192_223.h"
-#include "registers/reg_v224_255.h"
-#include "registers/reg_v256_287.h"
-#include "registers/reg_v288_319.h"
-#include "registers/reg_v320_351.h"
-#include "registers/reg_v352_383.h"
-#include "registers/reg_v384_415.h"
-#include "registers/reg_v416_447.h"
-#include "registers/reg_v448_479.h"
-#include "registers/reg_v480_511.h"
-#include "registers/reg_v512_543.h"
-#include "registers/reg_v544_575.h"
-#include "registers/reg_v576_607.h"
-#include "registers/reg_v608_639.h"
-#include "registers/reg_v640_671.h"
-#include "registers/reg_v672_703.h"
-#include "registers/reg_v704_735.h"
-#include "registers/reg_v736_767.h"
-#include "registers/reg_v768_799.h"
-#include "registers/reg_v800_831.h"
-#include "registers/reg_v832_863.h"
-#include "registers/reg_v864_895.h"
-#include "registers/reg_v896_927.h"
-#include "registers/reg_v928_959.h"
-#include "registers/reg_v960_991.h"
-#include "registers/reg_v992_1023.h"
+#include "registers/reg_v.h"
 #include "registers/reg_key_count.h"
 #include "registers/reg_cm_0.h"
 #include "registers/reg_cm_1.h"
@@ -109,10 +78,7 @@ public:
   IsClientPacket is_client_packet;
 
   // Switch registers
-  RegV0_31 reg_v0_31;
-  RegV32_63 reg_v32_63;
-  RegV64_95 reg_v64_95;
-  RegV96_127 reg_v96_127;
+  RegV reg_v;
   RegKeyCount reg_key_count;
   RegCm0 reg_cm_0;
   RegCm1 reg_cm_1;
@@ -124,10 +90,10 @@ public:
 
   struct key_hash_t {
     std::size_t operator()(const std::array<uint8_t, KV_KEY_SIZE> &key) const {
-      unsigned long long hash = 0;
-      unsigned long long *k   = (unsigned long long *)key.data();
-      hash                    = __builtin_ia32_crc32di(hash, *k);
-      hash                    = __builtin_ia32_crc32di(hash, *(k + 1));
+      uint32_t hash = 0;
+      static_assert(KV_KEY_SIZE == sizeof(uint32_t));
+      uint32_t *k = (uint32_t *)key.data();
+      hash        = __builtin_ia32_crc32di(hash, *k);
       return hash;
     }
   };
@@ -146,8 +112,7 @@ public:
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), args(_args), atom(0),
         cpu_port(args.tna_version == 1 ? CPU_PORT_TNA1 : CPU_PORT_TNA2), server_dev_port(ports.get_dev_port(args.server_port, 0)),
         fwd(_info, _session, _dev_tgt), keys(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt),
-        reg_v0_31(_info, _session, _dev_tgt), reg_v32_63(_info, _session, _dev_tgt), reg_v64_95(_info, _session, _dev_tgt),
-        reg_v96_127(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt),
+        reg_v(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt),
         reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt),
         reg_bloom_0(_info, _session, _dev_tgt), reg_bloom_1(_info, _session, _dev_tgt), reg_bloom_2(_info, _session, _dev_tgt) {
     if (!args.run_tofino_model) {

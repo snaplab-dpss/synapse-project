@@ -21,8 +21,8 @@ using device_t    = TrafficGenerator::device_t;
 using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
 
-constexpr const bytes_t KEY_SIZE_BYTES{16};
-constexpr const bytes_t VALUE_SIZE_BYTES{16};
+constexpr const bytes_t KEY_SIZE_BYTES{4};
+constexpr const bytes_t VALUE_SIZE_BYTES{4};
 
 using kv_key_t   = std::array<u8, KEY_SIZE_BYTES>;
 using kv_value_t = std::array<u8, VALUE_SIZE_BYTES>;

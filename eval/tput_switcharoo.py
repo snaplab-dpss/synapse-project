@@ -132,7 +132,7 @@ class SwitcharooThroughput(Experiment):
         self.log("Launching Tofino TG")
         self.tg_hosts.tg_switch.launch()
 
-        self.log("Installing NetCache")
+        self.log("Installing Switcharoo")
         self.switcharoo.install()
 
         self.log("Launching Switcharoo")

@@ -4,10 +4,10 @@
 
 namespace netcache {
 
-class RegV256_287 : public Register {
+class RegV : public Register {
 public:
-  RegV256_287(const bfrt::BfRtInfo *info, std::shared_ptr<bfrt::BfRtSession> session, const bf_rt_target_t &dev_tgt)
-      : Register(info, session, dev_tgt, "SwitchIngress.reg_v256_287") {}
+  RegV(const bfrt::BfRtInfo *info, std::shared_ptr<bfrt::BfRtSession> session, const bf_rt_target_t &dev_tgt)
+      : Register(info, session, dev_tgt, "SwitchIngress.reg_v") {}
 
   void set_all_true() { overwrite_all_entries(1); }
   void set_all_false() { overwrite_all_entries(0); }
