@@ -69,7 +69,7 @@ private:
   void key_setup(uint8_t *cache_key) {
     table->keyReset(key.get());
 
-    auto bf_status = key->setValue(key_fields.cache_key, cache_key, 16);
+    auto bf_status = key->setValue(key_fields.cache_key, cache_key, KV_KEY_SIZE);
     ASSERT_BF_STATUS(bf_status);
   }
 
