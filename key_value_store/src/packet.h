@@ -42,7 +42,7 @@ inline void log_pkt(const rte_mbuf *mbuf) {
   size_t pkt_len_remaining = pkt_len;
   uint8_t *pkt_ptr         = rte_pktmbuf_mtod(mbuf, uint8_t *);
 
-  auto log_payload = [pkt_ptr, pkt_len, pkt_len_remaining]() {
+  auto log_payload = [&pkt_ptr, &pkt_len, &pkt_len_remaining]() {
     if (pkt_len_remaining == 0) {
       return;
     }
