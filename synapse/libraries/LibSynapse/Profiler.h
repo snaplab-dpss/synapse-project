@@ -33,6 +33,26 @@ struct fwd_stats_t {
     }
     return total_hr;
   }
+
+  hit_rate_t calculate_fwd_hr() const {
+    hit_rate_t total_hr = 0_hr;
+    for (const auto &[_, hr] : ports) {
+      total_hr = total_hr + hr;
+    }
+    return total_hr;
+  }
+
+  u16 get_most_used_fwd_port() const {
+    u16 max_port      = 0;
+    hit_rate_t max_hr = 0_hr;
+    for (const auto &[port, hr] : ports) {
+      if (hr > max_hr) {
+        max_hr   = hr;
+        max_port = port;
+      }
+    }
+    return max_port;
+  }
 };
 
 struct ProfilerNode {

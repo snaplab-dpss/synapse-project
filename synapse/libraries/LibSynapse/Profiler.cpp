@@ -65,6 +65,21 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
 
       prof_node->original_forwarding_stats = prof_node->forwarding_stats;
 
+      // Hack: sometimes the forwarding stats hit rate calculations don't exactly match the node's hr (due to imprecisions on the calculations).
+      // Let's fix that by slightly adjusting the hr of the forwarding stats.
+
+      const hit_rate_t fwd_total_hr = prof_node->forwarding_stats->calculate_total_hr();
+      const hit_rate_t delta        = hr - fwd_total_hr;
+
+      if (fwd_total_hr > prof_node->forwarding_stats->drop) {
+        const u16 most_used_fwd_port                           = prof_node->forwarding_stats->get_most_used_fwd_port();
+        prof_node->forwarding_stats->ports[most_used_fwd_port] = prof_node->forwarding_stats->ports[most_used_fwd_port] + delta;
+      } else {
+        prof_node->forwarding_stats->drop = prof_node->forwarding_stats->drop + delta;
+      }
+
+      assert(prof_node->forwarding_stats->calculate_total_hr() == hr && "ProfilerNode forwarding stats do not match the node's hr");
+
       node = node->get_next();
     } break;
     }
@@ -179,10 +194,12 @@ void update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
 
   assert(node->original_forwarding_stats.has_value());
 
-  fwd_stats_t &fwd_stats          = node->forwarding_stats.value();
-  fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
+  fwd_stats_t &fwd_stats                = node->forwarding_stats.value();
+  const fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
 
   if (old_fraction != 0_hr) {
+    assert(old_fraction == fwd_stats.calculate_total_hr());
+
     const double dhr = new_fraction / old_fraction;
 
     fwd_stats.drop  = fwd_stats.drop * dhr;
