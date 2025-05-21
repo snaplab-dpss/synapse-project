@@ -18,6 +18,14 @@ constexpr const bytes_t IPG_SIZE_BYTES      = 12;
 constexpr const bytes_t MIN_PKT_SIZE_BYTES  = 64;
 constexpr const bytes_t MAX_PKT_SIZE_BYTES  = 1500;
 
+constexpr const bytes_t KEY_SIZE_BYTES{4};
+constexpr const bytes_t VALUE_SIZE_BYTES{4};
+
+constexpr const u16 KVSTORE_PORT{670};
+
+using kv_key_t   = std::array<u8, KEY_SIZE_BYTES>;
+using kv_value_t = std::array<u8, VALUE_SIZE_BYTES>;
+
 struct ether_addr_t {
   u8 addr_bytes[6];
 } __attribute__((__packed__));
@@ -64,6 +72,25 @@ struct tcp_hdr_t {
 struct vlan_hdr_t {
   u16 vlan_tpid;
   u16 vlan_tci;
+} __attribute__((__packed__));
+
+enum kvs_op_t {
+  KVS_OP_GET = 0,
+  KVS_OP_PUT = 1,
+  KVS_OP_DEL = 2,
+};
+
+enum kvs_status_t {
+  KVS_STATUS_MISS = 0,
+  KVS_STATUS_HIT  = 1,
+};
+
+struct kvs_hdr_t {
+  u8 op;
+  u8 key[KEY_SIZE_BYTES];
+  u8 value[VALUE_SIZE_BYTES];
+  u8 status;
+  u16 client_port;
 } __attribute__((__packed__));
 
 namespace LibCore {

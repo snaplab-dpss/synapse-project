@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (lan_flows.find(flow.value()) == lan_flows.end()) {
-      LibCore::flow_t res(flow->dst_ip, flow->src_ip, flow->dst_port, flow->src_port);
+      LibCore::flow_t res = flow->invert();
       lan_flows.emplace(flow.value());
       wan_flows.emplace(res);
     }

@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
     const std::filesystem::path ep_fpath  = args.out_dir / (args.name + "-ep.dot");
     const std::filesystem::path ss_fpath  = args.out_dir / (args.name + "-ss.dot");
 
-    LibBDD::BDDViz::dump_to_file(report.ep->get_bdd(), bdd_fpath);
+    LibSynapse::ProfilerViz::dump_to_file(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), bdd_fpath);
     LibSynapse::EPViz::dump_to_file(report.ep.get(), ep_fpath);
     LibSynapse::SSViz::dump_to_file(report.search_space.get(), report.ep.get(), ss_fpath);
 

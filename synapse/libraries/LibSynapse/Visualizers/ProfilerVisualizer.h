@@ -25,6 +25,23 @@ public:
     LibBDD::BDDViz::visualize(bdd, interrupt, opts);
   }
 
+  static void dump_to_file(const LibBDD::BDD *bdd, const Profiler &profiler, const std::filesystem::path &file_name) {
+    assert(bdd && "Invalid BDD");
+
+    const std::unordered_map<LibBDD::node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+
+    LibBDD::bdd_visualizer_opts_t opts;
+    opts.fname                = file_name;
+    opts.colors_per_node      = get_colors_per_node(hrpn);
+    opts.default_color.first  = true;
+    opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
+    opts.default_color.second = fraction_to_color(0_hr);
+
+    LibBDD::BDDViz visualizer(opts);
+    visualizer.visit(bdd);
+    visualizer.write();
+  }
+
 private:
   static std::unordered_map<LibBDD::node_id_t, hit_rate_t> hr_per_node(const LibBDD::BDD *bdd, const Profiler &profiler) {
     std::unordered_map<LibBDD::node_id_t, hit_rate_t> fractions_per_node;

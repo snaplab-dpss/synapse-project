@@ -20,10 +20,9 @@ using value_t = std::array<uint8_t, KV_VAL_SIZE>;
 
 struct key_hash_t {
   std::size_t operator()(const key_t &key) const {
-    unsigned long long hash = 0;
-    unsigned long long *k   = (unsigned long long *)key.data();
-    hash                    = __builtin_ia32_crc32di(hash, *k);
-    hash                    = __builtin_ia32_crc32di(hash, *(k + 1));
+    uint32_t hash = 0;
+    uint32_t *k   = (uint32_t *)key.data();
+    hash          = __builtin_ia32_crc32si(hash, *k);
     return hash;
   }
 };

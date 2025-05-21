@@ -129,6 +129,17 @@ struct rw_fractions_t {
   hit_rate_t write;
 };
 
+inline std::string byte_array_to_string(const u8 *array, size_t size) {
+  std::stringstream ss;
+
+  ss << "0x";
+  for (size_t i = 0; i < size; i++) {
+    ss << std::hex << std::setw(2) << std::setfill('0') << (int)array[i];
+  }
+
+  return ss.str();
+}
+
 namespace LibCore {
 
 pps_t bps2pps(bps_t bps, bytes_t pkt_size);

@@ -21,32 +21,6 @@ using device_t    = TrafficGenerator::device_t;
 using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
 
-constexpr const bytes_t KEY_SIZE_BYTES{4};
-constexpr const bytes_t VALUE_SIZE_BYTES{4};
-
-using kv_key_t   = std::array<u8, KEY_SIZE_BYTES>;
-using kv_value_t = std::array<u8, VALUE_SIZE_BYTES>;
-
-enum kvs_op_t {
-  KVS_OP_GET = 0,
-  KVS_OP_PUT = 1,
-  KVS_OP_DEL = 2,
-};
-
-enum kvs_status_t {
-  KVS_STATUS_MISS = 0,
-  KVS_STATUS_HIT  = 1,
-};
-
-struct kvs_hdr_t {
-  u8 op;
-  u8 key[KEY_SIZE_BYTES];
-  u8 value[VALUE_SIZE_BYTES];
-  u8 status;
-  u16 client_port;
-} __attribute__((__packed__));
-
-constexpr const u16 KVSTORE_PORT{670};
 constexpr const bytes_t KVS_PKT_SIZE{sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + sizeof(kvs_hdr_t)};
 
 kv_key_t random_key() {

@@ -20,30 +20,12 @@ using device_t    = TrafficGenerator::device_t;
 using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
 
-LibCore::flow_t random_flow() {
-  LibCore::flow_t flow;
-  flow.src_ip   = LibCore::random_addr();
-  flow.dst_ip   = LibCore::random_addr();
-  flow.src_port = LibCore::random_port();
-  flow.dst_port = LibCore::random_port();
-  return flow;
-}
-
-LibCore::flow_t invert_flow(const LibCore::flow_t &flow) {
-  LibCore::flow_t inverted_flow;
-  inverted_flow.src_ip   = flow.dst_ip;
-  inverted_flow.dst_ip   = flow.src_ip;
-  inverted_flow.src_port = flow.dst_port;
-  inverted_flow.dst_port = flow.src_port;
-  return inverted_flow;
-}
-
 std::vector<LibCore::flow_t> get_base_flows(const config_t &config) {
   std::vector<LibCore::flow_t> flows;
   flows.reserve(config.total_flows);
 
   for (size_t i = 0; i < config.total_flows; i++) {
-    flows.push_back(random_flow());
+    flows.push_back(LibCore::random_flow());
   }
 
   return flows;
@@ -67,8 +49,8 @@ public:
       const device_t wan_dev = connections.at(lan_dev);
       advance_client_dev();
 
-      flow.src_ip = mask_addr_from_dev(flow.src_ip, lan_dev);
-      flow.dst_ip = mask_addr_from_dev(flow.dst_ip, wan_dev);
+      flow.five_tuple.src_ip = mask_addr_from_dev(flow.five_tuple.src_ip, lan_dev);
+      flow.five_tuple.dst_ip = mask_addr_from_dev(flow.five_tuple.dst_ip, wan_dev);
     }
 
     reset_client_dev();
@@ -88,9 +70,9 @@ public:
     const device_t lan_dev = get_flow_lan_dev(flow_idx);
     const device_t wan_dev = connections.at(lan_dev);
 
-    LibCore::flow_t new_flow = random_flow();
-    new_flow.src_ip          = mask_addr_from_dev(new_flow.src_ip, lan_dev);
-    new_flow.dst_ip          = mask_addr_from_dev(new_flow.dst_ip, wan_dev);
+    LibCore::flow_t new_flow   = LibCore::random_flow();
+    new_flow.five_tuple.src_ip = mask_addr_from_dev(new_flow.five_tuple.src_ip, lan_dev);
+    new_flow.five_tuple.dst_ip = mask_addr_from_dev(new_flow.five_tuple.dst_ip, wan_dev);
 
     flows[flow_idx] = new_flow;
 
@@ -102,13 +84,13 @@ public:
 
     LibCore::flow_t flow = flows[flow_idx];
     if (!lan_devs.contains(dev)) {
-      flow = invert_flow(flow);
+      flow = flow.invert();
     }
 
-    pkt.ip_hdr.src_addr  = flow.src_ip;
-    pkt.ip_hdr.dst_addr  = flow.dst_ip;
-    pkt.udp_hdr.src_port = flow.src_port;
-    pkt.udp_hdr.dst_port = flow.dst_port;
+    pkt.ip_hdr.src_addr  = flow.five_tuple.src_ip;
+    pkt.ip_hdr.dst_addr  = flow.five_tuple.dst_ip;
+    pkt.udp_hdr.src_port = flow.five_tuple.src_port;
+    pkt.udp_hdr.dst_port = flow.five_tuple.dst_port;
 
     return pkt;
   }

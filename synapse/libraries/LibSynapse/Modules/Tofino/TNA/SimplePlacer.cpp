@@ -655,6 +655,7 @@ PlacementStatus SimplePlacer::can_place(const DS *ds, const std::unordered_set<D
       status = clean_snapshot.can_place(req.ds, req.deps);
 
       if (status != PlacementStatus::Success) {
+        std::cerr << "Placement failed: " << status << "\n";
         return status;
       }
 
@@ -671,6 +672,7 @@ PlacementStatus SimplePlacer::can_place(const DS *ds, const std::unordered_set<D
         status = snapshot.can_place(independent_ds, current_deps);
 
         if (status != PlacementStatus::Success) {
+          std::cerr << "Placement failed: " << status << "\n";
           return status;
         }
 

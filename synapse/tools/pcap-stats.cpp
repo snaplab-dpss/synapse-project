@@ -247,11 +247,11 @@ int main(int argc, char *argv[]) {
   CLI11_PARSE(app, argc, argv);
 
   if (!std::filesystem::exists(pcap_file)) {
-    fprintf(stderr, "File %s not found\n", argv[1]);
+    fprintf(stderr, "File %s not found\n", pcap_file.c_str());
     exit(1);
   }
 
-  LibCore::PcapReader pcap_reader(argv[1]);
+  LibCore::PcapReader pcap_reader(pcap_file);
 
   Clock clock(EPOCH_DURATION_NS);
   std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> flows;
@@ -314,9 +314,9 @@ int main(int argc, char *argv[]) {
           .dts   = {},
       };
     } else {
-      flow_ts &fts = flow_times_it->second;
-      time_ns_t dt = ts - fts.last;
-      fts.last     = ts;
+      flow_ts &fts       = flow_times_it->second;
+      const time_ns_t dt = ts - fts.last;
+      fts.last           = ts;
       fts.dts.push_back(dt);
     }
   }
