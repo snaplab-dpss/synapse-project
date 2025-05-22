@@ -85,7 +85,7 @@ public:
   KVSTrafficGenerator(const config_t &_config, const kvs_op_ratio_t &_kvs_op_ratio, const std::vector<kv_key_t> &_base_keys)
       : TrafficGenerator("kvs", _config, true), kvs_op_ratio(_kvs_op_ratio), keys(_base_keys), kvs_op_seq(_base_keys.size(), kvs_op_ratio.get) {}
 
-  virtual bytes_t get_hdrs_len() const override { return sizeof(ether_addr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + sizeof(kvs_hdr_t); }
+  virtual bytes_t get_hdrs_len() const override { return sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + sizeof(kvs_hdr_t); }
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < keys.size());
@@ -101,13 +101,12 @@ public:
 
     pkt.udp_hdr.dst_port = bswap16(KVSTORE_PORT);
 
-    kvs_hdr_t *kvs_hdr   = reinterpret_cast<kvs_hdr_t *>(pkt.payload);
-    kvs_hdr->op          = op;
+    kvs_hdr_t *kvs_hdr = reinterpret_cast<kvs_hdr_t *>(pkt.payload);
+    kvs_hdr->op        = op;
+    std::memcpy(kvs_hdr->key, key.data(), sizeof(kvs_hdr->key));
+    std::memset(kvs_hdr->value, 0, sizeof(kvs_hdr->value));
     kvs_hdr->status      = KVS_STATUS_MISS;
     kvs_hdr->client_port = 0;
-
-    std::memcpy(kvs_hdr->key, key.data(), key.size());
-    std::memset(kvs_hdr->value, 0, sizeof(kvs_hdr->value));
 
     return pkt;
   }
@@ -148,8 +147,8 @@ int main(int argc, char *argv[]) {
 
   CLI11_PARSE(app, argc, argv);
 
-  config.packet_size    = KVS_PKT_SIZE;
-  config.client_devices = config.devices;
+  config.packet_size_without_crc = std::max(KVS_PKT_SIZE + CRC_SIZE_BYTES, MIN_PKT_SIZE_BYTES) - CRC_SIZE_BYTES;
+  config.client_devices          = config.devices;
 
   srand(config.random_seed);
 

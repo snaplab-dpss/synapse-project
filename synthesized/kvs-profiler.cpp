@@ -47,6 +47,7 @@ using json = nlohmann::json;
 constexpr const uint16_t DROP = ((uint16_t)-1);
 constexpr const uint16_t FLOOD = ((uint16_t)-2);
 
+constexpr const uint16_t CRC_SIZE_BYTES = 4;
 constexpr const uint16_t MIN_PKT_SIZE_BYTES = 64; // With CRC
 constexpr const uint16_t MAX_PKT_SIZE_BYTES = 1518; // With CRC
 
@@ -224,16 +225,18 @@ private:
 
     uint8_t *pkt_data = pkt.data;
 
+    pkt.len = hdr->len;
+
     if (assume_ip[dev]) {
       struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)pkt_data;
       nf_parse_etheraddr(DEFAULT_DST_MAC, &eth_hdr->dst_addr);
       nf_parse_etheraddr(DEFAULT_SRC_MAC, &eth_hdr->src_addr);
       eth_hdr->ether_type = rte_bswap16(RTE_ETHER_TYPE_IPV4);
       pkt_data += sizeof(struct rte_ether_hdr);
+      pkt.len += sizeof(struct rte_ether_hdr);
     }
 
-    memcpy(pkt_data, data, hdr->len);
-    pkt.len = hdr->len;
+    memcpy(pkt_data, data, hdr->caplen);
     pkt.ts  = hdr->ts.tv_sec * 1e9 + hdr->ts.tv_usec * 1e3;
 
     return true;
@@ -250,26 +253,10 @@ private:
 
   void accumulate_stats(uint16_t dev) {
     pcap_t *pd = pcaps[dev];
-
     pkt_t pkt;
     while (read(dev, pkt)) {
       total_packets++;
-      uint8_t *data = pkt.data;
-
-      if (!assume_ip[dev]) {
-        struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)data;
-        data += sizeof(struct rte_ether_hdr);
-        if (eth_hdr->ether_type != rte_bswap16(RTE_ETHER_TYPE_IPV4)) {
-          total_bytes += pkt.len;
-          continue;
-        }
-      }
-
-      struct rte_ipv4_hdr *ip_hdr = (struct rte_ipv4_hdr *)(data);
-
-      uint16_t len = rte_bswap16(ip_hdr->total_length) + sizeof(struct rte_ether_hdr);
-
-      total_bytes += len;
+      total_bytes += pkt.len + CRC_SIZE_BYTES;
     }
   }
 

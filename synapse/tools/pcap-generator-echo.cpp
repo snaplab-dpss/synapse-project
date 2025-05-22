@@ -63,11 +63,12 @@ int main(int argc, char *argv[]) {
   CLI::App app{"Traffic generator for the echo nf."};
 
   config_t config;
+  bytes_t packet_size;
 
   app.add_option("--out", config.out_dir, "Output directory.")->default_val(TrafficGenerator::DEFAULT_OUTPUT_DIR);
   app.add_option("--packets", config.total_packets, "Total packets.")->default_val(TrafficGenerator::DEFAULT_TOTAL_PACKETS);
   app.add_option("--flows", config.total_flows, "Total flows.")->default_val(TrafficGenerator::DEFAULT_TOTAL_FLOWS);
-  app.add_option("--packet-size", config.packet_size, "Packet size (bytes).")->default_val(TrafficGenerator::DEFAULT_PACKET_SIZE);
+  app.add_option("--packet-size", packet_size, "Packet size (bytes).")->default_val(TrafficGenerator::DEFAULT_PACKET_SIZE);
   app.add_option("--churn", config.churn, "Total churn (fpm).")->default_val(TrafficGenerator::DEFAULT_TOTAL_CHURN_FPM);
   app.add_option("--traffic", config.traffic_type, "Traffic distribution.")
       ->default_val(TrafficGenerator::DEFAULT_TRAFFIC_TYPE)
@@ -84,7 +85,8 @@ int main(int argc, char *argv[]) {
 
   CLI11_PARSE(app, argc, argv);
 
-  config.client_devices = config.devices;
+  config.client_devices          = config.devices;
+  config.packet_size_without_crc = std::max(packet_size, MIN_PKT_SIZE_BYTES) - CRC_SIZE_BYTES;
 
   srand(config.random_seed);
 

@@ -29,7 +29,7 @@ public:
     std::filesystem::path out_dir;
     u64 total_packets;
     u64 total_flows;
-    bytes_t packet_size;
+    bytes_t packet_size_without_crc;
     bps_t rate;
     fpm_t churn;
     TrafficType traffic_type;
@@ -40,9 +40,9 @@ public:
     bool dry_run;
 
     config_t()
-        : out_dir(DEFAULT_OUTPUT_DIR), total_packets(DEFAULT_TOTAL_PACKETS), total_flows(DEFAULT_TOTAL_FLOWS), packet_size(DEFAULT_PACKET_SIZE),
-          rate(DEFAULT_RATE), churn(DEFAULT_TOTAL_CHURN_FPM), traffic_type(DEFAULT_TRAFFIC_TYPE), zipf_param(DEFAULT_ZIPF_PARAM), devices(),
-          client_devices(), random_seed(0), dry_run(false) {}
+        : out_dir(DEFAULT_OUTPUT_DIR), total_packets(DEFAULT_TOTAL_PACKETS), total_flows(DEFAULT_TOTAL_FLOWS),
+          packet_size_without_crc(DEFAULT_PACKET_SIZE - CRC_SIZE_BYTES), rate(DEFAULT_RATE), churn(DEFAULT_TOTAL_CHURN_FPM),
+          traffic_type(DEFAULT_TRAFFIC_TYPE), zipf_param(DEFAULT_ZIPF_PARAM), devices(), client_devices(), random_seed(0), dry_run(false) {}
 
     void print() const;
   };
@@ -150,7 +150,7 @@ protected:
     // So actually, result in ns = (pkt.size * 8) / gbps
     // Also, don't forget to take the inter packet gap and CRC
     // into consideration.
-    const bytes_t wire_bytes = PREAMBLE_SIZE_BYTES + config.packet_size + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
+    const bytes_t wire_bytes = PREAMBLE_SIZE_BYTES + config.packet_size_without_crc + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     const time_ns_t dt       = (wire_bytes * 8) / (config.rate / 1'000'000'000);
     current_time += dt;
     if (alarm_tick > 0 && alarm_tick < dt) {

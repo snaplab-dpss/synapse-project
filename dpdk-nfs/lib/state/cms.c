@@ -10,6 +10,8 @@
 #include "lib/util/hash.h"
 #include "lib/util/compute.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 struct CMS {
   struct Vector *buckets;
 
@@ -79,7 +81,7 @@ int cms_count_min(struct CMS *cms, void *key) {
 
     struct cms_bucket *bucket = 0;
     vector_borrow(cms->buckets, offset, (void **)&bucket);
-    min_val = min(min_val, bucket->value);
+    min_val = MIN(min_val, bucket->value);
     vector_return(cms->buckets, offset, bucket);
   }
 

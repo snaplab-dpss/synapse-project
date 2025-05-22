@@ -23,7 +23,7 @@ const bit<8>  IP_PROTO_TCP = 6;
 const bit<8>  IP_PROTO_UDP = 17;
 const bit<16> KVS_PORT = 670;
 
-const bit<16> KVS_SERVER_NF_DEV = 0;
+#define KVS_SERVER_NF_DEV 0
 
 const bit<8> KVS_STATUS_MISS = 0;
 const bit<8> KVS_STATUS_HIT = 1;
@@ -667,8 +667,8 @@ control Ingress(
 		} else {
 			ingress_port_to_nf_dev.apply();
 
-			if (meta.dev == 0) {
-				nf_dev = meta.dev;
+			if (meta.dev == KVS_SERVER_NF_DEV) {
+				nf_dev[15:0] = hdr.kvs.client_port;
 				trigger_forward = true;
 			} else {
 				build_cuckoo_hdr();

@@ -166,9 +166,9 @@ generate_pcaps_cl() {
         ::: "${TRAFFIC[@]}"
 }
 
-# generate_pcaps_echo
-# generate_pcaps_fwd
-# generate_pcaps_fw
-# generate_pcaps_nat
+generate_pcaps_echo
+generate_pcaps_fwd
+generate_pcaps_fw
+generate_pcaps_nat
 generate_pcaps_kvs
 # generate_pcaps_cl

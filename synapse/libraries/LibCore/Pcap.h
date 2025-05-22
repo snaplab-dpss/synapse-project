@@ -19,7 +19,7 @@
 
 namespace LibCore {
 
-enum class FlowType { FIVE_TUPLE, KV };
+enum class FlowType { FiveTuple = 0, KV = 1 };
 
 struct flow_t {
   FlowType type;
@@ -38,11 +38,12 @@ struct flow_t {
     } kv;
   };
 
-  flow_t() : five_tuple({.src_ip = 0, .dst_ip = 0, .src_port = 0, .dst_port = 0}) {}
+  flow_t() : type(FlowType::FiveTuple), five_tuple({.src_ip = 0, .dst_ip = 0, .src_port = 0, .dst_port = 0}) {}
 
   flow_t(const flow_t &flow) {
+    type = flow.type;
     switch (flow.type) {
-    case FlowType::FIVE_TUPLE:
+    case FlowType::FiveTuple:
       five_tuple.src_ip   = flow.five_tuple.src_ip;
       five_tuple.dst_ip   = flow.five_tuple.dst_ip;
       five_tuple.src_port = flow.five_tuple.src_port;
@@ -55,12 +56,33 @@ struct flow_t {
     }
   }
 
-  flow_t &operator=(const flow_t &flow) = default;
+  flow_t &operator=(const flow_t &flow) {
+    if (this == &flow) {
+      return *this;
+    }
+
+    type = flow.type;
+
+    switch (flow.type) {
+    case FlowType::FiveTuple:
+      five_tuple.src_ip   = flow.five_tuple.src_ip;
+      five_tuple.dst_ip   = flow.five_tuple.dst_ip;
+      five_tuple.src_port = flow.five_tuple.src_port;
+      five_tuple.dst_port = flow.five_tuple.dst_port;
+      break;
+    case FlowType::KV:
+      kv.key   = flow.kv.key;
+      kv.value = flow.kv.value;
+      break;
+    }
+
+    return *this;
+  }
 
   flow_t invert() const {
-    assert(type == FlowType::FIVE_TUPLE);
+    assert(type == FlowType::FiveTuple);
     flow_t inverted;
-    inverted.type                = FlowType::FIVE_TUPLE;
+    inverted.type                = FlowType::FiveTuple;
     inverted.five_tuple.src_ip   = five_tuple.dst_ip;
     inverted.five_tuple.dst_ip   = five_tuple.src_ip;
     inverted.five_tuple.src_port = five_tuple.dst_port;
@@ -74,7 +96,7 @@ struct flow_t {
     }
 
     switch (type) {
-    case FlowType::FIVE_TUPLE:
+    case FlowType::FiveTuple:
       return five_tuple.src_ip == other.five_tuple.src_ip && five_tuple.dst_ip == other.five_tuple.dst_ip &&
              five_tuple.src_port == other.five_tuple.src_port && five_tuple.dst_port == other.five_tuple.dst_port;
     case FlowType::KV:
@@ -88,7 +110,7 @@ struct flow_t {
     std::size_t operator()(const flow_t &flow) const {
       std::size_t hash = 0;
       switch (flow.type) {
-      case FlowType::FIVE_TUPLE: {
+      case FlowType::FiveTuple: {
         hash = std::hash<u32>()(flow.five_tuple.src_ip);
         hash ^= std::hash<u32>()(flow.five_tuple.dst_ip);
         hash ^= std::hash<u16>()(flow.five_tuple.src_port);
@@ -98,7 +120,6 @@ struct flow_t {
         static_assert(sizeof(flow.kv.key) == sizeof(u32) && "TODO: update for other sizes, if needed");
         const u32 *k = reinterpret_cast<const u32 *>(flow.kv.key.data());
         hash         = std::hash<u32>()(*k);
-        return hash;
       } break;
       }
       return hash;
@@ -110,7 +131,7 @@ inline std::ostream &operator<<(std::ostream &os, const flow_t &flow) {
   os << "{";
 
   switch (flow.type) {
-  case FlowType::FIVE_TUPLE:
+  case FlowType::FiveTuple:
     os << LibCore::ipv4_to_str(flow.five_tuple.src_ip);
     os << ":";
     os << bswap16(flow.five_tuple.src_port);
@@ -476,7 +497,7 @@ public:
       std::memcpy(flow->kv.value.data(), kvs_hdr->value, sizeof(kvs_hdr->value));
     } else {
       flow                      = flow_t();
-      flow->type                = FlowType::FIVE_TUPLE;
+      flow->type                = FlowType::FiveTuple;
       flow->five_tuple.src_ip   = src;
       flow->five_tuple.dst_ip   = dst;
       flow->five_tuple.src_port = sport;

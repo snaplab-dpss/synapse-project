@@ -17,7 +17,7 @@ SYNTHESIZED_DIR=$PROJECT_DIR/synthesized
 PCAPS_DIR=$PROJECT_DIR/pcaps
 PROFILES_DIR=$PROJECT_DIR/profiles
 BDDS_DIR=$PROJECT_DIR/bdds
-SYNAPSE_DIR=$PROJECT_DIR/synapse
+SYNAPSE_DIR=$PROJECT_DIR/synapse 
 
 CHURN="0 1000 10000 100000 1000000"
 TRAFFIC="0 0.2 0.4 0.6 0.8 1.0"
@@ -111,6 +111,10 @@ profile_echo() {
         --in $BDDS_DIR/echo.bdd \
         --profile $PROFILES_DIR/$report.json \
         --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
 }
 
 export -f profile_echo
@@ -172,6 +176,10 @@ profile_fwd() {
         --in $BDDS_DIR/fwd.bdd \
         --profile $PROFILES_DIR/$report.json \
         --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
 }
 
 export -f profile_fwd
@@ -248,6 +256,10 @@ profile_fw() {
         --in $BDDS_DIR/fw.bdd \
         --profile $PROFILES_DIR/$report.json \
         --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
 }
 
 export -f profile_fw
@@ -324,6 +336,10 @@ profile_nat() {
         --in $BDDS_DIR/nat.bdd \
         --profile $PROFILES_DIR/$report.json \
         --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
 }
 
 export -f profile_nat
@@ -415,6 +431,10 @@ profile_kvs() {
         --in $BDDS_DIR/kvs.bdd \
         --profile $PROFILES_DIR/$report.json \
         --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
 }
 
 export -f profile_kvs
@@ -491,6 +511,10 @@ profile_cl() {
         --in $BDDS_DIR/cl.bdd \
         --profile $PROFILES_DIR/$report.json \
         --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
 }
 
 export -f profile_cl
@@ -561,10 +585,10 @@ main() {
         gen_and_build_profiler \
         ::: echo fwd fw nat kvs cl
 
-    # generate_profiles_echo
-    # generate_profiles_fwd
-    # generate_profiles_fw
-    # generate_profiles_nat
+    generate_profiles_echo
+    generate_profiles_fwd
+    generate_profiles_fw
+    generate_profiles_nat
     generate_profiles_kvs
     # generate_profiles_cl
 }

@@ -35,7 +35,7 @@ void TrafficGenerator::config_t::print() const {
   printf("out dir:     %s\n", out_dir.c_str());
   printf("#packets:    %lu\n", total_packets);
   printf("#flows:      %lu\n", total_flows);
-  printf("packet size: %u\n", packet_size);
+  printf("packet size: %u\n", packet_size_without_crc);
   printf("rate:        %lu Mbps\n", rate / 1'000'000);
   printf("churn:       %lu fpm\n", churn);
   switch (traffic_type) {
@@ -71,7 +71,7 @@ TrafficGenerator::pkt_t TrafficGenerator::build_pkt_template() const {
   pkt.ip_hdr.version         = 4;
   pkt.ip_hdr.ihl             = 5;
   pkt.ip_hdr.type_of_service = 0;
-  pkt.ip_hdr.total_length    = htons(config.packet_size - sizeof(pkt.eth_hdr));
+  pkt.ip_hdr.total_length    = htons(config.packet_size_without_crc - sizeof(pkt.eth_hdr));
   pkt.ip_hdr.packet_id       = 0;
   pkt.ip_hdr.fragment_offset = 0;
   pkt.ip_hdr.time_to_live    = 64;
@@ -82,7 +82,7 @@ TrafficGenerator::pkt_t TrafficGenerator::build_pkt_template() const {
 
   pkt.udp_hdr.src_port = 0;
   pkt.udp_hdr.dst_port = 0;
-  pkt.udp_hdr.len      = htons(config.packet_size - (sizeof(pkt.eth_hdr) + sizeof(pkt.ip_hdr) + sizeof(pkt.udp_hdr)));
+  pkt.udp_hdr.len      = htons(config.packet_size_without_crc - (sizeof(pkt.eth_hdr) + sizeof(pkt.ip_hdr)));
   pkt.udp_hdr.checksum = 0;
 
   std::memset(pkt.payload, 0x42, sizeof(pkt.payload));
@@ -92,7 +92,7 @@ TrafficGenerator::pkt_t TrafficGenerator::build_pkt_template() const {
 
 void TrafficGenerator::generate() {
   const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
-  const bytes_t pkt_len  = config.packet_size;
+  const bytes_t pkt_len  = assume_ip ? config.packet_size_without_crc - sizeof(ether_hdr_t) : config.packet_size_without_crc;
   const u64 goal         = config.total_packets;
   u64 counter            = 0;
   int progress           = -1;
@@ -193,7 +193,7 @@ void TrafficGenerator::report() const {
 
 void TrafficGenerator::generate_warmup() {
   const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
-  const bytes_t pkt_len  = config.packet_size;
+  const bytes_t pkt_len  = assume_ip ? config.packet_size_without_crc - sizeof(ether_hdr_t) : config.packet_size_without_crc;
 
   u64 counter  = 0;
   u64 goal     = config.total_flows;

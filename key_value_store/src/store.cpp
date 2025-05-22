@@ -54,6 +54,7 @@ void Store::run() {
 
       if (!check_pkt(rx_mbufs[n])) {
         LOG_DEBUG("Not a NetCache packet, dropping!");
+        log_pkt(rx_mbufs[n]);
         rte_pktmbuf_free(rx_mbufs[n]);
         continue;
       }
@@ -77,7 +78,6 @@ bool Store::check_pkt(const rte_mbuf *mbuf) {
 
   if (mbuf->pkt_len != min_size) {
     LOG_DEBUG("Too small/big for a netcache packet (%u).", mbuf->pkt_len);
-    log_pkt(mbuf);
     return false;
   }
 
