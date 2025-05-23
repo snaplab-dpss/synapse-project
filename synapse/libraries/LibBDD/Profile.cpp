@@ -1,5 +1,9 @@
 #include <LibBDD/Profile.h>
+#include <LibBDD/BDD.h>
 #include <LibCore/Debug.h>
+#include <LibCore/RandomEngine.h>
+#include <LibCore/Net.h>
+#include <LibCore/Solver.h>
 
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -165,7 +169,7 @@ hit_rate_t bdd_profile_t::churn_hit_rate_top_k_flows(u64 map, u32 k) const {
   double avg_churn_hr = 0;
   size_t total_epochs = 0;
 
-  for (const LibBDD::bdd_profile_t::map_stats_t::epoch_t &epoch : stats_per_map.at(map).epochs) {
+  for (const bdd_profile_t::map_stats_t::epoch_t &epoch : stats_per_map.at(map).epochs) {
     if (epoch.warmup) {
       continue;
     }
@@ -216,6 +220,98 @@ u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
   }
 
   return threshold;
+}
+
+bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
+  bdd_profile_t bdd_profile;
+
+  bdd_profile.meta.pkts  = 100'000;
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, LibCore::SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
+
+  const Node *root                     = bdd->get_root();
+  bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
+  const std::vector<u16> devices       = bdd->get_devices();
+
+  root->visit_nodes([&bdd_profile, devices](const Node *node) {
+    assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "Node counter not found");
+    u64 current_counter = bdd_profile.counters[node->get_id()];
+
+    switch (node->get_type()) {
+    case NodeType::Branch: {
+      const Branch *branch = dynamic_cast<const Branch *>(node);
+
+      const Node *on_true  = branch->get_on_true();
+      const Node *on_false = branch->get_on_false();
+
+      assert(on_true && "Branch node without on_true");
+      assert(on_false && "Branch node without on_false");
+
+      u64 on_true_counter  = LibCore::SingletonRandomEngine::generate() % (current_counter + 1);
+      u64 on_false_counter = current_counter - on_true_counter;
+
+      bdd_profile.counters[on_true->get_id()]  = on_true_counter;
+      bdd_profile.counters[on_false->get_id()] = on_false_counter;
+    } break;
+    case NodeType::Call: {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase") {
+        klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
+
+        bdd_profile_t::map_stats_t::node_t map_stats;
+        map_stats.node  = node->get_id();
+        map_stats.pkts  = current_counter;
+        map_stats.flows = std::max(1ul, LibCore::SingletonRandomEngine::generate() % current_counter);
+
+        u64 avg_pkts_per_flow = current_counter / map_stats.flows;
+        for (u64 i = 0; i < map_stats.flows; i++) {
+          map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
+        }
+
+        bdd_profile.stats_per_map[LibCore::expr_addr_to_obj_addr(map_addr)].nodes.push_back(map_stats);
+      }
+
+      if (node->get_next()) {
+        const Node *next                     = node->get_next();
+        bdd_profile.counters[next->get_id()] = current_counter;
+      }
+    } break;
+    case NodeType::Route: {
+      if (node->get_next()) {
+        const Node *next                     = node->get_next();
+        bdd_profile.counters[next->get_id()] = current_counter;
+      }
+
+      const Route *route_node = dynamic_cast<const Route *>(node);
+      const RouteOp operation = route_node->get_operation();
+
+      switch (operation) {
+      case RouteOp::Drop: {
+        bdd_profile.forwarding_stats[node->get_id()].drop = current_counter;
+      } break;
+      case RouteOp::Broadcast: {
+        bdd_profile.forwarding_stats[node->get_id()].flood = current_counter;
+      } break;
+      case RouteOp::Forward: {
+        klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+        if (LibCore::is_constant(dst_device)) {
+          const u16 device = LibCore::solver_toolbox.value_from_expr(dst_device);
+          assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
+          bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
+        } else {
+          const u16 device                                           = devices[LibCore::SingletonRandomEngine::generate() % devices.size()];
+          bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
+        }
+      } break;
+      }
+    } break;
+    }
+
+    return NodeVisitAction::Continue;
+  });
+
+  return bdd_profile;
 }
 
 } // namespace LibBDD

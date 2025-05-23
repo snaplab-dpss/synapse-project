@@ -88,195 +88,6 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
   return prof_node;
 }
 
-LibBDD::bdd_profile_t build_random_bdd_profile(const LibBDD::BDD *bdd) {
-  LibBDD::bdd_profile_t bdd_profile;
-
-  bdd_profile.meta.pkts  = 100'000;
-  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, LibCore::SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
-
-  const LibBDD::Node *root             = bdd->get_root();
-  bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
-  const std::vector<u16> devices       = bdd->get_devices();
-
-  root->visit_nodes([&bdd_profile, devices](const LibBDD::Node *node) {
-    assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "LibBDD::Node counter not found");
-    u64 current_counter = bdd_profile.counters[node->get_id()];
-
-    switch (node->get_type()) {
-    case LibBDD::NodeType::Branch: {
-      const LibBDD::Branch *branch = dynamic_cast<const LibBDD::Branch *>(node);
-
-      const LibBDD::Node *on_true  = branch->get_on_true();
-      const LibBDD::Node *on_false = branch->get_on_false();
-
-      assert(on_true && "Branch node without on_true");
-      assert(on_false && "Branch node without on_false");
-
-      u64 on_true_counter  = LibCore::SingletonRandomEngine::generate() % (current_counter + 1);
-      u64 on_false_counter = current_counter - on_true_counter;
-
-      bdd_profile.counters[on_true->get_id()]  = on_true_counter;
-      bdd_profile.counters[on_false->get_id()] = on_false_counter;
-    } break;
-    case LibBDD::NodeType::Call: {
-      const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-      const LibBDD::call_t &call    = call_node->get_call();
-
-      if (call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase") {
-        klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
-
-        LibBDD::bdd_profile_t::map_stats_t::node_t map_stats;
-        map_stats.node  = node->get_id();
-        map_stats.pkts  = current_counter;
-        map_stats.flows = std::max(1ul, LibCore::SingletonRandomEngine::generate() % current_counter);
-
-        u64 avg_pkts_per_flow = current_counter / map_stats.flows;
-        for (u64 i = 0; i < map_stats.flows; i++) {
-          map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
-        }
-
-        bdd_profile.stats_per_map[LibCore::expr_addr_to_obj_addr(map_addr)].nodes.push_back(map_stats);
-      }
-
-      if (node->get_next()) {
-        const LibBDD::Node *next             = node->get_next();
-        bdd_profile.counters[next->get_id()] = current_counter;
-      }
-    } break;
-    case LibBDD::NodeType::Route: {
-      if (node->get_next()) {
-        const LibBDD::Node *next             = node->get_next();
-        bdd_profile.counters[next->get_id()] = current_counter;
-      }
-
-      const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-      const LibBDD::RouteOp operation = route_node->get_operation();
-
-      switch (operation) {
-      case LibBDD::RouteOp::Drop: {
-        bdd_profile.forwarding_stats[node->get_id()].drop = current_counter;
-      } break;
-      case LibBDD::RouteOp::Broadcast: {
-        bdd_profile.forwarding_stats[node->get_id()].flood = current_counter;
-      } break;
-      case LibBDD::RouteOp::Forward: {
-        klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
-        if (LibCore::is_constant(dst_device)) {
-          const u16 device = LibCore::solver_toolbox.value_from_expr(dst_device);
-          assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
-          bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
-        } else {
-          const u16 device                                           = devices[LibCore::SingletonRandomEngine::generate() % devices.size()];
-          bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
-        }
-      } break;
-      }
-    } break;
-    }
-
-    return LibBDD::NodeVisitAction::Continue;
-  });
-
-  return bdd_profile;
-}
-
-void update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
-  if (!node) {
-    return;
-  }
-
-  const hit_rate_t old_fraction = node->fraction;
-  node->fraction                = new_fraction;
-
-  if (!node->forwarding_stats.has_value()) {
-    return;
-  }
-
-  assert(node->original_forwarding_stats.has_value());
-
-  fwd_stats_t &fwd_stats                = node->forwarding_stats.value();
-  const fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
-
-  if (old_fraction != 0_hr) {
-    assert(old_fraction == fwd_stats.calculate_total_hr());
-
-    const double dhr = new_fraction / old_fraction;
-
-    fwd_stats.drop  = fwd_stats.drop * dhr;
-    fwd_stats.flood = fwd_stats.flood * dhr;
-    for (auto &[_, hr] : fwd_stats.ports) {
-      hr = hr * dhr;
-    }
-
-    assert(new_fraction == fwd_stats.calculate_total_hr());
-  } else if (original_fwd_stats.calculate_total_hr() != 0_hr) {
-    const hit_rate_t total_hr = original_fwd_stats.calculate_total_hr();
-
-    fwd_stats.drop  = new_fraction * (original_fwd_stats.drop / total_hr);
-    fwd_stats.flood = new_fraction * (original_fwd_stats.flood / total_hr);
-
-    for (auto &[port, hr] : original_fwd_stats.ports) {
-      fwd_stats.ports[port] = new_fraction * (hr / total_hr);
-    }
-
-    assert(new_fraction == fwd_stats.calculate_total_hr());
-  } else {
-    switch (fwd_stats.operation) {
-    case LibBDD::RouteOp::Drop: {
-      fwd_stats.drop = new_fraction;
-    } break;
-    case LibBDD::RouteOp::Broadcast: {
-      fwd_stats.flood = new_fraction;
-    } break;
-    case LibBDD::RouteOp::Forward: {
-      if (new_fraction == 0_hr && !original_fwd_stats.ports.empty()) {
-        for (auto &[port, hr] : original_fwd_stats.ports) {
-          fwd_stats.ports[port] = 0_hr;
-        }
-      } else {
-        // There is not enough information to make profiling forwarding decisions.
-        // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
-        panic("Not enough information to make profiling forwarding decisions");
-      }
-    } break;
-    }
-  }
-}
-
-void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction) {
-  if (!node) {
-    return;
-  }
-
-  if (parent_old_fraction == parent_new_fraction) {
-    return;
-  }
-
-  const hit_rate_t old_fraction = node->fraction;
-
-  hit_rate_t new_fraction;
-  if (parent_old_fraction == 0_hr) {
-    const ProfilerNode::family_t family = node->get_family();
-
-    if (family.sibling) {
-      // There is not enough information to make profiling forwarding decisions.
-      panic("Not enough profiling information: distribution of traffic across siblings is unknown");
-    } else {
-      new_fraction = parent_new_fraction;
-    }
-  } else {
-    new_fraction = node->fraction * (parent_new_fraction / parent_old_fraction);
-  }
-
-  update_fractions(node, new_fraction);
-
-  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
-  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
-
-  if (node->on_true && node->on_false) {
-    assert(node->on_true->fraction + node->on_false->fraction == new_fraction);
-  }
-}
 } // namespace
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction)
@@ -416,8 +227,9 @@ fwd_stats_t Profiler::get_fwd_stats(const LibBDD::Node *node) const {
   return profiler_node->forwarding_stats.value();
 }
 
-Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_profile)
-    : bdd_profile(new LibBDD::bdd_profile_t(_bdd_profile)), root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
+Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_profile, bool _assume_uniform_forwarding_distribution)
+    : bdd_profile(new LibBDD::bdd_profile_t(_bdd_profile)), assume_uniform_forwarding_distribution(_assume_uniform_forwarding_distribution),
+      root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const LibBDD::Node *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
@@ -455,15 +267,13 @@ Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_pro
   }
 }
 
-Profiler::Profiler(const LibBDD::BDD *bdd) : Profiler(bdd, build_random_bdd_profile(bdd)) {}
-
-Profiler::Profiler(const LibBDD::BDD *bdd, const std::filesystem::path &bdd_profile_fname)
-    : Profiler(bdd, LibBDD::parse_bdd_profile(bdd_profile_fname)) {}
-
-Profiler::Profiler(const Profiler &other) : bdd_profile(other.bdd_profile), root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
+Profiler::Profiler(const Profiler &other)
+    : bdd_profile(other.bdd_profile), assume_uniform_forwarding_distribution(other.assume_uniform_forwarding_distribution), root(other.root),
+      avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
 
 Profiler::Profiler(Profiler &&other)
-    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
+    : bdd_profile(std::move(other.bdd_profile)), assume_uniform_forwarding_distribution(std::move(other.assume_uniform_forwarding_distribution)),
+      root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
   other.root = nullptr;
 }
 
@@ -472,7 +282,9 @@ Profiler &Profiler::operator=(const Profiler &other) {
     return *this;
   }
 
-  bdd_profile  = other.bdd_profile;
+  assert(assume_uniform_forwarding_distribution == other.assume_uniform_forwarding_distribution);
+  assert(bdd_profile == other.bdd_profile);
+
   root         = other.root;
   avg_pkt_size = other.avg_pkt_size;
   cache        = other.cache;
@@ -841,6 +653,122 @@ rw_fractions_t Profiler::get_cond_map_put_rw_profile_fractions(const LibBDD::Cal
   };
 
   return fractions;
+}
+
+void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
+  if (!node) {
+    return;
+  }
+
+  const hit_rate_t old_fraction = node->fraction;
+  node->fraction                = new_fraction;
+
+  if (!node->forwarding_stats.has_value()) {
+    return;
+  }
+
+  assert(node->original_forwarding_stats.has_value());
+
+  fwd_stats_t &fwd_stats                = node->forwarding_stats.value();
+  const fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
+
+  if (old_fraction != 0_hr) {
+    assert(old_fraction == fwd_stats.calculate_total_hr());
+
+    if (assume_uniform_forwarding_distribution) {
+      std::unordered_set<u16> active_ports;
+      for (const auto &[port, hr] : fwd_stats.ports) {
+        if (hr > 0_hr) {
+          active_ports.insert(port);
+        }
+      }
+
+      const hit_rate_t hr_per_port = new_fraction / active_ports.size();
+      for (auto &[port, hr] : fwd_stats.ports) {
+        if (active_ports.find(port) != active_ports.end()) {
+          hr = hr_per_port;
+        } else {
+          hr = 0_hr;
+        }
+      }
+    } else {
+      const double dhr = new_fraction / old_fraction;
+
+      fwd_stats.drop  = fwd_stats.drop * dhr;
+      fwd_stats.flood = fwd_stats.flood * dhr;
+      for (auto &[_, hr] : fwd_stats.ports) {
+        hr = hr * dhr;
+      }
+    }
+
+    assert(new_fraction == fwd_stats.calculate_total_hr());
+  } else if (original_fwd_stats.calculate_total_hr() != 0_hr) {
+    const hit_rate_t total_hr = original_fwd_stats.calculate_total_hr();
+
+    fwd_stats.drop  = new_fraction * (original_fwd_stats.drop / total_hr);
+    fwd_stats.flood = new_fraction * (original_fwd_stats.flood / total_hr);
+
+    for (auto &[port, hr] : original_fwd_stats.ports) {
+      fwd_stats.ports[port] = new_fraction * (hr / total_hr);
+    }
+
+    assert(new_fraction == fwd_stats.calculate_total_hr());
+  } else {
+    switch (fwd_stats.operation) {
+    case LibBDD::RouteOp::Drop: {
+      fwd_stats.drop = new_fraction;
+    } break;
+    case LibBDD::RouteOp::Broadcast: {
+      fwd_stats.flood = new_fraction;
+    } break;
+    case LibBDD::RouteOp::Forward: {
+      if (new_fraction == 0_hr && !original_fwd_stats.ports.empty()) {
+        for (auto &[port, hr] : original_fwd_stats.ports) {
+          fwd_stats.ports[port] = 0_hr;
+        }
+      } else {
+        // There is not enough information to make profiling forwarding decisions.
+        // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
+        panic("Not enough information to make profiling forwarding decisions");
+      }
+    } break;
+    }
+  }
+}
+
+void Profiler::recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction) {
+  if (!node) {
+    return;
+  }
+
+  if (parent_old_fraction == parent_new_fraction) {
+    return;
+  }
+
+  const hit_rate_t old_fraction = node->fraction;
+
+  hit_rate_t new_fraction;
+  if (parent_old_fraction == 0_hr) {
+    const ProfilerNode::family_t family = node->get_family();
+
+    if (family.sibling) {
+      // There is not enough information to make profiling forwarding decisions.
+      panic("Not enough profiling information: distribution of traffic across siblings is unknown");
+    } else {
+      new_fraction = parent_new_fraction;
+    }
+  } else {
+    new_fraction = node->fraction * (parent_new_fraction / parent_old_fraction);
+  }
+
+  update_fractions(node, new_fraction);
+
+  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
+  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
+
+  if (node->on_true && node->on_false) {
+    assert(node->on_true->fraction + node->on_false->fraction == new_fraction);
+  }
 }
 
 } // namespace LibSynapse

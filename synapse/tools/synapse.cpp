@@ -130,6 +130,7 @@ struct args_t {
   std::filesystem::path profile_file;
   LibSynapse::search_config_t search_config;
   u32 seed;
+  bool assume_uniform_forwarding_distribution{false};
   bool show_prof{false};
   bool show_ep{false};
   bool show_ss{false};
@@ -141,21 +142,23 @@ struct args_t {
     const LibSynapse::Targets targets(targets_config);
 
     std::cout << "====================== Args ======================\n";
-    std::cout << "Input BDD file:   " << input_bdd_file.string() << "\n";
-    std::cout << "Output directory: " << out_dir.string() << "\n";
-    std::cout << "Name:             " << name << "\n";
-    std::cout << "Targets config:   " << targets_config_file.string() << "\n";
-    std::cout << "Heuristic:        " << LibSynapse::heuristic_opt_to_str.at(heuristic_opt) << "\n";
-    std::cout << "Profile file:     " << profile_file.string() << "\n";
-    std::cout << "Seed:             " << seed << "\n";
-    std::cout << "Targets:          ";
+    std::cout << "Input BDD file:       " << input_bdd_file.string() << "\n";
+    std::cout << "Output directory:     " << out_dir.string() << "\n";
+    std::cout << "Name:                 " << name << "\n";
+    std::cout << "Targets config:       " << targets_config_file.string() << "\n";
+    std::cout << "Heuristic:            " << LibSynapse::heuristic_opt_to_str.at(heuristic_opt) << "\n";
+    std::cout << "Profile file:         " << profile_file.string() << "\n";
+    std::cout << "Seed:                 " << seed << "\n";
+    std::cout << "Targets:              ";
     for (const LibSynapse::TargetView &target : targets.get_view().elements) {
       std::cout << target.type << " (" << target.module_factories.size() << " modules) ";
     }
     std::cout << "\n";
+    std::cout << "Profiler:\n";
+    std::cout << "  Assume uniform fwd: " << assume_uniform_forwarding_distribution << "\n";
     std::cout << "Search:\n";
-    std::cout << "  No reorder:     " << search_config.no_reorder << "\n";
-    std::cout << "  Peek:           [";
+    std::cout << "  No reorder:         " << search_config.no_reorder << "\n";
+    std::cout << "  Peek:               [";
     for (size_t i = 0; i < search_config.peek.size(); i++) {
       if (i != 0) {
         std::cout << ",";
@@ -163,14 +166,14 @@ struct args_t {
       std::cout << search_config.peek[i];
     }
     std::cout << "]\n";
-    std::cout << "  Pause on BT:    " << search_config.pause_and_show_on_backtrack << "\n";
-    std::cout << "  Not greedy:     " << search_config.not_greedy << "\n";
+    std::cout << "  Pause on BT:        " << search_config.pause_and_show_on_backtrack << "\n";
+    std::cout << "  Not greedy:         " << search_config.not_greedy << "\n";
     std::cout << "Debug:\n";
-    std::cout << "  Show prof:      " << show_prof << "\n";
-    std::cout << "  Show EP:        " << show_ep << "\n";
-    std::cout << "  Show SS:        " << show_ss << "\n";
-    std::cout << "  Show BDD:       " << show_bdd << "\n";
-    std::cout << "Dry run:          " << dry_run << "\n";
+    std::cout << "  Show prof:          " << show_prof << "\n";
+    std::cout << "  Show EP:            " << show_ep << "\n";
+    std::cout << "  Show SS:            " << show_ss << "\n";
+    std::cout << "  Show BDD:           " << show_bdd << "\n";
+    std::cout << "Dry run:              " << dry_run << "\n";
     std::cout << "=================================================\n";
   }
 };
@@ -197,6 +200,8 @@ int main(int argc, char **argv) {
   app.add_flag("--show-bdd", args.show_bdd, "Show the BDD's solution.");
   app.add_flag("--backtrack", args.search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
   app.add_flag("--not-greedy", args.search_config.not_greedy, "Don't stop on first solution.");
+  app.add_flag("--assume-uniform-fwd", args.assume_uniform_forwarding_distribution,
+               "Assume uniform distribution of forwarding decisions across all active ports.");
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
 
   CLI11_PARSE(app, argc, argv);
@@ -221,7 +226,9 @@ int main(int argc, char **argv) {
   LibCore::SymbolManager symbol_manager;
   const LibBDD::BDD bdd(args.input_bdd_file, &symbol_manager);
   const LibSynapse::targets_config_t targets_config = parse_targets_config(args.targets_config_file);
-  const LibSynapse::Profiler profiler = args.profile_file.empty() ? LibSynapse::Profiler(&bdd) : LibSynapse::Profiler(&bdd, args.profile_file);
+  const LibBDD::bdd_profile_t bdd_profile =
+      args.profile_file.empty() ? LibBDD::build_random_bdd_profile(&bdd) : LibBDD::parse_bdd_profile(args.profile_file);
+  const LibSynapse::Profiler profiler = LibSynapse::Profiler(&bdd, bdd_profile, args.assume_uniform_forwarding_distribution);
 
   if (args.show_prof) {
     profiler.debug();

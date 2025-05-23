@@ -88,7 +88,8 @@ struct ProfilerNode {
 
 class Profiler {
 private:
-  std::shared_ptr<LibBDD::bdd_profile_t> bdd_profile;
+  const std::shared_ptr<LibBDD::bdd_profile_t> bdd_profile;
+  const bool assume_uniform_forwarding_distribution;
 
   std::shared_ptr<ProfilerNode> root;
   bytes_t avg_pkt_size;
@@ -103,9 +104,7 @@ private:
   } cache;
 
 public:
-  Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &bdd_profile);
-  Profiler(const LibBDD::BDD *bdd, const std::filesystem::path &bdd_profile_fname);
-  Profiler(const LibBDD::BDD *bdd);
+  Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &bdd_profile, bool assume_uniform_forwarding_distribution);
 
   Profiler(const Profiler &other);
   Profiler(Profiler &&other);
@@ -153,6 +152,9 @@ private:
   void remove(ProfilerNode *node);
   void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> cnstr);
+
+  void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction);
+  void update_fractions(ProfilerNode *node, hit_rate_t new_fraction);
 };
 
 } // namespace LibSynapse

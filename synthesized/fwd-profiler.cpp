@@ -127,7 +127,9 @@ private:
   std::unordered_map<uint16_t, bool> assume_ip;
   std::unordered_map<uint16_t, long> pcaps_start;
   std::unordered_map<uint16_t, pkt_t> pending_pkts_per_dev;
-
+  int64_t last_ts;
+  std::unordered_set<uint16_t> last_devs;
+  
   // Meta
   uint64_t total_packets;
   uint64_t total_bytes;
@@ -141,6 +143,7 @@ public:
   uint64_t get_total_bytes() { return total_bytes; }
 
   void setup(const std::vector<dev_pcap_t> &_pcaps) {
+    last_ts                = -1;
     total_packets          = 0;
     total_bytes            = 0;
     processed_packets      = 0;
@@ -187,28 +190,50 @@ public:
   }
 
   bool get_next_packet(uint16_t &dev, pkt_t &pkt) {
-    bool set = false;
-
-    for (const auto &dev_pkt : pending_pkts_per_dev) {
-      if (!set || dev_pkt.second.ts < pkt.ts) {
-        dev = dev_pkt.first;
-        pkt = dev_pkt.second;
-        set = true;
+    int64_t ts = -1;
+    for (const auto& [pending_dev, pending_pkt] : pending_pkts_per_dev) {
+      if (ts == -1 || pending_pkt.ts < ts) {
+        ts = pending_pkt.ts;
       }
     }
 
-    if (set) {
-      pkt_t new_pkt;
-      if (read(dev, new_pkt)) {
-        pending_pkts_per_dev[dev] = new_pkt;
-      } else {
-        pending_pkts_per_dev.erase(dev);
-      }
+    if (ts == -1) {
+      return false;
     }
+    
+    bool chosen = false;
+    for (const auto& [pending_dev, pending_pkt] : pending_pkts_per_dev) {
+      if (pending_pkt.ts != ts) {
+        continue;
+      }
+
+      if (chosen && last_devs.find(pending_dev) != last_devs.end()) {
+        continue;
+      }
+
+      dev = pending_dev;
+      pkt = pending_pkt;
+
+      chosen = true;
+    }
+
+    if (last_ts != ts || last_devs.size() == pending_pkts_per_dev.size()) {
+      last_devs.clear();
+    }
+
+    last_ts = ts;
+    last_devs.insert(dev);
 
     update_and_show_progress();
 
-    return set;
+    pkt_t new_pkt;
+    if (read(dev, new_pkt)) {
+      pending_pkts_per_dev[dev] = new_pkt;
+    } else {
+      pending_pkts_per_dev.erase(dev);
+    }
+
+    return true;
   }
 
 private:

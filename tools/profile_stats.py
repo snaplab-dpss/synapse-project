@@ -165,6 +165,15 @@ class ProfileData(Struct):
     def get_total_forwarded(self) -> int:
         return sum([sum(node_fwd_stats.ports.values()) for node_fwd_stats in self.forwarding_stats.values()])
 
+    def get_forwarded_per_port(self) -> dict[int, int]:
+        forwarded_per_port = {}
+        for node_fwd_stats in self.forwarding_stats.values():
+            for port, count in node_fwd_stats.ports.items():
+                if port not in forwarded_per_port:
+                    forwarded_per_port[port] = 0
+                forwarded_per_port[port] += count
+        return forwarded_per_port
+
     def get_total_warmup_epochs(self) -> int:
         all_stats_per_map = self.stats_per_map.values()
         if len(all_stats_per_map) == 0:
@@ -210,9 +219,6 @@ def build_report(profile: Profile) -> str:
     elapsed_seconds = profile.data.meta.elapsed / 1_000_000_000.0
     delta = timedelta(seconds=elapsed_seconds)
     elapsed_hr = humanize.precisedelta(delta, minimum_unit="microseconds")
-    dropped_hr = profile.data.get_total_dropped() / total_packets
-    flooded_hr = profile.data.get_total_flooded() / total_packets
-    forwarded_hr = profile.data.get_total_forwarded() / total_packets
 
     table = PrettyTable()
     table.header = False
@@ -225,7 +231,15 @@ def build_report(profile: Profile) -> str:
     table.add_row(["Elapsed", elapsed_hr])
     table.add_row(["Warmup epochs", f"{total_warmup_epochs:,}"])
     table.add_row(["Epochs", f"{total_non_warmup_epochs:,}"])
-    table.add_row(["Forwarding", f"{dropped_hr:.2%} dropped\n{flooded_hr:.2%} flooded\n{forwarded_hr:.2%} forwarded"])
+
+    forwarding_str = []
+    forwarding_str += [f"{profile.data.get_total_dropped() / total_packets:.2%} dropped"]
+    forwarding_str += [f"{profile.data.get_total_flooded() / total_packets:.2%} flooded"]
+    forwarding_str += [f"{profile.data.get_total_forwarded() / total_packets:.2%} forwarded"]
+    forwarding_str += ["Forwarding per port ({port} : {hit rate} ({count}/{total}))"]
+    for port, count in sorted(list(profile.data.get_forwarded_per_port().items())):
+        forwarding_str += [f"{port:12}: {count/ total_packets:9.4%} ({count:,}/{total_packets:,})"]
+    table.add_row(["Forwarding", "\n".join(forwarding_str)])
 
     for map_addr in profile.data.stats_per_map:
         stats_per_map = profile.data.stats_per_map[map_addr]
