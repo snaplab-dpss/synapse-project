@@ -7,6 +7,7 @@ import humanize
 import asyncio
 import rich
 import graphviz
+import signal
 
 from asyncio.subprocess import PIPE, STDOUT
 from datetime import timedelta
@@ -18,6 +19,7 @@ DONE_COLOR = "green"
 SKIP_COLOR = "yellow"
 ERROR_COLOR = "red"
 DEBUG_COLOR = "white"
+ABORT_COLOR = "magenta"
 
 
 class Task:
@@ -108,13 +110,13 @@ class Task:
     async def run(
         self,
         skip_if_already_produced: bool = True,
-    ):
+    ) -> bool:
         self._start()
 
         if self.done:
             self.log("already executed, skipping", color=SKIP_COLOR)
             self._end()
-            return
+            return True
 
         if self.show_cmds and not self.silence:
             flattened_env_vars = " ".join([f"{k}={v}" for k, v in self.env_vars.items()])
@@ -123,51 +125,66 @@ class Task:
         if self.skip_execution:
             self.log("skipping execution", color=SKIP_COLOR)
             self._end()
-            return
+            return True
 
         for file in self.files_consumed:
             if not file.exists():
                 self.log(f"consumed file '{file}' does not exist, skipping execution", color=ERROR_COLOR)
                 self._end()
-                return
+                return True
 
-        all_files_produced = all([file.exists() for file in self.files_produced])
+        all_files_produced = len(self.files_produced) > 0 and all([file.exists() for file in self.files_produced])
         if all_files_produced and skip_if_already_produced:
             self.log("all product files already exist, skipping execution", color=SKIP_COLOR)
             self._end()
-            return
+            return True
 
         self.log("spawning", color=SPAWN_COLOR)
 
-        process = await asyncio.create_subprocess_exec(
-            *self.cmd.split(" "),
-            stdout=PIPE,
-            stderr=STDOUT,
-            bufsize=0,
-            cwd=self.cwd,
-            env={**self.env_vars, **dict(list(os.environ.items()))},
-        )
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *self.cmd.split(" "),
+                stdout=PIPE,
+                stderr=STDOUT,
+                bufsize=0,
+                cwd=self.cwd,
+                env={**self.env_vars, **dict(list(os.environ.items()))},
+            )
 
-        assert process, "Process creation failed"
+            assert process, "Process creation failed"
 
-        stdout_data, _ = await process.communicate()
-        stdout = stdout_data.decode().strip() if stdout_data else ""
+            stdout_data, _ = await process.communicate()
+            stdout = stdout_data.decode().strip() if stdout_data else ""
 
-        if process.returncode != 0 or self.show_cmds_output:
-            if process.returncode != 0:
-                self.log(f"command failed with return code {process.returncode}", color=ERROR_COLOR)
-                self.log("command:", color=ERROR_COLOR)
-                print(self.cmd)
-                self.log("output:", color=ERROR_COLOR)
-                print(stdout)
-                raise RuntimeError()
-            elif not self.silence:
-                print(stdout)
+            assert process.returncode is not None, "Process return code is None"
+
+            if process.returncode < 0:
+                self.log(f"terminated by signal {-process.returncode}", color=ABORT_COLOR)
+                return False
+
+            if process.returncode != 0 or self.show_cmds_output:
+                if process.returncode != 0:
+                    self.log(f"failed with return code {process.returncode}", color=ERROR_COLOR)
+                    self.log("command:", color=ERROR_COLOR)
+                    print(self.cmd)
+                    self.log("output:", color=ERROR_COLOR)
+                    print(stdout)
+                    return False
+                elif not self.silence:
+                    print(stdout)
+        except asyncio.CancelledError:
+            self.log("task was cancelled", color=ERROR_COLOR)
+            return False
+        except Exception as e:
+            self.log(f"error while executing command: {e}", color=ERROR_COLOR)
+            return False
 
         self._end()
 
         delta = timedelta(seconds=self.elapsed_time)
         self.log(f"done ({humanize.precisedelta(delta, minimum_unit='milliseconds')})", color=DONE_COLOR)
+
+        return True
 
     def dump_execution_plan(self, indent: int = 0):
         rich.print("  " * indent + f"{self}")
@@ -265,14 +282,15 @@ class Orchestrator:
                     break
 
                 assert isinstance(task, Task), f"Expected Task instance, got {type(task)}"
-                await task.run(skip_if_already_produced)
+                success = await task.run(skip_if_already_produced)
 
-                for next_task in task.next:
-                    if next_task.is_ready():
-                        queue.put_nowait(next_task)
+                if success:
+                    for next_task in task.next:
+                        if next_task.is_ready():
+                            queue.put_nowait(next_task)
             except Exception as e:
-                if not task:
-                    print(f"Exception caught while waiting for task: {e}", file=sys.stderr)
+                print(f"[{ERROR_COLOR}]Error in worker: {e}[/{ERROR_COLOR}]")
+                pass
             finally:
                 queue.task_done()
 
@@ -281,8 +299,18 @@ class Orchestrator:
         skip_if_already_produced: bool,
     ):
         queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+        shutdown_event = asyncio.Event()
 
         cpu_count = os.cpu_count() or 8
+
+        def handle_sigint():
+            shutdown_event.set()
+
+        if hasattr(signal, "SIGINT"):
+            loop.add_signal_handler(signal.SIGINT, handle_sigint)
+        if hasattr(signal, "SIGTERM"):
+            loop.add_signal_handler(signal.SIGTERM, handle_sigint)
 
         for task in self.initial_tasks:
             queue.put_nowait(task)
