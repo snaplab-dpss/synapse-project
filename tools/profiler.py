@@ -354,7 +354,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description=description)
 
-    parser.add_argument("--nfs", type=str, choices=NFs.keys(), nargs="+", default=DEFAULT_NFS, help="Target NFs to profile (BDD)")
+    parser.add_argument("--nfs", type=str, choices=NFs.keys(), nargs="+", required=True, help="Target NFs to profile")
     parser.add_argument("--total-packets", type=int, nargs="+", default=DEFAULT_TOTAL_PACKETS, help="Total packets to send")
     parser.add_argument("--packet-size", type=int, nargs="+", default=DEFAULT_PACKET_SIZE, help="Packet size (bytes)")
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")

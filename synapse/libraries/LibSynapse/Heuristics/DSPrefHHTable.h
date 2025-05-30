@@ -4,16 +4,16 @@
 
 namespace LibSynapse {
 
-class DSPrefSimpleCfg : public HeuristicCfg {
+class DSPrefHHTable : public HeuristicCfg {
 public:
-  DSPrefSimpleCfg()
-      : HeuristicCfg("DSPrefSimple", {
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_bdd_progress, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_ds_score, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_tput_speculation, Objective::Max),
+  DSPrefHHTable()
+      : HeuristicCfg("DSPrefCustom", {
+                                         BUILD_METRIC(DSPrefHHTable, get_bdd_progress, Objective::Max),
+                                         BUILD_METRIC(DSPrefHHTable, get_ds_score, Objective::Max),
+                                         BUILD_METRIC(DSPrefHHTable, get_tput_speculation, Objective::Max),
                                      }) {}
 
-  DSPrefSimpleCfg &operator=(const DSPrefSimpleCfg &other) {
+  DSPrefHHTable &operator=(const DSPrefHHTable &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;
@@ -36,7 +36,7 @@ private:
     const std::unordered_map<DSImpl, int> ds_scores{
         {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 1},  {DSImpl::Tofino_VectorTable, 1},
         {DSImpl::Tofino_DchainTable, 1},    {DSImpl::Tofino_VectorRegister, 1},   {DSImpl::Tofino_FCFSCachedTable, 0},
-        {DSImpl::Tofino_Meter, 0},          {DSImpl::Tofino_HeavyHitterTable, 0}, {DSImpl::Tofino_IntegerAllocator, 0},
+        {DSImpl::Tofino_Meter, 0},          {DSImpl::Tofino_HeavyHitterTable, 2}, {DSImpl::Tofino_IntegerAllocator, 0},
         {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 0},  {DSImpl::Tofino_LPM, 1},
     };
 

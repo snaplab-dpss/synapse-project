@@ -4,16 +4,16 @@
 
 namespace LibSynapse {
 
-class DSPrefSimpleCfg : public HeuristicCfg {
+class DSPrefCuckoo : public HeuristicCfg {
 public:
-  DSPrefSimpleCfg()
-      : HeuristicCfg("DSPrefSimple", {
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_bdd_progress, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_ds_score, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_tput_speculation, Objective::Max),
+  DSPrefCuckoo()
+      : HeuristicCfg("DSPrefCustom", {
+                                         BUILD_METRIC(DSPrefCuckoo, get_bdd_progress, Objective::Max),
+                                         BUILD_METRIC(DSPrefCuckoo, get_ds_score, Objective::Max),
+                                         BUILD_METRIC(DSPrefCuckoo, get_tput_speculation, Objective::Max),
                                      }) {}
 
-  DSPrefSimpleCfg &operator=(const DSPrefSimpleCfg &other) {
+  DSPrefCuckoo &operator=(const DSPrefCuckoo &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;
@@ -37,7 +37,7 @@ private:
         {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 1},  {DSImpl::Tofino_VectorTable, 1},
         {DSImpl::Tofino_DchainTable, 1},    {DSImpl::Tofino_VectorRegister, 1},   {DSImpl::Tofino_FCFSCachedTable, 0},
         {DSImpl::Tofino_Meter, 0},          {DSImpl::Tofino_HeavyHitterTable, 0}, {DSImpl::Tofino_IntegerAllocator, 0},
-        {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 0},  {DSImpl::Tofino_LPM, 1},
+        {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 2},  {DSImpl::Tofino_LPM, 1},
     };
 
     i64 score = 0;

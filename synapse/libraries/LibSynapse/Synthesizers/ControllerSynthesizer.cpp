@@ -1689,8 +1689,12 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr,
                                                               var_alloc_opt_t opt) {
+  if ((opt & EXACT_NAME) && !(opt & IS_CPU_HDR_EXTRA)) {
+    assert_unique_name(proposed_name);
+  }
+
   const var_t var{
-      .name      = (opt & EXACT_NAME) ? assert_unique_name(proposed_name) : create_unique_name(proposed_name),
+      .name      = (opt & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name),
       .expr      = expr,
       .addr      = addr,
       .is_ptr    = (opt & IS_PTR) != 0,
@@ -1778,7 +1782,11 @@ ControllerSynthesizer::code_t ControllerSynthesizer::assert_unique_name(const co
     reserved_var_names[name] = 0;
   }
 
-  assert(reserved_var_names.at(name) == 0 && "Name already used");
+  if (reserved_var_names.at(name) > 0) {
+    dbg_vars();
+    panic("Name conflict in ControllerSynthesizer: '%s' already used", name.c_str());
+  }
+
   reserved_var_names[name]++;
 
   return name;
