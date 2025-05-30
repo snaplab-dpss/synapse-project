@@ -817,10 +817,6 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
     assert(width >= 8 && "Unexpected width (less than 8)");
 
-    if (vars.get(symbol.expr, TRANSPILER_OPT_NO_OPTION).has_value()) {
-      continue;
-    }
-
     const var_t var = alloc_var(symbol.name, symbol.expr, {}, EXACT_NAME | IS_CPU_HDR_EXTRA | (width > 64 ? IS_PTR : NO_OPTION));
 
     cpu_extra.indent();

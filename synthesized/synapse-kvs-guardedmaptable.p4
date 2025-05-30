@@ -21,6 +21,7 @@ header cpu_h {
   @padding bit<31> pad_hit0;
   bool hit0;
   bit<32> dev;
+  bit<64> time;
 
 }
 
@@ -364,6 +365,7 @@ control Ingress(
                     send_to_controller(3641);
                     hdr.cpu.hit0 = hit0;
                     hdr.cpu.dev = meta.dev;
+                    hdr.cpu.time[47:16] = meta.time;
                   } else {
                     // EP node  512:Else
                     // BDD node 15:if ((Eq (w8 1) (Read w8 (w32 768) packet_chunks))

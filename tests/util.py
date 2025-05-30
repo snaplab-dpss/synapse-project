@@ -297,10 +297,10 @@ def build_packet(
 
     if kvs_hdr is not None:
         pkt /= kvs_hdr
-    else:
-        # Pad packet to minimum ethernet frame without CRC (60B)
-        if len(pkt) < 60:
-            pkt /= b"\0" * (60 - len(pkt))
+
+    # Pad packet to minimum ethernet frame without CRC (60B)
+    if len(pkt) < 60:
+        pkt /= b"\0" * (60 - len(pkt))
 
     # Force population of fields
     pkt = Ether(pkt.build())

@@ -443,6 +443,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
 
   LibCore::Symbols symbols = get_relevant_dataplane_state(ep, node);
   symbols.add(initial_controller_logic.extra_symbols);
+  symbols.remove("packet_chunks");
 
   Module *module   = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);

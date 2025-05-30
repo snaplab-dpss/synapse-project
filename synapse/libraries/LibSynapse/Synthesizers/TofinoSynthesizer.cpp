@@ -1381,7 +1381,7 @@ void TofinoSynthesizer::synthesize() {
   LibCore::symbol_t time   = bdd->get_time();
 
   alloc_var("meta.dev", device.expr, EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), EXACT_NAME);
+  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
 
   ingress_vars.push();
 
@@ -1393,7 +1393,7 @@ void TofinoSynthesizer::synthesize() {
   ingress_vars.push();
 
   alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 32), EXACT_NAME);
+  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
 
   ingress_vars.push();
 
@@ -1614,11 +1614,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << ");\n";
 
   for (const LibCore::symbol_t &symbol : symbols.get()) {
-    std::cerr << "Symbol: " << symbol << "\n";
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
 
     if (!var) {
-      // This can happen when the symbol is not used and synapse optimized it away.
+      panic("Variable %s not found in stack", LibCore::expr_to_string(symbol.expr, true).c_str());
+    }
+
+    if (var->is_header_field) {
+      // Header fields are not sent to the controller, so we skip them.
       continue;
     }
 
@@ -1628,6 +1631,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
     ingress_apply.indent();
     ingress_apply << cpu_var.name;
+
+    // Hack
+    if (symbol.name == "next_time") {
+      ingress_apply << "[47:16]";
+    }
+
     ingress_apply << " = ";
     ingress_apply << var->name;
     ingress_apply << ";\n";
@@ -1661,10 +1670,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   std::vector<var_t> recirc_vars;
   for (const LibCore::symbol_t &symbol : symbols.get()) {
     klee::ref<klee::Expr> symbol_expr = symbol.expr;
-
-    if (symbol.name == "next_time") {
-      symbol_expr = LibCore::solver_toolbox.exprBuilder->Extract(symbol.expr, 0, 32);
-    }
 
     std::optional<var_t> var = ingress_vars.get(symbol_expr);
 
