@@ -4,14 +4,14 @@
 
 namespace LibSynapse {
 
-class BFSCfg : public HeuristicCfg {
+class BFS : public HeuristicCfg {
 public:
-  BFSCfg()
+  BFS()
       : HeuristicCfg("BFS", {
-                                BUILD_METRIC(BFSCfg, get_depth, Objective::Min),
+                                BUILD_METRIC(BFS, get_depth, Objective::Min),
                             }) {}
 
-  BFSCfg &operator=(const BFSCfg &other) {
+  BFS &operator=(const BFS &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;

@@ -53,6 +53,34 @@ struct fwd_stats_t {
     }
     return max_port;
   }
+
+  fwd_stats_t scale(const double factor) const {
+    fwd_stats_t new_fwd_stats;
+
+    new_fwd_stats.operation = operation;
+    new_fwd_stats.drop      = drop * factor;
+    new_fwd_stats.flood     = flood * factor;
+    for (const auto &[port, hr] : ports) {
+      new_fwd_stats.ports[port] = hr * factor;
+    }
+
+    const hit_rate_t total_old_hr  = calculate_total_hr();
+    const hit_rate_t total_goal_hr = total_old_hr * factor;
+    const hit_rate_t total_new_hr  = new_fwd_stats.calculate_total_hr();
+
+    if (total_goal_hr != total_new_hr) {
+      // We lost precision in the scaling, so we need to adjust the ports.
+      const hit_rate_t delta = total_goal_hr - total_new_hr;
+      assert(delta >= 0_hr && "Scaling resulted in a negative hit rate");
+
+      const u16 most_used_port            = get_most_used_fwd_port();
+      new_fwd_stats.ports[most_used_port] = new_fwd_stats.ports[most_used_port] + delta;
+    }
+
+    assert(new_fwd_stats.calculate_total_hr() == total_goal_hr && "Scaling resulted in an incorrect total hit rate");
+
+    return new_fwd_stats;
+  }
 };
 
 struct ProfilerNode {

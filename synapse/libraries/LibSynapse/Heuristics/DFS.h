@@ -4,14 +4,14 @@
 
 namespace LibSynapse {
 
-class DFSCfg : public HeuristicCfg {
+class DFS : public HeuristicCfg {
 public:
-  DFSCfg()
+  DFS()
       : HeuristicCfg("DFS", {
-                                BUILD_METRIC(DFSCfg, get_depth, Objective::Max),
+                                BUILD_METRIC(DFS, get_depth, Objective::Max),
                             }) {}
 
-  DFSCfg &operator=(const DFSCfg &other) {
+  DFS &operator=(const DFS &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;

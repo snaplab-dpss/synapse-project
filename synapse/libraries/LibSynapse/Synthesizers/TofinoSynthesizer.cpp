@@ -126,8 +126,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<kle
   } else {
     visit(expr);
 
-    // HACK: clear the visited map so we force the transpiler to revisit all
-    // expressions.
+    // HACK: clear the visited map so we force the transpiler to revisit all expressions.
     visited.clear();
   }
 
@@ -1617,6 +1616,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
 
     if (!var) {
+      dbg_vars();
       panic("Variable %s not found in stack", LibCore::expr_to_string(symbol.expr, true).c_str());
     }
 
@@ -1646,8 +1646,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) {
-  const LibCore::Symbols &symbols = node->get_symbols();
-
   assert(ep_node->get_children().size() == 1);
   const EPNode *next = ep_node->get_children()[0];
 
@@ -1666,22 +1664,18 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "hdr.recirc.code_path = " << code_path << ";\n";
 
   Stacks stack_backup = ingress_vars;
+  Stack first_stack   = ingress_vars.get_first_stack();
 
-  std::vector<var_t> recirc_vars;
-  for (const LibCore::symbol_t &symbol : symbols.get()) {
-    klee::ref<klee::Expr> symbol_expr = symbol.expr;
-
-    std::optional<var_t> var = ingress_vars.get(symbol_expr);
-
-    if (!var.has_value()) {
-      dbg_vars();
-      panic("Recirculation variable %s not found in stack", LibCore::expr_to_string(symbol_expr, true).c_str());
+  std::vector<var_t> recirc_vars = first_stack.get_all();
+  for (const var_t &var : ingress_vars.squash().get_all()) {
+    if (first_stack.get_exact(var.expr)) {
+      continue;
     }
 
-    var_t recirc_var = *var;
+    var_t recirc_var = var;
     recirc_var.name  = recirc_var.flatten_name();
 
-    if (var->is_header_field) {
+    if (var.is_header_field) {
       recirc_vars.push_back(recirc_var);
       continue;
     }
@@ -1695,7 +1689,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << local_recirc_var.name;
     ingress_apply << " = ";
-    ingress_apply << var->name;
+    ingress_apply << var.name;
     ingress_apply << ";\n";
   }
 
@@ -2133,7 +2127,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << guard_allow_check << "();\n";
 
   const code_t guard_allow_value = id + "_guard_allow";
-  const var_t guard_allow_var    = alloc_var(guard_allow_value, guard_allow_condition, FORCE_BOOL);
+  const var_t guard_allow_var    = alloc_var(guard_allow_value, guard_allow.expr, FORCE_BOOL);
 
   guard_allow_var.declare(ingress_apply, "false");
   ingress_apply.indent();

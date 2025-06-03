@@ -4,14 +4,14 @@
 
 namespace LibSynapse {
 
-class RandomCfg : public HeuristicCfg {
+class Random : public HeuristicCfg {
 public:
-  RandomCfg()
+  Random()
       : HeuristicCfg("Random", {
-                                   BUILD_METRIC(RandomCfg, get_random, Objective::Max),
+                                   BUILD_METRIC(Random, get_random, Objective::Max),
                                }) {}
 
-  RandomCfg &operator=(const RandomCfg &other) {
+  Random &operator=(const Random &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;

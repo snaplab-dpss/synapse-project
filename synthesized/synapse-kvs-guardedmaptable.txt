@@ -1,0 +1,117 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     kvs.bdd
+  Name:               synapse-kvs-guardedmaptable
+  Targets config:     tofino2-kvs.toml
+  Heuristic:          ds-pref-guardedmaptable
+  Profile file:       kvs-f25000-c100000-zipf1.json
+  Seed:               1
+  Targets:
+    Tofino (26 modules)
+    Ctrl (70 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+  Assume uniform fwd: 0
+
+Winner:
+  Score: <74,4,147'726'435>
+  BDD Progress: 74
+  DS Score: 4
+  Tput: 314.81 Gbps (447.17 Mpps)
+  Spec: 104.00 Gbps (147.73 Mpps)
+
+Stateful Implementations:
+  1073954200: Tofino::Register
+  1073971336: Tofino::DchainTable
+  1073923160: Tofino::GuardedMapTable
+
+Search Metadata:
+  Elapsed time:       2 seconds
+  Steps:              76
+  Backtracks:         0
+  Search space size:  278
+  Unfinished EPs:     202
+  Finished EPs:       1
+  Avg BDD size:       68
+  Branching factor:   3
+  Total SS size est.: 26'736'361'284'034
+  Avg children per node:
+    Node 32: 0
+    Node 31: 0
+    Node 30: 0
+    Node 52: 5
+    Node 29: 0
+    Node 59: 5
+    Node 51: 6
+    Node 28: 0
+    Node 58: 6
+    Node 50: 6
+    Node 45: 5
+    Node 143: 6
+    Node 16: 5.5
+    Node 61: 2
+    Node 60: 2
+    Node 13: 4
+    Node 72: 2
+    Node 71: 0
+    Node 12: 2
+    Node 33: 6
+    Node 62: 2
+    Node 4: 2
+    Node 63: 2
+    Node 5: 2
+    Node 64: 0
+    Node 70: 2
+    Node 138: 2
+    Node 11: 2
+    Node 6: 2
+    Node 65: 2
+    Node 14: 6
+    Node 73: 0
+    Node 66: 2
+    Node 7: 2
+    Node 8: 2
+    Node 67: 2
+    Node 142: 6
+    Node 15: 6
+    Node 38: 6
+    Node 9: 2
+    Node 68: 0
+    Node 39: 6
+    Node 10: 3
+    Node 69: 2
+    Node 144: 6
+    Node 17: 0
+    Node 34: 6
+    Node 40: 6
+    Node 53: 7
+    Node 145: 6
+    Node 18: 0
+    Node 23: 0
+    Node 35: 6
+    Node 41: 6
+    Node 46: 7
+    Node 54: 6
+    Node 146: 5
+    Node 19: 0
+    Node 24: 0
+    Node 36: 6
+    Node 42: 6
+    Node 47: 6
+    Node 55: 6
+    Node 20: 0
+    Node 25: 0
+    Node 37: 5
+    Node 43: 6
+    Node 48: 6
+    Node 56: 6
+    Node 21: 0
+    Node 26: 0
+    Node 44: 6
+    Node 49: 6
+    Node 57: 6
+    Node 22: 0
+    Node 27: 0
+
+========================================================

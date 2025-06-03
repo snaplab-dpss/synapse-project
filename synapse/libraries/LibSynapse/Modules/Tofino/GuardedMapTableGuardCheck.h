@@ -27,8 +27,8 @@
   │ Old BDD  │           │1│
   │  pattern │           └─┘
   └──────────┘
-
 */
+
 namespace LibSynapse {
 namespace Tofino {
 

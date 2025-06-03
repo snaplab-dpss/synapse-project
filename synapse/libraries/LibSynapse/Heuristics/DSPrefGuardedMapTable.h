@@ -4,16 +4,16 @@
 
 namespace LibSynapse {
 
-class DSPrefCuckoo : public HeuristicCfg {
+class DSPrefGuardedMapTable : public HeuristicCfg {
 public:
-  DSPrefCuckoo()
-      : HeuristicCfg("DSPrefCuckoo", {
-                                         BUILD_METRIC(DSPrefCuckoo, get_bdd_progress, Objective::Max),
-                                         BUILD_METRIC(DSPrefCuckoo, get_ds_score, Objective::Max),
-                                         BUILD_METRIC(DSPrefCuckoo, get_tput_speculation, Objective::Max),
-                                     }) {}
+  DSPrefGuardedMapTable()
+      : HeuristicCfg("DSPrefGuardedMapTable", {
+                                                  BUILD_METRIC(DSPrefGuardedMapTable, get_bdd_progress, Objective::Max),
+                                                  BUILD_METRIC(DSPrefGuardedMapTable, get_ds_score, Objective::Max),
+                                                  BUILD_METRIC(DSPrefGuardedMapTable, get_tput_speculation, Objective::Max),
+                                              }) {}
 
-  DSPrefCuckoo &operator=(const DSPrefCuckoo &other) {
+  DSPrefGuardedMapTable &operator=(const DSPrefGuardedMapTable &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;
@@ -42,10 +42,10 @@ private:
 
   i64 get_ds_score(const EP *ep) const {
     const std::unordered_map<DSImpl, int> ds_scores{
-        {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 1},  {DSImpl::Tofino_VectorTable, 1},
+        {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 2},  {DSImpl::Tofino_VectorTable, 1},
         {DSImpl::Tofino_DchainTable, 1},    {DSImpl::Tofino_VectorRegister, 1},   {DSImpl::Tofino_FCFSCachedTable, 0},
         {DSImpl::Tofino_Meter, 0},          {DSImpl::Tofino_HeavyHitterTable, 0}, {DSImpl::Tofino_IntegerAllocator, 0},
-        {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 2},  {DSImpl::Tofino_LPM, 1},
+        {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 0},  {DSImpl::Tofino_LPM, 1},
     };
 
     i64 score = 0;

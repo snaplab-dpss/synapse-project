@@ -4,15 +4,15 @@
 
 namespace LibSynapse {
 
-class MaxControllerCfg : public HeuristicCfg {
+class MaxController : public HeuristicCfg {
 public:
-  MaxControllerCfg()
+  MaxController()
       : HeuristicCfg("MaxController", {
-                                          BUILD_METRIC(MaxControllerCfg, get_switch_nodes_besides_sending_to_controller, Objective::Min),
-                                          BUILD_METRIC(MaxControllerCfg, get_bdd_progress, Objective::Max),
+                                          BUILD_METRIC(MaxController, get_switch_nodes_besides_sending_to_controller, Objective::Min),
+                                          BUILD_METRIC(MaxController, get_bdd_progress, Objective::Max),
                                       }) {}
 
-  MaxControllerCfg &operator=(const MaxControllerCfg &other) {
+  MaxController &operator=(const MaxController &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;

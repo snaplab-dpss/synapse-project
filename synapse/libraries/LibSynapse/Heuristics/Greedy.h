@@ -4,15 +4,15 @@
 
 namespace LibSynapse {
 
-class GreedyCfg : public HeuristicCfg {
+class Greedy : public HeuristicCfg {
 public:
-  GreedyCfg()
+  Greedy()
       : HeuristicCfg("Greedy", {
-                                   BUILD_METRIC(GreedyCfg, get_bdd_progress, Objective::Max),
-                                   BUILD_METRIC(GreedyCfg, get_tput, Objective::Max),
+                                   BUILD_METRIC(Greedy, get_bdd_progress, Objective::Max),
+                                   BUILD_METRIC(Greedy, get_tput, Objective::Max),
                                }) {}
 
-  GreedyCfg &operator=(const GreedyCfg &other) {
+  Greedy &operator=(const Greedy &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;

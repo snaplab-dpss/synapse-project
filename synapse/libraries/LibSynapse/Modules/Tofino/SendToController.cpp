@@ -243,7 +243,6 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       initial_controller_logic.update(guarded_map_table_guard_check_ep_node);
     } break;
     case ModuleType::Tofino_VectorTableLookup: {
-
       const VectorTableLookup *vector_table_lookup = dynamic_cast<const VectorTableLookup *>(prev.module);
 
       Controller::DataplaneVectorTableLookup *ctrl_vector_table_lookup = new Controller::DataplaneVectorTableLookup(

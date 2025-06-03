@@ -161,6 +161,7 @@ private:
     std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::vector<Stack> get_all() const;
+    Stack get_first_stack() const { return stacks.front(); }
   };
 
   using alloc_opt_t = u32;

@@ -53,14 +53,24 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
 
       const u64 counter = bdd_profile->counters.at(node->get_id());
       const hit_rate_t hr(counter, max_count);
+
       prof_node = new ProfilerNode(nullptr, hr, node->get_id());
+
+      const LibBDD::bdd_profile_t::fwd_stats_t &fwd_stats = bdd_profile->forwarding_stats.at(node->get_id());
 
       prof_node->forwarding_stats.emplace();
       prof_node->forwarding_stats->operation = operation;
-      prof_node->forwarding_stats->drop      = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).drop, max_count);
-      prof_node->forwarding_stats->flood     = hit_rate_t(bdd_profile->forwarding_stats.at(node->get_id()).flood, max_count);
-      for (const auto &[device, dev_counter] : bdd_profile->forwarding_stats.at(node->get_id()).ports) {
+      prof_node->forwarding_stats->drop      = hit_rate_t(fwd_stats.drop, max_count);
+      prof_node->forwarding_stats->flood     = hit_rate_t(fwd_stats.flood, max_count);
+
+      u16 most_used_fwd_port       = 0;
+      u64 most_used_fwd_port_count = 0;
+      for (const auto &[device, dev_counter] : fwd_stats.ports) {
         prof_node->forwarding_stats->ports[device] = hit_rate_t(dev_counter, max_count);
+        if (dev_counter > most_used_fwd_port_count) {
+          most_used_fwd_port       = device;
+          most_used_fwd_port_count = dev_counter;
+        }
       }
 
       prof_node->original_forwarding_stats = prof_node->forwarding_stats;
@@ -71,8 +81,7 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
       const hit_rate_t fwd_total_hr = prof_node->forwarding_stats->calculate_total_hr();
       const hit_rate_t delta        = hr - fwd_total_hr;
 
-      if (fwd_total_hr > prof_node->forwarding_stats->drop) {
-        const u16 most_used_fwd_port                           = prof_node->forwarding_stats->get_most_used_fwd_port();
+      if (fwd_stats.get_total_fwd() > fwd_stats.drop) {
         prof_node->forwarding_stats->ports[most_used_fwd_port] = prof_node->forwarding_stats->ports[most_used_fwd_port] + delta;
       } else {
         prof_node->forwarding_stats->drop = prof_node->forwarding_stats->drop + delta;
@@ -233,7 +242,7 @@ Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_pro
   const LibBDD::Node *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
-  u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
+  const u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
 
   root = std::shared_ptr<ProfilerNode>(build_profiler_tree(bdd_root, bdd_profile.get(), max_count));
 
@@ -255,7 +264,7 @@ Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_pro
       assert(call.args.find("key") != call.args.end() && "Key not found");
       klee::ref<klee::Expr> flow_id = call.args.at("key").in;
 
-      flow_stats_t flow_stats = {
+      const flow_stats_t flow_stats = {
           .flow_id       = flow_id,
           .pkts          = node_map_stats.pkts,
           .flows         = node_map_stats.flows,
@@ -672,6 +681,16 @@ void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
   fwd_stats_t &fwd_stats                = node->forwarding_stats.value();
   const fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
 
+  if (original_fwd_stats.calculate_total_hr() != 0_hr) {
+    const hit_rate_t total_hr = original_fwd_stats.calculate_total_hr();
+    const double dhr          = new_fraction / total_hr;
+
+    fwd_stats = original_fwd_stats.scale(dhr);
+    assert(new_fraction == fwd_stats.calculate_total_hr());
+
+    return;
+  }
+
   if (old_fraction != 0_hr) {
     assert(old_fraction == fwd_stats.calculate_total_hr());
 
@@ -692,47 +711,33 @@ void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
         }
       }
     } else {
-      const double dhr = new_fraction / old_fraction;
-
-      fwd_stats.drop  = fwd_stats.drop * dhr;
-      fwd_stats.flood = fwd_stats.flood * dhr;
-      for (auto &[_, hr] : fwd_stats.ports) {
-        hr = hr * dhr;
-      }
+      const hit_rate_t total_fraction = fwd_stats.calculate_total_hr();
+      const double dhr                = new_fraction / total_fraction;
+      fwd_stats                       = original_fwd_stats.scale(dhr);
     }
 
     assert(new_fraction == fwd_stats.calculate_total_hr());
-  } else if (original_fwd_stats.calculate_total_hr() != 0_hr) {
-    const hit_rate_t total_hr = original_fwd_stats.calculate_total_hr();
+    return;
+  }
 
-    fwd_stats.drop  = new_fraction * (original_fwd_stats.drop / total_hr);
-    fwd_stats.flood = new_fraction * (original_fwd_stats.flood / total_hr);
-
-    for (auto &[port, hr] : original_fwd_stats.ports) {
-      fwd_stats.ports[port] = new_fraction * (hr / total_hr);
-    }
-
-    assert(new_fraction == fwd_stats.calculate_total_hr());
-  } else {
-    switch (fwd_stats.operation) {
-    case LibBDD::RouteOp::Drop: {
-      fwd_stats.drop = new_fraction;
-    } break;
-    case LibBDD::RouteOp::Broadcast: {
-      fwd_stats.flood = new_fraction;
-    } break;
-    case LibBDD::RouteOp::Forward: {
-      if (new_fraction == 0_hr && !original_fwd_stats.ports.empty()) {
-        for (auto &[port, hr] : original_fwd_stats.ports) {
-          fwd_stats.ports[port] = 0_hr;
-        }
-      } else {
-        // There is not enough information to make profiling forwarding decisions.
-        // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
-        panic("Not enough information to make profiling forwarding decisions");
+  switch (fwd_stats.operation) {
+  case LibBDD::RouteOp::Drop: {
+    fwd_stats.drop = new_fraction;
+  } break;
+  case LibBDD::RouteOp::Broadcast: {
+    fwd_stats.flood = new_fraction;
+  } break;
+  case LibBDD::RouteOp::Forward: {
+    if (new_fraction == 0_hr && !original_fwd_stats.ports.empty()) {
+      for (auto &[port, hr] : original_fwd_stats.ports) {
+        fwd_stats.ports[port] = 0_hr;
       }
-    } break;
+    } else {
+      // There is not enough information to make profiling forwarding decisions.
+      // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
+      panic("Not enough information to make profiling forwarding decisions");
     }
+  } break;
   }
 }
 

@@ -7,11 +7,11 @@ namespace LibSynapse {
 class DSPrefHHTable : public HeuristicCfg {
 public:
   DSPrefHHTable()
-      : HeuristicCfg("DSPrefCustom", {
-                                         BUILD_METRIC(DSPrefHHTable, get_bdd_progress, Objective::Max),
-                                         BUILD_METRIC(DSPrefHHTable, get_ds_score, Objective::Max),
-                                         BUILD_METRIC(DSPrefHHTable, get_tput_speculation, Objective::Max),
-                                     }) {}
+      : HeuristicCfg("DSPrefHHTable", {
+                                          BUILD_METRIC(DSPrefHHTable, get_bdd_progress, Objective::Max),
+                                          BUILD_METRIC(DSPrefHHTable, get_ds_score, Objective::Max),
+                                          BUILD_METRIC(DSPrefHHTable, get_tput_speculation, Objective::Max),
+                                      }) {}
 
   DSPrefHHTable &operator=(const DSPrefHHTable &other) {
     assert(other.name == name && "Mismatched names");
@@ -21,6 +21,14 @@ public:
 
   virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const override {
     return {
+        {
+            .name        = "BDD Progress",
+            .description = std::to_string(get_bdd_progress(ep)),
+        },
+        {
+            .name        = "DS Score",
+            .description = std::to_string(get_ds_score(ep)),
+        },
         build_meta_tput_estimate(ep),
         build_meta_tput_speculation(ep),
     };

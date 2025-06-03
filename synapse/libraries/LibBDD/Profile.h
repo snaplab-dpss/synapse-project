@@ -32,6 +32,14 @@ struct bdd_profile_t {
     std::unordered_map<u16, u64> ports;
     u64 drop;
     u64 flood;
+
+    u64 get_total_fwd() const {
+      u64 total = 0;
+      for (const auto &[_, count] : ports) {
+        total += count;
+      }
+      return total;
+    }
   };
 
   struct map_stats_t {

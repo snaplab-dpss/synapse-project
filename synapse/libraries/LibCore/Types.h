@@ -33,7 +33,7 @@ using Bps_t = u64;
 using fpm_t = u64;
 using fps_t = u64;
 
-constexpr const double EPSILON = 1e-6;
+constexpr const double EPSILON = 1e-8;
 
 constexpr const u64 TRILLION = 1000000000000LLU;
 constexpr const u64 BILLION  = 1000000000LLU;
@@ -104,8 +104,9 @@ struct hit_rate_t {
   }
 
   std::string to_string() const {
+    int precision = -log10(EPSILON);
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(6) << value;
+    oss << std::fixed << std::setprecision(precision) << value;
     return oss.str();
   }
 };

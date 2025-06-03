@@ -164,7 +164,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitRead(const kle
   std::cerr << LibCore::expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitRead");
+  panic("TODO: visitRead (%s)", LibCore::expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -1141,11 +1141,12 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder_t &coder = get_current_coder();
 
   const addr_t obj                            = node->get_obj();
+  const LibCore::symbol_t &guard_allow_symbol = node->get_guard_allow();
   klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
 
   const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
 
-  const var_t guard_allow_var = alloc_var("guard_allow", guard_allow_condition, {}, NO_OPTION);
+  const var_t guard_allow_var = alloc_var("guard_allow", guard_allow_symbol.expr, {}, NO_OPTION);
 
   coder.indent();
   coder << "bool " << guard_allow_var.name << " = ";

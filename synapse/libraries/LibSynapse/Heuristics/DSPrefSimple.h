@@ -4,16 +4,16 @@
 
 namespace LibSynapse {
 
-class DSPrefSimpleCfg : public HeuristicCfg {
+class DSPrefSimple : public HeuristicCfg {
 public:
-  DSPrefSimpleCfg()
+  DSPrefSimple()
       : HeuristicCfg("DSPrefSimple", {
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_bdd_progress, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_ds_score, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimpleCfg, get_tput_speculation, Objective::Max),
+                                         BUILD_METRIC(DSPrefSimple, get_bdd_progress, Objective::Max),
+                                         BUILD_METRIC(DSPrefSimple, get_ds_score, Objective::Max),
+                                         BUILD_METRIC(DSPrefSimple, get_tput_speculation, Objective::Max),
                                      }) {}
 
-  DSPrefSimpleCfg &operator=(const DSPrefSimpleCfg &other) {
+  DSPrefSimple &operator=(const DSPrefSimple &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;
@@ -21,6 +21,14 @@ public:
 
   virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const override {
     return {
+        {
+            .name        = "BDD Progress",
+            .description = std::to_string(get_bdd_progress(ep)),
+        },
+        {
+            .name        = "DS Score",
+            .description = std::to_string(get_ds_score(ep)),
+        },
         build_meta_tput_estimate(ep),
         build_meta_tput_speculation(ep),
     };
@@ -34,7 +42,7 @@ private:
 
   i64 get_ds_score(const EP *ep) const {
     const std::unordered_map<DSImpl, int> ds_scores{
-        {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 1},  {DSImpl::Tofino_VectorTable, 1},
+        {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 0},  {DSImpl::Tofino_VectorTable, 1},
         {DSImpl::Tofino_DchainTable, 1},    {DSImpl::Tofino_VectorRegister, 1},   {DSImpl::Tofino_FCFSCachedTable, 0},
         {DSImpl::Tofino_Meter, 0},          {DSImpl::Tofino_HeavyHitterTable, 0}, {DSImpl::Tofino_IntegerAllocator, 0},
         {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 0},  {DSImpl::Tofino_LPM, 1},

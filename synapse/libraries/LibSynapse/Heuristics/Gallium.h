@@ -4,14 +4,14 @@
 
 namespace LibSynapse {
 
-class GalliumCfg : public HeuristicCfg {
+class Gallium : public HeuristicCfg {
 public:
-  GalliumCfg()
+  Gallium()
       : HeuristicCfg("Gallium", {
-                                    BUILD_METRIC(GalliumCfg, get_bdd_progress, Objective::Max),
+                                    BUILD_METRIC(Gallium, get_bdd_progress, Objective::Max),
                                 }) {}
 
-  GalliumCfg &operator=(const GalliumCfg &other) {
+  Gallium &operator=(const Gallium &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     return *this;

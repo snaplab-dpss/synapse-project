@@ -7,7 +7,7 @@
 
 namespace LibSynapse {
 
-class MaxTputCfg : public HeuristicCfg {
+class MaxTput : public HeuristicCfg {
 private:
   struct decision_hasher_t {
     std::size_t operator()(const decision_t &decision) const {
@@ -28,14 +28,14 @@ private:
   std::unordered_map<decision_t, i64, decision_hasher_t> decisions_perf;
 
 public:
-  MaxTputCfg()
+  MaxTput()
       : HeuristicCfg("MaxTput", {
-                                    BUILD_METRIC(MaxTputCfg, get_bdd_progress, Objective::Max),
-                                    BUILD_METRIC(MaxTputCfg, get_tput_speculation, Objective::Max),
-                                    BUILD_METRIC(MaxTputCfg, get_pipeline_usage, Objective::Min),
+                                    BUILD_METRIC(MaxTput, get_bdd_progress, Objective::Max),
+                                    BUILD_METRIC(MaxTput, get_tput_speculation, Objective::Max),
+                                    BUILD_METRIC(MaxTput, get_pipeline_usage, Objective::Min),
                                 }) {}
 
-  MaxTputCfg &operator=(const MaxTputCfg &other) {
+  MaxTput &operator=(const MaxTput &other) {
     assert(other.name == name && "Mismatched names");
     assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
     decisions_perf = other.decisions_perf;

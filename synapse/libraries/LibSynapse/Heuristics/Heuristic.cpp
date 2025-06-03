@@ -1,6 +1,8 @@
 #include <LibSynapse/Heuristics/Heuristic.h>
 #include <LibCore/RandomEngine.h>
 
+#include <LibSynapse/Visualizers/EPVisualizer.h>
+
 namespace LibSynapse {
 
 Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, std::unique_ptr<EP> starting_ep, bool _stop_on_first_solution)
@@ -76,6 +78,7 @@ void Heuristic::add(std::vector<impl_t> &&new_implementations) {
     if (ep->get_next_node()) {
       unfinished_eps.insert(ep);
     } else {
+      EPViz::visualize(ep, false);
       ep->get_ctx().get_perf_oracle().assert_final_state();
       finished_eps.insert(ep);
     }
