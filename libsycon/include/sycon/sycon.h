@@ -37,7 +37,7 @@ void run_bench_cli();
     run_bench_cli();                                                                                                                                 \
   } else {                                                                                                                                           \
     LOG_DEBUG("Warning: running in debug mode");                                                                                                     \
-    WAIT_FOR_ENTER("Controller is running. Press enter to terminate.");                                                                              \
+    LOOP("Controller is running.");                                                                                                                  \
   }                                                                                                                                                  \
   nf_exit();
 

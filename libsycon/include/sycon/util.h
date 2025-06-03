@@ -12,11 +12,16 @@
 #define bswap32(v) __builtin_bswap32((v))
 #define bswap64(v) __builtin_bswap64((v))
 
-#define WAIT_FOR_ENTER(msg)                                                                                                                \
-  do {                                                                                                                                     \
-    LOG(msg);                                                                                                                              \
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                                    \
+#define WAIT_FOR_ENTER(msg)                                                                                                                          \
+  do {                                                                                                                                               \
+    LOG(msg);                                                                                                                                        \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');                                                                              \
   } while (0)
+
+#define LOOP(msg)                                                                                                                                    \
+  LOG(msg);                                                                                                                                          \
+  do {                                                                                                                                               \
+  } while (1)
 
 #define likely(x) __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)

@@ -107,15 +107,12 @@ class Task:
         self.end_time = time.perf_counter()
         self.elapsed_time = self.end_time - self.start_time
 
-    async def run(
+    async def _run(
         self,
         skip_if_already_produced: bool = True,
     ) -> bool:
-        self._start()
-
         if self.done:
             self.log("already executed, skipping", color=SKIP_COLOR)
-            self._end()
             return True
 
         if self.show_cmds and not self.silence:
@@ -124,19 +121,16 @@ class Task:
 
         if self.skip_execution:
             self.log("skipping execution", color=SKIP_COLOR)
-            self._end()
             return True
 
         for file in self.files_consumed:
             if not file.exists():
                 self.log(f"consumed file '{file}' does not exist, skipping execution", color=ERROR_COLOR)
-                self._end()
                 return True
 
         all_files_produced = len(self.files_produced) > 0 and all([file.exists() for file in self.files_produced])
         if all_files_produced and skip_if_already_produced:
             self.log("all product files already exist, skipping execution", color=SKIP_COLOR)
-            self._end()
             return True
 
         self.log("spawning", color=SPAWN_COLOR)
@@ -179,12 +173,26 @@ class Task:
             self.log(f"error while executing command: {e}", color=ERROR_COLOR)
             return False
 
+        return True
+
+    async def run(
+        self,
+        skip_if_already_produced: bool = True,
+    ) -> bool:
+        self._start()
+        success = await self._run(skip_if_already_produced)
         self._end()
 
-        delta = timedelta(seconds=self.elapsed_time)
-        self.log(f"done ({humanize.precisedelta(delta, minimum_unit='milliseconds')})", color=DONE_COLOR)
+        if success:
+            missing_product_files = [f for f in self.files_produced if not f.exists()]
+            if missing_product_files:
+                self.log(f"some produced files are missing: {', '.join(str(f) for f in missing_product_files)}", color=ERROR_COLOR)
+                success = False
+            else:
+                delta = timedelta(seconds=self.elapsed_time)
+                self.log(f"done ({humanize.precisedelta(delta, minimum_unit='milliseconds')})", color=DONE_COLOR)
 
-        return True
+        return success
 
     def dump_execution_plan(self, indent: int = 0):
         rich.print("  " * indent + f"{self}")
@@ -289,7 +297,7 @@ class Orchestrator:
                         if next_task.is_ready():
                             queue.put_nowait(next_task)
             except Exception as e:
-                print(f"[{ERROR_COLOR}]Error in worker: {e}[/{ERROR_COLOR}]")
+                rich.print(f"[{ERROR_COLOR}]Error in worker: {e}[/{ERROR_COLOR}]")
                 pass
             finally:
                 queue.task_done()

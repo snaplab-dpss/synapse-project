@@ -38,29 +38,29 @@ def main():
     testing_ports = [choice(CLIENT_PORTS)]
 
     for client_port in testing_ports:
-        # print(f"[*] Testing port {client_port}...")
+        print(f"[*] Testing port {client_port}...")
 
         kvs_hdr = build_kvs_hdr()
         flow = build_flow(dst_port=KVS_PORT)
         inverted_flow = flow.invert()
 
-        # print(f"[{client_port}] Sending GET request")
+        print(f"[{client_port}] Sending GET request")
 
-        # kvs_client_req = kvs_hdr.copy()
-        # kvs_client_req.op = KVS_OP_GET
-        # client_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_client_req)
+        kvs_client_req = kvs_hdr.copy()
+        kvs_client_req.op = KVS_OP_GET
+        client_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_client_req)
 
-        # kvs_server_req = kvs_client_req.copy()
-        # kvs_server_req.port = bswap16(client_port_to_nf_dev(client_port))
-        # kvs_server_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_server_req)
+        kvs_server_req = kvs_client_req.copy()
+        kvs_server_req.port = bswap16(client_port_to_nf_dev(client_port))
+        kvs_server_pkt = build_packet(src_mac=SRC_MAC, dst_mac=DST_MAC, flow=flow, kvs_hdr=kvs_server_req)
 
-        # ports.send(client_port, client_pkt)
-        # expect_packet_from_port(
-        #     ports,
-        #     SERVER_PORT,
-        #     kvs_server_pkt,
-        #     ignore_fields=[HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM],
-        # )
+        ports.send(client_port, client_pkt)
+        expect_packet_from_port(
+            ports,
+            SERVER_PORT,
+            kvs_server_pkt,
+            ignore_fields=[HeaderField.IP_CHECKSUM, HeaderField.UDP_CHECKSUM],
+        )
 
         print(f"[{client_port}] Sending PUT request to cache")
 

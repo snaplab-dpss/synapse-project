@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 
 import os
-import sys
-import time
-import humanize
-import asyncio
 import rich
 
 from asyncio.subprocess import PIPE, STDOUT
-from datetime import timedelta
 from dataclasses import dataclass
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 from itertools import product
 
 from orchestrator import Orchestrator, Task
@@ -63,7 +58,7 @@ NFs = {
 DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
 DEFAULT_TOTAL_PACKETS = [50_000_000]
 DEFAULT_PACKET_SIZE = [250]
-DEFAULT_TOTAL_FLOWS = [50_000]
+DEFAULT_TOTAL_FLOWS = [25_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
@@ -222,6 +217,7 @@ def compile_profiler(
         f"compile_profiler_{nf.name}",
         compile_profiler_cmd,
         env_vars={"NF": f"{SYNTHESIZED_DIR / profiler_name}.cpp"},
+        cwd=SYNTHESIZED_DIR,
         files_consumed=files_consumed,
         files_produced=files_produced,
         skip_execution=skip_execution,

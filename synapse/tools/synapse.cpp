@@ -178,6 +178,66 @@ struct args_t {
   }
 };
 
+void dump_final_report(const args_t &args, const LibSynapse::search_report_t &search_report) {
+  const std::filesystem::path out_report_fpath = args.out_dir / (args.name + ".txt");
+
+  std::ofstream out_report(out_report_fpath);
+  if (!out_report.is_open()) {
+    panic("Failed to open output report file: %s", out_report_fpath.string().c_str());
+  }
+
+  out_report << "===================== Synapse Report ====================\n";
+  out_report << "Args:\n";
+  out_report << "  Input BDD file:     " << args.input_bdd_file.filename().string() << "\n";
+  out_report << "  Name:               " << args.name << "\n";
+  out_report << "  Targets config:     " << args.targets_config_file.filename().string() << "\n";
+  out_report << "  Heuristic:          " << LibSynapse::heuristic_opt_to_str.at(args.heuristic_opt) << "\n";
+  out_report << "  Profile file:       " << args.profile_file.filename().string() << "\n";
+  out_report << "  Seed:               " << args.seed << "\n";
+  out_report << "  Targets:\n";
+  const LibSynapse::targets_config_t targets_config = parse_targets_config(args.targets_config_file);
+  const LibSynapse::Targets targets(targets_config);
+  for (const LibSynapse::TargetView &target : targets.get_view().elements) {
+    out_report << "    " << target.type << " (" << target.module_factories.size() << " modules)\n";
+  }
+  out_report << "  No reorder:         " << args.search_config.no_reorder << "\n";
+  out_report << "  Not greedy:         " << args.search_config.not_greedy << "\n";
+  out_report << "  Assume uniform fwd: " << args.assume_uniform_forwarding_distribution << "\n";
+  out_report << "\n";
+
+  out_report << "Winner:\n";
+  out_report << "  Score: " << search_report.score << "\n";
+  for (const LibSynapse::heuristic_metadata_t &meta : search_report.heuristic_meta) {
+    out_report << "  " << meta.name << ": " << meta.description << "\n";
+  }
+  out_report << "\n";
+
+  out_report << "Stateful Implementations:\n";
+  for (const auto &[ds_addr, ds_impl] : search_report.ep->get_ctx().get_ds_impls()) {
+    out_report << "  " << ds_addr << ": " << ds_impl << "\n";
+  }
+  out_report << "\n";
+
+  out_report << "Search Metadata:\n";
+  out_report << "  Elapsed time:       " << search_report.meta.elapsed_time << " seconds\n";
+  out_report << "  Steps:              " << LibCore::int2hr(search_report.meta.steps) << "\n";
+  out_report << "  Backtracks:         " << LibCore::int2hr(search_report.meta.backtracks) << "\n";
+  out_report << "  Search space size:  " << LibCore::int2hr(search_report.meta.ss_size) << "\n";
+  out_report << "  Unfinished EPs:     " << LibCore::int2hr(search_report.meta.unfinished_eps) << "\n";
+  out_report << "  Finished EPs:       " << LibCore::int2hr(search_report.meta.finished_eps) << "\n";
+  out_report << "  Avg BDD size:       " << LibCore::int2hr(search_report.meta.avg_bdd_size) << "\n";
+  out_report << "  Branching factor:   " << LibCore::int2hr(search_report.meta.branching_factor) << "\n";
+  out_report << "  Total SS size est.: " << LibCore::int2hr(search_report.meta.total_ss_size_estimation) << "\n";
+  out_report << "  Avg children per node:\n";
+  for (const auto &[node_id, avg_children] : search_report.meta.avg_children_per_node) {
+    out_report << "    Node " << node_id << ": " << avg_children << "\n";
+  }
+  out_report << "\n";
+
+  out_report << "========================================================\n";
+  out_report.close();
+}
+
 int main(int argc, char **argv) {
   CLI::App app{"Synapse"};
 
@@ -216,9 +276,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  args.print();
-
   if (args.dry_run) {
+    args.print();
     return 0;
   }
 
@@ -262,9 +321,16 @@ int main(int argc, char **argv) {
     LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
   }
 
+  if (!args.out_dir.empty()) {
+    dump_final_report(args, report);
+  }
+
   report.ep->get_ctx().debug();
 
   std::cout << "Params:\n";
+  std::cout << "  BDD file:         " << args.input_bdd_file.filename().string() << "\n";
+  std::cout << "  Profile file:     " << args.profile_file.filename().string() << "\n";
+  std::cout << "  Config file:      " << args.targets_config_file.filename().string() << "\n";
   std::cout << "  Heuristic:        " << report.heuristic << "\n";
   std::cout << "  Random seed:      " << args.seed << "\n";
   std::cout << "Search:\n";
