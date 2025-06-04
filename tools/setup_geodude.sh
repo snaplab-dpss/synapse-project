@@ -1,11 +1,13 @@
 #!/bin/bash
 
+set -euo pipefail
+
 sudo modprobe uio
 
 pushd /opt/dpdk-kmods/linux/igb_uio
     make clean
     make
-    sudo insmod igb_uio.ko
+    sudo insmod igb_uio.ko || true
 popd
 
 sudo dpdk-devbind.py -b igb_uio 0000:af:00.0 0000:af:00.1

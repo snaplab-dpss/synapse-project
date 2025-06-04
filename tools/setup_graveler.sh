@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 sudo modprobe uio
 
 pushd ~/dpdk-kmods/linux/igb_uio
