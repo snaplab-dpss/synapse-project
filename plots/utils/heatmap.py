@@ -90,35 +90,6 @@ class HeatmapData:
         return data
 
 
-def parse_heatmap_data_file(file: Path) -> HeatmapData:
-    data = HeatmapData()
-    with open(file, "r") as f:
-        for line in f.readlines():
-            if line.startswith("#"):
-                continue
-
-            parts = line.split(",")
-
-            keys = Key(
-                float(parts[1]),
-                int(parts[2]),
-            )
-
-            values = Values(
-                int(parts[3]),
-                int(parts[4]),
-                int(parts[5]),
-                int(parts[6]),
-                int(parts[7]),
-                int(parts[8]),
-                int(parts[9]),
-            )
-
-            data.add(keys, values)
-
-    return data
-
-
 def plot_bps(data: HeatmapData, file: Path):
     avg_data = data.get_avg_values()
     keys = avg_data.keys()
@@ -273,7 +244,7 @@ def plot_heatmap(data: HeatmapData, file: Path):
     plt.savefig(str(file))
 
 
-def plot_heatmap_v2(data: HeatmapData, file: Path):
+def plot_heatmap_v2(data: HeatmapData, file: Path, show_errors: bool = True):
     avg_data = data.get_avg_values()
     keys = [k for k in avg_data.keys() if k.s <= MAX_SKEW]
     all_s = sorted(set([key.s for key in keys]))
@@ -325,7 +296,7 @@ def plot_heatmap_v2(data: HeatmapData, file: Path):
         avg_label = int(pps / 1e6)
         err_label = int(err / 1e6)
 
-        label = f"{avg_label}±{err_label}\nMpps"
+        label = f"{avg_label}±{err_label}\nMpps" if show_errors else f"{avg_label}\nMpps"
 
         color = "black" if pps < TPUT_MPPS_MAX * 1e6 / 2 else "white"
 

@@ -238,9 +238,12 @@ search_report_t SearchEngine::search() {
   std::unique_ptr<const EP> winner                       = heuristic->pop_best_finished();
   const Score score                                      = heuristic->get_score(winner.get());
   const std::vector<heuristic_metadata_t> heuristic_meta = heuristic->get_cfg()->get_metadata(winner.get());
+  const pps_t tput_estimation_pps                        = winner->estimate_tput_pps();
+  const bytes_t avg_pkt_size                             = profiler.get_avg_pkt_bytes();
+  const bps_t tput_estimation_bps                        = LibCore::pps2bps(tput_estimation_pps, avg_pkt_size);
 
   search_report_t report{
-      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, heuristic_meta, meta,
+      heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, heuristic_meta, meta, tput_estimation_pps, tput_estimation_bps,
   };
 
   return report;

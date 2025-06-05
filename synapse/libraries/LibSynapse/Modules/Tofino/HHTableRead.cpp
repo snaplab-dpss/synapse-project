@@ -29,9 +29,9 @@ struct hh_table_data_t {
   }
 };
 
-void update_map_get_success_hit_rate(Context &ctx, const LibBDD::Node *map_get, klee::ref<klee::Expr> key, u32 capacity,
+void update_map_get_success_hit_rate(const EP *ep, Context &ctx, const LibBDD::Node *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
                                      const LibBDD::branch_direction_t &mgsc) {
-  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ctx, map_get, key, capacity);
+  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, map_get, map, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const LibBDD::Node *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
@@ -83,7 +83,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
   new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
-  update_map_get_success_hit_rate(new_ctx, map_get, table_data.key, table_data.capacity, mpsc);
+  update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -139,7 +139,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
   tofino_ctx->place(new_ep, node, map_objs->map, hh_table);
 
-  update_map_get_success_hit_rate(new_ep->get_mutable_ctx(), map_get, table_data.key, table_data.capacity, mpsc);
+  update_map_get_success_hit_rate(new_ep, new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

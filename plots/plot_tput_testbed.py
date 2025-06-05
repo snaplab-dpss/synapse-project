@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 from utils.plot_config import *
-
+from utils.parser import parse_heatmap_data_file
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"

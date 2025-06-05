@@ -58,3 +58,4 @@ perf.data*
 # Some synthesized files that are just too big
 synthesized/*.json
 synthesized/*.dot
+synthesized/*.txt

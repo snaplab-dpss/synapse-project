@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 
 from utils.heatmap import *
+from utils.parser import parse_heatmap_data_file
+
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"
@@ -28,6 +30,15 @@ NFS = [
         "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_bps_scatter.pdf",
         "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_guardedmaptable_heatmap.pdf",
+    },
+    {
+        "title": "MapTable",
+        "data_file": DATA_DIR / "tput_synapse_kvs_maptable.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_heatmap.pdf",
     },
 ]
 

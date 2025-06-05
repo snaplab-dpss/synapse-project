@@ -951,9 +951,14 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
   return true;
 }
 
-hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key, u32 capacity) {
+hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, const Context &ctx, const LibBDD::Node *node, addr_t map,
+                                                              klee::ref<klee::Expr> key, u32 capacity) {
+  constexpr const u32 THRESHOLD{16383};
+
   const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
   const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
+  const LibBDD::bdd_profile_t *bdd_profile             = ctx.get_profiler().get_bdd_profile();
+  const hit_rate_t node_hr                             = ctx.get_profiler().get_hr(node);
 
   u64 top_k = 0;
   for (size_t k = 0; k <= capacity && k < flow_stats.pkts_per_flow.size(); k++) {
@@ -961,7 +966,17 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const Context &ctx
   }
 
   assert(top_k <= flow_stats.pkts && "Invalid top_k");
-  const hit_rate_t hit_rate(top_k, flow_stats.pkts);
+  const hit_rate_t steady_state_hit_rate(top_k, flow_stats.pkts);
+
+  const pps_t rate = node_hr.value * ep->estimate_tput_pps();
+
+  const fpm_t churn_top_k_flows          = bdd_profile->churn_top_k_flows(map, capacity);
+  const double churn_top_k_flows_per_sec = churn_top_k_flows / 60.0;
+
+  const hit_rate_t hit_rate = steady_state_hit_rate - ((churn_top_k_flows_per_sec * THRESHOLD) / rate);
+  // const double time_to_insert_in_table = 1000;
+  // const hit_rate_t hit_rate = steady_state_hit_rate - (churn_top_k_flows_per_sec * THRESHOLD / static_cast<double>(rate)) -
+  //                             (churn_top_k_flows_per_sec * steady_state_hit_rate / static_cast<double>(capacity)) * time_to_insert_in_table;
 
   return hit_rate;
 }

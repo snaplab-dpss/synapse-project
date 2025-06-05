@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from utils.heatmap import *
+from utils.parser import parse_heatmap_data_file
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"

@@ -55,6 +55,7 @@ enum class DSImpl {
 };
 
 std::ostream &operator<<(std::ostream &os, DSImpl impl);
+std::string ds_impl_to_string(DSImpl impl);
 
 struct expiration_data_t {
   time_ns_t expiration_time;

@@ -42,6 +42,8 @@ struct search_report_t {
   Score score;
   std::vector<heuristic_metadata_t> heuristic_meta;
   search_meta_t meta;
+  pps_t tput_estimation_pps;
+  bps_t tput_estimation_bps;
 };
 
 struct search_config_t {

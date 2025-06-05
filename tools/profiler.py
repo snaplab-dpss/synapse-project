@@ -3,7 +3,6 @@
 import os
 import rich
 
-from asyncio.subprocess import PIPE, STDOUT
 from dataclasses import dataclass
 from argparse import ArgumentParser
 from pathlib import Path
@@ -13,15 +12,18 @@ from itertools import product
 from orchestrator import Orchestrator, Task
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
+PROJECT_DIR = (CURRENT_DIR / "..").resolve()
 
-BDD_DIR = (CURRENT_DIR / ".." / "bdds").resolve()
-SYNTHESIZED_DIR = (CURRENT_DIR / ".." / "synthesized").resolve()
-PCAP_DIR = (CURRENT_DIR / ".." / "pcaps").resolve()
-TOOLS_DIR = (CURRENT_DIR / ".." / "tools").resolve()
-PROFILE_DIR = (CURRENT_DIR / ".." / "profiles").resolve()
-SYNAPSE_DIR = (CURRENT_DIR / ".." / "synapse").resolve()
-SYNAPSE_BUILD_DIR = (SYNAPSE_DIR / "build").resolve()
-SYNAPSE_BIN_DIR = (SYNAPSE_BUILD_DIR / "bin").resolve()
+BDD_DIR = PROJECT_DIR / "bdds"
+SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
+PCAP_DIR = PROJECT_DIR / "pcaps"
+TOOLS_DIR = PROJECT_DIR / "tools"
+PROFILE_DIR = PROJECT_DIR / "profiles"
+SYNAPSE_DIR = PROJECT_DIR / "synapse"
+CONFIGS_DIR = PROJECT_DIR / "configs"
+
+SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
+SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 

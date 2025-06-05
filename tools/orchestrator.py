@@ -204,6 +204,7 @@ class Orchestrator:
     def __init__(self, tasks: list[Task] = []):
         self.initial_tasks: set[Task] = set()
         self.files_to_producers: dict[Path, Task] = {}
+        self.total_elapsed_time: timedelta = timedelta(0)
 
         pending_tasks = set(tasks)
         while pending_tasks:
@@ -290,7 +291,12 @@ class Orchestrator:
                     break
 
                 assert isinstance(task, Task), f"Expected Task instance, got {type(task)}"
+
+                start = time.perf_counter()
                 success = await task.run(skip_if_already_produced)
+                end = time.perf_counter()
+                delta = timedelta(seconds=end - start)
+                self.total_elapsed_time += delta
 
                 if success:
                     for next_task in task.next:
@@ -344,7 +350,9 @@ class Orchestrator:
         end = time.perf_counter()
 
         delta = timedelta(seconds=end - start)
-        rich.print(f"[{DONE_COLOR}]Execution time: {humanize.precisedelta(delta, minimum_unit='milliseconds')}[/{DONE_COLOR}]")
+
+        rich.print(f"[{DONE_COLOR}]Execution time:   {humanize.precisedelta(delta, minimum_unit='milliseconds')}[/{DONE_COLOR}]")
+        rich.print(f"[{DONE_COLOR}]Total tasks time: {humanize.precisedelta(self.total_elapsed_time, minimum_unit='milliseconds')}[/{DONE_COLOR}]")
 
     def dump_execution_plan(self):
         for task in self.initial_tasks:

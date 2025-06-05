@@ -545,6 +545,12 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   return os;
 }
 
+std::string ds_impl_to_string(DSImpl impl) {
+  std::ostringstream oss;
+  oss << impl;
+  return oss.str();
+}
+
 void Context::debug() const {
   std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~ Context ~~~~~~~~~~~~~~~~~~~~~~~~\n";
   std::cerr << "Implementations: [\n";
