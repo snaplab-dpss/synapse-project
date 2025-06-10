@@ -18,13 +18,17 @@ static inline uint64_t ensure_power_of_two(uint64_t n) {
 static inline bool is_power_of_two(uint64_t n) { return (n & (n - 1)) == 0; }
 
 static inline bool is_prime(uint64_t n) {
+  // By definition, 0 and 1 are not prime numbers.
   if (n <= 1)
     return false;
+
+  // 2 and 3 are prime numbers.
   if (n <= 3)
     return true;
 
-  // Slow but simple
-  for (uint64_t i = 2; i < n; i++) {
+  // Slow but simple.
+  uint64_t limit = (uint64_t)sqrt((double)n) + 1;
+  for (uint64_t i = 2; i < limit; i++) {
     if (n % i == 0) {
       return false;
     }

@@ -1,84 +1,176 @@
 #include "cht.h"
+
+#include "lib/util/compute.h"
+#include "lib/util/hash.h"
+
 #include <assert.h>
 #include <stdlib.h>
 
-static uint64_t loop(uint64_t k, uint64_t capacity) {
-  uint64_t g = k % capacity;
+#define HASH_SALT_0 0x9b78350f
+#define HASH_SALT_1 0x32ed75e2
+
+struct CHT {
+  int *table;
+  uint32_t height;
+  uint32_t key_size;
+  uint32_t backends;
+};
+
+static void clear(struct CHT *cht) {
+  if (cht == NULL || cht->table == NULL) {
+    return;
+  }
+  memset(cht->table, -1, sizeof(int) * cht->height);
+}
+
+int cht_allocate(uint32_t height, uint32_t key_size, struct CHT **cht_out) {
+  if (height == 0 || key_size == 0) {
+    return 0;
+  }
+
+  if (!is_prime(height)) {
+    // Ensure that the height is a prime number
+    return 0;
+  }
+
+  struct CHT *cht = (struct CHT *)malloc(sizeof(struct CHT));
+  if (cht == NULL) {
+    return 0;
+  }
+
+  cht->height   = height;
+  cht->key_size = key_size;
+  cht->backends = 0;
+
+  cht->table = (int *)malloc(sizeof(int) * height);
+  if (cht->table == NULL) {
+    free(cht);
+    return 0;
+  }
+
+  clear(cht);
+
+  *cht_out = cht;
+  return 1;
+}
+
+static uint32_t loop(uint32_t k, uint32_t height) {
+  uint32_t g = k % height;
   return g;
 }
 
-int cht_fill_cht(struct Vector *cht, uint32_t cht_height, uint32_t backend_capacity) {
+static int populate(struct CHT *cht) {
+  if (cht->backends == 0) {
+    return 0;
+  }
+
   // Generate the permutations of 0..(cht_height - 1) for each backend
-  int *permutations = (int *)malloc(sizeof(int) * (int)(cht_height * backend_capacity));
+  uint32_t *permutations = (uint32_t *)malloc(sizeof(uint32_t) * cht->height * cht->backends);
   if (permutations == 0) {
     return 0;
   }
 
-  for (uint32_t i = 0; i < backend_capacity; ++i) {
-    uint32_t offset_absolut = i * 31;
-    uint64_t offset         = loop(offset_absolut, cht_height);
-    uint64_t base_shift     = loop(i, cht_height - 1);
-    uint64_t shift          = base_shift + 1;
+  for (uint32_t i = 0; i < cht->backends; ++i) {
+    struct hash_input_t {
+      uint32_t backend_id;
+      uint32_t salt;
+    };
 
-    for (uint32_t j = 0; j < cht_height; ++j) {
-      uint64_t permut                  = loop(offset + shift * j, cht_height);
-      permutations[i * cht_height + j] = (int)permut;
+    struct hash_input_t hash_input_0 = {.backend_id = i, .salt = HASH_SALT_0};
+    struct hash_input_t hash_input_1 = {.backend_id = i, .salt = HASH_SALT_1};
+
+    uint32_t h0 = hash_obj(&hash_input_0, sizeof(hash_input_0));
+    uint32_t h1 = hash_obj(&hash_input_1, sizeof(hash_input_1));
+
+    uint32_t offset = loop(h0, cht->height);
+    uint32_t skip   = loop(h1, cht->height - 1) + 1;
+
+    for (uint32_t j = 0; j < cht->height; ++j) {
+      permutations[i * cht->height + j] = loop(offset + skip * j, cht->height);
     }
   }
 
-  int *next = (int *)malloc(sizeof(int) * (int)(cht_height));
+  int *next = (int *)calloc(sizeof(int), cht->height);
   if (next == 0) {
     free(permutations);
     return 0;
   }
 
-  for (uint32_t i = 0; i < cht_height; ++i)
-  //@ decreases cht_height - i;
-  {
-    next[i] = 0;
-  }
+  uint32_t n = 0;
+  while (1) {
+    for (uint32_t i = 0; i < cht->backends; ++i) {
+      uint32_t p;
+      do {
+        p = permutations[i * cht->height + next[i]];
+        next[i]++;
+      } while (cht->table[p] >= 0);
 
-  // Fill the priority lists for each hash in [0, cht_height)
-  for (uint32_t i = 0; i < cht_height; ++i) {
-    for (uint32_t j = 0; j < backend_capacity; ++j) {
-      uint32_t *value;
+      cht->table[p] = (int)i;
+      next[i]++;
+      n++;
 
-      uint32_t index = j * cht_height + i;
-      int bucket_id  = permutations[index];
-      int priority   = next[bucket_id];
-      next[bucket_id] += 1;
-
-      // Update the CHT
-      vector_borrow(cht, (int)(backend_capacity * ((uint32_t)bucket_id) + ((uint32_t)priority)), (void **)&value);
-      *value = j;
-      vector_return(cht, (int)(backend_capacity * ((uint32_t)bucket_id) + ((uint32_t)priority)), (void *)value);
+      if (n == cht->height) {
+        free(next);
+        free(permutations);
+        return 1;
+      }
     }
   }
 
-  // Free memory
   free(next);
   free(permutations);
+
   return 1;
 }
 
-int cht_find_preferred_available_backend(uint64_t hash, struct Vector *cht, struct DoubleChain *active_backends, uint32_t cht_height,
-                                         uint32_t backend_capacity, int *chosen_backend) {
-  uint64_t start = loop(hash, cht_height);
+int cht_add_backend(struct CHT *cht, int backend) {
+  if (cht->backends >= cht->height) {
+    return 0; // No space for more backends
+  }
 
-  for (uint32_t i = 0; i < backend_capacity; ++i) {
-    uint64_t candidate_idx = start * backend_capacity + i; // There was a bug, right here, untill I tried to prove this.
+  if (backend < 0 || backend >= cht->height) {
+    return 0; // Invalid backend index
+  }
 
-    uint32_t *candidate;
-    vector_borrow(cht, (int)candidate_idx, (void **)&candidate);
+  cht->backends++;
 
-    if (dchain_is_index_allocated(active_backends, (int)*candidate)) {
-      *chosen_backend = (int)*candidate;
-      vector_return(cht, (int)candidate_idx, candidate);
-      return 1;
+  clear(cht);
+
+  if (!populate(cht)) {
+    // Failed to fill the CHT, rollback.
+    // This should really not happen unless there is no more available memory.
+    cht->backends--;
+    return 0;
+  }
+
+  return 1;
+}
+
+int cht_remove_backend(struct CHT *cht, int backend) {
+  bool found = false;
+  for (uint32_t i = 0; i < cht->height; ++i) {
+    if (cht->table[i] == backend) {
+      cht->table[i] = -1; // Mark as removed
+      found         = true;
     }
+  }
 
-    vector_return(cht, (int)candidate_idx, candidate);
+  if (found) {
+    cht->backends--;
+    return 1;
   }
 
   return 0;
+}
+
+int cht_find_backend(struct CHT *cht, void *key, int *chosen_backend_out) {
+  uint32_t hash       = hash_obj(key, cht->key_size);
+  uint32_t i          = loop(hash, cht->height);
+  *chosen_backend_out = cht->table[i];
+
+  if (*chosen_backend_out == -1) {
+    return 0;
+  }
+
+  return 1;
 }

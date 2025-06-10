@@ -1,22 +1,20 @@
 #ifndef _STATE_H_INCLUDED_
 #define _STATE_H_INCLUDED_
 
-#include "loop.h"
+#include "lib/state/cht.h"
+#include "lib/state/vector.h"
+#include "lib/state/double-chain.h"
+#include "lib/state/map.h"
 
 struct State {
-  struct Map *flow_to_flow_id;
-  struct Vector *flow_heap;
-  struct DoubleChain *flow_chain;
-  struct Vector *flow_id_to_backend_id;
-  struct Map *ip_to_backend_id;
-  struct Vector *backend_ips;
+  struct CHT *flow_to_backend_id;
+  struct Map *backend_to_backend_id;
+  struct Dchain *backends_heap;
   struct Vector *backends;
-  struct DoubleChain *active_backends;
-  struct Vector *cht;
-  uint32_t backend_capacity;
-  uint32_t flow_capacity;
-  uint32_t cht_height;
+
+  uint32_t max_backends;
 };
 
-struct State *alloc_state(uint32_t backend_capacity, uint32_t flow_capacity, uint32_t cht_height);
+struct State *alloc_state(uint32_t max_backends, uint32_t cht_height);
+
 #endif //_STATE_H_INCLUDED_

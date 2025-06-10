@@ -11,11 +11,6 @@
 #include "../state/vector-control.h"
 
 struct TokenBucket {
-  struct Map *flows;
-  struct Vector *keys;
-  struct Vector *buckets;
-  struct DoubleChain *allocator;
-
   struct str_field_descr key_fields[PREALLOC_SIZE];
   struct nested_field_descr key_nests[PREALLOC_SIZE];
   int key_field_count;
