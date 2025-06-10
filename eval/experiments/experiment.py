@@ -17,7 +17,7 @@ from rich.progress import (
 from hosts.tofino_tg import TofinoTGController
 from hosts.pktgen import Pktgen
 
-MIN_THROUGHPUT = 1_000  # 1 Gbps
+MIN_THROUGHPUT = 100  # 0.1 Gbps
 MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%

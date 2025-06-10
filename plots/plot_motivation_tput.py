@@ -4,6 +4,7 @@ import os
 
 from pathlib import Path
 
+from utils.parser import parse_heatmap_data_file
 from utils.plot_config import *
 from utils.heatmap import *
 
@@ -23,16 +24,18 @@ TPUT_MPPS_MAX = 2500
 SYSTEM_NAME = "AnonTool"
 
 nf = "KVS"
-solutions = ["NetCache", "Switcharoo", SYSTEM_NAME]
 
-data_files = [
-    DATA_DIR / "tput_netcache.csv",
-    DATA_DIR / "tput_switcharoo.csv",
-    DATA_DIR / "tput_synapse_kvs_hhtable.csv",
-]
+solutions = {
+    "Simple": DATA_DIR / "tput_synapse_kvs_maptable.csv",
+    "NetCache": DATA_DIR / "tput_netcache.csv",
+    "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
+    # SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs_hhtable.csv",
+}
+
 
 chosen_workloads = [
-    Key(s=0.2, churn_fpm=0),
+    Key(s=0, churn_fpm=1_000),
+    Key(s=0.2, churn_fpm=10_000),
     Key(s=0.6, churn_fpm=100_000),
     Key(s=0.8, churn_fpm=1_000_000),
 ]
@@ -43,7 +46,7 @@ labels = [f"s={key.s}\n{whole_number_to_label(key.churn_fpm)}fpm" for key in cho
 def parse_data_files():
     data = {}
 
-    for data_file, solution in zip(data_files, solutions):
+    for solution, data_file in solutions.items():
         data[solution] = {
             "y": [],
             "yerr": [],
@@ -69,7 +72,7 @@ def parse_data_files():
 
 
 def plot(data: dict):
-    ind = np.arange(len(solutions))
+    ind = np.arange(len(chosen_workloads))
     bar_width = 0.15
 
     fig, ax = plt.subplots(constrained_layout=True)
@@ -91,12 +94,14 @@ def plot(data: dict):
     for (sol, throughput_per_workload), hatch, color in zip(data.items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
         y_Mpps = [y / 1e6 for y in throughput_per_workload["y"]]
         yerr_Mpps = [yerr / 1e6 for yerr in throughput_per_workload["yerr"]]
+        y_Mpps = [0 for x in y_Mpps]
+        yerr_Mpps = [0 for x in yerr_Mpps]
         ax.bar(pos, y_Mpps, bar_width, yerr=yerr_Mpps, label=sol, alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
         pos = pos + bar_width
 
     ax.set_xticks(ind + (3.0 / 2) * bar_width, labels)
 
-    ax.legend(bbox_to_anchor=(0.5, 1.4), loc="upper center", ncols=3)
+    ax.legend(bbox_to_anchor=(0.5, 1.3), loc="upper center", ncols=3)
     fig.set_size_inches(width / 2, height * 0.5)
 
     print("-> ", OUTPUT_FILE)

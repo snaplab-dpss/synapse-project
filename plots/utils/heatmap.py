@@ -35,6 +35,10 @@ class HeatmapData:
             self.raw_data[key] = []
         self.raw_data[key].append(values)
 
+    def get(self, key: Key) -> list[Values]:
+        assert key in self.raw_data, f"Key {key} not found in heatmap data."
+        return self.raw_data[key]
+
     def filter(self, keys: list[Key]):
         new_heatmap_data = HeatmapData()
         for key, values in self.raw_data.items():

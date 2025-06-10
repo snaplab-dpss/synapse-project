@@ -21,12 +21,15 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
+TOTAL_FLOWS = 50_000
+
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1]
-ITERATIONS = 3
+ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+ITERATIONS = 10
+
 # CHURN_FPM = [0]
-# ZIPF_PARAMS = [1]
-# ITERATIONS = 3
+# ZIPF_PARAMS = [1.0]
+# ITERATIONS = 1
 
 
 @dataclass
@@ -40,7 +43,6 @@ class SynapseNF:
     broadcast: Callable[[list[int]], list[int]]
     symmetric: Callable[[list[int]], list[int]]
     route: Callable[[list[int]], list[tuple[int, int]]]
-    nb_flows: int
 
 
 SYNAPSE_NFS = [
@@ -54,7 +56,6 @@ SYNAPSE_NFS = [
     #     broadcast=lambda ports: ports,
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
-    #     nb_flows=40_000,
     # ),
     # SynapseNF(
     #     name="fwd",
@@ -66,19 +67,28 @@ SYNAPSE_NFS = [
     #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
-    #     nb_flows=40_000,
+    # ),
+    # SynapseNF(
+    #     name="synapse-kvs-hhtable",
+    #     description="Synapse KVS HHTable",
+    #     data_out=Path("tput_synapse_kvs_hhtable.csv"),
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
+    #     controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
     # ),
     SynapseNF(
-        name="synapse-kvs-hhtable",
-        description="Synapse KVS HHTable",
-        data_out=Path("tput_synapse_kvs_hhtable.csv"),
+        name="synapse-kvs-maptable",
+        description="Synapse KVS MapTable",
+        data_out=Path("tput_synapse_kvs_maptable.csv"),
         kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
-        controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
+        tofino=Path("synthesized/synapse-kvs-maptable.p4"),
+        controller=Path("synthesized/synapse-kvs-maptable.cpp"),
         broadcast=lambda ports: ports,
         symmetric=lambda _: [],
         route=lambda _: [],
-        nb_flows=100_000,
     ),
     SynapseNF(
         name="synapse-kvs-guardedmaptable",
@@ -90,7 +100,6 @@ SYNAPSE_NFS = [
         broadcast=lambda ports: ports,
         symmetric=lambda _: [],
         route=lambda _: [],
-        nb_flows=100_000,
     ),
 ]
 
@@ -360,7 +369,7 @@ def main():
                 p4_src_in_repo=synapse_nf.tofino,
                 controller_src_in_repo=synapse_nf.controller,
                 dut_ports=dut_ports,
-                total_flows=synapse_nf.nb_flows,
+                total_flows=TOTAL_FLOWS,
                 zipf_params=ZIPF_PARAMS,
                 churn_values_fpm=CHURN_FPM,
                 experiment_log_file=log_file,

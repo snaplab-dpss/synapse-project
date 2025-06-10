@@ -110,7 +110,7 @@ class SynapseController:
 
     def wait_ready(self) -> None:
         # Wait for the controller to be ready.
-        # It prints the message "Press enter to terminate." when it's ready.
+        # It prints the message "Controller is running." when it's ready.
 
         if self.ready:
             # We already checked that it's ready

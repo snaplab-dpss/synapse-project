@@ -672,6 +672,7 @@ control Ingress(
 				trigger_forward = true;
 			} else {
 				build_cuckoo_hdr();
+				hdr.kvs.client_port = meta.dev[15:0];
 
 				if (hdr.kvs.op == KVS_OP_GET) {
 					bool success;

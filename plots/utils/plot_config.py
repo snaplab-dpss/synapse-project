@@ -103,6 +103,7 @@ style = {
     "axes.labelsize": doc.small,
     "figure.labelsize": doc.footnotesize,
     "legend.fontsize": doc.scriptsize,
+    "legend.frameon": False,
     "xtick.labelsize": doc.footnotesize,
     "ytick.labelsize": doc.footnotesize,
     "patch.linewidth": 0.2,
