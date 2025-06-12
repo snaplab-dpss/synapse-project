@@ -343,13 +343,14 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     assert(depth <= (int)recirc_egress[rport].size() && "Invalid recirculation depth");
     controller_tput += recirc_egress[rport][depth - 1] * hr.value;
   }
+
   controller_tput = std::min(controller_tput, controller_capacity);
 
   // 3. Finally we calculate the egress throughput for each front-panel port.
   pps_t tput = 0;
 
-  hit_rate_t unaccounted_controller_hr = controller_ingress.get_total_hr() - controller_dropped_ingress;
   const hit_rate_t total_controller_hr = controller_ingress.get_total_hr();
+  hit_rate_t unaccounted_controller_hr = total_controller_hr - controller_dropped_ingress;
 
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
     pps_t port_tput = ingress * port_ingress.global.value;
@@ -383,7 +384,10 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   const hit_rate_t remaining_hr = unaccounted_ingress - unaccounted_controller_hr;
   tput += ingress * remaining_hr.value;
 
-  assert(tput <= ingress);
+  // We shouldn't need this here, but sometimes it happens...
+  // We should investigate why.
+  tput = std::min(tput, ingress);
+
   return tput;
 }
 

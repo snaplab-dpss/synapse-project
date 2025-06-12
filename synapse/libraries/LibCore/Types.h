@@ -35,10 +35,10 @@ using fps_t = u64;
 
 constexpr const double EPSILON = 1e-8;
 
-constexpr const u64 TRILLION = 1000000000000LLU;
-constexpr const u64 BILLION  = 1000000000LLU;
-constexpr const u64 MILLION  = 1000000LLU;
 constexpr const u64 THOUSAND = 1000LLU;
+constexpr const u64 MILLION  = THOUSAND * THOUSAND;
+constexpr const u64 BILLION  = MILLION * THOUSAND;
+constexpr const u64 TRILLION = BILLION * THOUSAND;
 
 #define align_to_byte(B) ((B) % 8 == 0 ? (B) : (B) + 8 - (B) % 8)
 #define bswap16(x) __builtin_bswap16(x)

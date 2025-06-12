@@ -33,9 +33,11 @@ struct tput_estimation_t {
 pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> estimator) {
   pps_t egress = 0;
 
-  pps_t smallest_unstable = ingress;
-  pps_t prev_ingress      = ingress;
-  pps_t precision         = smallest_unstable;
+  pps_t prev_ingress = ingress;
+  pps_t precision    = STABLE_TPUT_PRECISION + 1;
+  pps_t delta        = ingress;
+  pps_t floor        = 0;
+  pps_t ceil         = ingress;
 
   // Algorithm for converging to a stable throughput (basically a binary search).
   // Hopefully this won't take many iterations...
@@ -44,18 +46,17 @@ pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> es
 
     prev_ingress = ingress;
     egress       = estimation.egress_estimation + estimation.unavoidable_drop;
-    double loss  = egress / static_cast<double>(ingress);
+    delta        = ingress - egress;
 
     assert(egress <= ingress);
-    assert(loss >= 0 && loss <= 1);
 
-    if (loss <= STABLE_TPUT_ACCEPTABLE_LOSS) {
-      smallest_unstable = ingress;
-      ingress           = (ingress + egress) / 2;
+    if (delta <= STABLE_TPUT_PRECISION) {
+      floor = ingress;
     } else {
-      ingress = (ingress + smallest_unstable) / 2;
+      ceil = ingress;
     }
 
+    ingress   = (floor + ceil) / 2;
     precision = ingress > prev_ingress ? ingress - prev_ingress : prev_ingress - ingress;
   }
 
@@ -302,6 +303,8 @@ TargetType EP::get_active_target() const {
 }
 
 void EP::process_leaf(const LibBDD::Node *next_node) {
+  clear_caches();
+
   TargetType current_target = get_active_target();
   EPLeaf active_leaf        = pop_active_leaf();
 
@@ -314,6 +317,8 @@ void EP::process_leaf(const LibBDD::Node *next_node) {
 }
 
 void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node) {
+  clear_caches();
+
   const TargetType current_target = get_active_target();
   const EPLeaf active_leaf        = pop_active_leaf();
 
@@ -356,6 +361,8 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
 }
 
 void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
+  clear_caches();
+
   for (EPLeaf &leaf : active_leaves) {
     assert(leaf.next && "Active leaf without a next node");
 
@@ -394,6 +401,8 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
 }
 
 void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_data_t &translation_data) {
+  clear_caches();
+
   auto translate_next_node = [&translation_data](LibBDD::node_id_t node_id) {
     auto found_it = translation_data.next_nodes_translator.find(node_id);
     return (found_it != translation_data.next_nodes_translator.end()) ? found_it->second : node_id;
@@ -814,13 +823,13 @@ pps_t EP::estimate_tput_pps() const {
 
   const pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
 
-  auto egress_estimation_from_ingress = [this](pps_t ingress) {
+  auto egress_estimation_from_ingress = [this](pps_t tput) {
     const PerfOracle &perf_oracle = ctx.get_perf_oracle();
 
     const tput_estimation_t estimation = {
-        .ingress           = ingress,
-        .egress_estimation = perf_oracle.estimate_tput(ingress),
-        .unavoidable_drop  = static_cast<pps_t>(ingress * perf_oracle.get_dropped_ingress().value),
+        .ingress           = tput,
+        .egress_estimation = perf_oracle.estimate_tput(tput),
+        .unavoidable_drop  = static_cast<pps_t>(tput * perf_oracle.get_dropped_ingress().value),
     };
 
     return estimation;
@@ -882,6 +891,12 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   }
 
   return egress;
+}
+
+void EP::clear_caches() const {
+  cached_speculations.reset();
+  cached_tput_estimation.reset();
+  cached_tput_speculation.reset();
 }
 
 } // namespace LibSynapse

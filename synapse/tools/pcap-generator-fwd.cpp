@@ -61,13 +61,7 @@ public:
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
 
-    device_t dev = flows_to_dev.at(flow_idx);
-    if (!lan_devs.contains(dev)) {
-      dev = connections.at(dev);
-      assert(lan_devs.contains(dev));
-    }
-
-    const device_t lan_dev = get_flow_lan_dev(flow_idx);
+    const device_t lan_dev = get_client_dev_from_flow(flow_idx);
     const device_t wan_dev = connections.at(lan_dev);
 
     LibCore::flow_t new_flow   = LibCore::random_flow();
@@ -93,6 +87,8 @@ public:
     return pkt;
   }
 
+  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) override { return build_packet(dev, flow_idx); }
+
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return connections.at(dev); }
 
 private:
@@ -111,14 +107,6 @@ private:
       lan_devs.insert(lan_dev);
     }
     return lan_devs;
-  }
-
-  device_t get_flow_lan_dev(flow_idx_t flow_idx) const {
-    const device_t dev = flows_to_dev.at(flow_idx);
-    if (lan_devs.contains(dev)) {
-      return dev;
-    }
-    return connections.at(dev);
   }
 };
 

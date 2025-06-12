@@ -111,6 +111,22 @@ public:
     return pkt;
   }
 
+  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) override {
+    pkt_t pkt          = template_packet;
+    const kv_key_t key = keys[flow_idx];
+
+    pkt.udp_hdr.dst_port = bswap16(KVSTORE_PORT);
+
+    kvs_hdr_t *kvs_hdr = reinterpret_cast<kvs_hdr_t *>(pkt.payload);
+    kvs_hdr->op        = KVS_OP_PUT;
+    std::memcpy(kvs_hdr->key, key.data(), sizeof(kvs_hdr->key));
+    std::memset(kvs_hdr->value, 0, sizeof(kvs_hdr->value));
+    kvs_hdr->status      = KVS_STATUS_MISS;
+    kvs_hdr->client_port = 0;
+
+    return pkt;
+  }
+
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return std::nullopt; }
 
 private:

@@ -154,6 +154,7 @@ class ProfileData(Struct):
     counters: dict[int, int]
     forwarding_stats: dict[int, NodeForwardingStats]
     meta: Meta
+    expirations_per_epoch: list[int]
     stats_per_map: dict[int, StatsPerMap]
 
     def get_total_dropped(self) -> int:
@@ -231,6 +232,9 @@ def build_report(profile: Profile) -> str:
     table.add_row(["Elapsed", elapsed_hr])
     table.add_row(["Warmup epochs", f"{total_warmup_epochs:,}"])
     table.add_row(["Epochs", f"{total_non_warmup_epochs:,}"])
+
+    expirations_per_epoch = [f"{n:,}" for n in profile.data.expirations_per_epoch]
+    table.add_row(["Expirations/epoch", "\n".join(expirations_per_epoch)])
 
     forwarding_str = []
     forwarding_str += [f"{profile.data.get_total_dropped() / total_packets:.2%} dropped"]

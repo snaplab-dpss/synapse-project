@@ -428,6 +428,10 @@ struct Stats {
   }
 };
 
+
+
+
+
 struct MapStats {
   struct epoch_t {
     Stats stats;
@@ -499,12 +503,40 @@ struct PortStats {
   }
 };
 
+struct expiration_tracker_t {
+  struct epoch_t {
+    time_ns_t start;
+    time_ns_t end;
+    bool warmup;
+    uint64_t expirations;
+  
+    epoch_t(time_ns_t _start, bool _warmup) : start(_start), end(-1), warmup(_warmup), expirations(0) {}
+  };
+
+  std::vector<epoch_t> epochs;
+
+  void update(uint64_t expirations, time_ns_t now) {
+    if (epochs.empty() || (epochs.back().warmup && !warmup) || now - epochs.back().start > PROFILING_EXPIRATION_TIME_NS) {
+      epochs.emplace_back(now, warmup);
+    }
+
+    if (!warmup) {
+      epochs.back().expirations += expirations;
+    }
+
+    if (!epochs.empty()) {
+      epochs.back().end = now;
+    }
+  }
+};
+
 PcapReader warmup_reader;
 PcapReader reader;
 std::unordered_map<int, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 time_ns_t elapsed_time;
+expiration_tracker_t expiration_tracker;
 
 void inc_path_counter(int i) {
   if (warmup) {
@@ -547,6 +579,11 @@ void generate_report() {
   report["meta"]["elapsed"] = elapsed_time;
   report["meta"]["pkts"]    = reader.get_total_packets();
   report["meta"]["bytes"]   = reader.get_total_bytes();
+  
+  report["expirations_per_epoch"] = json::array();
+  for (const auto &epoch : expiration_tracker.epochs) {
+    report["expirations_per_epoch"].push_back(epoch.expirations);
+  }
 
   report["stats_per_map"] = json::object();
 
@@ -835,6 +872,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
   // Node 4
   inc_path_counter(4);
   int freed_flows = profiler_expire_items_single_map(dchain, vector, map, now);
+expiration_tracker.update(freed_flows, now);
   // Node 5
   inc_path_counter(5);
   uint8_t* hdr;

@@ -24,15 +24,17 @@ public:
   RandomUniformEngine(u32 _rand_seed, i32 _min, i32 _max)
       : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max), generator(std::bind(random_dist, gen)) {}
 
-  RandomUniformEngine(u32 _rand_seed)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, INT32_MAX), generator(std::bind(random_dist, gen)) {}
+  RandomUniformEngine(u32 _rand_seed) : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, INT32_MAX), generator(std::bind(random_dist, gen)) {}
 
-  RandomUniformEngine(const RandomUniformEngine &)            = default;
-  RandomUniformEngine(RandomUniformEngine &&)                 = default;
-  RandomUniformEngine &operator=(const RandomUniformEngine &) = default;
+  RandomUniformEngine(const RandomUniformEngine &other)
+      : rand_seed(other.rand_seed), gen(other.gen), random_dist(other.random_dist), generator(std::bind(random_dist, gen)) {}
+
+  RandomUniformEngine(RandomUniformEngine &&other)
+      : rand_seed(other.rand_seed), gen(std::move(other.gen)), random_dist(std::move(other.random_dist)), generator(std::move(other.generator)) {}
 
   i32 generate() { return generator(); }
   u32 get_seed() const { return rand_seed; }
+  std::mt19937 get_engine() const { return gen; }
 };
 
 class SingletonRandomEngine : private RandomUniformEngine {
@@ -63,12 +65,13 @@ public:
   RandomRealEngine(unsigned _rand_seed, double _min, double _max)
       : rand_seed(_rand_seed), gen(rand_seed), random_dist(_min, _max), generator(std::bind(random_dist, gen)) {}
 
-  RandomRealEngine(unsigned _rand_seed)
-      : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX), generator(std::bind(random_dist, gen)) {}
+  RandomRealEngine(unsigned _rand_seed) : rand_seed(_rand_seed), gen(rand_seed), random_dist(0, UINT64_MAX), generator(std::bind(random_dist, gen)) {}
 
-  RandomRealEngine(const RandomRealEngine &)            = delete;
-  RandomRealEngine(RandomRealEngine &&)                 = delete;
-  RandomRealEngine &operator=(const RandomRealEngine &) = delete;
+  RandomRealEngine(const RandomRealEngine &other)
+      : rand_seed(other.rand_seed), gen(other.gen), random_dist(other.random_dist), generator(std::bind(random_dist, gen)) {}
+
+  RandomRealEngine(RandomRealEngine &&other)
+      : rand_seed(other.rand_seed), gen(std::move(other.gen)), random_dist(std::move(other.random_dist)), generator(std::move(other.generator)) {}
 
   double generate() { return generator(); }
   unsigned get_seed() const { return rand_seed; }
@@ -78,15 +81,16 @@ class RandomZipfEngine {
 private:
   RandomRealEngine rand;
   const double zipf_param;
-  const u64 range;
+  const u64 min;
+  const u64 max;
 
 public:
-  RandomZipfEngine(unsigned _random_seed, double _zipf_param, u64 _range)
-      : rand(_random_seed, 0, 1), zipf_param(fix_zipf_param(_zipf_param)), range(_range) {}
+  RandomZipfEngine(unsigned _random_seed, double _zipf_param, u64 _min, u64 _max)
+      : rand(_random_seed, 0, 1), zipf_param(fix_zipf_param(_zipf_param)), min(_min), max(_max) {}
 
-  RandomZipfEngine(const RandomZipfEngine &)            = default;
-  RandomZipfEngine(RandomZipfEngine &&)                 = default;
-  RandomZipfEngine &operator=(const RandomZipfEngine &) = default;
+  RandomZipfEngine(const RandomZipfEngine &other) : rand(other.rand), zipf_param(other.zipf_param), min(other.min), max(other.max) {}
+
+  RandomZipfEngine(RandomZipfEngine &&other) : rand(std::move(other.rand)), zipf_param(other.zipf_param), min(other.min), max(other.max) {}
 
   // From Castan [SIGCOMM'18]
   // Source:
@@ -96,7 +100,7 @@ public:
     assert(probability >= 0 && probability <= 1 && "Invalid probability");
 
     const double p         = probability;
-    const u64 N            = range + 1;
+    const u64 N            = max - min + 1;
     const double s         = zipf_param;
     const double tolerance = 0.01;
     double x               = (double)N / 2.0;
@@ -114,8 +118,8 @@ public:
       const double newx = std::max(1.0, x - a / b);
 
       if (std::abs(newx - x) <= tolerance) {
-        const u64 i = newx - 1;
-        assert(i < range && "Invalid index");
+        const u64 i = min + newx - 1;
+        assert(i >= min && i <= max && "Invalid index");
         return i;
       }
 

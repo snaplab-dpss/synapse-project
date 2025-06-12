@@ -111,6 +111,8 @@ public:
   void debug_speculations() const;
   void assert_integrity() const;
 
+  void clear_caches() const;
+
 private:
   void sort_leaves();
   spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor, LibBDD::node_ids_t future_nodes,

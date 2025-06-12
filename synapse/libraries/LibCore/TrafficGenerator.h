@@ -17,11 +17,11 @@ public:
   static constexpr const char *const DEFAULT_OUTPUT_DIR   = ".";
   static constexpr const char *const SMAC                 = "02:00:00:ca:fe:ee";
   static constexpr const char *const DMAC                 = "02:00:00:be:ee:ef";
-  static constexpr const u64 DEFAULT_TOTAL_PACKETS        = 10'000'000lu;
-  static constexpr const u64 DEFAULT_TOTAL_FLOWS          = 65'536lu;
+  static constexpr const u64 DEFAULT_TOTAL_PACKETS        = 10 * MILLION;
+  static constexpr const u64 DEFAULT_TOTAL_FLOWS          = 65'536;
   static constexpr const bytes_t DEFAULT_PACKET_SIZE      = 64;
-  static constexpr const bps_t DEFAULT_RATE               = 30'000'000'000lu; // 30 Gbps
-  static constexpr const fpm_t DEFAULT_TOTAL_CHURN_FPM    = 0lu;
+  static constexpr const bps_t DEFAULT_RATE               = 100 * MILLION; // 0.1 Gbps
+  static constexpr const fpm_t DEFAULT_TOTAL_CHURN_FPM    = 0;
   static constexpr const TrafficType DEFAULT_TRAFFIC_TYPE = TrafficType::Uniform;
   static constexpr const double DEFAULT_ZIPF_PARAM        = 1.26; // From Castan [SIGCOMM'18]
 
@@ -54,6 +54,25 @@ public:
     u8 payload[MAX_PKT_SIZE_BYTES - (sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t))];
   } __attribute__((packed));
 
+  struct random_engines_t {
+    u64 min_flow_idx;
+    u64 max_flow_idx;
+    u32 random_seed;
+    double zipf_param;
+    LibCore::RandomUniformEngine uniform;
+    LibCore::RandomZipfEngine zipf;
+
+    random_engines_t(u64 _min_flow_idx, u64 _max_flow_idx, u32 _random_seed, double _zipf_param)
+        : min_flow_idx(_min_flow_idx), max_flow_idx(_max_flow_idx), random_seed(_random_seed), zipf_param(_zipf_param),
+          uniform(random_seed, _min_flow_idx, _max_flow_idx - 1), zipf(random_seed, _zipf_param, _min_flow_idx, _max_flow_idx - 1) {}
+
+    random_engines_t(const random_engines_t &other) : random_engines_t(other.min_flow_idx, other.max_flow_idx, other.random_seed, other.zipf_param) {}
+
+    random_engines_t(random_engines_t &&other)
+        : min_flow_idx(other.min_flow_idx), max_flow_idx(other.max_flow_idx), random_seed(other.random_seed), zipf_param(other.zipf_param),
+          uniform(std::move(other.uniform)), zipf(std::move(other.zipf)) {}
+  };
+
 protected:
   const std::string nf;
   const config_t config;
@@ -63,16 +82,17 @@ protected:
   std::unordered_map<device_t, LibCore::PcapWriter> warmup_writers;
   std::unordered_map<device_t, LibCore::PcapWriter> writers;
 
-  LibCore::RandomUniformEngine uniform_rand;
-  LibCore::RandomZipfEngine zipf_rand;
+  LibCore::RandomUniformEngine churn_random_engine;
+  LibCore::RandomUniformEngine flows_random_engine_uniform;
+  LibCore::RandomZipfEngine flows_random_engine_zipf;
+  std::unordered_map<device_t, device_t> client_to_active_device;
 
   pcap_t *pd;
   pcap_dumper_t *pdumper;
 
   device_idx_t client_dev_it;
 
-  std::unordered_map<flow_idx_t, device_t> flows_to_dev;
-  std::unordered_map<flow_idx_t, u64> counters;
+  std::vector<u64> counters;
   u64 flows_swapped;
 
   time_ns_t current_time;
@@ -135,11 +155,18 @@ protected:
   void reset_client_dev() { client_dev_it = 0; }
   device_t get_current_client_dev() const { return config.client_devices.at(client_dev_it); }
 
+  device_t get_client_dev_from_flow(flow_idx_t flow_idx) const {
+    const u64 client_idx = config.client_devices.size() * (flow_idx / static_cast<double>(config.total_flows));
+    assert(client_idx < config.client_devices.size() && "Flow index out of bounds for client devices");
+    return config.client_devices.at(client_idx);
+  }
+
   void report() const;
 
   virtual bytes_t get_hdrs_len() const                                                      = 0;
   virtual void random_swap_flow(flow_idx_t flow_idx)                                        = 0;
   virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx)                             = 0;
+  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx)                      = 0;
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const = 0;
 
   void tick() {
@@ -148,15 +175,29 @@ protected:
     // We want in ns, not seconds, so we multiply by 1e9.
     // This cancels with the 1e9 on the bottom side of the operation.
     // So actually, result in ns = (pkt.size * 8) / gbps
-    // Also, don't forget to take the inter packet gap and CRC
-    // into consideration.
+    // Also, don't forget to take the inter packet gap and CRC into consideration.
     const bytes_t wire_bytes = PREAMBLE_SIZE_BYTES + config.packet_size_without_crc + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
-    const time_ns_t dt       = (wire_bytes * 8) / (config.rate / 1'000'000'000);
+    const time_ns_t dt       = (BILLION * wire_bytes * 8) / config.rate;
     current_time += dt;
     if (alarm_tick > 0 && alarm_tick < dt) {
       fprintf(stderr, "Churn is too high: alarm tick (%luns) is smaller than the time step (%luns)\n", alarm_tick, dt);
       exit(1);
     }
+  }
+
+private:
+  flow_idx_t get_next_flow_idx() {
+    flow_idx_t flow_idx = 0;
+    switch (config.traffic_type) {
+    case TrafficType::Uniform:
+      flow_idx = flows_random_engine_uniform.generate();
+      break;
+    case TrafficType::Zipf:
+      flow_idx = flows_random_engine_zipf.generate();
+      break;
+    }
+    assert(flow_idx < config.total_flows);
+    return flow_idx;
   }
 };
 

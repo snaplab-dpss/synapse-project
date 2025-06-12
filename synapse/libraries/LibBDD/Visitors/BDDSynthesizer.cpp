@@ -964,6 +964,8 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map(code
     coder << "now"; // FIXME: we should get this from the stack
     coder << ")";
     coder << ";\n";
+
+    coder << "expiration_tracker.update(" << nfreed.name << ", now);\n";
   } else {
     coder << "expire_items_single_map(";
     coder << stack_get(chain).name << ", ";

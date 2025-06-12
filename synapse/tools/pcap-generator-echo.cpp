@@ -56,6 +56,8 @@ public:
     return pkt;
   }
 
+  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) override { return build_packet(dev, flow_idx); }
+
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return std::nullopt; }
 };
 

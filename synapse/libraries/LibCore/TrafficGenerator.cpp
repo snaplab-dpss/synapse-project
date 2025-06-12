@@ -4,26 +4,20 @@ namespace LibCore {
 
 TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config, bool _assume_ip)
     : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()),
-      uniform_rand(_config.random_seed, 0, _config.total_flows - 1), zipf_rand(_config.random_seed, _config.zipf_param, _config.total_flows),
-      pd(NULL), pdumper(NULL), client_dev_it(0), counters(0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
+      churn_random_engine(config.random_seed, 0, config.total_flows - 1), flows_random_engine_uniform(config.random_seed, 0, config.total_flows - 1),
+      flows_random_engine_zipf(config.random_seed, config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL), client_dev_it(0),
+      counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
   for (device_t client_dev : config.client_devices) {
     warmup_writers.emplace(client_dev, PcapWriter(get_warmup_pcap_fname(nf, config, client_dev), assume_ip));
+    client_to_active_device.emplace(client_dev, client_dev);
   }
 
   for (device_t dev : config.devices) {
     writers.emplace(dev, PcapWriter(get_pcap_fname(nf, config, dev), assume_ip));
   }
 
-  for (flow_idx_t i = 0; i < config.total_flows; i++) {
-    device_t client_dev = get_current_client_dev();
-    advance_client_dev();
-
-    flows_to_dev[i] = client_dev;
-    counters[i]     = 0;
-  }
-
   if (config.churn > 0) {
-    alarm_tick = 60'000'000'000 / config.churn;
+    alarm_tick = 60 * BILLION / config.churn;
     next_alarm = alarm_tick;
   }
 
@@ -101,48 +95,39 @@ void TrafficGenerator::generate() {
     printf("Dev %u: %s\n", dev, writer.get_output_fname().c_str());
   }
 
-  // FIXME: this is too slow! we should be sending at all ports at the same time.
-  for (u64 i = 0; i < config.total_packets; i++) {
-    if (next_alarm >= 0 && current_time >= next_alarm) {
-      const device_t client_dev = get_current_client_dev();
-      advance_client_dev();
+  const device_t first_client_dev = get_current_client_dev();
 
-      const flow_idx_t chosen_swap_flow_idx = uniform_rand.generate();
+  for (u64 i = 0; i < config.total_packets; i++) {
+    const device_t client_dev = get_current_client_dev();
+    advance_client_dev();
+
+    if (client_dev == first_client_dev) {
+      tick();
+    }
+
+    if (next_alarm >= 0 && current_time >= next_alarm) {
+      const flow_idx_t chosen_swap_flow_idx = churn_random_engine.generate();
       random_swap_flow(chosen_swap_flow_idx);
+      counters[chosen_swap_flow_idx] = 0;
       flows_swapped++;
       next_alarm += alarm_tick;
-
-      flows_to_dev[chosen_swap_flow_idx] = client_dev;
-      counters[chosen_swap_flow_idx]     = 0;
     }
 
-    flow_idx_t flow_idx{0};
-    switch (config.traffic_type) {
-    case TrafficType::Uniform:
-      flow_idx = uniform_rand.generate();
-      break;
-    case TrafficType::Zipf:
-      flow_idx = zipf_rand.generate();
-      break;
-    }
-    assert(flow_idx < config.total_flows);
-
-    const device_t dev = flows_to_dev.at(flow_idx);
-    const pkt_t pkt    = build_packet(dev, flow_idx);
-    const u8 *data     = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
+    const flow_idx_t flow_idx = get_next_flow_idx();
+    const device_t dev        = client_to_active_device.at(client_dev);
+    const pkt_t pkt           = build_packet(dev, flow_idx);
+    const u8 *data            = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
 
     writers.at(dev).write(data, hdrs_len, pkt_len, current_time);
 
     if (std::optional<device_t> res_dev = get_response_dev(dev, flow_idx)) {
-      flows_to_dev[flow_idx] = *res_dev;
+      client_to_active_device[client_dev] = *res_dev;
     }
-
-    tick();
 
     counters[flow_idx]++;
     counter++;
-    const int current_progress = (counter * 100) / goal;
 
+    const int current_progress = (counter * 100) / goal;
     if (current_progress > progress) {
       progress = current_progress;
       printf("\r  Progress: %3d%%", progress);
@@ -156,21 +141,14 @@ void TrafficGenerator::generate() {
 }
 
 void TrafficGenerator::report() const {
-  std::vector<u64> counters_values;
-  counters_values.reserve(counters.size());
-  for (const auto &kv : counters) {
-    // Take warmup into account.
-    counters_values.push_back(kv.second);
-  }
-  std::sort(counters_values.begin(), counters_values.end(), std::greater{});
-
-  u64 total_flows = counters.size();
+  std::vector<u64> sorted_counters = counters;
+  std::sort(sorted_counters.begin(), sorted_counters.end(), std::greater{});
 
   u64 hh         = 0;
   u64 hh_packets = 0;
-  for (size_t i = 0; i < total_flows; i++) {
+  for (size_t i = 0; i < config.total_flows; i++) {
     hh++;
-    hh_packets += counters_values[i];
+    hh_packets += sorted_counters[i];
     if (hh_packets >= config.total_packets * 0.8) {
       break;
     }
@@ -178,12 +156,12 @@ void TrafficGenerator::report() const {
 
   printf("\n");
   printf("Base flows: %ld\n", config.total_flows);
-  printf("Total flows: %ld\n", total_flows);
+  printf("Total flows: %ld\n", config.total_flows);
   printf("Swapped flows: %ld\n", flows_swapped);
-  printf("HH: %ld flows (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / total_flows, 100.0 * hh_packets / config.total_packets);
+  printf("HH: %ld flows (%.2f%%) %.2f%% volume\n", hh, 100.0 * hh / config.total_flows, 100.0 * hh_packets / config.total_packets);
   printf("Top 10 flows:\n");
   for (size_t i = 0; i < config.total_flows; i++) {
-    printf("  flow %ld: %ld\n", i, counters_values[i]);
+    printf("  flow %ld: %ld\n", i, sorted_counters[i]);
 
     if (i >= 9) {
       break;
@@ -204,12 +182,12 @@ void TrafficGenerator::generate_warmup() {
   }
 
   for (auto &[target_dev, warmup_writer] : warmup_writers) {
-    for (const auto &[flow_idx, dev] : flows_to_dev) {
-      if (dev != target_dev) {
-        continue;
-      }
+    std::vector<flow_idx_t> flow_indices(config.total_flows);
+    std::iota(flow_indices.begin(), flow_indices.end(), config.total_flows - 1);
+    std::shuffle(flow_indices.begin(), flow_indices.end(), flows_random_engine_uniform.get_engine());
 
-      const pkt_t pkt = build_packet(dev, flow_idx);
+    for (flow_idx_t flow_idx : flow_indices) {
+      const pkt_t pkt = build_warmup_packet(target_dev, flow_idx);
       const u8 *data  = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
 
       warmup_writer.write(data, hdrs_len, pkt_len, current_time);
