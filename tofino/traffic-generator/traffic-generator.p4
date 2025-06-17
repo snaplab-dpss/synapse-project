@@ -13,6 +13,7 @@ typedef bit<32> time_t;
 const bit<16> ETHERTYPE_IPV4 = 0x800;
 const bit<8>  IP_PROTO_TCP   = 6;
 const bit<8>  IP_PROTO_UDP   = 17;
+const bit<16> KVS_PORT        = 670;
 
 header ethernet_t {
 	bit<48> dstAddr;
@@ -42,10 +43,20 @@ header udp_t {
 	bit<16> checksum;
 }
 
+header kvs_t {
+	bit<8>  op;
+	bit<32> key;
+	bit<32> val;
+	bit<8>  status;
+	bit<16> port;
+}
+
+
 struct headers_t {
 	ethernet_t ethernet;
 	ipv4_t ipv4;
 	udp_t udp;
+	kvs_t kvs;
 }
 
 struct metadata_t {}
@@ -106,6 +117,15 @@ parser IngressParser(
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
+		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+			(KVS_PORT, _): parse_kvs;
+			(_, KVS_PORT): parse_kvs;
+			default: accept;
+		}
+	}
+
+	state parse_kvs {
+		pkt.extract(hdr.kvs);
 		transition accept;
 	}
 }
@@ -234,6 +254,15 @@ parser EgressParser(
 
 	state parse_udp {
 		pkt.extract(hdr.udp);
+		transition select(hdr.udp.src_port, hdr.udp.dst_port) {
+			(KVS_PORT, _): parse_kvs;
+			(_, KVS_PORT): parse_kvs;
+			default: accept;
+		}
+	}
+
+	state parse_kvs {
+		pkt.extract(hdr.kvs);
 		transition accept;
 	}
 }
@@ -248,8 +277,124 @@ control Egress(
 ) {
 	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) out_counter;
 
+	bit<16> hash0_val = 0;
+	bit<16> hash1_val = 0;
+	bit<16> hash2_val = 0;
+	bit<16> hash3_val = 0;
+	bit<16> hash4_val = 0;
+
+	const bit<16> HASH_SALT_0 = 0xfbc31fc7;
+	const bit<16> HASH_SALT_1 = 0x2681580b;
+	const bit<16> HASH_SALT_2 = 0x27a87100;
+	const bit<16> HASH_SALT_3 = 0xbaf88a84;
+	const bit<16> HASH_SALT_4 = 0xdf31859f;
+
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash0_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash1_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash2_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash3_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash4_kvs;
+
+	action hash0_calc_kvs() { hash0_val = hash0_kvs.get({ hdr.kvs.key, HASH_SALT_0 }); }
+	action hash1_calc_kvs() { hash1_val = hash1_kvs.get({ hdr.kvs.key, HASH_SALT_1 }); }
+	action hash2_calc_kvs() { hash2_val = hash2_kvs.get({ hdr.kvs.key, HASH_SALT_2 }); }
+	action hash3_calc_kvs() { hash3_val = hash3_kvs.get({ hdr.kvs.key, HASH_SALT_3 }); }
+	action hash4_calc_kvs() { hash4_val = hash4_kvs.get({ hdr.kvs.key, HASH_SALT_4 }); }
+
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash0_non_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash1_non_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash2_non_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash3_non_kvs;
+	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash4_non_kvs;
+
+	action hash0_calc_non_kvs() { hash0_val = hash0_non_kvs.get({ hdr.ipv4.src_addr, hdr.ipv4.dst_addr, hdr.udp.src_port, hdr.udp.dst_port, HASH_SALT_0 }); }
+	action hash1_calc_non_kvs() { hash1_val = hash1_non_kvs.get({ hdr.ipv4.src_addr, hdr.ipv4.dst_addr, hdr.udp.src_port, hdr.udp.dst_port, HASH_SALT_1 }); }
+	action hash2_calc_non_kvs() { hash2_val = hash2_non_kvs.get({ hdr.ipv4.src_addr, hdr.ipv4.dst_addr, hdr.udp.src_port, hdr.udp.dst_port, HASH_SALT_2 }); }
+	action hash3_calc_non_kvs() { hash3_val = hash3_non_kvs.get({ hdr.ipv4.src_addr, hdr.ipv4.dst_addr, hdr.udp.src_port, hdr.udp.dst_port, HASH_SALT_3 }); }
+	action hash4_calc_non_kvs() { hash4_val = hash4_non_kvs.get({ hdr.ipv4.src_addr, hdr.ipv4.dst_addr, hdr.udp.src_port, hdr.udp.dst_port, HASH_SALT_4 }); }
+
+	Register<bit<1>, _>(65536) flows_cms_row_0;
+	Register<bit<1>, _>(65536) flows_cms_row_1;
+	Register<bit<1>, _>(65536) flows_cms_row_2;
+	Register<bit<1>, _>(65536) flows_cms_row_3;
+	Register<bit<1>, _>(65536) flows_cms_row_4;
+
+	RegisterAction<bit<1>, bit<16>, bit<1>>(flows_cms_row_0) flows_cms_row_0_update = {
+		void apply(inout bit<1> val, out bit<1> res) {
+			res = val;
+			val = 1;
+		}
+	};
+
+	RegisterAction<bit<1>, bit<16>, bit<1>>(flows_cms_row_1) flows_cms_row_1_update = {
+		void apply(inout bit<1> val, out bit<1> res) {
+			res = val;
+			val = 1;
+		}
+	};
+
+	RegisterAction<bit<1>, bit<16>, bit<1>>(flows_cms_row_2) flows_cms_row_2_update = {
+		void apply(inout bit<1> val, out bit<1> res) {
+			res = val;
+			val = 1;
+		}
+	};
+
+	RegisterAction<bit<1>, bit<16>, bit<1>>(flows_cms_row_3) flows_cms_row_3_update = {
+		void apply(inout bit<1> val, out bit<1> res) {
+			res = val;
+			val = 1;
+		}
+	};
+
+	RegisterAction<bit<1>, bit<16>, bit<1>>(flows_cms_row_4) flows_cms_row_4_update = {
+		void apply(inout bit<1> val, out bit<1> res) {
+			res = val;
+			val = 1;
+		}
+	};
+
+	bit<5> flows_cms_set = 0;
+	action flows_cms_row_0_set() { flows_cms_set[0:0] = flows_cms_row_0_update.execute(hash0_val); }
+	action flows_cms_row_1_set() { flows_cms_set[1:1] = flows_cms_row_1_update.execute(hash1_val); }
+	action flows_cms_row_2_set() { flows_cms_set[2:2] = flows_cms_row_2_update.execute(hash2_val); }
+	action flows_cms_row_3_set() { flows_cms_set[3:3] = flows_cms_row_3_update.execute(hash3_val); }
+	action flows_cms_row_4_set() { flows_cms_set[4:4] = flows_cms_row_4_update.execute(hash4_val); }
+
+	Register<bit<64>, _>(1) total_flows;
+
+	RegisterAction<bit<32>, bit<1>, void>(total_flows) total_flows_increment = {
+		void apply(inout bit<32> val) {
+			val = val + 1;
+		}
+	};
+
 	apply {
 		out_counter.count(eg_intr_md.egress_port);
+
+		if (hdr.kvs.isValid()) {
+			hash0_calc_kvs();
+			hash1_calc_kvs();
+			hash2_calc_kvs();
+			hash3_calc_kvs();
+			hash4_calc_kvs();
+		} else {
+			hash0_calc_non_kvs();
+			hash1_calc_non_kvs();
+			hash2_calc_non_kvs();
+			hash3_calc_non_kvs();
+			hash4_calc_non_kvs();
+		}
+
+		flows_cms_row_0_set();
+		flows_cms_row_1_set();
+		flows_cms_row_2_set();
+		flows_cms_row_3_set();
+		flows_cms_row_4_set();
+
+		if (flows_cms_set != 0b11111) {
+			total_flows_increment.execute(0);
+		}
 	}
 }
 

@@ -433,6 +433,69 @@ class Counters:
         )
 
 
+class FlowsCMS:
+    def __init__(self, bfrt_info):
+        self.flows_cms_row_0 = bfrt_info.table_get("Egress.flows_cms_row_0")
+        self.flows_cms_row_1 = bfrt_info.table_get("Egress.flows_cms_row_1")
+        self.flows_cms_row_2 = bfrt_info.table_get("Egress.flows_cms_row_2")
+        self.flows_cms_row_3 = bfrt_info.table_get("Egress.flows_cms_row_3")
+        self.flows_cms_row_4 = bfrt_info.table_get("Egress.flows_cms_row_4")
+        self.total_flows = bfrt_info.table_get("Egress.total_flows")
+
+    def get_total_flows(self):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        total_flows_resp = self.total_flows.entry_get(
+            target,
+            [self.total_flows.make_key([gc.KeyTuple("$REGISTER_INDEX", 0)])],
+            {"from_hw": True},
+        )
+
+        data = next(total_flows_resp)[0].to_dict()
+        total_flows = data["Egress.total_flows.f1"]
+
+        return total_flows
+
+    def clear(self):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+
+        self.total_flows.entry_mod(
+            target,
+            [self.total_flows.make_key([gc.KeyTuple("$REGISTER_INDEX", 0)])],
+            [self.total_flows.make_data([gc.DataTuple("Egress.total_flows.f1", 0)])],
+        )
+
+        self.flows_cms_row_0.entry_mod(
+            target,
+            [self.flows_cms_row_0.make_key([gc.KeyTuple("$REGISTER_INDEX", i)]) for i in range(65536)],
+            [self.flows_cms_row_0.make_data([gc.DataTuple("Egress.flows_cms_row_0.f1", 0)]) for _ in range(65536)],
+        )
+
+        self.flows_cms_row_1.entry_mod(
+            target,
+            [self.flows_cms_row_1.make_key([gc.KeyTuple("$REGISTER_INDEX", i)]) for i in range(65536)],
+            [self.flows_cms_row_1.make_data([gc.DataTuple("Egress.flows_cms_row_1.f1", 0)]) for _ in range(65536)],
+        )
+
+        self.flows_cms_row_2.entry_mod(
+            target,
+            [self.flows_cms_row_2.make_key([gc.KeyTuple("$REGISTER_INDEX", i)]) for i in range(65536)],
+            [self.flows_cms_row_2.make_data([gc.DataTuple("Egress.flows_cms_row_2.f1", 0)]) for _ in range(65536)],
+        )
+
+        self.flows_cms_row_3.entry_mod(
+            target,
+            [self.flows_cms_row_3.make_key([gc.KeyTuple("$REGISTER_INDEX", i)]) for i in range(65536)],
+            [self.flows_cms_row_3.make_data([gc.DataTuple("Egress.flows_cms_row_3.f1", 0)]) for _ in range(65536)],
+        )
+
+        self.flows_cms_row_4.entry_mod(
+            target,
+            [self.flows_cms_row_4.make_key([gc.KeyTuple("$REGISTER_INDEX", i)]) for i in range(65536)],
+            [self.flows_cms_row_4.make_data([gc.DataTuple("Egress.flows_cms_row_4.f1", 0)]) for _ in range(65536)],
+        )
+
+
 def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
     router = Router(bfrt_info)
     multicaster = Multicaster(bfrt_info)
@@ -488,8 +551,9 @@ def run_setup_get(ports: Ports):
         )
 
 
-def run_stats(bfrt_info, ports, op, from_ports_meta_table):
+def run_stats(bfrt_info, ports, op, from_ports_meta_table, flows_stats):
     counters = Counters(bfrt_info)
+    flows = FlowsCMS(bfrt_info)
 
     front_panel_to_dev = ports.get_dev_ports(FRONT_PANEL_PORTS)
     dev_ports = list(front_panel_to_dev.values())
@@ -512,11 +576,16 @@ def run_stats(bfrt_info, ports, op, from_ports_meta_table):
                 tx_pkts = port_stats["tx_pkts"]
                 tx_bytes = port_stats["tx_bytes"]
                 print("{}:{}:{}:{}:{}".format(ports.dev_to_front_panel[dev_port], rx_pkts, rx_bytes, tx_pkts, tx_bytes))
+        if flows_stats:
+            total_flows = flows.get_total_flows()
+            print("Total flows: {}".format(total_flows))
     elif op == "clear":
         if from_ports_meta_table:
             print("ERROR: Can't clear stats from the ports meta table")
             exit(1)
         counters.clear_stats(dev_ports)
+        if flows_stats:
+            flows.clear()
     else:
         print("ERROR: unknown operation {}".format(op))
         exit(1)
@@ -541,6 +610,7 @@ if __name__ == "__main__":
     stats_parser = subparsers.add_parser("stats")
     stats_parser.add_argument("op", choices=["get", "clear"])
     stats_parser.add_argument("--meta", action="store_true", default=False)
+    stats_parser.add_argument("--flows", action="store_true", default=False)
 
     args = parser.parse_args()
 
@@ -585,6 +655,6 @@ if __name__ == "__main__":
         elif args.setup_operation == "get":
             run_setup_get(ports)
     elif args.operation == "stats":
-        run_stats(bfrt_info, ports, args.op, args.meta)
+        run_stats(bfrt_info, ports, args.op, args.meta, args.flows)
     else:
         args.print_help()
