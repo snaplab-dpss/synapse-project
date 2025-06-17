@@ -10,7 +10,7 @@ namespace LibSynapse {
 namespace {
 
 constexpr const pps_t STABLE_TPUT_PRECISION        = 100;
-constexpr const double STABLE_TPUT_ACCEPTABLE_LOSS = 0.001;
+constexpr const double STABLE_TPUT_ACCEPTABLE_LOSS = 0.01;
 
 LibBDD::node_ids_t filter_away_nodes(const LibBDD::node_ids_t &nodes, const LibBDD::node_ids_t &filter) {
   LibBDD::node_ids_t result;

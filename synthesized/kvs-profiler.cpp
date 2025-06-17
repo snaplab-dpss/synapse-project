@@ -872,7 +872,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
   // Node 4
   inc_path_counter(4);
   int freed_flows = profiler_expire_items_single_map(dchain, vector, map, now);
-expiration_tracker.update(freed_flows, now);
+  expiration_tracker.update(freed_flows, now);
   // Node 5
   inc_path_counter(5);
   uint8_t* hdr;

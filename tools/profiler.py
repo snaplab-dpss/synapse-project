@@ -27,6 +27,14 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
+DEFAULT_RATE = [100_000_000]  # 0.1 Gbps
+DEFAULT_TOTAL_PACKETS = [10_000_000]
+DEFAULT_PACKET_SIZE = [64]
+DEFAULT_TOTAL_FLOWS = [25_000]
+DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
+DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+
 
 @dataclass
 class NF:
@@ -56,13 +64,6 @@ NFs = {
     "kvs": NF("kvs", "kvs.bdd", "pcap-generator-kvs", clients=DEVICES, fwd_rules=[]),
     "cl": NF("cl", "cl.bdd", "pcap-generator-cl", clients=clients_is_every_other_dev(), fwd_rules=connect_every_other_dev()),
 }
-
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
-DEFAULT_TOTAL_PACKETS = [10_000_000]
-DEFAULT_PACKET_SIZE = [250]
-DEFAULT_TOTAL_FLOWS = [25_000]
-DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
 
 def panic(msg: str):
@@ -121,6 +122,7 @@ def build_synapse(
 def generate_pcaps(
     nf: NF,
     total_packets: int,
+    rate: int,
     packet_size: int,
     total_flows: int,
     zipf_param: float,
@@ -150,6 +152,7 @@ def generate_pcaps(
     cmd += f" --out {PCAP_DIR}"
     cmd += f" --packets {total_packets}"
     cmd += f" --flows {total_flows}"
+    cmd += f" --rate {rate}"
     if nf != NFs["kvs"]:
         cmd += f" --packet-size {packet_size}"
     cmd += f" --churn {churn_fpm}"
@@ -354,6 +357,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--nfs", type=str, choices=NFs.keys(), nargs="+", required=True, help="Target NFs to profile")
     parser.add_argument("--total-packets", type=int, nargs="+", default=DEFAULT_TOTAL_PACKETS, help="Total packets to send")
+    parser.add_argument("--rate", type=int, nargs="+", default=DEFAULT_RATE, help="Rate (bps) to send packets at")
     parser.add_argument("--packet-size", type=int, nargs="+", default=DEFAULT_PACKET_SIZE, help="Packet size (bytes)")
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="Zipf parameters")
@@ -377,6 +381,7 @@ if __name__ == "__main__":
     combinations = list(
         product(
             args.total_packets,
+            args.rate,
             args.packet_size,
             args.total_flows,
             args.zipf_params,
@@ -421,11 +426,12 @@ if __name__ == "__main__":
             )
         )
 
-        for total_packets, packet_size, total_flows, zipf_param, churn in combinations:
+        for total_packets, rate, packet_size, total_flows, zipf_param, churn in combinations:
             orchestrator.add_task(
                 generate_pcaps(
                     nf,
                     total_packets,
+                    rate,
                     packet_size,
                     total_flows,
                     zipf_param,

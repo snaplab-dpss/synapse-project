@@ -965,6 +965,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map(code
     coder << ")";
     coder << ";\n";
 
+    coder.indent();
     coder << "expiration_tracker.update(" << nfreed.name << ", now);\n";
   } else {
     coder << "expire_items_single_map(";

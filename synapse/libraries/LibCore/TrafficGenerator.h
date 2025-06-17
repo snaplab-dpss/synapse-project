@@ -54,25 +54,6 @@ public:
     u8 payload[MAX_PKT_SIZE_BYTES - (sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t))];
   } __attribute__((packed));
 
-  struct random_engines_t {
-    u64 min_flow_idx;
-    u64 max_flow_idx;
-    u32 random_seed;
-    double zipf_param;
-    LibCore::RandomUniformEngine uniform;
-    LibCore::RandomZipfEngine zipf;
-
-    random_engines_t(u64 _min_flow_idx, u64 _max_flow_idx, u32 _random_seed, double _zipf_param)
-        : min_flow_idx(_min_flow_idx), max_flow_idx(_max_flow_idx), random_seed(_random_seed), zipf_param(_zipf_param),
-          uniform(random_seed, _min_flow_idx, _max_flow_idx - 1), zipf(random_seed, _zipf_param, _min_flow_idx, _max_flow_idx - 1) {}
-
-    random_engines_t(const random_engines_t &other) : random_engines_t(other.min_flow_idx, other.max_flow_idx, other.random_seed, other.zipf_param) {}
-
-    random_engines_t(random_engines_t &&other)
-        : min_flow_idx(other.min_flow_idx), max_flow_idx(other.max_flow_idx), random_seed(other.random_seed), zipf_param(other.zipf_param),
-          uniform(std::move(other.uniform)), zipf(std::move(other.zipf)) {}
-  };
-
 protected:
   const std::string nf;
   const config_t config;
@@ -180,8 +161,7 @@ protected:
     const time_ns_t dt       = (BILLION * wire_bytes * 8) / config.rate;
     current_time += dt;
     if (alarm_tick > 0 && alarm_tick < dt) {
-      fprintf(stderr, "Churn is too high: alarm tick (%luns) is smaller than the time step (%luns)\n", alarm_tick, dt);
-      exit(1);
+      panic("Churn is too high: alarm tick (%luns) is smaller than the time step (%luns)\n", alarm_tick, dt);
     }
   }
 

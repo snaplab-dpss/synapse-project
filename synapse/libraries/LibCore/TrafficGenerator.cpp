@@ -181,9 +181,10 @@ void TrafficGenerator::generate_warmup() {
     printf("Warmup dev %u: %s\n", dev, warmup_writer.get_output_fname().c_str());
   }
 
+  std::vector<flow_idx_t> flow_indices(config.total_flows);
+  std::iota(flow_indices.begin(), flow_indices.end(), 0);
+
   for (auto &[target_dev, warmup_writer] : warmup_writers) {
-    std::vector<flow_idx_t> flow_indices(config.total_flows);
-    std::iota(flow_indices.begin(), flow_indices.end(), config.total_flows - 1);
     std::shuffle(flow_indices.begin(), flow_indices.end(), flows_random_engine_uniform.get_engine());
 
     for (flow_idx_t flow_idx : flow_indices) {
@@ -193,8 +194,8 @@ void TrafficGenerator::generate_warmup() {
       warmup_writer.write(data, hdrs_len, pkt_len, current_time);
 
       counter++;
-      const int current_progress = (counter * 100) / goal;
 
+      const int current_progress = (counter * 100) / goal;
       if (current_progress > progress) {
         progress = current_progress;
         printf("\r  Progress: %3d%%", progress);

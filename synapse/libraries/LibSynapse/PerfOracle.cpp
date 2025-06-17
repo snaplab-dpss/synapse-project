@@ -436,11 +436,18 @@ std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress) {
 }
 
 void PerfOracle::debug() const {
+  std::vector<u16> ports;
+  for (const auto &[port, _] : ports_ingress) {
+    ports.push_back(port);
+  }
+  std::sort(ports.begin(), ports.end());
+
   std::cerr << "======================= PerfOracle =======================\n";
   std::cerr << "Ports:\n";
-  for (const auto &[port, ingress] : ports_ingress) {
+  for (u16 port : ports) {
+    const port_ingress_t &ingress = ports_ingress.at(port);
     std::cerr << "  ";
-    std::cerr << std::setw(2) << std::right << port;
+    std::cerr << std::setw(3) << std::right << port;
     std::cerr << ": ";
     std::cerr << ingress;
     std::cerr << "\n";
@@ -451,7 +458,7 @@ void PerfOracle::debug() const {
   std::cerr << "Recirculation ports:\n";
   for (const auto &[port, ingress] : recirc_ports_ingress) {
     std::cerr << "  ";
-    std::cerr << std::setw(2) << std::right << port;
+    std::cerr << std::setw(3) << std::right << port;
     std::cerr << ": ";
     std::cerr << ingress;
     std::cerr << "\n";
