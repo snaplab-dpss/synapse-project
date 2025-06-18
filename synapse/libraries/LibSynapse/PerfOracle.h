@@ -39,6 +39,7 @@ class PerfOracle {
 private:
   std::unordered_map<u16, bps_t> front_panel_ports_capacities;
   std::unordered_map<u16, bps_t> recirculation_ports_capacities;
+  pps_t max_switch_capacity;
   pps_t controller_capacity;
   bytes_t avg_pkt_size;
 

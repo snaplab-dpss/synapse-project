@@ -33,6 +33,7 @@ struct tna_properties_t {
   bits_t max_salu_size;
   u8 max_digests;
   time_ms_t min_expiration_time;
+  pps_t max_capacity;
 };
 
 struct tofino_port_t {
@@ -50,14 +51,6 @@ struct tna_config_t {
   tna_properties_t properties;
   std::vector<tofino_port_t> ports;
   std::vector<tofino_recirculation_port_t> recirculation_ports;
-
-  bps_t get_total_port_capacity() const {
-    bps_t total_capacity = 0;
-    for (const auto &port : ports) {
-      total_capacity += port.capacity;
-    }
-    return total_capacity;
-  }
 };
 
 class TNA {

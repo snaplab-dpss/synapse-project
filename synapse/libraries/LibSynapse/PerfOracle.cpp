@@ -140,8 +140,8 @@ hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
 PerfOracle::PerfOracle(const targets_config_t &targets_config, bytes_t _avg_pkt_size)
     : front_panel_ports_capacities(get_front_panel_port_capacities(targets_config.tofino_config)),
       recirculation_ports_capacities(get_recirculation_port_capacities(targets_config.tofino_config)),
-      controller_capacity(targets_config.controller_capacity), avg_pkt_size(_avg_pkt_size), unaccounted_ingress(1), dropped_ingress(0),
-      controller_dropped_ingress(0) {
+      max_switch_capacity(targets_config.tofino_config.properties.max_capacity), controller_capacity(targets_config.controller_capacity),
+      avg_pkt_size(_avg_pkt_size), unaccounted_ingress(1), dropped_ingress(0), controller_dropped_ingress(0) {
   for (auto [port, capacity] : front_panel_ports_capacities) {
     ports_ingress[port] = port_ingress_t();
   }
@@ -153,17 +153,18 @@ PerfOracle::PerfOracle(const targets_config_t &targets_config, bytes_t _avg_pkt_
 
 PerfOracle::PerfOracle(const PerfOracle &other)
     : front_panel_ports_capacities(other.front_panel_ports_capacities), recirculation_ports_capacities(other.recirculation_ports_capacities),
-      controller_capacity(other.controller_capacity), avg_pkt_size(other.avg_pkt_size), unaccounted_ingress(other.unaccounted_ingress),
-      ports_ingress(other.ports_ingress), recirc_ports_ingress(other.recirc_ports_ingress), controller_ingress(other.controller_ingress),
-      dropped_ingress(other.dropped_ingress), controller_dropped_ingress(other.controller_dropped_ingress) {}
+      max_switch_capacity(other.max_switch_capacity), controller_capacity(other.controller_capacity), avg_pkt_size(other.avg_pkt_size),
+      unaccounted_ingress(other.unaccounted_ingress), ports_ingress(other.ports_ingress), recirc_ports_ingress(other.recirc_ports_ingress),
+      controller_ingress(other.controller_ingress), dropped_ingress(other.dropped_ingress),
+      controller_dropped_ingress(other.controller_dropped_ingress) {}
 
 PerfOracle::PerfOracle(PerfOracle &&other)
     : front_panel_ports_capacities(std::move(other.front_panel_ports_capacities)),
-      recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)), controller_capacity(std::move(other.controller_capacity)),
-      avg_pkt_size(std::move(other.avg_pkt_size)), unaccounted_ingress(std::move(other.unaccounted_ingress)),
-      ports_ingress(std::move(other.ports_ingress)), recirc_ports_ingress(std::move(other.recirc_ports_ingress)),
-      controller_ingress(std::move(other.controller_ingress)), dropped_ingress(std::move(other.dropped_ingress)),
-      controller_dropped_ingress(std::move(other.controller_dropped_ingress)) {}
+      recirculation_ports_capacities(std::move(other.recirculation_ports_capacities)), max_switch_capacity(std::move(other.max_switch_capacity)),
+      controller_capacity(std::move(other.controller_capacity)), avg_pkt_size(std::move(other.avg_pkt_size)),
+      unaccounted_ingress(std::move(other.unaccounted_ingress)), ports_ingress(std::move(other.ports_ingress)),
+      recirc_ports_ingress(std::move(other.recirc_ports_ingress)), controller_ingress(std::move(other.controller_ingress)),
+      dropped_ingress(std::move(other.dropped_ingress)), controller_dropped_ingress(std::move(other.controller_dropped_ingress)) {}
 
 PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
   if (this == &other) {
@@ -172,6 +173,7 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
 
   front_panel_ports_capacities   = other.front_panel_ports_capacities;
   recirculation_ports_capacities = other.recirculation_ports_capacities;
+  max_switch_capacity            = other.max_switch_capacity;
   controller_capacity            = other.controller_capacity;
   avg_pkt_size                   = other.avg_pkt_size;
   unaccounted_ingress            = other.unaccounted_ingress;
@@ -371,6 +373,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     }
 
     const pps_t port_capacity = LibCore::bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
+
     tput += std::min(port_tput, port_capacity);
   }
 
@@ -387,6 +390,9 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // We shouldn't need this here, but sometimes it happens...
   // We should investigate why.
   tput = std::min(tput, ingress);
+
+  // And finally considering the switch bottleneck.
+  tput = std::min(tput, max_switch_capacity);
 
   return tput;
 }

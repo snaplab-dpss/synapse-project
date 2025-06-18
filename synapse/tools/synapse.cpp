@@ -55,6 +55,7 @@ LibSynapse::targets_config_t parse_targets_config(const std::filesystem::path &t
       .max_salu_size                              = *config["switch"]["arch"]["max_salu_size"].value<bits_t>(),
       .max_digests                                = *config["switch"]["arch"]["max_digests"].value<u8>(),
       .min_expiration_time                        = *config["switch"]["arch"]["min_expiration_time_ms"].value<time_ms_t>(),
+      .max_capacity                               = *config["switch"]["arch"]["max_capacity_pps"].value<bps_t>(),
   };
 
   std::unordered_set<u16> nf_devices;

@@ -973,18 +973,18 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   const fpm_t churn_top_k_flows          = bdd_profile->churn_top_k_flows(map, capacity);
   const double churn_top_k_flows_per_sec = churn_top_k_flows / 60.0;
 
-  const hit_rate_t hit_rate = steady_state_hit_rate - ((churn_top_k_flows_per_sec * THRESHOLD) / rate);
+  // const hit_rate_t hit_rate = steady_state_hit_rate - ((churn_top_k_flows_per_sec * THRESHOLD) / rate);
 
-  // const int n = 1;
-  // u64 top_n   = 0;
-  // for (size_t k = 0; k < n && k < flow_stats.pkts_per_flow.size(); k++) {
-  //     top_n += flow_stats.pkts_per_flow[k];
-  //   }
-  // const double time_to_insert_in_table   = 0.01;
-  // const hit_rate_t missing_flow_hit_rate = hit_rate_t(top_n, flow_stats.pkts * n);
+  const double time_to_insert_in_table_sec = 0.1;
+  const int n                              = 1;
+  u64 top_n                                = 0;
+  for (size_t k = 0; k < n && k < flow_stats.pkts_per_flow.size(); k++) {
+    top_n += flow_stats.pkts_per_flow[k];
+  }
+  const hit_rate_t missing_flow_hit_rate = hit_rate_t(top_n, flow_stats.pkts * n);
   // const hit_rate_t missing_flow_hit_rate = hit_rate_t(steady_state_hit_rate.value, capacity);
-  // const hit_rate_t hit_rate = steady_state_hit_rate - (churn_top_k_flows_per_sec * THRESHOLD / rate) -
-  //                             (churn_top_k_flows_per_sec * missing_flow_hit_rate) * time_to_insert_in_table;
+  const hit_rate_t hit_rate =
+      steady_state_hit_rate - churn_top_k_flows_per_sec * ((THRESHOLD / rate) + (missing_flow_hit_rate * time_to_insert_in_table_sec));
 
   return hit_rate;
 }
