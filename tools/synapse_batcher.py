@@ -20,9 +20,16 @@ TOOLS_DIR = PROJECT_DIR / "tools"
 PROFILE_DIR = PROJECT_DIR / "profiles"
 SYNAPSE_DIR = PROJECT_DIR / "synapse"
 CONFIGS_DIR = PROJECT_DIR / "configs"
+PLOTS_DIR = PROJECT_DIR / "plots"
 
 SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
 SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
+
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
+DEFAULT_TOTAL_FLOWS = [25_000]
+DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
+DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+DEFAULT_HEURISTICS = ["max-tput", "ds-pref-simple", "ds-pref-guardedmaptable", "ds-pref-hhtable", "ds-pref-cuckoo"]
 
 
 @dataclass
@@ -39,12 +46,6 @@ NFs = {
     "kvs": NF("kvs", "kvs.bdd"),
     "cl": NF("cl", "cl.bdd"),
 }
-
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
-DEFAULT_TOTAL_FLOWS = [25_000]
-DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-DEFAULT_HEURISTICS = ["max-tput", "ds-pref-simple", "ds-pref-guardedmaptable", "ds-pref-hhtable", "ds-pref-cuckoo"]
 
 
 def panic(msg: str):
@@ -156,6 +157,51 @@ def run_synapse(
     )
 
 
+def plot_estimated_tput_synapse_nfs(
+    nf: NF,
+    total_flows: int,
+    heuristic: str,
+    zipf_params: list[float],
+    churns_fpm: list[int],
+    skip_execution: bool = False,
+    show_cmds_output: bool = False,
+    show_cmds: bool = False,
+    silence: bool = False,
+) -> Task:
+
+    reports = [f"{get_pcap_base_name(nf, total_flows, s, c)}-h{heuristic}.json" for s, c in product(zipf_params, churns_fpm)]
+
+    files_consumed = [SYNTHESIZED_DIR / report for report in reports]
+
+    # Force replotting every time
+    files_produced = []
+
+    cmd = f"./plot_estimated_tput_synapse_nfs.py"
+    cmd += f" --nf {nf.name}"
+    cmd += f" --total-flows {total_flows}"
+    cmd += f" --heuristic {heuristic}"
+    cmd += f" --zipf-params {' '.join(map(str, zipf_params))}"
+    cmd += f" --churns {' '.join(map(str, churns_fpm))}"
+
+    name = nf.name
+    name += f"-f{total_flows}"
+    name += f"-h{heuristic}"
+    name += f"-s{'_'.join(map(str, zipf_params))}"
+    name += f"-c{'_'.join(map(str, churns_fpm))}"
+
+    return Task(
+        f"run_plot_estimated_tput_synapse_nfs_{name}",
+        cmd,
+        cwd=PLOTS_DIR,
+        files_consumed=files_consumed,
+        files_produced=files_produced,
+        skip_execution=skip_execution,
+        show_cmds_output=show_cmds_output,
+        show_cmds=show_cmds,
+        silence=silence,
+    )
+
+
 if __name__ == "__main__":
     description = "Synapse batcher script. This will run synapse against a batch of NFs and profiling reports."
     description += f" Profiler dir: {PROFILE_DIR}."
@@ -166,7 +212,7 @@ if __name__ == "__main__":
     parser.add_argument("--nfs", type=str, choices=NFs.keys(), nargs="+", required=True, help="Target NFs to profile")
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="Zipf parameters")
-    parser.add_argument("--churn", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
+    parser.add_argument("--churns", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
     parser.add_argument("--heuristics", type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
     parser.add_argument("--seed", type=int, default=0, help="Seed for random number generation")
 
@@ -185,8 +231,8 @@ if __name__ == "__main__":
     Path.mkdir(PROFILE_DIR, exist_ok=True)
     Path.mkdir(SYNTHESIZED_DIR, exist_ok=True)
 
-    combinations = list(product(args.total_flows, args.zipf_params, args.churn, args.heuristics))
-
+    nfs = [NFs[nf_name] for nf_name in args.nfs]
+    combinations = list(product(args.total_flows, args.zipf_params, args.churns, args.heuristics))
     total_combinations = len(args.nfs) * len(combinations)
 
     orchestrator = Orchestrator()
@@ -199,8 +245,7 @@ if __name__ == "__main__":
         )
     )
 
-    for nf_name in args.nfs:
-        nf = NFs[nf_name]
+    for nf in nfs:
         bdd = BDD_DIR / nf.bdd
         assert_bdd(bdd)
 
@@ -220,11 +265,26 @@ if __name__ == "__main__":
                 )
             )
 
+        for total_flows, heuristic in product(args.total_flows, args.heuristics):
+            orchestrator.add_task(
+                plot_estimated_tput_synapse_nfs(
+                    nf,
+                    total_flows,
+                    heuristic,
+                    args.zipf_params,
+                    args.churns,
+                    skip_execution=args.dry_run,
+                    show_cmds_output=args.show_cmds_output,
+                    show_cmds=args.show_cmds,
+                    silence=args.silence,
+                )
+            )
+
     rich.print("============ Requested Configuration ============")
     rich.print(f"Target NFs:    {args.nfs}")
     rich.print(f"Total flows:   {args.total_flows}")
     rich.print(f"Zipf params:   {args.zipf_params}")
-    rich.print(f"Churn rates:   {args.churn}")
+    rich.print(f"Churn rates:   {args.churns}")
     rich.print(f"Heuristics:    {args.heuristics}")
     rich.print(f"Seed:          {args.seed}")
     rich.print("-------------------------------------------------")

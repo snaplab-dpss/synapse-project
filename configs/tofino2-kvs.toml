@@ -8,7 +8,7 @@ model = "AS9516-32D"
 [[switch.front_panel_ports]]
 vport        = 0              # Storage server NF device
 pport        = 1              # Storage server front panel port
-capacity_bps = 80_000_000_000 # Storage server capacity (bottleneck)
+capacity_bps = 50_000_000_000 # Storage server capacity (bottleneck)
 
 [[switch.front_panel_ports]]
 vport        = -1              # Unused
@@ -194,23 +194,24 @@ name                                       = "Tofino 2"
 max_packet_bytes_in_condition              = 4
 pipes                                      = 4
 stages                                     = 20
-sram_per_stage                             = 10485760   # 128 * 1024 * 80 bits
-tcam_per_stage                             = 540672     # 44 * 512 * 24 bits
-map_ram_per_stage                          = 6291456    # 128 * 1024 * 48 bits
+sram_per_stage                             = 10485760      # 128 * 1024 * 80 bits
+tcam_per_stage                             = 540672        # 44 * 512 * 24 bits
+map_ram_per_stage                          = 6291456       # 128 * 1024 * 48 bits
 max_logical_tcam_tables_per_stage          = 8
 max_logical_sram_and_tcam_tables_per_stage = 16
-phv_size                                   = 5000       # bits
+phv_size                                   = 5000          # bits
 phv_8bit_containers                        = 80
 phv_16bit_containers                       = 120
 phv_32bit_containers                       = 80
-packet_buffer_size                         = 512000000  # 64e6 * 8 bits
-exact_match_xbar_per_stage                 = 1024       # 128 * 8 bits
+packet_buffer_size                         = 512000000     # 64e6 * 8 bits
+exact_match_xbar_per_stage                 = 1024          # 128 * 8 bits
 max_exact_match_keys                       = 16
-ternary_match_xbar                         = 528        # 66 * 8 bits
+ternary_match_xbar                         = 528           # 66 * 8 bits
 max_ternary_match_keys                     = 8
-max_salu_size                              = 32         # TNA2 actually can supposedly support 64b, but it keeps crashing the compiler...
+max_salu_size                              = 32            # TNA2 actually can supposedly support 64b, but it keeps crashing the compiler...
 max_digests                                = 8
 min_expiration_time_ms                     = 100
+max_capacity_pps                           = 2_250_000_000
 
 [controller]
 capacity_pps = 100_000 # pps

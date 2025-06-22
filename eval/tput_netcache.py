@@ -24,11 +24,14 @@ DATA_FILE_NAME = "tput_netcache.csv"
 STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 50_000
 KVS_GET_RATIO = 0.99
+
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1]
-ITERATIONS = 3
+ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
+ITERATIONS = 10
+
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
+# ITERATIONS = 1
 
 
 class NetCacheThroughput(Experiment):
