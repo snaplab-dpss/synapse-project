@@ -49,8 +49,8 @@ typedef bit<KEY_WIDTH> key_t;
 typedef bit<VAL_WIDTH> val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
-#define ENTRY_TIMEOUT 256 // 16ms
-#define MAX_LOOPS 10
+#define ENTRY_TIMEOUT 2048 // 134ms
+#define MAX_LOOPS 20
 #define CUCKOO_ENTRIES 8192
 #define CUCKOO_IDX_WIDTH 13
 #define BLOOM_ENTRIES CUCKOO_ENTRIES

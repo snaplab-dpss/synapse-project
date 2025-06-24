@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructures.h>
+#include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibCore/Types.h>
 
 #include <unordered_set>
@@ -36,8 +37,6 @@ struct PlacementRequest {
   const DS *ds;
   std::unordered_set<DS_ID> deps;
 };
-
-struct tna_properties_t;
 
 class SimplePlacer {
 private:

@@ -26,13 +26,15 @@ bits_t Table::get_match_xbar_consume() const {
   return consumed;
 }
 
-bits_t Table::get_consumed_sram() const {
+bits_t Table::get_consumed_sram() const { return get_consumed_sram_per_entry() * capacity; }
+
+bits_t Table::get_consumed_sram_per_entry() const {
   bits_t consumed = 0;
   for (bits_t key_size : keys)
     consumed += key_size;
   for (bits_t param_size : params)
     consumed += param_size;
-  return consumed * capacity;
+  return consumed;
 }
 
 void Table::debug() const {

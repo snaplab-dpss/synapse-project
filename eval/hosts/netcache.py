@@ -97,7 +97,7 @@ class NetCacheController:
         self,
         disable_cache: bool = False,
         sample_size: int = 50,
-        reset_timers_sec: int = 3,
+        reset_timers_sec: int = 1,
     ) -> None:
         self._compile()
 

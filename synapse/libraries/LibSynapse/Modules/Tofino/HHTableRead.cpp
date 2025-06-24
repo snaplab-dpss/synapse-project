@@ -76,6 +76,10 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
   }
 
   if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT)) {
+    if (node->get_id() == 142) {
+      LibBDD::BDDViz::visualize(ep->get_bdd(), false);
+      dbg_pause();
+    }
     return std::nullopt;
   }
 

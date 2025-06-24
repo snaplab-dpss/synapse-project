@@ -25,7 +25,7 @@ TOTAL_FLOWS = 50_000
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
-ITERATIONS = 3
+ITERATIONS = 5
 
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
@@ -79,17 +79,17 @@ SYNAPSE_NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="synapse-kvs-maptable",
-        description="Synapse KVS MapTable",
-        data_out=Path("tput_synapse_kvs_maptable.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-maptable.p4"),
-        controller=Path("synthesized/synapse-kvs-maptable.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="synapse-kvs-maptable",
+    #     description="Synapse KVS MapTable",
+    #     data_out=Path("tput_synapse_kvs_maptable.csv"),
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/synapse-kvs-maptable.p4"),
+    #     controller=Path("synthesized/synapse-kvs-maptable.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    # ),
     SynapseNF(
         name="synapse-kvs-guardedmaptable",
         description="Synapse KVS GuardedMapTable",

@@ -26,7 +26,7 @@ SYSTEM_NAME = "AnonTool"
 nf = "KVS"
 
 solutions = {
-    "Simple": DATA_DIR / "tput_synapse_kvs_maptable.csv",
+    "Simple": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
     "NetCache": DATA_DIR / "tput_netcache.csv",
     "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
     # SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs_hhtable.csv",
@@ -34,10 +34,7 @@ solutions = {
 
 
 chosen_workloads = [
-    Key(s=0, churn_fpm=1_000),
-    Key(s=0.2, churn_fpm=10_000),
-    Key(s=0.6, churn_fpm=100_000),
-    Key(s=0.8, churn_fpm=1_000_000),
+    Key(s=1.2, churn_fpm=0),
 ]
 
 labels = [f"s={key.s}\n{whole_number_to_label(key.churn_fpm)}fpm" for key in chosen_workloads]

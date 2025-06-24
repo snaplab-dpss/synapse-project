@@ -81,7 +81,6 @@ class ThroughputHosts:
         self,
         config: dict,
         use_accelerator: bool = True,
-        use_server: bool = False,
     ) -> None:
         self.dut_switch = Switch(
             hostname=config["hosts"]["switch_dut"],

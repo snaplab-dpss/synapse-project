@@ -296,7 +296,7 @@ PlacementStatus SimplePlacer::find_placements_reg(const Register *reg, const std
       continue;
     }
 
-    if (stage.available_logical_ids < requested_logical_ids) {
+    if (requested_logical_ids > stage.available_logical_ids) {
       continue;
     }
 
@@ -655,7 +655,7 @@ PlacementStatus SimplePlacer::can_place(const DS *ds, const std::unordered_set<D
       status = clean_snapshot.can_place(req.ds, req.deps);
 
       if (status != PlacementStatus::Success) {
-        std::cerr << "Placement failed: " << status << "\n";
+        std::cerr << "Placement failed 1: " << status << "\n";
         return status;
       }
 
@@ -672,7 +672,7 @@ PlacementStatus SimplePlacer::can_place(const DS *ds, const std::unordered_set<D
         status = snapshot.can_place(independent_ds, current_deps);
 
         if (status != PlacementStatus::Success) {
-          std::cerr << "Placement failed: " << status << "\n";
+          std::cerr << "Placement failed 2: " << status << "\n";
           return status;
         }
 

@@ -229,18 +229,24 @@ void TofinoContext::place(EP *ep, const LibBDD::Node *node, addr_t obj, DS *ds) 
 
   save_ds(obj, ds);
 
-  std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
   tna.place(ds, deps);
 }
 
 bool TofinoContext::check_placement(const EP *ep, const LibBDD::Node *node, const DS *ds) const {
-  std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
-
-  PlacementStatus status = tna.can_place(ds, deps);
+  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+  const PlacementStatus status         = tna.can_place(ds, deps);
 
   if (status != PlacementStatus::Success) {
     TargetType target = ep->get_active_target();
     std::cerr << "[" << target << "] Cannot place ds " << ds->id << " (" << status << ")\n";
+
+    debug();
+    std::cerr << "  DS: " << ds->id << "\n";
+    std::cerr << "  Deps:\n";
+    for (DS_ID dep : deps) {
+      std::cerr << "   * " << dep << "\n";
+    }
   }
 
   return status == PlacementStatus::Success;
@@ -248,9 +254,8 @@ bool TofinoContext::check_placement(const EP *ep, const LibBDD::Node *node, cons
 
 bool TofinoContext::check_many_placements(const EP *ep, const LibBDD::Node *node,
                                           const std::vector<std::unordered_set<DS *>> &data_structures) const {
-  std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
-
-  PlacementStatus status = tna.can_place_many(data_structures, deps);
+  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+  const PlacementStatus status         = tna.can_place_many(data_structures, deps);
 
   if (status != PlacementStatus::Success) {
     TargetType target = ep->get_active_target();

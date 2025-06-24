@@ -18,6 +18,8 @@ std::string to_string(TargetType target);
 struct targets_config_t {
   Tofino::tna_config_t tofino_config;
   bps_t controller_capacity;
+
+  targets_config_t(const std::filesystem::path &targets_config_file);
 };
 
 struct TargetView {
