@@ -121,7 +121,7 @@ std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Co
     return {};
   }
 
-  const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>()->get_single_ds<CountMinSketch>(cms_data.obj);
+  const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_single_ds<CountMinSketch>(cms_data.obj);
 
   return std::make_unique<CMSQuery>(node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
 }

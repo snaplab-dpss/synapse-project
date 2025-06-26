@@ -10,7 +10,7 @@ using Tofino::Table;
 namespace {
 DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
-  const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_ds(obj);
+  const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
   Tofino::DS *ds = *data_structures.begin();
   assert(ds->type == Tofino::DSType::FCFSCachedTable && "Not a FCFS cached table");
@@ -118,7 +118,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableReadFactory::create(const LibBDD
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_ds(obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds(obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 

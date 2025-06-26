@@ -213,7 +213,7 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
     return impls;
   }
 
-  const GuardedMapTable *guarded_map_table   = get_tofino_ctx(ep)->get_single_ds<GuardedMapTable>(obj);
+  const GuardedMapTable *guarded_map_table   = get_tofino_ctx(ep)->get_data_structures().get_single_ds<GuardedMapTable>(obj);
   const LibCore::symbol_t guard_check_symbol = create_guard_check_symbol(guarded_map_table->id, symbol_manager, node);
 
   const double guard_allow_probability              = get_guard_allow_probability(ep, branch_direction);
@@ -276,7 +276,7 @@ std::unique_ptr<Module> GuardedMapTableGuardCheckFactory::create(const LibBDD::B
   }
 
   const addr_t obj                         = LibCore::expr_addr_to_obj_addr(future_map_puts[0]->get_obj());
-  const GuardedMapTable *guarded_map_table = ctx.get_target_ctx<TofinoContext>()->get_single_ds<GuardedMapTable>(obj);
+  const GuardedMapTable *guarded_map_table = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_single_ds<GuardedMapTable>(obj);
 
   const LibCore::symbol_t mock_guard_symbol;
   klee::ref<klee::Expr> mock_condition;

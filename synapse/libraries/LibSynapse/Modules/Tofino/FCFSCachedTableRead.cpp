@@ -26,15 +26,15 @@ struct fcfs_cached_table_data_t {
 
 EP *concretize_cached_table_read(const EP *ep, const LibBDD::Node *node, const LibBDD::map_coalescing_objs_t &map_objs,
                                  const fcfs_cached_table_data_t &cached_table_data, u32 cache_capacity) {
-  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity);
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key,
+                                                                                        cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj,
-                                            cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
+  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj, cached_table_data.key,
+                                            cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   EP *new_ep = new EP(*ep);
@@ -72,8 +72,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return std::nullopt;
   }
 
-  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return std::nullopt;
   }
 
@@ -92,8 +91,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   return spec_impl;
 }
 
-std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                             LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -152,12 +150,11 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bd
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs->map);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 

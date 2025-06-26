@@ -3,10 +3,6 @@
 namespace LibSynapse {
 namespace Tofino {
 
-TNA::TNA(const tna_config_t &_tna_config) : tna_config(_tna_config), simple_placer(&tna_config.properties) {}
-
-TNA::TNA(const TNA &other) : tna_config(other.tna_config), simple_placer(other.simple_placer), parser(other.parser) {}
-
 bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
   bytes_t total_packet_bytes_read      = 0U;
   LibCore::symbolic_reads_t bytes_read = LibCore::get_unique_symbolic_reads(expr);
@@ -18,35 +14,7 @@ bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
   return total_packet_bytes_read <= tna_config.properties.max_packet_bytes_in_condition;
 }
 
-void TNA::place(const DS *ds, const std::unordered_set<DS_ID> &deps) { simple_placer.place(ds, deps); }
-
-PlacementStatus TNA::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const { return simple_placer.can_place(ds, deps); }
-
-PlacementStatus TNA::can_place_many(const std::vector<std::unordered_set<DS *>> &candidates, const std::unordered_set<DS_ID> &_deps) const {
-  SimplePlacer snapshot(simple_placer);
-  std::unordered_set<DS_ID> deps = _deps;
-
-  for (const std::unordered_set<DS *> &indep_ds : candidates) {
-    std::unordered_set<DS_ID> new_deps;
-
-    for (const DS *ds : indep_ds) {
-      PlacementStatus status = snapshot.can_place(ds, deps);
-
-      if (status != PlacementStatus::Success) {
-        return status;
-      }
-
-      snapshot.place(ds, deps);
-      new_deps.insert(ds->id);
-    }
-
-    deps.insert(new_deps.begin(), new_deps.end());
-  }
-
-  return PlacementStatus::Success;
-}
-
-void TNA::debug() const { simple_placer.debug(); }
+void TNA::debug() const { pipeline.debug(); }
 
 } // namespace Tofino
 } // namespace LibSynapse

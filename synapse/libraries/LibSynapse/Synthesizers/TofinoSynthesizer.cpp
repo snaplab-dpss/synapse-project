@@ -24,7 +24,7 @@ constexpr const char *const TEMPLATE_FILENAME                   = "tofino.templa
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx               = ep->get_ctx();
   const TofinoContext *tofino_ctx  = ctx.get_target_ctx<TofinoContext>();
-  const LibSynapse::Tofino::DS *ds = tofino_ctx->get_ds_from_id(id);
+  const LibSynapse::Tofino::DS *ds = tofino_ctx->get_data_structures().get_ds_from_id(id);
   assert(ds && "DS not found");
   return dynamic_cast<const T *>(ds);
 }

@@ -119,7 +119,7 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const LibBDD::BDD *bdd, cons
     return {};
   }
 
-  const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>()->get_single_ds<CountMinSketch>(cms_data.obj);
+  const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_single_ds<CountMinSketch>(cms_data.obj);
 
   return std::make_unique<CMSIncrement>(node, cms->id, cms_data.obj, cms_data.keys);
 }

@@ -124,7 +124,7 @@ std::unique_ptr<Module> GuardedMapTableLookupFactory::create(const LibBDD::BDD *
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(data.obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
 
   const GuardedMapTable *guarded_map_table = dynamic_cast<const GuardedMapTable *>(*ds.begin());
 

@@ -402,7 +402,7 @@ std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const LibBDD::BD
 
   LibCore::symbol_t mock_cache_write_failed;
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(map_objs->map);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 

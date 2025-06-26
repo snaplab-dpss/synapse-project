@@ -61,8 +61,7 @@ std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, con
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                           LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   std::vector<impl_t> impls;
 
   if (node->get_type() != LibBDD::NodeType::Call) {
@@ -124,7 +123,7 @@ std::unique_ptr<Module> DchainTableLookupFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(data.obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
 
   const DchainTable *dchain_table = dynamic_cast<const DchainTable *>(*ds.begin());
 

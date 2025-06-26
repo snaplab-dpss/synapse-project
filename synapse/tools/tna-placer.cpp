@@ -1,4 +1,4 @@
-#include <LibSynapse/Modules/Tofino/TNA/SimplerPlacer.h>
+#include <LibSynapse/Modules/Tofino/TNA/SimplePlacer.h>
 #include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructures.h>
 #include <LibSynapse/Target.h>
@@ -10,23 +10,10 @@
 
 #include "z3++.h"
 
-using LibSynapse::targets_config_t;
-using LibSynapse::Tofino::DS_ID;
-using LibSynapse::Tofino::Table;
-using LibSynapse::Tofino::tna_properties_t;
+using namespace LibSynapse;
+using namespace LibSynapse::Tofino;
 
-int main(int argc, char **argv) {
-  CLI::App app{"simple-placer-solver"};
-
-  std::filesystem::path targets_config_file;
-
-  app.add_option("--config", targets_config_file, "Configuration file.")->required();
-
-  CLI11_PARSE(app, argc, argv);
-
-  const targets_config_t targets_config(targets_config_file);
-  const tna_properties_t &tna_properties = targets_config.tofino_config.properties;
-
+void solver_placer(const tna_properties_t &tna_properties) {
   const Table t0("t0", 65536, {32, 32, 16, 16}, {32});
   const Table t1("t1", 65536, {32, 32, 16, 16}, {32});
   const Table t2("t2", 65536, {32, 32, 16, 16}, {32});
@@ -36,6 +23,7 @@ int main(int argc, char **argv) {
       t1,
       t2,
   };
+
   const std::vector<std::pair<DS_ID, DS_ID>> dependencies{
       {t0.id, t1.id},
       {t0.id, t2.id},
@@ -113,10 +101,10 @@ int main(int argc, char **argv) {
       l_s_t_aux.insert({{s, table.id}, l_aux});
 
       solver.add(f_aux >= 0);
-      solver.add(f_aux <= 1);
+      solver.add(f_aux <= p_s_t.at({s, table.id}));
 
       solver.add(l_aux >= 0);
-      solver.add(l_aux <= 1);
+      solver.add(l_aux <= p_s_t.at({s, table.id}));
     }
   }
 
@@ -124,14 +112,14 @@ int main(int argc, char **argv) {
   // Assignment constraints
   // ***************************
 
-  // Allocating at least every entry of every table.
+  // Allocating all entries for each table.
   for (const Table &table : tables) {
     z3::expr e_t = ctx.int_val(0);
     for (int s = 0; s < S; s++) {
       e_t = e_t + e_s_t.at({s, table.id});
     }
     z3::expr capacity = ctx.int_val(table.capacity);
-    solver.add(e_t >= capacity);
+    solver.add(e_t == capacity);
   }
 
   // Allocating entries for table means to place it.
@@ -245,10 +233,10 @@ int main(int argc, char **argv) {
 
   if (result == z3::unsat) {
     std::cout << "UNSAT\n";
-    return 0;
+    return;
   } else if (result == z3::unknown) {
     std::cout << "UNKNOWN\n";
-    return 0;
+    return;
   }
 
   const z3::model model = solver.get_model();
@@ -267,13 +255,47 @@ int main(int argc, char **argv) {
     std::cout << "  First stage: " << model.eval(f_t.at(table.id)) << "\n";
     std::cout << "  Last stage:  " << model.eval(l_t.at(table.id)) << "\n";
     for (int s = 0; s < S; s++) {
-      std::cout << "  Stage " << s << ":\n";
-      std::cout << "    Placed: " << model.eval(p_s_t.at({s, table.id})) << "\n";
-      std::cout << "    Entries: " << model.eval(e_s_t.at({s, table.id})) << "\n";
-      std::cout << "    f_aux: " << model.eval(f_s_t_aux.at({s, table.id})) << "\n";
-      std::cout << "    l_aux: " << model.eval(l_s_t_aux.at({s, table.id})) << "\n";
+      const z3::expr entries = model.eval(e_s_t.at({s, table.id}));
+      const z3::expr placed  = model.eval(p_s_t.at({s, table.id}));
+      const z3::expr f_aux   = model.eval(f_s_t_aux.at({s, table.id}));
+      const z3::expr l_aux   = model.eval(l_s_t_aux.at({s, table.id}));
+
+      std::cout << "  Stage " << s << ": " << entries << " (placed=" << placed << ", f_aux=" << f_aux << ", l_aux=" << l_aux << ")\n";
     }
+
+    // Calculate the sum of all entries
+    z3::expr entries_sum = ctx.int_val(0);
+    for (int s = 0; s < S; s++) {
+      entries_sum = entries_sum + e_s_t.at({s, table.id});
+    }
+    std::cout << "  Entries: " << model.eval(entries_sum) << " / " << table.capacity << "\n";
   }
+}
+
+int main(int argc, char **argv) {
+  CLI::App app{"simple-placer-solver"};
+
+  std::filesystem::path targets_config_file;
+
+  app.add_option("--config", targets_config_file, "Configuration file.")->required();
+
+  CLI11_PARSE(app, argc, argv);
+
+  const targets_config_t targets_config(targets_config_file);
+  const tna_properties_t &tna_properties = targets_config.tofino_config.properties;
+
+  // solver_placer(tna_properties);
+
+  HHTable *hhtable = new HHTable(tna_properties, "hhtable", 0, 65536, {32}, 1024, 4, 0);
+
+  DataStructures data_structures;
+  data_structures.save(0, hhtable);
+
+  Pipeline pipeline(tna_properties, data_structures);
+
+  pipeline.place(hhtable, {});
+
+  pipeline.debug();
 
   return 0;
 }

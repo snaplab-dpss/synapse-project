@@ -41,8 +41,7 @@ tb_data_t get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, con
   return data;
 }
 
-Meter *build_meter(const EP *ep, const LibBDD::Node *node, DS_ID id, const LibBDD::tb_config_t &cfg,
-                   const std::vector<klee::ref<klee::Expr>> &keys) {
+Meter *build_meter(const EP *ep, const LibBDD::Node *node, DS_ID id, const LibBDD::tb_config_t &cfg, const std::vector<klee::ref<klee::Expr>> &keys) {
   std::vector<bits_t> keys_size;
   for (klee::ref<klee::Expr> key : keys) {
     keys_size.push_back(key->getWidth());
@@ -184,7 +183,7 @@ std::unique_ptr<Module> MeterUpdateFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(data.obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Meter *meter = dynamic_cast<const Meter *>(*ds.begin());
 

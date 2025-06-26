@@ -148,7 +148,7 @@ std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const LibBDD::BDD *b
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(vector_register_data.obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(vector_register_data.obj);
   assert(ds.size() == 1);
   assert((*ds.begin())->type == DSType::VectorRegister);
   Tofino::VectorRegister *vector_register = dynamic_cast<Tofino::VectorRegister *>(*ds.begin());

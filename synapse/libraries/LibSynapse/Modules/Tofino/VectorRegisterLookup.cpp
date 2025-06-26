@@ -131,7 +131,7 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const LibBDD::BDD *b
   // modification.
   const bool can_be_inlined = call_node->get_vector_borrow_value_future_usage() <= 1;
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(vector_register_data.obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(vector_register_data.obj);
   assert(ds.size() == 1);
   assert((*ds.begin())->type == DSType::VectorRegister);
   Tofino::VectorRegister *vector_register = dynamic_cast<Tofino::VectorRegister *>(*ds.begin());

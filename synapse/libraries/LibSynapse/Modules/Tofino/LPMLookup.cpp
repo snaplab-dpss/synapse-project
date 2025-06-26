@@ -104,7 +104,7 @@ std::unique_ptr<Module> LPMLookupFactory::create(const LibBDD::BDD *bdd, const C
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const LPM *lpm = dynamic_cast<const LPM *>(*ds.begin());
 

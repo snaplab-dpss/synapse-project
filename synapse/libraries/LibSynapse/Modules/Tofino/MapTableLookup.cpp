@@ -124,7 +124,7 @@ std::unique_ptr<Module> MapTableLookupFactory::create(const LibBDD::BDD *bdd, co
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_ds(data.obj);
+  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
 
   const MapTable *map_table = dynamic_cast<const MapTable *>(*ds.begin());
 

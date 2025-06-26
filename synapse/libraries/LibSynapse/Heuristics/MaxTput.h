@@ -80,7 +80,7 @@ private:
 
   i64 get_pipeline_usage(const EP *ep) const {
     const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();
-    return tna.get_simple_placer().get_used_stages();
+    return tna.pipeline.get_used_stages();
   }
 };
 

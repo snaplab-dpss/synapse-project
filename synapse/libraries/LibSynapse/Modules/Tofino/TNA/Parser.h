@@ -15,7 +15,6 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct ParserState;
-
 using states_t = std::unordered_map<LibBDD::node_id_t, ParserState *>;
 
 enum class ParserStateType { Extract, Select, Terminate };

@@ -109,11 +109,11 @@ MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
 MapTable *get_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(data.obj)) {
+  if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(data.obj);
   assert(!ds.empty() && "No map table found");
   assert(ds.size() == 1);
   DS *mt = *ds.begin();
@@ -199,11 +199,11 @@ GuardedMapTable *build_guarded_map_table(const EP *ep, const LibBDD::Node *node,
 GuardedMapTable *get_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(data.obj)) {
+  if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(data.obj);
   assert(!ds.empty() && "No guarded map table found");
   assert(ds.size() == 1);
   DS *mt = *ds.begin();
@@ -282,11 +282,11 @@ VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const ve
 VectorTable *get_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(data.obj)) {
+  if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(data.obj);
   assert(!ds.empty() && "No vector table found");
   assert(ds.size() == 1);
   DS *vt = *ds.begin();
@@ -354,11 +354,11 @@ DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
 DchainTable *get_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(data.obj)) {
+  if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(data.obj);
   assert(!ds.empty() && "No dchain table found");
   assert(ds.size() == 1);
   DS *vt = *ds.begin();
@@ -432,11 +432,11 @@ VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, co
 VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(data.obj)) {
+  if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(data.obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(data.obj);
   assert(!ds.empty() && "No vector registers found");
   assert(ds.size() == 1);
   DS *vr = *ds.begin();
@@ -477,11 +477,11 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
 FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(obj)) {
+  if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
   assert((*ds.begin())->type == DSType::FCFSCachedTable && "Invalid DS type");
@@ -517,7 +517,7 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
     keys_sizes.push_back(key->getWidth());
   }
 
-  const u8 used_digests = tofino_ctx->get_tna().get_simple_placer().get_used_digests() + 1;
+  const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_stages() + 1;
   HHTable *hh_table     = new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, used_digests);
 
   if (!tofino_ctx->check_placement(ep, node, hh_table)) {
@@ -532,11 +532,11 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(obj)) {
+  if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
   assert((*ds.begin())->type == DSType::HHTable && "Invalid DS type");
@@ -578,11 +578,11 @@ CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, co
 CountMinSketch *reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(obj)) {
+  if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
   assert((*ds.begin())->type == DSType::CountMinSketch && "Invalid DS type");
@@ -810,11 +810,11 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
-  if (!tofino_ctx->has_ds(obj)) {
+  if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
   }
 
-  const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+  const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
   assert(ds.size() == 1 && "Invalid number of DS");
   assert((*ds.begin())->type == DSType::FCFSCachedTable && "Invalid DS type");
@@ -922,7 +922,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
 
   if (already_placed) {
     const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
-    const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+    const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
     assert(ds.size() == 1 && "Invalid number of DS");
     assert((*ds.begin())->type == DSType::HHTable && "Invalid DS type");
@@ -998,7 +998,7 @@ bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Nod
 
   if (already_placed) {
     const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
-    const std::unordered_set<DS *> &ds = tofino_ctx->get_ds(obj);
+    const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
     assert(ds.size() == 1 && "Invalid number of DS");
     assert((*ds.begin())->type == DSType::CountMinSketch && "Invalid DS type");

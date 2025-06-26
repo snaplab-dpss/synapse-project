@@ -29,7 +29,7 @@ template <class T> std::unordered_set<const T *> get_tofino_ds_from_obj(const EP
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
   std::unordered_set<const T *> ds_matches;
-  for (const DS *ds : tofino_ctx->get_ds(obj)) {
+  for (const DS *ds : tofino_ctx->get_data_structures().get_ds(obj)) {
     const T *ds_match = dynamic_cast<const T *>(ds);
     if (ds_match) {
       ds_matches.insert(ds_match);
@@ -45,7 +45,7 @@ template <class T> const T *get_unique_tofino_ds_from_obj(const EP *ep, addr_t o
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
   std::unordered_set<const T *> ds_matches;
-  for (const DS *ds : tofino_ctx->get_ds(obj)) {
+  for (const DS *ds : tofino_ctx->get_data_structures().get_ds(obj)) {
     const T *ds_match = dynamic_cast<const T *>(ds);
     if (ds_match) {
       ds_matches.insert(ds_match);
@@ -60,7 +60,7 @@ template <class T> const T *get_unique_tofino_ds_from_obj(const EP *ep, addr_t o
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
-  const DS *ds                    = tofino_ctx->get_ds_from_id(id);
+  const DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
   assert(ds && "DS not found");
   return dynamic_cast<const T *>(ds);
 }
