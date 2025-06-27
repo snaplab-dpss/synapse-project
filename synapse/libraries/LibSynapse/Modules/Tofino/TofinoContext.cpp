@@ -113,7 +113,6 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const L
   std::unordered_set<DS_ID> deps;
 
   const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
-
   if (!ep_node) {
     ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
 
@@ -142,13 +141,11 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const L
 
       if (ds->primitive) {
         deps.insert(ds_id);
-      } else {
-        for (const std::unordered_set<const DS *> &ds_set : ds->get_internal()) {
-          for (const DS *internal_ds : ds_set) {
-            assert(internal_ds && "Internal DS not found");
-            deps.insert(internal_ds->id);
-          }
-        }
+        continue;
+      }
+
+      for (const std::unordered_set<DS_ID> &data_structures : ds->get_internal_primitive_ids()) {
+        deps.insert(data_structures.begin(), data_structures.end());
       }
     }
 
@@ -159,33 +156,29 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const L
 }
 
 void TofinoContext::place(EP *ep, const LibBDD::Node *node, addr_t obj, DS *ds) {
-  if (data_structures.has(ds->id)) {
-    return;
+  const LibSynapse::Tofino::TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const std::unordered_set<DS_ID> deps                = tofino_ctx->get_stateful_deps(ep, node);
+
+  if (!data_structures.has(ds->id)) {
+    data_structures.save(obj, std::unique_ptr<DS>(ds));
   }
 
-  data_structures.save(obj, ds);
-
-  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
   tna.pipeline.place(ds, deps);
 }
 
-bool TofinoContext::check_placement(const EP *ep, const LibBDD::Node *node, const DS *ds) const {
+bool TofinoContext::can_place(const EP *ep, const LibBDD::Node *node, const DS *ds) const {
   const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
-  const PlacementResult result         = tna.pipeline.can_place(ds, deps);
+  const PlacementStatus status         = tna.pipeline.can_place(ds, deps);
 
-  if (result.status != PlacementStatus::Success) {
-    const TargetType target = ep->get_active_target();
-    std::cerr << "[" << target << "] Cannot place ds " << ds->id << " (" << result.status << ")\n";
-
-    debug();
-    std::cerr << "  DS: " << ds->id << "\n";
-    std::cerr << "  Deps:\n";
-    for (DS_ID dep : deps) {
-      std::cerr << "   * " << dep << "\n";
+  if (status != PlacementStatus::Success) {
+    std::cerr << "[" << ep->get_active_target() << "] Cannot place ds " << ds->id << " with deps=[";
+    for (const DS_ID &dep : deps) {
+      std::cerr << dep << ",";
     }
+    std::cerr << " ] (reason=" << status << ")\n";
   }
 
-  return result.status == PlacementStatus::Success;
+  return true;
 }
 
 void TofinoContext::debug() const {

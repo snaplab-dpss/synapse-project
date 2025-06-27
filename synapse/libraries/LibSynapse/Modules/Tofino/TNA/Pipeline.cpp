@@ -117,13 +117,41 @@ void Pipeline::debug() const {
   std::cerr << ss.str();
 }
 
-bool Pipeline::already_placed(DS_ID ds_id) const {
-  return std::any_of(resources.stages.begin(), resources.stages.end(),
-                     [ds_id](const Stage &stage) { return stage.tables.find(ds_id) != stage.tables.end(); });
+int Pipeline::get_placed_stage(DS_ID ds_id) const {
+  auto it = std::find_if(resources.stages.begin(), resources.stages.end(),
+                         [ds_id](const Stage &stage) { return stage.tables.find(ds_id) != stage.tables.end(); });
+
+  if (it != resources.stages.end()) {
+    return it->stage_id;
+  }
+
+  return -1;
 }
+
+bool Pipeline::already_placed(DS_ID ds_id) const { return get_placed_stage(ds_id) >= 0; }
 
 bool Pipeline::already_requested(DS_ID ds_id) const {
   return std::any_of(placement_requests.begin(), placement_requests.end(), [ds_id](const PlacementRequest &request) { return request.ds == ds_id; });
+}
+
+bool Pipeline::detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+  const std::vector<std::unordered_set<const DS *>> internal_primitive = ds->get_internal_primitive();
+
+  if (!already_requested(ds->id)) {
+    return false;
+  }
+
+  bool change = false;
+  for (const std::unordered_set<const DS *> &independent_data_structures : internal_primitive) {
+    for (const DS *independent_ds : independent_data_structures) {
+      if (!already_placed(independent_ds->id)) {
+        change = true;
+        break;
+      }
+    }
+  }
+
+  return change;
 }
 
 int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const {
@@ -132,18 +160,13 @@ int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered
   }
 
   std::unordered_set<DS_ID> cummulative_ds;
-  std::vector<std::unordered_set<DS_ID>> cummulative_ds_per_stage;
+  int soonest_stage_id = -1;
+
   for (const Stage &stage : resources.stages) {
     cummulative_ds.insert(stage.tables.begin(), stage.tables.end());
-    cummulative_ds_per_stage.push_back(cummulative_ds);
-  }
 
-  int soonest_stage_id = -1;
-  for (const Stage &stage : resources.stages) {
-    const std::unordered_set<DS_ID> &stage_cummulative_ds = cummulative_ds_per_stage.at(stage.stage_id);
-
-    bool all_dependencies_are_satisfied = std::all_of(
-        deps.begin(), deps.end(), [&stage_cummulative_ds](DS_ID dep) { return stage_cummulative_ds.find(dep) != stage_cummulative_ds.end(); });
+    bool all_dependencies_are_satisfied =
+        std::all_of(deps.begin(), deps.end(), [&cummulative_ds](DS_ID dep) { return cummulative_ds.find(dep) != cummulative_ds.end(); });
 
     if (all_dependencies_are_satisfied) {
       soonest_stage_id = stage.stage_id + 1;
@@ -158,35 +181,60 @@ int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered
   return soonest_stage_id;
 }
 
-PlacementResult Pipeline::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
+  const bool duplicated_request = already_requested(ds->id);
+  if (duplicated_request && !detect_changes_to_already_placed_data_structure(ds, deps)) {
+    return;
+  }
+
+  const PlacementResult result = find_placements(ds, deps);
+  if (result.status != PlacementStatus::Success) {
+    debug();
+    panic("Cannot place data structure %s: %s", ds->id.c_str(), placement_status_to_string(result.status).c_str());
+  }
+
+  assert(result.resources.has_value() && "Placement result should have resources on success");
+  resources = *result.resources;
+
+  if (!duplicated_request) {
+    placement_requests.push_back({ds->id, deps});
+  }
+}
+
+PlacementStatus Pipeline::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
   if (ds->primitive) {
     if (deps.find(ds->id) != deps.end()) {
       return PlacementStatus::SelfDependence;
     }
   }
 
-  // Trying the simple placer first.
+  if (already_requested(ds->id) && !detect_changes_to_already_placed_data_structure(ds, deps)) {
+    return PlacementStatus::Success;
+  }
+
+  return find_placements(ds, deps).status;
+}
+
+PlacementResult Pipeline::find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
   PlacementResult result = SimplePlacer::find_placements(*this, ds, deps);
   if (result.status == PlacementStatus::Success) {
     return result;
   }
 
+  debug();
+  std::cerr << "Simple placer failed to place data structure: " << ds->id << "\n";
+  std::cerr << "Deps: [";
+  for (const DS_ID &dep : deps) {
+    std::cerr << dep << ", ";
+  }
+  std::cerr << "]\n";
+  std::cerr << "Reason: " << placement_status_to_string(result.status) << "\n";
+
   // If the simple placer failed, we can try the solver.
   // TODO: implement the solver.
+  assert(false && "TODO: implement the solver placer");
 
   return result;
-}
-
-void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
-  const PlacementResult result = can_place(ds, deps);
-  if (result.status != PlacementStatus::Success) {
-    panic("Cannot place data structure: %s", placement_status_to_string(result.status).c_str());
-  }
-
-  assert(result.resources.has_value() && "Placement result should have resources on success");
-  resources = *result.resources;
-
-  placement_requests.push_back({ds->id, deps});
 }
 
 } // namespace Tofino

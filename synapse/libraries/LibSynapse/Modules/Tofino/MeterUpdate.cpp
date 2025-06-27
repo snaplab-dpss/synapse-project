@@ -50,7 +50,7 @@ Meter *build_meter(const EP *ep, const LibBDD::Node *node, DS_ID id, const LibBD
   Meter *meter = new Meter(id, cfg.capacity, cfg.rate, cfg.burst, keys_size);
 
   const TofinoContext *tofino_ctx = TofinoModuleFactory::get_tofino_ctx(ep);
-  if (!tofino_ctx->check_placement(ep, node, meter)) {
+  if (!tofino_ctx->can_place(ep, node, meter)) {
     delete meter;
     return nullptr;
   }

@@ -122,6 +122,20 @@ struct DS {
 
     return primitives;
   }
+
+  std::vector<std::unordered_set<DS_ID>> get_internal_primitive_ids() const {
+    std::vector<std::unordered_set<DS_ID>> primitive_ids;
+
+    const std::vector<std::unordered_set<const DS *>> internal_primitives = get_internal_primitive();
+    for (const std::unordered_set<const DS *> &data_structures : internal_primitives) {
+      primitive_ids.emplace_back();
+      for (const DS *ds : data_structures) {
+        primitive_ids.back().insert(ds->id);
+      }
+    }
+
+    return primitive_ids;
+  }
 };
 
 } // namespace Tofino

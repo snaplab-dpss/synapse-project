@@ -1,4 +1,5 @@
 #include <LibSynapse/Visualizers/EPVisualizer.h>
+#include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Tofino/Tofino.h>
 
 #include <ctime>

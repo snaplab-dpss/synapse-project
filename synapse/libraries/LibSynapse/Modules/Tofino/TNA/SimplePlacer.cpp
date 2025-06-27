@@ -19,16 +19,16 @@ struct Placement {
 bool detect_changes_to_already_placed_data_structure(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
   const std::vector<std::unordered_set<const DS *>> internal_primitive = ds->get_internal_primitive();
 
-  const bool already_requested = pipeline.already_requested(ds->id);
+  if (!pipeline.already_requested(ds->id)) {
+    return false;
+  }
 
   bool change = false;
-  if (already_requested) {
-    for (const std::unordered_set<const DS *> &independent_data_structures : internal_primitive) {
-      for (const DS *independent_ds : independent_data_structures) {
-        if (!pipeline.already_placed(independent_ds->id)) {
-          change = true;
-          break;
-        }
+  for (const std::unordered_set<const DS *> &independent_data_structures : internal_primitive) {
+    for (const DS *independent_ds : independent_data_structures) {
+      if (!pipeline.already_placed(independent_ds->id)) {
+        change = true;
+        break;
       }
     }
   }
@@ -86,10 +86,6 @@ PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, co
 }
 
 PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
-  if (detect_changes_to_already_placed_data_structure(pipeline, ds, deps)) {
-    return clean_slate_placement(pipeline, ds, deps);
-  }
-
   if (ds->primitive) {
     PlacementResult result;
     switch (ds->type) {
@@ -112,9 +108,13 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const st
       result = find_placements_lpm(pipeline, dynamic_cast<const LPM *>(ds), deps);
       break;
     default:
-      panic("Unsupported DS type: %s", ds->id.c_str());
+      panic("Unhandled DS type: %s", ds->id.c_str());
     }
     return result;
+  }
+
+  if (detect_changes_to_already_placed_data_structure(pipeline, ds, deps)) {
+    return clean_slate_placement(pipeline, ds, deps);
   }
 
   Pipeline snapshot = pipeline;
@@ -153,7 +153,7 @@ PlacementResult find_placements_table(const Pipeline &pipeline, const Table *tab
   const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
 
   if (soonest_stage_id < 0) {
-    return PlacementStatus::NoAvailableStage;
+    return PlacementStatus::UnmetDependencies;
   }
 
   bits_t requested_sram = align_to_byte(table->get_consumed_sram());
@@ -212,7 +212,7 @@ PlacementResult find_placements_reg(const Pipeline &pipeline, const Register *re
 
   const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
   if (soonest_stage_id < 0) {
-    return PlacementStatus::NoAvailableStage;
+    return PlacementStatus::UnmetDependencies;
   }
 
   bits_t requested_sram     = align_to_byte(reg->get_consumed_sram());
@@ -282,7 +282,7 @@ PlacementResult find_placements_meter(const Pipeline &pipeline, const Meter *met
 
   const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
   if (soonest_stage_id < 0) {
-    return PlacementStatus::NoAvailableStage;
+    return PlacementStatus::UnmetDependencies;
   }
 
   bits_t requested_sram = align_to_byte(meter->get_consumed_sram());
@@ -349,7 +349,7 @@ PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash,
 
   const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
   if (soonest_stage_id < 0) {
-    return PlacementStatus::NoAvailableStage;
+    return PlacementStatus::UnmetDependencies;
   }
 
   const bits_t requested_xbar = align_to_byte(hash->get_match_xbar_consume());
@@ -398,8 +398,13 @@ PlacementResult find_placements_digest(const Pipeline &pipeline, const Digest *d
     return PlacementStatus::NotEnoughDigests;
   }
 
+  const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
+  if (soonest_stage_id < 0) {
+    return PlacementStatus::UnmetDependencies;
+  }
+
   const Placement placement = {
-      .stage_id    = 0,
+      .stage_id    = soonest_stage_id,
       .sram        = 0,
       .tcam        = 0,
       .map_ram     = 0,
@@ -421,7 +426,7 @@ PlacementResult find_placements_lpm(const Pipeline &pipeline, const LPM *lpm, co
 
   const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
   if (soonest_stage_id < 0) {
-    return PlacementStatus::NoAvailableStage;
+    return PlacementStatus::UnmetDependencies;
   }
 
   bits_t requested_tcam = align_to_byte(lpm->get_consumed_tcam());

@@ -35,7 +35,7 @@ public:
   void parser_reject(const LibBDD::Node *_node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
 
   void place(EP *ep, const LibBDD::Node *node, addr_t obj, DS *ds);
-  bool check_placement(const EP *ep, const LibBDD::Node *node, const DS *ds) const;
+  bool can_place(const EP *ep, const LibBDD::Node *node, const DS *ds) const;
 
   void debug() const override;
 

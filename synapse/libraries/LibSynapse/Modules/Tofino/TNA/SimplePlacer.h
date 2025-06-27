@@ -1,8 +1,7 @@
 #pragma once
 
-#include <LibSynapse/Modules/Tofino/DataStructures/DataStructures.h>
-#include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibSynapse/Modules/Tofino/TNA/Pipeline.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/DataStructures.h>
 #include <LibCore/Types.h>
 
 #include <unordered_set>

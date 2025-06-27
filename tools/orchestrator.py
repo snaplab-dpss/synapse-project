@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import sys
 import time
 import humanize
 import asyncio
@@ -20,6 +19,8 @@ SKIP_COLOR = "yellow"
 ERROR_COLOR = "red"
 DEBUG_COLOR = "white"
 ABORT_COLOR = "magenta"
+
+NOW = time.strftime("%Y%m%d-%H%M%S")
 
 
 class Task:
@@ -93,6 +94,11 @@ class Task:
 
         rich.print(f"{prefix}\\[{self.name}] {msg}{suffix}", flush=True)
 
+    def log_failed_cmd(self, retcode: int):
+        filename = f"failed-cmds-{NOW}.txt"
+        with open(filename, "a") as f:
+            f.write(f"retcode={retcode},cmd={self.cmd}\n")
+
     def is_ready(self) -> bool:
         for prev_task in self.prev:
             if not prev_task.done:
@@ -154,6 +160,8 @@ class Task:
 
             if process.returncode < 0:
                 self.log(f"terminated by signal {-process.returncode}", color=ABORT_COLOR)
+                if process.returncode not in [-signal.SIGINT, -signal.SIGABRT]:
+                    self.log_failed_cmd(process.returncode)
                 return False
 
             if process.returncode != 0 or self.show_cmds_output:
@@ -163,6 +171,7 @@ class Task:
                     print(self.cmd)
                     self.log("output:", color=ERROR_COLOR)
                     print(stdout)
+                    self.log_failed_cmd(process.returncode)
                     return False
                 elif not self.silence:
                     print(stdout)

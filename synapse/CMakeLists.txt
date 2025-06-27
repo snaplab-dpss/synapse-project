@@ -49,6 +49,7 @@ set(SYNAPSE_COMPILATION_FLAGS
 )
 
 if (ENABLE_ADDRESS_SANITIZER)
+    message(STATUS "WARNING: Address sanitizer enabled")
     add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
     add_link_options(-fsanitize=address)
 endif()

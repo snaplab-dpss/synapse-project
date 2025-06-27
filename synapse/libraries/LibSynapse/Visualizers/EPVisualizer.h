@@ -1,12 +1,17 @@
 #pragma once
 
-#include <LibSynapse/ExecutionPlan.h>
+#include <LibSynapse/Visitor.h>
+#include <LibSynapse/Target.h>
+#include <LibBDD/Nodes/Node.h>
 #include <LibCore/Graphviz.h>
 
 #include <vector>
 #include <filesystem>
 
 namespace LibSynapse {
+
+class EP;
+class EPNode;
 
 class EPViz : public EPVisitor, public LibCore::Graphviz {
 public:

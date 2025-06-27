@@ -98,7 +98,7 @@ MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
   MapTable *map_table = new MapTable(id, data.capacity, key_size);
   map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
-  if (!tofino_ctx->check_placement(ep, node, map_table)) {
+  if (!tofino_ctx->can_place(ep, node, map_table)) {
     delete map_table;
     map_table = nullptr;
   }
@@ -139,7 +139,7 @@ bool can_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table
   clone->add_table(node->get_id(), keys_size, data.time_aware);
   map_table = clone;
 
-  bool can_place = tofino_ctx->check_placement(ep, node, map_table);
+  bool can_place = tofino_ctx->can_place(ep, node, map_table);
   delete map_table;
 
   return can_place;
@@ -159,7 +159,7 @@ MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
 
   map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
-  if (!tofino_ctx->check_placement(ep, node, map_table)) {
+  if (!tofino_ctx->can_place(ep, node, map_table)) {
     return nullptr;
   }
 
@@ -188,7 +188,7 @@ GuardedMapTable *build_guarded_map_table(const EP *ep, const LibBDD::Node *node,
   GuardedMapTable *guarded_map_table = new GuardedMapTable(properties, id, data.capacity, key_size);
   guarded_map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
-  if (!tofino_ctx->check_placement(ep, node, guarded_map_table)) {
+  if (!tofino_ctx->can_place(ep, node, guarded_map_table)) {
     delete guarded_map_table;
     guarded_map_table = nullptr;
   }
@@ -229,7 +229,7 @@ bool can_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const m
   clone->add_table(node->get_id(), keys_size, data.time_aware);
   guarded_map_table = clone;
 
-  const bool can_place = tofino_ctx->check_placement(ep, node, guarded_map_table);
+  const bool can_place = tofino_ctx->can_place(ep, node, guarded_map_table);
   delete guarded_map_table;
 
   return can_place;
@@ -249,7 +249,7 @@ GuardedMapTable *reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node,
 
   guarded_map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
-  if (!tofino_ctx->check_placement(ep, node, guarded_map_table)) {
+  if (!tofino_ctx->can_place(ep, node, guarded_map_table)) {
     return nullptr;
   }
 
@@ -271,7 +271,7 @@ VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const ve
   VectorTable *vector_table = new VectorTable(id, data.capacity, param_size);
   vector_table->add_table(node->get_id());
 
-  if (!tofino_ctx->check_placement(ep, node, vector_table)) {
+  if (!tofino_ctx->can_place(ep, node, vector_table)) {
     delete vector_table;
     vector_table = nullptr;
   }
@@ -307,7 +307,7 @@ bool can_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector
   clone->add_table(node->get_id());
   vector_table = clone;
 
-  bool can_place = tofino_ctx->check_placement(ep, node, vector_table);
+  bool can_place = tofino_ctx->can_place(ep, node, vector_table);
   delete vector_table;
 
   return can_place;
@@ -322,7 +322,7 @@ VectorTable *reuse_vector_table(const EP *ep, const LibBDD::Node *node, const ve
 
   vector_table->add_table(node->get_id());
 
-  if (!tofino_ctx->check_placement(ep, node, vector_table)) {
+  if (!tofino_ctx->can_place(ep, node, vector_table)) {
     return nullptr;
   }
 
@@ -343,7 +343,7 @@ DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
   DchainTable *dchain_table = new DchainTable(id, data.capacity);
   dchain_table->add_table(node->get_id());
 
-  if (!tofino_ctx->check_placement(ep, node, dchain_table)) {
+  if (!tofino_ctx->can_place(ep, node, dchain_table)) {
     delete dchain_table;
     dchain_table = nullptr;
   }
@@ -379,7 +379,7 @@ bool can_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain
   clone->add_table(node->get_id());
   dchain_table = clone;
 
-  bool can_place = tofino_ctx->check_placement(ep, node, dchain_table);
+  bool can_place = tofino_ctx->can_place(ep, node, dchain_table);
   delete dchain_table;
 
   return can_place;
@@ -394,7 +394,7 @@ DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
 
   dchain_table->add_table(node->get_id());
 
-  if (!tofino_ctx->check_placement(ep, node, dchain_table)) {
+  if (!tofino_ctx->can_place(ep, node, dchain_table)) {
     return nullptr;
   }
 
@@ -421,7 +421,7 @@ VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, co
 
   VectorRegister *vector_register = new VectorRegister(properties, id, data.capacity, data.index->getWidth(), values_sizes);
 
-  if (!tofino_ctx->check_placement(ep, node, vector_register)) {
+  if (!tofino_ctx->can_place(ep, node, vector_register)) {
     delete vector_register;
     vector_register = nullptr;
   }
@@ -466,7 +466,7 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
 
   FCFSCachedTable *cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes);
 
-  if (!tofino_ctx->check_placement(ep, node, cached_table)) {
+  if (!tofino_ctx->can_place(ep, node, cached_table)) {
     delete cached_table;
     cached_table = nullptr;
   }
@@ -494,7 +494,7 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
     cached_table = clone;
   }
 
-  if (!tofino_ctx->check_placement(ep, node, cached_table)) {
+  if (!tofino_ctx->can_place(ep, node, cached_table)) {
     cached_table = nullptr;
   }
 
@@ -520,7 +520,7 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
   const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_stages() + 1;
   HHTable *hh_table     = new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, used_digests);
 
-  if (!tofino_ctx->check_placement(ep, node, hh_table)) {
+  if (!tofino_ctx->can_place(ep, node, hh_table)) {
     delete hh_table;
     hh_table = nullptr;
   }
@@ -543,7 +543,7 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
 
   HHTable *hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
-  if (!tofino_ctx->check_placement(ep, node, hh_table)) {
+  if (!tofino_ctx->can_place(ep, node, hh_table)) {
     hh_table = nullptr;
   }
 
@@ -567,7 +567,7 @@ CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, co
 
   CountMinSketch *cms = new CountMinSketch(properties, id, keys_sizes, width, height);
 
-  if (!tofino_ctx->check_placement(ep, node, cms)) {
+  if (!tofino_ctx->can_place(ep, node, cms)) {
     delete cms;
     cms = nullptr;
   }
@@ -589,7 +589,7 @@ CountMinSketch *reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj) {
 
   CountMinSketch *cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
-  if (!tofino_ctx->check_placement(ep, node, cms)) {
+  if (!tofino_ctx->can_place(ep, node, cms)) {
     return nullptr;
   }
 
@@ -929,7 +929,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
 
     hh_table = dynamic_cast<HHTable *>(*ds.begin());
 
-    if (!tofino_ctx->check_placement(ep, node, hh_table)) {
+    if (!tofino_ctx->can_place(ep, node, hh_table)) {
       hh_table = nullptr;
       return false;
     }
@@ -1005,7 +1005,7 @@ bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Nod
 
     cms = dynamic_cast<CountMinSketch *>(*ds.begin());
 
-    if (!tofino_ctx->check_placement(ep, node, cms)) {
+    if (!tofino_ctx->can_place(ep, node, cms)) {
       cms = nullptr;
       return false;
     }
@@ -1047,7 +1047,7 @@ LPM *TofinoModuleFactory::build_lpm(const EP *ep, const LibBDD::Node *node, addr
 
   LPM *lpm = new LPM(id, properties.total_ports);
 
-  if (!tofino_ctx->check_placement(ep, node, lpm)) {
+  if (!tofino_ctx->can_place(ep, node, lpm)) {
     delete lpm;
     lpm = nullptr;
   }

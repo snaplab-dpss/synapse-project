@@ -40,6 +40,9 @@ public:
     }
   }
 
+  DataStructures(DataStructures &&other)                 = delete;
+  DataStructures &operator=(const DataStructures &other) = delete;
+
   bool has(addr_t addr) const { return data_per_obj.find(addr) != data_per_obj.end(); }
   bool has(DS_ID id) const { return data_per_id.find(id) != data_per_id.end(); }
 
@@ -67,7 +70,11 @@ public:
   }
 
   // FIXME: this should be a unique_ptr
-  void save(addr_t addr, DS *ds) {
+  void save(addr_t addr, std::unique_ptr<DS> ds) {
+    if (std::find(data.begin(), data.end(), ds) != data.end()) {
+      return;
+    }
+
     auto found_it = data_per_id.find(ds->id);
 
     if (found_it != data_per_id.end()) {
@@ -78,9 +85,9 @@ public:
       data_per_obj[addr].erase(old);
     }
 
-    data.emplace_back(ds);
-    data_per_obj[addr].insert(ds);
-    data_per_id[ds->id] = ds;
+    data_per_obj[addr].insert(ds.get());
+    data_per_id[ds->id] = ds.get();
+    data.push_back(std::move(ds));
   }
 };
 

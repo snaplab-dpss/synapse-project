@@ -19,6 +19,7 @@ enum class PlacementStatus {
   InconsistentPlacement,
   SelfDependence,
   NotEnoughDigests,
+  UnmetDependencies,
   MultipleReasons,
   Unknown,
 };
@@ -26,34 +27,37 @@ enum class PlacementStatus {
 inline std::ostream &operator<<(std::ostream &os, const PlacementStatus &status) {
   switch (status) {
   case PlacementStatus::Success:
-    os << "SUCCESS";
+    os << "Success";
     break;
   case PlacementStatus::TooLarge:
-    os << "TOO_LARGE";
+    os << "Too large";
     break;
   case PlacementStatus::TooManyKeys:
-    os << "TOO_MANY_KEYS";
+    os << "Too many keys";
     break;
   case PlacementStatus::XBarConsumptionExceedsLimit:
-    os << "XBAR_CONSUME_EXCEEDS_LIMIT";
+    os << "Xbar consumption exceeds limit";
     break;
   case PlacementStatus::NoAvailableStage:
-    os << "NO_AVAILABLE_STAGE";
+    os << "No available stage";
     break;
   case PlacementStatus::InconsistentPlacement:
-    os << "INCONSISTENT_PLACEMENT";
+    os << "Inconsistent placement";
     break;
   case PlacementStatus::SelfDependence:
-    os << "SELF_DEPENDENCE";
+    os << "Self dependence";
     break;
   case PlacementStatus::NotEnoughDigests:
-    os << "NOT_ENOUGH_DIGESTS";
+    os << "Not enough digests";
+    break;
+  case PlacementStatus::UnmetDependencies:
+    os << "Unmet dependencies";
     break;
   case PlacementStatus::MultipleReasons:
-    os << "MULTIPLE_REASONS";
+    os << "Multiple reasons";
     break;
   case PlacementStatus::Unknown:
-    os << "UNKNOWN";
+    os << "Unknown";
     break;
   }
   return os;
@@ -112,13 +116,16 @@ struct Pipeline {
     return std::count_if(resources.stages.begin(), resources.stages.end(), [](const Stage &s) { return !s.tables.empty(); });
   }
 
+  bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;
 
+  int get_placed_stage(DS_ID ds_id) const;
   bool already_requested(DS_ID ds_id) const;
   bool already_placed(DS_ID ds_id) const;
 
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
-  PlacementResult can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  PlacementStatus can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  PlacementResult find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
 
   void debug() const;
 };

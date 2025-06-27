@@ -280,7 +280,11 @@ void Context::bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd) {
 }
 
 void Context::bdd_pre_processing_log() {
-  std::cerr << "***** BDD pre-processing: *****\n";
+  std::cerr << "**********************************************************\n";
+  std::cerr << "*                   BDD pre-processing                   *\n";
+  std::cerr << "**********************************************************\n";
+  std::cerr << "\n";
+
   std::cerr << "Coalescing candidates:\n";
   for (const LibBDD::map_coalescing_objs_t &candidate : coalescing_candidates) {
     std::cerr << "  ";
@@ -306,8 +310,7 @@ void Context::bdd_pre_processing_log() {
     }
     std::cerr << "--------------------------------\n";
   }
-
-  std::cerr << "*******************************\n";
+  std::cerr << "\n";
 }
 
 Context::Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &_profiler)

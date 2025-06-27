@@ -1,3 +1,4 @@
+#include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 
 #include <ctime>
@@ -6,17 +7,15 @@
 #include <cmath>
 #include <unistd.h>
 
-#define SHOW_MODULE_NAME(M)                                                                                                                \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                                  \
-    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                        \
+#define SHOW_MODULE_NAME(M)                                                                                                                          \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                                            \
+    function_call(ep_node, node->get_node(), node->get_target(), node->get_name());                                                                  \
   }
 
-#define VISIT_BRANCH(M)                                                                                                                    \
-  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {                                                                  \
-    branch(ep_node, node->get_node(), node->get_target(), node->get_name());                                                               \
-  }
+#define VISIT_BRANCH(M)                                                                                                                              \
+  void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) { branch(ep_node, node->get_node(), node->get_target(), node->get_name()); }
 
-#define IGNORE_MODULE(M)                                                                                                                   \
+#define IGNORE_MODULE(M)                                                                                                                             \
   void EPViz::visit(const EP *ep, const EPNode *ep_node, const M *node) {}
 
 namespace LibSynapse {

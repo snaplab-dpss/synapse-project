@@ -3,6 +3,7 @@
 #include <LibSynapse/EPNode.h>
 #include <LibSynapse/Meta.h>
 #include <LibSynapse/Context.h>
+#include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibBDD/BDD.h>
 #include <LibBDD/Reorder.h>
 #include <LibCore/Types.h>
