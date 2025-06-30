@@ -21,18 +21,18 @@ endif()
 
 # Try to find headers
 find_path(Z3_INCLUDE_DIRS
-  NAMES z3.h
-  # For distributions that keep the header files in a `z3` folder,
-  # for example Fedora's `z3-devel` package at `/usr/include/z3/z3.h`
-  PATH_SUFFIXES z3
-  DOC "Z3 C header"
-  PATHS "${Z3_DIR}/build/include"
-  NO_DEFAULT_PATH
+    NAMES z3.h
+    # For distributions that keep the header files in a `z3` folder,
+    # for example Fedora's `z3-devel` package at `/usr/include/z3/z3.h`
+    PATH_SUFFIXES z3
+    DOC "Z3 C header"
+    PATHS "${Z3_DIR}/build/include"
+    NO_DEFAULT_PATH
 )
 if (Z3_INCLUDE_DIRS)
-  message(STATUS "Found Z3 include path: \"${Z3_INCLUDE_DIRS}\"")
+    message(STATUS "Found Z3 include path: \"${Z3_INCLUDE_DIRS}\"")
 else()
-  message(STATUS "Could not find Z3 include path")
+    message(STATUS "Could not find Z3 include path")
 endif()
 
 # TODO: We should check we can link some simple code against libz3

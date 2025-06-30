@@ -110,7 +110,7 @@ source_install_llvm() {
 	add_multiline_var_to_paths_file "PATH" "$LLVM_RELEASE_DIR/bin:\$PATH"
 
 	pushd "$LLVM_DIR"
-		CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -frtti" \
+		CXXFLAGS="-frtti" \
 		CC=cc \
 		CXX=c++ \
 			./configure \
@@ -191,7 +191,29 @@ source_install_klee() {
 	add_multiline_var_to_paths_file "PATH" "$KLEE_BUILD_PATH/bin:\$PATH"
 
 	pushd $KLEE_DIR
-		./build.sh
+		[ -d "$KLEE_BUILD_PATH" ] || mkdir -p "$KLEE_BUILD_PATH"
+		pushd $KLEE_BUILD_PATH
+			[ -f "Makefile" ] || \
+				CMAKE_PREFIX_PATH="$Z3_DIR/build" \
+				CMAKE_INCLUDE_PATH="$Z3_DIR/build/include/" \
+				cmake \
+				-DENABLE_UNIT_TESTS=OFF \
+				-DBUILD_SHARED_LIBS=OFF \
+				-DLLVM_CONFIG_BINARY="$LLVM_DIR/Release/bin/llvm-config" \
+				-DLLVMCC="$LLVM_DIR/Release/bin/clang" \
+				-DLLVMCXX="$LLVM_DIR/Release/bin/clang++" \
+				-DENABLE_SOLVER_Z3=ON \
+				-DENABLE_KLEE_UCLIBC=ON \
+				-DKLEE_UCLIBC_PATH="$KLEE_UCLIBC_DIR" \
+				-DENABLE_POSIX_RUNTIME=ON \
+				-DENABLE_KLEE_ASSERTS=ON \
+				-DENABLE_DOXYGEN=OFF \
+				-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+				-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+				$KLEE_DIR
+
+			make -kj $(nproc) || exit 1
+		popd
 	popd
 
 	echo "Done."

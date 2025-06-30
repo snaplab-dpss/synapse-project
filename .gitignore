@@ -59,3 +59,7 @@ perf.data*
 synthesized/*.json
 synthesized/*.dot
 synthesized/*.txt
+
+# Gurobi stuff
+gurobi1202
+gurobi.lic

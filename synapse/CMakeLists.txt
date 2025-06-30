@@ -54,8 +54,6 @@ if (ENABLE_ADDRESS_SANITIZER)
     add_link_options(-fsanitize=address)
 endif()
 
-add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
-
 ###############################################################################
 # Setting output targets
 ###############################################################################
@@ -94,6 +92,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_klee.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_curses.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_threads.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_unwind.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_zlib.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/find_gurobi.cmake)
 
 ###############################################################################
 # Build the libraries
@@ -118,8 +118,8 @@ foreach(TOOL ${TOOLS})
     add_executable(${TOOL_TARGET} ${TOOL_SOURCES})
     set_target_properties(${TOOL_TARGET} PROPERTIES OUTPUT_NAME "${TOOL_NAME}")
     
-    target_link_libraries(${TOOL_TARGET} PRIVATE Core)
-    target_link_libraries(${TOOL_TARGET} PRIVATE BDD)
-    target_link_libraries(${TOOL_TARGET} PRIVATE Synapse)
-    target_link_libraries(${TOOL_TARGET} PRIVATE CLI11::CLI11)
+    target_link_libraries(${TOOL_TARGET} PUBLIC Core)
+    target_link_libraries(${TOOL_TARGET} PUBLIC BDD)
+    target_link_libraries(${TOOL_TARGET} PUBLIC Synapse)
+    target_link_libraries(${TOOL_TARGET} PUBLIC CLI11::CLI11)
 endforeach(TOOL ${TOOLS})

@@ -53,7 +53,7 @@ PlacementResult concretize_placements(const Pipeline &pipeline, const PlacementR
     stage.available_map_ram -= placement.map_ram;
     stage.available_exact_match_xbar -= placement.xbar;
     stage.available_logical_ids -= placement.logical_ids;
-    stage.tables.insert(placement.obj);
+    stage.data_structures.insert(placement.obj);
 
     if (placement.type == DSType::Digest) {
       resources.used_digests++;

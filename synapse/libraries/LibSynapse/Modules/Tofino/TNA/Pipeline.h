@@ -21,6 +21,7 @@ enum class PlacementStatus {
   NotEnoughDigests,
   UnmetDependencies,
   MultipleReasons,
+  Unsat,
   Unknown,
 };
 
@@ -56,6 +57,9 @@ inline std::ostream &operator<<(std::ostream &os, const PlacementStatus &status)
   case PlacementStatus::MultipleReasons:
     os << "Multiple reasons";
     break;
+  case PlacementStatus::Unsat:
+    os << "Unsat";
+    break;
   case PlacementStatus::Unknown:
     os << "Unknown";
     break;
@@ -76,7 +80,7 @@ struct Stage {
   bits_t available_map_ram;
   bits_t available_exact_match_xbar;
   int available_logical_ids;
-  std::unordered_set<DS_ID> tables;
+  std::unordered_set<DS_ID> data_structures;
 };
 
 struct PipelineResources {
@@ -113,7 +117,7 @@ struct Pipeline {
   Pipeline(const Pipeline &other, const DataStructures &_data_structures);
 
   u8 get_used_stages() const {
-    return std::count_if(resources.stages.begin(), resources.stages.end(), [](const Stage &s) { return !s.tables.empty(); });
+    return std::count_if(resources.stages.begin(), resources.stages.end(), [](const Stage &stage) { return !stage.data_structures.empty(); });
   }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;

@@ -182,16 +182,7 @@ bool TofinoContext::can_place(const EP *ep, const LibBDD::Node *node, const DS *
 }
 
 void TofinoContext::debug() const {
-  std::cerr << "\n";
-  std::cerr << "****** Placements ******\n";
-  for (const auto &[addr, ds_set] : data_structures.get_data_per_obj()) {
-    std::cerr << "Object " << addr << ":\n";
-    for (const DS *ds : ds_set) {
-      std::cerr << "  * " << ds->id << "\n";
-    }
-  }
-  std::cerr << "************************\n";
-
+  data_structures.debug();
   tna.debug();
 }
 

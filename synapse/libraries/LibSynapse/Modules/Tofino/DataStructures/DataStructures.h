@@ -23,7 +23,7 @@ namespace Tofino {
 class DataStructures {
 private:
   std::vector<std::unique_ptr<DS>> data;
-  std::unordered_map<addr_t, std::unordered_set<DS *>> data_per_obj;
+  std::unordered_map<addr_t, std::unordered_set<DS *>> data_per_obj; // FIXME: there should be only one DS per addr_t
   std::unordered_map<DS_ID, DS *> data_per_id;
 
 public:
@@ -65,11 +65,18 @@ public:
 
   const DS *get_ds_from_id(DS_ID id) const {
     auto it = data_per_id.find(id);
-    assert(it != data_per_id.end() && "Data structure not found");
+    if (it == data_per_id.end()) {
+      for (const std::unique_ptr<DS> &ds : data) {
+        const std::vector<DS_ID> unwrapped_ids = ds->unwrap();
+        if (std::find(unwrapped_ids.begin(), unwrapped_ids.end(), id) != unwrapped_ids.end()) {
+          return ds.get();
+        }
+      }
+      panic("Data structure %s not found", id.c_str());
+    }
     return it->second;
   }
 
-  // FIXME: this should be a unique_ptr
   void save(addr_t addr, std::unique_ptr<DS> ds) {
     if (std::find(data.begin(), data.end(), ds) != data.end()) {
       return;
@@ -88,6 +95,18 @@ public:
     data_per_obj[addr].insert(ds.get());
     data_per_id[ds->id] = ds.get();
     data.push_back(std::move(ds));
+  }
+
+  void debug() const {
+    std::cerr << "************ Data Structures ************\n";
+    for (const auto &[addr, dss] : data_per_obj) {
+      std::cerr << "@" << addr << ": [";
+      for (const DS *ds : dss) {
+        std::cerr << ds->id << ",";
+      }
+      std::cerr << "]\n";
+    }
+    std::cerr << "*****************************************\n";
   }
 };
 

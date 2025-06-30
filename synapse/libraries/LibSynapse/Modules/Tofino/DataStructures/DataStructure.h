@@ -123,6 +123,22 @@ struct DS {
     return primitives;
   }
 
+  std::vector<DS_ID> unwrap() const {
+    std::vector<DS_ID> ids;
+
+    if (primitive) {
+      ids.push_back(id);
+      return ids;
+    }
+
+    const std::vector<std::unordered_set<DS_ID>> internal_primitives = get_internal_primitive_ids();
+    for (const std::unordered_set<DS_ID> &data_structures : internal_primitives) {
+      ids.insert(ids.end(), data_structures.begin(), data_structures.end());
+    }
+
+    return ids;
+  }
+
   std::vector<std::unordered_set<DS_ID>> get_internal_primitive_ids() const {
     std::vector<std::unordered_set<DS_ID>> primitive_ids;
 

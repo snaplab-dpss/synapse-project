@@ -24,7 +24,7 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
         .available_map_ram          = properties.map_ram_per_stage,
         .available_exact_match_xbar = properties.exact_match_xbar_per_stage,
         .available_logical_ids      = properties.max_logical_sram_and_tcam_tables_per_stage,
-        .tables                     = {},
+        .data_structures            = {},
     };
 
     stages.push_back(s);
@@ -45,7 +45,7 @@ void Pipeline::debug() const {
   ss << "====================== TNA Pipeline ======================\n";
 
   for (const Stage &stage : resources.stages) {
-    if (stage.tables.empty()) {
+    if (stage.data_structures.empty()) {
       continue;
     }
 
@@ -99,11 +99,11 @@ void Pipeline::debug() const {
 
     ss << "Objs: [";
     bool first = true;
-    for (DS_ID table_id : stage.tables) {
+    for (DS_ID ds_id : stage.data_structures) {
       if (!first) {
         ss << ",";
       }
-      ss << table_id;
+      ss << ds_id;
       first = false;
     }
     ss << "]";
@@ -119,7 +119,7 @@ void Pipeline::debug() const {
 
 int Pipeline::get_placed_stage(DS_ID ds_id) const {
   auto it = std::find_if(resources.stages.begin(), resources.stages.end(),
-                         [ds_id](const Stage &stage) { return stage.tables.find(ds_id) != stage.tables.end(); });
+                         [ds_id](const Stage &stage) { return stage.data_structures.find(ds_id) != stage.data_structures.end(); });
 
   if (it != resources.stages.end()) {
     return it->stage_id;
@@ -163,7 +163,7 @@ int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered
   int soonest_stage_id = -1;
 
   for (const Stage &stage : resources.stages) {
-    cummulative_ds.insert(stage.tables.begin(), stage.tables.end());
+    cummulative_ds.insert(stage.data_structures.begin(), stage.data_structures.end());
 
     bool all_dependencies_are_satisfied =
         std::all_of(deps.begin(), deps.end(), [&cummulative_ds](DS_ID dep) { return cummulative_ds.find(dep) != cummulative_ds.end(); });
@@ -216,25 +216,23 @@ PlacementStatus Pipeline::can_place(const DS *ds, const std::unordered_set<DS_ID
 }
 
 PlacementResult Pipeline::find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
-  PlacementResult result = SimplePlacer::find_placements(*this, ds, deps);
+  PlacementResult result;
+
+  result = SimplePlacer::find_placements(*this, ds, deps);
   if (result.status == PlacementStatus::Success) {
     return result;
   }
 
-  debug();
-  std::cerr << "Simple placer failed to place data structure: " << ds->id << "\n";
-  std::cerr << "Deps: [";
-  for (const DS_ID &dep : deps) {
-    std::cerr << dep << ", ";
-  }
-  std::cerr << "]\n";
-  std::cerr << "Reason: " << placement_status_to_string(result.status) << "\n";
+  // debug();
+  // std::cerr << "Simple placer failed to place data structure: " << ds->id << "\n";
+  // std::cerr << "Deps: [";
+  // for (const DS_ID &dep : deps) {
+  //   std::cerr << dep << ", ";
+  // }
+  // std::cerr << "]\n";
+  // std::cerr << "Reason: " << placement_status_to_string(result.status) << "\n";
 
-  // If the simple placer failed, we can try the solver.
-  // TODO: implement the solver.
-  assert(false && "TODO: implement the solver placer");
-
-  return result;
+  return SolverPlacer::find_placements(*this, ds, deps);
 }
 
 } // namespace Tofino

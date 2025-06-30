@@ -9,16 +9,13 @@ else()
     message(FATAL_ERROR "KLEE_DIR env var is not set")
 endif()
 
-set(KLEE_INCLUDES ${KLEE_DIR}/include ${KLEE_DIR}/build/include)
-set(KLEE_LIB_DIR ${KLEE_DIR}/build/lib)
+find_package(KLEE REQUIRED)
 
-set(KLEE_LIBRARIES
-    ${KLEE_LIB_DIR}/libkleeModule.a
-    ${KLEE_LIB_DIR}/libkleaverSolver.a
-    ${KLEE_LIB_DIR}/libkleeBasic.a
-    ${KLEE_LIB_DIR}/libkleaverExpr.a
-    ${KLEE_LIB_DIR}/libkleeSupport.a
-    ${KLEE_LIB_DIR}/libkleeCore.a
-)
-
-message(STATUS "KLEE_LIBRARIES: ${KLEE_LIBRARIES}")
+if (KLEE_FOUND)
+    message(STATUS "Found KLEE")
+    message(STATUS "KLEE_INCLUDE_DIRS: ${KLEE_INCLUDE_DIRS}")
+    message(STATUS "KLEE_LIBRARY_DIRS: ${KLEE_LIBRARY_DIRS}")
+    message(STATUS "KLEE_LIBRARIES: ${KLEE_LIBRARIES}")
+else()
+    message (FATAL_ERROR "KLEE not found.")
+endif()
