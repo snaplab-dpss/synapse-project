@@ -22,7 +22,7 @@ void sycon::nf_user_signal_handler() {}
 void sycon::nf_args(CLI::App &app) {}
 
 struct cpu_hdr_extra_t {
-  u32 ingress_dev;
+  u16 ingress_dev;
 } __attribute__((packed));
 
 nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
@@ -36,10 +36,10 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   udp_hdr_t *udp_hdr   = packet_consume<udp_hdr_t>(pkt);
 
   buffer_t key(12);
-  key.set(0, 4, ipv4_hdr->src_ip);
-  key.set(4, 4, ipv4_hdr->dst_ip);
-  key.set(8, 2, udp_hdr->src_port);
-  key.set(10, 2, udp_hdr->dst_port);
+  key.set(0, 4, bswap32(ipv4_hdr->src_ip));
+  key.set(4, 4, bswap32(ipv4_hdr->dst_ip));
+  key.set(8, 2, bswap16(udp_hdr->src_port));
+  key.set(10, 2, bswap16(udp_hdr->dst_port));
 
   u32 value = 0;
   if (!state->map_table.get(key, value)) {

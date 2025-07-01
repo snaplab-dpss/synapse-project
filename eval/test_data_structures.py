@@ -15,19 +15,16 @@ from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 50_000
-KVS_GET_RATIO = 0.99
 CHURN_FPM = 0
 ZIPF_PARAM = 1
 
 
 @dataclass
-class SynapseNF:
+class NF:
     name: str
     description: str
     data_out: Path
-    kvs_mode: bool
     tofino: Path
     controller: Path
     broadcast: Callable[[list[int]], list[int]]
@@ -36,61 +33,16 @@ class SynapseNF:
 
 
 NFS = [
-    # SynapseNF(
-    #     name="echo",
-    #     description="Synapse echo",
-    #     data_out=Path("tput_synapse_echo.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-echo.p4"),
-    #     controller=Path("synthesized/synapse-echo.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name="fwd",
-    #     description="Synapse forwarder",
-    #     data_out=Path("tput_synapse_fwd.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-fwd.p4"),
-    #     controller=Path("synthesized/synapse-fwd.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    SynapseNF(
-        name="synapse-kvs-hhtable",
-        description="Synapse KVS HHTable",
-        data_out=Path("tput_synapse_kvs_hhtable.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
-        controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
+    NF(
+        name="map_table",
+        description="MapTable",
+        data_out=Path("tput_map_table.csv"),
+        tofino=Path("tofino/data_structures/map_table/map_table.p4"),
+        controller=Path("tofino/data_structures/map_table/map_table.cpp"),
         broadcast=lambda ports: ports,
         symmetric=lambda _: [],
         route=lambda _: [],
     ),
-    # SynapseNF(
-    #     name="synapse-kvs-maptable",
-    #     description="Synapse KVS MapTable",
-    #     data_out=Path("tput_synapse_kvs_maptable.csv"),
-    #     kvs_mode=True,
-    #     tofino=Path("synthesized/synapse-kvs-maptable.p4"),
-    #     controller=Path("synthesized/synapse-kvs-maptable.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name="synapse-kvs-guardedmaptable",
-    #     description="Synapse KVS GuardedMapTable",
-    #     data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
-    #     kvs_mode=True,
-    #     tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
-    #     controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
 ]
 
 
@@ -99,15 +51,12 @@ class Test(Experiment):
         self,
         # Experiment parameters
         name: str,
-        delay_ns: int,
         # Hosts
         tput_hosts: ThroughputHosts,
-        kvs_server: Optional[KVSServer],
         # TG controller
         broadcast: list[int],
         symmetric: list[int],
         route: list[tuple[int, int]],
-        kvs_mode: bool,
         # Synapse
         p4_src_in_repo: Path,
         controller_src_in_repo: Path,
@@ -121,20 +70,15 @@ class Test(Experiment):
     ) -> None:
         super().__init__(name, experiment_log_file, 1)
 
-        # Experiment parameters
-        self.delay_ns = delay_ns
-
         # Hosts
         self.tput_hosts = tput_hosts
-        self.kvs_server = kvs_server
 
         # TG controller
         self.broadcast = broadcast
         self.symmetric = symmetric
         self.route = route
-        self.kvs_mode = kvs_mode
 
-        # Synapse
+        # NF
         self.p4_src_in_repo = p4_src_in_repo
         self.controller_src_in_repo = controller_src_in_repo
         self.dut_ports = dut_ports
@@ -144,8 +88,6 @@ class Test(Experiment):
         self.zipf_param = zipf_param
         self.churn_fpm = churn_fpm
 
-        assert not self.kvs_mode or (self.kvs_server is not None)
-
     def run(self) -> None:
         self.log("Installing Tofino TG")
         self.tput_hosts.tg_switch.install()
@@ -153,19 +95,19 @@ class Test(Experiment):
         self.log("Launching Tofino TG")
         self.tput_hosts.tg_switch.launch()
 
-        self.log("Installing Synapse P4 program")
+        self.log("Installing P4 program")
         self.tput_hosts.dut_switch.install(
             src_in_repo=self.p4_src_in_repo,
         )
 
-        self.log("Launching Synapse controller")
+        self.log("Launching controller")
         self.tput_hosts.dut_controller.launch(
             src_in_repo=self.controller_src_in_repo,
             ports=self.dut_ports,
         )
 
         self.log("Launching pktgen")
-        self.tput_hosts.pktgen.launch(kvs_mode=self.kvs_mode)
+        self.tput_hosts.pktgen.launch()
 
         self.log("Waiting for Tofino TG")
         self.tput_hosts.tg_switch.wait_ready()
@@ -182,14 +124,7 @@ class Test(Experiment):
 
         self.log("Starting experiment")
 
-        if self.kvs_mode:
-            assert self.kvs_server is not None
-            self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
-            self.kvs_server.kill_server()
-            self.kvs_server.launch(delay_ns=self.delay_ns)
-            self.kvs_server.wait_launch()
-
-        self.log("Waiting for the Synapse controller")
+        self.log("Waiting for controller")
         self.tput_hosts.dut_controller.wait_ready()
 
         self.log("Launching pktgen")
@@ -198,8 +133,6 @@ class Test(Experiment):
             nb_flows=self.total_flows,
             traffic_dist=TrafficDist.ZIPF,
             zipf_param=self.zipf_param,
-            kvs_mode=True,
-            kvs_get_ratio=KVS_GET_RATIO,
         )
 
         self.tput_hosts.pktgen.wait_launch()
@@ -223,10 +156,6 @@ class Test(Experiment):
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.quit()
 
-        if self.kvs_mode:
-            assert self.kvs_server is not None
-            self.kvs_server.kill_server()
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -247,13 +176,6 @@ def main():
         use_accelerator=False,
     )
 
-    kvs_server = KVSServer(
-        hostname=config["hosts"]["server"],
-        repo=config["repo"]["server"],
-        pcie_dev=config["devices"]["server"]["dev"],
-        log_file=config["logs"]["server"],
-    )
-
     tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
     symmetric = []
     route = []
@@ -265,20 +187,13 @@ def main():
 
         # Force a copy of the list to avoid modifying the original list.
         dut_ports = list(config["devices"]["switch_dut"]["client_ports"])
-        if nf.kvs_mode:
-            server_port = config["devices"]["switch_dut"]["server_port"]
-            dut_ports.append(server_port)
-            dut_ports = sorted(dut_ports)
 
         experiment = Test(
             name=nf.description,
-            delay_ns=STORAGE_SERVER_DELAY_NS,
             tput_hosts=tput_hosts,
-            kvs_server=kvs_server if nf.kvs_mode else None,
             broadcast=broadcast,
             symmetric=symmetric,
             route=route,
-            kvs_mode=nf.kvs_mode,
             p4_src_in_repo=nf.tofino,
             controller_src_in_repo=nf.controller,
             dut_ports=dut_ports,
@@ -291,7 +206,6 @@ def main():
         experiment.run()
 
     tput_hosts.terminate()
-    kvs_server.kill_server()
 
 
 if __name__ == "__main__":
