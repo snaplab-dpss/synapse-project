@@ -46,7 +46,7 @@ public:
     flows[flow_idx] = LibCore::random_flow();
   }
 
-  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
+  virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
     pkt_t pkt                   = template_packet;
     const LibCore::flow_t &flow = flows[flow_idx];
     pkt.ip_hdr.src_addr         = flow.five_tuple.src_ip;
@@ -55,8 +55,6 @@ public:
     pkt.udp_hdr.dst_port        = flow.five_tuple.dst_port;
     return pkt;
   }
-
-  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) override { return build_packet(dev, flow_idx); }
 
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return std::nullopt; }
 };

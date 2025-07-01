@@ -160,7 +160,7 @@ class Task:
 
             if process.returncode < 0:
                 self.log(f"terminated by signal {-process.returncode}", color=ABORT_COLOR)
-                if process.returncode not in [-signal.SIGINT, -signal.SIGABRT]:
+                if process.returncode not in [-signal.SIGINT]:
                     self.log_failed_cmd(process.returncode)
                 return False
 

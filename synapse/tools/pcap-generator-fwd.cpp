@@ -44,15 +44,6 @@ public:
                       const std::vector<LibCore::flow_t> &_base_flows)
       : TrafficGenerator("fwd", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
         lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
-    for (LibCore::flow_t &flow : flows) {
-      const device_t lan_dev = get_current_client_dev();
-      const device_t wan_dev = connections.at(lan_dev);
-      advance_client_dev();
-
-      flow.five_tuple.src_ip = mask_addr_from_dev(flow.five_tuple.src_ip, lan_dev);
-      flow.five_tuple.dst_ip = mask_addr_from_dev(flow.five_tuple.dst_ip, wan_dev);
-    }
-
     reset_client_dev();
   }
 
@@ -60,18 +51,10 @@ public:
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
-
-    const device_t lan_dev = get_client_dev_from_flow(flow_idx);
-    const device_t wan_dev = connections.at(lan_dev);
-
-    LibCore::flow_t new_flow   = LibCore::random_flow();
-    new_flow.five_tuple.src_ip = mask_addr_from_dev(new_flow.five_tuple.src_ip, lan_dev);
-    new_flow.five_tuple.dst_ip = mask_addr_from_dev(new_flow.five_tuple.dst_ip, wan_dev);
-
-    flows[flow_idx] = new_flow;
+    flows[flow_idx] = LibCore::random_flow();
   }
 
-  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
+  virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
     pkt_t pkt = template_packet;
 
     LibCore::flow_t flow = flows[flow_idx];
@@ -86,8 +69,6 @@ public:
 
     return pkt;
   }
-
-  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) override { return build_packet(dev, flow_idx); }
 
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return connections.at(dev); }
 

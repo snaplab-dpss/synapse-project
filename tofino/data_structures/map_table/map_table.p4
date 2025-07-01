@@ -184,6 +184,7 @@ control Ingress(
 	apply {
 		if (hdr.cpu.isValid()) {
 			forward(hdr.cpu.egress_dev[8:0]);
+			hdr.cpu.setInvalid();
 		} else {
 			map_table_0_key0 = hdr.ipv4.src_addr;
 			map_table_0_key1 = hdr.ipv4.dst_addr;

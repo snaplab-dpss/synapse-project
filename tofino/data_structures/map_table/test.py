@@ -12,9 +12,9 @@ from scapy.layers.inet import IP, UDP
 
 from dataclasses import dataclass
 
-assert test_param_get("arch") in ["tofino", "tofino2"]
+ARCH = test_param_get("arch")
+assert ARCH in ["tofino", "tofino2"]
 
-CLIENT_NF_DEV = 0
 CLIENT_PORT = 0 if test_param_get("arch") == "tofino" else 8
 
 PROGRAM = "map_table"
@@ -60,6 +60,8 @@ def send_and_expect(bfruntimetest, flow: Flow, expected_port: int, send_to_port:
     assert obytes is not None, f"[recv] No response from port {expected_port}"
     opkt = Ether(obytes)
 
+    print(f"[recv] {opkt.summary()}")
+
     assert IP in opkt and UDP in opkt
     out_flow = Flow(
         src_ip=opkt[IP].src,
@@ -90,14 +92,10 @@ class Random(BfRuntimeTest):
             self.flows.append(flow)
 
     def runTest(self):
-        self.time += 10
-
-        n = CAPACITY * 10
+        n = 1000
         for i in range(n):
             flow = random.choice(self.flows)
-
             res_flow = send_and_expect(self, flow, CLIENT_PORT, CLIENT_PORT)
-
             assert flow == res_flow, f"Expected flow {flow}, but got {res_flow}"
             print(f"Test {i + 1}/{n}: {flow} -> {res_flow}")
         print()

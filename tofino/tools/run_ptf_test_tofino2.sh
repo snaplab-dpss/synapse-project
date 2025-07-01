@@ -96,12 +96,12 @@ run_tests() {
 	program=$1
 	test=$(realpath $2)
 
-	test_dir=$(dirname $test)
+	test_dir=$(realpath $(dirname $test))
 	test_file=$(basename -- "$test")
 	test_file="${test_file%.*}"
 
 	pushd $LOG_DIR
-		$P4_TESTS_SCRIPT -p $program -t $test_dir -s $test_file --arch tf2 -f $PORTS_FILE
+		$P4_TESTS_SCRIPT --no-veth --no-status-srv -p $program -t $test_dir -s $test_file --arch tf2 -f $PORTS_FILE
 	popd
 }
 

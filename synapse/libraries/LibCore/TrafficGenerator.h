@@ -3,6 +3,12 @@
 #include <LibCore/Net.h>
 
 #include <unordered_set>
+#include <optional>
+#include <algorithm>
+#include <sstream>
+#include <filesystem>
+#include <cassert>
+#include <iostream>
 
 namespace LibCore {
 
@@ -63,6 +69,7 @@ protected:
   std::unordered_map<device_t, LibCore::PcapWriter> warmup_writers;
   std::unordered_map<device_t, LibCore::PcapWriter> writers;
 
+  LibCore::RandomUniformEngine seeds_random_engine;
   LibCore::RandomUniformEngine churn_random_engine;
   LibCore::RandomUniformEngine flows_random_engine_uniform;
   LibCore::RandomZipfEngine flows_random_engine_zipf;
@@ -130,25 +137,22 @@ protected:
     return config.out_dir / ss.str();
   }
 
-  static in_addr_t mask_addr_from_dev(in_addr_t addr, u16 dev) { return LibCore::ipv4_set_prefix(addr, dev, 6); }
-
   void advance_client_dev() { client_dev_it = (client_dev_it + 1) % config.client_devices.size(); }
   void reset_client_dev() { client_dev_it = 0; }
   device_t get_current_client_dev() const { return config.client_devices.at(client_dev_it); }
-
-  device_t get_client_dev_from_flow(flow_idx_t flow_idx) const {
-    const u64 client_idx = config.client_devices.size() * (flow_idx / static_cast<double>(config.total_flows));
-    assert(client_idx < config.client_devices.size() && "Flow index out of bounds for client devices");
-    return config.client_devices.at(client_idx);
-  }
 
   void report() const;
 
   virtual bytes_t get_hdrs_len() const                                                      = 0;
   virtual void random_swap_flow(flow_idx_t flow_idx)                                        = 0;
-  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx)                             = 0;
-  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx)                      = 0;
+  virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx)              = 0;
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const = 0;
+
+  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) {
+    const std::optional<pkt_t> pkt = build_packet(dev, flow_idx);
+    assert(pkt.has_value() && "Failed to build warmup packet");
+    return *pkt;
+  }
 
   void tick() {
     // To obtain the time in seconds:

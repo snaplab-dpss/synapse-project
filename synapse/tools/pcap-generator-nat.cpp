@@ -59,6 +59,8 @@ public:
   size_t available() const { return available_ports.size(); }
   size_t allocated() const { return flow_to_port.size(); }
 
+  bool has(const LibCore::flow_t &flow) const { return flow_to_port.contains(flow); }
+
   device_t get(const LibCore::flow_t &flow) { return flow_to_port.at(flow); }
 
   bool free(const LibCore::flow_t &flow) {
@@ -91,17 +93,7 @@ public:
                       const std::vector<LibCore::flow_t> &_base_flows)
       : TrafficGenerator("nat", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
         lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
-    assert(flows.size() <= 65535 && "Too many flows for a NAT (max 65535).");
-
-    for (LibCore::flow_t &flow : flows) {
-      const device_t lan_dev = get_current_client_dev();
-      const device_t wan_dev = connections.at(lan_dev);
-      advance_client_dev();
-
-      flow.five_tuple.src_ip = mask_addr_from_dev(flow.five_tuple.src_ip, lan_dev);
-      flow.five_tuple.dst_ip = mask_addr_from_dev(flow.five_tuple.dst_ip, wan_dev);
-    }
-
+    assert(flows.size() <= 65536 && "Too many flows for a NAT (max 65536).");
     reset_client_dev();
   }
 
@@ -110,13 +102,8 @@ public:
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
 
-    const device_t lan_dev = get_client_dev_from_flow(flow_idx);
-    const device_t wan_dev = connections.at(lan_dev);
-
-    const LibCore::flow_t old_flow = flows[flow_idx];
+    const LibCore::flow_t old_flow = flows.at(flow_idx);
     LibCore::flow_t new_flow       = LibCore::random_flow();
-    new_flow.five_tuple.src_ip     = mask_addr_from_dev(new_flow.five_tuple.src_ip, lan_dev);
-    new_flow.five_tuple.dst_ip     = mask_addr_from_dev(new_flow.five_tuple.dst_ip, wan_dev);
 
     allocated_flows.erase(old_flow);
     port_allocator.free(old_flow);
@@ -125,8 +112,8 @@ public:
     flows_swapped++;
   }
 
-  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
-    const LibCore::flow_t &flow = flows[flow_idx];
+  virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
+    const LibCore::flow_t &flow = flows.at(flow_idx);
 
     if (lan_devs.contains(dev)) {
       if (allocated_flows.find(flow) == allocated_flows.end()) {
@@ -142,24 +129,25 @@ public:
       pkt.udp_hdr.dst_port = flow.five_tuple.dst_port;
 
       return pkt;
-    } else {
-      LibCore::flow_t inverted_flow = flow.invert();
-
-      const device_t allocated_port = port_allocator.get(flow);
-
-      pkt_t pkt            = template_packet;
-      pkt.ip_hdr.src_addr  = inverted_flow.five_tuple.src_ip;
-      pkt.udp_hdr.src_port = inverted_flow.five_tuple.src_port;
-
-      // No ntohs, the original NAT doesn't care.
-      pkt.ip_hdr.dst_addr  = PUBLIC_IP;
-      pkt.udp_hdr.dst_port = allocated_port;
-
-      return pkt;
     }
-  }
 
-  virtual pkt_t build_warmup_packet(device_t dev, flow_idx_t flow_idx) override { return build_packet(dev, flow_idx); }
+    if (!port_allocator.has(flow)) {
+      return std::nullopt;
+    }
+
+    const LibCore::flow_t inverted_flow = flow.invert();
+    const device_t allocated_port       = port_allocator.get(flow);
+
+    pkt_t pkt            = template_packet;
+    pkt.ip_hdr.src_addr  = inverted_flow.five_tuple.src_ip;
+    pkt.udp_hdr.src_port = inverted_flow.five_tuple.src_port;
+
+    // No ntohs, the original NAT doesn't care.
+    pkt.ip_hdr.dst_addr  = PUBLIC_IP;
+    pkt.udp_hdr.dst_port = allocated_port;
+
+    return pkt;
+  }
 
   virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return connections.at(dev); }
 

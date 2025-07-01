@@ -94,7 +94,7 @@ public:
     flows_swapped++;
   }
 
-  virtual pkt_t build_packet(device_t dev, flow_idx_t flow_idx) override {
+  virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
     pkt_t pkt          = template_packet;
     const kv_key_t key = keys[flow_idx];
     const kvs_op_t op  = get_next_op(flow_idx);

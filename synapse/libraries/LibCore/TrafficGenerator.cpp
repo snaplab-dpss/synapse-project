@@ -3,10 +3,11 @@
 namespace LibCore {
 
 TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config, bool _assume_ip)
-    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()),
-      churn_random_engine(config.random_seed, 0, config.total_flows - 1), flows_random_engine_uniform(config.random_seed, 0, config.total_flows - 1),
-      flows_random_engine_zipf(config.random_seed, config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL), client_dev_it(0),
-      counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
+    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()), seeds_random_engine(config.random_seed, 0, UINT32_MAX),
+      churn_random_engine(seeds_random_engine.generate(), 0, config.total_flows - 1),
+      flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
+      flows_random_engine_zipf(seeds_random_engine.generate(), config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL),
+      client_dev_it(0), counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
   for (device_t client_dev : config.client_devices) {
     warmup_writers.emplace(client_dev, PcapWriter(get_warmup_pcap_fname(nf, config, client_dev), assume_ip));
     client_to_active_device.emplace(client_dev, client_dev);
@@ -97,8 +98,9 @@ void TrafficGenerator::generate() {
 
   const device_t first_client_dev = get_current_client_dev();
 
-  for (u64 i = 0; i < config.total_packets; i++) {
+  while (counter < config.total_packets) {
     const device_t client_dev = get_current_client_dev();
+    const device_t dev        = client_to_active_device.at(client_dev);
     advance_client_dev();
 
     if (client_dev == first_client_dev) {
@@ -106,23 +108,26 @@ void TrafficGenerator::generate() {
     }
 
     if (next_alarm >= 0 && current_time >= next_alarm) {
-      const flow_idx_t chosen_swap_flow_idx = churn_random_engine.generate();
+      flow_idx_t chosen_swap_flow_idx = churn_random_engine.generate();
       random_swap_flow(chosen_swap_flow_idx);
       counters[chosen_swap_flow_idx] = 0;
       flows_swapped++;
       next_alarm += alarm_tick;
     }
 
-    const flow_idx_t flow_idx = get_next_flow_idx();
-    const device_t dev        = client_to_active_device.at(client_dev);
-    const pkt_t pkt           = build_packet(dev, flow_idx);
-    const u8 *data            = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
-
-    writers.at(dev).write(data, hdrs_len, pkt_len, current_time);
+    const flow_idx_t flow_idx      = get_next_flow_idx();
+    const std::optional<pkt_t> pkt = build_packet(dev, flow_idx);
 
     if (std::optional<device_t> res_dev = get_response_dev(dev, flow_idx)) {
       client_to_active_device[client_dev] = *res_dev;
     }
+
+    if (!pkt.has_value()) {
+      continue;
+    }
+
+    const u8 *data = assume_ip ? reinterpret_cast<const u8 *>(&pkt->ip_hdr) : reinterpret_cast<const u8 *>(&pkt.value());
+    writers.at(dev).write(data, hdrs_len, pkt_len, current_time);
 
     counters[flow_idx]++;
     counter++;
@@ -173,9 +178,9 @@ void TrafficGenerator::generate_warmup() {
   const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
   const bytes_t pkt_len  = assume_ip ? config.packet_size_without_crc - sizeof(ether_hdr_t) : config.packet_size_without_crc;
 
-  u64 counter  = 0;
-  u64 goal     = config.total_flows;
-  int progress = -1;
+  const u64 goal = config.total_flows * warmup_writers.size();
+  u64 counter    = 0;
+  int progress   = -1;
 
   for (const auto &[dev, warmup_writer] : warmup_writers) {
     printf("Warmup dev %u: %s\n", dev, warmup_writer.get_output_fname().c_str());

@@ -19,6 +19,7 @@ TOFINO_MODEL_SCRIPT="$SDE/run_tofino_model.sh"
 BUILD_SYNAPSE_NF_SCRIPT="$SCRIPT_DIR/build_synapse_nf.sh"
 VETH_SETUP_SCRIPT="$SCRIPT_DIR/veth_setup.sh"
 PORTS_FILE="$SCRIPT_DIR/ports_tof2.json"
+P4_TESTS_SCRIPT="$SDE/run_p4_tests.sh"
 
 # Expects 2 arguments:
 # 1. Path to the Synapse NF name (e.g., "synapse_nf_nat"), so that we can find the following files:
@@ -119,13 +120,19 @@ run_nf() {
             exit 1
         fi
     popd
-    
 }
 
 run_tests() {
     echo
     echo "[*] Running tests for $SYNAPSE_NF_NAME using $test_script"
-    sudo PYTHONPATH="$BFRT_PYTHON_PATH" $test_script
+
+    test_dir=$(realpath $(dirname $test_script))
+	test_file=$(basename -- "$test_script")
+	test_file="${test_script%.*}"
+
+	pushd $LOG_DIR
+		PYTHONPATH="$BFRT_PYTHON_PATH" $P4_TESTS_SCRIPT --no-veth --no-status-srv -p $SYNAPSE_NF_NAME -t $test_dir -s $test_file --arch tf2 -f $PORTS_FILE
+	popd
 }
 
 trap cleanup EXIT
