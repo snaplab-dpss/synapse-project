@@ -2,8 +2,16 @@
 
 #if __TARGET_TOFINO__ == 2
 	#include <t2na.p4>
+	#define CPU_PCIE_PORT 0
+	#define RECIRCULATION_PORT_0 6
+	#define RECIRCULATION_PORT_1 128
+	#define RECIRCULATION_PORT_2 256
+	#define RECIRCULATION_PORT_3 384
 #else
 	#include <tna.p4>
+	#define CPU_PCIE_PORT 192
+	#define RECIRCULATION_PORT_0 68
+	#define RECIRCULATION_PORT_1 196
 #endif
 
 typedef bit<9> port_t;
@@ -13,6 +21,13 @@ typedef bit<32> time_t;
 const bit<16> ETHERTYPE_IPV4 = 0x800;
 const bit<8>  IP_PROTO_TCP   = 6;
 const bit<8>  IP_PROTO_UDP   = 17;
+
+header cpu_h {
+	bit<16>	code_path;                   // Written by the data plane
+	bit<16>	egress_dev;                  // Written by the control plane
+	bit<8>	trigger_dataplane_execution; // Written by the control plane
+	bit<16> ingress_dev;
+}
 
 header ethernet_t {
 	bit<48> dstAddr;
@@ -43,6 +58,7 @@ header udp_t {
 }
 
 struct headers_t {
+	cpu_h cpu;
 	ethernet_t ethernet;
 	ipv4_t ipv4;
 	udp_t udp;
@@ -85,7 +101,15 @@ parser IngressParser(
 	/* This is a mandatory state, required by Tofino Architecture */
 	state start {
 		tofino_parser.apply(pkt, hdr, ig_intr_md);
-		transition parse_ethernet;
+		transition select(ig_intr_md.ingress_port) {
+			CPU_PCIE_PORT: parse_cpu;
+			default: parse_ethernet;
+		}
+	}
+
+	state parse_cpu {
+		pkt.extract(hdr.cpu);
+		transition accept;
 	}
 
 	state parse_ethernet {
@@ -126,6 +150,12 @@ control Ingress(
 		ig_tm_md.ucast_egress_port = port;
 	}
 
+	action send_to_controller(bit<16> code_path) {
+		hdr.cpu.setValid();
+		hdr.cpu.code_path = code_path;
+		forward(CPU_PCIE_PORT);
+	}
+
 	bit<32> map_table_0_value = 0;
 	action map_table_0_set_value(bit<32> value) {
 		map_table_0_value = value;
@@ -133,54 +163,39 @@ control Ingress(
 
 	bit<32> map_table_0_key0 = 0;
 	bit<32> map_table_0_key1 = 0;
+	bit<16> map_table_0_key2 = 0;
+	bit<16> map_table_0_key3 = 0;
 	table map_table_0 {
 		key = {
 			map_table_0_key0: exact;
 			map_table_0_key1: exact;
+			map_table_0_key2: exact;
+			map_table_0_key3: exact;
 		}
 
 		actions = {
 			map_table_0_set_value;
 		}
 
-		size = 4;
-	}
-
-	bit<32> map_table_1_value = 0;
-	action map_table_1_set_value(bit<32> value) {
-		map_table_1_value = value;
-	}
-
-	bit<16> map_table_1_key0 = 0;
-	bit<16> map_table_1_key1 = 0;
-	bit<32> map_table_1_key2 = 0;
-	table map_table_1 {
-		key = {
-			map_table_1_key0: exact;
-			map_table_1_key1: exact;
-			map_table_1_key2: exact;
-		}
-
-		actions = {
-			map_table_1_set_value;
-		}
-
-		size = 4;
+		size = 65536;
+		idle_timeout = true;
 	}
 
 	apply {
-		// Prevent the compiler from optimizing away our data structures.
-		if (ig_intr_md.ingress_port == 1) {
+		if (hdr.cpu.isValid()) {
+			forward(hdr.cpu.egress_dev[8:0]);
+		} else {
 			map_table_0_key0 = hdr.ipv4.src_addr;
 			map_table_0_key1 = hdr.ipv4.dst_addr;
-			map_table_0.apply();
-			forward(map_table_0_value[8:0]);
-		} else {
-			map_table_1_key0 = hdr.udp.src_port;
-			map_table_1_key1 = hdr.udp.dst_port;
-			map_table_1_key2 = hdr.ipv4.src_addr;
-			map_table_1.apply();
-			forward(map_table_1_value[8:0]);
+			map_table_0_key2 = hdr.udp.src_port;
+			map_table_0_key3 = hdr.udp.dst_port;
+			bool hit = map_table_0.apply().hit;
+			if (!hit) {
+				send_to_controller(0);
+				hdr.cpu.ingress_dev[8:0] = ig_intr_md.ingress_port;
+			} else {
+				forward(ig_intr_md.ingress_port);
+			}
 		}
 	}
 }

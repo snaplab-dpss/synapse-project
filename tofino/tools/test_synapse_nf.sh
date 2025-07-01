@@ -17,6 +17,7 @@ LOG_SYNAPSE_NF="synapse_nf.log"
 
 TOFINO_MODEL_SCRIPT="$SDE/run_tofino_model.sh"
 BUILD_SYNAPSE_NF_SCRIPT="$SCRIPT_DIR/build_synapse_nf.sh"
+VETH_SETUP_SCRIPT="$SCRIPT_DIR/veth_setup.sh"
 PORTS_FILE="$SCRIPT_DIR/ports_tof2.json"
 
 # Expects 2 arguments:
@@ -36,6 +37,10 @@ test_script=$2
 SYNAPSE_NF_NAME=$(basename "$SYNAPSE_NF_PATH")
 SYNAPSE_NF_P4="$SYNAPSE_NF_NAME.p4"
 SYNAPSE_NF_CPP="$SYNAPSE_NF_NAME.cpp"
+
+BFRT_PYTHON_PATH="$SDE_INSTALL/lib/python3.10/site-packages/tofino/"
+BFRT_PYTHON_PATH="$BFRT_PYTHON_PATH:$SDE_INSTALL/lib/python3.10/site-packages/p4testutils/"
+BFRT_PYTHON_PATH="$BFRT_PYTHON_PATH:$SDE_INSTALL/lib/python3.10/site-packages/"
 
 if [ ! -f "$SYNAPSE_NF_P4" ]; then
     echo "Error: P4 file not found at $SYNAPSE_NF_P4"
@@ -102,6 +107,7 @@ run_nf() {
 
     pushd $LOG_DIR
         touch $LOG_SYNAPSE_NF
+        sudo $VETH_SETUP_SCRIPT
         sudo -E \
             $CURRENT_DIR/build/debug/$SYNAPSE_NF_NAME \
             --ports {1..32} \
@@ -119,7 +125,7 @@ run_nf() {
 run_tests() {
     echo
     echo "[*] Running tests for $SYNAPSE_NF_NAME using $test_script"
-    sudo $test_script
+    sudo PYTHONPATH="$BFRT_PYTHON_PATH" $test_script
 }
 
 trap cleanup EXIT

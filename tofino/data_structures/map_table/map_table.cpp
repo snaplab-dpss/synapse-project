@@ -5,7 +5,7 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   MapTable map_table;
 
-  state_t() : map_table("map_table", {"Ingress.map_table_0", "Ingress.map_table_1"}) {}
+  state_t() : map_table("map_table", {"Ingress.map_table_0"}, 1000) {}
 };
 
 state_t *state = nullptr;
@@ -13,35 +13,6 @@ state_t *state = nullptr;
 void sycon::nf_init() {
   nf_state = std::make_unique<state_t>();
   state    = dynamic_cast<state_t *>(nf_state.get());
-
-  buffer_t key(8);
-  key[0] = 0x00;
-  key[1] = 0x01;
-  key[2] = 0x02;
-  key[3] = 0x03;
-  key[4] = 0x04;
-  key[5] = 0x05;
-  key[6] = 0x06;
-  key[7] = 0x07;
-
-  u32 value = 0xdeadbeef;
-
-  LOG("***** Empty map table *****");
-  state->map_table.dump();
-
-  LOG("******** New entry ********");
-  state->map_table.put(key, value);
-  state->map_table.dump();
-
-  value = 0xcafebabe;
-
-  LOG("******** Entry mod ********");
-  state->map_table.put(key, value);
-  state->map_table.dump();
-
-  LOG("******** Entry del ********");
-  state->map_table.del(key);
-  state->map_table.dump();
 }
 
 void sycon::nf_exit() {}
@@ -50,8 +21,36 @@ void sycon::nf_user_signal_handler() {}
 
 void sycon::nf_args(CLI::App &app) {}
 
+struct cpu_hdr_extra_t {
+  u32 ingress_dev;
+} __attribute__((packed));
+
 nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   nf_process_result_t result;
+
+  cpu_hdr_t *cpu_hdr             = packet_consume<cpu_hdr_t>(pkt);
+  cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
+
+  eth_hdr_t *eth_hdr   = packet_consume<eth_hdr_t>(pkt);
+  ipv4_hdr_t *ipv4_hdr = packet_consume<ipv4_hdr_t>(pkt);
+  udp_hdr_t *udp_hdr   = packet_consume<udp_hdr_t>(pkt);
+
+  buffer_t key(12);
+  key.set(0, 4, ipv4_hdr->src_ip);
+  key.set(4, 4, ipv4_hdr->dst_ip);
+  key.set(8, 2, udp_hdr->src_port);
+  key.set(10, 2, udp_hdr->dst_port);
+
+  u32 value = 0;
+  if (!state->map_table.get(key, value)) {
+    state->map_table.put(key, value);
+  }
+
+  cpu_hdr->egress_dev = cpu_hdr_extra->ingress_dev;
+
+  // packet_hexdump(pkt, size);
+  // packet_log(cpu_hdr);
+
   return result;
 }
 
