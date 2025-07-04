@@ -52,6 +52,8 @@ bool HHTable::get(const buffer_t &k, u32 &v) {
   return true;
 }
 
+bool HHTable::is_index_allocated(u32 index) const { return used_indices.find(index) != used_indices.end(); }
+
 bool HHTable::insert(const buffer_t &key) {
   LOG_DEBUG("Inserting key %s", key.to_string(true).c_str());
 

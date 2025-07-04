@@ -51,6 +51,7 @@ private:
   std::vector<u32> calculate_hashes(const buffer_t &key);
   u32 cms_get_min(const std::vector<u32> &hashes);
 
+  bool is_index_allocated(u32 index) const;
   bool insert(const buffer_t &key);
   void replace(u32 index, const buffer_t &key);
   void probabilistic_replace(const buffer_t &key);

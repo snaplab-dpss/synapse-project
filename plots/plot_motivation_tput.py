@@ -26,7 +26,7 @@ SYSTEM_NAME = "AnonTool"
 nf = "KVS"
 
 solutions = {
-    "Simple": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
+    "Strawman": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
     "NetCache": DATA_DIR / "tput_netcache.csv",
     "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
     # SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs_hhtable.csv",
@@ -34,10 +34,18 @@ solutions = {
 
 
 chosen_workloads = [
+    # Key(s=0.6, churn_fpm=0),
+    # Key(s=0.6, churn_fpm=100_000),
     Key(s=1.2, churn_fpm=0),
+    Key(s=1.2, churn_fpm=100_000),
 ]
 
-labels = [f"s={key.s}\n{whole_number_to_label(key.churn_fpm)}fpm" for key in chosen_workloads]
+if all(key.s == chosen_workloads[0].s for key in chosen_workloads):
+    labels = [f"{whole_number_to_label(key.churn_fpm)}fpm" for key in chosen_workloads]
+elif all(key.churn_fpm == chosen_workloads[0].churn_fpm for key in chosen_workloads):
+    labels = [f"s={key.s}" for key in chosen_workloads]
+else:
+    labels = [f"s={key.s}\n{whole_number_to_label(key.churn_fpm)}fpm" for key in chosen_workloads]
 
 
 def parse_data_files():
@@ -91,8 +99,6 @@ def plot(data: dict):
     for (sol, throughput_per_workload), hatch, color in zip(data.items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
         y_Mpps = [y / 1e6 for y in throughput_per_workload["y"]]
         yerr_Mpps = [yerr / 1e6 for yerr in throughput_per_workload["yerr"]]
-        y_Mpps = [0 for x in y_Mpps]
-        yerr_Mpps = [0 for x in yerr_Mpps]
         ax.bar(pos, y_Mpps, bar_width, yerr=yerr_Mpps, label=sol, alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
         pos = pos + bar_width
 

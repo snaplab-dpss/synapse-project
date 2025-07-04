@@ -55,8 +55,7 @@ def main():
         plot_bps(heatmap_data, BPS_OUTPUT_FILE)
         plot_pps(heatmap_data, PPS_OUTPUT_FILE)
         plot_bps_scatter(heatmap_data, BPS_SCATTER_OUTPUT_FILE)
-        # plot_heatmap(data, HEATMAP_OUTPUT_FILE)
-        plot_heatmap_v2(heatmap_data, HEATMAP_OUTPUT_FILE)
+        plot_heatmap(heatmap_data, HEATMAP_OUTPUT_FILE)
 
 
 if __name__ == "__main__":

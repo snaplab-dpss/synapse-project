@@ -109,7 +109,7 @@ def main():
         for v in egress_pps:
             heatmap_data.add(key, v)
 
-    plot_heatmap_v2(heatmap_data, HEATMAP_OUTPUT_FILE)
+    plot_heatmap(heatmap_data, HEATMAP_OUTPUT_FILE)
 
 
 if __name__ == "__main__":

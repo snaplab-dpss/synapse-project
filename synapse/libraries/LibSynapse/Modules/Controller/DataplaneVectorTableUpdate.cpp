@@ -68,16 +68,30 @@ std::vector<impl_t> DataplaneVectorTableUpdateFactory::process_node(const EP *ep
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_return") {
+    if (ep->get_id() == 194 && node->get_id() == 175) {
+      std::cerr << "Not a vector return\n";
+      dbg_pause();
+    }
     return impls;
   }
 
   if (call_node->is_vector_return_without_modifications()) {
+    if (ep->get_id() == 194 && node->get_id() == 175) {
+      std::cerr << "Not a vector return without modifications\n";
+      dbg_pause();
+    }
     return impls;
   }
 
   vector_table_data_t data = get_vector_table_data(call_node);
 
   if (!ep->get_ctx().check_ds_impl(data.obj, DSImpl::Tofino_VectorTable)) {
+    if (ep->get_id() == 194 && node->get_id() == 175) {
+      std::cerr << "Not a Vector Table\n";
+      std::cerr << "Object: " << data.obj << "\n";
+      ep->get_ctx().debug();
+      dbg_pause();
+    }
     return impls;
   }
 

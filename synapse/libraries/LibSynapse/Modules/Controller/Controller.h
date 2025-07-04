@@ -57,6 +57,7 @@
 #include <LibSynapse/Modules/Controller/DataplaneHHTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneHHTableIsIndexAllocated.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableDelete.h>
 #include <LibSynapse/Modules/Controller/DataplaneCMSAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneCMSQuery.h>
@@ -137,6 +138,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneHHTableReadFactory>());
               f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneHHTableIsIndexAllocatedFactory>());
               f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>());
               f.push_back(std::make_unique<DataplaneCMSAllocateFactory>());
               f.push_back(std::make_unique<DataplaneCMSQueryFactory>());

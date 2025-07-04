@@ -4,6 +4,7 @@ import argparse
 import tomli
 import itertools
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from rich.console import Console
@@ -11,45 +12,57 @@ from rich.progress import Progress
 
 from typing import Optional
 
-from experiments.tput import TGHosts
+from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment, ExperimentTracker
-from hosts.kvs_server import KVSServer
-from hosts.netcache import NetCache, NetCacheController
 from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-EXPERIMENT_NAME = "NetCache throughput"
-DATA_FILE_NAME = "tput_netcache.csv"
-STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 50_000
-KVS_GET_RATIO = 0.99
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
+ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 ITERATIONS = 5
 
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
-# ITERATIONS = 1
+# ITERATIONS = 3
 
 
-class NetCacheThroughput(Experiment):
+@dataclass
+class NF:
+    name: str
+    description: str
+    data_out: Path
+    tofino: Path
+    controller: Path
+
+
+NFS = [
+    NF(
+        name="map_table",
+        description="MapTable",
+        data_out=Path("tput_map_table.csv"),
+        tofino=Path("tofino/data_structures/map_table/map_table.p4"),
+        controller=Path("tofino/data_structures/map_table/map_table.cpp"),
+    ),
+]
+
+
+class Throughput(Experiment):
     def __init__(
         self,
         # Experiment parameters
         name: str,
         save_name: Path,
-        delay_ns: int,
         # Hosts
-        tg_hosts: TGHosts,
-        netcache: NetCache,
-        netcache_controller: NetCacheController,
-        kvs_server: KVSServer,
+        tput_hosts: ThroughputHosts,
         # TG controller
-        broadcast: list[int],
-        symmetric: list[int],
-        route: list[tuple[int, int]],
+        tg_dut_ports: list[int],
+        # NF
+        p4_src_in_repo: Path,
+        controller_src_in_repo: Path,
+        dut_ports: list[int],
         # Pktgen
         total_flows: int,
         zipf_params: list[float],
@@ -62,18 +75,17 @@ class NetCacheThroughput(Experiment):
 
         # Experiment parameters
         self.save_name = save_name
-        self.delay_ns = delay_ns
 
         # Hosts
-        self.tg_hosts = tg_hosts
-        self.netcache = netcache
-        self.netcache_controller = netcache_controller
-        self.kvs_server = kvs_server
+        self.tput_hosts = tput_hosts
 
         # TG controller
-        self.broadcast = broadcast
-        self.symmetric = symmetric
-        self.route = route
+        self.tg_dut_ports = tg_dut_ports
+
+        # Synapse
+        self.p4_src_in_repo = p4_src_in_repo
+        self.controller_src_in_repo = controller_src_in_repo
+        self.dut_ports = dut_ports
 
         # Pktgen
         self.total_flows = total_flows
@@ -129,32 +141,31 @@ class NetCacheThroughput(Experiment):
             return
 
         self.log("Installing Tofino TG")
-        self.tg_hosts.tg_switch.install()
+        self.tput_hosts.tg_switch.install()
 
         self.log("Launching Tofino TG")
-        self.tg_hosts.tg_switch.launch()
+        self.tput_hosts.tg_switch.launch()
 
-        self.log("Installing NetCache")
-        self.netcache.install()
-
-        self.log("Launching NetCache controller")
-        self.netcache_controller.launch()
+        self.log("Installing P4 program")
+        self.tput_hosts.dut_switch.install(
+            src_in_repo=self.p4_src_in_repo,
+        )
 
         self.log("Launching pktgen")
-        self.tg_hosts.pktgen.launch(kvs_mode=True)
+        self.tput_hosts.pktgen.launch()
 
         self.log("Waiting for Tofino TG")
-        self.tg_hosts.tg_switch.wait_ready()
+        self.tput_hosts.tg_switch.wait_ready()
 
         self.log("Configuring Tofino TG")
-        self.tg_hosts.tg_controller.setup(
-            broadcast=self.broadcast,
-            symmetric=self.symmetric,
-            route=self.route,
+        self.tput_hosts.tg_controller.setup(
+            broadcast=self.tg_dut_ports,
+            symmetric=[],
+            route=[],
         )
 
         self.log("Waiting for pktgen")
-        self.tg_hosts.pktgen.wait_launch()
+        self.tput_hosts.pktgen.wait_launch()
 
         self.log("Starting experiment")
 
@@ -174,31 +185,25 @@ class NetCacheThroughput(Experiment):
 
             step_progress.update(task_id, description=description)
 
-            self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
-            self.kvs_server.kill_server()
-            self.kvs_server.launch(delay_ns=self.delay_ns)
-            self.kvs_server.wait_launch()
-
-            self.log("Relaunching NetCache")
-            self.netcache_controller.kill_controller()
-            self.netcache_controller.launch()
-            self.netcache_controller.wait_ready()
+            self.log("Waiting for controller")
+            self.tput_hosts.dut_controller.relaunch_and_wait(
+                src_in_repo=self.controller_src_in_repo,
+                ports=self.dut_ports,
+            )
 
             self.log("Launching pktgen")
-            self.tg_hosts.pktgen.close()
-            self.tg_hosts.pktgen.launch(
+            self.tput_hosts.pktgen.close()
+            self.tput_hosts.pktgen.launch(
                 nb_flows=self.total_flows,
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
-                kvs_mode=True,
-                kvs_get_ratio=KVS_GET_RATIO,
             )
 
-            self.tg_hosts.pktgen.wait_launch()
+            self.tput_hosts.pktgen.wait_launch()
 
             report = self.find_stable_throughput(
-                tg_controller=self.tg_hosts.tg_controller,
-                pktgen=self.tg_hosts.pktgen,
+                tg_controller=self.tput_hosts.tg_controller,
+                pktgen=self.tput_hosts.pktgen,
                 churn=churn_fpm,
             )
 
@@ -217,9 +222,8 @@ class NetCacheThroughput(Experiment):
 
             step_progress.update(task_id, description=description, advance=1)
 
-        self.tg_hosts.pktgen.close()
-        self.netcache_controller.kill_controller()
-        self.kvs_server.kill_server()
+        self.tput_hosts.pktgen.close()
+        self.tput_hosts.dut_controller.quit()
 
         step_progress.update(task_id, visible=False)
 
@@ -238,64 +242,36 @@ def main():
 
     log_file = config["logs"]["experiment"]
 
+    tput_hosts = ThroughputHosts(
+        config,
+        use_accelerator=False,
+    )
+
+    tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
+    dut_ports = config["devices"]["switch_dut"]["client_ports"]
+
     exp_tracker = ExperimentTracker()
 
-    tg_hosts = TGHosts(config, use_accelerator=False)
-
-    netcache = NetCache(
-        hostname=config["hosts"]["switch_dut"],
-        repo=config["repo"]["switch_dut"],
-        sde=config["devices"]["switch_dut"]["sde"],
-        tofino_version=config["devices"]["switch_dut"]["tofino_version"],
-        log_file=config["logs"]["switch_dut"],
-    )
-
-    netcache_controller = NetCacheController(
-        hostname=config["hosts"]["switch_dut"],
-        repo=config["repo"]["switch_dut"],
-        sde=config["devices"]["switch_dut"]["sde"],
-        tofino_version=config["devices"]["switch_dut"]["tofino_version"],
-        client_ports=config["devices"]["switch_dut"]["client_ports"],
-        server_port=config["devices"]["switch_dut"]["server_port"],
-        log_file=config["logs"]["controller_dut"],
-    )
-
-    kvs_server = KVSServer(
-        hostname=config["hosts"]["server"],
-        repo=config["repo"]["server"],
-        pcie_dev=config["devices"]["server"]["dev"],
-        log_file=config["logs"]["server"],
-    )
-
-    broadcast = config["devices"]["switch_tg"]["dut_ports"]
-    symmetric = []
-    route = []
-
-    exp_tracker.add_experiment(
-        NetCacheThroughput(
-            name=EXPERIMENT_NAME,
-            save_name=DATA_DIR / DATA_FILE_NAME,
-            delay_ns=STORAGE_SERVER_DELAY_NS,
-            tg_hosts=tg_hosts,
-            netcache=netcache,
-            netcache_controller=netcache_controller,
-            kvs_server=kvs_server,
-            broadcast=broadcast,
-            symmetric=symmetric,
-            route=route,
-            total_flows=TOTAL_FLOWS,
-            zipf_params=ZIPF_PARAMS,
-            churn_values_fpm=CHURN_FPM,
-            experiment_log_file=log_file,
+    for nf in NFS:
+        exp_tracker.add_experiment(
+            Throughput(
+                name=nf.description,
+                save_name=DATA_DIR / nf.data_out,
+                tput_hosts=tput_hosts,
+                tg_dut_ports=tg_dut_ports,
+                p4_src_in_repo=nf.tofino,
+                controller_src_in_repo=nf.controller,
+                dut_ports=dut_ports,
+                total_flows=TOTAL_FLOWS,
+                zipf_params=ZIPF_PARAMS,
+                churn_values_fpm=CHURN_FPM,
+                experiment_log_file=log_file,
+            )
         )
-    )
 
     exp_tracker.run_experiments()
 
-    tg_hosts.terminate()
-    netcache.kill_switchd()
-    netcache_controller.kill_controller()
-    kvs_server.kill_server()
+    tput_hosts.terminate()
 
 
 if __name__ == "__main__":

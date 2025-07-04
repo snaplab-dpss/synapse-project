@@ -10,7 +10,6 @@ from typing import Optional, Callable
 
 from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment
-from hosts.kvs_server import KVSServer
 from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
@@ -24,24 +23,16 @@ ZIPF_PARAM = 1
 class NF:
     name: str
     description: str
-    data_out: Path
     tofino: Path
     controller: Path
-    broadcast: Callable[[list[int]], list[int]]
-    symmetric: Callable[[list[int]], list[int]]
-    route: Callable[[list[int]], list[tuple[int, int]]]
 
 
 NFS = [
     NF(
         name="map_table",
         description="MapTable",
-        data_out=Path("tput_map_table.csv"),
         tofino=Path("tofino/data_structures/map_table/map_table.p4"),
         controller=Path("tofino/data_structures/map_table/map_table.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
     ),
 ]
 
@@ -54,10 +45,8 @@ class Test(Experiment):
         # Hosts
         tput_hosts: ThroughputHosts,
         # TG controller
-        broadcast: list[int],
-        symmetric: list[int],
-        route: list[tuple[int, int]],
-        # Synapse
+        tg_dut_ports: list[int],
+        # NF
         p4_src_in_repo: Path,
         controller_src_in_repo: Path,
         dut_ports: list[int],
@@ -74,9 +63,7 @@ class Test(Experiment):
         self.tput_hosts = tput_hosts
 
         # TG controller
-        self.broadcast = broadcast
-        self.symmetric = symmetric
-        self.route = route
+        self.tg_dut_ports = tg_dut_ports
 
         # NF
         self.p4_src_in_repo = p4_src_in_repo
@@ -100,12 +87,6 @@ class Test(Experiment):
             src_in_repo=self.p4_src_in_repo,
         )
 
-        self.log("Launching controller")
-        self.tput_hosts.dut_controller.launch(
-            src_in_repo=self.controller_src_in_repo,
-            ports=self.dut_ports,
-        )
-
         self.log("Launching pktgen")
         self.tput_hosts.pktgen.launch()
 
@@ -114,9 +95,9 @@ class Test(Experiment):
 
         self.log("Configuring Tofino TG")
         self.tput_hosts.tg_controller.setup(
-            broadcast=self.broadcast,
-            symmetric=self.symmetric,
-            route=self.route,
+            broadcast=self.tg_dut_ports,
+            symmetric=[],
+            route=[],
         )
 
         self.log("Waiting for pktgen")
@@ -177,23 +158,13 @@ def main():
     )
 
     tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
-    symmetric = []
-    route = []
+    dut_ports = config["devices"]["switch_dut"]["client_ports"]
 
     for nf in NFS:
-        broadcast = nf.broadcast(tg_dut_ports)
-        symmetric = nf.symmetric(tg_dut_ports)
-        route = nf.route(tg_dut_ports)
-
-        # Force a copy of the list to avoid modifying the original list.
-        dut_ports = list(config["devices"]["switch_dut"]["client_ports"])
-
         experiment = Test(
             name=nf.description,
             tput_hosts=tput_hosts,
-            broadcast=broadcast,
-            symmetric=symmetric,
-            route=route,
+            tg_dut_ports=tg_dut_ports,
             p4_src_in_repo=nf.tofino,
             controller_src_in_repo=nf.controller,
             dut_ports=dut_ports,

@@ -86,6 +86,7 @@ class DataplaneHHTableAllocate;
 class DataplaneHHTableRead;
 class DataplaneHHTableUpdate;
 class DataplaneHHTableDelete;
+class DataplaneHHTableIsIndexAllocated;
 class DataplaneMeterAllocate;
 class DataplaneMeterInsert;
 class DataplaneIntegerAllocatorAllocate;
@@ -262,6 +263,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableIsIndexAllocated *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *m) { return Action::doChildren; }

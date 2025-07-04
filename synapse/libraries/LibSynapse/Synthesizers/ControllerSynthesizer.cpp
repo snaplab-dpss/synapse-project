@@ -1547,6 +1547,13 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableIsIndexAllocated *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::HHTableUpdate");
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) {
   coder_t &coder = get_current_coder();
   coder.indent();

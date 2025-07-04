@@ -108,6 +108,20 @@ class SynapseController:
         self.controller_cmd = self.host.run_command(cmd, dir=src_path.parent)
         self.ready = False
 
+    def relaunch_and_wait(
+        self,
+        src_in_repo: Union[str, Path],
+        ports: list[int],
+        extra_args: list[tuple[str, Union[str, int, float]]] = [],
+    ):
+        self.quit()
+        self.launch(
+            src_in_repo=src_in_repo,
+            ports=ports,
+            extra_args=extra_args,
+        )
+        self.wait_ready()
+
     def wait_ready(self) -> None:
         # Wait for the controller to be ready.
         # It prints the message "Controller is running." when it's ready.
@@ -183,8 +197,10 @@ class SynapseController:
         )
 
     def quit(self) -> None:
-        assert self.ready
-        assert self.controller_cmd
+        if self.controller_cmd is None:
+            return
+
+        assert self.ready, "Controller is not ready to quit"
 
         self.controller_cmd.run_console_commands(
             commands=["quit"],

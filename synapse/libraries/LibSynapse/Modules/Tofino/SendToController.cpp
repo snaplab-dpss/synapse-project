@@ -350,6 +350,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneHHTableAllocate:
     case ModuleType::Controller_DataplaneHHTableRead:
     case ModuleType::Controller_DataplaneHHTableUpdate:
+    case ModuleType::Controller_DataplaneHHTableIsIndexAllocated:
     case ModuleType::Controller_DataplaneHHTableDelete:
     case ModuleType::Controller_DataplaneIntegerAllocatorAllocate:
     case ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex:

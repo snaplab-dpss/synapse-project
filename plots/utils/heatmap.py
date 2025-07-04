@@ -198,55 +198,7 @@ def discrete(data, ax):
     ax.tick_params(which="minor", bottom=False, left=False)
 
 
-def plot_heatmap(data: HeatmapData, file: Path):
-    avg_data = data.get_avg_values()
-    keys = avg_data.keys()
-    all_s = sorted(set([key.s for key in keys]))
-    all_churn = sorted(set([key.churn_fpm for key in keys]), reverse=True)
-
-    matrix = np.zeros((len(all_churn), len(all_s)))
-    for key in keys:
-        i = all_churn.index(key.churn_fpm)
-        j = all_s.index(key.s)
-        matrix[i, j] = avg_data[key].dut_egress_bps / 1e9
-
-    s_labels = [f"{s:.2f}" for s in all_s]
-    churn_labels = [f"{whole_number_to_label(c)}" for c in all_churn]
-
-    # Nice colormaps:
-    # https://matplotlib.org/stable/tutorials/colors/colormaps.html
-    # - plasma
-    # - viridis
-    # - rainbow
-
-    fig, ax = plt.subplots()
-    im = ax.imshow(matrix, vmin=0, vmax=3000, cmap="plasma", interpolation="spline36", aspect="auto")
-
-    # Create colorbar
-    assert ax.figure
-    cbar = ax.figure.colorbar(im, ax=ax)
-    cbar.ax.set_ylabel("Tput (Gbps)", rotation=-90, va="bottom")
-
-    # Show all ticks and label them with the respective list entries
-    ax.set_xticks(np.arange(len(all_s)), labels=s_labels)
-    ax.set_yticks(np.arange(len(all_churn)), labels=churn_labels)
-
-    ax.set_xlabel("Zipf parameter")
-    ax.set_ylabel("Churn (fpm)")
-
-    # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-    ax.grid(False)
-
-    fig.set_size_inches(width * 0.5, height * 0.8)
-    fig.tight_layout()
-
-    print("-> ", file)
-    plt.savefig(str(file))
-
-
-def plot_heatmap_v2(data: HeatmapData, file: Path, show_errors: bool = True):
+def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool = True):
     avg_data = data.get_avg_values()
     keys = avg_data.keys()
     all_s = sorted(set([key.s for key in keys]))
@@ -270,7 +222,7 @@ def plot_heatmap_v2(data: HeatmapData, file: Path, show_errors: bool = True):
     # - Reds
 
     fig, ax = plt.subplots(constrained_layout=True)
-    im = ax.imshow(matrix, vmin=0, vmax=TPUT_MPPS_MAX, cmap="Blues", aspect="auto")
+    ax.imshow(matrix, vmin=0, vmax=TPUT_MPPS_MAX, cmap=cmap, aspect="auto")
 
     # Show all ticks and label them with the respective list entries
     ax.set_xticks(range(len(all_s)), labels=s_labels)
@@ -311,6 +263,10 @@ def plot_heatmap_v2(data: HeatmapData, file: Path, show_errors: bool = True):
 
     print("-> ", file)
     plt.savefig(str(file))
+
+
+def plot_heatmap_estimation(data: HeatmapData, file: Path, show_errors: bool = True):
+    plot_heatmap(data, file, cmap="Oranges", show_errors=show_errors)
 
 
 def plot_bps_scatter(data: HeatmapData, file: Path):

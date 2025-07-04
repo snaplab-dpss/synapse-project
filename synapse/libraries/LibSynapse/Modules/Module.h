@@ -96,6 +96,7 @@ enum class ModuleType {
   Controller_DataplaneHHTableRead,
   Controller_DataplaneHHTableUpdate,
   Controller_DataplaneHHTableDelete,
+  Controller_DataplaneHHTableIsIndexAllocated,
   Controller_DataplaneIntegerAllocatorAllocate,
   Controller_DataplaneIntegerAllocatorFreeIndex,
   Controller_DataplaneMeterAllocate,
@@ -381,6 +382,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneHHTableUpdate:
     os << "Controller_DataplaneHHTableUpdate";
+    break;
+  case ModuleType::Controller_DataplaneHHTableIsIndexAllocated:
+    os << "Controller_DataplaneHHTableIsIndexAllocated";
     break;
   case ModuleType::Controller_DataplaneHHTableDelete:
     os << "Controller_DataplaneHHTableDelete";

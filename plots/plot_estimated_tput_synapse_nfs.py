@@ -2,8 +2,8 @@
 
 from argparse import ArgumentParser
 
-from utils.heatmap import Key, HeatmapData, plot_heatmap_v2
-from utils.values import Values
+from utils.heatmap import *
+from utils.values import *
 from utils.synapse_report import *
 
 from pathlib import Path
@@ -90,7 +90,7 @@ def main():
         exit(1)
 
     heatmap_output_file = PLOTS_DIR / f"tput_estimated_synapse_{args.nf}_f{args.total_flows}_h{args.heuristic}_heatmap.pdf"
-    plot_heatmap_v2(heatmap_data, heatmap_output_file, show_errors=False)
+    plot_heatmap_estimation(heatmap_data, heatmap_output_file, show_errors=False)
 
 
 if __name__ == "__main__":
