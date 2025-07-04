@@ -18,4 +18,4 @@ target_include_directories(Synapse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../)
 target_include_directories(Synapse PRIVATE ${GUROBI_INCLUDE_DIRS})
 target_link_options(Core PRIVATE "-Wl,--no-whole-archive")
 
-target_compile_options(Synapse PRIVATE ${SYNAPSE_COMPILATION_FLAGS})
+target_compile_options(Synapse PRIVATE ${GLOBAL_COMPILATION_FLAGS})

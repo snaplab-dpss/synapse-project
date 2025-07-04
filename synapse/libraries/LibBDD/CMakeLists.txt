@@ -17,4 +17,4 @@ target_link_options(BDD PRIVATE "-Wl,--whole-archive")
 target_link_libraries(BDD PRIVATE ${LLVM_LIBRARIES})
 target_link_options(BDD PRIVATE "-Wl,--no-whole-archive")
 
-target_compile_options(BDD PRIVATE ${SYNAPSE_COMPILATION_FLAGS})
+target_compile_options(BDD PRIVATE ${GLOBAL_COMPILATION_FLAGS})

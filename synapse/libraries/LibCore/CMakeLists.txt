@@ -27,4 +27,4 @@ target_link_options(Core PRIVATE "-Wl,--no-whole-archive")
 
 target_link_libraries(Core PUBLIC ${PCAP_LIBRARY})
 
-target_compile_options(Core PRIVATE ${SYNAPSE_COMPILATION_FLAGS})
+target_compile_options(Core PRIVATE ${GLOBAL_COMPILATION_FLAGS})

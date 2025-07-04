@@ -33,7 +33,7 @@ string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_R
 # Setting some complation flags
 ###############################################################################
 
-set(SYNAPSE_COMPILATION_FLAGS
+set(GLOBAL_COMPILATION_FLAGS
     -Wall
     -Wextra
     -Werror
@@ -102,6 +102,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/find_gurobi.cmake)
 add_subdirectory(libraries/LibCore)
 add_subdirectory(libraries/LibBDD)
 add_subdirectory(libraries/LibSynapse)
+add_subdirectory(libraries/LibClone)
 
 ###############################################################################
 # Build executables
@@ -121,5 +122,6 @@ foreach(TOOL ${TOOLS})
     target_link_libraries(${TOOL_TARGET} PUBLIC Core)
     target_link_libraries(${TOOL_TARGET} PUBLIC BDD)
     target_link_libraries(${TOOL_TARGET} PUBLIC Synapse)
+    target_link_libraries(${TOOL_TARGET} PUBLIC Clone)
     target_link_libraries(${TOOL_TARGET} PUBLIC CLI11::CLI11)
 endforeach(TOOL ${TOOLS})
