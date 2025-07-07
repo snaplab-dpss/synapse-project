@@ -520,6 +520,17 @@ void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, doub
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 }
 
+bool Profiler::can_set(const std::vector<klee::ref<klee::Expr>> &constraints) const {
+  ProfilerNode *node = get_node(constraints);
+
+  if (!can_update_fractions(node)) {
+    return false;
+  }
+
+  const hit_rate_t old_fraction = node->fraction;
+  return can_recursive_update_fractions(node->on_true, old_fraction) && can_recursive_update_fractions(node->on_false, old_fraction);
+}
+
 void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr) {
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
@@ -664,6 +675,35 @@ rw_fractions_t Profiler::get_cond_map_put_rw_profile_fractions(const LibBDD::Cal
   return fractions;
 }
 
+bool Profiler::can_update_fractions(ProfilerNode *node) const {
+  if (!node) {
+    return false;
+  }
+
+  // Not a forwarding node, so we can directly update the fraction.
+  if (!node->forwarding_stats.has_value()) {
+    return true;
+  }
+
+  assert(node->original_forwarding_stats.has_value());
+  const fwd_stats_t &original_fwd_stats = node->original_forwarding_stats.value();
+  if (original_fwd_stats.calculate_total_hr() != 0_hr) {
+    return true;
+  }
+
+  const hit_rate_t old_fraction = node->fraction;
+  if (old_fraction != 0_hr) {
+    return true;
+  }
+
+  fwd_stats_t &fwd_stats = node->forwarding_stats.value();
+  if (fwd_stats.operation == LibBDD::RouteOp::Forward && original_fwd_stats.ports.empty()) {
+    return false;
+  }
+
+  return true;
+}
+
 void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
   if (!node) {
     return;
@@ -739,6 +779,36 @@ void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
     }
   } break;
   }
+}
+
+bool Profiler::can_recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction) const {
+  if (!node) {
+    return false;
+  }
+
+  const hit_rate_t old_fraction = node->fraction;
+
+  if (parent_old_fraction == 0_hr) {
+    const ProfilerNode::family_t family = node->get_family();
+    if (family.sibling) {
+      // There is not enough information to make profiling forwarding decisions.
+      return false;
+    }
+  }
+
+  if (!can_update_fractions(node)) {
+    return false;
+  }
+
+  if (node->on_true && !can_recursive_update_fractions(node->on_true, old_fraction)) {
+    return false;
+  }
+
+  if (node->on_false && !can_recursive_update_fractions(node->on_false, old_fraction)) {
+    return false;
+  }
+
+  return true;
 }
 
 void Profiler::recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction) {

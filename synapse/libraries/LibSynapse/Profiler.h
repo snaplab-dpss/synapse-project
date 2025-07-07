@@ -153,6 +153,7 @@ public:
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);
+  bool can_set(const std::vector<klee::ref<klee::Expr>> &constraints) const;
   void set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr);
 
   hit_rate_t get_hr(const EPNode *node) const;
@@ -180,6 +181,9 @@ private:
   void remove(ProfilerNode *node);
   void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> cnstr);
+
+  bool can_update_fractions(ProfilerNode *node) const;
+  bool can_recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction) const;
 
   void recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction, hit_rate_t parent_new_fraction);
   void update_fractions(ProfilerNode *node, hit_rate_t new_fraction);

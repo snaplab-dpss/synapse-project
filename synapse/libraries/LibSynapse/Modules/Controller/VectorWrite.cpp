@@ -17,7 +17,16 @@ std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const Lib
   }
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> value            = call.args.at("value").in;
   addr_t vector_addr                     = LibCore::expr_addr_to_obj_addr(vector_addr_expr);
+
+  klee::ref<klee::Expr> original_value     = call_node->get_call().extra_vars.at("borrowed_cell").second;
+  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(original_value, value);
+
+  // Check the Ignore module.
+  if (changes.empty()) {
+    return std::nullopt;
+  }
 
   if (!ctx.can_impl_ds(vector_addr, DSImpl::Controller_Vector)) {
     return std::nullopt;
@@ -48,9 +57,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const LibBDD:
   addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_addr_expr);
   addr_t value_addr  = LibCore::expr_addr_to_obj_addr(value_addr_expr);
 
-  // We don't need to place the vector, we will never get a vector_return
-  // before a vector_borrow.
-  if (!ep->get_ctx().check_ds_impl(vector_addr, DSImpl::Controller_Vector)) {
+  if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::Controller_Vector)) {
     return impls;
   }
 
@@ -73,6 +80,8 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const LibBDD:
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
+
+  new_ep->get_mutable_ctx().save_ds_impl(vector_addr, DSImpl::Controller_Vector);
 
   return impls;
 }
