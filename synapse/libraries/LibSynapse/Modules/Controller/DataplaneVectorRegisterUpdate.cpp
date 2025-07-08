@@ -28,17 +28,15 @@ std::optional<spec_impl_t> DataplaneVectorRegisterUpdateFactory::speculate(const
 
 std::vector<impl_t> DataplaneVectorRegisterUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                        LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_return") {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> obj_expr        = call.args.at("vector").expr;
@@ -46,11 +44,11 @@ std::vector<impl_t> DataplaneVectorRegisterUpdateFactory::process_node(const EP 
   klee::ref<klee::Expr> value_addr_expr = call.args.at("value").expr;
   klee::ref<klee::Expr> value           = call.args.at("value").in;
 
-  addr_t obj        = LibCore::expr_addr_to_obj_addr(obj_expr);
-  addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
+  const addr_t obj        = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_VectorRegister)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *vector_borrow = call_node->get_vector_borrow_from_return();
@@ -61,11 +59,10 @@ std::vector<impl_t> DataplaneVectorRegisterUpdateFactory::process_node(const EP 
 
   // Check the Ignore module.
   if (changes.empty()) {
-    return impls;
+    return {};
   }
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *module  = new DataplaneVectorRegisterUpdate(node, obj, index, value_addr, original_value, value, changes);
   EPNode *ep_node = new EPNode(module);
@@ -73,6 +70,8 @@ std::vector<impl_t> DataplaneVectorRegisterUpdateFactory::process_node(const EP 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

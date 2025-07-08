@@ -39,27 +39,23 @@ std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const Li
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                      LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
+std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   if (node->get_type() != LibBDD::NodeType::Route) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
   LibBDD::RouteOp op              = route_node->get_operation();
 
   if (op != LibBDD::RouteOp::Drop) {
-    return impls;
+    return {};
   }
 
   if (!is_parser_reject(ep)) {
-    return impls;
+    return {};
   }
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *module  = new ParserReject(node);
   EPNode *ep_node = new EPNode(module);
@@ -70,6 +66,8 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.get_mutable_perf_oracle().add_dropped_traffic(ctx.get_profiler().get_hr(node));
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

@@ -28,21 +28,20 @@ std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const LibBD
 }
 
 std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (!bdd_node_match_pattern(node)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new Broadcast(node);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

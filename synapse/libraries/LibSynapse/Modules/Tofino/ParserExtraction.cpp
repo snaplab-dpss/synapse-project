@@ -19,19 +19,16 @@ std::optional<spec_impl_t> ParserExtractionFactory::speculate(const EP *ep, cons
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                          LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
+std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> hdr_addr_expr = call.args.at("chunk").out;
@@ -55,13 +52,12 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
   Module *module  = new ParserExtraction(node, hdr_addr, hdr, length, hdr_fields_guess);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  return impls;
+  return {};
 }
 
 std::unique_ptr<Module> ParserExtractionFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {

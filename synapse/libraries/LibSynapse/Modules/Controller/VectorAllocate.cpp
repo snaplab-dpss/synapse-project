@@ -29,42 +29,40 @@ std::optional<spec_impl_t> VectorAllocateFactory::speculate(const EP *ep, const 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> VectorAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                        LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
+std::vector<impl_t> VectorAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_allocate") {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> elem_size  = call.args.at("elem_size").expr;
   klee::ref<klee::Expr> capacity   = call.args.at("capacity").expr;
   klee::ref<klee::Expr> vector_out = call.args.at("vector_out").out;
 
-  addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_out);
+  const addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_out);
 
   if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::Controller_Vector)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new VectorAllocate(node, vector_addr, elem_size, capacity);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   new_ep->get_mutable_ctx().save_ds_impl(vector_addr, DSImpl::Controller_Vector);
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

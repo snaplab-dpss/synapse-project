@@ -29,10 +29,8 @@ std::optional<spec_impl_t> HashObjFactory::speculate(const EP *ep, const LibBDD:
 }
 
 std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (!bdd_node_match_pattern(node)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
@@ -42,17 +40,18 @@ std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const LibBDD::Nod
   klee::ref<klee::Expr> size          = call.args.at("size").expr;
   klee::ref<klee::Expr> hash          = call.ret;
 
-  addr_t obj_addr = LibCore::expr_addr_to_obj_addr(obj_addr_expr);
+  const addr_t obj_addr = LibCore::expr_addr_to_obj_addr(obj_addr_expr);
 
   Module *module  = new HashObj(node, obj_addr, size, hash);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

@@ -96,16 +96,14 @@ std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const
 }
 
 std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Branch) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
 
   if (!branch_node->is_parser_condition()) {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> original_condition = branch_node->get_condition();
@@ -143,8 +141,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   assert(branch_node->get_on_true() && "Branch node without on_true");
   assert(branch_node->get_on_false() && "Branch node without on_false");
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *if_module   = new ParserCondition(node, original_condition);
   Module *then_module = new Then(node);
@@ -163,7 +160,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
 
   new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
-  return impls;
+  return {};
 }
 
 std::unique_ptr<Module> ParserConditionFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {

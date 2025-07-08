@@ -59,29 +59,25 @@ LibBDD::anchor_info_t get_anchor_info(const EP *ep) {
   return {anchor->get_id(), false};
 }
 
-std::vector<EP *> get_reordered(const EP *ep) {
-  std::vector<EP *> reordered;
-
+std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep) {
   const LibBDD::Node *next = ep->get_next_node();
-
   if (!next) {
-    return reordered;
+    return {};
   }
 
   const LibBDD::Node *node = next->get_prev();
-
   if (!node) {
-    return reordered;
+    return {};
   }
 
-  LibBDD::anchor_info_t anchor_info = get_anchor_info(ep);
+  const LibBDD::anchor_info_t anchor_info = get_anchor_info(ep);
+  const LibBDD::BDD *bdd                  = ep->get_bdd();
+  const bool allow_shape_altering_ops     = false;
 
-  const LibBDD::BDD *bdd        = ep->get_bdd();
-  bool allow_shape_altering_ops = false;
-
+  std::vector<std::unique_ptr<EP>> reordered;
   for (LibBDD::reordered_bdd_t &new_bdd : reorder(bdd, anchor_info, allow_shape_altering_ops)) {
-    bool is_ancestor = false;
-    EP *new_ep       = new EP(*ep, is_ancestor);
+    const bool is_ancestor     = false;
+    std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep, is_ancestor);
 
     EP::translation_data_t translation_data{
         .reordered_node             = new_bdd.bdd->get_node_by_id(new_bdd.op.candidate_info.id),
@@ -96,7 +92,7 @@ std::vector<EP *> get_reordered(const EP *ep) {
     new_ep->replace_bdd(std::move(new_bdd.bdd), translation_data);
     new_ep->assert_integrity();
 
-    reordered.push_back(new_ep);
+    reordered.push_back(std::move(new_ep));
   }
 
   return reordered;
@@ -107,34 +103,30 @@ decision_t ModuleFactory::decide(const EP *ep, const LibBDD::Node *node, std::un
   return decision_t(ep, node->get_id(), type, params);
 }
 
-impl_t ModuleFactory::implement(const EP *ep, const LibBDD::Node *node, EP *result, std::unordered_map<std::string, i32> params) const {
-  return impl_t(decide(ep, node, params), result, false);
+impl_t ModuleFactory::implement(const EP *ep, const LibBDD::Node *node, std::unique_ptr<EP> result,
+                                std::unordered_map<std::string, i32> params) const {
+  return impl_t(decide(ep, node, params), std::move(result), false);
 }
 
-std::vector<impl_t> ModuleFactory::implement(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager,
-                                             bool reorder_bdd) const {
-  std::vector<impl_t> implementations;
-
+std::vector<impl_t> ModuleFactory::implement(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager, bool reorder_bdd) const {
   if (!can_process_platform(ep, target)) {
-    return implementations;
+    return {};
   }
 
-  std::vector<impl_t> internal_decisions = process_node(ep, node, symbol_manager);
-
-  for (const impl_t &impl : internal_decisions) {
-    implementations.push_back(impl);
+  std::vector<impl_t> implementations;
+  for (impl_t &internal_decision : process_node(ep, node, symbol_manager)) {
+    implementations.push_back(std::move(internal_decision));
   }
 
   if (!reorder_bdd) {
     return implementations;
   }
 
-  for (const impl_t &impl : internal_decisions) {
-    std::vector<EP *> reordered = get_reordered(impl.result);
-
-    for (EP *reordered_ep : reordered) {
-      impl_t new_implementation(impl.decision, reordered_ep, true);
-      implementations.push_back(new_implementation);
+  const size_t total_internal_decisions = implementations.size();
+  for (size_t i = 0; i < total_internal_decisions; ++i) {
+    for (std::unique_ptr<EP> &reordered_ep : get_reordered(implementations[i].result.get())) {
+      impl_t new_implementation(implementations[i].decision, std::move(reordered_ep), true);
+      implementations.push_back(std::move(new_implementation));
     }
   }
 

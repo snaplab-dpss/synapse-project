@@ -63,46 +63,45 @@ std::optional<spec_impl_t> GuardedMapTableLookupFactory::speculate(const EP *ep,
 }
 
 std::vector<impl_t> GuardedMapTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return impls;
+    return {};
   }
 
   const map_table_data_t data = get_guarded_map_table_data(ep->get_ctx(), map_get);
 
   if (!ep->get_ctx().can_impl_ds(data.obj, DSImpl::Tofino_GuardedMapTable)) {
-    return impls;
+    return {};
   }
 
   GuardedMapTable *guarded_map_table = build_or_reuse_guarded_map_table(ep, node, data);
 
   if (!guarded_map_table) {
-    return impls;
+    return {};
   }
 
   Module *module  = new GuardedMapTableLookup(node, guarded_map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, data.obj, guarded_map_table);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, data.obj, guarded_map_table);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

@@ -44,25 +44,22 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const LibBDD::No
 }
 
 std::vector<impl_t> DropFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Route) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const LibBDD::RouteOp op        = route_node->get_operation();
 
   if (op != LibBDD::RouteOp::Drop) {
-    return impls;
+    return {};
   }
 
   if (is_parser_reject(ep)) {
-    return impls;
+    return {};
   }
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *module  = new Drop(node);
   EPNode *ep_node = new EPNode(module);
@@ -74,6 +71,8 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const LibBDD::Node *
   assert(fwd_stats.operation == LibBDD::RouteOp::Drop);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_dropped_traffic(fwd_stats.drop);
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

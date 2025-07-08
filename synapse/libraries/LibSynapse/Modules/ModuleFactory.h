@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibSynapse/Context.h>
+#include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/EPNode.h>
 #include <LibSynapse/Modules/Module.h>
 #include <LibBDD/BDD.h>
@@ -25,6 +26,8 @@ struct decision_t {
 
   decision_t(const decision_t &other) : ep(other.ep), node(other.node), module(other.module), params(other.params) {}
 
+  decision_t(decision_t &&other) : ep(std::move(other.ep)), node(other.node), module(other.module), params(std::move(other.params)) {}
+
   decision_t &operator=(const decision_t &other) {
     ep     = other.ep;
     node   = other.node;
@@ -45,13 +48,27 @@ struct spec_impl_t {
 
 struct impl_t {
   decision_t decision;
-  EP *result;
+  std::unique_ptr<EP> result;
   bool bdd_reordered;
 
-  impl_t(EP *_result) : result(_result) {}
+  impl_t(std::unique_ptr<EP> _result) : result(std::move(_result)) {}
 
-  impl_t(const decision_t &_decision, EP *_result, bool _bdd_reordered)
-      : decision(_decision), result(_result), bdd_reordered(_bdd_reordered) {}
+  impl_t(const decision_t &_decision, std::unique_ptr<EP> _result, bool _bdd_reordered)
+      : decision(_decision), result(std::move(_result)), bdd_reordered(_bdd_reordered) {}
+
+  impl_t(const impl_t &other)            = delete;
+  impl_t &operator=(const impl_t &other) = delete;
+
+  impl_t(impl_t &&other) : decision(std::move(other.decision)), result(std::move(other.result)), bdd_reordered(other.bdd_reordered) {}
+
+  impl_t &operator=(impl_t &&other) {
+    if (this != &other) {
+      decision      = std::move(other.decision);
+      result        = std::move(other.result);
+      bdd_reordered = other.bdd_reordered;
+    }
+    return *this;
+  }
 };
 
 class ModuleFactory {
@@ -75,7 +92,7 @@ public:
 
 protected:
   decision_t decide(const EP *ep, const LibBDD::Node *node, std::unordered_map<std::string, i32> params = {}) const;
-  impl_t implement(const EP *ep, const LibBDD::Node *node, EP *result, std::unordered_map<std::string, i32> params = {}) const;
+  impl_t implement(const EP *ep, const LibBDD::Node *node, std::unique_ptr<EP> result, std::unordered_map<std::string, i32> params = {}) const;
   virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const = 0;
 };
 

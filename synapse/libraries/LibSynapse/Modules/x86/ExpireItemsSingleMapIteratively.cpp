@@ -22,8 +22,7 @@ bool bdd_node_match_pattern(const LibBDD::Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyFactory::speculate(const EP *ep, const LibBDD::Node *node,
-                                                                             const Context &ctx) const {
+std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return std::nullopt;
@@ -31,10 +30,8 @@ std::optional<spec_impl_t> ExpireItemsSingleMapIterativelyFactory::speculate(con
 
 std::vector<impl_t> ExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                          LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (!bdd_node_match_pattern(node)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
@@ -51,17 +48,17 @@ std::vector<impl_t> ExpireItemsSingleMapIterativelyFactory::process_node(const E
   Module *module  = new ExpireItemsSingleMapIteratively(node, map_addr, vector_addr, start, n_elems);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 
-std::unique_ptr<Module> ExpireItemsSingleMapIterativelyFactory::create(const LibBDD::BDD *bdd, const Context &ctx,
-                                                                       const LibBDD::Node *node) const {
+std::unique_ptr<Module> ExpireItemsSingleMapIterativelyFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
   std::vector<impl_t> impls;
 
   if (!bdd_node_match_pattern(node)) {

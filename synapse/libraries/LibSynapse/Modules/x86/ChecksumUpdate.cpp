@@ -28,12 +28,9 @@ std::optional<spec_impl_t> ChecksumUpdateFactory::speculate(const EP *ep, const 
   return std::nullopt;
 }
 
-std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                        LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
+std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   if (!bdd_node_match_pattern(node)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
@@ -43,12 +40,11 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const LibB
   klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
   klee::ref<klee::Expr> p                = call.args.at("packet").expr;
 
-  LibCore::symbol_t checksum = call_node->get_local_symbol("checksum");
-  addr_t ip_hdr_addr         = LibCore::expr_addr_to_obj_addr(ip_hdr_addr_expr);
-  addr_t l4_hdr_addr         = LibCore::expr_addr_to_obj_addr(l4_hdr_addr_expr);
+  const LibCore::symbol_t checksum = call_node->get_local_symbol("checksum");
+  const addr_t ip_hdr_addr         = LibCore::expr_addr_to_obj_addr(ip_hdr_addr_expr);
+  const addr_t l4_hdr_addr         = LibCore::expr_addr_to_obj_addr(l4_hdr_addr_expr);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *module  = new ChecksumUpdate(node, ip_hdr_addr, l4_hdr_addr, checksum);
   EPNode *ep_node = new EPNode(module);
@@ -56,6 +52,8 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const LibB
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

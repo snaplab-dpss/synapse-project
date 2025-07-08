@@ -46,17 +46,15 @@ std::optional<spec_impl_t> DataplaneMeterInsertFactory::speculate(const EP *ep, 
 }
 
 std::vector<impl_t> DataplaneMeterInsertFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *tb_trace = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call   = tb_trace->get_call();
 
   if (call.function_name != "tb_trace") {
-    return impls;
+    return {};
   }
 
   addr_t obj;
@@ -65,18 +63,19 @@ std::vector<impl_t> DataplaneMeterInsertFactory::process_node(const EP *ep, cons
   get_tb_data(ep->get_ctx(), tb_trace, obj, keys, success);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_Meter)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new DataplaneMeterInsert(node, obj, keys, success);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

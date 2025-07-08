@@ -27,21 +27,18 @@ std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const LibBD
 }
 
 std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Route) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const LibBDD::RouteOp op        = route_node->get_operation();
 
   if (op != LibBDD::RouteOp::Broadcast) {
-    return impls;
+    return {};
   }
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *module  = new Broadcast(node);
   EPNode *ep_node = new EPNode(module);
@@ -55,6 +52,8 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const LibBDD::N
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, fwd_stats.flood);
   }
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

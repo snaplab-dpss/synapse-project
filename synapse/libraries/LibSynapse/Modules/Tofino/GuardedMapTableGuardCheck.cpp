@@ -178,17 +178,15 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
 std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                    LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *dchain_allocate_new_index = dynamic_cast<const LibBDD::Call *>(node);
 
   std::vector<const LibBDD::Call *> future_map_puts;
   if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
-    return impls;
+    return {};
   }
 
   assert(!future_map_puts.empty());
@@ -197,20 +195,20 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
     const addr_t obj = LibCore::expr_addr_to_obj_addr(map_put->get_obj());
 
     if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
-      return impls;
+      return {};
     }
   }
 
   const LibBDD::branch_direction_t branch_direction = dchain_allocate_new_index->find_branch_checking_index_alloc();
 
   if (branch_direction.branch == nullptr) {
-    return impls;
+    return {};
   }
 
   const addr_t obj = LibCore::expr_addr_to_obj_addr(future_map_puts[0]->get_obj());
 
   if (guarded_map_table_guard_check_already_performed(ep, obj)) {
-    return impls;
+    return {};
   }
 
   const GuardedMapTable *guarded_map_table   = get_tofino_ctx(ep)->get_data_structures().get_single_ds<GuardedMapTable>(obj);
@@ -236,12 +234,12 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
   then_ep_node->set_prev(if_ep_node);
   else_ep_node->set_prev(if_ep_node);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   new_bdd_nodes_t new_bdd_nodes;
-  std::unique_ptr<LibBDD::BDD> new_bdd = rebuild_bdd(new_ep, dchain_allocate_new_index, guard_check_symbol, guard_allow_condition, new_bdd_nodes);
-  update_profiler(new_ep, guard_allow_probability, new_bdd_nodes);
+  std::unique_ptr<LibBDD::BDD> new_bdd =
+      rebuild_bdd(new_ep.get(), dchain_allocate_new_index, guard_check_symbol, guard_allow_condition, new_bdd_nodes);
+  update_profiler(new_ep.get(), guard_allow_probability, new_bdd_nodes);
 
   EPLeaf then_leaf(then_ep_node, new_bdd_nodes.guard_check_branch->get_on_true());
   EPLeaf else_leaf(else_ep_node, new_bdd_nodes.guard_check_branch->get_on_false());
@@ -250,6 +248,8 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

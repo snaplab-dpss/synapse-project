@@ -51,17 +51,15 @@ std::optional<spec_impl_t> DataplaneHHTableIsIndexAllocatedFactory::speculate(co
 
 std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                           LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *dchain_is_index_allocated = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call                    = dchain_is_index_allocated->get_call();
 
   if (call.function_name != "dchain_is_index_allocated") {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
@@ -70,7 +68,7 @@ std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const 
   const addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
-    return impls;
+    return {};
   }
 
   const LibCore::symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
@@ -78,12 +76,13 @@ std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const 
   Module *module  = new DataplaneHHTableIsIndexAllocated(node, obj, index, is_allocated);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

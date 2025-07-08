@@ -54,34 +54,33 @@ std::optional<spec_impl_t> DataplaneDchainTableAllocateNewIndexFactory::speculat
 
 std::vector<impl_t> DataplaneDchainTableAllocateNewIndexFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                               LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
-    return impls;
+    return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(call_node);
+  const dchain_table_data_t data = get_dchain_table_data(call_node);
 
   if (!ep->get_ctx().check_ds_impl(data.obj, DSImpl::Tofino_DchainTable)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new DataplaneDchainTableAllocateNewIndex(node, data.obj, data.index, data.success);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

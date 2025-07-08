@@ -176,9 +176,9 @@ std::unique_ptr<LibBDD::BDD> branch_bdd_on_cache_write_success(const EP *ep, con
   return new_bdd;
 }
 
-EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, const LibBDD::map_coalescing_objs_t &map_objs,
-                                       const fcfs_cached_table_data_t &fcfs_cached_table_data, const LibCore::symbol_t &cache_write_failed,
-                                       u32 cache_capacity) {
+std::unique_ptr<EP> concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, const LibBDD::map_coalescing_objs_t &map_objs,
+                                                       const fcfs_cached_table_data_t &fcfs_cached_table_data,
+                                                       const LibCore::symbol_t &cache_write_failed, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
       ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.key, fcfs_cached_table_data.capacity, cache_capacity);
 
@@ -193,7 +193,7 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
                                                 fcfs_cached_table_data.map_has_this_key, cache_write_failed);
   EPNode *cached_table_cond_write_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   LibBDD::Node *on_cache_write_success;
   LibBDD::Node *on_cache_write_failed;
@@ -201,7 +201,7 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
 
   panic("TODO: Remove vector key operations (and do the same for the other data structures)");
   std::unique_ptr<LibBDD::BDD> new_bdd =
-      branch_bdd_on_cache_write_success(new_ep, node, fcfs_cached_table_data, cache_write_success_condition, map_objs, on_cache_write_success,
+      branch_bdd_on_cache_write_success(new_ep.get(), node, fcfs_cached_table_data, cache_write_success_condition, map_objs, on_cache_write_success,
                                         on_cache_write_failed, deleted_branch_constraints);
 
   LibCore::Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
@@ -241,8 +241,8 @@ EP *concretize_cached_table_cond_write(const EP *ep, const LibBDD::Node *node, c
     ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
   }
 
-  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, map_objs.map, cached_table);
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, map_objs.map, cached_table);
 
   EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
   EPLeaf on_cache_write_failed_leaf(send_to_controller_node, on_cache_write_failed);
@@ -335,10 +335,8 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
 
 std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                   LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
@@ -347,30 +345,31 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
 
   if (!map_get->is_map_get_followed_by_map_puts_on_miss(future_map_puts)) {
     // The cached table read should deal with these cases.
-    return impls;
+    return {};
   }
 
   const fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get, future_map_puts);
 
   const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(cached_table_data.obj);
   if (!map_objs.has_value()) {
-    return impls;
+    return {};
   }
 
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
-    return impls;
+    return {};
   }
 
   const LibCore::symbol_t cache_write_failed      = symbol_manager->create_symbol("cache_write_failed", 32);
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
+  std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    EP *new_ep = concretize_cached_table_cond_write(ep, node, map_objs.value(), cached_table_data, cache_write_failed, cache_capacity);
-
+    std::unique_ptr<EP> new_ep =
+        concretize_cached_table_cond_write(ep, node, map_objs.value(), cached_table_data, cache_write_failed, cache_capacity);
     if (new_ep) {
-      impl_t impl = implement(ep, node, new_ep, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
-      impls.push_back(impl);
+      impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
+      impls.push_back(std::move(impl));
     }
   }
 

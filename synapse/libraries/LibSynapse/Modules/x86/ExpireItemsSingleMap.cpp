@@ -28,12 +28,9 @@ std::optional<spec_impl_t> ExpireItemsSingleMapFactory::speculate(const EP *ep, 
   return std::nullopt;
 }
 
-std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                              LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
+std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
   if (!bdd_node_match_pattern(node)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
@@ -45,19 +42,20 @@ std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, cons
   klee::ref<klee::Expr> time        = call.args.at("time").expr;
   klee::ref<klee::Expr> total_freed = call.ret;
 
-  addr_t map_addr    = LibCore::expr_addr_to_obj_addr(map);
-  addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector);
-  addr_t dchain_addr = LibCore::expr_addr_to_obj_addr(dchain);
+  const addr_t map_addr    = LibCore::expr_addr_to_obj_addr(map);
+  const addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector);
+  const addr_t dchain_addr = LibCore::expr_addr_to_obj_addr(dchain);
 
   Module *module  = new ExpireItemsSingleMap(node, dchain_addr, vector_addr, map_addr, time, total_freed);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

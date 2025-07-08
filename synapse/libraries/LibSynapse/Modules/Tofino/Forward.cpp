@@ -30,23 +30,20 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const LibBDD:
 }
 
 std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Route) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const LibBDD::RouteOp op        = route_node->get_operation();
 
   if (op != LibBDD::RouteOp::Forward) {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Module *module   = new Forward(node, dst_device);
   EPNode *fwd_node = new EPNode(module);
@@ -54,13 +51,15 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   EPLeaf leaf(fwd_node, node->get_next());
   new_ep->process_leaf(fwd_node, {leaf});
 
-  LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
+  const LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
   assert(fwd_stats.operation == LibBDD::RouteOp::Forward);
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
     const port_ingress_t fwd_node_egress = new_ep->get_node_egress(dev_hr, fwd_node);
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, fwd_node_egress);
   }
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

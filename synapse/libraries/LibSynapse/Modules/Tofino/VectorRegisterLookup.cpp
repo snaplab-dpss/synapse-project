@@ -61,17 +61,15 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
 }
 
 std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
-    return impls;
+    return {};
   }
 
   // If the value is ignored everywhere but in the header modification, we will transpile it to a vector lookup during the header
@@ -81,31 +79,32 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
-    return impls;
+    return {};
   }
 
   VectorRegister *vector_register = build_or_reuse_vector_register(ep, call_node, vector_register_data);
 
   if (!vector_register) {
-    return impls;
+    return {};
   }
 
   Module *module  = new VectorRegisterLookup(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                              vector_register_data.value, can_be_inlined);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, vector_register_data.obj, vector_register);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, vector_register_data.obj, vector_register);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

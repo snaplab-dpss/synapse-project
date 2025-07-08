@@ -15,16 +15,6 @@ Heuristic::Heuristic(std::unique_ptr<HeuristicCfg> _config, std::unique_ptr<EP> 
   rebuild_execution_plans_sets();
 }
 
-Heuristic::~Heuristic() {
-  for (const EP *ep : unfinished_eps) {
-    delete ep;
-  }
-
-  for (const EP *ep : finished_eps) {
-    delete ep;
-  }
-}
-
 bool Heuristic::is_finished() {
   if (stop_on_first_solution && !finished_eps.empty()) {
     return true;
@@ -34,18 +24,24 @@ bool Heuristic::is_finished() {
   return false;
 }
 
-std::unique_ptr<EP> Heuristic::pop_best_finished() {
-  ep_it_t best_finished_it = finished_eps.begin();
-  EP *best                 = *best_finished_it;
-  finished_eps.erase(best_finished_it);
-  return std::unique_ptr<EP>(best);
-}
+std::unique_ptr<EP> Heuristic::pop_best_finished() { return std::move(finished_eps.extract(finished_eps.begin()).value()); }
 
 void Heuristic::rebuild_execution_plans_sets() {
-  auto rebuilder = [this](std::multiset<EP *, ep_cmp_t> &target) {
-    std::vector<EP *> backup(target.begin(), target.end());
-    target = std::multiset<EP *, ep_cmp_t>([this](EP *e1, EP *e2) { return (*config)(e1, e2); });
-    target.insert(backup.begin(), backup.end());
+  auto rebuilder = [this](std::multiset<std::unique_ptr<EP>, ep_cmp_t> &target) {
+    std::vector<std::unique_ptr<EP>> backup;
+    backup.reserve(target.size());
+    while (!target.empty()) {
+      backup.push_back(std::move(target.extract(target.begin()).value()));
+    }
+
+    auto new_ep_cmp = [this](const std::unique_ptr<EP> &e1, const std::unique_ptr<EP> &e2) { return (*config)(e1.get(), e2.get()); };
+    target          = std::multiset<std::unique_ptr<EP>, ep_cmp_t>(new_ep_cmp);
+
+    for (std::unique_ptr<EP> &ep : backup) {
+      target.insert(std::move(ep));
+    }
+
+    backup.clear();
   };
 
   rebuilder(unfinished_eps);
@@ -56,7 +52,7 @@ std::unique_ptr<EP> Heuristic::pop_next_unfinished() {
   ep_it_t next_it = get_next_unfinished_it();
   assert(next_it != unfinished_eps.end() && "No more execution plans to pick");
 
-  if (config->mutates(*next_it)) {
+  if (config->mutates(next_it->get())) {
     // Trigger a re-sort with the new mutated heuristic.
     // Otherwise the multiset won't use the new instance (modified).
     rebuild_execution_plans_sets();
@@ -64,23 +60,18 @@ std::unique_ptr<EP> Heuristic::pop_next_unfinished() {
     assert(next_it != unfinished_eps.end() && "No more execution plans to pick");
   }
 
-  EP *chosen_ep = *next_it;
-  unfinished_eps.erase(next_it);
-
-  return std::unique_ptr<EP>(chosen_ep);
+  return std::move(unfinished_eps.extract(next_it).value());
 }
 
 void Heuristic::add(std::vector<impl_t> &&new_implementations) {
   for (impl_t &impl : new_implementations) {
-    EP *ep = impl.result;
-    assert(ep && "Invalid execution plan");
-
-    if (ep->get_next_node()) {
-      unfinished_eps.insert(ep);
+    assert(impl.result && "Invalid execution plan");
+    if (impl.result->get_next_node()) {
+      unfinished_eps.insert(std::move(impl.result));
     } else {
-      EPViz::visualize(ep, false);
-      ep->get_ctx().get_perf_oracle().assert_final_state();
-      finished_eps.insert(ep);
+      EPViz::visualize(impl.result.get(), false);
+      impl.result->get_ctx().get_perf_oracle().assert_final_state();
+      finished_eps.insert(std::move(impl.result));
     }
   }
 
@@ -98,12 +89,12 @@ Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
   assert(!unfinished_eps.empty() && "No execution plans to pick");
 
   ep_it_t it       = unfinished_eps.begin();
-  Score best_score = get_score(*it);
+  Score best_score = get_score(it->get());
 
   while (1) {
-    EP *ep = *it;
+    const std::unique_ptr<EP> &ep = *it;
 
-    if ((it == unfinished_eps.end()) || (get_score(ep) != best_score)) {
+    if ((it == unfinished_eps.end()) || (get_score(ep.get()) != best_score)) {
       it = unfinished_eps.begin();
     }
 

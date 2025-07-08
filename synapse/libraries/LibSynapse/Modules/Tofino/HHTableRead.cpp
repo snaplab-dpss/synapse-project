@@ -98,65 +98,63 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
 }
 
 std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return impls;
+    return {};
   }
 
   const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
   const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
-    return impls;
+    return {};
   }
 
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
-    return impls;
+    return {};
   }
 
   HHTable *hh_table =
       build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT);
 
   if (!hh_table) {
-    return impls;
+    return {};
   }
 
   Module *module =
       new HHTableRead(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  if (!update_map_get_success_hit_rate(new_ep, new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
+  if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
     delete ep_node;
-    delete new_ep;
     return {};
   }
 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, map_objs->map, hh_table);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, map_objs->map, hh_table);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

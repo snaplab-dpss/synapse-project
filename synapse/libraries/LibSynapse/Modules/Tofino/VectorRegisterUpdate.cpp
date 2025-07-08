@@ -68,56 +68,55 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
 }
 
 std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *vector_return = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call        = vector_return->get_call();
 
   if (call.function_name != "vector_return") {
-    return impls;
+    return {};
   }
 
   if (!vector_return->is_vector_write()) {
-    return impls;
+    return {};
   }
 
-  const LibBDD::Call *vector_borrow           = vector_return->get_vector_borrow_from_return();
-  vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow, vector_return);
+  const LibBDD::Call *vector_borrow                 = vector_return->get_vector_borrow_from_return();
+  const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow, vector_return);
 
   if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
-    return impls;
+    return {};
   }
 
   if (!expr_fits_in_action(vector_register_data.write_value)) {
-    return impls;
+    return {};
   }
 
   VectorRegister *vector_register = build_or_reuse_vector_register(ep, vector_borrow, vector_register_data);
 
   if (!vector_register) {
-    return impls;
+    return {};
   }
 
   Module *module  = new VectorRegisterUpdate(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                              vector_register_data.value, vector_register_data.write_value);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, vector_register_data.obj, vector_register);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, vector_register_data.obj, vector_register);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

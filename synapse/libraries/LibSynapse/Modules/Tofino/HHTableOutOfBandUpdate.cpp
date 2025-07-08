@@ -103,26 +103,24 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
 
 std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                 LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *dchain_allocate_new_index = dynamic_cast<const LibBDD::Call *>(node);
 
   std::vector<const LibBDD::Call *> future_map_puts;
   if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
-    return impls;
+    return {};
   }
 
   if (!ep->get_bdd()->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index)) {
-    return impls;
+    return {};
   }
 
   LibBDD::map_coalescing_objs_t map_objs;
   if (!ep->get_bdd()->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
@@ -130,7 +128,7 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
 
   const hit_rate_t index_alloc_failure_hr = ep->get_ctx().get_profiler().get_hr(index_alloc_check.get_failure_node());
   if (index_alloc_failure_hr == 0_hr) {
-    return impls;
+    return {};
   }
 
   bool logic_before_dchain_check = false;
@@ -143,7 +141,7 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
 
   if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
       !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_put = get_future_map_put(node, map_objs.map);
@@ -155,11 +153,10 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   Module *module  = new HHTableOutOfBandUpdate(node, hh_table->id, table_data.obj);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const LibBDD::Node *node_replacing_index_check;
-  std::unique_ptr<LibBDD::BDD> new_bdd = rebuild_bdd(new_ep, node, index_alloc_check, map_objs, table_data.key, node_replacing_index_check);
+  std::unique_ptr<LibBDD::BDD> new_bdd = rebuild_bdd(new_ep.get(), node, index_alloc_check, map_objs, table_data.key, node_replacing_index_check);
 
   const LibBDD::Node *new_next_node = node_replacing_index_check;
   if (logic_before_dchain_check) {
@@ -177,6 +174,8 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

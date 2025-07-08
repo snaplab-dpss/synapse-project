@@ -7,9 +7,9 @@ namespace Tofino {
 constexpr const char *RECIRCULATION_PORT_PARAM = "recirc_port";
 
 namespace {
-EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbols &symbols, u16 recirc_port,
-                    const std::vector<u16> &past_recirculations) {
-  EP *new_ep = new EP(*ep);
+std::unique_ptr<EP> generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbols &symbols, u16 recirc_port,
+                                    const std::vector<u16> &past_recirculations) {
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(ep->get_active_leaf().node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(recirc_port, ep->get_node_egress(hr, ep->get_active_leaf().node));
@@ -26,8 +26,8 @@ EP *generate_new_ep(const EP *ep, const LibBDD::Node *node, const LibCore::Symbo
   return new_ep;
 }
 
-EP *concretize_single_port_recirc(const EP *ep, const LibBDD::Node *node, const std::vector<u16> &past_recirc, u16 rport,
-                                  const LibCore::Symbols &symbols) {
+std::unique_ptr<EP> concretize_single_port_recirc(const EP *ep, const LibBDD::Node *node, const std::vector<u16> &past_recirc, u16 rport,
+                                                  const LibCore::Symbols &symbols) {
   bool marked           = false;
   bool returning_recirc = false;
 
@@ -57,21 +57,19 @@ std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const Lib
 }
 
 std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   const TofinoContext *tofino_ctx = get_tofino_ctx(ep);
   std::unordered_set<DS_ID> deps  = tofino_ctx->get_stateful_deps(ep, node);
 
   // We can only recirculate if a stateful operation was implemented since the last recirculation.
   if (deps.empty()) {
-    return impls;
+    return {};
   }
 
   const EPLeaf active_leaf = ep->get_active_leaf();
 
   // We can't recirculate if a forwarding decision was already made.
   if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
-    return impls;
+    return {};
   }
 
   std::vector<u16> available_recirculation_ports;
@@ -82,11 +80,12 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const LibBDD:
   const std::vector<u16> past_recirc = active_leaf.node->get_past_recirculations();
   const LibCore::Symbols symbols     = get_relevant_dataplane_state(ep, node);
 
+  std::vector<impl_t> impls;
   for (u16 rport : available_recirculation_ports) {
-    EP *new_ep = concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);
+    std::unique_ptr<EP> new_ep = concretize_single_port_recirc(ep, node, past_recirc, rport, symbols);
     if (new_ep) {
-      impl_t impl = implement(ep, node, new_ep, {{RECIRCULATION_PORT_PARAM, rport}});
-      impls.push_back(impl);
+      impl_t impl = implement(ep, node, std::move(new_ep), {{RECIRCULATION_PORT_PARAM, rport}});
+      impls.push_back(std::move(impl));
     }
   }
 

@@ -421,23 +421,20 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 }
 
 std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   const EPLeaf active_leaf = ep->get_active_leaf();
 
   // We can't send to the controller if a forwarding decision was already made.
   if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
-    return impls;
+    return {};
   }
 
   // Don't send to the controller if the node is already a route.
   if (node->get_type() == LibBDD::NodeType::Route) {
-    return impls;
+    return {};
   }
 
   // Otherwise we can always send to the controller, at any point in time.
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const initial_controller_logic_t initial_controller_logic = build_initial_controller_logic(active_leaf);
 
@@ -472,6 +469,8 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2c_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, s2c_node));
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

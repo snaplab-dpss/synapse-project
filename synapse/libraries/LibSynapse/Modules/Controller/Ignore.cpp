@@ -22,8 +22,7 @@ bool can_ignore_dchain_op(const Context &ctx, const LibBDD::call_t &call) {
     return false;
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) &&
-      !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) && !ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
     return false;
   }
 
@@ -131,21 +130,20 @@ std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const LibBDD::
 }
 
 std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (!should_ignore(ep->get_ctx(), node)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new Ignore(node);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

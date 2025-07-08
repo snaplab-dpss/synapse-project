@@ -59,40 +59,39 @@ std::optional<spec_impl_t> DataplaneHHTableReadFactory::speculate(const EP *ep, 
 }
 
 std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return impls;
+    return {};
   }
 
   const table_data_t table_data(ep->get_ctx(), map_get);
 
   const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
-    return impls;
+    return {};
   }
 
   if (!ep->get_ctx().check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
       !ep->get_ctx().check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new DataplaneHHTableRead(node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

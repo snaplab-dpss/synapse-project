@@ -61,34 +61,33 @@ std::optional<spec_impl_t> DataplaneMapTableLookupFactory::speculate(const EP *e
 
 std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                  LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return impls;
+    return {};
   }
 
-  map_table_data_t data = table_data_from_map_op(ep->get_ctx(), map_get);
+  const map_table_data_t data = table_data_from_map_op(ep->get_ctx(), map_get);
 
   if (!ep->get_ctx().check_ds_impl(data.obj, DSImpl::Tofino_MapTable)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new DataplaneMapTableLookup(node, data.obj, data.key, data.value, data.found);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

@@ -24,10 +24,8 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const LibBDD::Node
 }
 
 std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (!bdd_node_match_pattern(node)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
@@ -52,11 +50,12 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
   EPLeaf then_leaf(then_node, branch_node->get_on_true());
   EPLeaf else_leaf(else_node, branch_node->get_on_false());
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

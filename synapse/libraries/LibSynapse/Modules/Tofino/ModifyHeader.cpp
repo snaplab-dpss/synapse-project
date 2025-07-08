@@ -50,17 +50,15 @@ std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const Li
 }
 
 std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *packet_return_chunk = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call              = packet_return_chunk->get_call();
 
   if (call.function_name != "packet_return_chunk") {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *packet_borrow_chunk = packet_return_chunk->packet_borrow_from_return();
@@ -72,20 +70,19 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const LibBDD
   const std::vector<LibCore::expr_mod_t> changes     = filter_out_checksum_mods(LibCore::build_expr_mods(borrowed, returned));
   const std::vector<LibCore::expr_byte_swap_t> swaps = LibCore::get_expr_byte_swaps(borrowed, returned);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   if (changes.empty()) {
     new_ep->process_leaf(node->get_next());
-    return impls;
+  } else {
+    Module *module  = new ModifyHeader(node, hdr_addr, borrowed, changes, swaps);
+    EPNode *ep_node = new EPNode(module);
+    EPLeaf leaf(ep_node, node->get_next());
+    new_ep->process_leaf(ep_node, {leaf});
   }
 
-  Module *module  = new ModifyHeader(node, hdr_addr, borrowed, changes, swaps);
-  EPNode *ep_node = new EPNode(module);
-
-  EPLeaf leaf(ep_node, node->get_next());
-  new_ep->process_leaf(ep_node, {leaf});
-
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

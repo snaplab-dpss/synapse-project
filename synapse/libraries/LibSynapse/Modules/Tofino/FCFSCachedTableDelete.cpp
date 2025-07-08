@@ -106,9 +106,9 @@ klee::ref<klee::Expr> build_cache_delete_success_condition(const LibCore::symbol
   return LibCore::solver_toolbox.exprBuilder->Eq(cache_delete_failed.expr, zero);
 }
 
-EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, const LibBDD::map_coalescing_objs_t &map_objs,
-                                   const fcfs_cached_table_data_t &cached_table_data, const LibCore::symbol_t &cache_delete_failed,
-                                   u32 cache_capacity) {
+std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, const LibBDD::map_coalescing_objs_t &map_objs,
+                                                   const fcfs_cached_table_data_t &cached_table_data, const LibCore::symbol_t &cache_delete_failed,
+                                                   u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(ep, map_erase, cached_table_data.obj, cached_table_data.key,
                                                                                         cached_table_data.capacity, cache_capacity);
 
@@ -121,14 +121,14 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
   Module *module = new FCFSCachedTableDelete(map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
   EPNode *cached_table_delete_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   LibBDD::Node *on_cache_delete_success;
   LibBDD::Node *on_cache_delete_failed;
   std::optional<std::vector<klee::ref<klee::Expr>>> deleted_branch_constraints;
 
   std::unique_ptr<LibBDD::BDD> new_bdd =
-      branch_bdd_on_cache_delete_success(new_ep, map_erase, cached_table_data, cache_delete_success_condition, on_cache_delete_success,
+      branch_bdd_on_cache_delete_success(new_ep.get(), map_erase, cached_table_data, cache_delete_success_condition, on_cache_delete_success,
                                          on_cache_delete_failed, deleted_branch_constraints);
 
   LibCore::Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, map_erase);
@@ -168,8 +168,8 @@ EP *concretize_cached_table_delete(const EP *ep, const LibBDD::Call *map_erase, 
   ctx.save_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   ctx.save_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, map_erase, map_objs.map, cached_table);
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), map_erase, map_objs.map, cached_table);
 
   EPLeaf on_cache_delete_success_leaf(then_node, on_cache_delete_success);
   EPLeaf on_cache_delete_failed_leaf(send_to_controller_node, on_cache_delete_failed);
@@ -262,40 +262,39 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
 }
 
 std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_erase = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = map_erase->get_call();
 
   if (call.function_name != "map_erase") {
-    return impls;
+    return {};
   }
 
   const fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_erase);
 
   const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(cached_table_data.obj);
   if (!map_objs.has_value()) {
-    return impls;
+    return {};
   }
 
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
-    return impls;
+    return {};
   }
 
   const LibCore::symbol_t cache_delete_failed     = symbol_manager->create_symbol("cache_delete_failed", 32);
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
 
+  std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    EP *new_ep = concretize_cached_table_delete(ep, map_erase, map_objs.value(), cached_table_data, cache_delete_failed, cache_capacity);
-
+    std::unique_ptr<EP> new_ep =
+        concretize_cached_table_delete(ep, map_erase, map_objs.value(), cached_table_data, cache_delete_failed, cache_capacity);
     if (new_ep) {
-      impl_t impl = implement(ep, map_erase, new_ep, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
-      impls.push_back(impl);
+      impl_t impl = implement(ep, map_erase, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
+      impls.push_back(std::move(impl));
     }
   }
 

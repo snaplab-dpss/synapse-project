@@ -116,23 +116,21 @@ std::optional<spec_impl_t> CMSIncAndQueryFactory::speculate(const EP *ep, const 
 }
 
 std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
 
   std::vector<const LibBDD::Call *> cms_count_mins;
   if (!is_inc_and_query_cms(cms_increment, cms_count_mins)) {
-    return impls;
+    return {};
   }
 
   const cms_data_t cms_data(ep->get_ctx(), cms_count_mins[0]);
 
   if (!ep->get_ctx().can_impl_ds(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
-    return impls;
+    return {};
   }
 
   const LibBDD::cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
@@ -140,23 +138,22 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
   CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height);
 
   if (!cms) {
-    return impls;
+    return {};
   }
 
   Module *module  = new CMSIncAndQuery(node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const LibBDD::Node *new_next_node;
-  std::unique_ptr<LibBDD::BDD> new_bdd = rebuild_bdd(new_ep, node, cms_count_mins, new_next_node);
+  std::unique_ptr<LibBDD::BDD> new_bdd = rebuild_bdd(new_ep.get(), node, cms_count_mins, new_next_node);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, cms_data.obj, cms);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, cms_data.obj, cms);
 
   EPLeaf leaf(ep_node, new_next_node);
   new_ep->process_leaf(ep_node, {leaf});
@@ -164,6 +161,8 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
   new_ep->replace_bdd(std::move(new_bdd));
   new_ep->assert_integrity();
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

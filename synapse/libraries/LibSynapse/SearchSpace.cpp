@@ -101,7 +101,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
   for (const impl_t &impl : implementations) {
     const ss_node_id_t id = node_id_counter++;
     const ep_id_t ep_id   = impl.result->get_id();
-    const Score score     = hcfg->score(impl.result);
+    const Score score     = hcfg->score(impl.result.get());
 
     const TargetType target  = modgen->get_target();
     const LibBDD::Node *next = impl.result->get_next_node();
@@ -132,7 +132,7 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
       };
     }
 
-    const std::vector<heuristic_metadata_t> metadata = hcfg->get_metadata(impl.result);
+    const std::vector<heuristic_metadata_t> metadata = hcfg->get_metadata(impl.result.get());
 
     SSNode *new_node = new SSNode(id, ep_id, score, target, module_data, bdd_node_data, next_bdd_node_data, metadata);
 

@@ -255,7 +255,7 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
         color = "black" if pps < TPUT_MPPS_MAX * 1e6 / 2 else "white"
 
         text = ax.text(j, i, label, ha="center", va="center", color=color)
-        text.set_fontsize(7)
+        text.set_fontsize(6)
         text.set_fontweight("bold")
 
     fig.set_size_inches(width * 0.6, height * 1)

@@ -57,17 +57,15 @@ std::optional<spec_impl_t> DataplaneFCFSCachedTableWriteFactory::speculate(const
 
 std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                        LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_put") {
-    return impls;
+    return {};
   }
 
   addr_t obj;
@@ -76,20 +74,21 @@ std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP 
   get_data(ep->get_ctx(), call_node, obj, keys, value);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
-    return impls;
+    return {};
   }
 
-  DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
+  const DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
 
   Module *module  = new DataplaneFCFSCachedTableWrite(node, id, obj, keys, value);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

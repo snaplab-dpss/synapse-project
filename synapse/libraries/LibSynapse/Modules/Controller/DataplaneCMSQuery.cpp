@@ -54,34 +54,33 @@ std::optional<spec_impl_t> DataplaneCMSQueryFactory::speculate(const EP *ep, con
 }
 
 std::vector<impl_t> DataplaneCMSQueryFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
-    return impls;
+    return {};
   }
 
   const cms_data_t cms_data = get_cms_data(call_node);
 
   if (!ep->get_ctx().check_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
-    return impls;
+    return {};
   }
 
   Module *module  = new DataplaneCMSQuery(node, cms_data.obj, cms_data.key, cms_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

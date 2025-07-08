@@ -118,50 +118,49 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Lib
 }
 
 std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *tb_is_tracing = dynamic_cast<const LibBDD::Call *>(node);
 
   const LibBDD::Call *tb_update_and_check;
   if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
-    return impls;
+    return {};
   }
 
-  tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
+  const tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
 
   if (!ep->get_ctx().can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
-    return impls;
+    return {};
   }
 
   Meter *meter = build_meter(ep, node, data.id, data.cfg, data.keys);
 
   if (!meter) {
-    return impls;
+    return {};
   }
 
   Module *module  = new MeterUpdate(node, data.id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const LibBDD::Node *new_next;
-  std::unique_ptr<LibBDD::BDD> new_bdd = delete_future_tb_update(new_ep, node, tb_update_and_check, new_next);
+  std::unique_ptr<LibBDD::BDD> new_bdd = delete_future_tb_update(new_ep.get(), node, tb_update_and_check, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, data.obj, meter);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, data.obj, meter);
 
   EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
   new_ep->replace_bdd(std::move(new_bdd));
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

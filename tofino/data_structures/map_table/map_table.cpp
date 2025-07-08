@@ -5,7 +5,7 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   MapTable map_table;
 
-  state_t() : map_table("map_table", {"Ingress.map_table_0"}, 1000) {}
+  state_t() : map_table("map_table", {"Ingress.map_table_0"}, 100) {}
 };
 
 state_t *state = nullptr;

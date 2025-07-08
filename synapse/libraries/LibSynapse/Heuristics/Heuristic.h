@@ -9,17 +9,16 @@ namespace LibSynapse {
 
 class Heuristic {
 private:
-  using ep_cmp_t = std::function<bool(EP *, EP *)>;
-  using ep_it_t  = typename std::set<EP *, HeuristicCfg>::iterator;
+  using ep_cmp_t = std::function<bool(const std::unique_ptr<EP> &, const std::unique_ptr<EP> &)>;
+  using ep_it_t  = typename std::set<std::unique_ptr<EP>, HeuristicCfg>::iterator;
 
   std::unique_ptr<HeuristicCfg> config;
-  std::multiset<EP *, ep_cmp_t> unfinished_eps;
-  std::multiset<EP *, ep_cmp_t> finished_eps;
+  std::multiset<std::unique_ptr<EP>, ep_cmp_t> unfinished_eps;
+  std::multiset<std::unique_ptr<EP>, ep_cmp_t> finished_eps;
   bool stop_on_first_solution;
 
 public:
   Heuristic(std::unique_ptr<HeuristicCfg> config, std::unique_ptr<EP> starting_ep, bool stop_on_first_solution);
-  ~Heuristic();
 
   bool is_finished();
   void add(std::vector<impl_t> &&new_implementations);

@@ -33,17 +33,15 @@ std::optional<spec_impl_t> LPMLookupFactory::speculate(const EP *ep, const LibBD
 }
 
 std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *lpm_lookup = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call     = lpm_lookup->get_call();
 
   if (call.function_name != "lpm_lookup") {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> lpm_addr_expr = call.args.at("lpm").expr;
@@ -51,33 +49,34 @@ std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const LibBDD::N
   klee::ref<klee::Expr> device        = call.args.at("value_out").out;
   klee::ref<klee::Expr> match         = lpm_lookup->get_local_symbol("lpm_lookup_match").expr;
 
-  addr_t obj = LibCore::expr_addr_to_obj_addr(lpm_addr_expr);
+  const addr_t obj = LibCore::expr_addr_to_obj_addr(lpm_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(obj, DSImpl::Tofino_LPM)) {
-    return impls;
+    return {};
   }
 
   LPM *lpm = build_lpm(ep, node, obj);
 
   if (!lpm) {
-    return impls;
+    return {};
   }
 
   Module *module  = new LPMLookup(node, lpm->id, obj, addr, device, match);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(obj, DSImpl::Tofino_LPM);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep);
-  tofino_ctx->place(new_ep, node, obj, lpm);
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  tofino_ctx->place(new_ep.get(), node, obj, lpm);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

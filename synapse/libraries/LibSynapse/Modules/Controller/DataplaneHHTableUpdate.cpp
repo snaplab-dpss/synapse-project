@@ -51,24 +51,22 @@ std::optional<spec_impl_t> DataplaneHHTableUpdateFactory::speculate(const EP *ep
 
 std::vector<impl_t> DataplaneHHTableUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
                                                                 LibCore::SymbolManager *symbol_manager) const {
-  std::vector<impl_t> impls;
-
   if (node->get_type() != LibBDD::NodeType::Call) {
-    return impls;
+    return {};
   }
 
   const LibBDD::Call *map_put = dynamic_cast<const LibBDD::Call *>(node);
   const LibBDD::call_t &call  = map_put->get_call();
 
   if (call.function_name != "map_put") {
-    return impls;
+    return {};
   }
 
   klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
   const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
-    return impls;
+    return {};
   }
 
   const table_data_t table_data(ep->get_ctx(), map_put);
@@ -76,12 +74,13 @@ std::vector<impl_t> DataplaneHHTableUpdateFactory::process_node(const EP *ep, co
   Module *module  = new DataplaneHHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value);
   EPNode *ep_node = new EPNode(module);
 
-  EP *new_ep = new EP(*ep);
-  impls.push_back(implement(ep, node, new_ep));
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 

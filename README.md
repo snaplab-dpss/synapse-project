@@ -29,9 +29,20 @@ After running `build_deps.sh`, a new file will appear on the project root direct
 
 Building synapse is very simple:
 
-```
+```bash
 > cd synapse
-synapse/> ./build.sh
+synapse/> mkdir build && cd build
+synapse/build/> cmake .. -GNinja
+synapse/build/> ninja
+```
+
+Or if you want to build with address sanitizer on for debugging:
+
+```bash
+> cd synapse
+synapse/> mkdir build && cd build
+synapse/build/> cmake .. -GNinja -DENABLE_ADDRESS_SANITIZER=1 -DCMAKE_BUILD_TYPE=Debug
+synapse/build/> ninja
 ```
 
 This will build synapse and create all the binaries. You can find all created binaries in `synapse/build/bin/`. Run the binaries with `--help` print the help menu.

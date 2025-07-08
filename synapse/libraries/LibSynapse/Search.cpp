@@ -100,8 +100,8 @@ void peek_search_space(const std::vector<impl_t> &new_implementations, const std
     if (std::find(peek.begin(), peek.end(), impl.result->get_id()) != peek.end()) {
       impl.result->debug();
       ProfilerViz::visualize(impl.result->get_bdd(), impl.result->get_ctx().get_profiler(), false);
-      EPViz::visualize(impl.result, false);
-      SSViz::visualize(search_space, impl.result, false);
+      EPViz::visualize(impl.result.get(), false);
+      SSViz::visualize(search_space, impl.result.get(), false);
       dbg_pause();
     }
   }
@@ -172,15 +172,16 @@ search_report_t SearchEngine::search() {
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
       for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
-        const std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
-
-        search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
-        report.save(factory.get(), implementations);
-        new_implementations.insert(new_implementations.end(), implementations.begin(), implementations.end());
+        std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 
         if (target->type == TargetType::Tofino) {
           children += implementations.size();
         }
+
+        search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
+        report.save(factory.get(), implementations);
+        new_implementations.insert(new_implementations.end(), std::make_move_iterator(implementations.begin()),
+                                   std::make_move_iterator(implementations.end()));
       }
     }
 
