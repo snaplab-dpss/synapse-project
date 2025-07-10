@@ -13,16 +13,14 @@
 namespace LibClone {
 
 namespace {
-constexpr char TOKEN_DEVICE[]  = "device";
-constexpr char TOKEN_NF[]      = "nf";
-constexpr char TOKEN_LINK[]    = "link";
-constexpr char TOKEN_PORT[]    = "port";
-constexpr char TOKEN_COMMENT[] = "//";
+constexpr char TOKEN_CMD_NF[]   = "nf";
+constexpr char TOKEN_CMD_LINK[] = "link";
+constexpr char TOKEN_PORT[]     = "global_port";
+constexpr char TOKEN_COMMENT[]  = "//";
 
-constexpr size_t LENGTH_DEVICE_INPUT = 2;
-constexpr size_t LENGTH_NF_INPUT     = 3;
-constexpr size_t LENGTH_LINK_INPUT   = 5;
-constexpr size_t LENGTH_PORT_INPUT   = 4;
+constexpr size_t LENGTH_PORT_INPUT = 2;
+constexpr size_t LENGTH_NF_INPUT   = 3;
+constexpr size_t LENGTH_LINK_INPUT = 5;
 
 std::ifstream open_file(const std::string &path) {
   std::ifstream fstream;
@@ -33,15 +31,6 @@ std::ifstream open_file(const std::string &path) {
   }
 
   return fstream;
-}
-
-std::unique_ptr<Device> parse_device(const std::vector<std::string> &words) {
-  if (words.size() != LENGTH_DEVICE_INPUT) {
-    panic("Invalid device");
-  }
-
-  const std::string &id = words[1];
-  return std::unique_ptr<Device>(new Device(id));
 }
 
 std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::filesystem::path &network_file,
@@ -58,60 +47,56 @@ std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::f
     path = network_file.parent_path() / path;
   }
 
-  return std::unique_ptr<NF>(new NF(id, path, symbol_manager));
+  return std::make_unique<NF>(id, path, symbol_manager);
 }
 
-std::unique_ptr<Link> parse_link(const std::vector<std::string> &words, const std::unordered_map<NFId, std::unique_ptr<NF>> &nfs) {
+void parse_link(const std::vector<std::string> &words, const std::unordered_map<NFId, std::unique_ptr<NF>> &nfs,
+                std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> &nodes) {
   if (words.size() != LENGTH_LINK_INPUT) {
     panic("Invalid link");
   }
 
-  const std::string &node1  = words[1];
-  const std::string &sport1 = words[2];
-  const u32 port1           = std::stoul(sport1);
+  const NetworkNodeId node1_id = words[1];
+  const Port sport             = std::stoul(words[2]);
+  const NetworkNodeId node2_id = words[3];
+  const Port dport             = std::stoul(words[4]);
 
-  if (nfs.find(node1) == nfs.end() && node1 != "port") {
-    panic("Could not find node %s", node1.c_str());
+  const bool node1_is_nf = nfs.find(node1_id) != nfs.end();
+  if (!node1_is_nf && node1_id != TOKEN_PORT) {
+    panic("Could not find node %s", node1_id.c_str());
   }
 
-  const std::string node2  = words[3];
-  const std::string sport2 = words[4];
-  const u32 port2          = std::stoul(sport2);
-
-  if (nfs.find(node2) == nfs.end() && node2 != "port") {
-    panic("Could not find node %s", node2.c_str());
+  if (nodes.find(node1_id) == nodes.end()) {
+    if (node1_is_nf) {
+      nodes[node1_id] = std::make_unique<NetworkNode>(node1_id, nfs.at(node1_id).get(), sport);
+    } else {
+      nodes[node1_id] = std::make_unique<NetworkNode>(node1_id, sport);
+    }
   }
 
-  return std::unique_ptr<Link>(new Link(node1, port1, node2, port2));
+  const bool node2_is_nf = nfs.find(node2_id) != nfs.end();
+  if (!node2_is_nf && node2_id != TOKEN_PORT) {
+    panic("Could not find node %s", node2_id.c_str());
+  }
+
+  if (nodes.find(node2_id) == nodes.end()) {
+    if (node2_is_nf) {
+      nodes[node2_id] = std::make_unique<NetworkNode>(node2_id, nfs.at(node2_id).get(), dport);
+    } else {
+      nodes[node2_id] = std::make_unique<NetworkNode>(node2_id, dport);
+    }
+  }
+
+  nodes.at(node1_id)->add_link(sport, dport, nodes.at(node2_id).get());
 }
 
-std::unique_ptr<Port> parse_port(const std::vector<std::string> &words, const std::unordered_map<DeviceId, std::unique_ptr<Device>> &devices) {
-  if (words.size() != LENGTH_PORT_INPUT) {
-    panic("Invalid port");
-  }
-
-  const u32 global_port         = stoul(words[1]);
-  const std::string device_name = words[2];
-  const u32 device_port         = stoul(words[3]);
-
-  if (devices.find(device_name) == devices.end()) {
-    panic("Could not find device %s", device_name.c_str());
-  }
-
-  const std::unique_ptr<Device> &device = devices.at(device_name);
-  device->add_port(device_port, global_port);
-
-  return std::unique_ptr<Port>(new Port(device.get(), device_port, global_port));
-}
 } // namespace
 
 Network Network::parse(const std::filesystem::path &network_file, LibCore::SymbolManager *symbol_manager) {
   std::ifstream fstream = open_file(network_file);
 
-  std::unordered_map<DeviceId, std::unique_ptr<Device>> devices;
   std::unordered_map<NFId, std::unique_ptr<NF>> nfs;
-  std::vector<std::unique_ptr<Link>> links;
-  std::unordered_map<GlobalPortId, std::unique_ptr<Port>> ports;
+  std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> nodes;
 
   std::string line;
   while (getline(fstream, line)) {
@@ -129,21 +114,12 @@ Network Network::parse(const std::filesystem::path &network_file, LibCore::Symbo
 
     const std::string type = words[0];
 
-    if (type == TOKEN_DEVICE) {
-      std::unique_ptr<LibClone::Device> device = parse_device(words);
-      const DeviceId device_id                 = device->get_id();
-      devices[device_id]                       = std::move(device);
-    } else if (type == TOKEN_NF) {
+    if (type == TOKEN_CMD_NF) {
       std::unique_ptr<NF> nf = parse_nf(words, network_file, symbol_manager);
       const NFId nf_id       = nf->get_id();
       nfs[nf->get_id()]      = std::move(nf);
-    } else if (type == TOKEN_LINK) {
-      std::unique_ptr<Link> link = parse_link(words, nfs);
-      links.push_back(std::move(link));
-    } else if (type == TOKEN_PORT) {
-      std::unique_ptr<Port> port     = parse_port(words, devices);
-      const GlobalPortId global_port = port->get_global_port();
-      ports[global_port]             = std::move(port);
+    } else if (type == TOKEN_CMD_LINK) {
+      parse_link(words, nfs, nodes);
     } else if (type == TOKEN_COMMENT) {
       // Ignore comments
       continue;
@@ -152,7 +128,7 @@ Network Network::parse(const std::filesystem::path &network_file, LibCore::Symbo
     }
   }
 
-  return Network(std::move(devices), std::move(nfs), std::move(links), std::move(ports));
+  return Network(std::move(nfs), std::move(nodes));
 }
 
 } // namespace LibClone

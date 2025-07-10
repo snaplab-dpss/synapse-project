@@ -3,9 +3,7 @@
 #include <LibBDD/BDD.h>
 
 #include <LibClone/Node.h>
-#include <LibClone/Device.h>
 #include <LibClone/NF.h>
-#include <LibClone/Link.h>
 #include <LibClone/Port.h>
 
 #include <vector>
@@ -16,28 +14,50 @@
 
 namespace LibClone {
 
-struct NodeTransition {
-  u32 input_port;
-  const NetworkNode *node;
-  const NetworkNode *tail;
-
-  NodeTransition(u32 _input_port, const NetworkNode *_node, const NetworkNode *_tail) : input_port(_input_port), node(_node), tail(_tail) {}
-};
-
 class Network {
 private:
-  const std::unordered_map<DeviceId, std::unique_ptr<Device>> devices;
-  const std::unordered_map<NFId, std::unique_ptr<NF>> nfs;
-  const std::vector<std::unique_ptr<Link>> links;
-  const std::unordered_map<GlobalPortId, std::unique_ptr<Port>> ports;
-
-  std::unordered_map<NetworkNodeId, NetworkNode *> nodes;
+  std::unordered_map<NFId, std::unique_ptr<NF>> nfs;
+  std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> nodes;
   NetworkNode *source;
 
 public:
-  Network(std::unordered_map<DeviceId, std::unique_ptr<Device>> &&_devices, std::unordered_map<NFId, std::unique_ptr<NF>> &&_nfs,
-          std::vector<std::unique_ptr<Link>> &&_links, std::unordered_map<GlobalPortId, std::unique_ptr<Port>> &&_ports)
-      : devices(std::move(_devices)), nfs(std::move(_nfs)), links(std::move(_links)), ports(std::move(_ports)), nodes(), source(nullptr) {}
+  Network(std::unordered_map<NFId, std::unique_ptr<NF>> &&_nfs, std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> &&_nodes)
+      : nfs(std::move(_nfs)), nodes(std::move(_nodes)), source(nullptr) {
+    // for (const std::unique_ptr<LibClone::Link> &link : links) {
+    //   const std::string &node1_str = link->get_node1();
+    //   const std::string &node2_str = link->get_node2();
+
+    //   const NodeType node1_type = nfs.find(node1_str) != nfs.end() ? NodeType::NF : NodeType::GLOBAL_PORT;
+    //   const NodeType node2_type = nfs.find(node2_str) != nfs.end() ? NodeType::NF : NodeType::GLOBAL_PORT;
+
+    //   const unsigned port1 = link->get_port1();
+    //   const unsigned port2 = link->get_port2();
+
+    //   if (nodes.find(node1_str) == nodes.end()) {
+    //     nodes.emplace(node1_str, NodePtr(new Node(node1_str, node1_type)));
+    //   }
+
+    //   if (nodes.find(node2_str) == nodes.end()) {
+    //     nodes.emplace(node2_str, NodePtr(new Node(node2_str, node2_type)));
+    //   }
+
+    //   const NodePtr node1 = nodes.at(node1_str);
+    //   const NodePtr node2 = nodes.at(node2_str);
+
+    //   node1->add_child(port1, port2, node2);
+
+    //   if (node1_type == NodeType::GLOBAL_PORT && source == nullptr) {
+    //     source = node1;
+    //   }
+    // }
+
+    // if (source == nullptr) {
+    //   danger("Null source");
+    // }
+  }
+
+  Network(const Network &)            = delete;
+  Network &operator=(const Network &) = delete;
 
   ~Network() = default;
 
@@ -47,35 +67,22 @@ public:
 
   void debug() const {
     std::cerr << "========== Network ==========\n";
-    std::cerr << "Devices:\n";
-    for (const auto &[_, device] : devices) {
-      std::cerr << "  ";
-      device->debug();
-      std::cerr << "\n";
-    }
     std::cerr << "NFs:\n";
     for (const auto &[_, nf] : nfs) {
       std::cerr << "  ";
       nf->debug();
       std::cerr << "\n";
     }
-    std::cerr << "Links:\n";
-    for (const auto &link : links) {
+    std::cerr << "Nodes:\n";
+    for (const auto &[_, node] : nodes) {
       std::cerr << "  ";
-      link->debug();
-      std::cerr << "\n";
-    }
-    std::cerr << "Ports:\n";
-    for (const auto &[_, port] : ports) {
-      std::cerr << "  ";
-      port->debug();
+      node->debug();
       std::cerr << "\n";
     }
     std::cerr << "=============================\n";
   }
 
 private:
-  void build_graph() { assert(false && "TODO"); }
   void traverse(u32 global_port, NetworkNode *origin, u32 nf_port) { assert(false && "TODO"); }
   void print_graph() const { assert(false && "TODO"); }
 };

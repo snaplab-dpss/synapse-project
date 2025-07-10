@@ -20,10 +20,7 @@ private:
 public:
   NF(const NFId &_id, const std::filesystem::path &_path, LibCore::SymbolManager *symbol_manager) : id(_id), bdd(_path, symbol_manager) {}
 
-  ~NF() = default;
-
   const NFId &get_id() const { return id; }
-
   const LibBDD::BDD &get_bdd() const { return bdd; }
 
   void debug() const { std::cerr << "NF{" << id << "}"; }

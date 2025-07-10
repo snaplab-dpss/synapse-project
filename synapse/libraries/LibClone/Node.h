@@ -1,6 +1,8 @@
 #pragma once
 
 #include <LibCore/Types.h>
+#include <LibClone/NF.h>
+#include <LibClone/Port.h>
 
 #include <iostream>
 #include <string>
@@ -16,31 +18,36 @@ enum class NodeType { GLOBAL_PORT, NF };
 
 class NetworkNode {
 private:
-  const NetworkNodeId name;
-  const NodeType node_type;
-
-  std::unordered_map<u32, std::pair<u32, const NetworkNode *>> children;
+  NetworkNodeId id;
+  NodeType type;
+  const NF *nf;
+  std::unordered_map<Port, std::pair<Port, const NetworkNode *>> links;
 
 public:
-  NetworkNode(const NetworkNodeId &_name, NodeType _node_type) : name(_name), node_type(_node_type), children() {}
+  NetworkNode(NetworkNodeId _id, const NF *_nf, Port _port) : id(_id), type(NodeType::NF), nf(_nf) { assert(nf != nullptr); }
+  NetworkNode(NetworkNodeId _id, Port _port) : id(_id), type(NodeType::GLOBAL_PORT), nf(nullptr) {}
 
-  ~NetworkNode() = default;
+  NetworkNodeId get_id() const { return id; }
+  NodeType get_node_type() const { return type; }
+  const NF *get_nf() const { return nf; }
 
-  const NetworkNodeId &get_name() const { return name; }
-  NodeType get_node_type() const { return node_type; }
+  const std::unordered_map<Port, std::pair<Port, const NetworkNode *>> &get_links() const { return links; }
 
-  const std::unordered_map<u32, std::pair<u32, const NetworkNode *>> &get_children() const { return children; }
+  bool has_link(const Port port) const { return links.find(port) != links.end(); }
 
-  bool has_child(const u32 port) const { return children.find(port) != children.end(); }
-
-  const std::pair<u32, const NetworkNode *> &get_child(const u32 port) const {
-    assert(children.find(port) != children.end());
-    return children.at(port);
+  const std::pair<Port, const NetworkNode *> &get_connected_node(const Port port) const {
+    assert(links.find(port) != links.end());
+    return links.at(port);
   }
 
-  void add_child(u32 port_from, u32 port_to, const NetworkNode *node) { children[port_from] = {port_to, node}; }
+  void add_link(Port port_from, Port port_to, const NetworkNode *node) { links[port_from] = {port_to, node}; }
 
-  void debug() const { std::cerr << "Node{name=" << name << ",type=" << (node_type == NodeType::GLOBAL_PORT ? "GLOBAL_PORT" : "NF") << "}"; }
+  void debug() const {
+    std::cerr << id << "{";
+    for (const auto &[sport, destination] : links) {
+      std::cerr << "(" << sport << "->" << destination.first << ":" << destination.second->get_id() << "),";
+    }
+  }
 };
 
 } // namespace LibClone
