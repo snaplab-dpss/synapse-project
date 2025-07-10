@@ -1,7 +1,10 @@
 #include <LibSynapse/Modules/Tofino/TNA/SolverPlacer.h>
 
 #include <z3++.h>
+
+#ifdef USE_GUROBI_SOLVER
 #include <gurobi_c++.h>
+#endif
 
 namespace LibSynapse {
 namespace Tofino {
@@ -69,7 +72,6 @@ ds_relationships_t get_ds_relationships(const Pipeline &pipeline, const DS *targ
 } // namespace
 
 #ifdef USE_GUROBI_SOLVER
-
 ActiveSolver get_active_solver() { return ActiveSolver::Gurobi; }
 
 PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, const std::unordered_set<DS_ID> &deps) {
@@ -408,7 +410,6 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
 }
 
 #else
-
 ActiveSolver get_active_solver() { return ActiveSolver::Z3; }
 
 PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, const std::unordered_set<DS_ID> &deps) {
