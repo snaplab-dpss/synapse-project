@@ -4,7 +4,6 @@
 
 #include <LibClone/Node.h>
 #include <LibClone/NF.h>
-#include <LibClone/Port.h>
 
 #include <vector>
 #include <string>
@@ -27,8 +26,8 @@ public:
     //   const std::string &node1_str = link->get_node1();
     //   const std::string &node2_str = link->get_node2();
 
-    //   const NodeType node1_type = nfs.find(node1_str) != nfs.end() ? NodeType::NF : NodeType::GLOBAL_PORT;
-    //   const NodeType node2_type = nfs.find(node2_str) != nfs.end() ? NodeType::NF : NodeType::GLOBAL_PORT;
+    //   const NetworkNodeType node1_type = nfs.find(node1_str) != nfs.end() ? NetworkNodeType::NF : NetworkNodeType::GLOBAL_PORT;
+    //   const NetworkNodeType node2_type = nfs.find(node2_str) != nfs.end() ? NetworkNodeType::NF : NetworkNodeType::GLOBAL_PORT;
 
     //   const unsigned port1 = link->get_port1();
     //   const unsigned port2 = link->get_port2();
@@ -46,7 +45,7 @@ public:
 
     //   node1->add_child(port1, port2, node2);
 
-    //   if (node1_type == NodeType::GLOBAL_PORT && source == nullptr) {
+    //   if (node1_type == NetworkNodeType::GLOBAL_PORT && source == nullptr) {
     //     source = node1;
     //   }
     // }

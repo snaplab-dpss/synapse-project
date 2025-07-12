@@ -2,7 +2,6 @@
 
 #include <LibCore/Types.h>
 #include <LibClone/NF.h>
-#include <LibClone/Port.h>
 
 #include <iostream>
 #include <string>
@@ -13,22 +12,24 @@
 
 namespace LibClone {
 
+using Port          = u32;
 using NetworkNodeId = std::string;
-enum class NodeType { GLOBAL_PORT, NF };
+
+enum class NetworkNodeType { GLOBAL_PORT, NF };
 
 class NetworkNode {
 private:
   NetworkNodeId id;
-  NodeType type;
+  NetworkNodeType type;
   const NF *nf;
   std::unordered_map<Port, std::pair<Port, const NetworkNode *>> links;
 
 public:
-  NetworkNode(NetworkNodeId _id, const NF *_nf, Port _port) : id(_id), type(NodeType::NF), nf(_nf) { assert(nf != nullptr); }
-  NetworkNode(NetworkNodeId _id, Port _port) : id(_id), type(NodeType::GLOBAL_PORT), nf(nullptr) {}
+  NetworkNode(const NetworkNodeId &_id, const NF *_nf, Port _port) : id(_id), type(NetworkNodeType::NF), nf(_nf) { assert(nf != nullptr); }
+  NetworkNode(const NetworkNodeId &_id, Port _port) : id(_id), type(NetworkNodeType::GLOBAL_PORT), nf(nullptr) {}
 
   NetworkNodeId get_id() const { return id; }
-  NodeType get_node_type() const { return type; }
+  NetworkNodeType get_node_type() const { return type; }
   const NF *get_nf() const { return nf; }
 
   const std::unordered_map<Port, std::pair<Port, const NetworkNode *>> &get_links() const { return links; }
@@ -47,6 +48,7 @@ public:
     for (const auto &[sport, destination] : links) {
       std::cerr << "(" << sport << "->" << destination.first << ":" << destination.second->get_id() << "),";
     }
+    std::cerr << "}";
   }
 };
 
