@@ -67,7 +67,7 @@ template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
 
 time_ns_t get_expiration_time(const Context &ctx) {
   const std::optional<expiration_data_t> expiration_data = ctx.get_expiration_data();
-  assert(expiration_data.has_value() && "Expiration data not found");
+  assert_or_panic(expiration_data.has_value(), "Expiration data not found");
   return expiration_data->expiration_time;
 }
 

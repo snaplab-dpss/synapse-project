@@ -441,9 +441,8 @@ private:
     assert(initial_state && "Invalid parser");
     assert(states.find(leaf_id) != states.end() && "Invalid parser");
     assert(!new_state->ids.empty() && "Invalid parser");
-    for (LibBDD::node_id_t id : new_state->ids) {
-      assert(states.find(id) == states.end() && "Invalid parser");
-    }
+    assert(std::all_of(new_state->ids.begin(), new_state->ids.end(), [&](LibBDD::node_id_t id) { return states.find(id) == states.end(); }) &&
+           "Invalid parser");
 
     states[*new_state->ids.begin()] = new_state;
 

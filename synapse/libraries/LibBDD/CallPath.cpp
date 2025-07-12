@@ -211,8 +211,8 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                 delim = current_arg.find("]");
                 assert(delim != std::string::npos && "Invalid call");
 
-                auto current_arg_meta = current_arg.substr(delim + 1);
-                current_arg           = current_arg.substr(0, delim);
+                std::string current_arg_meta = current_arg.substr(delim + 1);
+                current_arg                  = current_arg.substr(0, delim);
 
                 delim = current_arg.find("->");
                 assert(delim != std::string::npos && "Invalid call");
@@ -233,42 +233,37 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                   std::vector<std::string> expr_parts;
 
                   while (current_arg_meta.size()) {
-                    auto start_delim = current_arg_meta.find("[");
-                    auto end_delim   = current_arg_meta.find("]");
+                    const size_t start_delim = current_arg_meta.find("[");
+                    const size_t end_delim   = current_arg_meta.find("]");
 
                     assert(start_delim != std::string::npos && "Invalid call");
                     assert(end_delim != std::string::npos && "Invalid call");
+                    assert(end_delim - start_delim - 1 > 0 && "Invalid call");
 
-                    auto size = end_delim - start_delim - 1;
-                    assert(size > 0 && "Invalid call");
-
-                    auto part        = current_arg_meta.substr(start_delim + 1, end_delim - 1);
-                    current_arg_meta = current_arg_meta.substr(end_delim + 1);
+                    const std::string part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                    current_arg_meta       = current_arg_meta.substr(end_delim + 1);
 
                     expr_parts.push_back(part);
                   }
 
                   bits_t offset = 0;
-
-                  for (auto part : expr_parts) {
+                  for (std::string part : expr_parts) {
                     delim = part.find("->");
                     assert(delim != std::string::npos && "Invalid call");
 
                     part = part.substr(0, delim);
 
-                    auto open_delim  = part.find("(");
-                    auto close_delim = part.find(")");
-
+                    const size_t open_delim = part.find("(");
                     assert(open_delim != std::string::npos && "Invalid call");
-                    assert(close_delim != std::string::npos && "Invalid call");
+                    assert(part.find(")") != std::string::npos && "Invalid call");
 
-                    auto symbol        = part.substr(0, open_delim);
-                    auto meta_expr_str = part.substr(open_delim + 1);
-                    meta_expr_str      = meta_expr_str.substr(0, meta_expr_str.size() - 1);
+                    const std::string symbol  = part.substr(0, open_delim);
+                    std::string meta_expr_str = part.substr(open_delim + 1);
+                    meta_expr_str             = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
-                    auto meta_expr = parser.parse_expr(meta_expr_str);
-                    auto meta_size = meta_expr->getWidth();
-                    auto meta      = meta_t{symbol, offset, meta_size};
+                    klee::ref<klee::Expr> meta_expr = parser.parse_expr(meta_expr_str);
+                    const bits_t meta_size          = meta_expr->getWidth();
+                    const meta_t meta               = meta_t{symbol, offset, meta_size};
 
                     offset += meta_size;
 
@@ -308,15 +303,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
       }
 
       if (current_exprs_str.size() && parenthesis_level == 0) {
-        auto last_store = current_exprs_str.back();
+        std::string &last_store = current_exprs_str.back();
         if (line.size() < last_store.size())
           last_store = last_store.substr(last_store.size() - line.size());
-        auto remainder_delim = line.find(last_store);
-        auto remainder       = line.substr(remainder_delim + last_store.size());
-        auto ret_symbol      = std::string("-> ");
-        auto ret_delim       = remainder.find(ret_symbol);
+        const size_t remainder_delim = line.find(last_store);
+        const std::string remainder  = line.substr(remainder_delim + last_store.size());
+        const std::string ret_symbol = "-> ";
+        const size_t ret_delim       = remainder.find(ret_symbol);
         if (ret_delim != std::string::npos && remainder.substr(ret_symbol.size() + 1) != "[]") {
-          auto ret = remainder.substr(ret_symbol.size() + 1);
+          const std::string ret = remainder.substr(ret_symbol.size() + 1);
           current_exprs_str.push_back(ret);
         }
       }
@@ -380,8 +375,8 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
               delim = current_arg.find("]");
               assert(delim != std::string::npos && "Invalid call");
 
-              auto current_arg_meta = current_arg.substr(delim + 1);
-              current_arg           = current_arg.substr(0, delim);
+              std::string current_arg_meta = current_arg.substr(delim + 1);
+              current_arg                  = current_arg.substr(0, delim);
 
               delim = current_arg.find("->");
               assert(delim != std::string::npos && "Invalid call");
@@ -402,42 +397,37 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                 std::vector<std::string> expr_parts;
 
                 while (current_arg_meta.size()) {
-                  auto start_delim = current_arg_meta.find("[");
-                  auto end_delim   = current_arg_meta.find("]");
+                  const size_t start_delim = current_arg_meta.find("[");
+                  const size_t end_delim   = current_arg_meta.find("]");
 
                   assert(start_delim != std::string::npos && "Invalid call");
                   assert(end_delim != std::string::npos && "Invalid call");
+                  assert(end_delim - start_delim - 1 > 0 && "Invalid call");
 
-                  auto size = end_delim - start_delim - 1;
-                  assert(size > 0 && "Invalid call");
-
-                  auto part        = current_arg_meta.substr(start_delim + 1, end_delim - 1);
-                  current_arg_meta = current_arg_meta.substr(end_delim + 1);
+                  const std::string part = current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                  current_arg_meta       = current_arg_meta.substr(end_delim + 1);
 
                   expr_parts.push_back(part);
                 }
 
                 bits_t offset = 0;
-
-                for (auto part : expr_parts) {
+                for (std::string part : expr_parts) {
                   delim = part.find("->");
                   assert(delim != std::string::npos && "Invalid call");
 
                   part = part.substr(0, delim);
 
-                  auto open_delim  = part.find("(");
-                  auto close_delim = part.find(")");
-
+                  const size_t open_delim = part.find("(");
                   assert(open_delim != std::string::npos && "Invalid call");
-                  assert(close_delim != std::string::npos && "Invalid call");
+                  assert(part.find(")") != std::string::npos && "Invalid call");
 
-                  auto symbol        = part.substr(0, open_delim);
-                  auto meta_expr_str = part.substr(open_delim + 1);
-                  meta_expr_str      = meta_expr_str.substr(0, meta_expr_str.size() - 1);
+                  const std::string symbol  = part.substr(0, open_delim);
+                  std::string meta_expr_str = part.substr(open_delim + 1);
+                  meta_expr_str             = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
-                  auto meta_expr = parser.parse_expr(meta_expr_str);
-                  auto meta_size = meta_expr->getWidth();
-                  auto meta      = meta_t{symbol, offset, meta_size};
+                  klee::ref<klee::Expr> meta_expr = parser.parse_expr(meta_expr_str);
+                  const bits_t meta_size          = meta_expr->getWidth();
+                  const meta_t meta               = meta_t{symbol, offset, meta_size};
 
                   offset += meta_size;
 
@@ -482,27 +472,27 @@ LibCore::Symbols call_paths_view_t::get_symbols() const {
   return symbols;
 }
 
-call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, LibCore::SymbolManager *_manager)
-    : manager(_manager) {
+call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, LibCore::SymbolManager *_manager) : manager(_manager) {
   for (const std::filesystem::path &fpath : call_path_files) {
     data.push_back(load_call_path(fpath, manager));
   }
 
   for (const auto &call_path : data) {
     for (const auto &expr : call_path->constraints) {
-      assert(manager->manages(expr));
+      assert_or_panic(manager->manages(expr), "Call path constraint is not managed by the symbol manager.");
     }
     for (const auto &call : call_path->calls) {
       for (const auto &arg : call.args) {
-        assert(manager->manages(arg.second.expr));
-        assert(manager->manages(arg.second.in));
-        assert(manager->manages(arg.second.out));
+        assert_or_panic(manager->manages(arg.second.expr), "Call path argument expression is not managed by the symbol manager.");
+        assert_or_panic(manager->manages(arg.second.in), "Call path argument input expression is not managed by the symbol manager.");
+        assert_or_panic(manager->manages(arg.second.out), "Call path argument output expression is not managed by the symbol manager.");
       }
       for (const auto &extra_var : call.extra_vars) {
-        assert(manager->manages(extra_var.second.first));
-        assert(manager->manages(extra_var.second.second));
+        assert_or_panic(manager->manages(extra_var.second.first), "Call path extra variable first expression is not managed by the symbol manager.");
+        assert_or_panic(manager->manages(extra_var.second.second),
+                        "Call path extra variable second expression is not managed by the symbol manager.");
       }
-      assert(manager->manages(call.ret));
+      assert_or_panic(manager->manages(call.ret), "Call path return expression is not managed by the symbol manager.");
     }
   }
 }

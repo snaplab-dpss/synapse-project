@@ -41,6 +41,18 @@ namespace LibCore {
     exit(1);                                                                                                                                         \
   } while (0)
 
+#define assert_or_panic(condition, fmt, ...)                                                                                                         \
+  do {                                                                                                                                               \
+    if (!(condition)) {                                                                                                                              \
+      panic(fmt, ##__VA_ARGS__);                                                                                                                     \
+    }                                                                                                                                                \
+  } while (0)
+
+#define not_implemented()                                                                                                                            \
+  do {                                                                                                                                               \
+    panic("FIXME: not implemented");                                                                                                                 \
+  } while (0)
+
 #ifndef NDEBUG
 constexpr const bool dbg_mode_active{true};
 #else

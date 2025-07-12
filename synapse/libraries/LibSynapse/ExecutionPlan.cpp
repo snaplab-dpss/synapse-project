@@ -504,26 +504,26 @@ void EP::debug_speculations() const {
 }
 
 void EP::assert_integrity() const {
-  std::cerr << "***** Asserting integrity of EP " << id << " ***** \n";
+  std::cerr << "***** Asserting integrity of EP " << id << " *****\n";
   std::vector<const EPNode *> nodes{root};
 
   while (nodes.size()) {
     const EPNode *node = nodes.back();
     nodes.pop_back();
 
-    assert(node && "Null node");
-    assert(node->get_module() && "Node without a module");
+    assert_or_panic(node, "Null node");
+    assert_or_panic(node->get_module(), "Node without a module");
 
     const Module *module         = node->get_module();
     const LibBDD::Node *bdd_node = module->get_node();
-    assert(bdd_node && "Module without a node");
+    assert_or_panic(bdd_node, "Module without a node");
 
     const LibBDD::Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-    assert(bdd_node == found_bdd_node && "Node not found in the BDD");
+    assert_or_panic(bdd_node == found_bdd_node, "Node not found in the BDD");
 
     for (const EPNode *child : node->get_children()) {
-      assert(child && "Null child");
-      assert(child->get_prev() == node && "Child without the correct parent");
+      assert_or_panic(child, "Null child");
+      assert_or_panic(child->get_prev() == node, "Child without the correct parent");
       nodes.push_back(child);
     }
   }
@@ -531,19 +531,19 @@ void EP::assert_integrity() const {
   for (const auto &[target, roots] : targets_roots) {
     for (const LibBDD::node_id_t root_id : roots) {
       const LibBDD::Node *bdd_node = bdd->get_node_by_id(root_id);
-      assert(bdd_node && "Root node not found in the BDD");
+      assert_or_panic(bdd_node, "Root node not found in the BDD");
 
       const LibBDD::Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-      assert(bdd_node == found_bdd_node && "Root node not found in the BDD");
+      assert_or_panic(bdd_node == found_bdd_node, "Root node not found in the BDD");
     }
   }
 
   for (const EPLeaf &leaf : active_leaves) {
     const LibBDD::Node *next = leaf.next;
-    assert(next && "Active leaf without a next node");
+    assert_or_panic(next, "Active leaf without a next node");
 
     const LibBDD::Node *found_next = bdd->get_node_by_id(next->get_id());
-    assert(next == found_next && "Next node not found in the BDD");
+    assert_or_panic(next == found_next, "Next node not found in the BDD");
   }
 
   const LibBDD::BDD::inspection_report_t bdd_inspection_report = bdd->inspect();

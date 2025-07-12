@@ -79,18 +79,12 @@ port_ingress_t &port_ingress_t::operator=(const port_ingress_t &other) {
 }
 
 port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
-  assert(other.global >= 0 && "Global hit rate must be non-negative");
-  assert(other.global <= 1 && "Global hit rate must be at most 1");
-
   global     = global + other.global;
   controller = controller + other.controller;
 
   for (const auto &[rport_depth_pair, hr] : other.recirc) {
-    const int rport = rport_depth_pair.first;
-    const int depth = rport_depth_pair.second;
-
-    assert(rport >= 0 && "Recirculation port must be non-negative");
-    assert(depth >= 1 && "Recirculation depth must be at least 1");
+    assert(rport_depth_pair.first >= 0 && "Recirculation port must be non-negative");
+    assert(rport_depth_pair.second >= 1 && "Recirculation depth must be at least 1");
 
     if (recirc.find(rport_depth_pair) == recirc.end()) {
       recirc.insert({rport_depth_pair, hr});

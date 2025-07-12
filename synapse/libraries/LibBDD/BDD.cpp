@@ -145,7 +145,7 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
 
     klee::ref<klee::Expr> zero    = LibCore::solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
     klee::ref<klee::Expr> eq_zero = LibCore::solver_toolbox.exprBuilder->Eq(call.ret, zero);
-    bool is_ret_success           = LibCore::solver_toolbox.is_expr_always_false(cp->constraints, eq_zero);
+    const bool is_ret_success     = LibCore::solver_toolbox.is_expr_always_false(cp->constraints, eq_zero);
 
     if (is_ret_success) {
       return call;
@@ -781,7 +781,7 @@ Node *BDD::delete_non_branch(node_id_t target_id) {
     const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
+    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_current);
@@ -834,7 +834,7 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
     const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    assert((on_true == anchor_next || on_false == anchor_next) && "No connection");
+    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_current);
@@ -892,7 +892,7 @@ Node *BDD::add_cloned_non_branches(node_id_t target_id, const std::vector<const 
       const Node *on_true  = branch->get_on_true();
       const Node *on_false = branch->get_on_false();
 
-      assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
+      assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection found");
 
       if (on_true == anchor_next) {
         branch->set_on_true(clone);
@@ -951,7 +951,7 @@ Branch *BDD::add_cloned_branch(node_id_t target_id, klee::ref<klee::Expr> condit
     const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
+    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection found");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_branch);
@@ -998,7 +998,7 @@ Call *BDD::add_new_symbol_generator_function(node_id_t target_id, const std::str
     const Node *on_true  = branch->get_on_true();
     const Node *on_false = branch->get_on_false();
 
-    assert((on_true == anchor_next || on_false == anchor_next) && "No connection found");
+    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection found");
 
     if (on_true == anchor_next) {
       branch->set_on_true(new_node);

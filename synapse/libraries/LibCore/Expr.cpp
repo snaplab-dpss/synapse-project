@@ -1158,8 +1158,7 @@ std::vector<expr_group_t> get_expr_groups_from_condition(klee::ref<klee::Expr> e
 
   auto process_not_read_not_conditional = [&groups](klee::ref<klee::Expr> target_expr) {
     assert(target_expr->getKind() != klee::Expr::Read && "Non read is actually a read");
-    const bits_t size = target_expr->getWidth();
-    assert(size % 8 == 0 && "Not a byte aligned expr");
+    assert(target_expr->getWidth() % 8 == 0 && "Not a byte aligned expr");
   };
 
   if (expr->getKind() == klee::Expr::Extract) {

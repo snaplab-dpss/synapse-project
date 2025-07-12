@@ -55,8 +55,8 @@ std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee
     const bool lhs_is_readLSB = LibCore::is_readLSB(lhs);
     const bool rhs_is_readLSB = LibCore::is_readLSB(rhs);
 
-    assert((lhs_is_readLSB || rhs_is_readLSB) && "Not implemented");
-    assert((lhs_is_readLSB != rhs_is_readLSB) && "Not implemented");
+    assert_or_panic((lhs_is_readLSB || rhs_is_readLSB), "Not implemented");
+    assert_or_panic((lhs_is_readLSB != rhs_is_readLSB), "Not implemented");
 
     klee::ref<klee::Expr> target = lhs_is_readLSB ? lhs : rhs;
     assert((selection.target.isNull() || LibCore::solver_toolbox.are_exprs_always_equal(selection.target, target)) && "Not implemented");
@@ -66,10 +66,10 @@ std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee
 
     const bool lhs_is_target = LibCore::solver_toolbox.are_exprs_always_equal(lhs, target);
     const bool rhs_is_target = LibCore::solver_toolbox.are_exprs_always_equal(rhs, target);
-    assert((lhs_is_target || rhs_is_target) && "Not implemented");
+    assert_or_panic((lhs_is_target || rhs_is_target), "Not implemented");
 
     klee::ref<klee::Expr> value_expr = lhs_is_target ? rhs : lhs;
-    assert(LibCore::is_constant(value_expr) && "Not implemented");
+    assert_or_panic(LibCore::is_constant(value_expr), "Not implemented");
 
     selection.values.push_back(value_expr);
   } break;
@@ -114,27 +114,30 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const Lib
   assert(on_true && "Branch node without on_true");
   assert(on_false && "Branch node without on_false");
 
-  std::vector<const LibBDD::Call *> on_true_borrows  = on_true->get_future_functions({"packet_borrow_next_chunk"}, true);
-  std::vector<const LibBDD::Call *> on_false_borrows = on_false->get_future_functions({"packet_borrow_next_chunk"}, true);
+  const std::vector<const LibBDD::Call *> on_true_borrows  = on_true->get_future_functions({"packet_borrow_next_chunk"}, true);
+  const std::vector<const LibBDD::Call *> on_false_borrows = on_false->get_future_functions({"packet_borrow_next_chunk"}, true);
 
-  // We are working under the assumption that before parsing a header we
-  // always perform some kind of checking.
-  assert((on_true_borrows.size() > 0 || on_false_borrows.size() > 0) && "Not implemented");
+  // We are working under the assumption that before parsing a header we always perform some kind of checking.
+  if (!(on_true_borrows.size() > 0 || on_false_borrows.size() > 0)) {
+    not_implemented();
+  }
 
   if (on_true_borrows.size() != on_false_borrows.size()) {
     const LibBDD::Node *conditional_borrow   = on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
     const LibBDD::Node *not_conditional_path = on_true_borrows.size() > on_false_borrows.size() ? on_false : on_true;
 
-    // Missing implementation of discriminating parsing between multiple
-    // headers.
-    // Right now we are assuming that either we parse the target header, or we
-    // drop the packet.
-    assert(not_conditional_path->is_packet_drop_code_path() && "Not implemented");
+    // Missing implementation of discriminating parsing between multiple headers.
+    // Right now we are assuming that either we parse the target header, or we drop the packet.
+    if (!not_conditional_path->is_packet_drop_code_path()) {
+      not_implemented();
+    }
 
     // Relevant for IPv4 options, but left for future work.
     if (conditional_borrow->get_type() == LibBDD::NodeType::Call) {
       const LibBDD::Call *cb = dynamic_cast<const LibBDD::Call *>(conditional_borrow);
-      assert(!cb->is_hdr_parse_with_var_len() && "Not implemented");
+      if (cb->is_hdr_parse_with_var_len()) {
+        not_implemented();
+      }
     }
   }
 

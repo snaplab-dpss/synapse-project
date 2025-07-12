@@ -276,17 +276,17 @@ branch_direction_t Call::find_branch_checking_index_alloc() const {
     klee::ref<klee::Expr> success_condition = LibCore::solver_toolbox.exprBuilder->Ne(
         not_out_of_space.expr, LibCore::solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
 
-    assert(index_alloc_check.branch->get_on_true() && "No on_true");
-    assert(index_alloc_check.branch->get_on_false() && "No on_false");
+    assert_or_panic(index_alloc_check.branch->get_on_true(), "No on_true");
+    assert_or_panic(index_alloc_check.branch->get_on_false(), "No on_false");
 
     const Node *on_true  = index_alloc_check.branch->get_on_true();
     const Node *on_false = index_alloc_check.branch->get_on_false();
 
-    bool success_on_true  = LibCore::solver_toolbox.is_expr_always_true(on_true->get_constraints(), success_condition);
-    bool success_on_false = LibCore::solver_toolbox.is_expr_always_true(on_false->get_constraints(), success_condition);
+    const bool success_on_true  = LibCore::solver_toolbox.is_expr_always_true(on_true->get_constraints(), success_condition);
+    const bool success_on_false = LibCore::solver_toolbox.is_expr_always_true(on_false->get_constraints(), success_condition);
 
-    assert((success_on_true || success_on_false) && "No branch side is successful");
-    assert((success_on_true ^ success_on_false) && "Both branch sides have the same success condition");
+    assert_or_panic((success_on_true || success_on_false), "No branch side is successful");
+    assert_or_panic((success_on_true ^ success_on_false), "Both branch sides have the same success condition");
 
     index_alloc_check.direction = success_on_true;
   }

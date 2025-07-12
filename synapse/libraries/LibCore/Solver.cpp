@@ -1,5 +1,6 @@
 #include <LibCore/Solver.h>
 #include <LibCore/Expr.h>
+#include <LibCore/Debug.h>
 
 namespace LibCore {
 
@@ -19,9 +20,10 @@ bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
 bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result  = false;
-  bool success = solver->mustBeTrue(sat_query, result);
-  assert(success && "Failed to check if expr is always true");
+  bool result = false;
+  if (!solver->mustBeTrue(sat_query, result)) {
+    panic("Solver internal error");
+  }
 
   return result;
 }
@@ -29,9 +31,10 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
 bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result  = false;
-  bool success = solver->mayBeTrue(sat_query, result);
-  assert(success && "Failed to check if expr is maybe true");
+  bool result = false;
+  if (!solver->mayBeTrue(sat_query, result)) {
+    panic("Solver internal error");
+  }
 
   return result;
 }
@@ -39,9 +42,10 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
 bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result  = false;
-  bool success = solver->mayBeFalse(sat_query, result);
-  assert(success && "Failed to check if expr is maybe false");
+  bool result = false;
+  if (!solver->mayBeFalse(sat_query, result)) {
+    panic("Solver internal error");
+  }
 
   return result;
 }
@@ -51,16 +55,16 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::re
   klee::ref<klee::Expr> eq_expr = exprBuilder->Eq(e1, e2);
 
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
-  klee::Query eq_in_e2_ctx_sat_query(c2, eq_expr);
-
   bool eq_in_e1_ctx = false;
+  if (!solver->mustBeTrue(eq_in_e1_ctx_sat_query, eq_in_e1_ctx)) {
+    panic("Solver internal error");
+  }
+
+  klee::Query eq_in_e2_ctx_sat_query(c2, eq_expr);
   bool eq_in_e2_ctx = false;
-
-  bool eq_in_e1_ctx_success = solver->mustBeTrue(eq_in_e1_ctx_sat_query, eq_in_e1_ctx);
-  bool eq_in_e2_ctx_success = solver->mustBeTrue(eq_in_e2_ctx_sat_query, eq_in_e2_ctx);
-
-  assert(eq_in_e1_ctx_success && "Failed to check if exprs are always equal");
-  assert(eq_in_e2_ctx_success && "Failed to check if exprs are always equal");
+  if (!solver->mustBeTrue(eq_in_e2_ctx_sat_query, eq_in_e2_ctx)) {
+    panic("Solver internal error");
+  }
 
   return eq_in_e1_ctx && eq_in_e2_ctx;
 }
@@ -70,16 +74,16 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1, klee
   klee::ref<klee::Expr> eq_expr = exprBuilder->Eq(e1, e2);
 
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
-  klee::Query eq_in_e2_ctx_sat_query(c2, eq_expr);
-
   bool not_eq_in_e1_ctx = false;
+  if (!solver->mustBeFalse(eq_in_e1_ctx_sat_query, not_eq_in_e1_ctx)) {
+    panic("Solver internal error");
+  }
+
+  klee::Query eq_in_e2_ctx_sat_query(c2, eq_expr);
   bool not_eq_in_e2_ctx = false;
-
-  bool not_eq_in_e1_ctx_success = solver->mustBeFalse(eq_in_e1_ctx_sat_query, not_eq_in_e1_ctx);
-  bool not_eq_in_e2_ctx_success = solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx);
-
-  assert(not_eq_in_e1_ctx_success && "Failed to check if exprs are always equal");
-  assert(not_eq_in_e2_ctx_success && "Failed to check if exprs are always equal");
+  if (!solver->mustBeFalse(eq_in_e2_ctx_sat_query, not_eq_in_e2_ctx)) {
+    panic("Solver internal error");
+  }
 
   return not_eq_in_e1_ctx && not_eq_in_e2_ctx;
 }
@@ -92,9 +96,10 @@ bool solver_toolbox_t::is_expr_always_false(klee::ref<klee::Expr> expr) const {
 bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
-  bool result  = false;
-  bool success = solver->mustBeFalse(sat_query, result);
-  assert(success && "Failed to check if expr is always false");
+  bool result = false;
+  if (!solver->mustBeFalse(sat_query, result)) {
+    panic("Solver internal error");
+  }
 
   return result;
 }
@@ -134,8 +139,9 @@ bool solver_toolbox_t::strict_value_from_expr(klee::ref<klee::Expr> expr, u64 &v
   klee::Query sat_query(no_constraints, expr);
 
   klee::ref<klee::ConstantExpr> value_expr;
-  bool success = solver->getValue(sat_query, value_expr);
-  assert(success && "Failed to get value from expr");
+  if (!solver->getValue(sat_query, value_expr)) {
+    panic("Solver internal error");
+  }
 
   value = value_expr->getZExtValue();
 
@@ -150,7 +156,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
   assert(expr->getWidth() <= 64 && "Width too big");
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    auto constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
     return constant_expr->getZExtValue();
   }
 
@@ -162,31 +168,32 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(no_constraints, expr);
 
   klee::ref<klee::ConstantExpr> value_expr;
-  bool success = solver->getValue(sat_query, value_expr);
-  assert(success && "Failed to get value from expr");
+  if (!solver->getValue(sat_query, value_expr)) {
+    panic("Solver internal error");
+  }
 
-  u64 res = value_expr->getZExtValue();
-  return res;
+  return value_expr->getZExtValue();
 }
 
 u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    auto constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
     return constant_expr->getZExtValue();
   }
 
   klee::Query sat_query(constraints, expr);
 
   klee::ref<klee::ConstantExpr> value_expr;
-  bool success = solver->getValue(sat_query, value_expr);
-  assert(success && "Failed to get value from expr");
+  if (!solver->getValue(sat_query, value_expr)) {
+    panic("Solver internal error");
+  }
 
   return value_expr->getZExtValue();
 }
 
 int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
   klee::Expr::Width width = expr->getWidth();
-  u64 value               = solver_toolbox.value_from_expr(expr, constraints);
+  const u64 value         = solver_toolbox.value_from_expr(expr, constraints);
 
   u64 mask = 0;
   for (u64 i = 0u; i < width; i++) {
