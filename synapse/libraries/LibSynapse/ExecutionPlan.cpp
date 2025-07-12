@@ -504,6 +504,7 @@ void EP::debug_speculations() const {
 }
 
 void EP::assert_integrity() const {
+  std::cerr << "***** Asserting integrity of EP " << id << " ***** \n";
   std::vector<const EPNode *> nodes{root};
 
   while (nodes.size()) {

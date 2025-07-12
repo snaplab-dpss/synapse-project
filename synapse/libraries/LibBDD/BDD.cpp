@@ -1270,8 +1270,16 @@ BDD::inspection_report_t BDD::inspect() const {
 
   inspection_report_t report                                 = {InspectionStatus::Ok, "Ok"};
   const std::unordered_set<std::string> symbols_always_known = {"DEVICE", "pkt_len", "next_time", "packet_chunks"};
+  std::unordered_set<const Node *> visited_nodes;
 
-  root->visit_nodes([&report, &symbols_always_known](const Node *node) {
+  root->visit_nodes([&report, &symbols_always_known, &visited_nodes](const Node *node) {
+    if (visited_nodes.find(node) != visited_nodes.end()) {
+      report = {InspectionStatus::HasCycle, "Has cycle in the BDD"};
+      return NodeVisitAction::Stop;
+    }
+
+    visited_nodes.insert(node);
+
     if (!node) {
       report = {InspectionStatus::HasNullNode, "Has null node"};
       return NodeVisitAction::Stop;

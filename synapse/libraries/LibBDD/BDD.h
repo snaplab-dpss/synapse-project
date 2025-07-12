@@ -56,7 +56,17 @@ public:
   void deserialize(const std::filesystem::path &fpath);
   int get_node_depth(node_id_t id) const;
 
-  enum class InspectionStatus { Ok, MissingRootNode, HasNullNode, BranchWithoutChildren, BrokenLink, MissingSymbol, DanglingInitNode };
+  enum class InspectionStatus {
+    Ok,
+    MissingRootNode,
+    HasNullNode,
+    BranchWithoutChildren,
+    BrokenLink,
+    MissingSymbol,
+    DanglingInitNode,
+    HasCycle,
+  };
+
   struct inspection_report_t {
     InspectionStatus status;
     std::string message;

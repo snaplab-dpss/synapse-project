@@ -246,7 +246,6 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
   new_ep->process_leaf(guard_check_ep_node, {then_leaf, else_leaf});
 
   new_ep->replace_bdd(std::move(new_bdd));
-  new_ep->assert_integrity();
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

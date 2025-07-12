@@ -90,7 +90,10 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep) {
     assert(!new_bdd.op2.has_value() && "Not supported");
 
     new_ep->replace_bdd(std::move(new_bdd.bdd), translation_data);
-    new_ep->assert_integrity();
+
+    if (LibCore::dbg_mode_active) {
+      new_ep->assert_integrity();
+    }
 
     reordered.push_back(std::move(new_ep));
   }
@@ -115,6 +118,9 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const LibBDD::Node *n
 
   std::vector<impl_t> implementations;
   for (impl_t &internal_decision : process_node(ep, node, symbol_manager)) {
+    if (LibCore::dbg_mode_active) {
+      internal_decision.result->assert_integrity();
+    }
     implementations.push_back(std::move(internal_decision));
   }
 

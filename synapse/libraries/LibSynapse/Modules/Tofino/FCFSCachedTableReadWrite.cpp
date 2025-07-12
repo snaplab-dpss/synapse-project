@@ -249,7 +249,6 @@ std::unique_ptr<EP> concretize_cached_table_cond_write(const EP *ep, const LibBD
 
   new_ep->process_leaf(cached_table_cond_write_node, {on_cache_write_success_leaf, on_cache_write_failed_leaf});
   new_ep->replace_bdd(std::move(new_bdd));
-  new_ep->assert_integrity();
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));

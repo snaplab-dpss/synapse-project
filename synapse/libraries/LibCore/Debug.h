@@ -41,4 +41,10 @@ namespace LibCore {
     exit(1);                                                                                                                                         \
   } while (0)
 
+#ifndef NDEBUG
+constexpr const bool dbg_mode_active{true};
+#else
+constexpr const bool dbg_mode_active{false};
+#endif
+
 } // namespace LibCore

@@ -172,7 +172,6 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   new_ep->process_leaf(ep_node, {leaf});
 
   new_ep->replace_bdd(std::move(new_bdd));
-  new_ep->assert_integrity();
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));
