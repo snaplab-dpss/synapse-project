@@ -9,13 +9,13 @@ using LibCore::pretty_print_expr;
 using LibCore::solver_toolbox;
 
 namespace {
-constexpr const char *const COLOR_PROCESSED = "gray";
-constexpr const char *const COLOR_NEXT      = "cyan";
-constexpr const char *const COLOR_CALL      = "cornflowerblue";
-constexpr const char *const COLOR_BRANCH    = "yellow";
-constexpr const char *const COLOR_FORWARD   = "chartreuse2";
-constexpr const char *const COLOR_DROP      = "brown1";
-constexpr const char *const COLOR_BROADCAST = "purple";
+constexpr const TreeViz::Color COLOR_PROCESSED = TreeViz::Color::Gray;
+constexpr const TreeViz::Color COLOR_NEXT      = TreeViz::Color::Cyan;
+constexpr const TreeViz::Color COLOR_CALL      = TreeViz::Color::CornflowerBlue;
+constexpr const TreeViz::Color COLOR_BRANCH    = TreeViz::Color::Yellow;
+constexpr const TreeViz::Color COLOR_FORWARD   = TreeViz::Color::Chartreuse2;
+constexpr const TreeViz::Color COLOR_DROP      = TreeViz::Color::Brown1;
+constexpr const TreeViz::Color COLOR_BROADCAST = TreeViz::Color::Purple;
 
 void log_visualization(const BDD *bdd, const std::string &fname) {
   std::cerr << "Visualizing BDD";
@@ -26,19 +26,24 @@ void log_visualization(const BDD *bdd, const std::string &fname) {
 }
 } // namespace
 
-BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts) : Graphviz(_opts.fname), opts(_opts) {}
+BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts)
+    : call_node(TreeViz::Node(COLOR_CALL, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})),
+      branch_node(TreeViz::Node(COLOR_BRANCH, TreeViz::Shape::Octagon, 0, {TreeViz::Style::Filled})),
+      forward_node(TreeViz::Node(COLOR_FORWARD, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})),
+      drop_node(TreeViz::Node(COLOR_DROP, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})),
+      broadcast_node(TreeViz::Node(COLOR_BROADCAST, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})), opts(_opts), treeviz(_opts.fname) {}
 
-BDDViz::BDDViz() : Graphviz() {}
+BDDViz::BDDViz() : BDDViz(bdd_visualizer_opts_t()) {}
 
-std::string BDDViz::get_color(const BDDNode *node) const {
-  bdd_node_id_t id = node->get_id();
+TreeViz::Color BDDViz::get_color(const BDDNode *node) const {
+  const bdd_node_id_t id = node->get_id();
 
   if (opts.colors_per_node.find(id) != opts.colors_per_node.end()) {
     return opts.colors_per_node.at(id);
   }
 
-  if (opts.default_color.first) {
-    return opts.default_color.second;
+  if (opts.default_color.has_value()) {
+    return opts.default_color.value();
   }
 
   if (opts.processed.nodes.find(id) != opts.processed.nodes.end()) {
@@ -49,244 +54,217 @@ std::string BDDViz::get_color(const BDDNode *node) const {
     return COLOR_NEXT;
   }
 
-  std::string color;
-
   switch (node->get_type()) {
-  case BDDNodeType::Call: {
-    color = COLOR_CALL;
-  } break;
-  case BDDNodeType::Branch: {
-    color = COLOR_BRANCH;
-  } break;
+  case BDDNodeType::Call:
+    return COLOR_CALL;
+  case BDDNodeType::Branch:
+    return COLOR_BRANCH;
   case BDDNodeType::Route: {
-    const Route *route = dynamic_cast<const Route *>(node);
-    RouteOp operation  = route->get_operation();
+    const Route *route      = dynamic_cast<const Route *>(node);
+    const RouteOp operation = route->get_operation();
     switch (operation) {
     case RouteOp::Forward:
-      color = COLOR_FORWARD;
-      break;
+      return COLOR_FORWARD;
     case RouteOp::Drop:
-      color = COLOR_DROP;
-      break;
+      return COLOR_DROP;
     case RouteOp::Broadcast:
-      color = COLOR_BROADCAST;
-      break;
+      return COLOR_BROADCAST;
     }
-  } break;
+  }
   }
 
-  return color;
+  return TreeViz::Color::Gray; // Default color if none matched
 }
 
 void BDDViz::visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts) {
   assert(bdd && "Invalid BDD");
-  BDDViz visualizer(opts);
-  visualizer.visit(bdd);
-  log_visualization(bdd, visualizer.fpath);
-  visualizer.show(interrupt);
+  BDDViz bddviz(opts);
+  bddviz.visit(bdd);
+  log_visualization(bdd, bddviz.treeviz.get_file_path().string());
+  bddviz.show(interrupt);
 }
 
 void BDDViz::dump_to_file(const BDD *bdd, const std::filesystem::path &file_name) {
   assert(bdd && "Invalid BDD");
-  BDDViz visualizer;
-  visualizer.fpath = file_name;
-  visualizer.visit(bdd);
-  visualizer.write();
+  bdd_visualizer_opts_t opts;
+  opts.fname = file_name;
+  BDDViz bddviz(opts);
+  bddviz.visit(bdd);
+  bddviz.treeviz.write();
 }
 
 void BDDViz::visit(const BDD *bdd) {
   assert(bdd && "Invalid BDD");
-  const BDDNode *root = bdd->get_root();
-
-  ss << "digraph mygraph {\n";
-  ss << "\tnode [shape=box, style=\"rounded,filled\", border=0];\n";
-  visitRoot(root);
-  ss << "}";
+  visitRoot(bdd->get_root());
 }
 
 BDDVisitor::Action BDDViz::visit(const Branch *node) {
-  const BDDNode *on_true  = node->get_on_true();
-  const BDDNode *on_false = node->get_on_false();
-
   klee::ref<klee::Expr> condition = node->get_condition();
+  const BDDNode *on_true          = node->get_on_true();
+  const BDDNode *on_false         = node->get_on_false();
 
-  if (on_true)
-    on_true->visit(*this);
-  if (on_false)
-    on_false->visit(*this);
+  TreeViz::Node tree_node = branch_node;
+  tree_node.id            = get_gv_name(node);
+  tree_node.color         = get_color(node);
 
-  ss << "\t" << get_gv_name(node);
-  ss << " [shape=Mdiamond, label=\"";
-
-  ss << node->get_id() << ":";
-  ss << pretty_print_expr(condition);
-
+  std::stringstream label;
+  label << node->get_id() << ":" << pretty_print_expr(condition);
   if (opts.annotations_per_node.find(node->get_id()) != opts.annotations_per_node.end()) {
-    ss << "\\n";
-    ss << opts.annotations_per_node.at(node->get_id());
+    label << "\\n";
+    label << opts.annotations_per_node.at(node->get_id());
   }
 
-  ss << "\"";
-
-  ss << ", fillcolor=\"" << get_color(node) << "\"";
-  ss << "];\n";
+  tree_node.label = label.str();
+  treeviz.add_node(tree_node);
 
   if (on_true) {
-    ss << "\t" << get_gv_name(node);
-    ss << " -> ";
-    ss << get_gv_name(on_true);
-    ss << " [label=\"True\"];\n";
+    treeviz.add_edge(get_gv_name(node), get_gv_name(on_true), "True");
   }
 
   if (on_false) {
-    ss << "\t" << get_gv_name(node);
-    ss << " -> ";
-    ss << get_gv_name(on_false);
-    ss << " [label=\"False\"];\n";
+    treeviz.add_edge(get_gv_name(node), get_gv_name(on_false), "False");
   }
 
-  return BDDVisitor::Action::Stop;
+  return BDDVisitor::Action::Continue;
 }
 
 BDDVisitor::Action BDDViz::visit(const Call *node) {
-  const call_t &call  = node->get_call();
-  bdd_node_id_t id    = node->get_id();
-  const BDDNode *next = node->get_next();
+  const call_t &call     = node->get_call();
+  const bdd_node_id_t id = node->get_id();
+  const BDDNode *next    = node->get_next();
 
-  if (next) {
-    next->visit(*this);
-  }
+  TreeViz::Node tree_node = call_node;
+  tree_node.id            = get_gv_name(node);
+  tree_node.color         = get_color(node);
 
-  ss << "\t" << get_gv_name(node);
-  ss << " [label=\"";
-  ss << id << ":";
-  ss << call.function_name;
-  ss << "(";
+  std::stringstream label;
+  label << id << ":";
+  label << call.function_name;
+  label << "(";
 
   size_t i = 0;
   for (const auto &[name, arg] : call.args) {
     if (call.args.size() > 1) {
-      ss << "\\l";
-      ss << std::string(2, ' ');
+      label << "\\l";
+      label << std::string(2, ' ');
     }
 
-    ss << name << ":";
+    label << name << ":";
 
     if (arg.fn_ptr_name.first) {
-      ss << arg.fn_ptr_name.second;
+      label << arg.fn_ptr_name.second;
     } else {
-      ss << pretty_print_expr(arg.expr, false);
+      label << pretty_print_expr(arg.expr, false);
 
       if (!arg.in.isNull() || !arg.out.isNull()) {
-        ss << "[";
+        label << "[";
 
         if (!arg.in.isNull()) {
-          ss << pretty_print_expr(arg.in, false);
+          label << pretty_print_expr(arg.in, false);
         }
 
         if (!arg.out.isNull() && (arg.in.isNull() || !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
-          ss << " -> ";
-          ss << pretty_print_expr(arg.out, false);
+          label << " -> ";
+          label << pretty_print_expr(arg.out, false);
         }
 
-        ss << "]";
+        label << "]";
       }
     }
 
     if (i != call.args.size() - 1) {
-      ss << ",";
+      label << ",";
     }
 
     i++;
   }
 
-  ss << ")";
+  label << ")";
 
   if (!call.ret.isNull()) {
-    ss << " -> " << pretty_print_expr(call.ret);
+    label << " -> " << pretty_print_expr(call.ret);
   }
 
   const Symbols &symbols = node->get_local_symbols();
   if (symbols.size()) {
-    ss << "\\l=>{";
+    label << "\\l=>{";
     bool first = true;
     for (const symbol_t &s : symbols.get()) {
       if (!first) {
-        ss << ",";
+        label << ",";
       } else {
         first = false;
       }
-      ss << s.name;
+      label << s.name;
     }
-    ss << "}";
+    label << "}";
   }
 
   if (opts.annotations_per_node.find(node->get_id()) != opts.annotations_per_node.end()) {
-    ss << "\\l";
-    ss << opts.annotations_per_node.at(node->get_id());
+    label << "\\l";
+    label << opts.annotations_per_node.at(node->get_id());
   }
 
-  ss << "\"";
-
-  ss << ", fillcolor=\"" << get_color(node) << "\"";
-  ss << "];\n";
+  tree_node.label = label.str();
+  treeviz.add_node(tree_node);
 
   if (next) {
-    ss << "\t" << get_gv_name(node);
-    ss << " -> ";
-    ss << get_gv_name(next);
-    ss << ";\n";
+    treeviz.add_edge(get_gv_name(node), get_gv_name(next));
   }
 
-  return BDDVisitor::Action::Stop;
+  return BDDVisitor::Action::Continue;
 }
 
 BDDVisitor::Action BDDViz::visit(const Route *node) {
-  bdd_node_id_t id                 = node->get_id();
+  const bdd_node_id_t id           = node->get_id();
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
-  RouteOp operation                = node->get_operation();
+  const RouteOp operation          = node->get_operation();
   const BDDNode *next              = node->get_next();
 
-  if (next) {
-    next->visit(*this);
+  TreeViz::Node tree_node = forward_node;
+  switch (operation) {
+  case RouteOp::Forward:
+    tree_node = forward_node;
+    break;
+  case RouteOp::Drop:
+    tree_node = drop_node;
+    break;
+  case RouteOp::Broadcast:
+    tree_node = broadcast_node;
+    break;
   }
+  tree_node.id    = get_gv_name(node);
+  tree_node.color = get_color(node);
 
-  ss << "\t" << get_gv_name(node);
-  ss << " [label=\"";
-  ss << id << ":";
-
+  std::stringstream label;
+  label << id << ":";
   switch (operation) {
   case RouteOp::Forward: {
-    ss << "fwd(" << pretty_print_expr(dst_device, false) << ")";
+    label << "fwd(" << pretty_print_expr(dst_device, false) << ")";
     break;
   }
   case RouteOp::Drop: {
-    ss << "drop()";
+    label << "drop()";
     break;
   }
   case RouteOp::Broadcast: {
-    ss << "bcast()";
+    label << "bcast()";
     break;
   }
   }
 
   if (opts.annotations_per_node.find(id) != opts.annotations_per_node.end()) {
-    ss << "\\l";
-    ss << opts.annotations_per_node.at(id);
+    label << "\\l";
+    label << opts.annotations_per_node.at(id);
   }
-
-  ss << "\"";
-  ss << ", fillcolor=\"" << get_color(node) << "\"";
-  ss << "];\n";
+  tree_node.label = label.str();
+  treeviz.add_node(tree_node);
 
   if (next) {
-    ss << "\t" << get_gv_name(node);
-    ss << " -> ";
-    ss << get_gv_name(next);
-    ss << ";\n";
+    treeviz.add_edge(get_gv_name(node), get_gv_name(next));
   }
 
-  return BDDVisitor::Action::Stop;
+  return BDDVisitor::Action::Continue;
 }
 
 void BDDViz::visitRoot(const BDDNode *root) { root->visit(*this); }

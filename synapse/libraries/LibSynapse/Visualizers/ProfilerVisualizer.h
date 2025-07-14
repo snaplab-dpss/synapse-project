@@ -25,9 +25,8 @@ public:
     bdd_visualizer_opts_t opts;
 
     opts.colors_per_node      = get_colors_per_node(hrpn);
-    opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
-    opts.default_color.second = fraction_to_color(0_hr);
+    opts.default_color        = fraction_to_color(0_hr);
 
     BDDViz::visualize(bdd, interrupt, opts);
   }
